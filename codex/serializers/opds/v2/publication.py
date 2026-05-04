@@ -61,6 +61,11 @@ class OPDS2BelongsTo(Serializer):
         read_only=True,
         required=False,
     )
+    volume = ListField(
+        child=OPDS2BelongsToObjectSerializer(read_only=True),
+        read_only=True,
+        required=False,
+    )
 
 
 class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
@@ -92,13 +97,13 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     artist = OPDS2ContributorSerializer(many=True, required=False)
     illustrator = OPDS2ContributorSerializer(many=True, required=False)
     letterer = OPDS2ContributorSerializer(many=True, required=False)
-    peniciller = OPDS2ContributorSerializer(many=True, required=False)
+    penciller = OPDS2ContributorSerializer(many=True, required=False)
     colorist = OPDS2ContributorSerializer(many=True, required=False)
     inker = OPDS2ContributorSerializer(many=True, required=False)
     narrator = OPDS2ContributorSerializer(many=True, required=False)
     contributor = OPDS2ContributorSerializer(many=True, required=False)
-    publisher = CharField(read_only=True, required=False)
-    imprint = CharField(read_only=True, required=False)
+    publisher = OPDS2ContributorSerializer(required=False)
+    imprint = OPDS2ContributorSerializer(required=False)
     subject = OPDS2SubjectSerializer(many=True, required=False)
     layout = CharField(read_only=True, required=False)
     reading_progression = CharField(read_only=True, required=False)  # choice field

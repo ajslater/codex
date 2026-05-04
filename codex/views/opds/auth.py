@@ -18,10 +18,14 @@ class OPDSAuthMixin(AuthMixin):
         BearerTokenAuthentication,
         SessionAuthentication,
     )
+    # Class-level default doubles as the unmemoized sentinel so
+    # subclasses don't need to redeclare. Lazily resolved on first
+    # access via ``user_agent_name``.
+    _user_agent_name: str | None = None
 
     @property
     def user_agent_name(self) -> str:
         """Memoize user agent name."""
-        if self._user_agent_name is None:  # pyright: ignore[reportUnnecessaryComparison]
-            self._user_agent_name = get_user_agent_name(self.request)  # pyright: ignore[reportUninitializedInstanceVariable]
+        if self._user_agent_name is None:
+            self._user_agent_name = get_user_agent_name(self.request)
         return self._user_agent_name

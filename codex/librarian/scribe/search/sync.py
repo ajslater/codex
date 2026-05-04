@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from math import floor
-from time import time
+from time import monotonic
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -41,7 +41,6 @@ _SIMPLE_FTS_FIELDS = (
     "imprint",
     "series",
     # Fks
-    "age_rating",
     "country",
     "original_format",
     "language",
@@ -49,28 +48,37 @@ _SIMPLE_FTS_FIELDS = (
     "tagger",
 )
 _SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
-    {f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS}
-)
-_M2M_FTS_RELS = (
-    "characters",
-    "credits__person",
-    "genres",
-    "locations",
-    "series_groups",
-    "identifiers__source",
-    "stories",
-    "story_arc_numbers__story_arc",
-    "tags",
-    "teams",
-)
-_M2M_FTS_ANNOTATIONS = MappingProxyType(
     {
-        f"fts_{rel}": GroupConcat(
-            f"{rel}__name",
-            order_by=f"{rel}__name",
-            distinct=True,
-        )
-        for rel in _M2M_FTS_RELS
+        **{f"fts_{rel}": F(f"{rel}__name") for rel in _SIMPLE_FTS_FIELDS},
+        # The Comic.age_rating FK powers two FTS columns:
+        #   age_rating_tagged  ← AgeRating.name                (raw tagged string)
+        #   age_rating_metron  ← AgeRating.metron.name         (canonical value)
+        # The second traverses the AgeRating.metron FK into AgeRatingMetron.
+        "fts_age_rating_tagged": F("age_rating__name"),
+        "fts_age_rating_metron": F("age_rating__metron__name"),
+    }
+)
+# Alias → FK-traversal path. The alias becomes the FTS column name
+# the consumer reads (``prepare.py:_COMIC_KEYS``); the path is what
+# ``GROUP_CONCAT`` walks to extract the related ``name``. Decoupling
+# the two fixes a long-standing bug: the previous code derived the
+# alias from the path (``f"fts_{rel}"``), so paths with FK suffixes
+# like ``credits__person`` produced aliases like
+# ``fts_credits__person`` that the consumer's ``fts_credits`` lookup
+# silently dropped — three FTS columns (credits, sources,
+# story_arcs) ended up empty for sync-built entries.
+_M2M_FTS_REL_MAP = MappingProxyType(
+    {
+        "characters": "characters__name",
+        "credits": "credits__person__name",
+        "genres": "genres__name",
+        "locations": "locations__name",
+        "series_groups": "series_groups__name",
+        "sources": "identifiers__source__name",
+        "stories": "stories__name",
+        "story_arcs": "story_arc_numbers__story_arc__name",
+        "tags": "tags__name",
+        "teams": "teams__name",
     }
 )
 
@@ -104,54 +112,85 @@ class SearchIndexerSync(SearchIndexerRemove):
             self.remove_stale_records(log_success=False)
 
     @staticmethod
-    def _select_related_fts_query(qs):
-        return qs.select_related(
-            "publisher",
-            "imprint",
-            "series",
-            "country",
-            "language",
-            "scan_info",
-            "tagger",
+    def _build_fk_fts_rows(pks: list[int]) -> list[dict]:
+        """
+        One query: comic attrs + simple FK-resolved name columns.
+
+        Returns a list of dicts keyed by ``id`` plus the FTS columns
+        the consumer reads directly off Comic / FK ``__name``
+        traversals (no M2M, no GROUP BY). Order-by-pk so the caller
+        sees the same iteration order the megaquery used to produce.
+        """
+        return list(
+            Comic.objects.filter(pk__in=pks)
+            .order_by("pk")
+            .annotate(**_SIMPLE_FTS_ANNOTATIONS)
+            .values(
+                "id",
+                "name",
+                "collection_title",
+                "review",
+                "summary",
+                *_SIMPLE_FTS_ANNOTATIONS.keys(),
+            )
         )
 
     @staticmethod
-    def _prefetch_related_fts_query(qs):
-        # Prefecthing deep relations breaks the 1000 sqlite query depth limit
-        return qs.prefetch_related(
-            "characters",
-            "credits",
-            # "credits__person",
-            "identifiers",
-            # "identifiers__source",
-            "genres",
-            "locations",
-            "series_groups",
-            "stories",
-            "story_arc_numbers",
-            # "story_arc_numbers__story_arc",
-            "tags",
-            "teams",
-            "universes",
+    def _build_m2m_fts_dict(pks: list[int], target_path: str) -> dict[int, str]:
+        """
+        One query per M2M: GROUP_CONCAT(<rel>__name) keyed by comic pk.
+
+        Replaces the megaquery's per-M2M ``GROUP_CONCAT`` aggregations
+        — each was a LEFT JOIN to the related table contributing to a
+        cartesian product before GROUP BY collapse. Per-relation queries
+        each walk one M2M's index independently and produce per-pk
+        strings; no cartesian product, much smaller intermediate temp
+        tables on richly-tagged libraries.
+        """
+        rows = (
+            Comic.objects.filter(pk__in=pks)
+            .annotate(
+                fts_value=GroupConcat(target_path, distinct=True, order_by=target_path)
+            )
+            .values_list("pk", "fts_value")
         )
+        # GROUP_CONCAT over a LEFT JOIN with no related rows returns
+        # NULL → store empty string so the consumer's truthy filter
+        # treats absence and emptiness identically.
+        return {pk: (value or "") for pk, value in rows}
 
     @staticmethod
-    def _annotate_fts_query(qs):
-        return qs.annotate(
-            **_SIMPLE_FTS_ANNOTATIONS,
-            **_M2M_FTS_ANNOTATIONS,
-            fts_universes=Concat(
-                GroupConcat(
-                    "universes__designation",
-                    distinct=True,
-                    order_by="universes__designation",
-                ),
-                Value(","),
-                GroupConcat(
-                    "universes__name", distinct=True, order_by="universes__name"
-                ),
-            ),
+    def _build_universes_fts_dict(pks: list[int]) -> dict[int, str]:
+        """
+        Universes special case: Concat of designation + name aggregates.
+
+        Universes carry both a ``designation`` and a ``name`` worth
+        making searchable; the previous shape combined them via
+        ``Concat(GroupConcat(designation), Value(","), GroupConcat(name))``.
+        Single LEFT JOIN to the universes table, single GROUP BY on
+        comic_id; same SQL as the megaquery would have produced for
+        this column, just isolated from the other M2Ms.
+        """
+        rows = (
+            Comic.objects.filter(pk__in=pks)
+            .annotate(
+                fts_universes=Concat(
+                    GroupConcat(
+                        "universes__designation",
+                        distinct=True,
+                        order_by="universes__designation",
+                    ),
+                    Value(","),
+                    GroupConcat(
+                        "universes__name",
+                        distinct=True,
+                        order_by="universes__name",
+                    ),
+                )
+            )
+            .values_list("pk", "fts_universes")
         )
+        return {pk: (value or "") for pk, value in rows}
 
     def _update_search_index_operate_get_status(
         self, total_comics: int, chunk_human_size: str, *, create: bool
@@ -185,11 +224,42 @@ class SearchIndexerSync(SearchIndexerRemove):
         status.increment_complete(num_comic_fts)
         self.status_controller.update(status, notify=True)
 
-    @staticmethod
-    def _get_operation_comics_query(qs, *, create: bool):
-        if create and not ComicFTS.objects.exists():
-            qs = Comic.objects.all()
-        return qs
+    def _build_search_index_batch_obj_list(
+        self,
+        batch_pks: list[int],
+        *,
+        create: bool,
+    ) -> list[ComicFTS]:
+        """
+        Build one batch of ``ComicFTS`` rows for create-or-update.
+
+        Returns an empty list when every row was filtered out by
+        ``prepare_sync_fts_entry`` — caller decides whether iteration
+        is exhausted via its pk watermark.
+        """
+        if not batch_pks:
+            return []
+
+        # Per-M2M batched queries. Replaces the previous megaquery
+        # (10 GROUP_CONCAT aggregations + 20+ LEFT JOINs + GROUP BY
+        # in a single SELECT) with one SELECT per relation — each
+        # walks one M2M's index independently, no cartesian product
+        # across the 10 M2Ms.
+        fk_rows = self._build_fk_fts_rows(batch_pks)
+        m2m_dicts = {
+            f"fts_{alias}": self._build_m2m_fts_dict(batch_pks, target)
+            for alias, target in _M2M_FTS_REL_MAP.items()
+        }
+        universes_dict = self._build_universes_fts_dict(batch_pks)
+
+        obj_list: list[ComicFTS] = []
+        for comic in fk_rows:
+            pk = comic["id"]
+            for fts_alias, m2m_dict in m2m_dicts.items():
+                comic[fts_alias] = m2m_dict.get(pk, "")
+            comic["fts_universes"] = universes_dict.get(pk, "")
+            SearchEntryPrepare.prepare_sync_fts_entry(comic, obj_list, create=create)
+        return obj_list
 
     def _update_search_index_operate(
         self, comics_filtered_qs: QuerySet, *, create: bool
@@ -201,12 +271,18 @@ class SearchIndexerSync(SearchIndexerRemove):
         )
         chunk_human_size = intcomma(search_index_batch_size)
 
+        # Walk ``comics_filtered_qs`` in pk order via a watermark so
+        # each batch grabs the *next* slice of pks rather than the
+        # same first slice every iteration. The earlier "hoist the
+        # exists() check" optimization swapped in
+        # ``Comic.objects.all()`` when ComicFTS started empty, which
+        # silently dropped the caller's
+        # ``exclude(_ALL_FTS_COMIC_IDS_QUERY)`` filter — every batch
+        # then re-fetched the same first ``batch_size`` pks and
+        # ``bulk_create`` planted duplicate FTS5 rows.
         verb = "create" if create else "update"
         self.log.debug(f"Counting total search index entries to {verb}...")
-        total_comics = self._get_operation_comics_query(
-            comics_filtered_qs, create=create
-        )
-        total_comics = total_comics.count()
+        total_comics = comics_filtered_qs.count()
         status = self._update_search_index_operate_get_status(
             total_comics, chunk_human_size, create=create
         )
@@ -217,9 +293,8 @@ class SearchIndexerSync(SearchIndexerRemove):
                 return total_comics
 
             self.status_controller.start(status, notify=True)
-            start = 0
-            while start < total_comics:
-                obj_list = []
+            last_pk = 0
+            while True:
                 if self.abort_event.is_set():
                     break
                 # Not using standard iterator chunking to control memory and really
@@ -227,29 +302,21 @@ class SearchIndexerSync(SearchIndexerRemove):
                 self.log.debug(
                     f"Preparing up to {chunk_human_size} comics for search indexing..."
                 )
-                # This query is supposed to get only comics that don't need creating but it doesn't
-                # So the start total exit assists it with that.
-                comics = self._get_operation_comics_query(
-                    comics_filtered_qs, create=create
+                batch_pks = list(
+                    comics_filtered_qs.filter(pk__gt=last_pk)
+                    .order_by("pk")
+                    .values_list("pk", flat=True)[:search_index_batch_size]
                 )
-                comics = self._prefetch_related_fts_query(comics)
-                comics = comics.order_by("pk")
-                comics = comics[:search_index_batch_size]
-                comics = self._annotate_fts_query(comics)
-                for comic in comics.values():
-                    SearchEntryPrepare.prepare_sync_fts_entry(
-                        comic, obj_list, create=create
-                    )
-
-                if not obj_list:
+                if not batch_pks:
                     break
-                self._update_search_index_create_or_update(
-                    obj_list,
-                    status,
-                    create=create,
+                obj_list = self._build_search_index_batch_obj_list(
+                    batch_pks, create=create
                 )
-                start += search_index_batch_size
-
+                if obj_list:
+                    self._update_search_index_create_or_update(
+                        obj_list, status, create=create
+                    )
+                last_pk = batch_pks[-1]
         finally:
             self.status_controller.finish(status)
         return total_comics
@@ -286,7 +353,11 @@ class SearchIndexerSync(SearchIndexerRemove):
     def _update_search_index(self, *, rebuild: bool) -> None:
         """Update or Rebuild the search index."""
         self.log.debug("In update search index before init statii.")
-        start_time = time()
+        # ``monotonic()`` over ``time()`` for the elapsed reporting
+        # below — wall-clock jumps (NTP / DST / manual adjustment)
+        # would skew ``time() - start_time``. Mirrors the same fix
+        # applied to other librarian threads in PR #623 / #624.
+        start_time = monotonic()
         self._init_statuses(rebuild)
 
         if self.abort_event.is_set():
@@ -299,7 +370,7 @@ class SearchIndexerSync(SearchIndexerRemove):
             return
         created_count = self._update_search_index_create()
 
-        elapsed_time = time() - start_time
+        elapsed_time = monotonic() - start_time
         elapsed = naturaldelta(elapsed_time)
         if rebuild:
             cleaned = "cleared entire search index"

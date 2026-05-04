@@ -1,6 +1,10 @@
+// Width of the prev/next-book change column. Shared with
+// ``book-change-drawer`` so the drawer's width matches the column.
+$change-column-width: 33vw;
+
 .changeColumn {
   position: fixed;
   top: 48px;
   height: calc(100vh - 96px);
-  width: 33vw;
+  width: $change-column-width;
 }

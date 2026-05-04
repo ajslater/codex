@@ -3,7 +3,10 @@
 from types import MappingProxyType
 
 from django.db.models import (
+    BooleanField,
+    ExpressionWrapper,
     F,
+    Q,
     Value,
 )
 from django.db.models.fields import CharField
@@ -54,8 +57,16 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
 
     def _annotate_has_metadata(self, qs):
         """Annotate if we have metadata."""
+        # The serializer treats this as a ``BooleanField``. Selecting the
+        # IS-NOT-NULL predicate keeps the SELECT projection a single byte
+        # per row instead of a full nullable ``DateTimeField`` value, and
+        # matches the consumer's type without an implicit truthiness coerce.
         if qs.model is Comic:
-            qs = qs.annotate(has_metadata=F("metadata_mtime"))
+            qs = qs.annotate(
+                has_metadata=ExpressionWrapper(
+                    Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                )
+            )
         return qs
 
     def annotate_card_aggregates(self, qs):
@@ -70,6 +81,14 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
+        # ``updated_ats`` is read only by ``BrowserAggregateSerializerMixin``
+        # to compute the card mtime — and only browser + metadata responses
+        # use that mixin. OPDS feeds compute their own mtime from the
+        # bookmark aggregate; cover/download paths never read it. Skipping
+        # the JsonGroupArray on those targets removes one DISTINCT scalar
+        # aggregate per group row in the cold path.
+        if self.TARGET not in self.CARD_TARGETS:
+            return qs
         # For group models, traverse to Comic.updated_at via rel_prefix.
         # The group model's own updated_at is not reliably refreshed by
         # bulk_update / bulk_create(update_conflicts) because auto_now

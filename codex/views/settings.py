@@ -4,11 +4,17 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from types import MappingProxyType
+from typing import cast
 
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from loguru import logger
 
-from codex.choices.browser import DEFAULT_BROWSER_ROUTE
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.browser import (
+    BROWSER_TOP_GROUP_CHOICES,
+    admin_default_route_for,
+)
+from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
     SettingsBase,
@@ -20,6 +26,12 @@ from codex.models.settings import (
 )
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
+
+# Fallback top-group when the BG flag row is missing, off, or holds
+# an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
+# default; ``admin_default_route_for("p")`` yields the historical
+# ``/r/0/1`` redirect target.
+_FALLBACK_DEFAULT_TOP_GROUP = "p"
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -123,20 +135,57 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return instance
 
     @staticmethod
-    def _create_browser_settings(user, session_key, client, create_args):
-        """Create a SettingsBrowser with its related show/filters/last_route."""
+    def _get_admin_default_top_group() -> str:
+        """
+        Read the admin-configured default top group.
+
+        Returns the validated ``BROWSER_DEFAULT_GROUP`` flag value,
+        falling back to ``"p"`` if the row is missing, the flag is
+        off, or the value is out of range (defense against a
+        hand-edited DB / pre-migration state). ``"p"`` mirrors the
+        ``SettingsBrowser.top_group`` model default and resolves to
+        the historical ``/r/0/1`` redirect target.
+        """
+        try:
+            flag = AdminFlag.objects.only("on", "value").get(
+                key=AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
+            )
+        except AdminFlag.DoesNotExist:
+            return _FALLBACK_DEFAULT_TOP_GROUP
+        if flag.on and flag.value in BROWSER_TOP_GROUP_CHOICES:
+            return flag.value
+        return _FALLBACK_DEFAULT_TOP_GROUP
+
+    @classmethod
+    def _get_admin_default_route(cls) -> Mapping:
+        """Translate the admin default top group into a redirect target."""
+        return admin_default_route_for(cls._get_admin_default_top_group())
+
+    @classmethod
+    def _create_browser_settings(cls, user, session_key, client, create_args):
+        """
+        Create a SettingsBrowser with its related show/filters/last_route.
+
+        Sets ``top_group`` from the admin-configured default unless
+        the caller already supplied one. The override applies only on
+        row creation; ``_get_or_create_settings`` returns existing
+        rows before reaching this branch, so a returning user's
+        pinned ``top_group`` is never overwritten.
+        """
         show, _ = SettingsBrowserShow.objects.get_or_create(
             p=True,
             i=False,
             s=True,
             v=False,
         )
+        create_kwargs = dict(create_args)
+        create_kwargs.setdefault("top_group", cls._get_admin_default_top_group())
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,
             client=client,
             show=show,
-            **create_args,
+            **create_kwargs,
         )
         SettingsBrowserFilters.objects.create(browser=instance)
         SettingsBrowserLastRoute.objects.create(browser=instance)
@@ -248,16 +297,22 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         )
         if isinstance(instance, SettingsBrowser):
             return self.browser_instance_to_dict(instance)
-        return self._reader_instance_to_dict(instance)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+        # Branch invariant: ``instance`` is a ``SettingsReader`` (the
+        # only other concrete type in the union). ``_get_or_create_settings``'s
+        # broad return type forces the cast.
+        return self._reader_instance_to_dict(cast("SettingsReader", instance))
 
     def _load_browser_settings_data(self, only: Sequence[str] | None = None) -> dict:
         """Load settings from the browser model (for cross-reading)."""
-        instance: SettingsBrowser = self._get_or_create_settings(  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-            self.BROWSER_MODEL,
-            self.BROWSER_CLIENT,
-            BROWSER_FILTER_ARGS,
-            BROWSER_CREATE_ARGS,
-            only=only,
+        instance = cast(
+            "SettingsBrowser",
+            self._get_or_create_settings(
+                self.BROWSER_MODEL,
+                self.BROWSER_CLIENT,
+                BROWSER_FILTER_ARGS,
+                BROWSER_CREATE_ARGS,
+                only=only,
+            ),
         )
         return self.browser_instance_to_dict(instance)
 
@@ -275,10 +330,16 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return field.default
 
     def get_last_route(self) -> Mapping:
-        """Get the last route from the browser session."""
+        """
+        Get the last route from the browser session.
+
+        Returns the user's persisted last_route when available; falls
+        through to the admin-configured default for new users /
+        cleared-cookie users / anonymous-pre-navigation requests.
+        """
         if last_route := self.get_from_settings("last_route", browser=True):
             return last_route
-        return DEFAULT_BROWSER_ROUTE
+        return self._get_admin_default_route()
 
     @classmethod
     def get_browser_default_params(cls) -> dict:
@@ -330,11 +391,21 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return order_defaults
 
     @staticmethod
-    def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> None:
-        """Get-or-create a shared SettingsBrowserShow row and assign it."""
+    def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> bool:
+        """
+        Get-or-create a shared SettingsBrowserShow row and assign it.
+
+        Returns True if the instance's ``show`` FK changed.
+        """
         show_kwargs = {k: bool(show_data.get(k, False)) for k in _SHOW_KEYS}
+        current = instance.show
+        if current and all(getattr(current, k) == show_kwargs[k] for k in _SHOW_KEYS):
+            return False
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_kwargs)  # pyright: ignore[reportArgumentType]
+        if instance.show_id == show.pk:  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+            return False
         instance.show = show
+        return True
 
     @staticmethod
     def _save_browser_filters(
@@ -342,12 +413,16 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         filters_data: dict,
     ) -> None:
         """Apply filter values from the params dict to the filters row."""
+        dirty = False
         for key, value in filters_data.items():
             if key not in SettingsBrowserFilters.FILTER_KEYS:
                 continue
             cleaned = value if key == "bookmark" else (list(value) if value else [])
-            setattr(filters_obj, key, cleaned)
-        filters_obj.save()
+            if getattr(filters_obj, key) != cleaned:
+                setattr(filters_obj, key, cleaned)
+                dirty = True
+        if dirty:
+            filters_obj.save()
 
     @staticmethod
     def _save_browser_last_route(
@@ -355,26 +430,43 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         route_data: dict,
     ) -> None:
         """Apply last-route values from the params dict to the route row."""
-        if "group" in route_data:
+        dirty = False
+        if "group" in route_data and route_obj.group != route_data["group"]:
             route_obj.group = route_data["group"]
+            dirty = True
         if "pks" in route_data:
-            pks = route_data["pks"]
-            route_obj.pks = tuple(pks) if pks else (0,)
-        if "page" in route_data:
+            pks_value = route_data["pks"]
+            new_pks = tuple(pks_value) if pks_value else (0,)
+            if tuple(route_obj.pks or ()) != new_pks:
+                route_obj.pks = new_pks
+                dirty = True
+        if "page" in route_data and route_obj.page != route_data["page"]:
             route_obj.page = route_data["page"]
-        route_obj.save()
+            dirty = True
+        if dirty:
+            route_obj.save()
+
+    @staticmethod
+    def _save_browser_settings_direct_key(key: str, data, instance):
+        if key in data and getattr(instance, key) != data[key]:
+            setattr(instance, key, data[key])
+            return True
+        return False
 
     @classmethod
     def _save_browser_settings_data(cls, instance: SettingsBrowser, data: dict) -> None:
         """Persist a params dict to a SettingsBrowser and its related rows."""
+        instance_dirty = False
         for key in instance.DIRECT_KEYS:
-            if key in data:
-                setattr(instance, key, data[key])
-        if "q" in data:
+            instance_dirty |= cls._save_browser_settings_direct_key(key, data, instance)
+        if "q" in data and instance.search != data["q"]:
             instance.search = data["q"]
-        if show_data := data.get("show"):
-            cls._save_browser_show(instance, show_data)
-        instance.save()
+            instance_dirty = True
+        show_data = data.get("show")
+        if show_data and cls._save_browser_show(instance, show_data):
+            instance_dirty = True
+        if instance_dirty:
+            instance.save()
 
         if filters_data := data.get("filters"):
             cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -400,7 +492,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if isinstance(instance, SettingsBrowser):
             self._save_browser_settings_data(instance, data)
         else:
-            self._save_reader_settings_data(instance, data)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            # Same branch invariant as ``_load_settings_data``.
+            self._save_reader_settings_data(cast("SettingsReader", instance), data)
 
     def save_params_to_settings(self, params) -> None:  # reader session & browser final
         """Save the session from params with defaults for missing values."""

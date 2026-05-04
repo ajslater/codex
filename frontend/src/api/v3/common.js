@@ -88,6 +88,13 @@ const _addTimestamp = (params, ts) => {
   params.ts = ts;
 };
 
+// Public alias: deep-clone a Vue reactive (or plain) object/array,
+// recursively unwrapping proxies via ``toRaw`` at every level.
+// Prefer this over ``structuredClone`` when the source might be a
+// Pinia / Vue reactive value — structuredClone trips ``DataCloneError``
+// on certain reactive Array proxies (see ``getMetadata`` history).
+export const deepClone = (obj) => _deepClone(obj, false);
+
 export const serializeParams = (data, ts, filterEmpty = true) => {
   const params = _deepClone(data, filterEmpty) || {};
   _jsonSerialize(params);
@@ -124,9 +131,9 @@ export const getDownloadIOSPWAFix = (href, filename) => {
     .catch(console.warn);
 };
 
-const getMtime = (groups, settings) => {
+const getMtime = (groups, settings, options = {}) => {
   const params = serializeParams({ groups, ...settings }, Date.now());
-  return HTTP.get("/mtime", { params });
+  return HTTP.get("/mtime", { params, ...options });
 };
 const getOPDSURLs = () => {
   return HTTP.get("/opds-urls");

@@ -4,7 +4,7 @@ from copy import copy
 from multiprocessing import Process, Queue
 from threading import Lock, active_count
 from types import MappingProxyType
-from typing import Any, NamedTuple, override
+from typing import Any, Final, NamedTuple, cast, override
 
 from caseconverter import snakecase
 from django.db import close_old_connections
@@ -16,10 +16,8 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 )
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
-from codex.librarian.fs.event_batcherd import FSEventBatcherThread
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
-from codex.librarian.fs.tasks import FSEventTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
@@ -34,7 +32,7 @@ from codex.librarian.status_controller import StatusController
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 from codex.librarian.threads import NamedThread
 
-_THREAD_CLASSES: tuple[type[NamedThread], ...] = (
+_THREAD_CLASSES: Final[tuple[type[NamedThread], ...]] = (
     BookmarkThread,
     CoverThread,
     CronThread,
@@ -42,18 +40,18 @@ _THREAD_CLASSES: tuple[type[NamedThread], ...] = (
     LibraryPollerThread,
     NotifierThread,
     ScribeThread,
-    FSEventBatcherThread,
 )
-_THREAD_CLASS_MAP: MappingProxyType[str, type[NamedThread]] = MappingProxyType(
+_THREAD_CLASS_MAP: Final[MappingProxyType[str, type[NamedThread]]] = MappingProxyType(
     {snakecase(thread_class.__name__): thread_class for thread_class in _THREAD_CLASSES}
 )
 LibrarianThreads = NamedTuple("LibrarianThreads", tuple(_THREAD_CLASS_MAP.items()))  # ty: ignore[invalid-named-tuple]
-_THREAD_QUEUE_TASK_MAP: dict[type, str] = {
-    CoverTask: "cover_thread",
-    BookmarkTask: "bookmark_thread",
-    NotifierTask: "notifier_thread",
-    FSEventTask: "fsevent_batcher_thread",
-}
+_THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
+    {
+        CoverTask: "cover_thread",
+        BookmarkTask: "bookmark_thread",
+        NotifierTask: "notifier_thread",
+    }
+)
 
 
 class LibrarianDaemon(Process):
@@ -159,7 +157,9 @@ class LibrarianDaemon(Process):
 
     def _shutdown(self) -> None:
         """Shutdown threads and queues."""
-        self._reversed_threads = tuple(reversed(self._threads))  # ty: ignore[invalid-assignment]
+        self._reversed_threads = cast(
+            "tuple[NamedThread, ...]", tuple(reversed(self._threads))
+        )
         self._stop_threads()
         self._join_threads()
         while not self.queue.empty():

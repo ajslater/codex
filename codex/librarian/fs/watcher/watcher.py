@@ -12,13 +12,18 @@ from codex.librarian.fs.filters import (
     match_folder_cover,
     match_group_cover_image,
 )
-from codex.librarian.fs.tasks import FSEventTask
+from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.watcher.events import process_changes
 from codex.librarian.fs.watcher.status import FSWatcherRestartStatus
 from codex.librarian.threads import NamedThread
 from codex.models import Library
 
 _MAX_PATH_WATCH_RETRIES = 1
+# Watchfiles batching: yield after 2s of quiet, but force a yield after
+# 60s of continuous activity so a long unzip / sync doesn't starve the
+# importer indefinitely.
+_WATCH_STEP_MS = 2_000
+_WATCH_DEBOUNCE_MS = 60_000
 
 
 class CodexWatchFilter:
@@ -68,12 +73,12 @@ class LibraryWatcherThread(NamedThread):
 
         if old_paths == new_paths:
             return
-        added = new_paths - old_paths
-        removed = old_paths - new_paths
+        added = ", ".join(sorted(new_paths - old_paths))
+        removed = ", ".join(sorted(old_paths - new_paths))
         if added:
-            self.log.info(f"FS adding paths: {added}")
+            self.log.info(f"Watcher adding paths: {added}")
         if removed:
-            self.log.info(f"FS removing paths: {removed}")
+            self.log.info(f"Watcher removing paths: {removed}")
 
     def _update_paths_from_db(self) -> None:
         """Query the database for current library paths to watch."""
@@ -120,14 +125,19 @@ class LibraryWatcherThread(NamedThread):
     #############
 
     def _process_changes(self, changes: set[tuple[Change, str]]) -> None:
-        """Route watchfiles changes through processing to the librarian queue."""
+        """Group changes by library, build one ImportTask per library, queue them."""
         # Watchfiles does not expand events for added or removed directories or do move detection
         # So handle this myself.
+        events_by_library: dict[int, list] = {}
         for library_pk, event in process_changes(
             changes, self._library_paths, self._covers_only_paths
         ):
-            task = FSEventTask(library_pk, event)
-            self.librarian_queue.put(task)
+            events_by_library.setdefault(library_pk, []).append(event)
+
+        for library_pk, events in events_by_library.items():
+            task = build_import_task(library_pk, events)
+            if task is not None:
+                self.librarian_queue.put(task)
 
     def _get_extant_paths(self, paths: list[str]) -> list[str]:
         extant_paths = []
@@ -166,6 +176,8 @@ class LibraryWatcherThread(NamedThread):
                     stop_event=self._restart_event,
                     recursive=True,
                     watch_filter=watch_filter,
+                    step=_WATCH_STEP_MS,
+                    debounce=_WATCH_DEBOUNCE_MS,
                 ):
                     if self._shutdown_event.is_set():
                         return
@@ -173,7 +185,7 @@ class LibraryWatcherThread(NamedThread):
             except FileNotFoundError as exc:
                 self.log.warning(f"Watch path disappeared: {exc}")
             except Exception:
-                self.log.exception("FS error")
+                self.log.exception("Watcher error")
 
     @override
     def run(self) -> None:

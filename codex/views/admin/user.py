@@ -16,6 +16,7 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
+from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
@@ -27,7 +28,7 @@ class AdminUserViewSet(AdminModelViewSet):
 
     queryset = (
         User.objects.prefetch_related("groups")
-        .select_related("useractive")
+        .select_related("userauth__age_rating_metron")
         .defer("first_name", "last_name", "email")
     )
     serializer_class = UserSerializer
@@ -73,9 +74,9 @@ class AdminUserViewSet(AdminModelViewSet):
         data = serializer.validated_data
         if not data.get("password"):
             data.pop("password", None)
-        if self._is_change_to_current_user() and False in {
-            data.get(key) for key in _BAD_CURRENT_USER_FALSE_KEYS
-        }:
+        if self._is_change_to_current_user() and any(
+            data.get(key) is False for key in _BAD_CURRENT_USER_FALSE_KEYS
+        ):
             reason = "Cannot deactivate logged in user."
             raise ValidationError(reason)
         uid = self.kwargs.get("pk", 0)
@@ -84,17 +85,26 @@ class AdminUserViewSet(AdminModelViewSet):
 
     @override
     def perform_create(self, serializer) -> None:
-        """Create user."""
+        """Create user; ``UserAuth`` is provisioned by post_save signal."""
         validated_data = serializer.validated_data
         password = validated_data["password"]
         validate_password(password)
         groups = validated_data.pop("groups")
+        # Pop nested userauth data before handing to create_user; the
+        # post_save signal in ``codex.signals.django_signals`` provisions
+        # an empty UserAuth row, which we then patch with the
+        # admin-supplied ceiling if any.
+        userauth_data = validated_data.pop("userauth", {})
         validated_data["email"] = ""
         user = User.objects.create_user(**validated_data)
         if groups:
             user.groups.set(groups)
             user.save()
         Token.objects.create(user=user)
+        if "age_rating_metron" in userauth_data:
+            UserAuth.objects.filter(user=user).update(
+                age_rating_metron=userauth_data["age_rating_metron"],
+            )
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

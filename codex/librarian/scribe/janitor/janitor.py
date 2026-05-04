@@ -1,5 +1,8 @@
 """Janitor task runner."""
 
+from types import MappingProxyType
+from typing import Final
+
 from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
@@ -49,7 +52,7 @@ from codex.librarian.scribe.search.tasks import (
 from codex.librarian.tasks import LibrarianTask
 from codex.models import Timestamp
 
-_JANITOR_STATII = (
+_JANITOR_STATII: Final = (
     JanitorCodexLatestVersionStatus,
     JanitorAdoptOrphanFoldersStatus,
     ImporterMoveFoldersStatus,
@@ -71,7 +74,7 @@ _JANITOR_STATII = (
     RemoveCoversStatus,
 )
 
-_NIGHTLY_TASK_CLASSES: tuple[type[LibrarianTask], ...] = (
+_NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
     CodexLatestVersionTask,
     JanitorAdoptOrphanFoldersTask,
     JanitorForeignKeyCheckTask,
@@ -88,19 +91,21 @@ _NIGHTLY_TASK_CLASSES: tuple[type[LibrarianTask], ...] = (
     JanitorBackupTask,
     CoverRemoveOrphansTask,
 )
-_JANITOR_METHOD_MAP: dict[type, str] = {
-    JanitorVacuumTask: "vacuum_db",
-    JanitorCleanFKsTask: "cleanup_fks",
-    JanitorCleanCoversTask: "cleanup_custom_covers",
-    JanitorCleanupSessionsTask: "cleanup_sessions",
-    JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
-    JanitorCleanupSettingsTask: "cleanup_orphan_settings",
-    JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
-    JanitorForeignKeyCheckTask: "foreign_key_check",
-    JanitorFTSIntegrityCheckTask: "fts_integrity_check",
-    JanitorFTSRebuildTask: "fts_rebuild",
-    JanitorNightlyTask: "queue_nightly_tasks",
-}
+_JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
+    {
+        JanitorVacuumTask: "vacuum_db",
+        JanitorCleanFKsTask: "cleanup_fks",
+        JanitorCleanCoversTask: "cleanup_custom_covers",
+        JanitorCleanupSessionsTask: "cleanup_sessions",
+        JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
+        JanitorCleanupSettingsTask: "cleanup_orphan_settings",
+        JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
+        JanitorForeignKeyCheckTask: "foreign_key_check",
+        JanitorFTSIntegrityCheckTask: "fts_integrity_check",
+        JanitorFTSRebuildTask: "fts_rebuild",
+        JanitorNightlyTask: "queue_nightly_tasks",
+    }
+)
 
 
 class Janitor(JanitorCodexUpdate):

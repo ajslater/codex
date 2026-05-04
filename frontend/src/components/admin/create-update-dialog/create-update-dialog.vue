@@ -29,9 +29,10 @@
 <script>
 import { dequal } from "dequal";
 import { mapActions } from "pinia";
-import { toRaw } from "vue";
+
 import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
+import { deepClone } from "@/api/v3/common";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
@@ -122,13 +123,16 @@ export default {
     },
     getRow(show) {
       if (!show || !this.oldRow) {
-        return structuredClone(this.inputs.EMPTY_ROW);
+        return deepClone(this.inputs.EMPTY_ROW);
       }
+      /*
+       * ``deepClone`` (over ``structuredClone``) because ``oldRow``
+       * values can be reactive Vue arrays that ``structuredClone``
+       * refuses to walk.
+       */
       const updateRow = {};
       for (const key of this.inputs.UPDATE_KEYS) {
-        const rawVal = toRaw(Reflect.get(this.oldRow, key));
-        const val = structuredClone(rawVal);
-        Reflect.set(updateRow, key, val);
+        Reflect.set(updateRow, key, deepClone(Reflect.get(this.oldRow, key)));
       }
       return updateRow;
     },

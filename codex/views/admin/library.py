@@ -1,10 +1,11 @@
 """Admin Library Views."""
 
+import os
 from pathlib import Path
 from typing import override
 
 from django.core.cache import cache
-from django.db.models import Case, Subquery, When
+from django.db.models import Case, OuterRef, Subquery, When
 from django.db.models.aggregates import Count
 from django.db.models.expressions import Value
 from django.db.models.functions import Coalesce
@@ -18,7 +19,7 @@ from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.models import CustomCover, FailedImport, Folder, Library
+from codex.models import Comic, CustomCover, FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
     AdminFolderSerializer,
@@ -27,10 +28,33 @@ from codex.serializers.admin.libraries import (
 )
 from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 
+# Per-Library count subqueries. Each is a correlated index-only count
+# against the related table's ``library_id`` index — no JOIN, no
+# DISTINCT. Replaces the prior ``Count("comic", distinct=True)`` /
+# ``Count("failedimport", distinct=True)`` annotations whose JOIN
+# materialized the Cartesian product before DISTINCT collapsed it.
 _CUSTOM_COVER_COUNT = Coalesce(
     Subquery(
         CustomCover.objects.exclude(group="f")
         .values("group")  # A dummy group-by to allow the annotation
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
+_COMIC_COUNT = Coalesce(
+    Subquery(
+        Comic.objects.filter(library=OuterRef("pk"))
+        .values("library")
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
+_FAILED_COUNT = Coalesce(
+    Subquery(
+        FailedImport.objects.filter(library=OuterRef("pk"))
+        .values("library")
         .annotate(cnt=Count("pk"))
         .values("cnt")[:1]
     ),
@@ -48,13 +72,12 @@ class AdminLibraryViewSet(AdminModelViewSet):
         Library.objects.prefetch_related("groups")
         .annotate(
             comic_count=Case(
-                # When covers_only is True, use the subquery result.
-                # Coalesce ensures we get 0 instead of NULL if CustomCover is empty.
+                # covers_only libraries borrow the CustomCover count;
+                # everything else uses a per-library correlated count.
                 When(covers_only=True, then=_CUSTOM_COVER_COUNT),
-                # Otherwise, use the standard count.
-                default=Count("comic", distinct=True),
+                default=_COMIC_COUNT,
             ),
-            failed_count=Count("failedimport", distinct=True),
+            failed_count=_FAILED_COUNT,
         )
         .defer("update_in_progress", "created_at", "updated_at")
     )
@@ -73,7 +96,8 @@ class AdminLibraryViewSet(AdminModelViewSet):
         task = LIBRARY_CHANGED_TASK
         LIBRARIAN_QUEUE.put(task)
 
-    def _create_library_folder(self, library) -> None:
+    @staticmethod
+    def _create_library_folder(library) -> None:
         folder = Folder(
             library=library, path=library.path, name=Path(library.path).name
         )
@@ -109,7 +133,11 @@ class AdminLibraryViewSet(AdminModelViewSet):
         if "groupSet" in validated_keys:
             self._on_change()
         self._sync_watcher(validated_keys)
-        self._poll(pk, force=False)
+        # Only re-poll when the schedule changes; other field edits
+        # (groupSet, covers_only, …) are picked up by the next
+        # already-scheduled poll.
+        if "pollEvery" in validated_keys:
+            self._poll(pk, force=False)
 
     @override
     def perform_destroy(self, instance) -> None:
@@ -135,19 +163,72 @@ class AdminFolderListView(AdminGenericAPIView):
     input_serializer_class = AdminFolderSerializer
 
     @staticmethod
-    def _get_dirs(root_path, show_hidden) -> tuple:
-        """Get dirs list."""
-        dirs = []
+    def _get_dirs(root_path, show_hidden) -> tuple[str, ...]:
+        """
+        Get dirs list.
+
+        Uses :func:`os.scandir` so each entry's directory check is a
+        single ``stat`` instead of the prior ``Path.iterdir()`` plus
+        ``Path.resolve().is_dir()`` (which chains a full readlink walk
+        before stat-ing). Broken symlinks are skipped silently.
+        """
+        dirs: list[str] = []
         if root_path.parent != root_path:
-            dirs += [".."]
-        subdirs = []
-        for subpath in root_path.iterdir():
-            if subpath.name.startswith(".") and not show_hidden:
-                continue
-            if subpath.resolve().is_dir():
-                subdirs.append(subpath.name)
-        dirs += sorted(subdirs)
+            dirs.append("..")
+        subdirs: list[str] = []
+        with os.scandir(root_path) as it:
+            for entry in it:
+                if entry.name.startswith(".") and not show_hidden:
+                    continue
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=True)
+                except OSError:
+                    # Broken symlink or permission denied — skip silently.
+                    continue
+                if is_dir:
+                    subdirs.append(entry.name)
+        dirs.extend(sorted(subdirs))
         return tuple(dirs)
+
+    @staticmethod
+    def _default_root_path() -> Path:
+        """
+        Pick the picker's starting folder when no path is requested.
+
+        Returns the parent directory of the most-recently-added
+        non-covers ``Library``. Lets an admin who's adding a second
+        library land in the same neighborhood as the first one
+        instead of the codex install root. Falls back to the CWD
+        when no library exists yet (the original behavior) or when
+        the recorded parent is no longer a directory (library
+        moved/deleted on disk after the row was created).
+        """
+        last_path = (
+            Library.objects.filter(covers_only=False)
+            .order_by("-created_at")
+            .values_list("path", flat=True)
+            .first()
+        )
+        if last_path:
+            parent = Path(last_path).resolve().parent
+            if parent.is_dir():
+                return parent
+        return Path.cwd()
+
+    @classmethod
+    def _resolve_root_path(cls, path_param: str) -> Path:
+        """
+        Resolve the ``path`` query param to a Path.
+
+        The serializer defaults ``path`` to ``"."`` when the client
+        omits it (the folder picker's initial mount). Treat that
+        sentinel as "use the smart default"; an explicit absolute
+        or relative path from later picker navigation passes
+        through ``Path.resolve()`` unchanged.
+        """
+        if path_param == ".":
+            return cls._default_root_path()
+        return Path(path_param).resolve()
 
     @extend_schema(request=input_serializer_class)
     def get(self, *_args, **_kwargs) -> Response:
@@ -155,7 +236,8 @@ class AdminFolderListView(AdminGenericAPIView):
         try:
             serializer = self.input_serializer_class(data=self.request.GET)
             serializer.is_valid(raise_exception=True)
-            root_path = Path(serializer.validated_data.get("path", ".")).resolve()
+            path_param = serializer.validated_data.get("path", ".")
+            root_path = self._resolve_root_path(path_param)
             show_hidden = serializer.validated_data.get("show_hidden", False)
 
             dirs = self._get_dirs(root_path, show_hidden)

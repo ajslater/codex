@@ -3,30 +3,34 @@
 import resource
 from contextlib import suppress
 from pathlib import Path
+from types import MappingProxyType
+from typing import Final
 
 from psutil import virtual_memory
 
 # cgroups1
-MEMORY_STAT_PATH = "/sys/fs/cgroup/memory/memory.stat"
+MEMORY_STAT_PATH: Final = Path("/sys/fs/cgroup/memory/memory.stat")
 
 # cgroups2
-MEMORY_MAX_PATH = "/sys/fs/cgroup/memory.max"
+MEMORY_MAX_PATH: Final = Path("/sys/fs/cgroup/memory.max")
 
-DIVISORS = {"b": 1, "k": 1024, "m": 1024**2, "g": 1024**3}
+DIVISORS: Final = MappingProxyType({"b": 1, "k": 1024, "m": 1024**2, "g": 1024**3})
+# Each line in memory.stat is "<key> <value>"; anything shorter is malformed.
+_MIN_STAT_PARTS: Final = 2
 
 
 def _get_cgroups2_mem_limit() -> int:
     """Get mem limit from cgroups2."""
-    with Path(MEMORY_MAX_PATH).open("r") as limit:
+    with MEMORY_MAX_PATH.open("r") as limit:
         return int(limit.read())
 
 
 def _get_cgroups1_mem_limit() -> int | None:
     """Get mem limit from cgroups1."""
-    with Path(MEMORY_STAT_PATH).open("r") as mem_stat_file:
+    with MEMORY_STAT_PATH.open("r") as mem_stat_file:
         for line in mem_stat_file:
             parts = line.split()
-            if not parts or len(parts) < 2:  # noqa: PLR2004
+            if len(parts) < _MIN_STAT_PARTS:
                 continue
             if "hierarchical_memory_limit" in parts[0]:
                 return int(parts[1])

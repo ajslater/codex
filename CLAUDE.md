@@ -10,7 +10,7 @@ indexing.
 
 ## Commands
 
-Commands are from @\~/.claude/python-devenv.md
+Commands are from @\~/.claude/rules/devenv.md
 
 ### Local Commands
 
@@ -112,7 +112,9 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 
 ## Linting & Testing
 
-Uses @\~/.claude/python-devenv.md
+Uses @\~/.claude/rules/devenv.md Also use
+@\~/.claude/rules/python-quality-pass.md and
+@\~/.claude/rules/js-vue-quality-pass.md
 
 - **Python:** pytest with Django test runner. Results in `test-results/pytest/`.
 - **Frontend:** vitest. Results in `test-results/`.

@@ -64,6 +64,26 @@ BROWSER_CHOICES = MappingProxyType(
 )
 
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
+
+# Top-group values that own a dedicated browser route. For these,
+# the URL ``group`` matches the ``top_group``. Everything else
+# (publishers / imprints / series / volumes / issues) routes through
+# the canonical ``r`` (Root) URL — the per-user ``top_group`` setting
+# is what selects the displayed view inside that URL.
+_FLAG_GROUP_HAS_OWN_ROUTE = frozenset({"f", "a"})
+
+
+def admin_default_route_for(top_group: str) -> dict:
+    """
+    Translate a ``BROWSER_DEFAULT_GROUP`` flag value into a route dict.
+
+    Used by :class:`codex.views.frontend.IndexView` to redirect the bare
+    ``/`` URL when no per-user ``last_route`` row exists.
+    """
+    group = top_group if top_group in _FLAG_GROUP_HAS_OWN_ROUTE else "r"
+    return {"group": group, "pks": (0,), "page": 1}
+
+
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
 _DEFAULT_FILTERS = MappingProxyType(
     {

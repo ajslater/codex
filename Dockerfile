@@ -12,34 +12,11 @@
 #            --build-arg CODEX_VERSION=X.Y.Z .
 ###############################################################################
 
-# ---- Stage 1: runtime-base (slim, no build tools) --------------------------
-FROM ghcr.io/ajslater/python-debian:3.14.4-slim-trixie_0 AS runtime-base
-
-COPY ci/debian.sources /etc/apt/sources.list.d/
-
-# hadolint ignore=DL3008
-RUN apt-get clean \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
-        curl \
-        libimagequant0 \
-        libjpeg62-turbo \
-        libopenjp2-7 \
-        libssl3 \
-        libyaml-0-2 \
-        libtiff6 \
-        libwebp7 \
-        ruamel.yaml.clib \
-        unrar \
-        zlib1g \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# ---- Stage 2: builder (build tools + Node for compilation) -----------------
-FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder
+# ---- Stage 1: builder (build tools + Node for compilation) -----------------
+FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder-base
 # nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 
-COPY ci/debian.sources /etc/apt/sources.list.d/
+COPY debian.sources /etc/apt/sources.list.d/
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
@@ -68,10 +45,10 @@ WORKDIR /app
 # hadolint ignore=DL3013,DL3042
 RUN pip3 install --no-cache --upgrade pip
 
-# ---- Stage 3: codex-ci (all deps + source for CI) -------------------------
+# ---- Stage 2: codex-ci (all deps + source for CI) -------------------------
 # hadolint ignore=DL3007
 FROM oven/bun:latest AS bun-source
-FROM builder AS codex-ci
+FROM builder-base AS codex-ci
 
 # hadolint ignore=DL3008
 RUN apt-get clean \
@@ -93,12 +70,12 @@ RUN PIP_CACHE_DIR=$(pip3 cache dir) PYMUPDF_SETUP_PY_LIMITED_API=0 \
     uv sync --no-install-project --no-dev --group lint --group test
 
 # Root Node deps (eslint, prettier, etc.)
-COPY package.json bun.lock ./
+COPY bun.lock package.json ./
 RUN bun install
 
 # Frontend Node deps
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/bun.lock ./
+COPY frontend/bun.lock frontend/package.json ./
 RUN bun install
 
 # Full source
@@ -111,8 +88,8 @@ VOLUME /app/dist
 VOLUME /app/test-results
 VOLUME /app/frontend/src/choices
 
-# ---- Stage 4: wheel-installer (compile native extensions) ------------------
-FROM builder AS wheel-installer
+# ---- Stage 3: wheel-installer (compile native extensions) ------------------
+FROM builder-base AS wheel-installer
 ARG CODEX_WHEEL=unbuilt
 COPY dist/${CODEX_WHEEL} /tmp/${CODEX_WHEEL}
 # hadolint ignore=DL3059,DL3013
@@ -139,8 +116,8 @@ RUN set -eux \
     # Remove the installed wheel
     && rm -f /tmp/${CODEX_WHEEL}
 
-# ---- Stage 5: final (production image) ------------------------------------
-FROM runtime-base AS final
+# ---- Stage 4: final (production image) ------------------------------------
+FROM ghcr.io/ajslater/python-debian:3.14.4-slim-trixie_0 AS final
 ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.description="Codex Comic Server" \
@@ -149,6 +126,26 @@ LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.url="https://codex-reader.app" \
     org.opencontainers.image.source="https://github.com/ajslater/codex" \
     org.opencontainers.image.licenses="GPL-3.0-only"
+
+COPY debian.sources /etc/apt/sources.list.d/
+
+# hadolint ignore=DL3008
+RUN apt-get clean \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y \
+        curl \
+        libimagequant0 \
+        libjpeg62-turbo \
+        libopenjp2-7 \
+        libssl3 \
+        libyaml-0-2 \
+        libtiff6 \
+        libwebp7 \
+        ruamel.yaml.clib \
+        unrar \
+        zlib1g \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 RUN mkdir -p /home/abc/.config/comicbox \

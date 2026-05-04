@@ -1,7 +1,8 @@
 <template>
   <div class="bookCover">
     <v-img
-      :src="coverSrc"
+      :src="imgSrc"
+      :lazy-src="imgLazySrc"
       class="coverImg"
       :class="multiPkClasses"
       position="top"
@@ -13,10 +14,10 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
 
-import { getCoverSrc } from "@/api/v3/browser";
-import { useBrowserStore } from "@/stores/browser";
+const MAX_RETRIES = 5;
+const DEFAULT_RETRY_AFTER_SEC = 2;
 
 export default {
   name: "BookCover",
@@ -29,6 +30,14 @@ export default {
       type: Array,
       required: true,
     },
+    coverPk: {
+      type: Number,
+      default: 0,
+    },
+    coverCustomPk: {
+      type: Number,
+      default: 0,
+    },
     childCount: {
       type: Number,
       default: 1,
@@ -40,17 +49,40 @@ export default {
   },
   data() {
     return {
-      showPlaceholder: false,
+      retry: 0,
+      abort: null,
+      missing: false,
     };
   },
   computed: {
-    ...mapState(useBrowserStore, ["coverSettings"]),
     coverSrc() {
-      return getCoverSrc(
-        { group: this.group, pks: this.pks },
-        this.coverSettings,
+      const base = getCoverSrc(
+        { coverPk: this.coverPk, coverCustomPk: this.coverCustomPk },
         this.mtime,
       );
+      if (this.retry <= 0) {
+        return base;
+      }
+      const sep = base.includes("?") ? "&" : "?";
+      return `${base}${sep}r=${this.retry}`;
+    },
+    placeholderSrc() {
+      return getPlaceholderSrc(this.group);
+    },
+    imgSrc() {
+      /*
+       * 404 → render the placeholder directly so it shows unblurred.
+       * Otherwise use the cover URL; v-img shows the blurred lazy-src
+       * until the real cover bytes arrive.
+       */
+      return this.missing ? this.placeholderSrc : this.coverSrc;
+    },
+    imgLazySrc() {
+      /*
+       * Skip lazy-src when missing so v-img doesn't apply its loading
+       * blur to the static fallback.
+       */
+      return this.missing ? undefined : this.placeholderSrc;
     },
     multiPkClasses() {
       const len = this.pks.length;
@@ -63,14 +95,63 @@ export default {
       return classes;
     },
   },
-  mounted: function () {
-    this.delayPlaceholder();
+  mounted() {
+    this.pollCover();
+  },
+  unmounted() {
+    this.abort?.abort();
   },
   methods: {
-    delayPlaceholder: function () {
-      setTimeout(() => {
-        this.showPlaceholder = true;
-      }, 2000);
+    async pollCover() {
+      /*
+       * Probe the cover URL. The backend returns 202 Accepted with a
+       * Cache-Control: no-store placeholder while the cover thread is still
+       * generating the real thumb. Browsers don't honor Retry-After on <img>
+       * elements, so we poll here and bump `retry` (a cache-busting query
+       * param) to force v-img to re-fetch once the real cover is ready.
+       */
+      this.abort?.abort();
+      this.abort = new AbortController();
+      const signal = this.abort.signal;
+      let sawPending = false;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        let resp;
+        try {
+          resp = await fetch(this.coverSrc, {
+            credentials: "same-origin",
+            signal,
+          });
+        } catch {
+          return;
+        }
+        if (resp.status !== 202) {
+          /*
+           * 404 = no cover ever; switch to the unblurred placeholder.
+           * Anything else (200, 5xx) leaves missing=false so v-img keeps
+           * its lazy-blur loading state for src.
+           */
+          this.missing = resp.status === 404;
+          if (sawPending && !this.missing) {
+            this.retry = attempt + 1;
+          }
+          return;
+        }
+        sawPending = true;
+        const retryAfterSec =
+          Number.parseInt(resp.headers.get("Retry-After"), 10) ||
+          DEFAULT_RETRY_AFTER_SEC;
+        try {
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(resolve, retryAfterSec * 1000);
+            signal.addEventListener("abort", () => {
+              clearTimeout(timer);
+              reject(new Error("aborted"));
+            });
+          });
+        } catch {
+          return;
+        }
+      }
     },
   },
 };
@@ -101,20 +182,20 @@ export default {
 }
 
 .stack2 {
-  box-shadow: 3px 3px #606060;
+  box-shadow: 3px 3px bookcover.$stack-shadow-1;
 }
 
 .stack3 {
   box-shadow:
-    3px 3px #606060,
-    6px 6px #404040;
+    3px 3px bookcover.$stack-shadow-1,
+    6px 6px bookcover.$stack-shadow-2;
 }
 
 .stack4 {
   box-shadow:
-    3px 3px #606060,
-    6px 6px #404040,
-    9px 9px #202020;
+    3px 3px bookcover.$stack-shadow-1,
+    6px 6px bookcover.$stack-shadow-2,
+    9px 9px bookcover.$stack-shadow-3;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

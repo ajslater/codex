@@ -1,6 +1,6 @@
 """Delete stale m2ms."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.db.models import ManyToManyField, Q
 
@@ -24,8 +24,12 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
     @staticmethod
     def get_through_model(field: ManyToManyField) -> type[BaseModel]:
         """Get the through model for a m2m field."""
-        remote_field: ManyToManyRel = field.remote_field  # pyright: ignore[reportAssignmentType],# ty: ignore[invalid-assignment]
-        return remote_field.through  #  pyright: ignore[reportReturnType],# ty: ignore[invalid-return-type]
+        # ``ManyToManyField.remote_field`` is typed as the broader
+        # ``Field`` and ``.through`` only exists on ``ManyToManyRel``.
+        # Cast through ``object`` because pyright correctly observes
+        # the type-system gap.
+        remote_field = cast("ManyToManyRel", cast("object", field.remote_field))
+        return cast("type[BaseModel]", remote_field.through)
 
     def _delete_m2m_field_batch(
         self,
@@ -66,7 +70,10 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
             return total_field_count
         status.subtitle = f"Delete stale {field_name} links"
         self.status_controller.update(status)
-        field: ManyToManyField = Comic._meta.get_field(field_name)  # pyright:ignore[reportAssignmentType], # ty: ignore[invalid-assignment]│
+        # ``Comic._meta.get_field`` returns the broad ``Field |
+        # ForeignObjectRel`` union; cast to the concrete type the
+        # caller knows we're operating on.
+        field = cast("ManyToManyField", Comic._meta.get_field(field_name))
         related_model = field.related_model
         table_name = related_model._meta.db_table
         column_name = table_name.removeprefix("codex_") + "_id"

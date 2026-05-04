@@ -1,12 +1,14 @@
 """Reader settings views."""
 
 from types import MappingProxyType
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from codex.choices.reader import READER_DEFAULTS
 from codex.models import Comic, Folder, Series
 from codex.models.named import StoryArc
 from codex.models.settings import ClientChoices, SettingsReader
@@ -14,6 +16,7 @@ from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
     ReaderSettingsSerializer,
 )
+from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings import NULL_VALUES, SettingsBaseView
 
 # scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
@@ -34,9 +37,22 @@ _SCOPE_MAP = MappingProxyType(
         "a": ("story_arc_id", None, StoryArc),
     }
 )
+# Map comic_fk → (related_attr_on_comic, field_to_read_for_name).
+# The reader settings GET prefetches the comic with these joined so
+# the per-scope display name comes off the prefetched comic instead
+# of firing a fresh ``Model.objects.filter(pk).values_list("name")``
+# query (sub-plan 02 #1 / Tier 2 #7). Story-arc scope's pk comes
+# from a query param, not from the comic, so it falls back to a
+# separate lookup when requested.
+_COMIC_FK_TO_RELATED: MappingProxyType[str, tuple[str, str]] = MappingProxyType(
+    {
+        "series_id": ("series", "name"),
+        "parent_folder_id": ("parent_folder", "name"),
+    }
+)
 
 
-class ReaderSettingsBaseView(SettingsBaseView):
+class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
     """Reader settings — model config, defaults, reset, and scope lookups."""
 
     MODEL = SettingsReader
@@ -55,35 +71,24 @@ class ReaderSettingsBaseView(SettingsBaseView):
 
     # ── Defaults & reset ────────────────────────────────────────────
 
-    @classmethod
-    def get_reader_default_params(cls) -> dict:
-        """Derive reader default params from model field metadata."""
-        return {
-            key: cls._get_field_default(SettingsReader, key)
-            for key in SettingsReader.DIRECT_KEYS
-        }
-
-    @classmethod
-    def reset_reader_settings(cls, instance: SettingsReader) -> dict:
-        """Reset reader DIRECT_KEYS to model defaults and return the params dict."""
-        defaults = cls.get_reader_default_params()
-        for key in SettingsReader.DIRECT_KEYS:
-            setattr(instance, key, defaults[key])
+    @staticmethod
+    def reset_reader_settings(instance: SettingsReader) -> dict:
+        """Reset global reader settings to user-facing defaults."""
+        for key, value in READER_DEFAULTS.items():
+            setattr(instance, key, value)
         instance.save()
-        return defaults
+        return dict(READER_DEFAULTS)
 
     # ── Auth + scope lookups ────────────────────────────────────────
     # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
 
-    def _get_bookmark_auth_filter(self) -> dict[str, int | str | None]:
-        """Filter only the current user's settings rows."""
-        if self.request.user.is_authenticated:
-            return {"user_id": self.request.user.pk}
-        return {"session_id": self._ensure_session_key()}
-
     def _get_settings_lookup(self, **extra):
         """Build the base lookup for a SettingsReader query."""
-        auth_filter = self._get_bookmark_auth_filter()
+        # ``get_bookmark_auth_filter`` from BookmarkAuthMixin returns the
+        # same {"user_id"|"session_id": ...} shape; consolidating here
+        # closes the duplicated copy that used to live on this class
+        # (sub-plan 02 #5 / Tier 4 #12).
+        auth_filter = self.get_bookmark_auth_filter()
         return {"client": ClientChoices.API, **auth_filter, **extra}
 
     @staticmethod
@@ -95,16 +100,20 @@ class ReaderSettingsBaseView(SettingsBaseView):
 
     def _get_global_settings(self) -> SettingsReader:
         """Get or create the global reader settings row."""
+        # ``get_or_create`` is the atomic primitive — single query on
+        # the hit path, two on the create path with race-condition
+        # awareness. Replaces the manual ``filter().first() + create()``
+        # pattern (sub-plan 02 #2). FILTER_ARGS scope the lookup to the
+        # null-FK row; CREATE_ARGS get supplied as ``defaults`` along
+        # with READER_DEFAULTS so a freshly created global row is
+        # canonical — its stored values match what the user sees.
         base_lookup = self._get_settings_lookup()
-        filter_kwargs = {
-            **base_lookup,
-            **self.FILTER_ARGS,
-        }
-
-        instance = SettingsReader.objects.filter(**filter_kwargs).first()
-        if instance is not None:
-            return instance
-        return SettingsReader.objects.create(**base_lookup, **self.CREATE_ARGS)
+        filter_kwargs = {**base_lookup, **self.FILTER_ARGS}
+        instance, _ = SettingsReader.objects.get_or_create(
+            defaults={**base_lookup, **self.CREATE_ARGS, **READER_DEFAULTS},
+            **filter_kwargs,
+        )
+        return instance
 
     def _get_scoped_settings(self, scope_fk_field: str, scope_pk: int):
         """Get a scoped SettingsReader row or None."""
@@ -116,10 +125,8 @@ class ReaderSettingsBaseView(SettingsBaseView):
     ) -> SettingsReader:
         """Get or create a scoped SettingsReader row."""
         lookup = self._get_settings_lookup(**{scope_fk_field: scope_pk})
-        instance = SettingsReader.objects.filter(**lookup).first()
-        if instance is not None:
-            return instance
-        return SettingsReader.objects.create(**lookup)
+        instance, _ = SettingsReader.objects.get_or_create(defaults={}, **lookup)
+        return instance
 
 
 class ReaderSettingsView(ReaderSettingsBaseView):
@@ -164,6 +171,36 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             return "s"
         return scope
 
+    def _resolve_scope_name(
+        self,
+        scope_pk: int,
+        comic_fk: str | None,
+        comic: Comic | None,
+        model,
+    ) -> str:
+        """
+        Resolve the display name for a non-global, non-comic scope.
+
+        For series / folder scopes the name comes off the prefetched
+        comic's joined related row (sub-plan 02 #1 / Tier 2 #7) — no
+        extra query. For story_arc the scope_pk comes from a query
+        param so the comic prefetch can't help; fall back to a
+        targeted lookup.
+        """
+        if comic_fk and comic is not None:
+            related = _COMIC_FK_TO_RELATED.get(comic_fk)
+            if related:
+                related_attr, name_field = related
+                related_obj = getattr(comic, related_attr, None)
+                if related_obj is not None:
+                    return getattr(related_obj, name_field, "") or ""
+        if not model:
+            return ""
+        return (
+            model.objects.filter(pk=scope_pk).values_list("name", flat=True).first()
+            or ""
+        )
+
     def _get_scope(self, scope, scopes_out, comic, scope_info) -> None:
         config = _SCOPE_MAP.get(scope)
         if config is None:
@@ -185,16 +222,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             if scope_pk and fk_field:
                 instance = self._get_scoped_settings(fk_field, scope_pk)
                 scopes_out[canon] = self._instance_to_dict(instance)
-                name = (
-                    (
-                        model.objects.filter(pk=scope_pk)
-                        .values_list("name", flat=True)
-                        .first()
-                        or ""
-                    )
-                    if model
-                    else ""
-                )
+                name = self._resolve_scope_name(scope_pk, comic_fk, comic, model)
                 scope_info[canon] = {"pk": scope_pk, "name": name}
 
     # ── HTTP methods ────────────────────────────────────────────────
@@ -207,6 +235,10 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         comic_pk: int | None = self.kwargs.get("pk")
 
         # Pre-fetch comic once if any non-g/c scope needs it.
+        # ``select_related`` joins the related rows so the per-scope
+        # display name comes off the prefetched comic instead of
+        # firing a separate ``Model.objects.filter(pk)`` query per
+        # scope (sub-plan 02 #1 / Tier 2 #7).
         comic: Comic | None = None
         needed_comic_fks = set()
         for scope in requested:
@@ -214,7 +246,15 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             if config and config[1]:
                 needed_comic_fks.add(config[1])
         if needed_comic_fks and comic_pk:
-            comic = Comic.objects.only(*needed_comic_fks).get(pk=comic_pk)
+            select_related = [
+                _COMIC_FK_TO_RELATED[fk][0]
+                for fk in needed_comic_fks
+                if fk in _COMIC_FK_TO_RELATED
+            ]
+            qs = Comic.objects.only(*needed_comic_fks)
+            if select_related:
+                qs = qs.select_related(*select_related)
+            comic = qs.get(pk=comic_pk)
 
         scopes_out: dict = {}
         scope_info: dict = {}
@@ -251,8 +291,11 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 raise ValidationError(
                     {"scope_pk": "scope_pk is required for non-global scopes."}
                 )
-            fk_field = config[0]
-            instance = self._get_or_create_scoped_settings(fk_field, scope_pk)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            # Non-global ``_SCOPE_MAP`` entries always have a string
+            # FK name and the guard above proved ``scope_pk`` is set;
+            # narrow both for the type checker.
+            fk_field = cast("str", config[0])
+            instance = self._get_or_create_scoped_settings(fk_field, scope_pk)
 
         for key, value in data.items():
             if key in instance.DIRECT_KEYS:
@@ -289,9 +332,10 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 raise ValidationError(
                     {"scope_pk": "scope_pk is required for non-global scopes."}
                 )
-            fk_field = config[0]
+            # Same narrowing as the update path above.
+            fk_field = cast("str", config[0])
             # Delete the scoped row entirely — absence means "inherit".
-            lookup = self._get_settings_lookup(**{fk_field: scope_pk})  # pyright: ignore[reportCallIssue], # ty: ignore[invalid-argument-type]
+            lookup = self._get_settings_lookup(**{fk_field: scope_pk})
             SettingsReader.objects.filter(**lookup).delete()
             result = None
 

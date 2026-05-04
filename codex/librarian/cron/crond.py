@@ -5,6 +5,7 @@ from time import sleep
 from types import MappingProxyType
 from typing import override
 
+from django.db import connections
 from django.utils import timezone as django_timezone
 
 from codex.librarian.scribe.janitor.scheduled_time import get_janitor_time
@@ -70,6 +71,13 @@ class CronThread(NamedThread):
                     self._create_task_times()
                     sleep(2)  # try to fix double jobs
                     timeout = self._get_timeout()
+                    # Idle gaps between scheduled tasks are typically
+                    # hours-to-days. Release the conn so the next
+                    # ``cond.wait`` doesn't pin a file handle + a few
+                    # tens of KiB of in-process state through that
+                    # whole window. Reopen on the next query is
+                    # ~5-20 ms, invisible against the wait.
+                    connections.close_all()
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break

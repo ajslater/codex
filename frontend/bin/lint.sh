@@ -5,7 +5,7 @@ set -euxo pipefail
 uv run mbake validate Makefile cfg/*.mk
 
 # Javascript, JSON, Markdown, YAML #####
-npm run lint
+bun run lint
 
 bin/lint-darwin.sh
 

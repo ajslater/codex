@@ -1,5 +1,7 @@
 """Group Filters."""
 
+from typing import Final
+
 from django.db.models.query_utils import Q
 
 from codex.views.browser.params import BrowserParamsView
@@ -9,8 +11,8 @@ from codex.views.const import (
     GROUP_RELATION,
 )
 
-_GROUP_REL_TARGETS = frozenset({"cover", "choices", "bookmark"})
-_PK_REL_TARGETS = frozenset({"metadata", "mtime"})
+_GROUP_REL_TARGETS: Final = frozenset({"cover", "choices", "bookmark"})
+_PK_REL_TARGETS: Final = frozenset({"metadata", "mtime"})
 
 
 class GroupFilterView(BrowserParamsView):

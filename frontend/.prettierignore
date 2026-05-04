@@ -5,6 +5,7 @@ __pycache__
 .git
 .venv
 *Dockerfile
+bun.lock
 components.d.ts
 coverage
 dist

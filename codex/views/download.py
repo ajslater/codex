@@ -22,9 +22,9 @@ class DownloadView(AuthFilterAPIView):
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:
-            group_acl_filter = self.get_group_acl_filter(Comic, self.request.user)
+            acl_filter = self.get_acl_filter(Comic, self.request.user)
             comic = (
-                Comic.objects.filter(group_acl_filter)
+                Comic.objects.filter(acl_filter)
                 .distinct()
                 .only("path", "file_type")
                 .get(pk=pk)

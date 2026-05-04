@@ -1,7 +1,8 @@
+import { toRaw } from "vue";
+
 import { serializeParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
-import { toRaw } from "vue";
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
   const params = serializeParams(query, ts);
@@ -20,40 +21,67 @@ export const getBrowserHref = ({ group, pks, query }) => {
   return `${base}${hrefPath}/1?${queryString}`;
 };
 
-export const getCoverSrc = ({ group, pks }, settings, ts) => {
+export const getCoverSrc = ({ coverPk, coverCustomPk }, ts) => {
   const base = globalThis.CODEX.API_V3_PATH;
-  delete settings.show;
-  const { hrefPath, queryString } = getBrowserHrefPath({
-    group,
-    pks,
-    query: settings,
-    ts,
+  const query = ts ? `?ts=${ts}` : "";
+  if (coverCustomPk) {
+    return `${base}custom_cover/${coverCustomPk}/cover.webp${query}`;
+  }
+  return `${base}c/${coverPk}/cover.webp${query}`;
+};
+
+// Mirror of MISSING_COVER_NAME_MAP in codex/views/const.py.
+// Root group "r" never appears as a card group, so it's intentionally
+// absent — unknown letters fall back to the comic placeholder.
+const PLACEHOLDER_BY_GROUP = Object.freeze({
+  p: "publisher",
+  i: "imprint",
+  s: "series",
+  v: "volume",
+  f: "folder",
+  a: "story-arc",
+  c: "comic",
+});
+
+export const getPlaceholderSrc = (group) => {
+  const name = PLACEHOLDER_BY_GROUP[group] ?? "comic";
+  return `${globalThis.CODEX.STATIC}img/${name}.svg`;
+};
+
+const getAvailableFilterChoices = ({ group, pks }, data, ts, options = {}) => {
+  const params = serializeParams(data, ts);
+  return HTTP.get(`/${group}/${pks}/choices_available`, { params, ...options });
+};
+
+/* eslint-disable max-params */
+const getFilterChoices = (
+  { group, pks },
+  fieldName,
+  data,
+  ts,
+  options = {},
+) => {
+  const params = serializeParams(data, ts);
+  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, {
+    params,
+    ...options,
   });
-  return `${base}${hrefPath}/cover.webp?${queryString}`;
 };
+/* eslint-enable max-params */
 
-const getAvailableFilterChoices = ({ group, pks }, data, ts) => {
-  const params = serializeParams(data, ts);
-  return HTTP.get(`/${group}/${pks}/choices_available`, { params });
-};
-
-const getFilterChoices = ({ group, pks }, fieldName, data, ts) => {
-  const params = serializeParams(data, ts);
-  return HTTP.get(`/${group}/${pks}/choices/${fieldName}`, { params });
-};
-
-const getBrowserPage = ({ group, pks, page }, data, ts) => {
+const getBrowserPage = ({ group, pks, page }, data, ts, options = {}) => {
   const params = serializeParams(data, ts, false);
-  return HTTP.get(`/${group}/${pks}/${page}`, { params });
+  return HTTP.get(`/${group}/${pks}/${page}`, { params, ...options });
 };
 
 const getMetadata = ({ group, pks }, settings) => {
+  // Pull ``mtime`` out as the timestamp; ``serializeParams`` deep-clones
+  // the rest via ``_deepClone`` (which calls ``toRaw`` at every level),
+  // so we don't need ``structuredClone`` here — and can't safely use it,
+  // since the reactive filter arrays from the Pinia store don't always
+  // survive a structured clone (DataCloneError on ``[object Array]``).
   const pkList = pks.join(",");
-  const rawSettings = toRaw(settings) || {};
-  const filters = toRaw(rawSettings?.filters) || {};
-  const mtime = rawSettings?.mtime;
-  const data = structuredClone({ ...rawSettings, filters });
-  delete data.mtime;
+  const { mtime, ...data } = toRaw(settings) || {};
   const params = serializeParams(data, mtime, false);
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
@@ -123,6 +151,7 @@ export default {
   getAvailableFilterChoices,
   getBrowserHref,
   getCoverSrc,
+  getPlaceholderSrc,
   getFilterChoices,
   getGroupDownloadURL,
   getMetadata,

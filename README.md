@@ -28,9 +28,12 @@ A final docker.io image has been released on dockerhub.
 - Anonymous browsing and reading or reigistered users only, to your preference.
 - Per user bookmarking & settings, even before you make an account.
 - Private Libraries accessible only to certain groups of users.
+- Optional Age Restrictions per user for Age tagged comics.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS 1 & 2, streaming, search and authentication.
+- Save and load named views and searches.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
+- Fastest bulk comic importing by far of any comic server.
 - Remote-User HTTP header SSO support.
 - Runs in 1GB of RAM, faster with more.
 - GPLv3 Licenced.
@@ -324,6 +327,13 @@ Environment variables override values set in the TOML config file.
 - `CODEX_LOG_RETENTION` how long to keep logs. Defaults to "6 months".
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
+
+#### Cache
+
+- `CODEX_CACHE_DIR` sets a custom directory for the file-based cache (Django
+  cache entries and comic book cover thumbnails). Defaults to
+  `$CODEX_CONFIG_DIR/cache`. Useful for placing the cache on a separate (e.g.
+  faster or ephemeral) volume from the rest of the config directory.
 
 ##### Browser
 

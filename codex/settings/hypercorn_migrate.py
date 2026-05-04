@@ -37,18 +37,17 @@ def _parse_bind(bind_list: list[str]) -> tuple[str, int]:
 
 def _toml_value(val: object) -> str:
     """Format a Python value as a TOML literal."""
-    if isinstance(val, bool):
-        return "true" if val else "false"
-    if isinstance(val, int):
-        return str(val)
-    if isinstance(val, float):
-        return f"{val}"
-    if isinstance(val, str):
-        return f'"{val}"'
-    if isinstance(val, list):
-        inner = ", ".join(_toml_value(v) for v in val)
-        return f"[{inner}]"
-    return f'"{val}"'
+    match val:
+        case bool():
+            return "true" if val else "false"
+        case int():
+            return str(val)
+        case float():
+            return f"{val}"
+        case list() as items:
+            return f"[{', '.join(_toml_value(v) for v in items)}]"
+        case _:
+            return f'"{val}"'
 
 
 def _transform_hypercorn_config(old: dict):

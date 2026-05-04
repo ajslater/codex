@@ -1,37 +1,45 @@
-"""Comic cover thumbnail view."""
+"""
+Per-pk cover endpoints.
+
+Serve a single already-resolved cover pk — no group filter, no ordering,
+no fuzzy sort_name matching. The browser response pre-computes the
+representative comic pk per card (see :mod:`codex.views.browser.annotate.cover`),
+so the per-card cover URL is a cheap single-row lookup instead of re-running
+the group-resolution pipeline 72x per page.
+
+Cover generation is never run inline. If the cached thumb is missing we
+enqueue a :class:`CoverCreateTask` on the librarian queue and respond 202
+Accepted with ``Retry-After`` so the client has something to render while
+the cover thread produces the real bytes. When a cover can't be produced
+(or doesn't exist) we respond 404 with an empty body — the web client
+falls back to its ``lazy-src`` SVG and OPDS clients use their own default
+rendering.
+"""
 
 from collections.abc import Sequence
-from typing import Any, override
+from typing import Any, Final, override
 
-from django.db import OperationalError
-from django.db.models.query_utils import Q
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
+from rest_framework import status
 from rest_framework.renderers import BaseRenderer
 
-from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.path import CoverPathMixin
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.models import Comic, Volume
-from codex.models.groups import Folder
-from codex.models.paths import CustomCover
-from codex.serializers.browser.settings import BrowserCoverInputSerializer
-from codex.views.browser.annotate.order import BrowserAnnotateOrderView
-from codex.views.const import (
-    CUSTOM_COVER_GROUP_RELATION,
-    GROUP_RELATION,
-    MISSING_COVER_FN,
-    MISSING_COVER_NAME_MAP,
-    STATIC_IMG_PATH,
-)
+from codex.models import Comic
+from codex.views.auth import AuthFilterAPIView
+
+_RETRY_AFTER_SECONDS: Final = 2
+_WEBP_CONTENT_TYPE: Final = "image/webp"
 
 
 class WEBPRenderer(BaseRenderer):
     """Render WEBP images."""
 
-    media_type = "image/webp"
+    media_type = _WEBP_CONTENT_TYPE
     format = "webp"
     charset: str | None = None
     render_style = "binary"
@@ -42,124 +50,98 @@ class WEBPRenderer(BaseRenderer):
         return data
 
 
-class CoverView(BrowserAnnotateOrderView):
-    """ComicCover View."""
+class _CoverBaseView(AuthFilterAPIView):
+    """Shared cover-by-pk plumbing."""
 
-    input_serializer_class: type[BrowserCoverInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
-        BrowserCoverInputSerializer
-    )
     renderer_classes: Sequence[type[BaseRenderer]] = (WEBPRenderer,)
-    content_type = "image/webp"
+    content_type = _WEBP_CONTENT_TYPE
+
+    @staticmethod
+    def _missing_cover_response(
+        status_code: int = status.HTTP_404_NOT_FOUND,
+    ) -> HttpResponse:
+        """
+        Return an empty response for a missing or pending cover.
+
+        Default 404 lets the web client fall back to its ``lazy-src`` SVG
+        and OPDS clients use their own default rendering. ``no-store``
+        prevents reverse proxies from caching the 404 briefly, which would
+        otherwise delay a cover from appearing once the cover thread writes
+        the real bytes. Callers using 202 add ``Retry-After`` for the
+        polling loop; ``no-store`` already keeps the polling fetch reaching
+        the backend.
+        """
+        response = HttpResponse(
+            b"", content_type=_WEBP_CONTENT_TYPE, status=status_code
+        )
+        response["Cache-Control"] = "no-store"
+        return response
+
+    @classmethod
+    def _get_cover_response(cls, pk: int, *, custom: bool) -> HttpResponse:
+        """Return a cached cover, enqueue one (202), or 404."""
+        cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
+        # Single read — no exists()/stat() race window. The cover thread
+        # writes atomically via os.replace, so we only ever see the old state
+        # or the complete new file.
+        try:
+            cover_bytes = cover_path.read_bytes()
+        except FileNotFoundError:
+            cover_bytes = None
+        except OSError as exc:
+            logger.warning(f"Cover read error (pk={pk} custom={custom}): {exc!r}")
+            cover_bytes = None
+
+        if cover_bytes:
+            return HttpResponse(cover_bytes, content_type=_WEBP_CONTENT_TYPE)
+        if cover_bytes == b"":
+            # Zero-byte marker = the cover thread already tried and failed.
+            return cls._missing_cover_response()
+
+        # Defer creation to the cover thread; respond 202 so the web client
+        # polls until the real thumb is ready.
+        try:
+            LIBRARIAN_QUEUE.put(CoverCreateTask(pks=(pk,), custom=custom))
+        except Exception as exc:
+            logger.warning(f"Cover enqueue failed (pk={pk} custom={custom}): {exc!r}")
+        response = cls._missing_cover_response(status.HTTP_202_ACCEPTED)
+        response["Retry-After"] = str(_RETRY_AFTER_SECONDS)
+        return response
+
+
+class CoverView(_CoverBaseView):
+    """Serve a single comic's cover by comic pk, ACL-checked."""
+
     TARGET: str = "cover"
 
-    @override
-    def get_group_filter(self, group=None, pks=None, *, page_mtime=False) -> Q:
-        """Get group filter for First Cover View."""
-        if self.params.get("dynamic_covers") or self.model in (Volume, Folder):
-            return super().get_group_filter(group=group, pks=pks, page_mtime=page_mtime)
-
-        # First cover group filter relies on sort names to look outside the browser supplied pks
-        # For multi_groups not in the browser query.
-        pks = self.kwargs["pks"]
-        if not self.model:
-            qs = Comic.objects.none()
-        else:
-            qs = self.model.objects.filter(pk__in=pks)
-        sort_names = qs.values_list("sort_name", flat=True).distinct()
-        model_rel = GROUP_RELATION[self.model_group]
-        group_filter = {f"{model_rel}__sort_name__in": sort_names}
-
-        parent_route = self.params.get("parent_route", {})
-        if parent_pks := parent_route.get("pks"):
-            parent_rel = GROUP_RELATION[parent_route["group"]]
-            group_filter[f"{parent_rel}__pk__in"] = parent_pks
-        return Q(**group_filter)
-
-    def _get_comic_cover(self) -> tuple:
-        pks = self.kwargs["pks"]
-        return pks[0], False
-
-    def _get_custom_cover(self) -> CustomCover | None:
-        """Get Custom Cover."""
-        if self.model is Volume or not self.params.get("custom_covers"):
-            return None
-        group = self.kwargs["group"]
-        group_rel = CUSTOM_COVER_GROUP_RELATION[group]
-        pks = self.kwargs["pks"]
-        comic_filter = {f"{group_rel}__in": pks}
-        qs = CustomCover.objects.filter(**comic_filter)
-        qs = qs.only("pk")
-        return qs.first()
-
-    def _get_dynamic_cover(self) -> tuple:
-        """Get dynamic cover."""
-        comic_qs = self.get_filtered_queryset(Comic)
-        comic_qs = self.annotate_order_aggregates(comic_qs)
-        comic_qs = self.add_order_by(comic_qs)
-        comic_qs = comic_qs.only("pk")
-        comic = comic_qs.first()
-        cover_pk = comic.pk if comic else 0
-        return cover_pk, False
-
-    def _get_cover_pk(self) -> tuple[int, bool]:
-        """Get Cover Pk queryset for comic queryset."""
-        if self.model is Comic:
-            cover_pk, custom = self._get_comic_cover()
-        elif custom_cover := self._get_custom_cover():
-            cover_pk = custom_cover.pk
-            custom = True
-        else:
-            cover_pk, custom = self._get_dynamic_cover()
-        return cover_pk, custom
-
-    def _get_missing_cover_path(self) -> tuple:
-        """Get the missing cover, which is a default svg if fetched for a group."""
-        group: str = self.kwargs["group"]
-        cover_name = MISSING_COVER_NAME_MAP.get(group)
-        if cover_name:
-            cover_fn = cover_name + ".svg"
-            content_type = "image/svg+xml"
-        else:
-            cover_fn = MISSING_COVER_FN
-            content_type = "image/webp"
-        cover_path = STATIC_IMG_PATH / cover_fn
-        return cover_path, content_type
-
-    def _get_cover_data(self, pk, *, custom: bool) -> tuple:
-        thumb_buffer = False
-        content_type = "image/webp"
-
-        cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
-        if not cover_path.exists():
-            thumb_buffer = CoverCreateThread.create_cover_from_path(
-                pk, str(cover_path), logger, LIBRARIAN_QUEUE, custom=custom
-            )
-            if not thumb_buffer:
-                cover_path, content_type = self._get_missing_cover_path()
-        elif cover_path.stat().st_size == 0:
-            cover_path, content_type = self._get_missing_cover_path()
-
-        return thumb_buffer, cover_path, content_type
-
-    @extend_schema(
-        parameters=[BrowserAnnotateOrderView.input_serializer_class],
-        responses={(200, content_type): OpenApiTypes.BINARY},
-    )
-    def get(self, *args, **kwargs) -> HttpResponse:
-        """Get comic cover."""
+    @extend_schema(responses={(200, _WEBP_CONTENT_TYPE): OpenApiTypes.BINARY})
+    def get(self, *_args, pk: int, **_kwargs) -> HttpResponse:
+        """Get the cover for a single comic pk."""
         try:
-            try:
-                pk, custom = self._get_cover_pk()
-            except OperationalError as exc:
-                self._handle_operational_error(exc)
-                pk = 0
-                custom = False
-            cover_buffer, cover_path, content_type = self._get_cover_data(
-                pk, custom=custom
-            )
-            if not cover_buffer:
-                cover_buffer = cover_path.read_bytes()
-            return HttpResponse(cover_buffer, content_type=content_type)
+            acl_q = self.get_acl_filter(Comic, self.request.user)
+            if not Comic.objects.filter(acl_q, pk=pk).exists():
+                return self._missing_cover_response()
+            return self._get_cover_response(pk, custom=False)
         except Exception:
-            logger.exception("Get cover")
-            raise
+            logger.exception(f"Get comic cover by pk {pk}")
+            return self._missing_cover_response()
+
+
+class CustomCoverView(_CoverBaseView):
+    """
+    Serve a CustomCover by its pk.
+
+    No ACL check — custom covers are admin-provisioned artwork for groups,
+    not comic content.
+    """
+
+    TARGET: str = "cover"
+
+    @extend_schema(responses={(200, _WEBP_CONTENT_TYPE): OpenApiTypes.BINARY})
+    def get(self, *_args, pk: int, **_kwargs) -> HttpResponse:
+        """Get the custom cover for a single CustomCover pk."""
+        try:
+            return self._get_cover_response(pk, custom=True)
+        except Exception:
+            logger.exception(f"Get custom cover by pk {pk}")
+            return self._missing_cover_response()

@@ -58,10 +58,24 @@ export default {
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
-      cards: (state) => [
-        ...(state.page.groups ?? []),
-        ...(state.page.books ?? []),
-      ],
+      cards(state) {
+        /*
+         * Skip the spread when one of the lists is empty. The
+         * typical browser page is either all groups (publishers,
+         * series, volumes) or all books — never a mix — so the
+         * common case is "spread an array against an empty
+         * array", which still allocates a fresh wrapper per
+         * render even though the contents are identical to the
+         * non-empty input. Returning the reference directly when
+         * we can lets Vue's diff cache shortcut to "same array,
+         * same items" and the v-for stays stable across renders.
+         */
+        const groups = state.page.groups;
+        const books = state.page.books;
+        if (!groups || groups.length === 0) return books ?? [];
+        if (!books || books.length === 0) return groups;
+        return [...groups, ...books];
+      },
       numPages: (state) => state.page.numPages,
       search: (state) => state.settings.search,
       isSearchOpen: (state) => state.isSearchOpen,

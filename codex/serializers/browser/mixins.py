@@ -42,9 +42,12 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
             if not dt_str:
                 continue
             try:
-                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S.%f").replace(
-                    tzinfo=UTC
-                )
+                # ``fromisoformat`` accepts the SQLite GROUP_CONCAT
+                # output shape (``2024-01-15 10:30:45.123456``) since
+                # Python 3.11 and is ~20x faster than ``strptime`` —
+                # measurable savings on browser-list responses where
+                # this loop runs ~50 cards x ~50 timestamps.
+                dt = datetime.fromisoformat(dt_str).replace(tzinfo=UTC)
             except ValueError:
                 logger.warning(
                     f"computing group mtime: {dt_str} is not a valid datetime string."
@@ -55,13 +58,14 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
 
     def get_mtime(self, obj) -> int:
         """Compute mtime from json array aggregates."""
+        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
         updated_ats = (
             obj.updated_ats
-            if obj.bmua_is_max
+            if bmua_is_max
             else chain(obj.updated_ats, obj.bookmark_updated_ats)
         )
         mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
-        if obj.bmua_is_max:
+        if bmua_is_max:
             mtime: datetime | None = max_none(
                 mtime, obj.bookmark_updated_at, EPOCH_START
             )

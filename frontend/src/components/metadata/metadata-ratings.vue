@@ -10,7 +10,12 @@
       <tr v-if="md.ageRating">
         <td class="key">Age Rating</td>
         <td>
-          <MetadataText :value="md.ageRating.name" />
+          <MetadataText class="ageRating" :value="displayAgeRating" />
+          <MetadataText
+            v-if="showOriginalAgeRating"
+            class="ageRating originalAgeRating"
+            :value="originalAgeRating"
+          />
         </td>
       </tr>
     </tbody>
@@ -34,6 +39,17 @@ export default {
     show() {
       return this.md?.criticRating !== undefined || this.md?.ageRating;
     },
+    displayAgeRating() {
+      const ar = this.md.ageRating;
+      return ar.metron?.name || ar.name;
+    },
+    showOriginalAgeRating() {
+      const ar = this.md.ageRating;
+      return !!ar.metron?.name && ar.name !== ar.metron.name;
+    },
+    originalAgeRating() {
+      return `(tagged as ${this.md.ageRating.name})`;
+    },
   },
 };
 </script>
@@ -41,6 +57,15 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 @use "./table";
+
+.ageRating {
+  display: inline-flex;
+}
+
+.originalAgeRating {
+  color: rgb(var(--v-theme-textSecondary));
+}
+
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .key {
     font-size: x-small;

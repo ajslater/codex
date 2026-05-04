@@ -1,7 +1,7 @@
 """Librarian Status View."""
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Final, override
 
 from django.db.models.query_utils import Q
 from drf_spectacular.utils import extend_schema
@@ -65,7 +65,7 @@ from codex.models import LibrarianStatus
 from codex.serializers.admin.tasks import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
-from codex.views.admin.auth import AdminAPIView, AdminReadOnlyModelViewSet
+from codex.views.admin.auth import AdminAPIView, AsyncAdminReadOnlyModelViewSet
 from codex.views.const import EPOCH_START
 
 if TYPE_CHECKING:
@@ -117,20 +117,37 @@ _TASK_MAP = MappingProxyType(
 )
 
 
-class AdminLibrarianStatusActiveViewSet(AdminReadOnlyModelViewSet):
-    """Librarian Task Statuses (active/preactive only)."""
+_ACTIVE_STATUS_FILTER: Final = Q(preactive__isnull=False) | Q(active__isnull=False)
 
-    queryset = LibrarianStatus.objects.filter(
-        Q(preactive__isnull=False) | Q(active__isnull=False)
-    ).order_by("preactive", "active", "pk")
+
+class AdminLibrarianStatusViewSet(AsyncAdminReadOnlyModelViewSet):
+    """
+    Librarian Task Statuses, optionally filtered to active/preactive.
+
+    Dispatched async (via ``adrf``) so the WebSocket-driven status poll
+    doesn't pay the sync<->async middleware boundary that previously
+    surfaced as ``CancelledError exception in shielded future`` log
+    noise on every aborted in-flight request.
+    """
+
     serializer_class = LibrarianStatusSerializer
+    # Set per-route at ``as_view()`` time. ``True`` for the live status
+    # poller; ``False`` for the Jobs tab's full history view.
+    active_only: ClassVar[bool] = False
 
+    @override
+    def get_queryset(self):
+        """
+        Active rows ordered by their timestamps; otherwise insertion order.
 
-class AdminLibrarianStatusAllViewSet(AdminReadOnlyModelViewSet):
-    """All Librarian Task Statuses including inactive (for Jobs tab)."""
-
-    queryset = LibrarianStatus.objects.all().order_by("pk")
-    serializer_class = LibrarianStatusSerializer
+        Returns a lazy ``QuerySet``; adrf's ``alist`` evaluates it on the
+        event loop via ``afilter_queryset`` / ``apaginate_queryset``.
+        """
+        if self.active_only:
+            return LibrarianStatus.objects.filter(_ACTIVE_STATUS_FILTER).order_by(
+                "preactive", "active", "pk"
+            )
+        return LibrarianStatus.objects.order_by("pk")
 
 
 class AdminLibrarianTaskView(AdminAPIView):
@@ -144,11 +161,16 @@ class AdminLibrarianTaskView(AdminAPIView):
         if name == "notify_bookmark_changed":
             uid = self.request.user.pk
             group = f"user_{uid}"
-            task = NotifierTask(Notifications.BOOKMARK.value, group)
-        else:
-            task = _TASK_MAP.get(name)
-        if pk and isinstance(task, FSPollLibrariesTask):
-            task.library_ids = frozenset({pk})
+            return NotifierTask(Notifications.BOOKMARK.value, group)
+        task = _TASK_MAP.get(name)
+        if isinstance(task, FSPollLibrariesTask):
+            # ``_TASK_MAP`` holds a single shared ``FSPollLibrariesTask``
+            # instance per name. Mutating ``library_ids`` in place would
+            # race two concurrent admin POSTs that target different
+            # libraries — the second writer overwrites the first before
+            # either reaches ``LIBRARIAN_QUEUE.put``. Build a fresh task.
+            library_ids = frozenset({pk}) if pk else task.library_ids
+            return FSPollLibrariesTask(library_ids=library_ids, force=task.force)
         return task
 
     @extend_schema(request=input_serializer_class)

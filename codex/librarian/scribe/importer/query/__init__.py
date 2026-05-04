@@ -19,11 +19,16 @@ class QueryForeignKeysImporter(QueryPruneLinks):
         """Get objects to create by querying existing objects for the proposed fks."""
         if QUERY_MODELS not in self.metadata:
             return
+        # UPDATE_COMICS / CREATE_FKS / UPDATE_FKS / DELETE_M2MS are
+        # per-chunk: created by query, consumed by create_and_update
+        # / link inside the same chunk's per-comic phase loop.
+        # FTS_EXISTING_M2MS accumulates across chunks (consumed later
+        # by full_text_search), so use ``setdefault``.
         self.metadata[UPDATE_COMICS] = {}
         self.metadata[CREATE_FKS] = {}
         self.metadata[UPDATE_FKS] = {}
         self.metadata[DELETE_M2MS] = {}
-        self.metadata[FTS_EXISTING_M2MS] = {}
+        self.metadata.setdefault(FTS_EXISTING_M2MS, {})
         self.log.debug(
             f"Querying existing foreign keys for comics in {self.library.path}"
         )

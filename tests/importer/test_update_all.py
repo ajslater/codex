@@ -166,7 +166,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("https://metron.cloud/creator/123",),
                 },
                 ("metron", "genre", "012"): {
-                    ("https://metron.cloud/genre/012",),
+                    (None,),
                 },
                 ("metron", "imprint", "123"): {
                     ("https://metron.cloud/imprint/123",),
@@ -175,7 +175,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("https://metron.cloud/publisher/111",),
                 },
                 ("metron", "story", "555"): {
-                    ("https://metron.cloud/story/555",),
+                    (None,),
                 },
             },
             Publisher: {
@@ -335,10 +335,10 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 ("metron", "character", "123", "https://metron.cloud/character/123"),
                 ("metron", "comic", "999", "https://metron.cloud/issue/999"),
                 ("metron", "creditperson", "123", "https://metron.cloud/creator/123"),
-                ("metron", "genre", "012", "https://metron.cloud/genre/012"),
+                ("metron", "genre", "012", None),
                 ("metron", "imprint", "123", "https://metron.cloud/imprint/123"),
                 ("metron", "publisher", "111", "https://metron.cloud/publisher/111"),
-                ("metron", "story", "555", "https://metron.cloud/story/555"),
+                ("metron", "story", "555", None),
             },
             Language: {("fr",)},
             AgeRating: {("Adult",)},
@@ -569,15 +569,16 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
-                "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "language": ("fr",),
+                "age_rating_metron": ("Adult",),
                 "name": ("The Beginning; The End",),
                 "original_format": ("Hardcover",),
                 "review": ("Actually unreadable.",),
                 "scan_info": ("Digital",),
                 "summary": ("Captain Science's many adult adventures",),
+                "age_rating_tagged": ("Adult",),
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
@@ -598,12 +599,12 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
-                "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
+                "age_rating_metron": ("Adult",),
                 "name": ("The Beginning; The End",),
                 "original_format": ("Hardcover",),
                 "review": ("Actually unreadable.",),
@@ -613,6 +614,7 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "age_rating_tagged": ("Adult",),
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
@@ -633,12 +635,12 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
-                "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
+                "age_rating_metron": ("Adult",),
                 "name": ("The Beginning; The End",),
                 "original_format": ("Hardcover",),
                 "review": ("Actually unreadable.",),
@@ -648,6 +650,7 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "age_rating_tagged": ("Adult",),
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
@@ -667,12 +670,12 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
-                "age_rating": ("Adult",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
+                "age_rating_metron": ("Adult",),
                 "name": ("The Beginning; The End",),
                 "original_format": ("Hardcover",),
                 "review": ("Actually unreadable.",),
@@ -682,6 +685,7 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "age_rating_tagged": ("Adult",),
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},

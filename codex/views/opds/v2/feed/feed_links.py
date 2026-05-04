@@ -1,7 +1,7 @@
 """OPDS v2.0 top links section methods."""
 
 from types import MappingProxyType
-from typing import Any
+from typing import Any, override
 
 from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
@@ -12,6 +12,25 @@ _SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
 
 class OPDS2FeedLinksView(OPDS2LinksView):
     """OPDS 2.0 top links section methods."""
+
+    @override
+    def get_book_qs(self) -> tuple:
+        """
+        Add OPDS-specific FK joins to the book queryset.
+
+        ``BrowserView.get_book_qs`` already joins ``series`` (and notes
+        that volume isn't needed for the browser UI). The OPDS v2
+        publication path reads ``obj.volume.name`` /
+        ``obj.volume.number_to`` (via ``Comic.get_title(volume=True)``)
+        and ``obj.language.name`` per publication — without these
+        joins, every publication iteration fires two FK lookups
+        (sub-plan 02 #3, sub-plan 04 preview pipeline). One JOIN per
+        request is cheap; per-publication N+1 is not.
+        """
+        book_qs, book_count, zero_pad = super().get_book_qs()
+        if book_count:
+            book_qs = book_qs.select_related("volume", "language")
+        return book_qs, book_count, zero_pad
 
     def _link_auth(self):
         href_data = HrefData(

@@ -1,15 +1,17 @@
 """Listens to the Broadcast Queue and sends its messages to channels."""
 
 import asyncio
+from contextlib import suppress
 from queue import Empty
 from types import MappingProxyType
+from typing import Final
 
 from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
 
 from codex.websockets.consumers import ChannelGroups
 
-WS_NORMAL_CLOSURE = 1000
+WS_NORMAL_CLOSURE: Final = 1000
 
 
 class BroadcastListener:
@@ -17,7 +19,7 @@ class BroadcastListener:
 
     _WS_DISCONNECT_EVENT = MappingProxyType(
         {
-            "group": ChannelGroups.ALL.name,
+            "group": ChannelGroups.ALL,
             "message": {
                 "type": "websocket_disconnect",
                 "code": WS_NORMAL_CLOSURE,
@@ -44,11 +46,9 @@ class BroadcastListener:
         """Broadcast disconnect message and close the queue."""
         await self.broadcast_group(self._WS_DISCONNECT_EVENT)
         self.log.debug("Sent disconnect to all channels.")
-        try:
+        with suppress(Empty):
             while not self.queue.empty():
                 self.queue.get_nowait()
-        except Empty:
-            pass
         self.queue.close()
         self.queue.join_thread()
 

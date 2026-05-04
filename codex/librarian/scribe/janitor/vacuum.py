@@ -22,7 +22,11 @@ class JanitorVacuum(JanitorIntegrity):
         try:
             self.status_controller.start(status)
             old_size = DB_PATH.stat().st_size
-            with connection.cursor() as cursor:
+            # ``VACUUM`` takes an exclusive lock at the SQLite level.
+            # Acquire ``db_write_lock`` so a concurrent importer (or
+            # any other Python-level writer) waits cleanly instead of
+            # surfacing "database is locked" mid-bulk_create.
+            with self.db_write_lock, connection.cursor() as cursor:
                 cursor.execute("PRAGMA optimize")
                 cursor.execute("VACUUM")
                 cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
@@ -42,7 +46,12 @@ class JanitorVacuum(JanitorIntegrity):
             if backup_path.is_file():
                 backup_path.replace(_OLD_BACKUP_PATH)
             path = str(backup_path)
-            with connection.cursor() as cursor:
+            # ``VACUUM INTO`` reads the entire DB and would race with
+            # an in-flight writer. Same lock-acquisition pattern as
+            # ``vacuum_db`` above. The OS-level ``replace`` /
+            # ``unlink`` of the old backup file does not need the lock
+            # — those are filesystem ops on the backup, not the DB.
+            with self.db_write_lock, connection.cursor() as cursor:
                 cursor.execute(f"VACUUM INTO {path!r}")
             _OLD_BACKUP_PATH.unlink(missing_ok=True)
             self.log.info(f"Backed up database to {path}")

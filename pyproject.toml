@@ -12,9 +12,10 @@ classifiers = [
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
+  "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=2.2.1",
+  "comicbox[pdf]~=3.0.0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
@@ -45,7 +46,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.10.15"
+version = "1.11.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -63,11 +64,13 @@ codex = "codex.run:main"
 
 [dependency-groups]
 dev = [
+  "django-silk~=5.4",
   "granian[reload]",
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.3.0",
+  "picopt~=6.4.0",
+  "pypi-cleanup~=0.1.10",
   "semver~=3.0.4",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
@@ -207,6 +210,7 @@ failed = true
 paths = ["codex", "tests"]
 exclude = [
   "*/.*",
+  ".*",
   "frontend",
   "node_modules",
   "site",
@@ -361,10 +365,9 @@ ignore-variadic-names = true
 ignore-overlong-task-comments = true
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D101", "D102", "T203"]
+"tests/*" = ["D101", "D102", "T201", "T203"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-"ci/cleanup-repo.py" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
 
 [tool.ruff.lint.pylint]

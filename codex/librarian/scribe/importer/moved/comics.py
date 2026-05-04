@@ -50,44 +50,72 @@ class MovedComicsImporter(ReadMetadataImporter):
         self.status_controller.finish(status)
 
     def _prepare_moved_comic(
-        self, comic, folder_m2m_links, updated_comics, del_folder_rows
+        self,
+        comic,
+        folder_pk_by_path: dict[str, int],
+        folder_m2m_links: dict,
+        updated_comics: list,
+        del_folder_rows: list,
     ) -> None:
         """Prepare one comic for bulk update."""
         try:
-            new_path = self.task.files_moved[comic.path]
+            new_path_str = self.task.files_moved[comic.path]
             old_folder_pks = frozenset(folder.pk for folder in comic.folders.all())
-            comic.path = new_path
-            new_path = Path(new_path)
-            comic.parent_folder = Folder.objects.get(path=new_path.parent)
+            comic.path = new_path_str
+            new_path = Path(new_path_str)
+            # Library-scoped pk lookup via the prebuilt map. Replaces a
+            # per-comic ``Folder.objects.get(path=...)``, and tightens the
+            # search to this library so a parent_folder can no longer
+            # resolve to another library sharing the same on-disk path.
+            # Bracket access raises ``KeyError`` on a genuinely missing
+            # parent — same outer behavior as the prior ``DoesNotExist``
+            # (caught by the broad except below).
+            comic.parent_folder_id = folder_pk_by_path[str(new_path.parent)]
             comic.updated_at = Now()
             comic.presave()
+            # Missing ancestors silently absent from the set, matching
+            # the prior ``filter(path__in=...)`` behavior.
             new_folder_pks = frozenset(
-                Folder.objects.filter(path__in=new_path.parents).values_list(
-                    "pk", flat=True
-                )
+                pk
+                for parent in new_path.parents
+                if (pk := folder_pk_by_path.get(str(parent))) is not None
             )
             folder_m2m_links[comic.pk] = new_folder_pks
             updated_comics.append(comic)
             if del_folder_pks := old_folder_pks - new_folder_pks:
-                for pk in del_folder_pks:
-                    del_folder_rows.append((comic.pk, pk))
+                del_folder_rows.extend((comic.pk, pk) for pk in del_folder_pks)
         except Exception:
             self.log.exception(f"moving {comic.path}")
 
     def _bulk_comics_move_prepare(self) -> tuple[list, dict, dict]:
         """Prepare Update Comics."""
+        # _bulk_comics_moved_ensure_folders has already created any
+        # destination folders that were missing. One values_list pass
+        # here builds a path->pk map covering every parent path the
+        # per-comic loop below can possibly need; replaces the prior
+        # 2-SELECTs-per-moved-comic shape.
+        folder_pk_by_path: dict[str, int] = dict(
+            Folder.objects.filter(library=self.library).values_list(
+                PATH_FIELD_NAME, "pk"
+            )
+        )
+
         comics = (
             Comic.objects.prefetch_related(FOLDERS_FIELD_NAME)
             .filter(library=self.library, path__in=self.task.files_moved.keys())
             .only(PATH_FIELD_NAME, PARENT_FOLDER_FIELD_NAME, FOLDERS_FIELD_NAME)
         )
 
-        folder_m2m_links = {}
-        updated_comics = []
-        del_folder_rows = []
+        folder_m2m_links: dict = {}
+        updated_comics: list = []
+        del_folder_rows: list = []
         for comic in comics:
             self._prepare_moved_comic(
-                comic, folder_m2m_links, updated_comics, del_folder_rows
+                comic,
+                folder_pk_by_path,
+                folder_m2m_links,
+                updated_comics,
+                del_folder_rows,
             )
         self.task.files_moved = {}
         self.log.debug(f"Prepared {len(updated_comics)} for move...")

@@ -2,6 +2,7 @@
 
 import json
 from datetime import timedelta
+from typing import Final
 from urllib.request import urlopen
 
 from django.utils import timezone
@@ -12,10 +13,9 @@ from codex.librarian.worker import WorkerStatusBase
 from codex.models import Timestamp
 from codex.version import PACKAGE_NAME
 
-_PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
-_REPO_URL = _PYPI_URL_TEMPLATE % PACKAGE_NAME
-_CACHE_EXPIRY = timedelta(days=1) - timedelta(minutes=5)
-_REPO_TIMEOUT = 5
+_REPO_URL: Final = f"https://pypi.python.org/pypi/{PACKAGE_NAME}/json"
+_CACHE_EXPIRY: Final = timedelta(days=1) - timedelta(minutes=5)
+_REPO_TIMEOUT: Final = 5
 
 
 class CodexLatestVersionUpdater(WorkerStatusBase):
