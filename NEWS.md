@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.2
+
+- Fixes
+    - Reader stopped scrolling to the top of the page on page turn.
+
 ## v1.11.1
 
 - Fixes
