@@ -1,6 +1,5 @@
+import { HTTP } from "@/api/v3/base";
 import { serializeParams } from "@/api/v3/common";
-
-import { HTTP } from "./base";
 
 // CRUD factory — generates create/getAll/update/destroy for a given admin entity.
 const makeAdminCRUD = (entity) => {
@@ -50,9 +49,7 @@ const updateFlag = (key, data) => {
   return HTTP.put(`/admin/flag/${key}/`, data);
 };
 
-const postLibrarianTask = async (data) => {
-  return await HTTP.post("/admin/librarian/task", data);
-};
+const postLibrarianTask = (data) => HTTP.post("/admin/librarian/task", data);
 
 const getActiveLibrarianStatuses = () => {
   const params = { ts: Date.now() };
@@ -69,9 +66,7 @@ const getStats = () => {
   return HTTP.get("/admin/stats", { params });
 };
 
-const updateAPIKey = async () => {
-  return await HTTP.put("/admin/api_key");
-};
+const updateAPIKey = () => HTTP.put("/admin/api_key");
 
 // Preserve the original function-name keys for dynamic lookup by the admin store
 // (e.g. API["create" + table], API["get" + pluralTable]).
