@@ -51,7 +51,7 @@
 import { mdiCheck } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import { toVuetifyItems } from "@/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
 const NUMERIC_FILTERS = new Set(["decade", "year"]);

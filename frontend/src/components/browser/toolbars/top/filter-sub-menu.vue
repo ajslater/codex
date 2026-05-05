@@ -107,7 +107,7 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
-import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import { toVuetifyItems } from "@/vuetify-items";
 import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
 import { useBrowserStore } from "@/stores/browser";
 
