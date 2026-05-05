@@ -32,28 +32,29 @@ M :=
 ## @category Run Server
 dev-module:
 	./bin/dev-module.sh $(M)
+
 .PHONY: build-choices
 ## Build JSON choices for frontend
 ## @category Build
 build-choices:
 	./bin/build-choices.sh
 
+.PHONY: build
+## Build codex dependencies
+## @category Build
+build:: build-choices
+
 .PHONY: build-icons
 ## Build all icons from source
-## @category Build
+## @category Build Icons
 build-icons:
 	uv run --group build bin/icons_transform.py
 
 .PHONY: sync-comic-logo
 ## Re-inline logo.svg into comic.svg as gray
-## @category Build
+## @category Build Icons
 sync-comic-logo:
 	uv run python bin/sync_comic_logo.py
-
-.PHONY: build
-## Build codex dependencies
-## @category Build
-build:: build-choices build-icons
 
 .PHONY: perf-baseline
 ## Capture browser-views perf baseline via django-silk

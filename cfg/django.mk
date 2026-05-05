@@ -34,7 +34,7 @@ dev-prod-server: build-frontend collectstatic
 .PHONY: collectstatic
 ## Collect static files for django
 ## @category Build
-collectstatic: build-icons build-frontend
+collectstatic: build-frontend
 	bin/collectstatic.sh
 
 .PHONY: build-only
