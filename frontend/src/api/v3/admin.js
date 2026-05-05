@@ -1,6 +1,5 @@
+import { HTTP } from "@/api/v3/base";
 import { serializeParams } from "@/api/v3/common";
-
-import { HTTP } from "./base";
 
 // CRUD factory — generates create/getAll/update/destroy for a given admin entity.
 const makeAdminCRUD = (entity) => {
@@ -13,91 +12,59 @@ const makeAdminCRUD = (entity) => {
   };
 };
 
-const userCRUD = makeAdminCRUD("user");
-const groupCRUD = makeAdminCRUD("group");
-const libraryCRUD = makeAdminCRUD("library");
-// Read-only lookup for the AgeRatingMetron dropdown.
-// AgeRatingMetron is an effectively-static enum table — rows
-// don't change at runtime — so we skip the ``serializeParams()``
-// cache-buster the CRUD factory adds by default. Letting the
-// browser cache this response saves the round-trip on every
-// admin tab visit. The store layer also keeps a sticky cache
-// to short-circuit the refetch entirely once we've seen it.
-const getAgeRatingMetrons = () => HTTP.get("/admin/age-rating-metron");
+// One descriptor per admin table, keyed by the PascalCase table name
+// the admin store / components pass to ``loadTable`` / ``createRow`` /
+// ``updateRow`` / ``deleteRow``. Each descriptor exposes the subset of
+// ``create`` / ``getAll`` / ``update`` / ``destroy`` HTTP ops the
+// table actually supports plus the camelCase ``stateField`` the admin
+// store stores the loaded rows under. Letting the API surface own the
+// table names eliminates the IRREGULAR_PLURALS map + string-concat
+// lookup the admin store used to need on the consumer side.
+export const TABLES = Object.freeze({
+  User: { ...makeAdminCRUD("user"), stateField: "users" },
+  Group: { ...makeAdminCRUD("group"), stateField: "groups" },
+  Library: { ...makeAdminCRUD("library"), stateField: "libraries" },
+  Flag: {
+    getAll: () => HTTP.get("/admin/flag", { params: serializeParams() }),
+    update: (key, data) => HTTP.put(`/admin/flag/${key}/`, data),
+    stateField: "flags",
+  },
+  FailedImport: {
+    getAll: () =>
+      HTTP.get("/admin/failed-import", { params: serializeParams() }),
+    stateField: "failedImports",
+  },
+  ActiveLibrarianStatus: {
+    getAll: () =>
+      HTTP.get("/admin/librarian/status", { params: { ts: Date.now() } }),
+    stateField: "activeLibrarianStatuses",
+  },
+  // AgeRatingMetron is an effectively-static enum lookup — rows
+  // don't change at runtime — so we skip the ``serializeParams()``
+  // cache-buster. Browser-cacheable; the admin store also keeps a
+  // sticky in-memory cache (``TABLE_TTL_MS = Infinity``) for the
+  // session, so a typical visitor hits this endpoint at most once.
+  AgeRatingMetron: {
+    getAll: () => HTTP.get("/admin/age-rating-metron"),
+    stateField: "ageRatingMetrons",
+  },
+});
 
-// ONE-OFF ENDPOINTS
+// One-off endpoints that don't fit the table CRUD shape.
 
-const changeUserPassword = (pk, data) => {
-  return HTTP.put(`/admin/user/${pk}/password`, data);
-};
+export const changeUserPassword = (pk, data) =>
+  HTTP.put(`/admin/user/${pk}/password`, data);
 
-const getFolders = (path, showHidden) => {
-  const params = { path, showHidden };
-  return HTTP.get("/admin/folders", { params });
-};
+export const getFolders = (path, showHidden) =>
+  HTTP.get("/admin/folders", { params: { path, showHidden } });
 
-const getFailedImports = () => {
-  const params = serializeParams();
-  return HTTP.get("/admin/failed-import", { params });
-};
+export const postLibrarianTask = (data) =>
+  HTTP.post("/admin/librarian/task", data);
 
-const getFlags = () => {
-  const params = serializeParams();
-  return HTTP.get("/admin/flag", { params });
-};
+export const getAllLibrarianStatuses = () =>
+  HTTP.get("/admin/librarian/status/all", { params: { ts: Date.now() } });
 
-const updateFlag = (key, data) => {
-  return HTTP.put(`/admin/flag/${key}/`, data);
-};
+export const getStats = () =>
+  HTTP.get("/admin/stats", { params: { ts: Date.now() } });
 
-const postLibrarianTask = async (data) => {
-  return await HTTP.post("/admin/librarian/task", data);
-};
-
-const getActiveLibrarianStatuses = () => {
-  const params = { ts: Date.now() };
-  return HTTP.get("/admin/librarian/status", { params });
-};
-
-const getAllLibrarianStatuses = () => {
-  const params = { ts: Date.now() };
-  return HTTP.get("/admin/librarian/status/all", { params });
-};
-
-const getStats = () => {
-  const params = { ts: Date.now() };
-  return HTTP.get("/admin/stats", { params });
-};
-
-const updateAPIKey = async () => {
-  return await HTTP.put("/admin/api_key");
-};
-
-// Preserve the original function-name keys for dynamic lookup by the admin store
-// (e.g. API["create" + table], API["get" + pluralTable]).
-export default {
-  createUser: userCRUD.create,
-  getUsers: userCRUD.getAll,
-  updateUser: userCRUD.update,
-  deleteUser: userCRUD.destroy,
-  changeUserPassword,
-  createGroup: groupCRUD.create,
-  getGroups: groupCRUD.getAll,
-  updateGroup: groupCRUD.update,
-  deleteGroup: groupCRUD.destroy,
-  createLibrary: libraryCRUD.create,
-  getLibraries: libraryCRUD.getAll,
-  updateLibrary: libraryCRUD.update,
-  deleteLibrary: libraryCRUD.destroy,
-  // Irregular plural; the admin store looks up API["get" + pluralTable].
-  getAgeRatingMetrons,
-  getActiveLibrarianStatuses,
-  getAllLibrarianStatuses,
-  getFailedImports,
-  getFlags,
-  getFolders,
-  getStats,
-  postLibrarianTask,
-  updateAPIKey,
-  updateFlag,
-};
+export const updateAPIKey = () => HTTP.put("/admin/api_key");

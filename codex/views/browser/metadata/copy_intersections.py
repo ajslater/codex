@@ -7,6 +7,10 @@ from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
     PATH_GROUPS,
 )
+from codex.views.browser.metadata.group_list import (
+    annotate_group_list,
+    group_list_field_name,
+)
 from codex.views.browser.metadata.query_intersections import (
     MetadataQueryIntersectionsView,
 )
@@ -32,10 +36,9 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     def _highlight_current_group(self, obj) -> None:
         """Values for highlighting the current group."""
         if self.model and self.model is not Comic:
-            # move the name of the group to the correct field
-            field = self.model.__name__.lower() + "_list"
-            group_list = self.model.objects.filter(pk__in=obj.ids).values("name")
-            setattr(obj, field, group_list)
+            field = group_list_field_name(self.model)
+            qs = self.model.objects.filter(pk__in=obj.ids)
+            setattr(obj, field, annotate_group_list(qs))
             obj.name = None
 
     @classmethod
