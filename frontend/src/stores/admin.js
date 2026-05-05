@@ -1,19 +1,13 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
-import API from "@/api/v3/admin";
+import * as API from "@/api/v3/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
-const warnError = (error) => console.warn(error);
+const { TABLES } = API;
 
-const IRREGULAR_PLURALS = Object.freeze({
-  ActiveLibrarianStatus: "ActiveLibrarianStatuses",
-  Library: "Libraries",
-  // ``AgeRatingMetron`` -> ``AgeRatingMetrons``; the default pluralizer
-  // would work but we spell it out so nobody tacks on "s" by surprise.
-  AgeRatingMetron: "AgeRatingMetrons",
-});
+const warnError = (error) => console.warn(error);
 
 // Sticky-cache TTL for admin table reads. Tab-swap navigation
 // inside the admin panel re-fires ``loadTables`` on mount; the
@@ -37,13 +31,6 @@ export const TABS = Object.freeze([
 ]);
 
 export const UNRESTRICTED_LABEL = "Adult";
-
-const getTablePlural = (table) => {
-  if (table in IRREGULAR_PLURALS) {
-    return IRREGULAR_PLURALS[table];
-  }
-  return table + "s";
-};
 
 export const useAdminStore = defineStore("admin", {
   state: () => ({
@@ -102,6 +89,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadTable(table, { force = false } = {}) {
       if (this._requireAdmin()) return false;
+      const t = TABLES[table];
       // Sticky-cache gate. Skip if we've loaded this table within
       // the TTL window and the caller didn't explicitly demand a
       // fresh read. CRUD mutations and websocket-driven refetches
@@ -114,18 +102,15 @@ export const useAdminStore = defineStore("admin", {
           return true;
         }
       }
-      const pluralTable = getTablePlural(table);
-      const apiFn = "get" + pluralTable;
-      await API[apiFn]()
+      await t
+        .getAll()
         .then((response) => {
-          const stateField =
-            pluralTable.charAt(0).toLowerCase() + pluralTable.slice(1);
           if (Array.isArray(response.data)) {
-            this[stateField] = response.data;
+            this[t.stateField] = response.data;
             this.timestamps[table] = Date.now();
             return true;
           } else {
-            console.warn(stateField, "response not an array");
+            console.warn(t.stateField, "response not an array");
             return false;
           }
         })
@@ -158,9 +143,9 @@ export const useAdminStore = defineStore("admin", {
     },
     async createRow(table, data) {
       if (this._requireAdmin()) return false;
-      const apiFn = "create" + table;
       const commonStore = useCommonStore();
-      await API[apiFn](data)
+      await TABLES[table]
+        .create(data)
         .then(() => {
           commonStore.clearErrors();
           return this.loadTable(table, { force: true });
@@ -169,9 +154,9 @@ export const useAdminStore = defineStore("admin", {
     },
     async updateRow(table, pk, data) {
       if (this._requireAdmin()) return false;
-      const apiFn = "update" + table;
       const commonStore = useCommonStore();
-      await API[apiFn](pk, data)
+      await TABLES[table]
+        .update(pk, data)
         .then(() => {
           commonStore.clearErrors();
           return this.loadTable(table, { force: true });
@@ -190,9 +175,9 @@ export const useAdminStore = defineStore("admin", {
     },
     async deleteRow(table, pk) {
       if (this._requireAdmin()) return false;
-      const apiFn = "delete" + table;
       const commonStore = useCommonStore();
-      await API[apiFn](pk)
+      await TABLES[table]
+        .destroy(pk)
         .then(() => {
           commonStore.clearErrors();
           return this.loadTable(table, { force: true });

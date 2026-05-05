@@ -106,8 +106,3 @@ export const toVuetifyItems = function ({
   }
   return computedItems;
 };
-
-export default {
-  toVuetifyItems,
-  NULL_PKS,
-};

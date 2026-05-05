@@ -3,9 +3,9 @@ import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
 import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
-import BROWSER_API from "@/api/v3/browser";
-import COMMON_API from "@/api/v3/common";
-import READER_API, { getComicPageSource } from "@/api/v3/reader";
+import * as BROWSER_API from "@/api/v3/browser";
+import * as COMMON_API from "@/api/v3/common";
+import * as READER_API from "@/api/v3/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
 import READER_DEFAULTS from "@/choices/reader-defaults.json";
@@ -873,7 +873,7 @@ export const useReaderStore = defineStore("reader", {
         return false;
       }
       const paramsPlus = { pk: params.pk, page, mtime: book.mtime };
-      return getComicPageSource(paramsPlus);
+      return READER_API.getComicPageSource(paramsPlus);
     },
     prefetchLinks(params, direction, bookChange = false) {
       if (!bookChange && this.cacheBook) {
@@ -922,7 +922,7 @@ export const useReaderStore = defineStore("reader", {
       const end = Math.min(book.maxPage, currentPage + PREFETCH_WINDOW);
       for (let page = start; page <= end; page++) {
         const params = { pk, page, mtime: book.mtime };
-        const href = getComicPageSource(params);
+        const href = READER_API.getComicPageSource(params);
         if (href) {
           link.push({ ...PREFETCH_LINK, href });
         }

@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 
-import API from "@/api/v3/browser";
-import { getGroupDownloadURL } from "@/api/v3/browser";
+import * as API from "@/api/v3/browser";
 import { getTimestamp } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -146,7 +145,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         const plural = groupName.endsWith("s") ? groupName : groupName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
-        const url = getGroupDownloadURL({ group, pks }, fn, settings, 0);
+        const url = API.getGroupDownloadURL({ group, pks }, fn, settings, 0);
         const link = document.createElement("a");
         link.download = fn;
         link.href = url;

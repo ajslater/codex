@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import API from "@/api/v3/auth";
+import * as API from "@/api/v3/auth";
 import { useCommonStore } from "@/stores/common";
 
 /*

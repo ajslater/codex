@@ -3,7 +3,7 @@ import { serializeParams } from "@/api/v3/common";
 
 const _getBookPath = (pk) => `c/${pk}`;
 
-const getSettings = (pk, scopes, storyArcPk) => {
+export const getSettings = (pk, scopes, storyArcPk) => {
   const basePath = pk ? `/${_getBookPath(pk)}/settings` : "/c/settings";
   const queryParams = { scopes: scopes.join(",") };
   if (storyArcPk) {
@@ -13,11 +13,11 @@ const getSettings = (pk, scopes, storyArcPk) => {
   return HTTP.get(basePath, { params });
 };
 
-const updateSettings = (data) => HTTP.patch("/c/settings", data);
+export const updateSettings = (data) => HTTP.patch("/c/settings", data);
 
-const resetSettings = (data) => HTTP.delete("/c/settings", { data });
+export const resetSettings = (data) => HTTP.delete("/c/settings", { data });
 
-const getReaderInfo = (pk, data, ts, options = {}) => {
+export const getReaderInfo = (pk, data, ts, options = {}) => {
   const params = serializeParams(data, ts);
   return HTTP.get(`/${_getBookPath(pk)}`, { params, ...options });
 };
@@ -50,12 +50,4 @@ export const getPDFInBrowserURL = ({ pk, mtime }) => {
   // current SPA route.
   const bookPath = _getBookPath(pk);
   return `/${bookPath}/book.pdf?ts=${mtime}`;
-};
-
-export default {
-  getReaderInfo,
-  getSettings,
-  getPDFInBrowserURL,
-  resetSettings,
-  updateSettings,
 };
