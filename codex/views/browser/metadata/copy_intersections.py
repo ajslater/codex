@@ -1,6 +1,8 @@
 """Copy Intersections Into Comic Fields."""
 
 from codex.models.comic import Comic
+from codex.models.functions import JsonGroupArray
+from codex.models.groups import Volume
 from codex.serializers.browser.metadata import PREFETCH_PREFIX
 from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELDS_CONFLICTING,
@@ -12,6 +14,7 @@ from codex.views.browser.metadata.query_intersections import (
 )
 
 _PREFETCH_DICT_FIELDS = frozenset({"identifiers", "credits", "story_arc_numbers"})
+_GROUP_LIST_FIELD_OVERRIDES = {"StoryArc": "story_arc_list"}
 
 
 class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
@@ -33,8 +36,21 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         """Values for highlighting the current group."""
         if self.model and self.model is not Comic:
             # move the name of the group to the correct field
-            field = self.model.__name__.lower() + "_list"
-            group_list = self.model.objects.filter(pk__in=obj.ids).values("name")
+            model_name = self.model.__name__
+            field = _GROUP_LIST_FIELD_OVERRIDES.get(
+                model_name, model_name.lower() + "_list"
+            )
+            only = ["name"]
+            if self.model is Volume:
+                only.append("number_to")
+            group_list = (
+                self.model.objects.filter(pk__in=obj.ids)
+                .only(*only)
+                .distinct()
+                .group_by(*only)  # pyright: ignore[reportAttributeAccessIssue]
+                .annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
+                .values("ids", *only)
+            )
             setattr(obj, field, group_list)
             obj.name = None
 
