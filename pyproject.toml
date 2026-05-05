@@ -46,7 +46,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.11.3"
+version = "1.11.4"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -69,13 +69,13 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.4.0",
+  "picopt~=6.5",
   "pypi-cleanup~=0.1.10",
   "semver~=3.0.4",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
 ]
-build = ["cairosvg~=2.8"]
+build = ["resvg-py~=0.3.1"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",

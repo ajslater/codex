@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.4
+
+- Fixes
+    - Fix extra horizontal scrollbar in browser on Firefox.
+
 ## v1.11.3
 
 - Fixes

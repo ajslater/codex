@@ -206,7 +206,8 @@ $banner-height: 20px;
   min-height: 0;
   padding-left: max($card-margin, env(safe-area-inset-left));
   padding-right: max($card-margin, env(safe-area-inset-right));
-  overflow: auto;
+  overflow-x: clip; // prevents horizontal scrollbar on Firefox
+  overflow-y: auto;
   overscroll-behavior-y: contain;
 }
 
