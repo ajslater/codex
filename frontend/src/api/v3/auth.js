@@ -1,50 +1,33 @@
+import { HTTP } from "@/api/v3/base";
 import { serializeParams } from "@/api/v3/common";
 
-import { HTTP } from "./base";
+const getAdminFlags = () => HTTP.get("/auth/flags/");
 
-const getAdminFlags = async () => {
-  return await HTTP.get("/auth/flags/");
-};
+const updateTimezone = () =>
+  HTTP.put("/auth/timezone/", {
+    timezone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
 
-const get_tz = () => new Intl.DateTimeFormat().resolvedOptions().timeZone;
+// Backend reads ``login`` (django-allauth field name); the form binds to
+// ``username``. Spread instead of mutating so the caller's reactive form
+// state doesn't grow a stray ``login`` field.
+const register = (credentials) =>
+  HTTP.post("/auth/register/", { ...credentials, login: credentials.username });
 
-const updateTimezone = async () => {
-  const data = {
-    timezone: get_tz(),
-  };
-  return await HTTP.put("/auth/timezone/", data);
-};
+const login = (credentials) =>
+  HTTP.post("/auth/login/", { ...credentials, login: credentials.username });
 
-const register = async (credentials) => {
-  credentials.login = credentials.username;
-  return await HTTP.post("/auth/register/", credentials);
-};
+const getProfile = () =>
+  HTTP.get("/auth/profile/", { params: serializeParams() });
 
-const login = async (credentials) => {
-  credentials.login = credentials.username;
-  return await HTTP.post("/auth/login/", credentials);
-};
+const logout = () => HTTP.post("/auth/logout/");
 
-const getProfile = async () => {
-  const params = serializeParams();
-  return await HTTP.get("/auth/profile/", { params });
-};
+const updatePassword = (credentials) =>
+  HTTP.post("/auth/change-password/", credentials);
 
-const logout = async () => {
-  return await HTTP.post("/auth/logout/");
-};
+const getToken = () => HTTP.get("/auth/token/");
 
-const updatePassword = async (credentials) => {
-  return await HTTP.post("/auth/change-password/", credentials);
-};
-
-const getToken = async () => {
-  return await HTTP.get("/auth/token/");
-};
-
-const updateToken = async () => {
-  return await HTTP.put("/auth/token/");
-};
+const updateToken = () => HTTP.put("/auth/token/");
 
 export default {
   updatePassword,

@@ -2,35 +2,7 @@ import { toRaw } from "vue";
 
 import { useCommonStore } from "@/stores/common";
 
-import { HTTP } from "./base";
-
-const map = (obj, func) => {
-  // Generic map for arrays and objects
-  switch (obj?.constructor) {
-    case Array:
-      return obj.map((x) => func(x));
-    case Object:
-      return Object.fromEntries(
-        Object.entries(obj).map(([key, val]) => [key, func(val, key)]),
-      );
-    default:
-      return obj;
-  }
-};
-
-const filter = (obj, func) => {
-  // Generic filter for arrays and objects
-  switch (obj?.constructor) {
-    case Array:
-      return obj.filter((x) => func(x));
-    case Object:
-      return Object.fromEntries(
-        Object.entries(obj).filter(([key, val]) => func(val, key)),
-      );
-    default:
-      return obj;
-  }
-};
+import { HTTP } from "@/api/v3/base";
 
 const _keepIfNotEmpty = (val) => {
   // Keep flag for filter
@@ -58,13 +30,14 @@ const _deepClone = (obj, filterEmpty = false) => {
   switch (obj?.constructor) {
     case Array:
       return obj.map((v) => _deepClone(v, filterEmpty)).filter(_keep);
-    case Object:
+    case Object: {
       const result = {};
       for (const [key, val] of Object.entries(obj)) {
         const clonedVal = _deepClone(val, filterEmpty);
         if (_keep(clonedVal)) result[key] = clonedVal;
       }
       return result;
+    }
     default:
       return obj;
   }

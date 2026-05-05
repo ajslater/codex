@@ -1,8 +1,7 @@
 import { toRaw } from "vue";
 
+import { HTTP } from "@/api/v3/base";
 import { serializeParams } from "@/api/v3/common";
-
-import { HTTP } from "./base";
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
   const params = serializeParams(query, ts);
@@ -120,11 +119,11 @@ export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
 const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
   const params = serializeParams(settings);
   const queryString = new URLSearchParams(params).toString();
-  if (updates.fitTo === null) {
-    updates.fitTo = "";
-  }
+  // Backend rejects the JSON literal ``null`` for ``fitTo``; normalise
+  // without mutating the caller's reactive update payload.
+  const body = updates.fitTo === null ? { ...updates, fitTo: "" } : updates;
   const pkList = ids.join(",");
-  return HTTP.patch(`${group}/${pkList}/bookmark?${queryString}`, updates);
+  return HTTP.patch(`/${group}/${pkList}/bookmark?${queryString}`, body);
 };
 
 const getLazyImport = ({ group, pks }) => {
