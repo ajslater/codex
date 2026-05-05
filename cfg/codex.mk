@@ -44,6 +44,12 @@ build-choices:
 build-icons:
 	uv run --group build bin/icons_transform.py
 
+.PHONY: sync-comic-logo
+## Re-inline logo.svg into comic.svg as gray
+## @category Build
+sync-comic-logo:
+	uv run python bin/sync_comic_logo.py
+
 .PHONY: build
 ## Build codex dependencies
 ## @category Build

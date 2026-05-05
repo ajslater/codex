@@ -6,12 +6,11 @@ import subprocess
 from pathlib import Path
 from types import MappingProxyType
 
-from cairosvg import svg2png
+import resvg_py
 
 TOP_PATH = Path(__file__).parent.parent
 SRC_IMG_PATH = TOP_PATH / Path("img")
 STATIC_IMG_PATH = TOP_PATH / Path("codex/static_src/img")
-INKSCAPE_PATH = Path("/Applications/Inkscape.app/Contents/MacOS/inkscape")
 _COVER_RATIO = 1.5372233400402415
 ICONS = MappingProxyType(
     {
@@ -44,18 +43,10 @@ def create_maskable_icon(input_path):
         f.writelines(modified_lines)
 
 
-def inkscape(input_path, export_path, width, height):
-    """Transform svgs with xlinks into pngs."""
-    # Needed because cairosvg doesn't support xlinks
-    # https://github.com/Kozea/CairoSVG/issues/163
-    args = (
-        INKSCAPE_PATH,
-        f"--export-width={width}",
-        f"--export-height={height}",
-        f"--export-filename={export_path}",
-        input_path,
-    )
-    subprocess.run(args, check=False)  # noqa: S603
+def svg_to_png(input_path, output_path, width, height):
+    """Render an svg to a png at the given dimensions."""
+    png = resvg_py.svg_to_bytes(svg_path=str(input_path), width=width, height=height)
+    output_path.write_bytes(bytes(png))
 
 
 def transform_icon(name, size):
@@ -86,15 +77,7 @@ def transform_icon(name, size):
         or output_webp_path.stat().st_mtime < input_svg_mtime
     )
     if do_gen_png:
-        if name == "comic":
-            inkscape(input_svg_path, output_png_path, width, height)
-        else:
-            svg2png(
-                url=str(input_svg_path),
-                write_to=str(output_png_path),
-                output_width=width,
-                output_height=height,
-            )
+        svg_to_png(input_svg_path, output_png_path, width, height)
 
 
 def picopt():
