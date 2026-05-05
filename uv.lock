@@ -580,7 +580,7 @@ dev = [
     { name = "infer-types", specifier = "~=1.0.0" },
     { name = "neovim", specifier = "~=0.3" },
     { name = "nplusone", specifier = "~=1.0" },
-    { name = "picopt", specifier = "~=6.4.0" },
+    { name = "picopt", specifier = "~=6.5" },
     { name = "pypi-cleanup", specifier = "~=0.1.10" },
     { name = "semver", specifier = "~=3.0.4" },
     { name = "toml-cli", specifier = "~=0.7" },
@@ -2034,7 +2034,7 @@ wheels = [
 
 [[package]]
 name = "picopt"
-version = "6.4.0"
+version = "6.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "confuse" },
@@ -2051,13 +2051,14 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "rarfile" },
     { name = "rich" },
+    { name = "rich-argparse" },
     { name = "ruamel-yaml" },
     { name = "treestamps" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/a6/2900d8b02f1b2597d760036619f2e50e2d29431a0f5c9c75b6dc3b6e2827/picopt-6.4.0.tar.gz", hash = "sha256:ed5d1b7bdd196de8c6af540ef4a07f5340e42d99e1d4c9b99423565d6e627d38", size = 10325808, upload-time = "2026-04-29T22:17:45.264Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/4b/40bc8494d3ac455f5eeb4c8a08a925ddd064880d7cd9b84eea6848a95ddd/picopt-6.5.0.tar.gz", hash = "sha256:c4921cb3b2342582c59ac4b07b04850351f116cfde1bf0ed515e51ca5110e643", size = 10326117, upload-time = "2026-05-05T06:33:54.595Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/7e/fbf1c054aeb1c309a73d99092bab4905680502218f3d71a6c95deabd4c29/picopt-6.4.0-py3-none-any.whl", hash = "sha256:22d6da6a95a27815a507ad8354cca0c3e84593ff1ab8cf41fe345ea702f3c3a3", size = 107281, upload-time = "2026-04-29T22:17:47.589Z" },
+    { url = "https://files.pythonhosted.org/packages/10/19/f7c9ffc2f191288f771384846636553d186dfb7845c1b06eedf600bd2e39/picopt-6.5.0-py3-none-any.whl", hash = "sha256:d3dfce3b352bd24a86248546fa79c7dd78daaa8d983287fd3922fc674069301e", size = 107465, upload-time = "2026-05-05T06:33:56.426Z" },
 ]
 
 [[package]]
