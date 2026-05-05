@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.11.3
+
+- Fixes
+    - Fix several missing information chips in the tags view.
+
 ## v1.11.2
 
 - Fixes
