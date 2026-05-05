@@ -104,22 +104,11 @@ export const getDownloadIOSPWAFix = (href, filename) => {
     .catch(console.warn);
 };
 
-const getMtime = (groups, settings, options = {}) => {
+export const getMtime = (groups, settings, options = {}) => {
   const params = serializeParams({ groups, ...settings }, Date.now());
   return HTTP.get("/mtime", { params, ...options });
 };
-const getOPDSURLs = () => {
-  return HTTP.get("/opds-urls");
-};
 
-const getVersions = (ts) => {
-  const params = { ts };
-  return HTTP.get("/version", { params });
-};
+export const getOPDSURLs = () => HTTP.get("/opds-urls");
 
-export default {
-  getDownloadIOSPWAFix,
-  getMtime,
-  getOPDSURLs,
-  getVersions,
-};
+export const getVersions = (ts) => HTTP.get("/version", { params: { ts } });

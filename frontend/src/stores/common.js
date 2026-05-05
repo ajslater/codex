@@ -1,7 +1,7 @@
 // Common store functions
 import { defineStore } from "pinia";
 
-import API from "@/api/v3/common";
+import * as API from "@/api/v3/common";
 
 const ERROR_KEYS = Object.freeze([
   "detail",

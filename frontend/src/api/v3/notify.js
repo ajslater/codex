@@ -7,7 +7,3 @@ function getSocketURL() {
   return url;
 }
 export const WS_URL = getSocketURL(); // This MUST export itself
-
-export default {
-  WS_URL,
-};

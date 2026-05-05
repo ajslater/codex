@@ -47,13 +47,18 @@ export const getPlaceholderSrc = (group) => {
   return `${globalThis.CODEX.STATIC}img/${name}.svg`;
 };
 
-const getAvailableFilterChoices = ({ group, pks }, data, ts, options = {}) => {
+export const getAvailableFilterChoices = (
+  { group, pks },
+  data,
+  ts,
+  options = {},
+) => {
   const params = serializeParams(data, ts);
   return HTTP.get(`/${group}/${pks}/choices_available`, { params, ...options });
 };
 
 /* eslint-disable max-params */
-const getFilterChoices = (
+export const getFilterChoices = (
   { group, pks },
   fieldName,
   data,
@@ -68,12 +73,17 @@ const getFilterChoices = (
 };
 /* eslint-enable max-params */
 
-const getBrowserPage = ({ group, pks, page }, data, ts, options = {}) => {
+export const getBrowserPage = (
+  { group, pks, page },
+  data,
+  ts,
+  options = {},
+) => {
   const params = serializeParams(data, ts, false);
   return HTTP.get(`/${group}/${pks}/${page}`, { params, ...options });
 };
 
-const getMetadata = ({ group, pks }, settings) => {
+export const getMetadata = ({ group, pks }, settings) => {
   // Pull ``mtime`` out as the timestamp; ``serializeParams`` deep-clones
   // the rest via ``_deepClone`` (which calls ``toRaw`` at every level),
   // so we don't need ``structuredClone`` here — and can't safely use it,
@@ -85,19 +95,17 @@ const getMetadata = ({ group, pks }, settings) => {
   return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
-const getSettings = (data) => {
+export const getSettings = (data) => {
   const params = serializeParams(data);
   return HTTP.get("/r/settings", { params });
 };
 
-const updateSettings = (settings) => {
+export const updateSettings = (settings) => {
   const params = serializeParams(settings, undefined, false);
   return HTTP.patch("/r/settings", { params });
 };
 
-const resetSettings = () => {
-  return HTTP.delete("/r/settings");
-};
+export const resetSettings = () => HTTP.delete("/r/settings");
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   const base = globalThis.CODEX.API_V3_PATH;
@@ -116,7 +124,7 @@ export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   return `${base}${hrefPath}/download/${fn}?${queryString}`;
 };
 
-const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
+export const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
   const params = serializeParams(settings);
   const queryString = new URLSearchParams(params).toString();
   // Backend rejects the JSON literal ``null`` for ``fitTo``; normalise
@@ -126,42 +134,14 @@ const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
   return HTTP.patch(`/${group}/${pkList}/bookmark?${queryString}`, body);
 };
 
-const getLazyImport = ({ group, pks }) => {
-  return HTTP.get(`/${group}/${pks}/import`);
-};
+export const getLazyImport = ({ group, pks }) =>
+  HTTP.get(`/${group}/${pks}/import`);
 
-const getSavedSettingsList = () => {
-  return HTTP.get("/r/settings/saved");
-};
+export const getSavedSettingsList = () => HTTP.get("/r/settings/saved");
 
-const saveSettings = (name) => {
-  return HTTP.post("/r/settings/saved", { name });
-};
+export const saveSettings = (name) => HTTP.post("/r/settings/saved", { name });
 
-const loadSavedSettings = (pk) => {
-  return HTTP.get(`/r/settings/saved/${pk}`);
-};
+export const loadSavedSettings = (pk) => HTTP.get(`/r/settings/saved/${pk}`);
 
-const deleteSavedSettings = (pk) => {
-  return HTTP.delete(`/r/settings/saved/${pk}`);
-};
-
-export default {
-  getAvailableFilterChoices,
-  getBrowserHref,
-  getCoverSrc,
-  getPlaceholderSrc,
-  getFilterChoices,
-  getGroupDownloadURL,
-  getMetadata,
-  getSettings,
-  getBrowserPage,
-  getLazyImport,
-  updateGroupBookmarks,
-  resetSettings,
-  updateSettings,
-  getSavedSettingsList,
-  saveSettings,
-  loadSavedSettings,
-  deleteSavedSettings,
-};
+export const deleteSavedSettings = (pk) =>
+  HTTP.delete(`/r/settings/saved/${pk}`);
