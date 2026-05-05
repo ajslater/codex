@@ -4,30 +4,38 @@ export const NULL_PKS = new Set(["", VUETIFY_NULL_CODE, undefined, null]);
 
 const toVuetifyItem = function (item, copyKeys = undefined) {
   /*
-   * Translates an raw value or an item item into a vuetify item.
-   * Removes nulls, they're detected directly from the choices source.
+   * Translate a raw value or item into a vuetify item.
+   *
+   * Returns ``undefined`` for inputs that should be dropped (null-ish
+   * primitives, ``{ids: [...]}`` rows that contain null ids — both are
+   * defensive: backend payloads never produce them today). "None" rows
+   * (``{pk: null, ...}``) are returned with ``value`` already set to
+   * ``VUETIFY_NULL_CODE`` so ``toVuetifyItems`` can discriminate on a
+   * single equality check rather than re-running the ``NULL_PKS`` test.
    */
-  let vuetifyItem;
   if (NULL_PKS.has(item)) {
-    vuetifyItem = item;
-  } else if (item instanceof Object) {
-    if ("ids" in item) {
-      const idSet = new Set(item.ids);
-      if (NULL_PKS.intersection(idSet).size > 0) {
-        vuetifyItem = undefined;
-      } else {
-        const value = item.ids.join(",");
-        vuetifyItem = { value, title: item.name };
-      }
-    } else if (NULL_PKS.has(item.pk)) {
-      vuetifyItem = { value: item.pk, title: "None" };
-    } else {
-      vuetifyItem = { value: item.pk, title: item.name };
-    }
-  } else {
-    vuetifyItem = { value: item, title: item.toString() };
+    return undefined;
   }
-  if (item?.url) {
+  if (typeof item !== "object") {
+    // Scalar (e.g. a year). Numbers + strings only — null was caught above.
+    return { value: item, title: item.toString() };
+  }
+  let vuetifyItem;
+  if ("ids" in item) {
+    // ``ids`` comes from ``JsonGroupArray("id")`` over PK columns, so
+    // null members can't happen in practice — keep the guard cheap
+    // (``some`` short-circuits) rather than constructing a Set just to
+    // call ``intersection`` (an ES2024 method Vite doesn't polyfill).
+    if (item.ids.some((id) => NULL_PKS.has(id))) {
+      return undefined;
+    }
+    vuetifyItem = { value: item.ids.join(","), title: item.name };
+  } else if (NULL_PKS.has(item.pk)) {
+    vuetifyItem = { value: VUETIFY_NULL_CODE, title: "None" };
+  } else {
+    vuetifyItem = { value: item.pk, title: item.name };
+  }
+  if (item.url) {
     vuetifyItem.url = item.url;
   }
   if (copyKeys) {
@@ -62,37 +70,38 @@ export const toVuetifyItems = function ({
   copyKeys = undefined,
 }) {
   /*
-   * Takes a value (can be a list) and a list of items and
-   * Returns a list of valid items with items arg having preference.
+   * Map a list of raw items to vuetify items, filter by ``filter``,
+   * sort by ``sortBy``, and prepend the synthetic "None" row (if
+   * present) so it always sorts first regardless of the comparator.
    */
   const sourceItems = items || [];
-
-  // Case insensitive search for filter-sub-menu
   const lowerCaseFilter = filter ? filter.toLowerCase() : filter;
-  let noneItem;
 
-  let computedItems = [];
+  const computedItems = [];
+  let noneItem;
   for (const item of sourceItems) {
     const vuetifyItem = toVuetifyItem(item, copyKeys);
+    if (vuetifyItem == undefined) {
+      continue;
+    }
     if (
-      vuetifyItem != undefined &&
-      (!lowerCaseFilter ||
-        vuetifyItem?.title?.toLowerCase().includes(lowerCaseFilter))
+      lowerCaseFilter &&
+      !vuetifyItem.title.toLowerCase().includes(lowerCaseFilter)
     ) {
-      if (NULL_PKS.has(vuetifyItem.value)) {
-        noneItem = vuetifyItem;
-        noneItem.value = VUETIFY_NULL_CODE;
-      } else {
-        computedItems.push(vuetifyItem);
-      }
+      continue;
+    }
+    // ``toVuetifyItem`` sets ``value`` to ``VUETIFY_NULL_CODE`` for the
+    // synthetic "None" row; everything else carries a real pk / id-list.
+    if (vuetifyItem.value === VUETIFY_NULL_CODE) {
+      noneItem = vuetifyItem;
+    } else {
+      computedItems.push(vuetifyItem);
     }
   }
   if (sortBy) {
-    const sortFunc = SORT_BY_FUNC_MAP[sortBy];
-    computedItems = computedItems.sort(sortFunc);
+    computedItems.sort(SORT_BY_FUNC_MAP[sortBy]);
   }
   if (noneItem) {
-    // Prepend noneItem if it exists.
     computedItems.unshift(noneItem);
   }
   return computedItems;

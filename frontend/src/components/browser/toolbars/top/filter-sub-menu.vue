@@ -324,6 +324,12 @@ export default {
        * Reuse the same filter pipeline that BrowserFilterChoiceList
        * uses, so search-match counts always match what the user would
        * see if the panel were expanded.
+       *
+       * Perf note: only the ``.length`` is used, but ``toVuetifyItems``
+       * still allocates the full mapped array (and the "None" prepend).
+       * If filter typing ever feels laggy on large choice lists, expose
+       * a count-only helper from ``vuetify-items.js`` that walks the
+       * source and increments a counter without allocating.
        */
       return toVuetifyItems({
         items: choices,
