@@ -7,6 +7,7 @@ import * as COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";
+import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -74,6 +75,9 @@ export const useBrowserStore = defineStore("browser", {
       show: BROWSER_DEFAULTS.show,
       topGroup: BROWSER_DEFAULTS.topGroup,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
+      viewMode: BROWSER_DEFAULTS.viewMode,
+      tableColumns: BROWSER_DEFAULTS.tableColumns,
+      tableCoverSize: BROWSER_DEFAULTS.tableCoverSize,
     },
     page: {
       adminFlags: {
@@ -402,6 +406,22 @@ export const useBrowserStore = defineStore("browser", {
       return topGroup;
     },
     /*
+     * TABLE VIEW
+     */
+    _resolveTableColumns() {
+      // Pick the column set for the current table-view request.
+      // Persisted overrides (``settings.tableColumns[topGroup]``) win
+      // over the registry defaults; both fall back to an empty tuple
+      // for unknown top-groups (the backend then uses its own
+      // defaults).
+      const topGroup = this.settings.topGroup ?? "p";
+      const stored = this.settings.tableColumns?.[topGroup];
+      if (stored && stored.length > 0) {
+        return stored;
+      }
+      return BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [];
+    },
+    /*
      * MUTATIONS
      */
     _addSettings(data) {
@@ -581,10 +601,18 @@ export const useBrowserStore = defineStore("browser", {
       // fetch so its late-arriving response can't ``$patch`` stale
       // state over the current route's data.
       const signal = useAbortable("browser:loadBrowserPage");
+      // Table mode requests need ``columns=`` so the backend knows
+      // which fields to project / annotate. The list comes from the
+      // user's persisted table_columns map (per top-group) and falls
+      // back to the registry defaults; cover mode never sets it.
+      const requestSettings =
+        this.settings.viewMode === "table"
+          ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
+          : this.settings;
       try {
         const response = await API.getBrowserPage(
           route.params,
-          this.settings,
+          requestSettings,
           mtime,
           { signal },
         );

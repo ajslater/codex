@@ -1,7 +1,8 @@
 <template>
   <div id="browsePane" :class="browsePaneClasses">
+    <BrowserTable v-if="isTableMode && showBrowseItems" />
     <v-pull-to-refresh
-      v-if="showBrowseItems"
+      v-else-if="showBrowseItems"
       id="browsePaneRefreshContainer"
       :pull-down-threshold="64"
       @load="load"
@@ -29,6 +30,7 @@ import { mapActions, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
+import BrowserTable from "@/components/browser/table/browser-table.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -40,6 +42,7 @@ export default {
   components: {
     BrowserCard,
     BrowserEmptyState,
+    BrowserTable,
     PlaceholderLoading,
     VPullToRefresh,
   },
@@ -76,6 +79,9 @@ export default {
         if (!books || books.length === 0) return groups;
         return [...groups, ...books];
       },
+      isTableMode: (state) => state.settings.viewMode === "table",
+      tableRowCount: (state) =>
+        Array.isArray(state.page.rows) ? state.page.rows.length : 0,
       numPages: (state) => state.page.numPages,
       search: (state) => state.settings.search,
       isSearchOpen: (state) => state.isSearchOpen,
@@ -102,12 +108,11 @@ export default {
       return classes;
     },
     showBrowseItems() {
-      return (
-        this.cards &&
-        this.cards.length > 0 &&
-        this.isAuthorized &&
-        !this.showPlaceHolder
-      );
+      if (!this.isAuthorized || this.showPlaceHolder) return false;
+      if (this.isTableMode) {
+        return this.tableRowCount > 0;
+      }
+      return this.cards && this.cards.length > 0;
     },
     searchLimitMessage() {
       let res = "";
