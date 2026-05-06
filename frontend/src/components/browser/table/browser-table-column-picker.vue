@@ -1,33 +1,69 @@
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="600"
+    max-width="640"
     scrollable
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card>
       <v-card-title> Columns for {{ topGroupLabel }} </v-card-title>
       <v-card-subtitle class="pickerSubtitle">
-        Select which columns to show in table view. Settings persist per
-        top-group.
+        Drag columns in the Order list to rearrange them. Toggle a column in the
+        Add list to show or hide it.
       </v-card-subtitle>
       <v-card-text class="pickerBody">
-        <div
-          v-for="category in categoriesWithColumns"
-          :key="category.label"
-          class="pickerCategory"
-        >
-          <div class="pickerCategoryHeader">{{ category.label }}</div>
-          <v-checkbox
-            v-for="col in category.columns"
-            :key="col.key"
-            :model-value="selectedSet.has(col.key)"
-            :label="col.label"
-            density="compact"
-            hide-details
-            @update:model-value="toggleColumn(col.key, $event)"
-          />
-        </div>
+        <section class="orderSection">
+          <div class="sectionHeader">Order ({{ draft.length }})</div>
+          <ol v-if="draft.length > 0" class="orderList">
+            <li
+              v-for="(col, index) in draft"
+              :key="col"
+              class="orderItem"
+              :class="{
+                dragging: draggingIndex === index,
+                dropAbove: dropOverIndex === index && dropOverPos === 'above',
+                dropBelow: dropOverIndex === index && dropOverPos === 'below',
+              }"
+              draggable="true"
+              @dragstart="onDragStart(index, $event)"
+              @dragover.prevent="onDragOver(index, $event)"
+              @dragleave="onDragLeave(index)"
+              @drop.prevent="onDrop(index)"
+              @dragend="onDragEnd"
+            >
+              <v-icon class="dragHandle" :icon="mdiDragVertical" size="20" />
+              <span class="orderItemLabel">{{ labelFor(col) }}</span>
+              <v-btn
+                :icon="mdiClose"
+                size="x-small"
+                variant="text"
+                density="compact"
+                :aria-label="`remove ${labelFor(col)}`"
+                @click="removeColumn(col)"
+              />
+            </li>
+          </ol>
+          <div v-else class="orderEmpty">No columns selected.</div>
+        </section>
+        <section class="categoriesSection">
+          <div class="sectionHeader">Add Columns</div>
+          <div
+            v-for="category in categoriesWithColumns"
+            :key="category.label"
+            class="pickerCategory"
+          >
+            <div class="pickerCategoryHeader">{{ category.label }}</div>
+            <v-checkbox
+              v-for="col in category.columns"
+              :key="col.key"
+              :model-value="selectedSet.has(col.key)"
+              :label="col.label"
+              density="compact"
+              hide-details
+              @update:model-value="toggleColumn(col.key, $event)"
+            />
+          </div>
+        </section>
       </v-card-text>
       <v-card-actions class="pickerActions">
         <v-btn variant="text" @click="selectAll">All</v-btn>
@@ -42,6 +78,7 @@
 </template>
 
 <script>
+import { mdiClose, mdiDragVertical } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
@@ -139,11 +176,18 @@ export default {
   emits: ["update:modelValue"],
   data() {
     /*
-     * Editing state. Snapshotted from the store on dialog open and
-     * committed via setSettings() on save; cancel just closes.
+     * Editing state. ``draft`` is the user's draft column order;
+     * ``draggingIndex`` and ``dropOverIndex`` track the in-flight
+     * drag for visual feedback. Snapshotted on dialog open and
+     * committed via setSettings() on save.
      */
     return {
+      mdiClose,
+      mdiDragVertical,
       draft: [],
+      draggingIndex: null,
+      dropOverIndex: null,
+      dropOverPos: null,
     };
   },
   computed: {
@@ -195,6 +239,9 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
+    labelFor(key) {
+      return _registryEntry(key)?.label ?? key;
+    },
     _snapshot() {
       const stored = this.tableColumns?.[this.topGroup];
       if (Array.isArray(stored) && stored.length > 0) {
@@ -204,17 +251,20 @@ export default {
       }
     },
     toggleColumn(key, on) {
-      const set = new Set(this.draft);
       if (on) {
-        set.add(key);
+        if (!this.draft.includes(key)) {
+          /*
+           * New columns are appended to the end of the order list.
+           * The user can drag them into position from there.
+           */
+          this.draft = [...this.draft, key];
+        }
       } else {
-        set.delete(key);
+        this.draft = this.draft.filter((k) => k !== key);
       }
-      /*
-       * Preserve the registry's natural order rather than the user's
-       * click order — keeps the table visually stable across edits.
-       */
-      this.draft = Object.keys(BROWSER_TABLE_COLUMNS).filter((k) => set.has(k));
+    },
+    removeColumn(key) {
+      this.draft = this.draft.filter((k) => k !== key);
     },
     resetToDefaults() {
       this.draft = [...(BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [])];
@@ -224,6 +274,54 @@ export default {
     },
     selectNone() {
       this.draft = [];
+    },
+    /*
+     * Drag-and-drop reordering. HTML5 native API — no extra dep.
+     * The pointer's position relative to the row's vertical midpoint
+     * decides whether the drop target is "above" or "below"; that
+     * controls the visual indicator and the final insertion index.
+     */
+    onDragStart(index, event) {
+      this.draggingIndex = index;
+      // ``move`` shows the drag-and-move cursor.
+      event.dataTransfer.effectAllowed = "move";
+      // Setting any data is required for Firefox to actually drag.
+      event.dataTransfer.setData("text/plain", String(index));
+    },
+    onDragOver(index, event) {
+      if (this.draggingIndex === null) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      this.dropOverIndex = index;
+      this.dropOverPos = event.clientY < midpoint ? "above" : "below";
+      event.dataTransfer.dropEffect = "move";
+    },
+    onDragLeave(index) {
+      if (this.dropOverIndex === index) {
+        this.dropOverIndex = null;
+        this.dropOverPos = null;
+      }
+    },
+    onDrop(index) {
+      const from = this.draggingIndex;
+      const pos = this.dropOverPos;
+      this.draggingIndex = null;
+      this.dropOverIndex = null;
+      this.dropOverPos = null;
+      if (from === null || from === index) return;
+      let to = pos === "below" ? index + 1 : index;
+      // After splicing out ``from``, indexes ≥ from shift down by one.
+      if (from < to) to -= 1;
+      if (from === to) return;
+      const next = [...this.draft];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      this.draft = next;
+    },
+    onDragEnd() {
+      this.draggingIndex = null;
+      this.dropOverIndex = null;
+      this.dropOverPos = null;
     },
     onCancel() {
       this.$emit("update:modelValue", false);
@@ -249,6 +347,74 @@ export default {
 .pickerBody {
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.sectionHeader {
+  font-size: 0.85em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgb(var(--v-theme-textSecondary));
+  margin: 8px 0 6px;
+}
+
+.orderSection {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.orderList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.orderItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgb(var(--v-theme-surface-light));
+  margin-bottom: 4px;
+  cursor: grab;
+  user-select: none;
+  /* Drop indicators: the inset shadow draws a 2px line above or below
+     the hovered row to show where the dragged item will land. */
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.orderItem:active {
+  cursor: grabbing;
+}
+
+.orderItem.dragging {
+  opacity: 0.4;
+}
+
+.orderItem.dropAbove {
+  border-top-color: rgb(var(--v-theme-primary));
+}
+
+.orderItem.dropBelow {
+  border-bottom-color: rgb(var(--v-theme-primary));
+}
+
+.dragHandle {
+  cursor: grab;
+  opacity: 0.6;
+}
+
+.orderItemLabel {
+  flex: 1;
+}
+
+.orderEmpty {
+  color: rgb(var(--v-theme-textDisabled));
+  font-size: 0.9em;
+  padding: 4px 8px;
 }
 
 .pickerCategory + .pickerCategory {
