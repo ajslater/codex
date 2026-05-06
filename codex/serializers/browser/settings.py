@@ -6,11 +6,19 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DictField,
     IntegerField,
+    ListField,
     Serializer,
+    ValidationError,
 )
 
-from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
+from codex.choices.browser import (
+    BROWSER_ORDER_BY_CHOICES,
+    BROWSER_TABLE_COVER_SIZE_CHOICES,
+    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_VIEW_MODE_CHOICES,
+)
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
@@ -115,6 +123,29 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
     always_show_filename = BooleanField(required=False)
+    view_mode = ChoiceField(
+        choices=tuple(BROWSER_VIEW_MODE_CHOICES.keys()), required=False
+    )
+    table_columns = DictField(
+        child=ListField(child=CharField(), allow_empty=True),
+        required=False,
+        allow_empty=True,
+    )
+    table_cover_size = ChoiceField(
+        choices=tuple(BROWSER_TABLE_COVER_SIZE_CHOICES.keys()), required=False
+    )
+
+    def validate_table_columns(self, value):
+        """
+        Reject keys that aren't valid top-groups.
+
+        Column-key validation against the registry lives in the next step.
+        """
+        invalid = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
+        if invalid:
+            reason = f"Invalid top_group keys: {sorted(invalid)}"
+            raise ValidationError(reason)
+        return value
 
 
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
