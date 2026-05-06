@@ -86,3 +86,52 @@ class BrowserPageSerializer(Serializer):
     fts = BooleanField(read_only=True)
     search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)
+
+
+def _row_repr(instance, columns: tuple[str, ...]) -> dict:
+    """Project a queryset row to the per-row dict for table view."""
+    row: dict = {"pk": instance.pk}
+    for col in columns:
+        if col == "pk":
+            continue
+        if col == "cover":
+            row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
+            row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+            continue
+        # ``getattr`` covers direct fields, F-expression annotations
+        # (publisher_name etc.), and aggregates added downstream.
+        # Columns whose value source isn't annotated yet return None;
+        # the frontend renders them as empty cells.
+        row[col] = getattr(instance, col, None)
+    return row
+
+
+class BrowserTablePageSerializer(Serializer):
+    """
+    The browse list when ``view_mode == "table"``.
+
+    Shares the page metadata fields with :class:`BrowserPageSerializer`
+    but emits a single ``rows`` list (groups + books concatenated)
+    projected to whichever columns the request asked for. The caller
+    sets the ``columns`` tuple on the data dict; ``_row_repr`` reads
+    it.
+    """
+
+    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
+    breadcrumbs = BreadcrumbsField(read_only=True)
+    title = BrowserTitleSerializer(read_only=True)
+    zero_pad = IntegerField(read_only=True)
+    libraries_exist = BooleanField(read_only=True)
+    model_group = BrowseGroupField(read_only=True)
+    num_pages = IntegerField(read_only=True)
+    rows = SerializerMethodField()
+    fts = BooleanField(read_only=True)
+    search_error = CharField(read_only=True)
+    mtime = TimestampField(read_only=True)
+
+    def get_rows(self, obj) -> list:
+        """Concatenate groups and books, projected through ``columns``."""
+        columns = tuple(obj.get("columns", ()))
+        groups = obj.get("groups", ()) or ()
+        books = obj.get("books", ()) or ()
+        return [_row_repr(item, columns) for item in (*groups, *books)]

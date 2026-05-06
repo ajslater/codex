@@ -18,8 +18,13 @@ from codex.models import (
     Folder,
     Library,
 )
-from codex.serializers.browser.page import BrowserPageSerializer
+from codex.serializers.browser.page import (
+    BrowserPageSerializer,
+    BrowserTablePageSerializer,
+)
+from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.views.browser.columns import default_columns_for
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -58,6 +63,7 @@ class BrowserView(BrowserTitleView):
     """Browse comics with a variety of filters and sorts."""
 
     serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
+    input_serializer_class = BrowserPageInputSerializer  # type: ignore[assignment]
 
     ADMIN_FLAGS = (
         AdminFlagChoices.FOLDER_VIEW,
@@ -252,9 +258,32 @@ class BrowserView(BrowserTitleView):
             }
         )
 
+    def _resolve_table_columns(self) -> tuple[str, ...]:
+        """
+        Pick the column set for this table-view request.
+
+        Priority: explicit ``columns=`` query param (already validated
+        and stored on params), then the user's persisted
+        ``table_columns[top_group]``, then the registry defaults for
+        the current top-group.
+        """
+        columns = self.params.get("columns") or ()
+        if columns:
+            return tuple(columns)
+        top_group = self.params.get("top_group") or self.kwargs.get("group") or "p"
+        stored = self.params.get("table_columns") or {}
+        stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
+        if stored_for_group:
+            return tuple(stored_for_group)
+        return default_columns_for(top_group)
+
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
-        """Get browser settings."""
+        """Return either a card-grid response or a table-row response."""
         data = self.get_object()
-        serializer = self.get_serializer(data)
+        if self.params.get("view_mode") == "table":
+            payload = {**dict(data), "columns": self._resolve_table_columns()}
+            serializer = BrowserTablePageSerializer(payload)
+        else:
+            serializer = self.get_serializer(data)
         return Response(serializer.data)

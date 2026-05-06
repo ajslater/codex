@@ -157,3 +157,28 @@ class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
     group = BrowserRouteGroupField(required=False)
+
+
+class BrowserPageInputSerializer(BrowserSettingsSerializer):
+    """
+    Input parser for the browse page endpoint.
+
+    Adds the ``columns`` query param: a comma-separated list of column
+    keys from the table-view registry. The browser view consumes it
+    when ``view_mode == "table"`` to project rows. Each key must be a
+    valid registry entry; unknown keys cause a 400.
+    """
+
+    columns = CharField(required=False, allow_blank=True)
+
+    def validate_columns(self, value: str) -> tuple[str, ...]:
+        """Split, trim, and validate column keys against the registry."""
+        if not value:
+            return ()
+        keys = tuple(k.strip() for k in value.split(",") if k.strip())
+        valid = set(BROWSER_TABLE_COLUMNS.keys())
+        invalid = [k for k in keys if k not in valid]
+        if invalid:
+            reason = f"Invalid column keys: {sorted(invalid)}"
+            raise ValidationError(reason)
+        return keys
