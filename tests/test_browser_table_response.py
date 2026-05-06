@@ -206,3 +206,19 @@ class BrowserTablePageResponseTestCase(TestCase):
         rows = body["rows"]
         row = rows[0]
         assert row.get("storyArcs") == ["The Big One"]
+
+    def test_table_view_credits_aggregation(self) -> None:
+        """``credits`` resolves through Credit to credit.person.name."""
+        from codex.models.named import Credit, CreditPerson
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        person = CreditPerson.objects.create(name="Jane Author")
+        credit = Credit.objects.create(person=person)
+        comic.credits.add(credit)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,credits")
+        rows = body["rows"]
+        row = rows[0]
+        assert row.get("credits") == ["Jane Author"]
