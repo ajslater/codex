@@ -1,6 +1,6 @@
 <template>
   <div id="browserTable">
-    <v-table fixed-header density="compact" class="browserTableTable">
+    <table class="browserTableTable">
       <thead>
         <tr>
           <th
@@ -33,7 +33,7 @@
           </td>
         </tr>
       </tbody>
-    </v-table>
+    </table>
     <BrowserEmptyState v-if="rows.length === 0" />
   </div>
 </template>
@@ -146,14 +146,16 @@ export default {
 
 <style scoped lang="scss">
 /*
- * #browserTable is a flex child of #browsePane (display:flex,
- * flex-direction:column, padding-top reserves the toolbar space).
- * Use flex:1 + min-height:0 so the table fills the remaining
- * height; overflow-y:auto on this same div makes IT the scroll
- * container, and v-table's fixed-header sticky thead pins to the
- * top of this scroller. ``height:100%`` doesn't work in this flex
- * context — the previous css made the whole table scroll past the
- * toolbar instead of scrolling internally.
+ * #browserTable is the scroll container. It's a flex child of
+ * #browsePane (flex-direction:column, padding-top reserves the
+ * toolbar space). flex:1 + min-height:0 gives it a constrained
+ * height inside the flex parent; overflow-y:auto makes it the
+ * scroller. Sticky thead binds to this scroller, not to any
+ * Vuetify-managed wrapper — that's the reason this is a plain
+ * <table> instead of <v-table fixed-header>: v-table puts
+ * overflow on its own internal wrapper which makes the sticky
+ * behavior unreliable when the page already has its own scroll
+ * pane.
  */
 #browserTable {
   flex: 1;
@@ -163,26 +165,47 @@ export default {
 
 .browserTableTable {
   width: 100%;
+  border-collapse: collapse;
+  background-color: rgb(var(--v-theme-surface));
 }
 
-.browserTableTable :deep(thead th) {
-  user-select: none;
+.browserTableTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: rgb(var(--v-theme-surface));
+  padding: 6px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: rgb(var(--v-theme-textSecondary));
   white-space: nowrap;
+  user-select: none;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
-.browserTableTable :deep(thead th.sortable) {
+.browserTableTable thead th.sortable {
   cursor: pointer;
 }
 
-.browserTableTable :deep(thead th.sortable:hover) {
+.browserTableTable thead th.sortable:hover {
   color: rgb(var(--v-theme-primary));
 }
 
-.browserTableTable :deep(thead th.sorted) {
+.browserTableTable thead th.sorted {
   color: rgb(var(--v-theme-primary));
+}
+
+.browserTableTable td {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
 .browserTableRow {
   cursor: pointer;
+}
+
+.browserTableRow:hover {
+  background-color: rgba(var(--v-theme-on-surface), 0.04);
 }
 </style>
