@@ -32,6 +32,14 @@
     listValue
   }}</span>
   <span v-else-if="isBool" class="tableBoolCell">{{ boolValue }}</span>
+  <span
+    v-else-if="column === 'issue'"
+    class="tableIssueCell"
+    :title="issueTitle"
+  >
+    <span class="tableIssueNumber">{{ issueValue.number }}</span
+    ><span class="tableIssueSuffix">{{ issueValue.suffix }}</span>
+  </span>
   <span v-else class="tableTextCell" :title="textValue">{{ textValue }}</span>
 </template>
 
@@ -179,6 +187,26 @@ export default {
       if (this.rawValue === false) return "No";
       return "";
     },
+    issueValue() {
+      /*
+       * Backend emits the compound issue column as
+       * ``{number, suffix}`` so the cell can split-justify the
+       * halves. Defensive default keeps the template safe if a
+       * stale/legacy payload arrives as a plain string.
+       */
+      const value = this.rawValue;
+      if (value && typeof value === "object") {
+        return {
+          number: value.number || "",
+          suffix: value.suffix || "",
+        };
+      }
+      return { number: value ? String(value) : "", suffix: "" };
+    },
+    issueTitle() {
+      const { number, suffix } = this.issueValue;
+      return `${number}${suffix}`;
+    },
     textValue() {
       const value = this.rawValue;
       if (value === null || value === undefined) return "";
@@ -242,6 +270,37 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+}
+
+/*
+ * Compound issue cell: the number and suffix render as two halves
+ * of the same cell. Number is right-justified in the left half so
+ * digit columns line up at the boundary; suffix is left-justified
+ * in the right half so it flows away from the number. With nothing
+ * between them the two halves visually fuse into one value, but
+ * stay aligned across rows even when only one half is present.
+ */
+.tableIssueCell {
+  display: inline-flex;
+  width: 100%;
+  align-items: baseline;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.tableIssueNumber,
+.tableIssueSuffix {
+  flex: 1 1 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableIssueNumber {
+  text-align: right;
+}
+
+.tableIssueSuffix {
+  text-align: left;
 }
 </style>
 

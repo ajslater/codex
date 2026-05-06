@@ -32,21 +32,35 @@ def _resolve_country(code) -> str | None:
     return record.name if record else str(code)
 
 
-def _format_issue(number, suffix) -> str:
+def _format_issue_number(number) -> str:
     """
-    Render the compound ``issue`` column (number + suffix).
+    Format the numeric part of the compound issue column.
 
     Trims trailing zeros after the decimal so a Decimal "1.00" reads
-    "1" and "1.50" reads "1.5". Suffix concatenates without a
-    separator (matches the existing card-view convention).
+    "1" and "1.50" reads "1.5". Returns "" when number is missing.
     """
-    suffix = suffix or ""
     if number is None:
-        return suffix
+        return ""
     s = str(number)
     if "." in s:
         s = s.rstrip("0").rstrip(".")
-    return f"{s}{suffix}"
+    return s
+
+
+def _format_issue(number, suffix) -> dict:
+    """
+    Render the compound ``issue`` column as ``{number, suffix}``.
+
+    Both halves stay separate on the wire so the table-view cell can
+    render the number right-justified and the suffix left-justified —
+    digits in a column then align at the boundary regardless of
+    suffix presence (1, 2a, 100, 25.5b all line up by the number's
+    right edge).
+    """
+    return {
+        "number": _format_issue_number(number),
+        "suffix": suffix or "",
+    }
 
 
 def _resolve_language(code) -> str | None:
@@ -160,9 +174,11 @@ def _row_repr(
             row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
             continue
         if col == "issue":
-            # Compound from issue_number + issue_suffix on the Comic.
-            # Group rows leave issue blank (intersection of distinct
-            # issues across child comics is rarely meaningful).
+            # Compound from issue_number + issue_suffix on the Comic,
+            # emitted as ``{number, suffix}`` so the cell can split-
+            # justify the halves. Group rows yield empty strings for
+            # both (intersection of distinct issues across child
+            # comics is rarely meaningful).
             row[col] = _format_issue(
                 getattr(instance, "issue_number", None),
                 getattr(instance, "issue_suffix", "") or "",
