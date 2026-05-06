@@ -22,6 +22,7 @@ from codex.models import (
 from codex.models.functions import ComicFTSRank, JsonGroupArray
 from codex.views.browser.order_by import (
     BrowserOrderByView,
+    comic_order_path,
 )
 from codex.views.const import (
     NONE_INTEGERFIELD,
@@ -30,16 +31,39 @@ from codex.views.const import (
 from codex.views.mixins import SharedAnnotationsMixin
 
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-    # These are annotated to order_value because they're simple relations
+    # These are annotated to order_value because they're simple relations.
+    # ``Min`` is a sentinel for "use the directional aggregate" — see
+    # ``annotate_order_value``: forward-sort uses Min, reverse uses Max.
+    # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
     {
         "age_rating": Avg,
         "child_count": Min,
+        "country": Min,
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,
+        "day": Min,
+        "file_type": Min,
+        "imprint_name": Min,
+        "issue_number": Min,
+        "issue_suffix": Min,
+        "language": Min,
+        "main_character": Min,
+        "main_team": Min,
+        "metadata_mtime": Min,
+        "monochrome": Min,
+        "month": Min,
+        "original_format": Min,
         "page_count": Sum,
+        "publisher_name": Min,
+        "reading_direction": Min,
+        "scan_info": Min,
+        "series_name": Min,
         "size": Sum,
+        "tagger": Min,
         "updated_at": Min,
+        "volume_name": Min,
+        "year": Min,
     }
 )
 _ANNOTATED_ORDER_FIELDS = frozenset(
@@ -254,14 +278,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             order_key = (
                 "sort_name" if self.order_key == "child_count" else self.order_key
             )
-            order_value = F(order_key)
+            order_value = F(comic_order_path(order_key))
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotations
             order_value = F(self.order_key)
         else:
             agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
             agg_func = self.order_agg_func if agg_func == Min else agg_func
-            field = self.rel_prefix + self.order_key
+            field = self.rel_prefix + comic_order_path(self.order_key)
             order_value = agg_func(field)
 
         if self.TARGET == "browser":

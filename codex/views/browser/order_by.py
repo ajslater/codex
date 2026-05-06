@@ -1,8 +1,35 @@
 """Base view for ordering the query."""
 
+from types import MappingProxyType
+
 from codex.models import Comic
 from codex.models.groups import Volume
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
+
+# Order keys that don't map directly to a Comic field name need an
+# explicit ORM path. The map is consumed both by ``_add_comic_order_by``
+# (the Comic ORDER BY clause) and by ``annotate_order_value`` (the
+# ``order_value`` annotation used by serializers and group aggregates).
+COMIC_ORDER_FIELD_PATHS = MappingProxyType(
+    {
+        "country": "country__name",
+        "imprint_name": "imprint__name",
+        "language": "language__name",
+        "main_character": "main_character__name",
+        "main_team": "main_team__name",
+        "original_format": "original_format__name",
+        "publisher_name": "publisher__name",
+        "scan_info": "scan_info__name",
+        "series_name": "series__name",
+        "tagger": "tagger__name",
+        "volume_name": "volume__name",
+    }
+)
+
+
+def comic_order_path(order_key: str) -> str:
+    """Translate an ``order_by`` enum key to a Comic ORM path."""
+    return COMIC_ORDER_FIELD_PATHS.get(order_key, order_key)
 
 
 class BrowserOrderByView(BrowserGroupMtimeView):
@@ -47,7 +74,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             # Comic orders on indexed fields directly
             # Which is allegedly faster than using tmp b-trees (annotations)
             # And since that's every cover sort, it's worth it.
-            order_fields_head = [order_key]
+            order_fields_head = [comic_order_path(order_key)]
             # Comic order micro optimizations
             if order_key == "story_arc_number":
                 order_fields_head += ["date"]
