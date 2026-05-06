@@ -39,11 +39,14 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
                 f"{key} sort_key invalid"
             )
 
-    def test_m2m_columns_are_not_sortable_in_v1(self):
+    def test_m2m_columns_are_sortable(self):
+        # Phase 7 M2M-sort experiment: every M2M column carries a
+        # sort_key matching its column key (header click sets order_by
+        # to that string).
         for key, entry in BROWSER_TABLE_COLUMNS.items():
             if entry["m2m"]:
-                assert entry["sort_key"] is None, (
-                    f"{key} is m2m but has sort_key set; m2m sorting is Phase 7"
+                assert entry["sort_key"] == key, (
+                    f"{key} is m2m; sort_key should equal column key"
                 )
 
     def test_editable_is_false_in_v1(self):
@@ -90,8 +93,10 @@ class BrowserTableHelperTestCase(TestCase):
     def test_is_sortable_known_keys(self):
         assert is_sortable("name")
         assert is_sortable("issue_number")
+        # M2M columns became sortable in the Phase 7 experiment.
+        assert is_sortable("genres")
+        # ``cover`` is the only universal non-sortable (synthetic) column.
         assert not is_sortable("cover")
-        assert not is_sortable("genres")
 
     def test_is_m2m_known_keys(self):
         assert is_m2m("genres")

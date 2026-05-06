@@ -160,17 +160,28 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
     null in the response. The empty dict is meaningful: it tells the
     caller "skip the M2M annotation step entirely".
 
-    Columns listed in ``_M2M_AGGREGATE_FILTERS`` get a Django aggregate
-    ``filter=`` arg so empty / placeholder rows don't pollute the
-    result.
+    Each aggregate gets a ``filter=`` Q so JSON_GROUP_ARRAY doesn't
+    fold ``NULL``-row LEFT JOIN results into the array as JSON nulls.
+    Comics with no M2M relations would otherwise produce ``[null]``
+    instead of ``[]``, breaking the empty-cell equivalence we need
+    for sorting. Columns listed in ``_M2M_AGGREGATE_FILTERS`` use
+    that custom filter (for the composite credits/identifiers
+    expressions); simple-path columns get a default isnull filter.
+
+    ``order_by=path`` sorts each row's array elements alphabetically,
+    so two rows with the same M2M set produce the same JSON literal
+    — load-bearing for the M2M-sort feature where ``ORDER BY alias``
+    relies on identical sets having identical aggregate strings.
     """
     annotations: dict[str, Aggregate] = {}
     for col in columns:
         path = _M2M_COLUMN_PATHS.get(col)
         if path is None:
             continue
-        kwargs: dict = {"distinct": True}
+        kwargs: dict = {"distinct": True, "order_by": path}
         agg_filter = _M2M_AGGREGATE_FILTERS.get(col)
+        if agg_filter is None and isinstance(path, str):
+            agg_filter = Q(**{f"{path}__isnull": False})
         if agg_filter is not None:
             kwargs["filter"] = agg_filter
         annotations[m2m_alias_for(col)] = JsonGroupArray(path, **kwargs)

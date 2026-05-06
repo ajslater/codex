@@ -4,6 +4,7 @@ from types import MappingProxyType
 
 from codex.models import Comic
 from codex.models.groups import Volume
+from codex.views.browser.columns import m2m_alias_for, m2m_columns
 from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
 # Order keys that don't map directly to a Comic field name need an
@@ -70,6 +71,13 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 "collection_title",
                 "sort_name",
             ]
+        elif order_key in m2m_columns():
+            # M2M sort: ``ORDER BY <alias>`` where the alias is the
+            # JsonGroupArray annotation added by the table-view path.
+            # Identical M2M sets yield identical aggregate strings,
+            # so equivalent rows cluster together — the property the
+            # user actually cares about.
+            order_fields_head = [m2m_alias_for(order_key)]
         else:
             # Comic orders on indexed fields directly
             # Which is allegedly faster than using tmp b-trees (annotations)

@@ -320,6 +320,110 @@ class BrowserTablePageResponseTestCase(TestCase):
         # is not.
         assert row.get("identifiers") in ([], None)
 
+    def test_table_view_m2m_sort_groups_identical_sets(self) -> None:
+        """Comics with the same genre set sort to the same equivalence class."""
+        from codex.models import Library
+        from codex.models.named import Genre
+
+        # Two comics in the same series sharing identical genre sets.
+        # Sorting by genres should place them adjacent. A third comic
+        # with a different genre set goes elsewhere; a fourth with no
+        # genres should sort to one end.
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        publisher = first_comic.publisher
+        imprint = first_comic.imprint
+        series = first_comic.series
+        volume = first_comic.volume
+
+        action = Genre.objects.create(name="Action")
+        drama = Genre.objects.create(name="Drama")
+        comedy = Genre.objects.create(name="Comedy")
+
+        first_comic.genres.add(action, drama)
+
+        path_b = TMP_DIR / "b.cbz"
+        path_b.touch()
+        comic_b = Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=publisher,
+            imprint=imprint,
+            series=series,
+            volume=volume,
+            size=43,
+            year=2024,
+            page_count=20,
+        )
+        comic_b.genres.add(action, drama)  # same set as first_comic
+        path_c = TMP_DIR / "c.cbz"
+        path_c.touch()
+        comic_c = Comic.objects.create(
+            library=library,
+            path=path_c,
+            issue_number=3,
+            name="C",
+            publisher=publisher,
+            imprint=imprint,
+            series=series,
+            volume=volume,
+            size=44,
+            year=2024,
+            page_count=20,
+        )
+        comic_c.genres.add(comedy)
+        path_d = TMP_DIR / "d.cbz"
+        path_d.touch()
+        comic_d = Comic.objects.create(
+            library=library,
+            path=path_d,
+            issue_number=4,
+            name="D",
+            publisher=publisher,
+            imprint=imprint,
+            series=series,
+            volume=volume,
+            size=45,
+            year=2024,
+            page_count=20,
+        )
+        # comic_d has no genres
+
+        self._set_view_mode_table()
+        # Sort by genres ascending.
+        self.client.patch(
+            "/api/v3/r/settings",
+            data=json.dumps({"orderBy": "genres", "orderReverse": False}),
+            content_type="application/json",
+        )
+        body = self._browse_series(columns="cover,name,genres")
+        rows = body["rows"]
+        expected_row_count = 4
+        assert len(rows) == expected_row_count
+        # Group rows by their genre set (after the JsonGroupArray sort).
+        sets = [tuple(r.get("genres") or []) for r in rows]
+        # The two "Action,Drama" rows should be adjacent.
+        action_drama_indexes = [
+            i for i, s in enumerate(sets) if set(s) == {"Action", "Drama"}
+        ]
+        expected_action_drama = 2
+        assert len(action_drama_indexes) == expected_action_drama
+        assert action_drama_indexes[1] - action_drama_indexes[0] == 1
+        # No-genres comic appears once (empty list / null).
+        empty_indexes = [i for i, s in enumerate(sets) if not s]
+        assert len(empty_indexes) == 1
+        # Verify the unique-genre-set comic appears once.
+        comedy_indexes = [i for i, s in enumerate(sets) if set(s) == {"Comedy"}]
+        assert len(comedy_indexes) == 1
+        # comic_b/comic_c/comic_d existed by id; spot-check pks.
+        pks = [r["pk"] for r in rows]
+        for c in (first_comic, comic_b, comic_c, comic_d):
+            assert c.pk in pks
+
     def test_table_view_credits_skips_empty_person_name(self) -> None:
         """Credits with an unnamed person are filtered out."""
         from codex.models.named import Credit, CreditPerson

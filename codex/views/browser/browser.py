@@ -114,6 +114,31 @@ class BrowserView(BrowserTitleView):
             limit = max(query_limit, search_limit)
         return limit
 
+    def _add_table_view_annotations(self, qs):
+        """
+        Hoist the table-view FK / M2M annotations before ORDER BY.
+
+        ``add_order_by`` may reference an M2M alias for sorting (the
+        Phase 7 M2M-sort experiment); the alias has to be on the
+        queryset before the ORDER BY clause is built. The same pass
+        also annotates FK-name columns so a single Comic queryset
+        carries everything the table response needs.
+        """
+        if self.params.get("view_mode") != "table" or qs.model is not Comic:
+            return qs
+        requested = list(self._resolve_table_columns())
+        order_key = self.params.get("order_by")
+        if order_key and order_key not in requested:
+            requested.append(order_key)
+        requested_t = tuple(requested)
+        fk_anns = fk_name_annotations_for(requested_t)
+        m2m_anns = m2m_annotations_for(requested_t)
+        if fk_anns:
+            qs = qs.annotate(**fk_anns)
+        if m2m_anns:
+            qs = qs.annotate(**m2m_anns)
+        return qs
+
     def _get_common_queryset(self, model) -> tuple:
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
@@ -135,6 +160,7 @@ class BrowserView(BrowserTitleView):
 
         if count:
             qs = self.annotate_order_aggregates(qs)
+            qs = self._add_table_view_annotations(qs)
             qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
@@ -209,18 +235,9 @@ class BrowserView(BrowserTitleView):
             group_qs, book_qs, group_count, book_count
         )
 
-        # Table-view extras are added only for the requested columns;
-        # if the user picked nothing extra the queryset stays as cheap
-        # as cover view. ``fk_name_anns`` covers single-FK lookups
-        # (country/language/etc.) via F() — JOINs but no aggregation.
-        # ``m2m_anns`` covers M2M aggregates (genres/tags/etc.) via
-        # JsonGroupArray and is the more expensive of the two.
-        fk_name_anns: dict = {}
-        m2m_anns: dict = {}
-        if self.params.get("view_mode") == "table":
-            requested = self._resolve_table_columns()
-            fk_name_anns = fk_name_annotations_for(requested)
-            m2m_anns = m2m_annotations_for(requested)
+        # The table-view FK / M2M annotations are added in
+        # ``_get_common_queryset`` before ORDER BY runs (the M2M-sort
+        # path needs the alias upstream of the sort).
 
         # Annotate
         if page_group_count:
@@ -230,11 +247,6 @@ class BrowserView(BrowserTitleView):
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
-            if book_qs.model is Comic:
-                if fk_name_anns:
-                    book_qs = book_qs.annotate(**fk_name_anns)
-                if m2m_anns:
-                    book_qs = book_qs.annotate(**m2m_anns)
             book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1

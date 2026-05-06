@@ -20,6 +20,8 @@ from codex.models import (
     StoryArc,
 )
 from codex.models.functions import ComicFTSRank, JsonGroupArray
+from codex.models.groups import Volume
+from codex.views.browser.columns import m2m_alias_for, m2m_columns
 from codex.views.browser.order_by import (
     BrowserOrderByView,
     comic_order_path,
@@ -272,13 +274,26 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Determine order func
         if self.TARGET == "metadata":
             return qs
+        is_m2m_sort = self.order_key in m2m_columns()
         if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
+        elif qs.model is Comic and is_m2m_sort:
+            # M2M sort uses the prefixed alias from the JsonGroupArray
+            # annotation (added upstream when in table-view mode).
+            order_value = F(m2m_alias_for(self.order_key))
         elif qs.model is Comic:
             order_key = (
                 "sort_name" if self.order_key == "child_count" else self.order_key
             )
             order_value = F(comic_order_path(order_key))
+        elif is_m2m_sort:
+            # Group queries: M2M sort falls back to sort_name. Volume
+            # needs an explicit alias since its sort_name aliasing is
+            # gated by ``order_key == "sort_name"``; other groups have
+            # a real sort_name field.
+            if qs.model is Volume:
+                qs = qs.alias(sort_name=F("name"))
+            order_value = F("sort_name")
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotations
             order_value = F(self.order_key)
