@@ -19,10 +19,12 @@
 </template>
 
 <script>
+import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
+import { useBrowserStore } from "@/stores/browser";
 
 const M2M_COLUMNS = new Set([
   "characters",
@@ -66,11 +68,11 @@ function formatDate(value) {
   return DATE_FORMAT.format(d);
 }
 
-function formatDateTime(value) {
+function formatDateTime(value, twentyFourHour) {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
-  return getDateTime(d, true);
+  return getDateTime(d, twentyFourHour);
 }
 
 export default {
@@ -104,6 +106,9 @@ export default {
     };
   },
   computed: {
+    ...mapState(useBrowserStore, {
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+    }),
     placeholderSrc() {
       return getPlaceholderSrc(this.coverGroup);
     },
@@ -161,7 +166,9 @@ export default {
        */
       if (SIZE_COLUMNS.has(this.column)) return formatSize(value);
       if (DATE_COLUMNS.has(this.column)) return formatDate(value);
-      if (DATETIME_COLUMNS.has(this.column)) return formatDateTime(value);
+      if (DATETIME_COLUMNS.has(this.column)) {
+        return formatDateTime(value, this.twentyFourHourTime);
+      }
       return String(value);
     },
   },
