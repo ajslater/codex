@@ -48,6 +48,18 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
     },
 )
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
+BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
+    {
+        "cover": "Cover",
+        "table": "Table",
+    }
+)
+BROWSER_TABLE_COVER_SIZE_CHOICES = MappingProxyType(
+    {
+        "xs": "Tiny",
+        "sm": "Small",
+    }
+)
 VUETIFY_NULL_CODE = -1
 _IDENTIFIER_SOURCES = MappingProxyType(
     {key.value: value for key, value in ID_SOURCE_NAME_MAP.items()}
@@ -57,6 +69,8 @@ BROWSER_CHOICES = MappingProxyType(
         "BOOKMARK_FILTER": BROWSER_BOOKMARK_FILTER_CHOICES,
         "ORDER_BY": BROWSER_ORDER_BY_CHOICES,
         "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
+        "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
+        "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
         "SETTINGS_GROUP": {**_GROUP_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
@@ -104,6 +118,9 @@ BROWSER_DEFAULTS = MappingProxyType(
         "twenty_four_hour_time": False,
         "always_show_filename": False,
         "last_route": DEFAULT_BROWSER_ROUTE,
+        "view_mode": "cover",
+        "table_columns": {},
+        "table_cover_size": "sm",
     }
 )
 

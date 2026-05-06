@@ -24,7 +24,9 @@ from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_ROUTE_CHOICES,
+    BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.choices import ReadingDirectionChoices, max_choices_len
@@ -340,6 +342,19 @@ class SettingsBrowser(SettingsBase):
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
 
+    # Table view
+    view_mode = CharField(
+        max_length=8,
+        choices=tuple(BROWSER_VIEW_MODE_CHOICES.items()),
+        default="cover",
+    )
+    table_columns = JSONField(default=dict)
+    table_cover_size = CharField(
+        max_length=4,
+        choices=tuple(BROWSER_TABLE_COVER_SIZE_CHOICES.items()),
+        default="sm",
+    )
+
     # FK to shared show-flags row.
     show = ForeignKey(
         SettingsBrowserShow,
@@ -360,6 +375,9 @@ class SettingsBrowser(SettingsBase):
             "dynamic_covers",
             "twenty_four_hour_time",
             "always_show_filename",
+            "view_mode",
+            "table_columns",
+            "table_cover_size",
         }
     )
 
