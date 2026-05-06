@@ -283,3 +283,38 @@ class BrowserTablePageResponseTestCase(TestCase):
         rows = body["rows"]
         row = rows[0]
         assert row.get("identifiers") == ["series:abc"]
+
+    def test_table_view_identifiers_skips_empty_rows(self) -> None:
+        """Placeholder identifiers (no type, no key) are filtered out."""
+        from codex.models.identifier import Identifier
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        # An identifier with no id_type and no key would render as
+        # ``:`` and pollute the aggregated list. Filter it out.
+        ident = Identifier.objects.create(source=None, id_type="", key="")
+        comic.identifiers.add(ident)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,identifiers")
+        rows = body["rows"]
+        row = rows[0]
+        # Empty list (or absent) is acceptable; the colon-only string
+        # is not.
+        assert row.get("identifiers") in ([], None)
+
+    def test_table_view_credits_skips_empty_person_name(self) -> None:
+        """Credits with an unnamed person are filtered out."""
+        from codex.models.named import Credit, CreditPerson
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        person = CreditPerson.objects.create(name="")
+        credit = Credit.objects.create(person=person)
+        comic.credits.add(credit)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,credits")
+        rows = body["rows"]
+        row = rows[0]
+        assert row.get("credits") in ([], None)

@@ -9,7 +9,7 @@ helpers used by the views, serializers, and validators.
 from types import MappingProxyType
 from typing import cast
 
-from django.db.models import Aggregate, Case, F, Value, When
+from django.db.models import Aggregate, Case, F, Q, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import Concat
 
@@ -75,6 +75,20 @@ _M2M_COLUMN_PATHS = MappingProxyType(
         "tags": "tags__name",
         "teams": "teams__name",
         "universes": "universes__name",
+    }
+)
+
+# Per-column aggregate filters. Comics can carry M2M rows whose
+# fields are empty (e.g. a placeholder identifier with no source /
+# type / key, an unnamed credit person). Without these filters the
+# composite expressions render as ``":"`` or empty strings and pollute
+# the aggregated list. Aggregates support a ``filter`` kwarg that
+# scopes the aggregation to matching rows; filter rows here are the
+# rows we *want* to include.
+_M2M_AGGREGATE_FILTERS = MappingProxyType(
+    {
+        "credits": Q(credits__person__name__gt=""),
+        "identifiers": Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""),
     }
 )
 
@@ -145,12 +159,21 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
     contribute an annotation. Other M2M columns are deferred and stay
     null in the response. The empty dict is meaningful: it tells the
     caller "skip the M2M annotation step entirely".
+
+    Columns listed in ``_M2M_AGGREGATE_FILTERS`` get a Django aggregate
+    ``filter=`` arg so empty / placeholder rows don't pollute the
+    result.
     """
     annotations: dict[str, Aggregate] = {}
     for col in columns:
         path = _M2M_COLUMN_PATHS.get(col)
-        if path is not None:
-            annotations[m2m_alias_for(col)] = JsonGroupArray(path, distinct=True)
+        if path is None:
+            continue
+        kwargs: dict = {"distinct": True}
+        agg_filter = _M2M_AGGREGATE_FILTERS.get(col)
+        if agg_filter is not None:
+            kwargs["filter"] = agg_filter
+        annotations[m2m_alias_for(col)] = JsonGroupArray(path, **kwargs)
     return annotations
 
 
