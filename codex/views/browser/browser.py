@@ -26,6 +26,7 @@ from codex.views.browser.columns import (
     fk_name_annotations_for,
     m2m_annotations_for,
 )
+from codex.views.browser.intersections import compute_group_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -317,6 +318,17 @@ class BrowserView(BrowserTitleView):
             # columns into a parallel ``rows`` list. ``cards`` stays
             # populated unconditionally so a mobile fallback can render
             # the card grid without a second round-trip.
-            data["columns"] = self._resolve_table_columns()
+            columns = self._resolve_table_columns()
+            data["columns"] = columns
+            # Group rows in the table view show **intersections** of
+            # column values across their child comics: M2M values
+            # shared by every comic, scalars where every comic has
+            # the same value. Computed after pagination so the work
+            # is bounded to the visible page.
+            group_qs = data.get("groups")
+            if group_qs is not None:
+                data["group_intersections"] = compute_group_intersections(
+                    group_qs, columns
+                )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

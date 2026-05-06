@@ -106,8 +106,19 @@ class BrowserTitleSerializer(Serializer):
     group_count = IntegerField(read_only=True, allow_null=True)
 
 
-def _row_repr(instance, columns: tuple[str, ...]) -> dict:
-    """Project a queryset row to the per-row dict for table view."""
+def _row_repr(
+    instance, columns: tuple[str, ...], intersections: dict | None = None
+) -> dict:
+    """
+    Project a queryset row to the per-row dict for table view.
+
+    For Comic rows, values come from the queryset annotations / direct
+    fields. For group rows (Series, Publisher, etc.), the optional
+    ``intersections`` dict carries per-row intersections of child-comic
+    values: M2M values shared by every child comic, scalars where every
+    child comic has the same value. When present, intersections take
+    precedence over direct attribute lookups for the columns they cover.
+    """
     # ``pk``, ``group``, and ``ids`` are always emitted regardless of
     # the user's column selection. They're routing metadata: ``group``
     # tells the frontend whether the row is a Comic or a group node,
@@ -121,12 +132,22 @@ def _row_repr(instance, columns: tuple[str, ...]) -> dict:
     }
     m2m_keys = m2m_columns()
     fk_keys = fk_name_columns()
+    row_intersections = (
+        intersections.get(instance.pk) if intersections else None
+    ) or {}
     for col in columns:
         if col in ("pk", "group", "ids"):
             continue
         if col == "cover":
             row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
             row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+            continue
+        # Group-row intersection takes precedence (and applies country /
+        # language transforms the same way the FK-alias path does).
+        if col in row_intersections:
+            value = row_intersections[col]
+            transform = _COLUMN_VALUE_TRANSFORMS.get(col)
+            row[col] = transform(value) if transform else value
             continue
         if col in m2m_keys:
             # M2M aggregates live under a prefixed alias (the unprefixed
@@ -183,4 +204,8 @@ class BrowserPageSerializer(Serializer):
         columns = tuple(columns)
         groups = obj.get("groups", ()) or ()
         books = obj.get("books", ()) or ()
-        return [_row_repr(item, columns) for item in (*groups, *books)]
+        intersections = obj.get("group_intersections") or None
+        return [
+            _row_repr(item, columns, intersections=intersections)
+            for item in (*groups, *books)
+        ]

@@ -424,6 +424,139 @@ class BrowserTablePageResponseTestCase(TestCase):
         for c in (first_comic, comic_b, comic_c, comic_d):
             assert c.pk in pks
 
+    def test_table_view_group_intersection_scalar_all_share(self) -> None:
+        """Series row: ``year`` shows the value when every child comic shares it."""
+        from codex.models import Library
+        from codex.models.named import Country
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        country_us = Country.objects.create(name="us")
+        # Existing comic + 1 new comic; both share year=2024 and country=us.
+        first_comic.year = 2024
+        first_comic.country = country_us
+        first_comic.save()
+
+        path_b = TMP_DIR / "isect-b.cbz"
+        path_b.touch()
+        comic_b = Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=first_comic.publisher,
+            imprint=first_comic.imprint,
+            series=first_comic.series,
+            volume=first_comic.volume,
+            size=43,
+            year=2024,
+            page_count=20,
+            country=country_us,
+        )
+        assert comic_b.pk
+
+        # Browse publishers (root); the series row should be the
+        # publishers row's intersection target. We browse the
+        # parent — series.
+        self._set_view_mode_table()
+        # Browse the imprint so the row beneath is a Series.
+        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,year,country"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        body = response.json()
+        rows = body["rows"]
+        # One row — the Series.
+        assert len(rows) == 1
+        row = rows[0]
+        expected_shared_year = 2024
+        assert row["year"] == expected_shared_year
+        # Country was annotated through pycountry on the FK alias path,
+        # but for group intersections we route through the same
+        # transform. Either the resolved name ("United States") or the
+        # ISO code ("us") is acceptable as long as the intersection
+        # produced a non-null value.
+        assert row["country"] in ("United States", "us")
+
+    def test_table_view_group_intersection_scalar_mixed(self) -> None:
+        """Series row: ``year`` is null when child comics differ."""
+        from codex.models import Library
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        first_comic.year = 2024
+        first_comic.save()
+
+        path_b = TMP_DIR / "mixed-b.cbz"
+        path_b.touch()
+        Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=first_comic.publisher,
+            imprint=first_comic.imprint,
+            series=first_comic.series,
+            volume=first_comic.volume,
+            size=43,
+            year=2025,  # different year
+            page_count=20,
+        )
+
+        self._set_view_mode_table()
+        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,year"
+        response = self.client.get(url)
+        body = response.json()
+        rows = body["rows"]
+        row = rows[0]
+        # No intersection — child comics differ.
+        assert row["year"] is None
+
+    def test_table_view_group_intersection_m2m(self) -> None:
+        """Series row: genres include only values every comic shares."""
+        from codex.models import Library
+        from codex.models.named import Genre
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+
+        action = Genre.objects.create(name="Action")
+        drama = Genre.objects.create(name="Drama")
+        comedy = Genre.objects.create(name="Comedy")
+        first_comic.genres.add(action, drama)
+
+        path_b = TMP_DIR / "m2m-b.cbz"
+        path_b.touch()
+        comic_b = Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=first_comic.publisher,
+            imprint=first_comic.imprint,
+            series=first_comic.series,
+            volume=first_comic.volume,
+            size=43,
+            year=2024,
+            page_count=20,
+        )
+        # Comic B has Drama only (shared) + Comedy (unique).
+        comic_b.genres.add(drama, comedy)
+
+        self._set_view_mode_table()
+        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,genres"
+        response = self.client.get(url)
+        body = response.json()
+        rows = body["rows"]
+        row = rows[0]
+        # Drama is the only genre both comics share.
+        assert row["genres"] == ["Drama"]
+
     def test_table_view_credits_skips_empty_person_name(self) -> None:
         """Credits with an unnamed person are filtered out."""
         from codex.models.named import Credit, CreditPerson
