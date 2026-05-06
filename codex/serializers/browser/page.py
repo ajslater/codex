@@ -72,23 +72,6 @@ class BrowserTitleSerializer(Serializer):
     group_count = IntegerField(read_only=True, allow_null=True)
 
 
-class BrowserPageSerializer(Serializer):
-    """The main browse list."""
-
-    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
-    breadcrumbs = BreadcrumbsField(read_only=True)
-    title = BrowserTitleSerializer(read_only=True)
-    zero_pad = IntegerField(read_only=True)
-    libraries_exist = BooleanField(read_only=True)
-    model_group = BrowseGroupField(read_only=True)
-    num_pages = IntegerField(read_only=True)
-    groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
-    books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
-    fts = BooleanField(read_only=True)
-    search_error = CharField(read_only=True)
-    mtime = TimestampField(read_only=True)
-
-
 def _row_repr(instance, columns: tuple[str, ...]) -> dict:
     """Project a queryset row to the per-row dict for table view."""
     # ``pk``, ``group``, and ``ids`` are always emitted regardless of
@@ -123,15 +106,16 @@ def _row_repr(instance, columns: tuple[str, ...]) -> dict:
     return row
 
 
-class BrowserTablePageSerializer(Serializer):
+class BrowserPageSerializer(Serializer):
     """
-    The browse list when ``view_mode == "table"``.
+    The main browse list.
 
-    Shares the page metadata fields with :class:`BrowserPageSerializer`
-    but emits a single ``rows`` list (groups + books concatenated)
-    projected to whichever columns the request asked for. The caller
-    sets the ``columns`` tuple on the data dict; ``_row_repr`` reads
-    it.
+    Always emits the cards-shape (``groups`` / ``books``). Also emits
+    a ``rows`` list projected through the requested ``columns`` when
+    the caller sets ``columns`` on the data dict (table-view mode).
+    The dual emission lets the frontend's mobile-auto-fallback render
+    the card grid on narrow viewports even when the user has table
+    view enabled — the card data is already in the response.
     """
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
@@ -141,14 +125,19 @@ class BrowserTablePageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_group = BrowseGroupField(read_only=True)
     num_pages = IntegerField(read_only=True)
+    groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     rows = SerializerMethodField()
     fts = BooleanField(read_only=True)
     search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)
 
     def get_rows(self, obj) -> list:
-        """Concatenate groups and books, projected through ``columns``."""
-        columns = tuple(obj.get("columns", ()))
+        """Project groups + books through ``columns`` if requested."""
+        columns = obj.get("columns") if isinstance(obj, dict) else None
+        if not columns:
+            return []
+        columns = tuple(columns)
         groups = obj.get("groups", ()) or ()
         books = obj.get("books", ()) or ()
         return [_row_repr(item, columns) for item in (*groups, *books)]

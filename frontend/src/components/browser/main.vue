@@ -79,7 +79,7 @@ export default {
         if (!books || books.length === 0) return groups;
         return [...groups, ...books];
       },
-      isTableMode: (state) => state.settings.viewMode === "table",
+      tableModeRequested: (state) => state.settings.viewMode === "table",
       tableRowCount: (state) =>
         Array.isArray(state.page.rows) ? state.page.rows.length : 0,
       numPages: (state) => state.page.numPages,
@@ -106,6 +106,17 @@ export default {
       }
       Reflect.set(classes, marginClass, true);
       return classes;
+    },
+    isTableMode() {
+      /*
+       * The user's persisted preference is honored only on viewports
+       * wide enough to actually use the table. Below ~960px (Vuetify
+       * smAndDown) we auto-fall-back to the cover grid since a multi-
+       * column table is unusable on phone-sized screens. The setting
+       * itself isn't changed — flip the device into landscape / wider
+       * and the table reappears.
+       */
+      return this.tableModeRequested && !this.$vuetify.display.smAndDown;
     },
     showBrowseItems() {
       if (!this.isAuthorized || this.showPlaceHolder) return false;

@@ -18,10 +18,7 @@ from codex.models import (
     Folder,
     Library,
 )
-from codex.serializers.browser.page import (
-    BrowserPageSerializer,
-    BrowserTablePageSerializer,
-)
+from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.browser.columns import default_columns_for, m2m_annotations_for
@@ -288,11 +285,13 @@ class BrowserView(BrowserTitleView):
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
-        """Return either a card-grid response or a table-row response."""
-        data = self.get_object()
+        """Return the page data — both cards and (in table mode) rows."""
+        data = dict(self.get_object())
         if self.params.get("view_mode") == "table":
-            payload = {**dict(data), "columns": self._resolve_table_columns()}
-            serializer = BrowserTablePageSerializer(payload)
-        else:
-            serializer = self.get_serializer(data)
+            # The unified serializer projects groups+books through these
+            # columns into a parallel ``rows`` list. ``cards`` stays
+            # populated unconditionally so a mobile fallback can render
+            # the card grid without a second round-trip.
+            data["columns"] = self._resolve_table_columns()
+        serializer = self.get_serializer(data)
         return Response(serializer.data)

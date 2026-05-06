@@ -101,18 +101,21 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
         return response.json()
 
-    def test_cover_view_returns_books_not_rows(self) -> None:
-        # Default view_mode is cover; the response must have books, not rows.
+    def test_cover_view_returns_cards_with_empty_rows(self) -> None:
+        """Cover mode: ``rows`` is present but empty; cards are populated."""
         body = self._browse_series()
         assert "books" in body
-        assert "rows" not in body
+        # ``rows`` is always emitted by the unified serializer for client
+        # round-tripping; in cover mode it's just an empty list.
+        assert body.get("rows") == []
 
-    def test_table_view_returns_rows(self) -> None:
+    def test_table_view_returns_rows_alongside_cards(self) -> None:
+        """Table mode: both ``rows`` (table) and cards (mobile fallback)."""
         self._set_view_mode_table()
         body = self._browse_series(columns="cover,name,issue_number")
-        assert "rows" in body
-        assert "books" not in body
-        assert "groups" not in body
+        # Cards stay populated so the mobile auto-fallback can use them
+        # without a second round-trip.
+        assert "books" in body
         rows = body["rows"]
         assert len(rows) == 1
         row = rows[0]
