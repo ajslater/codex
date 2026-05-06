@@ -198,16 +198,14 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        "issue_number": {
+        "issue": {
+            # Compound table-view column: ``issue_number`` +
+            # ``issue_suffix`` rendered as one cell ("1.5a"). The
+            # sort key is the existing ``issue_number`` enum entry —
+            # ``_add_comic_order_by`` emits ``issue_suffix`` as the
+            # secondary ORDER BY field. No migration needed.
             "label": "Issue",
             "sort_key": "issue_number",
-            "m2m": False,
-            "editable": False,
-            "edit_widget": None,
-        },
-        "issue_suffix": {
-            "label": "Issue Suffix",
-            "sort_key": "issue_suffix",
             "m2m": False,
             "editable": False,
             "edit_widget": None,
@@ -516,7 +514,7 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         "c": (
             "cover",
             "name",
-            "issue_number",
+            "issue",
             "series_name",
             "volume_name",
             "year",

@@ -80,6 +80,13 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 "collection_title",
                 "sort_name",
             ]
+        elif order_key == "issue_number":
+            # Compound issue sort: number first, suffix as secondary.
+            # The combined ``Issue`` column in the table-view registry
+            # uses ``issue_number`` as its sort key and benefits from
+            # this multi-field ORDER BY; cover-view's "Issue Number"
+            # dropdown picks up the same secondary sort.
+            order_fields_head = ["issue_number", "issue_suffix"]
         elif order_key in m2m_columns():
             # M2M sort: ``ORDER BY <alias>`` where the alias is the
             # JsonGroupArray annotation added by the table-view path.

@@ -124,7 +124,7 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert body["viewMode"] == "table"
 
     def test_patch_table_columns_persists(self):
-        cols = {"c": ["cover", "name", "issue_number"]}
+        cols = {"c": ["cover", "name", "issue"]}
         response = self._patch({"tableColumns": cols})
         assert response.status_code == _HTTP_OK, response.content
         body = self._get()
@@ -164,7 +164,7 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         params. Without the JSONFieldSerializer parse step the
         DictField sees a literal string and 400s.
         """
-        cols = {"c": ["cover", "name", "issue_number"]}
+        cols = {"c": ["cover", "name", "issue"]}
         url = f"{_SETTINGS_URL}?tableColumns={json.dumps(cols)}"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content

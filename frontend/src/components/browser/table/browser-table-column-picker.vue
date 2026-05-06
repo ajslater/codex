@@ -95,7 +95,7 @@ import { useBrowserStore } from "@/stores/browser";
 const _CATEGORIES = Object.freeze([
   {
     label: "Identity",
-    columns: ["cover", "name", "issue_number", "issue_suffix"],
+    columns: ["cover", "name", "issue"],
   },
   {
     label: "Publishing",

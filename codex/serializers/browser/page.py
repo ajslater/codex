@@ -32,6 +32,23 @@ def _resolve_country(code) -> str | None:
     return record.name if record else str(code)
 
 
+def _format_issue(number, suffix) -> str:
+    """
+    Render the compound ``issue`` column (number + suffix).
+
+    Trims trailing zeros after the decimal so a Decimal "1.00" reads
+    "1" and "1.50" reads "1.5". Suffix concatenates without a
+    separator (matches the existing card-view convention).
+    """
+    suffix = suffix or ""
+    if number is None:
+        return suffix
+    s = str(number)
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return f"{s}{suffix}"
+
+
 def _resolve_language(code) -> str | None:
     """Translate ISO-639 alpha-2 language codes to readable names."""
     if not code:
@@ -141,6 +158,15 @@ def _row_repr(
         if col == "cover":
             row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
             row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+            continue
+        if col == "issue":
+            # Compound from issue_number + issue_suffix on the Comic.
+            # Group rows leave issue blank (intersection of distinct
+            # issues across child comics is rarely meaningful).
+            row[col] = _format_issue(
+                getattr(instance, "issue_number", None),
+                getattr(instance, "issue_suffix", "") or "",
+            )
             continue
         # Group-row intersection takes precedence (and applies country /
         # language transforms the same way the FK-alias path does).

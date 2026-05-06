@@ -28,9 +28,9 @@ class BrowserPageInputColumnsTestCase(TestCase):
         assert s.validated_data["columns"] == ()
 
     def test_csv_parsed_to_tuple(self):
-        s = BrowserPageInputSerializer(data={"columns": "cover,name,issue_number"})
+        s = BrowserPageInputSerializer(data={"columns": "cover,name,issue"})
         assert s.is_valid(), s.errors
-        assert s.validated_data["columns"] == ("cover", "name", "issue_number")
+        assert s.validated_data["columns"] == ("cover", "name", "issue")
 
     def test_whitespace_trimmed(self):
         s = BrowserPageInputSerializer(data={"columns": " cover , name "})
@@ -112,7 +112,7 @@ class BrowserTablePageResponseTestCase(TestCase):
     def test_table_view_returns_rows_alongside_cards(self) -> None:
         """Table mode: both ``rows`` (table) and cards (mobile fallback)."""
         self._set_view_mode_table()
-        body = self._browse_series(columns="cover,name,issue_number")
+        body = self._browse_series(columns="cover,name,issue")
         # Cards stay populated so the mobile auto-fallback can use them
         # without a second round-trip.
         assert "books" in body
@@ -122,7 +122,8 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert "pk" in row
         assert "coverPk" in row  # camelCased
         assert "name" in row
-        assert "issueNumber" in row
+        # ``issue`` is the compound column (issue_number + issue_suffix).
+        assert "issue" in row
 
     def test_table_view_invalid_columns_rejected(self) -> None:
         self._set_view_mode_table()

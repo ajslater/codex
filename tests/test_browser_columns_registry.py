@@ -68,11 +68,12 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
             assert not unknown, f"{top_group} references unknown columns {unknown}"
 
     def test_comic_defaults_match_plan(self):
-        # Locked in Phase 0; if this changes the plan doc must change too.
+        # Locked in Phase 0; ``issue_number`` was later collapsed into
+        # the compound ``issue`` column.
         assert default_columns_for("c") == (
             "cover",
             "name",
-            "issue_number",
+            "issue",
             "series_name",
             "volume_name",
             "year",
@@ -92,7 +93,9 @@ class BrowserTableHelperTestCase(TestCase):
 
     def test_is_sortable_known_keys(self):
         assert is_sortable("name")
-        assert is_sortable("issue_number")
+        # ``issue`` is the compound column; sort_key resolves to
+        # ``issue_number`` so the existing enum entry drives ORDER BY.
+        assert is_sortable("issue")
         # M2M columns became sortable in the Phase 7 experiment.
         assert is_sortable("genres")
         # ``cover`` is the only universal non-sortable (synthetic) column.
@@ -106,7 +109,10 @@ class BrowserTableHelperTestCase(TestCase):
 
     def test_sort_key_for_known_keys(self):
         assert sort_key_for("name") == "sort_name"
-        assert sort_key_for("issue_number") == "issue_number"
+        # The compound ``issue`` column reuses the ``issue_number``
+        # enum entry; ``_add_comic_order_by`` adds ``issue_suffix`` as
+        # secondary so the natural multi-field ORDER BY happens.
+        assert sort_key_for("issue") == "issue_number"
         assert sort_key_for("cover") is None
 
     def test_unknown_column_returns_falsy(self):
