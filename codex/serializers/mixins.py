@@ -53,7 +53,7 @@ class JSONFieldSerializer(Serializer):
         # as snake_case; we normalize incoming keys for the check.
         if key in cls.JSON_FIELDS:
             return True
-        return isinstance(key, str) and camel_to_underscore(key) in cls.JSON_FIELDS
+        return camel_to_underscore(key) in cls.JSON_FIELDS
 
     @override
     def to_internal_value(self, data) -> dict:

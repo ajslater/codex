@@ -74,7 +74,7 @@ class OPDS1FeedView(OPDS1LinksView):
 
     template_name = "opds_v1/index.xml"
     serializer_class: type[BaseSerializer] | None = OPDS1TemplateSerializer
-    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
+    input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
 
