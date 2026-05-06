@@ -3,6 +3,17 @@
     <table class="browserTableTable">
       <thead>
         <tr>
+          <th class="browserTableCheckboxCell">
+            <v-checkbox-btn
+              density="compact"
+              :model-value="isAllSelected"
+              :indeterminate="isPartiallySelected"
+              :aria-label="
+                isAllSelected ? 'deselect all on page' : 'select all on page'
+              "
+              @click.stop.prevent="onHeaderCheckboxToggle"
+            />
+          </th>
           <th
             v-for="col in visibleColumns"
             :key="col"
@@ -21,8 +32,17 @@
           v-for="row in rows"
           :key="rowKey(row)"
           class="browserTableRow"
+          :class="{ selected: isSelected(row) }"
           @click="onRowClick(row)"
         >
+          <td class="browserTableCheckboxCell" @click.stop>
+            <v-checkbox-btn
+              density="compact"
+              :model-value="isSelected(row)"
+              :aria-label="`select ${row.name || 'item'}`"
+              @click.stop.prevent="toggleItem(row)"
+            />
+          </td>
           <td v-for="col in visibleColumns" :key="col">
             <BrowserTableCell
               :column="col"
@@ -46,6 +66,7 @@ import BrowserEmptyState from "@/components/browser/empty.vue";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import { useBrowserStore } from "@/stores/browser";
+import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
 export default {
   name: "BrowserTable",
@@ -66,6 +87,11 @@ export default {
       coverSize: (state) => state.settings.tableCoverSize,
       pageData: (state) => state.page,
     }),
+    ...mapState(useBrowserSelectManyStore, {
+      selectManyActive: (state) => state.active,
+      isSelected: (state) => state.isSelected,
+      selectedCount: (state) => state.selectedItems.size,
+    }),
     rows() {
       /*
        * Backend emits ``rows`` for table mode, ``groups``/``books`` for
@@ -81,9 +107,34 @@ export default {
     visibleColumns() {
       return useBrowserStore()._resolveTableColumns();
     },
+    selectedOnPageCount() {
+      /*
+       * How many of the currently-visible rows are in the selection.
+       * Header checkbox state reflects this — never the global count.
+       */
+      let count = 0;
+      for (const row of this.rows) {
+        if (this.isSelected(row)) count += 1;
+      }
+      return count;
+    },
+    isAllSelected() {
+      return (
+        this.rows.length > 0 && this.selectedOnPageCount === this.rows.length
+      );
+    },
+    isPartiallySelected() {
+      const c = this.selectedOnPageCount;
+      return c > 0 && c < this.rows.length;
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserSelectManyStore, [
+      "toggleItem",
+      "selectAll",
+      "clearSelection",
+    ]),
     columnEntry(column) {
       /*
        * The registry JSON is a frozen build artifact with a fixed key
@@ -132,13 +183,32 @@ export default {
       /*
        * Comic rows -> reader; group rows -> drill in. Mirrors the
        * navigation contract of <BrowserCard> so the table behaves as
-       * an alternate presentation, not an alternate router.
+       * an alternate presentation, not an alternate router. When
+       * select-many is active, plain row clicks toggle the selection
+       * instead of navigating — matches the cover view's overlay
+       * behavior.
        */
+      if (this.selectManyActive) {
+        this.toggleItem(row);
+        return;
+      }
       const group = row.group ?? "c";
       const pks = row.ids ?? [row.pk];
       const path =
         group === "c" ? `/c/${pks[0]}/1` : `/${group}/${pks.join(",")}/1`;
       this.$router.push(path);
+    },
+    onHeaderCheckboxToggle() {
+      /*
+       * Toggle between "everything on the page selected" and "nothing
+       * selected". The store's selectAll reads from page.rows when
+       * we're in table mode (extension landed alongside this).
+       */
+      if (this.isAllSelected) {
+        this.clearSelection();
+      } else {
+        this.selectAll();
+      }
     },
   },
 };
@@ -201,11 +271,29 @@ export default {
   border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
+.browserTableCheckboxCell {
+  width: 36px;
+  padding: 0 0 0 8px !important;
+  text-align: center;
+}
+
+.browserTableCheckboxCell :deep(.v-selection-control) {
+  min-height: auto;
+}
+
 .browserTableRow {
   cursor: pointer;
 }
 
 .browserTableRow:hover {
   background-color: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+.browserTableRow.selected {
+  background-color: rgba(var(--v-theme-primary), 0.08);
+}
+
+.browserTableRow.selected:hover {
+  background-color: rgba(var(--v-theme-primary), 0.12);
 }
 </style>
