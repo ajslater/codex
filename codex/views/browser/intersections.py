@@ -23,10 +23,26 @@ from types import MappingProxyType
 from typing import Any
 
 from django.db.models import Count, Q
+from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
+from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
 from codex.views.browser.columns import fk_name_columns, m2m_columns
 from codex.views.const import MODEL_REL_MAP
+
+# Comic FK column → group model. Used to correlate the intersection
+# sort subquery to the outer group row. ``StoryArc`` traverses
+# through ``StoryArcNumber`` so the subquery shape differs; deferred
+# from this v1 group-row M2M sort.
+_COMIC_GROUP_COL: MappingProxyType[type, str] = MappingProxyType(
+    {
+        Publisher: "publisher_id",
+        Imprint: "imprint_id",
+        Series: "series_id",
+        Volume: "volume_id",
+        Folder: "parent_folder_id",
+    }
+)
 
 
 def _format_credit(person_name: str, role_name: str | None) -> str:
@@ -210,6 +226,117 @@ _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
         "universes": "universes__name",
     }
 )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# M2M-intersection sort key for group rows
+#
+# The order_value annotation for a group row sorting by an M2M column
+# is the alphabetized concatenation of M2M values present in every
+# child comic. Identical intersection sets render identical strings
+# under SQLite's binary collation, so ORDER BY clusters equivalent
+# rows together — the property the user already validated for the
+# Comic-row M2M-sort experiment.
+#
+# We build the expression as RawSQL for two reasons:
+#   1. SQLite's correlated-subquery + HAVING + GROUP_CONCAT pattern
+#      with intra-row ORDER BY is straightforward in SQL but requires
+#      ORM gymnastics (nested OuterRefs, .aggregate inside Subquery,
+#      etc.) that obscure the intent.
+#   2. Per-row execution against the outer group table is the most
+#      efficient shape SQLite can deliver — see the perf note below.
+#
+# Performance: the subquery executes once per row in the outer
+# queryset's ORDER BY phase. With indexes on the comic's group FK
+# (codex_comic.<group>_id) and the through table's (comic_id, target_id)
+# pair, each subquery scans only the relevant rows for that group.
+# Profile-and-tune is the user's call; the SELECT is structurally
+# minimal — one INNER JOIN chain through the M2M, one GROUP BY, one
+# correlated COUNT for the HAVING clause.
+
+# ``through_table_attr`` resolves to e.g. ``codex_comic_genres`` via
+# Django's metadata; ``target_table_attr`` is the related model's
+# ``_meta.db_table`` (``codex_genre``); ``m2m_id_col`` is the through
+# table's FK column to the related model (``genre_id``). All three
+# are looked up at runtime so we don't hardcode db_table names.
+_SIMPLE_M2M_FIELDS = MappingProxyType(
+    {
+        "characters": "characters",
+        "genres": "genres",
+        "locations": "locations",
+        "series_groups": "series_groups",
+        "stories": "stories",
+        "tags": "tags",
+        "teams": "teams",
+        "universes": "universes",
+    }
+)
+
+
+def _build_simple_m2m_intersection_sort_sql(
+    group_model: type, column: str
+) -> RawSQL | None:
+    """
+    Return a correlated-subquery RawSQL for the intersection sort key.
+
+    Restricted to ``_SIMPLE_M2M_FIELDS`` and group models in
+    ``_COMIC_GROUP_COL`` (StoryArc, credits, identifiers — deferred).
+    Returns None when unsupported.
+    """
+    field_name = _SIMPLE_M2M_FIELDS.get(column)
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if field_name is None or comic_group_col is None:
+        return None
+    field = Comic._meta.get_field(field_name)
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+    through_table = through._meta.db_table
+    m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+    related_model = field.related_model
+    if related_model is None:
+        return None
+    target_table = related_model._meta.db_table
+    group_table = group_model._meta.db_table
+
+    # Correlated subquery returning the alphabetized GROUP_CONCAT of
+    # target ``name`` values whose comic-count for the outer group
+    # matches the group's total comic count — the intersection set.
+    # ```` (unit separator) is used as the join character so it
+    # never collides with values in the names. NULL/empty target
+    # names are filtered out so they can't fold into the sort key.
+    # All identifiers spliced into ``sql`` come from Django metadata
+    # (``_meta.db_table``, ``m2m_reverse_field_name()``); the column
+    # whitelist (``_SIMPLE_M2M_FIELDS``) and group whitelist
+    # (``_COMIC_GROUP_COL``) bound the inputs, so RawSQL is safe here.
+    sql = f"""(
+        SELECT COALESCE(GROUP_CONCAT(name, X'1F'), '')
+        FROM (
+            SELECT t.name AS name
+            FROM {target_table} t
+            INNER JOIN {through_table} th ON th.{m2m_id_col} = t.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+            WHERE c.{comic_group_col} = {group_table}.id
+              AND t.name IS NOT NULL
+              AND t.name != ''
+            GROUP BY t.id, t.name
+            HAVING COUNT(DISTINCT c.id) = (
+                SELECT COUNT(*) FROM codex_comic
+                WHERE {comic_group_col} = {group_table}.id
+            )
+            ORDER BY t.name
+        ) AS isect
+    )"""  # noqa: S608
+    return RawSQL(sql, [])  # noqa: S611
+
+
+def m2m_intersection_sort_expr(group_model: type, column: str) -> RawSQL | None:
+    """
+    Build a sort-key RawSQL for the given (group_model, M2M column).
+
+    Public entry point. Returns None when the combination isn't
+    supported (StoryArc, composite M2M like credits/identifiers);
+    callers fall back to sort_name.
+    """
+    return _build_simple_m2m_intersection_sort_sql(group_model, column)
 
 
 def _compute_credits_intersection(

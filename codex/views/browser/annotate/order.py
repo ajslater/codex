@@ -22,6 +22,7 @@ from codex.models import (
 from codex.models.functions import ComicFTSRank, JsonGroupArray
 from codex.models.groups import Volume
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
+from codex.views.browser.intersections import m2m_intersection_sort_expr
 from codex.views.browser.order_by import (
     BrowserOrderByView,
     comic_order_path,
@@ -287,13 +288,20 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             )
             order_value = F(comic_order_path(order_key))
         elif is_m2m_sort:
-            # Group queries: M2M sort falls back to sort_name. Volume
-            # needs an explicit alias since its sort_name aliasing is
-            # gated by ``order_key == "sort_name"``; other groups have
-            # a real sort_name field.
-            if qs.model is Volume:
-                qs = qs.alias(sort_name=F("name"))
-            order_value = F("sort_name")
+            # Group + M2M sort: build a correlated SQL subquery that
+            # returns the alphabetized GROUP_CONCAT of M2M values
+            # present in *every* child comic. ORDER BY this string
+            # clusters rows with identical intersection sets.
+            # Unsupported combinations (StoryArc, credits/identifiers,
+            # ...) fall back to sort_name — same shape Comic-row uses
+            # for ``child_count``.
+            isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+            if isort_expr is not None:
+                order_value = isort_expr
+            else:
+                if qs.model is Volume:
+                    qs = qs.alias(sort_name=F("name"))
+                order_value = F("sort_name")
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             # These are annotated in browser_annotations
             order_value = F(self.order_key)

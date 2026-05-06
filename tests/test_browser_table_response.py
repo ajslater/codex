@@ -557,6 +557,128 @@ class BrowserTablePageResponseTestCase(TestCase):
         # Drama is the only genre both comics share.
         assert row["genres"] == ["Drama"]
 
+    def test_table_view_group_m2m_sort_clusters_identical_intersections(
+        self,
+    ) -> None:
+        """Two series with the same intersection genres sort adjacent."""
+        from codex.models import Library
+        from codex.models.named import Genre
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        publisher = first_comic.publisher
+        imprint = first_comic.imprint
+
+        action = Genre.objects.create(name="Action")
+        drama = Genre.objects.create(name="Drama")
+        comedy = Genre.objects.create(name="Comedy")
+
+        # Series A: every comic has Action + Drama as the intersection.
+        series_a = first_comic.series
+        first_comic.genres.add(action, drama)
+        path_a2 = TMP_DIR / "ga2.cbz"
+        path_a2.touch()
+        comic_a2 = Comic.objects.create(
+            library=library,
+            path=path_a2,
+            issue_number=2,
+            name="A2",
+            publisher=publisher,
+            imprint=imprint,
+            series=series_a,
+            volume=first_comic.volume,
+            size=43,
+            year=2024,
+            page_count=20,
+        )
+        comic_a2.genres.add(action, drama, comedy)  # Comedy is unique to a2
+
+        # Series B (new): every comic has Action + Drama too.
+        series_b = Series.objects.create(
+            name="Bravo", imprint=imprint, publisher=publisher
+        )
+        volume_b = Volume.objects.create(
+            name="2024", series=series_b, imprint=imprint, publisher=publisher
+        )
+        path_b1 = TMP_DIR / "gb1.cbz"
+        path_b1.touch()
+        comic_b1 = Comic.objects.create(
+            library=library,
+            path=path_b1,
+            issue_number=1,
+            name="B1",
+            publisher=publisher,
+            imprint=imprint,
+            series=series_b,
+            volume=volume_b,
+            size=44,
+            year=2024,
+            page_count=20,
+        )
+        comic_b1.genres.add(action, drama)
+        path_b2 = TMP_DIR / "gb2.cbz"
+        path_b2.touch()
+        comic_b2 = Comic.objects.create(
+            library=library,
+            path=path_b2,
+            issue_number=2,
+            name="B2",
+            publisher=publisher,
+            imprint=imprint,
+            series=series_b,
+            volume=volume_b,
+            size=45,
+            year=2024,
+            page_count=20,
+        )
+        comic_b2.genres.add(action, drama)  # same intersection as A
+
+        # Series C (new): one comic with Comedy only — different intersection.
+        series_c = Series.objects.create(
+            name="Charlie", imprint=imprint, publisher=publisher
+        )
+        volume_c = Volume.objects.create(
+            name="2024", series=series_c, imprint=imprint, publisher=publisher
+        )
+        path_c = TMP_DIR / "gc.cbz"
+        path_c.touch()
+        comic_c = Comic.objects.create(
+            library=library,
+            path=path_c,
+            issue_number=1,
+            name="C1",
+            publisher=publisher,
+            imprint=imprint,
+            series=series_c,
+            volume=volume_c,
+            size=46,
+            year=2024,
+            page_count=20,
+        )
+        comic_c.genres.add(comedy)
+
+        self._set_view_mode_table()
+        # Sort series rows by genres ascending.
+        self.client.patch(
+            "/api/v3/r/settings",
+            data=json.dumps({"orderBy": "genres", "orderReverse": False}),
+            content_type="application/json",
+        )
+        url = f"/api/v3/p/{publisher.pk}/1?columns=cover,name,genres"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        body = response.json()
+        rows = body["rows"]
+        # Three series rows.
+        names = [r["name"] for r in rows]
+        # Series A and B share the same intersection ({Action, Drama}); they
+        # must sort adjacent.
+        idx_a = names.index(series_a.name)
+        idx_b = names.index(series_b.name)
+        assert abs(idx_a - idx_b) == 1, names
+
     def test_table_view_m2m_sort_doesnt_crash_cover_subquery(self) -> None:
         """
         Browsing groups with M2M sort active doesn't fail on the cover subquery.
