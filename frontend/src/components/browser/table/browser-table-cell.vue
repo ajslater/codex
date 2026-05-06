@@ -3,13 +3,30 @@
     v-if="column === 'cover'"
     class="tableCoverCell"
     :class="coverSizeClass"
+    @click.stop
   >
-    <img
-      :src="imgSrc"
-      :alt="row.name || ''"
-      :title="row.name || ''"
-      @error="onImgError"
-    />
+    <v-menu
+      v-model="popupOpen"
+      :close-on-content-click="false"
+      location="end center"
+      offset="8"
+      transition="scale-transition"
+      origin="overlap"
+    >
+      <template #activator="{ props }">
+        <img
+          v-bind="props"
+          :src="imgSrc"
+          :alt="row.name || ''"
+          :title="row.name || ''"
+          class="tableCoverThumb"
+          @error="onImgError"
+        />
+      </template>
+      <div class="coverPopup" @mouseleave="popupOpen = false">
+        <img :src="imgSrc" :alt="row.name || ''" />
+      </div>
+    </v-menu>
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
@@ -103,6 +120,11 @@ export default {
        * broken-image icon. Reset when the row identity changes.
        */
       imgErrored: false,
+      /*
+       * Click-to-zoom state for the cover popup. Opens on thumb
+       * click; closes when the cursor leaves the popup bounds.
+       */
+      popupOpen: false,
     };
   },
   computed: {
@@ -174,11 +196,14 @@ export default {
   },
   watch: {
     /*
-     * Reset the error flag when the row changes (Vue reuses cell
-     * instances across re-renders, so a fresh row gets a fresh chance).
+     * Reset the error flag and dismiss the popup when the row
+     * changes (Vue reuses cell instances across re-renders, so a
+     * fresh row gets a fresh chance — and a stale popup pinned to
+     * the wrong row would be visually wrong).
      */
     "row.pk"() {
       this.imgErrored = false;
+      this.popupOpen = false;
     },
   },
   methods: {
@@ -196,12 +221,13 @@ export default {
   justify-content: center;
 }
 
-.tableCoverCell img {
+.tableCoverThumb {
   display: block;
   height: 100%;
   width: auto;
   border-radius: 2px;
   object-fit: cover;
+  cursor: zoom-in;
 }
 
 .tableCoverSize-sm {
@@ -216,5 +242,28 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+}
+</style>
+
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+/*
+ * Cover popup — rendered into a v-menu's teleport target, so the
+ * styles live in an unscoped block. Minimal chrome: just the image,
+ * a small radius, and a soft shadow so it floats above the table
+ * without a hard border. The popup grows from its activator origin
+ * via Vuetify's scale-transition (set on the v-menu itself).
+ */
+.coverPopup {
+  display: block;
+  cursor: zoom-out;
+}
+
+.coverPopup img {
+  display: block;
+  max-height: 70vh;
+  max-width: 60vw;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 </style>
