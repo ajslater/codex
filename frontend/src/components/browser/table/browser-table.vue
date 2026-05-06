@@ -17,7 +17,7 @@
           <th
             v-for="col in visibleColumns"
             :key="col"
-            :class="{ sortable: isSortable(col), sorted: isSortedBy(col) }"
+            :class="cellClasses(col, true)"
             @click="onHeaderClick(col)"
           >
             <span>{{ labelFor(col) }}</span>
@@ -43,7 +43,11 @@
               @click.stop.prevent="toggleItem(row)"
             />
           </td>
-          <td v-for="col in visibleColumns" :key="col">
+          <td
+            v-for="col in visibleColumns"
+            :key="col"
+            :class="cellClasses(col, false)"
+          >
             <BrowserTableCell
               :column="col"
               :row="row"
@@ -198,6 +202,20 @@ export default {
         group === "c" ? `/c/${pks[0]}/1` : `/${group}/${pks.join(",")}/1`;
       this.$router.push(path);
     },
+    cellClasses(column, isHeader) {
+      /*
+       * The cover column shrinks to its content; sortable headers
+       * get a hover affordance and active sort gets a primary tint.
+       */
+      const classes = {
+        browserTableCoverColumn: column === "cover",
+      };
+      if (isHeader) {
+        classes.sortable = this.isSortable(column);
+        classes.sorted = this.isSortedBy(column);
+      }
+      return classes;
+    },
     onHeaderCheckboxToggle() {
       /*
        * Toggle between "everything on the page selected" and "nothing
@@ -279,6 +297,17 @@ export default {
 
 .browserTableCheckboxCell :deep(.v-selection-control) {
   min-height: auto;
+}
+
+/*
+ * The cover column shrinks to fit the cover thumbnail; ``width: 1%``
+ * with ``white-space: nowrap`` is the standard idiom for "as narrow
+ * as content allows" inside a ``width: 100%`` table.
+ */
+.browserTableCoverColumn {
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 4px !important;
 }
 
 .browserTableRow {

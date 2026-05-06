@@ -4,7 +4,12 @@
     class="tableCoverCell"
     :class="coverSizeClass"
   >
-    <img v-if="coverSrc" :src="coverSrc" :alt="row.name || ''" />
+    <img
+      :src="imgSrc"
+      :alt="row.name || ''"
+      :title="row.name || ''"
+      @error="onImgError"
+    />
   </span>
   <span v-else-if="isList" class="tableListCell">{{ listValue }}</span>
   <span v-else-if="isBool" class="tableBoolCell">{{ boolValue }}</span>
@@ -53,13 +58,29 @@ export default {
       default: "c",
     },
   },
+  data() {
+    return {
+      /*
+       * Once a cover URL fails (404 / network error) we swap to the
+       * group's placeholder svg so the browser never renders the
+       * broken-image icon. Reset when the row identity changes.
+       */
+      imgErrored: false,
+    };
+  },
   computed: {
+    placeholderSrc() {
+      return getPlaceholderSrc(this.coverGroup);
+    },
     coverSrc() {
       const { coverPk, coverCustomPk } = this.row;
       if (!coverPk && !coverCustomPk) {
-        return getPlaceholderSrc(this.coverGroup);
+        return this.placeholderSrc;
       }
       return getCoverSrc({ coverPk, coverCustomPk });
+    },
+    imgSrc() {
+      return this.imgErrored ? this.placeholderSrc : this.coverSrc;
     },
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
@@ -100,6 +121,20 @@ export default {
       const value = this.rawValue;
       if (value === null || value === undefined) return "";
       return String(value);
+    },
+  },
+  watch: {
+    /*
+     * Reset the error flag when the row changes (Vue reuses cell
+     * instances across re-renders, so a fresh row gets a fresh chance).
+     */
+    "row.pk"() {
+      this.imgErrored = false;
+    },
+  },
+  methods: {
+    onImgError() {
+      this.imgErrored = true;
     },
   },
 };
