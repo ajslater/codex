@@ -9,6 +9,7 @@
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items>
+      <BrowserColumnsButton />
       <BrowserViewModeToggle />
       <SettingsDrawerButton />
     </v-toolbar-items>
@@ -19,6 +20,7 @@
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapState } from "pinia";
 
+import BrowserColumnsButton from "@/components/browser/toolbars/top/columns-button.vue";
 import BrowserFilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-select.vue";
 import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-reverse-button.vue";
@@ -31,6 +33,7 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserTopToolbar",
   components: {
+    BrowserColumnsButton,
     BrowserFilterBySelect,
     BrowserSearchButton,
     BrowserTopGroupSelect,
