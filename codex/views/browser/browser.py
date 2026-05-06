@@ -21,7 +21,11 @@ from codex.models import (
 from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
-from codex.views.browser.columns import default_columns_for, m2m_annotations_for
+from codex.views.browser.columns import (
+    default_columns_for,
+    fk_name_annotations_for,
+    m2m_annotations_for,
+)
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -205,12 +209,18 @@ class BrowserView(BrowserTitleView):
             group_qs, book_qs, group_count, book_count
         )
 
-        # Table-view M2M annotations are added only for the requested
-        # columns; if the user picked no M2M columns we skip them
-        # entirely and the queryset stays as cheap as cover view.
+        # Table-view extras are added only for the requested columns;
+        # if the user picked nothing extra the queryset stays as cheap
+        # as cover view. ``fk_name_anns`` covers single-FK lookups
+        # (country/language/etc.) via F() — JOINs but no aggregation.
+        # ``m2m_anns`` covers M2M aggregates (genres/tags/etc.) via
+        # JsonGroupArray and is the more expensive of the two.
+        fk_name_anns: dict = {}
         m2m_anns: dict = {}
         if self.params.get("view_mode") == "table":
-            m2m_anns = m2m_annotations_for(self._resolve_table_columns())
+            requested = self._resolve_table_columns()
+            fk_name_anns = fk_name_annotations_for(requested)
+            m2m_anns = m2m_annotations_for(requested)
 
         # Annotate
         if page_group_count:
@@ -220,8 +230,11 @@ class BrowserView(BrowserTitleView):
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
-            if m2m_anns and book_qs.model is Comic:
-                book_qs = book_qs.annotate(**m2m_anns)
+            if book_qs.model is Comic:
+                if fk_name_anns:
+                    book_qs = book_qs.annotate(**fk_name_anns)
+                if m2m_anns:
+                    book_qs = book_qs.annotate(**m2m_anns)
             book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1

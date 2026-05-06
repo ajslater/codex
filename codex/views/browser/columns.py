@@ -9,7 +9,7 @@ helpers used by the views, serializers, and validators.
 from types import MappingProxyType
 from typing import cast
 
-from django.db.models import Aggregate
+from django.db.models import Aggregate, F
 
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
@@ -18,20 +18,39 @@ from codex.choices.browser import (
 from codex.models.functions import JsonGroupArray
 
 # ORM paths for the M2M columns whose value is the related model's
-# ``name`` field. Columns whose aggregation requires a more elaborate
-# traversal (``credits`` -> person/role, ``identifiers`` -> source/key,
-# ``story_arcs`` -> through-model) are deferred to a follow-up; they
-# stay null until that lands.
+# ``name`` field.
 _M2M_COLUMN_PATHS = MappingProxyType(
     {
         "characters": "characters__name",
+        "credits": "credits__person__name",
         "genres": "genres__name",
+        "identifiers": "identifiers__key",
         "locations": "locations__name",
         "series_groups": "series_groups__name",
         "stories": "stories__name",
+        "story_arcs": "story_arc_numbers__story_arc__name",
         "tags": "tags__name",
         "teams": "teams__name",
         "universes": "universes__name",
+    }
+)
+
+# FK-name columns: their value is a single related model's ``name``.
+# All keys here also collide with a Comic FK field (``country``,
+# ``language``, ``age_rating``, etc.) or aren't already covered by
+# ``annotate_group_names``, so we annotate via a prefixed alias and
+# read it back through ``fk_alias_for``.
+_FK_NAME_COLUMN_PATHS = MappingProxyType(
+    {
+        "imprint_name": "imprint__name",
+        "country": "country__name",
+        "language": "language__name",
+        "original_format": "original_format__name",
+        "tagger": "tagger__name",
+        "scan_info": "scan_info__name",
+        "age_rating": "age_rating__name",
+        "main_character": "main_character__name",
+        "main_team": "main_team__name",
     }
 )
 
@@ -95,3 +114,29 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
 def m2m_columns() -> frozenset[str]:
     """Return the set of M2M column keys whose annotation is wired."""
     return frozenset(_M2M_COLUMN_PATHS.keys())
+
+
+# FK-name annotations live in their own alias namespace so they don't
+# collide with the matching Comic FK field attributes (``country`` /
+# ``language`` / etc.).
+_FK_ANNOTATION_PREFIX = "_table_fk_"
+
+
+def fk_alias_for(column_key: str) -> str:
+    """Return the queryset annotation alias for an FK-name column key."""
+    return _FK_ANNOTATION_PREFIX + column_key
+
+
+def fk_name_annotations_for(columns: tuple[str, ...]) -> dict[str, F]:
+    """Build ``alias -> F`` annotations for requested FK-name columns."""
+    annotations: dict[str, F] = {}
+    for col in columns:
+        path = _FK_NAME_COLUMN_PATHS.get(col)
+        if path is not None:
+            annotations[fk_alias_for(col)] = F(path)
+    return annotations
+
+
+def fk_name_columns() -> frozenset[str]:
+    """Return the set of FK-name column keys whose annotation is wired."""
+    return frozenset(_FK_NAME_COLUMN_PATHS.keys())

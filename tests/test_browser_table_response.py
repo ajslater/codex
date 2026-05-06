@@ -170,3 +170,39 @@ class BrowserTablePageResponseTestCase(TestCase):
         # No M2M column requested -> M2M keys absent from the row dict.
         assert "genres" not in row
         assert "tags" not in row
+
+    def test_table_view_fk_name_columns_populate(self) -> None:
+        """FK-name columns (country, language, etc.) carry their values."""
+        from codex.models.named import Country, Language
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        country = Country.objects.create(name="USA")
+        language = Language.objects.create(name="en")
+        comic.country = country
+        comic.language = language
+        comic.save()
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,country,language")
+        rows = body["rows"]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["country"] == "USA"
+        assert row["language"] == "en"
+
+    def test_table_view_story_arcs_aggregation(self) -> None:
+        """``story_arcs`` resolves through StoryArcNumber to story_arc.name."""
+        from codex.models.named import StoryArc, StoryArcNumber
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        arc = StoryArc.objects.create(name="The Big One")
+        san = StoryArcNumber.objects.create(story_arc=arc, number=1)
+        comic.story_arc_numbers.add(san)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,story_arcs")
+        rows = body["rows"]
+        row = rows[0]
+        assert row.get("storyArcs") == ["The Big One"]

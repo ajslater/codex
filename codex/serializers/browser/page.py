@@ -15,7 +15,12 @@ from codex.serializers.browser.mixins import (
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.fields.group import BrowseGroupField
-from codex.views.browser.columns import m2m_alias_for, m2m_columns
+from codex.views.browser.columns import (
+    fk_alias_for,
+    fk_name_columns,
+    m2m_alias_for,
+    m2m_columns,
+)
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
@@ -86,6 +91,7 @@ def _row_repr(instance, columns: tuple[str, ...]) -> dict:
         "ids": getattr(instance, "ids", None),
     }
     m2m_keys = m2m_columns()
+    fk_keys = fk_name_columns()
     for col in columns:
         if col in ("pk", "group", "ids"):
             continue
@@ -97,6 +103,12 @@ def _row_repr(instance, columns: tuple[str, ...]) -> dict:
             # M2M aggregates live under a prefixed alias (the unprefixed
             # name would clash with the model's M2M field attribute).
             row[col] = getattr(instance, m2m_alias_for(col), None)
+            continue
+        if col in fk_keys:
+            # FK-name annotations also live under a prefixed alias —
+            # the unprefixed name (``country``, ``age_rating``, ...)
+            # collides with the matching Comic FK attribute.
+            row[col] = getattr(instance, fk_alias_for(col), None)
             continue
         # ``getattr`` covers direct fields, F-expression annotations
         # (publisher_name etc.), and aggregates added downstream.
