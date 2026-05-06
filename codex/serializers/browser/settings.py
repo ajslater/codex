@@ -15,6 +15,7 @@ from rest_framework.serializers import (
 
 from codex.choices.browser import (
     BROWSER_ORDER_BY_CHOICES,
+    BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_TOP_GROUP_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
@@ -136,15 +137,19 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     )
 
     def validate_table_columns(self, value):
-        """
-        Reject keys that aren't valid top-groups.
-
-        Column-key validation against the registry lives in the next step.
-        """
-        invalid = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
-        if invalid:
-            reason = f"Invalid top_group keys: {sorted(invalid)}"
+        """Reject unknown top-group keys and unknown column keys."""
+        invalid_top_groups = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
+        if invalid_top_groups:
+            reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
             raise ValidationError(reason)
+        valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
+        for top_group, columns in value.items():
+            invalid_columns = set(columns) - valid_columns
+            if invalid_columns:
+                reason = (
+                    f"Invalid column keys for {top_group!r}: {sorted(invalid_columns)}"
+                )
+                raise ValidationError(reason)
         return value
 
 

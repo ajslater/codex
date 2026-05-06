@@ -9,7 +9,12 @@ from types import MappingProxyType
 from caseconverter import camelcase
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES
-from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
+from codex.choices.browser import (
+    BROWSER_CHOICES,
+    BROWSER_DEFAULTS,
+    BROWSER_TABLE_COLUMNS,
+    BROWSER_TABLE_DEFAULT_COLUMNS,
+)
 from codex.choices.jobs import ADMIN_JOBS
 from codex.choices.notifications import Notifications
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
@@ -34,6 +39,8 @@ _MAP_DUMPS = MappingProxyType(
         "admin-jobs.json": ADMIN_JOBS,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
+        "browser-table-columns.json": BROWSER_TABLE_COLUMNS,
+        "browser-table-default-columns.json": BROWSER_TABLE_DEFAULT_COLUMNS,
         "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,

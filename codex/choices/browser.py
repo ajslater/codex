@@ -105,6 +105,367 @@ _DEFAULT_FILTERS = MappingProxyType(
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )
+# ──────────────────────────────────────────────────────────────────────
+# Browser table-view column registry
+#
+# Drives the table-view presentation:
+#   - the column-picker dialog (every key here is a pickable column),
+#   - the ``columns=`` query-param validator on the browser endpoint,
+#   - the per-row serializer (which fields to project and how),
+#   - the ordering pipeline (clicking a sortable column header sets
+#     ``order_by`` to ``sort_key``).
+#
+# ``sort_key`` MUST resolve to an entry in :data:`BROWSER_ORDER_BY_CHOICES`
+# for the column to be effectively sortable. ``m2m`` flags columns whose
+# values come from a Many-to-Many relation and must be aggregated; these
+# are display-only in v1 (sort_key is ``None``). ``editable`` and
+# ``edit_widget`` are reserved for a later phase that will allow inline
+# tag-cell editing.
+BROWSER_TABLE_COLUMNS = MappingProxyType(
+    {
+        # Identity
+        "cover": {
+            "label": "Cover",
+            "sort_key": None,
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "name": {
+            "label": "Name",
+            "sort_key": "sort_name",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "issue_number": {
+            "label": "Issue",
+            "sort_key": "issue_number",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "issue_suffix": {
+            "label": "Issue Suffix",
+            "sort_key": "issue_suffix",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Group hierarchy
+        "publisher_name": {
+            "label": "Publisher",
+            "sort_key": "publisher_name",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "imprint_name": {
+            "label": "Imprint",
+            "sort_key": "imprint_name",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "series_name": {
+            "label": "Series",
+            "sort_key": "series_name",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "volume_name": {
+            "label": "Volume",
+            "sort_key": "volume_name",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Counts
+        "child_count": {
+            "label": "Count",
+            "sort_key": "child_count",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "issue_count": {
+            "label": "Issues",
+            "sort_key": "issue_count",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Files
+        "file_name": {
+            "label": "Filename",
+            "sort_key": "filename",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "size": {
+            "label": "Size",
+            "sort_key": "size",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "page_count": {
+            "label": "Pages",
+            "sort_key": "page_count",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "file_type": {
+            "label": "Type",
+            "sort_key": "file_type",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Publishing dates
+        "year": {
+            "label": "Year",
+            "sort_key": "year",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "month": {
+            "label": "Month",
+            "sort_key": "month",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "day": {
+            "label": "Day",
+            "sort_key": "day",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "date": {
+            "label": "Date",
+            "sort_key": "date",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Tagging metadata (single-value FKs)
+        "country": {
+            "label": "Country",
+            "sort_key": "country",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "language": {
+            "label": "Language",
+            "sort_key": "language",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "original_format": {
+            "label": "Format",
+            "sort_key": "original_format",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "tagger": {
+            "label": "Tagger",
+            "sort_key": "tagger",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "scan_info": {
+            "label": "Scan Info",
+            "sort_key": "scan_info",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "age_rating": {
+            "label": "Age Rating",
+            "sort_key": "age_rating",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "main_character": {
+            "label": "Main Character",
+            "sort_key": "main_character",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "main_team": {
+            "label": "Main Team",
+            "sort_key": "main_team",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Reader / misc
+        "reading_direction": {
+            "label": "Reading Direction",
+            "sort_key": "reading_direction",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "monochrome": {
+            "label": "Monochrome",
+            "sort_key": "monochrome",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "critical_rating": {
+            "label": "Critical Rating",
+            "sort_key": "critical_rating",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # Timestamps
+        "created_at": {
+            "label": "Added",
+            "sort_key": "created_at",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "updated_at": {
+            "label": "Updated",
+            "sort_key": "updated_at",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "metadata_mtime": {
+            "label": "Metadata Updated",
+            "sort_key": "metadata_mtime",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "bookmark_updated_at": {
+            "label": "Last Read",
+            "sort_key": "bookmark_updated_at",
+            "m2m": False,
+            "editable": False,
+            "edit_widget": None,
+        },
+        # M2M relations — display-only in v1; aggregated as JSON arrays at
+        # query time, sortable=False is enforced by the registry consistency
+        # tests.
+        "characters": {
+            "label": "Characters",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "credits": {
+            "label": "Credits",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "genres": {
+            "label": "Genres",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "identifiers": {
+            "label": "Identifiers",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "locations": {
+            "label": "Locations",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "series_groups": {
+            "label": "Series Groups",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "stories": {
+            "label": "Stories",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "story_arcs": {
+            "label": "Story Arcs",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "tags": {
+            "label": "Tags",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "teams": {
+            "label": "Teams",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+        "universes": {
+            "label": "Universes",
+            "sort_key": None,
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
+    }
+)
+
+BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
+    {
+        "p": ("cover", "name", "child_count"),
+        "i": ("cover", "name", "publisher_name", "child_count"),
+        "s": ("cover", "name", "publisher_name", "year", "issue_count"),
+        "v": ("cover", "name", "series_name", "year", "issue_count"),
+        "c": (
+            "cover",
+            "name",
+            "issue_number",
+            "series_name",
+            "volume_name",
+            "year",
+            "page_count",
+            "size",
+        ),
+        "f": ("cover", "name", "child_count"),
+        "a": ("cover", "name", "publisher_name", "child_count"),
+    }
+)
+
 BROWSER_DEFAULTS = MappingProxyType(
     {
         "custom_covers": True,

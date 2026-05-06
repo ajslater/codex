@@ -71,6 +71,13 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert not s.is_valid()
         assert "table_columns" in s.errors
 
+    def test_table_columns_invalid_column_key_rejected(self):
+        s = BrowserSettingsSerializer(
+            data={"table_columns": {"c": ["cover", "phantom_column"]}},
+        )
+        assert not s.is_valid()
+        assert "table_columns" in s.errors
+
     def test_table_cover_size_xs_validates(self):
         s = BrowserSettingsSerializer(data={"table_cover_size": "xs"})
         assert s.is_valid(), s.errors
