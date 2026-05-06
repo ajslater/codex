@@ -51,12 +51,17 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
+      tableModeRequested: (state) => state.settings.viewMode === "table",
+    }),
+    isTableMode() {
       /*
        * Table view replaces the dropdown + reverse-button with
-       * header-click sorting; hide them in that mode.
+       * header-click sorting; hide them in that mode. On viewports
+       * too narrow for the table the cover grid wins (mobile
+       * auto-fallback), so the order controls come back.
        */
-      isTableMode: (state) => state.settings.viewMode === "table",
-    }),
+      return this.tableModeRequested && !this.$vuetify.display.smAndDown;
+    },
   },
 };
 </script>

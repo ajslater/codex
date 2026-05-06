@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isTableMode">
+  <div v-if="showButton">
     <ToolbarButton
       class="columnsButton"
       icon
@@ -34,8 +34,17 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      isTableMode: (state) => state.settings.viewMode === "table",
+      tableModeRequested: (state) => state.settings.viewMode === "table",
     }),
+    showButton() {
+      /*
+       * The picker is only meaningful when the table is actually
+       * rendering. Hide it when the user has table mode set but is
+       * on a viewport too narrow for the table (mobile auto-fallback)
+       * — the cover grid wins, and column choices don't apply.
+       */
+      return this.tableModeRequested && !this.$vuetify.display.smAndDown;
+    },
   },
 };
 </script>
