@@ -18,6 +18,7 @@ const DATE_SORT_BY = new Set(["date"]);
 const TIME_SORT_BY = new Set([
   "bookmark_updated_at",
   "created_at",
+  "metadata_mtime",
   "updated_at",
 ]);
 
