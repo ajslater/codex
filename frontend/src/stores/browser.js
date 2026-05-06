@@ -131,9 +131,17 @@ export const useBrowserStore = defineStore("browser", {
       return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
     },
     orderByChoices(state) {
+      // Cover view's dropdown filters down to a curated subset
+      // (BROWSER_CHOICES.COVER_ORDER_BY_KEYS). The table view exposes
+      // every sortable column via its own header clicks, so it doesn't
+      // need this dropdown — but the dropdown can still come into
+      // view momentarily during a viewMode transition or on mobile
+      // fallback. The set is keyed for fast lookup.
+      const coverKeys = new Set(BROWSER_CHOICES.COVER_ORDER_BY_KEYS);
       const choices = [];
       for (const item of BROWSER_CHOICES.ORDER_BY) {
         if (
+          !coverKeys.has(item.value) ||
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "child_count" && state.page.modelGroup === "c") ||
           (item.value === "search_score" &&

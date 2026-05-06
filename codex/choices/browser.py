@@ -67,6 +67,32 @@ BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
         "a": "Story Arcs",
     },
 )
+# Subset of order-by keys that make sense in cover view's dropdown.
+# The full enum (33 keys) is needed for the table view's header-click
+# sorting, but most of the table-only additions (reading_direction,
+# monochrome, country, language, the FK-name keys for browsing
+# metadata, etc.) don't drive a useful cover-grid sort. The dropdown
+# in the cover-view toolbar filters down to this set; anything not
+# listed here is still a valid order_by value, it just isn't surfaced
+# as a dropdown option when the cover grid is rendering.
+BROWSER_COVER_ORDER_BY_KEYS = frozenset(
+    {
+        "created_at",
+        "age_rating",
+        "child_count",
+        "critical_rating",
+        "filename",
+        "size",
+        "bookmark_updated_at",
+        "sort_name",
+        "page_count",
+        "date",
+        "search_score",
+        "story_arc_number",
+        "updated_at",
+    }
+)
+
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
     {
@@ -90,6 +116,7 @@ BROWSER_CHOICES = MappingProxyType(
     {
         "BOOKMARK_FILTER": BROWSER_BOOKMARK_FILTER_CHOICES,
         "ORDER_BY": BROWSER_ORDER_BY_CHOICES,
+        "COVER_ORDER_BY_KEYS": tuple(sorted(BROWSER_COVER_ORDER_BY_KEYS)),
         "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,

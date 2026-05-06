@@ -207,13 +207,30 @@ class BrowserTablePageResponseTestCase(TestCase):
         row = rows[0]
         assert row.get("storyArcs") == ["The Big One"]
 
-    def test_table_view_credits_aggregation(self) -> None:
-        """``credits`` resolves through Credit to credit.person.name."""
-        from codex.models.named import Credit, CreditPerson
+    def test_table_view_credits_aggregation_with_role(self) -> None:
+        """Credits suffix the role: ``Person Name (Role)``."""
+        from codex.models.named import Credit, CreditPerson, CreditRole
 
         comic = Comic.objects.first()
         assert comic is not None
         person = CreditPerson.objects.create(name="Jane Author")
+        role = CreditRole.objects.create(name="Writer")
+        credit = Credit.objects.create(person=person, role=role)
+        comic.credits.add(credit)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,credits")
+        rows = body["rows"]
+        row = rows[0]
+        assert row.get("credits") == ["Jane Author (Writer)"]
+
+    def test_table_view_credits_aggregation_without_role(self) -> None:
+        """Credits omit the suffix when role is null."""
+        from codex.models.named import Credit, CreditPerson
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        person = CreditPerson.objects.create(name="Anonymous")
         credit = Credit.objects.create(person=person)
         comic.credits.add(credit)
 
@@ -221,4 +238,48 @@ class BrowserTablePageResponseTestCase(TestCase):
         body = self._browse_series(columns="cover,name,credits")
         rows = body["rows"]
         row = rows[0]
-        assert row.get("credits") == ["Jane Author"]
+        assert row.get("credits") == ["Anonymous"]
+
+    def test_table_view_identifiers_with_source(self) -> None:
+        """Identifiers render as ``source:type:key`` when source is set."""
+        from codex.models.identifier import (
+            Identifier,
+            IdentifierSource,
+            IdentifierType,
+        )
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        source = IdentifierSource.objects.create(name="comicvine")
+        ident = Identifier.objects.create(
+            source=source,
+            id_type=IdentifierType.ISSUE.value,
+            key="12345",
+        )
+        comic.identifiers.add(ident)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,identifiers")
+        rows = body["rows"]
+        row = rows[0]
+        actual = row.get("identifiers")
+        assert actual == ["comicvine:comic:12345"]
+
+    def test_table_view_identifiers_without_source(self) -> None:
+        """Identifiers render as ``type:key`` when source is null."""
+        from codex.models.identifier import Identifier, IdentifierType
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        ident = Identifier.objects.create(
+            source=None,
+            id_type=IdentifierType.SERIES.value,
+            key="abc",
+        )
+        comic.identifiers.add(ident)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,identifiers")
+        rows = body["rows"]
+        row = rows[0]
+        assert row.get("identifiers") == ["series:abc"]

@@ -9,7 +9,9 @@ helpers used by the views, serializers, and validators.
 from types import MappingProxyType
 from typing import cast
 
-from django.db.models import Aggregate, F
+from django.db.models import Aggregate, Case, F, Value, When
+from django.db.models.fields import CharField
+from django.db.models.functions import Concat
 
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
@@ -17,14 +19,55 @@ from codex.choices.browser import (
 )
 from codex.models.functions import JsonGroupArray
 
-# ORM paths for the M2M columns whose value is the related model's
-# ``name`` field.
+# ORM paths or expressions for M2M columns. Simple ones map a single
+# ``related__name`` path; ``credits`` and ``identifiers`` need composite
+# strings since the related model carries multiple fields the user
+# wants to see together.
+_M2M_CREDIT_EXPR = Case(
+    # ``credits__role`` is nullable. When it's missing we render just
+    # the person's name; when it's set we suffix " (Role)" so the
+    # frontend gets ready-to-display strings without a per-cell join.
+    When(
+        credits__role__isnull=True,
+        then=F("credits__person__name"),
+    ),
+    default=Concat(
+        F("credits__person__name"),
+        Value(" ("),
+        F("credits__role__name"),
+        Value(")"),
+    ),
+    output_field=CharField(),
+)
+
+_M2M_IDENTIFIER_EXPR = Case(
+    # Render ``[source:]type:key`` so the frontend can show readable
+    # composite identifiers without a follow-up join. ``source`` is
+    # nullable; drop the leading ``:`` when it is missing.
+    When(
+        identifiers__source__isnull=True,
+        then=Concat(
+            F("identifiers__id_type"),
+            Value(":"),
+            F("identifiers__key"),
+        ),
+    ),
+    default=Concat(
+        F("identifiers__source__name"),
+        Value(":"),
+        F("identifiers__id_type"),
+        Value(":"),
+        F("identifiers__key"),
+    ),
+    output_field=CharField(),
+)
+
 _M2M_COLUMN_PATHS = MappingProxyType(
     {
         "characters": "characters__name",
-        "credits": "credits__person__name",
+        "credits": _M2M_CREDIT_EXPR,
         "genres": "genres__name",
-        "identifiers": "identifiers__key",
+        "identifiers": _M2M_IDENTIFIER_EXPR,
         "locations": "locations__name",
         "series_groups": "series_groups__name",
         "stories": "stories__name",
