@@ -29,8 +29,10 @@
           />
         </div>
       </v-card-text>
-      <v-card-actions>
-        <v-btn variant="text" @click="resetToDefaults">Reset to Defaults</v-btn>
+      <v-card-actions class="pickerActions">
+        <v-btn variant="text" @click="selectAll">All</v-btn>
+        <v-btn variant="text" @click="selectNone">None</v-btn>
+        <v-btn variant="text" @click="resetToDefaults">Defaults</v-btn>
         <v-spacer />
         <v-btn variant="text" @click="onCancel">Cancel</v-btn>
         <v-btn variant="elevated" color="primary" @click="onSave">Save</v-btn>
@@ -216,6 +218,12 @@ export default {
     },
     resetToDefaults() {
       this.draft = [...(BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [])];
+    },
+    selectAll() {
+      this.draft = Object.keys(BROWSER_TABLE_COLUMNS);
+    },
+    selectNone() {
+      this.draft = [];
     },
     onCancel() {
       this.$emit("update:modelValue", false);
