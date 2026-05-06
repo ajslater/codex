@@ -76,7 +76,9 @@ BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
 )
 BROWSER_TABLE_COVER_SIZE_CHOICES = MappingProxyType(
     {
-        "xs": "Tiny",
+        # Single-entry tuple for now. The field stays in place so md/lg
+        # can be added later without a migration; v1 ships only "sm"
+        # (~32px) — the larger of the two originally proposed sizes.
         "sm": "Small",
     }
 )

@@ -145,9 +145,20 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/*
+ * #browserTable is a flex child of #browsePane (display:flex,
+ * flex-direction:column, padding-top reserves the toolbar space).
+ * Use flex:1 + min-height:0 so the table fills the remaining
+ * height; overflow-y:auto on this same div makes IT the scroll
+ * container, and v-table's fixed-header sticky thead pins to the
+ * top of this scroller. ``height:100%`` doesn't work in this flex
+ * context — the previous css made the whole table scroll past the
+ * toolbar instead of scrolling internally.
+ */
 #browserTable {
-  height: 100%;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .browserTableTable {

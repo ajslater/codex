@@ -91,10 +91,20 @@ class BrowserPageSerializer(Serializer):
 
 def _row_repr(instance, columns: tuple[str, ...]) -> dict:
     """Project a queryset row to the per-row dict for table view."""
-    row: dict = {"pk": instance.pk}
+    # ``pk``, ``group``, and ``ids`` are always emitted regardless of
+    # the user's column selection. They're routing metadata: ``group``
+    # tells the frontend whether the row is a Comic or a group node,
+    # and ``ids`` is the list of pks the next route should target.
+    # Without these, clicking a Publisher row would route to a comic
+    # whose id matches the publisher's pk.
+    row: dict = {
+        "pk": instance.pk,
+        "group": getattr(instance, "group", None),
+        "ids": getattr(instance, "ids", None),
+    }
     m2m_keys = m2m_columns()
     for col in columns:
-        if col == "pk":
+        if col in ("pk", "group", "ids"):
             continue
         if col == "cover":
             row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk

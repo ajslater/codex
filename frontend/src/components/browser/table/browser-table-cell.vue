@@ -120,10 +120,6 @@ export default {
   object-fit: cover;
 }
 
-.tableCoverSize-xs {
-  height: 18px;
-}
-
 .tableCoverSize-sm {
   height: 32px;
 }

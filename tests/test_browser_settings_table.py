@@ -41,7 +41,6 @@ class BrowserTableSettingsModelTestCase(TestCase):
     def test_table_cover_size_default_is_sm(self):
         field = SettingsBrowser._meta.get_field("table_cover_size")
         assert field.default == "sm"
-        assert "xs" in BROWSER_TABLE_COVER_SIZE_CHOICES
         assert "sm" in BROWSER_TABLE_COVER_SIZE_CHOICES
 
 
@@ -78,8 +77,8 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert not s.is_valid()
         assert "table_columns" in s.errors
 
-    def test_table_cover_size_xs_validates(self):
-        s = BrowserSettingsSerializer(data={"table_cover_size": "xs"})
+    def test_table_cover_size_sm_validates(self):
+        s = BrowserSettingsSerializer(data={"table_cover_size": "sm"})
         assert s.is_valid(), s.errors
 
     def test_table_cover_size_invalid_rejected(self):
@@ -136,10 +135,10 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert response.status_code == _HTTP_BAD_REQUEST
 
     def test_patch_table_cover_size_persists(self):
-        response = self._patch({"tableCoverSize": "xs"})
+        response = self._patch({"tableCoverSize": "sm"})
         assert response.status_code == _HTTP_OK, response.content
         body = self._get()
-        assert body["tableCoverSize"] == "xs"
+        assert body["tableCoverSize"] == "sm"
 
     def test_delete_resets_table_view_fields(self):
         # First customize
@@ -147,7 +146,6 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
             {
                 "viewMode": "table",
                 "tableColumns": {"c": ["cover", "name"]},
-                "tableCoverSize": "xs",
             }
         )
         # Then reset
