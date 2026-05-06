@@ -268,7 +268,8 @@ _SIMPLE_M2M_FIELDS = MappingProxyType(
         "stories": "stories",
         "tags": "tags",
         "teams": "teams",
-        "universes": "universes",
+        # ``universes`` is *not* simple — its display includes the
+        # ``designation`` field. Handled below.
     }
 )
 
@@ -328,15 +329,151 @@ def _build_simple_m2m_intersection_sort_sql(
     return RawSQL(sql, [])  # noqa: S611
 
 
+def _wrap_intersection_sort(
+    inner_select: str, comic_group_col: str, group_table: str
+) -> str:
+    """
+    Wrap a per-row display-string SELECT with the standard intersection envelope.
+
+    ``inner_select`` is the SELECT body that produces a ``display_name``
+    column for each (target, comic) row. The envelope filters by group
+    correlation, groups by the target's identity, applies the
+    intersection HAVING, and concatenates per-group with the same
+    X'1F' separator the simple variant uses.
+
+    All identifiers spliced in (``comic_group_col``, ``group_table``,
+    plus the inner_select body) come from caller-side whitelists, not
+    user input — caller-level S608 noqa applies.
+    """
+    return f"""(
+        SELECT COALESCE(GROUP_CONCAT(display_name, X'1F'), '')
+        FROM (
+            {inner_select}
+            WHERE c.{comic_group_col} = {group_table}.id
+              AND display_name IS NOT NULL
+              AND display_name != ''
+            GROUP BY target_id
+            HAVING COUNT(DISTINCT c.id) = (
+                SELECT COUNT(*) FROM codex_comic
+                WHERE {comic_group_col} = {group_table}.id
+            )
+            ORDER BY display_name
+        ) AS isect
+    )"""  # noqa: S608
+
+
+def _build_universes_intersection_sort_sql(group_model: type) -> RawSQL | None:
+    """Universes display as ``name:designation`` (or just ``name`` when blank)."""
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+    inner = """
+            SELECT
+                u.id AS target_id,
+                CASE
+                    WHEN u.designation IS NULL OR u.designation = ''
+                        THEN u.name
+                    ELSE u.name || ':' || u.designation
+                END AS display_name
+            FROM codex_universe u
+            INNER JOIN codex_comic_universes th ON th.universe_id = u.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+    """
+    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    return RawSQL(sql, [])  # noqa: S611
+
+
+def _build_credits_intersection_sort_sql(group_model: type) -> RawSQL | None:
+    """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+    # Two comics share a Credit only when they reference the same row;
+    # ``unique_together = ("person", "role")`` on Credit makes the
+    # (person, role) pair the de-facto identity, so grouping by
+    # ``credit.id`` is equivalent to grouping by the pair.
+    inner = """
+            SELECT
+                cred.id AS target_id,
+                CASE
+                    WHEN cr.id IS NULL THEN cp.name
+                    ELSE cp.name || ' (' || cr.name || ')'
+                END AS display_name
+            FROM codex_credit cred
+            INNER JOIN codex_creditperson cp ON cp.id = cred.person_id
+            LEFT JOIN codex_creditrole cr ON cr.id = cred.role_id
+            INNER JOIN codex_comic_credits th ON th.credit_id = cred.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+    """
+    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    return RawSQL(sql, [])  # noqa: S611
+
+
+def _build_identifiers_intersection_sort_sql(group_model: type) -> RawSQL | None:
+    """Render identifiers intersection as ``[source:]type:key`` per shared row."""
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+    inner = """
+            SELECT
+                idn.id AS target_id,
+                CASE
+                    WHEN src.id IS NULL THEN idn.id_type || ':' || idn.key
+                    ELSE src.name || ':' || idn.id_type || ':' || idn.key
+                END AS display_name
+            FROM codex_identifier idn
+            LEFT JOIN codex_identifiersource src ON src.id = idn.source_id
+            INNER JOIN codex_comic_identifiers th ON th.identifier_id = idn.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+    """
+    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    return RawSQL(sql, [])  # noqa: S611
+
+
+def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
+    """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+    # Comic.story_arc_numbers → StoryArcNumber → story_arc → StoryArc.
+    # We want intersection by StoryArc (not StoryArcNumber): a story
+    # arc is "shared" if every comic has at least one StoryArcNumber
+    # pointing to it, regardless of issue number.
+    inner = """
+            SELECT
+                sa.id AS target_id,
+                sa.name AS display_name
+            FROM codex_storyarc sa
+            INNER JOIN codex_storyarcnumber san ON san.story_arc_id = sa.id
+            INNER JOIN codex_comic_story_arc_numbers th ON th.storyarcnumber_id = san.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+    """
+    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    return RawSQL(sql, [])  # noqa: S611
+
+
 def m2m_intersection_sort_expr(group_model: type, column: str) -> RawSQL | None:
     """
     Build a sort-key RawSQL for the given (group_model, M2M column).
 
     Public entry point. Returns None when the combination isn't
-    supported (StoryArc, composite M2M like credits/identifiers);
-    callers fall back to sort_name.
+    supported; callers fall back to sort_name.
     """
-    return _build_simple_m2m_intersection_sort_sql(group_model, column)
+    if column in _SIMPLE_M2M_FIELDS:
+        return _build_simple_m2m_intersection_sort_sql(group_model, column)
+    if column == "universes":
+        return _build_universes_intersection_sort_sql(group_model)
+    if column == "credits":
+        return _build_credits_intersection_sort_sql(group_model)
+    if column == "identifiers":
+        return _build_identifiers_intersection_sort_sql(group_model)
+    if column == "story_arcs":
+        return _build_story_arcs_intersection_sort_sql(group_model)
+    return None
 
 
 def _compute_credits_intersection(
