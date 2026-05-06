@@ -40,12 +40,13 @@ the bottom under "Remaining open questions".
 - **M2M columns** — display-only; not sortable in v1. M2M sorting is
   flagged as a future experiment in Phase 7; cost is the open
   question.
-- **API shape** — v1 returns all column data on every request.
-  *Optimization debt acknowledged*: the table view will eventually need
-  a `columns=` query param so the backend only annotates / aggregates
-  the requested fields. M2M aggregates in particular (genres, tags,
-  characters, credits) will get expensive on large libraries. Profile
-  before shipping; revisit before v2 regardless. Tracked in Phase 7.
+- **API shape** — table view requests pass a `columns=` query param;
+  backend narrows annotations / aggregates to the requested column
+  set. Cover view stays unchanged (returns its existing fixed card
+  shape). Decided to do this upfront in v1 since the M2M aggregation
+  code is net-new either way and the narrowed version is roughly the
+  same effort as always-on. Eliminates what Phase 0 originally tracked
+  as Phase 7 optimization debt.
 - **Default column sets per top-group** — per the proposal in
   "Architecture proposal → Column visibility persisted per top-group"
   below.
@@ -211,27 +212,28 @@ M2M fields (`genres`, `characters`, `tags`, `teams`, `locations`,
 `credits`) are *not* added to `order_by`. They become display-only
 columns.
 
-### API shape — single endpoint, all fields, lazy annotations
+### API shape — `columns=` query param narrows annotations
 
-Reuse `/api/v3/<group>/<pks>/<page>`. Augment the per-row serializer
-with all column-eligible fields. The frontend picks which to display.
+Reuse `/api/v3/<group>/<pks>/<page>`. Table-view requests carry a
+`columns=` query param listing the column keys the frontend wants. The
+backend builds the queryset annotations dynamically from that set:
+scalar/FK joins are added only when their column is requested, and
+M2M aggregates (`JsonGroupArray` / `GroupConcat`) are added only for
+the requested M2M columns.
 
-For v1 the page response carries the full column set when
-`view_mode == "table"` (cover view never needs M2M aggregates, so we
-keep that cheap). M2M aggregation (joining + GROUP_CONCAT) is the
-expensive part — even with the cover-view exclusion, the table-view
-payload will get heavy on large libraries with all M2M columns
-annotated unconditionally.
+A new `BrowserTableRowSerializer` returns rows with only the requested
+fields (plus `pk`, which is always emitted as the row identity). Cover
+view requests stay unchanged — they return the existing fixed
+`BrowserCardSerializer` shape with no `columns=` param involved.
 
-**Known optimization debt** (Phase 7): we will need a `columns=` query
-param so the backend only annotates / aggregates the requested
-fields. The column registry below carries enough metadata
-(`field`, `m2m`) to drive that narrowing trivially. Profile before
-shipping v1 and revisit before v2 regardless.
+The column registry (defined below) carries the metadata needed to
+drive this narrowing — `field` (ORM path), `m2m` (annotation strategy),
+`sortable` (validation against `order_by`).
 
-A new sibling serializer class `BrowserTableRowSerializer` is added
-alongside `BrowserCardSerializer`. The page response carries one or
-the other (chosen by `view_mode`), keeping payload size honest.
+Validation: every entry in `columns=` must be a registry key. Sorting
+by a column not in the requested set is allowed (cover view's order-by
+dropdown surfaces the full enum), but in table-view UI the user can
+only click visible headers, so this never collides in practice.
 
 ### Column registry — single source of truth
 
@@ -389,10 +391,6 @@ Decide the open questions below before any code lands.
 
 ### Phase 7 — Future hooks (out of scope for v1)
 
-- **Column-narrowed API** — accept `columns=` query param so the
-  backend only annotates / aggregates requested fields. Required to
-  retire the v1 always-return-everything policy (see "API shape"
-  above).
 - **Inline cell editing** — registry already carries `editable` +
   `edit_widget`.
 - **Multi-column sort** — extend `order_by` to a list.
