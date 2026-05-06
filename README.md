@@ -151,7 +151,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
+[Native Windows Dependencies Installation Document](docs/WINDOWS/).
 
 #### Run Codex Natively
 
@@ -489,11 +489,15 @@ not supported.
 
 #### OPDS v2 Clients
 
-OPDS 2.0 is a newer protocol that is only just starting to be supported by new
-clients.
+- iOS & macOS
+    - [Stump](https://www.stumpapp.dev/guides/mobile/app) - Technically an
+      Alpha, but stable and featureful.
 
-- [Stump (Alpha Test)](https://www.stumpapp.dev/guides/mobile/app)
-- [Readest](https://readest.com/) (No page streaming yet, download only)
+- Multi Platform Mobile & Desktop
+    - [Readest](https://readest.com/)
+
+- Desktop
+    - [ComicCatcher](https://github.com/comiccatcher/comiccatcher)
 
 #### OPDS Authentication
 
@@ -600,17 +604,17 @@ and unfortunately isn't practical to remove yet.
 
 ## 🔧 Popular comic utilities
 
-- [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which
-  also has a built in reader.
-- [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
-  editor. It comes with a command line and desktop GUI. It will tag identified
-  comics from online database sources.
+- [Mylar](https://mylar.nerdfirehurricane.com/) is the best comic book manager
+  which also has a built in reader.
 - [Metron Tagger](https://github.com/Metron-Project/metron-tagger) is a command
   line comic metadata editor. It will tag identified comics from online database
   sources.
-- [Comicbox](https://github.com/ajslater/comicbox) is a powerful command line
-  comic metadata editor and multi metadata format synthesizer. It is what Codex
-  uses under the hood to read comic metadata.
+- [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
+  editor. It comes with a command line and desktop GUI. It will tag identified
+  comics from online database sources.
+- [Comicbox](https://comicbox.readthedocs.io/) is a powerful command line comic
+  metadata editor and multi metadata format synthesizer. It is what Codex uses
+  under the hood to read comic metadata.
 
 ## 🤝 Contributing
 
@@ -650,8 +654,7 @@ for a list of commands.
   to use the PyPi name 'codex'.
 - To [ProfessionalTart](https://github.com/professionaltart) for providing
   native Windows installation instructions.
-- Thanks to the good people of
-  [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for
+- Thanks to the good people of [Mylar](https://mylar.nerdfirehurricane.com/)
   continuous feedback and comic ecosystem education.
 
 ## 😊 Enjoy
