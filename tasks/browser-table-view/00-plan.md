@@ -338,56 +338,62 @@ visible row). No backend changes required.
 
 ## Phased implementation
 
-### Phase 0 — Alignment (this doc) — open
+### Phase 0 — Alignment (this doc) — DONE
 
 Decide the open questions below before any code lands.
 
-### Phase 1 — Backend foundations
+### Phase 1 — Backend foundations — DONE
 
-- [ ] Migration: add `view_mode` to `SettingsBrowser`
-- [ ] Migration: add `table_columns` JSONField to `SettingsBrowser`
-- [ ] `codex/views/browser/columns.py` — column registry + defaults
-- [ ] Expand `BROWSER_ORDER_BY_CHOICES` with new keys
-- [ ] Update `BrowserOrderByView.add_order_by` for FK-name keys
-- [ ] Update `BrowserSettingsSerializer` validation (view_mode, columns, order_by)
-- [ ] `BrowserTableRowSerializer` + lazy annotations for M2M aggregates
-- [ ] Expose column registry through settings response
-- [ ] Tests: ordering by every new key returns deterministic rows
-- [ ] Tests: column registry round-trips through settings
+- [x] Migration: add `view_mode` to `SettingsBrowser`
+- [x] Migration: add `table_columns` JSONField to `SettingsBrowser`
+- [x] `codex/views/browser/columns.py` — column registry + defaults
+- [x] Expand `BROWSER_ORDER_BY_CHOICES` with new keys
+- [x] Update `BrowserOrderByView.add_order_by` for FK-name keys
+- [x] Update `BrowserSettingsSerializer` validation (view_mode, columns, order_by)
+- [x] `BrowserTableRowSerializer` + lazy annotations for M2M aggregates
+- [x] Expose column registry through settings response
+- [x] Tests: ordering by every new key returns deterministic rows
+- [x] Tests: column registry round-trips through settings
 
-### Phase 2 — Frontend table scaffold
+### Phase 2 — Frontend table scaffold — DONE
 
-- [ ] `browser-table.vue` with `v-data-table-server` (server-side pagination, fixed header)
-- [ ] Wire `loadBrowserPage` to consume new fields when `viewMode === 'table'`
-- [ ] Header-click sorting → patches `orderBy`/`orderReverse`; render arrows
-- [ ] View-mode toggle button in top toolbar; hide order-by/reverse in table mode
-- [ ] Default column set per top-group rendered from registry
-- [ ] Click row (outside checkbox) → opens reader/group like a card click
+- [x] `browser-table.vue` (plain `<table>` with sticky thead — v-data-table-server's internal scroller competed with the page scroller; see commit log)
+- [x] Wire `loadBrowserPage` to consume new fields when `viewMode === 'table'`
+- [x] Header-click sorting → patches `orderBy`/`orderReverse`; render arrows
+- [x] View-mode toggle button in top toolbar; hide order-by/reverse in table mode
+- [x] Default column set per top-group rendered from registry
+- [x] Click row (outside checkbox) → opens reader/group like a card click
 
-### Phase 3 — Bulk selection in table
+### Phase 3 — Bulk selection in table — DONE
 
-- [ ] Checkbox column wired to `useBrowserSelectManyStore`
-- [ ] Header checkbox = select-all-on-page
-- [ ] Existing select-many toolbar appears unchanged
+- [x] Checkbox column wired to `useBrowserSelectManyStore`
+- [x] Header checkbox = select-all-on-page (with indeterminate state)
+- [x] Existing select-many toolbar appears unchanged
+- [x] Side fix: `selectAll()` reads from `page.rows` when present (was a no-op in table mode)
 
-### Phase 4 — Column picker dialog
+### Phase 4 — Column picker dialog — DONE
 
-- [ ] `browser-table-column-picker.vue` — grouped checkbox lists (Identity, Publishing, Files, Tags & People, Reading State, Timestamps)
-- [ ] "Reset to defaults" button
-- [ ] Persist via existing `setSettings()` flow
-- [ ] Keyboard accessible
+- [x] `browser-table-column-picker.vue` — grouped checkbox lists (Identity / Publishing / Counts / Files / Dates / Tagging / Reader / Tags & People + Other for orphans)
+- [x] "Reset to defaults" button
+- [x] Persist via existing `setSettings()` flow
+- [x] Keyboard accessible (Vuetify v-checkbox + v-dialog defaults)
 
-### Phase 5 — Mobile / responsive
+### Phase 5 — Mobile / responsive — DONE
 
-- [ ] Viewport-driven auto-fallback to cover view
-- [ ] Column picker dialog usable on phone
+- [x] Viewport-driven auto-fallback to cover view (Vuetify smAndDown)
+- [x] Unified `BrowserPageSerializer` emits both shapes so rotation doesn't refetch
+- [x] Toolbar respects fallback (column-picker hidden, order-by/reverse restored)
 
-### Phase 6 — Polish
+### Phase 6 — Polish — DONE
 
-- [ ] Cover-thumbnail column sticky on horizontal scroll
-- [ ] Tooltips for truncated long-text cells
-- [ ] Empty / filtered-empty states
-- [ ] Performance audit on libraries with 50k+ comics
+- [x] Cover-thumbnail column sticky on horizontal scroll (with checkbox)
+- [x] Tooltips for truncated long-text cells (native `title` attribute)
+- [x] Cover image fallback to placeholder svg on load error
+- [x] Type-aware formatters: size → prettyBytes, dates → DATE_FORMAT, datetimes → getDateTime
+- [x] Cover column shrinks to thumbnail width
+- [x] Selected-row tint persists on sticky cells
+- [ ] Empty / filtered-empty states — left to existing `BrowserEmptyState`; confirm in browser
+- [ ] Performance audit on libraries with 50k+ comics — needs real fixture; deferred
 
 ### Phase 7 — Future hooks (out of scope for v1)
 
