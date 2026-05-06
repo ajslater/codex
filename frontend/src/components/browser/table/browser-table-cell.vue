@@ -11,9 +11,11 @@
       @error="onImgError"
     />
   </span>
-  <span v-else-if="isList" class="tableListCell">{{ listValue }}</span>
+  <span v-else-if="isList" class="tableListCell" :title="listValue">{{
+    listValue
+  }}</span>
   <span v-else-if="isBool" class="tableBoolCell">{{ boolValue }}</span>
-  <span v-else class="tableTextCell">{{ textValue }}</span>
+  <span v-else class="tableTextCell" :title="textValue">{{ textValue }}</span>
 </template>
 
 <script>
@@ -159,11 +161,13 @@ export default {
   height: 32px;
 }
 
-.tableListCell {
+.tableListCell,
+.tableTextCell {
   display: inline-block;
-  max-width: 320px;
+  max-width: 360px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: middle;
 }
 </style>

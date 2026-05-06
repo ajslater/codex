@@ -289,8 +289,23 @@ export default {
   border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
+/*
+ * Sticky leading columns. The checkbox stays pinned to the left edge
+ * during horizontal scroll; the cover column pins immediately after
+ * it. ``$checkbox-width`` matches ``width`` below so the cover's
+ * ``left`` aligns visually with the column boundary. Sticky cells
+ * need an explicit background-color so content under them isn't
+ * visible while scrolled. thead cells get a higher z-index to keep
+ * them above scrolled tbody content at both axes.
+ */
+$checkbox-width: 36px;
+
 .browserTableCheckboxCell {
-  width: 36px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: rgb(var(--v-theme-surface));
+  width: $checkbox-width;
   padding: 0 0 0 8px !important;
   text-align: center;
 }
@@ -305,9 +320,23 @@ export default {
  * as content allows" inside a ``width: 100%`` table.
  */
 .browserTableCoverColumn {
+  position: sticky;
+  left: $checkbox-width;
+  z-index: 1;
+  background-color: rgb(var(--v-theme-surface));
   width: 1%;
   white-space: nowrap;
   padding-right: 4px !important;
+}
+
+thead .browserTableCheckboxCell,
+thead .browserTableCoverColumn {
+  z-index: 2;
+}
+
+.browserTableRow.selected .browserTableCheckboxCell,
+.browserTableRow.selected .browserTableCoverColumn {
+  background-color: rgb(var(--v-theme-surface-light));
 }
 
 .browserTableRow {
