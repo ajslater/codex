@@ -181,7 +181,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "edit_widget": None,
         },
         "name": {
-            "label": "Name",
+            "label": "Title",
             "sort_key": "sort_name",
             "m2m": False,
             "editable": False,

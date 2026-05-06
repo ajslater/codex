@@ -1,5 +1,6 @@
 """Browser Page Serializer."""
 
+import pycountry
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -21,6 +22,34 @@ from codex.views.browser.columns import (
     m2m_alias_for,
     m2m_columns,
 )
+
+
+def _resolve_country(code) -> str | None:
+    """Translate ISO-3166 alpha-2 country codes to readable names."""
+    if not code:
+        return None
+    record = pycountry.countries.get(alpha_2=str(code).upper())
+    return record.name if record else str(code)
+
+
+def _resolve_language(code) -> str | None:
+    """Translate ISO-639 alpha-2 language codes to readable names."""
+    if not code:
+        return None
+    record = pycountry.languages.get(alpha_2=str(code).lower())
+    return record.name if record else str(code)
+
+
+# Per-column display transforms applied to the raw queryset value
+# before it lands on the wire. Each callable takes the raw value
+# (typically a string from an FK annotation) and returns the display
+# string. The Country / Language tables store ISO-2 codes in their
+# ``name`` field, so the column lookup hits pycountry to surface the
+# full readable name.
+_COLUMN_VALUE_TRANSFORMS = {
+    "country": _resolve_country,
+    "language": _resolve_language,
+}
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
@@ -108,7 +137,9 @@ def _row_repr(instance, columns: tuple[str, ...]) -> dict:
             # FK-name annotations also live under a prefixed alias —
             # the unprefixed name (``country``, ``age_rating``, ...)
             # collides with the matching Comic FK attribute.
-            row[col] = getattr(instance, fk_alias_for(col), None)
+            value = getattr(instance, fk_alias_for(col), None)
+            transform = _COLUMN_VALUE_TRANSFORMS.get(col)
+            row[col] = transform(value) if transform else value
             continue
         # ``getattr`` covers direct fields, F-expression annotations
         # (publisher_name etc.), and aggregates added downstream.

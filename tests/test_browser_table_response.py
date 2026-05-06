@@ -172,12 +172,14 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert "tags" not in row
 
     def test_table_view_fk_name_columns_populate(self) -> None:
-        """FK-name columns (country, language, etc.) carry their values."""
+        """FK-name columns (country / language) translate ISO codes via pycountry."""
         from codex.models.named import Country, Language
 
         comic = Comic.objects.first()
         assert comic is not None
-        country = Country.objects.create(name="USA")
+        # Country / Language tables store ISO-2 codes; the serializer
+        # resolves them to full names via pycountry.
+        country = Country.objects.create(name="us")
         language = Language.objects.create(name="en")
         comic.country = country
         comic.language = language
@@ -188,8 +190,23 @@ class BrowserTablePageResponseTestCase(TestCase):
         rows = body["rows"]
         assert len(rows) == 1
         row = rows[0]
-        assert row["country"] == "USA"
-        assert row["language"] == "en"
+        assert row["country"] == "United States"
+        assert row["language"] == "English"
+
+    def test_table_view_unknown_country_code_passes_through(self) -> None:
+        """Unrecognized ISO codes fall back to the raw string (no crash)."""
+        from codex.models.named import Country
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        country = Country.objects.create(name="zz")  # not a real ISO-2 code
+        comic.country = country
+        comic.save()
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,country")
+        row = body["rows"][0]
+        assert row["country"] == "zz"
 
     def test_table_view_story_arcs_aggregation(self) -> None:
         """``story_arcs`` resolves through StoryArcNumber to story_arc.name."""
