@@ -19,7 +19,10 @@
 </template>
 
 <script>
+import prettyBytes from "pretty-bytes";
+
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
+import { DATE_FORMAT, getDateTime } from "@/datetime";
 
 const M2M_COLUMNS = new Set([
   "characters",
@@ -35,9 +38,39 @@ const M2M_COLUMNS = new Set([
   "universes",
 ]);
 const BOOL_COLUMNS = new Set(["monochrome"]);
+// Columns whose value is a byte count (rendered "1.2 MB"-style).
+const SIZE_COLUMNS = new Set(["size"]);
+// Columns whose value is a date-only ISO string (rendered locale-friendly).
+const DATE_COLUMNS = new Set(["date"]);
+// Columns whose value is a full ISO timestamp.
+const DATETIME_COLUMNS = new Set([
+  "created_at",
+  "updated_at",
+  "metadata_mtime",
+  "bookmark_updated_at",
+]);
 
 function snakeToCamel(s) {
   return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function formatSize(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return prettyBytes(value);
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return DATE_FORMAT.format(d);
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return getDateTime(d, true);
 }
 
 export default {
@@ -122,6 +155,13 @@ export default {
     textValue() {
       const value = this.rawValue;
       if (value === null || value === undefined) return "";
+      /*
+       * Type-aware formatting for known columns. Everything else
+       * stringifies straight through.
+       */
+      if (SIZE_COLUMNS.has(this.column)) return formatSize(value);
+      if (DATE_COLUMNS.has(this.column)) return formatDate(value);
+      if (DATETIME_COLUMNS.has(this.column)) return formatDateTime(value);
       return String(value);
     },
   },
