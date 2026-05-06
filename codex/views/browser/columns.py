@@ -217,3 +217,39 @@ def fk_name_annotations_for(columns: tuple[str, ...]) -> dict[str, F]:
 def fk_name_columns() -> frozenset[str]:
     """Return the set of FK-name column keys whose annotation is wired."""
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
+
+
+# Stored settings predating the column registry's evolution can carry
+# keys that have since been renamed or removed. The validators run
+# user-supplied column lists through ``coerce_columns`` first so the
+# old data round-trips cleanly instead of 400-ing on every page load.
+# Mapping value of ``None`` means "drop the key".
+_DEPRECATED_COLUMN_KEYS: MappingProxyType[str, str | None] = MappingProxyType(
+    {
+        "issue_number": "issue",
+        "issue_suffix": None,
+    }
+)
+
+
+def coerce_columns(columns):
+    """
+    Migrate deprecated column keys to their current registry equivalents.
+
+    Drops keys mapped to ``None`` and dedupes the result while
+    preserving order. Unknown keys pass through unchanged — let the
+    main validator surface them.
+    """
+    out: list[str] = []
+    seen: set[str] = set()
+    for col in columns:
+        replacement = col
+        if col in _DEPRECATED_COLUMN_KEYS:
+            replacement = _DEPRECATED_COLUMN_KEYS[col]
+            if replacement is None:
+                continue
+        if replacement in seen:
+            continue
+        seen.add(replacement)
+        out.append(replacement)
+    return out

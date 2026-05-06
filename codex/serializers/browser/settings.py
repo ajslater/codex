@@ -26,6 +26,7 @@ from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupFi
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
+from codex.views.browser.columns import coerce_columns
 
 
 class BrowserSettingsShowGroupFlagsSerializer(Serializer):
@@ -141,20 +142,29 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     )
 
     def validate_table_columns(self, value):
-        """Reject unknown top-group keys and unknown column keys."""
+        """
+        Reject unknown top-group keys and unknown column keys.
+
+        Stored settings predating registry renames (e.g. ``issue_number``
+        → ``issue``) are coerced to current keys before validation so
+        existing data round-trips cleanly instead of 400-ing.
+        """
         invalid_top_groups = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
         if invalid_top_groups:
             reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
             raise ValidationError(reason)
         valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
+        coerced: dict[str, list[str]] = {}
         for top_group, columns in value.items():
-            invalid_columns = set(columns) - valid_columns
+            migrated = coerce_columns(columns)
+            invalid_columns = set(migrated) - valid_columns
             if invalid_columns:
                 reason = (
                     f"Invalid column keys for {top_group!r}: {sorted(invalid_columns)}"
                 )
                 raise ValidationError(reason)
-        return value
+            coerced[top_group] = migrated
+        return coerced
 
 
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
@@ -176,10 +186,11 @@ class BrowserPageInputSerializer(BrowserSettingsSerializer):
     columns = CharField(required=False, allow_blank=True)
 
     def validate_columns(self, value: str) -> tuple[str, ...]:
-        """Split, trim, and validate column keys against the registry."""
+        """Split, trim, coerce-deprecated, and validate column keys."""
         if not value:
             return ()
-        keys = tuple(k.strip() for k in value.split(",") if k.strip())
+        raw = [k.strip() for k in value.split(",") if k.strip()]
+        keys = tuple(coerce_columns(raw))
         valid = set(BROWSER_TABLE_COLUMNS.keys())
         invalid = [k for k in keys if k not in valid]
         if invalid:

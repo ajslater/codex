@@ -70,6 +70,26 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert not s.is_valid()
         assert "table_columns" in s.errors
 
+    def test_table_columns_deprecated_keys_coerced(self):
+        """
+        Stored settings using ``issue_number`` migrate to ``issue``.
+
+        Stored settings predating the column registry's collapse of
+        ``issue_number`` and ``issue_suffix`` round-trip through the
+        validator without raising — ``issue_number`` becomes ``issue``,
+        and ``issue_suffix`` is dropped (the suffix is now part of the
+        compound ``issue`` cell).
+        """
+        s = BrowserSettingsSerializer(
+            data={
+                "table_columns": {
+                    "c": ["cover", "name", "issue_number", "issue_suffix"]
+                }
+            }
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["table_columns"] == {"c": ["cover", "name", "issue"]}
+
     def test_table_columns_invalid_column_key_rejected(self):
         s = BrowserSettingsSerializer(
             data={"table_columns": {"c": ["cover", "phantom_column"]}},
