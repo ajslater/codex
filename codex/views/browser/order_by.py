@@ -55,11 +55,20 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             self._order_key = order_key
         return self._order_key
 
-    def _add_comic_order_by(self, order_key, comic_sort_names) -> list:
+    def _add_comic_order_by(
+        self, order_key, comic_sort_names, *, for_cover: bool = False
+    ) -> list:
         """Order by for comics (and covers)."""
         if not order_key:
             order_key = self.order_key
         if order_key == "child_count":
+            order_key = "sort_name"
+        # The cover subquery is a correlated Comic query that doesn't
+        # carry the outer view's M2M / FK alias annotations, so an
+        # M2M sort would reference a missing column. Cover-context
+        # falls back to sort_name — pickling "the first comic" by
+        # alphabetical title is what the cover subquery wants anyway.
+        if for_cover and order_key in m2m_columns():
             order_key = "sort_name"
         if order_key == "sort_name":
             if not comic_sort_names:
@@ -90,10 +99,14 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
-    def add_order_by(self, qs, order_key="", comic_sort_names=None):
+    def add_order_by(
+        self, qs, order_key="", comic_sort_names=None, *, for_cover: bool = False
+    ):
         """Create the order_by list."""
         if qs.model is Comic:
-            order_fields_head = self._add_comic_order_by(order_key, comic_sort_names)
+            order_fields_head = self._add_comic_order_by(
+                order_key, comic_sort_names, for_cover=for_cover
+            )
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
         else:

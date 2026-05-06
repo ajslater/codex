@@ -80,7 +80,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         q = self._cover_filter_q(group_model)
         qs = Comic.objects.filter(q).distinct()
         qs = self.annotate_order_aggregates(qs, for_cover=True)
-        qs = self.add_order_by(qs)
+        qs = self.add_order_by(qs, for_cover=True)
         return Subquery(qs.values("pk")[:1])
 
     def _cover_custom_subquery(self, group_model) -> Subquery | None:

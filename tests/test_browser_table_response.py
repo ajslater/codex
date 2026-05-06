@@ -557,6 +557,27 @@ class BrowserTablePageResponseTestCase(TestCase):
         # Drama is the only genre both comics share.
         assert row["genres"] == ["Drama"]
 
+    def test_table_view_m2m_sort_doesnt_crash_cover_subquery(self) -> None:
+        """
+        Browsing groups with M2M sort active doesn't fail on the cover subquery.
+
+        Regression: the cover subquery is a correlated Comic queryset
+        that doesn't carry the outer view's M2M alias annotation, so
+        an M2M ORDER BY would resolve a nonexistent column and 500.
+        """
+        self._set_view_mode_table()
+        # Sort by an M2M key while browsing a level that produces group rows.
+        self.client.patch(
+            "/api/v3/r/settings",
+            data=json.dumps({"orderBy": "universes", "orderReverse": True}),
+            content_type="application/json",
+        )
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,universes"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
     def test_table_view_credits_skips_empty_person_name(self) -> None:
         """Credits with an unnamed person are filtered out."""
         from codex.models.named import Credit, CreditPerson

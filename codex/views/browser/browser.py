@@ -115,22 +115,47 @@ class BrowserView(BrowserTitleView):
             limit = max(query_limit, search_limit)
         return limit
 
-    def _add_table_view_annotations(self, qs):
+    def _add_table_view_sort_annotations(self, qs):
         """
-        Hoist the table-view FK / M2M annotations before ORDER BY.
+        Add only the table-view annotation needed for ORDER BY.
 
-        ``add_order_by`` may reference an M2M alias for sorting (the
-        Phase 7 M2M-sort experiment); the alias has to be on the
-        queryset before the ORDER BY clause is built. The same pass
-        also annotates FK-name columns so a single Comic queryset
-        carries everything the table response needs.
+        Display annotations are added post-pagination so the M2M
+        aggregate runs only over the visible page. The order_by key
+        is the exception: ORDER BY runs over the full queryset and
+        needs its alias upstream.
+        """
+        if self.params.get("view_mode") != "table" or qs.model is not Comic:
+            return qs
+        order_key = self.params.get("order_by")
+        if not order_key:
+            return qs
+        sort_columns = (order_key,)
+        fk_anns = fk_name_annotations_for(sort_columns)
+        m2m_anns = m2m_annotations_for(sort_columns)
+        if fk_anns:
+            qs = qs.annotate(**fk_anns)
+        if m2m_anns:
+            qs = qs.annotate(**m2m_anns)
+        return qs
+
+    def _add_table_view_display_annotations(self, qs):
+        """
+        Add the table-view annotations needed for display.
+
+        Called *after* pagination so M2M JsonGroupArray aggregates
+        run only over the visible-page comics, not the entire
+        filtered queryset. The order_by key was already annotated
+        by ``_add_table_view_sort_annotations``; skip it here so we
+        don't re-annotate (Django raises on duplicate annotations).
         """
         if self.params.get("view_mode") != "table" or qs.model is not Comic:
             return qs
         requested = list(self._resolve_table_columns())
         order_key = self.params.get("order_by")
-        if order_key and order_key not in requested:
-            requested.append(order_key)
+        if order_key in requested:
+            requested.remove(order_key)
+        if not requested:
+            return qs
         requested_t = tuple(requested)
         fk_anns = fk_name_annotations_for(requested_t)
         m2m_anns = m2m_annotations_for(requested_t)
@@ -161,7 +186,7 @@ class BrowserView(BrowserTitleView):
 
         if count:
             qs = self.annotate_order_aggregates(qs)
-            qs = self._add_table_view_annotations(qs)
+            qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
@@ -236,10 +261,6 @@ class BrowserView(BrowserTitleView):
             group_qs, book_qs, group_count, book_count
         )
 
-        # The table-view FK / M2M annotations are added in
-        # ``_get_common_queryset`` before ORDER BY runs (the M2M-sort
-        # path needs the alias upstream of the sort).
-
         # Annotate
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs)
@@ -248,6 +269,11 @@ class BrowserView(BrowserTitleView):
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
+            # Table-view display annotations land here, post-pagination,
+            # so the JsonGroupArray aggregates run only over the
+            # visible page. The sort-key annotation was already added
+            # upstream (``_add_table_view_sort_annotations``).
+            book_qs = self._add_table_view_display_annotations(book_qs)
             book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1
