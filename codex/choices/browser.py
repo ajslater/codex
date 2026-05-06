@@ -241,17 +241,8 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         },
         # Counts
         "child_count": {
-            "label": "Count",
+            "label": "Children",
             "sort_key": "child_count",
-            "m2m": False,
-            "editable": False,
-            "edit_widget": None,
-        },
-        "issue_count": {
-            # Non-sortable in v1: needs a Count annotation in the order
-            # pipeline. Tracked alongside `issue_number` as a follow-up.
-            "label": "Issues",
-            "sort_key": None,
             "m2m": False,
             "editable": False,
             "edit_widget": None,
@@ -509,8 +500,8 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
     {
         "p": ("cover", "name", "child_count"),
         "i": ("cover", "name", "publisher_name", "child_count"),
-        "s": ("cover", "name", "publisher_name", "year", "issue_count"),
-        "v": ("cover", "name", "series_name", "year", "issue_count"),
+        "s": ("cover", "name", "publisher_name", "year", "child_count"),
+        "v": ("cover", "name", "series_name", "year", "child_count"),
         "c": (
             "cover",
             "name",

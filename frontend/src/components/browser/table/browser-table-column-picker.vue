@@ -103,7 +103,7 @@ const _CATEGORIES = Object.freeze([
   },
   {
     label: "Counts",
-    columns: ["child_count", "issue_count"],
+    columns: ["child_count"],
   },
   {
     label: "Files",
