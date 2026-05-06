@@ -121,6 +121,10 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     This is the only browse serializer that's submitted.
     """
 
+    JSON_FIELDS = frozenset(
+        BrowserSettingsSerializerBase.JSON_FIELDS | {"table_columns"}
+    )
+
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
     always_show_filename = BooleanField(required=False)

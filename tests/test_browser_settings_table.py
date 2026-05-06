@@ -157,3 +157,23 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert body["viewMode"] == "cover"
         assert body["tableColumns"] == {}
         assert body["tableCoverSize"] == "sm"
+
+    def test_get_with_table_columns_query_string(self):
+        """
+        GET path: ``?tableColumns={"c":[...]}`` round-trips.
+
+        Frontend always sends settings as URL-encoded JSON in query
+        params. Without the JSONFieldSerializer parse step the
+        DictField sees a literal string and 400s.
+        """
+        cols = {"c": ["cover", "name", "issue_number"]}
+        url = f"{_SETTINGS_URL}?tableColumns={json.dumps(cols)}"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
+    def test_patch_filters_dict_round_trips(self):
+        """Regression: PATCH with non-empty filters must persist (was 400)."""
+        response = self._patch({"filters": {"genres": [12, 34]}})
+        assert response.status_code == _HTTP_OK, response.content
+        body = self._get()
+        assert body["filters"]["genres"] == [12, 34]

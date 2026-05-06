@@ -7,7 +7,7 @@ from typing import Any, override
 from urllib.parse import unquote_plus
 
 from djangorestframework_camel_case.settings import api_settings
-from djangorestframework_camel_case.util import underscoreize
+from djangorestframework_camel_case.util import camel_to_underscore, underscoreize
 from loguru import logger
 from rest_framework.serializers import (
     BooleanField,
@@ -27,7 +27,14 @@ class JSONFieldSerializer(Serializer):
     JSON_FIELDS: frozenset[str] = frozenset()
 
     @staticmethod
-    def _parse_json_field(key, value) -> str | None:
+    def _parse_json_field(key, value):
+        # Already-parsed structures pass through unchanged. PATCH bodies
+        # arrive as dicts/lists (the JSON parser ran upstream), GET
+        # query params arrive as URL-encoded JSON strings. The string
+        # path decodes; everything else is returned as-is so dict
+        # values aren't silently nulled.
+        if not isinstance(value, str):
+            return value
         try:
             parsed_value = unquote_plus(value)
             with suppress(JSONDecodeError):
@@ -38,14 +45,24 @@ class JSONFieldSerializer(Serializer):
             parsed_value = None
         return parsed_value
 
+    @classmethod
+    def _is_json_field(cls, key: str) -> bool:
+        # Match against both the snake_case form (PATCH bodies — DRF's
+        # CamelCaseJSONParser already converted) and the camelCase
+        # query-param form (GET, raw URL keys). JSON_FIELDS is declared
+        # as snake_case; we normalize incoming keys for the check.
+        if key in cls.JSON_FIELDS:
+            return True
+        return isinstance(key, str) and camel_to_underscore(key) in cls.JSON_FIELDS
+
     @override
     def to_internal_value(self, data) -> dict:
         """Reparse JSON encoded query_params."""
-        # It is an unbelievable amount of trouble to try to parse axios native bracket
-        # encoded complex objects in python
+        # It is an unbelievable amount of trouble to try to parse axios
+        # native bracket encoded complex objects in python.
         parsed_dict: dict[str, Any] = {
             key: self._parse_json_field(key, value)
-            if key in self.JSON_FIELDS
+            if self._is_json_field(key)
             else value
             for key, value in data.items()
         }
