@@ -24,7 +24,7 @@ from codex.serializers.browser.page import (
 )
 from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
-from codex.views.browser.columns import default_columns_for
+from codex.views.browser.columns import default_columns_for, m2m_annotations_for
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -208,6 +208,13 @@ class BrowserView(BrowserTitleView):
             group_qs, book_qs, group_count, book_count
         )
 
+        # Table-view M2M annotations are added only for the requested
+        # columns; if the user picked no M2M columns we skip them
+        # entirely and the queryset stays as cheap as cover view.
+        m2m_anns: dict = {}
+        if self.params.get("view_mode") == "table":
+            m2m_anns = m2m_annotations_for(self._resolve_table_columns())
+
         # Annotate
         if page_group_count:
             group_qs = self.annotate_card_aggregates(group_qs)
@@ -216,6 +223,8 @@ class BrowserView(BrowserTitleView):
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
+            if m2m_anns and book_qs.model is Comic:
+                book_qs = book_qs.annotate(**m2m_anns)
             book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1

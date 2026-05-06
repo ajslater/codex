@@ -138,3 +138,32 @@ class BrowserTablePageResponseTestCase(TestCase):
         # Default fallback columns include "name" for every top-group.
         row = rows[0]
         assert "name" in row
+
+    def test_table_view_m2m_genres_returns_list(self) -> None:
+        """Requesting the genres column produces a list value per row."""
+        from codex.models.named import Genre
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        genre_a = Genre.objects.create(name="Sci-Fi")
+        genre_b = Genre.objects.create(name="Adventure")
+        comic.genres.add(genre_a, genre_b)
+
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name,genres")
+        rows = body["rows"]
+        assert len(rows) == 1
+        row = rows[0]
+        assert "genres" in row
+        # JsonGroupArray + JSONField returns a list, order isn't guaranteed.
+        assert sorted(row["genres"]) == ["Adventure", "Sci-Fi"]
+
+    def test_table_view_no_m2m_columns_skips_aggregation(self) -> None:
+        """Requesting only scalar columns produces a row without M2M keys."""
+        self._set_view_mode_table()
+        body = self._browse_series(columns="cover,name")
+        rows = body["rows"]
+        row = rows[0]
+        # No M2M column requested -> M2M keys absent from the row dict.
+        assert "genres" not in row
+        assert "tags" not in row

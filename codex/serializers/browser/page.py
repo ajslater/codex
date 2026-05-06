@@ -15,6 +15,7 @@ from codex.serializers.browser.mixins import (
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.fields.group import BrowseGroupField
+from codex.views.browser.columns import m2m_alias_for, m2m_columns
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
@@ -91,12 +92,18 @@ class BrowserPageSerializer(Serializer):
 def _row_repr(instance, columns: tuple[str, ...]) -> dict:
     """Project a queryset row to the per-row dict for table view."""
     row: dict = {"pk": instance.pk}
+    m2m_keys = m2m_columns()
     for col in columns:
         if col == "pk":
             continue
         if col == "cover":
             row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
             row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+            continue
+        if col in m2m_keys:
+            # M2M aggregates live under a prefixed alias (the unprefixed
+            # name would clash with the model's M2M field attribute).
+            row[col] = getattr(instance, m2m_alias_for(col), None)
             continue
         # ``getattr`` covers direct fields, F-expression annotations
         # (publisher_name etc.), and aggregates added downstream.
