@@ -262,13 +262,28 @@ export default {
   height: 32px;
 }
 
+/*
+ * Wrap-and-grow: long values fill the column up to a generous
+ * max-width and wrap to as many as 3 lines, then clamp with an
+ * ellipsis on the last line. The native ``:title`` tooltip still
+ * carries the full value for cells that did get clipped.
+ *
+ * ``-webkit-line-clamp`` is the de-facto cross-browser way to do
+ * multi-line ellipsis (Chrome, Safari, Firefox 68+, Edge); it
+ * requires ``display: -webkit-box`` plus ``-webkit-box-orient``.
+ * ``overflow-wrap: break-word`` lets unusually long unbreakable
+ * tokens (long URLs in identifiers, no-space file names) wrap
+ * rather than blow the column wide.
+ */
 .tableListCell,
 .tableTextCell {
-  display: inline-block;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
   max-width: 360px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
   vertical-align: middle;
 }
 
