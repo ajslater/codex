@@ -16,6 +16,7 @@ from codex.startup import init_admin_flags
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
+_HTTP_CREATED: Final = 201
 _HTTP_BAD_REQUEST: Final = 400
 _SETTINGS_URL: Final = "/api/v3/r/settings"
 
@@ -202,6 +203,66 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
         body = self._get()
         assert body["tableCoverSize"] == "sm"
+
+    def test_save_view_round_trips_table_fields(self):
+        """
+        Regression: a *new* saved view captures every table-view field.
+
+        The create branch in ``SavedBrowserSettingsListView.post`` used
+        to enumerate fields by hand, silently dropping ``view_mode``,
+        ``table_columns``, ``table_cover_size``, and
+        ``order_extra_keys`` from new presets. The fix routes the
+        clone through ``DIRECT_KEYS`` so future field additions
+        automatically ride along. Loading the saved row should
+        reflect the values that were live when it was saved.
+        """
+        # Customize current settings so a fresh saved view has
+        # something distinctive to compare against the model defaults.
+        cols = {"c": ["cover", "name", "issue", "year"]}
+        extras = [
+            {"key": "year", "reverse": False},
+            {"key": "issue", "reverse": True},
+        ]
+        patch = self._patch(
+            {
+                "viewMode": "table",
+                "tableColumns": cols,
+                "tableCoverSize": "sm",
+                "orderExtraKeys": extras,
+            }
+        )
+        assert patch.status_code == _HTTP_OK, patch.content
+
+        # Save under a fresh name (exercises the create branch).
+        save_resp = self.client.post(
+            f"{_SETTINGS_URL}/saved",
+            data=json.dumps({"name": "TaggingView"}),
+            content_type="application/json",
+        )
+        assert save_resp.status_code == _HTTP_CREATED, save_resp.content
+
+        # List saved views to grab the new pk.
+        list_resp = self.client.get(f"{_SETTINGS_URL}/saved")
+        assert list_resp.status_code == _HTTP_OK, list_resp.content
+        saved = next(
+            entry
+            for entry in list_resp.json()["savedSettings"]
+            if entry["name"] == "TaggingView"
+        )
+
+        # Reset current settings so loading the saved view actually
+        # changes state (and proves the values came from the saved
+        # row rather than from the still-customized current row).
+        self.client.delete(_SETTINGS_URL)
+
+        # Load and assert every table-view field round-trips.
+        load_resp = self.client.get(f"{_SETTINGS_URL}/saved/{saved['pk']}")
+        assert load_resp.status_code == _HTTP_OK, load_resp.content
+        body = load_resp.json()["settings"]
+        assert body["viewMode"] == "table"
+        assert body["tableColumns"] == cols
+        assert body["tableCoverSize"] == "sm"
+        assert body["orderExtraKeys"] == extras
 
     def test_delete_resets_table_view_fields(self):
         # First customize
