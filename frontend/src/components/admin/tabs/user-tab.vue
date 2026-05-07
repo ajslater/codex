@@ -30,10 +30,10 @@
             set.<br />
             See the
             <a
-              href="https://github.com/ajslater/codex#reset-the-admin-password"
+              href="https://codex-comic-reader.readthedocs.io/#reset-the-admin-password"
               target="_blank"
             >
-              README
+              documentation
             </a>
           </div>
         </td>

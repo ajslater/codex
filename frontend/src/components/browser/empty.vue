@@ -9,7 +9,9 @@
   >
     <div v-if="showLinkToReadmeAdmin">
       See the
-      <a href="https://codex-comic-reader.readthedocs.io/" target="_blank"
+      <a
+        href="https://codex-comic-reader.readthedocs.io/#administration"
+        target="_blank"
         >documentation <v-icon>{{ mdiOpenInNew }}</v-icon></a
       >
       for help

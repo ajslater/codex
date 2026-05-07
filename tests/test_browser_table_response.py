@@ -671,9 +671,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert through_query_count <= max_expected_through_queries, (
             f"got {through_query_count} through-table queries:\n"
             + "\n".join(
-                q["sql"]
-                for q in ctx.captured_queries
-                if "codex_comic_" in q["sql"]
+                q["sql"] for q in ctx.captured_queries if "codex_comic_" in q["sql"]
             )
         )
 
@@ -767,9 +765,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         )
 
         self._set_view_mode_table()
-        url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count"
-        )
+        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count"
         response = self.client.get(url)
         rows = response.json()["rows"]
         expected_total = 20 + 20
