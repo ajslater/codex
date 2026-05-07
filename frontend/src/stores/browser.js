@@ -594,25 +594,40 @@ export const useBrowserStore = defineStore("browser", {
           return this.handlePageError(error);
         });
     },
-    cancelBrowserPage() {
+    async cancelBrowserPage() {
       /*
        * User-initiated cancel for a long-running browser request.
        * Surfaces in the UI as a "Cancel" button next to the
        * indeterminate spinner after a 10s grace period.
        *
-       * Aborts the in-flight ``getBrowserPage`` (the catch in
-       * ``loadBrowserPage`` swallows the abort error) and flips
-       * ``browserPageLoaded`` back to true so the prior page's
-       * cards / table rows reappear from ``state.page``. If no
-       * request is actually pending we leave the loaded state
-       * alone — the spinner is showing for some other reason
-       * (initial libraries fetch, settings load) and the cancel
-       * button shouldn't have been clickable.
+       * Cancelling restores the route's default settings and
+       * re-fetches with those — going back to the prior settings
+       * would leave the route in the same heavy configuration
+       * that just timed out, so the user could end up stuck on a
+       * page they can't actually view. Resetting via DELETE
+       * /r/settings (the same path the "Clear All Filters" button
+       * takes) gets them to a baseline that should always render.
+       *
+       * Aborting fires the catch in ``loadBrowserPage`` which
+       * swallows the AbortError; ``state.page`` stays untouched
+       * until the follow-up ``loadBrowserPage`` lands. If no
+       * request is actually pending we leave everything alone —
+       * the spinner is showing for some other reason (initial
+       * libraries fetch, settings load) and the cancel button
+       * shouldn't have been clickable.
        */
       const aborted = abortKey("browser:loadBrowserPage");
-      if (aborted) {
-        this.browserPageLoaded = true;
+      if (!aborted) return;
+      try {
+        const response = await API.resetSettings();
+        this._validateAndSaveSettings(response.data);
+      } catch (error) {
+        console.error(error);
       }
+      // Allow ``loadBrowserPage`` past its already-loaded guard so
+      // the new fetch runs against the defaulted settings.
+      this.browserPageLoaded = true;
+      await this.loadBrowserPage(undefined, false);
     },
     async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.

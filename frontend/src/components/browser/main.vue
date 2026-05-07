@@ -214,6 +214,12 @@ export default {
       await this.loadMtimes().then(done);
     },
     onCancelLoading() {
+      /*
+       * ``cancelBrowserPage`` is async — it aborts the in-flight
+       * request, resets settings to defaults, and re-fetches.
+       * Fire-and-forget here since the spinner state is driven
+       * by the store, not by this handler's return value.
+       */
       this.cancelBrowserPage();
     },
   },
