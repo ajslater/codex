@@ -27,6 +27,7 @@ from django.test import Client, TestCase
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES, BROWSER_TABLE_COLUMNS
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models.groups import Folder
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.startup import init_admin_flags
 from codex.views.browser.order_by import (
@@ -476,6 +477,119 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # "Carol". Asc on those Mins → ZZ Press ("Alice") then AA Press
         # ("Carol").
         assert names == ["ZZ Press", "AA Press"], names
+
+    def test_folder_view_aggregates_through_ancestor_m2m(self) -> None:
+        """
+        Folder rows aggregate over descendants via ``Comic.folders``.
+
+        Regression: ``Comic.parent_folder`` only points at the
+        *direct* parent. Most folders in a real library hold only
+        sub-folders, so an FK-based intersection / aggregate returns
+        zero comics and every folder row sorts as NULL — the user's
+        "Folder view doesn't aggregate years at all" report. The
+        ``Comic.folders`` M2M includes every ancestor folder, which
+        is the relation the cover-pick logic already uses; the
+        intersection / sort path should match.
+
+        Setup:
+        - Top folder ``MarvelTop`` containing sub-folder ``MarvelSub``.
+          Two comics in ``MarvelSub``, both ``year=2024``.
+          → MarvelTop's intersected year (via ``folders``) = 2024.
+        - Top folder ``ImageTop`` containing sub-folder ``ImageSub``.
+          Two comics in ``ImageSub``, mixed years (2022, 2023).
+          → ImageTop's intersected year = NULL.
+
+        Sort desc by year: MarvelTop (2024) before ImageTop (NULL).
+        Pre-fix: both top folders have zero direct children, so
+        intersection is NULL for both → tie → arbitrary PK order.
+        """
+        library = Library.objects.first()
+        # Folder.presave stats the path so the dirs need to exist.
+        marvel_top_path = TMP_DIR / "Marvel"
+        marvel_sub_path = marvel_top_path / "Sub"
+        image_top_path = TMP_DIR / "Image"
+        image_sub_path = image_top_path / "Sub"
+        for p in (marvel_sub_path, image_sub_path):
+            p.mkdir(parents=True, exist_ok=True)
+        marvel_top = Folder.objects.create(
+            library=library,
+            path=str(marvel_top_path),
+            name="MarvelTop",
+            parent_folder=None,
+        )
+        marvel_sub = Folder.objects.create(
+            library=library,
+            path=str(marvel_sub_path),
+            name="MarvelSub",
+            parent_folder=marvel_top,
+        )
+        image_top = Folder.objects.create(
+            library=library,
+            path=str(image_top_path),
+            name="ImageTop",
+            parent_folder=None,
+        )
+        image_sub = Folder.objects.create(
+            library=library,
+            path=str(image_sub_path),
+            name="ImageSub",
+            parent_folder=image_top,
+        )
+
+        publisher = Publisher.objects.get(name="ZZ Press")
+        imprint = Imprint.objects.get(name="ZZ Imprint")
+        series_a = Series.objects.get(name="Alpha")
+        volume_a = Volume.objects.get(name="2020")
+
+        def _comic_in(sub: Folder, top: Folder, suffix: str, year: int) -> Comic:
+            path = TMP_DIR / f"folder-{suffix}.cbz"
+            path.touch()
+            comic = Comic.objects.create(
+                library=library,
+                path=path,
+                issue_number=1,
+                name=suffix,
+                publisher=publisher,
+                imprint=imprint,
+                series=series_a,
+                volume=volume_a,
+                size=100,
+                year=year,
+                page_count=20,
+                parent_folder=sub,
+            )
+            comic.folders.set([sub, top])
+            return comic
+
+        _comic_in(marvel_sub, marvel_top, "marvel-1", 2024)
+        _comic_in(marvel_sub, marvel_top, "marvel-2", 2024)
+        _comic_in(image_sub, image_top, "image-1", 2022)
+        _comic_in(image_sub, image_top, "image-2", 2023)
+
+        # Browse top-level folders (parent_folder=NULL). Folder view
+        # uses the ``f`` group; pk=0 is the conventional "root" pk
+        # that scopes to top-level folders.
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "topGroup": "f",
+                "orderBy": "year",
+                "orderReverse": True,
+            }
+        )
+        response = self.client.get("/api/v3/f/0/1")
+        assert response.status_code == _HTTP_OK, response.content
+        groups = response.json().get("groups", [])
+        names = [g.get("name") for g in groups]
+        # MarvelTop (intersection 2024) sorts before ImageTop (NULL).
+        # Both top folders should be present.
+        assert "MarvelTop" in names, names
+        assert "ImageTop" in names, names
+        marvel_idx = names.index("MarvelTop")
+        image_idx = names.index("ImageTop")
+        assert marvel_idx < image_idx, (
+            f"expected MarvelTop before ImageTop in DESC year sort; got {names}"
+        )
 
     def test_year_sort_matches_intersection_display(self) -> None:
         """

@@ -94,6 +94,26 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
+def _intersection_relation(group_model: type) -> str | None:
+    """
+    Return the ORM lookup that traverses Comic → group for intersections.
+
+    Most groups (Publisher, Imprint, Series, Volume) have a direct FK
+    on Comic and ``MODEL_REL_MAP`` carries the right name. Folder is
+    the special case: ``Comic.parent_folder`` only points at the
+    direct parent, so an FK-based traversal misses comics nested in
+    sub-folders. Folder views typically have their content one or
+    more levels down, so the FK path returns zero comics for most
+    folder rows and intersection / sort silently produces blanks.
+    The ``Comic.folders`` M2M includes every ancestor folder, which
+    is the relation the cover-pick logic already uses for the same
+    reason.
+    """
+    if group_model is Folder:
+        return "folders"
+    return MODEL_REL_MAP.get(group_model)
+
+
 def compute_group_intersections(
     group_qs, columns: Iterable[str]
 ) -> dict[int, dict[str, Any]]:
@@ -110,7 +130,7 @@ def compute_group_intersections(
     if not cols or group_qs.model is Comic:
         return {}
 
-    comic_to_group = MODEL_REL_MAP.get(group_qs.model)
+    comic_to_group = _intersection_relation(group_qs.model)
     if not comic_to_group:
         return {}
 
@@ -284,8 +304,8 @@ def _build_simple_m2m_intersection_sort_sql(
     Returns None when unsupported.
     """
     field_name = _SIMPLE_M2M_FIELDS.get(column)
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if field_name is None or comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
     through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
@@ -295,7 +315,7 @@ def _build_simple_m2m_intersection_sort_sql(
     if related_model is None:
         return None
     target_table = related_model._meta.db_table
-    group_table = group_model._meta.db_table
+    extra_join, where, total_count = correlation
 
     # Correlated subquery returning the alphabetized GROUP_CONCAT of
     # target ``name`` values whose comic-count for the outer group
@@ -314,14 +334,12 @@ def _build_simple_m2m_intersection_sort_sql(
             FROM {target_table} t
             INNER JOIN {through_table} th ON th.{m2m_id_col} = t.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
-            WHERE c.{comic_group_col} = {group_table}.id
+            {extra_join}
+            WHERE {where}
               AND t.name IS NOT NULL
               AND t.name != ''
             GROUP BY t.id, t.name
-            HAVING COUNT(DISTINCT c.id) = (
-                SELECT COUNT(*) FROM codex_comic
-                WHERE {comic_group_col} = {group_table}.id
-            )
+            HAVING COUNT(DISTINCT c.id) = ({total_count})
             ORDER BY t.name
         ) AS isect
     )"""  # noqa: S608
@@ -329,33 +347,33 @@ def _build_simple_m2m_intersection_sort_sql(
 
 
 def _wrap_intersection_sort(
-    inner_select: str, comic_group_col: str, group_table: str
+    inner_select: str, correlation: tuple[str, str, str]
 ) -> str:
     """
     Wrap a per-row display-string SELECT with the standard intersection envelope.
 
     ``inner_select`` is the SELECT body that produces a ``display_name``
-    column for each (target, comic) row. The envelope filters by group
-    correlation, groups by the target's identity, applies the
-    intersection HAVING, and concatenates per-group with the same
-    X'1F' separator the simple variant uses.
+    column for each (target, comic) row. ``correlation`` is the
+    ``(extra_join, where, total_count)`` tuple from
+    ``_comic_correlation_sql``. The envelope splices the join + where
+    pieces into the inner select, groups by the target's identity,
+    applies the intersection HAVING, and concatenates per-group with
+    the same X'1F' separator the simple variant uses.
 
-    All identifiers spliced in (``comic_group_col``, ``group_table``,
-    plus the inner_select body) come from caller-side whitelists, not
+    All identifiers spliced in come from caller-side whitelists, not
     user input — caller-level S608 noqa applies.
     """
+    extra_join, where, total_count = correlation
     return f"""(
         SELECT COALESCE(GROUP_CONCAT(display_name, X'1F'), '')
         FROM (
             {inner_select}
-            WHERE c.{comic_group_col} = {group_table}.id
+            {extra_join}
+            WHERE {where}
               AND display_name IS NOT NULL
               AND display_name != ''
             GROUP BY target_id
-            HAVING COUNT(DISTINCT c.id) = (
-                SELECT COUNT(*) FROM codex_comic
-                WHERE {comic_group_col} = {group_table}.id
-            )
+            HAVING COUNT(DISTINCT c.id) = ({total_count})
             ORDER BY display_name
         ) AS isect
     )"""  # noqa: S608
@@ -363,10 +381,9 @@ def _wrap_intersection_sort(
 
 def _build_universes_intersection_sort_sql(group_model: type) -> RawSQL | None:
     """Universes display as ``name:designation`` (or just ``name`` when blank)."""
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if correlation is None:
         return None
-    group_table = group_model._meta.db_table
     inner = """
             SELECT
                 u.id AS target_id,
@@ -379,16 +396,15 @@ def _build_universes_intersection_sort_sql(group_model: type) -> RawSQL | None:
             INNER JOIN codex_comic_universes th ON th.universe_id = u.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
-    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    sql = _wrap_intersection_sort(inner, correlation)
     return RawSQL(sql, [])  # noqa: S611
 
 
 def _build_credits_intersection_sort_sql(group_model: type) -> RawSQL | None:
     """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if correlation is None:
         return None
-    group_table = group_model._meta.db_table
     # Two comics share a Credit only when they reference the same row;
     # ``unique_together = ("person", "role")`` on Credit makes the
     # (person, role) pair the de-facto identity, so grouping by
@@ -406,16 +422,15 @@ def _build_credits_intersection_sort_sql(group_model: type) -> RawSQL | None:
             INNER JOIN codex_comic_credits th ON th.credit_id = cred.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
-    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    sql = _wrap_intersection_sort(inner, correlation)
     return RawSQL(sql, [])  # noqa: S611
 
 
 def _build_identifiers_intersection_sort_sql(group_model: type) -> RawSQL | None:
     """Render identifiers intersection as ``[source:]type:key`` per shared row."""
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if correlation is None:
         return None
-    group_table = group_model._meta.db_table
     inner = """
             SELECT
                 idn.id AS target_id,
@@ -428,16 +443,15 @@ def _build_identifiers_intersection_sort_sql(group_model: type) -> RawSQL | None
             INNER JOIN codex_comic_identifiers th ON th.identifier_id = idn.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
-    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    sql = _wrap_intersection_sort(inner, correlation)
     return RawSQL(sql, [])  # noqa: S611
 
 
 def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
     """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if correlation is None:
         return None
-    group_table = group_model._meta.db_table
     # Comic.story_arc_numbers → StoryArcNumber → story_arc → StoryArc.
     # We want intersection by StoryArc (not StoryArcNumber): a story
     # arc is "shared" if every comic has at least one StoryArcNumber
@@ -451,8 +465,53 @@ def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
             INNER JOIN codex_comic_story_arc_numbers th ON th.storyarcnumber_id = san.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
-    sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    sql = _wrap_intersection_sort(inner, correlation)
     return RawSQL(sql, [])  # noqa: S611
+
+
+def _comic_correlation_sql(group_model: type) -> tuple[str, str, str] | None:
+    """
+    Return the SQL fragments correlating Comic rows to the outer group row.
+
+    Most groups (Publisher, Imprint, Series, Volume) carry a direct
+    FK on Comic — the JOIN is implicit and the WHERE clause is
+    ``c.<fk> = <group_table>.id``. Folder is the special case:
+    ``Comic.parent_folder`` only points at the *direct* parent so
+    the FK path returns zero comics for any folder whose content
+    lives in a sub-folder. The browse query, the cover-pick query
+    and the cell display all already prefer the ancestor M2M
+    ``Comic.folders`` for Folder; the sort path now does too. The
+    extra JOIN clause is empty for non-Folder groups.
+
+    Returns ``(extra_join, where_clause, total_count_select)`` or
+    ``None`` when the group model isn't supported.
+    """
+    if group_model is Folder:
+        folders_field = Comic._meta.get_field("folders")
+        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+        through_table = through._meta.db_table
+        group_table = Folder._meta.db_table
+        extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
+        where = f"cf.folder_id = {group_table}.id"
+        # ``DISTINCT c2.id`` to defend against any future change that
+        # makes the M2M traversal multi-row per comic; today each
+        # (comic, folder) pair is unique so the DISTINCT is a no-op.
+        total_count = (
+            f"SELECT COUNT(DISTINCT c2.id) FROM codex_comic c2 "  # noqa: S608
+            f"INNER JOIN {through_table} cf2 ON cf2.comic_id = c2.id "
+            f"WHERE cf2.folder_id = {group_table}.id"
+        )
+        return extra_join, where, total_count
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+    where = f"c.{comic_group_col} = {group_table}.id"
+    total_count = (
+        f"SELECT COUNT(*) FROM codex_comic "  # noqa: S608
+        f"WHERE {comic_group_col} = {group_table}.id"
+    )
+    return "", where, total_count
 
 
 def scalar_intersection_sort_expr(
@@ -478,30 +537,28 @@ def scalar_intersection_sort_expr(
     we haven't wired here yet.
     """
     path = _SCALAR_FIELD_PATHS.get(column)
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if path is None or comic_group_col is None:
+    correlation = _comic_correlation_sql(group_model)
+    if path is None or correlation is None:
         return None
-    group_table = group_model._meta.db_table
+    extra_join, where, total_count = correlation
 
     if "__" not in path:
         # Direct Comic field — year, page_count, size, file_type, …
-        # All identifiers spliced in (``path``, ``comic_group_col``,
-        # ``group_table``) come from caller-side whitelists; RawSQL
-        # is safe — same justification as ``_build_simple_m2m_…``.
+        # All identifiers spliced in come from caller-side whitelists
+        # (column → ``_SCALAR_FIELD_PATHS``; correlation pieces from
+        # ``_comic_correlation_sql`` over a fixed group whitelist).
         col = f"c.{path}"
         sql = f"""(
             SELECT
                 CASE
-                    WHEN COUNT({col}) = (
-                        SELECT COUNT(*) FROM codex_comic
-                        WHERE {comic_group_col} = {group_table}.id
-                    )
+                    WHEN COUNT({col}) = ({total_count})
                       AND MIN({col}) = MAX({col})
                     THEN MIN({col})
                     ELSE NULL
                 END
             FROM codex_comic c
-            WHERE c.{comic_group_col} = {group_table}.id
+            {extra_join}
+            WHERE {where}
         )"""  # noqa: S608
         return RawSQL(sql, [])  # noqa: S611
 
@@ -520,17 +577,15 @@ def scalar_intersection_sort_expr(
     sql = f"""(
         SELECT
             CASE
-                WHEN COUNT({target_col}) = (
-                    SELECT COUNT(*) FROM codex_comic
-                    WHERE {comic_group_col} = {group_table}.id
-                )
+                WHEN COUNT({target_col}) = ({total_count})
                   AND MIN({target_col}) = MAX({target_col})
                 THEN MIN({target_col})
                 ELSE NULL
             END
         FROM codex_comic c
+        {extra_join}
         LEFT JOIN {target_table} t ON c.{fk_col} = t.id
-        WHERE c.{comic_group_col} = {group_table}.id
+        WHERE {where}
     )"""  # noqa: S608
     return RawSQL(sql, [])  # noqa: S611
 
