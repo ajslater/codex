@@ -47,7 +47,7 @@ import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
-const CANCEL_TIMEOUT = 10_000;
+const CANCEL_TIMEOUT = 5_000;
 
 export default {
   name: "BrowserMain",
