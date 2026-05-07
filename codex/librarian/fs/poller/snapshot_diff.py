@@ -130,17 +130,50 @@ class SnapshotDiff:
             new_path
         ) and data.ref.size(old_path) == data.snapshot.size(new_path)
 
+    @staticmethod
+    def _is_move_compatible(data: _DiffData, src: str, dest: str) -> bool:
+        """
+        Reject inode-match pairs that can't be a real rename.
+
+        ``Snapshot._inode`` collapses cross-filesystem inodes into a
+        single keyspace (``_ignore_device=True``), so a comic file's
+        stored inode can collide with an unrelated directory's inode
+        from a different mount. Without these guards the importer
+        rewrites the comic's ``path`` and ``stat`` to the directory
+        target, leaving a phantom Comic-as-folder row behind and
+        spawning a fresh Comic for the original file on the next
+        cycle (orphaning bookmarks).
+
+        Two cheap sanity checks make the inode match load-bearing only
+        when it's plausibly a rename:
+
+        - File type must match. A real rename never crosses ``stat()``
+          file-type bits — files become files, directories stay
+          directories. Mode mismatches are always inode collisions.
+        - For files, size must match too. Renames preserve size, and
+          two unrelated archives are vanishingly unlikely to share an
+          exact byte count. Directory ``st_size`` varies with entry
+          count and is unreliable, so this check applies to files
+          only.
+        """
+        src_is_dir = data.ref.is_dir(src)
+        if src_is_dir != data.snapshot.is_dir(dest):
+            return False
+        return src_is_dir or data.ref.size(src) == data.snapshot.size(dest)
+
     def _find_moved_paths(self, data: _DiffData) -> None:
         """Detect moves by matching inodes between deleted and added sets."""
         for old_path in tuple(data.deleted):
             inode = data.ref.inode(old_path)
-            if new_path := data.snapshot.path(inode):
+            new_path = data.snapshot.path(inode)
+            if new_path and self._is_move_compatible(data, old_path, new_path):
                 data.deleted.remove(old_path)
                 data.moved.add((old_path, new_path))
 
         for new_path in tuple(data.added):
             inode = data.snapshot.inode(new_path)
-            if old_path := data.ref.path(inode):
+            old_path = data.ref.path(inode)
+            if old_path and self._is_move_compatible(data, old_path, new_path):
                 data.added.remove(new_path)
                 data.moved.add((old_path, new_path))
 
