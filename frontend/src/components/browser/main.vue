@@ -157,12 +157,11 @@ export default {
     },
     cancelButtonTitle() {
       /*
-       * Hover tooltip on the cancel button. Reflects what the
-       * cancel will actually reset: in cover view only the order
-       * key changes; in table view the column set is also rolled
-       * back to the registry defaults for the current top-group.
+       * Cancel resets only the sort to the per-top-group default —
+       * columns, filters, and the rest of the user's settings stay
+       * put. The tooltip text matches.
        */
-      return this.isTableMode ? "Reset order and columns" : "Reset order";
+      return "Reset order";
     },
     showBrowseItems() {
       if (!this.isAuthorized || this.showPlaceHolder) return false;

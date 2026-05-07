@@ -38,6 +38,57 @@ const DYNAMIC_COVER_KEYS = Object.freeze([
 const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
+/*
+ * Per-top-group default order applied when the user hits the
+ * "Cancel" button on the loading spinner. Cover view, Folder,
+ * StoryArc, Publisher and Comic top-groups all want the plain
+ * ``sort_name`` single sort — Comic's order pipeline already
+ * expands ``sort_name`` into the full
+ * ``publisher_sort_name → ... → sort_name`` ladder via
+ * ``_add_comic_order_by``, so a single key is enough.
+ *
+ * Imprint, Series and Volume in *table* mode want a multi-column
+ * sort that respects the collection hierarchy: rows of an Imprint
+ * list are sorted publisher-then-name; rows of a Series list are
+ * publisher-then-imprint-then-name; rows of a Volume list are
+ * publisher-then-imprint-then-series-then-name (Volume.sort_name
+ * itself expands to ``name, number_to`` in
+ * :func:`add_order_by`).
+ */
+const _DEFAULT_TABLE_ORDER = Object.freeze({
+  i: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [Object.freeze({ key: "sort_name", reverse: false })],
+  }),
+  s: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [
+      Object.freeze({ key: "imprint_name", reverse: false }),
+      Object.freeze({ key: "sort_name", reverse: false }),
+    ],
+  }),
+  v: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [
+      Object.freeze({ key: "imprint_name", reverse: false }),
+      Object.freeze({ key: "series_name", reverse: false }),
+      Object.freeze({ key: "sort_name", reverse: false }),
+    ],
+  }),
+});
+
+const _DEFAULT_SINGLE_ORDER = Object.freeze({
+  orderBy: "sort_name",
+  orderExtraKeys: [],
+});
+
+function _defaultOrderFor(topGroup, viewMode) {
+  if (viewMode === "table" && Object.hasOwn(_DEFAULT_TABLE_ORDER, topGroup)) {
+    return _DEFAULT_TABLE_ORDER[topGroup];
+  }
+  return _DEFAULT_SINGLE_ORDER;
+}
+
 function cloneRoute(route) {
   return {
     ...route,
@@ -600,40 +651,30 @@ export const useBrowserStore = defineStore("browser", {
        * Surfaces in the UI as a "Cancel" button next to the
        * indeterminate spinner after a 10s grace period.
        *
-       * Stays on the current route, keeps the user's filters,
-       * search, view-mode, top-group, and any per-other-top-group
-       * column overrides. Resets only what's likely to make the
-       * query expensive:
-       *
-       * - ``orderBy`` → ``sort_name`` and ``orderReverse`` → false
-       *   (drops any aggregate / intersection sort).
-       * - ``orderExtraKeys`` → ``[]`` (drops the multi-sort
-       *   chain).
-       * - ``tableColumns[<topGroup>]`` cleared so the resolver
-       *   falls back to the registry defaults for *this*
-       *   top-group only — other top-groups' custom column sets
-       *   stay intact.
+       * Stays on the current route. Keeps filters, search, view-
+       * mode, top-group, columns, and every other display
+       * preference. Only resets the order to the per-top-group
+       * default (see ``_defaultOrderFor``) so the next fetch lands
+       * on a configuration the backend can serve quickly.
        *
        * Aborting fires the catch in ``loadBrowserPage`` which
        * swallows the AbortError; the follow-up ``setSettings``
-       * call PATCHes the partial reset, re-loads, and persists.
-       * If no request is actually pending we leave everything
-       * alone — the spinner is showing for some other reason
-       * (initial libraries fetch, settings load) and the cancel
-       * button shouldn't have been clickable.
+       * call PATCHes the new order, re-loads, and persists. If no
+       * request is actually pending we leave everything alone —
+       * the spinner is showing for some other reason (initial
+       * libraries fetch, settings load) and the cancel button
+       * shouldn't have been clickable.
        */
       const aborted = abortKey("browser:loadBrowserPage");
       if (!aborted) return;
-      const topGroup = this.settings.topGroup;
-      const tableColumns = { ...(this.settings.tableColumns ?? {}) };
-      if (topGroup) {
-        delete tableColumns[topGroup];
-      }
+      const order = _defaultOrderFor(
+        this.settings.topGroup,
+        this.settings.viewMode,
+      );
       await this.setSettings({
-        orderBy: "sort_name",
+        orderBy: order.orderBy,
         orderReverse: false,
-        orderExtraKeys: [],
-        tableColumns,
+        orderExtraKeys: order.orderExtraKeys,
       });
     },
     async loadBrowserPage(mtime, updateSettings = false) {
