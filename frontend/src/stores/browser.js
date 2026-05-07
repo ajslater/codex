@@ -1,7 +1,12 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 import { toRaw } from "vue";
-import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
+import {
+  abortKey,
+  dedupedFetch,
+  isAbortError,
+  useAbortable,
+} from "@/api/v3/abortable";
 import * as API from "@/api/v3/browser";
 import * as COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
@@ -588,6 +593,26 @@ export const useBrowserStore = defineStore("browser", {
           this.browserPageLoaded = true;
           return this.handlePageError(error);
         });
+    },
+    cancelBrowserPage() {
+      /*
+       * User-initiated cancel for a long-running browser request.
+       * Surfaces in the UI as a "Cancel" button next to the
+       * indeterminate spinner after a 10s grace period.
+       *
+       * Aborts the in-flight ``getBrowserPage`` (the catch in
+       * ``loadBrowserPage`` swallows the abort error) and flips
+       * ``browserPageLoaded`` back to true so the prior page's
+       * cards / table rows reappear from ``state.page``. If no
+       * request is actually pending we leave the loaded state
+       * alone — the spinner is showing for some other reason
+       * (initial libraries fetch, settings load) and the cancel
+       * button shouldn't have been clickable.
+       */
+      const aborted = abortKey("browser:loadBrowserPage");
+      if (aborted) {
+        this.browserPageLoaded = true;
+      }
     },
     async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.

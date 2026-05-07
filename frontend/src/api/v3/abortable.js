@@ -37,6 +37,26 @@ export function useAbortable(key) {
 }
 
 /**
+ * Abort the in-flight request for a given key, if any.
+ *
+ * Returns ``true`` when a controller was found and aborted, ``false``
+ * when nothing was in flight. Useful for user-initiated cancellation
+ * (e.g., a "Stop" button on a long-running browse query) — the
+ * caller can decide whether to restore previous state based on the
+ * return value.
+ *
+ * @param {string} key Same identifier passed to ``useAbortable``.
+ * @returns {boolean}
+ */
+export function abortKey(key) {
+  const controller = _controllers.get(key);
+  if (!controller) return false;
+  controller.abort();
+  _controllers.delete(key);
+  return true;
+}
+
+/**
  * True if an error came from an aborted request.
  *
  * Both xior (CanceledError) and the platform fetch (AbortError)
