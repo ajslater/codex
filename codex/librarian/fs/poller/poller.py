@@ -172,11 +172,13 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         for model, payloads in by_model.items():
             paths = [p for p, _ in payloads]
             stat_by_path = dict(payloads)
-            rows = list(model.objects.filter(path__in=paths).only("pk", "path", "stat"))
+            rows = tuple(
+                model.objects.filter(path__in=paths).only("pk", "path", "stat")  # ty: ignore[unresolved-attribute]
+            )
             for row in rows:
                 row.stat = stat_by_path[row.path]
             if rows:
-                model.objects.bulk_update(rows, fields=["stat"])
+                model.objects.bulk_update(rows, fields=["stat"])  # ty: ignore[unresolved-attribute]
                 total += len(rows)
         if total:
             msg = (
