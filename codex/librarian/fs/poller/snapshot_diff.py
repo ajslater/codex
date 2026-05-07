@@ -5,13 +5,26 @@ Supports inode-based move detection and optional device-ignoring for
 Docker/complex filesystems.
 """
 
+import os
 from dataclasses import dataclass
+
+from django.db.models import Model
 
 from codex.librarian.fs.events import (
     FSChange,
     FSEvent,
 )
 from codex.librarian.fs.poller.snapshot import Snapshot
+
+
+@dataclass(frozen=True, slots=True)
+class StaleStatRefresh:
+    """A path whose stored stat needs refreshing without re-import."""
+
+    path: str
+    model: type[Model]
+    disk_stat: os.stat_result
+
 
 _DIFF_FIELD_EVENT_MAP: tuple[tuple[str, FSChange, bool, bool], ...] = (
     # diff_attr, change_type, is_directory, is_cover
@@ -123,6 +136,48 @@ class SnapshotDiff:
         self.covers_moved = []
         self.files_moved = []
         self._init_moved(data, ref)
+
+        self.stale_stat_refreshes: tuple[StaleStatRefresh, ...] = (
+            self._find_stale_stat_refreshes(data)
+        )
+
+    @staticmethod
+    def _find_stale_stat_refreshes(data: _DiffData) -> tuple[StaleStatRefresh, ...]:
+        """
+        Identify unchanged-content paths whose stored inode no longer matches disk.
+
+        Filter ``data.unchanged`` down to entries that ``_find_modified_paths``
+        did not promote into ``data.modified`` (mtime+size still match).
+        When the inode for one of those still differs, the file's
+        content is the same but its filesystem identity rotated under
+        us — the Docker bind-mount remount case. Without refreshing
+        those stats, the DB's inode keyspace stays permanently stale,
+        so the next ``_find_moved_paths`` call with a real delete or
+        add can match an arbitrary disk path on a numerical
+        coincidence (the corruption ``_is_move_compatible`` was added
+        to suppress).
+
+        Caller refreshes the DB stat for these paths without bumping
+        ``updated_at`` — content hasn't changed. ``model_for_path``
+        returns ``None`` for entries with no DB row (e.g. the library
+        root itself, which the snapshot adds outside of the per-model
+        walk); skip those.
+        """
+        refreshes: list[StaleStatRefresh] = []
+        for path in sorted(data.unchanged - data.modified):
+            if data.ref.inode(path) == data.snapshot.inode(path):
+                continue
+            model = data.ref.model_for_path(path)
+            if model is None:
+                continue
+            refreshes.append(
+                StaleStatRefresh(
+                    path=path,
+                    model=model,
+                    disk_stat=data.snapshot.stat(path),
+                )
+            )
+        return tuple(refreshes)
 
     def _is_stats_equal(self, data: _DiffData, old_path: str, new_path: str) -> bool:
         """Return whether mtime and size match."""

@@ -138,10 +138,66 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         return SnapshotDiff(db_snap, disk_snap)
 
+    def _refresh_stale_stats(self, diff: SnapshotDiff) -> None:
+        """
+        Sync DB stat to current disk stat for unchanged-content / rotated-inode paths.
+
+        Without this, the May-1 fix that stopped flagging every comic
+        modified on Docker remount left DB inodes permanently stale —
+        once a remount rotated the kernel's inode space, the
+        ``_find_moved_paths`` lookup keys diverged from disk reality
+        and stayed that way until the next true delete/add cycle. The
+        ``_is_move_compatible`` guard suppresses the corruption that
+        produced, but legitimate cross-remount renames still degrade
+        to delete+add (and the user loses the comic.pk's bookmarks).
+
+        Refresh in-place: rewrite ``stat`` only, do not bump
+        ``updated_at``. The file's content is unchanged from the
+        user's perspective; the bookmark/cover-cache "freshness"
+        invariants must hold.
+
+        Skipped on ``force=True`` polls because force routes every
+        path through the import pipeline (where ``presave`` already
+        rewrites stats), and we'd rather not double-write.
+        """
+        if not diff.stale_stat_refreshes:
+            return
+        # Bucket by model so each table takes one bulk_update.
+        by_model: dict[type, list[tuple[str, list]]] = {}
+        for refresh in diff.stale_stat_refreshes:
+            by_model.setdefault(refresh.model, []).append(
+                (refresh.path, list(refresh.disk_stat))
+            )
+        total = 0
+        for model, payloads in by_model.items():
+            paths = [p for p, _ in payloads]
+            stat_by_path = dict(payloads)
+            rows = list(model.objects.filter(path__in=paths).only("pk", "path", "stat"))
+            for row in rows:
+                row.stat = stat_by_path[row.path]
+            if rows:
+                model.objects.bulk_update(rows, fields=["stat"])
+                total += len(rows)
+        if total:
+            msg = (
+                f"Refreshed stale stat on {total} unchanged-content paths "
+                "(inode rotated, content matches)."
+            )
+            self.log.debug(msg)
+
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
         """Run the snapshot diff and emit a single ImportTask for the library."""
         diff = self._get_diff(library, force=force)
-        if not diff or diff.is_empty():
+        if diff is None:
+            return
+
+        # Refresh DB stats for paths whose content matches but whose
+        # inode rotated (Docker remount, in-place file replacement).
+        # Force polls already rewrite stats through the import path.
+        if not force:
+            self._refresh_stale_stats(diff)
+
+        if diff.is_empty():
             self.log.debug(f"Nothing changed for {library.path}")
             return
 
