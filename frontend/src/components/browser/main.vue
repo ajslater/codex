@@ -47,6 +47,8 @@ import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
+const CANCEL_TIMEOUT = 10_000;
+
 export default {
   name: "BrowserMain",
   components: {
@@ -193,7 +195,7 @@ export default {
           this.cancelButtonTimerHandle = globalThis.setTimeout(() => {
             this.cancelButtonReady = true;
             this.cancelButtonTimerHandle = null;
-          }, 10_000);
+          }, CANCEL_TIMEOUT);
         } else {
           this.cancelButtonReady = false;
         }
