@@ -225,11 +225,13 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
         Both alpha comics share ``year=2020``; the extras tail breaks
         the tie by ``issue`` (asc), giving us alpha_1 then alpha_2.
+        Extras only kick in for table-view mode — cover view sticks
+        to its toolbar dropdown and ignores extras even when they're
+        persisted in settings.
         """
-        # Reset to a deterministic primary so we exercise the extras
-        # path even when both rows tie on the primary.
         self._patch_settings(
             {
+                "viewMode": "table",
                 "orderBy": "year",
                 "orderReverse": False,
                 "orderExtraKeys": [{"key": "issue", "reverse": False}],
@@ -242,6 +244,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """A reverse extra flips the tie-breaker direction."""
         self._patch_settings(
             {
+                "viewMode": "table",
                 "orderBy": "year",
                 "orderReverse": False,
                 "orderExtraKeys": [{"key": "issue", "reverse": True}],
@@ -249,6 +252,98 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         pks = self._browse_comics()
         assert pks == [self.comic_alpha_2.pk, self.comic_alpha_1.pk]
+
+    def test_multi_column_sort_m2m_extra_does_not_crash(self) -> None:
+        """
+        Regression: M2M extras must annotate their alias upstream.
+
+        Adding an M2M column (``genres``) as a secondary sort while
+        the primary is a non-M2M key (``year``) used to crash with
+        ``FieldError: Cannot resolve keyword '_table_m2m_genres'``
+        because ``_add_table_view_sort_annotations`` only annotated
+        the alias for the primary key. The fix collects every key
+        from primary + extras into the annotation set.
+        """
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "genres", "reverse": False}],
+            }
+        )
+        # Browse comics with ``genres`` in the visible column set so
+        # the request matches what the table-view UI would send.
+        url = (
+            f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+            "?columns=cover,name,issue,genres"
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
+    def test_multi_column_sort_extras_apply_to_group_rows(self) -> None:
+        """
+        Group-row queries (Series, Volume, Publisher, …) honor extras.
+
+        Browse the publisher level, listing series rows. Both series
+        share the publisher → primary ``publisher_name`` ties; the
+        ``child_count`` extra (desc) breaks the tie so the series
+        with more child comics (``Alpha``) sorts before the one with
+        fewer (``Beta``). Sanity-check by flipping the extra to
+        ``asc`` and asserting the order swaps.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v3/p/{publisher.pk}/1"
+        # Desc extra → larger child_count first.
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "publisher_name",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "child_count", "reverse": True}],
+            }
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Alpha", "Beta"], names
+
+        # Asc extra → smaller child_count first.
+        cache.clear()
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "publisher_name",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "child_count", "reverse": False}],
+            }
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Beta", "Alpha"], names
+
+    def test_multi_column_sort_extras_ignored_in_cover_mode(self) -> None:
+        """
+        Cover view ignores stored extras.
+
+        With ``view_mode=cover``, the extras tail is intentionally
+        skipped — the cover dropdown can't add or edit extras, so
+        treating them as authoritative would make cover-grid order
+        secretly depend on a setting the user can't see in this
+        mode. The tie between the alpha comics now resolves through
+        the ``pk`` tiebreaker (alpha_1 is created first).
+        """
+        self._patch_settings(
+            {
+                "viewMode": "cover",
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "issue", "reverse": True}],
+            }
+        )
+        pks = self._browse_comics()
+        assert pks == [self.comic_alpha_1.pk, self.comic_alpha_2.pk]
 
     def test_series_name_ordering_smoke(self) -> None:
         """Sorting comics by series_name (FK path) doesn't error."""

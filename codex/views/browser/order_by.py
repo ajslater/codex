@@ -111,29 +111,42 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
+    @staticmethod
+    def extra_order_value_alias(idx: int) -> str:
+        """Return the queryset alias used for the n-th extra key on a group queryset."""
+        return f"_table_extra_value_{idx}"
+
     def _add_extra_order_by(self, qs) -> list[str]:
         """
         Build the ``ORDER BY`` tail from ``order_extra_keys``.
 
-        Skipped for cover subqueries (the correlated query lacks the
-        outer view's annotations) and for queries where the primary
-        is already a non-Comic group sort using the precomputed
-        ``order_value`` aggregate — the extras would need their own
-        per-key aggregation pipeline that the experiment intentionally
-        doesn't ship. Comic-row table-view sort gets the full
-        treatment via :func:`_add_comic_order_by`'s field expansion.
+        Active only when the request is in table mode — cover view's
+        toolbar can't add extras and we don't want stored extras to
+        silently affect cover-grid order. Comic-row queries chain
+        each extra through :func:`_add_comic_order_by` so M2M and
+        FK-name keys resolve to their upstream-annotated aliases.
+        Group queries reference the per-extra ``order_value`` aliases
+        annotated by ``annotate_extra_order_values`` upstream.
         """
         extras = self.params.get("order_extra_keys") or ()
-        if not extras or qs.model is not Comic:
+        if not extras or self.params.get("view_mode") != "table":
             return []
         tail: list[str] = []
-        for entry in extras:
+        if qs.model is Comic:
+            for entry in extras:
+                key = entry.get("key")
+                if not key:
+                    continue
+                extra_fields = self._add_comic_order_by(key, None)
+                prefix = "-" if entry.get("reverse") else ""
+                tail.extend(prefix + field for field in extra_fields)
+            return tail
+        for idx, entry in enumerate(extras):
             key = entry.get("key")
             if not key:
                 continue
-            extra_fields = self._add_comic_order_by(key, None)
             prefix = "-" if entry.get("reverse") else ""
-            tail.extend(prefix + field for field in extra_fields)
+            tail.append(prefix + self.extra_order_value_alias(idx))
         return tail
 
     def add_order_by(
