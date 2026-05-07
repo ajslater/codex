@@ -15,6 +15,7 @@ These tests confirm:
   through the HTTP browser endpoint.
 """
 
+import json
 import shutil
 from pathlib import Path
 from typing import Final, override
@@ -179,6 +180,14 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         assert response.status_code == _HTTP_OK, response.content
 
+    def _patch_settings(self, payload: dict) -> None:
+        response = self.client.patch(
+            "/api/v3/r/settings",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+
     def _browse_comics(self) -> list[int]:
         # Browse the Series containing the alpha comics; with the default
         # ``show.v == False`` the response flattens to direct comic books.
@@ -209,6 +218,37 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         pks = self._browse_comics()
         expected = [self.comic_alpha_2.pk, self.comic_alpha_1.pk]
         assert pks == expected, f"got {pks}, expected {expected}"
+
+    def test_multi_column_sort_extras_apply(self) -> None:
+        """
+        Multi-column sort: extras tail an ordered sequence onto the primary.
+
+        Both alpha comics share ``year=2020``; the extras tail breaks
+        the tie by ``issue`` (asc), giving us alpha_1 then alpha_2.
+        """
+        # Reset to a deterministic primary so we exercise the extras
+        # path even when both rows tie on the primary.
+        self._patch_settings(
+            {
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "issue", "reverse": False}],
+            }
+        )
+        pks = self._browse_comics()
+        assert pks == [self.comic_alpha_1.pk, self.comic_alpha_2.pk]
+
+    def test_multi_column_sort_extras_reverse(self) -> None:
+        """A reverse extra flips the tie-breaker direction."""
+        self._patch_settings(
+            {
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "issue", "reverse": True}],
+            }
+        )
+        pks = self._browse_comics()
+        assert pks == [self.comic_alpha_2.pk, self.comic_alpha_1.pk]
 
     def test_series_name_ordering_smoke(self) -> None:
         """Sorting comics by series_name (FK path) doesn't error."""

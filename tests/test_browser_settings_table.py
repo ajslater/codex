@@ -85,6 +85,57 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         s = BrowserSettingsSerializer(data={"table_cover_size": "huge"})
         assert not s.is_valid()
 
+    def test_order_extra_keys_default_is_empty_list(self):
+        field = SettingsBrowser._meta.get_field("order_extra_keys")
+        # JSONField default is a callable returning ``list``.
+        assert field.default() == []
+
+    def test_order_extra_keys_validates(self):
+        s = BrowserSettingsSerializer(
+            data={
+                "order_extra_keys": [
+                    {"key": "year", "reverse": False},
+                    {"key": "issue", "reverse": True},
+                ]
+            }
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["order_extra_keys"] == [
+            {"key": "year", "reverse": False},
+            {"key": "issue", "reverse": True},
+        ]
+
+    def test_order_extra_keys_dedupes(self):
+        # First occurrence wins; later duplicates are dropped.
+        s = BrowserSettingsSerializer(
+            data={
+                "order_extra_keys": [
+                    {"key": "year", "reverse": False},
+                    {"key": "year", "reverse": True},
+                ]
+            }
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["order_extra_keys"] == [
+            {"key": "year", "reverse": False}
+        ]
+
+    def test_order_extra_keys_invalid_key_rejected(self):
+        s = BrowserSettingsSerializer(
+            data={"order_extra_keys": [{"key": "phantom", "reverse": False}]}
+        )
+        assert not s.is_valid()
+        assert "order_extra_keys" in s.errors
+
+    def test_order_extra_keys_reverse_coerces_to_bool(self):
+        s = BrowserSettingsSerializer(
+            data={"order_extra_keys": [{"key": "year"}]}
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["order_extra_keys"] == [
+            {"key": "year", "reverse": False}
+        ]
+
 
 class BrowserTableSettingsRoundTripTestCase(TestCase):
     """End-to-end PATCH/GET/DELETE through the settings HTTP endpoint."""
@@ -116,6 +167,18 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert body.get("viewMode") == "cover"
         assert body.get("tableColumns") == {}
         assert body.get("tableCoverSize") == "sm"
+        # Multi-column sort experiment: default is an empty list.
+        assert body.get("orderExtraKeys") == []
+
+    def test_patch_order_extra_keys_persists(self):
+        extras = [
+            {"key": "year", "reverse": False},
+            {"key": "issue", "reverse": True},
+        ]
+        response = self._patch({"orderExtraKeys": extras})
+        assert response.status_code == _HTTP_OK, response.content
+        body = self._get()
+        assert body["orderExtraKeys"] == extras
 
     def test_patch_view_mode_persists(self):
         response = self._patch({"viewMode": "table"})

@@ -71,6 +71,7 @@ export const useBrowserStore = defineStore("browser", {
       filters: BROWSER_DEFAULTS.filters,
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
+      orderExtraKeys: BROWSER_DEFAULTS.orderExtraKeys ?? [],
       search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
       topGroup: BROWSER_DEFAULTS.topGroup,

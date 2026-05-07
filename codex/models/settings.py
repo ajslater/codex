@@ -334,6 +334,12 @@ class SettingsBrowser(SettingsBase):
         default="",
     )
     order_reverse = BooleanField(default=False)
+    # Experimental multi-column sort: a list of secondary sort keys
+    # appended to the primary ``order_by`` ORDER BY. Each entry is
+    # ``{"key": <BROWSER_ORDER_BY_CHOICES key>, "reverse": <bool>}``.
+    # Empty list means single-column sort (today's behavior). The
+    # frontend table view adds entries via shift-click on a header.
+    order_extra_keys = JSONField(default=list)
     search = CharField(max_length=4095, default="", blank=True)
 
     # Display preferences
@@ -370,6 +376,7 @@ class SettingsBrowser(SettingsBase):
             "top_group",
             "order_by",
             "order_reverse",
+            "order_extra_keys",
             "search",
             "custom_covers",
             "dynamic_covers",

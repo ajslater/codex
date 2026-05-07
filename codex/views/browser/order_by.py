@@ -111,6 +111,31 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 order_fields_head += ["bookmark_updated_at"]
         return order_fields_head
 
+    def _add_extra_order_by(self, qs) -> list[str]:
+        """
+        Build the ``ORDER BY`` tail from ``order_extra_keys``.
+
+        Skipped for cover subqueries (the correlated query lacks the
+        outer view's annotations) and for queries where the primary
+        is already a non-Comic group sort using the precomputed
+        ``order_value`` aggregate — the extras would need their own
+        per-key aggregation pipeline that the experiment intentionally
+        doesn't ship. Comic-row table-view sort gets the full
+        treatment via :func:`_add_comic_order_by`'s field expansion.
+        """
+        extras = self.params.get("order_extra_keys") or ()
+        if not extras or qs.model is not Comic:
+            return []
+        tail: list[str] = []
+        for entry in extras:
+            key = entry.get("key")
+            if not key:
+                continue
+            extra_fields = self._add_comic_order_by(key, None)
+            prefix = "-" if entry.get("reverse") else ""
+            tail.extend(prefix + field for field in extra_fields)
+        return tail
+
     def add_order_by(
         self, qs, order_key="", comic_sort_names=None, *, for_cover: bool = False
     ):
@@ -124,11 +149,15 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         else:
             order_fields_head = ["order_value"]
 
-        order_fields = (*order_fields_head, "pk")
-
         # Empty prefix yields the same field name; the comprehension
         # works for both reversed and forward order without branching.
         prefix = "-" if self.params.get("order_reverse") else ""
-        order_by = [prefix + field for field in order_fields]
+        order_by = [prefix + field for field in order_fields_head]
+        # Multi-column sort experiment: append per-key extras between
+        # the primary fields and the pk tiebreaker. Each entry carries
+        # its own direction so the user can mix asc / desc per column.
+        if not for_cover:
+            order_by.extend(self._add_extra_order_by(qs))
+        order_by.append(prefix + "pk")
 
         return qs.order_by(*order_by)

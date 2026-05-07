@@ -523,6 +523,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "filters": _DEFAULT_FILTERS,
         "order_by": "sort_name",
         "order_reverse": False,
+        "order_extra_keys": (),
         "search": "",
         "show": _DEFAULT_SHOW,
         "top_group": "p",

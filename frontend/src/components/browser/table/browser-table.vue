@@ -18,12 +18,20 @@
             v-for="col in visibleColumns"
             :key="col"
             :class="cellClasses(col, true)"
-            @click="onHeaderClick(col)"
+            @click="onHeaderClick(col, $event)"
           >
             <span>{{ labelFor(col) }}</span>
             <v-icon v-if="isSortedBy(col)" size="14">
               {{ orderReverse ? mdiArrowDown : mdiArrowUp }}
             </v-icon>
+            <template v-else-if="extraIndexFor(col) !== -1">
+              <v-icon size="14">
+                {{ extraReverseFor(col) ? mdiArrowDown : mdiArrowUp }}
+              </v-icon>
+              <sup class="browserTableSortPriority">{{
+                extraIndexFor(col) + 2
+              }}</sup>
+            </template>
           </th>
         </tr>
       </thead>
@@ -88,6 +96,7 @@ export default {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       orderReverse: (state) => state.settings.orderReverse,
+      orderExtraKeys: (state) => state.settings.orderExtraKeys ?? [],
       coverSize: (state) => state.settings.tableCoverSize,
       pageData: (state) => state.page,
     }),
@@ -163,14 +172,67 @@ export default {
       const key = this.sortKeyFor(column);
       return key !== null && key === this.orderBy;
     },
-    onHeaderClick(column) {
+    extraIndexFor(column) {
+      /*
+       * Multi-column sort experiment: if this column's sort_key is
+       * in ``orderExtraKeys``, return its position (0-based). The
+       * priority badge displayed next to the arrow is ``index + 2``
+       * so the user reads "1, 2, 3, ..." with the primary as 1.
+       */
+      const key = this.sortKeyFor(column);
+      if (!key) return -1;
+      return this.orderExtraKeys.findIndex((entry) => entry.key === key);
+    },
+    extraReverseFor(column) {
+      const key = this.sortKeyFor(column);
+      const entry = this.orderExtraKeys.find((e) => e.key === key);
+      return Boolean(entry?.reverse);
+    },
+    onHeaderClick(column, event) {
       const sortKey = this.sortKeyFor(column);
       if (!sortKey) return;
-      if (this.orderBy === sortKey) {
-        this.setSettings({ orderReverse: !this.orderReverse });
-      } else {
-        this.setSettings({ orderBy: sortKey, orderReverse: false });
+      /*
+       * Shift-click adds / cycles a secondary sort. The cycle is
+       * asc → desc → off (matches Excel / Sheets). Plain click
+       * replaces the primary sort and clears any extras.
+       *
+       * Shift-clicking the current primary degrades to a plain
+       * direction toggle — there's no "demote primary to extra"
+       * gesture in this experiment; the user picks the primary
+       * with a plain click on a different header.
+       */
+      const isShift = event && event.shiftKey;
+      if (!isShift || this.orderBy === sortKey) {
+        if (this.orderBy === sortKey) {
+          this.setSettings({ orderReverse: !this.orderReverse });
+        } else {
+          this.setSettings({
+            orderBy: sortKey,
+            orderReverse: false,
+            orderExtraKeys: [],
+          });
+        }
+        return;
       }
+      /*
+       * Build the new extras list functionally to keep eslint's
+       * object-injection rule happy; bracket-indexing into the
+       * array by a numeric ``findIndex`` result trips the heuristic
+       * even though the access is safe.
+       */
+      const previous = this.orderExtraKeys;
+      const existing = previous.find((e) => e.key === sortKey);
+      let extras;
+      if (!existing) {
+        extras = [...previous, { key: sortKey, reverse: false }];
+      } else if (!existing.reverse) {
+        extras = previous.map((e) =>
+          e.key === sortKey ? { key: sortKey, reverse: true } : e,
+        );
+      } else {
+        extras = previous.filter((e) => e.key !== sortKey);
+      }
+      this.setSettings({ orderExtraKeys: extras });
     },
     rowKey(row) {
       /*
@@ -212,7 +274,13 @@ export default {
       };
       if (isHeader) {
         classes.sortable = this.isSortable(column);
-        classes.sorted = this.isSortedBy(column);
+        /*
+         * ``sorted`` colors the header label primary. Apply it for
+         * the primary AND any extra-sort columns so the user can
+         * visually scan the sort group as a unit.
+         */
+        classes.sorted =
+          this.isSortedBy(column) || this.extraIndexFor(column) !== -1;
       }
       return classes;
     },
@@ -282,6 +350,22 @@ export default {
 
 .browserTableTable thead th.sorted {
   color: rgb(var(--v-theme-primary));
+}
+
+/*
+ * Multi-column sort experiment. Headers participating in the
+ * extra-sort tail get a small superscript priority number (2, 3,
+ * ...) next to their direction arrow so the user can see at a
+ * glance how the columns rank. The primary stays unbadged — its
+ * implicit priority is 1 and the bolded color already calls it
+ * out. Tiny font + half opacity keeps the badge from competing
+ * with the column label.
+ */
+.browserTableTable thead th .browserTableSortPriority {
+  margin-left: 2px;
+  font-size: 0.7em;
+  line-height: 1;
+  opacity: 0.7;
 }
 
 .browserTableTable td {
