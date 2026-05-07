@@ -48,8 +48,12 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
         "day": Min,
         "file_type": Min,
         "imprint_name": Min,
-        "issue_number": Min,
-        "issue_suffix": Min,
+        # ``issue`` is virtual: its order_value annotation aggregates
+        # the underlying ``issue_number`` field (resolved via
+        # ``comic_order_path``). Group rows therefore sort by their
+        # min/max child issue number; the suffix secondary applies
+        # only to Comic-row ORDER BY.
+        "issue": Min,
         "language": Min,
         "main_character": Min,
         "main_team": Min,

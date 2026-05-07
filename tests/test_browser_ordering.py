@@ -38,8 +38,7 @@ _NEW_ORDER_BY_KEYS: Final = (
     "day",
     "file_type",
     "imprint_name",
-    "issue_number",
-    "issue_suffix",
+    "issue",
     "language",
     "main_character",
     "main_team",
@@ -100,8 +99,17 @@ def test_comic_order_path_passes_through_unknown() -> None:
 
 
 def test_comic_order_field_paths_target_name() -> None:
-    """Every translated path ends in ``__name``."""
+    """
+    Every translated path ends in ``__name``.
+
+    Exception: the virtual ``issue`` key maps to the underlying
+    ``issue_number`` field (the suffix secondary is added in
+    ``_add_comic_order_by``, not by this map).
+    """
     for key, path in COMIC_ORDER_FIELD_PATHS.items():
+        if key == "issue":
+            assert path == "issue_number"
+            continue
         assert path.endswith("__name"), f"{key} -> {path}"
 
 
@@ -187,15 +195,17 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         pks = self._browse_comics()
         assert set(pks) == {self.comic_alpha_1.pk, self.comic_alpha_2.pk}
 
-    def test_issue_number_ordering(self) -> None:
-        """Sorting comics by issue_number is ascending in pk order for alpha."""
-        self._patch_order_by("issue_number")
+    def test_issue_ordering(self) -> None:
+        """Sorting comics by ``issue`` is ascending in pk order for alpha."""
+        # ``issue`` is the compound order_by enum entry that expands to
+        # ``[issue_number, issue_suffix]`` ORDER BY in the dispatcher.
+        self._patch_order_by("issue")
         pks = self._browse_comics()
         assert pks == [self.comic_alpha_1.pk, self.comic_alpha_2.pk]
 
-    def test_issue_number_reverse_ordering(self) -> None:
-        """Sorting comics by issue_number reversed flips the alpha pair."""
-        self._patch_order_by("issue_number", reverse=True)
+    def test_issue_reverse_ordering(self) -> None:
+        """Sorting comics by ``issue`` reversed flips the alpha pair."""
+        self._patch_order_by("issue", reverse=True)
         pks = self._browse_comics()
         expected = [self.comic_alpha_2.pk, self.comic_alpha_1.pk]
         assert pks == expected, f"got {pks}, expected {expected}"

@@ -31,8 +31,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "genres": "Genres",
         "identifiers": "Identifiers",
         "imprint_name": "Imprint",
-        "issue_number": "Issue Number",
-        "issue_suffix": "Issue Suffix",
+        "issue": "Issue",
         "language": "Language",
         "bookmark_updated_at": "Last Read",
         "locations": "Locations",
@@ -200,12 +199,12 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         },
         "issue": {
             # Compound table-view column: ``issue_number`` +
-            # ``issue_suffix`` rendered as one cell ("1.5a"). The
-            # sort key is the existing ``issue_number`` enum entry —
-            # ``_add_comic_order_by`` emits ``issue_suffix`` as the
-            # secondary ORDER BY field. No migration needed.
+            # ``issue_suffix`` rendered as one cell. The ``issue``
+            # order_by enum entry is the public sort key;
+            # ``_add_comic_order_by`` expands it to ``[issue_number,
+            # issue_suffix]`` for the actual ORDER BY.
             "label": "Issue",
-            "sort_key": "issue_number",
+            "sort_key": "issue",
             "m2m": False,
             "editable": False,
             "edit_widget": None,

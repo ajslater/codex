@@ -93,8 +93,9 @@ class BrowserTableHelperTestCase(TestCase):
 
     def test_is_sortable_known_keys(self):
         assert is_sortable("name")
-        # ``issue`` is the compound column; sort_key resolves to
-        # ``issue_number`` so the existing enum entry drives ORDER BY.
+        # ``issue`` is the compound column; its sort_key is the
+        # virtual ``"issue"`` enum entry — ``_add_comic_order_by``
+        # expands it to ``[issue_number, issue_suffix]`` ORDER BY.
         assert is_sortable("issue")
         # M2M columns became sortable in the Phase 7 experiment.
         assert is_sortable("genres")
@@ -109,10 +110,11 @@ class BrowserTableHelperTestCase(TestCase):
 
     def test_sort_key_for_known_keys(self):
         assert sort_key_for("name") == "sort_name"
-        # The compound ``issue`` column reuses the ``issue_number``
-        # enum entry; ``_add_comic_order_by`` adds ``issue_suffix`` as
-        # secondary so the natural multi-field ORDER BY happens.
-        assert sort_key_for("issue") == "issue_number"
+        # The compound ``issue`` column points at the new ``issue``
+        # order_by enum entry, which the dispatcher expands to
+        # ``[issue_number, issue_suffix]`` ORDER BY for the natural
+        # multi-field sort.
+        assert sort_key_for("issue") == "issue"
         assert sort_key_for("cover") is None
 
     def test_unknown_column_returns_falsy(self):

@@ -15,6 +15,11 @@ COMIC_ORDER_FIELD_PATHS = MappingProxyType(
     {
         "country": "country__name",
         "imprint_name": "imprint__name",
+        # ``issue`` is a virtual order_by key that stands in for the
+        # compound issue_number + issue_suffix sort. Its primary field
+        # is ``issue_number``; ``_add_comic_order_by`` adds
+        # ``issue_suffix`` as the secondary ORDER BY column.
+        "issue": "issue_number",
         "language": "language__name",
         "main_character": "main_character__name",
         "main_team": "main_team__name",
@@ -80,12 +85,12 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 "collection_title",
                 "sort_name",
             ]
-        elif order_key == "issue_number":
+        elif order_key == "issue":
             # Compound issue sort: number first, suffix as secondary.
-            # The combined ``Issue`` column in the table-view registry
-            # uses ``issue_number`` as its sort key and benefits from
-            # this multi-field ORDER BY; cover-view's "Issue Number"
-            # dropdown picks up the same secondary sort.
+            # The ``issue`` order_by enum value is virtual — it expands
+            # to two real Comic fields here so SQL ORDER BY does the
+            # natural multi-field sort that matches how the compound
+            # ``Issue`` table column is rendered.
             order_fields_head = ["issue_number", "issue_suffix"]
         elif order_key in m2m_columns():
             # M2M sort: ``ORDER BY <alias>`` where the alias is the

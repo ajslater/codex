@@ -69,8 +69,6 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "month": "month",
         "day": "day",
         "date": "date",
-        "issue_number": "issue_number",
-        "issue_suffix": "issue_suffix",
         "page_count": "page_count",
         "size": "size",
         "file_type": "file_type",
