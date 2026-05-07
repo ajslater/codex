@@ -183,8 +183,20 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     # Main loop #
     #############
 
-    def _get_min_timeout(self) -> float | None:
-        """Find the shortest timeout across all polled libraries."""
+    def _poll_due_and_get_next_timeout(self, *, force: bool = False) -> float | None:
+        """
+        Poll any due libraries and return the wait time until the next.
+
+        ``_get_poll_timeout`` is the source of truth for both "is this
+        library due now?" and "when will it be due?", and it logs as a
+        side effect — notably an INFO ``waiting for manual poll`` line
+        for every ``poll=False`` library it sees. The previous shape
+        called it twice per main-loop iteration (once to find the
+        minimum timeout, once to pick the libraries to poll), so that
+        log fired twice every cycle a library was due. Folding the
+        two passes into one keeps each library inspected exactly once
+        per cycle.
+        """
         min_timeout: float | None = None
         try:
             libraries = Library.objects.all().only(*_LIBRARY_ONLY)
@@ -197,8 +209,15 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
                 if timeout is None:
                     continue
-                if timeout == 0:
-                    return 0
+                if timeout <= 0:
+                    self._poll_library(library, force=force)
+                    # ``_poll_library`` bumped ``last_poll`` to now, so
+                    # the next natural wait for this library is one
+                    # whole ``poll_every`` away. Fold that into the
+                    # running min so we don't return ``None`` and wait
+                    # forever when the only due library was the one we
+                    # just polled.
+                    timeout = library.poll_every.total_seconds()
                 if min_timeout is None or timeout < min_timeout:
                     min_timeout = timeout
         except Exception:
@@ -206,20 +225,6 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             return 60  # Retry in a minute on error
 
         return min_timeout
-
-    def _poll_due_libraries(self, *, force: bool = False) -> None:
-        """Poll all libraries that are due."""
-        try:
-            libraries = Library.objects.all().only(*_LIBRARY_ONLY)
-            for library in libraries:
-                try:
-                    timeout = self._get_poll_timeout(library)
-                except FileNotFoundError:
-                    continue
-                if timeout is not None and timeout <= 0:
-                    self._poll_library(library, force=force)
-        except Exception:
-            self.log.exception("Polling due libraries")
 
     def _handle_pending_polls(self) -> None:
         """Handle manually triggered polls."""
@@ -249,11 +254,8 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
                 if self._pending_poll_ids:
                     self._handle_pending_polls()
 
-                # Find the next scheduled poll time
-                timeout = self._get_min_timeout()
-                if timeout is not None and timeout <= 0:
-                    self._poll_due_libraries()
-                    continue
+                # Poll any due libraries and find the next scheduled poll time
+                timeout = self._poll_due_and_get_next_timeout()
 
                 # Sleep until next poll or until woken
                 if timeout is not None:
