@@ -514,12 +514,47 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
     }
 )
 
+# Default visible columns per top-group when the user hasn't set
+# their own. Layout follows the per-top-group default sort:
+# columns referenced by the default ``order_by`` (primary + extras)
+# appear first — after ``cover``, which always anchors the row —
+# so row content visually tracks the sort order. ``sort_name``
+# (the default sort key) maps to the ``name`` column for display
+# purposes; ``publisher_name`` / ``imprint_name`` / ``series_name``
+# map to their like-named columns. The frontend's
+# ``_DEFAULT_TABLE_ORDER`` lookup must stay in sync with this map
+# — both define the per-top-group baseline the cancel button and
+# the initial-render path lean on.
 BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
     {
+        # Sort: sort_name. → name first.
         "p": ("cover", "name", "child_count"),
-        "i": ("cover", "name", "publisher_name", "child_count"),
-        "s": ("cover", "name", "publisher_name", "year", "child_count"),
-        "v": ("cover", "name", "series_name", "year", "child_count"),
+        # Sort: publisher_name, sort_name. → publisher_name, name.
+        "i": ("cover", "publisher_name", "name", "child_count"),
+        # Sort: publisher_name, imprint_name, sort_name.
+        "s": (
+            "cover",
+            "publisher_name",
+            "imprint_name",
+            "name",
+            "year",
+            "child_count",
+        ),
+        # Sort: publisher_name, imprint_name, series_name, sort_name
+        # (Volume.sort_name expands to ``name, number_to``).
+        "v": (
+            "cover",
+            "publisher_name",
+            "imprint_name",
+            "series_name",
+            "name",
+            "year",
+            "child_count",
+        ),
+        # Sort: sort_name (Comic's sort_name expands inside
+        # ``_add_comic_order_by`` to publisher_sort_name → … →
+        # sort_name; the visible column set already mirrors that
+        # ladder).
         "c": (
             "cover",
             "name",
@@ -530,7 +565,9 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
             "page_count",
             "size",
         ),
+        # Sort: sort_name. Folder rows show their own name first.
         "f": ("cover", "name", "child_count"),
+        # Sort: sort_name. Story arc rows show their own name first.
         "a": ("cover", "name", "publisher_name", "child_count"),
     }
 )

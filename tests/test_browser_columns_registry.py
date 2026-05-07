@@ -84,6 +84,42 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
     def test_publisher_defaults_minimal(self):
         assert default_columns_for("p") == ("cover", "name", "child_count")
 
+    def test_imprint_defaults_lead_with_sort_columns(self):
+        # Default sort is ``publisher_name → sort_name``. Default
+        # columns lead with the same keys (after ``cover``) so the
+        # display tracks the sort.
+        assert default_columns_for("i") == (
+            "cover",
+            "publisher_name",
+            "name",
+            "child_count",
+        )
+
+    def test_series_defaults_lead_with_sort_columns(self):
+        # Default sort is ``publisher_name → imprint_name → sort_name``.
+        assert default_columns_for("s") == (
+            "cover",
+            "publisher_name",
+            "imprint_name",
+            "name",
+            "year",
+            "child_count",
+        )
+
+    def test_volume_defaults_lead_with_sort_columns(self):
+        # Default sort is ``publisher_name → imprint_name → series_name
+        # → sort_name``. ``Volume.sort_name`` expands to
+        # ``name, number_to`` in the dispatcher.
+        assert default_columns_for("v") == (
+            "cover",
+            "publisher_name",
+            "imprint_name",
+            "series_name",
+            "name",
+            "year",
+            "child_count",
+        )
+
     def test_unknown_top_group_returns_empty(self):
         assert default_columns_for("zz") == ()
 
