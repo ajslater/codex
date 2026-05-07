@@ -48,6 +48,7 @@ import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
+import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -76,6 +77,13 @@ const DATETIME_COLUMNS = new Set([
   "metadata_mtime",
   "bookmark_updated_at",
 ]);
+/*
+ * Columns whose stored value is an enum code (ltr / rtl / …) and
+ * should be expanded to its display label via a build-choices map.
+ */
+const ENUM_COLUMN_LABELS = Object.freeze({
+  reading_direction: READING_DIRECTION,
+});
 
 function snakeToCamel(s) {
   return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -216,6 +224,19 @@ export default {
        */
       if (SIZE_COLUMNS.has(this.column)) return formatSize(value);
       if (DATE_COLUMNS.has(this.column)) return formatDate(value);
+      /*
+       * Enum columns store a code (ltr / rtl / ttb / btt for
+       * ``reading_direction``); look up the display label, falling
+       * back to the raw code if the map doesn't have an entry.
+       */
+      if (Object.hasOwn(ENUM_COLUMN_LABELS, this.column)) {
+        const labels = ENUM_COLUMN_LABELS[this.column];
+        if (Object.hasOwn(labels, value)) {
+          // eslint-disable-next-line security/detect-object-injection
+          return labels[value];
+        }
+        return String(value);
+      }
       if (DATETIME_COLUMNS.has(this.column)) {
         return formatDateTime(value, this.twentyFourHourTime);
       }

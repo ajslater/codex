@@ -356,6 +356,178 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
 
+    def test_primary_sort_by_tagger_on_group_rows(self) -> None:
+        """
+        Group-row primary sort routes through ``annotate_order_value``.
+
+        Regression: simple FK / scalar primaries (tagger, age_rating,
+        size, page_count, country, language, …) used to sort group
+        rows in PK order rather than by the aggregate of their
+        children's values.
+        """
+        from codex.models.named import Tagger
+
+        tagger_a = Tagger.objects.create(name="Alice")
+        tagger_b = Tagger.objects.create(name="Bob")
+        # alpha's comics get Alice; beta's only comic gets Bob.
+        self.comic_alpha_1.tagger = tagger_a
+        self.comic_alpha_1.save()
+        self.comic_alpha_2.tagger = tagger_a
+        self.comic_alpha_2.save()
+        self.comic_beta_1.tagger = tagger_b
+        self.comic_beta_1.save()
+
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v3/p/{publisher.pk}/1"
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "tagger", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Alpha", "Beta"], names
+
+        cache.clear()
+        self._patch_settings({"orderReverse": True})
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Beta", "Alpha"], names
+
+    def test_primary_sort_by_page_count_on_group_rows(self) -> None:
+        """Sum aggregate over ``page_count`` sorts groups correctly."""
+        # alpha has page_counts [11, 12] (Sum=23); beta has [11] (Sum=11).
+        # Asc → Beta (smaller sum) first.
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v3/p/{publisher.pk}/1"
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "page_count", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Beta", "Alpha"], names
+
+    def test_primary_sort_at_publishers_root(self) -> None:
+        """
+        Publishers root (top_group=p, /r/0/1) sorts by aggregated child values.
+
+        Adds a second publisher with one comic, picks a sort key
+        whose aggregate differs between the two publishers, and
+        verifies the publisher list re-orders accordingly. This is
+        the path the user described as "viewing publishers" — rows
+        ARE the publishers themselves rather than their children.
+        """
+        from codex.models.named import Tagger  # noqa: PLC0415
+
+        # Tag alpha's comics with Alice; beta's comic with Bob; new
+        # publisher's comic gets Carol so the order spans three groups.
+        tagger_a = Tagger.objects.create(name="Alice")
+        tagger_b = Tagger.objects.create(name="Bob")
+        tagger_c = Tagger.objects.create(name="Carol")
+        self.comic_alpha_1.tagger = tagger_a
+        self.comic_alpha_1.save()
+        self.comic_alpha_2.tagger = tagger_a
+        self.comic_alpha_2.save()
+        self.comic_beta_1.tagger = tagger_b
+        self.comic_beta_1.save()
+
+        library = Library.objects.first()
+        publisher_2 = Publisher.objects.create(name="AA Press")
+        imprint_2 = Imprint.objects.create(name="AA Imprint", publisher=publisher_2)
+        series_2 = Series.objects.create(
+            name="Gamma", imprint=imprint_2, publisher=publisher_2
+        )
+        volume_2 = Volume.objects.create(
+            name="2022", series=series_2, imprint=imprint_2, publisher=publisher_2
+        )
+        path = TMP_DIR / "g1.cbz"
+        path.touch()
+        Comic.objects.create(
+            library=library,
+            path=path,
+            issue_number=1,
+            name="g1",
+            publisher=publisher_2,
+            imprint=imprint_2,
+            series=series_2,
+            volume=volume_2,
+            size=200,
+            year=2022,
+            page_count=20,
+            tagger=tagger_c,
+        )
+
+        # Browse the root (top_group=p so each row is a publisher).
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "topGroup": "p",
+                "orderBy": "tagger",
+                "orderReverse": False,
+            }
+        )
+        response = self.client.get("/api/v3/r/0/1")
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        # Min(comic__tagger__name) per publisher: ZZ Press = Alice (alpha
+        # children dominate) tied with Bob → Min = "Alice"; AA Press =
+        # "Carol". Asc on those Mins → ZZ Press ("Alice") then AA Press
+        # ("Carol").
+        assert names == ["ZZ Press", "AA Press"], names
+
+    def test_primary_sort_by_year_on_group_rows(self) -> None:
+        """Min aggregate over a direct integer field (``year``) sorts correctly."""
+        # Alpha has two comics, both year=2020 → Min year = 2020.
+        # Beta has one comic, year=2021 → Min year = 2021.
+        # Asc → Alpha (2020) first, Beta (2021) second.
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v3/p/{publisher.pk}/1"
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "year", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Alpha", "Beta"], names
+
+        cache.clear()
+        self._patch_settings({"orderReverse": True})
+        response = self.client.get(url)
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Beta", "Alpha"], names
+
+    def test_primary_sort_with_table_columns_query_params(self) -> None:
+        """
+        Sort pipeline still kicks in when the frontend includes
+        ``columns=`` and the sort key is ALSO a visible column.
+
+        Mirrors the table-view request the UI actually emits — the
+        browser sends the user's column set on every page load — so
+        if the column-annotation pipeline's interaction with the
+        order pipeline regresses, we'd catch it here.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = (
+            f"/api/v3/p/{publisher.pk}/1"
+            "?columns=cover,name,year,page_count"
+        )
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "year", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Alpha", "Beta"], names
+
+        cache.clear()
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "page_count", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        assert names == ["Beta", "Alpha"], names
+
     def test_multi_column_sort_unsupported_extra_falls_back(self) -> None:
         """
         Reject unsupported-as-extra keys gracefully via ``sort_name`` fallback.
