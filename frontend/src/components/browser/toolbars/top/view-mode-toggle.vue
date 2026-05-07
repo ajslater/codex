@@ -2,12 +2,10 @@
   <ToolbarButton
     v-if="showButton"
     class="viewModeToggle"
-    icon
+    :icon="icon"
     :title="title"
     @click="toggleViewMode"
-  >
-    <v-icon>{{ icon }}</v-icon>
-  </ToolbarButton>
+  />
 </template>
 
 <script>
