@@ -615,6 +615,68 @@ class BrowserTablePageResponseTestCase(TestCase):
         expected_total_pages = 22 + 18
         assert row["pageCount"] == expected_total_pages, row
 
+    def test_table_view_simple_m2m_intersections_share_one_union_query(
+        self,
+    ) -> None:
+        """
+        Regression: simple-M2M columns batch into one ``UNION ALL`` query.
+
+        Each per-column M2M intersection used to issue its own
+        ``Comic.filter().filter().values().annotate()`` round-trip;
+        ``_compute_simple_m2m_intersections_batched`` follows the
+        metadata-view pattern (``query_intersections``'s
+        ``_query_m2m_intersections``) and unions per-through-table
+        sub-queries into a single SQL transmission. Composite M2M
+        columns (credits / identifiers / universes / story_arcs)
+        still issue their own queries.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from codex.models.named import Character, Genre, Tag, Team
+
+        comic = Comic.objects.first()
+        assert comic is not None
+        comic.genres.add(Genre.objects.create(name="Sci-Fi"))
+        comic.tags.add(Tag.objects.create(name="HiRes"))
+        comic.characters.add(Character.objects.create(name="Spider-Man"))
+        comic.teams.add(Team.objects.create(name="Avengers"))
+
+        self._set_view_mode_table()
+        url = (
+            f"/api/v3/p/{comic.publisher.pk}/1?columns="
+            "cover,name,genres,tags,characters,teams,locations,stories,series_groups"
+        )
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        # Through-table queries land on tables named
+        # ``codex_comic_<m2m>``. The batched UNION emits one SQL
+        # statement that references multiple through tables. Per-
+        # column path emits one statement per through-table.
+        through_query_count = sum(
+            "codex_comic_genres" in q["sql"]
+            or "codex_comic_tags" in q["sql"]
+            or "codex_comic_characters" in q["sql"]
+            or "codex_comic_teams" in q["sql"]
+            or "codex_comic_locations" in q["sql"]
+            or "codex_comic_stories" in q["sql"]
+            or "codex_comic_series_groups" in q["sql"]
+            for q in ctx.captured_queries
+        )
+        # Pre-fix: 7 separate queries (one per visible simple-M2M
+        # column). Post-fix: a single UNION-ALL query references all
+        # seven through-tables.
+        max_expected_through_queries = 3
+        assert through_query_count <= max_expected_through_queries, (
+            f"got {through_query_count} through-table queries:\n"
+            + "\n".join(
+                q["sql"]
+                for q in ctx.captured_queries
+                if "codex_comic_" in q["sql"]
+            )
+        )
+
     def test_table_view_group_intersections_batch_into_one_scalar_query(
         self,
     ) -> None:

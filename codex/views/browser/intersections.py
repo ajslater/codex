@@ -23,7 +23,7 @@ from types import MappingProxyType
 from typing import Any
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Count, Min, Q, Sum
+from django.db.models import CharField, Count, F, Min, Q, Sum, Value
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
@@ -160,7 +160,15 @@ def compute_group_intersections(
         intersect_cols, sum_cols, group_pks, comic_to_group, result
     )
 
+    # Simple-M2M columns share one UNION-ALL query (metadata-view
+    # pattern). Composite shapes (credits / identifiers / universes /
+    # story_arcs) keep their per-column helpers.
+    _compute_simple_m2m_intersections_batched(
+        m2m_cols, group_pks, comic_to_group, counts, result
+    )
     for col in m2m_cols:
+        if col in _SIMPLE_M2M_BATCH_FIELDS:
+            continue
         _compute_m2m_intersection(col, group_pks, comic_to_group, counts, result)
 
     return result
@@ -292,6 +300,106 @@ def _compute_batched_scalars(
     return counts
 
 
+# M2M columns whose intersection display is the alphabetized list of
+# the target model's ``name`` field. Eligible for the through-table
+# batched union (see ``_compute_simple_m2m_intersections_batched``).
+# ``universes`` (composite ``name:designation``), ``credits``
+# (``Person (Role)``), ``identifiers`` (``[source:]type:key``), and
+# ``story_arcs`` (StoryArcNumber → StoryArc indirection) need bespoke
+# SQL and stay on per-column helpers.
+_SIMPLE_M2M_BATCH_FIELDS: frozenset[str] = frozenset(
+    {
+        "characters",
+        "genres",
+        "locations",
+        "series_groups",
+        "stories",
+        "tags",
+        "teams",
+    }
+)
+
+
+def _build_simple_m2m_intersection_query(
+    col: str, comic_to_group: str, group_pks: list[int]
+):
+    """
+    One per-column through-table query, aggregated per (group, value).
+
+    Skips Comic as an anchor: queries the M2M through table directly
+    and JOINs to the target's ``__name`` and (via ``comic__``) to the
+    parent group's FK column. SQL aggregation produces one row per
+    ``(group_pk, value)`` so the union output stays small. Marked
+    with the column key as ``field_name`` so a downstream union can
+    partition results without per-query Python state.
+    """
+    field = Comic._meta.get_field(col)
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    return (
+        through.objects.filter(
+            **{f"comic__{comic_to_group}__in": group_pks},
+            **{f"{rel_name}__name__isnull": False},
+        )
+        .exclude(**{f"{rel_name}__name": ""})
+        .values(
+            value=F(f"{rel_name}__name"),
+            group_pk=F(f"comic__{comic_to_group}"),
+        )
+        .annotate(cnt=Count("comic_id", distinct=True))
+        .annotate(field_name=Value(col, output_field=CharField()))
+        .values_list("field_name", "group_pk", "value", "cnt")
+    )
+
+
+def _compute_simple_m2m_intersections_batched(
+    cols: list[str],
+    group_pks: list[int],
+    comic_to_group: str,
+    counts: dict[int, int],
+    result: dict[int, dict[str, Any]],
+) -> None:
+    """
+    Batch every simple-M2M column into one ``UNION ALL`` round-trip.
+
+    Mirrors ``MetadataQueryIntersectionsView._query_m2m_intersections``
+    but adapts to multiple groups per page: each sub-query carries a
+    ``group_pk`` annotation and aggregates per ``(group_pk, value)``;
+    the UNION combines all column shapes into one SQL transmission.
+    Python-side partitioning then drops rows whose ``cnt`` doesn't
+    match the group's total comic count — that's the intersection
+    rule.
+    """
+    queries = [
+        _build_simple_m2m_intersection_query(col, comic_to_group, group_pks)
+        for col in cols
+        if col in _SIMPLE_M2M_BATCH_FIELDS
+    ]
+
+    # Initialize empty lists for every requested simple column up
+    # front so groups whose intersection is empty get ``[]`` rather
+    # than missing keys.
+    batched_cols = [c for c in cols if c in _SIMPLE_M2M_BATCH_FIELDS]
+    for gpk in group_pks:
+        bucket = result[gpk]
+        for col in batched_cols:
+            bucket.setdefault(col, [])
+    if not queries:
+        return
+
+    if len(queries) == 1:
+        combined = queries[0]
+    else:
+        combined = queries[0].union(*queries[1:], all=True)
+
+    intersection_per: dict[tuple[str, int], list[str]] = defaultdict(list)
+    for field_name, group_pk, value, cnt in combined:
+        if cnt == counts.get(group_pk, 0):
+            intersection_per[(field_name, group_pk)].append(value)
+    for (field_name, gpk), values in intersection_per.items():
+        result[gpk][field_name] = sorted(values)
+
+
 def _compute_m2m_intersection(
     col: str,
     group_pks: list[int],
@@ -299,10 +407,14 @@ def _compute_m2m_intersection(
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
 ) -> None:
-    """Set ``result[group][col]`` to the list of M2M values shared by every comic."""
-    # Field-specific aggregation. credits / identifiers carry composite
-    # display strings (Person (Role) / source:type:key); the others map
-    # to a single ``__name`` path.
+    """
+    Set ``result[group][col]`` for one composite-M2M column.
+
+    Simple M2M columns route through
+    ``_compute_simple_m2m_intersections_batched`` instead — this
+    helper covers the bespoke shapes (credits / identifiers /
+    universes / story_arcs).
+    """
     if col == "credits":
         _compute_credits_intersection(group_pks, comic_to_group, counts, result)
         return
@@ -333,14 +445,7 @@ def _compute_m2m_intersection(
 
 _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
     {
-        "characters": "characters__name",
-        "genres": "genres__name",
-        "locations": "locations__name",
-        "series_groups": "series_groups__name",
-        "stories": "stories__name",
         "story_arcs": "story_arc_numbers__story_arc__name",
-        "tags": "tags__name",
-        "teams": "teams__name",
         "universes": "universes__name",
     }
 )
