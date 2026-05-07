@@ -94,19 +94,26 @@ import { useBrowserStore } from "@/stores/browser";
  */
 const _CATEGORIES = Object.freeze([
   {
-    label: "Identity",
-    columns: ["cover", "name", "issue"],
+    label: "Cover",
+    columns: ["cover"],
   },
   {
     label: "Publishing",
-    columns: ["publisher_name", "imprint_name", "series_name", "volume_name"],
+    columns: [
+      "publisher_name",
+      "imprint_name",
+      "series_name",
+      "volume_name",
+      "issue",
+      "name",
+    ],
   },
   {
     label: "Counts",
     columns: ["child_count"],
   },
   {
-    label: "Files",
+    label: "File",
     columns: ["file_name", "size", "page_count", "file_type"],
   },
   {
@@ -123,26 +130,26 @@ const _CATEGORIES = Object.freeze([
     ],
   },
   {
-    label: "Tagging",
-    columns: [
-      "country",
-      "language",
-      "original_format",
-      "tagger",
-      "scan_info",
-      "age_rating",
-      "main_character",
-      "main_team",
-    ],
+    label: "Locale",
+    columns: ["country", "language"],
   },
   {
-    label: "Reader",
-    columns: ["reading_direction", "monochrome", "critical_rating"],
+    label: "Format",
+    columns: ["original_format", "monochrome", "reading_direction"],
+  },
+  {
+    label: "Rating",
+    columns: ["age_rating", "critical_rating"],
+  },
+  {
+    label: "Tagging",
+    columns: ["tagger", "scan_info"],
   },
   {
     label: "Tags & People",
     columns: [
       "characters",
+      "main_character",
       "credits",
       "genres",
       "identifiers",
@@ -152,6 +159,7 @@ const _CATEGORIES = Object.freeze([
       "story_arcs",
       "tags",
       "teams",
+      "main_team",
       "universes",
     ],
   },
