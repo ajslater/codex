@@ -509,6 +509,34 @@ class BrowserTablePageResponseTestCase(TestCase):
         # produced a non-null value.
         assert row["country"] in ("United States", "us")
 
+    def test_table_view_group_publisher_name_renders_for_series_rows(self) -> None:
+        """
+        Series rows show ``publisher_name`` via child-comic intersection.
+
+        Regression: ``annotate_group_names`` only annotated
+        ``publisher_name`` for Comic and Imprint querysets, and
+        ``publisher_name`` was missing from ``_SCALAR_FIELD_PATHS``,
+        so Series rows (top_group=s) — and Volume / Folder /
+        StoryArc by extension — rendered the publisher cell blank
+        even when every child comic shared a publisher. The fix
+        added the FK-name path to the scalar-intersection set so
+        the display computer picks it up.
+        """
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        url = (
+            f"/api/v3/p/{first_comic.publisher.pk}/1"
+            "?columns=cover,name,publisher_name,series_name"
+        )
+        self._set_view_mode_table()
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        rows = response.json()["rows"]
+        assert rows, response.json()
+        row = rows[0]
+        assert row["publisherName"] == first_comic.publisher.name, row
+        assert row["seriesName"] == first_comic.series.name, row
+
     def test_table_view_group_intersection_scalar_mixed(self) -> None:
         """Series row: ``year`` is null when child comics differ."""
         from codex.models import Library

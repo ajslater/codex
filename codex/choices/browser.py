@@ -552,15 +552,19 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
             "child_count",
         ),
         # Sort: sort_name (Comic's sort_name expands inside
-        # ``_add_comic_order_by`` to publisher_sort_name → … →
-        # sort_name; the visible column set already mirrors that
-        # ladder).
+        # ``_add_comic_order_by`` to publisher_sort_name →
+        # imprint_sort_name → series_sort_name → volume_name →
+        # volume_number_to → issue_number → issue_suffix →
+        # collection_title → sort_name). The visible column set
+        # mirrors that ladder so the row order tracks the sort.
         "c": (
             "cover",
-            "name",
-            "issue",
+            "publisher_name",
+            "imprint_name",
             "series_name",
             "volume_name",
+            "issue",
+            "name",
             "year",
             "page_count",
             "size",

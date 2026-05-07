@@ -68,14 +68,18 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
             assert not unknown, f"{top_group} references unknown columns {unknown}"
 
     def test_comic_defaults_match_plan(self):
-        # Locked in Phase 0; ``issue_number`` was later collapsed into
-        # the compound ``issue`` column.
+        # Default sort for Comic is ``sort_name`` which the
+        # dispatcher expands to the full ``publisher_sort_name → …
+        # → sort_name`` ladder. Default columns mirror that ladder
+        # (after ``cover``) so row content tracks the sort.
         assert default_columns_for("c") == (
             "cover",
-            "name",
-            "issue",
+            "publisher_name",
+            "imprint_name",
             "series_name",
             "volume_name",
+            "issue",
+            "name",
             "year",
             "page_count",
             "size",

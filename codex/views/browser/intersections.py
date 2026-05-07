@@ -60,9 +60,9 @@ def _format_identifier(source_name: str | None, id_type: str, key: str) -> str:
 
 # Comic field paths for scalar / FK-name columns that participate in
 # group-row intersection. Keys mirror the column registry; values are
-# Django ORM paths from Comic. Columns whose value is the group's own
-# attribute (publisher_name on a Series row, etc.) are *already*
-# correct via ``annotate_group_names`` and aren't computed here.
+# Django ORM paths from Comic. The intersection path runs only for
+# non-Comic group querysets — Comic rows show their own values via
+# the regular ``getattr`` lookup in ``_row_repr``.
 _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
     {
         # Direct Comic fields.
@@ -89,7 +89,16 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "age_rating": "age_rating__name",
         "main_character": "main_character__name",
         "main_team": "main_team__name",
+        # Hierarchy FK-to-name columns. Series / Volume / Imprint
+        # have a direct FK on the group model itself but we aggregate
+        # via the children's Comic FK chain so the intersection path
+        # works uniformly across all non-Comic models — including
+        # Folder and StoryArc, which lack the direct FK and so would
+        # render blank otherwise.
+        "publisher_name": "publisher__name",
         "imprint_name": "imprint__name",
+        "series_name": "series__name",
+        "volume_name": "volume__name",
     }
 )
 
