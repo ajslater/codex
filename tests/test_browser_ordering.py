@@ -396,10 +396,12 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_by_page_count_on_group_rows(self) -> None:
-        """Intersection sort over ``page_count`` matches the display rule."""
-        # Alpha's children have page_counts [11, 12] (mixed → intersection
-        # NULL). Beta's only child has page_count=11 (single → 11).
-        # ASC: NULL first under SQLite, so Alpha precedes Beta.
+        """Cumulative ``page_count`` sums across children (matches cover view)."""
+        # Alpha's children have page_counts [11, 12] (Sum=23). Beta's
+        # only child has page_count=11. ASC → Beta (11) precedes Alpha
+        # (23). Cumulative scalars (page_count, size) intentionally
+        # use ``Sum`` rather than intersection because the cover-view
+        # card already shows the running total — table view matches.
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v3/p/{publisher.pk}/1"
         self._patch_settings(
@@ -408,7 +410,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         names = [g.get("name") for g in response.json().get("groups", [])]
-        assert names == ["Alpha", "Beta"], names
+        assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_at_publishers_root(self) -> None:
         """

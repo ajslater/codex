@@ -545,6 +545,49 @@ class BrowserTablePageResponseTestCase(TestCase):
         # No intersection — child comics differ.
         assert row["year"] is None
 
+    def test_table_view_group_cumulative_page_count(self) -> None:
+        """Series row: ``page_count`` shows Sum across children (cover-view rule)."""
+        from codex.models import Library
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        first_comic.page_count = 22
+        first_comic.save()
+
+        path_b = TMP_DIR / "sum-b.cbz"
+        path_b.touch()
+        Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=first_comic.publisher,
+            imprint=first_comic.imprint,
+            series=first_comic.series,
+            volume=first_comic.volume,
+            size=43,
+            year=2024,
+            page_count=18,
+        )
+
+        self._set_view_mode_table()
+        url = (
+            f"/api/v3/p/{first_comic.publisher.pk}/1"
+            "?columns=cover,name,page_count,size"
+        )
+        response = self.client.get(url)
+        body = response.json()
+        rows = body["rows"]
+        row = rows[0]
+        # ``page_count`` is cumulative — series row shows the total
+        # across both children, not the intersected value (which
+        # would be NULL since 22 ≠ 18). Cover-view's group cards
+        # display Sum here too; table view matches.
+        expected_total_pages = 22 + 18
+        assert row["pageCount"] == expected_total_pages, row
+
     def test_table_view_group_intersection_m2m(self) -> None:
         """Series row: genres include only values every comic shares."""
         from codex.models import Library

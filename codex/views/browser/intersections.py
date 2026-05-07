@@ -23,7 +23,7 @@ from types import MappingProxyType
 from typing import Any
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
@@ -155,6 +155,11 @@ def compute_group_intersections(
     for col in cols:
         if col in m2m_set:
             _compute_m2m_intersection(col, group_pks, comic_to_group, counts, result)
+        elif col in _CUMULATIVE_SCALAR_FIELDS:
+            path = _SCALAR_FIELD_PATHS.get(col)
+            if path is None:
+                continue
+            _compute_scalar_sum(col, path, group_pks, comic_to_group, result)
         elif col in _SCALAR_FIELD_PATHS or col in fk_set:
             path = _SCALAR_FIELD_PATHS.get(col)
             if path is None:
@@ -163,6 +168,33 @@ def compute_group_intersections(
                 col, path, group_pks, comic_to_group, counts, result
             )
     return result
+
+
+# Scalar columns whose group-row value is the *sum* of the children's
+# values rather than the per-row intersection. Both ``page_count`` and
+# ``size`` are cumulative quantities — the cover-view card already
+# shows ``Sum`` for these, so the table view (display + sort) follows
+# the same rule. Categorical scalars (``year``, ``country``,
+# ``tagger``, …) keep the intersection rule.
+_CUMULATIVE_SCALAR_FIELDS: frozenset[str] = frozenset({"page_count", "size"})
+
+
+def _compute_scalar_sum(
+    col: str,
+    comic_path: str,
+    group_pks: list[int],
+    comic_to_group: str,
+    result: dict[int, dict[str, Any]],
+) -> None:
+    """Set ``result[group][col]`` to the sum across the group's child comics."""
+    rows = (
+        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
+        .values(comic_to_group)
+        .annotate(total=Sum(comic_path, distinct=True))
+    )
+    per_group = {row[comic_to_group]: row["total"] for row in rows}
+    for gpk in group_pks:
+        result[gpk][col] = per_group.get(gpk)
 
 
 def _compute_scalar_intersection(
@@ -534,8 +566,13 @@ def scalar_intersection_sort_expr(
     Returns None when the column or group model isn't supported;
     callers fall back to the previous aggregate path so we don't
     silently break an existing sort if the registry adds a new field
-    we haven't wired here yet.
+    we haven't wired here yet. Cumulative scalars (``page_count``,
+    ``size``) also return None so the caller's ``Sum`` aggregate
+    runs — display for those columns is ``Sum`` (matching cover-view)
+    rather than intersection, and sort matches display.
     """
+    if column in _CUMULATIVE_SCALAR_FIELDS:
+        return None
     path = _SCALAR_FIELD_PATHS.get(column)
     correlation = _comic_correlation_sql(group_model)
     if path is None or correlation is None:
