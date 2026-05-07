@@ -1,5 +1,6 @@
 <template>
   <ToolbarButton
+    v-if="showButton"
     class="viewModeToggle"
     icon
     :title="title"
@@ -33,6 +34,16 @@ export default {
     }),
     isTable() {
       return this.viewMode === "table";
+    },
+    showButton() {
+      /*
+       * Hide on viewports too narrow for the table — even with
+       * ``viewMode = "table"`` stored, mobile auto-fallback renders
+       * the cover grid, so toggling here would change persisted
+       * state without any visible effect. The user can flip the
+       * mode from a wider viewport.
+       */
+      return !this.$vuetify.display.smAndDown;
     },
     icon() {
       // Show the icon for the *other* mode — clicking it switches to that mode.
