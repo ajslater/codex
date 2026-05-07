@@ -1,15 +1,22 @@
 <template>
-  <div v-if="showButton">
-    <ToolbarButton
-      class="columnsButton"
-      icon
-      title="choose columns"
-      @click="dialogOpen = true"
-    >
-      <v-icon>{{ mdiViewColumnOutline }}</v-icon>
-    </ToolbarButton>
-    <BrowserTableColumnPicker v-model="dialogOpen" />
-  </div>
+  <!--
+    Multi-root template so the ToolbarButton sits as a *direct*
+    child of the parent ``<v-toolbar-items>`` flex container.
+    Wrapping it in a ``<div>`` breaks the toolbar's flex-item
+    sizing so v-btn falls back to its default "icon" shape (the
+    rounded oval the user noticed). The dialog is a teleported
+    portal so its sibling position is irrelevant; we mount it
+    unconditionally so dialog state survives short button-hidden
+    intervals (e.g., a viewport resize between table and cover).
+   -->
+  <ToolbarButton
+    v-if="showButton"
+    class="columnsButton"
+    :icon="mdiViewColumnOutline"
+    title="choose columns"
+    @click="dialogOpen = true"
+  />
+  <BrowserTableColumnPicker v-model="dialogOpen" />
 </template>
 
 <script>
