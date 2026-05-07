@@ -615,6 +615,104 @@ class BrowserTablePageResponseTestCase(TestCase):
         expected_total_pages = 22 + 18
         assert row["pageCount"] == expected_total_pages, row
 
+    def test_table_view_group_intersections_batch_into_one_scalar_query(
+        self,
+    ) -> None:
+        """
+        Regression: the per-page scalar / cumulative aggregates issue one query.
+
+        ``compute_group_intersections`` previously emitted one query
+        per visible scalar column (year, country, language, tagger,
+        page_count, size, …). On a wide table the round-trip count
+        scaled with the column set. The batched helper combines all
+        scalars + cumulatives + comic counts into a single
+        ``Comic.filter().values(rel).annotate(**)`` query. M2M
+        columns each still issue their own query (different
+        through-table per JOIN; combining would cross-multiply).
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        # Hit a series row with seven scalar / cumulative columns so
+        # the pre-fix path would have issued seven separate queries
+        # (plus a count). The batched path issues one.
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        self._set_view_mode_table()
+        url = (
+            f"/api/v3/p/{first_comic.publisher.pk}/1?columns="
+            "cover,name,year,page_count,size,publisher_name,country,language"
+        )
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        # ``compute_group_intersections``-attributable queries have a
+        # signature stable across schema additions: a SELECT against
+        # ``codex_comic`` that GROUPs by the parent FK column. M2M
+        # intersections look similar but JOIN through a
+        # ``codex_comic_<m2m>`` table — exclude those.
+        scalar_queries = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if 'FROM "codex_comic"' in q["sql"]
+            and "GROUP BY" in q["sql"]
+            and "codex_comic_" not in q["sql"]
+        ]
+        # Two batched scalar groups: one for the page-mtime computer,
+        # one for the column intersections. Pinning ≤ this constant
+        # leaves a tolerance for incidental future grouping queries;
+        # the important property is that *adding visible scalar
+        # columns doesn't multiply this count.*
+        max_expected_scalar_queries = 3
+        assert len(scalar_queries) <= max_expected_scalar_queries, "\n".join(
+            scalar_queries
+        )
+
+    def test_table_view_group_cumulative_page_count_with_duplicates(self) -> None:
+        """
+        Regression: cumulative sums must not de-duplicate equal values.
+
+        ``_compute_scalar_sum`` previously called
+        ``Sum(comic_path, distinct=True)`` which folded sibling
+        comics with the same ``page_count`` into a single contribution.
+        Two child comics with ``page_count=20`` would total 20
+        instead of 40. The batched aggregate drops ``distinct=True``
+        — duplicate values across siblings are now summed correctly.
+        """
+        from codex.models import Library
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        library = Library.objects.first()
+        assert library is not None
+        first_comic.page_count = 20
+        first_comic.save()
+
+        path_b = TMP_DIR / "sum-dup-b.cbz"
+        path_b.touch()
+        Comic.objects.create(
+            library=library,
+            path=path_b,
+            issue_number=2,
+            name="B",
+            publisher=first_comic.publisher,
+            imprint=first_comic.imprint,
+            series=first_comic.series,
+            volume=first_comic.volume,
+            size=43,
+            year=2024,
+            page_count=20,  # same as the existing comic
+        )
+
+        self._set_view_mode_table()
+        url = (
+            f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count"
+        )
+        response = self.client.get(url)
+        rows = response.json()["rows"]
+        expected_total = 20 + 20
+        assert rows[0]["pageCount"] == expected_total, rows[0]
+
     def test_table_view_group_intersection_m2m(self) -> None:
         """Series row: genres include only values every comic shares."""
         from codex.models import Library

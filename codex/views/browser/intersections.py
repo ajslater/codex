@@ -23,7 +23,7 @@ from types import MappingProxyType
 from typing import Any
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Min, Q, Sum
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
@@ -134,6 +134,12 @@ def compute_group_intersections(
     own values, not group intersections. Columns whose value source
     isn't recognized are skipped (the row's existing value path
     applies).
+
+    Scalar / FK-name / cumulative columns are batched into a single
+    grouped aggregate query — one round-trip regardless of how many
+    such columns are visible. M2M columns each issue their own
+    query because they each traverse a distinct through-table whose
+    JOIN would multiply rows for sibling M2M aggregates if combined.
     """
     cols = tuple(columns)
     if not cols or group_qs.model is Comic:
@@ -147,36 +153,47 @@ def compute_group_intersections(
     if not group_pks:
         return {}
 
-    # Comic counts per group — denominator for "every comic shares this value".
-    counts_qs = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
-        .values(comic_to_group)
-        .annotate(comic_count=Count("pk", distinct=True))
-    )
-    counts: dict[int, int] = {
-        row[comic_to_group]: row["comic_count"] for row in counts_qs
-    }
-
     result: dict[int, dict[str, Any]] = {pk: {} for pk in group_pks}
+
+    m2m_cols, intersect_cols, sum_cols = _bucket_intersection_columns(cols)
+    counts = _compute_batched_scalars(
+        intersect_cols, sum_cols, group_pks, comic_to_group, result
+    )
+
+    for col in m2m_cols:
+        _compute_m2m_intersection(col, group_pks, comic_to_group, counts, result)
+
+    return result
+
+
+def _bucket_intersection_columns(
+    cols: tuple[str, ...],
+) -> tuple[list[str], list[tuple[str, str]], list[tuple[str, str]]]:
+    """
+    Classify requested columns into M2M / scalar-intersection / cumulative.
+
+    Returns three lists that the caller passes to the appropriate
+    helpers. M2M columns stay per-query; scalars batch.
+    """
     m2m_set = m2m_columns()
     fk_set = fk_name_columns()
-
+    m2m_cols: list[str] = []
+    intersect_cols: list[tuple[str, str]] = []
+    sum_cols: list[tuple[str, str]] = []
     for col in cols:
         if col in m2m_set:
-            _compute_m2m_intersection(col, group_pks, comic_to_group, counts, result)
-        elif col in _CUMULATIVE_SCALAR_FIELDS:
+            m2m_cols.append(col)
+            continue
+        if col in _CUMULATIVE_SCALAR_FIELDS:
             path = _SCALAR_FIELD_PATHS.get(col)
-            if path is None:
+            if path is not None:
+                sum_cols.append((col, path))
                 continue
-            _compute_scalar_sum(col, path, group_pks, comic_to_group, result)
-        elif col in _SCALAR_FIELD_PATHS or col in fk_set:
+        if col in _SCALAR_FIELD_PATHS or col in fk_set:
             path = _SCALAR_FIELD_PATHS.get(col)
-            if path is None:
-                continue
-            _compute_scalar_intersection(
-                col, path, group_pks, comic_to_group, counts, result
-            )
-    return result
+            if path is not None:
+                intersect_cols.append((col, path))
+    return m2m_cols, intersect_cols, sum_cols
 
 
 # Scalar columns whose group-row value is the *sum* of the children's
@@ -188,50 +205,91 @@ def compute_group_intersections(
 _CUMULATIVE_SCALAR_FIELDS: frozenset[str] = frozenset({"page_count", "size"})
 
 
-def _compute_scalar_sum(
-    col: str,
-    comic_path: str,
+def _build_batched_annotations(
+    intersect_cols: list[tuple[str, str]],
+    sum_cols: list[tuple[str, str]],
+) -> dict[str, Any]:
+    """
+    Build the ``annotate(**)`` kwargs for the batched scalar query.
+
+    For each intersection column we ask for
+    ``COUNT(field)``, ``COUNT(DISTINCT field)``, ``MIN(field)`` —
+    enough to evaluate the intersection rule per row. For each
+    cumulative column we ask for ``Sum(field)`` (no ``distinct``;
+    sibling values that happen to match must contribute fully).
+    """
+    annotations: dict[str, Any] = {"_isect_comic_count": Count("pk", distinct=True)}
+    for col, path in intersect_cols:
+        annotations[f"_isect_{col}_count"] = Count(path)
+        annotations[f"_isect_{col}_distinct"] = Count(path, distinct=True)
+        annotations[f"_isect_{col}_min"] = Min(path)
+    for col, path in sum_cols:
+        annotations[f"_isect_{col}_sum"] = Sum(path)
+    return annotations
+
+
+def _row_intersection_value(row: dict, col: str, total: int):
+    """Apply the intersection rule to one column's batched aggregates."""
+    cnt_distinct = row[f"_isect_{col}_distinct"]
+    cnt = row[f"_isect_{col}_count"]
+    if total > 0 and cnt_distinct == 1 and cnt == total:
+        return row[f"_isect_{col}_min"]
+    return None
+
+
+def _compute_batched_scalars(
+    intersect_cols: list[tuple[str, str]],
+    sum_cols: list[tuple[str, str]],
     group_pks: list[int],
     comic_to_group: str,
     result: dict[int, dict[str, Any]],
-) -> None:
-    """Set ``result[group][col]`` to the sum across the group's child comics."""
+) -> dict[int, int]:
+    """
+    Aggregate every scalar / cumulative column in one grouped query.
+
+    Replaces the previous ``compute_group_intersections`` per-column
+    loop (one query each) with a single ``Comic.filter().values(rel)
+    .annotate(...)`` that emits, per group, the comic_count plus the
+    aggregates needed for each requested scalar column. Returns
+    ``{group_pk: comic_count}`` so the caller can pass it to the
+    M2M intersection helpers — those still issue per-column queries
+    because each M2M traverses a distinct through-table that would
+    cross-multiply if combined.
+
+    The intersection rule (every child shares a single non-NULL
+    value) reduces to ``count_distinct == 1 AND count == comic_count``
+    — and the value is the ``MIN`` (which equals MAX when
+    distinct == 1). Cumulative columns use plain ``Sum`` so sibling
+    values that happen to match contribute fully.
+    """
+    annotations = _build_batched_annotations(intersect_cols, sum_cols)
     rows = (
         Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
         .values(comic_to_group)
-        .annotate(total=Sum(comic_path, distinct=True))
+        .annotate(**annotations)
     )
-    per_group = {row[comic_to_group]: row["total"] for row in rows}
-    for gpk in group_pks:
-        result[gpk][col] = per_group.get(gpk)
 
-
-def _compute_scalar_intersection(
-    col: str,
-    comic_path: str,
-    group_pks: list[int],
-    comic_to_group: str,
-    counts: dict[int, int],
-    result: dict[int, dict[str, Any]],
-) -> None:
-    """Set ``result[group][col]`` to the value if every comic shares it."""
-    rows = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
-        .values(comic_to_group, comic_path)
-        .annotate(cnt=Count("pk", distinct=True))
-    )
-    per_group: dict[int, list[tuple[Any, int]]] = defaultdict(list)
+    counts: dict[int, int] = {}
     for row in rows:
         gpk = row[comic_to_group]
-        per_group[gpk].append((row[comic_path], row["cnt"]))
+        total = row["_isect_comic_count"] or 0
+        counts[gpk] = total
+        bucket = result[gpk]
+        for col, _path in intersect_cols:
+            bucket[col] = _row_intersection_value(row, col, total)
+        for col, _path in sum_cols:
+            bucket[col] = row[f"_isect_{col}_sum"]
+
+    # Groups whose filter matched zero comics didn't produce a row;
+    # initialize their cells so the row dict has a uniform shape.
     for gpk in group_pks:
-        pairs = per_group.get(gpk, [])
-        total = counts.get(gpk, 0)
-        # Single distinct value covering every comic in the group → intersection.
-        if total > 0 and len(pairs) == 1 and pairs[0][1] == total:
-            result[gpk][col] = pairs[0][0]
-        else:
-            result[gpk][col] = None
+        counts.setdefault(gpk, 0)
+        bucket = result[gpk]
+        for col, _path in intersect_cols:
+            bucket.setdefault(col, None)
+        for col, _path in sum_cols:
+            bucket.setdefault(col, None)
+    return counts
 
 
 def _compute_m2m_intersection(
