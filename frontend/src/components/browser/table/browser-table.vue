@@ -18,6 +18,7 @@
             v-for="col in visibleColumns"
             :key="col"
             :class="cellClasses(col, true)"
+            :title="headerTooltip(col)"
             @click="onHeaderClick(col, $event)"
           >
             <span>{{ labelFor(col) }}</span>
@@ -187,6 +188,16 @@ export default {
       const key = this.sortKeyFor(column);
       const entry = this.orderExtraKeys.find((e) => e.key === key);
       return Boolean(entry?.reverse);
+    },
+    headerTooltip(column) {
+      /*
+       * Native browser tooltip — the lowest-friction way to surface
+       * the shift-click hint without adding visible chrome. Returns
+       * an empty string for non-sortable columns so they stay
+       * unannotated.
+       */
+      if (!this.isSortable(column)) return "";
+      return "Click to sort. Shift+click to chain a secondary sort.";
     },
     onHeaderClick(column, event) {
       const sortKey = this.sortKeyFor(column);
