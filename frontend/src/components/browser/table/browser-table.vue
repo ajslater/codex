@@ -75,11 +75,22 @@
 import { mdiArrowDown, mdiArrowUp } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BrowserEmptyState from "@/components/browser/empty.vue";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+
+/*
+ * Sort keys that work as the primary sort but not as an extra
+ * (multi-sort tail). Mirrored from the backend's
+ * ``BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS``. When a column's sort_key
+ * is in here we grey out its label and ignore shift-clicks.
+ */
+const _EXTRA_UNSUPPORTED_SORT_KEYS = new Set(
+  BROWSER_CHOICES.EXTRA_SORT_UNSUPPORTED_KEYS ?? [],
+);
 
 export default {
   name: "BrowserTable",
@@ -169,6 +180,18 @@ export default {
     isSortable(column) {
       return Boolean(this.sortKeyFor(column));
     },
+    isExtraSortable(column) {
+      /*
+       * Whether this column can be added to the multi-sort chain.
+       * A handful of sort_keys (story_arc_number, search_score) only
+       * resolve in narrow contexts the per-extra annotation pipeline
+       * can't reproduce — they sort fine as the primary but the
+       * extras tail can't safely express them.
+       */
+      const key = this.sortKeyFor(column);
+      if (!key) return false;
+      return !_EXTRA_UNSUPPORTED_SORT_KEYS.has(key);
+    },
     isSortedBy(column) {
       const key = this.sortKeyFor(column);
       return key !== null && key === this.orderBy;
@@ -194,9 +217,13 @@ export default {
        * Native browser tooltip — the lowest-friction way to surface
        * the shift-click hint without adding visible chrome. Returns
        * an empty string for non-sortable columns so they stay
-       * unannotated.
+       * unannotated. Multi-sort-incompatible columns get a
+       * different message explaining why the gesture is refused.
        */
       if (!this.isSortable(column)) return "";
+      if (!this.isExtraSortable(column)) {
+        return "Click to sort. Can't be used as a secondary sort.";
+      }
       return "Click to sort. Shift+click to chain a secondary sort.";
     },
     onHeaderClick(column, event) {
@@ -211,8 +238,17 @@ export default {
        * direction toggle — there's no "demote primary to extra"
        * gesture in this experiment; the user picks the primary
        * with a plain click on a different header.
+       *
+       * A few sort keys (``story_arc_number``, ``search_score``)
+       * can't be used as extras because their per-row value needs
+       * context the extras pipeline doesn't provide. Shift-clicks
+       * on those columns are silently refused; plain clicks still
+       * work to make them the primary.
        */
       const isShift = event && event.shiftKey;
+      if (isShift && !this.isExtraSortable(column)) {
+        return;
+      }
       if (!isShift || this.orderBy === sortKey) {
         if (this.orderBy === sortKey) {
           this.setSettings({ orderReverse: !this.orderReverse });
@@ -292,6 +328,15 @@ export default {
          */
         classes.sorted =
           this.isSortedBy(column) || this.extraIndexFor(column) !== -1;
+        /*
+         * Multi-sort-incompatible sortable columns get a muted
+         * label when they aren't the current primary. Visual hint
+         * that shift-click won't add them to the chain.
+         */
+        classes.extraIncompatible =
+          this.isSortable(column) &&
+          !this.isExtraSortable(column) &&
+          !this.isSortedBy(column);
       }
       return classes;
     },
@@ -361,6 +406,18 @@ export default {
 
 .browserTableTable thead th.sorted {
   color: rgb(var(--v-theme-primary));
+}
+
+/*
+ * Multi-sort-incompatible columns: a small fraction of sort_keys
+ * (story_arc_number, search_score) work as the primary but can't
+ * be added to the multi-sort tail. Mute the label so the user
+ * sees the column is special. The plain-click affordance still
+ * works (clicking sets it as primary, which removes the muted
+ * class via ``classes.sorted`` taking precedence).
+ */
+.browserTableTable thead th.extraIncompatible :first-child {
+  opacity: 0.6;
 }
 
 /*

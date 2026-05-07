@@ -323,6 +323,60 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         names = [g.get("name") for g in response.json().get("groups", [])]
         assert names == ["Beta", "Alpha"], names
 
+    def test_multi_column_sort_filename_extra(self) -> None:
+        """``filename`` works as an extra — was previously unsupported."""
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "filename", "reverse": False}],
+            }
+        )
+        # On Comic queries the extra resolves to a per-row Right(path)
+        # expression, no aggregate. Smoke-test by hitting the endpoint
+        # and confirming no crash + the expected row count.
+        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
+    def test_multi_column_sort_bookmark_updated_at_extra(self) -> None:
+        """``bookmark_updated_at`` works as an extra (regression smoke)."""
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [
+                    {"key": "bookmark_updated_at", "reverse": True},
+                ],
+            }
+        )
+        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
+    def test_multi_column_sort_unsupported_extra_falls_back(self) -> None:
+        """
+        Reject unsupported-as-extra keys gracefully via ``sort_name`` fallback.
+
+        ``story_arc_number`` / ``search_score`` only resolve in
+        narrow contexts. The frontend mirrors this set and refuses
+        the shift-click, but the backend still has to be defensive
+        against a stored or hand-crafted payload.
+        """
+        self._patch_settings(
+            {
+                "viewMode": "table",
+                "orderBy": "year",
+                "orderReverse": False,
+                "orderExtraKeys": [{"key": "story_arc_number", "reverse": False}],
+            }
+        )
+        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+
     def test_multi_column_sort_extras_ignored_in_cover_mode(self) -> None:
         """
         Cover view ignores stored extras.

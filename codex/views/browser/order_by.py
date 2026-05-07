@@ -2,6 +2,7 @@
 
 from types import MappingProxyType
 
+from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.groups import Volume
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
@@ -137,7 +138,15 @@ class BrowserOrderByView(BrowserGroupMtimeView):
                 key = entry.get("key")
                 if not key:
                     continue
-                extra_fields = self._add_comic_order_by(key, None)
+                if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS or key == "child_count":
+                    # ``child_count`` doesn't apply on Comic rows
+                    # (every comic has implicit count 1). The
+                    # frontend grays out the unsupported keys, but
+                    # a stored payload could still hit; fall back to
+                    # ``sort_name`` so the ORDER BY tail still binds.
+                    extra_fields = ["sort_name"]
+                else:
+                    extra_fields = self._add_comic_order_by(key, None)
                 prefix = "-" if entry.get("reverse") else ""
                 tail.extend(prefix + field for field in extra_fields)
             return tail

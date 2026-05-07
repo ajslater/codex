@@ -103,6 +103,22 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
     }
 )
 
+# Sort keys that aren't valid as multi-sort *extras* (the secondary
+# / tertiary chain reachable via shift-click on a table header).
+# They sort fine as the primary, but the per-extra annotation
+# pipeline can't safely produce a value for them on every model
+# / context: ``story_arc_number`` requires StoryArc-context ``pks``
+# to resolve which arc's number to pick, and ``search_score``'s
+# ``ComicFTSRank`` only resolves when an FTS subquery is joined.
+# Mirrored on the frontend so the table headers can grey out the
+# affected columns and refuse the shift-click.
+BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
+    {
+        "story_arc_number",
+        "search_score",
+    }
+)
+
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
     {
@@ -127,6 +143,9 @@ BROWSER_CHOICES = MappingProxyType(
         "BOOKMARK_FILTER": BROWSER_BOOKMARK_FILTER_CHOICES,
         "ORDER_BY": BROWSER_ORDER_BY_CHOICES,
         "COVER_ORDER_BY_KEYS": tuple(sorted(BROWSER_COVER_ORDER_BY_KEYS)),
+        "EXTRA_SORT_UNSUPPORTED_KEYS": tuple(
+            sorted(BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS)
+        ),
         "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
