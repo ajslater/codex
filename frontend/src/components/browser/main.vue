@@ -18,7 +18,7 @@
       <button
         v-if="showCancelButton"
         class="cancelLoadingButton"
-        title="Stop the in-flight query and return to the previous results"
+        :title="cancelButtonTitle"
         @click="onCancelLoading"
       >
         Cancel
@@ -154,6 +154,15 @@ export default {
        * and the table reappears.
        */
       return this.tableModeRequested && !this.$vuetify.display.smAndDown;
+    },
+    cancelButtonTitle() {
+      /*
+       * Hover tooltip on the cancel button. Reflects what the
+       * cancel will actually reset: in cover view only the order
+       * key changes; in table view the column set is also rolled
+       * back to the registry defaults for the current top-group.
+       */
+      return this.isTableMode ? "Reset order and columns" : "Reset order";
     },
     showBrowseItems() {
       if (!this.isAuthorized || this.showPlaceHolder) return false;
