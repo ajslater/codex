@@ -22,7 +22,7 @@ from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.browser.columns import (
-    default_columns_for,
+    default_columns_filtered,
     fk_name_annotations_for,
     m2m_annotations_for,
 )
@@ -348,7 +348,7 @@ class BrowserView(BrowserTitleView):
         stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
         if stored_for_group:
             return tuple(stored_for_group)
-        return default_columns_for(top_group)
+        return default_columns_filtered(top_group, self.params.get("show"))
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:

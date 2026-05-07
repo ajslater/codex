@@ -117,6 +117,43 @@ def default_columns_for(top_group: str) -> tuple[str, ...]:
     return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_group, ())
 
 
+# Default columns gated on the matching ``show.<key>`` group flag.
+# A user who hides imprints / volumes from breadcrumb navigation
+# almost certainly doesn't want the corresponding column to lead
+# their default column set either; filtering the defaults keeps the
+# new-user experience tracking the user's hierarchy preferences.
+_SHOW_GATED_COLUMNS: MappingProxyType[str, str] = MappingProxyType(
+    {
+        "imprint_name": "i",
+        "volume_name": "v",
+    }
+)
+
+
+def default_columns_filtered(
+    top_group: str, show: object | None = None
+) -> tuple[str, ...]:
+    """
+    Return ``default_columns_for(top_group)`` minus show-gated columns.
+
+    ``show`` is the per-user group-flag dict from
+    ``BrowserSettingsShowGroupFlagsSerializer`` (keys ``p``, ``i``,
+    ``s``, ``v``). When a flag is False or missing, the matching
+    column is dropped from the defaults — a user who hides imprints
+    in navigation rarely wants the imprint column to lead their
+    table-view defaults. Static ``default_columns_for`` stays
+    unchanged for tests / migrations that need the canonical tuple.
+    """
+    cols = default_columns_for(top_group)
+    if not cols:
+        return cols
+    show_map = show if isinstance(show, dict) else {}
+    blocked = {col for col, flag in _SHOW_GATED_COLUMNS.items() if not show_map.get(flag)}
+    if not blocked:
+        return cols
+    return tuple(c for c in cols if c not in blocked)
+
+
 def is_sortable(column_key: str) -> bool:
     """Return True when clicking the column header should drive ``order_by``."""
     entry = BROWSER_TABLE_COLUMNS.get(column_key)

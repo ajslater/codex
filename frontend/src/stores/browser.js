@@ -39,6 +39,32 @@ const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 /*
+ * Default-columns gating. ``imprint_name`` and ``volume_name`` lead
+ * the per-top-group default column tuples (see
+ * ``BROWSER_TABLE_DEFAULT_COLUMNS``), but a user who has the
+ * matching ``show.i`` / ``show.v`` flags off — i.e., they hide
+ * imprints / volumes from breadcrumb navigation — almost certainly
+ * doesn't want those columns leading their default column set
+ * either. The backend mirrors this in ``default_columns_filtered``;
+ * the two stay in sync via this constant.
+ */
+const _SHOW_GATED_COLUMNS = Object.freeze({
+  imprint_name: "i",
+  volume_name: "v",
+});
+
+export function filterShowGatedDefaults(cols, show) {
+  if (!cols || cols.length === 0) return cols ?? [];
+  const showMap = show && typeof show === "object" ? show : {};
+  const blocked = new Set();
+  for (const [col, flag] of Object.entries(_SHOW_GATED_COLUMNS)) {
+    if (!showMap[flag]) blocked.add(col);
+  }
+  if (blocked.size === 0) return cols;
+  return cols.filter((c) => !blocked.has(c));
+}
+
+/*
  * Per-top-group default order applied when the user hits the
  * "Cancel" button on the loading spinner. Cover view, Folder,
  * StoryArc, Publisher and Comic top-groups all want the plain
@@ -478,13 +504,19 @@ export const useBrowserStore = defineStore("browser", {
       // Persisted overrides (``settings.tableColumns[topGroup]``) win
       // over the registry defaults; both fall back to an empty tuple
       // for unknown top-groups (the backend then uses its own
-      // defaults).
+      // defaults). Defaults are filtered by the user's ``show.i``
+      // and ``show.v`` flags so a user who hides imprints / volumes
+      // from breadcrumb navigation doesn't get those columns leading
+      // their table view either.
       const topGroup = this.settings.topGroup ?? "p";
       const stored = this.settings.tableColumns?.[topGroup];
       if (stored && stored.length > 0) {
         return stored;
       }
-      return BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [];
+      return filterShowGatedDefaults(
+        BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [],
+        this.settings.show,
+      );
     },
     /*
      * MUTATIONS

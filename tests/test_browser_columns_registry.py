@@ -8,6 +8,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_CHOICES,
 )
 from codex.views.browser.columns import (
+    default_columns_filtered,
     default_columns_for,
     is_m2m,
     is_sortable,
@@ -126,6 +127,45 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
 
     def test_unknown_top_group_returns_empty(self):
         assert default_columns_for("zz") == ()
+
+
+class BrowserTableDefaultColumnsFilteredTestCase(TestCase):
+    """Pin the show-flag-gated default-column filter."""
+
+    def test_no_show_drops_imprint_and_volume(self):
+        # Match the model defaults: ``show.i`` and ``show.v`` are
+        # both False out of the box. ``imprint_name`` and
+        # ``volume_name`` should drop from any default tuple.
+        assert default_columns_filtered("c", None) == (
+            "cover",
+            "publisher_name",
+            "series_name",
+            "issue",
+            "name",
+            "year",
+            "page_count",
+            "size",
+        )
+
+    def test_show_imprint_keeps_imprint_column(self):
+        cols = default_columns_filtered("s", {"i": True, "v": False})
+        assert "imprint_name" in cols
+        assert "volume_name" not in cols
+
+    def test_show_volume_keeps_volume_column(self):
+        cols = default_columns_filtered("c", {"i": False, "v": True})
+        assert "volume_name" in cols
+        assert "imprint_name" not in cols
+
+    def test_both_flags_pass_through_full_defaults(self):
+        # When the user shows both groups, the filter is a no-op:
+        # the canonical tuple from ``default_columns_for`` returns.
+        assert default_columns_filtered("v", {"i": True, "v": True}) == (
+            default_columns_for("v")
+        )
+
+    def test_unknown_top_group_returns_empty(self):
+        assert default_columns_filtered("zz", {"i": True, "v": True}) == ()
 
 
 class BrowserTableHelperTestCase(TestCase):

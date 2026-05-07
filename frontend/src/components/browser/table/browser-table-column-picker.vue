@@ -84,7 +84,7 @@ import { mapActions, mapState } from "pinia";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { TOP_GROUP } from "@/choices/browser-map.json";
-import { useBrowserStore } from "@/stores/browser";
+import { filterShowGatedDefaults, useBrowserStore } from "@/stores/browser";
 
 /*
  * Hardcoded category groupings. The registry doesn't carry a category
@@ -202,6 +202,7 @@ export default {
     ...mapState(useBrowserStore, {
       topGroup: (state) => state.settings.topGroup,
       tableColumns: (state) => state.settings.tableColumns,
+      show: (state) => state.settings.show,
     }),
     topGroupLabel() {
       return TOP_GROUP[this.topGroup] ?? this.topGroup;
@@ -255,7 +256,10 @@ export default {
       if (Array.isArray(stored) && stored.length > 0) {
         this.draft = [...stored];
       } else {
-        this.draft = [...(BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [])];
+        this.draft = filterShowGatedDefaults(
+          BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+          this.show,
+        );
       }
     },
     toggleColumn(key, on) {
@@ -275,7 +279,10 @@ export default {
       this.draft = this.draft.filter((k) => k !== key);
     },
     resetToDefaults() {
-      this.draft = [...(BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [])];
+      this.draft = filterShowGatedDefaults(
+        BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+        this.show,
+      );
     },
     selectAll() {
       this.draft = Object.keys(BROWSER_TABLE_COLUMNS);
