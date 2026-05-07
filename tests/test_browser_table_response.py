@@ -602,8 +602,7 @@ class BrowserTablePageResponseTestCase(TestCase):
 
         self._set_view_mode_table()
         url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1"
-            "?columns=cover,name,page_count,size"
+            f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count,size"
         )
         response = self.client.get(url)
         body = response.json()

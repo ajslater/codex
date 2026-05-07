@@ -688,10 +688,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         refactor doesn't silently regress sort-with-visible-columns.
         """
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = (
-            f"/api/v3/p/{publisher.pk}/1"
-            "?columns=cover,name,year,page_count"
-        )
+        url = f"/api/v3/p/{publisher.pk}/1?columns=cover,name,year,page_count"
         self._patch_settings(
             {"viewMode": "table", "orderBy": "year", "orderReverse": False}
         )

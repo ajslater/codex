@@ -129,9 +129,7 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert "order_extra_keys" in s.errors
 
     def test_order_extra_keys_reverse_coerces_to_bool(self):
-        s = BrowserSettingsSerializer(
-            data={"order_extra_keys": [{"key": "year"}]}
-        )
+        s = BrowserSettingsSerializer(data={"order_extra_keys": [{"key": "year"}]})
         assert s.is_valid(), s.errors
         assert s.validated_data["order_extra_keys"] == [
             {"key": "year", "reverse": False}

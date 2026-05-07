@@ -282,9 +282,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         """Comic-row order_value: direct field or M2M alias."""
         if self.order_key in m2m_columns():
             return F(m2m_alias_for(self.order_key))
-        order_key = (
-            "sort_name" if self.order_key == "child_count" else self.order_key
-        )
+        order_key = "sort_name" if self.order_key == "child_count" else self.order_key
         return F(comic_order_path(order_key))
 
     def _group_m2m_order_value(self, qs):
@@ -348,10 +346,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         the per-extra ``reverse`` flag is applied as the SQL prefix
         in ``_add_extra_order_by``.
         """
-        if (
-            qs.model is not Comic
-            or self.params.get("view_mode") != "table"
-        ):
+        if qs.model is not Comic or self.params.get("view_mode") != "table":
             return qs
         extras = self.params.get("order_extra_keys") or ()
         keys = {entry.get("key") for entry in extras if entry.get("key")}
@@ -437,9 +432,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             key = entry.get("key")
             if not key:
                 continue
-            expr = self._extra_group_expr(
-                qs, key, reverse=bool(entry.get("reverse"))
-            )
+            expr = self._extra_group_expr(qs, key, reverse=bool(entry.get("reverse")))
             if expr is None:
                 # Unsupported (e.g. M2M without an intersection
                 # expression for this group model, or an

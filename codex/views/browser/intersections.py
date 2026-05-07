@@ -555,9 +555,7 @@ def _comic_correlation_sql(group_model: type) -> tuple[str, str, str] | None:
     return "", where, total_count
 
 
-def scalar_intersection_sort_expr(
-    group_model: type, column: str
-) -> RawSQL | None:
+def scalar_intersection_sort_expr(group_model: type, column: str) -> RawSQL | None:
     """
     Build a sort-key RawSQL for scalar / FK-name group-row sort.
 
