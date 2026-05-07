@@ -22,6 +22,7 @@ from collections.abc import Iterable
 from types import MappingProxyType
 from typing import Any
 
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Count, Q
 from django.db.models.expressions import RawSQL
 
@@ -451,6 +452,86 @@ def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, comic_group_col, group_table)
+    return RawSQL(sql, [])  # noqa: S611
+
+
+def scalar_intersection_sort_expr(
+    group_model: type, column: str
+) -> RawSQL | None:
+    """
+    Build a sort-key RawSQL for scalar / FK-name group-row sort.
+
+    The group-row *display* uses intersection (``_compute_scalar_intersection``):
+    a value renders only when every child comic in the group shares it
+    (same non-NULL value, no missing children). The default
+    ``Min`` / ``Avg`` / ``Sum`` aggregates used by ``annotate_order_value``
+    don't agree with that — a series whose children mostly lack a year
+    but one happens to be 2024 sorts as if year=2024 yet displays
+    blank. Mirroring the intersection rule in SQL keeps display and
+    sort consistent: the ORDER BY value is the per-group value when
+    every child agrees, NULL otherwise. NULLs follow SQLite's default
+    sort position (smallest in ASC, last in DESC).
+
+    Returns None when the column or group model isn't supported;
+    callers fall back to the previous aggregate path so we don't
+    silently break an existing sort if the registry adds a new field
+    we haven't wired here yet.
+    """
+    path = _SCALAR_FIELD_PATHS.get(column)
+    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    if path is None or comic_group_col is None:
+        return None
+    group_table = group_model._meta.db_table
+
+    if "__" not in path:
+        # Direct Comic field — year, page_count, size, file_type, …
+        # All identifiers spliced in (``path``, ``comic_group_col``,
+        # ``group_table``) come from caller-side whitelists; RawSQL
+        # is safe — same justification as ``_build_simple_m2m_…``.
+        col = f"c.{path}"
+        sql = f"""(
+            SELECT
+                CASE
+                    WHEN COUNT({col}) = (
+                        SELECT COUNT(*) FROM codex_comic
+                        WHERE {comic_group_col} = {group_table}.id
+                    )
+                      AND MIN({col}) = MAX({col})
+                    THEN MIN({col})
+                    ELSE NULL
+                END
+            FROM codex_comic c
+            WHERE c.{comic_group_col} = {group_table}.id
+        )"""  # noqa: S608
+        return RawSQL(sql, [])  # noqa: S611
+
+    # FK-to-name field — tagger__name, country__name, age_rating__name, …
+    fk_attr, target_field = path.split("__", 1)
+    try:
+        fk_field = Comic._meta.get_field(fk_attr)
+    except FieldDoesNotExist:
+        return None
+    related_model = fk_field.related_model
+    if related_model is None:
+        return None
+    fk_col = fk_field.column  # e.g. ``tagger_id``
+    target_table = related_model._meta.db_table
+    target_col = f"t.{target_field}"
+    sql = f"""(
+        SELECT
+            CASE
+                WHEN COUNT({target_col}) = (
+                    SELECT COUNT(*) FROM codex_comic
+                    WHERE {comic_group_col} = {group_table}.id
+                )
+                  AND MIN({target_col}) = MAX({target_col})
+                THEN MIN({target_col})
+                ELSE NULL
+            END
+        FROM codex_comic c
+        LEFT JOIN {target_table} t ON c.{fk_col} = t.id
+        WHERE c.{comic_group_col} = {group_table}.id
+    )"""  # noqa: S608
     return RawSQL(sql, [])  # noqa: S611
 
 

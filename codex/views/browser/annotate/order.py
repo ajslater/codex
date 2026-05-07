@@ -23,7 +23,10 @@ from codex.models import (
 from codex.models.functions import ComicFTSRank, JsonGroupArray
 from codex.models.groups import Volume
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
-from codex.views.browser.intersections import m2m_intersection_sort_expr
+from codex.views.browser.intersections import (
+    m2m_intersection_sort_expr,
+    scalar_intersection_sort_expr,
+)
 from codex.views.browser.order_by import (
     BrowserOrderByView,
     comic_order_path,
@@ -275,46 +278,53 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         return self.annotate_child_count(qs)
 
+    def _comic_order_value(self):
+        """Comic-row order_value: direct field or M2M alias."""
+        if self.order_key in m2m_columns():
+            return F(m2m_alias_for(self.order_key))
+        order_key = (
+            "sort_name" if self.order_key == "child_count" else self.order_key
+        )
+        return F(comic_order_path(order_key))
+
+    def _group_m2m_order_value(self, qs):
+        """Group-row M2M order_value, falling back to ``sort_name``."""
+        isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+        if isort_expr is not None:
+            return qs, isort_expr
+        if qs.model is Volume:
+            qs = qs.alias(sort_name=F("name"))
+        return qs, F("sort_name")
+
+    def _group_scalar_order_value(self, qs):
+        """Group-row scalar / FK-name order_value (intersection-aware)."""
+        # Display uses intersection — a value renders only when every
+        # child comic agrees — so the sort key matches that rule.
+        # Falls back to the legacy aggregate path when the column /
+        # group model isn't wired so adding a new registry scalar
+        # doesn't silently regress its sort.
+        isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
+        if isort_expr is not None:
+            return isort_expr
+        agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
+        agg_func = self.order_agg_func if agg_func == Min else agg_func
+        field = self.rel_prefix + comic_order_path(self.order_key)
+        return agg_func(field)
+
     def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
-        # Determine order func
         if self.TARGET == "metadata":
             return qs
-        is_m2m_sort = self.order_key in m2m_columns()
         if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
-        elif qs.model is Comic and is_m2m_sort:
-            # M2M sort uses the prefixed alias from the JsonGroupArray
-            # annotation (added upstream when in table-view mode).
-            order_value = F(m2m_alias_for(self.order_key))
         elif qs.model is Comic:
-            order_key = (
-                "sort_name" if self.order_key == "child_count" else self.order_key
-            )
-            order_value = F(comic_order_path(order_key))
-        elif is_m2m_sort:
-            # Group + M2M sort: build a correlated SQL subquery that
-            # returns the alphabetized GROUP_CONCAT of M2M values
-            # present in *every* child comic. ORDER BY this string
-            # clusters rows with identical intersection sets.
-            # Unsupported combinations (StoryArc, credits/identifiers,
-            # ...) fall back to sort_name — same shape Comic-row uses
-            # for ``child_count``.
-            isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
-            if isort_expr is not None:
-                order_value = isort_expr
-            else:
-                if qs.model is Volume:
-                    qs = qs.alias(sort_name=F("name"))
-                order_value = F("sort_name")
+            order_value = self._comic_order_value()
+        elif self.order_key in m2m_columns():
+            qs, order_value = self._group_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
-            # These are annotated in browser_annotations
             order_value = F(self.order_key)
         else:
-            agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
-            agg_func = self.order_agg_func if agg_func == Min else agg_func
-            field = self.rel_prefix + comic_order_path(self.order_key)
-            order_value = agg_func(field)
+            order_value = self._group_scalar_order_value(qs)
 
         if self.TARGET == "browser":
             qs = qs.annotate(order_value=order_value)
@@ -382,6 +392,12 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         special = self._extra_group_special(qs, key, reverse=reverse)
         if special is not None:
             return special
+        # Match the primary's intersection-aware sort for scalars /
+        # FK-names so the shift-click extra ranks rows by the same
+        # rule the cell display uses.
+        isort_expr = scalar_intersection_sort_expr(qs.model, key)
+        if isort_expr is not None:
+            return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS.get(key)
         if agg_func is None:
             return None

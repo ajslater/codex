@@ -395,9 +395,10 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_by_page_count_on_group_rows(self) -> None:
-        """Sum aggregate over ``page_count`` sorts groups correctly."""
-        # alpha has page_counts [11, 12] (Sum=23); beta has [11] (Sum=11).
-        # Asc → Beta (smaller sum) first.
+        """Intersection sort over ``page_count`` matches the display rule."""
+        # Alpha's children have page_counts [11, 12] (mixed → intersection
+        # NULL). Beta's only child has page_count=11 (single → 11).
+        # ASC: NULL first under SQLite, so Alpha precedes Beta.
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v3/p/{publisher.pk}/1"
         self._patch_settings(
@@ -406,7 +407,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         names = [g.get("name") for g in response.json().get("groups", [])]
-        assert names == ["Beta", "Alpha"], names
+        assert names == ["Alpha", "Beta"], names
 
     def test_primary_sort_at_publishers_root(self) -> None:
         """
@@ -418,7 +419,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         the path the user described as "viewing publishers" — rows
         ARE the publishers themselves rather than their children.
         """
-        from codex.models.named import Tagger  # noqa: PLC0415
+        from codex.models.named import Tagger
 
         # Tag alpha's comics with Alice; beta's comic with Bob; new
         # publisher's comic gets Carol so the order spans three groups.
@@ -476,6 +477,70 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # ("Carol").
         assert names == ["ZZ Press", "AA Press"], names
 
+    def test_year_sort_matches_intersection_display(self) -> None:
+        """
+        Group-row sort by ``year`` agrees with the displayed intersection.
+
+        Regression: the cell display for a scalar column on a group
+        row uses intersection — value shows only when every child
+        comic agrees, blank otherwise. The sort key used to be a
+        plain ``Min`` aggregate, so a series whose children mostly
+        lack a year but one happens to be 2024 sorted as if year=2024
+        yet displayed blank. Mirroring intersection in the sort
+        keeps display-and-sort consistent: rows whose intersection
+        is the same value cluster together; rows with a NULL
+        intersection (mixed children) sort to one end.
+
+        Setup:
+        - Alpha series: both children year=2020 → intersection 2020.
+        - Beta series: only child year=2021 → intersection 2021.
+        - Add a third "Mixed" series with two children at different
+          years → intersection NULL.
+
+        Sort desc by year: 2021 (Beta), 2020 (Alpha), NULL (Mixed).
+        Pre-fix: Mixed sorts as ``MIN(year)``, interleaving with the
+        clean groups.
+        """
+        library = Library.objects.first()
+        publisher = Publisher.objects.get(name="ZZ Press")
+        imprint = Imprint.objects.get(name="ZZ Imprint")
+        series_mixed = Series.objects.create(
+            name="Mixed", imprint=imprint, publisher=publisher
+        )
+        volume_mixed = Volume.objects.create(
+            name="2030",
+            series=series_mixed,
+            imprint=imprint,
+            publisher=publisher,
+        )
+        for issue, year in ((1, 2018), (2, 2024)):
+            path = TMP_DIR / f"mixed-{issue}.cbz"
+            path.touch()
+            Comic.objects.create(
+                library=library,
+                path=path,
+                issue_number=issue,
+                name=f"mixed-{issue}",
+                publisher=publisher,
+                imprint=imprint,
+                series=series_mixed,
+                volume=volume_mixed,
+                size=100 + issue,
+                year=year,
+                page_count=10 + issue,
+            )
+
+        url = f"/api/v3/p/{publisher.pk}/1"
+        self._patch_settings(
+            {"viewMode": "table", "orderBy": "year", "orderReverse": True}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        names = [g.get("name") for g in response.json().get("groups", [])]
+        # Beta (2021) before Alpha (2020); Mixed last because its
+        # intersection-sort key is NULL.
+        assert names == ["Beta", "Alpha", "Mixed"], names
+
     def test_primary_sort_by_year_on_group_rows(self) -> None:
         """Min aggregate over a direct integer field (``year``) sorts correctly."""
         # Alpha has two comics, both year=2020 → Min year = 2020.
@@ -499,13 +564,12 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
     def test_primary_sort_with_table_columns_query_params(self) -> None:
         """
-        Sort pipeline still kicks in when the frontend includes
-        ``columns=`` and the sort key is ALSO a visible column.
+        Mirror the request shape the table-view UI actually emits.
 
-        Mirrors the table-view request the UI actually emits — the
-        browser sends the user's column set on every page load — so
-        if the column-annotation pipeline's interaction with the
-        order pipeline regresses, we'd catch it here.
+        ``columns=`` is included on every page load alongside the
+        order-by setting; this exercises the column-annotation
+        pipeline's interaction with the order pipeline so a future
+        refactor doesn't silently regress sort-with-visible-columns.
         """
         publisher = Publisher.objects.get(name="ZZ Press")
         url = (
@@ -518,15 +582,9 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         names = [g.get("name") for g in response.json().get("groups", [])]
+        # Year intersection: Alpha=2020 (matched), Beta=2021 (single).
+        # ASC → Alpha (2020) before Beta (2021).
         assert names == ["Alpha", "Beta"], names
-
-        cache.clear()
-        self._patch_settings(
-            {"viewMode": "table", "orderBy": "page_count", "orderReverse": False}
-        )
-        response = self.client.get(url)
-        names = [g.get("name") for g in response.json().get("groups", [])]
-        assert names == ["Beta", "Alpha"], names
 
     def test_multi_column_sort_unsupported_extra_falls_back(self) -> None:
         """
