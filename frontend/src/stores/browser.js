@@ -600,34 +600,41 @@ export const useBrowserStore = defineStore("browser", {
        * Surfaces in the UI as a "Cancel" button next to the
        * indeterminate spinner after a 10s grace period.
        *
-       * Cancelling restores the route's default settings and
-       * re-fetches with those — going back to the prior settings
-       * would leave the route in the same heavy configuration
-       * that just timed out, so the user could end up stuck on a
-       * page they can't actually view. Resetting via DELETE
-       * /r/settings (the same path the "Clear All Filters" button
-       * takes) gets them to a baseline that should always render.
+       * Stays on the current route, keeps the user's filters,
+       * search, view-mode, top-group, and any per-other-top-group
+       * column overrides. Resets only what's likely to make the
+       * query expensive:
+       *
+       * - ``orderBy`` → ``sort_name`` and ``orderReverse`` → false
+       *   (drops any aggregate / intersection sort).
+       * - ``orderExtraKeys`` → ``[]`` (drops the multi-sort
+       *   chain).
+       * - ``tableColumns[<topGroup>]`` cleared so the resolver
+       *   falls back to the registry defaults for *this*
+       *   top-group only — other top-groups' custom column sets
+       *   stay intact.
        *
        * Aborting fires the catch in ``loadBrowserPage`` which
-       * swallows the AbortError; ``state.page`` stays untouched
-       * until the follow-up ``loadBrowserPage`` lands. If no
-       * request is actually pending we leave everything alone —
-       * the spinner is showing for some other reason (initial
-       * libraries fetch, settings load) and the cancel button
-       * shouldn't have been clickable.
+       * swallows the AbortError; the follow-up ``setSettings``
+       * call PATCHes the partial reset, re-loads, and persists.
+       * If no request is actually pending we leave everything
+       * alone — the spinner is showing for some other reason
+       * (initial libraries fetch, settings load) and the cancel
+       * button shouldn't have been clickable.
        */
       const aborted = abortKey("browser:loadBrowserPage");
       if (!aborted) return;
-      try {
-        const response = await API.resetSettings();
-        this._validateAndSaveSettings(response.data);
-      } catch (error) {
-        console.error(error);
+      const topGroup = this.settings.topGroup;
+      const tableColumns = { ...(this.settings.tableColumns ?? {}) };
+      if (topGroup) {
+        delete tableColumns[topGroup];
       }
-      // Allow ``loadBrowserPage`` past its already-loaded guard so
-      // the new fetch runs against the defaulted settings.
-      this.browserPageLoaded = true;
-      await this.loadBrowserPage(undefined, false);
+      await this.setSettings({
+        orderBy: "sort_name",
+        orderReverse: false,
+        orderExtraKeys: [],
+        tableColumns,
+      });
     },
     async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.
