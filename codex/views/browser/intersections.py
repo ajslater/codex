@@ -531,21 +531,38 @@ def _build_simple_m2m_intersection_sort_sql(
     # (``_meta.db_table``, ``m2m_reverse_field_name()``); the column
     # whitelist (``_SIMPLE_M2M_FIELDS``) and group whitelist
     # (``_COMIC_GROUP_COL``) bound the inputs, so RawSQL is safe here.
+    # Three-stage shape so the per-outer-row work is bounded by the
+    # through-table's slice for the group, not the through-target
+    # cross-product:
+    #
+    # 1. ``isect_ids`` — aggregate only on the through table,
+    #    correlated to the outer group via an IN-subselect on
+    #    ``th.comic_id``. The IN-subselect uses the comic FK index;
+    #    the through-table aggregation uses the (target_id, comic_id)
+    #    composite index. No name JOIN, no codex_comic JOIN — those
+    #    columns aren't needed to decide which target_ids survive
+    #    the HAVING.
+    # 2. ``named`` — JOIN the target table to ``isect_ids`` to
+    #    surface ``name`` for the few surviving target_ids only.
+    #    NULL / empty names drop here.
+    # 3. Outer ``GROUP_CONCAT`` collapses ``named`` into one string.
     sql = f"""(
         SELECT COALESCE(GROUP_CONCAT(name, X'1F'), '')
         FROM (
             SELECT t.name AS name
-            FROM {target_table} t
-            INNER JOIN {through_table} th ON th.{m2m_id_col} = t.id
-            INNER JOIN codex_comic c ON c.id = th.comic_id
-            {extra_join}
-            WHERE {where}
-              AND t.name IS NOT NULL
-              AND t.name != ''
-            GROUP BY t.id, t.name
-            HAVING COUNT(DISTINCT c.id) = ({total_count})
+            FROM (
+                SELECT th.{m2m_id_col} AS target_id
+                FROM {through_table} th
+                WHERE th.comic_id IN (
+                    SELECT c.id FROM codex_comic c {extra_join} WHERE {where}
+                )
+                GROUP BY th.{m2m_id_col}
+                HAVING COUNT(DISTINCT th.comic_id) = ({total_count})
+            ) AS isect_ids
+            INNER JOIN {target_table} t ON t.id = isect_ids.target_id
+            WHERE t.name IS NOT NULL AND t.name != ''
             ORDER BY t.name
-        ) AS isect
+        ) AS named
     )"""  # noqa: S608
     return RawSQL(sql, [])  # noqa: S611
 
