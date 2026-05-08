@@ -74,8 +74,8 @@ VITE_HOST = environ.get("VITE_HOST")
 VITE_PORT = 5173
 # Lowercased so the CSP origin matches Host headers and django-vite's
 # generated script ``src`` exactly — browsers compare CSP source
-# expressions case-sensitively, and ``socket.gethostname()`` is mixed
-# case on macOS (e.g. ``Hooloovo.local``).
+# expressions case-sensitively, and ``socket.gethostname()`` can be
+# mixed case on macOS.
 VITE_DEV_SERVER_HOST = (VITE_HOST or socket.gethostname()).lower()
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")

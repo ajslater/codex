@@ -47,9 +47,9 @@ const config = defineConfig(({ mode }) => {
   // https://github.com/vitejs/vite/issues/19242
   // Include localhost so navigating to the dev server via
   // ``http://localhost:9810`` works — Vite would otherwise reject
-  // the proxied request when the system hostname is something like
-  // ``hooloovoo.local``. Loopback IPs are accepted too so curl /
-  // tooling that hits 127.0.0.1 doesn't get blocked.
+  // the proxied request whenever the system hostname isn't
+  // ``localhost``. Loopback IPs are accepted too so curl / tooling
+  // that hits 127.0.0.1 doesn't get blocked.
   const ALLOWED_HOSTS = DEV
     ? [hostname().toLowerCase(), "localhost", "127.0.0.1", "[::1]"]
     : [];
