@@ -72,11 +72,31 @@ PERF = not_falsy_env("PERF")
 VITE_HMR = DEBUG and not BUILD
 VITE_HOST = environ.get("VITE_HOST")
 VITE_PORT = 5173
-# Lowercased so the CSP origin matches Host headers and django-vite's
-# generated script ``src`` exactly — browsers compare CSP source
-# expressions case-sensitively, and ``socket.gethostname()`` can be
-# mixed case on macOS.
-VITE_DEV_SERVER_HOST = (VITE_HOST or socket.gethostname()).lower()
+
+
+def _vite_dev_server_host() -> str:
+    """
+    Pick the host django-vite renders into the script src and CSP.
+
+    Used for ``<script src=...>`` and the CSP allows for that script.
+    ``VITE_HOST`` is an explicit override. Otherwise we mangle a
+    DHCP-assigned FQDN (e.g. ``box.example.com``) down to the mDNS
+    form (``box.local``): the FQDN resolves via WAN DNS, and most
+    consumer routers don't NAT-loopback that back to the LAN, so the
+    browser can't reach the dev server. The mDNS form stays on the
+    LAN. Pre-mangled or single-label hostnames are passed through.
+    Lowercased throughout — CSP source expressions are case-sensitive
+    and ``socket.gethostname()`` can be mixed case on macOS.
+    """
+    if VITE_HOST:
+        return VITE_HOST.lower()
+    raw = socket.gethostname().lower()
+    if "." in raw and not raw.endswith(".local"):
+        return raw.split(".", 1)[0] + ".local"
+    return raw
+
+
+VITE_DEV_SERVER_HOST = _vite_dev_server_host()
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
 
