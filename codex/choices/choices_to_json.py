@@ -12,6 +12,7 @@ from codex.choices.admin import ADMIN_FLAG_CHOICES
 from codex.choices.browser import (
     BROWSER_CHOICES,
     BROWSER_DEFAULTS,
+    BROWSER_TABLE_COLUMN_COSTS,
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
@@ -39,6 +40,7 @@ _MAP_DUMPS = MappingProxyType(
         "admin-jobs.json": ADMIN_JOBS,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
+        "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,
         "browser-table-columns.json": BROWSER_TABLE_COLUMNS,
         "browser-table-default-columns.json": BROWSER_TABLE_DEFAULT_COLUMNS,
         "reader-defaults.json": READER_DEFAULTS,
@@ -135,6 +137,7 @@ def main() -> None:
     skip_jsonize = frozenset(
         {
             "search-map.json",
+            "browser-table-column-costs.json",
             "browser-table-columns.json",
             "browser-table-default-columns.json",
         }

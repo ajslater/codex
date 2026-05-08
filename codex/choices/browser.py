@@ -525,6 +525,52 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 # ``_DEFAULT_TABLE_ORDER`` lookup must stay in sync with this map
 # — both define the per-top-group baseline the cancel button and
 # the initial-render path lean on.
+# Per-column relative cost rating shown next to picker rows so
+# users on huge libraries can see at a glance which columns are
+# cheap vs. expensive to display + sort. Only non-``low`` entries
+# appear here; everything not listed defaults to ``low`` (no badge
+# rendered). The rating reflects the worse of display vs. sort
+# cost for the column on group-row queries (the most expensive
+# query shape):
+#
+# - ``low`` (default, omitted): the column reads from the group's
+#   own field, an already-annotated alias, or batches into the
+#   single per-page scalar / FK-name aggregate query. One query
+#   regardless of how many low-cost columns are visible.
+# - ``medium``: simple-M2M columns whose display batches via the
+#   ``UNION ALL`` through-table helper but whose sort still runs a
+#   per-outer-row correlated subquery (the ``_build_simple_m2m_…``
+#   shape). Display is one query for the whole page; sort scales
+#   with the filtered group count when the user clicks the header.
+# - ``high``: composite-M2M columns (``credits`` / ``identifiers``
+#   / ``universes`` / ``story_arcs``). Display issues its own
+#   per-column query (composite display strings can't share the
+#   simple-M2M union shape); sort runs a per-outer-row correlated
+#   subquery that JOINs the bespoke composite expression. Both
+#   display and sort scale with library size when visible.
+#
+# The frontend renders an icon + tooltip in the column picker for
+# medium / high entries; low entries are unannotated.
+BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
+    {
+        # Simple M2M — display batches, sort is per-row correlated
+        # subquery.
+        "characters": "medium",
+        "genres": "medium",
+        "locations": "medium",
+        "series_groups": "medium",
+        "stories": "medium",
+        "tags": "medium",
+        "teams": "medium",
+        # Composite M2M — display + sort both per-column / per-row.
+        "credits": "high",
+        "identifiers": "high",
+        "story_arcs": "high",
+        "universes": "high",
+    }
+)
+
+
 BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
     {
         # Sort: sort_name. → name first.

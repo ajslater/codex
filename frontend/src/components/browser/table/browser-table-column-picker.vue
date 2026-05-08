@@ -57,11 +57,23 @@
               v-for="col in category.columns"
               :key="col.key"
               :model-value="selectedSet.has(col.key)"
-              :label="col.label"
               density="compact"
               hide-details
               @update:model-value="toggleColumn(col.key, $event)"
-            />
+            >
+              <template #label>
+                <span class="pickerColumnLabel">
+                  {{ col.label }}
+                  <v-icon
+                    v-if="col.cost"
+                    :class="['pickerCostIcon', `pickerCostIcon-${col.cost}`]"
+                    :icon="mdiClockOutline"
+                    size="14"
+                    :title="col.costTooltip"
+                  />
+                </span>
+              </template>
+            </v-checkbox>
           </div>
         </section>
       </v-card-text>
@@ -78,13 +90,24 @@
 </template>
 
 <script>
-import { mdiClose, mdiDragVertical } from "@mdi/js";
+import { mdiClockOutline, mdiClose, mdiDragVertical } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import BROWSER_TABLE_COLUMN_COSTS from "@/choices/browser-table-column-costs.json";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { TOP_GROUP } from "@/choices/browser-map.json";
 import { filterShowGatedDefaults, useBrowserStore } from "@/stores/browser";
+
+/*
+ * Tooltip copy + CSS class for the per-column cost indicator. The
+ * cost map only carries keys for non-``low`` columns; anything not
+ * listed is treated as cheap and renders no indicator.
+ */
+const _COST_TOOLTIPS = Object.freeze({
+  medium: "Loads moderately on large libraries.",
+  high: "Loads slowly on large libraries — disable if you don't need it.",
+});
 
 /*
  * Hardcoded category groupings. The registry doesn't carry a category
@@ -190,6 +213,7 @@ export default {
      * committed via setSettings() on save.
      */
     return {
+      mdiClockOutline,
       mdiClose,
       mdiDragVertical,
       draft: [],
@@ -219,7 +243,7 @@ export default {
             const entry = _registryEntry(key);
             if (!entry) continue;
             seen.add(key);
-            columns.push({ key, label: entry.label });
+            columns.push(this._columnRow(key, entry));
           }
           return { label: cat.label, columns };
         })
@@ -233,7 +257,7 @@ export default {
         if (seen.has(key)) continue;
         const entry = _registryEntry(key);
         if (!entry) continue;
-        orphans.push({ key, label: entry.label });
+        orphans.push(this._columnRow(key, entry));
       }
       if (orphans.length > 0) {
         categories.push({ label: "Other", columns: orphans });
@@ -250,6 +274,28 @@ export default {
     ...mapActions(useBrowserStore, ["setSettings"]),
     labelFor(key) {
       return _registryEntry(key)?.label ?? key;
+    },
+    /*
+     * Build the per-column row consumed by the v-checkbox loop.
+     * The cost tier (medium / high) drives both the visible
+     * indicator class and the tooltip copy.
+     */
+    _columnRow(key, entry) {
+      const cost = Object.hasOwn(BROWSER_TABLE_COLUMN_COSTS, key)
+        ? // eslint-disable-next-line security/detect-object-injection
+          BROWSER_TABLE_COLUMN_COSTS[key]
+        : null;
+      const costTooltip =
+        cost && Object.hasOwn(_COST_TOOLTIPS, cost)
+          ? // eslint-disable-next-line security/detect-object-injection
+            _COST_TOOLTIPS[cost]
+          : "";
+      return {
+        key,
+        label: entry.label,
+        cost,
+        costTooltip,
+      };
     },
     _snapshot() {
       const stored = this.tableColumns?.[this.topGroup];
@@ -442,5 +488,32 @@ export default {
   text-transform: uppercase;
   color: rgb(var(--v-theme-textSecondary));
   margin-bottom: 4px;
+}
+
+/*
+ * Per-column cost indicator. ``medium`` columns batch their
+ * display query but the sort still scales with library size on
+ * group rows; ``high`` columns issue per-column display + sort
+ * queries with bespoke composite SQL. Faded tint for ``medium``,
+ * warning tint for ``high``. The hover ``title`` tooltip carries
+ * the explanation.
+ */
+.pickerColumnLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pickerCostIcon {
+  flex-shrink: 0;
+}
+
+.pickerCostIcon-medium {
+  color: rgb(var(--v-theme-textSecondary));
+  opacity: 0.75;
+}
+
+.pickerCostIcon-high {
+  color: rgb(var(--v-theme-warning));
 }
 </style>
