@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+import socket
 from collections.abc import Mapping
 from os import cpu_count, environ
 from pathlib import Path
@@ -70,6 +71,12 @@ BUILD = not_falsy_env("BUILD")
 PERF = not_falsy_env("PERF")
 VITE_HMR = DEBUG and not BUILD
 VITE_HOST = environ.get("VITE_HOST")
+VITE_PORT = 5173
+# Lowercased so the CSP origin matches Host headers and django-vite's
+# generated script ``src`` exactly — browsers compare CSP source
+# expressions case-sensitively, and ``socket.gethostname()`` is mixed
+# case on macOS (e.g. ``Hooloovo.local``).
+VITE_DEV_SERVER_HOST = (VITE_HOST or socket.gethostname()).lower()
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
 
@@ -322,11 +329,18 @@ _SWAGGER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     }
 )
 
-# Vite dev server (HMR + on-the-fly module transforms).
+# Vite dev server (HMR + on-the-fly module transforms). The host must
+# match django-vite's ``DEV_SERVER_HOST`` — django-vite renders every
+# script ``src`` as ``http://{host}:5173/...``, so a hardcoded host
+# here would block the script under any other hostname.
+_VITE_HMR_DEV_SERVER = f"{VITE_DEV_SERVER_HOST}:{VITE_PORT}"
 _VITE_HMR_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
-        "script-src": ("http://localhost:5173",),
-        "connect-src": ("ws://localhost:5173", "http://localhost:5173"),
+        "script-src": (f"http://{_VITE_HMR_DEV_SERVER}",),
+        "connect-src": (
+            f"ws://{_VITE_HMR_DEV_SERVER}",
+            f"http://{_VITE_HMR_DEV_SERVER}",
+        ),
     }
 )
 
@@ -783,13 +797,10 @@ CHANNEL_LAYERS = {
 ###############
 
 if FEATURES.vite_hmr:
-    import socket
-
-    DEV_SERVER_HOST = VITE_HOST or socket.gethostname()
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
-            "dev_server_host": DEV_SERVER_HOST,
+            "dev_server_host": VITE_DEV_SERVER_HOST,
         }
     }
 

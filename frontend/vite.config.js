@@ -45,7 +45,14 @@ const config = defineConfig(({ mode }) => {
   // tuning the manualChunks split.
   const ANALYZE = mode === "analyze";
   // https://github.com/vitejs/vite/issues/19242
-  const ALLOWED_HOSTS = DEV ? [hostname().toLowerCase()] : [];
+  // Include localhost so navigating to the dev server via
+  // ``http://localhost:9810`` works — Vite would otherwise reject
+  // the proxied request when the system hostname is something like
+  // ``hooloovoo.local``. Loopback IPs are accepted too so curl /
+  // tooling that hits 127.0.0.1 doesn't get blocked.
+  const ALLOWED_HOSTS = DEV
+    ? [hostname().toLowerCase(), "localhost", "127.0.0.1", "[::1]"]
+    : [];
   let publicPathPrefix = "window.CODEX.APP_PATH";
   if (PROD) {
     publicPathPrefix += ".substring(1)";
