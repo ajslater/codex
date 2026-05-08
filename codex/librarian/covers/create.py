@@ -4,8 +4,14 @@ from __future__ import annotations
 
 import contextlib
 import os
+import signal
 from abc import ABC
-from concurrent.futures import CancelledError, ProcessPoolExecutor, as_completed
+from concurrent.futures import (
+    BrokenExecutor,
+    CancelledError,
+    ProcessPoolExecutor,
+    as_completed,
+)
 from io import BytesIO
 from pathlib import Path
 from queue import Empty
@@ -32,6 +38,22 @@ _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 THUMBNAIL_WIDTH = 165
 THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
+
+
+def _init_cover_worker() -> None:
+    """
+    Detach cover workers from the parent's SIGINT.
+
+    Workers share the foreground process group with the librarian, so
+    a terminal ^C delivers SIGINT to every worker too. ``_process_worker``
+    blocks on ``call_queue.get()`` with no try/except around the loop,
+    so a raised KeyboardInterrupt kills the worker mid-call — which
+    leaves the pool's ``_ExecutorManagerThread`` in a broken state and
+    can hang ``p.join()`` during interpreter shutdown's ``_python_exit``
+    atexit hook. Ignoring SIGINT here lets the librarian own pool
+    teardown via the normal None-sentinel path in ``stop()``.
+    """
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def _save_cover_to_cache(cover_path_str: str, data: bytes) -> None:
@@ -142,18 +164,23 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         ``librarian.cover_workers``) caps the worker count.
         """
         if self._cover_pool is None:
-            self._cover_pool = ProcessPoolExecutor(max_workers=COVER_WORKERS)
+            self._cover_pool = ProcessPoolExecutor(
+                max_workers=COVER_WORKERS, initializer=_init_cover_worker
+            )
         return self._cover_pool
 
     @override
     def stop(self) -> None:
         """Stop the thread and shut down the worker pool."""
         if self._cover_pool is not None:
-            # Don't wait for outstanding tasks; the thread is
-            # shutting down and any in-flight cover work would just
-            # be discarded by the consumer (re-rendered on next
-            # request via the 202-poll path).
-            self._cover_pool.shutdown(wait=False, cancel_futures=True)
+            # Workers ignore SIGINT (see ``_init_cover_worker``), so the
+            # librarian owns teardown. Cancel pending work and SIGTERM
+            # in-flight workers — any current cover would be re-rendered
+            # on the next request via the 202-poll path. Then wait for
+            # the executor manager thread to finish reaping workers so
+            # ``_python_exit``'s atexit hook doesn't have to.
+            self._cover_pool.terminate_workers()  # ty: ignore[unresolved-attribute]  # pyright: ignore[reportAttributeAccessIssue]
+            self._cover_pool.shutdown(wait=True)
             self._cover_pool = None
         super().stop()
 
@@ -254,11 +281,12 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         for future in as_completed(futures):
             try:
                 pk, _cover_path_str, err = future.result()
-            except CancelledError:
-                # ``stop()`` shuts the pool with ``cancel_futures=True``
-                # before ``SHUTDOWN_MSG`` lands — outstanding futures
-                # raise here. Drop them; the burst handler's ``finally``
-                # still finishes the status cleanly.
+            except (CancelledError, BrokenExecutor):
+                # ``stop()`` cancels pending futures and SIGTERMs in-flight
+                # workers before ``SHUTDOWN_MSG`` lands — pending futures
+                # raise CancelledError, in-flight ones raise BrokenExecutor.
+                # Drop both; the burst handler's ``finally`` still finishes
+                # the status cleanly.
                 break
             if err:
                 self.log.warning(f"Could not create cover thumbnail for pk={pk}: {err}")
