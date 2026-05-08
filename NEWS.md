@@ -12,6 +12,7 @@ border-radius: 128px;
     - Fix occasional recreation of comics on docker or network filesystems.
     - Fix double polling of some libraries.
     - Fix Codex sometimes hanging on shutdown after Ctrl+C.
+    - Dev: fix Vite HMR CSP blocking scripts when system hostname isn't `localhost`.
 
 ## v1.11.4
 
