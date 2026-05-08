@@ -148,7 +148,9 @@ def default_columns_filtered(
     if not cols:
         return cols
     show_map = show if isinstance(show, dict) else {}
-    blocked = {col for col, flag in _SHOW_GATED_COLUMNS.items() if not show_map.get(flag)}
+    blocked = {
+        col for col, flag in _SHOW_GATED_COLUMNS.items() if not show_map.get(flag)
+    }
     if not blocked:
         return cols
     return tuple(c for c in cols if c not in blocked)
