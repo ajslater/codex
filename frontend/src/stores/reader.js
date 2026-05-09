@@ -883,7 +883,7 @@ export const useReaderStore = defineStore("reader", {
         pk: params.pk,
         page,
         mtime: book.mtime,
-        format: this.clientSettings?.pdfRenderMode,
+        serve: this.clientSettings?.pdfRenderMode,
       };
       return READER_API.getComicPageSource(paramsPlus);
     },

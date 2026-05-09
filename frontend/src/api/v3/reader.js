@@ -25,17 +25,22 @@ export const getReaderInfo = (pk, data, ts, options = {}) => {
 const _getReaderAPIPath = (pk) =>
   globalThis.CODEX.API_V3_PATH + _getBookPath(pk);
 
-export const getComicPageSource = ({ pk, page, mtime, format }) => {
-  // ``format`` is the optional PDF rendering hint forwarded to the
+export const getComicPageSource = ({ pk, page, mtime, serve }) => {
+  // ``serve`` is the optional PDF serving-mode hint forwarded to the
   // backend ``ReaderPageView``: ``auto`` (detector decides),
   // ``image`` (always rasterize), or ``pdf`` (skip the detector and
   // serve a single-page PDF blob). Ignored by the backend for
   // non-PDF archives. Omitting the param keeps the URL identical to
   // the legacy shape so HTTP caches don't fragment.
+  //
+  // The query name is ``serve`` rather than ``format`` because DRF
+  // reserves ``?format=`` (URL_FORMAT_OVERRIDE) as a renderer-format
+  // selector and raises NotFound for unknown values before the view
+  // dispatches.
   const bookAPIPath = _getReaderAPIPath(pk);
   let url = `${bookAPIPath}/${page}/page.jpg?ts=${mtime}`;
-  if (format && format !== "auto") {
-    url += `&format=${format}`;
+  if (serve && serve !== "auto") {
+    url += `&serve=${serve}`;
   }
   return url;
 };

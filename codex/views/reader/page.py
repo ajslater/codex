@@ -27,15 +27,21 @@ if TYPE_CHECKING:
 
 _PDF_MIME_TYPE: Final[str] = "application/pdf"
 
-#: Permitted ``?format=`` values. ``auto`` runs the detector; ``pdf``
+#: Query-parameter name that selects the PDF serving mode. Picked to
+#: avoid colliding with DRF's reserved ``?format=`` (``URL_FORMAT_OVERRIDE``)
+#: which DRF interprets as a renderer-format selector — it raises
+#: ``NotFound`` for unknown values *before* the view's ``get`` runs.
+_SERVE_PARAM: Final[str] = "serve"
+
+#: Permitted ``?serve=`` values. ``auto`` runs the detector; ``pdf``
 #: skips the detector and forces the legacy single-page-PDF path;
 #: ``image`` forces a server-side rasterize (works for any PDF page
 #: but spends more CPU than the detector path on vector-heavy pages).
-_FORMAT_AUTO: Final[str] = "auto"
-_FORMAT_PDF: Final[str] = "pdf"
-_FORMAT_IMAGE: Final[str] = "image"
-_FORMAT_HINTS: Final[frozenset[str]] = frozenset(
-    {_FORMAT_AUTO, _FORMAT_PDF, _FORMAT_IMAGE}
+_SERVE_AUTO: Final[str] = "auto"
+_SERVE_PDF: Final[str] = "pdf"
+_SERVE_IMAGE: Final[str] = "image"
+_SERVE_HINTS: Final[frozenset[str]] = frozenset(
+    {_SERVE_AUTO, _SERVE_PDF, _SERVE_IMAGE}
 )
 
 
@@ -91,9 +97,9 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         page_acl_cache.put(cache_key, path, file_type, now)
         return path, file_type
 
-    def _format_hint(self) -> str:
-        raw = self.request.GET.get("format", _FORMAT_AUTO).lower()
-        return raw if raw in _FORMAT_HINTS else _FORMAT_AUTO
+    def _serve_hint(self) -> str:
+        raw = self.request.GET.get(_SERVE_PARAM, _SERVE_AUTO).lower()
+        return raw if raw in _SERVE_HINTS else _SERVE_AUTO
 
     @staticmethod
     def _classify_cached(entry: _ArchiveEntry, pdf: PDFFile, page: int) -> PageVerdict:
@@ -106,7 +112,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         return verdict
 
     def _try_pdf_image_serve(
-        self, path: str, page: int, fmt_hint: str
+        self, path: str, page: int, serve_hint: str
     ) -> tuple[bytes, str] | None:
         """
         Image-serve fast path for PDF pages.
@@ -134,7 +140,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             pdf = archive
             page_index = int(page)
 
-            if fmt_hint == _FORMAT_IMAGE:
+            if serve_hint == _SERVE_IMAGE:
                 # Always-image override — pixmap fallback for vector pages.
                 blob, ext = pdf.read_full_pixmap_jpeg(page_index)
                 logger.debug(  # TEMP DEBUG
@@ -174,19 +180,19 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         path, file_type = self._resolve_path_and_type(pk)
 
         page = self.kwargs.get("page")
-        fmt_hint = self._format_hint()
+        serve_hint = self._serve_hint()
 
         is_pdf = file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
 
         logger.debug(  # TEMP DEBUG
             f"[pdf-debug] page request: pk={pk} page={page} "
-            f"fmt={fmt_hint} is_pdf={is_pdf} path={path}"
+            f"serve={serve_hint} is_pdf={is_pdf} path={path}"
         )
 
         # Image-dominant fast path for PDFs (skipped when the caller
-        # forces ``?format=pdf``).
-        if is_pdf and fmt_hint != _FORMAT_PDF:
-            served = self._try_pdf_image_serve(path, page, fmt_hint)
+        # forces ``?serve=pdf``).
+        if is_pdf and serve_hint != _SERVE_PDF:
+            served = self._try_pdf_image_serve(path, page, serve_hint)
             if served is not None:
                 return served
             logger.debug(  # TEMP DEBUG
@@ -232,12 +238,12 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         parameters=[
             OpenApiParameter("bookmark", OpenApiTypes.BOOL, default=True),
             OpenApiParameter(
-                "format",
+                _SERVE_PARAM,
                 OpenApiTypes.STR,
-                default=_FORMAT_AUTO,
-                enum=sorted(_FORMAT_HINTS),
+                default=_SERVE_AUTO,
+                enum=sorted(_SERVE_HINTS),
                 description=(
-                    "PDF rendering hint: 'auto' (detector), "
+                    "PDF serving mode: 'auto' (detector), "
                     "'pdf' (legacy single-page PDF), "
                     "'image' (always rasterize). Ignored for non-PDF archives."
                 ),
@@ -257,12 +263,12 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         # don't disappear before the existing ``page request:`` log.
         pk = self.kwargs.get("pk")
         page = self.kwargs.get("page")
-        fmt = self.request.GET.get("format", "auto")
+        serve = self.request.GET.get(_SERVE_PARAM, _SERVE_AUTO)
         ua = self.request.headers.get("User-Agent", "?")[:60]
         referer = self.request.headers.get("Referer", "?")
         logger.debug(
             f"[pdf-debug] >>>>> view entry: pk={pk} page={page} "
-            f"fmt={fmt} ua={ua!r} referer={referer!r}"
+            f"serve={serve} ua={ua!r} referer={referer!r}"
         )
         try:
             page_image, content_type = self._get_page_image()
@@ -271,7 +277,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             # TEMP DEBUG: surface the ACL-filter miss explicitly.
             logger.warning(
                 f"[pdf-debug] Comic.DoesNotExist: pk={pk} page={page} "
-                f"fmt={fmt} (ACL filter rejected or comic deleted)"
+                f"serve={serve} (ACL filter rejected or comic deleted)"
             )
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
@@ -279,7 +285,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             # TEMP DEBUG: comic path missing on disk.
             logger.warning(
                 f"[pdf-debug] FileNotFoundError: pk={pk} page={page} "
-                f"fmt={fmt}: {exc}"
+                f"serve={serve}: {exc}"
             )
             detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
@@ -290,12 +296,12 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             # the PDF-rendering paths are stable.
             logger.exception(
                 f"[pdf-debug] page request failed: pk={pk} page={page} "
-                f"fmt={fmt} {type(exc).__name__}: {exc}"
+                f"serve={serve} {type(exc).__name__}: {exc}"
             )
             raise NotFound(detail="comic page not found") from exc
         else:
             logger.debug(
                 f"[pdf-debug] <<<<< view exit OK: pk={pk} page={page} "
-                f"fmt={fmt} bytes={len(page_image)} ct={content_type}"
+                f"serve={serve} bytes={len(page_image)} ct={content_type}"
             )
             return HttpResponse(page_image, content_type=content_type)

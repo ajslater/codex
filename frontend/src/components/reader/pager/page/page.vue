@@ -78,7 +78,7 @@ export default {
        * ``true`` once we've seen an ``<img>`` load fail on a PDF
        * book — the response was ``application/pdf`` (the detector
        * declined to serve as image), so we re-mount the page through
-       * ``<PDFDoc>`` against the same URL with ``?format=pdf``.
+       * ``<PDFDoc>`` against the same URL with ``?serve=pdf``.
        */
       pdfFallback: false,
     };
@@ -111,13 +111,13 @@ export default {
         pk: this.book.pk,
         page: this.page,
         mtime,
-        format: this.activeFormat,
+        serve: this.activeServe,
       };
       return getComicPageSource(params);
     },
-    activeFormat() {
+    activeServe() {
       /*
-       * For non-PDF books the format param is ignored by the
+       * For non-PDF books the serve param is ignored by the
        * backend; we still pass it through so the URL is stable.
        */
       if (!this.isPDF) {
