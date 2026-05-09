@@ -22,6 +22,12 @@
         <v-spacer />
         <v-toolbar-items v-if="!empty">
           <ReaderArcSelect />
+          <FavoriteToggle
+            v-if="currentBookPk"
+            class="readerFavoriteToggle"
+            group="c"
+            :pk="currentBookPk"
+          />
           <MetadataDialog
             ref="metadataDialog"
             :book="metadataBook"
@@ -53,6 +59,7 @@ import { mdiClose } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
+import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -65,6 +72,7 @@ export default {
   name: "ReaderTitleToolbar",
   components: {
     AppBanner,
+    FavoriteToggle,
     MetadataDialog,
     ReaderArcSelect,
     SettingsDrawerButton,
@@ -100,6 +108,9 @@ export default {
     }),
     title() {
       return this.activeTitle;
+    },
+    currentBookPk() {
+      return this.currentBook?.pk;
     },
     extensionHeight() {
       let height = 32;

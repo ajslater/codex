@@ -39,6 +39,16 @@
         :append-icon="mdiCloseCircleOutline"
         @click="onClear"
       />
+      <v-list-item
+        v-if="isLoggedIn"
+        density="compact"
+        variant="plain"
+        class="favoritesOnly"
+        :class="{ active: favoriteFilter }"
+        :title="favoriteFilter ? 'Favorites Only' : 'Show Favorites Only'"
+        :prepend-icon="favoriteFilter ? mdiStar : mdiStarOutline"
+        @click="onFavoriteToggle"
+      />
     </template>
     <template #append-item>
       <v-divider />
@@ -68,11 +78,17 @@
 </template>
 
 <script>
-import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
+import {
+  mdiCloseCircleOutline,
+  mdiFilterMultipleOutline,
+  mdiStar,
+  mdiStarOutline,
+} from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -86,10 +102,15 @@ export default {
     return {
       mdiCloseCircleOutline,
       mdiFilterMultipleOutline,
+      mdiStar,
+      mdiStarOutline,
       menu: false,
     };
   },
   computed: {
+    ...mapState(useAuthStore, {
+      isLoggedIn: (state) => Boolean(state.user),
+    }),
     ...mapState(useBrowserStore, [
       // eslint-disable-next-line no-secrets/no-secrets
       "filterByChoicesMaxLen",
@@ -100,6 +121,7 @@ export default {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       bookmarkFilter: (state) =>
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
+      favoriteFilter: (state) => Boolean(state.settings.filters.favorite),
       filters: (state) => state.settings.filters,
       filterMenuClass: function (state) {
         /*
@@ -169,6 +191,9 @@ export default {
       const data = { filters: { bookmark } };
       this.onSubMenuSelected(data);
     },
+    onFavoriteToggle() {
+      this.setSettings({ filters: { favorite: !this.favoriteFilter } });
+    },
     onSubMenuSelected(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
       this.menu = false;
@@ -195,11 +220,12 @@ export default {
         if (this.isFiltersClearable) {
           const emptyDynamic = Object.fromEntries(
             Object.keys(this.filters || {})
-              .filter((key) => key !== "bookmark")
+              .filter((key) => key !== "bookmark" && key !== "favorite")
               .map((key) => [key, []]),
           );
           const clearedFilters = {
             bookmark: undefined,
+            favorite: false,
             ...emptyDynamic,
             ageRatingMetron: [],
             ageRatingTagged: [],

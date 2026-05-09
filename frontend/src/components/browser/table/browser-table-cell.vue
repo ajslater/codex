@@ -28,6 +28,9 @@
       </div>
     </v-menu>
   </span>
+  <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
+    <FavoriteToggle v-if="favoritePk" :group="favoriteGroup" :pk="favoritePk" />
+  </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
   }}</span>
@@ -49,6 +52,7 @@ import prettyBytes from "pretty-bytes";
 
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
+import FavoriteToggle from "@/components/favorite-toggle.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -110,6 +114,9 @@ function formatDateTime(value, twentyFourHour) {
 
 export default {
   name: "BrowserTableCell",
+  components: {
+    FavoriteToggle,
+  },
   props: {
     column: {
       type: String,
@@ -162,6 +169,24 @@ export default {
     },
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
+    },
+    favoriteGroup() {
+      /*
+       * Group rows carry an explicit ``group`` letter; comic rows
+       * omit it (the table view's lone comic-only top-group) and
+       * default to ``c``.
+       */
+      return this.row?.group ?? "c";
+    },
+    favoritePk() {
+      /*
+       * Comic rows expose ``pk`` directly; group rows use ``ids``
+       * and only the single-id case can be favorited atomically.
+       */
+      const ids = this.row?.ids;
+      if (Array.isArray(ids) && ids.length === 1) return ids[0];
+      if (Array.isArray(ids)) return undefined;
+      return this.row?.pk;
     },
     rowAttrName() {
       /*
@@ -265,6 +290,12 @@ export default {
 
 <style scoped lang="scss">
 .tableCoverCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tableFavoriteCell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
