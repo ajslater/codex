@@ -117,6 +117,37 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         """Return the queryset alias used for the n-th extra key on a group queryset."""
         return f"_table_extra_value_{idx}"
 
+    def _comic_extra_fields(self, key: str) -> list[str]:
+        """Resolve a single extra-key to its Comic ORDER BY field list."""
+        # ``child_count`` doesn't apply on Comic rows (every comic has
+        # implicit count 1). The frontend grays out the unsupported
+        # keys, but a stored payload could still hit; fall back to
+        # ``sort_name`` so the ORDER BY tail still binds.
+        if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS or key == "child_count":
+            return ["sort_name"]
+        return self._add_comic_order_by(key, None)
+
+    def _comic_extra_order_by(self, extras) -> list[str]:
+        """Build the ORDER BY tail for a Comic-row queryset."""
+        tail: list[str] = []
+        for entry in extras:
+            key = entry.get("key")
+            if not key:
+                continue
+            prefix = "-" if entry.get("reverse") else ""
+            tail.extend(prefix + field for field in self._comic_extra_fields(key))
+        return tail
+
+    def _group_extra_order_by(self, extras) -> list[str]:
+        """Build the ORDER BY tail for a group-row queryset."""
+        tail: list[str] = []
+        for idx, entry in enumerate(extras):
+            if not entry.get("key"):
+                continue
+            prefix = "-" if entry.get("reverse") else ""
+            tail.append(prefix + self.extra_order_value_alias(idx))
+        return tail
+
     def _add_extra_order_by(self, qs) -> list[str]:
         """
         Build the ``ORDER BY`` tail from ``order_extra_keys``.
@@ -132,31 +163,9 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         extras = self.params.get("order_extra_keys") or ()
         if not extras or self.params.get("view_mode") != "table":
             return []
-        tail: list[str] = []
         if qs.model is Comic:
-            for entry in extras:
-                key = entry.get("key")
-                if not key:
-                    continue
-                if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS or key == "child_count":
-                    # ``child_count`` doesn't apply on Comic rows
-                    # (every comic has implicit count 1). The
-                    # frontend grays out the unsupported keys, but
-                    # a stored payload could still hit; fall back to
-                    # ``sort_name`` so the ORDER BY tail still binds.
-                    extra_fields = ["sort_name"]
-                else:
-                    extra_fields = self._add_comic_order_by(key, None)
-                prefix = "-" if entry.get("reverse") else ""
-                tail.extend(prefix + field for field in extra_fields)
-            return tail
-        for idx, entry in enumerate(extras):
-            key = entry.get("key")
-            if not key:
-                continue
-            prefix = "-" if entry.get("reverse") else ""
-            tail.append(prefix + self.extra_order_value_alias(idx))
-        return tail
+            return self._comic_extra_order_by(extras)
+        return self._group_extra_order_by(extras)
 
     def add_order_by(
         self, qs, order_key="", comic_sort_names=None, *, for_cover: bool = False

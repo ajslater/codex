@@ -82,6 +82,17 @@ _COLUMN_VALUE_TRANSFORMS = {
     "language": _resolve_language,
 }
 
+# Routing metadata that ``_row_repr`` always emits regardless of the
+# user's column selection. Skipped during the per-column dispatch loop
+# because the values are pre-populated on the row dict.
+_ROUTING_COLUMNS = frozenset({"pk", "group", "ids"})
+
+
+def _apply_transform(col: str, value):
+    """Run the per-column display transform if the column has one."""
+    transform = _COLUMN_VALUE_TRANSFORMS.get(col)
+    return transform(value) if transform else value
+
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     """Browse card displayed in the browser."""
@@ -137,6 +148,61 @@ class BrowserTitleSerializer(Serializer):
     group_count = IntegerField(read_only=True, allow_null=True)
 
 
+def _emit_cover(row, instance) -> None:
+    """Populate the cover_pk / cover_custom_pk pair from a single ``cover`` request."""
+    row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
+    row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+
+
+def _emit_issue(row, instance) -> None:
+    """Render the compound issue column as ``{number, suffix}`` on the row."""
+    # Compound from issue_number + issue_suffix on the Comic, emitted as
+    # ``{number, suffix}`` so the cell can split-justify the halves.
+    # Group rows yield empty strings for both (intersection of distinct
+    # issues across child comics is rarely meaningful).
+    row["issue"] = _format_issue(
+        getattr(instance, "issue_number", None),
+        getattr(instance, "issue_suffix", "") or "",
+    )
+
+
+def _emit_column(
+    row,
+    instance,
+    col: str,
+    row_intersections: dict,
+    m2m_keys: frozenset[str],
+    fk_keys: frozenset[str],
+) -> None:
+    """
+    Resolve and emit a single column's value onto ``row``.
+
+    Lookup order: special-case (cover / issue) → group-row intersection
+    (with country / language transform) → M2M annotation alias → FK-name
+    annotation alias (with transform) → direct attribute lookup. M2M and
+    FK-name aliases are prefixed because the unprefixed name collides
+    with the matching Comic field attribute.
+    """
+    if col == "cover":
+        _emit_cover(row, instance)
+    elif col == "issue":
+        _emit_issue(row, instance)
+    elif col in row_intersections:
+        # Group-row intersection takes precedence (and applies country /
+        # language transforms the same way the FK-alias path does).
+        row[col] = _apply_transform(col, row_intersections[col])
+    elif col in m2m_keys:
+        row[col] = getattr(instance, m2m_alias_for(col), None)
+    elif col in fk_keys:
+        row[col] = _apply_transform(col, getattr(instance, fk_alias_for(col), None))
+    else:
+        # ``getattr`` covers direct fields, F-expression annotations
+        # (publisher_name etc.), and aggregates added downstream.
+        # Columns whose value source isn't annotated yet return None;
+        # the frontend renders them as empty cells.
+        row[col] = getattr(instance, col, None)
+
+
 def _row_repr(
     instance, columns: tuple[str, ...], intersections: dict | None = None
 ) -> dict:
@@ -167,48 +233,9 @@ def _row_repr(
         intersections.get(instance.pk) if intersections else None
     ) or {}
     for col in columns:
-        if col in ("pk", "group", "ids"):
+        if col in _ROUTING_COLUMNS:
             continue
-        if col == "cover":
-            row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
-            row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
-            continue
-        if col == "issue":
-            # Compound from issue_number + issue_suffix on the Comic,
-            # emitted as ``{number, suffix}`` so the cell can split-
-            # justify the halves. Group rows yield empty strings for
-            # both (intersection of distinct issues across child
-            # comics is rarely meaningful).
-            row[col] = _format_issue(
-                getattr(instance, "issue_number", None),
-                getattr(instance, "issue_suffix", "") or "",
-            )
-            continue
-        # Group-row intersection takes precedence (and applies country /
-        # language transforms the same way the FK-alias path does).
-        if col in row_intersections:
-            value = row_intersections[col]
-            transform = _COLUMN_VALUE_TRANSFORMS.get(col)
-            row[col] = transform(value) if transform else value
-            continue
-        if col in m2m_keys:
-            # M2M aggregates live under a prefixed alias (the unprefixed
-            # name would clash with the model's M2M field attribute).
-            row[col] = getattr(instance, m2m_alias_for(col), None)
-            continue
-        if col in fk_keys:
-            # FK-name annotations also live under a prefixed alias —
-            # the unprefixed name (``country``, ``age_rating``, ...)
-            # collides with the matching Comic FK attribute.
-            value = getattr(instance, fk_alias_for(col), None)
-            transform = _COLUMN_VALUE_TRANSFORMS.get(col)
-            row[col] = transform(value) if transform else value
-            continue
-        # ``getattr`` covers direct fields, F-expression annotations
-        # (publisher_name etc.), and aggregates added downstream.
-        # Columns whose value source isn't annotated yet return None;
-        # the frontend renders them as empty cells.
-        row[col] = getattr(instance, col, None)
+        _emit_column(row, instance, col, row_intersections, m2m_keys, fk_keys)
     return row
 
 
