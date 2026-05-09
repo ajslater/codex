@@ -334,8 +334,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "value": "cleanup_favorites",
                         "title": "Remove Orphan Favorites",
                         "desc": (
-                            "Drop favorites whose target row is gone. Runs"
-                            " nightly."
+                            "Drop favorites whose target row is gone. Runs nightly."
                         ),
                         "statuses": ("JRF",),
                     },
