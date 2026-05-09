@@ -31,15 +31,15 @@ Verify: ruff + basedpyright + vulture + complexipy clean; pytest 6/6 in `tests/t
 
 ## Phase 3 — API ViewSet
 
-- [ ] `codex/serializers/favorite.py` — minimal serializer for list response (`group`, `target_id`).
-- [ ] `codex/views/favorites.py` — `FavoriteViewSet`:
-  - `PUT /api/v3/favorites/<group>/<pk>/` — idempotent create (200 if existed, 201 if new). Validate target exists and request user has ACL access to it before creating.
-  - `DELETE /api/v3/favorites/<group>/<pk>/` — idempotent delete (204).
-  - `GET /api/v3/favorites/?group=<g>` — list ids the user has favorited (group filter optional).
-- [ ] Register routes in `codex/urls/api_v3.py`.
-- [ ] Tests: 401 for unauthenticated, 404 for nonexistent target, 403 for inaccessible target (ACL), idempotency on repeated PUT/DELETE, list filtering by group.
+- [x] `codex/views/favorites.py` — two `AuthFilterGenericAPIView` subclasses sharing a `_FavoriteAuthMixin` that pins `permission_classes = (IsAuthenticated,)`:
+  - `FavoriteListView.get` returns `{group_code: [target_id, ...]}` keyed by all 7 group codes (empty arrays if no entries) — frontend hydrates per-group Sets directly.
+  - `FavoriteDetailView.put` is idempotent (`get_or_create` → 201 new / 200 existing); ACL via `get_acl_filter(model, user)` so an inaccessible target 404s rather than 403s (no existence leak).
+  - `FavoriteDetailView.delete` is idempotent (204 either way).
+  - Unmapped group code (`r`) → 400.
+- [x] `codex/urls/api/favorites.py` mounted at `path("favorites/", include(...))` in `v3.py`. Uses the existing `<group>` URL converter and a `<int:target_id>` segment.
+- [x] Tests in `tests/test_favorites_api.py` — 8 cases: idempotent create, idempotent delete, 404 unknown target, 400 unmapped group, GET grouped output, GET cross-user isolation, anonymous 403 on every verb, JSON shape sanity. Default Comic touch-file scaffold + tearDown.
 
-Verify: `make fix && make test-backend`.
+Verify: ruff + basedpyright + vulture + complexipy clean; `pytest -x` 206/206 across the whole suite (8 new + existing).
 
 ## Phase 4 — Browser filter wiring
 
