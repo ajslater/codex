@@ -88,6 +88,13 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             if self.request.GET.get("pixmap", "").lower() not in FALSY
             else ""
         )
+        # ``?hide_text=1`` suppresses visible text rendering on PDF
+        # pages — useful for badly-OCR'd scans that draw the OCR
+        # layer with rendering mode 0 (visible) on top of the page's
+        # raster, doubling the text. Forwarded straight through
+        # comicbox to the pdffile backend; non-PDF archives ignore
+        # it.
+        hide_text = self.request.GET.get("hide_text", "").lower() not in FALSY
         # Process-wide LRU of open Comicbox archives — the web reader's
         # prev/curr/next prefetch fires 3-5 page hits on the same archive
         # within a second, and ``cacheBook`` mode bursts a whole-book
@@ -96,7 +103,15 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         # held inside ``archive_cache.open(...)`` serializes extraction
         # because ZipFile / RarFile / PDF backends aren't thread-safe.
         with archive_cache.open(path) as cb:
-            page_image = cb.get_page_by_index(page, pdf_format=pdf_format)
+            # ``hide_text`` requires comicbox > 3.0.0 / comicbox-pdffile
+            # > 0.5.0; pyright's lock-file-pinned typeshed lags behind
+            # the editable install used during dev. Drop the ignore once
+            # both deps land on PyPI and ``pyproject.toml`` is bumped.
+            page_image = cb.get_page_by_index(
+                page,
+                pdf_format=pdf_format,
+                hide_text=hide_text,  # pyright: ignore[reportCallIssue]  # ty: ignore[unknown-argument]
+            )
         if not page_image:
             page_image = b""
 
@@ -115,6 +130,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         parameters=[
             OpenApiParameter("bookmark", OpenApiTypes.BOOL, default=True),
             OpenApiParameter("pixmap", OpenApiTypes.BOOL, default=False),
+            OpenApiParameter("hide_text", OpenApiTypes.BOOL, default=False),
         ],
         responses={
             (200, content_type): OpenApiTypes.BINARY,
