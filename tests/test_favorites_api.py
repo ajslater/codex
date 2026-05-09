@@ -447,9 +447,7 @@ class FavoriteAnnotationTestCase(TestCase):
         self.other_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="ignored", publisher=publisher, imprint=imprint
         )
-        Favorite.objects.create(
-            user=self.user, group="s", target_id=self.fav_series.pk
-        )
+        Favorite.objects.create(user=self.user, group="s", target_id=self.fav_series.pk)
 
     def test_authenticated_user_gets_per_row_exists(self):
         """Annotated queryset reports True for favorited rows, False otherwise."""
