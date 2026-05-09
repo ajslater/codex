@@ -138,10 +138,68 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         return SnapshotDiff(db_snap, disk_snap)
 
+    def _refresh_stale_stats(self, diff: SnapshotDiff) -> None:
+        """
+        Sync DB stat to current disk stat for unchanged-content / rotated-inode paths.
+
+        Without this, the May-1 fix that stopped flagging every comic
+        modified on Docker remount left DB inodes permanently stale —
+        once a remount rotated the kernel's inode space, the
+        ``_find_moved_paths`` lookup keys diverged from disk reality
+        and stayed that way until the next true delete/add cycle. The
+        ``_is_move_compatible`` guard suppresses the corruption that
+        produced, but legitimate cross-remount renames still degrade
+        to delete+add (and the user loses the comic.pk's bookmarks).
+
+        Refresh in-place: rewrite ``stat`` only, do not bump
+        ``updated_at``. The file's content is unchanged from the
+        user's perspective; the bookmark/cover-cache "freshness"
+        invariants must hold.
+
+        Skipped on ``force=True`` polls because force routes every
+        path through the import pipeline (where ``presave`` already
+        rewrites stats), and we'd rather not double-write.
+        """
+        if not diff.stale_stat_refreshes:
+            return
+        # Bucket by model so each table takes one bulk_update.
+        by_model: dict[type, list[tuple[str, list]]] = {}
+        for refresh in diff.stale_stat_refreshes:
+            by_model.setdefault(refresh.model, []).append(
+                (refresh.path, list(refresh.disk_stat))
+            )
+        total = 0
+        for model, payloads in by_model.items():
+            paths = [p for p, _ in payloads]
+            stat_by_path = dict(payloads)
+            rows = tuple(
+                model.objects.filter(path__in=paths).only("pk", "path", "stat")  # ty: ignore[unresolved-attribute]
+            )
+            for row in rows:
+                row.stat = stat_by_path[row.path]
+            if rows:
+                model.objects.bulk_update(rows, fields=["stat"])  # ty: ignore[unresolved-attribute]
+                total += len(rows)
+        if total:
+            msg = (
+                f"Refreshed stale stat on {total} unchanged-content paths "
+                "(inode rotated, content matches)."
+            )
+            self.log.debug(msg)
+
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
         """Run the snapshot diff and emit a single ImportTask for the library."""
         diff = self._get_diff(library, force=force)
-        if not diff or diff.is_empty():
+        if diff is None:
+            return
+
+        # Refresh DB stats for paths whose content matches but whose
+        # inode rotated (Docker remount, in-place file replacement).
+        # Force polls already rewrite stats through the import path.
+        if not force:
+            self._refresh_stale_stats(diff)
+
+        if diff.is_empty():
             self.log.debug(f"Nothing changed for {library.path}")
             return
 
@@ -183,8 +241,20 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     # Main loop #
     #############
 
-    def _get_min_timeout(self) -> float | None:
-        """Find the shortest timeout across all polled libraries."""
+    def _poll_due_and_get_next_timeout(self, *, force: bool = False) -> float | None:
+        """
+        Poll any due libraries and return the wait time until the next.
+
+        ``_get_poll_timeout`` is the source of truth for both "is this
+        library due now?" and "when will it be due?", and it logs as a
+        side effect — notably an INFO ``waiting for manual poll`` line
+        for every ``poll=False`` library it sees. The previous shape
+        called it twice per main-loop iteration (once to find the
+        minimum timeout, once to pick the libraries to poll), so that
+        log fired twice every cycle a library was due. Folding the
+        two passes into one keeps each library inspected exactly once
+        per cycle.
+        """
         min_timeout: float | None = None
         try:
             libraries = Library.objects.all().only(*_LIBRARY_ONLY)
@@ -197,8 +267,15 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
                 if timeout is None:
                     continue
-                if timeout == 0:
-                    return 0
+                if timeout <= 0:
+                    self._poll_library(library, force=force)
+                    # ``_poll_library`` bumped ``last_poll`` to now, so
+                    # the next natural wait for this library is one
+                    # whole ``poll_every`` away. Fold that into the
+                    # running min so we don't return ``None`` and wait
+                    # forever when the only due library was the one we
+                    # just polled.
+                    timeout = library.poll_every.total_seconds()
                 if min_timeout is None or timeout < min_timeout:
                     min_timeout = timeout
         except Exception:
@@ -206,20 +283,6 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             return 60  # Retry in a minute on error
 
         return min_timeout
-
-    def _poll_due_libraries(self, *, force: bool = False) -> None:
-        """Poll all libraries that are due."""
-        try:
-            libraries = Library.objects.all().only(*_LIBRARY_ONLY)
-            for library in libraries:
-                try:
-                    timeout = self._get_poll_timeout(library)
-                except FileNotFoundError:
-                    continue
-                if timeout is not None and timeout <= 0:
-                    self._poll_library(library, force=force)
-        except Exception:
-            self.log.exception("Polling due libraries")
 
     def _handle_pending_polls(self) -> None:
         """Handle manually triggered polls."""
@@ -249,11 +312,8 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
                 if self._pending_poll_ids:
                     self._handle_pending_polls()
 
-                # Find the next scheduled poll time
-                timeout = self._get_min_timeout()
-                if timeout is not None and timeout <= 0:
-                    self._poll_due_libraries()
-                    continue
+                # Poll any due libraries and find the next scheduled poll time
+                timeout = self._poll_due_and_get_next_timeout()
 
                 # Sleep until next poll or until woken
                 if timeout is not None:

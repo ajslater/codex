@@ -24,8 +24,12 @@ urlpatterns = [
         name="serviceworker_register",
     ),
     path(
+        # No ``cache_page``: the SW's CSP is captured by the browser
+        # at install time from this response, and the browser only
+        # swaps the SW when its bytes change. A stale server-side
+        # cache pins both content and CSP.
         "serviceworker.js",
-        cache_page(COMMON_TIMEOUT)(ServiceWorkerView.as_view()),
+        ServiceWorkerView.as_view(),
         name="serviceworker",
     ),
 ]

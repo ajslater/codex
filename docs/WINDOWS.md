@@ -152,8 +152,8 @@ this works for you please report it so I can update this documentation.
 
 ## Run Codex
 
-Return to the Main [README](README.md#administration) for help running and
-administering Codex.
+Return to the Main [README](/#administration) for help running and administering
+Codex.
 
 ## Special Thanks
 

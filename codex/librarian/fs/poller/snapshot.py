@@ -2,9 +2,10 @@
 
 import os
 from collections.abc import Iterator
-from itertools import chain
 from pathlib import Path
 from stat import S_ISDIR
+
+from django.db.models import Model
 
 from codex.librarian.fs.filters import (
     match_comic,
@@ -29,6 +30,10 @@ class Snapshot:
         self._ignore_device = ignore_device
         self._stat_info: dict[str, os.stat_result] = {}
         self._device_inode_to_path: dict[tuple[int, int], str] = {}
+        # ``DatabaseSnapshot`` populates this with the source model for
+        # each path so the poller can refresh stale stats by model.
+        # ``DiskSnapshot`` leaves it empty.
+        self._path_to_model: dict[str, type[Model]] = {}
 
     def _inode(self, st: os.stat_result) -> tuple[int, int]:
         """Build a device:inode Key."""
@@ -70,6 +75,20 @@ class Snapshot:
     def is_cover(self, path: str) -> bool:
         """Return whether path is a cover."""
         return self._covers_only or match_folder_cover(Path(path))
+
+    def stat(self, path: str) -> os.stat_result:
+        """Return the raw stat for a path."""
+        return self._stat_info[path]
+
+    def model_for_path(self, path: str) -> type[Model] | None:
+        """
+        Return the source model for a DB-snapshot path, or None.
+
+        Only meaningful on ``DatabaseSnapshot``. Used by Phase-3 stale-
+        stat refresh to bulk-update each affected row by its native
+        model.
+        """
+        return self._path_to_model.get(path)
 
 
 class DiskSnapshot(Snapshot):
@@ -156,19 +175,27 @@ class DatabaseSnapshot(Snapshot):
         self._set_lookups(self._root, root_stat)
 
         models = self._COVERS_ONLY_MODELS if self._covers_only else self._MODELS
-        for wp in chain.from_iterable(self._walk(self._root, models)):
+        for model, wp in self._walk(self._root, models):
             st = self._create_stat(wp, force=self._force)
             self._set_lookups(wp["path"], st)
+            # Track which model owns each path so the poller's stale-
+            # stat refresh can bulk-update by model. Model order in
+            # ``_MODELS`` puts ``Comic`` after ``Folder``, so on the
+            # rare path collision the comic-owned mapping wins —
+            # matches the legacy ``_set_lookups`` overwrite behavior.
+            self._path_to_model[wp["path"]] = model
 
     @staticmethod
-    def _walk(root: str, models: tuple) -> Iterator:
-        """Yield querysets of {path, stat} dicts for each model."""
+    def _walk(root: str, models: tuple) -> Iterator[tuple[type[Model], dict]]:
+        """Yield (model, {path, stat} dict) for every row across all models."""
         for model in models:
-            yield (
+            qs = (
                 model.objects.filter(library__path=root)
                 .order_by("path")
                 .values("path", "stat")
             )
+            for wp in qs:
+                yield model, wp
 
     def _create_stat(self, wp: dict, *, force: bool) -> os.stat_result:
         """Turn a database JSON stat array into an os.stat_result."""
