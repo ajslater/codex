@@ -12,14 +12,8 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { defineAsyncComponent, markRaw } from "vue";
 
 import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
-const PagerPDF = markRaw(
-  defineAsyncComponent(
-    () => import("@/components/reader/pager/pager-full-pdf.vue"),
-  ),
-);
 import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -27,7 +21,6 @@ export default {
   name: "PagerSelector",
   components: {
     PagerHorizontal,
-    PagerPDF,
     PagerVertical,
   },
   props: {
@@ -38,7 +31,6 @@ export default {
     return this.prefetchBook(this.book);
   },
   computed: {
-    ...mapState(useReaderStore, ["cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
@@ -48,23 +40,13 @@ export default {
     bookSettings() {
       return this.getBookSettings(this.book);
     },
-    readerFullPdf() {
-      return (
-        this.book?.fileType == "PDF" &&
-        this.cacheBook &&
-        !this.bookSettings.isVertical
-      );
-    },
     component() {
-      let comp;
-      if (this.readerFullPdf) {
-        comp = PagerPDF;
-      } else if (this.bookSettings.isVertical) {
-        comp = PagerVertical;
-      } else {
-        comp = PagerHorizontal;
-      }
-      return comp;
+      /*
+       * PDF books now render page-by-page (image-first with
+       * PDFDoc fallback handled inside ``BookPage``), so the
+       * orientation alone decides the pager.
+       */
+      return this.bookSettings.isVertical ? PagerVertical : PagerHorizontal;
     },
   },
   watch: {

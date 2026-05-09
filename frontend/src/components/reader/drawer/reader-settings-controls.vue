@@ -89,7 +89,6 @@
     :model-value="settings.cacheBook"
     class="scopedCheckbox"
     density="compact"
-    :disabled="disableCacheBook"
     label="Cache Entire Book"
     hide-details="auto"
     :true-value="true"
@@ -98,6 +97,25 @@
     "
     @update:model-value="$emit('update', { cacheBook: $event })"
   />
+  <v-radio-group
+    v-if="isPDF"
+    v-tooltip="{
+      openDelay,
+      text:
+        'Auto: server decides per page. Image: always rasterize. ' +
+        'Vector: always render through pdf.js.',
+    }"
+    class="displayRadioGroup"
+    density="compact"
+    label="PDF Rendering"
+    hide-details="auto"
+    :model-value="pdfRenderMode"
+    @update:model-value="setPdfRenderMode"
+  >
+    <v-radio label="Automatic" value="auto" />
+    <v-radio label="Force image" value="image" />
+    <v-radio label="Force vector" value="pdf" />
+  </v-radio-group>
 
   <v-btn
     v-if="showClear"
@@ -114,7 +132,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -141,9 +159,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
+    ...mapState(useReaderStore, ["isVertical", "isPDF"]),
     ...mapState(useReaderStore, {
       choices: (state) => state.choices,
+      pdfRenderMode: (state) => state.clientSettings?.pdfRenderMode || "auto",
     }),
     fitToChoices() {
       return this.choicesWithoutNull("fitTo");
@@ -152,16 +171,20 @@ export default {
       return this.choicesWithoutNull("readingDirection");
     },
     disableTwoPages() {
-      return this.isVertical || (this.isPDF && this.cacheBook);
+      /*
+       * Two-page rendering is meaningful in horizontal mode only.
+       * PDFs handle two-page correctly through both ``<img>`` and
+       * ``<PDFDoc>`` paths now, so the old PDF carve-out is gone.
+       */
+      return this.isVertical;
     },
     disablePageTransition() {
-      return this.isVertical && this.isPDF;
-    },
-    disableCacheBook() {
-      return this.isVertical && this.isPDF;
+      // Page-turn animations only make sense in horizontal mode.
+      return this.isVertical;
     },
   },
   methods: {
+    ...mapActions(useReaderStore, ["setSettingsClient"]),
     choicesWithoutNull(attr) {
       const choices = [];
       for (const choice of Reflect.get(this.choices, attr)) {
@@ -170,6 +193,9 @@ export default {
         }
       }
       return Object.freeze(choices);
+    },
+    setPdfRenderMode(value) {
+      this.setSettingsClient({ pdfRenderMode: value });
     },
   },
 };

@@ -107,6 +107,14 @@ ci = []
 requires = ["uv_build~=0.11.2"]
 build-backend = "uv_build"
 
+# Track the in-flight upstream PRs that this feature depends on.
+# Drop this block once both upstreams publish to PyPI:
+#   * comicbox-pdffile 0.6.x — https://github.com/ajslater/pdffile/pull/22
+#   * comicbox 3.0.x widened pin — https://github.com/ajslater/comicbox/pull/131
+[tool.uv.sources]
+comicbox-pdffile = { git = "https://github.com/ajslater/pdffile.git", branch = "pdf-image-detection" }
+comicbox = { git = "https://github.com/ajslater/comicbox.git", branch = "widen-pdffile-pin" }
+
 [tool.uv.build-backend]
 module-root = ""
 source-include = [

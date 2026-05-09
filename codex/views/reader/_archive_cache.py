@@ -44,7 +44,7 @@ import threading
 import time
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from comicbox.box import Comicbox
 from loguru import logger
@@ -79,13 +79,27 @@ _DEFAULT_TTL = 30.0
 class _ArchiveEntry:
     """One cached Comicbox + its per-path lock + last-access timestamp."""
 
-    __slots__ = ("comicbox", "last_access", "lock", "path")
+    __slots__ = (
+        "comicbox",
+        "last_access",
+        "lock",
+        "path",
+        "verdicts",
+    )
 
     def __init__(self, path: str, comicbox: Comicbox, last_access: float) -> None:
         self.path = path
         self.comicbox = comicbox
         self.lock = threading.Lock()
         self.last_access = last_access
+        # Per-page image-serve verdict cache (``pdffile.PageVerdict``
+        # instances keyed on zero-based page index). Memoized here so
+        # repeated ``ReaderPageView`` hits on the same archive don't
+        # re-classify; the underlying ``classify_page`` call is cheap
+        # but the cache makes prev/curr/next prefetch effectively
+        # free. Typed loosely to keep ``pdffile`` out of this module's
+        # import surface.
+        self.verdicts: dict[int, Any] = {}
 
     def close(self) -> None:
         """Close the cached archive; tolerate already-closed state."""
@@ -177,6 +191,25 @@ class ArchiveCache:
         entry = self._open_or_get(path)
         with entry.lock:
             yield entry.comicbox
+
+    @contextmanager
+    def open_entry(self, path: str) -> Generator[_ArchiveEntry]:
+        """
+        Yield the full ``_ArchiveEntry`` for direct cache-state access.
+
+        Used by callers that need the ``Comicbox`` and the per-page
+        verdict memo (``ReaderPageView``'s image-serve fast path).
+        Same locking shape as ``open()``. When the cache is disabled,
+        synthesizes a transient entry so callers see a uniform API;
+        verdict memoization is a no-op in that mode.
+        """
+        if not self.enabled:
+            with Comicbox(path, config=COMICBOX_CONFIG, logger=logger) as cb:
+                yield _ArchiveEntry(path, cb, time.monotonic())
+            return
+        entry = self._open_or_get(path)
+        with entry.lock:
+            yield entry
 
     def shutdown(self) -> None:
         """Close every cached archive. Wired to ``atexit`` at module load."""
