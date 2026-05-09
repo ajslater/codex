@@ -27,7 +27,14 @@ from django.db.models import CharField, Count, F, Min, Q, Sum, Value
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
-from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
+from codex.models.groups import (
+    BrowserGroupModel,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.views.browser.columns import fk_name_columns, m2m_columns
 from codex.views.const import MODEL_REL_MAP
 
@@ -103,7 +110,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
-def _intersection_relation(group_model: type) -> str | None:
+def _intersection_relation(group_model: type[BrowserGroupModel]) -> str | None:
     """
     Return the ORM lookup that traverses Comic → group for intersections.
 
@@ -516,7 +523,7 @@ _SIMPLE_M2M_FIELDS = MappingProxyType(
 
 
 def _build_simple_m2m_intersection_sort_sql(
-    group_model: type, column: str
+    group_model: type[BrowserGroupModel], column: str
 ) -> RawSQL | None:
     """
     Return a correlated-subquery RawSQL for the intersection sort key.
@@ -530,7 +537,7 @@ def _build_simple_m2m_intersection_sort_sql(
     if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
-    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
     through_table = through._meta.db_table
     m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
     related_model = field.related_model
@@ -618,7 +625,9 @@ def _wrap_intersection_sort(
     )"""  # noqa: S608
 
 
-def _build_universes_intersection_sort_sql(group_model: type) -> RawSQL | None:
+def _build_universes_intersection_sort_sql(
+    group_model: type[BrowserGroupModel],
+) -> RawSQL | None:
     """Universes display as ``name:designation`` (or just ``name`` when blank)."""
     correlation = _comic_correlation_sql(group_model)
     if correlation is None:
@@ -639,7 +648,9 @@ def _build_universes_intersection_sort_sql(group_model: type) -> RawSQL | None:
     return RawSQL(sql, [])  # noqa: S611
 
 
-def _build_credits_intersection_sort_sql(group_model: type) -> RawSQL | None:
+def _build_credits_intersection_sort_sql(
+    group_model: type[BrowserGroupModel],
+) -> RawSQL | None:
     """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
     correlation = _comic_correlation_sql(group_model)
     if correlation is None:
@@ -665,7 +676,9 @@ def _build_credits_intersection_sort_sql(group_model: type) -> RawSQL | None:
     return RawSQL(sql, [])  # noqa: S611
 
 
-def _build_identifiers_intersection_sort_sql(group_model: type) -> RawSQL | None:
+def _build_identifiers_intersection_sort_sql(
+    group_model: type[BrowserGroupModel],
+) -> RawSQL | None:
     """Render identifiers intersection as ``[source:]type:key`` per shared row."""
     correlation = _comic_correlation_sql(group_model)
     if correlation is None:
@@ -686,7 +699,9 @@ def _build_identifiers_intersection_sort_sql(group_model: type) -> RawSQL | None
     return RawSQL(sql, [])  # noqa: S611
 
 
-def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
+def _build_story_arcs_intersection_sort_sql(
+    group_model: type[BrowserGroupModel],
+) -> RawSQL | None:
     """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
     correlation = _comic_correlation_sql(group_model)
     if correlation is None:
@@ -708,7 +723,9 @@ def _build_story_arcs_intersection_sort_sql(group_model: type) -> RawSQL | None:
     return RawSQL(sql, [])  # noqa: S611
 
 
-def _comic_correlation_sql(group_model: type) -> tuple[str, str, str] | None:
+def _comic_correlation_sql(
+    group_model: type[BrowserGroupModel],
+) -> tuple[str, str, str] | None:
     """
     Return the SQL fragments correlating Comic rows to the outer group row.
 
@@ -727,7 +744,7 @@ def _comic_correlation_sql(group_model: type) -> tuple[str, str, str] | None:
     """
     if group_model is Folder:
         folders_field = Comic._meta.get_field("folders")
-        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue]
+        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
         through_table = through._meta.db_table
         group_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
@@ -753,7 +770,9 @@ def _comic_correlation_sql(group_model: type) -> tuple[str, str, str] | None:
     return "", where, total_count
 
 
-def scalar_intersection_sort_expr(group_model: type, column: str) -> RawSQL | None:
+def scalar_intersection_sort_expr(
+    group_model: type[BrowserGroupModel], column: str
+) -> RawSQL | None:
     """
     Build a sort-key RawSQL for scalar / FK-name group-row sort.
 
@@ -832,7 +851,9 @@ def scalar_intersection_sort_expr(group_model: type, column: str) -> RawSQL | No
     return RawSQL(sql, [])  # noqa: S611
 
 
-def m2m_intersection_sort_expr(group_model: type, column: str) -> RawSQL | None:
+def m2m_intersection_sort_expr(
+    group_model: type[BrowserGroupModel], column: str
+) -> RawSQL | None:
     """
     Build a sort-key RawSQL for the given (group_model, M2M column).
 
