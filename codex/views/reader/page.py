@@ -252,15 +252,35 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
     )
     def get(self, *_args, **_kwargs) -> HttpResponse:
         """Get the comic page from the archive."""
+        # TEMP DEBUG: log every entry to ReaderPageView.get so requests
+        # that 404 in ``_resolve_path_and_type`` (Comic.DoesNotExist)
+        # don't disappear before the existing ``page request:`` log.
+        pk = self.kwargs.get("pk")
+        page = self.kwargs.get("page")
+        fmt = self.request.GET.get("format", "auto")
+        ua = self.request.headers.get("User-Agent", "?")[:60]
+        referer = self.request.headers.get("Referer", "?")
+        logger.debug(
+            f"[pdf-debug] >>>>> view entry: pk={pk} page={page} "
+            f"fmt={fmt} ua={ua!r} referer={referer!r}"
+        )
         try:
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
         except Comic.DoesNotExist as exc:
-            pk = self.kwargs.get("pk")
+            # TEMP DEBUG: surface the ACL-filter miss explicitly.
+            logger.warning(
+                f"[pdf-debug] Comic.DoesNotExist: pk={pk} page={page} "
+                f"fmt={fmt} (ACL filter rejected or comic deleted)"
+            )
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
         except FileNotFoundError as exc:
-            pk = self.kwargs.get("pk")
+            # TEMP DEBUG: comic path missing on disk.
+            logger.warning(
+                f"[pdf-debug] FileNotFoundError: pk={pk} page={page} "
+                f"fmt={fmt}: {exc}"
+            )
             detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
         except Exception as exc:
@@ -268,13 +288,14 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             # so we see *why* the request failed instead of just the
             # exception's str. Revert to ``logger.warning(exc)`` once
             # the PDF-rendering paths are stable.
-            pk = self.kwargs.get("pk")
-            page = self.kwargs.get("page")
-            fmt = self.request.GET.get("format", "auto")
             logger.exception(
                 f"[pdf-debug] page request failed: pk={pk} page={page} "
                 f"fmt={fmt} {type(exc).__name__}: {exc}"
             )
             raise NotFound(detail="comic page not found") from exc
         else:
+            logger.debug(
+                f"[pdf-debug] <<<<< view exit OK: pk={pk} page={page} "
+                f"fmt={fmt} bytes={len(page_image)} ct={content_type}"
+            )
             return HttpResponse(page_image, content_type=content_type)
