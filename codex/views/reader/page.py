@@ -40,9 +40,7 @@ _SERVE_PARAM: Final[str] = "serve"
 _SERVE_AUTO: Final[str] = "auto"
 _SERVE_PDF: Final[str] = "pdf"
 _SERVE_IMAGE: Final[str] = "image"
-_SERVE_HINTS: Final[frozenset[str]] = frozenset(
-    {_SERVE_AUTO, _SERVE_PDF, _SERVE_IMAGE}
-)
+_SERVE_HINTS: Final[frozenset[str]] = frozenset({_SERVE_AUTO, _SERVE_PDF, _SERVE_IMAGE})
 
 
 class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
