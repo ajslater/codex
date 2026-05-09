@@ -218,8 +218,15 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            qs = self.annotate_order_aggregates(qs)
+            # Favorite annotation lands first so the order pipeline
+            # can reference ``F("favorite")`` from inside
+            # ``annotate_order_aggregates`` — Django resolves F()
+            # targets against the queryset's known annotations at
+            # ``annotate()`` call time, not at SQL compile time, so
+            # an out-of-order add raises ``Cannot resolve keyword
+            # 'favorite' into field`` for the group queryset.
             qs = self._add_table_view_favorite_annotation(qs)
+            qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
             if limit:

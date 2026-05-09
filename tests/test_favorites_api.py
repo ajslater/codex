@@ -395,6 +395,38 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         children = self._group_pks("f", f1.pk)
         assert f2.pk in children, children
 
+    def test_table_view_sort_by_favorite_does_not_crash(self):
+        """Table view + ``order_by=favorite`` on a group list returns 200."""
+        # ``favorite`` is annotated by ``_add_table_view_favorite_annotation``
+        # for every browse model; the order pipeline must reuse that
+        # annotation rather than dispatching to ``_ORDER_AGGREGATE_FUNCS``
+        # (which would KeyError because ``favorite`` is annotated, not
+        # aggregated). Pin the no-crash invariant for the primary key
+        # at every group level — Comic and group querysets take
+        # different code paths.
+        Favorite.objects.create(user=self.user, group="s", target_id=self.s1.pk)
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps(
+                {
+                    "viewMode": "table",
+                    "orderBy": "favorite",
+                    "orderReverse": True,
+                }
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        for url in (
+            "/api/v3/r/0/1",
+            f"/api/v3/p/{self.p1.pk}/1",
+            f"/api/v3/i/{self.i1.pk}/1",
+            f"/api/v3/s/{self.s1.pk}/1",
+            f"/api/v3/v/{self.v1.pk}/1",
+        ):
+            r = self.client.get(url)
+            assert r.status_code == _HTTP_OK, (url, r.content)
+
 
 class FavoriteAnnotationTestCase(TestCase):
     """``favorite_annotation_for`` produces the right Exists/Value shape per case."""
