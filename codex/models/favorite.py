@@ -58,7 +58,7 @@ FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyTyp
 
 
 class Favorite(BaseModel):
-    """Per-user favorite tag for a browseable group or comic."""
+    """Per-user favorite tag for a browsable group or comic."""
 
     user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)
     group = CharField(max_length=1, choices=FAVORITE_GROUP_CHOICES)
