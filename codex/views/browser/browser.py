@@ -134,7 +134,7 @@ class BrowserView(BrowserTitleView):
         Annotate ``qs`` with ``favorite`` (Exists subquery) for table view.
 
         Runs unconditional on model — favorites apply to every
-        browseable group as well as Comic — and unconditional on
+        browsable group as well as Comic — and unconditional on
         column selection: the per-row Exists is cheap (one indexed
         scan) and being always-on lets the user sort by ``favorite``
         from the order_by enum without separate gating.

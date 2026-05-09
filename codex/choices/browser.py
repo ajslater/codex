@@ -470,7 +470,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         # target_id))`` is added in
         # ``BrowserView._add_table_view_favorite_annotation`` for both
         # group and Comic querysets so the column is sortable and
-        # renderable across all browseable models.
+        # renderable across all browsable models.
         "favorite": {
             "label": "Favorite",
             "sort_key": "favorite",

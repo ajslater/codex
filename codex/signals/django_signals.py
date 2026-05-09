@@ -12,7 +12,7 @@ def _on_library_changed(*_args, **_kwargs) -> None:
 
 
 def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
-    """Drop favorites that pointed at a deleted browseable target."""
+    """Drop favorites that pointed at a deleted browsable target."""
     # Lazy imports so the module is safe to load before ``django.setup()``.
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 

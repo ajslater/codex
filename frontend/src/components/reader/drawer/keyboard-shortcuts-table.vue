@@ -89,7 +89,7 @@
         <td>Show comic's metadata</td>
       </tr>
       <tr>
-        <td><v-hotkey keys="doubleclick" /></td>
+        <td><v-hotkey keys="double-click" /></td>
         <td>Zoom page</td>
       </tr>
     </tbody>
