@@ -15,12 +15,7 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=3.0.0",
-  # Direct dep so the in-flight ``tool.uv.sources`` override below can
-  # point at the unreleased ``comicbox-pdffile`` 0.6 PR. Drop this
-  # line once 0.6.x lands on PyPI and the comicbox[pdf] extra picks
-  # it up transitively.
-  "comicbox-pdffile",
+  "comicbox[pdf]~=3.0.1",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",

@@ -471,7 +471,6 @@ dependencies = [
     { name = "bidict" },
     { name = "channels" },
     { name = "comicbox", extra = ["pdf"] },
-    { name = "comicbox-pdffile" },
     { name = "dateparser" },
     { name = "django" },
     { name = "django-cachalot" },
@@ -547,7 +546,6 @@ requires-dist = [
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
     { name = "comicbox", extras = ["pdf"], git = "https://github.com/ajslater/comicbox.git?branch=widen-pdffile-pin" },
-    { name = "comicbox-pdffile", git = "https://github.com/ajslater/pdffile.git?branch=pdf-image-detection" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -665,13 +663,17 @@ pdf = [
 
 [[package]]
 name = "comicbox-pdffile"
-version = "0.6.0"
-source = { git = "https://github.com/ajslater/pdffile.git?branch=pdf-image-detection#83c05f2e7ccc5c65f00ea974d636b0d300124bcb" }
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filetype" },
     { name = "pymupdf" },
     { name = "python-dateutil" },
     { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/f9/b626a2097d2bb71298e9633339a8547db5bd72b61a2f59ee80ca62819479/comicbox_pdffile-0.6.1.tar.gz", hash = "sha256:6c3df18f32e78e28144bf78efce12dec9dfa387c7a656d1008264af1dc49c661", size = 196777, upload-time = "2026-05-09T04:05:27.81Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/19/2983eb5d3de7d5c917063b4c3e60d0cdc5dd1d5b5e3ecf2cadeb29e16a86/comicbox_pdffile-0.6.1-py3-none-any.whl", hash = "sha256:5c423bed98ab1428625e043eba60075d917c846bfd969731a13dd954771a8bff", size = 13221, upload-time = "2026-05-09T04:05:26.625Z" },
 ]
 
 [[package]]
