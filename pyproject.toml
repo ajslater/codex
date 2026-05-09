@@ -210,8 +210,8 @@ reportUnusedParameter = false
 [tool.codespell]
 builtin = "clear,code,rare"
 check-hidden = true
-ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./site,./test-results,/uv.lock"
+ignore-words-list = "assertin,browseable,coverd,crate,doubleclick,falsy,iff,pre-selected,re-use,re-using,ro,searchd,ser,thead,versio,wan,warmup,ws"
+skip = "*~,bun.lock,coverage,node_modules,package.json,test-results,uv.lock,./.claude,./.git,./.github,./.venv,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./site"
 
 [tool.complexipy]
 failed = true
