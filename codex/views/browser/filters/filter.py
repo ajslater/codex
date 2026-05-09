@@ -97,16 +97,41 @@ class BrowserFilterView(BrowserFilterBookmarkView):
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
         filters = self.params.get("filters") or {}
+        if filters.get("favorite"):
+            # The transitive favorites Q always includes ``folders`` and
+            # ``story_arc_numbers__story_arc`` clauses (so a folder /
+            # arc favorite can light up its descendant comics) — both
+            # are m2m relations on Comic.
+            return True
         return any(filters.get(k) for k in _M2M_FILTER_KEYS)
+
+    def _favorite_targets(self, code: str):
+        """Subquery: target_ids the current user has favorited under ``code``."""
+        return Favorite.objects.filter(user=self.request.user, group=code).values(
+            "target_id"
+        )
 
     def get_favorite_filter(self, model) -> Q:
         """
-        Return ``Q(pk__in=<my favorited ids for this group>)`` or ``Q()``.
+        Return a transitive Q for the "favorites only" filter, or ``Q()``.
 
-        Anonymous users always get the no-op — favorites are
-        authenticated-only. A model that isn't in
-        :data:`_FAVORITE_MODEL_GROUPS` is also a no-op (search results
-        and other intermediate querysets aren't favorite-able).
+        Hierarchical: a row passes if itself, an ancestor, or a
+        descendant in the comic chain is favorited. That keeps the
+        filter behaving like a "navigation tree of starred items" —
+        starring a Publisher narrows to its full subtree (so the user
+        can drill down to the comic), and starring a Comic keeps every
+        ancestor (Publisher → Series → Volume → Comic) reachable.
+
+        Each OR clause traces ``rel_prefix + comic_field`` to a
+        per-group favorited-id subquery. ``folders`` is the m2m of
+        every ancestor folder for a comic (not just the direct
+        parent), so a favorited folder lights up every descendant
+        folder and comic; ``story_arc_numbers__story_arc`` is the
+        analogous m2m-through to StoryArc.
+
+        Anonymous users and models outside
+        :data:`_FAVORITE_MODEL_GROUPS` (search results, intermediate
+        querysets) get the no-op.
         """
         if not self.params.get("filters", {}).get("favorite"):
             return Q()
@@ -116,10 +141,27 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         group_code = _FAVORITE_MODEL_GROUPS.get(model)
         if group_code is None:
             return Q()
-        favorited_ids = Favorite.objects.filter(user=user, group=group_code).values(
-            "target_id"
+
+        rel = self.rel_prefix
+        q = (
+            Q(**{f"{rel}pk__in": self._favorite_targets("c")})
+            | Q(**{f"{rel}publisher_id__in": self._favorite_targets("p")})
+            | Q(**{f"{rel}imprint_id__in": self._favorite_targets("i")})
+            | Q(**{f"{rel}series_id__in": self._favorite_targets("s")})
+            | Q(**{f"{rel}volume_id__in": self._favorite_targets("v")})
+            | Q(**{f"{rel}folders__in": self._favorite_targets("f")})
+            | Q(
+                **{
+                    f"{rel}story_arc_numbers__story_arc__in": self._favorite_targets(
+                        "a"
+                    )
+                }
+            )
         )
-        return Q(pk__in=favorited_ids)
+        # The row itself is starred. Covers the rare "favorited group
+        # with no comics yet" case and short-circuits the comic join
+        # when the row is its own match.
+        return q | Q(pk__in=self._favorite_targets(group_code))
 
     def _get_query_filters(
         self,

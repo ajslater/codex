@@ -206,6 +206,145 @@ class FavoriteFilterTestCase(TestCase):
         assert self.other_series.pk not in narrowed
 
 
+class FavoriteFilterTransitivityTestCase(TestCase):
+    """Browser favorite filter: hierarchical descent + ascent through the comic chain."""
+
+    @override
+    def setUp(self) -> None:
+        """Provision two parallel hierarchies P1/I1/S1/V1/C1 and P2/I2/S2/V2/C2."""
+        from django.core.cache import cache
+
+        from codex.startup import init_admin_flags
+
+        # Browser views go through cachalot. Clearing the per-request
+        # cache between tests prevents an earlier test's Publisher
+        # list (cached against a different user / settings combo)
+        # from masking the current test's expected result.
+        cache.clear()
+        init_admin_flags()
+        _TMP_DIR.mkdir(exist_ok=True, parents=True)
+
+        self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="favtransit", password=_TEST_PASSWORD
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+
+        library = Library.objects.create(path=str(_TMP_DIR))
+        self.p1, self.i1, self.s1, self.v1, self.c1 = self._make_chain(library, "1")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.p2, self.i2, self.s2, self.v2, self.c2 = self._make_chain(library, "2")  # pyright: ignore[reportUninitializedInstanceVariable]
+        # Default ``show.i``/``show.v`` are False — surface them so we
+        # can browse and assert at every group level without juggling
+        # the auto-collapse the browser does for hidden levels.
+        self._patch_show_all()
+
+    @override
+    def tearDown(self) -> None:
+        """Clean up the touch files."""
+        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+    def _make_chain(self, library: Library, suffix: str):
+        publisher = Publisher.objects.create(name=f"P{suffix}")
+        imprint = Imprint.objects.create(name=f"I{suffix}", publisher=publisher)
+        series = Series.objects.create(
+            name=f"S{suffix}", publisher=publisher, imprint=imprint
+        )
+        volume = Volume.objects.create(
+            name=suffix, publisher=publisher, imprint=imprint, series=series
+        )
+        path = _TMP_DIR / f"c{suffix}.cbz"
+        path.touch()
+        comic = Comic.objects.create(
+            library=library,
+            path=path,
+            issue_number=int(suffix),
+            name=f"C{suffix}",
+            publisher=publisher,
+            imprint=imprint,
+            series=series,
+            volume=volume,
+            size=1,
+        )
+        return publisher, imprint, series, volume, comic
+
+    def _patch_show_all(self) -> None:
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps({"show": {"p": True, "i": True, "s": True, "v": True}}),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+
+    def _enable_favorite_filter(self) -> None:
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps({"filters": {"favorite": True}}),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+
+    def _group_pks(self, group: str, scope_pk: int = 0) -> list[int]:
+        url = f"/api/v3/{group}/{scope_pk}/1"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        # Group rows surface in ``groups`` (each entry has ``ids`` for
+        # multi-pk rollups; in this fixture every chain has one row).
+        return [
+            ids[0] for g in response.json().get("groups", []) if (ids := g.get("ids"))
+        ]
+
+    def _book_pks(self, group: str, scope_pk: int) -> list[int]:
+        url = f"/api/v3/{group}/{scope_pk}/1"
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        return [b.get("pk") for b in response.json().get("books", [])]
+
+    def test_favorited_publisher_lights_up_descendant_groups(self):
+        """Favorite P1 → its full subtree (I1/S1/V1/C1) passes the filter."""
+        Favorite.objects.create(user=self.user, group="p", target_id=self.p1.pk)
+        self._enable_favorite_filter()
+        # Publisher list: only P1.
+        assert self._group_pks("r") == [self.p1.pk]
+        # Imprint list under P1: I1.
+        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
+        # Series list under I1: S1.
+        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
+        # Volume list under S1: V1.
+        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        # Comic list under V1: C1.
+        assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
+
+    def test_favorited_comic_lights_up_ancestor_groups(self):
+        """Favorite C1 → P1/I1/S1/V1 still navigable down to C1."""
+        Favorite.objects.create(user=self.user, group="c", target_id=self.c1.pk)
+        self._enable_favorite_filter()
+        assert self._group_pks("r") == [self.p1.pk]
+        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
+        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
+        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
+
+    def test_favorited_series_isolates_unrelated_branch(self):
+        """Favorite S1 → S2's subtree stays out; S1's ancestors and C1 surface."""
+        Favorite.objects.create(user=self.user, group="s", target_id=self.s1.pk)
+        self._enable_favorite_filter()
+        # Publishers: only P1.
+        assert self._group_pks("r") == [self.p1.pk]
+        # Series under P2's imprint should be empty (filter narrows P2 out
+        # at the publisher level — descending into I2 returns no rows).
+        assert self._group_pks("i", self.i2.pk) == []
+        # Volumes under S1: V1 surfaces (so the user can drill to C1).
+        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        # Comic under V1: C1 surfaces.
+        assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
+
+    def test_filter_off_passes_everything_through(self):
+        """Sanity: with the filter off, every chain row shows."""
+        Favorite.objects.create(user=self.user, group="p", target_id=self.p1.pk)
+        # Filter not enabled. Both P1 and P2 should appear.
+        assert sorted(self._group_pks("r")) == sorted([self.p1.pk, self.p2.pk])
+
+
 class FavoriteAnnotationTestCase(TestCase):
     """``favorite_annotation_for`` produces the right Exists/Value shape per case."""
 
