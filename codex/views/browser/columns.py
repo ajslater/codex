@@ -147,7 +147,7 @@ def default_columns_filtered(
     cols = default_columns_for(top_group)
     if not cols:
         return cols
-    show_map = show if isinstance(show, dict) else {}
+    show_map: dict = show if isinstance(show, dict) else {}
     blocked = {
         col for col, flag in _SHOW_GATED_COLUMNS.items() if not show_map.get(flag)
     }
