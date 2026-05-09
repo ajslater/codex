@@ -11,6 +11,8 @@ from caseconverter import camelcase
 from codex.choices.admin import ADMIN_FLAG_CHOICES
 from codex.choices.browser import (
     BROWSER_CHOICES,
+    BROWSER_CHOICES_MAP_KEYS,
+    BROWSER_CHOICES_VUETIFY_KEYS,
     BROWSER_DEFAULTS,
     BROWSER_TABLE_COLUMN_COSTS,
     BROWSER_TABLE_COLUMNS,
@@ -24,6 +26,15 @@ from codex.choices.statii import ADMIN_STATUS_TITLES
 
 _DEFAULTS = MappingProxyType(
     {"browser-choices.json": BROWSER_DEFAULTS, "reader-choices.json": READER_DEFAULTS}
+)
+
+# Per-file include-key filters. A filename present here emits only the
+# listed top-level keys from its source mapping; orphan keys are skipped.
+_INCLUDE_KEYS = MappingProxyType(
+    {
+        "browser-choices.json": BROWSER_CHOICES_VUETIFY_KEYS,
+        "browser-map.json": BROWSER_CHOICES_MAP_KEYS,
+    }
 )
 
 _DUMPS = MappingProxyType(
@@ -103,6 +114,9 @@ def _dump(
     parent_path: Path, fn: str, data, *, vuetify: bool, jsonize_keys: bool
 ) -> None:
     """Dump data to json file."""
+    include_keys = _INCLUDE_KEYS.get(fn)
+    if include_keys is not None and isinstance(data, Mapping):
+        data = {k: v for k, v in data.items() if k in include_keys}
     vuetify_data = (
         _to_vuetify_dict(fn, data)
         if vuetify

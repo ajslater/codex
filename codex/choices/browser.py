@@ -156,6 +156,36 @@ BROWSER_CHOICES = MappingProxyType(
     }
 )
 
+# Subset of BROWSER_CHOICES keys included in the Vuetify-list dump
+# (``browser-choices.json``). ``IDENTIFIER_SOURCES`` is omitted — the
+# frontend only consumes its raw-map form from ``browser-map.json``.
+# ``VIEW_MODE`` and ``TABLE_COVER_SIZE`` are not consumed by the
+# frontend in either form; their backing constants are used by the
+# backend (models / serializers) but no JSON dump is needed.
+BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
+    {
+        "BOOKMARK_FILTER",
+        "ORDER_BY",
+        "COVER_ORDER_BY_KEYS",
+        "EXTRA_SORT_UNSUPPORTED_KEYS",
+        "TOP_GROUP",
+        "VUETIFY_NULL_CODE",
+        "SETTINGS_GROUP",
+    }
+)
+
+# Subset of BROWSER_CHOICES keys included in the raw-map dump
+# (``browser-map.json``). The frontend only destructures these three
+# keys from ``browser-map.json``; the others are consumed via their
+# Vuetify-list forms from ``browser-choices.json``.
+BROWSER_CHOICES_MAP_KEYS = frozenset(
+    {
+        "ORDER_BY",
+        "TOP_GROUP",
+        "IDENTIFIER_SOURCES",
+    }
+)
+
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
 
 # Top-group values that own a dedicated browser route. For these,
