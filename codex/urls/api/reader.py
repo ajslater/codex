@@ -10,6 +10,7 @@ from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
 from codex.views.reader.reader import ReaderView
 from codex.views.reader.settings import ReaderSettingsView
+from codex.views.util import cache_control_2xx
 
 app_name = "issue"
 urlpatterns = [
@@ -28,7 +29,12 @@ urlpatterns = [
     ),
     path(
         "<int:pk>/<int:page>/page.jpg",
-        cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
+        # ``cache_control_2xx`` (not Django's ``cache_control``) — error
+        # responses from this endpoint must NOT be cached. The view can
+        # return 404 from DRF content negotiation, ACL filter misses,
+        # missing-file errors, etc; with ``public, max-age=PAGE_MAX_AGE``
+        # the browser would pin a transient failure for a week.
+        cache_control_2xx(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
         name="page",
     ),
     path(
