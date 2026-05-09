@@ -114,3 +114,17 @@ class FavoriteTestCase(TestCase):
         Favorite.objects.create(user=self.user, group="s", target_id=self.series.pk)
         self.user.delete()
         assert not Favorite.objects.filter(group="s").exists()
+
+    def test_target_delete_cascades_via_signal(self):
+        """Deleting a Series wipes pointing-at-Series favorites for all users."""
+        series_pk = self.series.pk
+        Favorite.objects.create(user=self.user, group="s", target_id=series_pk)
+        Favorite.objects.create(user=self.other_user, group="s", target_id=series_pk)
+        # Distractor: another user's favorite at a different group/target_id
+        # (target_id=series_pk under group="p") must NOT be touched.
+        Favorite.objects.create(user=self.user, group="p", target_id=series_pk)
+
+        self.series.delete()
+
+        assert not Favorite.objects.filter(group="s", target_id=series_pk).exists()
+        assert Favorite.objects.filter(group="p", target_id=series_pk).exists()

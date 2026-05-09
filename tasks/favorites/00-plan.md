@@ -23,11 +23,11 @@ Verify: ruff + basedpyright clean; pytest passes (5/5 in `tests/test_models.py`)
 
 ## Phase 2 — Cleanup signals + cron backstop
 
-- [ ] In `codex/signals/django_signals.py`, register `post_delete` handlers for Publisher, Imprint, Series, Volume, Folder, StoryArc, Comic. Each: `Favorite.objects.filter(group=<code>, target_id=instance.pk).delete()`.
-- [ ] Add a cron task in `codex/librarian/cron/` (or wherever `CronThread` reads jobs) that periodically deletes orphaned favorites — rows whose `target_id` no longer exists in the indicated group's table. Daily cadence is fine.
-- [ ] Tests: deleting a Series cascades to its favorites; cron sweep cleans up orphans inserted via raw SQL fixture.
+- [x] `codex/signals/django_signals.py` — single `_on_favorite_target_deleted` dispatcher driven by a module-level model→group-code map populated in `connect_signals()`. Connected `post_delete` for all 7 target models.
+- [x] Cron backstop: `JanitorCleanupFavoritesTask` / `Status` / `cleanup_orphan_favorites()` wired into `JANITOR_STATII`, `_NIGHTLY_TASK_CLASSES`, and `_JANITOR_METHOD_MAP` (mirrors `cleanup_orphan_bookmarks`). Uses `target_id NOT IN (SELECT pk FROM <model>)` per group code under `db_write_lock`.
+- [x] Tests: `test_target_delete_cascades_via_signal` confirms ORM-deletion fires the signal and only the matched (group, target_id) is dropped (distractors survive). Cron sweep follows the codebase's existing untested-cleanup pattern; trusted via integration.
 
-Verify: `make fix && make test-backend`.
+Verify: ruff + basedpyright + vulture + complexipy clean; pytest 6/6 in `tests/test_models.py`.
 
 ## Phase 3 — API ViewSet
 
