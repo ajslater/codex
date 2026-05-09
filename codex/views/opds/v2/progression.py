@@ -123,7 +123,7 @@ class OPDS2ProgressionView(
     @property
     def _locations(self) -> dict[str, Any]:
         """Build the Locations object."""
-        # The OPDS v2 progression spec secifies position as > 0.
+        # The OPDS v2 progression spec specifies position as > 0.
         position = max(self._obj.page + 1, 0)
         return {
             "position": position,
