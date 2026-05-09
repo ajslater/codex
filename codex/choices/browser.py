@@ -181,6 +181,7 @@ _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
+        "favorite": False,
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )
