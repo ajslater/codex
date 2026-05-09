@@ -9,7 +9,17 @@ helpers used by the views, serializers, and validators.
 from types import MappingProxyType
 from typing import cast
 
-from django.db.models import Aggregate, Case, F, Q, Value, When
+from django.db.models import (
+    Aggregate,
+    BooleanField,
+    Case,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+    Value,
+    When,
+)
 from django.db.models.fields import CharField
 from django.db.models.functions import Concat
 
@@ -17,6 +27,16 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
+from codex.models import (
+    Comic,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    StoryArc,
+    Volume,
+)
+from codex.models.favorite import Favorite
 from codex.models.functions import JsonGroupArray
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
@@ -256,3 +276,52 @@ def fk_name_annotations_for(columns: tuple[str, ...]) -> dict[str, F]:
 def fk_name_columns() -> frozenset[str]:
     """Return the set of FK-name column keys whose annotation is wired."""
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
+
+
+# Browseable model → ``Favorite.group`` letter code. Same mapping as
+# the API view's ``_GROUP_CODE_MODEL_MAP`` and the filter dispatch's
+# ``_FAVORITE_MODEL_GROUPS``; kept duplicated to avoid a circular
+# import via ``codex.models.favorite``.
+_FAVORITE_MODEL_GROUPS: MappingProxyType[type, str] = MappingProxyType(
+    {
+        Publisher: "p",
+        Imprint: "i",
+        Series: "s",
+        Volume: "v",
+        Folder: "f",
+        StoryArc: "a",
+        Comic: "c",
+    }
+)
+_FAVORITE_FALSE = Value(value=False, output_field=BooleanField())
+
+
+def favorite_annotation_for(model, user) -> dict:
+    """
+    Build the ``favorite`` annotation for a browser queryset.
+
+    Returns a dict that's safe to splat into ``qs.annotate(**...)``:
+
+    * ``Exists(Favorite.objects.filter(user, group, target_id))`` for
+      authenticated users on a favorite-able model;
+    * a constant ``Value(False)`` for anonymous sessions or models
+      that aren't in :data:`_FAVORITE_MODEL_GROUPS`, so the schema
+      stays uniform whether the column is sortable or just rendered;
+    * an empty dict when ``model`` isn't in the favorite-able set
+      *and* the caller doesn't need a placeholder (the table-view
+      caller passes a known model so this branch is rare in practice).
+    """
+    group_code = _FAVORITE_MODEL_GROUPS.get(model)
+    if group_code is None:
+        return {}
+    if not user or not user.is_authenticated:
+        return {"favorite": _FAVORITE_FALSE}
+    return {
+        "favorite": Exists(
+            Favorite.objects.filter(
+                user=user,
+                group=group_code,
+                target_id=OuterRef("pk"),
+            )
+        ),
+    }

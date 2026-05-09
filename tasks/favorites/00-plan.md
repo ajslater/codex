@@ -53,12 +53,15 @@ Verify: ruff + basedpyright + vulture + complexipy clean; `pytest -q` 209/209 ac
 
 ## Phase 5 — Table column
 
-- [ ] Add `"favorite"` entry to `BROWSER_TABLE_COLUMNS` in [codex/choices/browser.py](codex/choices/browser.py): user-facing `label="Favorite"` (match the i18n wrapper convention used by neighboring entries — `_()`/`gettext_lazy` if present, bare string otherwise), `sort_key="is_favorite"`, `m2m=False`, `editable=True`, `edit_widget="checkbox"` for now (custom star widget deferred to Phase 8 if needed).
-- [ ] `make build-choices` to regenerate `frontend/src/choices/browser-table-columns.json`.
-- [ ] In [codex/views/browser/columns.py](codex/views/browser/columns.py): add `is_favorite` annotation builder using `Exists(Favorite.objects.filter(user=request.user, group=group_code, target_id=OuterRef("pk")))`. Confirm it composes with existing default-column logic and `is_sortable()`/`sort_key_for()`.
-- [ ] Tests: column appears in default choices, annotation present, sort by `is_favorite` works, anonymous users get `False` for all rows.
+- [x] `"favorite"` entry added to `BROWSER_TABLE_COLUMNS` (per-user-state block right after `bookmark_updated_at`) with `editable=True` and `edit_widget="checkbox"`. `"favorite"` joined `BROWSER_ORDER_BY_CHOICES` so the order_by enum accepts it.
+- [x] Choices JSON regenerated via `make build-choices` (gitignored output, but it does pick up the new column for the frontend bundle).
+- [x] Annotation alias is `favorite` (no prefix needed — no model collision). `favorite_annotation_for(model, user)` in [codex/views/browser/columns.py](codex/views/browser/columns.py) returns `Exists(Favorite.objects.filter(user, group, target_id=OuterRef("pk")))` for authenticated users on a favorite-able model, `Value(False)` for anonymous users (uniform schema), or `{}` for non-favorite-able models.
+- [x] `BrowserView._add_table_view_favorite_annotation` runs *before* the existing Comic-gated sort/display annotators in `_get_common_queryset`, so groups (Publisher, Series, …) get the annotation too. Always-on in table view — the per-row `Exists` is cheap and avoids gating sort on column-presence.
+- [x] Migration `0045_alter_settingsbrowser_order_by.py` refreshes the order-by choice set.
+- [x] `test_editable_is_false_in_v1` invariant updated to `test_only_favorite_is_editable` — favorite is the first editable column and the registry test now asserts the exact set.
+- [x] New tests in `tests/test_favorites_api.py::FavoriteAnnotationTestCase`: per-row Exists for authenticated users (favorited row True, others False), Value(False) for anonymous, empty dict for non-favorite-able models.
 
-Verify: `make fix && make test-backend`.
+Verify: ruff + basedpyright + complexipy clean; pytest 212/212 across the suite.
 
 ## Phase 6 — OPDS favorites filter + start-page nav link
 

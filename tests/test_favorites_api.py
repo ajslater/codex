@@ -204,3 +204,58 @@ class FavoriteFilterTestCase(TestCase):
         narrowed = Series.objects.filter(pk__in=favorited).values_list("pk", flat=True)
         assert list(narrowed) == [self.fav_series.pk]
         assert self.other_series.pk not in narrowed
+
+
+class FavoriteAnnotationTestCase(TestCase):
+    """``favorite_annotation_for`` produces the right Exists/Value shape per case."""
+
+    @override
+    def setUp(self) -> None:
+        from django.contrib.auth.models import AnonymousUser
+
+        self.anon = AnonymousUser()  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="annotator", password=_TEST_PASSWORD
+        )
+        publisher = Publisher.objects.create(name="P")
+        imprint = Imprint.objects.create(name="I", publisher=publisher)
+        self.fav_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
+            name="favored", publisher=publisher, imprint=imprint
+        )
+        self.other_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
+            name="ignored", publisher=publisher, imprint=imprint
+        )
+        Favorite.objects.create(
+            user=self.user, group="s", target_id=self.fav_series.pk
+        )
+
+    def test_authenticated_user_gets_per_row_exists(self):
+        """Annotated queryset reports True for favorited rows, False otherwise."""
+        from codex.views.browser.columns import favorite_annotation_for
+
+        annotations = favorite_annotation_for(Series, self.user)
+        assert "favorite" in annotations
+
+        rows = dict(
+            Series.objects.annotate(**annotations).values_list("pk", "favorite")
+        )
+        assert rows[self.fav_series.pk] is True
+        assert rows[self.other_series.pk] is False
+
+    def test_anonymous_user_gets_constant_false(self):
+        """Anonymous user → ``Value(False)``; every row has favorite=False."""
+        from codex.views.browser.columns import favorite_annotation_for
+
+        annotations = favorite_annotation_for(Series, self.anon)
+        rows = dict(
+            Series.objects.annotate(**annotations).values_list("pk", "favorite")
+        )
+        assert all(v is False for v in rows.values())
+
+    def test_unmapped_model_returns_empty_dict(self):
+        """A non-favorite-able model contributes no annotation."""
+        from codex.views.browser.columns import favorite_annotation_for
+
+        # Library is a real model but not in the favorite group map.
+        annotations = favorite_annotation_for(Library, self.user)
+        assert annotations == {}
