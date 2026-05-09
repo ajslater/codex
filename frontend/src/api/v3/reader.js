@@ -25,9 +25,19 @@ export const getReaderInfo = (pk, data, ts, options = {}) => {
 const _getReaderAPIPath = (pk) =>
   globalThis.CODEX.API_V3_PATH + _getBookPath(pk);
 
-export const getComicPageSource = ({ pk, page, mtime }) => {
+export const getComicPageSource = ({ pk, page, mtime, format }) => {
+  // ``format`` is the optional PDF rendering hint forwarded to the
+  // backend ``ReaderPageView``: ``auto`` (detector decides),
+  // ``image`` (always rasterize), or ``pdf`` (skip the detector and
+  // serve a single-page PDF blob). Ignored by the backend for
+  // non-PDF archives. Omitting the param keeps the URL identical to
+  // the legacy shape so HTTP caches don't fragment.
   const bookAPIPath = _getReaderAPIPath(pk);
-  return `${bookAPIPath}/${page}/page.jpg?ts=${mtime}`;
+  let url = `${bookAPIPath}/${page}/page.jpg?ts=${mtime}`;
+  if (format && format !== "auto") {
+    url += `&format=${format}`;
+  }
+  return url;
 };
 
 export const getComicDownloadURL = ({ pk }, fn, ts) => {
@@ -45,8 +55,8 @@ export const getDownloadPageURL = ({ pk, page, mtime }) => {
 };
 
 export const getPDFInBrowserURL = ({ pk, mtime }) => {
-  // Consumed by ``<embed src=...>``, not ``HTTP.get`` — needs an
-  // absolute path so the browser doesn't resolve it relative to the
+  // Consumed by the "Read in Tab" link (`<a target="_blank">`) — needs
+  // an absolute path so the browser doesn't resolve it relative to the
   // current SPA route.
   const bookPath = _getBookPath(pk);
   return `/${bookPath}/book.pdf?ts=${mtime}`;

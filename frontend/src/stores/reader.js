@@ -133,6 +133,13 @@ export const useReaderStore = defineStore("reader", {
     reactWithScroll: false,
     clientSettings: {
       scale: SCALE_DEFAULT,
+      // Per-session PDF rendering preference. ``auto`` runs the
+      // server-side detector (most comic PDFs serve as ``<img>``);
+      // ``image`` forces a server-side rasterize for any page;
+      // ``pdf`` skips the detector and routes through vue-pdf-embed
+      // on the client. Persisted client-side only — not in the
+      // server-side reader settings yet (spike scope).
+      pdfRenderMode: "auto",
     },
     showToolbars: false,
     settingsLoaded: false,
@@ -171,10 +178,10 @@ export const useReaderStore = defineStore("reader", {
       return state.books?.current?.fileType == "PDF";
     },
     cacheBook() {
-      return (
-        this.activeSettings.cacheBook &&
-        !(this.isPDF && this.activeSettings.isVertical)
-      );
+      // PDFs now render page-by-page (image-first with PDFDoc
+      // fallback) so the old "vertical PDF can't be cached" carve
+      // out is no longer needed.
+      return this.activeSettings.cacheBook;
     },
     isPagesNotRoutes(state) {
       return state.activeSettings.isVertical || this.cacheBook;
@@ -872,7 +879,12 @@ export const useReaderStore = defineStore("reader", {
       if (page > book.maxPage) {
         return false;
       }
-      const paramsPlus = { pk: params.pk, page, mtime: book.mtime };
+      const paramsPlus = {
+        pk: params.pk,
+        page,
+        mtime: book.mtime,
+        format: this.clientSettings?.pdfRenderMode,
+      };
       return READER_API.getComicPageSource(paramsPlus);
     },
     prefetchLinks(params, direction, bookChange = false) {
@@ -892,7 +904,10 @@ export const useReaderStore = defineStore("reader", {
       return { link };
     },
     prefetchBook(book) {
-      if (!this.cacheBook || book.fileType == "PDF") {
+      // PDF books now prefetch alongside CBZ — image-first responses
+      // are cacheable as plain images, fallback responses cache as
+      // PDF blobs that the next mount fetches via vue-pdf-embed.
+      if (!this.cacheBook) {
         return {};
       }
       const pk = book.pk;

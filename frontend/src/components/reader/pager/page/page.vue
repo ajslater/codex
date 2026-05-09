@@ -74,16 +74,27 @@ export default {
       loaded: false,
       error: "",
       ts: 0,
+      /*
+       * ``true`` once we've seen an ``<img>`` load fail on a PDF
+       * book — the response was ``application/pdf`` (the detector
+       * declined to serve as image), so we re-mount the page through
+       * ``<PDFDoc>`` against the same URL with ``?format=pdf``.
+       */
+      pdfFallback: false,
     };
   },
   computed: {
     ...mapState(useReaderStore, {
       scale: (state) => state.clientSettings?.scale,
+      pdfRenderMode: (state) => state.clientSettings?.pdfRenderMode || "auto",
     }),
+    isPDF() {
+      return this.book.fileType === "PDF";
+    },
     style() {
       // Magic for transform: scale() not sizing elements right.
       const s = {};
-      if (this.book.fileType === "PDF" || this.scale == 1) {
+      if (this.usingPDFDoc || this.scale == 1) {
         return s;
       }
       const img = this.$refs.pageComponent?.$el;
@@ -100,17 +111,51 @@ export default {
         pk: this.book.pk,
         page: this.page,
         mtime,
+        format: this.activeFormat,
       };
       return getComicPageSource(params);
     },
+    activeFormat() {
+      /*
+       * For non-PDF books the format param is ignored by the
+       * backend; we still pass it through so the URL is stable.
+       */
+      if (!this.isPDF) {
+        return "auto";
+      }
+      if (this.pdfFallback) {
+        // Image attempt failed → re-fetch with PDF response.
+        return "pdf";
+      }
+      return this.pdfRenderMode;
+    },
+    usingPDFDoc() {
+      /*
+       * Render through ``<PDFDoc>`` when:
+       *   • the user explicitly forced PDF rendering, or
+       *   • the ``<img>`` first attempt failed for a PDF book.
+       */
+      return this.isPDF && (this.pdfRenderMode === "pdf" || this.pdfFallback);
+    },
     component() {
-      return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
+      return this.usingPDFDoc ? PDFDoc : ImgPage;
     },
     bookSettings() {
       return this.getBookSettings(this.book);
     },
     twoPages() {
       return this.bookSettings?.twoPages ?? false;
+    },
+  },
+  watch: {
+    /*
+     * If the user toggles render mode mid-read, drop the fallback flag
+     * so the new mode takes effect on the next mount.
+     */
+    pdfRenderMode() {
+      this.pdfFallback = false;
+      this.error = "";
+      this.loaded = false;
     },
   },
   mounted() {
@@ -148,6 +193,18 @@ export default {
       this.error = false;
     },
     onError() {
+      /*
+       * For PDF books on the first ``<img>`` attempt, the failure
+       * means the backend sent ``application/pdf`` — the detector
+       * declined to serve as image. Swap to ``<PDFDoc>`` against
+       * the same URL and let it render via vue-pdf-embed. For all
+       * other failures, surface the error.
+       */
+      if (this.isPDF && !this.pdfFallback && !this.usingPDFDoc) {
+        this.pdfFallback = true;
+        this.loaded = false;
+        return;
+      }
       this.error = "load";
       this.showProgress = false;
     },
@@ -157,6 +214,8 @@ export default {
     },
     onRetry() {
       this.ts = Date.now();
+      this.pdfFallback = false;
+      this.error = "";
     },
   },
 };
