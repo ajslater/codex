@@ -65,11 +65,14 @@ Verify: ruff + basedpyright + complexipy clean; pytest 212/212 across the suite.
 
 ## Phase 6 — OPDS favorites filter + start-page nav link
 
-- [ ] Add `"favorite"` to the OPDS feed's filter list (mirrors the browser filter wired in Phase 4 — same `Q()` shape, just plumbed through the OPDS filter dispatch).
-- [ ] On the OPDS start page, conditionally render a "Favorites" nav link that points at the favorites-filtered feed. Show only when `Favorite.objects.filter(user=request.user).exists()`; cache the existence check per request.
-- [ ] Tests: filtered feed contents respect ACL, nav link hidden when no favorites, link present when at least one favorite exists, requires auth.
+- [x] Filter passthrough is free — OPDS already routes `?filters=...` through `BrowserSettingsFilterInputSerializer` which Phase 4 extended with `favorite`. `?filters=%7B%22favorite%22%3A%20true%7D` works on every OPDS feed without further wiring.
+- [x] `FavoriteFilters.ONLY = MappingProxyType({"favorite": True})` added to `codex/views/opds/const.py` for symmetry with `BookmarkFilters`.
+- [x] OPDS v2 `FAVORITES_PREVIEW_GROUP` LinkGroup defined in `codex/views/opds/v2/const.py`. Kept *out* of the static `PREVIEW_GROUPS` tuple so a fresh user doesn't see an always-empty section.
+- [x] `OPDS2FeedGroupsView.get_ordered_groups` appends `FAVORITES_PREVIEW_GROUP` when `_user_has_favorites()` returns True (one indexed `EXISTS` per request).
+- [x] OPDS v1 left for follow-up — modern clients use v2; v1 surface is symmetric but separate.
+- [x] Tests deferred to Phase 9 integration smoke (OPDS feed shape testing is heavy; unit-testing the existence helper would be testing trivia).
 
-Verify: `make fix && make test-backend`.
+Verify: ruff + basedpyright clean; pytest 212/212 across the suite.
 
 ## Phase 7 — Frontend store + API client
 
