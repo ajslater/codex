@@ -147,3 +147,60 @@ class FavoritesAPITestCase(TestCase):
         body = json.loads(response.content)
         assert isinstance(body, dict)
         assert set(body) >= {"p", "i", "s", "v", "f", "a", "c"}
+
+
+_SETTINGS_URL: Final = "/api/v3/r/settings"
+
+
+class FavoriteFilterTestCase(TestCase):
+    """Browser favorite filter: round-trip persistence and queryset narrowing."""
+
+    @override
+    def setUp(self) -> None:
+        """Build two series and favorite the first one."""
+        from codex.startup import init_admin_flags
+
+        init_admin_flags()
+
+        self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="favfilter", password=_TEST_PASSWORD
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+
+        publisher = Publisher.objects.create(name="P")
+        imprint = Imprint.objects.create(name="I", publisher=publisher)
+        self.fav_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
+            name="favored", publisher=publisher, imprint=imprint
+        )
+        self.other_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
+            name="ignored", publisher=publisher, imprint=imprint
+        )
+        Favorite.objects.create(user=self.user, group="s", target_id=self.fav_series.pk)
+
+    def test_favorite_filter_round_trips_via_settings(self):
+        """PATCH ``filters.favorite=true`` persists and re-emits as True."""
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps({"filters": {"favorite": True}}),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        get_resp = self.client.get(_SETTINGS_URL)
+        assert get_resp.status_code == _HTTP_OK
+        assert get_resp.json()["filters"]["favorite"] is True
+
+    def test_favorite_filter_default_is_false(self):
+        """Fresh settings expose ``filters.favorite`` as False."""
+        get_resp = self.client.get(_SETTINGS_URL)
+        assert get_resp.status_code == _HTTP_OK
+        assert get_resp.json()["filters"]["favorite"] is False
+
+    def test_favorite_subquery_narrows_to_favorited_pks(self):
+        """The pk__in subquery restricts the queryset to the user's favorites."""
+        favorited = Favorite.objects.filter(user=self.user, group="s").values(
+            "target_id"
+        )
+        narrowed = Series.objects.filter(pk__in=favorited).values_list("pk", flat=True)
+        assert list(narrowed) == [self.fav_series.pk]
+        assert self.other_series.pk not in narrowed

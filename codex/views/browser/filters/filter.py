@@ -1,12 +1,22 @@
 """Browser Filters."""
 
 from functools import cached_property
+from types import MappingProxyType
 from typing import Final
 
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.models.comic import Comic
+from codex.models import (
+    Comic,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    StoryArc,
+    Volume,
+)
+from codex.models.favorite import Favorite
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 
@@ -35,6 +45,22 @@ _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
 # Mirrors the branches in :meth:`GroupFilterView._get_rel_for_pks`.
 _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
     {"cover", "choices", "bookmark", "download"}
+)
+
+# Browser-queryable model → ``Favorite.group`` letter code. Same mapping
+# as the API view's `_GROUP_CODE_MODEL_MAP` and the signal-cleanup
+# table in ``codex/signals/django_signals.py`` — kept local to avoid a
+# circular `codex.models.favorite` ↔ `codex.views` import.
+_FAVORITE_MODEL_GROUPS: Final[MappingProxyType[type, str]] = MappingProxyType(
+    {
+        Publisher: "p",
+        Imprint: "i",
+        Series: "s",
+        Volume: "v",
+        Folder: "f",
+        StoryArc: "a",
+        Comic: "c",
+    }
 )
 
 
@@ -73,6 +99,28 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         filters = self.params.get("filters") or {}
         return any(filters.get(k) for k in _M2M_FILTER_KEYS)
 
+    def get_favorite_filter(self, model) -> Q:
+        """
+        Return ``Q(pk__in=<my favorited ids for this group>)`` or ``Q()``.
+
+        Anonymous users always get the no-op — favorites are
+        authenticated-only. A model that isn't in
+        :data:`_FAVORITE_MODEL_GROUPS` is also a no-op (search results
+        and other intermediate querysets aren't favorite-able).
+        """
+        if not self.params.get("filters", {}).get("favorite"):
+            return Q()
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Q()
+        group_code = _FAVORITE_MODEL_GROUPS.get(model)
+        if group_code is None:
+            return Q()
+        favorited_ids = Favorite.objects.filter(user=user, group=group_code).values(
+            "target_id"
+        )
+        return Q(pk__in=favorited_ids)
+
     def _get_query_filters(
         self,
         model,
@@ -89,6 +137,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         big_include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
+        big_include_filter &= self.get_favorite_filter(model)
         include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
             model
         )

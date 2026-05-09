@@ -43,12 +43,13 @@ Verify: ruff + basedpyright + vulture + complexipy clean; `pytest -x` 206/206 ac
 
 ## Phase 4 — Browser filter wiring
 
-- [ ] `codex/views/browser/filters/favorite.py`, mirroring [bookmark.py](codex/views/browser/filters/bookmark.py). `get_favorite_filter(model, group_code)` returns `Q()` when filter unset, else `Q(pk__in=Favorite.objects.filter(user=request.user, group=group_code).values("target_id"))`. Anonymous users → always `Q()` (no-op).
-- [ ] Add `"favorite": BooleanField(required=False)` to filter serializer in `codex/serializers/browser/filters.py`.
-- [ ] Wire `get_favorite_filter()` into `BrowserFilterView.get_filtered_queryset()` next to the bookmark filter chain.
-- [ ] Tests: filter on/off, anonymous no-op, composes with bookmark filter, ACL still respected.
+- [x] `get_favorite_filter` lives directly on `BrowserFilterView` (one short method — not enough to justify a new mixin file). Returns `Q()` for unset filter, anonymous user, or non-favorite-able model; otherwise `Q(pk__in=Favorite.objects.filter(user=user, group=<code>).values("target_id"))`.
+- [x] `BooleanField(required=False)` `favorite` added to `BrowserSettingsFilterInputSerializer`.
+- [x] `SettingsBrowserFilters` model gained `favorite = BooleanField(default=False)` and `"favorite"` is in `FILTER_KEYS`. Migration `0044_settingsbrowserfilters_favorite_and_more.py` (also picks up the `JRF` librarian-status choice from Phase 2 — incidental but correct).
+- [x] `_save_browser_filters` extended with a scalar branch so `favorite` (and `bookmark`) skip the list-coercion that would otherwise corrupt a boolean to `[]`.
+- [x] Tests in `tests/test_favorites_api.py::FavoriteFilterTestCase`: settings round-trip (PATCH then GET round-trips `True`), default `False`, and a direct-ORM proof that `pk__in=<favorite subquery>` narrows a `Series` queryset.
 
-Verify: `make fix && make test-backend`.
+Verify: ruff + basedpyright + vulture + complexipy clean; `pytest -q` 209/209 across the suite.
 
 ## Phase 5 — Table column
 

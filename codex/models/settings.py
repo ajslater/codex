@@ -214,6 +214,9 @@ class SettingsBrowserFilters(BaseModel):
         blank=True,
     )
 
+    # Favorite filter — boolean toggle (favorites only when True).
+    favorite = BooleanField(default=False)
+
     # Dynamic filters — each stores a list of ints.
     age_rating_metron = JSONField(default=list)
     age_rating_tagged = JSONField(default=list)
@@ -242,6 +245,7 @@ class SettingsBrowserFilters(BaseModel):
     FILTER_KEYS = frozenset(
         {
             "bookmark",
+            "favorite",
             "age_rating_metron",
             "age_rating_tagged",
             "characters",
