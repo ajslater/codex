@@ -11,6 +11,7 @@ from django.test import Client, TestCase
 from codex.models import (
     Comic,
     Favorite,
+    Folder,
     Imprint,
     Library,
     Publisher,
@@ -343,6 +344,56 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         Favorite.objects.create(user=self.user, group="p", target_id=self.p1.pk)
         # Filter not enabled. Both P1 and P2 should appear.
         assert sorted(self._group_pks("r")) == sorted([self.p1.pk, self.p2.pk])
+
+    def test_favorited_folder_lights_up_empty_intermediate_descendants(self):
+        """Favorite a top folder → every nested sub-folder surfaces, empty mids included."""
+        # ``Comic.folders`` is the m2m of *all* ancestor folders for a
+        # comic (the importer adds the full path chain). The reverse
+        # accessor ``Folder.comic`` traverses that m2m, so a Folder
+        # with no direct parent_folder children but a comic descendant
+        # nested deeper still reports comics — and ``comic__folders``
+        # lights up its ancestors. The transitive favorite filter
+        # relies on this; pin it.
+        library_dir = _TMP_DIR / "ftree"
+        f1_dir = library_dir / "a"
+        f2_dir = f1_dir / "b"
+        f3_dir = f2_dir / "c"
+        # Folder.save() stats the path, so the directories have to
+        # exist on disk before the rows are created.
+        f3_dir.mkdir(parents=True, exist_ok=True)
+        library = Library.objects.create(path=str(library_dir))
+        f1 = Folder.objects.create(library=library, path=str(f1_dir))
+        f2 = Folder.objects.create(library=library, parent_folder=f1, path=str(f2_dir))
+        f3 = Folder.objects.create(library=library, parent_folder=f2, path=str(f3_dir))
+        comic_path = f3_dir / "deep.cbz"
+        comic_path.touch()
+        deep_comic = Comic.objects.create(
+            library=library,
+            path=comic_path,
+            issue_number=1,
+            name="deep",
+            publisher=self.p1,
+            imprint=self.i1,
+            series=self.s1,
+            volume=self.v1,
+            parent_folder=f3,
+            size=1,
+        )
+        # Mirror the importer: Comic.folders carries every ancestor in
+        # the path chain, not just the direct parent.
+        deep_comic.folders.set([f1, f2, f3])
+
+        Favorite.objects.create(user=self.user, group="f", target_id=f1.pk)
+        self._enable_favorite_filter()
+
+        # Top-level folder list: F1 surfaces (self) and any
+        # descendants the filter pulls in.
+        top = self._group_pks("f")
+        assert f1.pk in top
+        # Inside F1, the empty intermediate F2 must surface so the
+        # user can keep drilling toward the deep comic.
+        children = self._group_pks("f", f1.pk)
+        assert f2.pk in children, children
 
 
 class FavoriteAnnotationTestCase(TestCase):

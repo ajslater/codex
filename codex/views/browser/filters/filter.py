@@ -142,7 +142,12 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         if group_code is None:
             return Q()
 
-        rel = self.rel_prefix
+        # ``rel`` must be relative to the queryset's model — not the
+        # cached ``self.rel_prefix``, which is pinned to the BROWSE
+        # model. The browser pipeline runs sub-queries against Comic
+        # under group browses; using the browse-model rel there would
+        # produce ``comic__pk`` against Comic and FieldError out.
+        rel = self.get_rel_prefix(model)
         q = (
             Q(**{f"{rel}pk__in": self._favorite_targets("c")})
             | Q(**{f"{rel}publisher_id__in": self._favorite_targets("p")})
