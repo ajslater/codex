@@ -1,5 +1,6 @@
 """Favorite model."""
 
+from types import MappingProxyType
 from typing import Final
 
 from django.conf import settings
@@ -11,8 +12,16 @@ from django.db.models import (
 )
 
 from codex.models.base import BaseModel
+from codex.models.comic import Comic
+from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
+from codex.models.named import StoryArc
 
-__all__ = ("FAVORITE_GROUP_CHOICES", "Favorite")
+__all__ = (
+    "FAVORITE_GROUP_CHOICES",
+    "FAVORITE_GROUP_CODE_MODELS",
+    "FAVORITE_MODEL_GROUP_CODES",
+    "Favorite",
+)
 
 FAVORITE_GROUP_CHOICES: Final = (
     ("p", "Publisher"),
@@ -22,6 +31,27 @@ FAVORITE_GROUP_CHOICES: Final = (
     ("f", "Folder"),
     ("a", "Story Arc"),
     ("c", "Comic"),
+)
+
+# Single source of truth for the model ↔ group-letter dispatch.
+# Every favorite-related view, signal, cron, and annotation pulls
+# from these maps so the seven group letters stay aligned across
+# the codebase. Filter / annotation / API views consume the
+# forward map; the cleanup cron and signal handler consume the
+# reverse map. Both are immutable proxies.
+FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type, str]] = MappingProxyType(
+    {
+        Publisher: "p",
+        Imprint: "i",
+        Series: "s",
+        Volume: "v",
+        Folder: "f",
+        StoryArc: "a",
+        Comic: "c",
+    }
+)
+FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyType(
+    {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
 )
 
 

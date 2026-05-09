@@ -2,12 +2,6 @@
 
 from django.db.models.signals import post_delete, post_save
 
-# Populated by :func:`connect_signals` once Django apps are loaded.
-# Maps each browseable target model to its ``Favorite.group`` letter
-# code so the post-delete handler can drop matching rows without
-# re-deriving the mapping on every fire.
-_FAVORITE_TARGET_GROUP_CODES: dict[type, str] = {}
-
 
 def _on_library_changed(*_args, **_kwargs) -> None:
     """Clear the libraries_exist cache on Library writes."""
@@ -19,9 +13,10 @@ def _on_library_changed(*_args, **_kwargs) -> None:
 
 def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
     """Drop favorites that pointed at a deleted browseable target."""
-    from codex.models.favorite import Favorite
+    # Lazy imports so the module is safe to load before ``django.setup()``.
+    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 
-    if group_code := _FAVORITE_TARGET_GROUP_CODES.get(sender):
+    if group_code := FAVORITE_MODEL_GROUP_CODES.get(sender):
         Favorite.objects.filter(group=group_code, target_id=instance.pk).delete()
 
 
@@ -54,33 +49,15 @@ def connect_signals() -> None:
     # Imported lazily for the same reason as above.
     from django.contrib.auth import get_user_model
 
-    from codex.models import (
-        Comic,
-        Folder,
-        Imprint,
-        Library,
-        Publisher,
-        Series,
-        StoryArc,
-        Volume,
-    )
+    from codex.models import Library
+    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
 
     post_save.connect(_on_library_changed, sender=Library)
     post_delete.connect(_on_library_changed, sender=Library)
     post_save.connect(_ensure_user_auth, sender=get_user_model())
 
-    # Cascade favorites when their target row is deleted. Mirrors the
-    # group-letter codes from `FAVORITE_GROUP_CHOICES`.
-    _FAVORITE_TARGET_GROUP_CODES.update(
-        {
-            Publisher: "p",
-            Imprint: "i",
-            Series: "s",
-            Volume: "v",
-            Folder: "f",
-            StoryArc: "a",
-            Comic: "c",
-        }
-    )
-    for model in _FAVORITE_TARGET_GROUP_CODES:
+    # Cascade favorites when their target row is deleted. The handler
+    # rereads the mapping at fire time so this loop only needs the
+    # senders.
+    for model in FAVORITE_MODEL_GROUP_CODES:
         post_delete.connect(_on_favorite_target_deleted, sender=model)

@@ -22,7 +22,6 @@ from codex.librarian.scribe.janitor.status import (
 from codex.models import (
     AgeRating,
     Character,
-    Comic,
     Country,
     Credit,
     CreditPerson,
@@ -49,7 +48,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.bookmark import Bookmark
-from codex.models.favorite import Favorite
+from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
 
@@ -119,20 +118,13 @@ _BOOKMARK_FILTER = dict.fromkeys(
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
-# Backstop for `Favorite.post_delete` signals. Each entry pairs a
-# browseable target model with its single-letter group code so the
-# nightly sweep can drop favorites whose target row is gone (e.g.
-# wiped by raw-SQL migrations or other paths that bypass Django's
-# ORM signal machinery).
-_FAVORITE_TARGETS = (
-    (Publisher, "p"),
-    (Imprint, "i"),
-    (Series, "s"),
-    (Volume, "v"),
-    (Folder, "f"),
-    (StoryArc, "a"),
-    (Comic, "c"),
-)
+# Backstop for `Favorite.post_delete` signals — the nightly sweep
+# drops favorites whose target row is gone (e.g. wiped by raw-SQL
+# migrations or other paths that bypass Django's ORM signal
+# machinery). Iteration order is the model→code map's insertion
+# order; the per-iteration query is independent so order doesn't
+# matter functionally.
+_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_GROUP_CODES.items())
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic

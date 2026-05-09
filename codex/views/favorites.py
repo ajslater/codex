@@ -1,37 +1,10 @@
 """Favorite views."""
 
-from types import MappingProxyType
-from typing import Final
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from codex.models import (
-    Comic,
-    Folder,
-    Imprint,
-    Publisher,
-    Series,
-    StoryArc,
-    Volume,
-)
-from codex.models.favorite import Favorite
+from codex.models.favorite import FAVORITE_GROUP_CODE_MODELS, Favorite
 from codex.views.auth import AuthFilterGenericAPIView
-
-# Single-letter group code → favorite-able target model.
-# Mirrors `FAVORITE_GROUP_CHOICES` and the `_FAVORITE_TARGET_GROUP_CODES`
-# map populated in `codex/signals/django_signals.py`.
-_GROUP_CODE_MODEL_MAP: Final[MappingProxyType[str, type]] = MappingProxyType(
-    {
-        "p": Publisher,
-        "i": Imprint,
-        "s": Series,
-        "v": Volume,
-        "f": Folder,
-        "a": StoryArc,
-        "c": Comic,
-    }
-)
 
 
 class _FavoriteAuthMixin(AuthFilterGenericAPIView):
@@ -46,7 +19,7 @@ class FavoriteListView(_FavoriteAuthMixin):
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{group_code: [target_id, ...]}`` for the user."""
         favorites_by_group: dict[str, list[int]] = {
-            code: [] for code in _GROUP_CODE_MODEL_MAP
+            code: [] for code in FAVORITE_GROUP_CODE_MODELS
         }
         rows = Favorite.objects.filter(user=self.request.user).values_list(
             "group", "target_id"
@@ -64,7 +37,7 @@ class FavoriteDetailView(_FavoriteAuthMixin):
         """Return (group_code, target_id, model) or a Response on error."""
         group_code = self.kwargs["group"]
         target_id = self.kwargs["target_id"]
-        model = _GROUP_CODE_MODEL_MAP.get(group_code)
+        model = FAVORITE_GROUP_CODE_MODELS.get(group_code)
         if model is None:
             return Response(
                 {"detail": f"Unknown favorite group {group_code!r}."},

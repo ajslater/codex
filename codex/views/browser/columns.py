@@ -13,9 +13,7 @@ from django.db.models import (
     Aggregate,
     BooleanField,
     Case,
-    Exists,
     F,
-    OuterRef,
     Q,
     Value,
     When,
@@ -27,16 +25,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
-from codex.models import (
-    Comic,
-    Folder,
-    Imprint,
-    Publisher,
-    Series,
-    StoryArc,
-    Volume,
-)
-from codex.models.favorite import Favorite
+from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.functions import JsonGroupArray
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
@@ -278,22 +267,8 @@ def fk_name_columns() -> frozenset[str]:
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
 
 
-# Browseable model → ``Favorite.group`` letter code. Same mapping as
-# the API view's ``_GROUP_CODE_MODEL_MAP`` and the filter dispatch's
-# ``_FAVORITE_MODEL_GROUPS``; kept duplicated to avoid a circular
-# import via ``codex.models.favorite``.
-_FAVORITE_MODEL_GROUPS: MappingProxyType[type, str] = MappingProxyType(
-    {
-        Publisher: "p",
-        Imprint: "i",
-        Series: "s",
-        Volume: "v",
-        Folder: "f",
-        StoryArc: "a",
-        Comic: "c",
-    }
-)
 _FAVORITE_FALSE = Value(value=False, output_field=BooleanField())
+_FAVORITE_TRUE = Value(value=True, output_field=BooleanField())
 
 
 def favorite_annotation_for(model, user) -> dict:
@@ -302,26 +277,29 @@ def favorite_annotation_for(model, user) -> dict:
 
     Returns a dict that's safe to splat into ``qs.annotate(**...)``:
 
-    * ``Exists(Favorite.objects.filter(user, group, target_id))`` for
-      authenticated users on a favorite-able model;
-    * a constant ``Value(False)`` for anonymous sessions or models
-      that aren't in :data:`_FAVORITE_MODEL_GROUPS`, so the schema
-      stays uniform whether the column is sortable or just rendered;
-    * an empty dict when ``model`` isn't in the favorite-able set
-      *and* the caller doesn't need a placeholder (the table-view
-      caller passes a known model so this branch is rare in practice).
+    * a ``Case-When-In`` boolean for authenticated users on a
+      favorite-able model — SQLite materializes the favorited-id
+      subquery once and runs a hash-set membership check per row,
+      slightly cheaper than the equivalent correlated ``Exists``;
+    * a constant ``Value(False)`` for anonymous sessions, so the
+      schema stays uniform whether the column is sortable or just
+      rendered;
+    * an empty dict when ``model`` isn't in the favorite-able set —
+      the table-view caller passes a known model so this branch is
+      rare in practice.
     """
-    group_code = _FAVORITE_MODEL_GROUPS.get(model)
+    group_code = FAVORITE_MODEL_GROUP_CODES.get(model)
     if group_code is None:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
+    favorited_ids = Favorite.objects.filter(user=user, group=group_code).values(
+        "target_id"
+    )
     return {
-        "favorite": Exists(
-            Favorite.objects.filter(
-                user=user,
-                group=group_code,
-                target_id=OuterRef("pk"),
-            )
+        "favorite": Case(
+            When(pk__in=favorited_ids, then=_FAVORITE_TRUE),
+            default=_FAVORITE_FALSE,
+            output_field=BooleanField(),
         ),
     }
