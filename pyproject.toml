@@ -207,11 +207,11 @@ reportUnknownVariableType = false
 reportUnusedCallResult = false
 reportUnusedParameter = false
 
-[tool.codespell]
 builtin = "clear,code,rare"
+[tool.codespell]
 check-hidden = true
 ignore-words-list = "assertin,coverd,crate,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
-skip = "*~,bun.lock,coverage,node_modules,package.json,test-results,uv.lock,./.claude,./.git,./.github,./.venv,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./site"
+skip = "*~,__pycache__,.venv,bun.lock,coverage,node_modules,package.json,test-results,uv.lock,.claude,.git,.github,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./site"
 
 [tool.complexipy]
 failed = true
