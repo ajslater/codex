@@ -50,9 +50,17 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
                     f"{key} is m2m; sort_key should equal column key"
                 )
 
-    def test_editable_is_false_in_v1(self):
+    def test_only_favorite_is_editable(self):
+        # ``favorite`` opted in to ``editable=True`` in Phase 5 of the
+        # favorites feature — its star widget toggles via the
+        # ``/api/v3/favorites/<group>/<pk>/`` endpoint. Every other
+        # column stays read-only until a column-specific edit pipeline
+        # ships.
         for key, entry in BROWSER_TABLE_COLUMNS.items():
-            assert entry["editable"] is False, f"{key} editable=True before its time"
+            expected = key == "favorite"
+            assert entry["editable"] is expected, (
+                f"{key} editable={entry['editable']!r}; expected {expected}"
+            )
 
 
 class BrowserTableDefaultColumnsTestCase(TestCase):

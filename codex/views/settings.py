@@ -417,7 +417,14 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         for key, value in filters_data.items():
             if key not in SettingsBrowserFilters.FILTER_KEYS:
                 continue
-            cleaned = value if key == "bookmark" else (list(value) if value else [])
+            # Scalar-typed filters store the raw value; everything else is
+            # the list-of-pks shape and gets coerced into a list.
+            if key == "bookmark":
+                cleaned = value
+            elif key == "favorite":
+                cleaned = bool(value)
+            else:
+                cleaned = list(value) if value else []
             if getattr(filters_obj, key) != cleaned:
                 setattr(filters_obj, key, cleaned)
                 dirty = True

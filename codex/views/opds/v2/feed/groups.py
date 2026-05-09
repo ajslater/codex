@@ -3,12 +3,14 @@
 from collections.abc import Mapping
 from typing import Any
 
+from codex.models.favorite import Favorite
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
+    FAVORITES_PREVIEW_GROUP,
     PREVIEW_GROUPS,
     START_GROUPS,
     TOP_GROUPS,
@@ -139,10 +141,25 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
+    def _user_has_favorites(self) -> bool:
+        """Return True when the requesting user has at least one favorite."""
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        return Favorite.objects.filter(user=user).exists()
+
     def get_ordered_groups(self) -> list:
         """Ordered Publication Groups."""
         groups = []
-        for group_spec in PREVIEW_GROUPS:
+        # Favorites preview is appended only when the user has at least
+        # one — otherwise an empty "Favorites" section would clutter
+        # the start page for fresh / anonymous installs.
+        previews = (
+            (*PREVIEW_GROUPS, FAVORITES_PREVIEW_GROUP)
+            if self._user_has_favorites()
+            else PREVIEW_GROUPS
+        )
+        for group_spec in previews:
             # explode into individual groups
             for link_spec in group_spec.links:
                 pub_section = self.get_publications_preview(link_spec)

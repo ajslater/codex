@@ -24,6 +24,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "credits": "Credits",
         "critical_rating": "Critical Rating",
         "day": "Day",
+        "favorite": "Favorite",
         "filename": "Filename",
         "size": "File Size",
         "file_type": "File Type",
@@ -180,6 +181,7 @@ _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
+        "favorite": False,
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )
@@ -430,6 +432,21 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "m2m": False,
             "editable": False,
             "edit_widget": None,
+        },
+        # Per-user state. ``favorite`` is the only currently-editable
+        # cell — clicking the star toggles via ``PUT|DELETE
+        # /api/v3/favorites/<group>/<pk>/``. The annotation
+        # ``favorite=Exists(Favorite.objects.filter(user, group,
+        # target_id))`` is added in
+        # ``BrowserView._add_table_view_favorite_annotation`` for both
+        # group and Comic querysets so the column is sortable and
+        # renderable across all browseable models.
+        "favorite": {
+            "label": "Favorite",
+            "sort_key": "favorite",
+            "m2m": False,
+            "editable": True,
+            "edit_widget": "checkbox",
         },
         # M2M relations — sortable as of Phase 7 M2M-sort experiment.
         # ``sort_key`` matches the column key so header clicks set

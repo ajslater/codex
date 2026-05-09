@@ -10,6 +10,7 @@ import { mapActions, mapState } from "pinia";
 
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useFavoritesStore } from "@/stores/favorites";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -38,6 +39,12 @@ export default {
           this.setTimezone();
           /* If the user changes resubscribe to channels. */
           useSocketStore().reopen();
+          /*
+           * Warm the favorites store so star toggles render the
+           * user's persisted state on first paint instead of
+           * flashing empty. ``hydrate`` is idempotent.
+           */
+          useFavoritesStore().hydrate();
         }
       },
     },

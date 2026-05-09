@@ -11,6 +11,15 @@ def _on_library_changed(*_args, **_kwargs) -> None:
     invalidate_libraries_exist_cache()
 
 
+def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
+    """Drop favorites that pointed at a deleted browseable target."""
+    # Lazy imports so the module is safe to load before ``django.setup()``.
+    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+
+    if group_code := FAVORITE_MODEL_GROUP_CODES.get(sender):
+        Favorite.objects.filter(group=group_code, target_id=instance.pk).delete()
+
+
 def _ensure_user_auth(sender, instance, created, **_kwargs) -> None:
     """
     Provision a :class:`UserAuth` row alongside every newly-created User.
@@ -41,7 +50,14 @@ def connect_signals() -> None:
     from django.contrib.auth import get_user_model
 
     from codex.models import Library
+    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
 
     post_save.connect(_on_library_changed, sender=Library)
     post_delete.connect(_on_library_changed, sender=Library)
     post_save.connect(_ensure_user_auth, sender=get_user_model())
+
+    # Cascade favorites when their target row is deleted. The handler
+    # rereads the mapping at fire time so this loop only needs the
+    # senders.
+    for model in FAVORITE_MODEL_GROUP_CODES:
+        post_delete.connect(_on_favorite_target_deleted, sender=model)

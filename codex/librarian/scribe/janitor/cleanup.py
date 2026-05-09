@@ -14,6 +14,7 @@ from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImp
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupCoversStatus,
+    JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupTagsStatus,
@@ -47,6 +48,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.bookmark import Bookmark
+from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
 
@@ -116,6 +118,13 @@ _BOOKMARK_FILTER = dict.fromkeys(
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
+# Backstop for `Favorite.post_delete` signals — the nightly sweep
+# drops favorites whose target row is gone (e.g. wiped by raw-SQL
+# migrations or other paths that bypass Django's ORM signal
+# machinery). Iteration order is the model→code map's insertion
+# order; the per-iteration query is independent so order doesn't
+# matter functionally.
+_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_GROUP_CODES.items())
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
@@ -388,5 +397,23 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                     total += count
             level = "INFO" if total else "DEBUG"
             self.log.log(level, f"Deleted {total} orphan settings rows.")
+        finally:
+            self.status_controller.finish(status)
+
+    def cleanup_orphan_favorites(self) -> None:
+        """Delete favorites whose target row no longer exists."""
+        status = JanitorCleanupFavoritesStatus()
+        try:
+            self.status_controller.start(status)
+            total = 0
+            with self.db_write_lock:
+                for model, group_code in _FAVORITE_TARGETS:
+                    orphans = Favorite.objects.filter(group=group_code).exclude(
+                        target_id__in=model.objects.values("pk"),
+                    )
+                    count, _ = orphans.delete()
+                    total += count
+            level = "INFO" if total else "DEBUG"
+            self.log.log(level, f"Deleted {total} orphan favorites.")
         finally:
             self.status_controller.finish(status)

@@ -48,6 +48,10 @@ class JanitorCleanupSettingsTask(JanitorTask):
     """Clean orphan settings rows."""
 
 
+class JanitorCleanupFavoritesTask(JanitorTask):
+    """Clean favorites whose target row no longer exists."""
+
+
 class JanitorForeignKeyCheckTask(JanitorTask):
     """Check and repair foreign keys integrity."""
 

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v3/auth";
 import { useCommonStore } from "@/stores/common";
+import { useFavoritesStore } from "@/stores/favorites";
 
 /*
  * Don't use router in here, perhaps called to early.
@@ -97,6 +98,9 @@ export const useAuthStore = defineStore("auth", {
         console.error(error);
       } finally {
         this.user = undefined;
+        // Wipe per-user favorite state so a different account
+        // signing in next doesn't see the previous user's stars.
+        useFavoritesStore().clear();
       }
     },
     async changePassword(credentials) {

@@ -117,8 +117,8 @@ const _COST_TOOLTIPS = Object.freeze({
  */
 const _CATEGORIES = Object.freeze([
   {
-    label: "Cover",
-    columns: ["cover"],
+    label: "At a Glance",
+    columns: ["cover", "favorite"],
   },
   {
     label: "Publishing",

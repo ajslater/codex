@@ -249,7 +249,14 @@ export const useBrowserStore = defineStore("browser", {
     },
     isDynamicFiltersSelected(state) {
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (name !== "bookmark" && array && array.length > 0) {
+        // bookmark and favorite are scalar (string / boolean), not the
+        // list-of-pks shape every other filter uses.
+        if (
+          name !== "bookmark" &&
+          name !== "favorite" &&
+          array &&
+          array.length > 0
+        ) {
           return true;
         }
       }
@@ -259,7 +266,12 @@ export const useBrowserStore = defineStore("browser", {
       const isDefaultBookmarkValueSelected = DEFAULT_BOOKMARK_VALUES.has(
         state.settings.filters.bookmark,
       );
-      return !isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected;
+      const isFavoriteFilterOn = Boolean(state.settings.filters.favorite);
+      return (
+        !isDefaultBookmarkValueSelected ||
+        isFavoriteFilterOn ||
+        this.isDynamicFiltersSelected
+      );
     },
     lowestShownGroup(state) {
       let lowestGroup = "r";

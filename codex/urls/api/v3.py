@@ -18,6 +18,10 @@ from codex.views.version import VersionView
 app_name = "v3"
 urlpatterns = [
     path("auth/", include("codex.urls.api.auth")),
+    # favorites must come before the catch-all <group> route so its prefix
+    # isn't mistaken for the single-letter group "favorites" - which would
+    # never match anyway (GroupConverter is one char), but keep it explicit.
+    path("favorites/", include("codex.urls.api.favorites")),
     # reader must come first to occlude browser group
     path("c/", include("codex.urls.api.reader")),
     path(
