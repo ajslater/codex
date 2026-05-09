@@ -271,11 +271,12 @@ export default {
 }
 
 /*
- * Favorite star sits in the top-right of the cover, mirroring the
- * select-many checkbox in the top-left. Hidden by default so it
- * doesn't compete with the cover art; surfaces on card hover for
- * discovery, and stays lit (full opacity) when the row is favorited
- * so the user can scan a page for their starred items.
+ * Favorite star sits in the top-right of the cover, stacked just
+ * below the childCount badge (also top-right) so the count circle
+ * stays unobscured. Hidden by default so it doesn't compete with
+ * the cover art; surfaces on card hover for discovery, and stays
+ * lit (full opacity) when the row is favorited so the user can
+ * scan a page for their starred items.
  *
  * Sibling of ``.cardCoverOverlay`` — outside the router-link's
  * opacity-fade subtree, so the lit state is unaffected by the
@@ -283,7 +284,7 @@ export default {
  */
 .cardFavoriteToggle {
   position: absolute !important;
-  top: 0px;
+  top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
   right: 0px;
   z-index: 2;
   opacity: 0;

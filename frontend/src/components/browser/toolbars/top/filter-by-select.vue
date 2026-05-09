@@ -39,18 +39,20 @@
         :append-icon="mdiCloseCircleOutline"
         @click="onClear"
       />
-      <v-list-item
-        v-if="isLoggedIn"
-        density="compact"
-        variant="plain"
-        class="favoritesOnly"
-        :class="{ active: favoriteFilter }"
-        :title="favoriteFilter ? 'Favorites Only' : 'Show Favorites Only'"
-        :prepend-icon="favoriteFilter ? mdiStar : mdiStarOutline"
-        @click="onFavoriteToggle"
-      />
     </template>
     <template #append-item>
+      <template v-if="isLoggedIn">
+        <v-divider />
+        <v-list-item
+          density="compact"
+          variant="plain"
+          class="favoritesOnly"
+          :class="{ active: favoriteFilter }"
+          title="Favorites Only"
+          :append-icon="favoriteFilter ? mdiStar : mdiStarOutline"
+          @click="onFavoriteToggle"
+        />
+      </template>
       <v-divider />
       <v-list-item
         v-if="dynamicChoiceNames === undefined"
@@ -262,5 +264,18 @@ export default {
 .clearFilter {
   color: black;
   background-color: rgb(var(--v-theme-primary));
+}
+
+/*
+ * "Favorites Only" sits between the bookmark choices (above) and the
+ * dynamic filter sub-menus (below), bracketed by ``v-divider``s on
+ * each side. Title is left-justified by v-list-item default and the
+ * star is appended to the right via ``append-icon``. The lit state
+ * tints the icon primary so the user can see at a glance whether
+ * the filter is on without reading the title.
+ */
+.favoritesOnly.active :deep(.v-list-item__append .v-icon) {
+  color: rgb(var(--v-theme-primary));
+  opacity: 1;
 }
 </style>
