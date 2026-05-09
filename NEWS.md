@@ -8,10 +8,6 @@ border-radius: 128px;
 
 ## v1.11.5
 
-- Features
-    - Reader: add `?hide_text=1` query param for PDF pages — suppresses
-      visible text rendering on badly-OCR'd scans where the OCR layer
-      doubles up against the page's raster.
 - Fixes
     - Fix occasional recreation of comics on docker or network filesystems.
     - Fix double polling of some libraries.
