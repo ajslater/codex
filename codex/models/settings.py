@@ -24,7 +24,9 @@ from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_ROUTE_CHOICES,
+    BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.choices import ReadingDirectionChoices, max_choices_len
@@ -332,6 +334,12 @@ class SettingsBrowser(SettingsBase):
         default="",
     )
     order_reverse = BooleanField(default=False)
+    # Experimental multi-column sort: a list of secondary sort keys
+    # appended to the primary ``order_by`` ORDER BY. Each entry is
+    # ``{"key": <BROWSER_ORDER_BY_CHOICES key>, "reverse": <bool>}``.
+    # Empty list means single-column sort (today's behavior). The
+    # frontend table view adds entries via shift-click on a header.
+    order_extra_keys = JSONField(default=list)
     search = CharField(max_length=4095, default="", blank=True)
 
     # Display preferences
@@ -339,6 +347,19 @@ class SettingsBrowser(SettingsBase):
     dynamic_covers = BooleanField(default=True)
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
+
+    # Table view
+    view_mode = CharField(
+        max_length=8,
+        choices=tuple(BROWSER_VIEW_MODE_CHOICES.items()),
+        default="cover",
+    )
+    table_columns = JSONField(default=dict)
+    table_cover_size = CharField(
+        max_length=4,
+        choices=tuple(BROWSER_TABLE_COVER_SIZE_CHOICES.items()),
+        default="sm",
+    )
 
     # FK to shared show-flags row.
     show = ForeignKey(
@@ -355,11 +376,15 @@ class SettingsBrowser(SettingsBase):
             "top_group",
             "order_by",
             "order_reverse",
+            "order_extra_keys",
             "search",
             "custom_covers",
             "dynamic_covers",
             "twenty_four_hour_time",
             "always_show_filename",
+            "view_mode",
+            "table_columns",
+            "table_cover_size",
         }
     )
 

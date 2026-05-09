@@ -14,14 +14,22 @@ from django.db.models.aggregates import Avg, Count, Max, Min, Sum
 from django.db.models.fields import CharField
 from django.db.models.functions import Reverse, Right, StrIndex
 
+from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import (
     Comic,
     Folder,
     StoryArc,
 )
 from codex.models.functions import ComicFTSRank, JsonGroupArray
+from codex.models.groups import Volume
+from codex.views.browser.columns import m2m_alias_for, m2m_columns
+from codex.views.browser.intersections import (
+    m2m_intersection_sort_expr,
+    scalar_intersection_sort_expr,
+)
 from codex.views.browser.order_by import (
     BrowserOrderByView,
+    comic_order_path,
 )
 from codex.views.const import (
     NONE_INTEGERFIELD,
@@ -30,16 +38,43 @@ from codex.views.const import (
 from codex.views.mixins import SharedAnnotationsMixin
 
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
-    # These are annotated to order_value because they're simple relations
+    # These are annotated to order_value because they're simple relations.
+    # ``Min`` is a sentinel for "use the directional aggregate" — see
+    # ``annotate_order_value``: forward-sort uses Min, reverse uses Max.
+    # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
     {
         "age_rating": Avg,
         "child_count": Min,
+        "country": Min,
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,
+        "day": Min,
+        "file_type": Min,
+        "imprint_name": Min,
+        # ``issue`` is virtual: its order_value annotation aggregates
+        # the underlying ``issue_number`` field (resolved via
+        # ``comic_order_path``). Group rows therefore sort by their
+        # min/max child issue number; the suffix secondary applies
+        # only to Comic-row ORDER BY.
+        "issue": Min,
+        "language": Min,
+        "main_character": Min,
+        "main_team": Min,
+        "metadata_mtime": Min,
+        "monochrome": Min,
+        "month": Min,
+        "original_format": Min,
         "page_count": Sum,
+        "publisher_name": Min,
+        "reading_direction": Min,
+        "scan_info": Min,
+        "series_name": Min,
         "size": Sum,
+        "tagger": Min,
         "updated_at": Min,
+        "volume_name": Min,
+        "year": Min,
     }
 )
 _ANNOTATED_ORDER_FIELDS = frozenset(
@@ -243,31 +278,176 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         return self.annotate_child_count(qs)
 
+    def _comic_order_value(self):
+        """Comic-row order_value: direct field or M2M alias."""
+        if self.order_key in m2m_columns():
+            return F(m2m_alias_for(self.order_key))
+        order_key = "sort_name" if self.order_key == "child_count" else self.order_key
+        return F(comic_order_path(order_key))
+
+    def _group_m2m_order_value(self, qs):
+        """Group-row M2M order_value, falling back to ``sort_name``."""
+        isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+        if isort_expr is not None:
+            return qs, isort_expr
+        if qs.model is Volume:
+            qs = qs.alias(sort_name=F("name"))
+        return qs, F("sort_name")
+
+    def _group_scalar_order_value(self, qs):
+        """Group-row scalar / FK-name order_value (intersection-aware)."""
+        # Display uses intersection — a value renders only when every
+        # child comic agrees — so the sort key matches that rule.
+        # Falls back to the legacy aggregate path when the column /
+        # group model isn't wired so adding a new registry scalar
+        # doesn't silently regress its sort.
+        isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
+        if isort_expr is not None:
+            return isort_expr
+        agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
+        agg_func = self.order_agg_func if agg_func == Min else agg_func
+        field = self.rel_prefix + comic_order_path(self.order_key)
+        return agg_func(field)
+
     def annotate_order_value(self, qs):
         """Annotate a main key for sorting and browser card display."""
-        # Determine order func
         if self.TARGET == "metadata":
             return qs
         if qs.model is Folder and self.order_key == "filename":
             order_value = F("name")
         elif qs.model is Comic:
-            order_key = (
-                "sort_name" if self.order_key == "child_count" else self.order_key
-            )
-            order_value = F(order_key)
+            order_value = self._comic_order_value()
+        elif self.order_key in m2m_columns():
+            qs, order_value = self._group_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
-            # These are annotated in browser_annotations
             order_value = F(self.order_key)
         else:
-            agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
-            agg_func = self.order_agg_func if agg_func == Min else agg_func
-            field = self.rel_prefix + self.order_key
-            order_value = agg_func(field)
+            order_value = self._group_scalar_order_value(qs)
 
         if self.TARGET == "browser":
             qs = qs.annotate(order_value=order_value)
         else:
             qs = qs.alias(order_value=order_value)
+        return qs
+
+    def annotate_comic_extra_specials(self, qs):
+        """
+        Annotate Comic-row aliases the multi-sort tail needs.
+
+        Comic queries route their multi-sort tail through
+        ``_add_comic_order_by`` (which returns field / alias names),
+        not through ``_extra_order_value_expr``. So when an extra
+        references ``bookmark_updated_at`` or ``filename`` the
+        underlying alias has to exist on the queryset for
+        ``ORDER BY`` to resolve. The primary's ``_annotate_*`` /
+        ``_alias_*`` helpers gate on ``self.order_key`` and skip when
+        these keys appear only as extras; this method lazily annotates
+        them in that case. Direction-agnostic (``Max`` aggregate) —
+        the per-extra ``reverse`` flag is applied as the SQL prefix
+        in ``_add_extra_order_by``.
+        """
+        if qs.model is not Comic or self.params.get("view_mode") != "table":
+            return qs
+        extras = self.params.get("order_extra_keys") or ()
+        keys = {entry.get("key") for entry in extras if entry.get("key")}
+        if "bookmark_updated_at" in keys and self.order_key != "bookmark_updated_at":
+            # Comic has at most one bookmark row per user, so the
+            # aggregate is direction-equivalent.
+            qs = qs.annotate(
+                bookmark_updated_at=self.get_max_bookmark_updated_at_aggregate(
+                    Comic, agg_func=Max
+                )
+            )
+        if "filename" in keys and self.order_key != "filename":
+            qs = qs.alias(filename=self.get_filename_func(Comic))
+        return qs
+
+    def _extra_group_special(self, qs, key: str, *, reverse: bool):
+        """Group-row extra: hand-rolled cases (returns None when not special)."""
+        if key == "sort_name":
+            return F("sort_name")
+        if key == "child_count":
+            return Count(self.rel_prefix + "pk", distinct=True)
+        if key == "filename":
+            if qs.model is Folder:
+                return F("name")
+            agg = Max if reverse else Min
+            return agg(self.get_filename_func(qs.model))
+        if key == "bookmark_updated_at":
+            agg = Max if reverse else Min
+            return self.get_max_bookmark_updated_at_aggregate(qs.model, agg_func=agg)
+        return None
+
+    def _extra_group_expr(self, qs, key: str, *, reverse: bool):
+        """Group-row extra: aggregate, intersection, or direct field."""
+        if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS:
+            return None
+        if key in m2m_columns():
+            return m2m_intersection_sort_expr(qs.model, key)
+        special = self._extra_group_special(qs, key, reverse=reverse)
+        if special is not None:
+            return special
+        # Match the primary's intersection-aware sort for scalars /
+        # FK-names so the shift-click extra ranks rows by the same
+        # rule the cell display uses.
+        isort_expr = scalar_intersection_sort_expr(qs.model, key)
+        if isort_expr is not None:
+            return isort_expr
+        agg_func = _ORDER_AGGREGATE_FUNCS.get(key)
+        if agg_func is None:
+            return None
+        # ``Min`` is the "directional" sentinel. Each extra carries
+        # its own ``reverse`` so the agg has to be picked per-entry
+        # instead of pulling from ``self.order_agg_func`` (that one
+        # is for the primary).
+        if agg_func is Min:
+            agg_func = Max if reverse else Min
+        return agg_func(self.rel_prefix + comic_order_path(key))
+
+    def annotate_extra_order_values(self, qs):
+        """
+        Annotate per-extra ``order_value`` aliases on group querysets.
+
+        Comic queries don't go through this path — their multi-sort
+        tail references direct Comic fields, M2M aliases annotated
+        by ``_add_table_view_sort_annotations``, or
+        ``bookmark_updated_at`` / ``filename`` aliases annotated by
+        ``annotate_comic_extra_specials``. Group querysets need a
+        parallel ``_table_extra_value_<idx>`` annotation per extra
+        so the ORDER BY tail can reference an aggregated child-comic
+        value. Skipped outside table-view mode so cover requests
+        don't carry these aliases unnecessarily.
+        """
+        if (
+            self.TARGET == "metadata"
+            or qs.model is Comic
+            or self.params.get("view_mode") != "table"
+        ):
+            return qs
+        extras = self.params.get("order_extra_keys") or ()
+        if not extras:
+            return qs
+        annotations: dict = {}
+        for idx, entry in enumerate(extras):
+            key = entry.get("key")
+            if not key:
+                continue
+            expr = self._extra_group_expr(qs, key, reverse=bool(entry.get("reverse")))
+            if expr is None:
+                # Unsupported (e.g. M2M without an intersection
+                # expression for this group model, or an
+                # annotated-only key without bespoke extra wiring)
+                # — fall back to ``sort_name`` so the alias still
+                # binds and the ORDER BY emitted in
+                # :func:`_add_extra_order_by` doesn't reference a
+                # missing column.
+                expr = F("sort_name")
+            annotations[self.extra_order_value_alias(idx)] = expr
+        if annotations:
+            if self.TARGET == "browser":
+                qs = qs.annotate(**annotations)
+            else:
+                qs = qs.alias(**annotations)
         return qs
 
     def annotate_order_aggregates(self, qs: QuerySet, *, for_cover: bool = False):
@@ -290,4 +470,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if qs.model is not Comic:
             # comic orders on indexed fields when it can
             qs = self.annotate_order_value(qs)
+            if not for_cover:
+                qs = self.annotate_extra_order_values(qs)
+        elif not for_cover:
+            qs = self.annotate_comic_extra_specials(qs)
         return qs

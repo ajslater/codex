@@ -19,7 +19,14 @@ from codex.models import (
     Library,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
+from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.views.browser.columns import (
+    default_columns_filtered,
+    fk_name_annotations_for,
+    m2m_annotations_for,
+)
+from codex.views.browser.intersections import compute_group_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_GROUP,
@@ -58,6 +65,7 @@ class BrowserView(BrowserTitleView):
     """Browse comics with a variety of filters and sorts."""
 
     serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
+    input_serializer_class = BrowserPageInputSerializer  # type: ignore[assignment]
 
     ADMIN_FLAGS = (
         AdminFlagChoices.FOLDER_VIEW,
@@ -107,6 +115,71 @@ class BrowserView(BrowserTitleView):
             limit = max(query_limit, search_limit)
         return limit
 
+    def _table_view_sort_keys(self) -> tuple[str, ...]:
+        """Return the ordered ORDER BY keys (primary + multi-sort extras)."""
+        order_key = self.params.get("order_by") or ""
+        extras = self.params.get("order_extra_keys") or ()
+        keys: list[str] = []
+        if order_key:
+            keys.append(order_key)
+        for entry in extras:
+            key = entry.get("key")
+            if key and key not in keys:
+                keys.append(key)
+        return tuple(keys)
+
+    def _add_table_view_sort_annotations(self, qs):
+        """
+        Add only the table-view annotations needed for ORDER BY.
+
+        Covers the primary ``order_by`` key *and* every entry in
+        ``order_extra_keys`` so multi-column sort can reference the
+        same M2M / FK-name aliases. Display annotations are added
+        post-pagination so the M2M aggregate runs only over the
+        visible page; ORDER BY runs over the full queryset and
+        needs every alias upstream.
+        """
+        if self.params.get("view_mode") != "table" or qs.model is not Comic:
+            return qs
+        sort_keys = self._table_view_sort_keys()
+        if not sort_keys:
+            return qs
+        fk_anns = fk_name_annotations_for(sort_keys)
+        m2m_anns = m2m_annotations_for(sort_keys)
+        if fk_anns:
+            qs = qs.annotate(**fk_anns)
+        if m2m_anns:
+            qs = qs.annotate(**m2m_anns)
+        return qs
+
+    def _add_table_view_display_annotations(self, qs):
+        """
+        Add the table-view annotations needed for display.
+
+        Called *after* pagination so M2M JsonGroupArray aggregates
+        run only over the visible-page comics, not the entire
+        filtered queryset. Keys already annotated upstream by
+        ``_add_table_view_sort_annotations`` (the primary plus every
+        multi-sort extra) are skipped — Django raises on duplicate
+        annotations.
+        """
+        if self.params.get("view_mode") != "table" or qs.model is not Comic:
+            return qs
+        upstream = set(self._table_view_sort_keys())
+        requested = [
+            col for col in self._resolve_table_columns() if col not in upstream
+        ]
+        if not requested:
+            return qs
+        requested_t = tuple(requested)
+        fk_anns = fk_name_annotations_for(requested_t)
+        m2m_anns = m2m_annotations_for(requested_t)
+        if fk_anns:
+            qs = qs.annotate(**fk_anns)
+        if m2m_anns:
+            qs = qs.annotate(**m2m_anns)
+        return qs
+
     def _get_common_queryset(self, model) -> tuple:
         """Create queryset common to group & books."""
         qs = self.get_filtered_queryset(model)
@@ -128,6 +201,7 @@ class BrowserView(BrowserTitleView):
 
         if count:
             qs = self.annotate_order_aggregates(qs)
+            qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
             if limit:
                 qs = qs[:limit]
@@ -210,6 +284,11 @@ class BrowserView(BrowserTitleView):
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
+            # Table-view display annotations land here, post-pagination,
+            # so the JsonGroupArray aggregates run only over the
+            # visible page. The sort-key annotation was already added
+            # upstream (``_add_table_view_sort_annotations``).
+            book_qs = self._add_table_view_display_annotations(book_qs)
             book_qs = self.force_inner_joins(book_qs)
         else:
             zero_pad = 1
@@ -252,9 +331,45 @@ class BrowserView(BrowserTitleView):
             }
         )
 
+    def _resolve_table_columns(self) -> tuple[str, ...]:
+        """
+        Pick the column set for this table-view request.
+
+        Priority: explicit ``columns=`` query param (already validated
+        and stored on params), then the user's persisted
+        ``table_columns[top_group]``, then the registry defaults for
+        the current top-group.
+        """
+        columns = self.params.get("columns") or ()
+        if columns:
+            return tuple(columns)
+        top_group = self.params.get("top_group") or self.kwargs.get("group") or "p"
+        stored = self.params.get("table_columns") or {}
+        stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
+        if stored_for_group:
+            return tuple(stored_for_group)
+        return default_columns_filtered(top_group, self.params.get("show"))
+
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
-        """Get browser settings."""
-        data = self.get_object()
+        """Return the page data — both cards and (in table mode) rows."""
+        data = dict(self.get_object())
+        if self.params.get("view_mode") == "table":
+            # The unified serializer projects groups+books through these
+            # columns into a parallel ``rows`` list. ``cards`` stays
+            # populated unconditionally so a mobile fallback can render
+            # the card grid without a second round-trip.
+            columns = self._resolve_table_columns()
+            data["columns"] = columns
+            # Group rows in the table view show **intersections** of
+            # column values across their child comics: M2M values
+            # shared by every comic, scalars where every comic has
+            # the same value. Computed after pagination so the work
+            # is bounded to the visible page.
+            group_qs = data.get("groups")
+            if group_qs is not None:
+                data["group_intersections"] = compute_group_intersections(
+                    group_qs, columns
+                )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

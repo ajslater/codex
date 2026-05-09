@@ -9,7 +9,13 @@ from types import MappingProxyType
 from caseconverter import camelcase
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES
-from codex.choices.browser import BROWSER_CHOICES, BROWSER_DEFAULTS
+from codex.choices.browser import (
+    BROWSER_CHOICES,
+    BROWSER_DEFAULTS,
+    BROWSER_TABLE_COLUMN_COSTS,
+    BROWSER_TABLE_COLUMNS,
+    BROWSER_TABLE_DEFAULT_COLUMNS,
+)
 from codex.choices.jobs import ADMIN_JOBS
 from codex.choices.notifications import Notifications
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
@@ -34,6 +40,9 @@ _MAP_DUMPS = MappingProxyType(
         "admin-jobs.json": ADMIN_JOBS,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
+        "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,
+        "browser-table-columns.json": BROWSER_TABLE_COLUMNS,
+        "browser-table-default-columns.json": BROWSER_TABLE_DEFAULT_COLUMNS,
         "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,
@@ -66,12 +75,14 @@ def _make_json_serializable(data, *, jsonize_keys: bool = True) -> list | dict:
     if isinstance(data, Mapping):
         json_dict = {}
         for key, value in data.items():
-            json_value = _make_json_serializable(value)
+            json_value = _make_json_serializable(value, jsonize_keys=jsonize_keys)
             json_key = _json_key(key) if jsonize_keys else key
             json_dict[json_key] = json_value
         return json_dict
     if isinstance(data, list | tuple | frozenset | set):
-        return [_make_json_serializable(item) for item in data]
+        return [
+            _make_json_serializable(item, jsonize_keys=jsonize_keys) for item in data
+        ]
     return data
 
 
@@ -119,8 +130,20 @@ def main() -> None:
     for fn, data in _DUMPS.items():
         _dump(parent_path, fn, data, vuetify=True, jsonize_keys=True)
 
+    # The column-registry dumps must keep their snake_case keys exactly
+    # (the keys are protocol identifiers — they appear in the
+    # ``columns=`` query param and must round-trip through the backend's
+    # validator). search-map.json is the existing exception.
+    skip_jsonize = frozenset(
+        {
+            "search-map.json",
+            "browser-table-column-costs.json",
+            "browser-table-columns.json",
+            "browser-table-default-columns.json",
+        }
+    )
     for fn, data in _MAP_DUMPS.items():
-        jsonize_keys = fn != "search-map.json"
+        jsonize_keys = fn not in skip_jsonize
         _dump(parent_path, fn, data, vuetify=False, jsonize_keys=jsonize_keys)
 
     ws_messages = _make_websocket_messages()
