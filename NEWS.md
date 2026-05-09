@@ -12,6 +12,8 @@ border-radius: 128px;
     - Fix occasional recreation of comics on docker or network filesystems.
     - Fix double polling of some libraries.
     - Fix Codex sometimes hanging on shutdown after Ctrl+C.
+    - Fix PDFs rendering OCR overlay text.
+    - Fix PDFs sometimes not rendering at correct resolution
 
 ## v1.11.4
 

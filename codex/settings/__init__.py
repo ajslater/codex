@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+import socket
 from collections.abc import Mapping
 from os import cpu_count, environ
 from pathlib import Path
@@ -70,6 +71,32 @@ BUILD = not_falsy_env("BUILD")
 PERF = not_falsy_env("PERF")
 VITE_HMR = DEBUG and not BUILD
 VITE_HOST = environ.get("VITE_HOST")
+VITE_PORT = 5173
+
+
+def _vite_dev_server_host() -> str:
+    """
+    Pick the host django-vite renders into the script src and CSP.
+
+    Used for ``<script src=...>`` and the CSP allows for that script.
+    ``VITE_HOST`` is an explicit override. Otherwise we mangle a
+    DHCP-assigned FQDN (e.g. ``box.example.com``) down to the mDNS
+    form (``box.local``): the FQDN resolves via WAN DNS, and most
+    consumer routers don't NAT-loopback that back to the LAN, so the
+    browser can't reach the dev server. The mDNS form stays on the
+    LAN. Pre-mangled or single-label hostnames are passed through.
+    Lowercased throughout — CSP source expressions are case-sensitive
+    and ``socket.gethostname()`` can be mixed case on macOS.
+    """
+    if VITE_HOST:
+        return VITE_HOST.lower()
+    raw = socket.gethostname().lower()
+    if "." in raw and not raw.endswith(".local"):
+        return raw.split(".", 1)[0] + ".local"
+    return raw
+
+
+VITE_DEV_SERVER_HOST = _vite_dev_server_host()
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
 
@@ -322,11 +349,18 @@ _SWAGGER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     }
 )
 
-# Vite dev server (HMR + on-the-fly module transforms).
+# Vite dev server (HMR + on-the-fly module transforms). The host must
+# match django-vite's ``DEV_SERVER_HOST`` — django-vite renders every
+# script ``src`` as ``http://{host}:5173/...``, so a hardcoded host
+# here would block the script under any other hostname.
+_VITE_HMR_DEV_SERVER = f"{VITE_DEV_SERVER_HOST}:{VITE_PORT}"
 _VITE_HMR_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
-        "script-src": ("http://localhost:5173",),
-        "connect-src": ("ws://localhost:5173", "http://localhost:5173"),
+        "script-src": (f"http://{_VITE_HMR_DEV_SERVER}",),
+        "connect-src": (
+            f"ws://{_VITE_HMR_DEV_SERVER}",
+            f"http://{_VITE_HMR_DEV_SERVER}",
+        ),
     }
 )
 
@@ -783,13 +817,10 @@ CHANNEL_LAYERS = {
 ###############
 
 if FEATURES.vite_hmr:
-    import socket
-
-    DEV_SERVER_HOST = VITE_HOST or socket.gethostname()
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
-            "dev_server_host": DEV_SERVER_HOST,
+            "dev_server_host": VITE_DEV_SERVER_HOST,
         }
     }
 
