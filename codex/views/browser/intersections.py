@@ -352,6 +352,37 @@ def _build_simple_m2m_intersection_query(
     )
 
 
+def _initialize_simple_m2m_buckets(
+    batched_cols: list[str],
+    group_pks: list[int],
+    result: dict[int, dict[str, Any]],
+) -> None:
+    """Pre-fill empty intersection lists so empty-result groups still get ``[]``."""
+    for gpk in group_pks:
+        bucket = result[gpk]
+        for col in batched_cols:
+            bucket.setdefault(col, [])
+
+
+def _union_simple_m2m_queries(queries: list):
+    """Combine sub-queries with ``UNION ALL`` (or pass through a single query)."""
+    if len(queries) == 1:
+        return queries[0]
+    return queries[0].union(*queries[1:], all=True)
+
+
+def _collect_simple_m2m_intersections(
+    combined,
+    counts: dict[int, int],
+) -> dict[tuple[str, int], list[str]]:
+    """Group UNION rows by ``(field, group_pk)``, keeping intersection-passing values."""
+    intersection_per: dict[tuple[str, int], list[str]] = defaultdict(list)
+    for field_name, group_pk, value, cnt in combined:
+        if cnt == counts.get(group_pk, 0):
+            intersection_per[(field_name, group_pk)].append(value)
+    return intersection_per
+
+
 def _compute_simple_m2m_intersections_batched(
     cols: list[str],
     group_pks: list[int],
@@ -370,32 +401,19 @@ def _compute_simple_m2m_intersections_batched(
     match the group's total comic count — that's the intersection
     rule.
     """
-    queries = [
-        _build_simple_m2m_intersection_query(col, comic_to_group, group_pks)
-        for col in cols
-        if col in _SIMPLE_M2M_BATCH_FIELDS
-    ]
-
+    batched_cols = [c for c in cols if c in _SIMPLE_M2M_BATCH_FIELDS]
     # Initialize empty lists for every requested simple column up
     # front so groups whose intersection is empty get ``[]`` rather
     # than missing keys.
-    batched_cols = [c for c in cols if c in _SIMPLE_M2M_BATCH_FIELDS]
-    for gpk in group_pks:
-        bucket = result[gpk]
-        for col in batched_cols:
-            bucket.setdefault(col, [])
+    _initialize_simple_m2m_buckets(batched_cols, group_pks, result)
+    queries = [
+        _build_simple_m2m_intersection_query(col, comic_to_group, group_pks)
+        for col in batched_cols
+    ]
     if not queries:
         return
-
-    if len(queries) == 1:
-        combined = queries[0]
-    else:
-        combined = queries[0].union(*queries[1:], all=True)
-
-    intersection_per: dict[tuple[str, int], list[str]] = defaultdict(list)
-    for field_name, group_pk, value, cnt in combined:
-        if cnt == counts.get(group_pk, 0):
-            intersection_per[(field_name, group_pk)].append(value)
+    combined = _union_simple_m2m_queries(queries)
+    intersection_per = _collect_simple_m2m_intersections(combined, counts)
     for (field_name, gpk), values in intersection_per.items():
         result[gpk][field_name] = sorted(values)
 

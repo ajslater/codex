@@ -61,10 +61,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             self._order_key = order_key
         return self._order_key
 
-    def _add_comic_order_by(
-        self, order_key, comic_sort_names, *, for_cover: bool = False
-    ) -> list:
-        """Order by for comics (and covers)."""
+    def _normalize_comic_order_key(self, order_key: str, *, for_cover: bool) -> str:
+        """Resolve a Comic-row ``order_key`` to its canonical sort form."""
         if not order_key:
             order_key = self.order_key
         if order_key == "child_count":
@@ -76,41 +74,60 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         # alphabetical title is what the cover subquery wants anyway.
         if for_cover and order_key in m2m_columns():
             order_key = "sort_name"
+        return order_key
+
+    def _comic_sort_name_head(self, comic_sort_names) -> list[str]:
+        """Build the ORDER BY head used for the canonical ``sort_name`` sort."""
+        if not comic_sort_names:
+            comic_sort_names = self._comic_sort_names
+        return [
+            *comic_sort_names,
+            "issue_number",
+            "issue_suffix",
+            "collection_title",
+            "sort_name",
+        ]
+
+    @staticmethod
+    def _comic_indexed_head(order_key: str) -> list[str]:
+        """Build the ORDER BY head for a Comic-indexed (non-M2M, non-virtual) key."""
+        # Comic orders on indexed fields directly — allegedly faster
+        # than using tmp b-trees (annotations) and since that's every
+        # cover sort, it's worth it.
+        head = [comic_order_path(order_key)]
+        # Comic order micro optimizations.
+        if order_key == "story_arc_number":
+            head.append("date")
+        elif order_key == "bookmark_updated_at":
+            head.append("bookmark_updated_at")
+        return head
+
+    def _comic_order_fields_head(self, order_key: str, comic_sort_names) -> list:
+        """Pick the ORDER BY field list for a normalized Comic ``order_key``."""
         if order_key == "sort_name":
-            if not comic_sort_names:
-                comic_sort_names = self._comic_sort_names
-            order_fields_head = [
-                *comic_sort_names,
-                "issue_number",
-                "issue_suffix",
-                "collection_title",
-                "sort_name",
-            ]
-        elif order_key == "issue":
+            return self._comic_sort_name_head(comic_sort_names)
+        if order_key == "issue":
             # Compound issue sort: number first, suffix as secondary.
             # The ``issue`` order_by enum value is virtual — it expands
             # to two real Comic fields here so SQL ORDER BY does the
             # natural multi-field sort that matches how the compound
             # ``Issue`` table column is rendered.
-            order_fields_head = ["issue_number", "issue_suffix"]
-        elif order_key in m2m_columns():
+            return ["issue_number", "issue_suffix"]
+        if order_key in m2m_columns():
             # M2M sort: ``ORDER BY <alias>`` where the alias is the
             # JsonGroupArray annotation added by the table-view path.
             # Identical M2M sets yield identical aggregate strings,
             # so equivalent rows cluster together — the property the
             # user actually cares about.
-            order_fields_head = [m2m_alias_for(order_key)]
-        else:
-            # Comic orders on indexed fields directly
-            # Which is allegedly faster than using tmp b-trees (annotations)
-            # And since that's every cover sort, it's worth it.
-            order_fields_head = [comic_order_path(order_key)]
-            # Comic order micro optimizations
-            if order_key == "story_arc_number":
-                order_fields_head += ["date"]
-            elif order_key == "bookmark_updated_at":
-                order_fields_head += ["bookmark_updated_at"]
-        return order_fields_head
+            return [m2m_alias_for(order_key)]
+        return self._comic_indexed_head(order_key)
+
+    def _add_comic_order_by(
+        self, order_key, comic_sort_names, *, for_cover: bool = False
+    ) -> list:
+        """Order by for comics (and covers)."""
+        order_key = self._normalize_comic_order_key(order_key, for_cover=for_cover)
+        return self._comic_order_fields_head(order_key, comic_sort_names)
 
     @staticmethod
     def extra_order_value_alias(idx: int) -> str:
