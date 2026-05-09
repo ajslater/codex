@@ -20,6 +20,28 @@ _HTTP_OK: Final = 200
 _HTTP_BAD_REQUEST: Final = 400
 TMP_DIR = Path("/tmp/codex.tests.browser_table_response")  # noqa: S108
 
+# Through-tables touched by the simple-M2M intersection batch helper.
+# A single ``UNION ALL`` query mentions all of these in its SQL, so
+# substring-counting the captured query text is enough to distinguish
+# the batched path from the per-column-loop path.
+_SIMPLE_M2M_THROUGH_TABLES: Final = (
+    "codex_comic_genres",
+    "codex_comic_tags",
+    "codex_comic_characters",
+    "codex_comic_teams",
+    "codex_comic_locations",
+    "codex_comic_stories",
+    "codex_comic_series_groups",
+)
+
+
+def _count_through_table_queries(captured_queries) -> int:
+    """Count how many captured queries reference any simple-M2M through table."""
+    return sum(
+        any(table in q["sql"] for table in _SIMPLE_M2M_THROUGH_TABLES)
+        for q in captured_queries
+    )
+
 
 class FormatIssueTestCase(TestCase):
     """Pin the compound issue-cell formatter."""
@@ -126,6 +148,34 @@ class BrowserTablePageResponseTestCase(TestCase):
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         return response.json()
+
+    def _create_sibling_comic(
+        self, anchor: Comic, name: str, issue_number: int
+    ) -> Comic:
+        """
+        Create a Comic in the same publisher / imprint / series / volume as ``anchor``.
+
+        Used by tests that need a small fixture of comics under one
+        series to exercise group-row aggregation. ``size`` and
+        ``page_count`` are deliberately uniform so cumulative-sum
+        assertions in those tests stay deterministic without per-call
+        plumbing.
+        """
+        path = TMP_DIR / f"{name.lower()}.cbz"
+        path.touch()
+        return Comic.objects.create(
+            library=anchor.library,
+            path=path,
+            issue_number=issue_number,
+            name=name,
+            publisher=anchor.publisher,
+            imprint=anchor.imprint,
+            series=anchor.series,
+            volume=anchor.volume,
+            size=42 + issue_number,
+            year=2024,
+            page_count=20,
+        )
 
     def test_cover_view_returns_cards_with_empty_rows(self) -> None:
         """Cover mode: ``rows`` is present but empty; cards are populated."""
@@ -352,7 +402,6 @@ class BrowserTablePageResponseTestCase(TestCase):
 
     def test_table_view_m2m_sort_groups_identical_sets(self) -> None:
         """Comics with the same genre set sort to the same equivalence class."""
-        from codex.models import Library
         from codex.models.named import Genre
 
         # Two comics in the same series sharing identical genre sets.
@@ -361,98 +410,45 @@ class BrowserTablePageResponseTestCase(TestCase):
         # genres should sort to one end.
         first_comic = Comic.objects.first()
         assert first_comic is not None
-        library = Library.objects.first()
-        assert library is not None
-        publisher = first_comic.publisher
-        imprint = first_comic.imprint
-        series = first_comic.series
-        volume = first_comic.volume
 
         action = Genre.objects.create(name="Action")
         drama = Genre.objects.create(name="Drama")
         comedy = Genre.objects.create(name="Comedy")
 
         first_comic.genres.add(action, drama)
-
-        path_b = TMP_DIR / "b.cbz"
-        path_b.touch()
-        comic_b = Comic.objects.create(
-            library=library,
-            path=path_b,
-            issue_number=2,
-            name="B",
-            publisher=publisher,
-            imprint=imprint,
-            series=series,
-            volume=volume,
-            size=43,
-            year=2024,
-            page_count=20,
-        )
+        comic_b = self._create_sibling_comic(first_comic, "B", 2)
         comic_b.genres.add(action, drama)  # same set as first_comic
-        path_c = TMP_DIR / "c.cbz"
-        path_c.touch()
-        comic_c = Comic.objects.create(
-            library=library,
-            path=path_c,
-            issue_number=3,
-            name="C",
-            publisher=publisher,
-            imprint=imprint,
-            series=series,
-            volume=volume,
-            size=44,
-            year=2024,
-            page_count=20,
-        )
+        comic_c = self._create_sibling_comic(first_comic, "C", 3)
         comic_c.genres.add(comedy)
-        path_d = TMP_DIR / "d.cbz"
-        path_d.touch()
-        comic_d = Comic.objects.create(
-            library=library,
-            path=path_d,
-            issue_number=4,
-            name="D",
-            publisher=publisher,
-            imprint=imprint,
-            series=series,
-            volume=volume,
-            size=45,
-            year=2024,
-            page_count=20,
-        )
-        # comic_d has no genres
+        # comic_d has no genres so it sorts to one end.
+        comic_d = self._create_sibling_comic(first_comic, "D", 4)
 
         self._set_view_mode_table()
-        # Sort by genres ascending.
         self.client.patch(
             "/api/v3/r/settings",
             data=json.dumps({"orderBy": "genres", "orderReverse": False}),
             content_type="application/json",
         )
-        body = self._browse_series(columns="cover,name,genres")
-        rows = body["rows"]
-        expected_row_count = 4
-        assert len(rows) == expected_row_count
-        # Group rows by their genre set (after the JsonGroupArray sort).
+        rows = self._browse_series(columns="cover,name,genres")["rows"]
         sets = [tuple(r.get("genres") or []) for r in rows]
-        # The two "Action,Drama" rows should be adjacent.
-        action_drama_indexes = [
-            i for i, s in enumerate(sets) if set(s) == {"Action", "Drama"}
-        ]
-        expected_action_drama = 2
-        assert len(action_drama_indexes) == expected_action_drama
-        assert action_drama_indexes[1] - action_drama_indexes[0] == 1
-        # No-genres comic appears once (empty list / null).
-        empty_indexes = [i for i, s in enumerate(sets) if not s]
-        assert len(empty_indexes) == 1
-        # Verify the unique-genre-set comic appears once.
-        comedy_indexes = [i for i, s in enumerate(sets) if set(s) == {"Comedy"}]
-        assert len(comedy_indexes) == 1
-        # comic_b/comic_c/comic_d existed by id; spot-check pks.
-        pks = [r["pk"] for r in rows]
-        for c in (first_comic, comic_b, comic_c, comic_d):
-            assert c.pk in pks
+        self._assert_genre_sort_classes(sets)
+        # Spot-check that every fixture comic is in the result.
+        pks = {r["pk"] for r in rows}
+        expected_pks = {c.pk for c in (first_comic, comic_b, comic_c, comic_d)}
+        assert expected_pks <= pks
+
+    @staticmethod
+    def _assert_genre_sort_classes(sets: list[tuple[str, ...]]) -> None:
+        """Assert the four-row genre fixture forms the expected equivalence classes."""
+        # Fixture: two "Action,Drama" rows, one "Comedy" row, one
+        # empty row. JsonGroupArray sorts equal sets together so the
+        # two A/D rows must be adjacent in the result list.
+        action_drama = frozenset({"Action", "Drama"})
+        classes = [frozenset(s) for s in sets]
+        expected = (action_drama, action_drama, frozenset({"Comedy"}), frozenset())
+        assert sorted(classes, key=str) == sorted(expected, key=str)
+        ad_indexes = [i for i, c in enumerate(classes) if c == action_drama]
+        assert ad_indexes[1] - ad_indexes[0] == 1
 
     def test_table_view_group_intersection_scalar_all_share(self) -> None:
         """Series row: ``year`` shows the value when every child comic shares it."""
@@ -650,26 +646,13 @@ class BrowserTablePageResponseTestCase(TestCase):
         with CaptureQueriesContext(connection) as ctx:
             response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        # Through-table queries land on tables named
-        # ``codex_comic_<m2m>``. The batched UNION emits one SQL
-        # statement that references multiple through tables. Per-
-        # column path emits one statement per through-table.
-        through_query_count = sum(
-            "codex_comic_genres" in q["sql"]
-            or "codex_comic_tags" in q["sql"]
-            or "codex_comic_characters" in q["sql"]
-            or "codex_comic_teams" in q["sql"]
-            or "codex_comic_locations" in q["sql"]
-            or "codex_comic_stories" in q["sql"]
-            or "codex_comic_series_groups" in q["sql"]
-            for q in ctx.captured_queries
-        )
         # Pre-fix: 7 separate queries (one per visible simple-M2M
         # column). Post-fix: a single UNION-ALL query references all
         # seven through-tables.
         max_expected_through_queries = 3
-        assert through_query_count <= max_expected_through_queries, (
-            f"got {through_query_count} through-table queries:\n"
+        through_count = _count_through_table_queries(ctx.captured_queries)
+        assert through_count <= max_expected_through_queries, (
+            f"got {through_count} through-table queries:\n"
             + "\n".join(
                 q["sql"] for q in ctx.captured_queries if "codex_comic_" in q["sql"]
             )

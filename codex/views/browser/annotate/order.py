@@ -404,29 +404,16 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             agg_func = Max if reverse else Min
         return agg_func(self.rel_prefix + comic_order_path(key))
 
-    def annotate_extra_order_values(self, qs):
-        """
-        Annotate per-extra ``order_value`` aliases on group querysets.
-
-        Comic queries don't go through this path — their multi-sort
-        tail references direct Comic fields, M2M aliases annotated
-        by ``_add_table_view_sort_annotations``, or
-        ``bookmark_updated_at`` / ``filename`` aliases annotated by
-        ``annotate_comic_extra_specials``. Group querysets need a
-        parallel ``_table_extra_value_<idx>`` annotation per extra
-        so the ORDER BY tail can reference an aggregated child-comic
-        value. Skipped outside table-view mode so cover requests
-        don't carry these aliases unnecessarily.
-        """
-        if (
+    def _should_annotate_extras(self, qs) -> bool:
+        """Return True when the query needs per-extra ``_table_extra_value_<n>`` aliases."""
+        return not (
             self.TARGET == "metadata"
             or qs.model is Comic
             or self.params.get("view_mode") != "table"
-        ):
-            return qs
-        extras = self.params.get("order_extra_keys") or ()
-        if not extras:
-            return qs
+        )
+
+    def _build_extra_annotations(self, qs, extras) -> dict:
+        """Return the per-extra ``alias → expression`` map for the extras list."""
         annotations: dict = {}
         for idx, entry in enumerate(extras):
             key = entry.get("key")
@@ -443,12 +430,33 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 # missing column.
                 expr = F("sort_name")
             annotations[self.extra_order_value_alias(idx)] = expr
-        if annotations:
-            if self.TARGET == "browser":
-                qs = qs.annotate(**annotations)
-            else:
-                qs = qs.alias(**annotations)
-        return qs
+        return annotations
+
+    def annotate_extra_order_values(self, qs):
+        """
+        Annotate per-extra ``order_value`` aliases on group querysets.
+
+        Comic queries don't go through this path — their multi-sort
+        tail references direct Comic fields, M2M aliases annotated
+        by ``_add_table_view_sort_annotations``, or
+        ``bookmark_updated_at`` / ``filename`` aliases annotated by
+        ``annotate_comic_extra_specials``. Group querysets need a
+        parallel ``_table_extra_value_<idx>`` annotation per extra
+        so the ORDER BY tail can reference an aggregated child-comic
+        value. Skipped outside table-view mode so cover requests
+        don't carry these aliases unnecessarily.
+        """
+        if not self._should_annotate_extras(qs):
+            return qs
+        extras = self.params.get("order_extra_keys") or ()
+        if not extras:
+            return qs
+        annotations = self._build_extra_annotations(qs, extras)
+        if not annotations:
+            return qs
+        if self.TARGET == "browser":
+            return qs.annotate(**annotations)
+        return qs.alias(**annotations)
 
     def annotate_order_aggregates(self, qs: QuerySet, *, for_cover: bool = False):
         """Annotate common aggregates between browser and metadata."""

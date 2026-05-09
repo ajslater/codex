@@ -160,6 +160,27 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
         return response.json()
 
+    def _save_named_view(self, name: str) -> dict:
+        """POST a fresh saved view, then look it up by name in the list."""
+        save_resp = self.client.post(
+            f"{_SETTINGS_URL}/saved",
+            data=json.dumps({"name": name}),
+            content_type="application/json",
+        )
+        assert save_resp.status_code == _HTTP_CREATED, save_resp.content
+        list_resp = self.client.get(f"{_SETTINGS_URL}/saved")
+        assert list_resp.status_code == _HTTP_OK, list_resp.content
+        return next(
+            entry
+            for entry in list_resp.json()["savedSettings"]
+            if entry["name"] == name
+        )
+
+    def _load_saved_settings(self, pk: int) -> dict:
+        load_resp = self.client.get(f"{_SETTINGS_URL}/saved/{pk}")
+        assert load_resp.status_code == _HTTP_OK, load_resp.content
+        return load_resp.json()["settings"]
+
     def test_default_get_includes_new_fields(self):
         body = self._get()
         # Response is camelCased.
@@ -221,32 +242,17 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
             {"key": "year", "reverse": False},
             {"key": "issue", "reverse": True},
         ]
-        patch = self._patch(
-            {
-                "viewMode": "table",
-                "tableColumns": cols,
-                "tableCoverSize": "sm",
-                "orderExtraKeys": extras,
-            }
-        )
+        live_payload = {
+            "viewMode": "table",
+            "tableColumns": cols,
+            "tableCoverSize": "sm",
+            "orderExtraKeys": extras,
+        }
+        patch = self._patch(live_payload)
         assert patch.status_code == _HTTP_OK, patch.content
 
         # Save under a fresh name (exercises the create branch).
-        save_resp = self.client.post(
-            f"{_SETTINGS_URL}/saved",
-            data=json.dumps({"name": "TaggingView"}),
-            content_type="application/json",
-        )
-        assert save_resp.status_code == _HTTP_CREATED, save_resp.content
-
-        # List saved views to grab the new pk.
-        list_resp = self.client.get(f"{_SETTINGS_URL}/saved")
-        assert list_resp.status_code == _HTTP_OK, list_resp.content
-        saved = next(
-            entry
-            for entry in list_resp.json()["savedSettings"]
-            if entry["name"] == "TaggingView"
-        )
+        saved = self._save_named_view("TaggingView")
 
         # Reset current settings so loading the saved view actually
         # changes state (and proves the values came from the saved
@@ -254,13 +260,9 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         self.client.delete(_SETTINGS_URL)
 
         # Load and assert every table-view field round-trips.
-        load_resp = self.client.get(f"{_SETTINGS_URL}/saved/{saved['pk']}")
-        assert load_resp.status_code == _HTTP_OK, load_resp.content
-        body = load_resp.json()["settings"]
-        assert body["viewMode"] == "table"
-        assert body["tableColumns"] == cols
-        assert body["tableCoverSize"] == "sm"
-        assert body["orderExtraKeys"] == extras
+        body = self._load_saved_settings(saved["pk"])
+        actual = {field: body[field] for field in live_payload}
+        assert actual == live_payload
 
     def test_delete_resets_table_view_fields(self):
         # First customize
