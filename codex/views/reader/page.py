@@ -125,6 +125,11 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             # lands upstream.
             archive = entry.comicbox._get_archive()  # noqa: SLF001
             if not isinstance(archive, PDFFile):
+                # TEMP DEBUG: shouldn't happen if caller gated on file_type
+                logger.debug(
+                    f"[pdf-debug] image-serve: archive is "
+                    f"{type(archive).__name__}, not PDFFile; path={path}"
+                )
                 return None
             pdf = archive
             page_index = int(page)
@@ -132,17 +137,35 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             if fmt_hint == _FORMAT_IMAGE:
                 # Always-image override — pixmap fallback for vector pages.
                 blob, ext = pdf.read_full_pixmap_jpeg(page_index)
+                logger.debug(  # TEMP DEBUG
+                    f"[pdf-debug] image-serve force-image: "
+                    f"page={page_index} bytes={len(blob)} ext={ext}"
+                )
                 return blob, f"image/{ext}"
 
             verdict = self._classify_cached(entry, pdf, page_index)
+            logger.debug(  # TEMP DEBUG
+                f"[pdf-debug] image-serve auto: page={page_index} "
+                f"verdict={verdict.mode.value} xref={verdict.image_xref} "
+                f"ext={verdict.ext}"
+            )
             if verdict.mode is PageMode.PDF_FALLBACK:
                 return None
             served = pdf.read_image_if_dominant(page_index)
             if served is None:
                 # Detection said dominant but extraction failed; fall
                 # through to PDF rather than serve a broken response.
+                logger.debug(  # TEMP DEBUG
+                    f"[pdf-debug] image-serve: read_image_if_dominant "
+                    f"returned None for page={page_index} despite verdict "
+                    f"{verdict.mode.value}"
+                )
                 return None
             blob, ext = served
+            logger.debug(  # TEMP DEBUG
+                f"[pdf-debug] image-serve served via {verdict.mode.value}: "
+                f"page={page_index} bytes={len(blob)} ext={ext}"
+            )
             return blob, f"image/{ext}"
 
     def _get_page_image(self) -> tuple[bytes, str]:
@@ -155,12 +178,21 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
 
         is_pdf = file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
 
+        logger.debug(  # TEMP DEBUG
+            f"[pdf-debug] page request: pk={pk} page={page} "
+            f"fmt={fmt_hint} is_pdf={is_pdf} path={path}"
+        )
+
         # Image-dominant fast path for PDFs (skipped when the caller
         # forces ``?format=pdf``).
         if is_pdf and fmt_hint != _FORMAT_PDF:
             served = self._try_pdf_image_serve(path, page, fmt_hint)
             if served is not None:
                 return served
+            logger.debug(  # TEMP DEBUG
+                f"[pdf-debug] image-serve declined for page={page}; "
+                f"falling through to PDF path"
+            )
 
         # Process-wide LRU of open Comicbox archives — the web reader's
         # prev/curr/next prefetch fires 3-5 page hits on the same archive
@@ -170,11 +202,30 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         # held inside ``archive_cache.open(...)`` serializes extraction
         # because ZipFile / RarFile / PDF backends aren't thread-safe.
         with archive_cache.open(path) as cb:
-            page_image = cb.get_page_by_index(page, pdf_format="")
+            try:
+                page_image = cb.get_page_by_index(page, pdf_format="")
+            except Exception:
+                # TEMP DEBUG: surface comicbox failures with a traceback
+                # before the catch-all in ``get`` flattens them into 404.
+                logger.exception(
+                    f"[pdf-debug] get_page_by_index failed: "
+                    f"path={path} page={page} is_pdf={is_pdf}"
+                )
+                raise
         if not page_image:
+            # TEMP DEBUG: distinguish "comicbox returned empty" from
+            # "comicbox raised" — both end up as 404 to the client.
+            logger.warning(
+                f"[pdf-debug] get_page_by_index returned empty/None: "
+                f"path={path} page={page} is_pdf={is_pdf}"
+            )
             page_image = b""
 
         content_type = _PDF_MIME_TYPE if is_pdf else self.content_type
+        logger.debug(  # TEMP DEBUG
+            f"[pdf-debug] legacy PDF path served: page={page} "
+            f"bytes={len(page_image)} ct={content_type}"
+        )
         return page_image, content_type
 
     @extend_schema(
@@ -213,7 +264,17 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
         except Exception as exc:
-            logger.warning(exc)
+            # TEMP DEBUG: ``logger.exception`` includes the traceback
+            # so we see *why* the request failed instead of just the
+            # exception's str. Revert to ``logger.warning(exc)`` once
+            # the PDF-rendering paths are stable.
+            pk = self.kwargs.get("pk")
+            page = self.kwargs.get("page")
+            fmt = self.request.GET.get("format", "auto")
+            logger.exception(
+                f"[pdf-debug] page request failed: pk={pk} page={page} "
+                f"fmt={fmt} {type(exc).__name__}: {exc}"
+            )
             raise NotFound(detail="comic page not found") from exc
         else:
             return HttpResponse(page_image, content_type=content_type)
