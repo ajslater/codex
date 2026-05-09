@@ -39,16 +39,18 @@ FAVORITE_GROUP_CHOICES: Final = (
 # the codebase. Filter / annotation / API views consume the
 # forward map; the cleanup cron and signal handler consume the
 # reverse map. Both are immutable proxies.
-FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type, str]] = MappingProxyType(
-    {
-        Publisher: "p",
-        Imprint: "i",
-        Series: "s",
-        Volume: "v",
-        Folder: "f",
-        StoryArc: "a",
-        Comic: "c",
-    }
+FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type[BaseModel], str]] = (
+    MappingProxyType(
+        {
+            Publisher: "p",
+            Imprint: "i",
+            Series: "s",
+            Volume: "v",
+            Folder: "f",
+            StoryArc: "a",
+            Comic: "c",
+        }
+    )
 )
 FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyType(
     {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
