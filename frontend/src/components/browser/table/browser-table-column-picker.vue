@@ -195,6 +195,57 @@ function _registryEntry(key) {
     : undefined;
 }
 
+/*
+ * Canonical column rank: the index a key would have if you flattened
+ * `_CATEGORIES` into one ordered list. Used by ``smartInsertIndex``
+ * to place newly-toggled columns into their natural slot when the
+ * existing draft is in canonical order. Keys not in any category
+ * (orphans surfaced under "Other") get rank ``Infinity`` so they
+ * always sort to the tail.
+ */
+const _CANONICAL_RANK = (() => {
+  const ranks = new Map();
+  let i = 0;
+  for (const cat of _CATEGORIES) {
+    for (const key of cat.columns) {
+      ranks.set(key, i);
+      i += 1;
+    }
+  }
+  return ranks;
+})();
+
+function _rank(key) {
+  return _CANONICAL_RANK.has(key)
+    ? _CANONICAL_RANK.get(key)
+    : Number.POSITIVE_INFINITY;
+}
+
+/*
+ * Decide where to insert ``key`` into ``draft``. If the draft's
+ * existing keys are already in strictly-increasing canonical-rank
+ * order, splice the new key into the unique slot that keeps the
+ * sequence sorted — e.g. toggling on ``favorite`` lands it right
+ * after ``cover``, toggling on ``imprint_name`` lands it after
+ * ``publisher_name`` (or after ``cover`` / ``favorite`` if neither
+ * publisher exists). If the draft is out of canonical order — the
+ * user has manually rearranged columns — fall back to appending so
+ * we don't surprise them by reshuffling around their layout.
+ */
+export function smartInsertIndex(draft, key) {
+  const ranks = draft.map(_rank);
+  for (let i = 1; i < ranks.length; i += 1) {
+    /* eslint-disable-next-line security/detect-object-injection */
+    if (ranks[i - 1] >= ranks[i]) return draft.length;
+  }
+  const target = _rank(key);
+  for (let i = 0; i < ranks.length; i += 1) {
+    /* eslint-disable-next-line security/detect-object-injection */
+    if (target < ranks[i]) return i;
+  }
+  return draft.length;
+}
+
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "BrowserTableColumnPicker",
@@ -312,10 +363,14 @@ export default {
       if (on) {
         if (!this.draft.includes(key)) {
           /*
-           * New columns are appended to the end of the order list.
-           * The user can drag them into position from there.
+           * Slot the new column into canonical position when the
+           * draft is already in canonical order; otherwise append
+           * (the user has rearranged things — don't second-guess
+           * their layout).
            */
-          this.draft = [...this.draft, key];
+          const next = [...this.draft];
+          next.splice(smartInsertIndex(this.draft, key), 0, key);
+          this.draft = next;
         }
       } else {
         this.draft = this.draft.filter((k) => k !== key);
