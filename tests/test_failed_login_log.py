@@ -14,6 +14,7 @@ from codex.failed_login_log import (
     _current_request,
     failed_login_filter,
     get_client_ip,
+    not_failed_login_filter,
     on_login_failed,
 )
 
@@ -155,3 +156,45 @@ class RequestContextMiddlewareTests(TestCase):
         assert result == "response"
         assert seen["during"] is request
         assert _current_request.get() is None
+
+
+class SinkFilterTests(TestCase):
+    """End-to-end: tagged records only land in sinks with the matching filter."""
+
+    @override
+    def setUp(self) -> None:
+        """Attach one sink per filter to capture routing."""
+        self.dedicated = _CaptureSink()  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.main = _CaptureSink()  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.dedicated_id = logger.add(  # pyright: ignore[reportUninitializedInstanceVariable]
+            self.dedicated,
+            level="WARNING",
+            format="{message}",
+            filter=failed_login_filter,
+        )
+        self.main_id = logger.add(  # pyright: ignore[reportUninitializedInstanceVariable]
+            self.main,
+            level="WARNING",
+            format="{message}",
+            filter=not_failed_login_filter,
+        )
+
+    @override
+    def tearDown(self) -> None:
+        """Drop the test sinks."""
+        logger.remove(self.dedicated_id)
+        logger.remove(self.main_id)
+
+    def test_tagged_record_only_to_dedicated_sink(self) -> None:
+        """A logger.bind(failed_login=True) record skips the main sink."""
+        logger.bind(failed_login=True).warning("Failed login from 1.2.3.4 user=x")
+        logger.complete()
+        assert any("1.2.3.4" in line for line in self.dedicated.lines)
+        assert not any("1.2.3.4" in line for line in self.main.lines)
+
+    def test_untagged_record_only_to_main_sink(self) -> None:
+        """An ordinary warning never reaches the dedicated sink."""
+        logger.warning("ordinary warning")
+        logger.complete()
+        assert any("ordinary warning" in line for line in self.main.lines)
+        assert not any("ordinary warning" in line for line in self.dedicated.lines)
