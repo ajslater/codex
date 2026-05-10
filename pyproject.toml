@@ -198,7 +198,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "assertin,coverd,crate,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
-skip = "*~,*.svg,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,uv.lock"
+skip = "*.svg,*~,.*,.*/*,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
