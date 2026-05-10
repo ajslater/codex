@@ -5,7 +5,13 @@ Designed for consumption by IP-banning tools (fail2ban, CrowdSec, sshguard,
 etc.) that tail a log and match offending addresses by regex. One record per
 failed credential attempt is emitted with ``logger.bind(failed_login=True)``,
 which the dedicated loguru sink in :mod:`codex.startup.loguru` filters into a
-separate file. The main stdout / codex.log sinks see the record too.
+separate file. The main stdout / codex.log sinks apply the inverse filter
+(:func:`not_failed_login_filter`) so the IP-bearing line **only** lands in the
+dedicated log — Django's own request logger still records the bare
+``"Unauthorized: /api/v3/auth/login/"`` at WARNING so the failure is visible
+in the main log, just without the client IP. Concentrating IPs in one place
+makes the privacy story easier to reason about (one file to chmod, one file
+to forward to a SIEM, one file to retain on a different schedule).
 
 The :class:`RequestContextMiddleware` stashes each request in a
 :class:`~contextvars.ContextVar` so the signal handler can recover the client
@@ -49,6 +55,16 @@ def get_client_ip(request: "HttpRequest | None") -> str:
 def failed_login_filter(record) -> bool:
     """Loguru sink filter: keep only records tagged via ``logger.bind``."""
     return bool(record["extra"].get(_FAILED_LOGIN_KEY))
+
+
+def not_failed_login_filter(record) -> bool:
+    """
+    Loguru sink filter: drop records tagged as failed-login.
+
+    Applied to the main stdout / codex.log sinks so IP-bearing lines stay
+    confined to the dedicated log file.
+    """
+    return not record["extra"].get(_FAILED_LOGIN_KEY)
 
 
 def on_login_failed(sender, credentials=None, request=None, **_kwargs) -> None:
