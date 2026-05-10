@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
     - Browser Table mode shows configurable, sortable, metadata columns.
+    - Favorite objects and filter on them.
     - Serve image-dominant PDF pages as just their images.
 
 ## v1.11.5
