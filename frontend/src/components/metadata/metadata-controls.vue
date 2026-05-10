@@ -12,6 +12,12 @@
       :item="markReadItem"
       :size="size"
     />
+    <FavoriteToggle
+      v-if="favoritePk"
+      id="favoriteButton"
+      :group="group"
+      :pk="favoritePk"
+    />
     <v-btn
       v-if="isReadButtonShown"
       id="readButton"
@@ -32,6 +38,7 @@ import { mapState } from "pinia";
 
 import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
+import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
@@ -50,6 +57,7 @@ export default {
   name: "MetadataControls",
   components: {
     DownloadButton,
+    FavoriteToggle,
     MarkReadButton,
   },
   props: {
@@ -102,6 +110,18 @@ export default {
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
+    },
+    favoritePk() {
+      /*
+       * The metadata header only renders this control row when a
+       * single-target view is active, so ``ids`` will normally be a
+       * one-element list. The toggle drives a single backend row, so
+       * hide the star for any unexpected multi-id payload rather
+       * than guessing which target to write.
+       */
+      const ids = this.md?.ids;
+      if (!Array.isArray(ids) || ids.length !== 1) return undefined;
+      return ids[0];
     },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);

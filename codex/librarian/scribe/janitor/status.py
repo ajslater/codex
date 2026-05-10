@@ -103,6 +103,15 @@ class JanitorCleanupSettingsStatus(JanitorStatus):
     ITEM_NAME = "orphan settings"
 
 
+class JanitorCleanupFavoritesStatus(JanitorStatus):
+    """Janitor Cleanup Favorites Status."""
+
+    CODE = "JRF"
+    VERB = "Cleanup"
+    _verbed = "Cleaned up"
+    ITEM_NAME = "orphan favorites"
+
+
 class JanitorDBFKIntegrityStatus(JanitorStatus):
     """Janitor Check DB FK Integrity Status."""
 
@@ -155,6 +164,7 @@ JANITOR_STATII = (
     JanitorCleanupCoversStatus,
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupFavoritesStatus,
     JanitorDBFKIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,

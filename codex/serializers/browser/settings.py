@@ -6,11 +6,20 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DictField,
     IntegerField,
+    ListField,
     Serializer,
+    ValidationError,
 )
 
-from codex.choices.browser import BROWSER_ORDER_BY_CHOICES
+from codex.choices.browser import (
+    BROWSER_ORDER_BY_CHOICES,
+    BROWSER_TABLE_COLUMNS,
+    BROWSER_TABLE_COVER_SIZE_CHOICES,
+    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_VIEW_MODE_CHOICES,
+)
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
@@ -112,12 +121,107 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     This is the only browse serializer that's submitted.
     """
 
+    JSON_FIELDS = frozenset(
+        BrowserSettingsSerializerBase.JSON_FIELDS
+        | {"table_columns", "order_extra_keys"}
+    )
+
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
     always_show_filename = BooleanField(required=False)
+    view_mode = ChoiceField(
+        choices=tuple(BROWSER_VIEW_MODE_CHOICES.keys()), required=False
+    )
+    table_columns = DictField(
+        child=ListField(child=CharField(), allow_empty=True),
+        required=False,
+        allow_empty=True,
+    )
+    table_cover_size = ChoiceField(
+        choices=tuple(BROWSER_TABLE_COVER_SIZE_CHOICES.keys()), required=False
+    )
+    # Multi-column sort: list of secondary sort entries appended to
+    # the primary ``order_by`` ORDER BY. Each child is a dict
+    # ``{"key": <order_by enum>, "reverse": <bool>}``. Validated in
+    # ``validate_order_extra_keys`` against the order_by enum and
+    # de-duped against the primary key.
+    order_extra_keys = ListField(
+        child=DictField(),
+        required=False,
+        allow_empty=True,
+    )
+
+    def validate_table_columns(self, value):
+        """Reject unknown top-group keys and unknown column keys."""
+        invalid_top_groups = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
+        if invalid_top_groups:
+            reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
+            raise ValidationError(reason)
+        valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
+        for top_group, columns in value.items():
+            invalid_columns = set(columns) - valid_columns
+            if invalid_columns:
+                reason = (
+                    f"Invalid column keys for {top_group!r}: {sorted(invalid_columns)}"
+                )
+                raise ValidationError(reason)
+        return value
+
+    def validate_order_extra_keys(self, value):
+        """
+        Reject malformed entries; coerce to the canonical shape.
+
+        Drops duplicate keys (first occurrence wins) and any entry
+        whose ``key`` is not a known order_by enum value. ``reverse``
+        coerces to bool. The primary ``order_by`` isn't filtered out
+        here — the caller may swap primaries and we shouldn't lose
+        the entry on the way through; the order pipeline tolerates
+        a duplicate sort column (redundant ORDER BY).
+        """
+        valid_keys = set(BROWSER_ORDER_BY_CHOICES.keys())
+        seen: set[str] = set()
+        out: list[dict] = []
+        for entry in value:
+            if not isinstance(entry, dict):
+                reason = f"order_extra_keys entries must be dicts, got {entry!r}"
+                raise ValidationError(reason)
+            key = entry.get("key")
+            if not isinstance(key, str) or key not in valid_keys:
+                reason = f"Invalid order_extra_keys key: {key!r}"
+                raise ValidationError(reason)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"key": key, "reverse": bool(entry.get("reverse", False))})
+        return out
 
 
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
     group = BrowserRouteGroupField(required=False)
+
+
+class BrowserPageInputSerializer(BrowserSettingsSerializer):
+    """
+    Input parser for the browse page endpoint.
+
+    Adds the ``columns`` query param: a comma-separated list of column
+    keys from the table-view registry. The browser view consumes it
+    when ``view_mode == "table"`` to project rows. Each key must be a
+    valid registry entry; unknown keys cause a 400.
+    """
+
+    columns = CharField(required=False, allow_blank=True)
+
+    def validate_columns(self, value: str) -> tuple[str, ...]:
+        """Split, trim, and validate column keys against the registry."""
+        if not value:
+            return ()
+        keys = tuple(k.strip() for k in value.split(",") if k.strip())
+        valid = set(BROWSER_TABLE_COLUMNS.keys())
+        invalid = [k for k in keys if k not in valid]
+        if invalid:
+            reason = f"Invalid column keys: {sorted(invalid)}"
+            raise ValidationError(reason)
+        return keys

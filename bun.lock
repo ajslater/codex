@@ -33,7 +33,7 @@
         "eslint-plugin-toml": "^1.3.1",
         "eslint-plugin-unicorn": "^64.0.0",
         "eslint-plugin-vue": "^10.9.1",
-        "eslint-plugin-vue-scoped-css": "^3.0.0",
+        "eslint-plugin-vue-scoped-css": "^3.1.0",
         "eslint-plugin-yml": "^3.3.2",
         "eslint_d": "^15.0.2",
         "postcss-scss": "^4.0.9",
@@ -355,6 +355,8 @@
 
     "error-ex": ["error-ex@1.3.4", "", { "dependencies": { "is-arrayish": "^0.2.1" } }, "sha512-sqQamAnR14VgCr1A618A3sGrygcpK+HEbenA/HiEAkkUwcZIIB/tgWqHFxWgOyDh4nB4JCRimh79dR5Ywc9MDQ=="],
 
+    "es-toolkit": ["es-toolkit@1.46.1", "", {}, "sha512-5eNtXOs3tbfxXOj04tjjseeWkRWaoCjdEI+96DgwzZoe6c9juL49pXlzAFTI72aWC9Y8p7168g6XIKjh7k6pyQ=="],
+
     "escalade": ["escalade@3.2.0", "", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
 
     "escape-string-regexp": ["escape-string-regexp@4.0.0", "", {}, "sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA=="],
@@ -407,7 +409,7 @@
 
     "eslint-plugin-vue": ["eslint-plugin-vue@10.9.1", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.4.0", "natural-compare": "^1.4.0", "nth-check": "^2.1.1", "postcss-selector-parser": "^7.1.0", "semver": "^7.6.3", "xml-name-validator": "^4.0.0" }, "peerDependencies": { "@stylistic/eslint-plugin": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0", "@typescript-eslint/parser": "^7.0.0 || ^8.0.0", "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0", "vue-eslint-parser": "^10.3.0" }, "optionalPeers": ["@stylistic/eslint-plugin", "@typescript-eslint/parser"] }, "sha512-cHB0Tf4Duvzwecwd/AqWzZvF/QszE13BhjVUpVXWCy9AeMR5GjkAjP3i85vqgLgOuTmkHR1OJ5oMeqLHtuw8zg=="],
 
-    "eslint-plugin-vue-scoped-css": ["eslint-plugin-vue-scoped-css@3.0.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.4.0", "lodash": "^4.17.21", "postcss": "^8.4.31", "postcss-safe-parser": "^7.0.0", "postcss-selector-parser": "^7.0.0" }, "peerDependencies": { "eslint": ">=9.38.0", "postcss-scss": "^4.0.3", "postcss-styl": "^0.12.0", "vue-eslint-parser": ">=7.1.0" }, "optionalPeers": ["postcss-scss", "postcss-styl"] }, "sha512-YNGP0nUBFWFQc//kpvxnGquKjKDkEaWoDFUcZbXCX6L5UIWDlbl34/GXlEEls06bzDJ9ETRpLlmrWgvvZg+yIg=="],
+    "eslint-plugin-vue-scoped-css": ["eslint-plugin-vue-scoped-css@3.1.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.4.0", "es-toolkit": "^1.46.1", "postcss": "^8.4.31", "postcss-safe-parser": "^7.0.0", "postcss-selector-parser": "^7.0.0" }, "peerDependencies": { "eslint": ">=9.38.0", "postcss-scss": "^4.0.3", "postcss-styl": "^0.12.0", "vue-eslint-parser": ">=7.1.0" }, "optionalPeers": ["postcss-scss", "postcss-styl"] }, "sha512-R9XLrIZaP6QGz9b4kO2K4+lP4NcO2TKcw71zBtIYCoqqTk5ja1ySruYAllBT2LPIJVQ4NZaB2IFSvLjLEpYqQA=="],
 
     "eslint-plugin-yml": ["eslint-plugin-yml@3.3.2", "", { "dependencies": { "@eslint/core": "^1.0.1", "@eslint/plugin-kit": "^0.7.0", "@ota-meshi/ast-token-store": "^0.3.0", "diff-sequences": "^29.0.0", "escape-string-regexp": "5.0.0", "natural-compare": "^1.4.0", "yaml-eslint-parser": "^2.0.0" }, "peerDependencies": { "eslint": ">=9.38.0" } }, "sha512-XjmOB/fLBwYHqevnpclPL938V+9ExX7xw1hPaM3IPePGyMFRV1giS16RjSTNhIyCv/Oh0G0PEdmmZPATJ02YCw=="],
 
@@ -560,8 +562,6 @@
     "load-plugin": ["load-plugin@6.0.3", "", { "dependencies": { "@npmcli/config": "^8.0.0", "import-meta-resolve": "^4.0.0" } }, "sha512-kc0X2FEUZr145odl68frm+lMJuQ23+rTXYmR6TImqPtbpmXC4vVXbWKDQ9IzndA0HfyQamWfKLhzsqGSTxE63w=="],
 
     "locate-path": ["locate-path@6.0.0", "", { "dependencies": { "p-locate": "^5.0.0" } }, "sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw=="],
-
-    "lodash": ["lodash@4.18.1", "", {}, "sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q=="],
 
     "lodash.memoize": ["lodash.memoize@4.1.2", "", {}, "sha512-t7j+NzmgnQzTAYXcsHYLgimltOV1MXHtlOWf6GjL9Kj8GK5FInw5JotxvbOs+IvV1/Dzo04/fCGfLVs7aXb4Ag=="],
 

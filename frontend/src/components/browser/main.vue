@@ -1,7 +1,8 @@
 <template>
   <div id="browsePane" :class="browsePaneClasses">
+    <BrowserTable v-if="isTableMode && showBrowseItems" />
     <v-pull-to-refresh
-      v-if="showBrowseItems"
+      v-else-if="showBrowseItems"
       id="browsePaneRefreshContainer"
       :pull-down-threshold="64"
       @load="load"
@@ -12,7 +13,17 @@
         :item="item"
       />
     </v-pull-to-refresh>
-    <PlaceholderLoading v-else-if="showPlaceHolder" class="placeholder" />
+    <template v-else-if="showPlaceHolder">
+      <PlaceholderLoading class="placeholder" />
+      <button
+        v-if="showCancelButton"
+        class="cancelLoadingButton"
+        :title="cancelButtonTitle"
+        @click="onCancelLoading"
+      >
+        Cancel
+      </button>
+    </template>
     <BrowserEmptyState v-else />
     <div
       v-if="searchLimitMessage"
@@ -29,19 +40,35 @@ import { mapActions, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
+import BrowserTable from "@/components/browser/table/browser-table.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
 
+const CANCEL_TIMEOUT = 5_000;
+
 export default {
   name: "BrowserMain",
   components: {
     BrowserCard,
     BrowserEmptyState,
+    BrowserTable,
     PlaceholderLoading,
     VPullToRefresh,
+  },
+  data() {
+    return {
+      /*
+       * 10s grace period before the cancel button surfaces on the
+       * spinner. Backend table-view queries can take a long time on
+       * large libraries; cancelling lets the user back out and keep
+       * the previous results showing instead of waiting forever.
+       */
+      cancelButtonTimerHandle: null,
+      cancelButtonReady: false,
+    };
   },
   computed: {
     ...mapState(useAuthStore, {
@@ -51,11 +78,24 @@ export default {
     }),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
+      pageMtime: (state) => state.page.mtime,
       showPlaceHolder(state) {
         return (
           this.nonUsers === undefined ||
           (this.isAuthorized &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
+        );
+      },
+      showCancelButton(state) {
+        /*
+         * Visible only when (a) the spinner has been showing for
+         * the grace period, AND (b) there's actually a prior page
+         * to fall back to. On a brand-new session ``page.mtime`` is
+         * ``0`` so cancelling would just leave a blank screen — no
+         * use to the user, so the button stays hidden in that case.
+         */
+        return (
+          this.cancelButtonReady && this.showPlaceHolder && state.page.mtime > 0
         );
       },
       cards(state) {
@@ -76,6 +116,9 @@ export default {
         if (!books || books.length === 0) return groups;
         return [...groups, ...books];
       },
+      tableModeRequested: (state) => state.settings.viewMode === "table",
+      tableRowCount: (state) =>
+        Array.isArray(state.page.rows) ? state.page.rows.length : 0,
       numPages: (state) => state.page.numPages,
       search: (state) => state.settings.search,
       isSearchOpen: (state) => state.isSearchOpen,
@@ -101,13 +144,31 @@ export default {
       Reflect.set(classes, marginClass, true);
       return classes;
     },
+    isTableMode() {
+      /*
+       * The user's persisted preference is honored only on viewports
+       * wide enough to actually use the table. Below ~960px (Vuetify
+       * smAndDown) we auto-fall-back to the cover grid since a multi-
+       * column table is unusable on phone-sized screens. The setting
+       * itself isn't changed — flip the device into landscape / wider
+       * and the table reappears.
+       */
+      return this.tableModeRequested && !this.$vuetify.display.smAndDown;
+    },
+    cancelButtonTitle() {
+      /*
+       * Cancel resets only the sort to the per-top-group default —
+       * columns, filters, and the rest of the user's settings stay
+       * put. The tooltip text matches.
+       */
+      return "Reset order";
+    },
     showBrowseItems() {
-      return (
-        this.cards &&
-        this.cards.length > 0 &&
-        this.isAuthorized &&
-        !this.showPlaceHolder
-      );
+      if (!this.isAuthorized || this.showPlaceHolder) return false;
+      if (this.isTableMode) {
+        return this.tableRowCount > 0;
+      }
+      return this.cards && this.cards.length > 0;
     },
     searchLimitMessage() {
       let res = "";
@@ -125,10 +186,49 @@ export default {
       return res;
     },
   },
+  watch: {
+    showPlaceHolder: {
+      immediate: true,
+      handler(visible) {
+        /*
+         * Spinner just appeared: arm the 10s timer that surfaces
+         * the cancel button. Spinner hid: clear the timer and
+         * reset visibility so the next request gets its own grace.
+         */
+        if (this.cancelButtonTimerHandle) {
+          globalThis.clearTimeout(this.cancelButtonTimerHandle);
+          this.cancelButtonTimerHandle = null;
+        }
+        if (visible) {
+          this.cancelButtonTimerHandle = globalThis.setTimeout(() => {
+            this.cancelButtonReady = true;
+            this.cancelButtonTimerHandle = null;
+          }, CANCEL_TIMEOUT);
+        } else {
+          this.cancelButtonReady = false;
+        }
+      },
+    },
+  },
+  beforeUnmount() {
+    if (this.cancelButtonTimerHandle) {
+      globalThis.clearTimeout(this.cancelButtonTimerHandle);
+      this.cancelButtonTimerHandle = null;
+    }
+  },
   methods: {
-    ...mapActions(useBrowserStore, ["loadMtimes"]),
+    ...mapActions(useBrowserStore, ["cancelBrowserPage", "loadMtimes"]),
     async load({ done }) {
       await this.loadMtimes().then(done);
+    },
+    onCancelLoading() {
+      /*
+       * ``cancelBrowserPage`` is async — it aborts the in-flight
+       * request, resets settings to defaults, and re-fetches.
+       * Fire-and-forget here since the spinner state is driven
+       * by the store, not by this handler's return value.
+       */
+      this.cancelBrowserPage();
     },
   },
 };
@@ -231,6 +331,34 @@ $banner-height: 20px;
   top: calc(50% + 75px);
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+/*
+ * Cancel button surfaced after a 10s grace period on a slow
+ * browser query. Sits centered below the spinner so the user can
+ * abandon the in-flight request and keep the previous results.
+ * Plain ``<button>`` instead of ``<v-btn>`` keeps the visual
+ * weight low — the spinner is the focal point; the cancel is a
+ * subtle escape hatch.
+ */
+.cancelLoadingButton {
+  position: fixed;
+  top: calc(50% + 75px);
+  left: 50%;
+  transform: translate(-50%, calc(-50% + 30vh));
+  padding: 6px 18px;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-textPrimary));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.cancelLoadingButton:hover {
+  color: rgb(var(--v-theme-primary));
+  border-color: rgb(var(--v-theme-primary));
 }
 
 #searchLimitMessage {

@@ -45,7 +45,7 @@ def integrity_check(log, *, long: bool) -> None:
         log.warning(f"Database '{sql}' returned results:")
         log.warning(results)
         log.warning(
-            "See the README for database rebuild instructions if the above warning looks severe."
+            "See the documentation for database rebuild instructions if the above warning looks severe."
         )
 
 

@@ -32,6 +32,13 @@
           :model-value="checked"
           @click.stop.prevent="toggleItem(item)"
         />
+        <FavoriteToggle
+          v-if="favoritePk"
+          class="cardFavoriteToggle"
+          :class="{ favoriteVisible: isFavoriteCard }"
+          :group="item.group"
+          :pk="favoritePk"
+        />
       </div>
       <v-progress-linear
         class="bookCoverProgress"
@@ -56,9 +63,11 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
+import FavoriteToggle from "@/components/favorite-toggle.vue";
 import { getReaderRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+import { useFavoritesStore } from "@/stores/favorites";
 
 const SCROLL_DELAY = 100;
 
@@ -68,6 +77,7 @@ export default {
     BookCover,
     BrowserCardControls,
     BrowserCardSubtitle,
+    FavoriteToggle,
     OrderByCaption,
   },
   props: {
@@ -85,8 +95,25 @@ export default {
       selectManyActive: (state) => state.active,
       isSelected: (state) => state.isSelected,
     }),
+    ...mapState(useFavoritesStore, ["isFavorite"]),
     checked() {
       return this.isSelected(this.item);
+    },
+    favoritePk() {
+      /*
+       * The toggle drives a single backend row. Cards that aggregate
+       * multiple ids (folder rollups, story-arc cross-publisher
+       * cards) can't be favorited atomically — hide the star
+       * rather than guess which pk to write.
+       */
+      const ids = this.item?.ids;
+      if (!Array.isArray(ids) || ids.length !== 1) return undefined;
+      return ids[0];
+    },
+    isFavoriteCard() {
+      return Boolean(
+        this.favoritePk && this.isFavorite(this.item.group, this.favoritePk),
+      );
     },
     linkLabel() {
       let label = "";
@@ -241,6 +268,35 @@ export default {
 
 .selectManyCheckbox.checked:hover :deep(.v-icon) {
   color: rgb(var(--v-theme-linkHover));
+}
+
+/*
+ * Favorite star sits in the top-right of the cover, stacked just
+ * below the childCount badge (also top-right) so the count circle
+ * stays unobscured. Hidden by default so it doesn't compete with
+ * the cover art; surfaces on card hover for discovery, and stays
+ * lit (full opacity) when the row is favorited so the user can
+ * scan a page for their starred items.
+ *
+ * Sibling of ``.cardCoverOverlay`` — outside the router-link's
+ * opacity-fade subtree, so the lit state is unaffected by the
+ * controls' ``opacity: 0`` baseline.
+ */
+.cardFavoriteToggle {
+  position: absolute !important;
+  top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
+  right: 0px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.browserCardCoverWrapper:hover > .browserCardTop > .cardFavoriteToggle {
+  opacity: 1;
+}
+
+.cardFavoriteToggle.favoriteVisible {
+  opacity: 1;
 }
 
 .bookCoverProgress {

@@ -205,20 +205,22 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
             created = False
         else:
             # Create new named setting by cloning the current row.
+            # Mirror ``_copy_settings`` and pull every column from
+            # ``DIRECT_KEYS`` rather than enumerating fields by hand —
+            # the latter silently drops new columns (``view_mode``,
+            # ``table_columns``, ``table_cover_size``,
+            # ``order_extra_keys``, …) until someone remembers to
+            # update both sites.
+            direct_kwargs = {
+                key: getattr(current, key) for key in SettingsBrowser.DIRECT_KEYS
+            }
             new_sb = SettingsBrowser.objects.create(
                 user=user,
                 session_id=session_key,
                 client=ClientChoices.API,
                 name=name,
-                top_group=current.top_group,
-                order_by=current.order_by,
-                order_reverse=current.order_reverse,
-                search=current.search,
-                custom_covers=current.custom_covers,
-                dynamic_covers=current.dynamic_covers,
-                twenty_four_hour_time=current.twenty_four_hour_time,
-                always_show_filename=current.always_show_filename,
                 show=current.show,
+                **direct_kwargs,
             )
             # Clone filters
             src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue]

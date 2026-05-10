@@ -3,12 +3,14 @@
     <v-toolbar-items id="browserToolbarLeftItems">
       <BrowserTopGroupSelect />
       <BrowserFilterBySelect />
-      <BrowserOrderBySelect />
-      <BrowserOrderReverseButton />
+      <BrowserOrderBySelect v-if="!isTableMode" />
+      <BrowserOrderReverseButton v-if="!isTableMode" />
       <BrowserSearchButton />
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items>
+      <BrowserColumnsButton />
+      <BrowserViewModeToggle />
       <SettingsDrawerButton />
     </v-toolbar-items>
   </v-toolbar>
@@ -16,22 +18,28 @@
 
 <script>
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
+import { mapState } from "pinia";
 
+import BrowserColumnsButton from "@/components/browser/toolbars/top/columns-button.vue";
 import BrowserFilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-select.vue";
 import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-reverse-button.vue";
 import BrowserSearchButton from "@/components/browser/toolbars/top/search-button.vue";
 import BrowserTopGroupSelect from "@/components/browser/toolbars/top/top-group-select.vue";
+import BrowserViewModeToggle from "@/components/browser/toolbars/top/view-mode-toggle.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserTopToolbar",
   components: {
+    BrowserColumnsButton,
     BrowserFilterBySelect,
     BrowserSearchButton,
     BrowserTopGroupSelect,
     BrowserOrderBySelect,
     BrowserOrderReverseButton,
+    BrowserViewModeToggle,
     SettingsDrawerButton,
   },
   data() {
@@ -40,6 +48,20 @@ export default {
       mdiFamilyTree,
       browseMode: "filter",
     };
+  },
+  computed: {
+    ...mapState(useBrowserStore, {
+      tableModeRequested: (state) => state.settings.viewMode === "table",
+    }),
+    isTableMode() {
+      /*
+       * Table view replaces the dropdown + reverse-button with
+       * header-click sorting; hide them in that mode. On viewports
+       * too narrow for the table the cover grid wins (mobile
+       * auto-fallback), so the order controls come back.
+       */
+      return this.tableModeRequested && !this.$vuetify.display.smAndDown;
+    },
   },
 };
 </script>

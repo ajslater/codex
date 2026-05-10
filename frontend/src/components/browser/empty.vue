@@ -10,9 +10,9 @@
     <div v-if="showLinkToReadmeAdmin">
       See the
       <a
-        href="https://github.com/ajslater/codex#-administration"
+        href="https://codex-comic-reader.readthedocs.io/#administration"
         target="_blank"
-        >README <v-icon>{{ mdiOpenInNew }}</v-icon></a
+        >documentation <v-icon>{{ mdiOpenInNew }}</v-icon></a
       >
       for help
     </div>

@@ -1,12 +1,18 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 import { toRaw } from "vue";
-import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
+import {
+  abortKey,
+  dedupedFetch,
+  isAbortError,
+  useAbortable,
+} from "@/api/v3/abortable";
 import * as API from "@/api/v3/browser";
 import * as COMMON_API from "@/api/v3/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";
+import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
@@ -31,6 +37,83 @@ const DYNAMIC_COVER_KEYS = Object.freeze([
 ]);
 const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
+
+/*
+ * Default-columns gating. ``imprint_name`` and ``volume_name`` lead
+ * the per-top-group default column tuples (see
+ * ``BROWSER_TABLE_DEFAULT_COLUMNS``), but a user who has the
+ * matching ``show.i`` / ``show.v`` flags off — i.e., they hide
+ * imprints / volumes from breadcrumb navigation — almost certainly
+ * doesn't want those columns leading their default column set
+ * either. The backend mirrors this in ``default_columns_filtered``;
+ * the two stay in sync via this constant.
+ */
+const _SHOW_GATED_COLUMNS = Object.freeze({
+  imprint_name: "i",
+  volume_name: "v",
+});
+
+export function filterShowGatedDefaults(cols, show) {
+  if (!cols || cols.length === 0) return cols ?? [];
+  const showMap = show && typeof show === "object" ? show : {};
+  const blocked = new Set();
+  for (const [col, flag] of Object.entries(_SHOW_GATED_COLUMNS)) {
+    if (!showMap[flag]) blocked.add(col);
+  }
+  if (blocked.size === 0) return cols;
+  return cols.filter((c) => !blocked.has(c));
+}
+
+/*
+ * Per-top-group default order applied when the user hits the
+ * "Cancel" button on the loading spinner. Cover view, Folder,
+ * StoryArc, Publisher and Comic top-groups all want the plain
+ * ``sort_name`` single sort — Comic's order pipeline already
+ * expands ``sort_name`` into the full
+ * ``publisher_sort_name → ... → sort_name`` ladder via
+ * ``_add_comic_order_by``, so a single key is enough.
+ *
+ * Imprint, Series and Volume in *table* mode want a multi-column
+ * sort that respects the collection hierarchy: rows of an Imprint
+ * list are sorted publisher-then-name; rows of a Series list are
+ * publisher-then-imprint-then-name; rows of a Volume list are
+ * publisher-then-imprint-then-series-then-name (Volume.sort_name
+ * itself expands to ``name, number_to`` in
+ * :func:`add_order_by`).
+ */
+const _DEFAULT_TABLE_ORDER = Object.freeze({
+  i: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [Object.freeze({ key: "sort_name", reverse: false })],
+  }),
+  s: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [
+      Object.freeze({ key: "imprint_name", reverse: false }),
+      Object.freeze({ key: "sort_name", reverse: false }),
+    ],
+  }),
+  v: Object.freeze({
+    orderBy: "publisher_name",
+    orderExtraKeys: [
+      Object.freeze({ key: "imprint_name", reverse: false }),
+      Object.freeze({ key: "series_name", reverse: false }),
+      Object.freeze({ key: "sort_name", reverse: false }),
+    ],
+  }),
+});
+
+const _DEFAULT_SINGLE_ORDER = Object.freeze({
+  orderBy: "sort_name",
+  orderExtraKeys: [],
+});
+
+function _defaultOrderFor(topGroup, viewMode) {
+  if (viewMode === "table" && Object.hasOwn(_DEFAULT_TABLE_ORDER, topGroup)) {
+    return _DEFAULT_TABLE_ORDER[topGroup];
+  }
+  return _DEFAULT_SINGLE_ORDER;
+}
 
 function cloneRoute(route) {
   return {
@@ -70,10 +153,14 @@ export const useBrowserStore = defineStore("browser", {
       filters: BROWSER_DEFAULTS.filters,
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
+      orderExtraKeys: BROWSER_DEFAULTS.orderExtraKeys ?? [],
       search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
       topGroup: BROWSER_DEFAULTS.topGroup,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
+      viewMode: BROWSER_DEFAULTS.viewMode,
+      tableColumns: BROWSER_DEFAULTS.tableColumns,
+      tableCoverSize: BROWSER_DEFAULTS.tableCoverSize,
     },
     page: {
       adminFlags: {
@@ -127,9 +214,17 @@ export const useBrowserStore = defineStore("browser", {
       return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
     },
     orderByChoices(state) {
+      // Cover view's dropdown filters down to a curated subset
+      // (BROWSER_CHOICES.COVER_ORDER_BY_KEYS). The table view exposes
+      // every sortable column via its own header clicks, so it doesn't
+      // need this dropdown — but the dropdown can still come into
+      // view momentarily during a viewMode transition or on mobile
+      // fallback. The set is keyed for fast lookup.
+      const coverKeys = new Set(BROWSER_CHOICES.COVER_ORDER_BY_KEYS);
       const choices = [];
       for (const item of BROWSER_CHOICES.ORDER_BY) {
         if (
+          !coverKeys.has(item.value) ||
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "child_count" && state.page.modelGroup === "c") ||
           (item.value === "search_score" &&
@@ -154,7 +249,14 @@ export const useBrowserStore = defineStore("browser", {
     },
     isDynamicFiltersSelected(state) {
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (name !== "bookmark" && array && array.length > 0) {
+        // bookmark and favorite are scalar (string / boolean), not the
+        // list-of-pks shape every other filter uses.
+        if (
+          name !== "bookmark" &&
+          name !== "favorite" &&
+          array &&
+          array.length > 0
+        ) {
           return true;
         }
       }
@@ -164,7 +266,12 @@ export const useBrowserStore = defineStore("browser", {
       const isDefaultBookmarkValueSelected = DEFAULT_BOOKMARK_VALUES.has(
         state.settings.filters.bookmark,
       );
-      return !isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected;
+      const isFavoriteFilterOn = Boolean(state.settings.filters.favorite);
+      return (
+        !isDefaultBookmarkValueSelected ||
+        isFavoriteFilterOn ||
+        this.isDynamicFiltersSelected
+      );
     },
     lowestShownGroup(state) {
       let lowestGroup = "r";
@@ -402,6 +509,28 @@ export const useBrowserStore = defineStore("browser", {
       return topGroup;
     },
     /*
+     * TABLE VIEW
+     */
+    _resolveTableColumns() {
+      // Pick the column set for the current table-view request.
+      // Persisted overrides (``settings.tableColumns[topGroup]``) win
+      // over the registry defaults; both fall back to an empty tuple
+      // for unknown top-groups (the backend then uses its own
+      // defaults). Defaults are filtered by the user's ``show.i``
+      // and ``show.v`` flags so a user who hides imprints / volumes
+      // from breadcrumb navigation doesn't get those columns leading
+      // their table view either.
+      const topGroup = this.settings.topGroup ?? "p";
+      const stored = this.settings.tableColumns?.[topGroup];
+      if (stored && stored.length > 0) {
+        return stored;
+      }
+      return filterShowGatedDefaults(
+        BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [],
+        this.settings.show,
+      );
+    },
+    /*
      * MUTATIONS
      */
     _addSettings(data) {
@@ -560,6 +689,38 @@ export const useBrowserStore = defineStore("browser", {
           return this.handlePageError(error);
         });
     },
+    async cancelBrowserPage() {
+      /*
+       * User-initiated cancel for a long-running browser request.
+       * Surfaces in the UI as a "Cancel" button next to the
+       * indeterminate spinner after a 10s grace period.
+       *
+       * Stays on the current route. Keeps filters, search, view-
+       * mode, top-group, columns, and every other display
+       * preference. Only resets the order to the per-top-group
+       * default (see ``_defaultOrderFor``) so the next fetch lands
+       * on a configuration the backend can serve quickly.
+       *
+       * Aborting fires the catch in ``loadBrowserPage`` which
+       * swallows the AbortError; the follow-up ``setSettings``
+       * call PATCHes the new order, re-loads, and persists. If no
+       * request is actually pending we leave everything alone —
+       * the spinner is showing for some other reason (initial
+       * libraries fetch, settings load) and the cancel button
+       * shouldn't have been clickable.
+       */
+      const aborted = abortKey("browser:loadBrowserPage");
+      if (!aborted) return;
+      const order = _defaultOrderFor(
+        this.settings.topGroup,
+        this.settings.viewMode,
+      );
+      await this.setSettings({
+        orderBy: order.orderBy,
+        orderReverse: false,
+        orderExtraKeys: order.orderExtraKeys,
+      });
+    },
     async loadBrowserPage(mtime, updateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
@@ -581,10 +742,18 @@ export const useBrowserStore = defineStore("browser", {
       // fetch so its late-arriving response can't ``$patch`` stale
       // state over the current route's data.
       const signal = useAbortable("browser:loadBrowserPage");
+      // Table mode requests need ``columns=`` so the backend knows
+      // which fields to project / annotate. The list comes from the
+      // user's persisted table_columns map (per top-group) and falls
+      // back to the registry defaults; cover mode never sets it.
+      const requestSettings =
+        this.settings.viewMode === "table"
+          ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
+          : this.settings;
       try {
         const response = await API.getBrowserPage(
           route.params,
-          this.settings,
+          requestSettings,
           mtime,
           { signal },
         );

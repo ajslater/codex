@@ -5,6 +5,7 @@ from codex.models.age_rating import *
 from codex.models.auth import *
 from codex.models.bookmark import *
 from codex.models.comic import *
+from codex.models.favorite import *
 from codex.models.groups import *
 from codex.models.identifier import *
 from codex.models.library import *

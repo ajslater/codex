@@ -26,6 +26,12 @@ class BookmarkFilters:
     NONE = MappingProxyType({"bookmark": ""})
 
 
+class FavoriteFilters:
+    """Favorite Filters."""
+
+    ONLY = MappingProxyType({"favorite": True})
+
+
 class Rel:
     """Link rel strings."""
 

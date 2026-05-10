@@ -23,6 +23,9 @@ A final docker.io image has been released on dockerhub.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
   hierarchy, or by tagged Story Arc.
+- Browse a multi-sortable table of comic metadata.
+- Mark Publishers, Series, Volumes, Folders, Story Arcs, and individual Issues
+  as favorites and filter on them per user.
 - Read comics in a variety of aspect ratios and directions that fit your screen.
 - Watches the filesystem and automatically imports new or changed comics.
 - Anonymous browsing and reading or reigistered users only, to your preference.

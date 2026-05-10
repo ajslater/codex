@@ -46,7 +46,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.11.5"
+version = "1.12.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -111,7 +111,6 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
-  ".circlci/**",
   ".env.platforms",
   ".github/**",
   ".picopt_treestamps.yaml",
@@ -122,7 +121,6 @@ source-include = [
   "NEWS.md",
   "bin/**",
   "bun.lock",
-  "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
   "docs/NEWS",
@@ -139,10 +137,9 @@ source-include = [
   "eslint.config.js",
   "frontend/**",
   "img/**",
-  "mkdocks.yml",
+  "mkdocs.yml",
   "mock_comics/**",
   "package.json",
-  "strange.jpg",
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
@@ -167,14 +164,12 @@ exclude = [
   "**/.*",
   "**/__pycache__",
   "**/node_modules",
-  "codex/_vendor",
   "codex/static",
   "codex/static_build",
   "comics",
   "config",
   "dist",
   "frontend",
-  "site",
   "site",
   "test-results",
   "typings",
@@ -202,22 +197,13 @@ reportUnusedParameter = false
 [tool.codespell]
 builtin = "clear,code,rare"
 check-hidden = true
-ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./bun.lock,./codex/_vendor,./codex/static,./codex/static_build,./comics,./config,./dist,./frontend/coverage,./node_modules,./package.json,./site,./test-results,/uv.lock"
+ignore-words-list = "assertin,coverd,crate,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
+skip = "*.svg,*~,.*,.*/*,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = [
-  "*/.*",
-  ".*",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-  "vulture_ignorelist.py",
-]
+exclude = ["**/.*", "**/__pycache__"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -229,7 +215,6 @@ concurrency = ["multiprocessing"]
 omit = [
   "*/.*",
   "*__pycache__*",
-  "codex/_vendor/*",
   "codex/static/*",
   "codex/static_build/*",
   "comics/*",
@@ -261,17 +246,15 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,.*,.*/*,__pycache__/*,codex/_vendor/*,codex/static/*,codex/static_build/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
+exclude = "*~,.*,.*/*,__pycache__/*,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
 
 [tool.ruff]
 builtins = ["ic"]
 extend-exclude = [
   "**/.*",
   "**/__pycache__",
-  "codex/_vendor",
   "codex/static",
   "codex/static_build",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -382,10 +365,10 @@ exclude = [
   "**/.*",
   "**/__pycache__",
   "**/node_modules",
-  "codex/_vendor",
   "codex/static",
   "codex/static_build",
   "comics",
+  "config",
   "dist",
   "frontend",
   "site",
@@ -394,31 +377,25 @@ exclude = [
   "vulture_ignorelist.py",
 ]
 
-[tool.typos.default.extend-words]
-bookmarkd = "bookmarkd"
-coverd = "coverd"
-versio = "versio"
-
 [tool.vulture]
 exclude = [
-  "*/.*",
-  "*/__pycache__*",
-  "*/node_modules*",
-  "codex/_vendor",
+  "**/.*",
+  "**/__pycache__",
+  "**/node_modules",
   "codex/static/",
   "codex/static_build/",
   "comics/",
   "dist/",
   "frontend/",
   "site",
-  "test_results/",
+  "test-results/",
   "typings/",
 ]
 min_confidence = 61
 sort_by_size = true
 
 [tool.djlint]
-extend_exclude = "*/.*,__pycache__,codex/_vendor,codex/static_build,codex/static,./comics,dist,site,test-results,typings"
+extend_exclude = "*/.*,site,typings"
 ignore = "H030,H031"
 profile = "django"
 use_gitignore = true

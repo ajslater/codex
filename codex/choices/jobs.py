@@ -47,6 +47,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JRV",
     "JRS",
     "JRB",
+    "JRF",
     "SIR",
     "SSU",
     "SSC",
@@ -328,6 +329,14 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "title": "Remove Orphan Bookmarks",
                         "desc": ("Owned by no session or user. Runs nightly."),
                         "statuses": ("JRB",),
+                    },
+                    {
+                        "value": "cleanup_favorites",
+                        "title": "Remove Orphan Favorites",
+                        "desc": (
+                            "Drop favorites whose target row is gone. Runs nightly."
+                        ),
+                        "statuses": ("JRF",),
                     },
                     {
                         "value": "adopt_folders",

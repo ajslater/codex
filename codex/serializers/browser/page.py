@@ -1,5 +1,6 @@
 """Browser Page Serializer."""
 
+import pycountry
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -15,6 +16,82 @@ from codex.serializers.browser.mixins import (
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField
 from codex.serializers.fields.group import BrowseGroupField
+from codex.views.browser.columns import (
+    fk_alias_for,
+    fk_name_columns,
+    m2m_alias_for,
+    m2m_columns,
+)
+
+
+def _resolve_country(code) -> str | None:
+    """Translate ISO-3166 alpha-2 country codes to readable names."""
+    if not code:
+        return None
+    record = pycountry.countries.get(alpha_2=str(code).upper())
+    return record.name if record else str(code)
+
+
+def _format_issue_number(number) -> str:
+    """
+    Format the numeric part of the compound issue column.
+
+    Trims trailing zeros after the decimal so a Decimal "1.00" reads
+    "1" and "1.50" reads "1.5". Returns "" when number is missing.
+    """
+    if number is None:
+        return ""
+    s = str(number)
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s
+
+
+def _format_issue(number, suffix) -> dict:
+    """
+    Render the compound ``issue`` column as ``{number, suffix}``.
+
+    Both halves stay separate on the wire so the table-view cell can
+    render the number right-justified and the suffix left-justified —
+    digits in a column then align at the boundary regardless of
+    suffix presence (1, 2a, 100, 25.5b all line up by the number's
+    right edge).
+    """
+    return {
+        "number": _format_issue_number(number),
+        "suffix": suffix or "",
+    }
+
+
+def _resolve_language(code) -> str | None:
+    """Translate ISO-639 alpha-2 language codes to readable names."""
+    if not code:
+        return None
+    record = pycountry.languages.get(alpha_2=str(code).lower())
+    return record.name if record else str(code)
+
+
+# Per-column display transforms applied to the raw queryset value
+# before it lands on the wire. Each callable takes the raw value
+# (typically a string from an FK annotation) and returns the display
+# string. The Country / Language tables store ISO-2 codes in their
+# ``name`` field, so the column lookup hits pycountry to surface the
+# full readable name.
+_COLUMN_VALUE_TRANSFORMS = {
+    "country": _resolve_country,
+    "language": _resolve_language,
+}
+
+# Routing metadata that ``_row_repr`` always emits regardless of the
+# user's column selection. Skipped during the per-column dispatch loop
+# because the values are pre-populated on the row dict.
+_ROUTING_COLUMNS = frozenset({"pk", "group", "ids"})
+
+
+def _apply_transform(col: str, value):
+    """Run the per-column display transform if the column has one."""
+    transform = _COLUMN_VALUE_TRANSFORMS.get(col)
+    return transform(value) if transform else value
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
@@ -71,8 +148,108 @@ class BrowserTitleSerializer(Serializer):
     group_count = IntegerField(read_only=True, allow_null=True)
 
 
+def _emit_cover(row, instance) -> None:
+    """Populate the cover_pk / cover_custom_pk pair from a single ``cover`` request."""
+    row["cover_pk"] = getattr(instance, "cover_pk", None) or instance.pk
+    row["cover_custom_pk"] = getattr(instance, "cover_custom_pk", None)
+
+
+def _emit_issue(row, instance) -> None:
+    """Render the compound issue column as ``{number, suffix}`` on the row."""
+    # Compound from issue_number + issue_suffix on the Comic, emitted as
+    # ``{number, suffix}`` so the cell can split-justify the halves.
+    # Group rows yield empty strings for both (intersection of distinct
+    # issues across child comics is rarely meaningful).
+    row["issue"] = _format_issue(
+        getattr(instance, "issue_number", None),
+        getattr(instance, "issue_suffix", "") or "",
+    )
+
+
+def _emit_column(
+    row,
+    instance,
+    col: str,
+    row_intersections: dict,
+    m2m_keys: frozenset[str],
+    fk_keys: frozenset[str],
+) -> None:
+    """
+    Resolve and emit a single column's value onto ``row``.
+
+    Lookup order: special-case (cover / issue) → group-row intersection
+    (with country / language transform) → M2M annotation alias → FK-name
+    annotation alias (with transform) → direct attribute lookup. M2M and
+    FK-name aliases are prefixed because the unprefixed name collides
+    with the matching Comic field attribute.
+    """
+    if col == "cover":
+        _emit_cover(row, instance)
+    elif col == "issue":
+        _emit_issue(row, instance)
+    elif col in row_intersections:
+        # Group-row intersection takes precedence (and applies country /
+        # language transforms the same way the FK-alias path does).
+        row[col] = _apply_transform(col, row_intersections[col])
+    elif col in m2m_keys:
+        row[col] = getattr(instance, m2m_alias_for(col), None)
+    elif col in fk_keys:
+        row[col] = _apply_transform(col, getattr(instance, fk_alias_for(col), None))
+    else:
+        # ``getattr`` covers direct fields, F-expression annotations
+        # (publisher_name etc.), and aggregates added downstream.
+        # Columns whose value source isn't annotated yet return None;
+        # the frontend renders them as empty cells.
+        row[col] = getattr(instance, col, None)
+
+
+def _row_repr(
+    instance, columns: tuple[str, ...], intersections: dict | None = None
+) -> dict:
+    """
+    Project a queryset row to the per-row dict for table view.
+
+    For Comic rows, values come from the queryset annotations / direct
+    fields. For group rows (Series, Publisher, etc.), the optional
+    ``intersections`` dict carries per-row intersections of child-comic
+    values: M2M values shared by every child comic, scalars where every
+    child comic has the same value. When present, intersections take
+    precedence over direct attribute lookups for the columns they cover.
+    """
+    # ``pk``, ``group``, and ``ids`` are always emitted regardless of
+    # the user's column selection. They're routing metadata: ``group``
+    # tells the frontend whether the row is a Comic or a group node,
+    # and ``ids`` is the list of pks the next route should target.
+    # Without these, clicking a Publisher row would route to a comic
+    # whose id matches the publisher's pk.
+    row: dict = {
+        "pk": instance.pk,
+        "group": getattr(instance, "group", None),
+        "ids": getattr(instance, "ids", None),
+    }
+    m2m_keys = m2m_columns()
+    fk_keys = fk_name_columns()
+    row_intersections = (
+        intersections.get(instance.pk) if intersections else None
+    ) or {}
+    for col in columns:
+        if col in _ROUTING_COLUMNS:
+            continue
+        _emit_column(row, instance, col, row_intersections, m2m_keys, fk_keys)
+    return row
+
+
 class BrowserPageSerializer(Serializer):
-    """The main browse list."""
+    """
+    The main browse list.
+
+    Always emits the cards-shape (``groups`` / ``books``). Also emits
+    a ``rows`` list projected through the requested ``columns`` when
+    the caller sets ``columns`` on the data dict (table-view mode).
+    The dual emission lets the frontend's mobile-auto-fallback render
+    the card grid on narrow viewports even when the user has table
+    view enabled — the card data is already in the response.
+    """
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     breadcrumbs = BreadcrumbsField(read_only=True)
@@ -83,6 +260,21 @@ class BrowserPageSerializer(Serializer):
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    rows = SerializerMethodField()
     fts = BooleanField(read_only=True)
     search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)
+
+    def get_rows(self, obj) -> list:
+        """Project groups + books through ``columns`` if requested."""
+        columns = obj.get("columns") if isinstance(obj, dict) else None
+        if not columns:
+            return []
+        columns = tuple(columns)
+        groups = obj.get("groups", ()) or ()
+        books = obj.get("books", ()) or ()
+        intersections = obj.get("group_intersections") or None
+        return [
+            _row_repr(item, columns, intersections=intersections)
+            for item in (*groups, *books)
+        ]

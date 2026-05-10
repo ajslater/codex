@@ -7,7 +7,7 @@ from types import MappingProxyType
 
 from django.db.models.query import QuerySet
 
-from codex.views.opds.const import BookmarkFilters, Rel
+from codex.views.opds.const import BookmarkFilters, FavoriteFilters, Rel
 
 
 @dataclass
@@ -166,6 +166,31 @@ PREVIEW_GROUPS = (
                         "title": "Oldest Unread",
                     }
                 ),
+            ),
+        ),
+    ),
+)
+
+# Conditionally appended to PREVIEW_GROUPS on the start page when the
+# requesting user has at least one favorite. Stays out of the static
+# tuple so a fresh user doesn't see an always-empty "Favorites"
+# section in their start feed. Inclusion is decided in
+# ``OPDS2FeedGroupsView.get_ordered_groups`` per request.
+FAVORITES_PREVIEW_GROUP = LinkGroup(
+    "Favorites",
+    (
+        Link(
+            Rel.FEATURED,
+            "Favorites",
+            "r",
+            MappingProxyType(
+                {
+                    "topGroup": "c",
+                    "filters": FavoriteFilters.ONLY,
+                    "orderBy": "sort_name",
+                    "orderReverse": False,
+                    "title": "Favorites",
+                }
             ),
         ),
     ),
