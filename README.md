@@ -297,6 +297,72 @@ url_path_prefix = ""
 The config directory also holds the main sqlite database, a Django cache and
 comic book cover thumbnails.
 
+### Full `codex.toml` Reference
+
+All available options with their defaults. Uncomment to override. Codex writes
+this file to the config directory on first startup if one is not already
+present.
+
+```toml
+# Codex Configuration File
+# Copy to config/codex.toml and edit as needed.
+# Environment variables override values in this file.
+# See README.md for full documentation.
+
+# [server]
+# Granian ASGI server settings
+# host = "0.0.0.0"
+# port = 9810
+# Number of worker processes. 1 is recommended for containerized environments.
+# workers = 1
+# HTTP version: "auto", "1", or "2"
+# http = "auto"
+# Enable websockets (required for Codex live updates)
+# websockets = true
+# HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
+# url_path_prefix = ""
+
+# [logging]
+# Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
+# loglevel = "INFO"
+# log_retention = "6 months"
+# log_to_console = true
+# log_to_file = true
+# Directory for log files. Defaults to <config_dir>/logs.
+# log_dir = ""
+
+# [cache]
+# Directory for the file-based cache (covers, query results, etc).
+# Defaults to <config_dir>/cache.
+# dir = ""
+
+# [browser]
+# max_obj_per_page = 100
+
+# [throttle]
+# Rate limiting (requests per minute). 0 = disabled.
+# anon = 0
+# user = 0
+# opds = 0
+# opensearch = 0
+
+# [auth]
+# Allows authentication without authorization via the Remote-User header.
+# Only enable if you have authorization in front of Codex. Dangerous.
+# remote_user = false
+# Log failed login attempts to a separate file. Useful as input for
+# banning tools like fail2ban, CrowdSec, or sshguard.
+# Line format: "<ISO timestamp> | Failed login from <ip> user=<username>"
+# Example fail2ban failregex:
+#   ^\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| Failed login from <HOST> user=.*$
+# failed_login_log = false
+# Path to the failed-login log. Defaults to <log_dir>/failed_logins.log.
+# failed_login_log_path = ""
+# When behind a reverse proxy, trust X-Forwarded-For for the client IP.
+# Disable if Codex is exposed directly (otherwise clients can forge their IP).
+# failed_login_log_trust_forwarded_for = true
+```
+
 ### Environment Variables
 
 Environment variables override values set in the TOML config file.
