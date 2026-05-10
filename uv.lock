@@ -545,7 +545,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], git = "https://github.com/ajslater/comicbox.git?branch=widen-pdffile-pin" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=3.0.1" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
     { name = "django-cachalot", specifier = "~=2.8" },
@@ -627,7 +627,7 @@ wheels = [
 [[package]]
 name = "comicbox"
 version = "3.0.1"
-source = { git = "https://github.com/ajslater/comicbox.git?branch=widen-pdffile-pin#93d45deed0db5204410dc690211ce4ed0dd5b3ad" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansicolors" },
     { name = "bidict" },
@@ -654,6 +654,10 @@ dependencies = [
     { name = "xmlschema" },
     { name = "xmltodict" },
     { name = "zipremove" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/05/c3eaae670034dd17e47c24a925cd9a26a4d8cfb0f75a58c8feed6acc6c2c/comicbox-3.0.1.tar.gz", hash = "sha256:5fc7aa91f92d3dd3f26af7dc08ae970f8eb698fe100d26a5f2639829676ab630", size = 71184127, upload-time = "2026-05-09T04:14:30.394Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/d6/2b8941eec897e71d4e6cad47f3569937f376a5092405efc97b18a29f745c/comicbox-3.0.1-py3-none-any.whl", hash = "sha256:1fc61d92a06be63b1be1707cba740ea96170f299e9bc333465a73ce6e2246106", size = 189960, upload-time = "2026-05-09T04:14:23.158Z" },
 ]
 
 [package.optional-dependencies]
