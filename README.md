@@ -18,29 +18,46 @@ A final docker.io image has been released on dockerhub.
 
 ## ✨ Features
 
-- Codex is a web server.
-- Full text search of comic metadata and bookmarks.
-- Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
-  hierarchy, or by tagged Story Arc.
-- Browse a multi-sortable table of comic metadata.
-- Mark Publishers, Series, Volumes, Folders, Story Arcs, and individual Issues
-  as favorites and filter on them per user.
-- Read comics in a variety of aspect ratios and directions that fit your screen.
-- Watches the filesystem and automatically imports new or changed comics.
-- Anonymous browsing and reading or reigistered users only, to your preference.
-- Per user bookmarking & settings, even before you make an account.
-- Private Libraries accessible only to certain groups of users.
-- Optional Age Restrictions per user for Age tagged comics.
-- Reads CBZ, CBR, CBT, and PDF formatted comics.
-- Syndication with OPDS 1 & 2, streaming, search and authentication.
-- Save and load named views and searches.
-- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
-- Fastest bulk comic importing by far of any comic server.
-- Fail2Ban log support.
-- Remote-User HTTP header SSO support.
-- Runs in 1GB of RAM, faster with more.
-- GPLv3 Licenced.
+### 📚 Library
+
+- Reads **CBZ, CBR, CB7, CBT and PDF** comics.
+- **Fastest bulk importer** of any comic server.
+- **Watches the filesystem** and auto-imports new or changed comics.
+- **Custom covers** for Folders, Publishers, Imprints, Series, and Story Arcs.
+
+### 🔎 Browse & Search
+
+- Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
+  hierarchy**, or by tagged **Story Arc**.
+- **Full-text search** across comic metadata and bookmarks.
+- **Filter and sort** on any metadata field, including per-user unread status.
+- A **multi-sortable metadata table** view for power browsing.
+- **Save and load** named views and searches.
+- **Favorites** at the Publisher, Series, Volume, Folder, Story Arc, or Issue
+  level — filterable per user.
+
+### 📖 Read
+
+- Adapts to any screen with multiple **aspect ratios and reading directions**.
+- **Per-user bookmarks and reading settings**, preserved even without an
+  account.
+
+### 👥 Users & Access
+
+- **Anonymous browsing** or registration-required mode — your choice.
+- **Private libraries** restricted to specific groups of users.
+- Optional **age restrictions** for age-tagged comics.
+
+### 🔌 Integrations
+
+- **OPDS 1 & 2** syndication with streaming, search, and authentication.
+- **Remote-User HTTP header SSO** for reverse-proxy single sign-on.
+- **Fail2Ban** log for IP-banning failed login attempts.
+
+### 🪶 Operations
+
+- Runs in **1 GB of RAM** (faster with more).
+- **GPLv3** licensed.
 
 ### Examples
 
