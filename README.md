@@ -552,9 +552,12 @@ failed_login_log = true
 ```
 
 A single signal receiver covers both the form login at `/api/v3/auth/login/` and
-OPDS HTTP Basic auth — no separate setup per endpoint. Failures still appear in
-the main `codex.log`; the dedicated file is an additional copy filtered to just
-these records.
+OPDS HTTP Basic auth — no separate setup per endpoint. The IP-bearing line is
+written **only** to `failed_logins.log`; the main `codex.log` still records
+Django's standard `"Unauthorized: /api/v3/auth/login/"` (or `"Forbidden: ..."`)
+WARNING for the same request, so the failure is visible in the main log without
+the client IP. This keeps PII (IP + username) concentrated in one file that you
+can chmod, forward to a SIEM, or retain on its own schedule.
 
 Each line looks like:
 
