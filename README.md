@@ -37,6 +37,7 @@ A final docker.io image has been released on dockerhub.
 - Save and load named views and searches.
 - Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
 - Fastest bulk comic importing by far of any comic server.
+- Fail2Ban log support.
 - Remote-User HTTP header SSO support.
 - Runs in 1GB of RAM, faster with more.
 - GPLv3 Licenced.

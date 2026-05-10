@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.1
+
+- Features
+    - Fail2Ban support with a dedicated failed login log. See README and
+      codex.toml.default
+
 ## v1.12.0
 
 - Features
