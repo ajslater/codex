@@ -12,6 +12,8 @@ border-radius: 128px;
     - Fail2Ban support with a dedicated log. See README.
 - Fixes
     - Comic filename parsing improvements.
+    - Downgrade noisy profile forbidden WARNINGS to DEBUG. They are a normal
+      part of connecting.
 
 ## v1.12.0
 
