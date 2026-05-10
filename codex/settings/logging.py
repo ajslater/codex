@@ -1,9 +1,34 @@
 """Logging Settings."""
 
-from logging import Handler
-from typing import override
+import logging
+from logging import Filter, Handler
+from typing import Final, override
 
 from loguru import logger
+
+# Paths whose routine anon-403s are noise, not abuse. The first-load
+# probe to ``/api/v3/auth/profile/`` is the obvious offender — a fresh
+# browser hits it before any session cookie exists. Django's
+# BaseHandler.get_response logs every 4xx at WARNING; we downgrade the
+# ones we expect so the main log stays useful.
+_NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v3/auth/profile/"})
+
+
+class DowngradeNoisyForbiddenFilter(Filter):
+    """Downgrade routine anon 403s on known-noisy paths to DEBUG."""
+
+    @override
+    def filter(self, record) -> bool:
+        if record.levelno != logging.WARNING:
+            return True
+        msg = record.getMessage()
+        if not msg.startswith("Forbidden: "):
+            return True
+        path = msg.split(": ", 1)[1]
+        if path in _NOISY_FORBIDDEN_PATHS:
+            record.levelno = logging.DEBUG
+            record.levelname = "DEBUG"
+        return True
 
 
 class LoguruHandler(Handler):
@@ -71,30 +96,28 @@ def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int |
             }
         )
     level = "DEBUG" if loglevel == "TRACE" else loglevel
+    # ``django.request`` belongs inside ``loggers`` so dictConfig sees it;
+    # putting it at the top level (as this file used to) is silently
+    # ignored. Records still reach the root ``loguru`` handler via
+    # propagation, but the filter only runs when the logger is declared
+    # here.
+    loggers["django.request"] = {
+        "filters": ["downgrade_noisy_forbidden"],
+    }
     return {
         "version": 1,
         "disable_existing_loggers": True,
+        "filters": {
+            "downgrade_noisy_forbidden": {
+                "()": "codex.settings.logging.DowngradeNoisyForbiddenFilter",
+            },
+        },
         "handlers": {
             "loguru": {
                 "class": "codex.settings.logging.LoguruHandler",
             },
         },
         "root": {
-            "handlers": ["loguru"],
-            "level": level,
-            "propagate": True,
-        },
-        "django": {
-            "handlers": ["loguru"],
-            "level": level,
-            "propagate": True,
-        },
-        "django.request": {
-            "handlers": ["loguru"],
-            "level": level,
-            "propagate": True,
-        },
-        "django.server": {
             "handlers": ["loguru"],
             "level": level,
             "propagate": True,
