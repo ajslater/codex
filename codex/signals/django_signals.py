@@ -51,6 +51,7 @@ def connect_signals() -> None:
 
     from codex.models import Library
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
+    from codex.settings import AUTH_FAILED_LOGIN_LOG
 
     post_save.connect(_on_library_changed, sender=Library)
     post_delete.connect(_on_library_changed, sender=Library)
@@ -61,3 +62,10 @@ def connect_signals() -> None:
     # senders.
     for model in FAVORITE_MODEL_GROUP_CODES:
         post_delete.connect(_on_favorite_target_deleted, sender=model)
+
+    if AUTH_FAILED_LOGIN_LOG:
+        from django.contrib.auth.signals import user_login_failed
+
+        from codex.failed_login_log import on_login_failed
+
+        user_login_failed.connect(on_login_failed)

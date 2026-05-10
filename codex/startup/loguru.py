@@ -5,7 +5,15 @@ from typing import Any
 
 from loguru import logger
 
-from codex.settings import DEBUG, LOG_PATH, LOG_RETENTION, LOG_ROTATION, LOGLEVEL
+from codex.settings import (
+    AUTH_FAILED_LOGIN_LOG,
+    AUTH_FAILED_LOGIN_LOG_PATH,
+    DEBUG,
+    LOG_PATH,
+    LOG_RETENTION,
+    LOG_ROTATION,
+    LOGLEVEL,
+)
 
 
 def _log_format() -> str:
@@ -45,3 +53,20 @@ def loguru_init() -> None:
         retention=LOG_RETENTION,
         compression="xz",
     )
+    if AUTH_FAILED_LOGIN_LOG:
+        # Lazy import keeps the failed_login_log module out of the import
+        # graph when the feature is off (the module imports from settings
+        # at load time, which is fine but avoidable when unused).
+        from codex.failed_login_log import failed_login_filter
+
+        AUTH_FAILED_LOGIN_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(
+            AUTH_FAILED_LOGIN_LOG_PATH,
+            format="{time:YYYY-MM-DD HH:mm:ss} | {message}",
+            level="WARNING",
+            rotation=LOG_ROTATION,
+            retention=LOG_RETENTION,
+            compression="xz",
+            enqueue=True,
+            filter=failed_login_filter,
+        )

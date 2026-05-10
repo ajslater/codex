@@ -142,6 +142,20 @@ LOG_ROTATION = "10 MB"
 ##############################
 
 AUTH_REMOTE_USER = get_bool(CODEX_CONFIG, "auth.remote_user", default=False)
+AUTH_FAILED_LOGIN_LOG = get_bool(CODEX_CONFIG, "auth.failed_login_log", default=False)
+_AUTH_FAILED_LOGIN_LOG_PATH_CONFIG = get_str(
+    CODEX_CONFIG, "auth.failed_login_log_path", default=""
+)
+AUTH_FAILED_LOGIN_LOG_PATH = (
+    Path(_AUTH_FAILED_LOGIN_LOG_PATH_CONFIG)
+    if _AUTH_FAILED_LOGIN_LOG_PATH_CONFIG
+    else LOG_DIR / "failed_logins.log"
+)
+AUTH_FAILED_LOGIN_LOG_TRUST_FORWARDED_FOR = get_bool(
+    CODEX_CONFIG,
+    "auth.failed_login_log_trust_forwarded_for",
+    default=True,
+)
 
 ##############################
 # Codex Config: Browser      #
@@ -497,6 +511,8 @@ def _get_middleware(features: FeatureFlags) -> tuple[str, ...]:
     ]
     if AUTH_REMOTE_USER:
         middleware.append("codex.authentication.HttpRemoteUserMiddleware")
+    if AUTH_FAILED_LOGIN_LOG:
+        middleware.append("codex.failed_login_log.RequestContextMiddleware")
     middleware += [
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",

@@ -51,6 +51,9 @@ _ENV_OVERRIDES: dict[str, str] = {
     "CODEX_THROTTLE_OPENSEARCH": "throttle.opensearch",
     # Auth
     "CODEX_AUTH_REMOTE_USER": "auth.remote_user",
+    "CODEX_AUTH_FAILED_LOGIN_LOG": "auth.failed_login_log",
+    "CODEX_AUTH_FAILED_LOGIN_LOG_PATH": "auth.failed_login_log_path",
+    "CODEX_AUTH_FAILED_LOGIN_LOG_TRUST_FORWARDED_FOR": "auth.failed_login_log_trust_forwarded_for",
     # Debug
     "CODEX_DEBUG_LOG_AUTH_HEADERS": "debug.log_auth_headers",
     "CODEX_DEBUG_SLOW_QUERY_LIMIT": "debug.slow_query_limit",
