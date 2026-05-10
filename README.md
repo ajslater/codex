@@ -360,6 +360,17 @@ to 2 queries per second.
 - `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
   Remote-User HTTP header. This can be very insecure if not configured properly.
   Please read the Remote-User docs devoted to it below.
+- `CODEX_AUTH_FAILED_LOGIN_LOG=1` will append every failed login attempt (form
+  login and OPDS Basic auth) to a separate log file for consumption by banning
+  tools like fail2ban, CrowdSec, or sshguard. Disabled by default. See the
+  [Failed-Login Log](#failed-login-log) section below.
+- `CODEX_AUTH_FAILED_LOGIN_LOG_PATH` overrides the failed-login log path.
+  Defaults to `$CODEX_LOG_DIR/failed_logins.log`.
+- `CODEX_AUTH_FAILED_LOGIN_LOG_TRUST_FORWARDED_FOR=0` makes the failed-login log
+  use `REMOTE_ADDR` instead of the leftmost `X-Forwarded-For` entry. Default is
+  `1` (trust XFF), which is correct when Codex sits behind a reverse proxy. Set
+  to `0` when Codex is exposed directly so that clients can't forge
+  `X-Forwarded-For` to poison the log.
 
 ### Reverse Proxy
 
@@ -440,6 +451,72 @@ or single sign on software to send this token.
 ```nginx
 set              user_token 'user-token-taken-from-web-ui';
 proxy_set_header Authorization "Bearer $user_token";
+```
+
+### Failed-Login Log
+
+Codex can append every failed login attempt to a dedicated log file in a format
+easy for IP-banning tools (fail2ban, CrowdSec, sshguard, etc.) to parse. The
+feature is off by default. Enable it by setting `CODEX_AUTH_FAILED_LOGIN_LOG=1`
+or in `codex.toml`:
+
+```toml
+[auth]
+failed_login_log = true
+# failed_login_log_path = ""                       # defaults to <log_dir>/failed_logins.log
+# failed_login_log_trust_forwarded_for = true      # set false if exposed directly
+```
+
+A single signal receiver covers both the form login at `/api/v3/auth/login/` and
+OPDS HTTP Basic auth — no separate setup per endpoint. Failures still appear in
+the main `codex.log`; the dedicated file is an additional copy filtered to just
+these records.
+
+Each line looks like:
+
+```
+2026-05-10 12:34:56 | Failed login from 192.168.1.42 user=alice
+```
+
+#### X-Forwarded-For trust
+
+The client IP is taken from the leftmost `X-Forwarded-For` entry when
+`failed_login_log_trust_forwarded_for = true` (the default), falling back to
+`REMOTE_ADDR`. This is correct when Codex sits behind a reverse proxy that sets
+the header (the typical Docker deployment).
+
+If Codex is exposed directly on its port, set
+`failed_login_log_trust_forwarded_for = false` — otherwise a client can set
+their own `X-Forwarded-For: 8.8.8.8` and your banning tool will ban that address
+instead of the real attacker.
+
+#### Example fail2ban filter
+
+`/etc/fail2ban/filter.d/codex.conf`:
+
+```ini
+[Definition]
+failregex = ^\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| Failed login from <HOST> user=.*$
+ignoreregex =
+```
+
+`/etc/fail2ban/jail.d/codex.conf`:
+
+```ini
+[codex]
+enabled  = true
+filter   = codex
+logpath  = /path/to/codex/config/logs/failed_logins.log
+maxretry = 5
+findtime = 10m
+bantime  = 1h
+```
+
+Validate the filter against a real log with `fail2ban-regex` before enabling the
+jail:
+
+```sh
+fail2ban-regex /path/to/codex/config/logs/failed_logins.log /etc/fail2ban/filter.d/codex.conf
 ```
 
 ### Restricted Memory Environments
