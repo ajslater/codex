@@ -9,8 +9,10 @@ border-radius: 128px;
 ## v1.12.1
 
 - Features
-    - Fail2Ban support with a dedicated failed login log. See README and
-      codex.toml.default
+    - Fail2Ban support with a dedicated log.
+        - See README and codex.toml.default
+- Fixes
+    - Comic filename parsing improvements.
 
 ## v1.12.0
 
