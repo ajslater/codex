@@ -13,7 +13,6 @@ export default defineConfig([
   {
     name: "codexIgnores",
     ignores: [
-      "codex/_vendor/",
       "codex/static_build/",
       "codex/static/",
       "codex/templates/*.html", // Handled by djlint
