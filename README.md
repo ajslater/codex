@@ -561,7 +561,7 @@ can chmod, forward to a SIEM, or retain on its own schedule.
 
 Each line looks like:
 
-```
+```log
 2026-05-10 12:34:56 | Failed login from 192.168.1.42 user=alice
 ```
 
