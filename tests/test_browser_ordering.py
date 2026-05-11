@@ -657,6 +657,72 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # intersection-sort key is NULL.
         assert names == ["Beta", "Alpha", "Mixed"], names
 
+    def test_cover_mode_group_order_value_uses_aggregate(self) -> None:
+        """
+        Cover view's group order_value is an aggregate, not an intersection.
+
+        Regression: the table-view PR routed group-row scalar sort
+        through ``scalar_intersection_sort_expr`` for every view mode.
+        That's correct for table view (sort matches the intersection
+        cell display) but blanks the order_value caption beneath
+        cover-mode cards for any group whose children disagree on
+        the sorted field. Series with mixed years rendered the card
+        caption as null; the user reported the same for Publish Date
+        across publishers, series, and folders.
+
+        Setup matches ``test_year_sort_matches_intersection_display``
+        — Alpha (clean 2020), Beta (single 2021), Mixed (2018 + 2024)
+        — but the request uses ``viewMode=cover``. Every group row
+        must come back with a non-null ``orderValue`` so the card
+        caption renders.
+        """
+        library = Library.objects.first()
+        publisher = Publisher.objects.get(name="ZZ Press")
+        imprint = Imprint.objects.get(name="ZZ Imprint")
+        series_mixed = Series.objects.create(
+            name="Mixed", imprint=imprint, publisher=publisher
+        )
+        volume_mixed = Volume.objects.create(
+            name="2030",
+            series=series_mixed,
+            imprint=imprint,
+            publisher=publisher,
+        )
+        for issue, year in ((1, 2018), (2, 2024)):
+            path = TMP_DIR / f"mixed-{issue}.cbz"
+            path.touch()
+            Comic.objects.create(
+                library=library,
+                path=path,
+                issue_number=issue,
+                name=f"mixed-{issue}",
+                publisher=publisher,
+                imprint=imprint,
+                series=series_mixed,
+                volume=volume_mixed,
+                size=100 + issue,
+                year=year,
+                page_count=10 + issue,
+            )
+
+        url = f"/api/v3/p/{publisher.pk}/1"
+        self._patch_settings(
+            {"viewMode": "cover", "orderBy": "year", "orderReverse": False}
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        groups = response.json().get("groups", [])
+        by_name = {g["name"]: g for g in groups}
+        # Aggregate (Min year asc): Mixed=2018, Alpha=2020, Beta=2021.
+        # None must be null — the user-visible regression was a null
+        # caption on Mixed (children disagree). The serializer emits
+        # ``order_value`` as a CharField so values come back stringified.
+        assert by_name["Alpha"]["orderValue"] == "2020"
+        assert by_name["Beta"]["orderValue"] == "2021"
+        assert by_name["Mixed"]["orderValue"] == "2018", (
+            f"Mixed orderValue should be Min(year)=2018, got {by_name['Mixed']['orderValue']!r}"
+        )
+
     def test_primary_sort_by_year_on_group_rows(self) -> None:
         """Min aggregate over a direct integer field (``year``) sorts correctly."""
         # Alpha has two comics, both year=2020 → Min year = 2020.
