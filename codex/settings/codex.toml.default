@@ -44,3 +44,16 @@
 # Allows authentication without authorization via the Remote-User header.
 # Only enable if you have authorization in front of Codex. Dangerous.
 # remote_user = false
+# Log failed login attempts to a separate file. Useful as input for
+# banning tools like fail2ban, CrowdSec, or sshguard. The IP-bearing line
+# is written only to this file; codex.log still records the bare Django
+# WARNING (no IP) so the failure is visible without exposing PII.
+# Line format: "<ISO timestamp> | Failed login from <ip> user=<username>"
+# Example fail2ban failregex:
+#   ^\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| Failed login from <HOST> user=.*$
+# failed_login_log = false
+# Path to the failed-login log. Defaults to <log_dir>/failed_logins.log.
+# failed_login_log_path = ""
+# When behind a reverse proxy, trust X-Forwarded-For for the client IP.
+# Disable if Codex is exposed directly (otherwise clients can forge their IP).
+# failed_login_log_trust_forwarded_for = true

@@ -18,28 +18,46 @@ A final docker.io image has been released on dockerhub.
 
 ## ✨ Features
 
-- Codex is a web server.
-- Full text search of comic metadata and bookmarks.
-- Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of Publishers, Imprints, Series, Volumes, or your own folder
-  hierarchy, or by tagged Story Arc.
-- Browse a multi-sortable table of comic metadata.
-- Mark Publishers, Series, Volumes, Folders, Story Arcs, and individual Issues
-  as favorites and filter on them per user.
-- Read comics in a variety of aspect ratios and directions that fit your screen.
-- Watches the filesystem and automatically imports new or changed comics.
-- Anonymous browsing and reading or reigistered users only, to your preference.
-- Per user bookmarking & settings, even before you make an account.
-- Private Libraries accessible only to certain groups of users.
-- Optional Age Restrictions per user for Age tagged comics.
-- Reads CBZ, CBR, CBT, and PDF formatted comics.
-- Syndication with OPDS 1 & 2, streaming, search and authentication.
-- Save and load named views and searches.
-- Add custom covers to Folders, Publishers, Imprints, Series, and Story Arcs.
-- Fastest bulk comic importing by far of any comic server.
-- Remote-User HTTP header SSO support.
-- Runs in 1GB of RAM, faster with more.
-- GPLv3 Licenced.
+### 📚 Library
+
+- Reads **CBZ, CBR, CB7, CBT and PDF** comics.
+- **Fastest bulk importer** of any comic server.
+- **Watches the filesystem** and auto-imports new or changed comics.
+- **Custom covers** for Folders, Publishers, Imprints, Series, and Story Arcs.
+
+### 🔎 Browse & Search
+
+- Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
+  hierarchy**, or by tagged **Story Arc**.
+- **Full-text search** across comic metadata and bookmarks.
+- **Filter and sort** on any metadata field, including per-user unread status.
+- A **multi-sortable metadata table** view for power browsing.
+- **Save and load** named views and searches.
+- **Favorites** at the Publisher, Series, Volume, Folder, Story Arc, or Issue
+  level — filterable per user.
+
+### 📖 Read
+
+- Adapts to any screen with multiple **aspect ratios and reading directions**.
+- **Per-user bookmarks and reading settings**, preserved even without an
+  account.
+
+### 👥 Users & Access
+
+- **Anonymous browsing** or registration-required mode — your choice.
+- **Private libraries** restricted to specific groups of users.
+- Optional **age restrictions** for age-tagged comics.
+
+### 🔌 Integrations
+
+- **OPDS 1 & 2** syndication with streaming, search, and authentication.
+- **Remote-User HTTP header SSO** for reverse-proxy single sign-on.
+- **Fail2Ban** log for IP-banning failed login attempts.
+
+### 🪶 Operations
+
+- Runs in **1 GB of RAM** (faster with more).
+- **GPLv3** licensed.
 
 ### Examples
 
@@ -279,6 +297,72 @@ url_path_prefix = ""
 The config directory also holds the main sqlite database, a Django cache and
 comic book cover thumbnails.
 
+### Full `codex.toml` Reference
+
+All available options with their defaults. Uncomment to override. Codex writes
+this file to the config directory on first startup if one is not already
+present.
+
+```toml
+# Codex Configuration File
+# Copy to config/codex.toml and edit as needed.
+# Environment variables override values in this file.
+# See README.md for full documentation.
+
+# [server]
+# Granian ASGI server settings
+# host = "0.0.0.0"
+# port = 9810
+# Number of worker processes. 1 is recommended for containerized environments.
+# workers = 1
+# HTTP version: "auto", "1", or "2"
+# http = "auto"
+# Enable websockets (required for Codex live updates)
+# websockets = true
+# HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
+# url_path_prefix = ""
+
+# [logging]
+# Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
+# loglevel = "INFO"
+# log_retention = "6 months"
+# log_to_console = true
+# log_to_file = true
+# Directory for log files. Defaults to <config_dir>/logs.
+# log_dir = ""
+
+# [cache]
+# Directory for the file-based cache (covers, query results, etc).
+# Defaults to <config_dir>/cache.
+# dir = ""
+
+# [browser]
+# max_obj_per_page = 100
+
+# [throttle]
+# Rate limiting (requests per minute). 0 = disabled.
+# anon = 0
+# user = 0
+# opds = 0
+# opensearch = 0
+
+# [auth]
+# Allows authentication without authorization via the Remote-User header.
+# Only enable if you have authorization in front of Codex. Dangerous.
+# remote_user = false
+# Log failed login attempts to a separate file. Useful as input for
+# banning tools like fail2ban, CrowdSec, or sshguard.
+# Line format: "<ISO timestamp> | Failed login from <ip> user=<username>"
+# Example fail2ban failregex:
+#   ^\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| Failed login from <HOST> user=.*$
+# failed_login_log = false
+# Path to the failed-login log. Defaults to <log_dir>/failed_logins.log.
+# failed_login_log_path = ""
+# When behind a reverse proxy, trust X-Forwarded-For for the client IP.
+# Disable if Codex is exposed directly (otherwise clients can forge their IP).
+# failed_login_log_trust_forwarded_for = true
+```
+
 ### Environment Variables
 
 Environment variables override values set in the TOML config file.
@@ -360,6 +444,17 @@ to 2 queries per second.
 - `CODEX_AUTH_REMOTE_USER` will allow unauthenticated logins with the
   Remote-User HTTP header. This can be very insecure if not configured properly.
   Please read the Remote-User docs devoted to it below.
+- `CODEX_AUTH_FAILED_LOGIN_LOG=1` will append every failed login attempt (form
+  login and OPDS Basic auth) to a separate log file for consumption by banning
+  tools like fail2ban, CrowdSec, or sshguard. Disabled by default. See the
+  [Failed-Login Log](#failed-login-log) section below.
+- `CODEX_AUTH_FAILED_LOGIN_LOG_PATH` overrides the failed-login log path.
+  Defaults to `$CODEX_LOG_DIR/failed_logins.log`.
+- `CODEX_AUTH_FAILED_LOGIN_LOG_TRUST_FORWARDED_FOR=0` makes the failed-login log
+  use `REMOTE_ADDR` instead of the leftmost `X-Forwarded-For` entry. Default is
+  `1` (trust XFF), which is correct when Codex sits behind a reverse proxy. Set
+  to `0` when Codex is exposed directly so that clients can't forge
+  `X-Forwarded-For` to poison the log.
 
 ### Reverse Proxy
 
@@ -440,6 +535,75 @@ or single sign on software to send this token.
 ```nginx
 set              user_token 'user-token-taken-from-web-ui';
 proxy_set_header Authorization "Bearer $user_token";
+```
+
+### Failed-Login Log
+
+Codex can append every failed login attempt to a dedicated log file in a format
+easy for IP-banning tools (fail2ban, CrowdSec, sshguard, etc.) to parse. The
+feature is off by default. Enable it by setting `CODEX_AUTH_FAILED_LOGIN_LOG=1`
+or in `codex.toml`:
+
+```toml
+[auth]
+failed_login_log = true
+# failed_login_log_path = ""                       # defaults to <log_dir>/failed_logins.log
+# failed_login_log_trust_forwarded_for = true      # set false if exposed directly
+```
+
+A single signal receiver covers both the form login at `/api/v3/auth/login/` and
+OPDS HTTP Basic auth — no separate setup per endpoint. The IP-bearing line is
+written **only** to `failed_logins.log`; the main `codex.log` still records
+Django's standard `"Unauthorized: /api/v3/auth/login/"` (or `"Forbidden: ..."`)
+WARNING for the same request, so the failure is visible in the main log without
+the client IP. This keeps PII (IP + username) concentrated in one file that you
+can chmod, forward to a SIEM, or retain on its own schedule.
+
+Each line looks like:
+
+```
+2026-05-10 12:34:56 | Failed login from 192.168.1.42 user=alice
+```
+
+#### X-Forwarded-For trust
+
+The client IP is taken from the leftmost `X-Forwarded-For` entry when
+`failed_login_log_trust_forwarded_for = true` (the default), falling back to
+`REMOTE_ADDR`. This is correct when Codex sits behind a reverse proxy that sets
+the header (the typical Docker deployment).
+
+If Codex is exposed directly on its port, set
+`failed_login_log_trust_forwarded_for = false` — otherwise a client can set
+their own `X-Forwarded-For: 8.8.8.8` and your banning tool will ban that address
+instead of the real attacker.
+
+#### Example fail2ban filter
+
+`/etc/fail2ban/filter.d/codex.conf`:
+
+```ini
+[Definition]
+failregex = ^\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| Failed login from <HOST> user=.*$
+ignoreregex =
+```
+
+`/etc/fail2ban/jail.d/codex.conf`:
+
+```ini
+[codex]
+enabled  = true
+filter   = codex
+logpath  = /path/to/codex/config/logs/failed_logins.log
+maxretry = 5
+findtime = 10m
+bantime  = 1h
+```
+
+Validate the filter against a real log with `fail2ban-regex` before enabling the
+jail:
+
+```sh
+fail2ban-regex /path/to/codex/config/logs/failed_logins.log /etc/fail2ban/filter.d/codex.conf
 ```
 
 ### Restricted Memory Environments
