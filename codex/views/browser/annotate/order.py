@@ -288,23 +288,32 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _group_m2m_order_value(self, qs):
         """Group-row M2M order_value, falling back to ``sort_name``."""
-        isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
-        if isort_expr is not None:
-            return qs, isort_expr
+        # Intersection sort matches the table-view cell display. Cover
+        # view's caption can't render M2M intersection and the rule
+        # would leave most cards with a NULL sort key, so card mode
+        # falls back to sort_name.
+        if self.params.get("view_mode") == "table":
+            isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+            if isort_expr is not None:
+                return qs, isort_expr
         if qs.model is Volume:
             qs = qs.alias(sort_name=F("name"))
         return qs, F("sort_name")
 
     def _group_scalar_order_value(self, qs):
-        """Group-row scalar / FK-name order_value (intersection-aware)."""
-        # Display uses intersection — a value renders only when every
-        # child comic agrees — so the sort key matches that rule.
-        # Falls back to the legacy aggregate path when the column /
-        # group model isn't wired so adding a new registry scalar
-        # doesn't silently regress its sort.
-        isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
-        if isort_expr is not None:
-            return isort_expr
+        """Group-row scalar / FK-name order_value."""
+        # Table view uses intersection so the sort key matches the
+        # displayed cell (blank when children disagree). Cover view's
+        # card caption shows order_value directly — intersection there
+        # would blank the caption for any group with mixed children,
+        # which is the regression we're avoiding. Falls back to the
+        # legacy aggregate path when the column / group model isn't
+        # wired so adding a new registry scalar doesn't silently
+        # regress its sort.
+        if self.params.get("view_mode") == "table":
+            isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
+            if isort_expr is not None:
+                return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
         agg_func = self.order_agg_func if agg_func == Min else agg_func
         field = self.rel_prefix + comic_order_path(self.order_key)

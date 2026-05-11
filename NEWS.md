@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v.1.12.2
+
+- Fix
+    - Ordering in browser card mode was broken for groups
+
 ## v1.12.1
 
 - Features
