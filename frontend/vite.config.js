@@ -57,9 +57,46 @@ const config = defineConfig(({ mode }) => {
     rawHost.includes(".") && !rawHost.endsWith(".local")
       ? `${rawHost.split(".")[0]}.local`
       : rawHost;
+  // Mirror Django's ``_vite_dev_server_host``: explicit
+  // ``VITE_HOST`` override, otherwise the mDNS-mangled hostname.
+  // This is the name baked into the @vite/client's ``serverHost``
+  // and ``directSocketHost`` strings, so it must be resolvable
+  // from *every* browser that loads the page — not just the host.
+  // Without setting ``server.hmr.host`` Vite falls back to
+  // ``localhost`` whenever ``server.host`` is ``true``, which makes
+  // LAN browsers connect to their own loopback and get
+  // ERR_CONNECTION_REFUSED for HMR + module fetches.
+  const HMR_HOST = process.env.VITE_HOST?.toLowerCase() || mDNSHost;
   const ALLOWED_HOSTS = DEV
-    ? [...new Set([rawHost, mDNSHost, "localhost", "127.0.0.1", "[::1]"])]
+    ? [
+        ...new Set([
+          HMR_HOST,
+          rawHost,
+          mDNSHost,
+          "localhost",
+          "127.0.0.1",
+          "[::1]",
+        ]),
+      ]
     : [];
+  // Vite 6+ defaults ``server.cors.origin`` to a regex matching
+  // only loopback / ``.localhost`` hosts. When the Django dev
+  // server is browsed at e.g. ``http://hooloovoo.local:9810``, the
+  // browser sends ``Origin: http://hooloovoo.local:9810`` while
+  // fetching ``<script src="http://hooloovoo.local:5173/...">``.
+  // That origin doesn't match Vite's default regex, so the dev
+  // server replies with ``Vary: Origin`` but no
+  // ``Access-Control-Allow-Origin`` and the script load is blocked.
+  // Mirror ``allowedHosts`` into a CORS regex that accepts any
+  // port so browser-side fetches from Django (or anything else on
+  // the same hostname) work.
+  const reEscape = (s) => s.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&");
+  const CORS_ORIGIN = DEV
+    ? // eslint-disable-next-line security/detect-non-literal-regexp
+      new RegExp(
+        `^https?://(${ALLOWED_HOSTS.map(reEscape).join("|")})(?::\\d+)?$`,
+      )
+    : undefined;
   let publicPathPrefix = "window.CODEX.APP_PATH";
   if (PROD) {
     publicPathPrefix += ".substring(1)";
@@ -172,6 +209,8 @@ const config = defineConfig(({ mode }) => {
     server: {
       host: true,
       allowedHosts: ALLOWED_HOSTS,
+      cors: { origin: CORS_ORIGIN },
+      hmr: { host: HMR_HOST },
       strictPort: true,
     },
     test: {
