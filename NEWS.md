@@ -6,9 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v.1.12.2
+## v1.12.3
 
-- Fix
+- Fixes
+    - Fix scroll bar controls appearing on the Edge browser in tags screen
+      values.
+
+## v1.12.2
+
+- Fixes
     - Ordering in browser card mode was broken for groups
 
 ## v1.12.1
