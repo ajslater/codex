@@ -11,6 +11,9 @@ border-radius: 128px;
 - Fixes
     - Fix scroll bar controls appearing on the Edge browser in tags screen
       values.
+- Features
+    - Add touch swiping back to the reader with an implementation that's less
+      twitchy than before.
 
 ## v1.12.2
 
