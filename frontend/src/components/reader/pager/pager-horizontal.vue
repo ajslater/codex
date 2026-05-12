@@ -4,6 +4,7 @@
     continuous
     :model-value="windowIndex"
     :reverse="isReadInReverse"
+    :touch="swipeHandlers"
   >
     <template #prev>
       <PageChangeLink direction="prev" />
@@ -87,6 +88,20 @@ export default {
       const val = this.activePage - this.pages[0];
       return Math.min(Math.max(0, val), this.book?.maxPage || 0);
     },
+    swipeHandlers() {
+      /*
+       * Override v-window's built-in touch nav so swipes route
+       * through the comic page URL like the keyboard arrows do.
+       * The default handlers call v-window's internal prev/next,
+       * which are no-ops here because all items are ``disabled``.
+       * Matching ArrowRight → ``next`` and ArrowLeft → ``prev``
+       * lets ``routeToDirection`` normalize for RTL the same way.
+       */
+      return {
+        left: () => this.routeToDirection("next"),
+        right: () => this.routeToDirection("prev"),
+      };
+    },
   },
   watch: {
     twoPages() {
@@ -119,6 +134,7 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "getBookSettings",
+      "routeToDirection",
       "setBookChangeFlag",
       "setActivePage",
     ]),
