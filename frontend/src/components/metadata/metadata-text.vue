@@ -234,7 +234,7 @@ export default {
 }
 
 .textValue {
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .expandButton {
