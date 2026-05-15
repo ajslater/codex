@@ -35,7 +35,7 @@ _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
 # ``comic__folders`` (download) rather than ``parent_folder`` (FK).
 # Mirrors the branches in :meth:`GroupFilterView._get_rel_for_pks`.
 _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
-    {"cover", "choices", "bookmark", "download"}
+    {"cover", "choices", "bookmark", "download", "force_update"}
 )
 
 # Group codes whose transitive-favorite clauses introduce m2m JOINs on

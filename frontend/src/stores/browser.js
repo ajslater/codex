@@ -614,6 +614,12 @@ export const useBrowserStore = defineStore("browser", {
         return true;
       });
     },
+    async forceUpdateGroup(params) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      await API.forceUpdateGroup(params, this.filterOnlySettings);
+    },
     clearSearchHideTimeout() {
       clearTimeout(this.searchHideTimeout);
     },

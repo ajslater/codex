@@ -45,6 +45,7 @@ export default defineConfig([
           ignoreContent: [
             "notify_groups_changed",
             "notify_failed_imports_changed",
+            "ForceUpdateConfirmDialog",
           ],
         },
       ],

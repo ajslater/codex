@@ -25,6 +25,13 @@ class LazyImportComicsTask(ScribeTask):
     pks: frozenset[int]
 
 
+@dataclass
+class ForceUpdateComicsTask(ScribeTask):
+    """Force a metadata re-import for a specific set of comic pks."""
+
+    comic_pks: frozenset[int]
+
+
 class ImportAbortTask(ScribeTask):
     """Abort Import."""
 

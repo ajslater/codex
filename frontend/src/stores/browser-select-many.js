@@ -40,6 +40,13 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     selectedCount(state) {
       return state.selectedItems.size;
     },
+    selectedTotalChildCount(state) {
+      let total = 0;
+      for (const item of state.selectedItems.values()) {
+        total += item.childCount || (item.group === "c" ? 1 : 0);
+      }
+      return total;
+    },
     isSelected(state) {
       return (item) => state.selectedItems.has(_itemKey(item));
     },
@@ -159,6 +166,21 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         link.click();
         link.remove();
       }
+    },
+    async forceUpdate() {
+      const browserStore = useBrowserStore();
+      if (!browserStore.isAuthorized || this.selectedItems.size === 0) {
+        return;
+      }
+      const grouped = _groupSelectedItems(this.selectedItems);
+      const promises = [];
+      for (const [group, items] of Object.entries(grouped)) {
+        const ids = _collectPks(items);
+        promises.push(
+          API.forceUpdateGroup({ group, ids }, browserStore.filterOnlySettings),
+        );
+      }
+      await Promise.all(promises);
     },
   },
 });

@@ -8,6 +8,7 @@ from codex.views.browser.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.download import GroupDownloadView
+from codex.views.browser.force_update import ForceUpdateView
 from codex.views.browser.metadata import MetadataView
 from codex.views.browser.saved_settings import (
     SavedBrowserSettingsListView,
@@ -80,5 +81,13 @@ urlpatterns = [
         "<int_list:pks>/import",
         LazyImportView.as_view(),
         name="import",
+    ),
+    #
+    #
+    # Force Update Tags
+    path(
+        "<int_list:pks>/force_update",
+        ForceUpdateView.as_view(),
+        name="force_update",
     ),
 ]
