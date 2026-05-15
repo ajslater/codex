@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v1.12.4
 
-- Fix
+- Fixes
     - Crash on Cleanup Favorites Janitor Job.
 - Features
     - Force Update Tags by individual group.
