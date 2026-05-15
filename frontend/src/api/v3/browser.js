@@ -137,6 +137,13 @@ export const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
 export const getLazyImport = ({ group, pks }) =>
   HTTP.get(`/${group}/${pks}/import`);
 
+export const forceUpdateGroup = ({ group, ids }, settings) => {
+  const params = serializeParams(settings);
+  const queryString = new URLSearchParams(params).toString();
+  const pkList = ids.join(",");
+  return HTTP.post(`/${group}/${pkList}/force_update?${queryString}`);
+};
+
 export const getSavedSettingsList = () => HTTP.get("/r/settings/saved");
 
 export const saveSettings = (name) => HTTP.post("/r/settings/saved", { name });

@@ -29,6 +29,7 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexSyncTask,
 )
 from codex.librarian.scribe.tasks import (
+    ForceUpdateComicsTask,
     ImportAbortTask,
     LazyImportComicsTask,
     ScribeTask,
@@ -47,6 +48,7 @@ _SCRIBE_TASK_PRIORITY = (
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
     JanitorImportForceAllFailedTask,
+    ForceUpdateComicsTask,
     ImportTask,
     LazyImportComicsTask,
     UpdateGroupsTask,

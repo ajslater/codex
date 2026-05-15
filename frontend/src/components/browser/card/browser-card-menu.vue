@@ -14,6 +14,7 @@
     <v-list class="background-soft-highlight">
       <MarkReadButton class="listItem" :button="false" :item="item" />
       <DownloadButton class="listItem" :button="false" :item="downloadItem" />
+      <ForceUpdateButton class="listItem" :button="false" :item="item" />
     </v-list>
   </v-menu>
 </template>
@@ -23,12 +24,14 @@ import { mdiDotsVertical } from "@mdi/js";
 
 import { formattedIssue, formattedVolumeName } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
+import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 
 export default {
   name: "BrowserContainerMenu",
   components: {
     DownloadButton,
+    ForceUpdateButton,
     MarkReadButton,
   },
   props: {

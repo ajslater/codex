@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.4
+
+- Features
+    - Force Update Tags by individual group.
+
 ## v1.12.3
 
 - Fixes

@@ -11,7 +11,7 @@ from codex.views.const import (
     GROUP_RELATION,
 )
 
-_GROUP_REL_TARGETS: Final = frozenset({"cover", "choices", "bookmark"})
+_GROUP_REL_TARGETS: Final = frozenset({"cover", "choices", "bookmark", "force_update"})
 _PK_REL_TARGETS: Final = frozenset({"metadata", "mtime"})
 
 

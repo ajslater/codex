@@ -4,6 +4,7 @@ from multiprocessing import Manager
 from queue import PriorityQueue
 from typing import Final, override
 
+from codex.librarian.scribe.force_updater import ForceUpdater
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.adopt_folders import OrphanFolderAdopter
@@ -22,6 +23,7 @@ from codex.librarian.scribe.search.tasks import (
 )
 from codex.librarian.scribe.tasks import (
     CleanupAbortTask,
+    ForceUpdateComicsTask,
     ImportAbortTask,
     LazyImportComicsTask,
     SearchIndexSyncAbortTask,
@@ -74,6 +76,11 @@ class ScribeThread(QueuedThread):
                     self.log, self.librarian_queue, self.db_write_lock
                 )
                 worker.lazy_import(task)
+            case ForceUpdateComicsTask():
+                worker = ForceUpdater(
+                    self.log, self.librarian_queue, self.db_write_lock
+                )
+                worker.force_update(task)
             case UpdateGroupsTask():
                 worker = TimestampUpdater(
                     self.log, self.librarian_queue, self.db_write_lock

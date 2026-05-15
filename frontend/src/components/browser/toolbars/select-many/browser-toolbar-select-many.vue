@@ -59,6 +59,18 @@
             <v-icon :icon="mdiDownload" />
             <span class="actionLabel">Download</span>
           </v-btn>
+          <v-btn
+            v-if="isUserAdmin"
+            v-tooltip="{ text: 'Force Update Tags', openDelay: 500 }"
+            :disabled="!hasSelection"
+            density="compact"
+            size="small"
+            variant="text"
+            @click="onForceUpdateClick"
+          >
+            <v-icon :icon="mdiAutorenew" />
+            <span class="actionLabel">Force Update</span>
+          </v-btn>
         </div>
         <v-spacer />
         <v-btn
@@ -78,11 +90,18 @@
       no-activator
       @close="showMetadataDialog = false"
     />
+    <ForceUpdateConfirmDialog
+      v-model="showForceUpdateConfirm"
+      :affected-count="selectedTotalChildCount"
+      :subject="forceUpdateSubject"
+      @confirm="forceUpdate"
+    />
   </div>
 </template>
 
 <script>
 import {
+  mdiAutorenew,
   mdiBookmarkCheckOutline,
   mdiBookmarkMinusOutline,
   mdiClose,
@@ -91,41 +110,65 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+
+const CHILD_WARNING_LIMIT = 99;
 
 export default {
   name: "BrowserSelectManyToolbar",
   components: {
+    ForceUpdateConfirmDialog,
     MetadataDialog,
   },
   data() {
     return {
+      mdiAutorenew,
       mdiBookmarkCheckOutline,
       mdiBookmarkMinusOutline,
       mdiClose,
       mdiDownload,
       mdiTagOutline,
       showMetadataDialog: false,
+      showForceUpdateConfirm: false,
     };
   },
   computed: {
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserSelectManyStore, [
       "active",
       "selectedCount",
+      "selectedTotalChildCount",
       "hasSelection",
       "compositeItem",
     ]),
+    forceUpdateSubject() {
+      const itemNoun = this.selectedCount === 1 ? "item" : "items";
+      return `across ${this.selectedCount} selected ${itemNoun}`;
+    },
   },
   methods: {
     ...mapActions(useBrowserSelectManyStore, [
       "clearSelection",
       "markFinished",
       "download",
+      "forceUpdate",
     ]),
     openTags() {
       if (this.compositeItem) {
         this.showMetadataDialog = true;
+      }
+    },
+    onForceUpdateClick() {
+      if (!this.hasSelection) {
+        return;
+      }
+      if (this.selectedTotalChildCount > CHILD_WARNING_LIMIT) {
+        this.showForceUpdateConfirm = true;
+      } else {
+        this.forceUpdate();
       }
     },
   },
