@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.5
+
+- Fixes
+    - Fix "Last Read" column in table view crashing.
+    - Ignore dotfiles.
+
 ## v1.12.4
 
 - Fixes
