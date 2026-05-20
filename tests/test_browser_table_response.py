@@ -505,6 +505,45 @@ class BrowserTablePageResponseTestCase(TestCase):
         # produced a non-null value.
         assert row["country"] in ("United States", "us")
 
+    def test_table_view_bookmark_updated_at_column_on_group_row(self) -> None:
+        """
+        Group rows render ``bookmark_updated_at`` without 500-ing.
+
+        Regression: ``_SCALAR_FIELD_PATHS`` mapped the column to a
+        ``"bookmark_updated_at"`` path that resolved against Comic
+        directly, but that's not a Comic field — it's the per-user
+        filtered ``Max(bookmark__updated_at)`` aggregate the order
+        path already builds. ``compute_group_intersections`` therefore
+        crashed with ``FieldError`` the moment a group view was
+        rendered in table mode with the "Last Read" column visible
+        and a different order key (the default). The fix drops the
+        broken intersection entry and extends
+        ``_annotate_bookmark_updated_at`` to attach the aggregate to
+        group querysets in table view so the cell display can read
+        it via ``getattr``.
+        """
+        from codex.models.bookmark import Bookmark
+
+        first_comic = Comic.objects.first()
+        assert first_comic is not None
+        user = User.objects.get(username="table_response_test")
+        Bookmark.objects.create(user=user, comic=first_comic, page=3)
+
+        self._set_view_mode_table()
+        url = (
+            f"/api/v3/p/{first_comic.publisher.pk}/1"
+            "?columns=cover,name,bookmark_updated_at"
+        )
+        response = self.client.get(url)
+        assert response.status_code == _HTTP_OK, response.content
+        rows = response.json()["rows"]
+        assert rows, response.json()
+        row = rows[0]
+        # The cell uses the per-user-filtered Max aggregate annotation,
+        # so it should be a non-empty ISO timestamp string from the
+        # bookmark we just created.
+        assert row.get("bookmarkUpdatedAt"), row
+
     def test_table_view_group_publisher_name_renders_for_series_rows(self) -> None:
         """
         Series rows show ``publisher_name`` via child-comic intersection.

@@ -227,15 +227,39 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         return qs
 
     def _annotate_bookmark_updated_at(self, qs) -> QuerySet:
-        if self.is_opds_acquisition or self.order_key == "bookmark_updated_at":
-            bmua_agg = self.get_max_bookmark_updated_at_aggregate(
-                qs.model, agg_func=self.order_agg_func
-            )
+        # Aggregate triggers:
+        # - OPDS acquisition needs the per-entry "last read" timestamp.
+        # - Sorting by ``bookmark_updated_at`` needs it as the order key.
+        # - Group rows in table view display it as a column; the cell
+        #   display path (``_emit_column`` → ``getattr``) reads the
+        #   annotation directly, so without this branch the column would
+        #   crash ``compute_group_intersections`` (the field can't be
+        #   aggregated as a Comic-relative scalar without the user
+        #   filter). Comic rows keep going through
+        #   ``annotate_comic_extra_specials`` to avoid double-annotation.
+        primary = self.is_opds_acquisition or self.order_key == "bookmark_updated_at"
+        table_column = (
+            qs.model is not Comic
+            and self.params.get("view_mode") == "table"
+            and self.order_key != "bookmark_updated_at"
+        )
+        if not primary and not table_column:
+            return qs
+        agg_func = self.order_agg_func if primary else Max
+        bmua_agg = self.get_max_bookmark_updated_at_aggregate(
+            qs.model, agg_func=agg_func
+        )
+        if primary:
             # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
             # second aggregate, and by the serializer to compute mtime.
-            self.bmua_is_max = self.order_agg_func is Max
-            qs = qs.annotate(bookmark_updated_at=bmua_agg)
-        return qs
+            # Only set in the primary branch — that path annotates both
+            # group and Comic querysets, so the scalar exists on every
+            # serialized row. The table-column branch annotates only
+            # group rows; flipping the flag here would make
+            # ``get_mtime`` reach for a missing ``bookmark_updated_at``
+            # on Comic books in the same response.
+            self.bmua_is_max = agg_func is Max
+        return qs.annotate(bookmark_updated_at=bmua_agg)
 
     def _annotate_search_scores(self, qs, *, for_cover: bool = False):
         """Annotate Search Scores."""
