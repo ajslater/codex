@@ -17,12 +17,14 @@ const USER_GROUP_ROUTES = Object.freeze([
 ]);
 
 const HEARTBEAT_INTERVAL_MS = 5_000;
-// Exponential backoff: 1s, 2s, 4s, 8s, 16s, then 30s cap. Avoids
-// hammering a momentarily-down server (the previous fixed 3s delay
-// pinned us to ~20 reconnect attempts/min while the server was
-// unreachable) while still reconnecting quickly after a transient
-// blip. Counter resets on successful connect so a long-lived
-// session that drops once doesn't pay the full backoff next time.
+/*
+ * Exponential backoff: 1s, 2s, 4s, 8s, 16s, then 30s cap. Avoids
+ * hammering a momentarily-down server (the previous fixed 3s delay
+ * pinned us to ~20 reconnect attempts/min while the server was
+ * unreachable) while still reconnecting quickly after a transient
+ * blip. Counter resets on successful connect so a long-lived
+ * session that drops once doesn't pay the full backoff next time.
+ */
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
 
@@ -31,10 +33,12 @@ function currentRouteName() {
   return router?.currentRoute?.value?.name;
 }
 
-// Manual heartbeat — fire-and-forget empty string, no pong expected.
-// VueUse's built-in heartbeat option closes the connection if no pong is
-// received within its pongTimeout (default 1000ms), which breaks servers
-// that silently consume the ping without echoing anything back.
+/*
+ * Manual heartbeat — fire-and-forget empty string, no pong expected.
+ * VueUse's built-in heartbeat option closes the connection if no pong is
+ * received within its pongTimeout (default 1000ms), which breaks servers
+ * that silently consume the ping without echoing anything back.
+ */
 let heartbeatTimer = 0;
 let reconnectTimer = 0;
 let reconnectAttempts = 0;
@@ -59,8 +63,10 @@ function clearReconnectTimer() {
 }
 
 function scheduleReconnect(open) {
-  // Coalesce: a duplicate ``onDisconnected`` (or a stray error
-  // before the scheduled reconnect fires) shouldn't double-schedule.
+  /*
+   * Coalesce: a duplicate ``onDisconnected`` (or a stray error
+   * before the scheduled reconnect fires) shouldn't double-schedule.
+   */
   if (reconnectTimer) return;
   const delay = Math.min(
     RECONNECT_BASE_MS * 2 ** reconnectAttempts,
@@ -77,9 +83,11 @@ function scheduleReconnect(open) {
 }
 
 export const useSocketStore = defineStore("socket", () => {
-  // ``autoReconnect: false`` disables vueuse's fixed-delay loop;
-  // we drive reconnect ourselves from ``onDisconnected`` so we can
-  // back off exponentially.
+  /*
+   * ``autoReconnect: false`` disables vueuse's fixed-delay loop;
+   * we drive reconnect ourselves from ``onDisconnected`` so we can
+   * back off exponentially.
+   */
   const { status, open } = useWebSocket(WS_URL, {
     immediate: true,
     autoReconnect: false,
@@ -120,9 +128,11 @@ export const useSocketStore = defineStore("socket", () => {
 
   async function adminLoadTables(tables) {
     const adminStore = await getAdminStore();
-    // Force-skip the admin store's sticky cache: a websocket
-    // fan-out fires precisely because the data changed on the
-    // server, so cached state is by definition stale.
+    /*
+     * Force-skip the admin store's sticky cache: a websocket
+     * fan-out fires precisely because the data changed on the
+     * server, so cached state is by definition stale.
+     */
     adminStore?.loadTables(tables, { force: true });
   }
 
@@ -224,9 +234,11 @@ export const useSocketStore = defineStore("socket", () => {
   const reopen = () => {
     // Don't force a reopen if we're in the middle of connecting.
     if (status.value == "CONNECTING") return;
-    // Cancel any pending backoff-scheduled reconnect; the user
-    // change is an authoritative trigger and we want to attempt
-    // immediately, not wait out the previous failure's window.
+    /*
+     * Cancel any pending backoff-scheduled reconnect; the user
+     * change is an authoritative trigger and we want to attempt
+     * immediately, not wait out the previous failure's window.
+     */
     clearReconnectTimer();
     reconnectAttempts = 0;
     open(true);

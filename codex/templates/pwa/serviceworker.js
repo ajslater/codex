@@ -21,10 +21,12 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
-      // Pair with skipWaiting() so the new SW takes control of
-      // already-open pages immediately. Without this, replacing a
-      // stale SW (e.g. one with a stale CSP) would need a second
-      // reload to take effect.
+      /*
+       * Pair with skipWaiting() so the new SW takes control of
+       * already-open pages immediately. Without this, replacing a
+       * stale SW (e.g. one with a stale CSP) would need a second
+       * reload to take effect.
+       */
       self.clients.claim(),
       caches.keys().then((cacheNames) => {
         return Promise.all(
@@ -39,11 +41,13 @@ self.addEventListener("activate", (event) => {
 });
 // Serve from Cache
 self.addEventListener("fetch", (event) => {
-  // Pass through non-GET and cross-origin requests so the browser
-  // handles them under the page's CSP rather than the SW's snapshot
-  // taken at install time. Vite HMR talks to a separate origin
-  // (5173) and would otherwise be blocked by a stale SW CSP that
-  // pre-dates the dev-only overlay.
+  /*
+   * Pass through non-GET and cross-origin requests so the browser
+   * handles them under the page's CSP rather than the SW's snapshot
+   * taken at install time. Vite HMR talks to a separate origin
+   * (5173) and would otherwise be blocked by a stale SW CSP that
+   * pre-dates the dev-only overlay.
+   */
   const url = new URL(event.request.url);
   if (event.request.method !== "GET" || url.origin !== self.location.origin) {
     return;

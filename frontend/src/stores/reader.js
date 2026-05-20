@@ -133,12 +133,14 @@ export const useReaderStore = defineStore("reader", {
     reactWithScroll: false,
     clientSettings: {
       scale: SCALE_DEFAULT,
-      // Per-session PDF rendering preference. ``auto`` runs the
-      // server-side detector (most comic PDFs serve as ``<img>``);
-      // ``image`` forces a server-side rasterize for any page;
-      // ``pdf`` skips the detector and routes through vue-pdf-embed
-      // on the client. Persisted client-side only — not in the
-      // server-side reader settings yet (spike scope).
+      /*
+       * Per-session PDF rendering preference. ``auto`` runs the
+       * server-side detector (most comic PDFs serve as ``<img>``);
+       * ``image`` forces a server-side rasterize for any page;
+       * ``pdf`` skips the detector and routes through vue-pdf-embed
+       * on the client. Persisted client-side only — not in the
+       * server-side reader settings yet (spike scope).
+       */
       pdfRenderMode: "auto",
     },
     showToolbars: false,
@@ -178,9 +180,11 @@ export const useReaderStore = defineStore("reader", {
       return state.books?.current?.fileType == "PDF";
     },
     cacheBook() {
-      // PDFs now render page-by-page (image-first with PDFDoc
-      // fallback) so the old "vertical PDF can't be cached" carve
-      // out is no longer needed.
+      /*
+       * PDFs now render page-by-page (image-first with PDFDoc
+       * fallback) so the old "vertical PDF can't be cached" carve
+       * out is no longer needed.
+       */
       return this.activeSettings.cacheBook;
     },
     isPagesNotRoutes(state) {
@@ -478,25 +482,29 @@ export const useReaderStore = defineStore("reader", {
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.isPagesNotRoutes) {
-        // ``cacheBook`` mode keeps every page mounted in the same
-        // document, so a page change is a v-window slide — no real
-        // route change. Update the URL via pushState instead.
+        /*
+         * ``cacheBook`` mode keeps every page mounted in the same
+         * document, so a page change is a v-window slide — no real
+         * route change. Update the URL via pushState instead.
+         */
         const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
         globalThis.history.pushState({}, undefined, href);
       }
-      // Reset window scroll for any non-vertical mode. Previously
-      // tied to the ``else`` branch above, which assumed ``cacheBook``
-      // was always false (a snake_case typo on
-      // ``READER_DEFAULTS.cache_book`` made the default resolve to
-      // ``undefined``). Once that typo was fixed in v1.11 and
-      // ``cacheBook`` defaulted to its real ``true``, horizontal
-      // readers stopped getting a scroll-to-top on every page advance
-      // — fitTo=Width pages taller than the viewport stuck the user
-      // mid-scroll into the previous page.
-      // Vertical mode handles its own scroll via ``scrollToPage``;
-      // jumping the window to 0 there would collide with the
-      // virtual-scroll position.
+      /*
+       * Reset window scroll for any non-vertical mode. Previously
+       * tied to the ``else`` branch above, which assumed ``cacheBook``
+       * was always false (a snake_case typo on
+       * ``READER_DEFAULTS.cache_book`` made the default resolve to
+       * ``undefined``). Once that typo was fixed in v1.11 and
+       * ``cacheBook`` defaulted to its real ``true``, horizontal
+       * readers stopped getting a scroll-to-top on every page advance
+       * — fitTo=Width pages taller than the viewport stuck the user
+       * mid-scroll into the previous page.
+       * Vertical mode handles its own scroll via ``scrollToPage``;
+       * jumping the window to 0 there would collide with the
+       * virtual-scroll position.
+       */
       if (!this.activeSettings.isVertical) {
         window.scrollTo(0, 0);
       }
@@ -527,9 +535,11 @@ export const useReaderStore = defineStore("reader", {
           mtime = this.mtime;
         }
       }
-      // Single-flight: rapid Next-Book clicks abort the previous
-      // fetch so its late response can't merge stale book settings
-      // over the new book's state.
+      /*
+       * Single-flight: rapid Next-Book clicks abort the previous
+       * fetch so its late response can't merge stale book settings
+       * over the new book's state.
+       */
       const signal = useAbortable("reader:loadBooks");
       try {
         const response = await READER_API.getReaderInfo(pk, settings, mtime, {
@@ -589,16 +599,20 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       if (!arcs.length) {
-        // No arcs is a 500 from the mtime api. Use the same
-        // ``{ group, pks }`` shape the loop above produces — the
-        // earlier ``{ r: "0" }`` was a typo that itself returned
-        // 500 from the API, so the fallback never actually worked.
+        /*
+         * No arcs is a 500 from the mtime api. Use the same
+         * ``{ group, pks }`` shape the loop above produces — the
+         * earlier ``{ r: "0" }`` was a typo that itself returned
+         * 500 from the API, so the fallback never actually worked.
+         */
         arcs.push({ group: "r", pks: "0" });
       }
-      // Dedup so concurrent callers (websocket fan-out across the
-      // browser + reader stores, rapid notifications) share one
-      // request. Key on the sorted arc list so distinct arc sets
-      // don't collide; same-shape concurrent calls coalesce.
+      /*
+       * Dedup so concurrent callers (websocket fan-out across the
+       * browser + reader stores, rapid notifications) share one
+       * request. Key on the sorted arc list so distinct arc sets
+       * don't collide; same-shape concurrent calls coalesce.
+       */
       const dedupKey = `reader:loadMtimes:${arcs
         .map((a) => `${a.group}/${a.pks}`)
         .sort()
@@ -904,9 +918,11 @@ export const useReaderStore = defineStore("reader", {
       return { link };
     },
     prefetchBook(book) {
-      // PDF books now prefetch alongside CBZ — image-first responses
-      // are cacheable as plain images, fallback responses cache as
-      // PDF blobs that the next mount fetches via vue-pdf-embed.
+      /*
+       * PDF books now prefetch alongside CBZ — image-first responses
+       * are cacheable as plain images, fallback responses cache as
+       * PDF blobs that the next mount fetches via vue-pdf-embed.
+       */
       if (!this.cacheBook) {
         return {};
       }

@@ -55,8 +55,10 @@ export const useFavoritesStore = defineStore("favorites", {
         console.error(`Unknown favorite group ${group}`);
         return;
       }
-      // Optimistic flip: mutate locally, fire the matching API call,
-      // and roll back if the server rejects so the UI never lies.
+      /*
+       * Optimistic flip: mutate locally, fire the matching API call,
+       * and roll back if the server rejects so the UI never lies.
+       */
       const wasFavorite = set.has(pk);
       this._setLocal(group, pk, !wasFavorite);
       const apiCall = wasFavorite ? API.removeFavorite : API.addFavorite;
@@ -77,8 +79,10 @@ export const useFavoritesStore = defineStore("favorites", {
       }
     },
     clear() {
-      // Logout / user switch — wipe the cached Sets so a different
-      // user doesn't see the previous account's favorite stars.
+      /*
+       * Logout / user switch — wipe the cached Sets so a different
+       * user doesn't see the previous account's favorite stars.
+       */
       this.$patch({
         favoriteIds: emptyFavoriteIds(),
         hydrated: false,

@@ -9,15 +9,19 @@ const { TABLES } = API;
 
 const warnError = (error) => console.warn(error);
 
-// Sticky-cache TTL for admin table reads. Tab-swap navigation
-// inside the admin panel re-fires ``loadTables`` on mount; the
-// previous code refetched every time. With a short window we
-// serve the existing state for redundant reads while still
-// picking up changes from explicit invalidators (CRUD mutations
-// and websocket fan-out both pass ``{ force: true }``).
+/*
+ * Sticky-cache TTL for admin table reads. Tab-swap navigation
+ * inside the admin panel re-fires ``loadTables`` on mount; the
+ * previous code refetched every time. With a short window we
+ * serve the existing state for redundant reads while still
+ * picking up changes from explicit invalidators (CRUD mutations
+ * and websocket fan-out both pass ``{ force: true }``).
+ */
 const DYNAMIC_TTL_MS = 5_000;
-// AgeRatingMetron is a static enum lookup; once loaded it never
-// needs refreshing for the session.
+/*
+ * AgeRatingMetron is a static enum lookup; once loaded it never
+ * needs refreshing for the session.
+ */
 const TABLE_TTL_MS = Object.freeze({
   AgeRatingMetron: Number.POSITIVE_INFINITY,
 });
@@ -90,11 +94,13 @@ export const useAdminStore = defineStore("admin", {
     async loadTable(table, { force = false } = {}) {
       if (this._requireAdmin()) return false;
       const t = TABLES[table];
-      // Sticky-cache gate. Skip if we've loaded this table within
-      // the TTL window and the caller didn't explicitly demand a
-      // fresh read. CRUD mutations and websocket-driven refetches
-      // pass ``{ force: true }`` because they know the data
-      // changed underneath us.
+      /*
+       * Sticky-cache gate. Skip if we've loaded this table within
+       * the TTL window and the caller didn't explicitly demand a
+       * fresh read. CRUD mutations and websocket-driven refetches
+       * pass ``{ force: true }`` because they know the data
+       * changed underneath us.
+       */
       if (!force) {
         const ttl = TABLE_TTL_MS[table] ?? DYNAMIC_TTL_MS;
         const last = this.timestamps[table] || 0;
@@ -118,12 +124,14 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadTables(tables, options) {
       if (this._requireAdmin()) return false;
-      // ``Promise.all`` so every fetch runs concurrently and the
-      // returned promise resolves only once they've all settled.
-      // Previously this was a fire-and-forget for-loop: callers
-      // that awaited it received a synchronous ``undefined`` and
-      // could observe an admin tab's state mid-load (some tables
-      // populated, some still empty), which presented as flicker.
+      /*
+       * ``Promise.all`` so every fetch runs concurrently and the
+       * returned promise resolves only once they've all settled.
+       * Previously this was a fire-and-forget for-loop: callers
+       * that awaited it received a synchronous ``undefined`` and
+       * could observe an admin tab's state mid-load (some tables
+       * populated, some still empty), which presented as flicker.
+       */
       return await Promise.all(
         tables.map((table) => this.loadTable(table, options)),
       );
@@ -228,17 +236,19 @@ export const useAdminStore = defineStore("admin", {
         .catch(console.warn);
     },
     _patchAllLibrarianStatuses(next) {
-      // Diff-based update. The previous code reassigned
-      // ``allLibrarianStatuses`` to a brand-new object on every
-      // poll, forcing every computed/watcher subscribing to the
-      // map (job-tab progress bars, status-list rows) to
-      // re-evaluate even when nothing actually moved. The
-      // websocket-driven LIBRARIAN_STATUS fan-out can fire many
-      // times a second during an active import, so this
-      // dominated job-tab render time.
-      //
-      // Mutate keys in place: Pinia's reactivity then notifies
-      // only watchers that touch the specific keys we changed.
+      /*
+       * Diff-based update. The previous code reassigned
+       * ``allLibrarianStatuses`` to a brand-new object on every
+       * poll, forcing every computed/watcher subscribing to the
+       * map (job-tab progress bars, status-list rows) to
+       * re-evaluate even when nothing actually moved. The
+       * websocket-driven LIBRARIAN_STATUS fan-out can fire many
+       * times a second during an active import, so this
+       * dominated job-tab render time.
+       *
+       * Mutate keys in place: Pinia's reactivity then notifies
+       * only watchers that touch the specific keys we changed.
+       */
       const current = this.allLibrarianStatuses;
       // Remove keys that vanished from the latest payload.
       for (const key of Object.keys(current)) {

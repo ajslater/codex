@@ -61,11 +61,13 @@ const _addTimestamp = (params, ts) => {
   params.ts = ts;
 };
 
-// Public alias: deep-clone a Vue reactive (or plain) object/array,
-// recursively unwrapping proxies via ``toRaw`` at every level.
-// Prefer this over ``structuredClone`` when the source might be a
-// Pinia / Vue reactive value — structuredClone trips ``DataCloneError``
-// on certain reactive Array proxies (see ``getMetadata`` history).
+/*
+ * Public alias: deep-clone a Vue reactive (or plain) object/array,
+ * recursively unwrapping proxies via ``toRaw`` at every level.
+ * Prefer this over ``structuredClone`` when the source might be a
+ * Pinia / Vue reactive value — structuredClone trips ``DataCloneError``
+ * on certain reactive Array proxies (see ``getMetadata`` history).
+ */
 export const deepClone = (obj) => _deepClone(obj, false);
 
 export const serializeParams = (data, ts, filterEmpty = true) => {
@@ -89,11 +91,13 @@ export const getDownloadIOSPWAFix = (href, filename) => {
       const blob = new Blob([response.data], {
         type: "application/octet-stream",
       });
-      // ``createObjectURL`` returns a string ``blob:...`` URL;
-      // ``revokeObjectURL`` must be called on that same string,
-      // not on the underlying Blob. The original code passed the
-      // Blob, which silently no-op'd and leaked the object URL on
-      // every iOS PWA download.
+      /*
+       * ``createObjectURL`` returns a string ``blob:...`` URL;
+       * ``revokeObjectURL`` must be called on that same string,
+       * not on the underlying Blob. The original code passed the
+       * Blob, which silently no-op'd and leaked the object URL on
+       * every iOS PWA download.
+       */
       const objectUrl = globalThis.URL.createObjectURL(blob);
       link.href = objectUrl;
       link.download = filename;

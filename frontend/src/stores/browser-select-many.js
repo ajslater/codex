@@ -107,9 +107,11 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     selectAll() {
       this.active = true;
       const browserStore = useBrowserStore();
-      // Table mode emits ``rows``; cover mode emits ``groups``/``books``.
-      // Prefer the table list when present so select-all works in both
-      // presentations without the caller having to know which is active.
+      /*
+       * Table mode emits ``rows``; cover mode emits ``groups``/``books``.
+       * Prefer the table list when present so select-all works in both
+       * presentations without the caller having to know which is active.
+       */
       const rows = browserStore.page.rows;
       const items =
         Array.isArray(rows) && rows.length > 0

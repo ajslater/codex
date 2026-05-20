@@ -29,9 +29,11 @@ export const getCoverSrc = ({ coverPk, coverCustomPk }, ts) => {
   return `${base}c/${coverPk}/cover.webp${query}`;
 };
 
-// Mirror of MISSING_COVER_NAME_MAP in codex/views/const.py.
-// Root group "r" never appears as a card group, so it's intentionally
-// absent — unknown letters fall back to the comic placeholder.
+/*
+ * Mirror of MISSING_COVER_NAME_MAP in codex/views/const.py.
+ * Root group "r" never appears as a card group, so it's intentionally
+ * absent — unknown letters fall back to the comic placeholder.
+ */
 const PLACEHOLDER_BY_GROUP = Object.freeze({
   p: "publisher",
   i: "imprint",
@@ -57,10 +59,8 @@ export const getAvailableFilterChoices = (
   return HTTP.get(`/${group}/${pks}/choices_available`, { params, ...options });
 };
 
-/* eslint-disable max-params */
 export const getFilterChoices = (
-  { group, pks },
-  fieldName,
+  { group, pks, fieldName },
   data,
   ts,
   options = {},
@@ -71,7 +71,6 @@ export const getFilterChoices = (
     ...options,
   });
 };
-/* eslint-enable max-params */
 
 export const getBrowserPage = (
   { group, pks, page },
@@ -84,11 +83,13 @@ export const getBrowserPage = (
 };
 
 export const getMetadata = ({ group, pks }, settings) => {
-  // Pull ``mtime`` out as the timestamp; ``serializeParams`` deep-clones
-  // the rest via ``_deepClone`` (which calls ``toRaw`` at every level),
-  // so we don't need ``structuredClone`` here — and can't safely use it,
-  // since the reactive filter arrays from the Pinia store don't always
-  // survive a structured clone (DataCloneError on ``[object Array]``).
+  /*
+   * Pull ``mtime`` out as the timestamp; ``serializeParams`` deep-clones
+   * the rest via ``_deepClone`` (which calls ``toRaw`` at every level),
+   * so we don't need ``structuredClone`` here — and can't safely use it,
+   * since the reactive filter arrays from the Pinia store don't always
+   * survive a structured clone (DataCloneError on ``[object Array]``).
+   */
   const pkList = pks.join(",");
   const { mtime, ...data } = toRaw(settings) || {};
   const params = serializeParams(data, mtime, false);
@@ -109,10 +110,12 @@ export const resetSettings = () => HTTP.delete("/r/settings");
 
 export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
   const base = globalThis.CODEX.API_V3_PATH;
-  // Strip ``show`` without mutating the caller's settings object;
-  // the previous ``delete settings.show`` was a silent side-effect
-  // that broke any caller relying on its settings object surviving
-  // a download-URL build.
+  /*
+   * Strip ``show`` without mutating the caller's settings object;
+   * the previous ``delete settings.show`` was a silent side-effect
+   * that broke any caller relying on its settings object surviving
+   * a download-URL build.
+   */
   const { show: _show, ...query } = settings;
   const { hrefPath, queryString } = getBrowserHrefPath({
     group,
@@ -127,8 +130,10 @@ export const getGroupDownloadURL = ({ group, pks }, fn, settings, ts) => {
 export const updateGroupBookmarks = ({ group, ids }, settings, updates) => {
   const params = serializeParams(settings);
   const queryString = new URLSearchParams(params).toString();
-  // Backend rejects the JSON literal ``null`` for ``fitTo``; normalise
-  // without mutating the caller's reactive update payload.
+  /*
+   * Backend rejects the JSON literal ``null`` for ``fitTo``; normalise
+   * without mutating the caller's reactive update payload.
+   */
   const body = updates.fitTo === null ? { ...updates, fitTo: "" } : updates;
   const pkList = ids.join(",");
   return HTTP.patch(`/${group}/${pkList}/bookmark?${queryString}`, body);

@@ -12,14 +12,16 @@ const makeAdminCRUD = (entity) => {
   };
 };
 
-// One descriptor per admin table, keyed by the PascalCase table name
-// the admin store / components pass to ``loadTable`` / ``createRow`` /
-// ``updateRow`` / ``deleteRow``. Each descriptor exposes the subset of
-// ``create`` / ``getAll`` / ``update`` / ``destroy`` HTTP ops the
-// table actually supports plus the camelCase ``stateField`` the admin
-// store stores the loaded rows under. Letting the API surface own the
-// table names eliminates the IRREGULAR_PLURALS map + string-concat
-// lookup the admin store used to need on the consumer side.
+/*
+ * One descriptor per admin table, keyed by the PascalCase table name
+ * the admin store / components pass to ``loadTable`` / ``createRow`` /
+ * ``updateRow`` / ``deleteRow``. Each descriptor exposes the subset of
+ * ``create`` / ``getAll`` / ``update`` / ``destroy`` HTTP ops the
+ * table actually supports plus the camelCase ``stateField`` the admin
+ * store stores the loaded rows under. Letting the API surface own the
+ * table names eliminates the IRREGULAR_PLURALS map + string-concat
+ * lookup the admin store used to need on the consumer side.
+ */
 export const TABLES = Object.freeze({
   User: { ...makeAdminCRUD("user"), stateField: "users" },
   Group: { ...makeAdminCRUD("group"), stateField: "groups" },
@@ -39,11 +41,13 @@ export const TABLES = Object.freeze({
       HTTP.get("/admin/librarian/status", { params: { ts: Date.now() } }),
     stateField: "activeLibrarianStatuses",
   },
-  // AgeRatingMetron is an effectively-static enum lookup — rows
-  // don't change at runtime — so we skip the ``serializeParams()``
-  // cache-buster. Browser-cacheable; the admin store also keeps a
-  // sticky in-memory cache (``TABLE_TTL_MS = Infinity``) for the
-  // session, so a typical visitor hits this endpoint at most once.
+  /*
+   * AgeRatingMetron is an effectively-static enum lookup — rows
+   * don't change at runtime — so we skip the ``serializeParams()``
+   * cache-buster. Browser-cacheable; the admin store also keeps a
+   * sticky in-memory cache (``TABLE_TTL_MS = Infinity``) for the
+   * session, so a typical visitor hits this endpoint at most once.
+   */
   AgeRatingMetron: {
     getAll: () => HTTP.get("/admin/age-rating-metron"),
     stateField: "ageRatingMetrons",

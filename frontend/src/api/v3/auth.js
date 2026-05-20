@@ -8,9 +8,11 @@ export const updateTimezone = () =>
     timezone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 
-// Backend reads ``login`` (django-allauth field name); the form binds to
-// ``username``. Spread instead of mutating so the caller's reactive form
-// state doesn't grow a stray ``login`` field.
+/*
+ * Backend reads ``login`` (django-allauth field name); the form binds to
+ * ``username``. Spread instead of mutating so the caller's reactive form
+ * state doesn't grow a stray ``login`` field.
+ */
 export const register = (credentials) =>
   HTTP.post("/auth/register/", { ...credentials, login: credentials.username });
 
