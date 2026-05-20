@@ -15,7 +15,7 @@
           class="cardCoverOverlay selectManyOverlay"
           :class="{ selected: checked }"
           :aria-label="linkLabel"
-          @click="toggleItem(item)"
+          @click="selectItemAt(item, { shift: $event.shiftKey })"
         />
         <router-link
           v-else
@@ -30,7 +30,7 @@
           :class="{ checked }"
           density="compact"
           :model-value="checked"
-          @click.stop.prevent="toggleItem(item)"
+          @click.stop.prevent="selectItemAt(item, { shift: $event.shiftKey })"
         />
         <FavoriteToggle
           v-if="favoritePk"
@@ -160,7 +160,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(useBrowserSelectManyStore, ["toggleItem"]),
+    ...mapActions(useBrowserSelectManyStore, ["selectItemAt"]),
     scrollToMe() {
       if (
         !this.$route.hash ||
