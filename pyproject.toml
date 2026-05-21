@@ -46,7 +46,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.12.4"
+version = "1.12.5"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -203,7 +203,20 @@ skip = "*.svg,*~,.*,.*/*,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.l
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = ["**/.*", "**/__pycache__"]
+exclude = [
+  "**/.*",
+  "**/__pycache__",
+  ".cache",
+  ".git",
+  ".github",
+  ".venv",
+  "frontend",
+  "node_modules",
+  "site",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
 
 [tool.coverage.html]
 directory = "test-results/coverage"

@@ -19,8 +19,10 @@ import { useCommonStore } from "@/stores/common";
 
 export default {
   setup() {
-    // Prevent keystrokes from leaking through dialogs to underlying views
-    // (e.g. reader keyboard shortcuts).
+    /*
+     * Prevent keystrokes from leaking through dialogs to underlying views
+     * (e.g. reader keyboard shortcuts).
+     */
     useEventListener(globalThis, "keyup", (event) => {
       event.stopImmediatePropagation();
     });

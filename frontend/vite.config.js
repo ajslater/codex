@@ -38,34 +38,40 @@ console.info(defineObj);
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
-  // ``--mode analyze`` opts into a one-shot bundle-size report.
-  // Run via ``bun run analyze``; opens ``frontend/bundle-stats.html``
-  // with the treemap of every chunk and which modules contribute to
-  // it. Used by tasks/frontend-perf/05-bundle-and-startup.md when
-  // tuning the manualChunks split.
+  /*
+   * ``--mode analyze`` opts into a one-shot bundle-size report.
+   * Run via ``bun run analyze``; opens ``frontend/bundle-stats.html``
+   * with the treemap of every chunk and which modules contribute to
+   * it. Used by tasks/frontend-perf/05-bundle-and-startup.md when
+   * tuning the manualChunks split.
+   */
   const ANALYZE = mode === "analyze";
-  // https://github.com/vitejs/vite/issues/19242
-  // Match the host django-vite renders into <script src=...>.
-  // FQDNs (e.g. box.example.com) get mangled down to the mDNS form
-  // (box.local) because the FQDN resolves via WAN DNS and most
-  // consumer routers don't NAT-loopback that back to the LAN. The
-  // raw hostname is kept too in case it's already a single label or
-  // ends in .local. Loopback names included so curl / tooling that
-  // hits 127.0.0.1 or localhost:9810 don't get blocked.
+  /*
+   * https://github.com/vitejs/vite/issues/19242
+   * Match the host django-vite renders into <script src=...>.
+   * FQDNs (e.g. box.example.com) get mangled down to the mDNS form
+   * (box.local) because the FQDN resolves via WAN DNS and most
+   * consumer routers don't NAT-loopback that back to the LAN. The
+   * raw hostname is kept too in case it's already a single label or
+   * ends in .local. Loopback names included so curl / tooling that
+   * hits 127.0.0.1 or localhost:9810 don't get blocked.
+   */
   const rawHost = hostname().toLowerCase();
   const mDNSHost =
     rawHost.includes(".") && !rawHost.endsWith(".local")
       ? `${rawHost.split(".")[0]}.local`
       : rawHost;
-  // Mirror Django's ``_vite_dev_server_host``: explicit
-  // ``VITE_HOST`` override, otherwise the mDNS-mangled hostname.
-  // This is the name baked into the @vite/client's ``serverHost``
-  // and ``directSocketHost`` strings, so it must be resolvable
-  // from *every* browser that loads the page — not just the host.
-  // Without setting ``server.hmr.host`` Vite falls back to
-  // ``localhost`` whenever ``server.host`` is ``true``, which makes
-  // LAN browsers connect to their own loopback and get
-  // ERR_CONNECTION_REFUSED for HMR + module fetches.
+  /*
+   * Mirror Django's ``_vite_dev_server_host``: explicit
+   * ``VITE_HOST`` override, otherwise the mDNS-mangled hostname.
+   * This is the name baked into the @vite/client's ``serverHost``
+   * and ``directSocketHost`` strings, so it must be resolvable
+   * from *every* browser that loads the page — not just the host.
+   * Without setting ``server.hmr.host`` Vite falls back to
+   * ``localhost`` whenever ``server.host`` is ``true``, which makes
+   * LAN browsers connect to their own loopback and get
+   * ERR_CONNECTION_REFUSED for HMR + module fetches.
+   */
   const HMR_HOST = process.env.VITE_HOST?.toLowerCase() || mDNSHost;
   const ALLOWED_HOSTS = DEV
     ? [
@@ -79,17 +85,19 @@ const config = defineConfig(({ mode }) => {
         ]),
       ]
     : [];
-  // Vite 6+ defaults ``server.cors.origin`` to a regex matching
-  // only loopback / ``.localhost`` hosts. When the Django dev
-  // server is browsed at e.g. ``http://hooloovoo.local:9810``, the
-  // browser sends ``Origin: http://hooloovoo.local:9810`` while
-  // fetching ``<script src="http://hooloovoo.local:5173/...">``.
-  // That origin doesn't match Vite's default regex, so the dev
-  // server replies with ``Vary: Origin`` but no
-  // ``Access-Control-Allow-Origin`` and the script load is blocked.
-  // Mirror ``allowedHosts`` into a CORS regex that accepts any
-  // port so browser-side fetches from Django (or anything else on
-  // the same hostname) work.
+  /*
+   * Vite 6+ defaults ``server.cors.origin`` to a regex matching
+   * only loopback / ``.localhost`` hosts. When the Django dev
+   * server is browsed at e.g. ``http://hooloovoo.local:9810``, the
+   * browser sends ``Origin: http://hooloovoo.local:9810`` while
+   * fetching ``<script src="http://hooloovoo.local:5173/...">``.
+   * That origin doesn't match Vite's default regex, so the dev
+   * server replies with ``Vary: Origin`` but no
+   * ``Access-Control-Allow-Origin`` and the script load is blocked.
+   * Mirror ``allowedHosts`` into a CORS regex that accepts any
+   * port so browser-side fetches from Django (or anything else on
+   * the same hostname) work.
+   */
   const reEscape = (s) => s.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&");
   const CORS_ORIGIN = DEV
     ? // eslint-disable-next-line security/detect-non-literal-regexp
@@ -108,10 +116,12 @@ const config = defineConfig(({ mode }) => {
     build: {
       emptyOutDir: true,
       manifest: "manifest.json",
-      // ``analyze`` is a production-shape build but with the
-      // visualizer plugin attached. Keep minify on so the chunk
-      // sizes the visualizer reports match what users actually
-      // download.
+      /*
+       * ``analyze`` is a production-shape build but with the
+       * visualizer plugin attached. Keep minify on so the chunk
+       * sizes the visualizer reports match what users actually
+       * download.
+       */
       minify: PROD || ANALYZE,
       outDir: path.resolve("../codex/static_build"),
       rollupOptions: {
@@ -187,9 +197,11 @@ const config = defineConfig(({ mode }) => {
         },
       ]),
       Unhead(),
-      // Bundle-size visualizer. Treemap output goes next to the
-      // vite config rather than into the published static_build
-      // dir so it stays a dev-only artifact.
+      /*
+       * Bundle-size visualizer. Treemap output goes next to the
+       * vite config rather than into the published static_build
+       * dir so it stays a dev-only artifact.
+       */
       ANALYZE &&
         visualizer({
           filename: path.resolve("./bundle-stats.html"),

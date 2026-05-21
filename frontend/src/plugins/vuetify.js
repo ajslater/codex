@@ -32,13 +32,15 @@ const codexTheme = {
   },
 };
 
-// CSP note: this block makes Vuetify inject a runtime <style> tag
-// (id="vuetify-theme-stylesheet") with the --v-theme-* CSS variables,
-// which forces 'unsafe-inline' in the CSP style-src directive. To
-// tighten CSP, capture the generated theme CSS once into a static
-// SCSS/CSS file imported at build time and set
-// ``theme: { isDisabled: true }`` here. The ``defaults:`` block above
-// is fine — it sets component prop defaults, not CSS.
+/*
+ * CSP note: this block makes Vuetify inject a runtime <style> tag
+ * (id="vuetify-theme-stylesheet") with the --v-theme-* CSS variables,
+ * which forces 'unsafe-inline' in the CSP style-src directive. To
+ * tighten CSP, capture the generated theme CSS once into a static
+ * SCSS/CSS file imported at build time and set
+ * ``theme: { isDisabled: true }`` here. The ``defaults:`` block above
+ * is fine — it sets component prop defaults, not CSS.
+ */
 const themeDefaults = {
   defaultTheme: "codexTheme",
   options: {

@@ -86,7 +86,11 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "metadata_mtime": "metadata_mtime",
         "created_at": "created_at",
         "updated_at": "updated_at",
-        "bookmark_updated_at": "bookmark_updated_at",
+        # ``bookmark_updated_at`` is intentionally absent: it's not a
+        # Comic field but a per-user-filtered ``Max(bookmark__updated_at)``
+        # aggregate. The annotate pipeline attaches it directly to group
+        # rows in table view (see ``_annotate_bookmark_updated_at``); the
+        # cell display then falls through to ``getattr`` in ``_emit_column``.
         # FK-to-name columns (Comic FK → related model.name).
         "country": "country__name",
         "language": "language__name",

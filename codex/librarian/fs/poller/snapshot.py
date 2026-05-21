@@ -8,6 +8,7 @@ from stat import S_ISDIR
 from django.db.models import Model
 
 from codex.librarian.fs.filters import (
+    is_ignored_basename,
     match_comic,
     match_folder_cover,
     match_group_cover_image,
@@ -121,6 +122,14 @@ class DiskSnapshot(Snapshot):
     def _walk(self, root: str) -> None:
         """Walk the directory tree and populate lookups."""
         for entry in os.scandir(root):
+            # Walking only the surviving children means the recursion
+            # never enters an ignored dir (``.git`` / ``.Trashes`` /
+            # ``@eaDir`` if registered / …), so a per-component check
+            # at each scandir level suffices — no need to re-check
+            # ancestors. See ``filters._IGNORED_BASENAMES`` /
+            # ``_IGNORED_BASENAME_PREFIXES`` for the registered rules.
+            if is_ignored_basename(entry.name):
+                continue
             path = Path(entry.path)
             is_dir = entry.is_dir(follow_symlinks=self._follow_symlinks)
             if is_dir:

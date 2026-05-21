@@ -66,8 +66,10 @@ const router = new createRouter({
 });
 
 router.afterEach((to) => {
-  // Strip the ts cache-busting query param from the visible URL.
-  // Vue Router's $route watcher already captured the value before this fires.
+  /*
+   * Strip the ts cache-busting query param from the visible URL.
+   * Vue Router's $route watcher already captured the value before this fires.
+   */
   if (to.query?.ts !== undefined) {
     const { ts, ...query } = to.query;
     const cleanRoute = router.resolve({
@@ -80,9 +82,11 @@ router.afterEach((to) => {
   }
 });
 
-// Self-heal stale chunk references after a deploy: when a lazy-loaded route
-// component fails to fetch (because its hashed filename no longer exists on
-// the server), force a full page load so the browser pulls a fresh index.html.
+/*
+ * Self-heal stale chunk references after a deploy: when a lazy-loaded route
+ * component fails to fetch (because its hashed filename no longer exists on
+ * the server), force a full page load so the browser pulls a fresh index.html.
+ */
 const CHUNK_ERROR_PATTERNS = [
   /Failed to fetch dynamically imported module/i,
   /error loading dynamically imported module/i,

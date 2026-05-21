@@ -8,6 +8,7 @@ from typing import override
 from watchfiles import Change, watch
 
 from codex.librarian.fs.filters import (
+    is_ignored_path,
     match_comic,
     match_folder_cover,
     match_group_cover_image,
@@ -29,27 +30,37 @@ _WATCH_DEBOUNCE_MS = 60_000
 class CodexWatchFilter:
     """Watchfiles watcher class for both types of library."""
 
-    def __init__(self, covers_only_paths: set[str]):
-        """Set covers_only_paths."""
+    def __init__(self, library_paths: set[str], covers_only_paths: set[str]):
+        """Set library and covers_only paths."""
+        self._library_paths = library_paths
         self._covers_only_paths = covers_only_paths
+
+    def _library_root_for(self, ppath: Path) -> str | None:
+        """Return the watched library root containing ``ppath``, if any."""
+        for lib_path in self._library_paths:
+            if ppath.is_relative_to(lib_path):
+                return lib_path
+        return None
 
     def __call__(self, change: Change, path: str) -> bool:
         """
         Filter method.
 
-        Deleted paths can't be inspected on disk, so let them all through;
-        event processing filters by DB lookup and suffix matching instead.
+        Deleted paths can't be inspected on disk, but the ignore-path
+        check runs purely on the path string so events under registered
+        ignore patterns are suppressed without a stat. Non-deleted
+        events also fall through to the suffix / cover predicates that
+        the poller mirrors.
         """
+        ppath = Path(path)
+        lib_root = self._library_root_for(ppath)
+        if lib_root is None or is_ignored_path(ppath, root=lib_root):
+            return False
+
         if change == Change.deleted:
             return True
 
-        ppath = Path(path)
-        covers_only = False
-        for covers_only_path in self._covers_only_paths:
-            if ppath.is_relative_to(covers_only_path):
-                covers_only = True
-                break
-
+        covers_only = lib_root in self._covers_only_paths
         if covers_only:
             return match_group_cover_image(ppath)
         return ppath.is_dir() or match_comic(ppath) or match_folder_cover(ppath)
@@ -161,7 +172,6 @@ class LibraryWatcherThread(NamedThread):
 
     def _watch_loop(self) -> None:
         """Run the watchfiles loop, restarting when paths change."""
-        watch_filter = CodexWatchFilter(self._covers_only_paths)
         while not self._shutdown_event.is_set():
             self._restart_event.clear()
             paths = list(self._library_paths.keys())
@@ -170,6 +180,14 @@ class LibraryWatcherThread(NamedThread):
                 self._restart_event.wait(timeout=5.0)
                 continue
             extant_paths = self._get_extant_paths(paths)
+            # Built per iteration so a ``restart()`` from
+            # ``_update_paths_from_db`` (which rebinds the path sets)
+            # immediately propagates new libraries / covers-only flags
+            # into the filter — the previous outer-scope binding froze
+            # the filter to the path sets present at process startup.
+            watch_filter = CodexWatchFilter(
+                set(self._library_paths.keys()), self._covers_only_paths
+            )
             try:
                 for changes in watch(
                     *extant_paths,

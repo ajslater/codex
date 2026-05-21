@@ -98,8 +98,10 @@ export const useAuthStore = defineStore("auth", {
         console.error(error);
       } finally {
         this.user = undefined;
-        // Wipe per-user favorite state so a different account
-        // signing in next doesn't see the previous user's stars.
+        /*
+         * Wipe per-user favorite state so a different account
+         * signing in next doesn't see the previous user's stars.
+         */
         useFavoritesStore().clear();
       }
     },

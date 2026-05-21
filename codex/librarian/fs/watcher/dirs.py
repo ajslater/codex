@@ -7,6 +7,7 @@ from loguru import logger
 
 from codex.librarian.fs.events import FSChange, FSEvent
 from codex.librarian.fs.filters import (
+    is_ignored_basename,
     match_comic,
     match_folder_cover,
     match_group_cover_image,
@@ -42,8 +43,15 @@ def expand_dir_added(
     if not root.is_dir():
         return
     count = 0
-    for dirpath, _dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Prune ignored directories in place so ``os.walk`` never
+        # descends into them under a freshly-added tree. Rules come
+        # from the central registry in ``filters`` — extend that
+        # module to add more patterns.
+        dirnames[:] = [d for d in dirnames if not is_ignored_basename(d)]
         for filename in filenames:
+            if is_ignored_basename(filename):
+                continue
             file_path = Path(dirpath) / filename
             if event := _classify_added_file(file_path, covers_only=covers_only):
                 batch.added.append((library_pk, event))

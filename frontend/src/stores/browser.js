@@ -214,12 +214,14 @@ export const useBrowserStore = defineStore("browser", {
       return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
     },
     orderByChoices(state) {
-      // Cover view's dropdown filters down to a curated subset
-      // (BROWSER_CHOICES.COVER_ORDER_BY_KEYS). The table view exposes
-      // every sortable column via its own header clicks, so it doesn't
-      // need this dropdown — but the dropdown can still come into
-      // view momentarily during a viewMode transition or on mobile
-      // fallback. The set is keyed for fast lookup.
+      /*
+       * Cover view's dropdown filters down to a curated subset
+       * (BROWSER_CHOICES.COVER_ORDER_BY_KEYS). The table view exposes
+       * every sortable column via its own header clicks, so it doesn't
+       * need this dropdown — but the dropdown can still come into
+       * view momentarily during a viewMode transition or on mobile
+       * fallback. The set is keyed for fast lookup.
+       */
       const coverKeys = new Set(BROWSER_CHOICES.COVER_ORDER_BY_KEYS);
       const choices = [];
       for (const item of BROWSER_CHOICES.ORDER_BY) {
@@ -249,8 +251,10 @@ export const useBrowserStore = defineStore("browser", {
     },
     isDynamicFiltersSelected(state) {
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        // bookmark and favorite are scalar (string / boolean), not the
-        // list-of-pks shape every other filter uses.
+        /*
+         * bookmark and favorite are scalar (string / boolean), not the
+         * list-of-pks shape every other filter uses.
+         */
         if (
           name !== "bookmark" &&
           name !== "favorite" &&
@@ -512,14 +516,16 @@ export const useBrowserStore = defineStore("browser", {
      * TABLE VIEW
      */
     _resolveTableColumns() {
-      // Pick the column set for the current table-view request.
-      // Persisted overrides (``settings.tableColumns[topGroup]``) win
-      // over the registry defaults; both fall back to an empty tuple
-      // for unknown top-groups (the backend then uses its own
-      // defaults). Defaults are filtered by the user's ``show.i``
-      // and ``show.v`` flags so a user who hides imprints / volumes
-      // from breadcrumb navigation doesn't get those columns leading
-      // their table view either.
+      /*
+       * Pick the column set for the current table-view request.
+       * Persisted overrides (``settings.tableColumns[topGroup]``) win
+       * over the registry defaults; both fall back to an empty tuple
+       * for unknown top-groups (the backend then uses its own
+       * defaults). Defaults are filtered by the user's ``show.i``
+       * and ``show.v`` flags so a user who hides imprints / volumes
+       * from breadcrumb navigation doesn't get those columns leading
+       * their table view either.
+       */
       const topGroup = this.settings.topGroup ?? "p";
       const stored = this.settings.tableColumns?.[topGroup];
       if (stored && stored.length > 0) {
@@ -744,14 +750,18 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         return this.loadSettings();
       }
-      // Single-flight: a rapid group switch aborts the previous
-      // fetch so its late-arriving response can't ``$patch`` stale
-      // state over the current route's data.
+      /*
+       * Single-flight: a rapid group switch aborts the previous
+       * fetch so its late-arriving response can't ``$patch`` stale
+       * state over the current route's data.
+       */
       const signal = useAbortable("browser:loadBrowserPage");
-      // Table mode requests need ``columns=`` so the backend knows
-      // which fields to project / annotate. The list comes from the
-      // user's persisted table_columns map (per top-group) and falls
-      // back to the registry defaults; cover mode never sets it.
+      /*
+       * Table mode requests need ``columns=`` so the backend knows
+       * which fields to project / annotate. The list comes from the
+       * user's persisted table_columns map (per top-group) and falls
+       * back to the registry defaults; cover mode never sets it.
+       */
       const requestSettings =
         this.settings.viewMode === "table"
           ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
@@ -802,13 +812,14 @@ export const useBrowserStore = defineStore("browser", {
       }
     },
     async loadFilterChoices(fieldName) {
-      // Per-field key so different filter menus opening in parallel
-      // don't abort each other.
+      /*
+       * Per-field key so different filter menus opening in parallel
+       * don't abort each other.
+       */
       const signal = useAbortable(`browser:loadFilterChoices:${fieldName}`);
       try {
         const response = await API.getFilterChoices(
-          router.currentRoute.value.params,
-          fieldName,
+          { ...router.currentRoute.value.params, fieldName },
           this.filterOnlySettings,
           this.page.mtime,
           { signal },
@@ -827,9 +838,11 @@ export const useBrowserStore = defineStore("browser", {
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
       const pks = params?.pks || "0";
       const arcs = [{ group, pks }];
-      // Dedup so concurrent callers (websocket fan-out across the
-      // browser + reader stores, rapid notifications) share one
-      // request instead of stampeding.
+      /*
+       * Dedup so concurrent callers (websocket fan-out across the
+       * browser + reader stores, rapid notifications) share one
+       * request instead of stampeding.
+       */
       const dedupKey = `browser:loadMtimes:${group}:${pks}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>

@@ -22,10 +22,12 @@ const toVuetifyItem = function (item, copyKeys = undefined) {
   }
   let vuetifyItem;
   if ("ids" in item) {
-    // ``ids`` comes from ``JsonGroupArray("id")`` over PK columns, so
-    // null members can't happen in practice — keep the guard cheap
-    // (``some`` short-circuits) rather than constructing a Set just to
-    // call ``intersection`` (an ES2024 method Vite doesn't polyfill).
+    /*
+     * ``ids`` comes from ``JsonGroupArray("id")`` over PK columns, so
+     * null members can't happen in practice — keep the guard cheap
+     * (``some`` short-circuits) rather than constructing a Set just to
+     * call ``intersection`` (an ES2024 method Vite doesn't polyfill).
+     */
     if (item.ids.some((id) => NULL_PKS.has(id))) {
       return undefined;
     }
@@ -90,8 +92,10 @@ export const toVuetifyItems = function ({
     ) {
       continue;
     }
-    // ``toVuetifyItem`` sets ``value`` to ``VUETIFY_NULL_CODE`` for the
-    // synthetic "None" row; everything else carries a real pk / id-list.
+    /*
+     * ``toVuetifyItem`` sets ``value`` to ``VUETIFY_NULL_CODE`` for the
+     * synthetic "None" row; everything else carries a real pk / id-list.
+     */
     if (vuetifyItem.value === VUETIFY_NULL_CODE) {
       noneItem = vuetifyItem;
     } else {

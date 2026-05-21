@@ -15,10 +15,12 @@ import { useAdminStore } from "@/stores/admin";
  *   watchers that sync row and oldRow and emit "change",
  *   and the nameSet action from the admin store.
  */
-// ``deepClone`` (over ``structuredClone``) because ``oldRow`` rows
-// from the admin store carry reactive nested arrays (``groups``,
-// ``userSet``, ``librarySet``) that ``structuredClone`` can refuse
-// to clone.
+/*
+ * ``deepClone`` (over ``structuredClone``) because ``oldRow`` rows
+ * from the admin store carry reactive nested arrays (``groups``,
+ * ``userSet``, ``librarySet``) that ``structuredClone`` can refuse
+ * to clone.
+ */
 export default {
   props: {
     oldRow: {

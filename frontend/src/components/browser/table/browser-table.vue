@@ -42,14 +42,16 @@
           :key="rowKey(row)"
           class="browserTableRow"
           :class="{ selected: isSelected(row) }"
-          @click="onRowClick(row)"
+          @click="onRowClick(row, $event)"
         >
           <td class="browserTableCheckboxCell" @click.stop>
             <v-checkbox-btn
               density="compact"
               :model-value="isSelected(row)"
               :aria-label="`select ${row.name || 'item'}`"
-              @click.stop.prevent="toggleItem(row)"
+              @click.stop.prevent="
+                selectItemAt(row, { shift: $event.shiftKey })
+              "
             />
           </td>
           <td
@@ -156,7 +158,7 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
     ...mapActions(useBrowserSelectManyStore, [
-      "toggleItem",
+      "selectItemAt",
       "selectAll",
       "clearSelection",
     ]),
@@ -292,17 +294,17 @@ export default {
     coverGroupFor(row) {
       return row.group ?? "c";
     },
-    onRowClick(row) {
+    onRowClick(row, event) {
       /*
        * Comic rows -> reader; group rows -> drill in. Mirrors the
        * navigation contract of <BrowserCard> so the table behaves as
        * an alternate presentation, not an alternate router. When
        * select-many is active, plain row clicks toggle the selection
-       * instead of navigating — matches the cover view's overlay
-       * behavior.
+       * instead of navigating — and shift-click extends a range from
+       * the last anchor, matching the cover view.
        */
       if (this.selectManyActive) {
-        this.toggleItem(row);
+        this.selectItemAt(row, { shift: Boolean(event?.shiftKey) });
         return;
       }
       const group = row.group ?? "c";
