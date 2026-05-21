@@ -78,9 +78,10 @@ class TestDiskSnapshotSkipsDotfiles:
     """The poller's walker must not surface dotfile paths."""
 
     @pytest.fixture(autouse=True)
-    def _tmp_library(self) -> None:
+    def _tmp_library(self):
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
         _TEST_LIB_ROOT.mkdir(parents=True)
+        yield
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
 
     def test_dotfile_file_skipped(self) -> None:
@@ -136,9 +137,10 @@ class TestExpandDirAddedSkipsDotfiles:
     """``os.walk`` recursion under a new dir must prune hidden subtrees."""
 
     @pytest.fixture(autouse=True)
-    def _tmp_library(self) -> None:
+    def _tmp_library(self):
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
         _TEST_LIB_ROOT.mkdir(parents=True)
+        yield
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
 
     def test_only_visible_comics_emit_events(self) -> None:
