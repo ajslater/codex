@@ -81,7 +81,6 @@ class TestDiskSnapshotSkipsDotfiles:
     def _tmp_library(self) -> None:
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
         _TEST_LIB_ROOT.mkdir(parents=True)
-        yield
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
 
     def test_dotfile_file_skipped(self) -> None:
@@ -106,9 +105,7 @@ class TestDiskSnapshotSkipsDotfiles:
 class TestCodexWatchFilter:
     """The watchfiles filter rejects hidden-tree events before classification."""
 
-    def _filter(
-        self, *, covers_only: bool = False
-    ) -> CodexWatchFilter:
+    def _filter(self, *, covers_only: bool = False) -> CodexWatchFilter:
         lib_root = str(_TEST_LIB_ROOT)
         covers = {lib_root} if covers_only else set()
         return CodexWatchFilter(library_paths={lib_root}, covers_only_paths=covers)
@@ -120,27 +117,19 @@ class TestCodexWatchFilter:
         assert self._filter()(Change.modified, f"{_TEST_LIB_ROOT}/comic.cbz") is True
 
     def test_dotfile_basename_rejected(self) -> None:
-        assert (
-            self._filter()(Change.modified, f"{_TEST_LIB_ROOT}/.DS_Store") is False
-        )
+        assert self._filter()(Change.modified, f"{_TEST_LIB_ROOT}/.DS_Store") is False
 
     def test_dotfile_ancestor_rejected(self) -> None:
-        assert (
-            self._filter()(Change.modified, f"{_TEST_LIB_ROOT}/.git/HEAD") is False
-        )
+        assert self._filter()(Change.modified, f"{_TEST_LIB_ROOT}/.git/HEAD") is False
 
     def test_deleted_dotfile_rejected(self) -> None:
         # Deletes used to fall through unconditionally; the dotfile
         # check now blocks them on the path string alone (no disk
         # inspection needed).
-        assert (
-            self._filter()(Change.deleted, f"{_TEST_LIB_ROOT}/.git/HEAD") is False
-        )
+        assert self._filter()(Change.deleted, f"{_TEST_LIB_ROOT}/.git/HEAD") is False
 
     def test_deleted_comic_passes(self) -> None:
-        assert (
-            self._filter()(Change.deleted, f"{_TEST_LIB_ROOT}/gone.cbz") is True
-        )
+        assert self._filter()(Change.deleted, f"{_TEST_LIB_ROOT}/gone.cbz") is True
 
 
 class TestExpandDirAddedSkipsDotfiles:
@@ -150,7 +139,6 @@ class TestExpandDirAddedSkipsDotfiles:
     def _tmp_library(self) -> None:
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
         _TEST_LIB_ROOT.mkdir(parents=True)
-        yield
         shutil.rmtree(_TEST_LIB_ROOT, ignore_errors=True)
 
     def test_only_visible_comics_emit_events(self) -> None:
