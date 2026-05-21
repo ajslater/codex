@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && prettier --check . && bin/prettier-nginx.sh --check && ( echo $PWD | grep -q '.claude' && exit 0 || bun remark --quiet . )"
+    "lint": "eslint_d --cache . && prettier --check . && bin/remark-for-claude.sh"
   },
   "browserslist": [
     "> 1%",

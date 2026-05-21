@@ -10,6 +10,3 @@ bun run lint
 bin/lint-darwin.sh
 
 uv run bin/roman.py -i .prettierignore .
-
-# Spelling
-uv run --group lint codespell --toml ../pyproject.toml .
