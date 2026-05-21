@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - Fix "Last Read" column in table view crashing.
     - Ignore dotfiles.
+- Features
+    - Select by range in multi-select with shift+click.
 
 ## v1.12.4
 
