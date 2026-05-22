@@ -105,11 +105,17 @@ const config = defineConfig(({ mode }) => {
         `^https?://(${ALLOWED_HOSTS.map(reEscape).join("|")})(?::\\d+)?$`,
       )
     : undefined;
-  let publicPathPrefix = "window.CODEX.APP_PATH";
-  if (PROD) {
-    publicPathPrefix += ".substring(1)";
-  }
-  const PUBLIC_PATH = `${publicPathPrefix} + "${STATIC_DIR_NAME}"`;
+  /*
+   * vite-plugin-dynamic-base 1.4.1 dropped the leading ``/`` that 1.4.0
+   * prepended inside template-element replacements. Earlier configs
+   * stripped APP_PATH's leading slash with ``.substring(1)`` to avoid a
+   * double ``/`` in the rendered URL — with 1.4.1 that strip leaves the
+   * modulepreload URL relative (``static/...`` instead of ``/static/...``)
+   * which makes deep routes like ``/admin/libraries`` fetch chunks
+   * from ``/admin/static/...`` → Django catch-all → HTML, breaking
+   * lazy-loaded routes.
+   */
+  const PUBLIC_PATH = `window.CODEX.APP_PATH + "${STATIC_DIR_NAME}"`;
 
   return {
     base: BASE_PATH,
