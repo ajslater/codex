@@ -15,17 +15,17 @@ PACKAGE="${1:-}"
 MODE="${2:-}"
 
 if [ "$PACKAGE" = "" ]; then
-  echo "Usage: $0 <package> [--do-it]" >&2
-  exit 2
+	echo "Usage: $0 <package> [--do-it]" >&2
+	exit 2
 fi
 
 # PEP 440 alpha suffix: 1.2.3a1, 1.2.3.alpha1, etc.
 PATTERN='.*a\d+$'
 
 if [ "$MODE" = "--do-it" ]; then
-  : "${PYPI_USERNAME:?set PYPI_USERNAME}"
-  : "${PYPI_CLEANUP_PASSWORD:?set PYPI_CLEANUP_PASSWORD}"
-  uvx pypi-cleanup -p "$PACKAGE" -r "$PATTERN" -u "$PYPI_USERNAME" --do-it -y
+	: "${PYPI_USERNAME:?set PYPI_USERNAME}"
+	: "${PYPI_CLEANUP_PASSWORD:?set PYPI_CLEANUP_PASSWORD}"
+	uvx pypi-cleanup -p "$PACKAGE" -r "$PATTERN" -u "$PYPI_USERNAME" --do-it -y
 else
-  uvx pypi-cleanup -p "$PACKAGE" -r "$PATTERN" --query-only
+	uvx pypi-cleanup -p "$PACKAGE" -r "$PATTERN" --query-only
 fi

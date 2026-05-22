@@ -7,5 +7,5 @@ set -euxo pipefail
 #######################
 mapfile -t dockerfiles < <(find . -type f -name '*Dockerfile' -print -quit)
 if [ ${#dockerfiles[@]} -gt 0 ]; then
-  dockerfmt --write "${dockerfiles[@]}"
+	dockerfmt --write "${dockerfiles[@]}"
 fi

@@ -119,6 +119,14 @@ class DiskSnapshot(Snapshot):
         self._set_lookups(self._root, root_stat)
         self._walk(self._root)
 
+    def _should_include(self, path: Path, *, is_dir: bool) -> bool:
+        """Decide whether a scanned entry belongs in the snapshot."""
+        if is_dir:
+            return self._recursive
+        if self._covers_only:
+            return match_group_cover_image(path)
+        return match_comic(path) or match_folder_cover(path)
+
     def _walk(self, root: str) -> None:
         """Walk the directory tree and populate lookups."""
         for entry in os.scandir(root):
@@ -130,15 +138,8 @@ class DiskSnapshot(Snapshot):
             # ``_IGNORED_BASENAME_PREFIXES`` for the registered rules.
             if is_ignored_basename(entry.name):
                 continue
-            path = Path(entry.path)
             is_dir = entry.is_dir(follow_symlinks=self._follow_symlinks)
-            if is_dir:
-                if not self._recursive:
-                    continue
-            elif self._covers_only:
-                if not match_group_cover_image(path):
-                    continue
-            elif not (match_comic(path) or match_folder_cover(path)):
+            if not self._should_include(Path(entry.path), is_dir=is_dir):
                 continue
             try:
                 st = entry.stat(follow_symlinks=self._follow_symlinks)

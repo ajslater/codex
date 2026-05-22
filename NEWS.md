@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.6
+
+- Fixes
+    - Admin panel and other lazy-loaded routes broken.
+
 ## v1.12.5
 
 - Fixes

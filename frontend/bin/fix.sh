@@ -20,4 +20,4 @@ bun run fix
 ###################
 ###### Shell ######
 ###################
-shellharden --replace ./**/*.sh
+bin/fix-sh.sh

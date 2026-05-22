@@ -3,7 +3,7 @@
 set -euo pipefail
 VERSION="${1:-}"
 if [ "$VERSION" = "" ]; then
-  uv version
+	uv version
 else
-  uv version "$VERSION"
+	uv version "$VERSION"
 fi
