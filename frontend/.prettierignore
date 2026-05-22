@@ -4,6 +4,7 @@ __pycache__
 .claude
 .git
 .venv
+*.sh
 *Dockerfile
 bun.lock
 components.d.ts

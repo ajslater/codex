@@ -9,6 +9,7 @@ __pycache__
 .ruff_cache
 .venv
 .venv*
+*.sh
 *Dockerfile
 bun.lock
 cache
