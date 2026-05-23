@@ -12,8 +12,8 @@ from xml.etree.ElementTree import Element, SubElement, tostringlist
 from zlib import adler32
 
 from comicbox.enums.comicbox import IdSources
+from comicbox.formats.comic_info.schema import ComicInfoSchema
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
-from comicbox.schemas.comicinfo import ComicInfoSchema
 from PIL import Image
 from pycountry import languages
 

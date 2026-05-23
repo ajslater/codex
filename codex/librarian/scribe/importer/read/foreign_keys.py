@@ -4,16 +4,15 @@ from collections.abc import Mapping
 from contextlib import suppress
 
 from comicbox.enums.comicbox import IdSources
-from comicbox.fields.number_fields import PAGE_COUNT_KEY
-from comicbox.schemas.comicbox import (
-    ID_KEY_KEY,
-    ID_URL_KEY,
+from comicbox.formats.comicbox.schema import (
     IDENTIFIERS_KEY,
     NAME_KEY,
     NUMBER_KEY,
     NUMBER_TO_KEY,
+    PAGE_COUNT_KEY,
     PROTAGONIST_KEY,
 )
+from comicbox.identifiers import ID_KEY_KEY, ID_URL_KEY
 from django.db.models import Field
 from django.db.models.base import Model
 

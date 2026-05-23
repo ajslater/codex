@@ -1,6 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 
-from comicbox.schemas.comicbox import (
+from comicbox.formats.comicbox.schema import (
     COVER_DATE_KEY,
     DATE_KEY,
     NUMBER_KEY,

@@ -4,7 +4,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from comicbox.schemas.comicbox import PROTAGONIST_KEY
+from comicbox.formats.comicbox.schema import PROTAGONIST_KEY
 
 from codex.librarian.scribe.importer.const import (
     LINK_FKS,

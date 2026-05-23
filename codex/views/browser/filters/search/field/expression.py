@@ -6,7 +6,7 @@ from decimal import Decimal
 from types import MappingProxyType
 from typing import Any
 
-from comicbox.fields.fields import IssueField
+from comicbox.formats.base.fields.fields import IssueField
 from dateparser import parse
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import (

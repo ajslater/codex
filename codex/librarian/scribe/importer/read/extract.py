@@ -6,8 +6,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from comicbox.formats.comicbox.schema import PAGE_COUNT_KEY
 from comicbox.process import ReadResult, iter_process_files
-from comicbox.schemas.comicbox import PAGE_COUNT_KEY
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.const import (
