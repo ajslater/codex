@@ -4,6 +4,11 @@ from decimal import ROUND_DOWN, Decimal
 from html import unescape
 from typing import Any, override
 
+from cryptography.fernet import (  # pyright: ignore[reportMissingImports]
+    Fernet,
+    InvalidToken,
+)
+from django.conf import settings
 from django.db.models.fields import (
     CharField,
     DecimalField,
@@ -11,6 +16,40 @@ from django.db.models.fields import (
     TextField,
 )
 from nh3 import clean
+
+
+def _get_fernet():
+    """Lazy Fernet instance from the FIELD_ENCRYPTION_KEY setting."""
+    return Fernet(settings.FIELD_ENCRYPTION_KEY)
+
+
+class EncryptedCharField(CharField):
+    """CharField that stores Fernet-encrypted values in the database."""
+
+    @override
+    def __init__(self, *args, **kwargs):
+        """Default max_length to 512 to accommodate ciphertext expansion."""
+        kwargs.setdefault("max_length", 512)
+        kwargs.setdefault("blank", True)
+        kwargs.setdefault("default", "")
+        super().__init__(*args, **kwargs)
+
+    @override
+    def get_prep_value(self, value):
+        """Encrypt before writing to DB."""
+        value = super().get_prep_value(value)
+        if not value:
+            return value
+        return _get_fernet().encrypt(value.encode()).decode()
+
+    def from_db_value(self, value, _expression, _connection):
+        """Decrypt when reading from DB."""
+        if not value:
+            return value
+        try:
+            return _get_fernet().decrypt(value.encode()).decode()
+        except InvalidToken:
+            return value
 
 
 class CleaningStringFieldMixin:

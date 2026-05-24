@@ -33,7 +33,7 @@ from codex.settings.config import (
     load_codex_config,
 )
 from codex.settings.logging import get_logging_settings
-from codex.settings.secret_key import get_secret_key
+from codex.settings.secret_key import get_field_encryption_key, get_secret_key
 from codex.settings.servestatic import immutable_file_test
 from codex.settings.timezone import get_time_zone
 
@@ -313,6 +313,7 @@ FEATURES = FeatureFlags(
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
+FIELD_ENCRYPTION_KEY = get_field_encryption_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS: bool  # DEV EXPERIMENT

@@ -7,6 +7,7 @@ from bidict import frozenbidict
 from codex.librarian.covers.status import COVERS_STATII
 from codex.librarian.fs.poller.status import FS_STATII
 from codex.librarian.fs.watcher.status import WATCHER_STATII
+from codex.librarian.onlinetag.status import ONLINETAG_STATII
 from codex.librarian.restarter.status import RESTARTER_STATII
 from codex.librarian.scribe.importer.statii.create import CREATE_STATII
 from codex.librarian.scribe.importer.statii.delete import REMOVE_STATII
@@ -36,6 +37,7 @@ _STATII = (
     READ_STATII,
     IMPORTER_SEARCH_INDEX_STATII,
     FAILED_IMPORTS_STATII,
+    ONLINETAG_STATII,
 )
 
 

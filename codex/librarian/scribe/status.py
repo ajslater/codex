@@ -18,4 +18,13 @@ class UpdateGroupTimestampsStatus(ScribeStatus):
     _verbed = "Updated timestamps for"
 
 
-SCRIBE_STATII = (UpdateGroupTimestampsStatus,)
+class TagWriteStatus(ScribeStatus):
+    """Tag Write Status."""
+
+    CODE = "TWR"
+    ITEM_NAME = "comic tags"
+    VERB = "Write"
+    _verbed = "Wrote"
+
+
+SCRIBE_STATII = (UpdateGroupTimestampsStatus, TagWriteStatus)

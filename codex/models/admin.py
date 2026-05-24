@@ -11,9 +11,12 @@ from django.db.models import (
     DateTimeField,
     ForeignKey,
     Index,
+    IntegerField,
+    JSONField,
     PositiveSmallIntegerField,
     Q,
     TextChoices,
+    URLField,
 )
 from django.utils.translation import gettext_lazy as _
 
@@ -25,8 +28,9 @@ from codex.models.choices import (
     max_choices_len,
     text_choices_from_map,
 )
+from codex.models.fields import EncryptedCharField
 
-__all__ = ("AdminFlag", "LibrarianStatus", "Timestamp")
+__all__ = ("AdminFlag", "ComicboxTaggingDefaults", "LibrarianStatus", "Timestamp")
 
 
 class AdminFlag(BaseModel):
@@ -65,6 +69,57 @@ class AdminFlag(BaseModel):
         """Constraints."""
 
         unique_together = ("key",)
+
+
+class ComicboxTaggingDefaults(BaseModel):
+    """Singleton model for default comicbox tagging options and credentials."""
+
+    class MatchModeChoices(TextChoices):
+        """Match mode options for online tagging."""
+
+        STRICT = "strict", _("Strict")
+        NORMAL = "normal", _("Normal")
+        FAST = "fast", _("Fast")
+
+    class PromptsModeChoices(TextChoices):
+        """Prompt behavior options for online tagging."""
+
+        ASK = "ask", _("Ask")
+        NEVER = "never", _("Never")
+
+    default_formats = JSONField(default=list)
+    default_match_mode = CharField(
+        max_length=MAX_FIELD_LEN,
+        choices=MatchModeChoices.choices,
+        default=MatchModeChoices.NORMAL,
+    )
+    default_prompts_mode = CharField(
+        max_length=MAX_FIELD_LEN,
+        choices=PromptsModeChoices.choices,
+        default=PromptsModeChoices.ASK,
+    )
+    default_sources = JSONField(default=list)
+    prompt_timeout_seconds = IntegerField(default=3600)
+
+    metron_user = EncryptedCharField()
+    metron_password = EncryptedCharField()
+    metron_url = URLField(max_length=256, blank=True, default="")
+    comicvine_key = EncryptedCharField()
+    comicvine_url = URLField(max_length=256, blank=True, default="")
+
+    active_session_id = CharField(max_length=64, blank=True, default="")
+    active_prompts = JSONField(default=list)
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "ComicboxTaggingDefaults"
 
 
 class LibrarianStatus(BaseModel):

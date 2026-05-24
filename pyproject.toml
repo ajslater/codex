@@ -16,6 +16,7 @@ dependencies = [
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf]~=4.0.0a0",
+  "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",

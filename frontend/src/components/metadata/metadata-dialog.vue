@@ -14,7 +14,20 @@
     />
     <div v-if="showContainer" id="metadataContainer" @keyup.esc="close">
       <MetadataHeader :group="book.group" :multi-select="isMultiSelect" />
-      <MetadataBody :book="book" />
+      <div v-if="isUserAdmin && !editing" id="editButtonRow">
+        <OnlineTagLauncherDialog :book="book" />
+        <v-btn variant="tonal" size="small" @click="editing = true">
+          Edit Tags
+        </v-btn>
+      </div>
+      <component
+        :is="editPanelComponent"
+        v-if="editing"
+        :book="book"
+        @cancel="editing = false"
+        @saved="onSaved"
+      />
+      <MetadataBody v-else :book="book" />
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -28,13 +41,16 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from "vue";
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
 import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import MetadataBody from "@/components/metadata/metadata-body.vue";
 import MetadataHeader from "@/components/metadata/metadata-header.vue";
+import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useMetadataStore } from "@/stores/metadata";
 
 /*
@@ -52,6 +68,7 @@ export default {
     MetadataActivator,
     MetadataBody,
     MetadataHeader,
+    OnlineTagLauncherDialog,
     PlaceholderLoading,
   },
   props: {
@@ -73,12 +90,20 @@ export default {
     return {
       dialog: false,
       progress: 0,
+      editing: false,
     };
   },
   computed: {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
+    editPanelComponent() {
+      if (!this.editing) return null;
+      return defineAsyncComponent(
+        () => import("@/components/metadata/edit-mode/edit-panel.vue"),
+      );
+    },
     showContainer() {
       return this.md?.loaded || false;
     },
@@ -112,7 +137,11 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     close() {
+      this.editing = false;
       this.dialog = false;
+    },
+    onSaved() {
+      this.close();
     },
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
@@ -184,6 +213,12 @@ export default {
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
   padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+
+#editButtonRow {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
 }
 
 .placeholder {

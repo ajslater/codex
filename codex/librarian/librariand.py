@@ -22,6 +22,8 @@ from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
+from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
+from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
 from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
@@ -39,6 +41,7 @@ _THREAD_CLASSES: Final[tuple[type[NamedThread], ...]] = (
     LibraryWatcherThread,
     LibraryPollerThread,
     NotifierThread,
+    OnlineTagThread,
     ScribeThread,
 )
 _THREAD_CLASS_MAP: Final[MappingProxyType[str, type[NamedThread]]] = MappingProxyType(
@@ -50,6 +53,7 @@ _THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         CoverTask: "cover_thread",
         BookmarkTask: "bookmark_thread",
         NotifierTask: "notifier_thread",
+        OnlineTagTask: "online_tag_thread",
     }
 )
 

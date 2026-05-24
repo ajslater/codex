@@ -15,7 +15,16 @@ from codex.views.admin.library import (
     AdminFolderListView,
     AdminLibraryViewSet,
 )
+from codex.views.admin.onlinetag import (
+    AdminOnlineTagAbortView,
+    AdminOnlineTagActiveView,
+    AdminOnlineTagPromptResponseView,
+    AdminOnlineTagPromptsView,
+    AdminOnlineTagStartView,
+)
 from codex.views.admin.stats import AdminStatsView
+from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
+from codex.views.admin.tagwrite import AdminTagWriteView
 from codex.views.admin.tasks import (
     AdminLibrarianStatusViewSet,
     AdminLibrarianTaskView,
@@ -94,5 +103,40 @@ urlpatterns = [
         "age-rating-metron",
         AdminAgeRatingMetronViewSet.as_view({**READ}),
         name="age_rating_metron",
+    ),
+    path(
+        "tagging-defaults",
+        AdminTaggingDefaultsView.as_view(),
+        name="tagging_defaults",
+    ),
+    path(
+        "tagwrite",
+        AdminTagWriteView.as_view(),
+        name="tagwrite",
+    ),
+    path(
+        "online-tag/active",
+        AdminOnlineTagActiveView.as_view(),
+        name="online_tag_active",
+    ),
+    path(
+        "online-tag/start",
+        AdminOnlineTagStartView.as_view(),
+        name="online_tag_start",
+    ),
+    path(
+        "online-tag/<str:session_id>/prompts",
+        AdminOnlineTagPromptsView.as_view(),
+        name="online_tag_prompts",
+    ),
+    path(
+        "online-tag/<str:session_id>/prompts/<str:fingerprint>",
+        AdminOnlineTagPromptResponseView.as_view(),
+        name="online_tag_prompt_response",
+    ),
+    path(
+        "online-tag/<str:session_id>/abort",
+        AdminOnlineTagAbortView.as_view(),
+        name="online_tag_abort",
     ),
 ]

@@ -12,6 +12,7 @@ const AdminLibrariesTab = () =>
   import("@/components/admin/tabs/library-tab.vue");
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
+const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
 
 const LAST_ROUTE = {
   name: "browser",
@@ -52,6 +53,7 @@ const routes = [
         component: AdminLibrariesTab,
       },
       { name: "admin-flags", path: "flags", component: AdminFlagsTab },
+      { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
     ],

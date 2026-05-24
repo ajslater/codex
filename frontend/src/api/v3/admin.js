@@ -72,3 +72,9 @@ export const getStats = () =>
   HTTP.get("/admin/stats", { params: { ts: Date.now() } });
 
 export const updateAPIKey = () => HTTP.put("/admin/api_key");
+
+export const getTaggingDefaults = () =>
+  HTTP.get("/admin/tagging-defaults", { params: { ts: Date.now() } });
+
+export const updateTaggingDefaults = (data) =>
+  HTTP.put("/admin/tagging-defaults", data);

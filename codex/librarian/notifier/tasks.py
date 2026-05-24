@@ -27,5 +27,8 @@ LIBRARIAN_STATUS_TASK = NotifierTask(
     Notifications.LIBRARIAN_STATUS.value, ChannelGroups.ADMIN
 )
 LIBRARY_CHANGED_TASK = NotifierTask(Notifications.LIBRARY.value, ChannelGroups.ALL)
+ONLINE_TAG_PROMPT_TASK = NotifierTask(
+    Notifications.ONLINE_TAG_PROMPT.value, ChannelGroups.ADMIN
+)
 USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ALL)
 ADMIN_USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ADMIN)

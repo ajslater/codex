@@ -191,6 +191,13 @@ export const useSocketStore = defineStore("socket", () => {
     if (adminStore) adminStore.unseenFailedImports = true;
   }
 
+  async function onlineTagPromptNotified() {
+    if (!useAuthStore().isUserAdmin) return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().onPromptNotification())
+      .catch(console.error);
+  }
+
   // Message Dispatcher
 
   function dispatchMessage(message) {
@@ -224,6 +231,9 @@ export const useSocketStore = defineStore("socket", () => {
         break;
       case messages.FAILED_IMPORTS:
         failedImportsNotified();
+        break;
+      case messages.ONLINE_TAG_PROMPT:
+        onlineTagPromptNotified();
         break;
       default:
         console.debug("Unhandled WebSocket message:", message);

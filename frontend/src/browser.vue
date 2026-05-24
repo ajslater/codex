@@ -5,6 +5,7 @@
     <BrowserNavToolbar />
     <BrowserSettingsDrawer />
     <FilterWarningSnackbar />
+    <OnlineTagPromptPopup />
   </v-main>
   <Unauthorized v-else />
 </template>
@@ -17,6 +18,7 @@ import BrowserSettingsDrawer from "@/components/browser/drawer/browser-settings-
 import FilterWarningSnackbar from "@/components/browser/filter-warning-snackbar.vue";
 import BrowserMain from "@/components/browser/main.vue";
 import BrowserNavToolbar from "@/components/browser/toolbars/nav/browser-toolbar-nav.vue";
+import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -30,6 +32,7 @@ export default {
     BrowserNavToolbar,
     BrowserSettingsDrawer,
     FilterWarningSnackbar,
+    OnlineTagPromptPopup,
     Unauthorized,
   },
   computed: {

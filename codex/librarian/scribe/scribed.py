@@ -21,12 +21,15 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexClearTask,
     SearchIndexerTask,
 )
+from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tasks import (
+    BulkTagWriteTask,
     CleanupAbortTask,
     ForceUpdateComicsTask,
     ImportAbortTask,
     LazyImportComicsTask,
     SearchIndexSyncAbortTask,
+    TagWriteAbortTask,
     UpdateGroupsTask,
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
@@ -55,6 +58,7 @@ class ScribeThread(QueuedThread):
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
         self.abort_cleanup_event = Manager().Event()
+        self.abort_tag_write_event = Manager().Event()
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
@@ -110,6 +114,14 @@ class ScribeThread(QueuedThread):
                     event=self.abort_cleanup_event,
                 )
                 worker.handle_task(task)
+            case BulkTagWriteTask():
+                worker = TagWriter(
+                    self.log,
+                    self.librarian_queue,
+                    self.db_write_lock,
+                    event=self.abort_tag_write_event,
+                )
+                worker.write_tags(task)
             case _:
                 self.log.warning(f"Bad task sent to scribe: {task}")
 
@@ -128,6 +140,10 @@ class ScribeThread(QueuedThread):
         elif isinstance(task, ImportAbortTask):
             self.abort_import_event.set()
             self.log.debug("Import abort signal given.")
+            return
+        elif isinstance(task, TagWriteAbortTask):
+            self.abort_tag_write_event.set()
+            self.log.debug("Tag write abort signal given.")
             return
         elif isinstance(task, CleanupAbortTask):
             self.abort_cleanup_event.set()
