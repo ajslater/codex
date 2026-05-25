@@ -88,6 +88,7 @@ class ComicboxTaggingDefaults(BaseModel):
         NEVER = "never", _("Never")
 
     default_formats = JSONField(default=list)
+    delete_original = BooleanField(default=False)
     default_match_mode = CharField(
         max_length=MAX_FIELD_LEN,
         choices=MatchModeChoices.choices,

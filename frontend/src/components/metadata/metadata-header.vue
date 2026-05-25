@@ -109,7 +109,13 @@
       <MetadataText v-if="!multiSelect" :value="date" class="datePicker" />
     </div>
   </header>
-  <MetadataControls v-if="!multiSelect" id="controls" :group="group" />
+  <MetadataControls
+    v-if="!multiSelect && !editing"
+    id="controls"
+    :group="group"
+    :book="book"
+    @edit-tags="$emit('editTags')"
+  />
 </template>
 
 <script>
@@ -143,7 +149,16 @@ export default {
       type: Boolean,
       default: false,
     },
+    book: {
+      type: Object,
+      default: null,
+    },
+    editing: {
+      type: Boolean,
+      default: false,
+    },
   },
+  emits: ["editTags"],
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
@@ -225,7 +240,8 @@ export default {
     },
     seriesVolumeCount() {
       const count = this.md.seriesVolumeCount;
-      return count ? `of ${count}` : "";
+      if (!count) return "";
+      return `of ${count}`;
     },
     volumeIssueCount() {
       const count = this.md.volumeIssueCount;

@@ -29,6 +29,19 @@
       <v-icon>{{ readButtonIcon }}</v-icon>
       Read
     </v-btn>
+    <OnlineTagLauncherDialog
+      v-if="isUserAdmin"
+      :book="controlBook"
+      :size="size"
+    />
+    <v-btn
+      v-if="isUserAdmin"
+      variant="tonal"
+      :size="size"
+      @click="$emit('editTags')"
+    >
+      Edit Tags
+    </v-btn>
   </section>
 </template>
 
@@ -40,7 +53,9 @@ import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
+import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import { getReaderRoute } from "@/route";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
@@ -59,14 +74,21 @@ export default {
     DownloadButton,
     FavoriteToggle,
     MarkReadButton,
+    OnlineTagLauncherDialog,
   },
   props: {
     group: {
       type: String,
       required: true,
     },
+    book: {
+      type: Object,
+      default: null,
+    },
   },
+  emits: ["editTags"],
   computed: {
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
@@ -149,6 +171,16 @@ export default {
     },
     readerRoute() {
       return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
+    },
+    controlBook() {
+      return (
+        this.book || {
+          group: this.md?.group,
+          pk: this.md?.ids?.[0],
+          ids: this.md?.ids,
+          childCount: this.md?.childCount,
+        }
+      );
     },
     size() {
       return this.$vuetify.display.smAndDown ? "x-small" : "default";

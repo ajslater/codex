@@ -4,11 +4,7 @@
       <v-card-title class="d-flex justify-space-between align-center">
         <span>Online Tagging Prompts</span>
         <div>
-          <v-btn
-            variant="text"
-            size="small"
-            @click="promptDialogOpen = false"
-          >
+          <v-btn variant="text" size="small" @click="promptDialogOpen = false">
             Dismiss
           </v-btn>
           <v-btn variant="text" size="small" color="error" @click="abort">

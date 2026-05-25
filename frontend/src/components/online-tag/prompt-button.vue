@@ -8,7 +8,9 @@
     @click="promptDialogOpen = true"
   >
     <v-icon start>{{ mdiTagMultiple }}</v-icon>
-    {{ pendingPrompts.length }} Prompt{{ pendingPrompts.length === 1 ? "" : "s" }}
+    {{ pendingPrompts.length }} Prompt{{
+      pendingPrompts.length === 1 ? "" : "s"
+    }}
   </v-btn>
 </template>
 

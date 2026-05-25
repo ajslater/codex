@@ -50,6 +50,10 @@ class Migration(migrations.Migration):
                     models.JSONField(default=list),
                 ),
                 (
+                    "delete_original",
+                    models.BooleanField(default=False),
+                ),
+                (
                     "default_match_mode",
                     models.CharField(
                         choices=[

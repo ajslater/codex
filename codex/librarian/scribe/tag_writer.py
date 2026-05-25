@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from comicbox.config import get_config
 from comicbox.events import BatchFinished, BatchStarted, FileParsed
 from comicbox.write import BulkWriteItem, Mode, bulk_write
 
@@ -99,10 +101,18 @@ class TagWriter(WorkerStatusAbortableBase):
         written_pks: set[int] = set()
         path_to_pk = {path: pk for pk, path in comic_paths.items()}
 
+        base_config = None
+        if task.delete_original:
+            cfg = get_config()
+            base_config = replace(
+                cfg, general=replace(cfg.general, delete_orig=True)
+            )
+
         for result in bulk_write(
             items,
             on_event=self._on_event,
             cancel=self.abort_event,
+            base_config=base_config,
         ):
             if result.written and not result.error:
                 pk = path_to_pk.get(result.path)

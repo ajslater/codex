@@ -24,7 +24,11 @@ from codex.views.admin.onlinetag import (
 )
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
-from codex.views.admin.tagwrite import AdminTagWriteView
+from codex.views.admin.tagwrite import (
+    AdminParseIdentifierURLView,
+    AdminTagWritePreflightView,
+    AdminTagWriteView,
+)
 from codex.views.admin.tasks import (
     AdminLibrarianStatusViewSet,
     AdminLibrarianTaskView,
@@ -108,6 +112,16 @@ urlpatterns = [
         "tagging-defaults",
         AdminTaggingDefaultsView.as_view(),
         name="tagging_defaults",
+    ),
+    path(
+        "parse-identifier-url",
+        AdminParseIdentifierURLView.as_view(),
+        name="parse_identifier_url",
+    ),
+    path(
+        "tagwrite/preflight",
+        AdminTagWritePreflightView.as_view(),
+        name="tagwrite_preflight",
     ),
     path(
         "tagwrite",

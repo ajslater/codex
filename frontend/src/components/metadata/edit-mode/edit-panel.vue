@@ -6,12 +6,49 @@
         variant="flat"
         :loading="saving"
         :disabled="!hasChanges"
-        @click="save"
+        @click="preSave"
       >
         Save Tags
       </v-btn>
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
     </div>
+    <v-dialog v-model="confirmDialog" max-width="450">
+      <v-card>
+        <v-card-title>Confirm Tag Write</v-card-title>
+        <v-card-text>
+          <div>
+            Writing tags to
+            <strong>{{ confirmInfo.total }}</strong>
+            comic{{ confirmInfo.total === 1 ? "" : "s" }}.
+          </div>
+          <div v-if="confirmInfo.needConversion > 0" class="conversionWarning">
+            <div>
+              {{ confirmInfo.needConversion }}
+              comic{{ confirmInfo.needConversion === 1 ? "" : "s" }}
+              will be converted from CBR/CB7 to CBZ.
+            </div>
+            <div class="conversionHelpText">
+              Writing tags to CBR, CB7, or CBT archives converts them to CBZ.
+              Enable this to delete the original file after conversion.
+            </div>
+            <v-checkbox
+              v-model="confirmDeleteOriginal"
+              label="Delete original files after conversion"
+              hide-details
+              density="compact"
+              class="mt-2"
+            />
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="confirmDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" @click="doSave">
+            Write Tags
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <v-select
       v-model="selectedFormats"
       :items="formatChoices"
@@ -21,80 +58,218 @@
       multiple
       chips
       class="formatSelect"
+      @update:model-value="enforceMinFormat"
     />
 
     <!-- Groups -->
     <section class="mdSection">
       <div class="inlineRow">
-        <v-text-field
-          v-model="patch.publisher"
-          label="Publisher"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('publisher')"
-        />
-        <v-text-field
-          v-model="patch.imprint"
-          label="Imprint"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('imprint')"
-        />
+        <div
+          :title="isFieldDisabled('publisher') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.publisher"
+            label="Publisher"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('publisher')"
+            :class="{
+              fieldCleared: isCleared('publisher'),
+              fieldChanged:
+                isFieldChanged('publisher') && !isCleared('publisher'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('publisher')"
+                @toggle="toggleClear('publisher')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('imprint') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.imprint"
+            label="Imprint"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('imprint')"
+            :class="{
+              fieldCleared: isCleared('imprint'),
+              fieldChanged: isFieldChanged('imprint') && !isCleared('imprint'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('imprint')"
+                @toggle="toggleClear('imprint')"
+              />
+            </template>
+          </v-text-field>
+        </div>
       </div>
       <div class="inlineRow">
-        <v-text-field
-          v-model="patch.series"
-          label="Series"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('series')"
-        />
-        <v-text-field
-          v-model="patch.volume"
-          label="Volume"
-          type="number"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('volume')"
-        />
-        <v-text-field
-          v-model="patch.volume_issue_count"
-          label="Issue Count"
-          type="number"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('volume_issue_count')"
-        />
+        <div
+          :title="isFieldDisabled('series') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.series"
+            label="Series"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('series')"
+            :class="{
+              fieldCleared: isCleared('series'),
+              fieldChanged: isFieldChanged('series') && !isCleared('series'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('series')"
+                @toggle="toggleClear('series')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('volume') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.volume"
+            label="Volume"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('volume')"
+            :class="{
+              fieldCleared: isCleared('volume'),
+              fieldChanged: isFieldChanged('volume') && !isCleared('volume'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('volume')"
+                @toggle="toggleClear('volume')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('volume_issue_count') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.volume_issue_count"
+            label="Issue Count"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('volume_issue_count')"
+            :class="{
+              fieldCleared: isCleared('volume_issue_count'),
+              fieldChanged:
+                isFieldChanged('volume_issue_count') &&
+                !isCleared('volume_issue_count'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('volume_issue_count')"
+                @toggle="toggleClear('volume_issue_count')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.volume_count"
+            label="Volume Count"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('volume_count')"
+            :class="{
+              fieldCleared: isCleared('volume_count'),
+              fieldChanged:
+                isFieldChanged('volume_count') &&
+                !isCleared('volume_count'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('volume_count')"
+                @toggle="toggleClear('volume_count')"
+              />
+            </template>
+          </v-text-field>
+        </div>
       </div>
     </section>
 
     <!-- Summary / Review -->
     <section class="mdSection">
-      <v-textarea
-        v-model="patch.summary"
-        label="Summary"
-        rows="3"
-        auto-grow
-        hide-details
-        density="compact"
-        :disabled="isFieldDisabled('summary')"
-      />
-      <v-textarea
-        v-model="patch.review"
-        label="Review"
-        rows="2"
-        auto-grow
-        hide-details
-        density="compact"
-        :disabled="isFieldDisabled('review')"
-      />
+      <div :title="isFieldDisabled('summary') ? disabledTooltip : ''">
+        <v-textarea
+          v-model="patch.summary"
+          label="Summary"
+          rows="3"
+          auto-grow
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('summary')"
+          :class="{
+            fieldCleared: isCleared('summary'),
+            fieldChanged: isFieldChanged('summary') && !isCleared('summary'),
+          }"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('summary')"
+              @toggle="toggleClear('summary')"
+            />
+          </template>
+        </v-textarea>
+      </div>
+      <div :title="isFieldDisabled('review') ? disabledTooltip : ''">
+        <v-textarea
+          v-model="patch.review"
+          label="Review"
+          rows="2"
+          auto-grow
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('review')"
+          :class="{
+            fieldCleared: isCleared('review'),
+            fieldChanged: isFieldChanged('review') && !isCleared('review'),
+          }"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('review')"
+              @toggle="toggleClear('review')"
+            />
+          </template>
+        </v-textarea>
+      </div>
     </section>
 
     <!-- Credits -->
     <v-table class="mdSection">
       <tbody>
         <tr v-for="role in creditRoles" :key="role">
-          <td class="key">{{ role }}</td>
+          <td class="key" :class="{ labelChanged: isCreditRoleChanged(role) }">
+            {{ role }}
+          </td>
           <td>
             <v-combobox
               v-model="creditsByRole[role]"
@@ -104,118 +279,166 @@
               hide-details
               density="compact"
               :disabled="isFieldDisabled('credits')"
+              @update:model-value="creditsVersion++"
             />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <v-select
-              v-if="availableRoles.length > 0"
-              v-model="selectedNewRole"
-              :items="availableRoles"
-              label="Add role..."
-              density="compact"
-              hide-details
-              :disabled="isFieldDisabled('credits')"
-              @update:model-value="addRole"
-            />
-          </td>
-          <td class="clearCol">
-            <v-btn
-              v-if="creditRoles.length"
-              variant="text"
-              size="x-small"
-              @click="clearField('credits')"
-            >
-              Clear All
-            </v-btn>
           </td>
         </tr>
       </tbody>
     </v-table>
+    <div class="creditFooter">
+      <v-select
+        v-if="availableRoles.length > 0"
+        v-model="selectedNewRole"
+        :items="availableRoles"
+        label="Add role..."
+        density="compact"
+        hide-details
+        class="addRoleSelect"
+        :disabled="isFieldDisabled('credits')"
+        @update:model-value="addRole"
+      />
+      <v-btn
+        v-if="creditRoles.length"
+        variant="text"
+        size="x-small"
+        @click="clearField('credits')"
+      >
+        Clear All
+      </v-btn>
+    </div>
 
     <!-- Technical -->
     <section class="mdSection">
       <div class="thirdRow">
-        <v-select
-          v-model="patch.reading_direction"
-          :items="readingDirectionItems"
-          label="Reading Direction"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('reading_direction')"
-          @click:clear="clearedFields.add('reading_direction')"
-        />
-        <v-select
-          v-model="patch.original_format"
-          :items="originalFormatChoices"
-          label="Original Format"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('original_format')"
-          @click:clear="clearedFields.add('original_format')"
-        />
-        <v-checkbox
-          v-model="patch.monochrome"
-          label="Monochrome"
-          hide-details
-          density="compact"
-          :disabled="isFieldDisabled('monochrome')"
-        />
+        <div
+          :title="isFieldDisabled('reading_direction') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-select
+            v-model="patch.reading_direction"
+            :items="readingDirectionItems"
+            label="Reading Direction"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('reading_direction')"
+            :class="{
+              fieldCleared: isCleared('reading_direction'),
+              fieldChanged:
+                isFieldChanged('reading_direction') &&
+                !isCleared('reading_direction'),
+            }"
+            @update:model-value="onFieldInput('reading_direction')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('reading_direction')"
+                @toggle="toggleClear('reading_direction')"
+              />
+            </template>
+          </v-select>
+        </div>
+        <div
+          :title="isFieldDisabled('original_format') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-select
+            v-model="patch.original_format"
+            :items="filteredOriginalFormats"
+            label="Original Format"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('original_format')"
+            :class="{
+              fieldCleared: isCleared('original_format'),
+              fieldChanged:
+                isFieldChanged('original_format') &&
+                !isCleared('original_format'),
+            }"
+            @update:model-value="onFieldInput('original_format')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('original_format')"
+                @toggle="toggleClear('original_format')"
+              />
+            </template>
+          </v-select>
+        </div>
+        <div
+          class="monochromeRow"
+          :class="{
+            fieldCleared: isCleared('monochrome'),
+            fieldChanged:
+              isFieldChanged('monochrome') && !isCleared('monochrome'),
+          }"
+          :title="isFieldDisabled('monochrome') ? disabledTooltip : ''"
+        >
+          <v-checkbox
+            v-model="patch.monochrome"
+            label="Monochrome"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('monochrome')"
+          />
+          <ClearFieldIcon
+            :cleared="isCleared('monochrome')"
+            @toggle="toggleClear('monochrome')"
+          />
+        </div>
       </div>
       <div class="inlineRow">
-        <v-select
-          v-model="patch.country"
-          :items="countryChoices"
-          label="Country"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('country')"
-          @click:clear="clearedFields.add('country')"
-        />
-        <v-select
-          v-model="patch.language"
-          :items="languageChoices"
-          label="Language"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('language')"
-          @click:clear="clearedFields.add('language')"
-        />
-        <v-select
-          v-model="patch.age_rating"
-          :items="ageRatingChoices"
-          label="Age Rating"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('age_rating')"
-          @click:clear="clearedFields.add('age_rating')"
-        />
-      </div>
-      <div class="inlineRow">
-        <v-select
-          v-model="patch.main_character"
-          :items="patch.characters"
-          label="Main Character"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('protagonist')"
-        />
-        <v-select
-          v-model="patch.main_team"
-          :items="patch.teams"
-          label="Main Team"
-          hide-details
-          density="compact"
-          clearable
-          :disabled="isFieldDisabled('protagonist')"
-        />
+        <div
+          :title="isFieldDisabled('language') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-select
+            v-model="patch.language"
+            :items="languageChoices"
+            label="Language"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('language')"
+            :class="{
+              fieldCleared: isCleared('language'),
+              fieldChanged:
+                isFieldChanged('language') && !isCleared('language'),
+            }"
+            @update:model-value="onFieldInput('language')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('language')"
+                @toggle="toggleClear('language')"
+              />
+            </template>
+          </v-select>
+        </div>
+        <div
+          :title="isFieldDisabled('age_rating') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-select
+            v-model="patch.age_rating"
+            :items="filteredAgeRatings"
+            label="Age Rating"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('age_rating')"
+            :class="{
+              fieldCleared: isCleared('age_rating'),
+              fieldChanged:
+                isFieldChanged('age_rating') && !isCleared('age_rating'),
+            }"
+            @update:model-value="onFieldInput('age_rating')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('age_rating')"
+                @toggle="toggleClear('age_rating')"
+              />
+            </template>
+          </v-select>
+        </div>
       </div>
       <div class="readOnlyRow">
         <span v-if="md?.createdAt" class="readOnlyField">
@@ -246,44 +469,158 @@
     <!-- Tags -->
     <v-table class="mdSection">
       <tbody>
-        <tr v-for="tagKey in tagKeys" :key="tagKey">
-          <td class="key">
-            {{ tagLabel(tagKey) }}
-            <v-btn
-              v-if="patch[tagKey]?.length"
-              icon
-              size="x-small"
-              variant="text"
-              @click="clearField(tagKey)"
-            >
-              &times;
-            </v-btn>
-          </td>
-          <td>
-            <v-combobox
-              v-model="patch[tagKey]"
-              multiple
-              chips
-              closable-chips
-              hide-details
-              density="compact"
-              :disabled="isFieldDisabled(tagKey)"
-            />
-          </td>
-        </tr>
+        <template v-for="tagKey in tagKeys" :key="tagKey">
+          <tr
+            :class="{
+              fieldCleared: isCleared(tagKey),
+              fieldChanged: isFieldChanged(tagKey) && !isCleared(tagKey),
+            }"
+          >
+            <td class="key">
+              {{ tagLabel(tagKey) }}
+            </td>
+            <td>
+              <v-tooltip
+                v-if="isFieldDisabled(tagKey)"
+                :text="disabledTooltip"
+                location="top"
+              >
+                <template #activator="{ props: tipProps }">
+                  <div v-bind="tipProps">
+                    <v-combobox
+                      v-model="patch[tagKey]"
+                      multiple
+                      chips
+                      closable-chips
+                      hide-details
+                      density="compact"
+                      disabled
+                      :class="{
+                        fieldCleared: isCleared(tagKey),
+                        fieldChanged:
+                          isFieldChanged(tagKey) && !isCleared(tagKey),
+                      }"
+                    />
+                  </div>
+                </template>
+              </v-tooltip>
+              <v-combobox
+                v-else
+                v-model="patch[tagKey]"
+                multiple
+                chips
+                closable-chips
+                hide-details
+                density="compact"
+                :class="{
+                  fieldCleared: isCleared(tagKey),
+                  fieldChanged:
+                    isFieldChanged(tagKey) && !isCleared(tagKey),
+                }"
+              >
+                <template #append-inner>
+                  <ClearFieldIcon
+                    :cleared="isCleared(tagKey)"
+                    @toggle="toggleClear(tagKey)"
+                  />
+                </template>
+              </v-combobox>
+            </td>
+          </tr>
+          <tr v-if="tagKey === 'characters'" class="subSelectRow">
+            <td class="key subSelectLabel">Main</td>
+            <td>
+              <v-tooltip
+                v-if="!patch.characters.length"
+                text="Add characters above first"
+                location="top"
+              >
+                <template #activator="{ props: tipProps }">
+                  <div v-bind="tipProps">
+                    <v-select
+                      v-model="patch.main_character"
+                      :items="[]"
+                      label="Main Character"
+                      hide-details
+                      density="compact"
+                      disabled
+                    />
+                  </div>
+                </template>
+              </v-tooltip>
+              <v-select
+                v-else
+                v-model="patch.main_character"
+                :items="patch.characters"
+                label="Main Character"
+                hide-details
+                density="compact"
+                :disabled="isFieldDisabled('protagonist')"
+                :class="{
+                  fieldCleared: isCleared('main_character'),
+                  fieldChanged:
+                    isFieldChanged('main_character') &&
+                    !isCleared('main_character'),
+                }"
+                @update:model-value="onFieldInput('main_character')"
+              >
+                <template #append-inner>
+                  <ClearFieldIcon
+                    :cleared="isCleared('main_character')"
+                    @toggle="toggleClear('main_character')"
+                  />
+                </template>
+              </v-select>
+            </td>
+          </tr>
+          <tr v-if="tagKey === 'teams'" class="subSelectRow">
+            <td class="key subSelectLabel">Main</td>
+            <td>
+              <v-tooltip
+                v-if="!patch.teams.length"
+                text="Add teams above first"
+                location="top"
+              >
+                <template #activator="{ props: tipProps }">
+                  <div v-bind="tipProps">
+                    <v-select
+                      v-model="patch.main_team"
+                      :items="[]"
+                      label="Main Team"
+                      hide-details
+                      density="compact"
+                      disabled
+                    />
+                  </div>
+                </template>
+              </v-tooltip>
+              <v-select
+                v-else
+                v-model="patch.main_team"
+                :items="patch.teams"
+                label="Main Team"
+                hide-details
+                density="compact"
+                :disabled="isFieldDisabled('protagonist')"
+                :class="{
+                  fieldCleared: isCleared('main_team'),
+                  fieldChanged:
+                    isFieldChanged('main_team') && !isCleared('main_team'),
+                }"
+                @update:model-value="onFieldInput('main_team')"
+              >
+                <template #append-inner>
+                  <ClearFieldIcon
+                    :cleared="isCleared('main_team')"
+                    @toggle="toggleClear('main_team')"
+                  />
+                </template>
+              </v-select>
+            </td>
+          </tr>
+        </template>
         <tr>
-          <td class="key">
-            Story Arcs
-            <v-btn
-              v-if="storyArcNames.length"
-              icon
-              size="x-small"
-              variant="text"
-              @click="clearField('story_arcs')"
-            >
-              &times;
-            </v-btn>
-          </td>
+          <td class="key">Story Arcs</td>
           <td>
             <v-combobox
               v-model="storyArcNames"
@@ -293,7 +630,19 @@
               hide-details
               density="compact"
               :disabled="isFieldDisabled('story_arcs')"
-            />
+              :class="{
+                fieldCleared: isCleared('story_arcs'),
+                fieldChanged:
+                  isFieldChanged('story_arcs') && !isCleared('story_arcs'),
+              }"
+            >
+              <template #append-inner>
+                <ClearFieldIcon
+                  :cleared="isCleared('story_arcs')"
+                  @toggle="toggleClear('story_arcs')"
+                />
+              </template>
+            </v-combobox>
           </td>
         </tr>
       </tbody>
@@ -413,6 +762,14 @@
             >
               + Add Identifier
             </v-btn>
+            <v-btn
+              variant="text"
+              size="small"
+              :disabled="isFieldDisabled('identifiers')"
+              @click="addUrlDialog = true"
+            >
+              + Add URL
+            </v-btn>
           </td>
           <td class="clearCol">
             <v-btn
@@ -428,32 +785,80 @@
       </tbody>
     </v-table>
 
+    <v-dialog v-model="addUrlDialog" max-width="500">
+      <v-card>
+        <v-card-title>Add Identifier from URL</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="identifierUrl"
+            label="Paste URL"
+            hide-details="auto"
+            density="compact"
+            autofocus
+            :error-messages="urlError"
+            @keyup.enter="parseIdentifierUrl"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="addUrlDialog = false">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="parsingUrl"
+            :disabled="!identifierUrl"
+            @click="parseIdentifierUrl"
+          >
+            Add
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Notes / Tagger / Scan -->
     <section class="mdSection">
-      <v-textarea
-        v-model="patch.notes"
-        label="Notes"
-        rows="2"
-        auto-grow
-        hide-details
-        density="compact"
-        :disabled="isFieldDisabled('notes')"
-      />
-      <div class="inlineRow">
-        <v-text-field
-          v-model="patch.tagger"
-          label="Tagger"
+      <div :title="isFieldDisabled('notes') ? disabledTooltip : ''">
+        <v-textarea
+          v-model="patch.notes"
+          label="Notes"
+          rows="2"
+          auto-grow
           hide-details
           density="compact"
-          :disabled="isFieldDisabled('tagger')"
-        />
+          :disabled="isFieldDisabled('notes')"
+          :class="{
+            fieldCleared: isCleared('notes'),
+            fieldChanged: isFieldChanged('notes') && !isCleared('notes'),
+          }"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('notes')"
+              @toggle="toggleClear('notes')"
+            />
+          </template>
+        </v-textarea>
+      </div>
+      <div :title="isFieldDisabled('scan_info') ? disabledTooltip : ''">
         <v-text-field
           v-model="patch.scan_info"
           label="Scan Info"
           hide-details
           density="compact"
           :disabled="isFieldDisabled('scan_info')"
-        />
+          :class="{
+            fieldCleared: isCleared('scan_info'),
+            fieldChanged:
+              isFieldChanged('scan_info') && !isCleared('scan_info'),
+          }"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('scan_info')"
+              @toggle="toggleClear('scan_info')"
+            />
+          </template>
+        </v-text-field>
       </div>
     </section>
   </div>
@@ -461,13 +866,14 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
+
+import ClearFieldIcon from "@/components/metadata/edit-mode/clear-field-icon.vue";
 import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
 import { HTTP } from "@/api/v3/base";
-import AGE_RATINGS from "@/choices/age-ratings.json";
-import COUNTRIES from "@/choices/countries.json";
 import FORMAT_FIELD_SUPPORT from "@/choices/format-field-support.json";
+import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
 
@@ -476,7 +882,6 @@ const FORMAT_CHOICES = [
   { title: "ComicInfo", value: "COMIC_INFO" },
 ];
 import LANGUAGES from "@/choices/languages.json";
-import ORIGINAL_FORMATS from "@/choices/original-formats.json";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -536,6 +941,9 @@ const ALL_ROLES = Object.freeze([
 
 export default {
   name: "EditPanel",
+  components: {
+    ClearFieldIcon,
+  },
   props: {
     book: {
       type: Object,
@@ -546,16 +954,22 @@ export default {
   data() {
     return {
       formatChoices: FORMAT_CHOICES,
-      originalFormatChoices: ORIGINAL_FORMATS,
       selectedFormats: ["COMIC_INFO"],
-      countryChoices: COUNTRIES,
       languageChoices: LANGUAGES,
-      ageRatingChoices: AGE_RATINGS,
       identifierSourceChoices: IDENTIFIER_SOURCES,
       identifierTypeChoices: IDENTIFIER_TYPES,
       tagKeys: TAG_KEYS,
       saving: false,
+      confirmDialog: false,
+      confirmInfo: { total: 0, needConversion: 0 },
+      confirmDeleteOriginal: false,
+      addUrlDialog: false,
+      identifierUrl: "",
+      urlError: "",
+      parsingUrl: false,
       clearedFields: new Set(),
+      origSnapshot: null,
+      creditsVersion: 0,
       selectedNewRole: null,
       creditsByRole: {},
       storyArcNames: [],
@@ -567,15 +981,14 @@ export default {
         series: "",
         volume: "",
         volume_issue_count: "",
+        volume_count: "",
         summary: "",
         review: "",
         notes: "",
-        tagger: "",
         scan_info: "",
         reading_direction: null,
         original_format: null,
         monochrome: false,
-        country: null,
         language: null,
         age_rating: null,
         main_character: "",
@@ -594,14 +1007,24 @@ export default {
     ...mapState(useMetadataStore, ["md"]),
     ...mapState(useAdminStore, ["taggingDefaults"]),
     ...mapState(useBrowserStore, {
-      readingDirectionTitles: (state) => state.choices.static.readingDirection,
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
     }),
     readingDirectionItems() {
-      if (!this.readingDirectionTitles) return [];
-      return Object.entries(this.readingDirectionTitles).map(
-        ([value, title]) => ({ title, value }),
-      );
+      return this.unionFormatValues("reading_directions");
+    },
+    filteredOriginalFormats() {
+      return this.unionFormatValues("original_formats");
+    },
+    filteredAgeRatings() {
+      const items = this.unionFormatValues("age_ratings");
+      const showCI = this.enabledFormats.includes("COMIC_INFO");
+      if (!showCI) return items;
+      return items.map((item) => {
+        if (item.ci) {
+          return { ...item, title: `${item.value} (${item.ci})` };
+        }
+        return item;
+      });
     },
     enabledFormats() {
       return this.selectedFormats.length > 0
@@ -617,6 +1040,9 @@ export default {
         }
       }
       return supported;
+    },
+    disabledTooltip() {
+      return "Not supported by selected metadata formats";
     },
     creditRoles() {
       return Object.keys(this.creditsByRole);
@@ -634,23 +1060,77 @@ export default {
     fileType() {
       return this.md?.fileType || "";
     },
-    hasChanges() {
-      if (this.clearedFields.size > 0) return true;
-      for (const [k, v] of Object.entries(this.patch)) {
-        if (k === "monochrome") continue;
-        if (k === "reading_direction" || k === "original_format" || k === "country" || k === "language" || k === "age_rating") {
-          if (v) return true;
-          continue;
+    creditsSerialized() {
+      void this.creditsVersion;
+      return JSON.stringify(this.creditsByRole);
+    },
+    currentSnapshot() {
+      return {
+        patch: JSON.stringify(this.patch),
+        credits: this.creditsSerialized,
+        storyArcs: JSON.stringify(this.storyArcNames),
+        universes: JSON.stringify(this.universes),
+        identifiers: JSON.stringify(this.identifiers),
+      };
+    },
+    changedFields() {
+      if (!this.origSnapshot) return new Set();
+      const changed = new Set();
+      const cur = this.currentSnapshot;
+      const orig = this.origSnapshot;
+      const curPatch = JSON.parse(cur.patch);
+      const origPatch = JSON.parse(orig.patch);
+      for (const k of Object.keys(curPatch)) {
+        if (
+          this.clearedFields.has(k) ||
+          JSON.stringify(curPatch[k]) !== JSON.stringify(origPatch[k])
+        ) {
+          changed.add(k);
         }
-        if (Array.isArray(v) ? v.length > 0 : Boolean(v)) return true;
       }
-      if (this.storyArcNames.length > 0) return true;
-      if (this.universes.length > 0) return true;
-      if (this.identifiers.length > 0) return true;
-      for (const persons of Object.values(this.creditsByRole)) {
-        if (persons.length > 0) return true;
+      if (this.clearedFields.has("credits") || cur.credits !== orig.credits) {
+        changed.add("credits");
       }
-      return false;
+      if (
+        this.clearedFields.has("story_arcs") ||
+        cur.storyArcs !== orig.storyArcs
+      ) {
+        changed.add("story_arcs");
+      }
+      if (
+        this.clearedFields.has("universes") ||
+        cur.universes !== orig.universes
+      ) {
+        changed.add("universes");
+      }
+      if (
+        this.clearedFields.has("identifiers") ||
+        cur.identifiers !== orig.identifiers
+      ) {
+        changed.add("identifiers");
+      }
+      return changed;
+    },
+    hasChanges() {
+      return this.changedFields.size > 0;
+    },
+    changedCreditPersons() {
+      void this.creditsVersion;
+      if (!this.origSnapshot) return new Set();
+      const orig = JSON.parse(this.origSnapshot.credits || "{}");
+      const changed = new Set();
+      const allRoles = new Set([
+        ...Object.keys(this.creditsByRole),
+        ...Object.keys(orig),
+      ]);
+      for (const role of allRoles) {
+        const curArr = this.creditsByRole[role] || [];
+        const origArr = orig[role] || [];
+        if (JSON.stringify(curArr) !== JSON.stringify(origArr)) {
+          for (const p of [...curArr, ...origArr]) changed.add(p);
+        }
+      }
+      return changed;
     },
   },
   mounted() {
@@ -667,7 +1147,88 @@ export default {
     },
     tagLabel(key) {
       if (key === "series_groups") return "Series Groups";
+      if (key === "stories") {
+        const hasMI = this.enabledFormats.includes("METRON_INFO");
+        const hasCI = this.enabledFormats.includes("COMIC_INFO");
+        if (hasMI && hasCI) return "Stories / Title";
+        if (hasCI) return "Title";
+        return "Stories";
+      }
       return capitalCase(key);
+    },
+    enforceMinFormat(val) {
+      if (!val || val.length === 0) {
+        this.selectedFormats = this.lastFormats || ["COMIC_INFO"];
+      } else {
+        this.lastFormats = [...val];
+      }
+    },
+    unionFormatValues(key) {
+      const seen = new Set();
+      const result = [];
+      for (const fmt of this.enabledFormats) {
+        const vals = FORMAT_FIELD_VALUES[fmt]?.[key];
+        if (!vals) continue;
+        for (const item of vals) {
+          const v = typeof item === "string" ? item : item.value;
+          if (!seen.has(v)) {
+            seen.add(v);
+            result.push(item);
+          }
+        }
+      }
+      return result;
+    },
+    isFieldChanged(field) {
+      return this.changedFields.has(field);
+    },
+    isCreditRoleChanged(role) {
+      if (!this.isFieldChanged("credits")) return false;
+      void this.creditsVersion;
+      const cur = this.creditsByRole[role] || [];
+      const orig =
+        JSON.parse(this.origSnapshot?.credits || "{}")[role] || [];
+      if (JSON.stringify(cur) !== JSON.stringify(orig)) return true;
+      if (!this.enabledFormats.includes("METRON_INFO")) return false;
+      for (const person of cur) {
+        if (this.changedCreditPersons.has(person)) return true;
+      }
+      return false;
+    },
+    isCleared(field) {
+      return this.clearedFields.has(field);
+    },
+    toggleClear(field) {
+      if (this.clearedFields.has(field)) {
+        this.clearedFields.delete(field);
+      } else {
+        this.clearField(field);
+      }
+    },
+    async parseIdentifierUrl() {
+      this.urlError = "";
+      this.parsingUrl = true;
+      try {
+        const response = await HTTP.post("/admin/parse-identifier-url", {
+          url: this.identifierUrl,
+        });
+        this.identifiers.push({
+          source: response.data.source,
+          id_type: response.data.idType,
+          key: response.data.key,
+        });
+        this.identifierUrl = "";
+        this.addUrlDialog = false;
+      } catch (error) {
+        this.urlError = error.response?.data?.detail || "Could not parse URL";
+      } finally {
+        this.parsingUrl = false;
+      }
+    },
+    onFieldInput(field) {
+      if (this.patch[field]) {
+        this.clearedFields.delete(field);
+      }
     },
     clearField(field) {
       this.clearedFields.add(field);
@@ -707,7 +1268,6 @@ export default {
       this.patch.summary = this.md.summary || "";
       this.patch.review = this.md.review || "";
       this.patch.notes = this.md.notes || "";
-      this.patch.tagger = this.md.tagger?.name || "";
       this.patch.scan_info = this.md.scanInfo?.name || "";
 
       // Groups
@@ -716,6 +1276,7 @@ export default {
       this.patch.series = this.md.seriesList?.[0]?.name || "";
       this.patch.volume = this.md.volumeList?.[0]?.name || "";
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
+      this.patch.volume_count = this.md.seriesVolumeCount || "";
 
       // Tags
       for (const key of TAG_KEYS) {
@@ -774,161 +1335,181 @@ export default {
       this.patch.reading_direction = this.md.readingDirection || null;
       this.patch.original_format = this.md.originalFormat?.name || null;
       this.patch.monochrome = Boolean(this.md.monochrome);
-      this.patch.country = this.md.country?.name || null;
       this.patch.language = this.md.language?.name || null;
       this.patch.age_rating = this.md.ageRating?.name || null;
       this.patch.main_character = this.md.mainCharacter?.name || "";
       this.patch.main_team = this.md.mainTeam?.name || "";
+
+      this.origSnapshot = { ...this.currentSnapshot };
     },
     buildPatch() {
       const cbPatch = {};
       const cleared = this.clearedFields;
+      const changed = this.changedFields;
 
-      // Simple strings — include if has value OR explicitly cleared
-      for (const key of [
-        "summary",
-        "review",
-        "notes",
-        "tagger",
-        "scan_info",
-      ]) {
-        if (this.patch[key]) {
-          cbPatch[key] = this.patch[key];
-        } else if (cleared.has(key)) {
-          cbPatch[key] = "";
-        }
+      // Simple strings — only include if changed
+      for (const key of ["summary", "review", "notes", "scan_info"]) {
+        if (!changed.has(key)) continue;
+        cbPatch[key] = cleared.has(key) ? "" : this.patch[key];
       }
 
-      // Tag arrays
+      // Tag arrays — only include if changed
       for (const key of TAG_KEYS) {
-        if (this.patch[key].length > 0) {
-          cbPatch[key] = this.patch[key];
-        } else if (cleared.has(key)) {
-          cbPatch[key] = {};
-        }
+        if (!changed.has(key)) continue;
+        cbPatch[key] = cleared.has(key) ? {} : this.patch[key];
       }
 
-      // Groups → SimpleNamedNestedField
-      for (const key of ["publisher", "imprint", "series"]) {
-        if (this.patch[key]) {
-          cbPatch[key] = { name: this.patch[key] };
-        } else if (cleared.has(key)) {
-          cbPatch[key] = { name: "" };
-        }
+      // Groups — only include if changed
+      for (const key of ["publisher", "imprint"]) {
+        if (!changed.has(key)) continue;
+        cbPatch[key] = { name: cleared.has(key) ? "" : this.patch[key] };
       }
-      if (this.patch.volume) {
-        const num = parseInt(this.patch.volume, 10);
-        if (!isNaN(num)) {
-          const vol = { number: num };
-          if (this.patch.volume_issue_count) {
-            const ic = parseInt(this.patch.volume_issue_count, 10);
-            if (!isNaN(ic)) vol.issue_count = ic;
-          }
-          cbPatch.volume = vol;
+      if (changed.has("series") || changed.has("volume_count")) {
+        const series = {};
+        if (this.patch.series) series.name = this.patch.series;
+        if (this.patch.volume_count) {
+          const vc = parseInt(this.patch.volume_count, 10);
+          if (!isNaN(vc)) series.volume_count = vc;
         }
+        if (Object.keys(series).length) cbPatch.series = series;
       }
-
-      // Story arcs
-      if (this.storyArcNames.length > 0) {
-        const arcs = {};
-        for (const name of this.storyArcNames) {
-          arcs[name] = {};
-        }
-        cbPatch.arcs = arcs;
-      } else if (cleared.has("story_arcs")) {
-        cbPatch.arcs = {};
-      }
-
-      // Credits
-      const credits = {};
-      for (const [role, persons] of Object.entries(this.creditsByRole)) {
-        for (const person of persons) {
-          if (!person) continue;
-          if (!(person in credits)) {
-            credits[person] = { roles: {} };
-          }
-          if (role) {
-            credits[person].roles[role] = {};
+      if (changed.has("volume") || changed.has("volume_issue_count")) {
+        if (this.patch.volume) {
+          const num = parseInt(this.patch.volume, 10);
+          if (!isNaN(num)) {
+            const vol = { number: num };
+            if (this.patch.volume_issue_count) {
+              const ic = parseInt(this.patch.volume_issue_count, 10);
+              if (!isNaN(ic)) vol.issue_count = ic;
+            }
+            cbPatch.volume = vol;
           }
         }
       }
-      if (Object.keys(credits).length) {
-        cbPatch.credits = credits;
-      } else if (cleared.has("credits")) {
-        cbPatch.credits = {};
+
+      // Story arcs — only include if changed
+      if (changed.has("story_arcs")) {
+        if (cleared.has("story_arcs") || this.storyArcNames.length === 0) {
+          cbPatch.arcs = {};
+        } else {
+          const arcs = {};
+          for (const name of this.storyArcNames) arcs[name] = {};
+          cbPatch.arcs = arcs;
+        }
       }
 
-      // Universes
-      if (this.universes.length > 0) {
-        const univs = {};
-        for (const u of this.universes) {
-          if (u.name) {
-            univs[u.name] = u.designation
-              ? { designation: u.designation }
-              : {};
+      // Credits — only include if changed
+      if (changed.has("credits")) {
+        const credits = {};
+        for (const [role, persons] of Object.entries(this.creditsByRole)) {
+          for (const person of persons) {
+            if (!person) continue;
+            if (!(person in credits)) credits[person] = { roles: {} };
+            if (role) credits[person].roles[role] = {};
           }
         }
-        if (Object.keys(univs).length) cbPatch.universes = univs;
-      } else if (cleared.has("universes")) {
-        cbPatch.universes = {};
+        cbPatch.credits = Object.keys(credits).length > 0 ? credits : {};
       }
 
-      // Identifiers
-      if (this.identifiers.length > 0) {
-        const ids = {};
-        for (const id of this.identifiers) {
-          if (id.source && id.key) {
-            const fullKey = id.id_type ? `${id.id_type}:${id.key}` : id.key;
-            ids[id.source] = { key: fullKey, url: "" };
+      // Universes — only include if changed
+      if (changed.has("universes")) {
+        if (cleared.has("universes") || this.universes.length === 0) {
+          cbPatch.universes = {};
+        } else {
+          const univs = {};
+          for (const u of this.universes) {
+            if (u.name)
+              univs[u.name] = u.designation
+                ? { designation: u.designation }
+                : {};
           }
+          cbPatch.universes = univs;
         }
-        if (Object.keys(ids).length) cbPatch.identifiers = ids;
-      } else if (cleared.has("identifiers")) {
-        cbPatch.identifiers = {};
       }
 
-      // Technical — select fields: value or cleared
+      // Identifiers — only include if changed
+      if (changed.has("identifiers")) {
+        if (cleared.has("identifiers") || this.identifiers.length === 0) {
+          cbPatch.identifiers = {};
+        } else {
+          const ids = {};
+          for (const id of this.identifiers) {
+            if (id.source && id.key) {
+              const fullKey = id.id_type ? `${id.id_type}:${id.key}` : id.key;
+              ids[id.source] = { key: fullKey, url: "" };
+            }
+          }
+          cbPatch.identifiers = ids;
+        }
+      }
+
+      // Technical select fields — only include if changed
       for (const key of [
         "reading_direction",
         "original_format",
-        "country",
         "language",
         "age_rating",
       ]) {
-        if (this.patch[key]) {
-          cbPatch[key] = this.patch[key];
-        } else if (cleared.has(key)) {
-          cbPatch[key] = "";
-        }
+        if (!changed.has(key)) continue;
+        cbPatch[key] = cleared.has(key) ? "" : this.patch[key];
       }
-      if (this.patch.monochrome) {
+      if (changed.has("monochrome")) {
         cbPatch.monochrome = this.patch.monochrome;
       }
 
-      // Protagonist
-      const protagonist = this.patch.main_character || this.patch.main_team;
-      if (protagonist) {
-        cbPatch.protagonist = protagonist;
-      } else if (cleared.has("protagonist")) {
-        cbPatch.protagonist = "";
+      // Protagonist — only include if changed
+      if (changed.has("main_character") || changed.has("main_team")) {
+        const protagonist = this.patch.main_character || this.patch.main_team;
+        cbPatch.protagonist = protagonist || "";
       }
 
       return cbPatch;
     },
-    async save() {
+    async preSave() {
       this.saving = true;
+      const pks = this.book.ids || [this.book.pk];
+      try {
+        const response = await HTTP.post("/admin/tagwrite/preflight", {
+          group: this.book.group,
+          pks: pks.map(String),
+          formats: this.enabledFormats,
+        });
+        const data = response.data;
+        this.confirmInfo = {
+          total: data.total,
+          needConversion: data.needConversion,
+        };
+        this.confirmDeleteOriginal = data.deleteOriginal || false;
+        if (data.needConversion > 0 || data.total > 10) {
+          this.confirmDialog = true;
+          this.saving = false;
+        } else {
+          await this.doSave();
+        }
+      } catch (error) {
+        useCommonStore().setErrors(error);
+        this.saving = false;
+      }
+    },
+    async doSave() {
+      this.saving = true;
+      this.confirmDialog = false;
       const pks = this.book.ids || [this.book.pk];
       const formats = this.enabledFormats;
       const cbPatch = this.buildPatch();
 
       try {
-        await HTTP.post("/admin/tagwrite", {
+        const payload = {
           group: this.book.group,
           pks: pks.map(String),
           patch: cbPatch,
           mode: "update",
           formats,
-        });
+        };
+        if (this.confirmInfo.needConversion > 0) {
+          payload.deleteOriginal = this.confirmDeleteOriginal;
+        }
+        await HTTP.post("/admin/tagwrite", payload);
         useCommonStore().setSuccess("Tag write queued.");
         this.$emit("saved");
       } catch (error) {
@@ -991,6 +1572,49 @@ export default {
   flex: 1;
 }
 
+.fieldChanged :deep(.v-label) {
+  color: rgb(var(--v-theme-primary));
+}
+
+td.labelChanged {
+  color: rgb(var(--v-theme-primary));
+}
+
+.fieldCleared {
+  opacity: 0.5;
+}
+
+.fieldCleared :deep(.v-label) {
+  text-decoration: line-through;
+}
+
+.subSelectRow {
+  opacity: 0.85;
+}
+
+.subSelectLabel {
+  font-size: 0.85em;
+  padding-left: 16px !important;
+}
+
+
+.monochromeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.creditFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.addRoleSelect {
+  max-width: 200px;
+}
+
 .clearCol {
   text-align: right;
   width: 1%;
@@ -1000,6 +1624,19 @@ export default {
 .removeCol {
   width: 1%;
   white-space: nowrap;
+}
+
+.conversionWarning {
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(var(--v-theme-warning), 0.1);
+}
+
+.conversionHelpText {
+  font-size: 0.85em;
+  color: rgb(var(--v-theme-textSecondary));
+  margin-top: 4px;
 }
 
 .readOnlyRow {

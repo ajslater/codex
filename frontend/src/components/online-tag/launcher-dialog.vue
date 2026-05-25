@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="500">
     <template #activator="{ props: activatorProps }">
-      <v-btn v-bind="activatorProps" variant="tonal" size="small">
+      <v-btn v-bind="activatorProps" variant="tonal" :size="size">
         Tag Online
       </v-btn>
     </template>
@@ -48,9 +48,7 @@
           <div v-if="rateLimitWarning" class="rateLimitWarning">
             {{ rateLimitWarning }}
           </div>
-          <div class="timeEstimate">
-            Estimated time: {{ timeEstimate }}
-          </div>
+          <div class="timeEstimate">Estimated time: {{ timeEstimate }}</div>
         </div>
       </v-card-text>
       <v-card-actions>
@@ -128,6 +126,10 @@ export default {
     book: {
       type: Object,
       required: true,
+    },
+    size: {
+      type: String,
+      default: "default",
     },
   },
   emits: ["started"],

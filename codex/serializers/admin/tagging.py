@@ -2,6 +2,7 @@
 
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
+    BooleanField,
     CharField,
     DictField,
     ListField,
@@ -20,6 +21,7 @@ class TagWriteRequestSerializer(Serializer):
     patch = DictField(required=False, default=None)
     mode = CharField(required=False, default="update")
     formats = ListField(child=CharField(), required=False, default=["COMIC_INFO"])
+    delete_original = BooleanField(required=False, default=None)
 
 
 class OnlineTagStartSerializer(Serializer):
@@ -90,6 +92,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         model = ComicboxTaggingDefaults
         fields = (
             "default_formats",
+            "delete_original",
             "default_match_mode",
             "default_prompts_mode",
             "default_sources",

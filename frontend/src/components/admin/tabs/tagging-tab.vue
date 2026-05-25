@@ -21,6 +21,16 @@
             @update:model-value="save('defaultFormats', $event)"
           />
         </div>
+        <div class="adminCard">
+          <v-checkbox
+            :model-value="defaults.deleteOriginal"
+            label="Delete original after converting CBR/CB7 to CBZ"
+            :hint="deleteOriginalHint"
+            persistent-hint
+            density="compact"
+            @update:model-value="save('deleteOriginal', $event)"
+          />
+        </div>
       </div>
 
       <!-- Online Defaults -->
@@ -251,14 +261,15 @@ export default {
     ...mapState(useAdminStore, {
       defaults: (state) => state.taggingDefaults,
     }),
+    deleteOriginalHint() {
+      return "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.";
+    },
     sourceItems() {
       return [
         {
           title: "Metron",
           value: "metron",
-          props: this.defaults?.hasMetronCredentials
-            ? {}
-            : { disabled: true },
+          props: this.defaults?.hasMetronCredentials ? {} : { disabled: true },
         },
         {
           title: "Comic Vine",

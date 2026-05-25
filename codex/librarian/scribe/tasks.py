@@ -40,6 +40,7 @@ class BulkTagWriteTask(ScribeTask):
     comic_pks: frozenset[int]
     mode: str = "update"
     formats: tuple[str, ...] = ("COMIC_INFO",)
+    delete_original: bool = False
     patch: dict[str, Any] | None = None
     per_comic_patches: dict[int, dict[str, Any]] = field(default_factory=dict)
 

@@ -48,6 +48,7 @@ class SessionState:
     path_to_pk: dict[Path, int] = field(default_factory=dict)
     mode: str = "additive"
     formats: tuple[str, ...] = ("COMIC_INFO",)
+    delete_original: bool = False
     cancelled: bool = False
 
 
@@ -223,6 +224,7 @@ class OnlineTagSessionManager:
             per_comic_patches=state.collected_tags,
             mode=state.mode,
             formats=state.formats,
+            delete_original=state.delete_original,
         )
         self.librarian_queue.put(write_task)
         self.log.info(
@@ -257,6 +259,7 @@ class OnlineTagSessionManager:
             path_to_pk={path: pk for pk, path in comic_paths.items()},
             mode="update",
             formats=tuple(defaults.default_formats),
+            delete_original=defaults.delete_original,
         )
         self._active_session_id = task.session_id
         with self._lock:
