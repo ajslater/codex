@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.7
+
+- Fixes
+    - Fix folder custom covers.
+
 ## v1.12.6
 
 - Fixes
