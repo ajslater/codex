@@ -1,6 +1,19 @@
 <template>
   <div id="editPanel">
     <div id="editToolbar">
+      <v-select
+        v-model="selectedFormats"
+        :items="formatChoices"
+        label="Formats"
+        density="compact"
+        hide-details
+        multiple
+        chips
+        class="formatSelect"
+        @update:model-value="enforceMinFormat"
+      />
+      <v-spacer />
+      <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
         color="primary"
         variant="flat"
@@ -10,7 +23,6 @@
       >
         Save Tags
       </v-btn>
-      <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
     </div>
     <v-dialog v-model="confirmDialog" max-width="450">
       <v-card>
@@ -49,19 +61,8 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-select
-      v-model="selectedFormats"
-      :items="formatChoices"
-      label="Metadata Formats"
-      density="compact"
-      hide-details
-      multiple
-      chips
-      class="formatSelect"
-      @update:model-value="enforceMinFormat"
-    />
 
-    <!-- Groups -->
+    <div class="sectionHeader">Publishing</div>
     <section class="mdSection">
       <div class="inlineRow">
         <div
@@ -214,7 +215,7 @@
       </div>
     </section>
 
-    <!-- Summary / Review -->
+    <div class="sectionHeader">Description</div>
     <section class="mdSection">
       <div :title="isFieldDisabled('summary') ? disabledTooltip : ''">
         <v-textarea
@@ -262,7 +263,7 @@
       </div>
     </section>
 
-    <!-- Credits -->
+    <div class="sectionHeader">Credits</div>
     <v-table class="mdSection">
       <tbody>
         <tr v-for="role in creditRoles" :key="role">
@@ -284,7 +285,7 @@
         </tr>
       </tbody>
     </v-table>
-    <div class="creditFooter">
+    <div class="tableFooter">
       <v-select
         v-if="availableRoles.length > 0"
         v-model="selectedNewRole"
@@ -296,6 +297,7 @@
         :disabled="isFieldDisabled('credits')"
         @update:model-value="addRole"
       />
+      <v-spacer />
       <v-btn
         v-if="creditRoles.length"
         variant="text"
@@ -306,166 +308,162 @@
       </v-btn>
     </div>
 
-    <!-- Technical -->
-    <section class="mdSection">
-      <div class="thirdRow">
-        <div
-          :title="isFieldDisabled('reading_direction') ? disabledTooltip : ''"
-          class="flexItem"
-        >
-          <v-select
-            v-model="patch.reading_direction"
-            :items="readingDirectionItems"
-            label="Reading Direction"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('reading_direction')"
-            :class="{
-              fieldCleared: isCleared('reading_direction'),
-              fieldChanged:
-                isFieldChanged('reading_direction') &&
-                !isCleared('reading_direction'),
-            }"
-            @update:model-value="onFieldInput('reading_direction')"
-          >
-            <template #append-inner>
-              <ClearFieldIcon
-                :cleared="isCleared('reading_direction')"
-                @toggle="toggleClear('reading_direction')"
-              />
-            </template>
-          </v-select>
-        </div>
-        <div
-          :title="isFieldDisabled('original_format') ? disabledTooltip : ''"
-          class="flexItem"
-        >
-          <v-select
-            v-model="patch.original_format"
-            :items="filteredOriginalFormats"
-            label="Original Format"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('original_format')"
-            :class="{
-              fieldCleared: isCleared('original_format'),
-              fieldChanged:
-                isFieldChanged('original_format') &&
-                !isCleared('original_format'),
-            }"
-            @update:model-value="onFieldInput('original_format')"
-          >
-            <template #append-inner>
-              <ClearFieldIcon
-                :cleared="isCleared('original_format')"
-                @toggle="toggleClear('original_format')"
-              />
-            </template>
-          </v-select>
-        </div>
-        <div
-          class="monochromeRow"
+    <div class="sectionHeader">Details</div>
+    <section class="mdSection detailsGrid">
+      <div
+        :title="isFieldDisabled('reading_direction') ? disabledTooltip : ''"
+      >
+        <v-select
+          v-model="patch.reading_direction"
+          :items="readingDirectionItems"
+          label="Reading Direction"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('reading_direction')"
           :class="{
-            fieldCleared: isCleared('monochrome'),
+            fieldCleared: isCleared('reading_direction'),
             fieldChanged:
-              isFieldChanged('monochrome') && !isCleared('monochrome'),
+              isFieldChanged('reading_direction') &&
+              !isCleared('reading_direction'),
           }"
-          :title="isFieldDisabled('monochrome') ? disabledTooltip : ''"
+          @update:model-value="onFieldInput('reading_direction')"
         >
-          <v-checkbox
-            v-model="patch.monochrome"
-            label="Monochrome"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('monochrome')"
-          />
-          <ClearFieldIcon
-            :cleared="isCleared('monochrome')"
-            @toggle="toggleClear('monochrome')"
-          />
-        </div>
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('reading_direction')"
+              @toggle="toggleClear('reading_direction')"
+            />
+          </template>
+        </v-select>
       </div>
-      <div class="inlineRow">
-        <div
-          :title="isFieldDisabled('language') ? disabledTooltip : ''"
-          class="flexItem"
+      <div
+        :title="isFieldDisabled('original_format') ? disabledTooltip : ''"
+      >
+        <v-select
+          v-model="patch.original_format"
+          :items="filteredOriginalFormats"
+          label="Original Format"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('original_format')"
+          :class="{
+            fieldCleared: isCleared('original_format'),
+            fieldChanged:
+              isFieldChanged('original_format') &&
+              !isCleared('original_format'),
+          }"
+          @update:model-value="onFieldInput('original_format')"
         >
-          <v-select
-            v-model="patch.language"
-            :items="languageChoices"
-            label="Language"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('language')"
-            :class="{
-              fieldCleared: isCleared('language'),
-              fieldChanged:
-                isFieldChanged('language') && !isCleared('language'),
-            }"
-            @update:model-value="onFieldInput('language')"
-          >
-            <template #append-inner>
-              <ClearFieldIcon
-                :cleared="isCleared('language')"
-                @toggle="toggleClear('language')"
-              />
-            </template>
-          </v-select>
-        </div>
-        <div
-          :title="isFieldDisabled('age_rating') ? disabledTooltip : ''"
-          class="flexItem"
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('original_format')"
+              @toggle="toggleClear('original_format')"
+            />
+          </template>
+        </v-select>
+      </div>
+      <div :title="isFieldDisabled('language') ? disabledTooltip : ''">
+        <v-select
+          v-model="patch.language"
+          :items="languageChoices"
+          label="Language"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('language')"
+          :class="{
+            fieldCleared: isCleared('language'),
+            fieldChanged:
+              isFieldChanged('language') && !isCleared('language'),
+          }"
+          @update:model-value="onFieldInput('language')"
         >
-          <v-select
-            v-model="patch.age_rating"
-            :items="filteredAgeRatings"
-            label="Age Rating"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('age_rating')"
-            :class="{
-              fieldCleared: isCleared('age_rating'),
-              fieldChanged:
-                isFieldChanged('age_rating') && !isCleared('age_rating'),
-            }"
-            @update:model-value="onFieldInput('age_rating')"
-          >
-            <template #append-inner>
-              <ClearFieldIcon
-                :cleared="isCleared('age_rating')"
-                @toggle="toggleClear('age_rating')"
-              />
-            </template>
-          </v-select>
-        </div>
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('language')"
+              @toggle="toggleClear('language')"
+            />
+          </template>
+        </v-select>
       </div>
-      <div class="readOnlyRow">
-        <span v-if="md?.createdAt" class="readOnlyField">
-          <span class="readOnlyLabel">Created at</span>
-          {{ formatDateTime(md.createdAt) }}
-        </span>
-        <span v-if="md?.updatedAt" class="readOnlyField">
-          <span class="readOnlyLabel">Updated at</span>
-          {{ formatDateTime(md.updatedAt) }}
-        </span>
-        <span v-if="totalSize" class="readOnlyField">
-          <span class="readOnlyLabel">{{ sizeLabel }}</span>
-          {{ totalSize }}
-        </span>
-        <span v-if="fileType" class="readOnlyField">
-          <span class="readOnlyLabel">File Type</span>
-          {{ fileType }}
-        </span>
+      <div :title="isFieldDisabled('age_rating') ? disabledTooltip : ''">
+        <v-select
+          v-model="patch.age_rating"
+          :items="filteredAgeRatings"
+          label="Age Rating"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('age_rating')"
+          :class="{
+            fieldCleared: isCleared('age_rating'),
+            fieldChanged:
+              isFieldChanged('age_rating') && !isCleared('age_rating'),
+          }"
+          @update:model-value="onFieldInput('age_rating')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('age_rating')"
+              @toggle="toggleClear('age_rating')"
+            />
+          </template>
+        </v-select>
       </div>
-      <div v-if="md?.path" class="readOnlyRow">
-        <span class="readOnlyField">
-          <span class="readOnlyLabel">Path</span>
-          {{ md.path }}
-        </span>
+      <div
+        class="monochromeRow"
+        :class="{
+          fieldCleared: isCleared('monochrome'),
+          fieldChanged:
+            isFieldChanged('monochrome') && !isCleared('monochrome'),
+        }"
+        :title="isFieldDisabled('monochrome') ? disabledTooltip : ''"
+      >
+        <v-checkbox
+          v-model="patch.monochrome"
+          label="Monochrome"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('monochrome')"
+        />
+        <ClearFieldIcon
+          :cleared="isCleared('monochrome')"
+          @toggle="toggleClear('monochrome')"
+        />
       </div>
     </section>
 
-    <!-- Tags -->
+    <v-expansion-panels variant="accordion" class="fileInfoPanel">
+      <v-expansion-panel>
+        <v-expansion-panel-title class="fileInfoTitle">
+          File Info
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <div class="fileInfoGrid">
+            <span v-if="md?.createdAt" class="readOnlyField">
+              <span class="readOnlyLabel">Created</span>
+              {{ formatDateTime(md.createdAt) }}
+            </span>
+            <span v-if="md?.updatedAt" class="readOnlyField">
+              <span class="readOnlyLabel">Updated</span>
+              {{ formatDateTime(md.updatedAt) }}
+            </span>
+            <span v-if="totalSize" class="readOnlyField">
+              <span class="readOnlyLabel">{{ sizeLabel }}</span>
+              {{ totalSize }}
+            </span>
+            <span v-if="fileType" class="readOnlyField">
+              <span class="readOnlyLabel">File Type</span>
+              {{ fileType }}
+            </span>
+          </div>
+          <div v-if="md?.path" class="readOnlyField pathField">
+            <span class="readOnlyLabel">Path</span>
+            {{ md.path }}
+          </div>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+
+    <div class="sectionHeader">Tags</div>
     <v-table class="mdSection">
       <tbody>
         <template v-for="tagKey in tagKeys" :key="tagKey">
@@ -646,7 +644,7 @@
       </tbody>
     </v-table>
 
-    <!-- Universes -->
+    <div class="sectionHeader">Universes</div>
     <v-table class="mdSection">
       <tbody>
         <tr v-for="(u, i) in universes" :key="i">
@@ -679,32 +677,29 @@
             </v-btn>
           </td>
         </tr>
-        <tr>
-          <td colspan="2">
-            <v-btn
-              variant="text"
-              size="small"
-              :disabled="isFieldDisabled('universes')"
-              @click="universes.push({ name: '', designation: '' })"
-            >
-              + Add Universe
-            </v-btn>
-          </td>
-          <td class="clearCol">
-            <v-btn
-              v-if="universes.length"
-              variant="text"
-              size="x-small"
-              @click="clearField('universes')"
-            >
-              Clear All
-            </v-btn>
-          </td>
-        </tr>
       </tbody>
     </v-table>
+    <div class="tableFooter">
+      <v-btn
+        variant="text"
+        size="small"
+        :disabled="isFieldDisabled('universes')"
+        @click="universes.push({ name: '', designation: '' })"
+      >
+        + Add Universe
+      </v-btn>
+      <v-spacer />
+      <v-btn
+        v-if="universes.length"
+        variant="text"
+        size="x-small"
+        @click="clearField('universes')"
+      >
+        Clear All
+      </v-btn>
+    </div>
 
-    <!-- Identifiers -->
+    <div class="sectionHeader">Identifiers</div>
     <v-table class="mdSection">
       <tbody>
         <tr v-for="(id, i) in identifiers" :key="i">
@@ -748,40 +743,35 @@
             </v-btn>
           </td>
         </tr>
-        <tr>
-          <td colspan="3">
-            <v-btn
-              variant="text"
-              size="small"
-              :disabled="isFieldDisabled('identifiers')"
-              @click="
-                identifiers.push({ source: '', id_type: 'comic', key: '' })
-              "
-            >
-              + Add Identifier
-            </v-btn>
-            <v-btn
-              variant="text"
-              size="small"
-              :disabled="isFieldDisabled('identifiers')"
-              @click="addUrlDialog = true"
-            >
-              + Add URL
-            </v-btn>
-          </td>
-          <td class="clearCol">
-            <v-btn
-              v-if="identifiers.length"
-              variant="text"
-              size="x-small"
-              @click="clearField('identifiers')"
-            >
-              Clear All
-            </v-btn>
-          </td>
-        </tr>
       </tbody>
     </v-table>
+    <div class="tableFooter">
+      <v-btn
+        variant="text"
+        size="small"
+        :disabled="isFieldDisabled('identifiers')"
+        @click="identifiers.push({ source: '', id_type: 'comic', key: '' })"
+      >
+        + Add Identifier
+      </v-btn>
+      <v-btn
+        variant="text"
+        size="small"
+        :disabled="isFieldDisabled('identifiers')"
+        @click="addUrlDialog = true"
+      >
+        + Add URL
+      </v-btn>
+      <v-spacer />
+      <v-btn
+        v-if="identifiers.length"
+        variant="text"
+        size="x-small"
+        @click="clearField('identifiers')"
+      >
+        Clear All
+      </v-btn>
+    </div>
 
     <v-dialog v-model="addUrlDialog" max-width="500">
       <v-card>
@@ -813,7 +803,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Notes / Tagger / Scan -->
+    <div class="sectionHeader">Notes</div>
     <section class="mdSection">
       <div :title="isFieldDisabled('notes') ? disabledTooltip : ''">
         <v-textarea
@@ -1540,14 +1530,30 @@ export default {
 }
 
 .formatSelect {
-  margin-top: 8px;
+  max-width: 280px;
+}
+
+.sectionHeader {
+  margin-top: 20px;
+  margin-bottom: 4px;
+  font-size: 0.75em;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--v-theme-textSecondary));
 }
 
 .mdSection {
-  margin-top: 25px;
+  margin-top: 4px;
   background-color: rgb(var(--v-theme-surface));
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -1557,15 +1563,6 @@ export default {
 }
 
 .inlineRow > * {
-  flex: 1;
-}
-
-.thirdRow {
-  display: flex;
-  gap: 8px;
-}
-
-.thirdRow > * {
   flex: 1;
 }
 
@@ -1600,7 +1597,7 @@ td.labelChanged {
   justify-content: space-between;
 }
 
-.creditFooter {
+.tableFooter {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1611,10 +1608,25 @@ td.labelChanged {
   max-width: 200px;
 }
 
-.clearCol {
-  text-align: right;
-  width: 1%;
-  white-space: nowrap;
+.fileInfoPanel {
+  margin-top: 16px;
+}
+
+.fileInfoTitle {
+  font-size: 0.85em;
+  min-height: 36px !important;
+  color: rgb(var(--v-theme-textSecondary));
+}
+
+.fileInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.pathField {
+  margin-top: 8px;
+  word-break: break-all;
 }
 
 .removeCol {
@@ -1633,12 +1645,6 @@ td.labelChanged {
   font-size: 0.85em;
   color: rgb(var(--v-theme-textSecondary));
   margin-top: 4px;
-}
-
-.readOnlyRow {
-  display: flex;
-  gap: 16px;
-  padding: 10px 0 0;
 }
 
 .readOnlyField {
