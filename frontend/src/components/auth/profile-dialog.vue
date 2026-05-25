@@ -30,6 +30,7 @@
         clearable
       />
       <v-text-field
+        v-if="emailEnabled"
         v-model="profile.email"
         :rules="rules.email"
         type="email"
@@ -39,7 +40,24 @@
         hint="Only used to receive password reset links."
         persistent-hint
       />
-      <v-expansion-panels v-model="passwordPanel" class="passwordSection">
+      <v-expansion-panels v-else v-model="emailPanel" class="collapsedSection">
+        <v-expansion-panel value="email">
+          <v-expansion-panel-title>Email</v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <v-text-field
+              v-model="profile.email"
+              :rules="rules.email"
+              type="email"
+              autocomplete="email"
+              label="Email"
+              clearable
+              hint="No mail server is configured, so password reset is unavailable. Set this for when one is."
+              persistent-hint
+            />
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+      <v-expansion-panels v-model="passwordPanel" class="collapsedSection">
         <v-expansion-panel value="password">
           <v-expansion-panel-title>Change Password</v-expansion-panel-title>
           <v-expansion-panel-text>
@@ -113,12 +131,14 @@ export default {
         passwordConfirm: "",
       },
       passwordPanel: null,
+      emailPanel: null,
       mdiAccountCog,
     };
   },
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+      emailEnabled: (state) => state.adminFlags.emailEnabled,
       remoteUserEnabled: (state) => state.adminFlags.remoteUserEnabled,
       MIN_PASSWORD_LENGTH: (state) => state.MIN_PASSWORD_LENGTH,
     }),
@@ -228,6 +248,7 @@ export default {
       this.profile.password = "";
       this.profile.passwordConfirm = "";
       this.passwordPanel = null;
+      this.emailPanel = null;
       this.clearErrors();
     },
     async submit() {
@@ -267,7 +288,7 @@ export default {
   gap: 0.5em;
 }
 
-.passwordSection {
+.collapsedSection {
   margin-top: 0.5em;
 }
 
