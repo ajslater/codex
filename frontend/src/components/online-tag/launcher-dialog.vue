@@ -49,6 +49,24 @@
             {{ rateLimitWarning }}
           </div>
           <div class="timeEstimate">Estimated time: {{ timeEstimate }}</div>
+          <div v-if="needConversion > 0" class="conversionWarning">
+            <div>
+              {{ needConversion }}
+              comic{{ needConversion === 1 ? "" : "s" }} will be converted
+              from CBR/CB7 to CBZ.
+            </div>
+            <div class="conversionHelpText">
+              Writing tags to CBR, CB7, or CBT archives converts them to
+              CBZ. Enable this to delete the original file after conversion.
+            </div>
+            <v-checkbox
+              v-model="deleteOriginal"
+              label="Delete original files after conversion"
+              hide-details
+              density="compact"
+              class="mt-2"
+            />
+          </div>
         </div>
       </v-card-text>
       <v-card-actions>
@@ -71,6 +89,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { HTTP } from "@/api/v3/base";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
@@ -98,8 +117,8 @@ const PROMPTS_MODE_HINTS = {
 };
 
 const SOURCE_RATES = {
-  metron: { perMinute: 20, label: "Metron (20 req/min)" },
-  comicvine: { perMinute: 3, label: "Comic Vine (200 req/hr)" },
+  metron: { perMinute: 20, perHour: 1200, label: "Metron" },
+  comicvine: { perMinute: 3, perHour: 200, label: "Comic Vine" },
 };
 
 const MATCH_MODE_CALLS_PER_COMIC = {
@@ -142,6 +161,8 @@ export default {
       sources: ["metron", "comicvine"],
       matchMode: "normal",
       promptsMode: "ask",
+      needConversion: 0,
+      deleteOriginal: false,
     };
   },
   computed: {
@@ -217,12 +238,15 @@ export default {
       const warnings = [];
       for (const src of this.activeSources) {
         const rate = SOURCE_RATES[src];
-        if (rate && this.totalCalls > rate.perMinute) {
-          warnings.push(rate.label);
+        if (!rate) continue;
+        if (this.totalCalls > rate.perHour) {
+          warnings.push(`${rate.label} (${rate.perHour}/hr limit)`);
+        } else if (this.totalCalls > rate.perMinute) {
+          warnings.push(`${rate.label} (${rate.perMinute}/min limit)`);
         }
       }
       if (warnings.length === 0) return "";
-      return `Exceeds rate limits for: ${warnings.join(", ")}`;
+      return `Will be rate-limited by: ${warnings.join(", ")}`;
     },
   },
   watch: {
@@ -248,6 +272,18 @@ export default {
         this.promptsMode =
           this.taggingDefaults.defaultPromptsMode || this.promptsMode;
       }
+      const pks = this.book.ids || [this.book.pk];
+      try {
+        const response = await HTTP.post("/admin/tagwrite/preflight", {
+          group: this.book.group,
+          pks: pks.map(String),
+          formats: this.taggingDefaults?.defaultFormats || ["COMIC_INFO"],
+        });
+        this.needConversion = response.data.needConversion || 0;
+        this.deleteOriginal = response.data.deleteOriginal || false;
+      } catch {
+        this.needConversion = 0;
+      }
     },
     async start() {
       this.starting = true;
@@ -259,6 +295,7 @@ export default {
           sources: this.sources,
           mode: this.matchMode,
           promptsMode: this.promptsMode,
+          deleteOriginal: this.deleteOriginal,
         });
         useCommonStore().setSuccess("Online tagging started.");
         this.dialog = false;
@@ -297,5 +334,18 @@ export default {
 
 .timeEstimate {
   padding-top: 2px;
+}
+
+.conversionWarning {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(var(--v-theme-warning), 0.1);
+}
+
+.conversionHelpText {
+  font-size: 0.85em;
+  color: rgb(var(--v-theme-textSecondary));
+  margin-top: 4px;
 }
 </style>

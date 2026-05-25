@@ -8,9 +8,10 @@
     @click="promptDialogOpen = true"
   >
     <v-icon start>{{ mdiTagMultiple }}</v-icon>
-    {{ pendingPrompts.length }} Prompt{{
-      pendingPrompts.length === 1 ? "" : "s"
+    {{ pendingPrompts.length }} Match{{
+      pendingPrompts.length === 1 ? "" : "es"
     }}
+    to Review
   </v-btn>
 </template>
 

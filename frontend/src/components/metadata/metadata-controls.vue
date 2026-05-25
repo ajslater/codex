@@ -33,6 +33,7 @@
       v-if="isUserAdmin"
       :book="controlBook"
       :size="size"
+      @started="$emit('onlineTagStarted')"
     />
     <v-btn
       v-if="isUserAdmin"
@@ -86,7 +87,7 @@ export default {
       default: null,
     },
   },
-  emits: ["editTags"],
+  emits: ["editTags", "onlineTagStarted"],
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useMetadataStore, {

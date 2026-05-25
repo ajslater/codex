@@ -64,16 +64,17 @@ class TagWriter(WorkerStatusAbortableBase):
             )
         return items
 
-    def _reimport(self, comic_paths: dict[int, Path]) -> None:
-        """Re-import written comics by dispatching ImportTasks grouped by library."""
+    def _reimport_unwatched(self, comic_paths: dict[int, Path]) -> None:
+        """Re-import comics in libraries without filesystem event watching."""
         if not comic_paths:
             return
         comics = Comic.objects.filter(pk__in=comic_paths.keys()).only(
-            "pk", "path", "library_id"
+            "pk", "path", "library_id", "library__events"
         )
         library_path_map: defaultdict[int, set[str]] = defaultdict(set)
         for comic in comics:
-            library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue]
+            if not comic.library.events:  # pyright: ignore[reportAttributeAccessIssue]
+                library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue]
 
         for library_id, paths in library_path_map.items():
             import_task = ImportTask(
@@ -120,5 +121,5 @@ class TagWriter(WorkerStatusAbortableBase):
                 self.log.warning(f"Tag write error for {result.path}: {result.error}")
 
         written_paths = {pk: comic_paths[pk] for pk in written_pks}
-        self._reimport(written_paths)
+        self._reimport_unwatched(written_paths)
         self.log.info(f"Tag write complete: {len(written_pks)} comics written.")

@@ -19,6 +19,7 @@
         :book="book"
         :editing="editing"
         @edit-tags="editing = true"
+        @online-tag-started="close"
       />
       <component
         :is="editPanelComponent"

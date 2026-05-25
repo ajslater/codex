@@ -12,6 +12,7 @@ from codex.librarian.onlinetag.tasks import (
     OnlineTagAbortTask,
     OnlineTagPromptResponseTask,
 )
+from codex.models.admin import ComicboxTaggingDefaults
 from codex.serializers.admin.tagging import (
     OnlineTagPromptResponseSerializer,
     OnlineTagStartSerializer,
@@ -49,6 +50,16 @@ class AdminOnlineTagStartView(AdminAPIView):
             return Response({"detail": "No comics matched."}, status=400)
 
         session_id = str(uuid.uuid4())
+        req_delete = data.get("delete_original")
+        if req_delete is not None:
+            delete_original = req_delete
+        else:
+            try:
+                defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+                delete_original = defaults.delete_original
+            except ComicboxTaggingDefaults.DoesNotExist:
+                delete_original = False
+
         task = BulkOnlineTagTask(
             comic_pks=comic_pks,
             session_id=session_id,
@@ -56,6 +67,7 @@ class AdminOnlineTagStartView(AdminAPIView):
             mode=data["mode"],
             prompts_mode=data["prompts_mode"],
             auto_threshold=float(data.get("auto_threshold", 0.85)),
+            delete_original=delete_original,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

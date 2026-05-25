@@ -24,7 +24,7 @@ class OnlineTagThread(QueuedThread):
         """Lazy-init the session manager."""
         if self._session_manager is None:
             self._session_manager = OnlineTagSessionManager(
-                self.log, self.librarian_queue
+                self.log, self.librarian_queue, self.queue
             )
         return self._session_manager
 

@@ -15,11 +15,8 @@ from comicbox.online_session import (
     SessionMode,
 )
 
-from codex.librarian.notifier.tasks import (
-    LIBRARIAN_STATUS_TASK,
-    ONLINE_TAG_PROMPT_TASK,
-)
-from codex.librarian.onlinetag.status import OnlineLookupStatus, OnlinePromptStatus
+from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
+from codex.librarian.onlinetag.status import OnlineLookupStatus
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
@@ -81,15 +78,17 @@ def _serialize_candidate(c) -> dict[str, Any]:
 class OnlineTagSessionManager:
     """Manage online tagging sessions."""
 
-    def __init__(self, log: Logger, librarian_queue: Queue) -> None:
+    def __init__(self, log: Logger, librarian_queue: Queue, thread_queue=None) -> None:
         """Initialize the session manager."""
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.Lock()
         self.log = log
         self.librarian_queue = librarian_queue
+        self.thread_queue = thread_queue
         self.status_controller = StatusController(log, librarian_queue)
         self._active_session_id: str | None = None
         self._lookup_status: OnlineLookupStatus | None = None
+        self._rate_limited: bool = False
 
     def _build_credentials(self) -> OnlineCredentials | None:
         """Load and decrypt credentials from the defaults model."""
@@ -128,6 +127,7 @@ class OnlineTagSessionManager:
         """Handle comicbox online events."""
         match event:
             case RateLimited():
+                self._rate_limited = True
                 if self._lookup_status:
                     secs = event.retry_after_seconds
                     wait = f" {secs:.0f}s" if secs else ""
@@ -151,7 +151,24 @@ class OnlineTagSessionManager:
         self._persist_prompts(session_id)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
-    def _collect_results(self, state: SessionState, paths: Iterable[Path]) -> None:
+    def _flush_batch(self, state: SessionState, batch: dict[int, dict]) -> None:
+        """Write a batch of collected tags."""
+        if not batch:
+            return
+        write_task = BulkTagWriteTask(
+            comic_pks=frozenset(batch.keys()),
+            per_comic_patches=dict(batch),
+            mode=state.mode,
+            formats=state.formats,
+            delete_original=state.delete_original,
+        )
+        self.librarian_queue.put(write_task)
+        self.log.info(f"Online tag: flushed write batch of {len(batch)} comics.")
+        batch.clear()
+
+    def _collect_results(
+        self, state: SessionState, paths: Iterable[Path], *, flush_writes: bool = False
+    ) -> None:
         """Iterate tag_many and collect resolved tags into state."""
         path_list = list(paths)
         total = len(path_list)
@@ -159,8 +176,10 @@ class OnlineTagSessionManager:
         status.total = total
         status.complete = 0
         self._lookup_status = status
+        self._rate_limited = False
         self.status_controller.start(status)
 
+        batch: dict[int, dict] = {}
         for index, result in enumerate(state.session.tag_many(path_list)):
             if state.cancelled:
                 break
@@ -171,10 +190,48 @@ class OnlineTagSessionManager:
             if result.tags and not result.error:
                 pk = state.path_to_pk.get(result.path)
                 if pk is not None:
-                    state.collected_tags[pk] = result.tags
+                    if flush_writes:
+                        batch[pk] = result.tags
+                    else:
+                        state.collected_tags[pk] = result.tags
+            if flush_writes and self._rate_limited and batch:
+                self._flush_batch(state, batch)
+                self._rate_limited = False
+
+        if flush_writes:
+            self._flush_batch(state, batch)
 
         self._lookup_status = None
         self.status_controller.finish(status)
+
+    def _drain_prompt_tasks(self) -> None:
+        """Process any pending prompt/abort tasks from the thread queue."""
+        if not self.thread_queue:
+            return
+        from codex.librarian.onlinetag.tasks import (
+            OnlineTagAbortTask,
+            OnlineTagPromptResponseTask,
+        )
+
+        while True:
+            try:
+                item = self.thread_queue.get_nowait()
+            except Exception:
+                break
+            match item:
+                case OnlineTagPromptResponseTask():
+                    self.resolve_prompt(
+                        item.session_id,
+                        item.prompt_fingerprint,
+                        item.action,
+                        item.payload,
+                        item.chosen_volume_id,
+                    )
+                case OnlineTagAbortTask():
+                    self.cancel_session(item.session_id)
+                case _:
+                    self.thread_queue.put(item)
+                    break
 
     def _wait_for_prompts(
         self, state: SessionState, session_id: str, timeout: int
@@ -188,23 +245,22 @@ class OnlineTagSessionManager:
         state.total_prompts = len(deferred)
         state.resolved_count = 0
 
-        prompt_status = OnlinePromptStatus()
-        prompt_status.total = state.total_prompts
-        prompt_status.complete = 0
-        self.status_controller.start(prompt_status)
-        self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
-
         self._persist_prompts(session_id)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
-        resolved = state.event.wait(timeout=timeout)
+        elapsed = 0
+        poll_interval = 1
+        while elapsed < timeout and not state.event.is_set() and not state.cancelled:
+            self._drain_prompt_tasks()
+            if state.event.wait(timeout=poll_interval):
+                break
+            elapsed += poll_interval
 
-        if not resolved and not state.cancelled:
+        if not state.event.is_set() and not state.cancelled:
             self.log.warning(
                 f"Online tag session {session_id}: prompt timeout after {timeout}s."
             )
 
-        self.status_controller.finish(prompt_status)
         return not state.cancelled
 
     def _run_deferred_pass(self, state: SessionState) -> None:
@@ -257,7 +313,7 @@ class OnlineTagSessionManager:
             path_to_pk={path: pk for pk, path in comic_paths.items()},
             mode="update",
             formats=tuple(defaults.default_formats),
-            delete_original=defaults.delete_original,
+            delete_original=task.delete_original,
         )
         self._active_session_id = task.session_id
         with self._lock:
@@ -265,14 +321,16 @@ class OnlineTagSessionManager:
         self._persist_session(task.session_id)
 
         try:
-            self._collect_results(state, comic_paths.values())
+            self._collect_results(
+                state, comic_paths.values(), flush_writes=True
+            )
             if state.cancelled:
                 return
             if self._wait_for_prompts(
                 state, task.session_id, defaults.prompt_timeout_seconds
             ):
                 self._run_deferred_pass(state)
-            if not state.cancelled:
+            if not state.cancelled and state.collected_tags:
                 self._enqueue_write(state, task.session_id)
         finally:
             self._cleanup(task.session_id)

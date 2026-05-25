@@ -2,7 +2,7 @@
   <v-dialog v-model="promptDialogOpen" max-width="700">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>Online Tagging Prompts</span>
+        <span>Match Review</span>
         <div>
           <v-btn variant="text" size="small" @click="promptDialogOpen = false">
             Dismiss

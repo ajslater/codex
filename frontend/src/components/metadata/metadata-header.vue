@@ -115,6 +115,7 @@
     :group="group"
     :book="book"
     @edit-tags="$emit('editTags')"
+    @online-tag-started="$emit('onlineTagStarted')"
   />
 </template>
 
@@ -158,7 +159,7 @@ export default {
       default: false,
     },
   },
-  emits: ["editTags"],
+  emits: ["editTags", "onlineTagStarted"],
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,

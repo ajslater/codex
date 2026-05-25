@@ -9,13 +9,21 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     promptDialogOpen: false,
   }),
   actions: {
-    async startSession({ group, pks, sources, mode, promptsMode }) {
+    async startSession({
+      group,
+      pks,
+      sources,
+      mode,
+      promptsMode,
+      deleteOriginal,
+    }) {
       const response = await HTTP.post("/admin/online-tag/start", {
         group,
         pks: pks.map(String),
         sources,
         mode,
         promptsMode,
+        deleteOriginal,
       });
       this.activeSessionId = response.data.sessionId;
       return response.data;

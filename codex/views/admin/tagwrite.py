@@ -1,5 +1,7 @@
 """Admin Tag Write View."""
 
+import json
+
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
@@ -120,7 +122,7 @@ class AdminTagWriteView(AdminAPIView):
 
         task = BulkTagWriteTask(
             comic_pks=comic_pks,
-            patch=data.get("patch"),
+            patch=json.loads(data.get("patch") or "null"),
             mode=data["mode"],
             formats=tuple(data["formats"]),
             delete_original=delete_original,

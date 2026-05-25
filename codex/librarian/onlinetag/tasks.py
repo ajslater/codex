@@ -21,6 +21,7 @@ class BulkOnlineTagTask(OnlineTagTask):
     prompts_mode: str = "ask"
     effort: str = "balanced"
     auto_threshold: float = 0.85
+    delete_original: bool = False
     dry_run: bool = False
 
 

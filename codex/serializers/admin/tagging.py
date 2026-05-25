@@ -4,7 +4,6 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    DictField,
     ListField,
     Serializer,
 )
@@ -18,7 +17,7 @@ class TagWriteRequestSerializer(Serializer):
 
     group = CharField()
     pks = ListField(child=CharField())
-    patch = DictField(required=False, default=None)
+    patch = CharField(required=False, default="")
     mode = CharField(required=False, default="update")
     formats = ListField(child=CharField(), required=False, default=["COMIC_INFO"])
     delete_original = BooleanField(required=False, default=None)
@@ -37,6 +36,7 @@ class OnlineTagStartSerializer(Serializer):
     effort = CharField(required=False, default="balanced")
     auto_threshold = CharField(required=False, default="0.85")
     dry_run = CharField(required=False, default="false")
+    delete_original = BooleanField(required=False, default=None)
 
 
 class OnlineTagPromptResponseSerializer(Serializer):

@@ -1499,7 +1499,7 @@ export default {
         const payload = {
           group: this.book.group,
           pks: pks.map(String),
-          patch: cbPatch,
+          patch: JSON.stringify(cbPatch),
           mode: "update",
           formats,
         };
