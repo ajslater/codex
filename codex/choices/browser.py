@@ -38,7 +38,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "locations": "Locations",
         "main_character": "Main Character",
         "main_team": "Main Team",
-        "metadata_mtime": "Metadata Updated",
+        "metadata_mtime": "Tags Updated",
         "month": "Month",
         "monochrome": "Monochrome",
         "sort_name": "Name",
@@ -450,7 +450,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "edit_widget": None,
         },
         "metadata_mtime": {
-            "label": "Metadata Updated",
+            "label": "Tags Updated",
             "sort_key": "metadata_mtime",
             "m2m": False,
             "editable": False,

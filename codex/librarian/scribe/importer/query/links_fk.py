@@ -58,7 +58,7 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         path_link_fks = self.metadata[LINK_FKS].get(path)
         if path_link_fks is None:
             self.log.error(
-                f"Tried to link foreign keys to path that's not in the LINK_FKS metadata {path}"
+                f"Tried to link foreign keys to path that's not in the LINK_FKS tags {path}"
             )
             return
         field_names = tuple(path_link_fks.keys())

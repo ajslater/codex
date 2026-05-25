@@ -7,11 +7,7 @@
         :toolbar="toolbar"
       />
     </template>
-    <CloseButton
-      class="closeButton"
-      title="Close Metadata (esc)"
-      @click="close"
-    />
+    <CloseButton class="closeButton" title="Close Tags (esc)" @click="close" />
     <div v-if="showContainer" id="metadataContainer" @keyup.esc="close">
       <MetadataHeader
         :group="book.group"

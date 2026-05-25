@@ -114,5 +114,5 @@ class MetadataView(MetadataCopyIntersectionsView):
             serializer = self.get_serializer(obj)
             return Response(serializer.data)
         except Exception:
-            logger.exception(f"Getting metadata {self.kwargs}")
+            logger.exception(f"Getting tags {self.kwargs}")
             raise

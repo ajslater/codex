@@ -146,7 +146,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             try:
                 self._bulk_create_comic(path, create_comics)
             except KeyError:
-                self.log.warning(f"No comic metadata for {path}")
+                self.log.warning(f"No comic tags for {path}")
                 self.log.exception(f"Error preparing {path} for create.")
             except Exception:
                 self.log.exception(f"Error preparing {path} for create.")

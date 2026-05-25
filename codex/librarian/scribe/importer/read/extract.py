@@ -82,7 +82,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             key = AdminFlagChoices.IMPORT_METADATA.value
             import_metadata = AdminFlag.objects.only("on").get(key=key).on
         if not import_metadata:
-            self.log.warning("Admin flag set to NOT import metadata.")
+            self.log.warning("Admin flag set to NOT import tags.")
         return import_metadata
 
     def _get_old_comic_mtime(
@@ -292,7 +292,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             level = "INFO" if skipped_count else "DEBUG"
             self.log.log(
                 level,
-                f"Skipped {skipped_count} comics because metadata appears unchanged.",
+                f"Skipped {skipped_count} comics because tags appear unchanged.",
             )
         finally:
             self.metadata.pop(SKIPPED)
