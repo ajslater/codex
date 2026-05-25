@@ -78,3 +78,6 @@ export const getTaggingDefaults = () =>
 
 export const updateTaggingDefaults = (data) =>
   HTTP.put("/admin/tagging-defaults", data);
+
+export const validateTaggingCredentials = (data) =>
+  HTTP.post("/admin/tagging-defaults/validate", data);

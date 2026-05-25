@@ -302,5 +302,17 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(commonStore.setErrors);
     },
+    async validateTaggingCredentials(data) {
+      if (this._requireAdmin()) return undefined;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.validateTaggingCredentials(data);
+        commonStore.clearErrors();
+        return response.data.results;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return undefined;
+      }
+    },
   },
 });

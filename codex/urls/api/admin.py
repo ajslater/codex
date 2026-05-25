@@ -25,6 +25,7 @@ from codex.views.admin.onlinetag import (
 )
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
+from codex.views.admin.tagging_validate import AdminTaggingValidateView
 from codex.views.admin.tagwrite import (
     AdminParseIdentifierURLView,
     AdminTagWritePreflightView,
@@ -113,6 +114,11 @@ urlpatterns = [
         "tagging-defaults",
         AdminTaggingDefaultsView.as_view(),
         name="tagging_defaults",
+    ),
+    path(
+        "tagging-defaults/validate",
+        AdminTaggingValidateView.as_view(),
+        name="tagging_defaults_validate",
     ),
     path(
         "parse-identifier-url",

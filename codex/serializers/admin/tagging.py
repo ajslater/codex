@@ -4,10 +4,13 @@ from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    ChoiceField,
+    DictField,
     ListField,
     Serializer,
 )
 
+from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -45,6 +48,32 @@ class OnlineTagPromptResponseSerializer(Serializer):
     action = CharField()
     payload = CharField(required=False, allow_blank=True, default="")
     chosen_volume_id = CharField(required=False, allow_blank=True, default="")
+
+
+class TaggingValidateRequestSerializer(Serializer):
+    """Validate credentials, optionally overriding stored values from the form."""
+
+    source = ChoiceField(
+        choices=tuple(sorted(KNOWN_SOURCES)), required=False, allow_blank=True
+    )
+    metron_user = CharField(required=False, allow_blank=True)
+    metron_password = CharField(required=False, allow_blank=True)
+    metron_url = CharField(required=False, allow_blank=True)
+    comicvine_key = CharField(required=False, allow_blank=True)
+    comicvine_url = CharField(required=False, allow_blank=True)
+
+
+class TaggingValidationResultSerializer(Serializer):
+    """One source's validation outcome."""
+
+    ok = BooleanField()
+    error = CharField(allow_null=True, required=False, default=None)
+
+
+class TaggingValidateResponseSerializer(Serializer):
+    """Response shape for the credential-validation endpoint."""
+
+    results = DictField(child=TaggingValidationResultSerializer())
 
 
 class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):

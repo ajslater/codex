@@ -144,6 +144,15 @@
                     Save Metron Credentials
                   </v-btn>
                   <v-btn
+                    variant="text"
+                    size="small"
+                    :loading="validating.metron"
+                    :disabled="!canTestMetron"
+                    @click="testMetronCredentials"
+                  >
+                    Test
+                  </v-btn>
+                  <v-btn
                     v-if="defaults.hasMetronCredentials"
                     variant="text"
                     size="small"
@@ -152,6 +161,10 @@
                     Clear Credentials
                   </v-btn>
                 </div>
+                <ValidationChip
+                  v-if="validationResult.metron"
+                  :result="validationResult.metron"
+                />
               </div>
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -203,6 +216,15 @@
                     Save Comic Vine Credentials
                   </v-btn>
                   <v-btn
+                    variant="text"
+                    size="small"
+                    :loading="validating.comicvine"
+                    :disabled="!canTestComicvine"
+                    @click="testComicvineCredentials"
+                  >
+                    Test
+                  </v-btn>
+                  <v-btn
                     v-if="defaults.hasComicvineCredentials"
                     variant="text"
                     size="small"
@@ -211,6 +233,10 @@
                     Clear API Key
                   </v-btn>
                 </div>
+                <ValidationChip
+                  v-if="validationResult.comicvine"
+                  :result="validationResult.comicvine"
+                />
               </div>
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -225,6 +251,7 @@ import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import TimeoutInput from "@/components/admin/tabs/timeout-input.vue";
+import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const FORMAT_CHOICES = [
@@ -236,6 +263,7 @@ export default {
   name: "AdminTaggingTab",
   components: {
     TimeoutInput,
+    ValidationChip,
   },
   data() {
     return {
@@ -247,6 +275,8 @@ export default {
       metronUrlLocal: "",
       comicvineKey: "",
       comicvineUrlLocal: "",
+      validating: { metron: false, comicvine: false },
+      validationResult: { metron: undefined, comicvine: undefined },
     };
   },
   computed: {
@@ -272,6 +302,18 @@ export default {
         },
       ];
     },
+    canTestMetron() {
+      const formHasUser = Boolean(this.metronUser);
+      const formHasPassword = Boolean(this.metronPassword);
+      const storedUser = Boolean(this.defaults?.metronUserSet);
+      const storedPassword = Boolean(this.defaults?.metronPasswordSet);
+      return (formHasUser || storedUser) && (formHasPassword || storedPassword);
+    },
+    canTestComicvine() {
+      return (
+        Boolean(this.comicvineKey) || Boolean(this.defaults?.comicvineKeySet)
+      );
+    },
   },
   mounted() {
     this.loadTaggingDefaults();
@@ -280,6 +322,7 @@ export default {
     ...mapActions(useAdminStore, [
       "loadTaggingDefaults",
       "updateTaggingDefaults",
+      "validateTaggingCredentials",
     ]),
     save(field, value) {
       this.updateTaggingDefaults({ [field]: value });
@@ -289,6 +332,7 @@ export default {
       if (this.metronUser) data.metronUser = this.metronUser;
       if (this.metronPassword) data.metronPassword = this.metronPassword;
       if (this.metronUrlLocal) data.metronUrl = this.metronUrlLocal;
+      this.validationResult.metron = undefined;
       this.updateTaggingDefaults(data).then(() => {
         this.metronUser = "";
         this.metronPassword = "";
@@ -299,6 +343,7 @@ export default {
       const data = {};
       if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
       if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
+      this.validationResult.comicvine = undefined;
       this.updateTaggingDefaults(data).then(() => {
         this.comicvineKey = "";
         this.comicvineUrlLocal = "";
@@ -306,6 +351,7 @@ export default {
     },
     clearMetronCredentials() {
       if (!confirm("Clear Metron credentials?")) return;
+      this.validationResult.metron = undefined;
       this.updateTaggingDefaults({
         metronUser: "",
         metronPassword: "",
@@ -314,10 +360,36 @@ export default {
     },
     clearComicvineCredentials() {
       if (!confirm("Clear Comic Vine API key?")) return;
+      this.validationResult.comicvine = undefined;
       this.updateTaggingDefaults({
         comicvineKey: "",
         comicvineUrl: "",
       });
+    },
+    async testMetronCredentials() {
+      const payload = { source: "metron" };
+      if (this.metronUser) payload.metronUser = this.metronUser;
+      if (this.metronPassword) payload.metronPassword = this.metronPassword;
+      if (this.metronUrlLocal) payload.metronUrl = this.metronUrlLocal;
+      await this._runValidation("metron", payload);
+    },
+    async testComicvineCredentials() {
+      const payload = { source: "comicvine" };
+      if (this.comicvineKey) payload.comicvineKey = this.comicvineKey;
+      if (this.comicvineUrlLocal) payload.comicvineUrl = this.comicvineUrlLocal;
+      await this._runValidation("comicvine", payload);
+    },
+    async _runValidation(source, payload) {
+      this.validating[source] = true;
+      this.validationResult[source] = undefined;
+      try {
+        const results = await this.validateTaggingCredentials(payload);
+        if (results && results[source]) {
+          this.validationResult[source] = results[source];
+        }
+      } finally {
+        this.validating[source] = false;
+      }
     },
   },
 };
