@@ -117,38 +117,62 @@ email-verification surfaces stay hidden and endpoints respond 404.
       sent. `RV=on` + email configured → user `is_active=False`, one
       message in outbox; clicking link activates.
 
-## Phase 4: Capability Flag for Frontend
+## Phase 4: Capability Flags for Frontend
 
 - [ ] Extend `codex/views/public.py::AdminFlagsView.get_object()` to
-      merge `email_enabled` from `settings.EMAIL_ENABLED` into the
-      response.
-- [ ] Update `codex/serializers/auth.py::AuthAdminFlagsSerializer` with
-      a new `email_enabled: BooleanField(read_only=True)`.
-- [ ] Verify: GET `/api/v3/auth/flags/` returns `email_enabled` reflecting
-      the current `[email]` config.
+      merge two settings-derived booleans into the response:
+  - `email_enabled` from `settings.EMAIL_ENABLED`
+  - `remote_user_enabled` from `settings.AUTH_REMOTE_USER` (Phase 5
+    uses this to disable username editing when an upstream IdP owns
+    the identity)
+- [ ] Update `codex/serializers/auth.py::AuthAdminFlagsSerializer`
+      with `email_enabled` and `remote_user_enabled` (both
+      `BooleanField(read_only=True)`).
+- [ ] Verify: GET `/api/v3/auth/flags/` returns both flags reflecting
+      current config.
 
-## Phase 5: Profile Dialog (Self-Service Email + Password)
+## Phase 5: Profile Dialog (Self-Service Username + Email + Password)
 
 - [ ] Rename `frontend/src/components/auth/change-password-dialog.vue`
       to `profile-dialog.vue`. Sections:
-  - Username (read-only)
+  - Username field (text input, validated):
+    - Disabled with helper "Managed by upstream authentication" when
+      `adminFlags.remoteUserEnabled` is true
+    - Otherwise editable, with persistent helper text "Changing your
+      username will require updating any OPDS or API clients
+      configured with the old name."
+    - Same validation rules rest-registration uses (Django
+      `User.username` field — let the API surface uniqueness errors
+      rather than duplicating client-side)
   - Email field (text input, validated, optional)
   - "Change password" expansion panel (current / new / confirm)
-- [ ] Single Save button: PATCH `/api/v3/auth/profile/` for email,
-      POST `/api/v3/auth/change-password/` only if password fields
-      filled. Run sequentially; surface either error.
+- [ ] Single Save button: PATCH `/api/v3/auth/profile/` for username
+      and/or email, POST `/api/v3/auth/change-password/` only if
+      password fields filled. Run sequentially; surface either error.
+      Send only changed fields in the PATCH.
 - [ ] Add `updateProfile(profile)` in
       `frontend/src/api/v3/auth.js` (PATCH `/auth/profile/`).
 - [ ] Update `frontend/src/stores/auth.js` with `updateProfile` action
-      and refresh `user` state on success.
+      and refresh `user` state on success. After a successful username
+      change, ensure subsequent API calls (especially the throttled
+      reset endpoints, which key off the user) continue to work — the
+      session cookie is FK-based so no re-login should be required;
+      verify in testing.
 - [ ] Update `frontend/src/components/auth/auth-menu.vue`: replace the
       "Change Password" item with "Profile" (use `mdi-account-cog` or
       `mdi-account-edit`).
+- [ ] Backend: when `settings.AUTH_REMOTE_USER` is true, the profile
+      PATCH must reject changes to `username` (return 400 with a clear
+      "managed by upstream authentication" message). Belt-and-braces
+      against a client that bypasses the disabled UI.
 - [ ] Empty-email handling: if `RV=on` and email is being changed,
       surface a hint that the new address will need re-verification (no
       enforcement yet — future enhancement).
-- [ ] Verify: change email saves and persists across reload; change
-      password still works; both at once works; either alone works.
+- [ ] Verify: change email, change username, change password — each
+      alone and all-at-once; both succeed and persist. With
+      `AUTH_REMOTE_USER=True`, username field is disabled in UI AND
+      backend rejects a forged PATCH. After username rename, bookmarks
+      and API token still work without re-login.
 
 ## Phase 6: Frontend Reset UI
 
@@ -228,6 +252,14 @@ Backend (`codex/tests/`):
       `EMAIL_ENABLED` → `is_active=False`, one outbox; verify endpoint
       activates.
 - [ ] Profile PATCH: user updates own email → 200, DB updated.
+- [ ] Profile PATCH: user updates own username → 200, DB updated;
+      session still valid (no re-login); bookmarks/API token still
+      resolve to the same user.
+- [ ] Profile PATCH with `AUTH_REMOTE_USER=True` attempting username
+      change → 400.
+- [ ] Profile PATCH attempting to take an already-taken username →
+      400 (rely on Django uniqueness; just confirm the error surfaces
+      cleanly).
 
 Frontend (`frontend/src/tests/`):
 
@@ -236,8 +268,10 @@ Frontend (`frontend/src/tests/`):
 - [ ] Reset request dialog submission calls the right API path with
       `{ login }`.
 - [ ] Confirm route reads query params and posts them on submit.
-- [ ] Profile dialog: email-only save, password-only save, both-at-once
-      save.
+- [ ] Profile dialog: username-only save, email-only save,
+      password-only save, all-three save.
+- [ ] Profile dialog: `adminFlags.remoteUserEnabled=true` renders the
+      username field disabled with the upstream-auth helper text.
 
 ## Phase 10: Polish
 
