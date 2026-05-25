@@ -4,7 +4,7 @@ from decimal import ROUND_DOWN, Decimal
 from html import unescape
 from typing import Any, override
 
-from cryptography.fernet import (  # pyright: ignore[reportMissingImports]
+from cryptography.fernet import (
     Fernet,
     InvalidToken,
 )

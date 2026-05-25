@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from comicbox.config import get_config
 from comicbox.events import BatchFinished, BatchStarted, FileParsed
-from comicbox.write import BulkWriteItem, Mode, bulk_write
+from comicbox.write import BulkWriteItem, bulk_write
 
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.status import TagWriteStatus
@@ -18,6 +18,7 @@ from codex.models.comic import Comic
 
 if TYPE_CHECKING:
     from comicbox.events import Event
+    from comicbox.write import Mode
 
     from codex.librarian.scribe.tasks import BulkTagWriteTask
 
@@ -39,13 +40,15 @@ class TagWriter(WorkerStatusAbortableBase):
                 self.status_controller.update(status)
             case BatchFinished():
                 self.status_controller.finish(status)
+            case _:
+                pass
 
     def _build_items(
         self, task: BulkTagWriteTask, comic_paths: dict[int, Path]
     ) -> list[BulkWriteItem]:
         """Build BulkWriteItem list from task data."""
         formats = frozenset(task.formats) if task.formats else None
-        mode: Mode = task.mode  # pyright: ignore[reportAssignmentType]
+        mode = cast("Mode", task.mode)
         items = []
         for pk, path in comic_paths.items():
             if task.per_comic_patches and pk in task.per_comic_patches:
@@ -73,7 +76,7 @@ class TagWriter(WorkerStatusAbortableBase):
         )
         library_path_map: defaultdict[int, set[str]] = defaultdict(set)
         for comic in comics:
-            if not comic.library.events:  # pyright: ignore[reportAttributeAccessIssue]
+            if not comic.library.events:
                 library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue]
 
         for library_id, paths in library_path_map.items():
@@ -84,6 +87,38 @@ class TagWriter(WorkerStatusAbortableBase):
                 check_metadata_mtime=False,
             )
             self.librarian_queue.put(import_task)
+
+    @staticmethod
+    def _build_base_config(task: BulkTagWriteTask):
+        """Return a config with delete_orig set, or None when not deleting."""
+        if not task.delete_original:
+            return None
+        cfg = get_config()
+        return replace(cfg, general=replace(cfg.general, delete_orig=True))
+
+    def _collect_written_pks(
+        self,
+        items: list[BulkWriteItem],
+        path_to_pk: dict[Path, int],
+        base_config,
+    ) -> set[int]:
+        """Run bulk_write and return pks that were successfully written."""
+        written_pks: set[int] = set()
+        for result in bulk_write(
+            items,
+            on_event=self._on_event,
+            cancel=self.abort_event,
+            base_config=base_config,
+        ):
+            if result.error:
+                self.log.warning(f"Tag write error for {result.path}: {result.error}")
+                continue
+            if not result.written:
+                continue
+            pk = path_to_pk.get(result.path)
+            if pk is not None:
+                written_pks.add(pk)
+        return written_pks
 
     def write_tags(self, task: BulkTagWriteTask) -> None:
         """Execute bulk tag write and re-import."""
@@ -99,26 +134,9 @@ class TagWriter(WorkerStatusAbortableBase):
             self.log.debug("Tag write: no patches to apply.")
             return
 
-        written_pks: set[int] = set()
         path_to_pk = {path: pk for pk, path in comic_paths.items()}
-
-        base_config = None
-        if task.delete_original:
-            cfg = get_config()
-            base_config = replace(cfg, general=replace(cfg.general, delete_orig=True))
-
-        for result in bulk_write(
-            items,
-            on_event=self._on_event,
-            cancel=self.abort_event,
-            base_config=base_config,
-        ):
-            if result.written and not result.error:
-                pk = path_to_pk.get(result.path)
-                if pk is not None:
-                    written_pks.add(pk)
-            elif result.error:
-                self.log.warning(f"Tag write error for {result.path}: {result.error}")
+        base_config = self._build_base_config(task)
+        written_pks = self._collect_written_pks(items, path_to_pk, base_config)
 
         written_paths = {pk: comic_paths[pk] for pk in written_pks}
         self._reimport_unwatched(written_paths)

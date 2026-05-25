@@ -3,80 +3,33 @@
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field
 from pathlib import Path
-from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from comicbox.events import Event, PromptDeferred, RateLimited
-from comicbox.online_session import (
-    MatchMode,
-    OnlineCredentials,
-    OnlineSession,
-    PromptResponse,
-)
+from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
 
 from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
-from codex.librarian.onlinetag.status import OnlineLookupStatus
-from codex.librarian.scribe.tasks import BulkTagWriteTask
+from codex.librarian.onlinetag.session_state import (
+    CodexPromptHandler,
+    SessionState,
+    serialize_candidate,
+)
+from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+from codex.librarian.onlinetag.tasks import (
+    BulkOnlineTagTask,
+    OnlineTagAbortTask,
+    OnlineTagPromptResponseTask,
+)
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     from multiprocessing import Queue
+    from typing import Literal
 
-    from comicbox.online_session import DeferredPrompt, OnlinePrompt
     from loguru._logger import Logger
-
-    from codex.librarian.onlinetag.tasks import BulkOnlineTagTask
-
-
-@dataclass
-class SessionState:
-    """Tracks a single online tagging session."""
-
-    session: OnlineSession
-    collected_tags: dict[int, dict[str, Any]] = field(default_factory=dict)
-    deferred_prompts: list[DeferredPrompt] = field(default_factory=list)
-    resolved_count: int = 0
-    total_prompts: int = 0
-    event: threading.Event = field(default_factory=threading.Event)
-    path_to_pk: dict[Path, int] = field(default_factory=dict)
-    pending_paths: list[Path] = field(default_factory=list)
-    mode: str = "additive"
-    formats: tuple[str, ...] = ("COMIC_INFO",)
-    delete_original: bool = False
-    cancelled: bool = False
-    total_comics: int = 0
-    completed_comics: int = 0
-
-
-class _CodexPromptHandler:
-    """Fallback PromptHandler for non-deferred mode."""
-
-    def request(self, _prompt: OnlinePrompt) -> PromptResponse:
-        """Skip by default — primary flow uses defer mode."""
-        return PromptResponse(action="skip", payload=None)
-
-
-def _serialize_candidate(c) -> dict[str, Any]:
-    """Serialize a comicbox Candidate to a JSON-safe dict."""
-    summary = c.summary
-    return {
-        "source": c.source,
-        "issue_id": c.issue_id,
-        "summary": {
-            "series": getattr(summary, "series", ""),
-            "issue": getattr(summary, "issue", ""),
-            "year": getattr(summary, "year", None),
-            "publisher": getattr(summary, "publisher", ""),
-            "cover_url": getattr(summary, "cover_url", ""),
-        },
-        "score": c.score,
-        "url": getattr(c, "url", ""),
-    }
 
 
 class OnlineTagSessionManager:
@@ -91,8 +44,9 @@ class OnlineTagSessionManager:
         self.thread_queue = thread_queue
         self.status_controller = StatusController(log, librarian_queue)
         self._active_session_id: str | None = None
-        self._lookup_status: OnlineLookupStatus | None = None
-        self._rate_limited: bool = False
+        self._pass_runner = TagPassRunner(
+            log, librarian_queue, self.status_controller, self._drain_thread_queue
+        )
 
     def _build_credentials(self) -> OnlineCredentials | None:
         """Load and decrypt credentials from the defaults model."""
@@ -133,18 +87,19 @@ class OnlineTagSessionManager:
         """Handle comicbox online events."""
         match event:
             case RateLimited():
-                self._rate_limited = True
-                if self._lookup_status:
+                self._pass_runner.rate_limited = True
+                lookup_status = self._pass_runner.lookup_status
+                if lookup_status:
                     secs = event.retry_after_seconds
                     wait = f" {secs:.0f}s" if secs else ""
-                    self._lookup_status.subtitle = (
-                        f"rate limited by {event.source}{wait}"
-                    )
-                    self._lookup_status.since_updated = 0
-                    self.status_controller.update(self._lookup_status, notify=True)
+                    lookup_status.subtitle = f"rate limited by {event.source}{wait}"
+                    lookup_status.since_updated = 0
+                    self.status_controller.update(lookup_status, notify=True)
             case PromptDeferred():
                 if self._active_session_id:
                     self._sync_deferred_prompts(self._active_session_id)
+            case _:
+                pass
 
     def _sync_deferred_prompts(self, session_id: str) -> None:
         """Snapshot deferred prompts from the session and persist + notify."""
@@ -157,105 +112,10 @@ class OnlineTagSessionManager:
         self._persist_prompts(session_id)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
-    def _flush_batch(self, state: SessionState, batch: dict[int, dict]) -> None:
-        """Write a batch of collected tags."""
-        if not batch:
-            return
-        write_task = BulkTagWriteTask(
-            comic_pks=frozenset(batch.keys()),
-            per_comic_patches=dict(batch),
-            mode=state.mode,
-            formats=state.formats,
-            delete_original=state.delete_original,
-        )
-        self.librarian_queue.put(write_task)
-        self.log.info(f"Online tag: flushed write batch of {len(batch)} comics.")
-        batch.clear()
-
-    def _run_tag_many(
-        self,
-        state: SessionState,
-        paths: list[Path],
-        status: OnlineLookupStatus,
-        batch: dict[int, dict],
-        *,
-        flush_writes: bool,
-    ) -> None:
-        """Run one tag_many pass, updating status and draining the queue."""
-        for result in state.session.tag_many(paths):
-            if state.cancelled:
-                break
-            self._drain_thread_queue(state)
-            elapsed = monotonic() - status.since_updated if status.since_updated else 0
-            was_rate_limited = (
-                self._rate_limited or elapsed > self._RATE_LIMIT_THRESHOLD
-            )
-            if not self._rate_limited and was_rate_limited:
-                status.subtitle = f"rate limited ~{elapsed:.0f}s"
-                status.since_updated = 0
-                self.status_controller.update(status, notify=True)
-            state.completed_comics += 1
-            status.complete = state.completed_comics
-            status.total = state.total_comics
-            if not self._rate_limited:
-                status.subtitle = ""
-            self._rate_limited = False
-            self.status_controller.update(status)
-            if result.tags and not result.error:
-                pk = state.path_to_pk.get(result.path)
-                if pk is not None:
-                    if flush_writes:
-                        batch[pk] = result.tags
-                    else:
-                        state.collected_tags[pk] = result.tags
-            if flush_writes and was_rate_limited and batch:
-                self._flush_batch(state, batch)
-
-    def _collect_results(
-        self,
-        state: SessionState,
-        paths: Iterable[Path],
-        *,
-        flush_writes: bool = False,
-    ) -> None:
-        """Iterate tag_many, merging new tasks that arrive mid-run."""
-        path_list = list(paths)
-        state.total_comics += len(path_list)
-        status = OnlineLookupStatus()
-        status.total = state.total_comics
-        status.complete = state.completed_comics
-        self._lookup_status = status
-        self._rate_limited = False
-        self.status_controller.start(status)
-
-        batch: dict[int, dict] = {}
-        self._run_tag_many(state, path_list, status, batch, flush_writes=flush_writes)
-
-        while state.pending_paths and not state.cancelled:
-            new_paths = list(state.pending_paths)
-            state.pending_paths.clear()
-            status.total = state.total_comics
-            self.status_controller.update(status, notify=True)
-            self._run_tag_many(
-                state, new_paths, status, batch, flush_writes=flush_writes
-            )
-
-        if flush_writes:
-            self._flush_batch(state, batch)
-
-        self._lookup_status = None
-        self.status_controller.finish(status)
-
     def _drain_thread_queue(self, state: SessionState | None = None) -> None:
         """Process pending tasks from the thread queue."""
         if not self.thread_queue:
             return
-        from codex.librarian.onlinetag.tasks import (
-            BulkOnlineTagTask,
-            OnlineTagAbortTask,
-            OnlineTagPromptResponseTask,
-        )
-
         while True:
             try:
                 item = self.thread_queue.get_nowait()
@@ -293,8 +153,7 @@ class OnlineTagSessionManager:
             state.pending_paths.append(path)
         state.total_comics += len(new_paths)
         self.log.info(
-            f"Online tag: merged {len(new_paths)} comics, "
-            f"total now {state.total_comics}"
+            f"Online tag: merged {len(new_paths)} comics, total now {state.total_comics}"
         )
 
     def _wait_for_prompts(
@@ -327,28 +186,6 @@ class OnlineTagSessionManager:
 
         return not state.cancelled
 
-    def _run_deferred_pass(self, state: SessionState) -> None:
-        """Pass 2: re-run deferred files with preloaded cache."""
-        state.session.set_defer_prompts(defer=False)
-        deferred_paths = [d.path for d in state.deferred_prompts if d.path]
-        self._collect_results(state, deferred_paths)
-
-    def _enqueue_write(self, state: SessionState, session_id: str) -> None:
-        """Enqueue a BulkTagWriteTask for all collected tags."""
-        if not state.collected_tags:
-            return
-        write_task = BulkTagWriteTask(
-            comic_pks=frozenset(state.collected_tags.keys()),
-            per_comic_patches=state.collected_tags,
-            mode=state.mode,
-            formats=state.formats,
-            delete_original=state.delete_original,
-        )
-        self.librarian_queue.put(write_task)
-        self.log.info(
-            f"Online tag session {session_id}: queued write for {len(state.collected_tags)} comics."
-        )
-
     def run_session(self, task: BulkOnlineTagTask) -> None:
         """Execute a full online tagging session."""
         comics = Comic.objects.filter(pk__in=task.comic_pks).only("pk", "path")
@@ -369,7 +206,7 @@ class OnlineTagSessionManager:
             mode=MatchMode(task.mode),
             defer_prompts=True,
             on_event=self._on_event,
-            prompt_handler=_CodexPromptHandler(),  # pyright: ignore[reportArgumentType]
+            prompt_handler=CodexPromptHandler(),
         )
         state = SessionState(
             session=session,
@@ -386,15 +223,17 @@ class OnlineTagSessionManager:
         self._persist_session(task.session_id)
 
         try:
-            self._collect_results(state, comic_paths.values(), flush_writes=True)
+            self._pass_runner.collect_results(
+                state, comic_paths.values(), flush_writes=True
+            )
             if state.cancelled:
                 return
             if self._wait_for_prompts(
                 state, task.session_id, defaults.prompt_timeout_seconds
             ):
-                self._run_deferred_pass(state)
+                self._pass_runner.run_deferred_pass(state)
             if not state.cancelled and state.collected_tags:
-                self._enqueue_write(state, task.session_id)
+                self._pass_runner.enqueue_write(state, task.session_id)
         finally:
             self._cleanup(task.session_id)
 
@@ -414,7 +253,7 @@ class OnlineTagSessionManager:
             return
         state.session.preload_resolution(
             fingerprint,
-            action=action,  # pyright: ignore[reportArgumentType]
+            action=cast("Literal['choose', 'skip', 'manual']", action),
             payload=payload,
             chosen_volume_id=chosen_volume_id,
         )
@@ -440,7 +279,7 @@ class OnlineTagSessionManager:
                 "fingerprint": dp.fingerprint,
                 "path": str(dp.path) if dp.path else "",
                 "source": dp.source,
-                "candidates": [_serialize_candidate(c) for c in dp.candidates],
+                "candidates": [serialize_candidate(c) for c in dp.candidates],
                 "mode": dp.mode,
             }
             for dp in state.deferred_prompts
