@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from django.contrib.sessions.models import Session
 from django.core import signing
@@ -17,6 +18,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
 )
 from codex.models import (
@@ -47,10 +49,14 @@ from codex.models import (
     Universe,
     Volume,
 )
+from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.bookmark import Bookmark
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
+
+if TYPE_CHECKING:
+    from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
 
 _FK_MODELS = (
     Identifier,
@@ -145,6 +151,12 @@ _SESSION_DELETE_BATCH_SIZE = 30000
 
 class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
+
+    # Set by ``Janitor.__init__`` from the back-reference threaded
+    # through ScribeThread by LibrarianDaemon._create_threads. ``None``
+    # in tests that instantiate JanitorCleanup directly without the
+    # online-tag thread.
+    online_tag_thread: "OnlineTagThread | None" = None
 
     def _cleanup_fks_model(self, model, filter_dict, status):
         status.subtitle = model._meta.verbose_name_plural
@@ -415,5 +427,44 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                     total += count
             level = "INFO" if total else "DEBUG"
             self.log.log(level, f"Deleted {total} orphan favorites.")
+        finally:
+            self.status_controller.finish(status)
+
+    def cleanup_tagging_state(self) -> None:
+        """
+        Clear orphan online tagging session and prompt state.
+
+        The ``OnlineTagThread`` startup hook already clears persisted
+        state on every process restart, and the session manager's
+        ``finally`` block clears it on normal session end. This sweep
+        is a defensive nightly backstop for the narrow case where the
+        daemon kept running but in-memory state diverged from the DB
+        (e.g. a crash inside ``finally`` itself, or external DB
+        manipulation).
+        """
+        status = JanitorCleanupTaggingStateStatus()
+        try:
+            self.status_controller.start(status)
+            defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
+            if defaults is None:
+                return
+            session_id = defaults.active_session_id
+            has_prompts = bool(defaults.active_prompts)
+            stale_session = bool(session_id) and (
+                self.online_tag_thread is None
+                or not self.online_tag_thread.has_active_session(session_id)
+            )
+            orphan_prompts = not session_id and has_prompts
+            if not stale_session and not orphan_prompts:
+                self.log.debug("Online tagging state is clean; nothing to do.")
+                return
+            with self.db_write_lock:
+                ComicboxTaggingDefaults.objects.filter(pk=1).update(
+                    active_session_id="", active_prompts=[]
+                )
+            if stale_session:
+                self.log.info(f"Cleared stale online tagging session {session_id!r}.")
+            else:
+                self.log.info("Cleared orphan online tagging prompts.")
         finally:
             self.status_controller.finish(status)

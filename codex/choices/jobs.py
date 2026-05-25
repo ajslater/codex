@@ -48,6 +48,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JRS",
     "JRB",
     "JRF",
+    "JTG",
     "SIR",
     "SSU",
     "SSC",
@@ -347,6 +348,15 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             " nightly and at startup."
                         ),
                         "statuses": ("JAF",),
+                    },
+                    {
+                        "value": "cleanup_tagging_state",
+                        "title": "Clear Stale Online Tagging State",
+                        "desc": (
+                            "Reset orphan online tagging session and prompt"
+                            " state. Runs nightly and on Codex startup."
+                        ),
+                        "statuses": ("JTG",),
                     },
                     {
                         "value": "librarian_clear_status",

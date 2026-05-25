@@ -2,7 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 
 from codex.librarian.scribe.force_updater import ForceUpdater
 from codex.librarian.scribe.importer.importer import ComicImporter
@@ -35,6 +35,9 @@ from codex.librarian.scribe.tasks import (
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
 
+if TYPE_CHECKING:
+    from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
+
 _ABORT_SEARCH_UPDATE_TASKS: Final = (
     SearchIndexClearTask,
     SearchIndexSyncAbortTask,
@@ -52,6 +55,11 @@ class ScribeThread(QueuedThread):
     # ~5-20 ms reopen cost on the next task is invisible against the
     # work that follows.
     CLOSE_DB_BETWEEN_TASKS = True
+
+    # Set by ``LibrarianDaemon._create_threads`` after both threads
+    # exist so ``Janitor.cleanup_tagging_state`` can ask the
+    # OnlineTagThread whether a persisted session is still live.
+    online_tag_thread: "OnlineTagThread | None" = None
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize abort event."""
@@ -112,6 +120,7 @@ class ScribeThread(QueuedThread):
                     self.librarian_queue,
                     self.db_write_lock,
                     event=self.abort_cleanup_event,
+                    online_tag_thread=self.online_tag_thread,
                 )
                 worker.handle_task(task)
             case BulkTagWriteTask():

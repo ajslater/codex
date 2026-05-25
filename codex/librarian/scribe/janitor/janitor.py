@@ -14,6 +14,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
     JanitorCodexLatestVersionStatus,
     JanitorDBBackupStatus,
@@ -31,6 +32,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanupFavoritesTask,
     JanitorCleanupSessionsTask,
     JanitorCleanupSettingsTask,
+    JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
@@ -67,6 +69,7 @@ _JANITOR_STATII: Final = (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
+    JanitorCleanupTaggingStateStatus,
     SearchIndexCleanStatus,
     SearchIndexSyncUpdateStatus,
     SearchIndexSyncCreateStatus,
@@ -89,6 +92,7 @@ _NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
     JanitorCleanupBookmarksTask,
     JanitorCleanupSettingsTask,
     JanitorCleanupFavoritesTask,
+    JanitorCleanupTaggingStateTask,
     SearchIndexSyncTask,
     SearchIndexOptimizeTask,
     JanitorVacuumTask,
@@ -104,6 +108,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
         JanitorCleanupFavoritesTask: "cleanup_orphan_favorites",
         JanitorCleanupSettingsTask: "cleanup_orphan_settings",
+        JanitorCleanupTaggingStateTask: "cleanup_tagging_state",
         JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
         JanitorForeignKeyCheckTask: "foreign_key_check",
         JanitorFTSIntegrityCheckTask: "fts_integrity_check",
@@ -115,6 +120,18 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
 
 class Janitor(JanitorCodexUpdate):
     """Janitor inline task runner."""
+
+    def __init__(
+        self,
+        logger_,
+        librarian_queue,
+        db_write_lock,
+        event,
+        online_tag_thread=None,
+    ) -> None:
+        """Accept the OnlineTagThread back-reference for liveness checks."""
+        super().__init__(logger_, librarian_queue, db_write_lock, event)
+        self.online_tag_thread = online_tag_thread
 
     def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""

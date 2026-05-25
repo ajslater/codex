@@ -9,6 +9,7 @@ from codex.librarian.onlinetag.tasks import (
     OnlineTagPromptResponseTask,
 )
 from codex.librarian.threads import QueuedThread
+from codex.models.admin import ComicboxTaggingDefaults
 
 
 class OnlineTagThread(QueuedThread):
@@ -27,6 +28,32 @@ class OnlineTagThread(QueuedThread):
                 self.log, self.librarian_queue, self.queue
             )
         return self._session_manager
+
+    def has_active_session(self, session_id: str) -> bool:
+        """Whether ``session_id`` is currently tracked in-memory."""
+        if self._session_manager is None:
+            return False
+        return self._session_manager.has_session(session_id)
+
+    @override
+    def run_start(self) -> None:
+        """
+        Clear stale persisted session state before entering the loop.
+
+        In-memory session state cannot survive a process restart, so any
+        persisted ``active_session_id`` / ``active_prompts`` row at
+        startup is by definition orphan.
+        """
+        super().run_start()
+        try:
+            updated = ComicboxTaggingDefaults.objects.filter(pk=1).update(
+                active_session_id="", active_prompts=[]
+            )
+        except Exception:
+            self.log.exception("Clearing stale online tagging state on startup")
+            return
+        if updated:
+            self.log.debug("Cleared stale online tagging session state on startup.")
 
     @override
     def process_item(self, item) -> None:

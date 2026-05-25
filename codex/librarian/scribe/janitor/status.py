@@ -112,6 +112,16 @@ class JanitorCleanupFavoritesStatus(JanitorStatus):
     ITEM_NAME = "orphan favorites"
 
 
+class JanitorCleanupTaggingStateStatus(JanitorStatus):
+    """Janitor Cleanup Online Tagging State Status."""
+
+    CODE = "JTG"
+    VERB = "Cleanup"
+    _verbed = "Cleaned up"
+    ITEM_NAME = "stale online tagging state"
+    SINGLE = True
+
+
 class JanitorDBFKIntegrityStatus(JanitorStatus):
     """Janitor Check DB FK Integrity Status."""
 
@@ -165,6 +175,7 @@ JANITOR_STATII = (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorDBFKIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,

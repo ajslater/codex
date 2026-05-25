@@ -285,6 +285,11 @@ class OnlineTagSessionManager:
             for dp in state.deferred_prompts
         ]
 
+    def has_session(self, session_id: str) -> bool:
+        """Whether ``session_id`` is currently tracked in-memory."""
+        with self._lock:
+            return session_id in self._sessions
+
     def cancel_session(self, session_id: str) -> None:
         """Cancel a running session."""
         with self._lock:

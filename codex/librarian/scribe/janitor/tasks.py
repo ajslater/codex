@@ -52,6 +52,10 @@ class JanitorCleanupFavoritesTask(JanitorTask):
     """Clean favorites whose target row no longer exists."""
 
 
+class JanitorCleanupTaggingStateTask(JanitorTask):
+    """Clear orphan online tagging session and prompt state."""
+
+
 class JanitorForeignKeyCheckTask(JanitorTask):
     """Check and repair foreign keys integrity."""
 

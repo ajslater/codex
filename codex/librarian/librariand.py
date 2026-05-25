@@ -127,6 +127,13 @@ class LibrarianDaemon(Process):
             )
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
+        # Give the scribe thread (host of the janitor) a back-reference
+        # to the online tag thread so cleanup_tagging_state can ask
+        # whether a persisted session is still in-memory.
+        scribe = threads["scribe_thread"]
+        online_tag = threads["online_tag_thread"]
+        if isinstance(scribe, ScribeThread) and isinstance(online_tag, OnlineTagThread):
+            scribe.online_tag_thread = online_tag
         self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.log.debug("Threads created")
 
