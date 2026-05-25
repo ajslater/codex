@@ -223,21 +223,13 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import TimeoutInput from "@/components/admin/tabs/timeout-input.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const FORMAT_CHOICES = [
   { title: "MetronInfo", value: "METRON_INFO" },
   { title: "ComicInfo", value: "COMIC_INFO" },
-];
-const MATCH_MODE_CHOICES = [
-  { title: "Strict", value: "strict" },
-  { title: "Normal", value: "normal" },
-  { title: "Fast", value: "fast" },
-];
-const PROMPTS_MODE_CHOICES = [
-  { title: "Ask", value: "ask" },
-  { title: "Never", value: "never" },
 ];
 
 export default {
@@ -248,8 +240,8 @@ export default {
   data() {
     return {
       formatChoices: FORMAT_CHOICES,
-      matchModeChoices: MATCH_MODE_CHOICES,
-      promptsModeChoices: PROMPTS_MODE_CHOICES,
+      matchModeChoices: TAGGING_CHOICES.matchMode,
+      promptsModeChoices: TAGGING_CHOICES.promptsMode,
       metronUser: "",
       metronPassword: "",
       metronUrlLocal: "",

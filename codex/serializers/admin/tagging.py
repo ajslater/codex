@@ -31,7 +31,7 @@ class OnlineTagStartSerializer(Serializer):
     sources = ListField(
         child=CharField(), required=False, default=["metron", "comicvine"]
     )
-    mode = CharField(required=False, default="normal")
+    mode = CharField(required=False, default="auto")
     prompts_mode = CharField(required=False, default="ask")
     effort = CharField(required=False, default="balanced")
     auto_threshold = CharField(required=False, default="0.85")

@@ -75,11 +75,11 @@ class ComicboxTaggingDefaults(BaseModel):
     """Singleton model for default comicbox tagging options and credentials."""
 
     class MatchModeChoices(TextChoices):
-        """Match mode options for online tagging."""
+        """Match mode options for online tagging (mirrors comicbox.MatchMode)."""
 
-        STRICT = "strict", _("Strict")
-        NORMAL = "normal", _("Normal")
-        FAST = "fast", _("Fast")
+        CAREFUL = "careful", _("Careful")
+        AUTO = "auto", _("Auto")
+        EAGER = "eager", _("Eager")
 
     class PromptsModeChoices(TextChoices):
         """Prompt behavior options for online tagging."""
@@ -92,7 +92,7 @@ class ComicboxTaggingDefaults(BaseModel):
     default_match_mode = CharField(
         max_length=MAX_FIELD_LEN,
         choices=MatchModeChoices.choices,
-        default=MatchModeChoices.NORMAL,
+        default=MatchModeChoices.AUTO,
     )
     default_prompts_mode = CharField(
         max_length=MAX_FIELD_LEN,

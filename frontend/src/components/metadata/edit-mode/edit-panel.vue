@@ -310,9 +310,7 @@
 
     <div class="sectionHeader">Details</div>
     <section class="mdSection detailsGrid">
-      <div
-        :title="isFieldDisabled('reading_direction') ? disabledTooltip : ''"
-      >
+      <div :title="isFieldDisabled('reading_direction') ? disabledTooltip : ''">
         <v-select
           v-model="patch.reading_direction"
           :items="readingDirectionItems"
@@ -336,9 +334,7 @@
           </template>
         </v-select>
       </div>
-      <div
-        :title="isFieldDisabled('original_format') ? disabledTooltip : ''"
-      >
+      <div :title="isFieldDisabled('original_format') ? disabledTooltip : ''">
         <v-select
           v-model="patch.original_format"
           :items="filteredOriginalFormats"
@@ -372,8 +368,7 @@
           :disabled="isFieldDisabled('language')"
           :class="{
             fieldCleared: isCleared('language'),
-            fieldChanged:
-              isFieldChanged('language') && !isCleared('language'),
+            fieldChanged: isFieldChanged('language') && !isCleared('language'),
           }"
           @update:model-value="onFieldInput('language')"
         >

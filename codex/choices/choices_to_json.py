@@ -8,7 +8,7 @@ from types import MappingProxyType
 
 from caseconverter import camelcase
 
-from codex.choices.admin import ADMIN_FLAG_CHOICES
+from codex.choices.admin import ADMIN_FLAG_CHOICES, TAGGING_CHOICES, TAGGING_DEFAULTS
 from codex.choices.browser import (
     BROWSER_CHOICES,
     BROWSER_CHOICES_MAP_KEYS,
@@ -25,7 +25,11 @@ from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
 
 _DEFAULTS = MappingProxyType(
-    {"browser-choices.json": BROWSER_DEFAULTS, "reader-choices.json": READER_DEFAULTS}
+    {
+        "browser-choices.json": BROWSER_DEFAULTS,
+        "reader-choices.json": READER_DEFAULTS,
+        "tagging-choices.json": TAGGING_DEFAULTS,
+    }
 )
 
 # Per-file include-key filters. A filename present here emits only the
@@ -43,6 +47,7 @@ _DUMPS = MappingProxyType(
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
         "browser-choices.json": BROWSER_CHOICES,
         "reader-choices.json": READER_CHOICES,
+        "tagging-choices.json": TAGGING_CHOICES,
     }
 )
 

@@ -10,10 +10,10 @@ from typing import TYPE_CHECKING, Any
 
 from comicbox.events import Event, PromptDeferred, RateLimited
 from comicbox.online_session import (
+    MatchMode,
     OnlineCredentials,
     OnlineSession,
     PromptResponse,
-    SessionMode,
 )
 
 from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
@@ -141,9 +141,7 @@ class OnlineTagSessionManager:
                         f"rate limited by {event.source}{wait}"
                     )
                     self._lookup_status.since_updated = 0
-                    self.status_controller.update(
-                        self._lookup_status, notify=True
-                    )
+                    self.status_controller.update(self._lookup_status, notify=True)
             case PromptDeferred():
                 if self._active_session_id:
                     self._sync_deferred_prompts(self._active_session_id)
@@ -365,11 +363,10 @@ class OnlineTagSessionManager:
             return
 
         defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-        mode: SessionMode = task.mode  # pyright: ignore[reportAssignmentType]
         session = OnlineSession(
             sources=task.sources,
             credentials=credentials,
-            mode=mode,
+            mode=MatchMode(task.mode),
             defer_prompts=True,
             on_event=self._on_event,
             prompt_handler=_CodexPromptHandler(),  # pyright: ignore[reportArgumentType]
@@ -389,9 +386,7 @@ class OnlineTagSessionManager:
         self._persist_session(task.session_id)
 
         try:
-            self._collect_results(
-                state, comic_paths.values(), flush_writes=True
-            )
+            self._collect_results(state, comic_paths.values(), flush_writes=True)
             if state.cancelled:
                 return
             if self._wait_for_prompts(
@@ -468,4 +463,3 @@ class OnlineTagSessionManager:
             self._sessions.pop(session_id, None)
         self._active_session_id = None
         self._clear_session_db()
-

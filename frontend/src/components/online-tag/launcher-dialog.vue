@@ -52,12 +52,12 @@
           <div v-if="needConversion > 0" class="conversionWarning">
             <div>
               {{ needConversion }}
-              comic{{ needConversion === 1 ? "" : "s" }} will be converted
-              from CBR/CB7 to CBZ.
+              comic{{ needConversion === 1 ? "" : "s" }} will be converted from
+              CBR/CB7 to CBZ.
             </div>
             <div class="conversionHelpText">
-              Writing tags to CBR, CB7, or CBT archives converts them to
-              CBZ. Enable this to delete the original file after conversion.
+              Writing tags to CBR, CB7, or CBT archives converts them to CBZ.
+              Enable this to delete the original file after conversion.
             </div>
             <v-checkbox
               v-model="deleteOriginal"
@@ -90,26 +90,18 @@
 import { mapActions, mapState } from "pinia";
 
 import { HTTP } from "@/api/v3/base";
+import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
-const MATCH_MODE_CHOICES = [
-  { title: "Strict", value: "strict" },
-  { title: "Normal", value: "normal" },
-  { title: "Fast", value: "fast" },
-];
 const MATCH_MODE_HINTS = {
-  strict:
+  careful:
     "Only accepts high-confidence matches. Defers ambiguous results for manual review. ~5 requests/comic.",
-  normal:
-    "Balances accuracy and speed. Accepts good matches automatically, defers uncertain ones. ~3 requests/comic.",
-  fast: "Accepts the best available match with minimal verification. Fastest but least precise. ~2 requests/comic.",
+  auto: "Balances accuracy and speed. Accepts good matches automatically, defers uncertain ones. ~3 requests/comic.",
+  eager:
+    "Accepts the best available match with minimal verification. Fastest but least precise. ~2 requests/comic.",
 };
-const PROMPTS_MODE_CHOICES = [
-  { title: "Ask", value: "ask" },
-  { title: "Never", value: "never" },
-];
 const PROMPTS_MODE_HINTS = {
   ask: "Pauses on ambiguous matches and asks you to choose the correct result.",
   never:
@@ -122,9 +114,9 @@ const SOURCE_RATES = {
 };
 
 const MATCH_MODE_CALLS_PER_COMIC = {
-  fast: 2,
-  normal: 3,
-  strict: 5,
+  eager: 2,
+  auto: 3,
+  careful: 5,
 };
 
 function formatDuration(minutes) {
@@ -156,10 +148,10 @@ export default {
     return {
       dialog: false,
       starting: false,
-      matchModeChoices: MATCH_MODE_CHOICES,
-      promptsModeChoices: PROMPTS_MODE_CHOICES,
+      matchModeChoices: TAGGING_CHOICES.matchMode,
+      promptsModeChoices: TAGGING_CHOICES.promptsMode,
       sources: ["metron", "comicvine"],
-      matchMode: "normal",
+      matchMode: "auto",
       promptsMode: "ask",
       needConversion: 0,
       deleteOriginal: false,

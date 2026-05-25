@@ -17,7 +17,7 @@ class BulkOnlineTagTask(OnlineTagTask):
     comic_pks: frozenset[int]
     session_id: str
     sources: tuple[str, ...] = ("metron", "comicvine")
-    mode: str = "normal"
+    mode: str = "auto"
     prompts_mode: str = "ask"
     effort: str = "balanced"
     auto_threshold: float = 0.85

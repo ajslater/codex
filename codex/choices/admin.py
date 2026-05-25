@@ -36,3 +36,29 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.SEND_TELEMETRY.value: "Send Stats",
     }
 )
+
+
+TAGGING_CHOICES = MappingProxyType(
+    {
+        "matchMode": MappingProxyType(
+            {
+                "careful": "Careful",
+                "auto": "Auto",
+                "eager": "Eager",
+            }
+        ),
+        "promptsMode": MappingProxyType(
+            {
+                "ask": "Ask",
+                "never": "Never",
+            }
+        ),
+    }
+)
+
+TAGGING_DEFAULTS = MappingProxyType(
+    {
+        "matchMode": "auto",
+        "promptsMode": "ask",
+    }
+)
