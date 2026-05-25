@@ -36,7 +36,7 @@
         autocomplete="email"
         label="Email"
         clearable
-        hint="Required to receive password reset links."
+        hint="Required and only used to receive password reset links."
         persistent-hint
       />
       <v-expansion-panels v-model="passwordPanel" class="passwordSection">
