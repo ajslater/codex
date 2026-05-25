@@ -41,6 +41,22 @@ class TestIsIgnoredPath:
         root = "/Users/aj/.archive"
         assert is_ignored_path(Path(f"{root}/comic.cbz"), root=root) is False
 
+    def test_folder_cover_dotfile_passes(self) -> None:
+        # ``.codex-cover.jpg`` looks like a hidden file but is the
+        # user-supplied per-folder cover. The dotfile filter must let
+        # it through so the cover importer can claim it.
+        assert is_ignored_path(Path("/lib/comics/series/.codex-cover.jpg")) is False
+        assert is_ignored_basename(".codex-cover.jpg") is False
+        assert is_ignored_basename(".codex-cover.webp") is False
+        assert is_ignored_basename(".codex-cover.png") is False
+
+    def test_folder_cover_dotfile_without_image_ext_still_ignored(self) -> None:
+        # ``.codex-cover`` (no extension) or non-image extensions are
+        # not real folder covers — keep them filtered as ordinary
+        # dotfiles.
+        assert is_ignored_basename(".codex-cover") is True
+        assert is_ignored_basename(".codex-cover.txt") is True
+
     def test_subtree_ignored_still_caught_with_root(self) -> None:
         root = "/Users/aj/.archive"
         path = Path(f"{root}/.tmp/comic.cbz")
@@ -102,6 +118,16 @@ class TestDiskSnapshotSkipsDotfiles:
         # Neither the dot-dir nor any descendant should appear.
         assert not any(".git" in Path(p).parts for p in snap.paths)
 
+    def test_folder_cover_dotfile_picked_up(self) -> None:
+        # Regression: the dotfile filter used to swallow user-supplied
+        # ``.codex-cover.jpg`` files before the cover predicate could
+        # claim them, breaking custom folder covers.
+        (_TEST_LIB_ROOT / "comic.cbz").touch()
+        (_TEST_LIB_ROOT / ".codex-cover.jpg").touch()
+        snap = DiskSnapshot(str(_TEST_LIB_ROOT), getLogger("test"), covers_only=False)
+        names = {Path(p).name for p in snap.paths}
+        assert ".codex-cover.jpg" in names
+
 
 class TestCodexWatchFilter:
     """The watchfiles filter rejects hidden-tree events before classification."""
@@ -132,6 +158,14 @@ class TestCodexWatchFilter:
     def test_deleted_comic_passes(self) -> None:
         assert self._filter()(Change.deleted, f"{_TEST_LIB_ROOT}/gone.cbz") is True
 
+    def test_folder_cover_dotfile_passes(self) -> None:
+        # Regression: ``.codex-cover.jpg`` is a dotfile by name but a
+        # legitimate folder cover. Both modify and delete events must
+        # reach the importer.
+        path = f"{_TEST_LIB_ROOT}/series/.codex-cover.jpg"
+        assert self._filter()(Change.modified, path) is True
+        assert self._filter()(Change.deleted, path) is True
+
 
 class TestExpandDirAddedSkipsDotfiles:
     """``os.walk`` recursion under a new dir must prune hidden subtrees."""
@@ -158,3 +192,18 @@ class TestExpandDirAddedSkipsDotfiles:
         expand_dir_added(str(sub), library_pk=1, batch=batch, covers_only=False)
         paths = {event.src_path for _pk, event in batch.added}
         assert paths == {str(sub / "comic.cbz")}
+
+    def test_folder_cover_dotfile_emits_event(self) -> None:
+        # Regression: ``expand_dir_added`` walks a freshly-added tree
+        # and used to skip ``.codex-cover.jpg`` via the dotfile filter
+        # before the cover classifier could see it.
+        sub = _TEST_LIB_ROOT / "new"
+        sub.mkdir()
+        (sub / "comic.cbz").touch()
+        (sub / ".codex-cover.jpg").touch()
+
+        batch = ChangeBatch()
+        expand_dir_added(str(sub), library_pk=1, batch=batch, covers_only=False)
+        paths = {event.src_path for _pk, event in batch.added}
+        assert str(sub / ".codex-cover.jpg") in paths
+        assert str(sub / "comic.cbz") in paths
