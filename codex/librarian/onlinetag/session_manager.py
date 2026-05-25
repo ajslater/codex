@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 from comicbox.events import Event, PromptDeferred, RateLimited
@@ -43,10 +44,13 @@ class SessionState:
     total_prompts: int = 0
     event: threading.Event = field(default_factory=threading.Event)
     path_to_pk: dict[Path, int] = field(default_factory=dict)
+    pending_paths: list[Path] = field(default_factory=list)
     mode: str = "additive"
     formats: tuple[str, ...] = ("COMIC_INFO",)
     delete_original: bool = False
     cancelled: bool = False
+    total_comics: int = 0
+    completed_comics: int = 0
 
 
 class _CodexPromptHandler:
@@ -123,6 +127,8 @@ class OnlineTagSessionManager:
             active_session_id="", active_prompts=[]
         )
 
+    _RATE_LIMIT_THRESHOLD = 10
+
     def _on_event(self, event: Event) -> None:
         """Handle comicbox online events."""
         match event:
@@ -135,7 +141,9 @@ class OnlineTagSessionManager:
                         f"rate limited by {event.source}{wait}"
                     )
                     self._lookup_status.since_updated = 0
-                    self.status_controller.update(self._lookup_status, notify=True)
+                    self.status_controller.update(
+                        self._lookup_status, notify=True
+                    )
             case PromptDeferred():
                 if self._active_session_id:
                     self._sync_deferred_prompts(self._active_session_id)
@@ -166,26 +174,34 @@ class OnlineTagSessionManager:
         self.log.info(f"Online tag: flushed write batch of {len(batch)} comics.")
         batch.clear()
 
-    def _collect_results(
-        self, state: SessionState, paths: Iterable[Path], *, flush_writes: bool = False
+    def _run_tag_many(
+        self,
+        state: SessionState,
+        paths: list[Path],
+        status: OnlineLookupStatus,
+        batch: dict[int, dict],
+        *,
+        flush_writes: bool,
     ) -> None:
-        """Iterate tag_many and collect resolved tags into state."""
-        path_list = list(paths)
-        total = len(path_list)
-        status = OnlineLookupStatus()
-        status.total = total
-        status.complete = 0
-        self._lookup_status = status
-        self._rate_limited = False
-        self.status_controller.start(status)
-
-        batch: dict[int, dict] = {}
-        for index, result in enumerate(state.session.tag_many(path_list)):
+        """Run one tag_many pass, updating status and draining the queue."""
+        for result in state.session.tag_many(paths):
             if state.cancelled:
                 break
-            status.complete = index + 1
-            status.total = total
-            status.subtitle = ""
+            self._drain_thread_queue(state)
+            elapsed = monotonic() - status.since_updated if status.since_updated else 0
+            was_rate_limited = (
+                self._rate_limited or elapsed > self._RATE_LIMIT_THRESHOLD
+            )
+            if not self._rate_limited and was_rate_limited:
+                status.subtitle = f"rate limited ~{elapsed:.0f}s"
+                status.since_updated = 0
+                self.status_controller.update(status, notify=True)
+            state.completed_comics += 1
+            status.complete = state.completed_comics
+            status.total = state.total_comics
+            if not self._rate_limited:
+                status.subtitle = ""
+            self._rate_limited = False
             self.status_controller.update(status)
             if result.tags and not result.error:
                 pk = state.path_to_pk.get(result.path)
@@ -194,9 +210,37 @@ class OnlineTagSessionManager:
                         batch[pk] = result.tags
                     else:
                         state.collected_tags[pk] = result.tags
-            if flush_writes and self._rate_limited and batch:
+            if flush_writes and was_rate_limited and batch:
                 self._flush_batch(state, batch)
-                self._rate_limited = False
+
+    def _collect_results(
+        self,
+        state: SessionState,
+        paths: Iterable[Path],
+        *,
+        flush_writes: bool = False,
+    ) -> None:
+        """Iterate tag_many, merging new tasks that arrive mid-run."""
+        path_list = list(paths)
+        state.total_comics += len(path_list)
+        status = OnlineLookupStatus()
+        status.total = state.total_comics
+        status.complete = state.completed_comics
+        self._lookup_status = status
+        self._rate_limited = False
+        self.status_controller.start(status)
+
+        batch: dict[int, dict] = {}
+        self._run_tag_many(state, path_list, status, batch, flush_writes=flush_writes)
+
+        while state.pending_paths and not state.cancelled:
+            new_paths = list(state.pending_paths)
+            state.pending_paths.clear()
+            status.total = state.total_comics
+            self.status_controller.update(status, notify=True)
+            self._run_tag_many(
+                state, new_paths, status, batch, flush_writes=flush_writes
+            )
 
         if flush_writes:
             self._flush_batch(state, batch)
@@ -204,11 +248,12 @@ class OnlineTagSessionManager:
         self._lookup_status = None
         self.status_controller.finish(status)
 
-    def _drain_prompt_tasks(self) -> None:
-        """Process any pending prompt/abort tasks from the thread queue."""
+    def _drain_thread_queue(self, state: SessionState | None = None) -> None:
+        """Process pending tasks from the thread queue."""
         if not self.thread_queue:
             return
         from codex.librarian.onlinetag.tasks import (
+            BulkOnlineTagTask,
             OnlineTagAbortTask,
             OnlineTagPromptResponseTask,
         )
@@ -219,6 +264,8 @@ class OnlineTagSessionManager:
             except Exception:
                 break
             match item:
+                case BulkOnlineTagTask() if state is not None:
+                    self._merge_task(state, item)
                 case OnlineTagPromptResponseTask():
                     self.resolve_prompt(
                         item.session_id,
@@ -232,6 +279,25 @@ class OnlineTagSessionManager:
                 case _:
                     self.thread_queue.put(item)
                     break
+
+    def _merge_task(self, state: SessionState, task: Any) -> None:
+        """Merge a new BulkOnlineTagTask's comics into the running session."""
+        comics = Comic.objects.filter(pk__in=task.comic_pks).only("pk", "path")
+        new_paths = {}
+        for comic in comics:
+            path = Path(comic.path)
+            if path not in state.path_to_pk.values():
+                new_paths[path] = comic.pk
+        if not new_paths:
+            return
+        for path, pk in new_paths.items():
+            state.path_to_pk[path] = pk
+            state.pending_paths.append(path)
+        state.total_comics += len(new_paths)
+        self.log.info(
+            f"Online tag: merged {len(new_paths)} comics, "
+            f"total now {state.total_comics}"
+        )
 
     def _wait_for_prompts(
         self, state: SessionState, session_id: str, timeout: int
@@ -251,7 +317,7 @@ class OnlineTagSessionManager:
         elapsed = 0
         poll_interval = 1
         while elapsed < timeout and not state.event.is_set() and not state.cancelled:
-            self._drain_prompt_tasks()
+            self._drain_thread_queue(state)
             if state.event.wait(timeout=poll_interval):
                 break
             elapsed += poll_interval
@@ -314,6 +380,8 @@ class OnlineTagSessionManager:
             mode="update",
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,
+            total_comics=0,
+            completed_comics=0,
         )
         self._active_session_id = task.session_id
         with self._lock:
@@ -400,3 +468,4 @@ class OnlineTagSessionManager:
             self._sessions.pop(session_id, None)
         self._active_session_id = None
         self._clear_session_db()
+
