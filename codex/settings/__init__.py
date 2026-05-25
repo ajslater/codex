@@ -750,11 +750,22 @@ if DEBUG:
     _RENDERER_CLASSES.append(
         "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer"
     )
+
+# DRF auth classes are tried in order; the first to return a user wins.
+# When AUTH_REMOTE_USER is on, ``HttpRemoteUserAuthentication`` runs
+# first so proxy-forwarded ``Remote-User`` API requests authenticate
+# without ``SessionAuthentication``'s CSRF enforcement (the proxy is
+# the auth authority; API clients there carry no CSRF token).
+_AUTHENTICATION_CLASSES = [
+    "rest_framework.authentication.SessionAuthentication",
+    "codex.authentication.BearerTokenAuthentication",
+]
+if AUTH_REMOTE_USER:
+    _AUTHENTICATION_CLASSES.insert(
+        0, "codex.authentication.HttpRemoteUserAuthentication"
+    )
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.SessionAuthentication",
-        "codex.authentication.BearerTokenAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": tuple(_AUTHENTICATION_CLASSES),
     "DEFAULT_RENDERER_CLASSES": tuple(_RENDERER_CLASSES),
     "DEFAULT_PARSER_CLASSES": (
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
