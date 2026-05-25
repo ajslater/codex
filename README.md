@@ -583,8 +583,8 @@ location, overriding any malicious client that might set it themselves. ⚠️
 
 You can also configure your proxy to add token authentication to the headers.
 Codex will read “Bearer” prefixed authorization tokens. The token is unique for
-each user and may be found in the Web UI sidebar. You must configure your proxy
-or single sign on software to send this token.
+each user and may be found in the User Profile accessible from the sidebar. You
+must configure your proxy or single sign on software to send this token.
 
 ```nginx
 set              user_token 'user-token-taken-from-web-ui';
