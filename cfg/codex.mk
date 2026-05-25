@@ -12,6 +12,12 @@ install::
 ## @category Test
 test-frontend:: build-choices
 
+.PHONY: dev
+## Run Granian (backend) + Vite (frontend) together with interleaved logs
+## @category Run Server
+dev:
+	./bin/dev.sh
+
 .PHONY: dev-ttabs
 ## Run the vite dev frontend and dev-server in ttabs
 ## @category Run Server
