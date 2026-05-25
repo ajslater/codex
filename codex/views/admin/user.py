@@ -29,7 +29,7 @@ class AdminUserViewSet(AdminModelViewSet):
     queryset = (
         User.objects.prefetch_related("groups")
         .select_related("userauth__age_rating_metron")
-        .defer("first_name", "last_name", "email")
+        .defer("first_name", "last_name")
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
@@ -95,7 +95,7 @@ class AdminUserViewSet(AdminModelViewSet):
         # an empty UserAuth row, which we then patch with the
         # admin-supplied ceiling if any.
         userauth_data = validated_data.pop("userauth", {})
-        validated_data["email"] = ""
+        validated_data.setdefault("email", "")
         user = User.objects.create_user(**validated_data)
         if groups:
             user.groups.set(groups)

@@ -47,6 +47,7 @@ A final docker.io image has been released on dockerhub.
 - **Anonymous browsing** or registration-required mode — your choice.
 - **Private libraries** restricted to specific groups of users.
 - Optional **age restrictions** for age-tagged comics.
+- Optional **self-service password reset** by email (requires SMTP config).
 
 ### 🔌 Integrations
 
@@ -275,6 +276,35 @@ fashion, so you likely won't find it unless you've added it yourself.
 Codex has a limited number of API endpoints available with API Key Access. The
 API Key is available on the admin/stats tab.
 
+### 📧 Email & Password Reset
+
+By default Codex has no outbound email and the "Forgot password?" link is
+hidden. To enable self-service password reset, configure the `[email]` section
+in `codex.toml` (see the
+[Full `codex.toml` Reference](#full-codextoml-reference) below). The section
+requires at least `host` and either `from_address` or `user` — when both are
+missing the feature stays off and the reset endpoints return 404.
+
+Provider-specific notes:
+
+- **Gmail**: requires a 16-character App Password (regular passwords are
+  rejected by Google's SMTP). Account → Security → App Passwords. Use
+  `port = 587`, `use_tls = true`, and set `from_address` to the same address as
+  `user`.
+- **Amazon SES**: `from_address` MUST be a verified SES identity (the domain or
+  address). Use the SMTP credentials from the SES console, not IAM keys
+  directly.
+- **Mailgun / SendGrid / generic SMTP relays**: usually accept `user` as the
+  authenticated sender; `from_address` defaults to that when blank.
+
+If `register_verification` is enabled (Admin → Flags → "Verify New User Email"),
+new sign-ups receive an activation email and stay inactive until they click the
+link. Has no effect when `[email]` is not configured.
+
+Existing users created before this feature won't have an email on file and can't
+request a reset; admins can backfill addresses on the Users admin tab, or users
+can set their own via Profile (the user menu).
+
 ## 🎛️ Configuration
 
 ### Config Dir
@@ -345,6 +375,30 @@ present.
 # user = 0
 # opds = 0
 # opensearch = 0
+# Password reset requests per hour, per IP. Defaults to 5.
+# reset_password = 5
+
+# [email]
+# SMTP configuration for outbound email. When unset, password-reset and
+# email-verification features stay disabled and the related endpoints
+# respond 404. Set `host` AND `from_address` (or `user`) to enable.
+#
+# IMPORTANT: codex.toml stores credentials in plain text. Restrict file
+# permissions (chmod 600) and consider environment variable overrides
+# (CODEX_EMAIL_PASSWORD) for secrets management systems.
+#
+# host = ""
+# port = 587
+# user = ""
+# password = ""
+# use_tls = true
+# use_ssl = false
+# timeout = 10
+# Sender address. If blank, `user` is used as the From address. Many
+# providers accept the auth user as sender; SES and similar require an
+# explicit verified identity here.
+# from_address = ""
+# subject_prefix = "[Codex] "
 
 # [auth]
 # Allows authentication without authorization via the Remote-User header.

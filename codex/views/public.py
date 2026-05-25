@@ -2,6 +2,7 @@
 
 from typing import override
 
+from django.conf import settings
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ _ADMIN_FLAG_KEYS = (
     AdminFlagChoices.LAZY_IMPORT_METADATA.value,
     AdminFlagChoices.NON_USERS.value,
     AdminFlagChoices.REGISTRATION.value,
+    AdminFlagChoices.REGISTER_VERIFICATION.value,
 )
 
 
@@ -29,12 +31,16 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
 
     @override
     def get_object(self) -> dict:
-        """Get admin flags."""
+        """Get admin flags + settings-derived capability flags."""
         flags = {}
         for obj in self.get_queryset():
             name = AdminFlagChoices(obj.key).name.lower()
             val = obj.value if obj.key == AdminFlagChoices.BANNER_TEXT.value else obj.on
             flags[name] = val
+        # Settings-derived capabilities. Surfaced here so the frontend
+        # gets the auth context (DB flags + capability) in one request.
+        flags["email_enabled"] = bool(settings.EMAIL_ENABLED)
+        flags["remote_user_enabled"] = bool(settings.AUTH_REMOTE_USER)
         return flags
 
     def get(self, *args, **kwargs) -> Response:

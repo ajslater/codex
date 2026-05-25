@@ -5,7 +5,7 @@
       :title="logoutTitle"
       @click.stop="logout"
     />
-    <ChangePasswordDialog v-if="showExtras" :user="user" />
+    <ProfileDialog v-if="showExtras" />
     <AuthTokenDialog v-if="showExtras" :user="user" />
   </div>
   <AuthLoginDialog v-else />
@@ -16,8 +16,8 @@ import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AuthTokenDialog from "@/components/auth/auth-token.vue";
-import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
+import ProfileDialog from "@/components/auth/profile-dialog.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -26,7 +26,7 @@ export default {
   components: {
     AuthLoginDialog,
     AuthTokenDialog,
-    ChangePasswordDialog,
+    ProfileDialog,
     CodexListItem,
   },
   props: {

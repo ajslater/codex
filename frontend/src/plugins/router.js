@@ -13,6 +13,8 @@ const AdminLibrariesTab = () =>
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
+const ResetPasswordConfirm = () =>
+  import("@/components/auth/reset-password-confirm.vue");
 
 const LAST_ROUTE = {
   name: "browser",
@@ -57,6 +59,11 @@ const routes = [
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
     ],
+  },
+  {
+    name: "reset-password",
+    path: "/auth/reset-password",
+    component: ResetPasswordConfirm,
   },
   { name: "error", path: "/error/:code", component: HttpError, props: true },
   { name: "404", path: "/:pathMatch(.*)*", redirect: "/error/404" },

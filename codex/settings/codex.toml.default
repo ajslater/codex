@@ -39,6 +39,56 @@
 # user = 0
 # opds = 0
 # opensearch = 0
+# Password reset requests per hour, per IP. Defaults to 5.
+# reset_password = 5
+
+# [email]
+# SMTP configuration for outbound email. When unset, password-reset and
+# email-verification features stay disabled and the related endpoints
+# respond 404. Set `host` AND `from_address` (or `user`) to enable.
+#
+# IMPORTANT: codex.toml stores credentials in plain text. Restrict file
+# permissions (chmod 600) and consider environment variable overrides
+# (CODEX_EMAIL_PASSWORD) for secrets management systems.
+#
+# host = ""
+# port = 587
+# user = ""
+# password = ""
+# use_tls = true
+# use_ssl = false
+# timeout = 10
+# Sender address. If blank, `user` is used as the From address. Many
+# providers accept the auth user as sender; SES and similar require an
+# explicit verified identity here.
+# from_address = ""
+# subject_prefix = "[Codex] "
+#
+# --- Provider examples (uncomment ONE block) ---
+#
+# Gmail (requires an App Password, not your account password):
+# host = "smtp.gmail.com"
+# port = 587
+# user = "you@gmail.com"
+# password = "xxxx xxxx xxxx xxxx"
+# use_tls = true
+# from_address = "you@gmail.com"
+#
+# Mailgun / SendGrid / generic SMTP relay:
+# host = "smtp.mailgun.org"
+# port = 587
+# user = "postmaster@mg.example.com"
+# password = "your-api-key"
+# use_tls = true
+# from_address = "no-reply@example.com"
+#
+# Amazon SES (from_address MUST be a verified SES identity):
+# host = "email-smtp.us-east-1.amazonaws.com"
+# port = 587
+# user = "AKIAIOSFODNN7EXAMPLE"
+# password = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+# use_tls = true
+# from_address = "no-reply@verified-domain.example.com"
 
 # [auth]
 # Allows authentication without authorization via the Remote-User header.

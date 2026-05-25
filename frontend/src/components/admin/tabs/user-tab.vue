@@ -138,6 +138,7 @@ export default {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
       headers: [
         { title: "Username", key: "username", align: "start" },
+        { title: "Email", key: "email", align: "start" },
         { title: "Staff", key: "isStaff" },
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },

@@ -58,6 +58,7 @@
       >
         Register
       </v-switch>
+      <ResetPasswordRequestDialog v-if="adminFlags.emailEnabled" />
       <SubmitFooter
         :verb="registerMode ? 'Register' : 'Login'"
         table=""
@@ -74,6 +75,7 @@ import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import authFormMixin from "@/components/auth/auth-form-mixin";
+import ResetPasswordRequestDialog from "@/components/auth/reset-password-request-dialog.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -83,6 +85,7 @@ export default {
   components: {
     SubmitFooter,
     CodexListItem,
+    ResetPasswordRequestDialog,
   },
   mixins: [authFormMixin],
   data() {

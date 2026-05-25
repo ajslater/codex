@@ -22,10 +22,18 @@ export const login = (credentials) =>
 export const getProfile = () =>
   HTTP.get("/auth/profile/", { params: serializeParams() });
 
+export const updateProfile = (profile) => HTTP.patch("/auth/profile/", profile);
+
 export const logout = () => HTTP.post("/auth/logout/");
 
 export const updatePassword = (credentials) =>
   HTTP.post("/auth/change-password/", credentials);
+
+export const sendResetPasswordLink = (login) =>
+  HTTP.post("/auth/send-reset-password-link/", { login });
+
+export const resetPassword = (payload) =>
+  HTTP.post("/auth/reset-password/", payload);
 
 export const getToken = () => HTTP.get("/auth/token/");
 

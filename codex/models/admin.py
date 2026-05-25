@@ -47,7 +47,9 @@ class AdminFlag(BaseModel):
     next boot.
     """
 
-    FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
+    FALSE_DEFAULTS = frozenset(
+        {AdminFlagChoices.AUTO_UPDATE, AdminFlagChoices.REGISTER_VERIFICATION}
+    )
 
     key = CharField(
         db_index=True,

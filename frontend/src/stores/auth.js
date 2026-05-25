@@ -12,16 +12,22 @@ export const useAuthStore = defineStore("auth", {
   state: () => ({
     adminFlags: {
       registration: undefined,
+      registerVerification: undefined,
       nonUsers: undefined,
       bannerText: undefined,
       lazyImportMetadata: undefined,
+      emailEnabled: undefined,
+      remoteUserEnabled: undefined,
     },
     user: undefined,
     token: undefined,
     MIN_PASSWORD_LENGTH: 4,
     showLoginDialog: false,
     showChangePasswordDialog: false,
+    showProfileDialog: false,
     showAuthTokenDialog: false,
+    showResetPasswordRequestDialog: false,
+    resetPasswordRequestSent: false,
   }),
   getters: {
     isAuthorized() {
@@ -36,7 +42,12 @@ export const useAuthStore = defineStore("auth", {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
     },
     isAuthDialogOpen() {
-      return this.showLoginDialog || this.showChangePasswordDialog;
+      return (
+        this.showLoginDialog ||
+        this.showChangePasswordDialog ||
+        this.showProfileDialog ||
+        this.showResetPasswordRequestDialog
+      );
     },
     isBanner(state) {
       return Boolean(state.adminFlags.bannerText);
@@ -117,6 +128,53 @@ export const useAuthStore = defineStore("auth", {
           return this.login(changedCredentials, false);
         })
         .catch(commonStore.setErrors);
+    },
+    /*
+     * Update editable user-profile fields (username, email).
+     * Only the changed fields are sent; an empty payload short-circuits.
+     * On success, refresh the local user state so the menu and any
+     * other consumers see the new value without a full reload.
+     */
+    async updateProfile(profile) {
+      if (!profile || Object.keys(profile).length === 0) {
+        return true;
+      }
+      const commonStore = useCommonStore();
+      return API.updateProfile(profile)
+        .then((response) => {
+          this.user = response.data;
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
+    },
+    async sendResetPasswordLink(login) {
+      const commonStore = useCommonStore();
+      return API.sendResetPasswordLink(login)
+        .then((response) => {
+          this.resetPasswordRequestSent = true;
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
+    },
+    async resetPassword(payload) {
+      const commonStore = useCommonStore();
+      return API.resetPassword(payload)
+        .then((response) => {
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
     },
     async setTimezone() {
       if (this.adminFlags.nonUsers || this.user) {

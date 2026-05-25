@@ -49,6 +49,17 @@ _ENV_OVERRIDES: dict[str, str] = {
     "CODEX_THROTTLE_USER": "throttle.user",
     "CODEX_THROTTLE_OPDS": "throttle.opds",
     "CODEX_THROTTLE_OPENSEARCH": "throttle.opensearch",
+    "CODEX_THROTTLE_RESET_PASSWORD": "throttle.reset_password",
+    # Email
+    "CODEX_EMAIL_HOST": "email.host",
+    "CODEX_EMAIL_PORT": "email.port",
+    "CODEX_EMAIL_USER": "email.user",
+    "CODEX_EMAIL_PASSWORD": "email.password",
+    "CODEX_EMAIL_USE_TLS": "email.use_tls",
+    "CODEX_EMAIL_USE_SSL": "email.use_ssl",
+    "CODEX_EMAIL_TIMEOUT": "email.timeout",
+    "CODEX_EMAIL_FROM_ADDRESS": "email.from_address",
+    "CODEX_EMAIL_SUBJECT_PREFIX": "email.subject_prefix",
     # Auth
     "CODEX_AUTH_REMOTE_USER": "auth.remote_user",
     "CODEX_AUTH_FAILED_LOGIN_LOG": "auth.failed_login_log",

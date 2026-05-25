@@ -7,7 +7,19 @@
       :rules="rules.username"
       clearable
       autofocus
-      @keydown.enter="$refs.password.focus()"
+      @keydown.enter="$refs.email.focus()"
+    />
+    <v-text-field
+      ref="email"
+      v-model="row.email"
+      :rules="rules.email"
+      label="Email"
+      autocomplete="email"
+      type="email"
+      clearable
+      hint="Used for password reset links if email is configured."
+      persistent-hint
+      @keydown.enter="$refs.password && $refs.password.focus()"
     />
     <div v-if="!oldRow">
       <v-text-field
@@ -66,6 +78,7 @@ import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
+  "email",
   "isStaff",
   "isActive",
   "groups",
@@ -73,6 +86,7 @@ const UPDATE_KEYS = Object.freeze([
 ]);
 const EMPTY_ROW = Object.freeze({
   username: "",
+  email: "",
   password: "",
   passwordConfirm: "",
   isStaff: false,
@@ -94,6 +108,9 @@ export default {
           (v) => !!v || "Username is required",
           (v) =>
             (!!v && !this.usernames.has(v.trim())) || "Username already used",
+        ],
+        email: [
+          (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
         ],
         password: [(v) => !!v || "Password is required"],
         passwordConfirm: [

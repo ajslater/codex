@@ -18,6 +18,7 @@ class AdminFlagChoices(TextChoices):
     LAZY_IMPORT_METADATA = "LI"
     NON_USERS = "NU"
     REGISTRATION = "RG"
+    REGISTER_VERIFICATION = "RV"
     SEND_TELEMETRY = "ST"
 
 
@@ -33,6 +34,7 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Tags on Demand",
         AdminFlagChoices.NON_USERS.value: "Non Users",
         AdminFlagChoices.REGISTRATION.value: "Registration",
+        AdminFlagChoices.REGISTER_VERIFICATION.value: "Verify New User Email",
         AdminFlagChoices.SEND_TELEMETRY.value: "Send Stats",
     }
 )

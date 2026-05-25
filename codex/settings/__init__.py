@@ -173,6 +173,35 @@ THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
 THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
 THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
 THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
+THROTTLE_RESET_PASSWORD = get_int(CODEX_CONFIG, "throttle.reset_password", default=5)
+
+##############################
+# Codex Config: Email        #
+##############################
+
+EMAIL_HOST = get_str(CODEX_CONFIG, "email.host", default="")
+EMAIL_PORT = get_int(CODEX_CONFIG, "email.port", default=587)
+EMAIL_HOST_USER = get_str(CODEX_CONFIG, "email.user", default="")
+EMAIL_HOST_PASSWORD = get_str(CODEX_CONFIG, "email.password", default="")
+EMAIL_USE_TLS = get_bool(CODEX_CONFIG, "email.use_tls", default=True)
+EMAIL_USE_SSL = get_bool(CODEX_CONFIG, "email.use_ssl", default=False)
+EMAIL_TIMEOUT = get_int(CODEX_CONFIG, "email.timeout", default=10)
+# Fall back to EMAIL_HOST_USER when from_address is blank. Many providers
+# (gmail, generic SMTP) accept the auth user as sender; SES and similar
+# require an explicit verified identity - admin docs call this out.
+DEFAULT_FROM_EMAIL = (
+    get_str(CODEX_CONFIG, "email.from_address", default="") or EMAIL_HOST_USER
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[Codex] ")
+# Feature gate: password reset, register verification, and any future
+# email-dependent flows are disabled when host or sender is missing.
+EMAIL_ENABLED = bool(EMAIL_HOST and DEFAULT_FROM_EMAIL)
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_ENABLED
+    else "django.core.mail.backends.dummy.EmailBackend"
+)
 
 ##############################
 # Codex Config: Importer     #
@@ -743,6 +772,13 @@ for scope, (classname, rate_value) in _THROTTLE_MAP.items():
     if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
         _THROTTLE_CLASSES.add(classname)
         _THROTTLE_RATES[scope] = f"{rate_value}/min" if rate_value else None
+# Password reset rate is /hour (not /min) - default 5/hour. Always wire
+# the scope so the throttled views have a rate to look up; a value of 0
+# in config effectively disables it.
+_THROTTLE_CLASSES.add("rest_framework.throttling.ScopedRateThrottle")
+_THROTTLE_RATES["reset_password"] = (
+    f"{THROTTLE_RESET_PASSWORD}/hour" if THROTTLE_RESET_PASSWORD else None
+)
 
 _RENDERER_CLASSES = [
     "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
@@ -782,9 +818,35 @@ REST_FRAMEWORK = {
 #####################
 
 REST_REGISTRATION = {
-    "REGISTER_VERIFICATION_ENABLED": False,
+    # Both REGISTER_VERIFICATION and RESET_PASSWORD_VERIFICATION require a
+    # working email backend. They flip on/off together based on whether the
+    # [email] config is present; the ``REGISTER_VERIFICATION`` admin flag
+    # provides a runtime toggle on top (see codex/startup/registration.py).
+    "REGISTER_VERIFICATION_ENABLED": EMAIL_ENABLED,
     "REGISTER_EMAIL_VERIFICATION_ENABLED": False,
-    "RESET_PASSWORD_VERIFICATION_ENABLED": False,
+    "RESET_PASSWORD_VERIFICATION_ENABLED": EMAIL_ENABLED,
+    # Frontend route for the confirm page. Includes URL_PATH_PREFIX so
+    # reverse-proxy installs (e.g. /codex/...) get correct email links.
+    "REGISTER_VERIFICATION_URL": f"{GRANIAN_URL_PATH_PREFIX}/auth/verify-registration/",
+    "RESET_PASSWORD_VERIFICATION_URL": f"{GRANIAN_URL_PATH_PREFIX}/auth/reset-password/",
+    "RESET_PASSWORD_VERIFICATION_AUTO_LOGIN": False,
+    "RESET_PASSWORD_VERIFICATION_ONE_TIME_USE": True,
+    # Don't 404 when a non-existent username/email is submitted; the view
+    # returns a generic "if the user exists, a link was sent" response.
+    "RESET_PASSWORD_FAIL_WHEN_USER_NOT_FOUND": False,
+    "VERIFICATION_FROM_EMAIL": DEFAULT_FROM_EMAIL,
+    "USER_LOGIN_FIELDS": ("username", "email"),
+    # rest-registration treats email as read-only by default (it expects
+    # changes to flow through its register-email -> verify-email
+    # handshake). Codex doesn't run that flow; profile dialog edits the
+    # field directly. USER_EDITABLE_FIELDS overrides the default to make
+    # both username (subject to the AUTH_REMOTE_USER guard in the
+    # serializer) and email writable.
+    "USER_EDITABLE_FIELDS": ("username", "email"),
+    # Custom profile serializer enforces the username read-only guard
+    # when AUTH_REMOTE_USER is true (backend belt-and-braces behind the
+    # disabled UI control in the profile dialog).
+    "PROFILE_SERIALIZER_CLASS": "codex.serializers.auth.CodexProfileSerializer",
     "USER_HIDDEN_FIELDS": (
         # DEFAULT
         "last_login",
@@ -795,7 +857,8 @@ REST_REGISTRATION = {
         # SHOWN
         # "is_staff", "is_superuser",
         # HIDDEN
-        "email",
+        # email is intentionally NOT hidden - users self-service it via
+        # the profile dialog so password reset has somewhere to send to.
         "first_name",
         "last_name",
     ),
