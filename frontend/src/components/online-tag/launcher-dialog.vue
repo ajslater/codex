@@ -52,8 +52,8 @@
           <div v-if="needConversion > 0" class="conversionWarning">
             <div>
               {{ needConversion }}
-              comic{{ needConversion === 1 ? "" : "s" }} will be converted from
-              CBR/CB7 to CBZ.
+              comic{{ needConversion === 1 ? "" : "s" }} will be converted to
+              CBZ.
             </div>
             <div class="conversionHelpText">
               Writing tags to CBR, CB7, or CBT archives converts them to CBZ.

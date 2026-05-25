@@ -24,7 +24,7 @@
         <div class="adminCard">
           <v-checkbox
             :model-value="defaults.deleteOriginal"
-            label="Delete original after converting CBR/CB7 to CBZ"
+            label="Delete original after converting to CBZ"
             :hint="deleteOriginalHint"
             persistent-hint
             density="compact"

@@ -37,7 +37,7 @@
             <div>
               {{ confirmInfo.needConversion }}
               comic{{ confirmInfo.needConversion === 1 ? "" : "s" }}
-              will be converted from CBR/CB7 to CBZ.
+              will be converted to CBZ.
             </div>
             <div class="conversionHelpText">
               Writing tags to CBR, CB7, or CBT archives converts them to CBZ.
