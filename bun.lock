@@ -10,7 +10,7 @@
         "@fsouza/prettierd": "^0.27.0",
         "@prettier/plugin-xml": "^3.4.2",
         "@stylistic/eslint-plugin": "^5.10.0",
-        "@vitest/eslint-plugin": "^1.6.17",
+        "@vitest/eslint-plugin": "^1.6.18",
         "eslint": "^10.4.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-array-func": "^5.1.1",
