@@ -34,9 +34,14 @@ _IGNORED_BASENAME_PREFIXES: tuple[str, ...] = (".",)
 
 def is_ignored_basename(name: str) -> bool:
     """Return True when ``name`` matches any registered ignore rule."""
-    return name in _IGNORED_BASENAMES or any(
-        name.startswith(prefix) for prefix in _IGNORED_BASENAME_PREFIXES
-    )
+    if name in _IGNORED_BASENAMES:
+        return True
+    if not any(name.startswith(prefix) for prefix in _IGNORED_BASENAME_PREFIXES):
+        return False
+    # Folder-cover dotfiles (``.codex-cover.jpg`` etc.) are intentional
+    # user-supplied covers, not OS noise — the dotfile filter must let
+    # them through so the cover predicate downstream can claim them.
+    return not match_folder_cover(Path(name))
 
 
 def is_ignored_path(path: Path | str, root: Path | str | None = None) -> bool:
