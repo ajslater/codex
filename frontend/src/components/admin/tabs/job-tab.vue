@@ -287,7 +287,6 @@ export default {
         for (const job of group.jobs) {
           if (job.value !== NIGHTLY_JOB_VALUE) continue;
           for (const code of job.statuses || []) {
-            // eslint-disable-next-line security/detect-object-injection
             const status = this.allStatuses[code];
             if (status && status.preactive !== null) {
               preactiveCount++;
@@ -363,7 +362,6 @@ export default {
       }
       const result = [];
       for (const code of job.statuses) {
-        // eslint-disable-next-line security/detect-object-injection
         const status = this.allStatuses[code];
         if (status) {
           result.push(status);
@@ -400,10 +398,9 @@ export default {
     toggleExpand(value) {
       const current =
         value in this.manualExpanded
-          ? // eslint-disable-next-line security/detect-object-injection
-            this.manualExpanded[value]
+          ? this.manualExpanded[value]
           : this.hasActiveOrPreactiveStatuses({ value, statuses: [] });
-      // eslint-disable-next-line security/detect-object-injection
+
       this.manualExpanded[value] = !current;
     },
     jobStatusSummary(job) {
@@ -446,7 +443,6 @@ export default {
        */
       let latest = 0;
       for (const code of job.statuses) {
-        // eslint-disable-next-line security/detect-object-injection
         const status = this.allStatuses[code];
         if (!status) continue;
         if (status.active !== null || status.preactive !== null) {

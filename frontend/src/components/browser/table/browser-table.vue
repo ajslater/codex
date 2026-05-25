@@ -170,7 +170,7 @@ export default {
        * with the inline disable.
        */
       if (!Object.hasOwn(BROWSER_TABLE_COLUMNS, column)) return undefined;
-      // eslint-disable-next-line security/detect-object-injection
+
       return BROWSER_TABLE_COLUMNS[column];
     },
     labelFor(column) {

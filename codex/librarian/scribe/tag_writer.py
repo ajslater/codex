@@ -104,9 +104,7 @@ class TagWriter(WorkerStatusAbortableBase):
         base_config = None
         if task.delete_original:
             cfg = get_config()
-            base_config = replace(
-                cfg, general=replace(cfg.general, delete_orig=True)
-            )
+            base_config = replace(cfg, general=replace(cfg.general, delete_orig=True))
 
         for result in bulk_write(
             items,

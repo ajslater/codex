@@ -190,8 +190,7 @@ const _CATEGORIES = Object.freeze([
 
 function _registryEntry(key) {
   return Object.hasOwn(BROWSER_TABLE_COLUMNS, key)
-    ? // eslint-disable-next-line security/detect-object-injection
-      BROWSER_TABLE_COLUMNS[key]
+    ? BROWSER_TABLE_COLUMNS[key]
     : undefined;
 }
 
@@ -235,12 +234,10 @@ function _rank(key) {
 export function smartInsertIndex(draft, key) {
   const ranks = draft.map(_rank);
   for (let i = 1; i < ranks.length; i += 1) {
-    /* eslint-disable-next-line security/detect-object-injection */
     if (ranks[i - 1] >= ranks[i]) return draft.length;
   }
   const target = _rank(key);
   for (let i = 0; i < ranks.length; i += 1) {
-    /* eslint-disable-next-line security/detect-object-injection */
     if (target < ranks[i]) return i;
   }
   return draft.length;
@@ -333,14 +330,10 @@ export default {
      */
     _columnRow(key, entry) {
       const cost = Object.hasOwn(BROWSER_TABLE_COLUMN_COSTS, key)
-        ? // eslint-disable-next-line security/detect-object-injection
-          BROWSER_TABLE_COLUMN_COSTS[key]
+        ? BROWSER_TABLE_COLUMN_COSTS[key]
         : null;
       const costTooltip =
-        cost && Object.hasOwn(_COST_TOOLTIPS, cost)
-          ? // eslint-disable-next-line security/detect-object-injection
-            _COST_TOOLTIPS[cost]
-          : "";
+        cost && Object.hasOwn(_COST_TOOLTIPS, cost) ? _COST_TOOLTIPS[cost] : "";
       return {
         key,
         label: entry.label,

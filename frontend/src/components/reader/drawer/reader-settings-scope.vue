@@ -93,7 +93,6 @@ const differsFromGlobalDefaults = (settings) => {
     return false;
   }
   for (const attr of ATTRS) {
-    // eslint-disable-next-line security/detect-object-injection
     if (settings[attr] !== GLOBAL_DEFAULTS[attr]) {
       return true;
     }

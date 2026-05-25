@@ -201,7 +201,7 @@ export default {
     rawValue() {
       const name = this.rowAttrName;
       if (!Object.hasOwn(this.row, name)) return undefined;
-      // eslint-disable-next-line security/detect-object-injection
+
       return this.row[name];
     },
     isList() {
@@ -257,7 +257,6 @@ export default {
       if (Object.hasOwn(ENUM_COLUMN_LABELS, this.column)) {
         const labels = ENUM_COLUMN_LABELS[this.column];
         if (Object.hasOwn(labels, value)) {
-          // eslint-disable-next-line security/detect-object-injection
           return labels[value];
         }
         return String(value);

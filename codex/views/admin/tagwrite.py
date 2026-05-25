@@ -46,11 +46,13 @@ class AdminParseIdentifierURLView(AdminAPIView):
             if parts.domain in url:
                 try:
                     id_type, id_key = parts.parse_url_path(url)
-                    return Response({
-                        "source": source_enum.value,
-                        "id_type": id_type,
-                        "key": id_key,
-                    })
+                    return Response(
+                        {
+                            "source": source_enum.value,
+                            "id_type": id_type,
+                            "key": id_key,
+                        }
+                    )
                 except Exception:
                     break
 
@@ -84,11 +86,13 @@ class AdminTagWritePreflightView(AdminAPIView):
         except ComicboxTaggingDefaults.DoesNotExist:
             delete_original = False
 
-        return Response({
-            "total": len(comic_pks),
-            "need_conversion": need_conversion,
-            "delete_original": delete_original,
-        })
+        return Response(
+            {
+                "total": len(comic_pks),
+                "need_conversion": need_conversion,
+                "delete_original": delete_original,
+            }
+        )
 
 
 class AdminTagWriteView(AdminAPIView):

@@ -135,9 +135,7 @@ class OnlineTagSessionManager:
                         f"rate limited by {event.source}{wait}"
                     )
                     self._lookup_status.since_updated = 0
-                    self.status_controller.update(
-                        self._lookup_status, notify=True
-                    )
+                    self.status_controller.update(self._lookup_status, notify=True)
             case PromptDeferred():
                 if self._active_session_id:
                     self._sync_deferred_prompts(self._active_session_id)
