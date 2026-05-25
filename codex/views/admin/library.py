@@ -5,11 +5,10 @@ from pathlib import Path
 from typing import override
 
 from django.core.cache import cache
-from django.db.models import Case, OuterRef, Subquery, When
+from django.db.models import OuterRef, Subquery
 from django.db.models.aggregates import Count
 from django.db.models.expressions import Value
 from django.db.models.functions import Coalesce
-from django.db.utils import NotSupportedError
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.exceptions import ValidationError
@@ -19,7 +18,7 @@ from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.models import Comic, CustomCover, FailedImport, Folder, Library
+from codex.models import Comic, FailedImport, Folder, Library
 from codex.serializers.admin.libraries import (
     AdminFolderListSerializer,
     AdminFolderSerializer,
@@ -33,15 +32,6 @@ from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
 # DISTINCT. Replaces the prior ``Count("comic", distinct=True)`` /
 # ``Count("failedimport", distinct=True)`` annotations whose JOIN
 # materialized the Cartesian product before DISTINCT collapsed it.
-_CUSTOM_COVER_COUNT = Coalesce(
-    Subquery(
-        CustomCover.objects.exclude(group="f")
-        .values("group")  # A dummy group-by to allow the annotation
-        .annotate(cnt=Count("pk"))
-        .values("cnt")[:1]
-    ),
-    Value(0),
-)
 _COMIC_COUNT = Coalesce(
     Subquery(
         Comic.objects.filter(library=OuterRef("pk"))
@@ -70,15 +60,7 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     queryset = (
         Library.objects.prefetch_related("groups")
-        .annotate(
-            comic_count=Case(
-                # covers_only libraries borrow the CustomCover count;
-                # everything else uses a per-library correlated count.
-                When(covers_only=True, then=_CUSTOM_COVER_COUNT),
-                default=_COMIC_COUNT,
-            ),
-            failed_count=_FAILED_COUNT,
-        )
+        .annotate(comic_count=_COMIC_COUNT, failed_count=_FAILED_COUNT)
         .defer("update_in_progress", "created_at", "updated_at")
     )
 
@@ -112,8 +94,6 @@ class AdminLibraryViewSet(AdminModelViewSet):
     def perform_create(self, serializer) -> None:
         """Perform create and run hooks."""
         super().perform_create(serializer)
-        if serializer.validated_data.get("covers_only"):
-            raise NotSupportedError
         library = Library.objects.only("pk", "path").get(
             path=serializer.validated_data["path"]
         )
@@ -126,24 +106,18 @@ class AdminLibraryViewSet(AdminModelViewSet):
         """Perform update an run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
         pk = self.kwargs["pk"]
-        library = Library.objects.get(pk=pk)
-        if library.covers_only and serializer.validated_data.get("path"):
-            raise NotSupportedError
         super().perform_update(serializer)
         if "groupSet" in validated_keys:
             self._on_change()
         self._sync_watcher(validated_keys)
         # Only re-poll when the schedule changes; other field edits
-        # (groupSet, covers_only, …) are picked up by the next
-        # already-scheduled poll.
+        # (groupSet, …) are picked up by the next already-scheduled poll.
         if "pollEvery" in validated_keys:
             self._poll(pk, force=False)
 
     @override
     def perform_destroy(self, instance) -> None:
         """Perform destroy and run hooks."""
-        if instance.covers_only:
-            raise NotSupportedError
         super().perform_destroy(instance)
         self._sync_watcher()
         self._on_change()
@@ -196,16 +170,15 @@ class AdminFolderListView(AdminGenericAPIView):
         Pick the picker's starting folder when no path is requested.
 
         Returns the parent directory of the most-recently-added
-        non-covers ``Library``. Lets an admin who's adding a second
-        library land in the same neighborhood as the first one
-        instead of the codex install root. Falls back to the CWD
-        when no library exists yet (the original behavior) or when
-        the recorded parent is no longer a directory (library
+        ``Library``. Lets an admin who's adding a second library
+        land in the same neighborhood as the first one instead of
+        the codex install root. Falls back to the CWD when no
+        library exists yet (the original behavior) or when the
+        recorded parent is no longer a directory (library
         moved/deleted on disk after the row was created).
         """
         last_path = (
-            Library.objects.filter(covers_only=False)
-            .order_by("-created_at")
+            Library.objects.order_by("-created_at")
             .values_list("path", flat=True)
             .first()
         )

@@ -90,7 +90,7 @@ class CustomCover(WatchedPath):
         P = "p"
         I = "i"  # noqa: E741
         S = "s"
-        # no V
+        V = "v"
         A = "a"
         F = "f"
 
@@ -105,6 +105,14 @@ class CustomCover(WatchedPath):
     )
 
     parent_folder: ForeignKey | None = None
+    # Override base to allow null. Custom covers no longer belong to any
+    # library — every row is created via the upload endpoint with
+    # ``library=None``. Kept on the column rather than dropped to avoid
+    # a more invasive schema rewrite for the abstract ``WatchedPath``
+    # inheritance.
+    library = ForeignKey(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        Library, on_delete=CASCADE, db_index=True, null=True
+    )
     group = CharField(
         max_length=max_choices_len(GroupChoices),
         db_index=True,
@@ -115,8 +123,18 @@ class CustomCover(WatchedPath):
     )
 
     def _set_group_and_sort_name(self) -> None:
-        """Set group and sort_name from path."""
+        """Derive group and sort_name from path (legacy filesystem-watch flow)."""
+        # New uploads set ``group`` and ``sort_name`` explicitly before
+        # save() — no derivation needed.
+        from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
+
         path = Path(self.path)
+        try:
+            path.relative_to(CUSTOM_COVERS_UPLOADS_DIR)
+        except ValueError:
+            pass
+        else:
+            return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
             group = self.GroupChoices.F.value

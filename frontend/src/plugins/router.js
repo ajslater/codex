@@ -10,6 +10,8 @@ const AdminUsersTab = () => import("@/components/admin/tabs/user-tab.vue");
 const AdminGroupsTab = () => import("@/components/admin/tabs/group-tab.vue");
 const AdminLibrariesTab = () =>
   import("@/components/admin/tabs/library-tab.vue");
+const AdminCustomCoversTab = () =>
+  import("@/components/admin/tabs/custom-covers-tab.vue");
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
@@ -53,6 +55,11 @@ const routes = [
         name: "admin-libraries",
         path: "libraries",
         component: AdminLibrariesTab,
+      },
+      {
+        name: "admin-custom-covers",
+        path: "custom-covers",
+        component: AdminCustomCoversTab,
       },
       { name: "admin-flags", path: "flags", component: AdminFlagsTab },
       { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },

@@ -107,3 +107,7 @@
 # When behind a reverse proxy, trust X-Forwarded-For for the client IP.
 # Disable if Codex is exposed directly (otherwise clients can forge their IP).
 # failed_login_log_trust_forwarded_for = true
+
+# [custom_covers]
+# Maximum size (in megabytes) of a custom-cover upload.
+# max_upload_mb = 10

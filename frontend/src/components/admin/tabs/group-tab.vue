@@ -20,7 +20,7 @@
       <template #[`item.librarySet`]="{ item }">
         <RelationChips
           :pks="item.librarySet"
-          :objs="normalLibraries"
+          :objs="libraries"
           title-key="path"
         />
       </template>
@@ -148,7 +148,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,

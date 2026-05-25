@@ -27,7 +27,6 @@ _LIBRARY_ONLY = (
     "poll_every",
     "last_poll",
     "update_in_progress",
-    "covers_only",
 )
 
 
@@ -119,18 +118,14 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
     def _get_diff(self, library: Library, *, force: bool) -> SnapshotDiff | None:
         """Compute the diff between DB and disk for a library."""
-        covers_only = library.covers_only
         ignore_device = True
         db_snap = DatabaseSnapshot(
             library.path,
             self.log,
-            covers_only=covers_only,
             ignore_device=ignore_device,
             force=force,
         )
-        disk_snap = DiskSnapshot(
-            library.path, self.log, covers_only=covers_only, ignore_device=ignore_device
-        )
+        disk_snap = DiskSnapshot(library.path, self.log, ignore_device=ignore_device)
 
         if len(disk_snap.paths) <= 1:
             self.log.warning(f"{library.path} dir snapshot is empty. Not polling.")

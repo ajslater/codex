@@ -1,10 +1,8 @@
 """Initialize Codex Dataabse before running."""
 
-from pathlib import Path
-
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db.models import F, Q
+from django.db.models import Q
 from django.db.models.functions import Now
 from loguru import logger
 from rest_framework.authtoken.models import Token
@@ -14,7 +12,6 @@ from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import (
     AdminFlag,
     AgeRatingMetron,
-    CustomCover,
     LibrarianStatus,
     Library,
     Timestamp,
@@ -28,8 +25,6 @@ from codex.models.age_rating import (
 from codex.settings import (
     AUTH_REMOTE_USER,
     CODEX_CONFIG_TOML,
-    CUSTOM_COVERS_DIR,
-    CUSTOM_COVERS_SUBDIR,
     DEBUG,
     GRANIAN_URL_PATH_PREFIX,
     RESET_ADMIN,
@@ -194,72 +189,6 @@ def init_libraries() -> None:
         logger.debug(f"Reset {lib_count} Libraries' update_in_progress flag.")
 
 
-def init_custom_cover_dir() -> None:
-    """Initialize the Custom Cover Dir singleton row."""
-    defaults = dict(**Library.CUSTOM_COVERS_DIR_DEFAULTS, path=CUSTOM_COVERS_DIR)
-    covers_library, created = Library.objects.get_or_create(
-        defaults=defaults, covers_only=True
-    )
-    if created:
-        logger.info("Created Custom Covers Dir settings in the db.")
-
-    old_path = covers_library.path
-    if Path(old_path) != CUSTOM_COVERS_DIR:
-        Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVERS_DIR))
-        logger.info(
-            f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVERS_DIR}."
-        )
-
-
-def update_custom_covers_for_config_dir() -> None:
-    """Update custom covers if the config dir changes."""
-    # This is okay, but I wouldn't need to do it if paths were constructed from
-    # parent_folder and library.path
-    # Fast lookup without relations seems better though, paths shouldn't change too much.
-
-    # Determine which covers need re-pathing
-    update_covers = []
-    delete_cover_pks = []
-    update_fields = ("path", "updated_at")
-    group_covers = (
-        CustomCover.objects.filter(library__covers_only=True)
-        .exclude(path__startswith=F("library__path"))
-        .only(*update_fields)
-    )
-    logger.debug(f"Checking that group custom covers are under {CUSTOM_COVERS_DIR}")
-    for cover in group_covers.iterator():
-        old_path = cover.path
-        parts = old_path.rsplit(f"/{CUSTOM_COVERS_SUBDIR}/")
-        if len(parts) < 2:  # noqa: PLR2004
-            delete_cover_pks.append(cover.pk)
-            continue
-        new_path = CUSTOM_COVERS_DIR / parts[1]
-        if new_path.exists():
-            cover.path = str(new_path)
-            update_covers.append(cover)
-        else:
-            delete_cover_pks.append(cover.pk)
-    update_count = len(update_covers)
-    logger.debug(
-        f"Found {update_count} custom covers to update, {len(delete_cover_pks)} to delete."
-    )
-
-    # Update covers
-    if update_count:
-        CustomCover.objects.bulk_update(update_covers, update_fields)
-        logger.info(
-            f"Updated {update_count} CustomCovers sources to point to new config dir"
-        )
-
-    # Delete covers we can't reliably update.
-    if delete_cover_pks:
-        delete_qs = CustomCover.objects.filter(pk__in=delete_cover_pks)
-        delete_count, _ = delete_qs.delete()
-        logger.warning(
-            f"Delete {delete_count} CustomCovers that could not be re-sourced after config dir change."
-        )
-
-
 def create_missing_auth_tokens() -> None:
     """Create missing auth tokens."""
     num_created = 0
@@ -279,8 +208,6 @@ def ensure_db_rows() -> None:
     init_timestamps()
     init_librarian_statuses()
     init_libraries()
-    init_custom_cover_dir()
-    update_custom_covers_for_config_dir()
     create_missing_auth_tokens()
 
 

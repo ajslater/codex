@@ -33,14 +33,12 @@ class LibrarySerializer(BaseModelSerializer):
             "poll",
             "poll_every",
             "groups",
-            "covers_only",
             "comic_count",
             "failed_count",
         )
         read_only_fields = (
             "last_poll",
             "pk",
-            "covers_only",
             "comic_count",
             "failed_count",
         )

@@ -30,7 +30,6 @@
       :disabled="!row.poll"
     />
     <AdminRelationPicker
-      v-if="!row.coversOnly"
       v-model="row.groups"
       label="Groups"
       :objs="groups"
@@ -108,12 +107,12 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
     }),
     paths() {
-      return this.nameSet(this.normalLibraries, "path", this.oldRow, false);
+      return this.nameSet(this.libraries, "path", this.oldRow, false);
     },
   },
   UPDATE_KEYS,

@@ -7,9 +7,6 @@ from pathlib import Path
 from comicbox.box import Comicbox
 from loguru import logger
 
-from codex.models.paths import CustomCover
-from codex.settings import CUSTOM_COVERS_DIR, CUSTOM_COVERS_GROUP_DIRS
-
 # Component-level ignore registry consulted by the poller's walker and
 # the watchfiles filter. Either constant can be extended to add new
 # patterns without touching the walker/filter call sites:
@@ -36,12 +33,7 @@ def is_ignored_basename(name: str) -> bool:
     """Return True when ``name`` matches any registered ignore rule."""
     if name in _IGNORED_BASENAMES:
         return True
-    if not any(name.startswith(prefix) for prefix in _IGNORED_BASENAME_PREFIXES):
-        return False
-    # Folder-cover dotfiles (``.codex-cover.jpg`` etc.) are intentional
-    # user-supplied covers, not OS noise — the dotfile filter must let
-    # them through so the cover predicate downstream can claim them.
-    return not match_folder_cover(Path(name))
+    return any(name.startswith(prefix) for prefix in _IGNORED_BASENAME_PREFIXES)
 
 
 def is_ignored_path(path: Path | str, root: Path | str | None = None) -> bool:
@@ -102,18 +94,3 @@ def match_comic(path: Path) -> bool:
 def match_image(path: Path) -> bool:
     """Match image file."""
     return _match_suffix(_IMAGE_MATCHER, path)
-
-
-def match_folder_cover(path: Path) -> bool:
-    """Match a folder cover image (e.g. cover.jpg next to comics)."""
-    return path.stem == CustomCover.FOLDER_COVER_STEM and match_image(path)
-
-
-def match_group_cover_image(path: Path) -> bool:
-    """Match a custom group cover image in the custom-covers directory."""
-    parent = path.parent
-    return (
-        parent.parent == CUSTOM_COVERS_DIR
-        and str(parent.name) in CUSTOM_COVERS_GROUP_DIRS
-        and match_image(path)
-    )

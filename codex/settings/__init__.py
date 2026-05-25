@@ -946,19 +946,17 @@ if FEATURES.silk:
 
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
+CUSTOM_COVERS_UPLOADS_DIR = CUSTOM_COVERS_DIR / "uploads"
+CUSTOM_COVERS_MAX_UPLOAD_MB = get_int(
+    CODEX_CONFIG, "custom_covers.max_upload_mb", default=10
+)
+CUSTOM_COVERS_MAX_UPLOAD_BYTES = CUSTOM_COVERS_MAX_UPLOAD_MB * 1024 * 1024
+# Legacy group subdirs are migrated into ``uploads/`` on startup. Kept here
+# only so the migration step can read them; remove once that runs.
 CUSTOM_COVERS_GROUP_DIRS = frozenset(
     {"publishers", "imprints", "series", "volumes", "story-arcs"}
 )
-
-
-def create_custom_cover_group_dirs() -> None:
-    """Create custom cover group dirs."""
-    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
-        custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
-        custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
-
-
-create_custom_cover_group_dirs()
+CUSTOM_COVERS_UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
 
 ############
 # Comicbox #

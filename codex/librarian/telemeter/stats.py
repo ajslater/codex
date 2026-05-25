@@ -12,7 +12,6 @@ from django.db.models import Count
 
 from codex.models import (
     Comic,
-    Library,
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
@@ -77,10 +76,7 @@ class CodexStats:
         obj = {}
         for model in models:
             name = snakecase(model.__name__) + "_count"
-            qs = model.objects
-            if model == Library:
-                qs = qs.filter(covers_only=False)
-            obj[name] = qs.count()
+            obj[name] = model.objects.count()
         return obj
 
     @staticmethod

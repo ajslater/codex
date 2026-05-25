@@ -25,7 +25,6 @@ def _snapshot(
     snap = Snapshot.__new__(Snapshot)
     snap._root = "/comics"  # noqa: SLF001
     snap.log = getLogger("test")
-    snap._covers_only = False  # noqa: SLF001
     snap._ignore_device = True  # noqa: SLF001
     snap._stat_info = dict(entries)  # noqa: SLF001
     snap._device_inode_to_path = {  # noqa: SLF001

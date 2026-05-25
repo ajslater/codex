@@ -29,6 +29,7 @@ export const TABS = Object.freeze([
   "Users",
   "Groups",
   "Libraries",
+  "Custom Covers",
   "Flags",
   "Tagging",
   "Jobs",
@@ -46,6 +47,7 @@ export const useAdminStore = defineStore("admin", {
     groups: [],
     ageRatingMetrons: [],
     libraries: undefined,
+    customCovers: [],
     failedImports: [],
     flags: [],
     folderPicker: {
@@ -62,30 +64,8 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    normalLibraries() {
-      const libs = [];
-      if (this.libraries) {
-        for (const library of this.libraries) {
-          if (!library.coversOnly) {
-            libs.push(library);
-          }
-        }
-      }
-      return libs;
-    },
-    customCoverLibraries() {
-      const libs = [];
-      if (this.libraries) {
-        for (const library of this.libraries) {
-          if (library.coversOnly) {
-            libs.push(library);
-          }
-        }
-      }
-      return libs;
-    },
     doNormalComicLibrariesExist() {
-      return Object.keys(this.normalLibraries).length > 0;
+      return Boolean(this.libraries?.length);
     },
   },
   actions: {

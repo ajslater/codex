@@ -99,7 +99,7 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
         total_count = 0
         try:
             self.status_controller.start_many((status, moved_status))
-            libraries = Library.objects.filter(covers_only=False).only("path")
+            libraries = Library.objects.only("path")
             for library in libraries.iterator():
                 if self.abort_event.is_set():
                     return

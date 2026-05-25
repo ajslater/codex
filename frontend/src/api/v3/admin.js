@@ -52,7 +52,27 @@ export const TABLES = Object.freeze({
     getAll: () => HTTP.get("/admin/age-rating-metron"),
     stateField: "ageRatingMetrons",
   },
+  CustomCover: {
+    getAll: () =>
+      HTTP.get("/admin/custom-cover/list", { params: serializeParams() }),
+    destroy: (pk) => HTTP.delete(`/admin/custom-cover/${pk}`),
+    stateField: "customCovers",
+  },
 });
+
+export const uploadCustomCover = ({ group, pks, file }) => {
+  const form = new FormData();
+  form.append("group", group);
+  form.append("pks", Array.isArray(pks) ? pks.join(",") : String(pks));
+  form.append("image", file);
+  return HTTP.post("/admin/custom-cover", form);
+};
+
+export const removeCustomCover = ({ group, pks }) =>
+  HTTP.post("/admin/custom-cover/remove", {
+    group,
+    pks: Array.isArray(pks) ? pks.join(",") : String(pks),
+  });
 
 // One-off endpoints that don't fit the table CRUD shape.
 

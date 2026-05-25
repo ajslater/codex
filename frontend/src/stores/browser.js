@@ -344,6 +344,18 @@ export const useBrowserStore = defineStore("browser", {
     /*
      * UTILITY
      */
+    bustCoverCache({ ids, coverCustomPk }) {
+      if (!ids?.length) return;
+      const target = new Set(ids);
+      const ts = Date.now();
+      const updateRow = (row) => {
+        if (!row?.ids?.some((pk) => target.has(pk))) return;
+        row.coverCustomPk = coverCustomPk;
+        row.mtime = ts;
+      };
+      for (const row of this.page.groups) updateRow(row);
+      for (const row of this.page.books) updateRow(row);
+    },
     _filterSettings(state, keys) {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {

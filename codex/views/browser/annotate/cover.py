@@ -83,9 +83,9 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         qs = self.add_order_by(qs, for_cover=True)
         return Subquery(qs.values("pk")[:1])
 
-    def _cover_custom_subquery(self, group_model) -> Subquery | None:
+    def _cover_custom_subquery(self) -> Subquery | None:
         """Correlated subquery returning a CustomCover pk, if applicable."""
-        if group_model is Volume or not self.params.get("custom_covers"):
+        if not self.params.get("custom_covers"):
             return None
         group = self.kwargs.get("group")
         group_rel = CUSTOM_COVER_GROUP_RELATION.get(group)
@@ -101,7 +101,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
             # falls back to pk when cover_pk is absent.
             return qs
         qs = qs.annotate(cover_pk=self._cover_comic_subquery(qs.model))
-        custom_sq = self._cover_custom_subquery(qs.model)
+        custom_sq = self._cover_custom_subquery()
         if custom_sq is not None:
             qs = qs.annotate(cover_custom_pk=custom_sq)
         return qs

@@ -16,7 +16,7 @@
         v-for="tab in TABS"
         :key="tab"
         v-model="activeTab"
-        :to="tab.toLowerCase()"
+        :to="tabSlug(tab)"
       >
         {{ tab }}
       </v-tab>
@@ -60,6 +60,11 @@ export default {
       const parts = to.path.split("/");
       const lastPart = parts.at(-1);
       this.activeTab = capitalCase(lastPart);
+    },
+  },
+  methods: {
+    tabSlug(tab) {
+      return tab.toLowerCase().replaceAll(/\s+/g, "-");
     },
   },
 };

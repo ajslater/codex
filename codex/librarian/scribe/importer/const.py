@@ -397,6 +397,7 @@ CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
         Publisher: CustomCover.GroupChoices.P.value,
         Imprint: CustomCover.GroupChoices.I.value,
         Series: CustomCover.GroupChoices.S.value,
+        Volume: CustomCover.GroupChoices.V.value,
         StoryArc: CustomCover.GroupChoices.A.value,
         Folder: CustomCover.GroupChoices.F.value,
     }

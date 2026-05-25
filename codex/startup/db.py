@@ -22,7 +22,6 @@ from codex.settings import (
     FTS_INTEGRITY_CHECK,
     INTEGRITY_CHECK,
 )
-from codex.startup.custom_cover_libraries import cleanup_custom_cover_libraries
 from codex.version import VERSION
 
 _REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
@@ -88,7 +87,6 @@ def _repair_db(log, *, will_migrate: bool) -> None:
         fix_foreign_keys(log)
     if INTEGRITY_CHECK or will_migrate:
         integrity_check(log, long=True)
-    cleanup_custom_cover_libraries(log)
 
 
 def _queue_post_migration_fts_tasks(log) -> None:

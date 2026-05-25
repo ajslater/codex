@@ -50,7 +50,7 @@ def libraries_exist() -> bool:
     """
     value = _django_cache.get(_LIBRARIES_EXIST_CACHE_KEY)
     if value is None:
-        value = Library.objects.filter(covers_only=False).exists()
+        value = Library.objects.exists()
         _django_cache.set(
             _LIBRARIES_EXIST_CACHE_KEY, value, _LIBRARIES_EXIST_TTL_SECONDS
         )

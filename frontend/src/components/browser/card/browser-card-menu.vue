@@ -15,6 +15,8 @@
       <MarkReadButton class="listItem" :button="false" :item="item" />
       <DownloadButton class="listItem" :button="false" :item="downloadItem" />
       <ForceUpdateButton class="listItem" :button="false" :item="item" />
+      <UploadCoverButton :item="item" @uploaded="closeMenu" />
+      <RemoveCoverButton :item="item" @removed="closeMenu" />
     </v-list>
   </v-menu>
 </template>
@@ -23,6 +25,8 @@
 import { mdiDotsVertical } from "@mdi/js";
 
 import { formattedIssue, formattedVolumeName } from "@/comic-name";
+import RemoveCoverButton from "@/components/browser/card/remove-cover-button.vue";
+import UploadCoverButton from "@/components/browser/card/upload-cover-button.vue";
 import DownloadButton from "@/components/download-button.vue";
 import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
@@ -33,6 +37,8 @@ export default {
     DownloadButton,
     ForceUpdateButton,
     MarkReadButton,
+    RemoveCoverButton,
+    UploadCoverButton,
   },
   props: {
     item: {
@@ -63,6 +69,11 @@ export default {
     },
     downloadItem() {
       return { ...this.item, name: this.downloadName };
+    },
+  },
+  methods: {
+    closeMenu() {
+      this.showMenu = false;
     },
   },
 };

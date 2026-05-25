@@ -8,6 +8,12 @@ from django.views.decorators.cache import never_cache
 
 from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
 from codex.views.admin.api_key import AdminAPIKey
+from codex.views.admin.custom_cover import (
+    AdminCustomCoverDeleteView,
+    AdminCustomCoverListView,
+    AdminCustomCoverRemoveView,
+    AdminCustomCoverUploadView,
+)
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.library import (
@@ -87,6 +93,26 @@ urlpatterns = [
         name="library",
     ),
     path("folders", AdminFolderListView.as_view(), name="folders"),
+    path(
+        "custom-cover",
+        AdminCustomCoverUploadView.as_view(),
+        name="custom_cover_upload",
+    ),
+    path(
+        "custom-cover/list",
+        AdminCustomCoverListView.as_view(),
+        name="custom_cover_list",
+    ),
+    path(
+        "custom-cover/remove",
+        AdminCustomCoverRemoveView.as_view(),
+        name="custom_cover_remove",
+    ),
+    path(
+        "custom-cover/<int:pk>",
+        AdminCustomCoverDeleteView.as_view(),
+        name="custom_cover_delete",
+    ),
     path(
         "failed-import",
         AdminFailedImportViewSet.as_view({**READ}),

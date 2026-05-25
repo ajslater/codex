@@ -7,13 +7,8 @@ from stat import S_ISDIR
 
 from django.db.models import Model
 
-from codex.librarian.fs.filters import (
-    is_ignored_basename,
-    match_comic,
-    match_folder_cover,
-    match_group_cover_image,
-)
-from codex.models import Comic, CustomCover, FailedImport, Folder
+from codex.librarian.fs.filters import is_ignored_basename, match_comic
+from codex.models import Comic, FailedImport, Folder
 
 IGNORE_ST_DEV = 0
 
@@ -21,13 +16,10 @@ IGNORE_ST_DEV = 0
 class Snapshot:
     """Base snapshot: a mapping of paths to stat results."""
 
-    def __init__(
-        self, root: str, logger_, *, covers_only: bool, ignore_device: bool = True
-    ) -> None:
+    def __init__(self, root: str, logger_, *, ignore_device: bool = True) -> None:
         """Initialize empty snapshot."""
         self._root = root
         self.log = logger_
-        self._covers_only = covers_only
         self._ignore_device = ignore_device
         self._stat_info: dict[str, os.stat_result] = {}
         self._device_inode_to_path: dict[tuple[int, int], str] = {}
@@ -73,9 +65,9 @@ class Snapshot:
         """Return whether path is a directory."""
         return S_ISDIR(self._stat_info[path].st_mode)
 
-    def is_cover(self, path: str) -> bool:
-        """Return whether path is a cover."""
-        return self._covers_only or match_folder_cover(Path(path))
+    def is_cover(self, path: str) -> bool:  # noqa: ARG002
+        """Covers no longer live inside libraries; always False."""
+        return False
 
     def stat(self, path: str) -> os.stat_result:
         """Return the raw stat for a path."""
@@ -100,15 +92,12 @@ class DiskSnapshot(Snapshot):
         root: str,
         logger_,
         *,
-        covers_only: bool,
         recursive: bool = True,
         follow_symlinks: bool = True,
         ignore_device: bool = True,
     ) -> None:
         """Walk the directory and stat every entry."""
-        super().__init__(
-            root, logger_, covers_only=covers_only, ignore_device=ignore_device
-        )
+        super().__init__(root, logger_, ignore_device=ignore_device)
         self._recursive = recursive
         self._follow_symlinks = follow_symlinks
         self._init_walk()
@@ -123,9 +112,7 @@ class DiskSnapshot(Snapshot):
         """Decide whether a scanned entry belongs in the snapshot."""
         if is_dir:
             return self._recursive
-        if self._covers_only:
-            return match_group_cover_image(path)
-        return match_comic(path) or match_folder_cover(path)
+        return match_comic(path)
 
     def _walk(self, root: str) -> None:
         """Walk the directory tree and populate lookups."""
@@ -153,8 +140,7 @@ class DiskSnapshot(Snapshot):
 class DatabaseSnapshot(Snapshot):
     """Snapshot of what the Codex database knows about a library's files."""
 
-    _MODELS = (Folder, Comic, FailedImport, CustomCover)
-    _COVERS_ONLY_MODELS = (CustomCover,)
+    _MODELS = (Folder, Comic, FailedImport)
     _STAT_LEN = 10
 
     def __init__(
@@ -162,14 +148,11 @@ class DatabaseSnapshot(Snapshot):
         root: str,
         logger_,
         *,
-        covers_only: bool = False,
         ignore_device: bool = True,
         force: bool = False,
     ) -> None:
         """Build snapshot from database records for the given library root."""
-        super().__init__(
-            root, logger_, covers_only=covers_only, ignore_device=ignore_device
-        )
+        super().__init__(root, logger_, ignore_device=ignore_device)
         self._force = force
         self._init_walk()
 
@@ -184,8 +167,7 @@ class DatabaseSnapshot(Snapshot):
         root_stat = root_path.stat()
         self._set_lookups(self._root, root_stat)
 
-        models = self._COVERS_ONLY_MODELS if self._covers_only else self._MODELS
-        for model, wp in self._walk(self._root, models):
+        for model, wp in self._walk(self._root, self._MODELS):
             st = self._create_stat(wp, force=self._force)
             self._set_lookups(wp["path"], st)
             # Track which model owns each path so the poller's stale-
