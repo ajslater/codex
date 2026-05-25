@@ -7,6 +7,14 @@
           <v-btn variant="text" size="small" @click="promptDialogOpen = false">
             Dismiss
           </v-btn>
+          <v-btn
+            variant="text"
+            size="small"
+            :disabled="!pendingPrompts.length"
+            @click="skipAll"
+          >
+            Skip All
+          </v-btn>
           <v-btn variant="text" size="small" color="error" @click="abort">
             Abort Session
           </v-btn>
@@ -91,7 +99,11 @@ export default {
     ...mapWritableState(useOnlineTagStore, ["promptDialogOpen"]),
   },
   methods: {
-    ...mapActions(useOnlineTagStore, ["resolvePrompt", "abortSession"]),
+    ...mapActions(useOnlineTagStore, [
+      "resolvePrompt",
+      "abortSession",
+      "skipAllPrompts",
+    ]),
     promptFilename(path) {
       if (!path) return "Unknown";
       const parts = path.split("/");
@@ -102,6 +114,9 @@ export default {
     },
     skip(prompt) {
       this.resolvePrompt(prompt.fingerprint, "skip", null, null);
+    },
+    skipAll() {
+      this.skipAllPrompts();
     },
     abort() {
       this.abortSession();

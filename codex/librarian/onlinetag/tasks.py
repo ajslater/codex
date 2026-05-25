@@ -41,3 +41,10 @@ class OnlineTagPromptResponseTask(OnlineTagTask):
     action: str = "skip"
     payload: Any = None
     chosen_volume_id: int | None = None
+
+
+@dataclass
+class OnlineTagSkipAllPromptsTask(OnlineTagTask):
+    """Skip every currently queued deferred prompt in one shot."""
+
+    session_id: str = ""

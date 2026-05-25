@@ -74,6 +74,13 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.pendingPrompts = [];
       this.promptDialogOpen = false;
     },
+    async skipAllPrompts() {
+      if (!this.activeSessionId) return;
+      await HTTP.post(
+        `/admin/online-tag/${this.activeSessionId}/skip-all-prompts`,
+      );
+      this.pendingPrompts = [];
+    },
     onPromptNotification() {
       this.loadPrompts();
     },

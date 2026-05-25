@@ -20,6 +20,7 @@ from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
     OnlineTagPromptResponseTask,
+    OnlineTagSkipAllPromptsTask,
 )
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
@@ -38,7 +39,9 @@ class OnlineTagSessionManager:
     def __init__(self, log: Logger, librarian_queue: Queue, thread_queue=None) -> None:
         """Initialize the session manager."""
         self._sessions: dict[str, SessionState] = {}
-        self._lock = threading.Lock()
+        # RLock so methods that hold the lock (e.g. resolve_prompt) can call
+        # _persist_prompts -> get_pending_prompts without self-deadlock.
+        self._lock = threading.RLock()
         self.log = log
         self.librarian_queue = librarian_queue
         self.thread_queue = thread_queue
@@ -105,11 +108,11 @@ class OnlineTagSessionManager:
         """Snapshot deferred prompts from the session and persist + notify."""
         with self._lock:
             state = self._sessions.get(session_id)
-        if not state:
-            return
-        state.deferred_prompts = list(state.session.deferred_prompts())
-        state.total_prompts = len(state.deferred_prompts)
-        self._persist_prompts(session_id)
+            if not state:
+                return
+            state.deferred_prompts = list(state.session.deferred_prompts())
+            state.total_prompts = len(state.deferred_prompts)
+            self._persist_prompts(session_id)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
     def _drain_thread_queue(self, state: SessionState | None = None) -> None:
@@ -132,6 +135,8 @@ class OnlineTagSessionManager:
                         item.payload,
                         item.chosen_volume_id,
                     )
+                case OnlineTagSkipAllPromptsTask():
+                    self.skip_all_prompts(item.session_id)
                 case OnlineTagAbortTask():
                     self.cancel_session(item.session_id)
                 case _:
@@ -164,11 +169,11 @@ class OnlineTagSessionManager:
         if not deferred:
             return True
 
-        state.deferred_prompts = list(deferred)
-        state.total_prompts = len(deferred)
-        state.resolved_count = 0
-
-        self._persist_prompts(session_id)
+        with self._lock:
+            state.deferred_prompts = list(deferred)
+            state.total_prompts = len(deferred)
+            state.resolved_count = 0
+            self._persist_prompts(session_id)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
         elapsed = 0
@@ -248,42 +253,77 @@ class OnlineTagSessionManager:
         """Resolve a deferred prompt and check if all are done."""
         with self._lock:
             state = self._sessions.get(session_id)
-        if not state:
-            self.log.warning(f"resolve_prompt: unknown session {session_id}")
-            return
-        state.session.preload_resolution(
-            fingerprint,
-            action=cast("Literal['choose', 'skip', 'manual']", action),
-            payload=payload,
-            chosen_volume_id=chosen_volume_id,
-        )
-        state.resolved_count += 1
-
-        state.deferred_prompts = [
-            dp for dp in state.deferred_prompts if dp.fingerprint != fingerprint
-        ]
-        self._persist_prompts(session_id)
+            if not state:
+                self.log.warning(f"resolve_prompt: unknown session {session_id}")
+                return
+            state.session.preload_resolution(
+                fingerprint,
+                action=cast("Literal['choose', 'skip', 'manual']", action),
+                payload=payload,
+                chosen_volume_id=chosen_volume_id,
+            )
+            state.resolved_count += 1
+            state.deferred_prompts = [
+                dp for dp in state.deferred_prompts if dp.fingerprint != fingerprint
+            ]
+            self._persist_prompts(session_id)
+            all_done = state.resolved_count >= state.total_prompts
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
-
-        if state.resolved_count >= state.total_prompts:
+        if all_done:
             state.event.set()
+
+    def skip_all_prompts(self, session_id: str) -> int:
+        """
+        Skip every queued deferred prompt for the session.
+
+        Snapshots ``state.deferred_prompts`` under the lock, preloads a
+        ``skip`` resolution for each fingerprint, clears the list, and
+        signals the wait event if the queue is now empty. The session
+        keeps running so new prompts streaming in from the active job
+        can continue to arrive. Returns the number of prompts skipped.
+        """
+        with self._lock:
+            state = self._sessions.get(session_id)
+            if not state:
+                self.log.warning(f"skip_all_prompts: unknown session {session_id}")
+                return 0
+            snapshot = state.deferred_prompts
+            if not snapshot:
+                return 0
+            for dp in snapshot:
+                state.session.preload_resolution(
+                    dp.fingerprint,
+                    action=cast("Literal['choose', 'skip', 'manual']", "skip"),
+                    payload=None,
+                    chosen_volume_id=None,
+                )
+            state.resolved_count += len(snapshot)
+            state.deferred_prompts = []
+            self._persist_prompts(session_id)
+            all_done = state.resolved_count >= state.total_prompts
+            count = len(snapshot)
+        self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
+        if all_done:
+            state.event.set()
+        self.log.info(f"Online tag session {session_id}: skipped {count} prompt(s).")
+        return count
 
     def get_pending_prompts(self, session_id: str) -> list[dict[str, Any]]:
         """Serialize deferred prompts for the REST endpoint."""
         with self._lock:
             state = self._sessions.get(session_id)
-        if not state or not state.deferred_prompts:
-            return []
-        return [
-            {
-                "fingerprint": dp.fingerprint,
-                "path": str(dp.path) if dp.path else "",
-                "source": dp.source,
-                "candidates": [serialize_candidate(c) for c in dp.candidates],
-                "mode": dp.mode,
-            }
-            for dp in state.deferred_prompts
-        ]
+            if not state or not state.deferred_prompts:
+                return []
+            return [
+                {
+                    "fingerprint": dp.fingerprint,
+                    "path": str(dp.path) if dp.path else "",
+                    "source": dp.source,
+                    "candidates": [serialize_candidate(c) for c in dp.candidates],
+                    "mode": dp.mode,
+                }
+                for dp in state.deferred_prompts
+            ]
 
     def has_session(self, session_id: str) -> bool:
         """Whether ``session_id`` is currently tracked in-memory."""
@@ -294,10 +334,10 @@ class OnlineTagSessionManager:
         """Cancel a running session."""
         with self._lock:
             state = self._sessions.get(session_id)
-        if not state:
-            return
-        state.cancelled = True
-        state.session.cancel()
+            if not state:
+                return
+            state.cancelled = True
+            state.session.cancel()
         state.event.set()
         self.log.info(f"Online tag session {session_id} cancelled.")
 

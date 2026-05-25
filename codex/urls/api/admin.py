@@ -20,6 +20,7 @@ from codex.views.admin.onlinetag import (
     AdminOnlineTagActiveView,
     AdminOnlineTagPromptResponseView,
     AdminOnlineTagPromptsView,
+    AdminOnlineTagSkipAllPromptsView,
     AdminOnlineTagStartView,
 )
 from codex.views.admin.stats import AdminStatsView
@@ -152,5 +153,10 @@ urlpatterns = [
         "online-tag/<str:session_id>/abort",
         AdminOnlineTagAbortView.as_view(),
         name="online_tag_abort",
+    ),
+    path(
+        "online-tag/<str:session_id>/skip-all-prompts",
+        AdminOnlineTagSkipAllPromptsView.as_view(),
+        name="online_tag_skip_all_prompts",
     ),
 ]

@@ -7,6 +7,7 @@ from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
     OnlineTagPromptResponseTask,
+    OnlineTagSkipAllPromptsTask,
 )
 from codex.librarian.threads import QueuedThread
 from codex.models.admin import ComicboxTaggingDefaults
@@ -71,5 +72,7 @@ class OnlineTagThread(QueuedThread):
                     item.payload,
                     item.chosen_volume_id,
                 )
+            case OnlineTagSkipAllPromptsTask():
+                self.session_manager.skip_all_prompts(item.session_id)
             case _:
                 self.log.warning(f"Bad task sent to online tag thread: {item}")

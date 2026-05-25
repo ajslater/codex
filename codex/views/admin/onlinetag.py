@@ -11,6 +11,7 @@ from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
     OnlineTagPromptResponseTask,
+    OnlineTagSkipAllPromptsTask,
 )
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.serializers.admin.tagging import (
@@ -131,3 +132,12 @@ class AdminOnlineTagAbortView(AdminAPIView):
         """Enqueue an abort task."""
         LIBRARIAN_QUEUE.put(OnlineTagAbortTask(session_id=session_id))
         return Response({"detail": "Abort signal sent."}, status=HTTP_202_ACCEPTED)
+
+
+class AdminOnlineTagSkipAllPromptsView(AdminAPIView):
+    """Skip every currently queued prompt for an online tagging session."""
+
+    def post(self, _request, session_id):
+        """Enqueue a skip-all-prompts task."""
+        LIBRARIAN_QUEUE.put(OnlineTagSkipAllPromptsTask(session_id=session_id))
+        return Response({"detail": "Skip-all signal sent."}, status=HTTP_202_ACCEPTED)
