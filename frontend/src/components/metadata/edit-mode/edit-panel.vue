@@ -200,8 +200,7 @@
             :class="{
               fieldCleared: isCleared('volume_count'),
               fieldChanged:
-                isFieldChanged('volume_count') &&
-                !isCleared('volume_count'),
+                isFieldChanged('volume_count') && !isCleared('volume_count'),
             }"
           >
             <template #append-inner>
@@ -514,8 +513,7 @@
                 density="compact"
                 :class="{
                   fieldCleared: isCleared(tagKey),
-                  fieldChanged:
-                    isFieldChanged(tagKey) && !isCleared(tagKey),
+                  fieldChanged: isFieldChanged(tagKey) && !isCleared(tagKey),
                 }"
               >
                 <template #append-inner>
@@ -1186,8 +1184,7 @@ export default {
       if (!this.isFieldChanged("credits")) return false;
       void this.creditsVersion;
       const cur = this.creditsByRole[role] || [];
-      const orig =
-        JSON.parse(this.origSnapshot?.credits || "{}")[role] || [];
+      const orig = JSON.parse(this.origSnapshot?.credits || "{}")[role] || [];
       if (JSON.stringify(cur) !== JSON.stringify(orig)) return true;
       if (!this.enabledFormats.includes("METRON_INFO")) return false;
       for (const person of cur) {
@@ -1596,7 +1593,6 @@ td.labelChanged {
   font-size: 0.85em;
   padding-left: 16px !important;
 }
-
 
 .monochromeRow {
   display: flex;
