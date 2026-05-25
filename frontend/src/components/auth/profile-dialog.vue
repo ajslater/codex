@@ -36,7 +36,7 @@
         autocomplete="email"
         label="Email"
         clearable
-        hint="Required and only used to receive password reset links."
+        hint="Only used to receive password reset links."
         persistent-hint
       />
       <v-expansion-panels v-model="passwordPanel" class="passwordSection">
@@ -70,6 +70,7 @@
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
+      <AuthTokenDialog :user="user" />
       <SubmitFooter
         verb="Save"
         table="Profile"
@@ -89,12 +90,14 @@ import authFormMixin from "@/components/auth/auth-form-mixin";
 import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
+import AuthTokenDialog from "@/components/auth/auth-token.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "ProfileDialog",
   components: {
+    AuthTokenDialog,
     CloseButton,
     CodexListItem,
     SubmitFooter,
