@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix folder custom covers.
+    - Fix AUTH_REMOTE_USER for api endpoints.
 
 ## v1.12.6
 
