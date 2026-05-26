@@ -6,7 +6,7 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models.query import QuerySet
 from loguru import logger
 
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
 
 
@@ -28,7 +28,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         if not total_count:
             return qs.model.objects.none(), 0
         orphans = 0 if self.model_group == "f" or self.params.get("search") else 5
-        paginator = Paginator(qs, BROWSER_MAX_OBJ_PER_PAGE, orphans=orphans)
+        paginator = Paginator(qs, get_browser_max_obj_per_page(), orphans=orphans)
         # Shadow the @cached_property with the pre-computed total so
         # Paginator.num_pages doesn't issue its own COUNT query.
         paginator.count = total_count  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[invalid-assignment]
@@ -60,8 +60,9 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         page_group_count: int,
     ) -> tuple[QuerySet, int]:
         """Paginate the book object list based on how many group/folders are showing."""
-        group_remainder = total_group_count % BROWSER_MAX_OBJ_PER_PAGE
-        num_books_on_mixed_page = BROWSER_MAX_OBJ_PER_PAGE - group_remainder
+        page_size = get_browser_max_obj_per_page()
+        group_remainder = total_group_count % page_size
+        num_books_on_mixed_page = page_size - group_remainder
         if page_group_count:
             # There are books after the groups on the same page
             # Add remainder books without the paginator
@@ -75,7 +76,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
         # Which book page are we on after groups?
         page = self.kwargs.get("page", 1)
-        num_group_and_mixed_pages = ceil(total_group_count / BROWSER_MAX_OBJ_PER_PAGE)
+        num_group_and_mixed_pages = ceil(total_group_count / page_size)
         book_only_page = page - num_group_and_mixed_pages
 
         remaining_book_count = max(0, book_count - book_offset)

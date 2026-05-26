@@ -24,7 +24,9 @@ from codex.models.age_rating import (
 )
 from codex.settings import (
     AUTH_REMOTE_USER,
+    BROWSER_MAX_OBJ_PER_PAGE,
     CODEX_CONFIG_TOML,
+    CUSTOM_COVERS_MAX_UPLOAD_MB,
     DEBUG,
     GRANIAN_URL_PATH_PREFIX,
     RESET_ADMIN,
@@ -85,6 +87,13 @@ def init_admin_flags() -> None:
         # ``admin_default_route_for("p")`` resolves to the historical
         # ``DEFAULT_BROWSER_ROUTE`` (``/r/0/1``) — upgrade-day no-op.
         AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "p",
+        # Migrated from TOML at first boot of the new version;
+        # the value reflects the live settings constant so deleted
+        # rows heal back to the operator's configured value.
+        AdminFlagChoices.BROWSER_MAX_OBJ_PER_PAGE.value: str(BROWSER_MAX_OBJ_PER_PAGE),
+        AdminFlagChoices.CUSTOM_COVER_MAX_UPLOAD_MB.value: str(
+            CUSTOM_COVERS_MAX_UPLOAD_MB
+        ),
     }
     # Resolve seed FK targets in one query.
     metron_by_name = {

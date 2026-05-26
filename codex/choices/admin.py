@@ -13,9 +13,11 @@ class AdminFlagChoices(TextChoices):
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
     BROWSER_DEFAULT_GROUP = "BG"
+    CUSTOM_COVER_MAX_UPLOAD_MB = "CM"
     FOLDER_VIEW = "FV"
     IMPORT_METADATA = "IM"
     LAZY_IMPORT_METADATA = "LI"
+    BROWSER_MAX_OBJ_PER_PAGE = "MP"
     NON_USERS = "NU"
     REGISTRATION = "RG"
     REGISTER_VERIFICATION = "RV"
@@ -29,6 +31,10 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
         AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "Default View",
+        AdminFlagChoices.BROWSER_MAX_OBJ_PER_PAGE.value: "Browser Page Size",
+        AdminFlagChoices.CUSTOM_COVER_MAX_UPLOAD_MB.value: (
+            "Custom Cover Max Upload (MB)"
+        ),
         AdminFlagChoices.FOLDER_VIEW.value: "Folder View",
         AdminFlagChoices.IMPORT_METADATA.value: "Import Tags on Library Scan",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Tags on Demand",

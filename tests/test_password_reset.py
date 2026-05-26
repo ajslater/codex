@@ -102,6 +102,7 @@ class PasswordResetDisabledTests(TestCase):
 @override_settings(
     EMAIL_ENABLED=True,
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    EMAIL_HOST="smtp.example.com",
     DEFAULT_FROM_EMAIL="codex@example.com",
     REST_REGISTRATION=_EMAIL_ON_REST_REGISTRATION,
 )
@@ -298,6 +299,7 @@ class RegisterVerificationTests(TestCase):
     @override_settings(
         EMAIL_ENABLED=True,
         EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        EMAIL_HOST="smtp.example.com",
         DEFAULT_FROM_EMAIL="codex@example.com",
         REST_REGISTRATION=_EMAIL_ON_REST_REGISTRATION,
     )

@@ -31,6 +31,8 @@ export const TABS = Object.freeze([
   "Libraries",
   "Custom Covers",
   "Tagging",
+  "Email",
+  "Throttling",
   "Flags",
   "Jobs",
   "Restore",
@@ -58,6 +60,8 @@ export const useAdminStore = defineStore("admin", {
     timestamps: {},
     stats: undefined,
     taggingDefaults: undefined,
+    emailSettings: undefined,
+    throttleSettings: undefined,
     activeTab: "Libraries",
   }),
   getters: {
@@ -294,6 +298,82 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
         return undefined;
       }
+    },
+    async loadEmailSettings({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.EmailSettings || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getEmailSettings()
+        .then((response) => {
+          this.emailSettings = response.data;
+          this.timestamps.EmailSettings = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateEmailSettings(data) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.updateEmailSettings(data)
+        .then((response) => {
+          this.emailSettings = response.data;
+          this.timestamps.EmailSettings = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    /*
+     * Trigger a one-shot SMTP send using the supplied overrides on top
+     * of the saved EmailSettings row. Returns ``{ok, error?}`` from the
+     * server; errors land on the common store too so the form can show
+     * field-level validation messages.
+     */
+    async sendEmailTest(data) {
+      if (this._requireAdmin()) return undefined;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.sendEmailTest(data);
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return undefined;
+      }
+    },
+    async loadThrottleSettings({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.ThrottleSettings || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getThrottleSettings()
+        .then((response) => {
+          this.throttleSettings = response.data;
+          this.timestamps.ThrottleSettings = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateThrottleSettings(data) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.updateThrottleSettings(data)
+        .then((response) => {
+          this.throttleSettings = response.data;
+          this.timestamps.ThrottleSettings = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
     },
     /*
      * Snapshot the user-data sidecar from the main DB. Returns

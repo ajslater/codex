@@ -196,12 +196,16 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[Codex] ")
 # Feature gate: password reset, register verification, and any future
 # email-dependent flows are disabled when host or sender is missing.
+# Boot-time value reflects TOML/env config only; the runtime check that
+# also consults the EmailSettings singleton lives in
+# ``codex.settings.db.email_enabled`` and is used by the request-time
+# callers (``views/register.py``, ``views/public.py``,
+# ``startup/registration.py``).
 EMAIL_ENABLED = bool(EMAIL_HOST and DEFAULT_FROM_EMAIL)
-EMAIL_BACKEND = (
-    "django.core.mail.backends.smtp.EmailBackend"
-    if EMAIL_ENABLED
-    else "django.core.mail.backends.dummy.EmailBackend"
-)
+# Always use the DB-aware backend so admin edits via the Email tab
+# take effect on the next send without a restart. The backend
+# gracefully no-ops when neither DB nor settings provide a host.
+EMAIL_BACKEND = "codex.mail.DBEmailBackend"
 
 ##############################
 # Codex Config: Importer     #
@@ -755,30 +759,26 @@ CACHES = {
 # REST Framework #
 ##################
 
-_THROTTLE_MAP = MappingProxyType(
-    {
-        "anon": ("rest_framework.throttling.AnonRateThrottle", THROTTLE_ANON),
-        "user": ("rest_framework.throttling.UserRateThrottle", THROTTLE_USER),
-        "opds": ("rest_framework.throttling.ScopedRateThrottle", THROTTLE_OPDS),
-        "opensearch": (
-            "rest_framework.throttling.ScopedRateThrottle",
-            THROTTLE_OPENSEARCH,
-        ),
-    }
+# Throttle classes live in ``codex.throttling`` and read effective
+# rates from the ThrottleSettings singleton (DB → settings → 0) at
+# request time, so admin edits in the Throttling tab take effect on
+# the next request. All scopes are wired unconditionally; a rate of
+# 0 makes ``SimpleRateThrottle`` short-circuit to "allow" and
+# effectively disables the limiter.
+_THROTTLE_CLASSES = (
+    "codex.throttling.AnonRateThrottle",
+    "codex.throttling.UserRateThrottle",
+    "codex.throttling.ScopedRateThrottle",
 )
-_THROTTLE_CLASSES = set()
-_THROTTLE_RATES = {}
-for scope, (classname, rate_value) in _THROTTLE_MAP.items():
-    if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
-        _THROTTLE_CLASSES.add(classname)
-        _THROTTLE_RATES[scope] = f"{rate_value}/min" if rate_value else None
-# Password reset rate is /hour (not /min) - default 5/hour. Always wire
-# the scope so the throttled views have a rate to look up; a value of 0
-# in config effectively disables it.
-_THROTTLE_CLASSES.add("rest_framework.throttling.ScopedRateThrottle")
-_THROTTLE_RATES["reset_password"] = (
-    f"{THROTTLE_RESET_PASSWORD}/hour" if THROTTLE_RESET_PASSWORD else None
-)
+_THROTTLE_RATES = {
+    "anon": f"{THROTTLE_ANON}/min" if THROTTLE_ANON else None,
+    "user": f"{THROTTLE_USER}/min" if THROTTLE_USER else None,
+    "opds": f"{THROTTLE_OPDS}/min" if THROTTLE_OPDS else None,
+    "opensearch": f"{THROTTLE_OPENSEARCH}/min" if THROTTLE_OPENSEARCH else None,
+    "reset_password": (
+        f"{THROTTLE_RESET_PASSWORD}/hour" if THROTTLE_RESET_PASSWORD else None
+    ),
+}
 
 _RENDERER_CLASSES = [
     "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
@@ -809,7 +809,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
-    "DEFAULT_THROTTLE_CLASSES": tuple(_THROTTLE_CLASSES),
+    "DEFAULT_THROTTLE_CLASSES": _THROTTLE_CLASSES,
     "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 

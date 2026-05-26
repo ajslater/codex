@@ -22,12 +22,12 @@ uv run python-vendorize
 DIFF_FN="../codex/_vendor/$PKG.diff"
 echo "# Non automated/import patches to $PKG" >"$DIFF_FN"
 diff --minimal --recursive --suppress-common-lines \
-	-x "*~" \
-	-x "*.pyc" \
-	-x "*__pycache__*" \
-	"$VENDOR_TARGET/$MODULE" \
-	"../codex/_vendor/$MODULE" |
-	rg -v "Binary|Only" >>"$DIFF_FN"
+  -x "*~" \
+  -x "*.pyc" \
+  -x "*__pycache__*" \
+  "$VENDOR_TARGET/$MODULE" \
+  "../codex/_vendor/$MODULE" |
+  rg -v "Binary|Only" >>"$DIFF_FN"
 
 # cleanup
 rm -rf "$VENDOR_TARGET"

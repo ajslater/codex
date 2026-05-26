@@ -31,9 +31,18 @@
 # dir = ""
 
 # [browser]
+# DEPRECATED in 1.10+ — now configured in the Admin UI under
+# "Browser Display → Browser Page Size". Existing TOML / env values
+# are imported into the DB on first upgrade; the TOML key is still
+# read as a fallback for fresh installs.
 # max_obj_per_page = 100
 
 # [throttle]
+# DEPRECATED in 1.10+ — now configured in the Admin UI under the
+# "Throttling" tab. Existing TOML / env values are imported into the
+# DB on first upgrade; the TOML keys are still read as a fallback for
+# fresh installs.
+#
 # Rate limiting (requests per minute). 0 = disabled.
 # anon = 0
 # user = 0
@@ -43,13 +52,19 @@
 # reset_password = 5
 
 # [email]
-# SMTP configuration for outbound email. When unset, password-reset and
-# email-verification features stay disabled and the related endpoints
+# Outbound email is now configured in the Admin UI under the "Email" tab,
+# including SMTP credentials and a Test Send button. The TOML section
+# below is kept as a fallback for first-boot defaults; once an admin
+# saves the Email settings, the DB row wins for every send.
+#
+# When unset (no DB row and blank TOML), password-reset and email-
+# verification features stay disabled and the related endpoints
 # respond 404. Set `host` AND `from_address` (or `user`) to enable.
 #
 # IMPORTANT: codex.toml stores credentials in plain text. Restrict file
 # permissions (chmod 600) and consider environment variable overrides
-# (CODEX_EMAIL_PASSWORD) for secrets management systems.
+# (CODEX_EMAIL_PASSWORD) for secrets management systems. Values saved
+# via the Admin UI are encrypted at rest.
 #
 # host = ""
 # port = 587
@@ -109,5 +124,43 @@
 # failed_login_log_trust_forwarded_for = true
 
 # [custom_covers]
-# Maximum size (in megabytes) of a custom-cover upload.
+# Maximum size (in megabytes) of a custom-cover upload. This setting
+# is also exposed in the Admin UI under "Custom Covers"; the DB value
+# wins when an admin saves it. The TOML key remains the fallback for
+# fresh installs.
 # max_upload_mb = 10
+
+# ----------------------------------------------------------------------
+# Expert tuning
+#
+# The sections below cover performance and diagnostics knobs that are
+# rarely changed and intentionally kept out of the Admin UI. Defaults
+# work for typical hosts; tune only if you have a specific reason to.
+
+# [importer]
+# Batch sizes for the library importer. SQLite caps at 32766 variables
+# per query — most values below leave headroom against that limit.
+# Lower the chunk and cache values on memory-constrained hosts; raise
+# them on hosts with abundant RAM.
+# delete_max_chunk_size = 2000
+# filter_batch_size = 900
+# search_sync_batch_memory_ratio = 3.2
+# link_fk_batch_size = 30000
+# link_m2m_batch_size = 20000
+# update_comic_batch_size = 400
+# sqlite_cache_kb = 524288
+# chunk_mem_fraction = 0.25
+
+# [librarian]
+# Worker count for the cover-generation ProcessPoolExecutor. Image
+# resize + WEBP encode are CPU-bound; default is min(cpu_count, 8).
+# Drop to 2 on NAS-class hosts with 1–2 GB total RAM.
+# cover_workers = 8
+
+# [debug]
+# Diagnostic toggles. Volume can be very high under load — leave off
+# unless investigating an issue.
+# log_auth_headers = false
+# log_request = false
+# log_response_time = false
+# slow_query_limit = 0.5

@@ -12,7 +12,8 @@ from rest_framework.response import Response
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
+from codex.settings import FALSY
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.start import OPDSStartViewMixin
@@ -96,7 +97,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         md = {
             "title": title,
             "number_of_items": number_of_items,
-            "items_per_page": BROWSER_MAX_OBJ_PER_PAGE,
+            "items_per_page": get_browser_max_obj_per_page(),
             "current_page": current_page,
         }
         if mtime:

@@ -25,7 +25,6 @@ caches attribute values and isn't safely mutable under load.
 
 from typing import override
 
-from django.conf import settings
 from django.db import transaction
 from django.http import Http404
 from rest_framework import status
@@ -42,6 +41,7 @@ from rest_registration.utils.users import (
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
+from codex.settings.db import email_enabled
 
 
 def _admin_flag_on(key: str) -> bool:
@@ -57,7 +57,7 @@ class RegisterView(_RegisterView):
         if not _admin_flag_on(AdminFlagChoices.REGISTRATION.value):
             raise Http404
 
-        verification_required = settings.EMAIL_ENABLED and _admin_flag_on(
+        verification_required = email_enabled() and _admin_flag_on(
             AdminFlagChoices.REGISTER_VERIFICATION.value
         )
 

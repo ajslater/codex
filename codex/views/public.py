@@ -11,6 +11,7 @@ from rest_framework.serializers import BaseSerializer
 from codex.choices.admin import AdminFlagChoices
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer
+from codex.settings.db import email_enabled
 
 _ADMIN_FLAG_KEYS = (
     AdminFlagChoices.BANNER_TEXT.value,
@@ -39,7 +40,7 @@ class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
             flags[name] = val
         # Settings-derived capabilities. Surfaced here so the frontend
         # gets the auth context (DB flags + capability) in one request.
-        flags["email_enabled"] = bool(settings.EMAIL_ENABLED)
+        flags["email_enabled"] = email_enabled()
         flags["remote_user_enabled"] = bool(settings.AUTH_REMOTE_USER)
         return flags
 

@@ -15,6 +15,10 @@ from codex.views.admin.custom_cover import (
     AdminCustomCoverUploadView,
 )
 from codex.views.admin.dump_user_data import AdminDumpUserDataView
+from codex.views.admin.email import (
+    AdminEmailSettingsView,
+    AdminEmailTestSendView,
+)
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.library import (
@@ -43,6 +47,7 @@ from codex.views.admin.tasks import (
     AdminLibrarianStatusViewSet,
     AdminLibrarianTaskView,
 )
+from codex.views.admin.throttle import AdminThrottleSettingsView
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 READ: Final = MappingProxyType({"get": "list"})
@@ -137,6 +142,21 @@ urlpatterns = [
         "age-rating-metron",
         AdminAgeRatingMetronViewSet.as_view({**READ}),
         name="age_rating_metron",
+    ),
+    path(
+        "email-settings",
+        AdminEmailSettingsView.as_view(),
+        name="email_settings",
+    ),
+    path(
+        "email-settings/test",
+        AdminEmailTestSendView.as_view(),
+        name="email_settings_test",
+    ),
+    path(
+        "throttle-settings",
+        AdminThrottleSettingsView.as_view(),
+        name="throttle_settings",
     ),
     path(
         "tagging-defaults",

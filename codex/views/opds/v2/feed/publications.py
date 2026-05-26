@@ -15,7 +15,7 @@ from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
 from codex.models.identifier import Identifier
 from codex.models.named import Credit
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import (
     AUTHOR_ROLES,
@@ -484,11 +484,13 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         zero_pad: int,
         title: str,
         subtitle: str = "",
-        items_per_page=BROWSER_MAX_OBJ_PER_PAGE,
+        items_per_page: int | None = None,
         link_spec=None,
         number_of_items: int | None = None,
     ) -> list:
         """Get publications section."""
+        if items_per_page is None:
+            items_per_page = get_browser_max_obj_per_page()
         # Materialize once so we can pre-fetch credits + subjects for
         # the full pk slice before the per-publication loop. Without
         # this the loop's ``_publication_metadata`` would fan out into

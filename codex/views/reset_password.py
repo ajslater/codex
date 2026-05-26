@@ -1,12 +1,13 @@
 """Throttled wrappers for rest-registration's reset-password views."""
 
-from rest_framework.throttling import ScopedRateThrottle
 from rest_registration.api.views.reset_password import (
     ResetPasswordView as _ResetPasswordView,
 )
 from rest_registration.api.views.reset_password import (
     SendResetPasswordLinkView as _SendResetPasswordLinkView,
 )
+
+from codex.throttling import ScopedRateThrottle
 
 
 class SendResetPasswordLinkView(_SendResetPasswordLinkView):

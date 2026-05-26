@@ -102,6 +102,21 @@ export const updateTaggingDefaults = (data) =>
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
 
+export const getEmailSettings = () =>
+  HTTP.get("/admin/email-settings", { params: { ts: Date.now() } });
+
+export const updateEmailSettings = (data) =>
+  HTTP.put("/admin/email-settings", data);
+
+export const sendEmailTest = (data) =>
+  HTTP.post("/admin/email-settings/test", data);
+
+export const getThrottleSettings = () =>
+  HTTP.get("/admin/throttle-settings", { params: { ts: Date.now() } });
+
+export const updateThrottleSettings = (data) =>
+  HTTP.put("/admin/throttle-settings", data);
+
 // Sidecar snapshot — replaces user_data.sqlite with a fresh dump of
 // every tracked main-DB row. Returns ``{ written: {table: count}, total }``.
 export const postDumpUserData = () => HTTP.post("/admin/dump-user-data");

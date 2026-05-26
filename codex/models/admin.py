@@ -30,7 +30,14 @@ from codex.models.choices import (
 )
 from codex.models.fields import EncryptedCharField
 
-__all__ = ("AdminFlag", "ComicboxTaggingDefaults", "LibrarianStatus", "Timestamp")
+__all__ = (
+    "AdminFlag",
+    "ComicboxTaggingDefaults",
+    "EmailSettings",
+    "LibrarianStatus",
+    "ThrottleSettings",
+    "Timestamp",
+)
 
 
 class AdminFlag(BaseModel):
@@ -123,6 +130,71 @@ class ComicboxTaggingDefaults(BaseModel):
         """Constraints."""
 
         verbose_name_plural = "ComicboxTaggingDefaults"
+
+
+class EmailSettings(BaseModel):
+    """
+    Singleton SMTP configuration for outbound email.
+
+    Read by :class:`codex.mail.DBEmailBackend` on each send so admin
+    edits take effect on the next message without restart. When ``host``
+    or ``from_address`` is blank the backend short-circuits to a no-op
+    and feature gates (registration verification, password reset link)
+    fall back to *off* — see :func:`codex.settings.db.email_enabled`.
+
+    ``password`` is encrypted at rest via :class:`EncryptedCharField`
+    using ``FIELD_ENCRYPTION_KEY``.
+    """
+
+    host = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    port = PositiveSmallIntegerField(default=587)
+    user = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    password = EncryptedCharField()
+    use_tls = BooleanField(default=True)
+    use_ssl = BooleanField(default=False)
+    timeout = PositiveSmallIntegerField(default=10)
+    from_address = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    subject_prefix = CharField(max_length=MAX_FIELD_LEN, blank=True, default="[Codex] ")
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "EmailSettings"
+
+
+class ThrottleSettings(BaseModel):
+    """
+    Singleton DRF rate-limit configuration.
+
+    Each field is a positive integer rate in requests per minute (or
+    per hour for ``reset_password``). ``0`` disables the limit for that
+    scope. Read at request time by the DB-aware throttle classes in
+    :mod:`codex.throttling` — admin edits take effect on the next
+    request without a restart.
+    """
+
+    anon = PositiveSmallIntegerField(default=0)
+    user = PositiveSmallIntegerField(default=0)
+    opds = PositiveSmallIntegerField(default=0)
+    opensearch = PositiveSmallIntegerField(default=0)
+    reset_password = PositiveSmallIntegerField(default=5)
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "ThrottleSettings"
 
 
 class LibrarianStatus(BaseModel):

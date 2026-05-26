@@ -34,13 +34,13 @@ _ENV_OVERRIDES: dict[str, str] = {
     "CODEX_IMPORTER_LINK_M2M_BATCH_SIZE": "importer.link_m2m_batch_size",
     "CODEX_IMPORTER_DELETE_MAX_CHUNK_SIZE": "importer.delete_max_chunk_size",
     "CODEX_IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO": "importer.search_sync_batch_memory_ratio",
-    "CODEX_IMPORTER_FILTER_BATCH_SIZE": "browser.filter_batch_size",
+    "CODEX_IMPORTER_FILTER_BATCH_SIZE": "importer.filter_batch_size",
     # Importer Old
     "CODEX_LINK_FK_BATCH_SIZE": "importer.link_fk_batch_size",  # Old
     "CODEX_LINK_M2M_BATCH_SIZE": "importer.link_m2m_batch_size",  # Old
     "CODEX_DELETE_MAX_CHUNK_SIZE": "importer.delete_max_chunk_size",  # Old
     "CODEX_SEARCH_SYNC_BATCH_MEMORY_RATIO": "importer.search_sync_batch_memory_ratio",  # Old
-    "CODEX_FILTER_BATCH_SIZE": "browser.filter_batch_size",  # Old
+    "CODEX_FILTER_BATCH_SIZE": "importer.filter_batch_size",  # Old
     # Browser
     "CODEX_BROWSER_MAX_OBJ_PER_PAGE": "browser.max_obj_per_page",
     "CODEX_MAX_OBJ_PER_PAGE": "browser.max_obj_per_page",  # Old

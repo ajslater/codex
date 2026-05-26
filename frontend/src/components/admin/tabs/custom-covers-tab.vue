@@ -1,5 +1,19 @@
 <template>
   <div>
+    <div class="customCoverSettings">
+      <v-text-field
+        :model-value="maxUploadMb"
+        :error-messages="maxUploadError"
+        type="number"
+        min="1"
+        max="2048"
+        label="Max upload size (MB)"
+        density="compact"
+        hide-details="auto"
+        class="maxUploadField"
+        @update:model-value="saveMaxUpload"
+      />
+    </div>
     <AdminTable :headers="headers" :items="customCovers">
       <template #no-data>
         <td class="adminNoData" colspan="100%">
@@ -56,6 +70,7 @@ import ReplaceCoverButton from "@/components/admin/tabs/replace-cover-button.vue
 import { useAdminStore } from "@/stores/admin";
 
 const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
+const MAX_UPLOAD_FLAG_KEY = "CM";
 
 export default {
   name: "AdminCustomCoversTab",
@@ -65,8 +80,21 @@ export default {
     DateTimeColumn,
     ReplaceCoverButton,
   },
+  data() {
+    return {
+      maxUploadError: "",
+    };
+  },
   computed: {
-    ...mapState(useAdminStore, ["customCovers"]),
+    ...mapState(useAdminStore, ["customCovers", "flags"]),
+    maxUploadFlag() {
+      return (this.flags || []).find(
+        (flag) => flag.key === MAX_UPLOAD_FLAG_KEY,
+      );
+    },
+    maxUploadMb() {
+      return this.maxUploadFlag?.value ?? "";
+    },
     headers() {
       return [
         { title: "", key: "thumb", sortable: false },
@@ -79,10 +107,21 @@ export default {
     },
   },
   mounted() {
-    this.loadTable("CustomCover");
+    this.loadTables(["CustomCover", "Flag"]);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTable"]),
+    ...mapActions(useAdminStore, ["loadTable", "loadTables", "updateRow"]),
+    saveMaxUpload(value) {
+      const n = Number.parseInt(value, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        this.maxUploadError = "Must be a positive integer.";
+        return;
+      }
+      this.maxUploadError = "";
+      this.updateRow("Flag", MAX_UPLOAD_FLAG_KEY, { value: String(n) }).catch(
+        console.error,
+      );
+    },
     thumbSrc(item) {
       const base = globalThis.CODEX.API_V3_PATH;
       return `${base}custom_cover/${item.pk}/cover.webp?ts=${item.mtime ?? 0}`;
@@ -107,6 +146,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.customCoverSettings {
+  margin-bottom: 12px;
+}
+
+.maxUploadField {
+  max-width: 240px;
+}
+
 .customCoverThumb {
   width: 60px;
   height: 90px;

@@ -23,10 +23,10 @@ from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_GROUP_MAP
 from codex.models import CustomCover
 from codex.serializers.admin.custom_cover import CustomCoverSerializer
-from codex.settings import (
-    CUSTOM_COVERS_MAX_UPLOAD_BYTES,
-    CUSTOM_COVERS_MAX_UPLOAD_MB,
-    CUSTOM_COVERS_UPLOADS_DIR,
+from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
+from codex.settings.db import (
+    get_custom_cover_max_upload_bytes,
+    get_custom_cover_max_upload_mb,
 )
 from codex.views.admin.auth import AdminAPIView
 
@@ -72,8 +72,9 @@ def _validate_image(upload, ext: str) -> None:
     if upload.size is None:
         msg = "Upload size unknown"
         raise ValidationError(msg)
-    if upload.size > CUSTOM_COVERS_MAX_UPLOAD_BYTES:
-        msg = f"Upload exceeds {CUSTOM_COVERS_MAX_UPLOAD_MB} MB limit"
+    max_bytes = get_custom_cover_max_upload_bytes()
+    if upload.size > max_bytes:
+        msg = f"Upload exceeds {get_custom_cover_max_upload_mb()} MB limit"
         raise ValidationError(msg)
     head = upload.read()
     upload.seek(0)

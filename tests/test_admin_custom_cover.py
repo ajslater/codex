@@ -90,8 +90,20 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
 
     @patch(_QUEUE_PATCH)
-    @patch("codex.views.admin.custom_cover.CUSTOM_COVERS_MAX_UPLOAD_BYTES", 10)
-    def test_oversize_upload_rejected(self, mock_queue) -> None:  # noqa: ARG002
+    @patch(
+        "codex.views.admin.custom_cover.get_custom_cover_max_upload_bytes",
+        return_value=10,
+    )
+    @patch(
+        "codex.views.admin.custom_cover.get_custom_cover_max_upload_mb",
+        return_value=0,
+    )
+    def test_oversize_upload_rejected(
+        self,
+        mock_mb,  # noqa: ARG002
+        mock_bytes,  # noqa: ARG002
+        mock_queue,  # noqa: ARG002
+    ) -> None:
         """Uploads over the byte cap return a 400 and write nothing."""
         response = self.client.post(
             "/api/v3/admin/custom-cover",

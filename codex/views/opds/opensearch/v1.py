@@ -4,8 +4,9 @@ from collections.abc import Sequence
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
-from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from rest_framework.throttling import BaseThrottle
 
+from codex.throttling import ScopedRateThrottle
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.template import CodexAPIView, CodexXMLTemplateMixin
 

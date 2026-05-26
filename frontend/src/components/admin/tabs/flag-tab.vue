@@ -101,6 +101,25 @@
             @update:model-value="changeCol(item.key, 'value', $event)"
           />
         </div>
+        <!--
+          ``MP`` (Browser Page Size) is an int stored in the ``value``
+          column. The int control lives here on the Flags tab; the
+          ``CM`` custom-cover upload cap uses the same backing flag
+          but its control is rendered on the Custom Covers tab.
+        -->
+        <div v-else-if="item.key === 'MP'" class="flagValueRow">
+          <v-text-field
+            :model-value="item.value"
+            type="number"
+            min="1"
+            max="65535"
+            label="Items per page"
+            hide-details="auto"
+            density="compact"
+            :error-messages="errors[item.key]"
+            @update:model-value="changeCol(item.key, 'value', $event)"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -117,7 +136,10 @@ import ADMIN_FLAG_GROUPS from "@/components/admin/tabs/flag-groups.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
-const VALUE_CONTROL_KEYS = new Set(["BT", "AR", "AA", "BG"]);
+const VALUE_CONTROL_KEYS = new Set(["BT", "AR", "AA", "BG", "MP"]);
+// Flags whose UI lives on a different tab — hidden from the Flags tab
+// entirely so a blank "Other" card does not appear here.
+const TAB_HIDDEN_KEYS = new Set(["CM"]);
 
 export default {
   name: "AdminFlagsTab",
@@ -182,6 +204,7 @@ export default {
        */
       const flagsByKey = new Map();
       for (const item of this.flags || []) {
+        if (TAB_HIDDEN_KEYS.has(item.key)) continue;
         flagsByKey.set(item.key, item);
       }
       const placed = new Set();
@@ -200,7 +223,7 @@ export default {
         }
       }
       const orphans = [];
-      for (const item of this.flags || []) {
+      for (const item of flagsByKey.values()) {
         if (!placed.has(item.key)) {
           orphans.push(item);
         }
