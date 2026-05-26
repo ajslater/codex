@@ -2,7 +2,7 @@
   <div v-if="show">
     <CodexListItem
       class="listItem"
-      :prepend-icon="mdiImagePlus"
+      :prepend-icon="icon"
       :title="label"
       @click="pickFile"
     />
@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { mdiImagePlus } from "@mdi/js";
+import { mdiImagePlus, mdiImageEdit } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { uploadCustomCover } from "@/api/v3/admin";
@@ -39,7 +39,7 @@ export default {
   },
   emits: ["uploaded"],
   data() {
-    return { mdiImagePlus };
+    return { mdiImageEdit, mdiImagePlus };
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
@@ -51,8 +51,14 @@ export default {
         !this.item.ids.includes(0)
       );
     },
+    coverExists() {
+      return Boolean(this.item?.coverCustomPk);
+    },
     label() {
-      return this.item?.coverCustomPk ? "Replace Cover" : "Upload Cover";
+      return this.coverExists ? "Replace Cover" : "Upload Cover";
+    },
+    icon() {
+      return this.coverExists ? mdiImageEdit : mdiImagePlus;
     },
   },
   methods: {
