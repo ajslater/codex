@@ -103,6 +103,7 @@ export default {
   mixins: [createUpdateInputsMixin],
   data() {
     return {
+      UNRESTRICTED_LABEL,
       rules: {
         username: [
           (v) => !!v || "Username is required",
@@ -116,7 +117,6 @@ export default {
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
         ],
-        UNRESTRICTED_LABEL,
       },
     };
   },

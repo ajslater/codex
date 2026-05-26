@@ -168,6 +168,16 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(commonStore.setErrors);
     },
+    async sendUserVerificationEmail(pk) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.sendUserVerificationEmail(pk)
+        .then((response) => {
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
     async deleteRow(table, pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();

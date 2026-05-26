@@ -6,9 +6,18 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
-from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_202_ACCEPTED,
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
+)
+from rest_registration.settings import registration_settings
 
+from codex.choices.admin import AdminFlagChoices
 from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import (
@@ -16,9 +25,11 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
+from codex.models import AdminFlag
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
-from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
+from codex.settings.db import email_enabled
+from codex.views.admin.auth import AdminAPIView, AdminGenericAPIView, AdminModelViewSet
 
 _BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
 
@@ -88,7 +99,15 @@ class AdminUserViewSet(AdminModelViewSet):
         """Create user; ``UserAuth`` is provisioned by post_save signal."""
         validated_data = serializer.validated_data
         password = validated_data["password"]
-        validate_password(password)
+        # Django's ``validate_password`` raises a Django (not DRF)
+        # ``ValidationError`` which DRF's default exception handler does
+        # not convert to a 400 — it would propagate as a 500. Re-raise
+        # as a DRF field error so the create dialog renders the message
+        # inline next to the Password input.
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            raise DRFValidationError({"password": list(exc.messages)}) from exc
         groups = validated_data.pop("groups")
         # Pop nested userauth data before handing to create_user; the
         # post_save signal in ``codex.signals.django_signals`` provisions
@@ -105,6 +124,71 @@ class AdminUserViewSet(AdminModelViewSet):
             UserAuth.objects.filter(user=user).update(
                 age_rating_metron=userauth_data["age_rating_metron"],
             )
+        # ``CreateModelMixin.create`` reads ``serializer.data`` after
+        # perform_create returns to build the 201 response body. With
+        # ``serializer.instance`` unset (we bypass ``serializer.save``
+        # so we can wire ``UserAuth`` via the post_save signal),
+        # ``serializer.data`` falls back to ``validated_data`` — a dict
+        # that ``userauth.*`` source-attr fields cannot traverse,
+        # raising ``KeyError: 'userauth'``. Attach the saved User so
+        # the response serializes against the real instance.
+        serializer.instance = user
+
+
+class AdminUserSendVerificationView(AdminAPIView):
+    """
+    Resend the registration-verification email for an inactive user.
+
+    Mirrors the same ``REGISTER_VERIFICATION_EMAIL_SENDER`` callable that
+    the public register flow uses, so the link the admin triggers is
+    identical to the one rest-registration would have sent at signup
+    time. Requirements (any failure returns a structured error):
+
+    * Email backend is configured (``email_enabled`` consults the
+      EmailSettings singleton then TOML/env).
+    * The ``Verify New User Email`` admin flag (``RV``) is on — this is
+      a site policy switch, so the admin-action surface honors it
+      rather than silently overriding.
+    * The target user is inactive (``is_active=False``); already-active
+      users have nothing to verify.
+    * The user has an email address on file.
+    """
+
+    def post(self, _request, pk: int) -> Response:
+        """Send the verification email to the given user."""
+        if not email_enabled():
+            return Response(
+                {"detail": "Email is not configured."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        rv_on = AdminFlag.objects.filter(
+            key=AdminFlagChoices.REGISTER_VERIFICATION.value, on=True
+        ).exists()
+        if not rv_on:
+            return Response(
+                {"detail": "Verify New User Email is off."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=HTTP_404_NOT_FOUND)
+        if user.is_active:
+            return Response(
+                {"detail": "User is already active."},
+                status=HTTP_409_CONFLICT,
+            )
+        if not user.email:
+            return Response(
+                {"detail": "User has no email address."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        email_sender = registration_settings.REGISTER_VERIFICATION_EMAIL_SENDER
+        email_sender(self.request, user)
+        return Response(
+            {"detail": f"Verification email sent to {user.email}."},
+            status=HTTP_200_OK,
+        )
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

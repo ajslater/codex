@@ -4,6 +4,29 @@
       <v-progress-circular indeterminate />
     </div>
     <template v-else>
+      <div class="adminIntro">
+        <p>
+          Codex sends email only for user self-service flows the admin would
+          otherwise have to handle by hand:
+        </p>
+        <ul>
+          <li>
+            <strong>Password reset.</strong> Users who forget their password
+            request a one-time reset link from the login screen.
+          </li>
+          <li>
+            <strong>New-user verification.</strong> Optional — when
+            <em>Verify New User Email</em> is on under the Flags tab,
+            self-registered accounts stay inactive until they click the
+            verification link.
+          </li>
+        </ul>
+        <p>
+          Without an SMTP host, both flows are disabled and the related
+          endpoints return 404. Codex does not send notifications, newsletters,
+          or any other outbound mail.
+        </p>
+      </div>
       <div class="adminGroup">
         <div class="adminGroupHeader">
           <h3>SMTP Server</h3>
@@ -91,7 +114,20 @@
               </span>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <div class="credentialFields">
+              <!--
+                Wrapping the password input in a ``<form>`` keeps
+                browser DOM password-field heuristics happy (the
+                console warning "Password field is not contained in a
+                form" goes away) and lets password managers offer to
+                save the credential. ``@submit.prevent`` suppresses
+                default Enter-submit since the Save button drives the
+                actual write via ``savePassword``.
+              -->
+              <form
+                class="credentialFields"
+                autocomplete="off"
+                @submit.prevent="savePassword"
+              >
                 <v-text-field
                   v-model="passwordDraft"
                   label="Password"
@@ -105,10 +141,10 @@
                 />
                 <div class="credentialActions">
                   <v-btn
+                    type="submit"
                     variant="tonal"
                     size="small"
                     :disabled="!passwordDraft"
-                    @click="savePassword"
                   >
                     Save Password
                   </v-btn>
@@ -121,7 +157,7 @@
                     Clear Password
                   </v-btn>
                 </div>
-              </div>
+              </form>
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
@@ -264,6 +300,26 @@ export default {
 
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
+
+.adminIntro {
+  max-width: 720px;
+  margin-bottom: 16px;
+  font-size: 0.9em;
+  color: rgb(var(--v-theme-textSecondary));
+}
+
+.adminIntro p {
+  margin-bottom: 8px;
+}
+
+.adminIntro ul {
+  margin: 0 0 8px 24px;
+  padding: 0;
+}
+
+.adminIntro li {
+  margin-bottom: 4px;
+}
 
 .credentialSet {
   color: rgb(var(--v-theme-success));

@@ -41,8 +41,23 @@
       <template #[`item.isStaff`]="{ item }">
         <v-checkbox-btn :model-value="item.isStaff" disabled />
       </template>
+      <!--
+        Active is overloaded — Django's ``is_active`` flag controls
+        both "can log in at all" and "has clicked the verification
+        link" (when ``Verify New User Email`` is on). Split the
+        display so inactive accounts that are *waiting* on a
+        verification email are visually distinct from accounts an
+        admin disabled manually.
+      -->
       <template #[`item.isActive`]="{ item }">
-        <v-checkbox-btn :model-value="item.isActive" disabled />
+        <v-chip
+          :color="activeStatus(item).color"
+          size="x-small"
+          variant="tonal"
+          :title="activeStatus(item).hint"
+        >
+          {{ activeStatus(item).label }}
+        </v-chip>
       </template>
       <template #[`item.groups`]="{ item }">
         <RelationChips
@@ -79,6 +94,23 @@
           size="small"
           density="compact"
         />
+        <!--
+          Resend the registration-verification email. Only shown when
+          the user is still inactive AND the site requires email
+          verification AND a working email backend is configured AND
+          the row has an address on file. Hidden otherwise — silent
+          UI rather than disabled buttons with tooltips, since each
+          missing condition has its own remediation tab.
+        -->
+        <v-btn
+          v-if="canSendVerification(item)"
+          :icon="mdiEmailArrowRightOutline"
+          variant="text"
+          size="small"
+          density="compact"
+          title="Resend verification email"
+          @click="sendVerification(item)"
+        />
         <AdminDeleteRowDialog
           v-if="me.id !== item.pk"
           table="User"
@@ -110,6 +142,7 @@
 </template>
 
 <script>
+import { mdiEmailArrowRightOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -136,6 +169,7 @@ export default {
   data() {
     return {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
+      mdiEmailArrowRightOutline,
       headers: [
         { title: "Username", key: "username", align: "start" },
         { title: "Email", key: "email", align: "start" },
@@ -159,6 +193,7 @@ export default {
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
+      adminFlags: (state) => state.adminFlags,
     }),
     /** Resolve the ``AA`` admin flag FK to a metron name (read-only display). */
     anonAgeRating() {
@@ -176,12 +211,50 @@ export default {
   mounted() {
     /*
      * AgeRatingMetron populates the per-user dropdown and the column
-     * name resolver; Flag gives us the ``AA`` value to display.
+     * name resolver; Flag gives us the ``AA`` value to display. The
+     * admin flags from the auth store gate the "Resend verification"
+     * action button below.
      */
     this.loadTables(["Group", "User", "AgeRatingMetron", "Flag"]);
+    this.loadAdminFlags();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTables"]),
+    ...mapActions(useAdminStore, ["loadTables", "sendUserVerificationEmail"]),
+    ...mapActions(useAuthStore, ["loadAdminFlags"]),
+    canSendVerification(item) {
+      return Boolean(
+        !item.isActive &&
+        item.email &&
+        this.adminFlags.registerVerification &&
+        this.adminFlags.emailEnabled,
+      );
+    },
+    activeStatus(item) {
+      if (item.isActive) {
+        return {
+          label: "Active",
+          color: "success",
+          hint: "User can log in.",
+        };
+      }
+      if (this.adminFlags.registerVerification && item.email) {
+        return {
+          label: "Pending Verification",
+          color: "warning",
+          hint:
+            "User has not clicked the email verification link yet." +
+            " Use the email-arrow action to resend the link.",
+        };
+      }
+      return {
+        label: "Inactive",
+        color: "error",
+        hint: "User cannot log in.",
+      };
+    },
+    sendVerification(item) {
+      this.sendUserVerificationEmail(item.pk).catch(console.error);
+    },
     ageRatingName(pk) {
       if (pk == undefined) {
         return UNRESTRICTED_LABEL;

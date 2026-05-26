@@ -48,6 +48,31 @@
           :rules="rules.passwordConfirm"
           clearable
           type="password"
+          @keydown.enter="
+            if (emailRequired) {
+              $refs.email.focus();
+            } else {
+              submit();
+            }
+          "
+        />
+      </v-expand-transition>
+      <!--
+        Email is only collected when ``Verify New User Email`` is on.
+        The backend requires an address to send the verification link
+        to; the field is hidden otherwise to keep the no-verification
+        register flow as short as possible.
+      -->
+      <v-expand-transition>
+        <v-text-field
+          v-if="emailRequired"
+          ref="email"
+          v-model="credentials.email"
+          autocomplete="email"
+          label="Email"
+          type="email"
+          :rules="rules.email"
+          clearable
           @keydown.enter="submit"
         />
       </v-expand-transition>
@@ -106,12 +131,29 @@ export default {
         passwordConfirm: [
           (v) => v === this.credentials.password || "Passwords must match",
         ],
+        email: [
+          (v) => {
+            // Validation only fires when the field is rendered, i.e.
+            // registerMode + RV admin flag both true — see emailRequired.
+            if (!this.emailRequired) {
+              return true;
+            }
+            if (!v) {
+              return "Email is required for verification";
+            }
+            // Minimal shape check — the backend does authoritative
+            // validation. Matches the EmailField default behavior of
+            // requiring an ``@`` with non-empty local + domain parts.
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || "Email is invalid";
+          },
+        ],
       },
       formModel: {},
       credentials: {
         username: "",
         password: "",
         passwordConfirm: "",
+        email: "",
       },
       registerMode: false,
       mdiLogin,
@@ -132,6 +174,13 @@ export default {
         label += " or Register";
       }
       return label;
+    },
+    emailRequired() {
+      // The ``Verify New User Email`` admin flag (RV) drives whether
+      // the backend sends a verification link, which in turn requires
+      // an address to send to. Without RV the address is unused, so
+      // the field stays hidden.
+      return Boolean(this.registerMode && this.adminFlags.registerVerification);
     },
   },
   watch: {

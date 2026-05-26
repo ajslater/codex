@@ -48,7 +48,11 @@ from codex.views.admin.tasks import (
     AdminLibrarianTaskView,
 )
 from codex.views.admin.throttle import AdminThrottleSettingsView
-from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
+from codex.views.admin.user import (
+    AdminUserChangePasswordView,
+    AdminUserSendVerificationView,
+    AdminUserViewSet,
+)
 
 READ: Final = MappingProxyType({"get": "list"})
 # Async list action exposed by ``adrf`` viewsets; same dispatch shape
@@ -76,6 +80,11 @@ urlpatterns = [
         "user/<int:pk>/password",
         AdminUserChangePasswordView.as_view(),
         name="user_password_update",
+    ),
+    path(
+        "user/<int:pk>/send-verification",
+        AdminUserSendVerificationView.as_view(),
+        name="user_send_verification",
     ),
     path("group", AdminGroupViewSet.as_view({**CREATE, **READ}), name="group"),
     path(

@@ -79,6 +79,9 @@ export const removeCustomCover = ({ group, pks }) =>
 export const changeUserPassword = (pk, data) =>
   HTTP.put(`/admin/user/${pk}/password`, data);
 
+export const sendUserVerificationEmail = (pk) =>
+  HTTP.post(`/admin/user/${pk}/send-verification`);
+
 export const getFolders = (path, showHidden) =>
   HTTP.get("/admin/folders", { params: { path, showHidden } });
 
