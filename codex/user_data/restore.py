@@ -433,7 +433,6 @@ def _restore_settings_browser(
     """
     from django.contrib.auth import get_user_model
 
-
     user_model = get_user_model()
     filters_by_key = {
         (r["username"], r["client"], r["name"]): r

@@ -241,8 +241,8 @@ Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
 data: comic metadata, which can always be rebuilt by re-scanning your library,
 and _user_ data — accounts, bookmarks, favorites, browser settings, library
 definitions, admin flags — which cannot. To make the second kind survive a
-database loss or rebuild, Codex continuously mirrors every user-bound row into
-a separate SQLite file: the **user data sidecar**.
+database loss or rebuild, Codex continuously mirrors every user-bound row into a
+separate SQLite file: the **user data sidecar**.
 
 #### Where it lives
 
@@ -252,8 +252,8 @@ a separate SQLite file: the **user data sidecar**.
 
 — right next to `codex.toml`. The file is created lazily on first write and is
 populated automatically on first startup after upgrading to a sidecar-aware
-Codex. Mirrored writes are best-effort: a write failure logs a warning but
-never blocks the request that triggered it.
+Codex. Mirrored writes are best-effort: a write failure logs a warning but never
+blocks the request that triggered it.
 
 #### What it contains
 
@@ -263,8 +263,8 @@ settings, admin flags, timestamps, and online-tagging defaults.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
-credits, the full-text search index. Those rebuild themselves when the
-librarian re-imports your library.
+credits, the full-text search index. Those rebuild themselves when the librarian
+re-imports your library.
 
 #### Backing it up
 
@@ -293,8 +293,8 @@ codex restore_user_data --from /path/to/another/user_data.sqlite
 
 Both paths are idempotent: re-running a restore on top of an already-restored
 database is safe. Rows whose targets can't be resolved (a deleted comic, a
-renamed tag) are logged to `restore_user_data.log` in your config directory
-and skipped — the operation never aborts.
+renamed tag) are logged to `restore_user_data.log` in your config directory and
+skipped — the operation never aborts.
 
 #### Migrating to a new host
 
@@ -305,9 +305,9 @@ and skipped — the operation never aborts.
 4. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, favorites by group name-chain (e.g.
-publisher → imprint → series), and tag filters by tag name. As long as your
-library paths and tag names match, everything reattaches.
+Bookmarks reattach by comic path, favorites by group name-chain (e.g. publisher
+→ imprint → series), and tag filters by tag name. As long as your library paths
+and tag names match, everything reattaches.
 
 ### Private Libraries
 
@@ -398,10 +398,9 @@ port = 9810
 url_path_prefix = ""
 ```
 
-The config directory also holds the main sqlite database, the
-`user_data.sqlite` sidecar (see
-[Backup & Restore User Data](#-backup--restore-user-data)), a Django cache,
-and comic book cover thumbnails.
+The config directory also holds the main sqlite database, the `user_data.sqlite`
+sidecar (see [Backup & Restore User Data](#-backup--restore-user-data)), a
+Django cache, and comic book cover thumbnails.
 
 ### Full `codex.toml` Reference
 

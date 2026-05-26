@@ -1,6 +1,7 @@
 <template>
   <ConfirmDialog
     v-if="show"
+    :button="false"
     button-text="Remove Cover"
     confirm
     confirm-text="Remove Cover"

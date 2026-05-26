@@ -1,9 +1,9 @@
 <template>
   <div v-if="show">
-    <v-list-item
+    <CodexListItem
       class="listItem"
       :prepend-icon="mdiImagePlus"
-      title="Upload Cover"
+      :title="label"
       @click="pickFile"
     />
     <input
@@ -21,6 +21,7 @@ import { mdiImagePlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { uploadCustomCover } from "@/api/v3/admin";
+import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -29,6 +30,7 @@ const UPLOAD_GROUPS = Object.freeze(new Set(["p", "i", "s", "v", "a", "f"]));
 
 export default {
   name: "UploadCoverButton",
+  components: { CodexListItem },
   props: {
     item: {
       type: Object,
@@ -48,6 +50,9 @@ export default {
         this.item?.ids?.length > 0 &&
         !this.item.ids.includes(0)
       );
+    },
+    label() {
+      return this.item?.coverCustomPk ? "Replace Cover" : "Upload Cover";
     },
   },
   methods: {

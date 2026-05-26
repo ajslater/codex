@@ -26,13 +26,21 @@
         {{ formatSize(item.sizeBytes) }}
       </template>
       <template #[`item.actions`]="{ item }">
-        <AdminDeleteRowDialog
-          density="compact"
-          :name="item.path"
-          :pk="item.pk"
-          size="small"
-          table="CustomCover"
-        />
+        <span class="actionButtonCell">
+          <ReplaceCoverButton
+            v-if="item.linkedGroupPk"
+            density="compact"
+            :item="item"
+            size="small"
+          />
+          <AdminDeleteRowDialog
+            density="compact"
+            :name="item.path"
+            :pk="item.pk"
+            size="small"
+            table="CustomCover"
+          />
+        </span>
       </template>
     </AdminTable>
   </div>
@@ -44,13 +52,19 @@ import { mapActions, mapState } from "pinia";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
+import ReplaceCoverButton from "@/components/admin/tabs/replace-cover-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
 
 export default {
   name: "AdminCustomCoversTab",
-  components: { AdminTable, AdminDeleteRowDialog, DateTimeColumn },
+  components: {
+    AdminTable,
+    AdminDeleteRowDialog,
+    DateTimeColumn,
+    ReplaceCoverButton,
+  },
   computed: {
     ...mapState(useAdminStore, ["customCovers"]),
     headers() {
@@ -107,5 +121,13 @@ export default {
 .unlinked {
   color: rgb(var(--v-theme-textDisabled));
   font-style: italic;
+}
+
+.actionButtonCell :deep(> button) {
+  opacity: 0.7;
+}
+
+.actionButtonCell :deep(> button:hover) {
+  opacity: 1;
 }
 </style>
