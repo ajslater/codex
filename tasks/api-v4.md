@@ -103,7 +103,7 @@ and migrated one Pinia store at a time.
 ### Auth & session
 
 ```
-POST   /api/v4/auth/register
+POST   /api/v4/auth/register                      # email required when RV flag on
 POST   /api/v4/auth/login
 POST   /api/v4/auth/logout
 POST   /api/v4/auth/token
@@ -191,6 +191,7 @@ Standard CRUD per resource:
 GET|POST                          /api/v4/admin/users
 GET|PATCH|DELETE                  /api/v4/admin/users/{id}
 POST                              /api/v4/admin/users/{id}/password
+POST                              /api/v4/admin/users/{id}/send-verification   # resend reg-verify email
 POST                              /api/v4/admin/users/bulk
 
 GET|POST                          /api/v4/admin/groups
@@ -221,6 +222,7 @@ GET|PATCH                         /api/v4/admin/email-settings
 POST                              /api/v4/admin/email-settings/test
 GET|PATCH                         /api/v4/admin/tagging-defaults
 POST                              /api/v4/admin/tagging-defaults/validate
+GET|PATCH                         /api/v4/admin/throttle-settings
 GET|POST                          /api/v4/admin/api-key                  # POST = regenerate
 GET                               /api/v4/admin/stats
 ```
@@ -359,7 +361,10 @@ ACL still applies at the channel-group level (`ALL` / `ADMIN` /
       with mtime + scope.
 - [ ] Mount a v4 WebSocket consumer at `/ws/v4/` (v3 consumer stays for
       transition).
-- [ ] Migrate `frontend/src/stores/socket.js` to typed dispatch.
+- [ ] Migrate `frontend/src/stores/socket.js` to typed dispatch. The
+      v3 dispatcher already fans `admin.flags.changed` out to multiple
+      admin routes (Users + Settings, since the Flag table feeds
+      FlagCards on both) — preserve that on the typed-message path.
 - [ ] Remove the `loadMtimes()` two-step in browser and reader stores
       once typed messages carry mtime directly.
 
@@ -370,12 +375,27 @@ ACL still applies at the channel-group level (`ALL` / `ADMIN` /
       JSON:API renderers + serializers.
 - [ ] Update PATCH responses to return the updated row.
 - [ ] Add `/api/v4/admin/users/bulk` and equivalents.
+- [ ] Add `POST /api/v4/admin/users/{id}/send-verification` — same
+      backend handler as v3 ([codex/views/admin/user.py](codex/views/admin/user.py)
+      `AdminUserSendVerificationView`); 400/404/409 for "email not
+      configured / RV off / already active / no email on file" stay
+      structured.
 - [ ] Add cursor pagination class.
+- [ ] Port `GET|POST /api/v4/admin/api-key`. Backend now stores the key
+      in `AdminFlag.AK` (not `Timestamp`); serializer wraps the AdminFlag
+      row with `source="value"`. POST regenerates via
+      [\_new_api_key()](codex/views/admin/api_key.py).
 - [ ] Port the non-resource admin endpoints (stats, email-settings,
-      tagging-defaults, librarian/tasks, tag-sessions, identifier-url,
-      tag-write, folders, user-data import/export, api-key).
+      tagging-defaults, throttle-settings, librarian/tasks, tag-sessions,
+      identifier-url, tag-write, folders, user-data import/export).
+- [ ] Port tag-sessions endpoints. Session state now lives in the
+      Django cache via [session_cache.py](codex/librarian/onlinetag/session_cache.py)
+      — the v4 views are thin wrappers around the same accessor module,
+      not direct ORM reads on `ComicboxTaggingDefaults`.
 - [ ] Migrate `frontend/src/stores/admin.js` table by table. Replace
-      full-refetch-on-mutate with splice-from-PATCH-response.
+      full-refetch-on-mutate with splice-from-PATCH-response. Note that
+      `apiKey`, `loadAPIKey`, `updateAPIKey` are already wired in v3 —
+      port the existing pattern.
 
 ### Phase 8: Favorites + utility
 
