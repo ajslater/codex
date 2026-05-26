@@ -2,6 +2,10 @@
 
 from typing import override
 
+from codex.librarian.onlinetag.session_cache import (
+    clear_active_session,
+    get_active_session_id,
+)
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -10,7 +14,6 @@ from codex.librarian.onlinetag.tasks import (
     OnlineTagSkipAllPromptsTask,
 )
 from codex.librarian.threads import QueuedThread
-from codex.models.admin import ComicboxTaggingDefaults
 
 
 class OnlineTagThread(QueuedThread):
@@ -39,21 +42,20 @@ class OnlineTagThread(QueuedThread):
     @override
     def run_start(self) -> None:
         """
-        Clear stale persisted session state before entering the loop.
+        Clear stale cached session state before entering the loop.
 
-        In-memory session state cannot survive a process restart, so any
-        persisted ``active_session_id`` / ``active_prompts`` row at
+        In-memory session state cannot survive a process restart, so
+        any cached ``active_session_id`` / ``active_prompts`` at
         startup is by definition orphan.
         """
         super().run_start()
         try:
-            updated = ComicboxTaggingDefaults.objects.filter(pk=1).update(
-                active_session_id="", active_prompts=[]
-            )
+            had_session = bool(get_active_session_id())
+            clear_active_session()
         except Exception:
             self.log.exception("Clearing stale online tagging state on startup")
             return
-        if updated:
+        if had_session:
             self.log.debug("Cleared stale online tagging session state on startup.")
 
     @override

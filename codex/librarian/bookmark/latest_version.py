@@ -40,7 +40,7 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
             ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
             do_fetch = (
                 force
-                or not ts.version
+                or not ts.value
                 or (timezone.now() - ts.updated_at > _CACHE_EXPIRY)
             )
             if do_fetch:
@@ -48,7 +48,7 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
                 if not latest_version:
                     reason = "Bad latest version fetched."
                     raise ValueError(reason)
-                ts.version = latest_version
+                ts.value = latest_version
                 ts.save()
                 level = "INFO"
                 log_txt = f"Saved new latest codex version {latest_version}."

@@ -60,11 +60,13 @@ import ClipBoard from "@/components/clipboard.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
-// Keys whose UI lives on a different tab — render them somewhere else
-// and skip them on the Settings tab so the user sees one card per
-// flag, in one place. Mirrors the move of RG/RV/NU/AA/AR onto the
-// Users tab and CM onto the Custom Covers tab.
-const TAB_HIDDEN_KEYS = new Set(["AA", "AR", "CM", "NU", "RG", "RV"]);
+// Keys whose UI lives on a different tab or its own section — render
+// them in their dedicated place and skip the generic flag-card grid
+// so the user sees one card per flag, in one place. Mirrors:
+//   - RG/RV/NU/AA/AR → Users tab
+//   - CM → Custom Covers tab
+//   - AK → API Key section at the bottom of this tab
+const TAB_HIDDEN_KEYS = new Set(["AA", "AK", "AR", "CM", "NU", "RG", "RV"]);
 
 export default {
   name: "AdminSettingsTab",

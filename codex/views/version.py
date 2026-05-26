@@ -22,8 +22,8 @@ class VersionView(AuthGenericAPIView):
     def get_object(self) -> dict[str, str]:
         """Get the versions."""
         ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
-        if ts.version:
-            latest_version = ts.version
+        if ts.value:
+            latest_version = ts.value
         else:
             LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
             latest_version = "fetching..."

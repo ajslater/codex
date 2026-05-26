@@ -12,8 +12,9 @@ from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.telemeter.stats import CodexStats
-from codex.models.admin import Timestamp
+from codex.models.admin import AdminFlag
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
     StatsSerializer,
@@ -64,8 +65,8 @@ class AdminStatsView(AsyncAdminGenericAPIView):
         if request_counts and ("apikey" not in request_counts):
             return
         api_key = (
-            await Timestamp.objects.aget(key=Timestamp.Choices.API_KEY.value)
-        ).version
+            await AdminFlag.objects.aget(key=AdminFlagChoices.API_KEY.value)
+        ).value
         if "config" not in obj:
             obj["config"] = {}
         obj["config"]["api_key"] = api_key

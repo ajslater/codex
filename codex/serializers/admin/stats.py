@@ -124,11 +124,6 @@ class AdminStatsRequestSerializer(Serializer):
 
 
 class APIKeySerializer(Serializer):
-    """API Key."""
+    """API Key — wraps the ``AK`` :class:`AdminFlag` row's ``value`` column."""
 
-    # The API key is the ``version`` column on the ``API_KEY`` Timestamp
-    # row — set by :meth:`Timestamp.save_uuid_version`. ``name`` was a
-    # leftover from a pre-Timestamp model and rendered as an empty
-    # string, which masked itself until the only consumer (the Stats
-    # endpoint) sidestepped this serializer.
-    api_key = CharField(source="version", read_only=True)
+    api_key = CharField(source="value", read_only=True)

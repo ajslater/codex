@@ -351,7 +351,7 @@ def serialize_timestamp(ts) -> tuple[str, tuple[str, ...], dict[str, Any]]:
         ("key",),
         {
             "key": ts.key,
-            "version": ts.version,
+            "value": ts.value,
             "updated_at": _datetime_str(getattr(ts, "updated_at", None)),
         },
     )
@@ -381,10 +381,6 @@ def serialize_tagging_defaults(
             "metron_url": defaults.metron_url or "",
             "comicvine_key": defaults.comicvine_key or "",
             "comicvine_url": defaults.comicvine_url or "",
-            "active_session_id": defaults.active_session_id,
-            "active_prompts": json.dumps(
-                defaults.active_prompts, separators=(",", ":")
-            ),
             "updated_at": _datetime_str(getattr(defaults, "updated_at", None)),
         },
     )

@@ -159,6 +159,11 @@ CREATE TABLE IF NOT EXISTS admin_flags (
 );
 
 -- ComicboxTaggingDefaults — singleton (pk=1 enforced by main model).
+-- ``active_session_id`` / ``active_prompts`` used to live here but
+-- moved to the Django cache. Sidecar backups from older codex
+-- versions may still include those columns; the restore code drops
+-- them silently because they are transient operational state, not
+-- user data that needs to round-trip.
 CREATE TABLE IF NOT EXISTS tagging_defaults (
     pk INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
     default_formats TEXT NOT NULL DEFAULT '[]',
@@ -172,13 +177,14 @@ CREATE TABLE IF NOT EXISTS tagging_defaults (
     metron_url TEXT NOT NULL DEFAULT '',
     comicvine_key TEXT NOT NULL DEFAULT '',
     comicvine_url TEXT NOT NULL DEFAULT '',
-    active_session_id TEXT NOT NULL DEFAULT '',
-    active_prompts TEXT NOT NULL DEFAULT '[]',
     updated_at TEXT
 );
 
+-- ``Timestamp`` model. ``value`` (previously ``version``) holds the
+-- last-known value for the keyed singleton; ``updated_at`` is the
+-- last-touch marker.
 CREATE TABLE IF NOT EXISTS timestamps (
     key TEXT NOT NULL PRIMARY KEY,
-    version TEXT NOT NULL DEFAULT '',
+    value TEXT NOT NULL DEFAULT '',
     updated_at TEXT
 );

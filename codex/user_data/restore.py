@@ -282,9 +282,24 @@ def _restore_timestamps(
         if dry_run:
             report.note_written("timestamps")
             continue
-        Timestamp.objects.update_or_create(
-            key=row["key"], defaults={"version": row["version"] or ""}
-        )
+        # Skip the legacy ``AP`` row — the API key moved to AdminFlag,
+        # so importing it here would create an orphan Timestamp row
+        # rejected by the post-0051 choices field. Backups carrying
+        # the row are silently dropped; the matching AdminFlag.AK
+        # restore picks up the value if the backup also exported it.
+        if row["key"] == "AP":
+            continue
+        # Older sidecars used a ``version`` column; current ones use
+        # ``value``. ``sqlite3.Row`` has no ``.get`` — peek at the
+        # row's column names to pick the right key.
+        cols = set(row.keys())
+        if "value" in cols:
+            value = row["value"] or ""
+        elif "version" in cols:
+            value = row["version"] or ""
+        else:
+            value = ""
+        Timestamp.objects.update_or_create(key=row["key"], defaults={"value": value})
         report.note_written("timestamps")
 
 
@@ -313,8 +328,10 @@ def _restore_tagging_defaults(
         "metron_url": row["metron_url"] or "",
         "comicvine_key": row["comicvine_key"] or "",
         "comicvine_url": row["comicvine_url"] or "",
-        "active_session_id": row["active_session_id"] or "",
-        "active_prompts": json.loads(row["active_prompts"] or "[]"),
+        # ``active_session_id`` / ``active_prompts`` used to be on this
+        # row; they moved to the Django cache as transient state.
+        # Older sidecar backups still carry the columns — they are
+        # silently ignored on restore.
     }
     ComicboxTaggingDefaults.objects.update_or_create(pk=1, defaults=defaults)
     report.note_written("tagging_defaults")

@@ -10,6 +10,11 @@ from comicbox.events import Event, PromptDeferred, RateLimited
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
 
 from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
+from codex.librarian.onlinetag.session_cache import (
+    clear_active_session,
+    set_active_prompts,
+    set_active_session_id,
+)
 from codex.librarian.onlinetag.session_state import (
     CodexPromptHandler,
     SessionState,
@@ -68,21 +73,17 @@ class OnlineTagSessionManager:
         )
 
     def _persist_session(self, session_id: str) -> None:
-        """Write the active session ID to the database."""
-        ComicboxTaggingDefaults.objects.filter(pk=1).update(
-            active_session_id=session_id
-        )
+        """Write the active session ID to the cache."""
+        set_active_session_id(session_id)
 
     def _persist_prompts(self, session_id: str) -> None:
-        """Serialize and persist current deferred prompts to the database."""
+        """Serialize and persist current deferred prompts to the cache."""
         prompts = self.get_pending_prompts(session_id)
-        ComicboxTaggingDefaults.objects.filter(pk=1).update(active_prompts=prompts)
+        set_active_prompts(prompts)
 
     def _clear_session_db(self) -> None:
-        """Clear active session state from the database."""
-        ComicboxTaggingDefaults.objects.filter(pk=1).update(
-            active_session_id="", active_prompts=[]
-        )
+        """Clear active session state from the cache."""
+        clear_active_session()
 
     _RATE_LIMIT_THRESHOLD = 10
 

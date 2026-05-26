@@ -1,7 +1,5 @@
 """Admin models."""
 
-import base64
-import uuid
 from typing import override
 
 from django.db.models import (
@@ -117,8 +115,10 @@ class ComicboxTaggingDefaults(BaseModel):
     comicvine_key = EncryptedCharField()
     comicvine_url = URLField(max_length=256, blank=True, default="")
 
-    active_session_id = CharField(max_length=64, blank=True, default="")
-    active_prompts = JSONField(default=list)
+    # Active session id + pending prompts used to live here. They are
+    # transient operational state — they only matter while a tagging
+    # job is in flight — so they moved to the Django cache. See
+    # ``codex.librarian.onlinetag.session_state``.
 
     @override
     def save(self, *args, **kwargs):
@@ -235,12 +235,19 @@ class LibrarianStatus(BaseModel):
 
 
 class Timestamp(BaseModel):
-    """Timestamped Named Strings."""
+    """
+    Keyed singleton holding a last-known ``value`` and an auto-updated ``updated_at``.
+
+    Used by codex-version tracking, janitor last-run marker, and the
+    telemeter install UUID + last-send marker. The API key used to
+    live here too; it moved to :class:`AdminFlag` (key ``AK``) since
+    it was the one row that was admin-managed configuration rather
+    than internal operational state.
+    """
 
     class Choices(TextChoices):
         """Choices for Timestamps."""
 
-        API_KEY = "AP", _("API Key")
         CODEX_VERSION = "VR", _("Codex Version")
         JANITOR = "JA", _("Janitor")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
@@ -250,19 +257,12 @@ class Timestamp(BaseModel):
         max_length=max_choices_len(Choices),
         choices=Choices.choices,
     )
-    version = CharField(max_length=MAX_FIELD_LEN, default="")
+    value = CharField(max_length=MAX_FIELD_LEN, default="")
 
     @classmethod
     def touch(cls, choice) -> None:
         """Touch a timestamp."""
         cls.objects.get(key=choice.value).save()
-
-    def save_uuid_version(self) -> None:
-        """Create base64 uuid."""
-        uuid_bytes = uuid.uuid4().bytes
-        b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
-        self.version = b64_bytes.decode("utf-8").replace("=", "")
-        self.save()
 
     class Meta(BaseModel.Meta):
         """Constraints."""

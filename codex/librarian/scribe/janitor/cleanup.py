@@ -11,6 +11,11 @@ from django.core import signing
 from django.db import transaction
 from django.db.models.functions.datetime import Now
 
+from codex.librarian.onlinetag.session_cache import (
+    clear_active_session,
+    get_active_prompts,
+    get_active_session_id,
+)
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
@@ -49,7 +54,6 @@ from codex.models import (
     Universe,
     Volume,
 )
-from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.bookmark import Bookmark
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.paths import CustomCover
@@ -434,22 +438,18 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         """
         Clear orphan online tagging session and prompt state.
 
-        The ``OnlineTagThread`` startup hook already clears persisted
+        The ``OnlineTagThread`` startup hook already clears cached
         state on every process restart, and the session manager's
         ``finally`` block clears it on normal session end. This sweep
         is a defensive nightly backstop for the narrow case where the
-        daemon kept running but in-memory state diverged from the DB
-        (e.g. a crash inside ``finally`` itself, or external DB
-        manipulation).
+        daemon kept running but in-memory state diverged from the
+        cache (e.g. a crash inside ``finally`` itself).
         """
         status = JanitorCleanupTaggingStateStatus()
         try:
             self.status_controller.start(status)
-            defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
-            if defaults is None:
-                return
-            session_id = defaults.active_session_id
-            has_prompts = bool(defaults.active_prompts)
+            session_id = get_active_session_id()
+            has_prompts = bool(get_active_prompts())
             stale_session = bool(session_id) and (
                 self.online_tag_thread is None
                 or not self.online_tag_thread.has_active_session(session_id)
@@ -458,10 +458,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             if not stale_session and not orphan_prompts:
                 self.log.debug("Online tagging state is clean; nothing to do.")
                 return
-            with self.db_write_lock:
-                ComicboxTaggingDefaults.objects.filter(pk=1).update(
-                    active_session_id="", active_prompts=[]
-                )
+            clear_active_session()
             if stale_session:
                 self.log.info(f"Cleared stale online tagging session {session_id!r}.")
             else:

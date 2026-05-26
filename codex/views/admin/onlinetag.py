@@ -7,6 +7,10 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.onlinetag.session_cache import (
+    get_active_prompts,
+    get_active_session_id,
+)
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
@@ -26,14 +30,8 @@ class AdminOnlineTagActiveView(AdminAPIView):
     """Return the active online tagging session ID, if any."""
 
     def get(self, _request):
-        """Return active session from the database."""
-        from codex.models.admin import ComicboxTaggingDefaults
-
-        try:
-            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-        except ComicboxTaggingDefaults.DoesNotExist:
-            return Response({"session_id": None})
-        sid = defaults.active_session_id or None
+        """Return active session from the cache."""
+        sid = get_active_session_id() or None
         return Response({"session_id": sid})
 
 
@@ -81,18 +79,10 @@ class AdminOnlineTagPromptsView(AdminAPIView):
     """List pending prompts for an online tagging session."""
 
     def get(self, _request, session_id):
-        """Return pending prompts from the database."""
-        from codex.models.admin import ComicboxTaggingDefaults
-
-        try:
-            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-        except ComicboxTaggingDefaults.DoesNotExist:
+        """Return pending prompts from the cache for the given session."""
+        if get_active_session_id() != session_id:
             return Response({"session_id": session_id, "prompts": []})
-        if defaults.active_session_id != session_id:
-            return Response({"session_id": session_id, "prompts": []})
-        return Response(
-            {"session_id": session_id, "prompts": defaults.active_prompts or []}
-        )
+        return Response({"session_id": session_id, "prompts": get_active_prompts()})
 
 
 class AdminOnlineTagPromptResponseView(AdminAPIView):

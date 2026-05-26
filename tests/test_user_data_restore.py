@@ -117,7 +117,13 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         AdminFlag.objects.update_or_create(
             key="AU", defaults={"on": False, "value": "off"}
         )
-        Timestamp.objects.update_or_create(key="AP", defaults={"version": "abc"})
+        # The API key moved off Timestamp to AdminFlag (key ``AK``).
+        # Seed both the moved row and the codex-version Timestamp row
+        # to exercise both code paths in the restore.
+        AdminFlag.objects.update_or_create(
+            key="AK", defaults={"on": True, "value": "test-key-abc"}
+        )
+        Timestamp.objects.update_or_create(key="VR", defaults={"value": "1.2.3"})
         return {
             "user": user,
             "comic": comic,
@@ -195,7 +201,8 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         self._seed_main_db()
         snapshot = self._snapshot_sidecar()
         AdminFlag.objects.filter(key="AU").delete()
-        Timestamp.objects.filter(key="AP").delete()
+        AdminFlag.objects.filter(key="AK").delete()
+        Timestamp.objects.filter(key="VR").delete()
 
         report = restore(sidecar_path=snapshot)
         assert report.written.get("admin_flags", 0) >= 1
@@ -203,8 +210,10 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         flag = AdminFlag.objects.get(key="AU")
         assert flag.on is False
         assert flag.value == "off"
-        ts = Timestamp.objects.get(key="AP")
-        assert ts.version == "abc"
+        api_key_flag = AdminFlag.objects.get(key="AK")
+        assert api_key_flag.value == "test-key-abc"
+        ts = Timestamp.objects.get(key="VR")
+        assert ts.value == "1.2.3"
 
     def test_restore_is_idempotent(self) -> None:
         self._seed_main_db()

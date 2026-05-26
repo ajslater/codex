@@ -33,6 +33,7 @@ from codex.settings import (
 )
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
+from codex.views.admin.api_key import _new_api_key
 
 
 def ensure_superuser() -> None:
@@ -116,6 +117,12 @@ def init_admin_flags() -> None:
         if key in value_defaults:
             defaults["value"] = value_defaults[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
+        # The API key row holds the actual key in ``value``. Heal here
+        # so fresh installs and admin-deleted rows both come back with
+        # a usable token; the 0051 migration handles upgrades.
+        if key == AdminFlagChoices.API_KEY.value and not flag.value:
+            flag.value = _new_api_key()
+            flag.save()
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
 
@@ -149,8 +156,6 @@ def init_timestamps() -> None:
     for enum in Timestamp.Choices:
         key = enum.value
         ts, created = Timestamp.objects.get_or_create(key=key)
-        if enum == Timestamp.Choices.API_KEY and not ts.version:
-            ts.save_uuid_version()
         if created:
             label = Timestamp.Choices(ts.key).label
             logger.debug(f"Created {label} timestamp.")

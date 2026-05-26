@@ -68,11 +68,14 @@ class DumpUserDataTests(TestCase):
         AdminFlag.objects.update_or_create(
             key="AU", defaults={"on": False, "value": "off"}
         )
-        Timestamp.objects.update_or_create(key="AP", defaults={"version": "abc"})
+        # The API key moved to AdminFlag.AK; codex-version stays on
+        # Timestamp.VR. The Timestamp ``version`` column was renamed
+        # to ``value`` in migration 0052.
+        Timestamp.objects.update_or_create(key="VR", defaults={"value": "1.2.3"})
 
         dump_user_data()
         flags = {r["key"]: r for r in self.store.fetchall("admin_flags")}
         assert flags["AU"]["on_flag"] == 0
         assert flags["AU"]["value"] == "off"
         timestamps = {r["key"]: r for r in self.store.fetchall("timestamps")}
-        assert timestamps["AP"]["version"] == "abc"
+        assert timestamps["VR"]["value"] == "1.2.3"
