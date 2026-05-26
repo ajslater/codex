@@ -16,6 +16,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanupSettingsTask,
     JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
+    JanitorDumpUserDataTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
@@ -71,6 +72,7 @@ _SCRIBE_TASK_PRIORITY = (
     SearchIndexOptimizeTask,
     JanitorVacuumTask,
     JanitorBackupTask,
+    JanitorDumpUserDataTask,
 )
 
 
