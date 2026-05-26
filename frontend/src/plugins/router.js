@@ -13,6 +13,7 @@ const AdminLibrariesTab = () =>
 const AdminCustomCoversTab = () =>
   import("@/components/admin/tabs/custom-covers-tab.vue");
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
+const AdminRestoreTab = () => import("@/components/admin/tabs/restore-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
 const ResetPasswordConfirm = () =>
@@ -65,6 +66,7 @@ const routes = [
       { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
+      { name: "admin-restore", path: "restore", component: AdminRestoreTab },
     ],
   },
   {

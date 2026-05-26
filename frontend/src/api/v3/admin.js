@@ -101,3 +101,8 @@ export const updateTaggingDefaults = (data) =>
 
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
+
+// Sidecar restore — see codex.user_data.restore.
+// dryRun=true walks the sidecar and reports what would happen without writing.
+export const postRestoreUserData = ({ dryRun = false } = {}) =>
+  HTTP.post("/admin/restore-user-data", { dry_run: dryRun });

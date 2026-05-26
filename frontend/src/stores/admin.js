@@ -34,6 +34,7 @@ export const TABS = Object.freeze([
   "Tagging",
   "Jobs",
   "Stats",
+  "Restore",
 ]);
 
 export const UNRESTRICTED_LABEL = "Adult";
@@ -292,6 +293,22 @@ export const useAdminStore = defineStore("admin", {
       } catch (error) {
         commonStore.setErrors(error);
         return undefined;
+      }
+    },
+    /*
+     * Trigger a sidecar → main-DB restore. Returns the report
+     * payload ({ written, skipped, log_path, unmatched }) or
+     * undefined on failure (errors land on the common store).
+     */
+    async restoreUserData({ dryRun = false } = {}) {
+      if (this._requireAdmin()) return;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.postRestoreUserData({ dryRun });
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
       }
     },
   },

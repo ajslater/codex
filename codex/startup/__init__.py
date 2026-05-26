@@ -209,6 +209,23 @@ def ensure_db_rows() -> None:
     init_librarian_statuses()
     init_libraries()
     create_missing_auth_tokens()
+    _backfill_user_data_sidecar()
+
+
+def _backfill_user_data_sidecar() -> None:
+    """
+    Populate the user-data sidecar from the main DB on first start.
+
+    Runs once on every startup but is a no-op when the sidecar already
+    holds rows. Failures are caught and logged — sidecar troubles must
+    never block codex from starting.
+    """
+    try:
+        from codex.user_data.backfill import backfill_if_empty
+
+        backfill_if_empty()
+    except Exception:
+        logger.exception("Sidecar backfill at startup failed")
 
 
 def codex_init() -> bool:

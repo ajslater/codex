@@ -29,6 +29,7 @@ from codex.views.admin.onlinetag import (
     AdminOnlineTagSkipAllPromptsView,
     AdminOnlineTagStartView,
 )
+from codex.views.admin.restore_user_data import AdminRestoreUserDataView
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
@@ -190,5 +191,10 @@ urlpatterns = [
         "online-tag/<str:session_id>/skip-all-prompts",
         AdminOnlineTagSkipAllPromptsView.as_view(),
         name="online_tag_skip_all_prompts",
+    ),
+    path(
+        "restore-user-data",
+        AdminRestoreUserDataView.as_view(),
+        name="restore_user_data",
     ),
 ]

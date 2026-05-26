@@ -235,6 +235,80 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
 ```
 
+### 💾 Backup & Restore User Data
+
+Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
+data: comic metadata, which can always be rebuilt by re-scanning your library,
+and _user_ data — accounts, bookmarks, favorites, browser settings, library
+definitions, admin flags — which cannot. To make the second kind survive a
+database loss or rebuild, Codex continuously mirrors every user-bound row into
+a separate SQLite file: the **user data sidecar**.
+
+#### Where it lives
+
+```text
+<CODEX_CONFIG_DIR>/user_data.sqlite
+```
+
+— right next to `codex.toml`. The file is created lazily on first write and is
+populated automatically on first startup after upgrading to a sidecar-aware
+Codex. Mirrored writes are best-effort: a write failure logs a warning but
+never blocks the request that triggered it.
+
+#### What it contains
+
+Users (with hashed passwords), groups & permissions, group memberships,
+libraries and their access lists, bookmarks, favorites, per-user browser
+settings, admin flags, timestamps, and online-tagging defaults.
+
+It deliberately does **not** mirror anything derivable from a filesystem
+re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
+credits, the full-text search index. Those rebuild themselves when the
+librarian re-imports your library.
+
+#### Backing it up
+
+Copy `user_data.sqlite` somewhere safe. The file is a single self-contained
+SQLite database; no companion files are required to restore from it (the
+`-wal`/`-shm` siblings, if present, can be left behind).
+
+You can copy it while Codex is running — SQLite's WAL mode guarantees a
+consistent snapshot — but for the cleanest backup, copy it while Codex is
+stopped.
+
+#### Restoring
+
+Two equivalent paths:
+
+**From the Admin Panel:** open the **Restore** tab and click _Restore Now_. A
+dry-run option reports what _would_ happen without writing.
+
+**From the command line:**
+
+```sh
+codex restore_user_data            # default sidecar in CODEX_CONFIG_DIR
+codex restore_user_data --dry-run  # report only
+codex restore_user_data --from /path/to/another/user_data.sqlite
+```
+
+Both paths are idempotent: re-running a restore on top of an already-restored
+database is safe. Rows whose targets can't be resolved (a deleted comic, a
+renamed tag) are logged to `restore_user_data.log` in your config directory
+and skipped — the operation never aborts.
+
+#### Migrating to a new host
+
+1. Stop the old Codex.
+2. Copy `user_data.sqlite` to the new host's config directory.
+3. Start Codex on the new host with your comics mounted at the same library
+   paths.
+4. Let the librarian finish its initial filesystem scan, then run
+   `codex restore_user_data` (or click _Restore Now_ in the admin panel).
+
+Bookmarks reattach by comic path, favorites by group name-chain (e.g.
+publisher → imprint → series), and tag filters by tag name. As long as your
+library paths and tag names match, everything reattaches.
+
 ### Private Libraries
 
 In the Admin Panel you may configure private libraries that are only accessible
@@ -324,8 +398,10 @@ port = 9810
 url_path_prefix = ""
 ```
 
-The config directory also holds the main sqlite database, a Django cache and
-comic book cover thumbnails.
+The config directory also holds the main sqlite database, the
+`user_data.sqlite` sidecar (see
+[Backup & Restore User Data](#-backup--restore-user-data)), a Django cache,
+and comic book cover thumbnails.
 
 ### Full `codex.toml` Reference
 
