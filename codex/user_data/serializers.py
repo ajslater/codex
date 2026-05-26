@@ -65,28 +65,6 @@ def serialize_user(user) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     )
 
 
-def serialize_user_auth(user_auth) -> tuple[str, tuple[str, ...], dict[str, Any]]:
-    """
-    UserAuth row → patch the user's age-rating column.
-
-    UserAuth is OneToOne with User. Rather than mirror UserAuth as a
-    standalone sidecar table, we patch the linked user's
-    ``age_rating_metron_name`` column. The user row must already exist
-    (UserAuth.user is non-null FK).
-    """
-    age_rating_name: str | None = None
-    if user_auth.age_rating_metron_id is not None:
-        age_rating_name = user_auth.age_rating_metron.name
-    return (
-        "users",
-        ("username",),
-        {
-            "username": user_auth.user.username,
-            "age_rating_metron_name": age_rating_name,
-        },
-    )
-
-
 def serialize_group(group) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     """Group row, with permissions and the GroupAuth.exclude flag."""
     permissions = sorted(
@@ -103,18 +81,6 @@ def serialize_group(group) -> tuple[str, tuple[str, ...], dict[str, Any]]:
             "permissions": json.dumps(permissions, separators=(",", ":")),
             "exclude": int(exclude),
             "updated_at": None,
-        },
-    )
-
-
-def serialize_group_auth(group_auth) -> tuple[str, tuple[str, ...], dict[str, Any]]:
-    """GroupAuth row → patch the group's exclude column."""
-    return (
-        "groups",
-        ("name",),
-        {
-            "name": group_auth.group.name,
-            "exclude": int(bool(group_auth.exclude)),
         },
     )
 

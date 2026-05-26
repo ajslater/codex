@@ -1,18 +1,20 @@
 """
-One-shot full dump of user data from the main DB into the sidecar.
+Snapshot every user-bound row from the main DB into the sidecar.
 
-Runs the first time the sidecar opens against an empty database — i.e.
-either a fresh install, or an upgrade from a pre-sidecar codex against
-an existing main DB. The signal-driven mirror covers steady-state
-writes; backfill catches everything that was already in place.
+The sidecar is **not** continuously mirrored. A dump is taken on demand
+(``POST /admin/dump-user-data``) and on a nightly schedule
+(:class:`JanitorDumpUserDataTask`). Each dump replaces the sidecar's
+contents wholesale — old rows that no longer exist in the main DB are
+cleared first so the snapshot is a true point-in-time copy.
 
-Idempotent: every write is an upsert keyed on a stable identifier, so
-re-running backfill is safe.
+A dump is small and fast (single-digit seconds even on large
+libraries): every tracked table is read once, serialized, and written.
+Restore reads it back via :mod:`codex.user_data.restore`.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from loguru import logger
 
@@ -22,11 +24,27 @@ from codex.user_data.store import get_store
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
+# Tables to truncate at the start of every dump. The schema also
+# defines ``schema_version``; that one is *not* truncated — it's the
+# bookkeeping row stamped by :func:`SidecarStore._ensure_schema`.
+_TRACKED_TABLES: Final[tuple[str, ...]] = (
+    "users",
+    "groups",
+    "user_groups",
+    "libraries",
+    "library_groups",
+    "bookmarks",
+    "favorites",
+    "settings_browser",
+    "settings_filters",
+    "settings_last_route",
+    "admin_flags",
+    "timestamps",
+    "tagging_defaults",
+)
 
-def _dump_queryset(
-    queryset: Iterable,
-    serializer: Callable,
-) -> int:
+
+def _dump_queryset(queryset: Iterable, serializer: Callable) -> int:
     """Serialize and upsert every row; return the count of successful writes."""
     written = 0
     store = get_store()
@@ -36,7 +54,7 @@ def _dump_queryset(
         except Exception:
             instance_name = type(instance).__name__
             logger.exception(
-                f"Sidecar backfill serialize failed for {instance_name} pk={instance.pk}"
+                f"Sidecar dump serialize failed for {instance_name} pk={instance.pk}"
             )
             continue
         if result is None:
@@ -45,17 +63,26 @@ def _dump_queryset(
         try:
             store.upsert(table, key_columns, data)
         except Exception:
-            logger.exception(f"Sidecar backfill upsert failed for {table!r}")
+            logger.exception(f"Sidecar dump upsert failed for {table!r}")
             continue
         written += 1
     return written
 
 
-def run_backfill() -> dict[str, int]:
-    """
-    Mirror every tracked main-DB row into the sidecar.
+def _clear_sidecar() -> None:
+    """Truncate every tracked table inside a single transaction."""
+    conn = get_store().connection()
+    with conn:
+        for table in _TRACKED_TABLES:
+            # Table names come from a static module-level tuple, not user input.
+            conn.execute(f"DELETE FROM {table}")  # noqa: S608
 
-    Returns a dict of table → row-count for logging.
+
+def dump_user_data() -> dict[str, int]:
+    """
+    Replace the sidecar with a fresh snapshot of every tracked main-DB row.
+
+    Returns a dict of table → row-count for logging / API response.
     """
     from django.contrib.auth import get_user_model
     from django.contrib.auth.models import Group
@@ -74,6 +101,8 @@ def run_backfill() -> dict[str, int]:
         SettingsBrowserLastRoute,
     )
 
+    _clear_sidecar()
+
     user_model = get_user_model()
     counts: dict[str, int] = {}
 
@@ -85,11 +114,11 @@ def run_backfill() -> dict[str, int]:
         user_model.objects.select_related("userauth__age_rating_metron"),
         serializers.serialize_user,
     )
-    counts["user_groups"] = _backfill_user_groups()
+    counts["user_groups"] = _dump_user_groups()
     counts["libraries"] = _dump_queryset(
         Library.objects.all(), serializers.serialize_library
     )
-    counts["library_groups"] = _backfill_library_groups()
+    counts["library_groups"] = _dump_library_groups()
     counts["admin_flags"] = _dump_queryset(
         AdminFlag.objects.select_related("age_rating_metron"),
         serializers.serialize_admin_flag,
@@ -127,7 +156,7 @@ def run_backfill() -> dict[str, int]:
     return counts
 
 
-def _backfill_user_groups() -> int:
+def _dump_user_groups() -> int:
     """Walk User.groups M2M and write each (username, group_name) pair."""
     from django.contrib.auth import get_user_model
 
@@ -144,13 +173,13 @@ def _backfill_user_groups() -> int:
                     {"username": user.username, "group_name": group.name},
                 )
             except Exception:
-                logger.exception("Sidecar backfill user_groups upsert failed")
+                logger.exception("Sidecar dump user_groups upsert failed")
                 continue
             written += 1
     return written
 
 
-def _backfill_library_groups() -> int:
+def _dump_library_groups() -> int:
     """Walk Library.groups M2M and write each (library_path, group_name)."""
     from codex.models.library import Library
 
@@ -166,27 +195,7 @@ def _backfill_library_groups() -> int:
                     {"library_path": str(library.path), "group_name": group.name},
                 )
             except Exception:
-                logger.exception("Sidecar backfill library_groups upsert failed")
+                logger.exception("Sidecar dump library_groups upsert failed")
                 continue
             written += 1
     return written
-
-
-def backfill_if_empty() -> dict[str, int] | None:
-    """
-    Run :func:`run_backfill` only when the sidecar has no data yet.
-
-    Called once at startup. Returns the counts dict if backfill ran,
-    ``None`` if the sidecar already had data (and backfill was skipped).
-    """
-    store = get_store()
-    try:
-        if not store.is_empty():
-            return None
-    except Exception:
-        logger.exception("Sidecar is_empty check failed")
-        return None
-    logger.info("Sidecar empty — running first-time backfill from main DB.")
-    counts = run_backfill()
-    logger.info(f"Sidecar backfill complete: {counts}")
-    return counts

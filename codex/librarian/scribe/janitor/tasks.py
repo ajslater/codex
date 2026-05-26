@@ -24,6 +24,10 @@ class JanitorBackupTask(JanitorTask):
     """Backup the database."""
 
 
+class JanitorDumpUserDataTask(JanitorTask):
+    """Snapshot the user-data sidecar from the main DB."""
+
+
 class JanitorVacuumTask(JanitorTask):
     """Vacuum the database."""
 

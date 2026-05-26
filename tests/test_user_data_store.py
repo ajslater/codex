@@ -20,7 +20,7 @@ class SidecarStoreTests(TestCase):
     @override
     def setUp(self) -> None:
         _TMP_DIR.mkdir(exist_ok=True, parents=True)
-        self.sidecar_path = _TMP_DIR / "user_data.sqlite"  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.sidecar_path = _TMP_DIR / "user_data.sqlite"
         # Pristine file for every test.
         for suffix in ("", "-wal", "-shm"):
             target = self.sidecar_path.with_name(self.sidecar_path.name + suffix)

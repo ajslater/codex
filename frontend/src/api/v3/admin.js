@@ -102,6 +102,10 @@ export const updateTaggingDefaults = (data) =>
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
 
+// Sidecar snapshot — replaces user_data.sqlite with a fresh dump of
+// every tracked main-DB row. Returns ``{ written: {table: count}, total }``.
+export const postDumpUserData = () => HTTP.post("/admin/dump-user-data");
+
 // Sidecar restore — see codex.user_data.restore.
 // dryRun=true walks the sidecar and reports what would happen without writing.
 export const postRestoreUserData = ({ dryRun = false } = {}) =>

@@ -14,6 +14,7 @@ from codex.views.admin.custom_cover import (
     AdminCustomCoverRemoveView,
     AdminCustomCoverUploadView,
 )
+from codex.views.admin.dump_user_data import AdminDumpUserDataView
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.library import (
@@ -191,6 +192,11 @@ urlpatterns = [
         "online-tag/<str:session_id>/skip-all-prompts",
         AdminOnlineTagSkipAllPromptsView.as_view(),
         name="online_tag_skip_all_prompts",
+    ),
+    path(
+        "dump-user-data",
+        AdminDumpUserDataView.as_view(),
+        name="dump_user_data",
     ),
     path(
         "restore-user-data",

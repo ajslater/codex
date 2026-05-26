@@ -296,6 +296,21 @@ export const useAdminStore = defineStore("admin", {
       }
     },
     /*
+     * Snapshot the user-data sidecar from the main DB. Returns
+     * ``{ written: {table: count}, total }`` or undefined on failure.
+     */
+    async dumpUserData() {
+      if (this._requireAdmin()) return;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.postDumpUserData();
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
+    },
+    /*
      * Trigger a sidecar → main-DB restore. Returns the report
      * payload ({ written, skipped, log_path, unmatched }) or
      * undefined on failure (errors land on the common store).

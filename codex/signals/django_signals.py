@@ -69,10 +69,3 @@ def connect_signals() -> None:
         from codex.failed_login_log import on_login_failed
 
         user_login_failed.connect(on_login_failed)
-
-    # User-data sidecar: mirror every user-bound row into a separate
-    # SQLite file that survives main-DB rebuilds. Handlers are
-    # best-effort and never raise into the request path.
-    from codex.user_data.signals import connect_user_data_signals
-
-    connect_user_data_signals()

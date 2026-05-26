@@ -67,6 +67,16 @@ class JanitorDBBackupStatus(JanitorStatus):
     SINGLE = True
 
 
+class JanitorDumpUserDataStatus(JanitorStatus):
+    """Janitor User-Data Sidecar Dump."""
+
+    CODE = "JDU"
+    VERB = "Snapshot"
+    _verbed = "Snapshotted"
+    ITEM_NAME = "user data sidecar"
+    SINGLE = True
+
+
 class JanitorCleanupSessionsStatus(JanitorStatus):
     """Janitor Cleanup Sessions Status."""
 
@@ -170,6 +180,7 @@ JANITOR_STATII = (
     JanitorCodexLatestVersionStatus,
     JanitorDBOptimizeStatus,
     JanitorDBBackupStatus,
+    JanitorDumpUserDataStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupBookmarksStatus,

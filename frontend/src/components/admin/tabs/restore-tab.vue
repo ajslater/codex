@@ -7,17 +7,59 @@
       </div>
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
-          Codex mirrors every user-bound row — accounts, bookmarks, favorites,
-          browser settings, library definitions, admin flags — into a separate
-          SQLite file alongside your config. If the main database is ever lost
-          or rebuilt from a filesystem scan, you can restore everything users
-          care about from this file.
+          Codex can snapshot every user-bound row — accounts, bookmarks,
+          favorites, browser settings, library definitions, admin flags — into a
+          separate SQLite file alongside your config. If the main database is
+          ever lost or rebuilt from a filesystem scan, you can restore
+          everything users care about from this snapshot.
         </p>
         <p class="adminCardDesc paragraph">
           The file lives at <code>user_data.sqlite</code> inside your Codex
-          config directory. Copy it offsite to back it up, or carry it to a new
-          host before re-importing your library.
+          config directory. A snapshot is taken automatically every night as
+          part of the Janitor sweep; you can also dump one on demand below. Copy
+          the file offsite to back it up, or carry it to a new host before
+          re-importing your library.
         </p>
+      </div>
+    </div>
+
+    <!-- Backup action -->
+    <div class="adminGroup">
+      <div class="adminGroupHeader">
+        <h3>Backup</h3>
+      </div>
+      <div class="adminCard">
+        <p class="adminCardDesc paragraph">
+          Replace the sidecar with a fresh snapshot of every user, bookmark,
+          favorite, and setting in the main database. Fast: usually completes in
+          a few seconds.
+        </p>
+        <div class="restoreActions">
+          <v-btn
+            :disabled="isDumping || isRestoring"
+            text="Snapshot Now"
+            @click="runDump"
+          />
+        </div>
+        <v-progress-linear
+          v-if="isDumping"
+          indeterminate
+          color="primary"
+          class="restoreProgress"
+        />
+      </div>
+      <div v-if="dumpReport" class="adminCard">
+        <h4 class="resultSubhead">Snapshot Result</h4>
+        <table v-if="dumpRows.length" class="resultTable">
+          <tr v-for="[label, count] in dumpRows" :key="label">
+            <td>{{ label }}</td>
+            <td class="resultCount">{{ count }}</td>
+          </tr>
+        </table>
+        <div v-else class="adminCardDesc">Nothing to snapshot.</div>
+        <div v-if="dumpReport.total !== undefined" class="adminCardDesc">
+          Total rows written: <strong>{{ dumpReport.total }}</strong>
+        </div>
       </div>
     </div>
 
@@ -39,7 +81,7 @@
             label="Dry run (report only, don't write)"
             hide-details
             density="compact"
-            :disabled="isRunning"
+            :disabled="isRestoring || isDumping"
           />
           <ConfirmDialog
             :key="dryRun ? 'dry' : 'live'"
@@ -48,12 +90,12 @@
             :text="confirmText"
             confirm-text="Restore"
             :block="false"
-            :disabled="isRunning"
+            :disabled="isRestoring || isDumping"
             @confirm="runRestore"
           />
         </div>
         <v-progress-linear
-          v-if="isRunning"
+          v-if="isRestoring"
           indeterminate
           color="primary"
           class="restoreProgress"
@@ -61,7 +103,7 @@
       </div>
     </div>
 
-    <!-- Result -->
+    <!-- Restore result -->
     <div v-if="report" class="adminGroup">
       <div class="adminGroupHeader">
         <h3>{{ resultTitle }}</h3>
@@ -124,8 +166,10 @@ export default {
       mdiChevronDown,
       mdiChevronUp,
       dryRun: false,
-      isRunning: false,
+      isRestoring: false,
+      isDumping: false,
       report: undefined,
+      dumpReport: undefined,
       showUnmatched: false,
     };
   },
@@ -147,6 +191,9 @@ export default {
     skippedRows() {
       return this.toRows(this.report?.skipped);
     },
+    dumpRows() {
+      return this.toRows(this.dumpReport?.written);
+    },
     unmatchedPreview() {
       const log = this.report?.unmatched ?? [];
       if (log.length <= UNMATCHED_PREVIEW_LIMIT) {
@@ -165,9 +212,20 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useAdminStore, ["restoreUserData"]),
+    ...mapActions(useAdminStore, ["dumpUserData", "restoreUserData"]),
+    async runDump() {
+      this.isDumping = true;
+      try {
+        const data = await this.dumpUserData();
+        if (data) {
+          this.dumpReport = data;
+        }
+      } finally {
+        this.isDumping = false;
+      }
+    },
     async runRestore() {
-      this.isRunning = true;
+      this.isRestoring = true;
       this.showUnmatched = false;
       const dryRun = this.dryRun;
       try {
@@ -176,7 +234,7 @@ export default {
           this.report = { ...data, _dryRun: dryRun };
         }
       } finally {
-        this.isRunning = false;
+        this.isRestoring = false;
       }
     },
     toRows(counts) {

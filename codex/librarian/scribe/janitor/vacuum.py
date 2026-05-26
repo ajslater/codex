@@ -7,6 +7,7 @@ from codex.librarian.scribe.janitor.integrity import JanitorIntegrity
 from codex.librarian.scribe.janitor.status import (
     JanitorDBBackupStatus,
     JanitorDBOptimizeStatus,
+    JanitorDumpUserDataStatus,
 )
 from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 
@@ -60,3 +61,26 @@ class JanitorVacuum(JanitorIntegrity):
         finally:
             if status:
                 self.status_controller.finish(status)
+
+    def dump_user_data_sidecar(self) -> None:
+        """
+        Snapshot every user-bound row into the user-data sidecar.
+
+        Reads the main DB only; the sidecar lives in a separate SQLite
+        file under ``CODEX_CONFIG_DIR``, so this doesn't compete for
+        ``db_write_lock`` with importers / vacuums on the main DB.
+        Failures are caught and logged — the nightly task should never
+        block the rest of the janitor pipeline on a sidecar problem.
+        """
+        from codex.user_data.dump import dump_user_data
+
+        status = JanitorDumpUserDataStatus()
+        try:
+            self.status_controller.start(status)
+            counts = dump_user_data()
+            total = sum(counts.values())
+            self.log.info(f"Snapshotted user data sidecar: {total} rows")
+        except Exception:
+            self.log.exception("Sidecar dump failed.")
+        finally:
+            self.status_controller.finish(status)

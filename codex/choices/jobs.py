@@ -55,6 +55,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "SIO",
     "JDO",
     "JDB",
+    "JDU",
     "CFO",
     "CRC",
 )
@@ -223,6 +224,16 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "title": "Backup Database",
                         "desc": "Runs nightly",
                         "statuses": ("JDB",),
+                    },
+                    {
+                        "value": "dump_user_data",
+                        "title": "Snapshot User Data Sidecar",
+                        "desc": (
+                            "Replace user_data.sqlite with a fresh snapshot of"
+                            " every user, bookmark, favorite, and setting."
+                            " Runs nightly."
+                        ),
+                        "statuses": ("JDU",),
                     },
                     {
                         "value": "db_foreign_key_check",

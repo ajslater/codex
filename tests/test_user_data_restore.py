@@ -21,6 +21,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.admin import AdminFlag, Timestamp
+from codex.user_data.dump import dump_user_data
 from codex.user_data.restore import restore
 from codex.user_data.store import SidecarStore, reset_store_for_tests
 
@@ -55,12 +56,13 @@ class _SidecarRestoreCase(TestCase):
 
     def _snapshot_sidecar(self) -> Path:
         """
-        Take a frozen copy of the live sidecar.
+        Dump the main-DB state to the sidecar; return a frozen copy.
 
-        Subsequent main-DB deletes will cascade through the sidecar
-        signals and wipe the live file; the snapshot is what we restore
+        Subsequent main-DB deletes won't touch the sidecar (we no longer
+        mirror via signals); the snapshot file is the artifact we restore
         from to simulate "main DB lost, sidecar intact."
         """
+        dump_user_data()
         # Force any pending WAL writes to flush.
         self.store.connection().execute("PRAGMA wal_checkpoint(FULL)")
         snapshot = _TMP_DIR / "config" / "snapshot.sqlite"
@@ -75,7 +77,7 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
     """Write → wipe → restore → compare."""
 
     def _seed_main_db(self) -> dict:
-        """Create a representative set of user-data rows. Mirroring is automatic."""
+        """Create a representative set of user-data rows in the main DB."""
         user = User.objects.create_user(
             username="alice", password=_TEST_PASSWORD, email="a@x"
         )
@@ -167,9 +169,10 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
     def test_restore_logs_unmatched_comic(self) -> None:
         seed = self._seed_main_db()
         snapshot = self._snapshot_sidecar()
-        # Comic deletion cascades the bookmark away in both main DB and
-        # sidecar — the snapshot above preserves the bookmark with its
-        # comic_path identifier; the restore can't resolve it.
+        # Snapshot captured the bookmark + its comic_path. Deleting the
+        # comic from the main DB doesn't touch the snapshot file; on
+        # restore the comic_path won't resolve and the bookmark is
+        # logged as unmatched.
         seed["comic"].delete()
 
         report = restore(sidecar_path=snapshot)

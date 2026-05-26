@@ -22,6 +22,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBFTSIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBOptimizeStatus,
+    JanitorDumpUserDataStatus,
 )
 from codex.librarian.scribe.janitor.tasks import (
     JanitorAdoptOrphanFoldersTask,
@@ -34,6 +35,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanupSettingsTask,
     JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
+    JanitorDumpUserDataTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
@@ -76,6 +78,7 @@ _JANITOR_STATII: Final = (
     SearchIndexOptimizeStatus,
     JanitorDBOptimizeStatus,
     JanitorDBBackupStatus,
+    JanitorDumpUserDataStatus,
     FindOrphanCoversStatus,
     RemoveCoversStatus,
 )
@@ -97,6 +100,7 @@ _NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
     SearchIndexOptimizeTask,
     JanitorVacuumTask,
     JanitorBackupTask,
+    JanitorDumpUserDataTask,
     CoverRemoveOrphansTask,
 )
 _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
@@ -114,6 +118,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorFTSIntegrityCheckTask: "fts_integrity_check",
         JanitorFTSRebuildTask: "fts_rebuild",
         JanitorNightlyTask: "queue_nightly_tasks",
+        JanitorDumpUserDataTask: "dump_user_data_sidecar",
     }
 )
 
