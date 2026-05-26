@@ -5,7 +5,8 @@ const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
 const MainReader = () => import("@/reader.vue");
-const AdminFlagsTab = () => import("@/components/admin/tabs/flag-tab.vue");
+const AdminSettingsTab = () =>
+  import("@/components/admin/tabs/settings-tab.vue");
 const AdminUsersTab = () => import("@/components/admin/tabs/user-tab.vue");
 const AdminGroupsTab = () => import("@/components/admin/tabs/group-tab.vue");
 const AdminLibrariesTab = () =>
@@ -17,8 +18,6 @@ const AdminRestoreTab = () => import("@/components/admin/tabs/restore-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
 const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
-const AdminThrottlingTab = () =>
-  import("@/components/admin/tabs/throttling-tab.vue");
 const ResetPasswordConfirm = () =>
   import("@/components/auth/reset-password-confirm.vue");
 
@@ -65,14 +64,13 @@ const routes = [
         path: "custom-covers",
         component: AdminCustomCoversTab,
       },
-      { name: "admin-flags", path: "flags", component: AdminFlagsTab },
+      {
+        name: "admin-settings",
+        path: "settings",
+        component: AdminSettingsTab,
+      },
       { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
       { name: "admin-email", path: "email", component: AdminEmailTab },
-      {
-        name: "admin-throttling",
-        path: "throttling",
-        component: AdminThrottlingTab,
-      },
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
       { name: "admin-restore", path: "restore", component: AdminRestoreTab },

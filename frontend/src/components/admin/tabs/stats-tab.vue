@@ -1,30 +1,12 @@
 <template>
   <div v-if="stats" id="stats">
     <StatsTable title="Platform" :items="platformTable" />
-    <StatsTable title="Config" :items="configTable">
-      <ClipBoard
-        class="apiKey"
-        tooltip="Copy API Key"
-        title="API Key"
-        :text="stats.config.apiKey"
-      />
-      <tr id="schemaDoc">
-        <td colspan="2">
-          <div>
-            The only endpoint accessible by API Key is
-            <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
-            <a :href="schemaHref" target="_blank">/admin/stats</a>
-          </div>
-          <ConfirmDialog
-            button-text="Regenerate API Key"
-            title-text="Regenerate"
-            text="API Key"
-            confirm-text="Regenerate"
-            @confirm="regenAPIKey"
-          />
-        </td>
-      </tr>
-    </StatsTable>
+    <!--
+      API Key + regenerate button moved to the Settings tab. The
+      stats payload still exposes ``stats.config.apiKey`` but the
+      Config table here drops it from the rendered keys.
+    -->
+    <StatsTable title="Config" :items="configTable" />
     <StatsTable title="User Settings" :items="userSettingsTable" />
     <StatsTable title="Browser Groups" :items="browserGroupsTable" />
     <StatsTable title="File Types" :items="fileTypesTable" />
@@ -37,12 +19,8 @@ import { mapActions, mapState } from "pinia";
 import { capitalCase, snakeCase } from "text-case";
 
 import StatsTable from "@/components/admin/tabs/stats-table.vue";
-import ClipBoard from "@/components/clipboard.vue";
-import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
-
-const API_TOOLTIP = "Copy API Key to clipboard";
 
 import { ORDER_BY, TOP_GROUP } from "@/choices/browser-map.json";
 import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
@@ -71,15 +49,11 @@ const INDENT_KEYS = Object.freeze(
 export default {
   name: "AdminStatsTab",
   components: {
-    ClipBoard,
-    ConfirmDialog,
     StatsTable,
   },
   data() {
     return {
       showTooltip: { show: false },
-      schemaHref:
-        globalThis.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
     };
   },
   computed: {
@@ -87,9 +61,6 @@ export default {
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
     }),
-    apiTooltip() {
-      return API_TOOLTIP ? this.clipBoardEnabled : undefined;
-    },
     platformTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.platform)) {
@@ -166,10 +137,7 @@ export default {
     this.loadStats();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadStats", "updateAPIKey"]),
-    regenAPIKey() {
-      this.updateAPIKey().then(this.loadStats).catch(console.warn);
-    },
+    ...mapActions(useAdminStore, ["loadStats"]),
     keyToLabel(key) {
       key = key.replace(/Count$/, "");
       return capitalCase(key);
@@ -177,43 +145,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-#schemaDoc {
-  font-size: small;
-  color: rgb(var(--v-theme-textSecondary));
-  background-color: rgb(var(--v-theme-background));
-}
-
-#schemaDoc > td {
-  padding-top: 15px;
-  border-bottom: none !important;
-}
-
-// Hack this component into a table row
-
-:deep(.clipboard) {
-  display: table-row;
-  background-image: linear-gradient(
-    0deg,
-    rgba(var(--v-border-color), var(--v-hover-opacity)),
-    rgba(var(--v-border-color), var(--v-hover-opacity))
-  );
-}
-
-:deep(.clipboard *) {
-  height: 52px;
-}
-
-:deep(.clipboard > .clipboardTitle) {
-  display: table-cell;
-  font-weight: normal;
-  font-size: 14px;
-  padding-left: 16px;
-}
-
-:deep(.clipboard > .bodyText) {
-  display: table-cell;
-  padding-right: 16px;
-}
-</style>

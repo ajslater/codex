@@ -1,4 +1,11 @@
 <template>
+  <!--
+    No ``adminContainer`` wrapper: that class caps width at 700px,
+    which suits a focused settings page but pinches the users table
+    on wide displays. The Groups tab does the same so the two
+    table-heavy tabs match. The flag-card help sections below
+    inherit the unconstrained width so they line up with the table.
+  -->
   <div>
     <header class="tabHeader">
       <AdminCreateUpdateDialog
@@ -6,18 +13,6 @@
         :inputs="AdminUserCreateUpdateInputs"
         max-width="20em"
       />
-      <!--
-        Anonymous-session ceiling is not stored per-user; it's the ``AA``
-        admin flag. Show the current value read-only here, and point at
-        the Flags tab where it's actually editable.
-      -->
-      <div class="anonAgeRating">
-        Anonymous sessions see up to:
-        <strong>{{ anonAgeRating }}</strong>
-        <span class="anonAgeRatingHint">
-          (set on the Flags tab as <em>Anonymous User Age Rating</em>.)
-        </span>
-      </div>
     </header>
     <AdminTable item-title="username" :headers="headers" :items="users">
       <template #no-data>
@@ -127,16 +122,38 @@
         Age-rating restrictions set a user's age rating ceiling. Comics that
         carry no age-rating tag are treated as if rated
         <strong>{{ ageRatingDefault }}</strong> &mdash; the current
-        <em>Age Rating Default</em>. You may adjust the default age rating for
-        comics with no age-rating tag (<em>Age Rating Default</em>) and the
-        anonymous session ceiling (<em>Anonymous User Age Rating</em>) on the
-        <em>Flags</em> tab.
+        <em>Age Rating Default</em> set below.
       </p>
-
       <p>
         <strong>Admins are not exempt.</strong> An admin with an Age Rating
         ceiling set cannot see comics above that ceiling.
       </p>
+    </div>
+    <!--
+      Account & Access controls live on the Users tab so admins can
+      change registration / verification / anonymous-access policy
+      next to the user list they affect. The Settings tab no longer
+      mirrors these.
+    -->
+    <div class="adminGroup">
+      <div class="adminGroupHeader">
+        <h3>Account &amp; Access</h3>
+      </div>
+      <FlagCard
+        v-for="key in ACCESS_FLAG_KEYS"
+        :key="`f${key}`"
+        :item-key="key"
+      />
+    </div>
+    <div class="adminGroup">
+      <div class="adminGroupHeader">
+        <h3>Age Ratings</h3>
+      </div>
+      <FlagCard
+        v-for="key in AGE_RATING_FLAG_KEYS"
+        :key="`f${key}`"
+        :item-key="key"
+      />
     </div>
   </div>
 </template>
@@ -151,10 +168,14 @@ import AdminUserCreateUpdateInputs from "@/components/admin/create-update-dialog
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
+import FlagCard from "@/components/admin/tabs/flag-card.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
+
+const ACCESS_FLAG_KEYS = Object.freeze(["RG", "RV", "NU"]);
+const AGE_RATING_FLAG_KEYS = Object.freeze(["AA", "AR"]);
 
 export default {
   name: "AdminUsersTab",
@@ -164,11 +185,14 @@ export default {
     ChangePasswordDialog,
     AdminCreateUpdateDialog,
     DateTimeColumn,
+    FlagCard,
     RelationChips,
   },
   data() {
     return {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
+      ACCESS_FLAG_KEYS,
+      AGE_RATING_FLAG_KEYS,
       mdiEmailArrowRightOutline,
       headers: [
         { title: "Username", key: "username", align: "start" },
@@ -195,15 +219,6 @@ export default {
       me: (state) => state.user,
       adminFlags: (state) => state.adminFlags,
     }),
-    /** Resolve the ``AA`` admin flag FK to a metron name (read-only display). */
-    anonAgeRating() {
-      /*
-       * ``AA`` / ``AR`` store a typed FK (``ageRatingMetron``), not a
-       * string. Fall back to the seeded default if the flag or the
-       * metron list hasn't loaded yet.
-       */
-      return this._flagMetronName("AA", "Adult");
-    },
     ageRatingDefault() {
       return this._flagMetronName("AR", "Everyone");
     },
@@ -211,8 +226,8 @@ export default {
   mounted() {
     /*
      * AgeRatingMetron populates the per-user dropdown and the column
-     * name resolver; Flag gives us the ``AA`` value to display. The
-     * admin flags from the auth store gate the "Resend verification"
+     * name resolver; Flag drives the FlagCard sections. The admin
+     * flags from the auth store gate the "Resend verification"
      * action button below.
      */
     this.loadTables(["Group", "User", "AgeRatingMetron", "Flag"]);
@@ -278,20 +293,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.anonAgeRating {
-  margin-top: 0.5em;
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: 0.9em;
-}
-
-.anonAgeRatingHint {
-  margin-left: 0.4em;
-  font-size: 0.85em;
-}
+@use "@/components/admin/tabs/admin-section.scss";
 
 #ageRatingHelp {
   margin-top: 2em;
   margin-bottom: 2em;
   color: rgb(var(--v-theme-textSecondary));
+  // Match ``.adminCardDesc`` so the help text reads at the same
+  // weight as the per-flag descriptions rendered right below.
+  font-size: 0.85em;
 }
 </style>

@@ -94,6 +94,9 @@ export const getAllLibrarianStatuses = () =>
 export const getStats = () =>
   HTTP.get("/admin/stats", { params: { ts: Date.now() } });
 
+export const getAPIKey = () =>
+  HTTP.get("/admin/api_key", { params: { ts: Date.now() } });
+
 export const updateAPIKey = () => HTTP.put("/admin/api_key");
 
 export const getTaggingDefaults = () =>

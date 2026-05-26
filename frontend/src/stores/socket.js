@@ -165,7 +165,11 @@ export const useSocketStore = defineStore("socket", () => {
 
   function adminFlagsNotified() {
     useAuthStore().loadAdminFlags();
-    if (currentRouteName() === "admin-flags") {
+    // ``Flag`` rows feed the Settings tab directly and the Users tab
+    // via the access / age-rating FlagCard sections. Both rely on the
+    // Pinia store list — reload whenever we're on either route.
+    const route = currentRouteName();
+    if (route === "admin-settings" || route === "admin-users") {
       adminLoadTables(["Flag"]);
     }
   }

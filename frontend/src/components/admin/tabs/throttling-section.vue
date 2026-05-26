@@ -1,39 +1,41 @@
+<!--
+  Throttling lives as a section on the Settings tab rather than its
+  own tab — its admin surface is small enough that a dedicated tab
+  was overkill. The outer ``adminContainer`` belongs to the parent
+  (settings-tab.vue); this component renders just the group.
+-->
 <template>
-  <div id="throttling" class="adminContainer">
-    <div v-if="!settings" class="adminGroup">
-      <v-progress-circular indeterminate />
+  <div v-if="!settings" class="adminGroup">
+    <v-progress-circular indeterminate />
+  </div>
+  <div v-else class="adminGroup">
+    <div class="adminGroupHeader">
+      <h3>Throttling</h3>
+      <p class="adminGroupHint">
+        Set to 0 to disable rate limiting for that scope.
+      </p>
     </div>
-    <template v-else>
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Rate Limits</h3>
-          <p class="adminGroupHint">
-            Set to 0 to disable rate limiting for that scope.
-          </p>
+    <div v-for="scope in scopes" :key="scope.key" class="adminCard">
+      <div class="adminCardHeader">
+        <div class="adminCardInfo">
+          <div class="adminCardTitle">{{ scope.title }}</div>
+          <div class="adminCardDesc">{{ scope.desc }}</div>
         </div>
-        <div v-for="scope in scopes" :key="scope.key" class="adminCard">
-          <div class="adminCardHeader">
-            <div class="adminCardInfo">
-              <div class="adminCardTitle">{{ scope.title }}</div>
-              <div class="adminCardDesc">{{ scope.desc }}</div>
-            </div>
-            <div class="adminCardActions">
-              <v-text-field
-                :model-value="settings[scope.key]"
-                type="number"
-                min="0"
-                max="65535"
-                :label="scope.unit"
-                hide-details="auto"
-                density="compact"
-                class="throttleField"
-                @update:model-value="save(scope.key, $event)"
-              />
-            </div>
-          </div>
+        <div class="adminCardActions">
+          <v-text-field
+            :model-value="settings[scope.key]"
+            type="number"
+            min="0"
+            max="65535"
+            :label="scope.unit"
+            hide-details="auto"
+            density="compact"
+            class="throttleField"
+            @update:model-value="save(scope.key, $event)"
+          />
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -76,7 +78,7 @@ const SCOPES = Object.freeze([
 ]);
 
 export default {
-  name: "AdminThrottlingTab",
+  name: "AdminThrottlingSection",
   data() {
     return {
       scopes: SCOPES,

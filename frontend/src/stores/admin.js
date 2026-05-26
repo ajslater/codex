@@ -32,8 +32,7 @@ export const TABS = Object.freeze([
   "Libraries",
   "Tagging",
   "Custom Covers",
-  "Throttling",
-  "Flags",
+  "Settings",
   "Jobs",
   "Restore",
   "Stats",
@@ -62,6 +61,7 @@ export const useAdminStore = defineStore("admin", {
     taggingDefaults: undefined,
     emailSettings: undefined,
     throttleSettings: undefined,
+    apiKey: "",
     activeTab: "Libraries",
   }),
   getters: {
@@ -260,10 +260,20 @@ export const useAdminStore = defineStore("admin", {
         }
       }
     },
+    async loadAPIKey() {
+      if (this._requireAdmin()) return false;
+      await API.getAPIKey()
+        .then((response) => {
+          this.apiKey = response.data?.apiKey ?? "";
+          return true;
+        })
+        .catch(console.warn);
+    },
     async updateAPIKey() {
       if (this._requireAdmin()) return false;
       await API.updateAPIKey()
-        .then(() => {
+        .then((response) => {
+          this.apiKey = response.data?.apiKey ?? this.apiKey;
           return true;
         })
         .catch(console.warn);

@@ -126,4 +126,9 @@ class AdminStatsRequestSerializer(Serializer):
 class APIKeySerializer(Serializer):
     """API Key."""
 
-    api_key = CharField(source="name", read_only=True)
+    # The API key is the ``version`` column on the ``API_KEY`` Timestamp
+    # row — set by :meth:`Timestamp.save_uuid_version`. ``name`` was a
+    # leftover from a pre-Timestamp model and rendered as an empty
+    # string, which masked itself until the only consumer (the Stats
+    # endpoint) sidestepped this serializer.
+    api_key = CharField(source="version", read_only=True)
