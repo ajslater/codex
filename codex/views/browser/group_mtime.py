@@ -123,9 +123,22 @@ class BrowserGroupMtimeView(BrowserFilterView):
         mbua = self.get_max_bookmark_updated_at_aggregate(
             model, default=EPOCH_START_DATETIMEFIELD
         )
+        # Folding the linked ``CustomCover.updated_at`` into the
+        # aggregate makes a cover upload (which never touches a Comic
+        # row) bump the group's reported mtime — without this, the
+        # frontend's ``loadMtimes`` shortcut sees an unchanged value
+        # after a COVERS broadcast and never triggers the page reload.
+        # ``model.custom_cover`` is the (inherited) FK on every
+        # ``BrowserGroupModel`` subclass; ``Comic`` is the only model
+        # we route through this view that lacks it.
+        agg_terms = [mua, mbua]
+        if any(f.name == "custom_cover" for f in model._meta.get_fields()):
+            agg_terms.append(
+                Max("custom_cover__updated_at", default=EPOCH_START_DATETIMEFIELD)
+            )
 
         try:
-            qs = qs.annotate(max=Greatest(mua, mbua))
+            qs = qs.annotate(max=Greatest(*agg_terms))
             # Forcing inner joins makes search work
             # Can't run demote_joins on aggregate.
             qs = self.force_inner_joins(qs)
