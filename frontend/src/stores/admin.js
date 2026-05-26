@@ -30,11 +30,11 @@ export const TABS = Object.freeze([
   "Groups",
   "Libraries",
   "Custom Covers",
-  "Flags",
   "Tagging",
+  "Flags",
   "Jobs",
-  "Stats",
   "Restore",
+  "Stats",
 ]);
 
 export const UNRESTRICTED_LABEL = "Adult";
