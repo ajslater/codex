@@ -28,10 +28,10 @@ const TABLE_TTL_MS = Object.freeze({
 export const TABS = Object.freeze([
   "Users",
   "Groups",
-  "Libraries",
-  "Custom Covers",
-  "Tagging",
   "Email",
+  "Libraries",
+  "Tagging",
+  "Custom Covers",
   "Throttling",
   "Flags",
   "Jobs",
