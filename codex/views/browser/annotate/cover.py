@@ -87,8 +87,13 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         """Correlated subquery returning a CustomCover pk, if applicable."""
         if not self.params.get("custom_covers"):
             return None
-        group = self.kwargs.get("group")
-        group_rel = CUSTOM_COVER_GROUP_RELATION.get(group)
+        # ``model_group`` is the group the cards being annotated belong to
+        # (the *child* of the URL group). ``kwargs["group"]`` is the URL
+        # group itself, which is one level too high for the cover lookup —
+        # e.g. on ``/r/0/1`` the URL group is ``r`` but the cards are
+        # publishers, so the relation we need is ``publisher``, not the
+        # (nonexistent) ``r`` entry.
+        group_rel = CUSTOM_COVER_GROUP_RELATION.get(self.model_group)
         if not group_rel:
             return None
         qs = CustomCover.objects.filter(**{group_rel: OuterRef("pk")}).values("pk")[:1]
