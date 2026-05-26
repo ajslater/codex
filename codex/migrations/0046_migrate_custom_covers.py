@@ -64,7 +64,7 @@ def _resolve_slug(cover, apps) -> str:
 def _new_path(cover, slug: str) -> Path:
     """Build the new uploads/-rooted path for a cover row."""
     ext = Path(cover.path).suffix.lower() or ".jpg"
-    stem = f"{cover.pk}-{cover.group}"
+    stem = f"{cover.group}-{cover.pk}"
     if slug:
         stem = f"{stem}-{slug}"
     return CUSTOM_COVERS_UPLOADS_DIR / f"{stem}{ext}"

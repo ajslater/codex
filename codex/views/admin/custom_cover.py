@@ -198,7 +198,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover.path = str(placeholder)
             cover.save()
 
-            stem = f"{cover.pk}-{group_char}"
+            stem = f"{group_char}-{cover.pk}"
             if slug:
                 stem = f"{stem}-{slug}"
             final_path = CUSTOM_COVERS_UPLOADS_DIR / f"{stem}{ext}"

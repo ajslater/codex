@@ -260,20 +260,20 @@ settings, admin flags, timestamps, and online-tagging defaults.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
-credits, the full-text search index. Those rebuild themselves when the
-librarian re-imports your library.
+credits, the full-text search index. Those rebuild themselves when the librarian
+re-imports your library.
 
 #### Taking a snapshot
 
 The sidecar is **not** continuously updated. A snapshot is taken:
 
-- automatically every night, as part of the existing Janitor sweep (right
-  after the database backup); and
+- automatically every night, as part of the existing Janitor sweep (right after
+  the database backup); and
 - on demand, whenever you click **Snapshot Now** on the Admin Panel's
   **Restore** tab, or run `Snapshot User Data Sidecar` from the Jobs tab.
 
-Each snapshot **replaces** the previous contents — the file is always a
-true point-in-time mirror of the main DB, never a partial log.
+Each snapshot **replaces** the previous contents — the file is always a true
+point-in-time mirror of the main DB, never a partial log.
 
 #### Backing it up offsite
 
@@ -301,8 +301,8 @@ codex restore_user_data --from /path/to/another/user_data.sqlite
 
 Both paths are idempotent: re-running a restore on top of an already-restored
 database is safe. Rows whose targets can't be resolved (a deleted comic, a
-renamed tag) are logged to `restore_user_data.log` in your config directory
-and skipped — the operation never aborts.
+renamed tag) are logged to `restore_user_data.log` in your config directory and
+skipped — the operation never aborts.
 
 #### Migrating to a new host
 
@@ -314,9 +314,9 @@ and skipped — the operation never aborts.
 5. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, favorites by group name-chain (e.g.
-publisher → imprint → series), and tag filters by tag name. As long as your
-library paths and tag names match, everything reattaches.
+Bookmarks reattach by comic path, favorites by group name-chain (e.g. publisher
+→ imprint → series), and tag filters by tag name. As long as your library paths
+and tag names match, everything reattaches.
 
 ### Private Libraries
 
@@ -407,10 +407,9 @@ port = 9810
 url_path_prefix = ""
 ```
 
-The config directory also holds the main sqlite database, the
-`user_data.sqlite` sidecar (see
-[Backup & Restore User Data](#-backup--restore-user-data)), a Django cache,
-and comic book cover thumbnails.
+The config directory also holds the main sqlite database, the `user_data.sqlite`
+sidecar (see [Backup & Restore User Data](#-backup--restore-user-data)), a
+Django cache, and comic book cover thumbnails.
 
 ### Full `codex.toml` Reference
 

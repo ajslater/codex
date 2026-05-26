@@ -11,7 +11,7 @@ This requires shell or filesystem access and is opaque to non-admins. The `cover
 
 End state:
 - Admins click "Upload Cover" on any card's 3-dot menu, pick a file, the card updates.
-- Originals live in `config/custom-covers/uploads/{pk}-{group-char}-{slug}.{ext}` — pk-keyed for uniqueness, with a human-readable group char and slug for browseability.
+- Originals live in `config/custom-covers/uploads/{group-char}-{pk}-{slug}.{ext}` — pk-keyed for uniqueness, with a human-readable group char and slug for browseability.
 - Thumbnails continue to live in `cache/custom-covers/` (existing pipeline unchanged).
 - The legacy `config/custom-covers/{group}/` watch is removed; existing files migrate once.
 - `.codex-cover.{ext}` discovery inside library folders is removed; existing files migrate once.
@@ -20,7 +20,7 @@ End state:
 
 ## Decisions
 
-1. **Storage scheme**: `config/custom-covers/uploads/{pk}-{group-char}-{slug}.{ext}` — pk guarantees uniqueness; `{group-char}` and `{slug}` are informational for filesystem readability.
+1. **Storage scheme**: `config/custom-covers/uploads/{group-char}-{pk}-{slug}.{ext}` — pk guarantees uniqueness; `{group-char}` and `{slug}` are informational for filesystem readability.
 2. **Legacy mechanism**: one-time migration of `config/custom-covers/{group}/` and `.codex-cover.{ext}` into the uploads dir, then **remove** both filesystem-watch branches.
 3. **Library.covers_only**: remove the field and every consumer; the synthetic covers-only library row is deleted; `CustomCover.library` FK is dropped (nullable then dropped, since uploads don't belong to any library).
 4. **Upload surfaces**: card action menu (upload + remove). Plus a new top-level admin tab for browse/delete (view-only of existing covers, no upload from there in this pass).
@@ -33,7 +33,7 @@ End state:
 
 | Kind | Location | Naming |
 |---|---|---|
-| Upload originals | `config/custom-covers/uploads/` | `{pk}-{group_char}-{slug}.{ext}` |
+| Upload originals | `config/custom-covers/uploads/` | `{group_char}-{pk}-{slug}.{ext}` |
 | Cache thumbnails | `cache/custom-covers/` | hex-sharded by pk, `.webp`, 165×254 (existing) |
 
 - `group_char` is `p|i|s|v|a|f` matching `CustomCover.GroupChoices` (`v` added — see Volume section).
@@ -94,7 +94,7 @@ Three Django migrations in `codex/migrations/`:
 2. **Data** (`RunPython`):
    - For each `CustomCover` row whose `path` is not already under `config/custom-covers/uploads/`:
      - Resolve `group_char` from `group`; resolve `slug` from the linked group's `sort_name` (lookup via `CLASS_CUSTOM_COVER_GROUP_MAP`), or from folder basename, or empty.
-     - Compute `new_path = CUSTOM_COVERS_UPLOADS_DIR / f"{pk}-{group_char}-{slug}{ext}"` (or without `-{slug}` if empty).
+     - Compute `new_path = CUSTOM_COVERS_UPLOADS_DIR / f"{group_char}-{pk}-{slug}{ext}"` (or without `-{slug}` if empty).
      - Move file with `shutil.move()` (handles cross-device); skip rows whose source file is missing and log.
      - `cover.path = str(new_path); cover.library = None; cover.save()`.
    - Walk the legacy `config/custom-covers/{publishers,imprints,series,story-arcs}/` dirs, `.codex-cover.{ext}` files in library trees referenced by any remaining-pre-migration rows, and unlink any orphan files. Best-effort; non-fatal.

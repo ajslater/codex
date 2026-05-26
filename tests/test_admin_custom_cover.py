@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 from http import HTTPStatus
+from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
@@ -59,6 +60,13 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert cover.group == "p"
         assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
+        # Naming convention: ``{group_char}-{pk}-{slug}.{ext}``. Sortable
+        # by group on disk and trivially scannable for a given linked
+        # group; slug uses the linked row's sort_name.
+        filename = Path(cover.path).name
+        assert filename.startswith(f"p-{pk}-")
+        assert filename.endswith(".png")
+        assert "marvel" in filename
         self.publisher.refresh_from_db()
         assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue]
 
