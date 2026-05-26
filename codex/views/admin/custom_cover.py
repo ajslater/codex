@@ -19,6 +19,7 @@ from rest_framework.response import Response
 
 from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_GROUP_MAP
 from codex.models import CustomCover
 from codex.serializers.admin.custom_cover import CustomCoverSerializer
@@ -124,6 +125,11 @@ def _enqueue_thumb_create(pk: int) -> None:
     LIBRARIAN_QUEUE.put(CoverCreateTask((pk,), custom=True))
 
 
+def _notify_covers_changed() -> None:
+    """Broadcast a ``COVERS`` event so connected browsers refresh."""
+    LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
+
+
 def _swap_links(model, pks: tuple[int, ...], cover: CustomCover) -> tuple[int, ...]:
     """Point each target's ``custom_cover`` at ``cover``; return displaced cover pks."""
     displaced = tuple(
@@ -210,6 +216,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
 
         _purge_orphaned(displaced)
         _enqueue_thumb_create(cover.pk)
+        _notify_covers_changed()
 
         return Response(
             {"customCoverPk": cover.pk},
@@ -236,6 +243,7 @@ class AdminCustomCoverRemoveView(AdminAPIView):
         with transaction.atomic():
             model.objects.filter(pk__in=pks).update(custom_cover=None)
         _purge_orphaned(tuple(set(displaced)))
+        _notify_covers_changed()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -256,6 +264,7 @@ class AdminCustomCoverDeleteView(AdminAPIView):
             _delete_cover_files(cover)
             cover.delete()
         _enqueue_thumb_purge((pk,))
+        _notify_covers_changed()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

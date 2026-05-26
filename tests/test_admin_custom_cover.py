@@ -15,6 +15,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from PIL import Image
 
+from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.models import CustomCover, Imprint, Publisher, Series, Volume
 from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
 
@@ -48,7 +49,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         )
 
     @patch(_QUEUE_PATCH)
-    def test_upload_happy_path(self, mock_queue) -> None:  # noqa: ARG002
+    def test_upload_happy_path(self, mock_queue) -> None:
         """A valid PNG creates the row, writes to uploads/, links the group."""
         response = self.client.post(
             "/api/v3/admin/custom-cover",
@@ -69,6 +70,10 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert "marvel" in filename
         self.publisher.refresh_from_db()
         assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue]
+        # COVERS notification fans out to the WebSocket so connected
+        # browsers refresh the changed card without a manual reload.
+        enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
+        assert COVERS_CHANGED_TASK in enqueued
 
     @patch(_QUEUE_PATCH)
     def test_non_admin_forbidden(self, mock_queue) -> None:  # noqa: ARG002
