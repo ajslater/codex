@@ -147,6 +147,22 @@ export const useSocketStore = defineStore("socket", () => {
     }
   }
 
+  /*
+   * Skip the ``loadMtimes`` mtime gate and pull a fresh page.
+   * ``COVERS`` events fire precisely because a cover row changed; the
+   * card data the previous response handed us is stale by definition,
+   * and the page mtime aggregate doesn't always observe the right
+   * write (e.g. a fresh ``CustomCover`` row that swaps the linked FK).
+   * Forcing a fetch with a fresh ``ts`` query sidesteps any
+   * server-side cachalot caching too.
+   */
+  function forceReloadBrowser() {
+    if (currentRouteName() !== "browser") return;
+    const store = useBrowserStore();
+    store.browserPageLoaded = true;
+    store.loadBrowserPage(Date.now());
+  }
+
   function adminFlagsNotified() {
     useAuthStore().loadAdminFlags();
     if (currentRouteName() === "admin-flags") {
@@ -212,7 +228,7 @@ export const useSocketStore = defineStore("socket", () => {
         break;
       case messages.COVERS:
         useCommonStore().setTimestamp();
-        reloadBrowser();
+        forceReloadBrowser();
         break;
       case messages.GROUPS:
         groupsNotified();
