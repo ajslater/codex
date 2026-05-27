@@ -1,4 +1,5 @@
-"""JSON:API renderer + parser wiring for v4 admin resources.
+"""
+JSON:API renderer + parser wiring for v4 admin resources.
 
 Resource endpoints under ``/api/v4/admin/*`` (users, groups, libraries,
 flags, failed-imports, custom-covers, age-ratings) render in JSON:API
@@ -20,7 +21,8 @@ from rest_framework_json_api.renderers import (
 
 
 class V4AdminJSONAPIRenderer(_JsonApiJSONRenderer):
-    """Render admin responses in JSON:API; also serve under ``application/json``.
+    """
+    Render admin responses in JSON:API; also serve under ``application/json``.
 
     Override ``media_type`` so DRF's content-negotiation picks this
     renderer for clients sending the standard JSON Accept header
@@ -33,7 +35,8 @@ class V4AdminJSONAPIRenderer(_JsonApiJSONRenderer):
 
 
 class V4AdminJSONAPIParser(_JsonApiJSONParser):
-    """Parse JSON:API request bodies under both media types.
+    """
+    Parse JSON:API request bodies under both media types.
 
     ``application/json`` rather than the spec's
     ``application/vnd.api+json`` mirrors the renderer override above

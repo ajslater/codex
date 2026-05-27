@@ -130,9 +130,7 @@ def _notify_covers_changed(
     *, collection: str | None = None, ids: tuple[int, ...] = ()
 ) -> None:
     """Broadcast a ``covers.changed`` event scoped to the touched targets."""
-    LIBRARIAN_QUEUE.put(
-        covers_changed_task(collection=collection, ids=ids or None)
-    )
+    LIBRARIAN_QUEUE.put(covers_changed_task(collection=collection, ids=ids or None))
 
 
 def _swap_links(model, pks: tuple[int, ...], cover: CustomCover) -> tuple[int, ...]:

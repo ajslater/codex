@@ -25,7 +25,8 @@ ENVELOPE_KEYS = frozenset({"data", "meta", "errors"})
 
 
 class V4CursorPagination(CursorPagination):
-    """v4 cursor pagination for admin lists.
+    """
+    v4 cursor pagination for admin lists.
 
     Page-number stays for browser views; admin uses cursor so the
     front-end can stream large user/library/cover lists without

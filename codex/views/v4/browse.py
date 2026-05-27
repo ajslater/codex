@@ -102,9 +102,20 @@ class V4BrowseView(_V4BrowseTranslateMixin, BrowserView):
     Card or table mode is selected by ``view_mode`` on the user's
     settings row (or the ``?view_mode=`` override) — same behavior as
     v3. Page number comes from ``?page=`` (v3 had it in the path).
+
+    The v4 serializer (:class:`V4BrowserPageSerializer`) strips the
+    off-mode fields from the response so card requests skip ``rows``
+    and table requests skip ``groups`` / ``books``.
     """
 
     requires_page = True
+
+    @override
+    def get_serializer_class(self):
+        """Defer the v4 import; matches the metadata view pattern."""
+        from codex.serializers.v4.browse import V4BrowserPageSerializer
+
+        return V4BrowserPageSerializer
 
 
 class V4BrowseChoicesView(_V4BrowseTranslateMixin, BrowserChoicesAvailableView):

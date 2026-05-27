@@ -17,8 +17,8 @@ v3 store is gone with the rest of v3.
 from rest_framework.response import Response
 
 from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
-from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.api_key import AdminAPIKey
+from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.custom_cover import (
     AdminCustomCoverDeleteView,
     AdminCustomCoverListView,
@@ -63,7 +63,8 @@ from codex.views.v4.json_api import V4AdminJSONAPIParser, V4AdminJSONAPIRenderer
 
 
 class _V4AdminMixin:
-    """All v4 admin endpoints wear the envelope renderer.
+    """
+    All v4 admin endpoints wear the envelope renderer.
 
     ``pagination_class`` is the v4 cursor paginator: viewset list
     actions return ``{count?, next, previous, results}`` (the
@@ -82,7 +83,8 @@ class _V4AdminMixin:
 
 
 class _V4AdminJsonApiMixin(_V4AdminMixin):
-    """JSON:API renderer + parser for v4 admin *resource* viewsets.
+    """
+    JSON:API renderer + parser for v4 admin *resource* viewsets.
 
     Wires :mod:`codex.views.v4.json_api` so list/detail responses
     ship as JSON:API ``{data: {type, id, attributes, relationships}}``
@@ -91,7 +93,7 @@ class _V4AdminJsonApiMixin(_V4AdminMixin):
     doesn't fit verb endpoints.
     """
 
-    renderer_classes = (V4AdminJSONAPIRenderer,)
+    renderer_classes = (V4AdminJSONAPIRenderer,)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     parser_classes = (V4AdminJSONAPIParser,)
 
 
@@ -123,10 +125,13 @@ class V4AdminUserBulkView(_V4AdminMixin, AdminAPIView):
 
     def post(self, request, *_args, **_kwargs) -> Response:
         """Apply the bulk action."""
+        from django.contrib.auth import get_user_model
         from rest_framework.exceptions import ValidationError as DRFValidationError
 
+        from codex.librarian.mp_queue import LIBRARIAN_QUEUE
         from codex.librarian.notifier.tasks import users_changed_task
-        from codex.models import User as UserModel
+
+        user_model = get_user_model()
 
         action = request.data.get("action")
         ids_raw = request.data.get("ids") or []
@@ -148,15 +153,13 @@ class V4AdminUserBulkView(_V4AdminMixin, AdminAPIView):
                 skipped.append({"id": pk, "reason": "self"})
                 continue
             try:
-                user = UserModel.objects.get(pk=pk)
-            except UserModel.DoesNotExist:
+                user = user_model.objects.get(pk=pk)
+            except user_model.DoesNotExist:
                 skipped.append({"id": pk, "reason": "not_found"})
                 continue
             user.delete()
             deleted.append(pk)
         if deleted:
-            from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-
             LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
         return Response({"deleted": deleted, "skipped": skipped})
 

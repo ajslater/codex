@@ -201,12 +201,17 @@ class BrowserOrderByIntegrationTestCase(TestCase):
     def _browse_comics(self) -> list[int]:
         # Browse the Series containing the alpha comics; with the default
         # ``show.v == False`` the response flattens to direct comic books.
+        # v4 strips ``books`` from table-mode responses and ``rows`` from
+        # cover-mode responses (tasks/api-v4.md Phase 3); read whichever
+        # the active view mode emits so callers can pick the mode that
+        # exercises the behavior under test.
         series_a = Series.objects.get(name="Alpha")
         url = f"/api/v4/browse/series/{series_a.pk}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         body = _v4(response)
-        return [book["pk"] for book in body.get("books", [])]
+        items = body.get("books") or body.get("rows") or []
+        return [item["pk"] for item in items]
 
     def test_year_ordering_smoke(self) -> None:
         """Sorting comics by year doesn't error and returns the expected pks."""
@@ -304,7 +309,10 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
-        # Desc extra → larger child_count first.
+        # Desc extra → larger child_count first. Extras only apply in
+        # table view (cover dropdown can't add them); v4 strips
+        # ``groups`` from table responses so the assertions read the
+        # ``name`` projection off ``rows`` (tasks/api-v4.md Phase 3).
         self._patch_settings(
             {
                 "viewMode": "table",
@@ -315,7 +323,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         assert names == ["Alpha", "Beta"], names
 
         # Asc extra → smaller child_count first.
@@ -330,7 +338,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_multi_column_sort_filename_extra(self) -> None:
@@ -389,8 +397,12 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        # Cover view exercises the same ``annotate_order_value`` path
+        # for the simple-FK regression this test guards; v4 strips
+        # ``groups`` from table-mode responses (tasks/api-v4.md Phase 3)
+        # so we'd otherwise need to read from ``rows`` instead.
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "tagger", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "tagger", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
@@ -411,10 +423,13 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # (23). Cumulative scalars (page_count, size) intentionally
         # use ``Sum`` rather than intersection because the cover-view
         # card already shows the running total — table view matches.
+        # Either ``viewMode`` exercises the same Sum aggregate; use
+        # cover so the v4 response retains ``groups`` (table-mode strips
+        # them — tasks/api-v4.md Phase 3).
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "page_count", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "page_count", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
@@ -472,9 +487,15 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
 
         # Browse the root (top_group=p so each row is a publisher).
+        # Use cover view: the assertion below describes Min aggregate
+        # semantics (table mode would route through intersection,
+        # giving NULL for ZZ Press with mixed taggers). v4 strips
+        # ``groups`` from table responses (tasks/api-v4.md Phase 3),
+        # so cover is both the assertion-correct mode and the one
+        # that keeps ``groups`` in the payload.
         self._patch_settings(
             {
-                "viewMode": "table",
+                "viewMode": "cover",
                 "topGroup": "p",
                 "orderBy": "tagger",
                 "orderReverse": False,
@@ -579,10 +600,12 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
         # Browse top-level folders (parent_folder=NULL). Folder view
         # uses the ``folders`` collection; omitted parent_ids means
-        # root (top-level folders).
+        # root (top-level folders). View mode stays cover so the
+        # response carries ``groups`` (v4 strips ``groups``/``books``
+        # from table-mode responses — tasks/api-v4.md Phase 3).
         self._patch_settings(
             {
-                "viewMode": "table",
+                "viewMode": "cover",
                 "topGroup": "f",
                 "orderBy": "year",
                 "orderReverse": True,
@@ -661,7 +684,10 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        # Intersection sort is the table-mode behavior under test; v4
+        # strips ``groups`` from table responses so read the projection
+        # off ``rows`` (tasks/api-v4.md Phase 3).
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         # Beta (2021) before Alpha (2020); Mixed last because its
         # intersection-sort key is NULL.
         assert names == ["Beta", "Alpha", "Mixed"], names
@@ -736,11 +762,14 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """Min aggregate over a direct integer field (``year``) sorts correctly."""
         # Alpha has two comics, both year=2020 → Min year = 2020.
         # Beta has one comic, year=2021 → Min year = 2021.
-        # Asc → Alpha (2020) first, Beta (2021) second.
+        # Asc → Alpha (2020) first, Beta (2021) second. Both children
+        # of each group share their year, so intersection (table mode)
+        # and Min aggregate (cover mode) agree; use cover so v4 keeps
+        # ``groups`` in the response (tasks/api-v4.md Phase 3).
         publisher = Publisher.objects.get(name="ZZ Press")
         url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "year", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "year", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
@@ -772,7 +801,10 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        # Table-mode column-projection is exactly what this test
+        # exercises; v4 strips ``groups`` from table responses so read
+        # ``name`` off ``rows`` (tasks/api-v4.md Phase 3).
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         # Year intersection: Alpha=2020 (matched), Beta=2021 (single).
         # ASC → Alpha (2020) before Beta (2021).
         assert names == ["Alpha", "Beta"], names

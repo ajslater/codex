@@ -187,21 +187,23 @@ class BrowserTablePageResponseTestCase(TestCase):
             page_count=20,
         )
 
-    def test_cover_view_returns_cards_with_empty_rows(self) -> None:
-        """Cover mode: ``rows`` is present but empty; cards are populated."""
+    def test_cover_view_returns_cards_without_rows(self) -> None:
+        """Cover mode: cards present, ``rows`` stripped from the response."""
         body = self._browse_series()
         assert "books" in body
-        # ``rows`` is always emitted by the unified serializer for client
-        # round-tripping; in cover mode it's just an empty list.
-        assert body.get("rows") == []
+        # v4 strips ``rows`` from cover-mode responses ("pick card or
+        # table, not both at once" — tasks/api-v4.md Phase 3).
+        assert "rows" not in body
 
-    def test_table_view_returns_rows_alongside_cards(self) -> None:
-        """Table mode: both ``rows`` (table) and cards (mobile fallback)."""
+    def test_table_view_returns_rows_without_cards(self) -> None:
+        """Table mode: ``rows`` present, cards stripped from the response."""
         self._set_view_mode_table()
         body = self._browse_series(columns="cover,name,issue")
-        # Cards stay populated so the mobile auto-fallback can use them
-        # without a second round-trip.
-        assert "books" in body
+        # v4 strips ``groups`` / ``books`` from table-mode responses; the
+        # mobile auto-fallback re-fetches with ``?view_mode=card`` if it
+        # wants the card shape.
+        assert "books" not in body
+        assert "groups" not in body
         rows = body["rows"]
         assert len(rows) == 1
         row = rows[0]

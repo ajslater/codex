@@ -89,9 +89,7 @@ def failed_imports_changed_task(library=None) -> NotifierTask:
     if library is not None:
         scope["libraryIds"] = [library.pk]
         mtime = _ts_ms(getattr(library, "updated_at", None))
-    return replace(
-        FAILED_IMPORTS_CHANGED_TASK, mtime=mtime or _now_ms(), scope=scope
-    )
+    return replace(FAILED_IMPORTS_CHANGED_TASK, mtime=mtime or _now_ms(), scope=scope)
 
 
 def covers_changed_task(

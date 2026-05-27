@@ -133,7 +133,5 @@ class TimestampUpdater(WorkerStatusBase):
         # invalidate any library view; ``mtime`` is the start of this
         # update pass so older mtime probes resolve correctly.
         self.librarian_queue.put(
-            replace(
-                LIBRARY_CHANGED_TASK, mtime=int(start_time.timestamp() * 1000)
-            )
+            replace(LIBRARY_CHANGED_TASK, mtime=int(start_time.timestamp() * 1000))
         )
