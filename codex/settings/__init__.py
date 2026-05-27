@@ -327,6 +327,7 @@ class FeatureFlags(NamedTuple):
     django_vite: bool
     schema_graph: bool
     vite_hmr: bool
+    api_v4: bool
 
 
 FEATURES = FeatureFlags(
@@ -338,6 +339,7 @@ FEATURES = FeatureFlags(
     django_vite=not BUILD,
     schema_graph=DEBUG,
     vite_hmr=VITE_HMR,
+    api_v4=not_falsy_env("CODEX_API_V4"),
 )
 
 ############

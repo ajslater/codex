@@ -23,6 +23,7 @@ dependencies = [
   "django-rest-registration~=0.9",
   "django-vite~=3.1",
   "djangorestframework-camel-case~=1.4",
+  "djangorestframework-jsonapi~=8.1",
   "djangorestframework~=3.16",
   "django~=6.0",
   "drf-spectacular~=0.28",

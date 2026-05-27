@@ -567,6 +567,7 @@ dependencies = [
     { name = "django-vite" },
     { name = "djangorestframework" },
     { name = "djangorestframework-camel-case" },
+    { name = "djangorestframework-jsonapi" },
     { name = "drf-spectacular" },
     { name = "granian" },
     { name = "humanize" },
@@ -643,6 +644,7 @@ requires-dist = [
     { name = "django-vite", specifier = "~=3.1" },
     { name = "djangorestframework", specifier = "~=3.16" },
     { name = "djangorestframework-camel-case", specifier = "~=1.4" },
+    { name = "djangorestframework-jsonapi", specifier = "~=8.1" },
     { name = "drf-spectacular", specifier = "~=0.28" },
     { name = "granian", specifier = "~=2.7" },
     { name = "humanize", specifier = "~=4.12" },
@@ -1238,6 +1240,20 @@ name = "djangorestframework-camel-case"
 version = "1.4.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f4/87/647ce93053cb5e35e07bded676340774fe43190388b885c54aff47d8557b/djangorestframework-camel-case-1.4.2.tar.gz", hash = "sha256:cdae75846648abb6585c7470639a1d2fb064dc45f8e8b62aaa50be7f1a7a61f4", size = 8839, upload-time = "2023-02-13T15:28:11.941Z" }
+
+[[package]]
+name = "djangorestframework-jsonapi"
+version = "8.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "djangorestframework" },
+    { name = "inflection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/87/00/35e1620b771a52ff05d2c069beaa8e7379894091076d14deca7c27b27f01/djangorestframework_jsonapi-8.1.0.tar.gz", hash = "sha256:d02defa331c240cef136dc522f670e5535a2f1fad182dc04bd4abf4c4a747340", size = 84329, upload-time = "2025-10-17T11:59:04.524Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/24/73bddc908918d32e78eda0cd7739ae9da4631b3d6866209f544eb9c88815/djangorestframework_jsonapi-8.1.0-py2.py3-none-any.whl", hash = "sha256:179a1fc6ea6215062864f2b20b6126e96521434915620f87475b20f701184f13", size = 128249, upload-time = "2025-10-17T11:59:02.454Z" },
+]
 
 [[package]]
 name = "djangorestframework-types"
