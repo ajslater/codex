@@ -15,12 +15,9 @@ envelope; the serialization simplification can land independently
 without breaking either.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from codex.urls.converters import COLLECTION_TO_GROUP
-
-if TYPE_CHECKING:
-    from rest_framework.request import Request
 from codex.views.browser.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
 from codex.views.browser.choices import (
@@ -37,6 +34,9 @@ from codex.views.browser.saved_settings import (
 from codex.views.browser.settings import BrowserSettingsView
 from codex.views.lazy_import import LazyImportView
 from codex.views.v4.common import EnvelopeJSONRenderer
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class _V4BrowseTranslateMixin:
@@ -102,7 +102,23 @@ class V4BrowseChoicesFieldView(_V4BrowseTranslateMixin, BrowserChoicesView):
 
 
 class V4BrowseMetadataView(_V4BrowseTranslateMixin, MetadataView):
-    """``GET /api/v4/browse/{collection}[/{parentIds}]/metadata``."""
+    """
+    ``GET /api/v4/browse/{collection}[/{parentIds}]/metadata``.
+
+    Uses the v4 metadata serializer so credits ship role-pivoted
+    (``{role: [persons]}``) and identifiers ship parsed
+    (``{type, code, displayName, pk, url}``) — see Phase 5 in
+    ``tasks/api-v4.md``.
+    """
+
+    serializer_class = None  # set below to avoid forward-ref cycles
+
+    @override
+    def get_serializer_class(self):
+        """Defer the import to runtime — the serializer pulls in comicbox."""
+        from codex.serializers.v4.metadata import V4MetadataSerializer
+
+        return V4MetadataSerializer
 
 
 class V4BrowseDownloadView(_V4BrowseTranslateMixin, GroupDownloadView):
