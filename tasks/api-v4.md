@@ -63,19 +63,24 @@ and migrated one Pinia store at a time.
   (single comic, `{page, finished}`); `PATCH /browse/{collection}/{ids}/bookmark`
   for bulk mark-as-read/unread from the browser.
 
+## Resolved Decisions
+
+- **Saved browser settings:** per-collection (current behavior).
+  `/api/v4/browse/{collection}/saved-settings` stays as designed.
+- **Reader composite endpoint:** keep `/api/v4/reader/comics/{id}` as
+  an explicit view endpoint. Don't fold into `/comics/{id}?include=…` —
+  the explicit form matches `/browse/...` and stays cleaner.
+- **Bootstrap call:** `GET /api/v4/session` includes `version` (cheap;
+  the SPA chrome wants `installed` immediately and `latest`/`warning`
+  ride along for free off the same Timestamp row). `opds-urls` stays
+  on its own lazy endpoint (`GET /api/v4/opds-urls`) — those URLs are
+  rarely opened and don't belong on the hot boot path.
+
 ## Open Questions
 
 - Folder hierarchy: confirm that `/api/v4/browse/folders/{parentIds}`
   works for arbitrarily deep folder trees, or if folder browsing needs
   a different shape.
-- Saved browser settings: per-collection or global? Today they live
-  under `/<group>/settings/saved`. Keeping per-collection unless a
-  reason surfaces.
-- Whether to keep the `/reader/comics/{id}` composite view endpoint or
-  encode it via `?include=prev,next,arc` on `/comics/{id}`. Leaning
-  toward the explicit view endpoint — cleaner, matches `/browse/...`.
-- Bootstrap call: should `GET /session` also return `opds-urls` and
-  `version` so the SPA boots with one request?
 
 ---
 
@@ -108,7 +113,7 @@ POST   /api/v4/auth/login
 POST   /api/v4/auth/logout
 POST   /api/v4/auth/token
 GET    /api/v4/auth/csrf                          # bootstrap cookie
-GET    /api/v4/session                            # user + adminFlags + perms
+GET    /api/v4/session                            # user + adminFlags + perms + version
 GET    /api/v4/auth/profile
 PATCH  /api/v4/auth/profile                       # name, timezone, email
 POST   /api/v4/auth/password/reset                # request link

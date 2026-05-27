@@ -49,12 +49,30 @@ class V4UserSerializer(Serializer):
     is_superuser = BooleanField(read_only=True)
 
 
+class V4VersionSerializer(Serializer):
+    """Installed Codex version + latest-known + Docker deprecation banner."""
+
+    installed = CharField(read_only=True)
+    latest = CharField(read_only=True)
+    warning = CharField(read_only=True, allow_blank=True)
+
+
 class V4SessionSerializer(Serializer):
-    """Composite session payload: user + adminFlags + permissions."""
+    """
+    Composite session payload: user + adminFlags + permissions + version.
+
+    ``opds-urls`` deliberately stays on its own lazy endpoint
+    (``GET /api/v4/opds-urls``) — those URLs are rarely opened, so
+    paying for the reverse-resolve on every session boot would be
+    waste. ``version`` ships here because the SPA chrome reads
+    ``installed`` immediately and the update-check fields ride along
+    for free off the same Timestamp row.
+    """
 
     user = V4UserSerializer(allow_null=True)
     admin_flags = V4AdminFlagsSerializer()
     permissions = V4PermissionsSerializer()
+    version = V4VersionSerializer()
 
 
 class V4ProfileUpdateSerializer(Serializer):
