@@ -298,15 +298,52 @@ ACL still applies at the channel-group level (`ALL` / `ADMIN` /
 
 ## Implementation Status (as of 2026-05-26)
 
-**Immediate cutover — no v3/v4 coexistence release.** v3 is removed
-in the same release that ships v4. `CODEX_API_V4` flips to default-on
-and the v3 URL files are deleted; v3 view/serializer classes stay
-alive only as bodies the v4 adapters subclass.
+**Immediate cutover shipped.** v3 is gone in the same release that
+ships v4. `CODEX_API_V4` defaults on; v3 URL files are deleted; the
+v4 adapters subclass the v3 view/serializer classes (which stay as
+bodies). All frontend stores import from `@/api/v4/*`.
 
-The early phases landed first as adapter-style envelope wrappers
-(commits `c74309b7` / `4dc670c3` / `c286614d` / `62f69e7f`); the
-remaining "deferred" items in those commits roll into this cutover
-pass instead of waiting for a follow-up release.
+### Cutover commits (`codex-v2`)
+
+| Commit | Scope |
+|---|---|
+| `c74309b7` | Scaffold + auth + browse + reader (adapter-style behind `CODEX_API_V4`) |
+| `4dc670c3` | Metadata pivot + typed WebSocket |
+| `c286614d` | Admin URL contract + favorites + utility |
+| `62f69e7f` | Include `version` in `/session`; resolve plan questions |
+| `9b8314d3` | Flip flag default-on, migrate stores, delete v3, generalize covers |
+| `d3172d6f` | Migrate backend test suite from v3 to v4 URLs |
+
+### What still needs doing (separately tracked)
+
+These are quality-of-life items the plan called for but that the
+cutover doesn't block on. Each is its own multi-hour change.
+
+- **WebSocket broadcaster mtime + scope enrichment.** Today the v4
+  consumer translates v3 bare-string events into typed JSON with
+  `mtime: null` and empty `scope`. Stores still issue their
+  `loadMtimes()` probe after a `library.changed` notification. The
+  payoff for the broadcaster update is killing the two-step.
+- **Bulk admin operations** (`/admin/users/bulk` and equivalents).
+  Endpoints are not mounted; v3 has no equivalent to wrap.
+- **Cursor pagination class** for admin lists. Plan says cursor for
+  admin, page-number for browser. Browser already does page-number;
+  admin still inherits whatever the v3 viewsets emit.
+- **JSON:API renderer + serializer conversion** for `/api/v4/admin/*`.
+  The dep is pinned (`djangorestframework-jsonapi~=8.1`); admin
+  endpoints currently render via the envelope renderer like view
+  endpoints. JSON:API conversion is per-viewset.
+- **BrowserView dual `groups`/`books`/`rows` simplification.** Plan
+  calls for picking card or table based on the request rather than
+  serializing both at once. The v4 adapter currently delegates to
+  the v3 body which still does both.
+- **v4-native publishers-at-root listing.** `/browse/publishers`
+  with my current dispatcher returns the next-visible level
+  (imprints/series) rather than publisher rows themselves — v3's
+  ROOT_GROUP 'r' had that dedicated semantics and v4 dropped it.
+  One backend test (`test_primary_sort_at_publishers_root`) is
+  skipped pending a v4 fix that treats `pks=()` as "list this
+  collection".
 
 ---
 
