@@ -6,7 +6,7 @@ from pathlib import Path
 
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
-from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
+from codex.librarian.notifier.tasks import covers_changed_task
 from codex.models import Comic
 from codex.models.paths import CustomCover
 
@@ -69,7 +69,9 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             self.log.warning(exc)
         finally:
             self.status_controller.finish(status)
-        librarian_queue.put(COVERS_CHANGED_TASK)
+        # Whole-cache purge — empty scope means "invalidate every
+        # cover URL"; mtime stamps the purge time.
+        librarian_queue.put(covers_changed_task())
 
     def _cleanup_orphan_covers(self, cover_class, cover_root: Path, name: str) -> None:
         """Remove all orphan cover thumbs."""

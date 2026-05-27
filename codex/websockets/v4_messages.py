@@ -1,12 +1,17 @@
 """
 v4 WebSocket typed message shapes.
 
-The v3 wire format sends bare strings (``"LIBRARY"``, ``"COVERS"``,
-etc.) and the frontend infers what to refetch. v4 ships JSON
-envelopes ``{type, ...payload}`` so clients can route by ``type`` and
-read payload fields directly. Eventually broadcasters emit these
-shapes natively; until then :class:`V4NotifierConsumer` translates v3
-events on the wire (see ``v4_consumers.py``).
+The v3 wire format sent bare strings (``"LIBRARY"``, ``"COVERS"``,
+etc.) and the frontend inferred what to refetch. v4 ships JSON
+envelopes ``{type, mtime, scope, ...}`` so clients can route by
+``type`` and read scope+mtime directly — no extra ``loadMtimes()``
+probe after a ``library.changed`` notification.
+
+Broadcaster sites enrich :class:`codex.librarian.notifier.tasks.NotifierTask`
+with ``mtime``/``scope`` when known; the channel-layer event
+plumbing in :func:`codex.librarian.notifier.notifierd.NotifierThread._send_task`
+forwards both fields onto the wire dict that
+:class:`codex.websockets.v4_consumers.V4NotifierConsumer` reads.
 """
 
 from collections.abc import Mapping
@@ -29,25 +34,56 @@ V3_TYPE_MAP: Mapping[str, str] = {
     Notifications.USERS.value: "users.changed",
 }
 
+# Event types that always carry an ``mtime`` field on the v4 wire.
+# Other types omit it.
+_MTIME_TYPES = frozenset(
+    {
+        "admin.flags.changed",
+        "bookmark.changed",
+        "covers.changed",
+        "failed-imports.changed",
+        "groups.changed",
+        "library.changed",
+        "users.changed",
+    }
+)
 
-def v3_to_v4_payload(text: str) -> dict[str, Any]:
+# Event types that always carry a ``scope`` dict on the v4 wire.
+# Listed separately from ``_MTIME_TYPES`` because ``task.progress``
+# and ``tag-session.prompt`` ship their own payload shapes.
+_SCOPE_TYPES = frozenset(
+    {
+        "admin.flags.changed",
+        "bookmark.changed",
+        "covers.changed",
+        "failed-imports.changed",
+        "groups.changed",
+        "library.changed",
+        "users.changed",
+    }
+)
+
+
+def v3_to_v4_payload(
+    text: str,
+    mtime: int | None = None,
+    scope: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """
-    Translate a bare v3 notification string to a v4 typed payload.
+    Translate a v3 notification string + enrichment to a typed v4 payload.
 
-    The v3 broadcaster doesn't carry ``mtime`` or ``scope`` data, so
-    the translated payload leaves those fields ``null``/empty. The
-    frontend still has to issue its mtime probe for now — see Phase 6
-    in ``tasks/api-v4.md`` for the follow-up that updates the
-    broadcasters to populate scope/mtime natively.
+    Unknown ``text`` (no mapping entry) returns
+    ``{type: "unknown", v3: text}`` so the frontend can log without
+    crashing. ``mtime`` and ``scope`` are emitted only for event
+    types that carry them; absent fields are ``null``/``{}``.
     """
     type_ = V3_TYPE_MAP.get(text, "unknown")
     payload: dict[str, Any] = {"type": type_}
     if type_ == "unknown":
         payload["v3"] = text
         return payload
-    if type_ == "library.changed":
-        payload["mtime"] = None
-        payload["scope"] = {}
-    elif type_ == "covers.changed":
-        payload["scope"] = {}
+    if type_ in _MTIME_TYPES:
+        payload["mtime"] = mtime
+    if type_ in _SCOPE_TYPES:
+        payload["scope"] = dict(scope) if scope else {}
     return payload

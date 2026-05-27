@@ -590,7 +590,20 @@ export const useReaderStore = defineStore("reader", {
         this.empty = true;
       }
     },
-    async loadMtimes() {
+    /*
+     * v4 ``library.changed`` WebSocket payloads carry mtime directly,
+     * so the socket-store dispatcher passes it in here and we can skip
+     * the HTTP mtime probe entirely. ``hintedMtime=null`` falls back
+     * to the legacy ``/api/v4/mtime`` probe for the cross-library
+     * fan-out events where no single library mtime is meaningful.
+     */
+    async loadMtimes(hintedMtime) {
+      if (hintedMtime && hintedMtime !== this.mtime) {
+        return this.loadBooks({ mtime: hintedMtime });
+      }
+      if (hintedMtime) {
+        return true;
+      }
       const arcs = [];
       for (const [group, arcIdInfos] of Object.entries(this.arcs)) {
         for (const pks of Object.keys(arcIdInfos)) {

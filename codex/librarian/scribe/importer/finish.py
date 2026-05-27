@@ -7,8 +7,8 @@ from django.core.cache import cache
 from humanize import intcomma, naturaldelta
 
 from codex.librarian.notifier.tasks import (
-    FAILED_IMPORTS_CHANGED_TASK,
-    LIBRARY_CHANGED_TASK,
+    failed_imports_changed_task,
+    library_changed_task,
 )
 from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.statii import IMPORTER_STATII
@@ -52,7 +52,7 @@ class FinishImporter(InitImporter):
             if value := getattr(self.counts, attr):
                 value = intcomma(value)
                 log_txt += f" {value} {suffix}."
-        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+        self.librarian_queue.put(library_changed_task(self.library))
 
         return log_txt
 
@@ -75,4 +75,4 @@ class FinishImporter(InitImporter):
         self.status_controller.finish_many(_FINISH_STATII)
         self._log_finish()
         if self.counts.failed_imports:
-            self.librarian_queue.put(FAILED_IMPORTS_CHANGED_TASK)
+            self.librarian_queue.put(failed_imports_changed_task(self.library))

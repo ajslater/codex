@@ -1,6 +1,7 @@
 """Admin Library Views."""
 
 import os
+from dataclasses import replace
 from pathlib import Path
 from typing import override
 
@@ -9,6 +10,7 @@ from django.db.models import OuterRef, Subquery
 from django.db.models.aggregates import Count
 from django.db.models.expressions import Value
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.exceptions import ValidationError
@@ -75,8 +77,14 @@ class AdminLibraryViewSet(AdminModelViewSet):
     @staticmethod
     def _on_change() -> None:
         cache.clear()
-        task = LIBRARY_CHANGED_TASK
-        LIBRARIAN_QUEUE.put(task)
+        # Admin viewset doesn't pass the touched library down here;
+        # broadcast with empty scope so any library view invalidates.
+        LIBRARIAN_QUEUE.put(
+            replace(
+                LIBRARY_CHANGED_TASK,
+                mtime=int(timezone.now().timestamp() * 1000),
+            )
+        )
 
     @staticmethod
     def _create_library_folder(library) -> None:

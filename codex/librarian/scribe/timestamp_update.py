@@ -1,6 +1,7 @@
 """Update Groups timestamp for cover cache busting."""
 
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime
 
 from django.db.models import QuerySet
@@ -128,4 +129,11 @@ class TimestampUpdater(WorkerStatusBase):
             )
         level = "INFO" if count else "DEBUG"
         self.log.log(level, f"Updated timestamps for {count} groups.")
-        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+        # All-libraries fan-out — leave ``scope`` empty so clients
+        # invalidate any library view; ``mtime`` is the start of this
+        # update pass so older mtime probes resolve correctly.
+        self.librarian_queue.put(
+            replace(
+                LIBRARY_CHANGED_TASK, mtime=int(start_time.timestamp() * 1000)
+            )
+        )

@@ -18,13 +18,8 @@ from rest_framework.status import (
 from rest_registration.settings import registration_settings
 
 from codex.choices.admin import AdminFlagChoices
-from codex.choices.notifications import Notifications
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import (
-    ADMIN_USERS_CHANGED_TASK,
-    USERS_CHANGED_TASK,
-    NotifierTask,
-)
+from codex.librarian.notifier.tasks import users_changed_task
 from codex.models import AdminFlag
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
@@ -48,13 +43,15 @@ class AdminUserViewSet(AdminModelViewSet):
     @staticmethod
     def _on_change(uid: int) -> None:
         if uid:
-            group = f"user_{uid}"
+            # User-targeted change: send to that user's private
+            # channel plus the ADMIN channel so admin tables refresh.
             tasks = (
-                ADMIN_USERS_CHANGED_TASK,
-                NotifierTask(Notifications.USERS.value, group),
+                users_changed_task(ids=[uid]),
+                users_changed_task(uid=uid, ids=[uid]),
             )
         else:
-            tasks = (USERS_CHANGED_TASK,)
+            # Broadcast change (e.g. bulk delete).
+            tasks = (users_changed_task(),)
         for task in tasks:
             LIBRARIAN_QUEUE.put(task)
 

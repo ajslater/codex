@@ -843,7 +843,25 @@ export const useBrowserStore = defineStore("browser", {
         console.error(error);
       }
     },
-    async loadMtimes() {
+    /*
+     * v4 ``library.changed`` WebSocket payloads carry mtime directly,
+     * so the socket-store dispatcher passes it in here and we can
+     * skip the HTTP mtime probe entirely. ``hintedMtime=null`` falls
+     * back to the legacy ``/api/v4/mtime`` probe (still mounted as an
+     * interim — see codex/views/v4/utility.py — for the cross-library
+     * fan-out events where no single library mtime is meaningful).
+     */
+    async loadMtimes(hintedMtime) {
+      if (hintedMtime && hintedMtime !== this.page.mtime) {
+        this.choices.dynamic = undefined;
+        this.loadBrowserPage(hintedMtime);
+        return true;
+      }
+      if (hintedMtime) {
+        // Hint matches our last-fetched mtime — nothing to do, no
+        // round-trip required.
+        return true;
+      }
       const params = router?.currentRoute?.value?.params;
       const routeGroup = params?.group;
       const group =

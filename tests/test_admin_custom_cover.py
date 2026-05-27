@@ -15,7 +15,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from PIL import Image
 
-from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
+from codex.choices.notifications import Notifications
 from codex.models import CustomCover, Imprint, Publisher, Series, Volume
 from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
 
@@ -80,8 +80,12 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         # COVERS notification fans out to the WebSocket so connected
         # browsers refresh the changed card without a manual reload.
+        # The v4 factory enriches each enqueue with a fresh mtime, so
+        # check the text rather than identity-comparing the singleton.
         enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
-        assert COVERS_CHANGED_TASK in enqueued
+        assert any(
+            getattr(t, "text", None) == Notifications.COVERS.value for t in enqueued
+        )
 
     @patch(_QUEUE_PATCH)
     def test_non_admin_forbidden(self, mock_queue) -> None:  # noqa: ARG002

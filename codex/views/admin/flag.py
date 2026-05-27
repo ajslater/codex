@@ -4,7 +4,7 @@ from typing import override
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
+from codex.librarian.notifier.tasks import admin_flags_changed_task
 from codex.librarian.tasks import WakeCronTask
 from codex.models import AdminFlag
 from codex.serializers.admin.flags import AdminFlagSerializer
@@ -40,7 +40,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
         if key in _REFRESH_LIBRARY_FLAGS:
-            LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)
+            LIBRARIAN_QUEUE.put(admin_flags_changed_task(keys=[key]))
 
     @override
     def perform_update(self, serializer) -> None:
