@@ -70,7 +70,7 @@ class OPDS2ProgressionView(
         ReadiumProgressionParser,
         *AuthFilterGenericAPIView.parser_classes,
     )
-    renderer_classes = (
+    renderer_classes = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         ReadiumProgressionAPIRenderer,
         *AuthFilterGenericAPIView.renderer_classes,
     )

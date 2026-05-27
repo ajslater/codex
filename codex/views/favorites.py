@@ -1,10 +1,16 @@
 """Favorite views."""
 
+from typing import TYPE_CHECKING, override
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.models.favorite import FAVORITE_GROUP_CODE_MODELS, Favorite
+from codex.urls.converters import COLLECTION_TO_GROUP
 from codex.views.auth import AuthFilterGenericAPIView
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class _FavoriteAuthMixin(AuthFilterGenericAPIView):
@@ -32,6 +38,20 @@ class FavoriteListView(_FavoriteAuthMixin):
 
 class FavoriteDetailView(_FavoriteAuthMixin):
     """PUT/DELETE: idempotent toggle of a single (group, target_id) favorite."""
+
+    @override
+    def initial(self, request: "Request", *args, **kwargs):
+        """
+        Rewrite collection → single-letter group code directly.
+
+        Bypasses ``AuthMixin._translate_browser_kwargs``: favorites
+        always want ``collection → letter`` (no publishers→root
+        special case) and never carries ``parent_ids``.
+        """
+        collection = self.kwargs.pop("collection", None)
+        if collection is not None:
+            self.kwargs["group"] = COLLECTION_TO_GROUP[collection]
+        super().initial(request, *args, **kwargs)
 
     def _resolve_target(self):
         """Return (group_code, target_id, model) or a Response on error."""

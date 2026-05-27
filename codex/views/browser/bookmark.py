@@ -1,7 +1,7 @@
 """Bookmark view."""
 
 from types import MappingProxyType
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -15,6 +15,9 @@ from codex.serializers.models.bookmark import (
 )
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.filter import BrowserFilterView
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
@@ -68,3 +71,21 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
             params = self.load_params_from_settings()
             self._params = MappingProxyType(params)
         return self._params
+
+
+class ComicBookmarkView(BookmarkView):
+    """
+    ``PATCH /api/v4/comics/{id}/bookmark`` — single-comic bookmark.
+
+    Synthesizes ``group="c"`` and ``pks=(id,)`` so the
+    :class:`BookmarkView` body can run untouched. Body is
+    ``{page, finished}``.
+    """
+
+    @override
+    def initial(self, request: "Request", *args, **kwargs):
+        """Synthesize (group, pks) kwargs before BookmarkView dispatch."""
+        pk = self.kwargs.pop("pk", None)
+        self.kwargs["group"] = "c"
+        self.kwargs["pks"] = (pk,) if pk is not None else ()
+        super().initial(request, *args, **kwargs)

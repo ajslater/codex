@@ -32,7 +32,7 @@ class AdminAPIKey(AdminGenericAPIView):
         return Response(serializer.data)
 
     @extend_schema(request=input_serializer_class)
-    def put(self, *_args, **_kwargs) -> Response:
+    def post(self, *_args, **_kwargs) -> Response:
         """Regenerate the API Key."""
         flag = AdminFlag.objects.get(key=AdminFlagChoices.API_KEY.value)
         flag.value = _new_api_key()

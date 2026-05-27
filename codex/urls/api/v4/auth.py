@@ -1,40 +1,34 @@
 """codex:api:v4:auth URL Configuration."""
 
 from django.urls import path
+from rest_registration.api.views.change_password import ChangePasswordView
+from rest_registration.api.views.login import LoginView, LogoutView
 
-from codex.views.v4.auth import (
-    V4ChangePasswordView,
-    V4CSRFView,
-    V4LoginView,
-    V4LogoutView,
-    V4ProfileView,
-    V4RegisterView,
-    V4ResetPasswordView,
-    V4SendResetPasswordLinkView,
-    V4TokenView,
-)
+from codex.views.auth import AuthToken, CSRFView, ProfileView
+from codex.views.register import RegisterView
+from codex.views.reset_password import ResetPasswordView, SendResetPasswordLinkView
 
 app_name = "auth"
 urlpatterns = [
-    path("csrf", V4CSRFView.as_view(), name="csrf"),
-    path("register", V4RegisterView.as_view(), name="register"),
-    path("login", V4LoginView.as_view(), name="login"),
-    path("logout", V4LogoutView.as_view(), name="logout"),
-    path("token", V4TokenView.as_view(), name="token"),
-    path("profile", V4ProfileView.as_view(), name="profile"),
+    path("csrf", CSRFView.as_view(), name="csrf"),
+    path("register", RegisterView.as_view(), name="register"),
+    path("login", LoginView.as_view(), name="login"),
+    path("logout", LogoutView.as_view(), name="logout"),
+    path("token", AuthToken.as_view(), name="token"),
+    path("profile", ProfileView.as_view(), name="profile"),
     path(
         "password/reset",
-        V4SendResetPasswordLinkView.as_view(),
+        SendResetPasswordLinkView.as_view(),
         name="password-reset",
     ),
     path(
         "password/reset/confirm",
-        V4ResetPasswordView.as_view(),
+        ResetPasswordView.as_view(),
         name="password-reset-confirm",
     ),
     path(
         "password/change",
-        V4ChangePasswordView.as_view(),
+        ChangePasswordView.as_view(),
         name="password-change",
     ),
 ]

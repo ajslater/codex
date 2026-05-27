@@ -7,15 +7,13 @@ another include block here.
 """
 
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView
 
-from codex.views.v4.session import V4SessionView
-from codex.views.v4.utility import (
-    V4MtimeView,
-    V4OPDSURLsView,
-    V4SchemaView,
-    v4_cover_dispatch,
-)
-from codex.views.v4.version import V4VersionView
+from codex.views.browser.cover import cover_dispatch_by_source
+from codex.views.browser.mtime import MtimeView
+from codex.views.opds.urls import OPDSURLsView
+from codex.views.session import SessionView
+from codex.views.version import VersionView
 
 app_name = "v4"
 urlpatterns = [
@@ -25,10 +23,10 @@ urlpatterns = [
     path("comics/", include("codex.urls.api.v4.comics")),
     path("favorites/", include("codex.urls.api.v4.favorites")),
     path("reader/", include("codex.urls.api.v4.reader")),
-    path("mtime", V4MtimeView.as_view(), name="mtime"),
-    path("session", V4SessionView.as_view(), name="session"),
-    path("version", V4VersionView.as_view(), name="version"),
-    path("opds-urls", V4OPDSURLsView.as_view(), name="opds_urls"),
-    path("schema", V4SchemaView.as_view(), name="schema"),
-    path("covers/<str:source>/<int:pk>", v4_cover_dispatch, name="covers"),
+    path("mtime", MtimeView.as_view(), name="mtime"),
+    path("session", SessionView.as_view(), name="session"),
+    path("version", VersionView.as_view(), name="version"),
+    path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
+    path("schema", SpectacularAPIView.as_view(), name="schema"),
+    path("covers/<str:source>/<int:pk>", cover_dispatch_by_source, name="covers"),
 ]

@@ -14,19 +14,21 @@ the optional segment, once with — so Django's URLconf doesn't need a
 
 from django.urls import path
 
-from codex.views.v4.browse import (
-    V4BrowseBookmarkView,
-    V4BrowseChoicesFieldView,
-    V4BrowseChoicesView,
-    V4BrowseDownloadView,
-    V4BrowseImportView,
-    V4BrowseMetadataView,
-    V4BrowseRefreshView,
-    V4BrowseSavedSettingsDetailView,
-    V4BrowseSavedSettingsListView,
-    V4BrowseSettingsView,
-    V4BrowseView,
+from codex.views.browser.bookmark import BookmarkView
+from codex.views.browser.browser import BrowserView
+from codex.views.browser.choices import (
+    BrowserChoicesAvailableView,
+    BrowserChoicesView,
 )
+from codex.views.browser.download import GroupDownloadView
+from codex.views.browser.force_update import ForceUpdateView
+from codex.views.browser.metadata import MetadataView
+from codex.views.browser.saved_settings import (
+    SavedBrowserSettingsListView,
+    SavedBrowserSettingsLoadView,
+)
+from codex.views.browser.settings import BrowserSettingsView
+from codex.views.lazy_import import LazyImportView
 
 app_name = "browse"
 
@@ -42,43 +44,43 @@ def _pair(suffix: str, view, name: str):
 
 
 urlpatterns = [
-    *_pair("", V4BrowseView, "list"),
-    *_pair("/choices", V4BrowseChoicesView, "choices"),
-    *_pair("/choices/<str:field_name>", V4BrowseChoicesFieldView, "choices_field"),
-    *_pair("/metadata", V4BrowseMetadataView, "metadata"),
+    *_pair("", BrowserView, "list"),
+    *_pair("/choices", BrowserChoicesAvailableView, "choices"),
+    *_pair("/choices/<str:field_name>", BrowserChoicesView, "choices_field"),
+    *_pair("/metadata", MetadataView, "metadata"),
     path(
         "<collection:collection>/<int_list:parent_ids>/download/<str:filename>",
-        V4BrowseDownloadView.as_view(),
+        GroupDownloadView.as_view(),
         name="download",
     ),
     path(
         "<collection:collection>/<int_list:parent_ids>/import",
-        V4BrowseImportView.as_view(),
+        LazyImportView.as_view(),
         name="import",
     ),
     path(
         "<collection:collection>/<int_list:parent_ids>/refresh",
-        V4BrowseRefreshView.as_view(),
+        ForceUpdateView.as_view(),
         name="refresh",
     ),
     path(
         "<collection:collection>/<int_list:parent_ids>/bookmark",
-        V4BrowseBookmarkView.as_view(),
+        BookmarkView.as_view(),
         name="bookmark",
     ),
     path(
         "<collection:collection>/settings",
-        V4BrowseSettingsView.as_view(),
+        BrowserSettingsView.as_view(),
         name="settings",
     ),
     path(
         "<collection:collection>/saved-settings",
-        V4BrowseSavedSettingsListView.as_view(),
+        SavedBrowserSettingsListView.as_view(),
         name="saved_settings_list",
     ),
     path(
         "<collection:collection>/saved-settings/<int:pk>",
-        V4BrowseSavedSettingsDetailView.as_view(),
+        SavedBrowserSettingsLoadView.as_view(),
         name="saved_settings_detail",
     ),
 ]

@@ -1,5 +1,7 @@
 """Browser Page Serializer."""
 
+from typing import override
+
 import pycountry
 from rest_framework.fields import (
     BooleanField,
@@ -243,12 +245,11 @@ class BrowserPageSerializer(Serializer):
     """
     The main browse list.
 
-    Always emits the cards-shape (``groups`` / ``books``). Also emits
-    a ``rows`` list projected through the requested ``columns`` when
-    the caller sets ``columns`` on the data dict (table-view mode).
-    The dual emission lets the frontend's mobile-auto-fallback render
-    the card grid on narrow viewports even when the user has table
-    view enabled — the card data is already in the response.
+    Mode-aware: table-mode responses emit ``rows`` (no ``groups``/
+    ``books``) and card-mode responses emit ``groups``/``books`` (no
+    ``rows``). The active view mode is inferred from the presence of
+    ``columns`` on the payload (``BrowserView`` only populates them
+    when ``view_mode == "table"``).
     """
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
@@ -278,3 +279,37 @@ class BrowserPageSerializer(Serializer):
             _row_repr(item, columns, intersections=intersections)
             for item in (*groups, *books)
         ]
+
+    @override
+    def to_representation(self, instance):
+        """
+        Strip the unused mode's fields after the base projection.
+
+        Table mode: ``rows`` carries every projected column; the card
+        fields are noise and the largest part of the payload.
+        Card mode: ``rows`` is empty unless columns were requested,
+        so drop the always-empty ``rows`` slot.
+        """
+        data = super().to_representation(instance)
+        if self._view_mode(instance) == "table":
+            data.pop("groups", None)
+            data.pop("books", None)
+        else:
+            data.pop("rows", None)
+        return data
+
+    @staticmethod
+    def _view_mode(instance) -> str:
+        """
+        Resolve the active view mode from the response payload.
+
+        The instance dict carries ``columns`` only when the request
+        asked for table-mode (``BrowserView`` populates ``columns``
+        from the user settings only when ``view_mode == "table"``).
+        That gives a reliable, response-payload-local signal without
+        threading view_mode through every intermediate.
+        """
+        if not isinstance(instance, dict):
+            return "cover"
+        columns = instance.get("columns")
+        return "table" if columns else "cover"

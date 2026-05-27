@@ -1,11 +1,11 @@
 """
-GET /api/v4/session — composite bootstrap response.
+Composite session bootstrap endpoint.
 
-Replaces v3's two-call ``/auth/profile`` + ``/auth/flags`` boot with a
-single request that returns ``{user, adminFlags, permissions, version}``.
+``GET /api/v4/session`` returns ``{user, adminFlags, permissions,
+version}`` in a single request so the SPA boots without the two-call
+``/auth/profile`` + ``/auth/flags`` handshake that v3 used.
 ``opds-urls`` is intentionally *not* bundled — those URLs are rarely
 opened, so they stay on their own lazy ``/api/v4/opds-urls`` endpoint.
-See ``tasks/api-v4.md`` Phase 2.
 """
 
 from typing import override
@@ -17,11 +17,11 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import AdminFlag, Timestamp
-from codex.serializers.v4.auth import V4SessionSerializer
+from codex.serializers.auth import SessionSerializer
 from codex.settings import DOCKER_IMAGE_DEPRECATED
 from codex.settings.db import email_enabled
 from codex.version import VERSION
-from codex.views.v4.common import V4GenericAPIView, envelope
+from codex.views.auth import AuthGenericAPIView
 
 _ADMIN_FLAG_KEYS = (
     AdminFlagChoices.BANNER_TEXT.value,
@@ -32,10 +32,10 @@ _ADMIN_FLAG_KEYS = (
 )
 
 
-class V4SessionView(V4GenericAPIView):
+class SessionView(AuthGenericAPIView):
     """``GET /api/v4/session`` — current user + admin flags + permissions."""
 
-    serializer_class = V4SessionSerializer
+    serializer_class = SessionSerializer
 
     @staticmethod
     def _admin_flags() -> dict:
@@ -99,4 +99,4 @@ class V4SessionView(V4GenericAPIView):
         """GET /api/v4/session."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)
-        return Response(envelope(serializer.data))
+        return Response(serializer.data)

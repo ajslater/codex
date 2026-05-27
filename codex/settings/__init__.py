@@ -826,10 +826,11 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
 
-# JSON:API renderer config — only applies to v4 admin resource viewsets
-# (see codex/views/v4/json_api.py). ``FORMAT_FIELD_NAMES`` camelizes
-# attribute keys on the wire to match the rest of v4's camelCase
-# convention; without it, attributes ship snake_case from the model.
+# JSON:API renderer config — applies to admin resource viewsets
+# (see codex/views/admin/json_api.py). ``FORMAT_FIELD_NAMES``
+# camelizes attribute keys on the wire to match the rest of the
+# Codex API's camelCase convention; without it, attributes ship
+# snake_case from the model.
 JSON_API_FORMAT_FIELD_NAMES = "camelize"
 
 #####################

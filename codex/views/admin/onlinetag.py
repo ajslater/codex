@@ -116,9 +116,9 @@ class AdminOnlineTagPromptResponseView(AdminAPIView):
 
 
 class AdminOnlineTagAbortView(AdminAPIView):
-    """Abort an online tagging session."""
+    """Abort an online tagging session (DELETE on the tag-session URL)."""
 
-    def post(self, _request, session_id):
+    def delete(self, _request, session_id):
         """Enqueue an abort task."""
         LIBRARIAN_QUEUE.put(OnlineTagAbortTask(session_id=session_id))
         return Response({"detail": "Abort signal sent."}, status=HTTP_202_ACCEPTED)

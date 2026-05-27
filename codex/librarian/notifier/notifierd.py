@@ -26,9 +26,8 @@ class NotifierThread(AggregateMessageQueuedThread):
         and do a group_send with it's message.
 
         ``mtime`` and ``scope`` ride along on the channel-layer message
-        so :class:`codex.websockets.v4_consumers.V4NotifierConsumer` can
-        merge them into the typed JSON payload. v3 ``NotifierConsumer``
-        ignores them.
+        so :class:`codex.websockets.consumers.NotifierConsumer` can merge
+        them into the typed JSON payload.
         """
         item = {
             "group": task.group,

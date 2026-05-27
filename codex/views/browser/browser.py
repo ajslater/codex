@@ -68,6 +68,10 @@ class BrowserView(BrowserTitleView):
     serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
     input_serializer_class = BrowserPageInputSerializer  # type: ignore[assignment]
 
+    # Pull ``page`` off ``?page=`` since the v4 URL pattern carries
+    # only ``collection`` and the optional ``parentIds`` segment.
+    requires_page = True
+
     ADMIN_FLAGS = (
         AdminFlagChoices.FOLDER_VIEW,
         AdminFlagChoices.IMPORT_METADATA,

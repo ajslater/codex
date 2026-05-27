@@ -216,3 +216,47 @@ class AdminUserChangePasswordView(AdminGenericAPIView):
             status=status,
             data={"detail": detail},
         )
+
+
+class AdminUserBulkView(AdminAPIView):
+    """
+    Apply a batch admin action to multiple users.
+
+    ``POST /api/v4/admin/users/bulk``.
+    Body: ``{"action": "delete", "ids": [int, ...]}``. Returns
+    ``{"deleted": [int], "skipped": [{id, reason}]}``. ``delete`` is
+    the only action today; other actions can land here later
+    (deactivate, set-staff, etc.) without changing the URL.
+    """
+
+    def post(self, request, *_args, **_kwargs) -> Response:
+        """Apply the bulk action."""
+        action = request.data.get("action")
+        ids_raw = request.data.get("ids") or []
+        if action != "delete":
+            msg = f"Unsupported bulk action {action!r}; only 'delete' is allowed."
+            raise DRFValidationError({"action": msg})
+        if not isinstance(ids_raw, list) or not ids_raw:
+            raise DRFValidationError({"ids": "Provide a non-empty list of user ids."})
+        try:
+            ids = [int(pk) for pk in ids_raw]
+        except (TypeError, ValueError) as exc:
+            raise DRFValidationError({"ids": "All ids must be integers."}) from exc
+
+        current_user_id = getattr(request.user, "pk", None)
+        deleted: list[int] = []
+        skipped: list[dict] = []
+        for pk in ids:
+            if pk == current_user_id:
+                skipped.append({"id": pk, "reason": "self"})
+                continue
+            try:
+                user = User.objects.get(pk=pk)
+            except User.DoesNotExist:
+                skipped.append({"id": pk, "reason": "not_found"})
+                continue
+            user.delete()
+            deleted.append(pk)
+        if deleted:
+            LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
+        return Response({"deleted": deleted, "skipped": skipped})

@@ -5,7 +5,7 @@ from channels.routing import URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
-from codex.websockets.v4_consumers import V4NotifierConsumer
+from codex.websockets.consumers import NotifierConsumer
 
 WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
@@ -13,7 +13,7 @@ WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
             [
                 path(  # pyright:ignore[reportCallIssue]
                     "api/v4/ws",
-                    V4NotifierConsumer.as_asgi(),  # pyright: ignore[reportArgumentType]
+                    NotifierConsumer.as_asgi(),  # pyright: ignore[reportArgumentType]
                     name="websocket",
                 ),
             ]

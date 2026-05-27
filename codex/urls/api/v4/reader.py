@@ -2,13 +2,11 @@
 
 from django.urls import path
 
-from codex.views.v4.reader import (
-    V4ReaderComicView,
-    V4ReaderSettingsGlobalView,
-)
+from codex.views.reader.reader import ReaderView
+from codex.views.reader.settings import ReaderSettingsView
 
 app_name = "reader"
 urlpatterns = [
-    path("comics/<int:pk>", V4ReaderComicView.as_view(), name="comic"),
-    path("settings", V4ReaderSettingsGlobalView.as_view(), name="settings"),
+    path("comics/<int:pk>", ReaderView.as_view(), name="comic"),
+    path("settings", ReaderSettingsView.as_view(), name="settings"),
 ]

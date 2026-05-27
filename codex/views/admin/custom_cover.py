@@ -29,6 +29,7 @@ from codex.settings.db import (
     get_custom_cover_max_upload_mb,
 )
 from codex.views.admin.auth import AdminAPIView
+from codex.views.admin.json_api import AdminJsonApiMixin
 
 if TYPE_CHECKING:
     from django.db.models import Model
@@ -271,8 +272,14 @@ class AdminCustomCoverDeleteView(AdminAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class AdminCustomCoverListView(ListAPIView):
-    """List every CustomCover row for the admin tab."""
+class AdminCustomCoverListView(AdminJsonApiMixin, ListAPIView):
+    """
+    List every CustomCover row for the admin tab.
+
+    Mixes in :class:`AdminJsonApiMixin` directly — :class:`ListAPIView`
+    isn't part of the :class:`AdminModelViewSet` family that picks up
+    JSON:API automatically via :mod:`codex.views.admin.auth`.
+    """
 
     serializer_class = CustomCoverSerializer
     queryset = CustomCover.objects.all().order_by("group", "sort_name", "pk")

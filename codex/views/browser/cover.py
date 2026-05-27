@@ -30,7 +30,20 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import Comic
-from codex.views.auth import AuthFilterAPIView
+from codex.views.auth import AuthFilterAPIView, GroupACLMixin
+
+# source → queryset filter kwargs builder for representative-comic
+# resolution. Keys mirror the v4 ``collection`` vocabulary but use the
+# singular noun the URL emits. ``comic`` and ``custom`` are handled
+# directly by the cover views and never enter this map.
+_GROUP_COMIC_FILTER: Final = {
+    "publisher": "publisher_id",
+    "imprint": "imprint_id",
+    "series": "series_id",
+    "volume": "volume_id",
+    "folder": "folders",
+    "arc": "story_arc_numbers__story_arc_id",
+}
 
 _RETRY_AFTER_SECONDS: Final = 2
 _WEBP_CONTENT_TYPE: Final = "image/webp"
@@ -145,3 +158,37 @@ class CustomCoverView(_CoverBaseView):
         except Exception:
             logger.exception(f"Get custom cover by pk {pk}")
             return self._missing_cover_response()
+
+
+def _resolve_group_comic_pk(source: str, pk: int, user) -> int | None:
+    """Pick a representative comic pk for a group source, ACL-aware."""
+    field = _GROUP_COMIC_FILTER.get(source)
+    if field is None:
+        return None
+    acl_q = GroupACLMixin.get_group_acl_filter(Comic, user)
+    age_q = GroupACLMixin.get_age_rating_acl_filter(Comic, user)
+    return (
+        Comic.objects.filter(acl_q & age_q, **{field: pk})
+        .order_by("sort_name", "pk")
+        .values_list("pk", flat=True)
+        .first()
+    )
+
+
+def _missing_cover_404() -> HttpResponse:
+    """Return the same 404+no-store body CoverView emits when nothing matches."""
+    resp = HttpResponse(b"", content_type=_WEBP_CONTENT_TYPE, status=404)
+    resp["Cache-Control"] = "no-store"
+    return resp
+
+
+def cover_dispatch_by_source(request, source: str, pk: int) -> HttpResponse:
+    """Route ``/api/v4/covers/{source}/{id}`` by source kind."""
+    if source == "comic":
+        return CoverView.as_view()(request, pk=pk)
+    if source == "custom":
+        return CustomCoverView.as_view()(request, pk=pk)
+    comic_pk = _resolve_group_comic_pk(source, pk, request.user)
+    if comic_pk is None:
+        return _missing_cover_404()
+    return CoverView.as_view()(request, pk=comic_pk)
