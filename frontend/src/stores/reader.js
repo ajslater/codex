@@ -2,10 +2,10 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
-import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
-import * as BROWSER_API from "@/api/v3/browser";
-import * as COMMON_API from "@/api/v3/common";
-import * as READER_API from "@/api/v3/reader";
+import { dedupedFetch, isAbortError, useAbortable } from "@/api/v4/abortable";
+import * as BROWSER_API from "@/api/v4/browser";
+import * as COMMON_API from "@/api/v4/common";
+import * as READER_API from "@/api/v4/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
 import READER_DEFAULTS from "@/choices/reader-defaults.json";

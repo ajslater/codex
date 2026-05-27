@@ -1,57 +1,8 @@
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
-import * as API from "@/api/v3/browser";
-import { useBrowserStore } from "@/stores/browser";
+import * as API from "@/api/v4/browser";
 
-const HEAD_ROLES = Object.freeze([
-  // writer
-  "writer",
-  "author",
-  "plotter",
-  "plot",
-  "script",
-  "scripter",
-  "story",
-  "interviewer",
-  "translator",
-  // art
-  "artist",
-  // pencil
-  "penciller",
-  "breakdowns",
-  "pencils",
-  "illustrator",
-  "layouts",
-  // ink
-  "inker",
-  "finishes",
-  "inks",
-  "embellisher",
-  "inkAssists",
-  // color
-  "colorist",
-  "colorer",
-  "colourer",
-  "colors",
-  "colours",
-  "colorDesigner",
-  "colorFlats",
-  "colorSeparations",
-  "designer",
-  "digitalArtTechnician",
-  "grayTone",
-  // letters
-  "letterer",
-  // cover
-  "cover",
-  "covers",
-  "coverArtist",
-  // producers
-  "editor",
-  "edits",
-  "editing",
-]);
 const TAGS = Object.freeze([
   "genres",
   "characters",
@@ -66,90 +17,37 @@ const TAGS = Object.freeze([
 ]);
 const MAIN_TAGS = Object.freeze(new Set(["Characters", "Teams"]));
 
-function compareByLastName(a, b) {
-  const aLast = a.name.split(" ").pop();
-  const bLast = b.name.split(" ").pop();
-  return aLast.localeCompare(bLast);
-}
-
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
     md: undefined,
   }),
   getters: {
-    _mappedCredits(state) {
-      const credits = {};
-      if (!state?.md?.credits) {
-        return credits;
-      }
-
-      // Convert credits into a role based map
-      for (const { role, person } of state.md.credits) {
-        const roleName = role?.name ? role.name : "Other";
-        if (!(roleName in credits)) {
-          credits[roleName] = [];
-        }
-        credits[roleName].push(person);
-      }
-
-      // Sort persons by last name
-      for (const [roleName, persons] of Object.entries(credits)) {
-        credits[roleName] = persons.sort(compareByLastName);
-      }
-
-      return credits;
-    },
-    _sortedRoles(state) {
-      // Sort the roles by special known order and then alphabetically.
-      const roles = Object.keys(state._mappedCredits);
-      const lowercaseRoleMap = {};
-      for (const originalRole of roles) {
-        lowercaseRoleMap[originalRole.toLowerCase()] = originalRole;
-      }
-
-      const sortedRoles = new Set();
-      for (const role of HEAD_ROLES) {
-        const originalRole = lowercaseRoleMap[role];
-        if (!originalRole) {
-          continue;
-        }
-        sortedRoles.add(originalRole);
-        delete lowercaseRoleMap[role];
-        if (!Object.keys(lowercaseRoleMap).length) {
-          break;
-        }
-      }
-      const sortedRolesList = [...sortedRoles];
-      sortedRolesList.sort();
-      return sortedRoles;
-    },
+    /*
+     * v4 ships credits already pivoted to ``{role: [{pk, name, url}]}``
+     * with roles in HEAD_ROLES precedence and persons last-name sorted
+     * (see ``codex/serializers/v4/metadata.py``). The client just
+     * needs to wrap it for the existing ``mapTag`` consumer.
+     */
     credits(state) {
-      return this.mapTag(state._mappedCredits, state._sortedRoles, "credits");
+      const grouped = state?.md?.credits;
+      if (!grouped || typeof grouped !== "object") return {};
+      const roles = Object.keys(grouped);
+      return this.mapTag(grouped, roles, "credits");
     },
+    /*
+     * v4 ships identifiers as ``[{pk, type, code, displayName, url}]``.
+     * Display label rule (preserved from the v3 frontend): show
+     * ``displayName:code`` when ``displayName`` is set, else just code.
+     */
     identifiers(state) {
-      const identifiers = [];
-      if (!state.md?.identifiers) {
-        return identifiers;
+      const items = [];
+      const rows = state.md?.identifiers;
+      if (!Array.isArray(rows)) return items;
+      for (const row of rows) {
+        const label = row.displayName ? `${row.displayName}:${row.code}` : row.code;
+        items.push({ pk: row.pk, url: row.url, name: label });
       }
-      for (const identifier of state.md.identifiers) {
-        const parts = identifier.name.split(":");
-        const idType = parts[0];
-        const code = parts[1];
-        const finalTitle = useBrowserStore().identifierSourceTitle(idType);
-        let name = "";
-        if (finalTitle && finalTitle !== "None") {
-          name += finalTitle + ":";
-        }
-        name += code;
-
-        const item = {
-          pk: identifier.pk,
-          url: identifier.url,
-          name,
-        };
-        identifiers.push(item);
-      }
-      return identifiers;
+      return items;
     },
     tags(state) {
       const tags = state.mapTag(state.md, TAGS);

@@ -465,7 +465,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         },
         # Per-user state. ``favorite`` is the only currently-editable
         # cell — clicking the star toggles via ``PUT|DELETE
-        # /api/v3/favorites/<group>/<pk>/``. The annotation
+        # /api/v4/favorites/<collection>/<pk>``. The annotation
         # ``favorite=Exists(Favorite.objects.filter(user, group,
         # target_id))`` is added in
         # ``BrowserView._add_table_view_favorite_annotation`` for both

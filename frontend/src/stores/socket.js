@@ -1,8 +1,7 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
 
-import { WS_URL } from "@/api/v3/notify";
-import { messages } from "@/choices/websocket-messages.json";
+import { MESSAGE_TYPES, WS_URL_V4, parseV4Message } from "@/api/v4/notify";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -88,7 +87,7 @@ export const useSocketStore = defineStore("socket", () => {
    * we drive reconnect ourselves from ``onDisconnected`` so we can
    * back off exponentially.
    */
-  const { status, open } = useWebSocket(WS_URL, {
+  const { status, open } = useWebSocket(WS_URL_V4, {
     immediate: true,
     autoReconnect: false,
     onConnected(ws) {
@@ -218,45 +217,50 @@ export const useSocketStore = defineStore("socket", () => {
       .catch(console.error);
   }
 
-  // Message Dispatcher
+  // Message Dispatcher — routes v4 typed payloads ({type, ...}).
 
-  function dispatchMessage(message) {
-    if (!message) return;
-    console.debug("[socket] message:", message);
-    switch (message) {
-      case messages.ADMIN_FLAGS:
+  function dispatchMessage(raw) {
+    if (!raw) return;
+    const payload = parseV4Message(raw);
+    if (!payload) {
+      console.debug("[socket] unparseable message:", raw);
+      return;
+    }
+    console.debug("[socket] message:", payload);
+    switch (payload.type) {
+      case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED:
         adminFlagsNotified();
         break;
-      case messages.BOOKMARK:
+      case MESSAGE_TYPES.BOOKMARK_CHANGED:
         reloadBrowser();
         break;
-      case messages.COVERS:
+      case MESSAGE_TYPES.COVERS_CHANGED:
         useCommonStore().setTimestamp();
         forceReloadBrowser();
         break;
-      case messages.GROUPS:
+      case MESSAGE_TYPES.GROUPS_CHANGED:
         groupsNotified();
         libraryNotified();
         break;
-      case messages.USERS:
+      case MESSAGE_TYPES.USERS_CHANGED:
         usersNotified();
         libraryNotified();
         break;
-      case messages.LIBRARY:
+      case MESSAGE_TYPES.LIBRARY_CHANGED:
         libraryNotified();
         break;
-      case messages.LIBRARIAN_STATUS:
+      case MESSAGE_TYPES.TASK_PROGRESS:
         adminLoadTables(["ActiveLibrarianStatus"]);
         adminLoadAllStatuses();
         break;
-      case messages.FAILED_IMPORTS:
+      case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();
         break;
-      case messages.ONLINE_TAG_PROMPT:
+      case MESSAGE_TYPES.TAG_SESSION_PROMPT:
         onlineTagPromptNotified();
         break;
       default:
-        console.debug("Unhandled WebSocket message:", message);
+        console.debug("Unhandled v4 WebSocket type:", payload.type, payload);
     }
   }
 

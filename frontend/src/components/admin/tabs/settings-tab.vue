@@ -78,8 +78,7 @@ export default {
   },
   data() {
     return {
-      schemaHref:
-        globalThis.CODEX.API_V3_PATH + "#/api/api_v3_admin_stats_retrieve",
+      schemaHref: "/api/v4/schema",
     };
   },
   computed: {

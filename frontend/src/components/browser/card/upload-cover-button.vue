@@ -20,7 +20,7 @@
 import { mdiImagePlus, mdiImageEdit } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { uploadCustomCover } from "@/api/v3/admin";
+import { uploadCustomCover } from "@/api/v4/admin";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";

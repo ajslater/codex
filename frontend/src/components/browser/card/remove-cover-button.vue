@@ -16,7 +16,7 @@
 import { mdiImageRemove } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { removeCustomCover } from "@/api/v3/admin";
+import { removeCustomCover } from "@/api/v4/admin";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";

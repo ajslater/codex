@@ -10,6 +10,7 @@ from django.urls import include, path
 
 from codex.views.v4.session import V4SessionView
 from codex.views.v4.utility import (
+    V4MtimeView,
     V4OPDSURLsView,
     V4SchemaView,
     v4_cover_dispatch,
@@ -24,6 +25,7 @@ urlpatterns = [
     path("comics/", include("codex.urls.api.v4.comics")),
     path("favorites/", include("codex.urls.api.v4.favorites")),
     path("reader/", include("codex.urls.api.v4.reader")),
+    path("mtime", V4MtimeView.as_view(), name="mtime"),
     path("session", V4SessionView.as_view(), name="session"),
     path("version", V4VersionView.as_view(), name="version"),
     path("opds-urls", V4OPDSURLsView.as_view(), name="opds_urls"),

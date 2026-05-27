@@ -50,7 +50,7 @@
 import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
+import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";

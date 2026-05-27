@@ -89,7 +89,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { HTTP } from "@/api/v3/base";
+import { HTTP } from "@/api/v4/base";
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";

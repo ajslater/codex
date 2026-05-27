@@ -7,7 +7,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/api/v3/auth", () => ({
+vi.mock("@/api/v4/auth", () => ({
   getAdminFlags: vi.fn(),
   updateTimezone: vi.fn(),
   register: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/api/v3/auth", () => ({
   updateToken: vi.fn(),
 }));
 
-import * as API from "@/api/v3/auth";
+import * as API from "@/api/v4/auth";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 

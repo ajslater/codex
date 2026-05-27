@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/auth";
+import * as API from "@/api/v4/auth";
 import { useCommonStore } from "@/stores/common";
 import { useFavoritesStore } from "@/stores/favorites";
 
@@ -20,6 +20,13 @@ export const useAuthStore = defineStore("auth", {
       remoteUserEnabled: undefined,
     },
     user: undefined,
+    /*
+     * Populated by the v4 ``/session`` composite alongside ``user`` +
+     * ``adminFlags``. The SPA chrome reads ``version.installed``
+     * immediately; ``latest`` / ``warning`` show up in the update-
+     * available banner.
+     */
+    version: undefined,
     token: undefined,
     MIN_PASSWORD_LENGTH: 4,
     showLoginDialog: false,
@@ -54,13 +61,33 @@ export const useAuthStore = defineStore("auth", {
     },
   },
   actions: {
+    /*
+     * v4 composite boot: one request returns user + adminFlags +
+     * permissions + version. Use this on app start; the per-resource
+     * loaders below stay around for explicit refreshes after admin
+     * mutations (e.g. websocket fan-out of admin.flags.changed).
+     */
+    async loadSession() {
+      try {
+        const response = await API.getSession();
+        const { user, adminFlags, version } = response.data || {};
+        if (adminFlags) this.adminFlags = adminFlags;
+        this.user = user || undefined;
+        if (version) this.version = version;
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
+    },
     async loadAdminFlags() {
-      await API.getAdminFlags()
-        .then((response) => {
-          this.adminFlags = response.data;
-          return true;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.getSession();
+        const { adminFlags } = response.data || {};
+        if (adminFlags) this.adminFlags = adminFlags;
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
     },
     async loadProfile() {
       return API.getProfile()
@@ -77,7 +104,7 @@ export const useAuthStore = defineStore("auth", {
           if (clear) {
             commonStore.clearErrors();
           }
-          return this.loadProfile();
+          return this.loadSession();
         })
         .catch(commonStore.setErrors);
     },

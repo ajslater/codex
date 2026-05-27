@@ -42,11 +42,22 @@ from codex.settings.timezone import get_time_zone
 ###########################
 
 FALSY = frozenset({None, "", "false", "0", False, "False"})
+_FALSY_EXPLICIT = frozenset({"false", "0"})
 
 
 def not_falsy_env(name):
     """Return a boolean environment envs mindful of falsy values."""
     return environ.get(name, "").lower() not in FALSY
+
+
+def truthy_env_default_on(name):
+    """
+    Return False only when the env var is *explicitly* falsy.
+
+    For flags whose natural default is on — unset and set-to-anything-
+    truthy both stay enabled; only ``CODEX_FOO=0``/``=false`` disables.
+    """
+    return environ.get(name, "").lower() not in _FALSY_EXPLICIT
 
 
 ##############
@@ -339,7 +350,7 @@ FEATURES = FeatureFlags(
     django_vite=not BUILD,
     schema_graph=DEBUG,
     vite_hmr=VITE_HMR,
-    api_v4=not_falsy_env("CODEX_API_V4"),
+    api_v4=truthy_env_default_on("CODEX_API_V4"),
 )
 
 ############

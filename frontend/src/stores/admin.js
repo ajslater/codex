@@ -1,7 +1,7 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/admin";
+import * as API from "@/api/v4/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 

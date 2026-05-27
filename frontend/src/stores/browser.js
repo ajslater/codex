@@ -6,9 +6,9 @@ import {
   dedupedFetch,
   isAbortError,
   useAbortable,
-} from "@/api/v3/abortable";
-import * as API from "@/api/v3/browser";
-import * as COMMON_API from "@/api/v3/common";
+} from "@/api/v4/abortable";
+import * as API from "@/api/v4/browser";
+import * as COMMON_API from "@/api/v4/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";

@@ -10,13 +10,13 @@ resource. The JSON:API renderer dependency is already pinned (see
 ``pyproject.toml``) so the migration can flip on per viewset without
 another infrastructure pass.
 
-The frontend store migration (``frontend/src/stores/admin.js``) is
-also deferred — the v3 store keeps working against ``/api/v3/`` until
-the JSON:API serializers land and the wire shape changes.
+The frontend admin store now drives /api/v4/admin/* directly; the
+v3 store is gone with the rest of v3.
 """
 
 from rest_framework.response import Response
 
+from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
 from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.custom_cover import (
     AdminCustomCoverDeleteView,
@@ -95,6 +95,10 @@ class V4AdminFlagViewSet(_V4AdminMixin, AdminFlagViewSet):
 
 class V4AdminFailedImportViewSet(_V4AdminMixin, AdminFailedImportViewSet):
     """``/api/v4/admin/failed-imports``."""
+
+
+class V4AdminAgeRatingsViewSet(_V4AdminMixin, AdminAgeRatingMetronViewSet):
+    """``GET /api/v4/admin/age-ratings`` — read-only canonical Metron table."""
 
 
 # ── Custom covers (URL shape reshuffled for v4) ─────────────────────

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import { HTTP } from "@/api/v3/base";
+import { HTTP } from "@/api/v4/base";
 
 export const useOnlineTagStore = defineStore("onlineTag", {
   state: () => ({
@@ -17,7 +17,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       promptsMode,
       deleteOriginal,
     }) {
-      const response = await HTTP.post("/admin/online-tag/start", {
+      const response = await HTTP.post("/admin/tag-sessions/start", {
         group,
         pks: pks.map(String),
         sources,
@@ -29,7 +29,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       return response.data;
     },
     async discoverSession() {
-      const response = await HTTP.get("/admin/online-tag/active");
+      const response = await HTTP.get("/admin/tag-sessions");
       const sid = response.data.sessionId;
       if (sid) {
         this.activeSessionId = sid;
@@ -42,7 +42,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       }
       if (!this.activeSessionId) return;
       const response = await HTTP.get(
-        `/admin/online-tag/${this.activeSessionId}/prompts`,
+        `/admin/tag-sessions/${this.activeSessionId}/prompts`,
         { params: { ts: Date.now() } },
       );
       this.pendingPrompts = response.data.prompts || [];
@@ -53,7 +53,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     async resolvePrompt(fingerprint, action, payload, chosenVolumeId) {
       if (!this.activeSessionId) return;
       await HTTP.post(
-        `/admin/online-tag/${this.activeSessionId}/prompts/${fingerprint}`,
+        `/admin/tag-sessions/${this.activeSessionId}/prompts/${fingerprint}`,
         {
           action,
           payload: String(payload ?? ""),
@@ -69,16 +69,14 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     },
     async abortSession() {
       if (!this.activeSessionId) return;
-      await HTTP.post(`/admin/online-tag/${this.activeSessionId}/abort`);
+      await HTTP.delete(`/admin/tag-sessions/${this.activeSessionId}`);
       this.activeSessionId = null;
       this.pendingPrompts = [];
       this.promptDialogOpen = false;
     },
     async skipAllPrompts() {
       if (!this.activeSessionId) return;
-      await HTTP.post(
-        `/admin/online-tag/${this.activeSessionId}/skip-all-prompts`,
-      );
+      await HTTP.post(`/admin/tag-sessions/${this.activeSessionId}/skip-all`);
       this.pendingPrompts = [];
     },
     onPromptNotification() {

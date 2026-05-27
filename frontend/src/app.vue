@@ -63,26 +63,14 @@ export default {
   },
   created() {
     /*
-     * Boot phase: kick off the independent cold-start network
-     * requests at once. ``allSettled`` (rather than ``all``) so
-     * a failure in one — e.g. /admin-flags returning 401 before
-     * auth lands — doesn't suppress the other. Each store action
-     * already swallows its own errors via ``.catch`` so a failed
-     * promise here is purely informational.
-     *
-     * ``setTimezone`` was previously chained off
-     * ``loadProfile``, but the ``user`` / ``nonUsers`` watchers
-     * cover both auth paths and avoid the double-fire that the
-     * chain caused on every authenticated boot.
+     * Boot phase: single ``/api/v4/session`` composite returns user +
+     * adminFlags + permissions + version in one round trip. Replaces
+     * the v3 ``loadAdminFlags`` + ``loadProfile`` fan-out.
      */
-    Promise.allSettled([this.loadAdminFlags(), this.loadProfile()]);
+    this.loadSession();
   },
   methods: {
-    ...mapActions(useAuthStore, [
-      "loadAdminFlags",
-      "loadProfile",
-      "setTimezone",
-    ]),
+    ...mapActions(useAuthStore, ["loadSession", "setTimezone"]),
   },
 };
 </script>

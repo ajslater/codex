@@ -1,14 +1,12 @@
 import { HTTP } from "@/api/v4/base";
 
 /*
- * Composite bootstrap endpoint. Replaces v3's two-call pattern
- * (``getProfile`` + ``getAdminFlags``) with a single round trip.
- *
- * Response shape (after envelope unwrap, see ``base.js``):
+ * Composite bootstrap endpoint. One round trip returns
  *   {
  *     user: { id, username, email, isStaff, isSuperuser } | null,
  *     adminFlags: { ...same keys as v3 ``/auth/flags/`` },
  *     permissions: { isStaff, isSuperuser },
+ *     version: { installed, latest, warning },
  *   }
  */
 export const getSession = () => HTTP.get("/session");
@@ -28,6 +26,11 @@ export const logout = () => HTTP.post("/auth/logout");
 
 export const getProfile = () => HTTP.get("/auth/profile");
 export const updateProfile = (profile) => HTTP.patch("/auth/profile", profile);
+
+export const updateTimezone = () =>
+  HTTP.patch("/auth/profile", {
+    timezone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
 
 export const updatePassword = (credentials) =>
   HTTP.post("/auth/password/change", credentials);

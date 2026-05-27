@@ -7,6 +7,7 @@ from django.urls import path
 from django.views.decorators.cache import never_cache
 
 from codex.views.v4.admin import (
+    V4AdminAgeRatingsViewSet,
     V4AdminAPIKeyView,
     V4AdminCustomCoverBulkDeleteView,
     V4AdminCustomCoverDeleteView,
@@ -112,6 +113,12 @@ urlpatterns = [
         "failed-imports",
         V4AdminFailedImportViewSet.as_view({**READ}),
         name="failed_imports",
+    ),
+    # Age ratings (read-only Metron lookup)
+    path(
+        "age-ratings",
+        V4AdminAgeRatingsViewSet.as_view({**READ}),
+        name="age_ratings",
     ),
     # Custom covers
     path(

@@ -21,7 +21,7 @@
 import { mdiPencil } from "@mdi/js";
 import { mapActions } from "pinia";
 
-import { uploadCustomCover } from "@/api/v3/admin";
+import { uploadCustomCover } from "@/api/v4/admin";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";

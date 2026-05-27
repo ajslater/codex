@@ -123,8 +123,7 @@ export default {
       );
     },
     thumbSrc(item) {
-      const base = globalThis.CODEX.API_V3_PATH;
-      return `${base}custom_cover/${item.pk}/cover.webp?ts=${item.mtime ?? 0}`;
+      return `/api/v4/covers/custom/${item.pk}?ts=${item.mtime ?? 0}`;
     },
     mtimeIso(mtime) {
       if (!mtime) return undefined;

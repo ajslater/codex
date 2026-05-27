@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
+import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 
 const MAX_RETRIES = 5;
 const DEFAULT_RETRY_AFTER_SEC = 2;

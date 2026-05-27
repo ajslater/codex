@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/favorites";
+import * as API from "@/api/v4/favorites";
 
 const FAVORITE_GROUP_CODES = Object.freeze(["p", "i", "s", "v", "f", "a", "c"]);
 

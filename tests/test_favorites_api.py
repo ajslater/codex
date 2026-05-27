@@ -27,12 +27,31 @@ _HTTP_BAD_REQUEST: Final = 400
 _HTTP_FORBIDDEN: Final = 403
 _HTTP_NOT_FOUND: Final = 404
 
-_LIST_URL: Final = "/api/v3/favorites/"
+_LIST_URL: Final = "/api/v4/favorites/"
 _TMP_DIR: Final = Path("/tmp/codex.tests.fav")  # noqa: S108
+
+_GROUP_TO_COLLECTION: Final = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "c": "comics",
+    "f": "folders",
+    "a": "arcs",
+}
 
 
 def _detail_url(group: str, target_id: int) -> str:
-    return f"{_LIST_URL}{group}/{target_id}/"
+    collection = _GROUP_TO_COLLECTION.get(group, group)
+    return f"{_LIST_URL}{collection}/{target_id}"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
 
 
 class FavoritesAPITestCase(TestCase):
@@ -106,10 +125,16 @@ class FavoritesAPITestCase(TestCase):
         assert response.status_code == _HTTP_NOT_FOUND
         assert not Favorite.objects.filter(group="s", target_id=bogus_pk).exists()
 
-    def test_put_400_for_unmapped_group(self):
-        """The URL converter accepts ``r`` but the view has no model for it."""
-        response = self.client.put(_detail_url("r", 1))
-        assert response.status_code == _HTTP_BAD_REQUEST
+    def test_put_unmapped_group_does_not_match_route(self):
+        """The v4 collection converter only matches the seven collection names.
+
+        Anything else falls through to the SPA catch-all (the URL is not a
+        favorites endpoint at all), so we get the catch-all's 302 → ``/``
+        rather than a 404 from the view. Either way no Favorite is written.
+        """
+        response = self.client.put("/api/v4/favorites/unknowngroup/1")
+        assert response.status_code in {302, 404}
+        assert not Favorite.objects.filter(target_id=1).exists()
 
     def test_get_returns_favorites_grouped_by_code(self):
         """GET groups the user's favorites by single-letter group code."""
@@ -117,7 +142,7 @@ class FavoritesAPITestCase(TestCase):
         self.client.put(_detail_url("p", self.publisher_pk))
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
-        body = response.json()
+        body = _v4(response)
         assert sorted(body["s"]) == [self.series_pk]
         assert sorted(body["p"]) == [self.publisher_pk]
         # Untouched groups must still be present (empty list).
@@ -130,7 +155,7 @@ class FavoritesAPITestCase(TestCase):
         Favorite.objects.create(user=other, group="s", target_id=self.series_pk)
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
-        assert response.json()["s"] == []
+        assert _v4(response)["s"] == []
 
     def test_anonymous_forbidden(self):
         """Logged-out clients must not reach the favorites surface."""
@@ -145,12 +170,12 @@ class FavoritesAPITestCase(TestCase):
     def test_get_payload_is_json(self):
         """Sanity: GET returns a JSON object."""
         response = self.client.get(_LIST_URL)
-        body = json.loads(response.content)
+        body = _v4(response)
         assert isinstance(body, dict)
         assert set(body) >= {"p", "i", "s", "v", "f", "a", "c"}
 
 
-_SETTINGS_URL: Final = "/api/v3/r/settings"
+_SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 
 class FavoriteFilterTestCase(TestCase):
@@ -189,13 +214,13 @@ class FavoriteFilterTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
         get_resp = self.client.get(_SETTINGS_URL)
         assert get_resp.status_code == _HTTP_OK
-        assert get_resp.json()["filters"]["favorite"] is True
+        assert _v4(get_resp)["filters"]["favorite"] is True
 
     def test_favorite_filter_default_is_false(self):
         """Fresh settings expose ``filters.favorite`` as False."""
         get_resp = self.client.get(_SETTINGS_URL)
         assert get_resp.status_code == _HTTP_OK
-        assert get_resp.json()["filters"]["favorite"] is False
+        assert _v4(get_resp)["filters"]["favorite"] is False
 
     def test_favorite_subquery_narrows_to_favorited_pks(self):
         """The pk__in subquery restricts the queryset to the user's favorites."""
@@ -285,20 +310,24 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
 
     def _group_pks(self, group: str, scope_pk: int = 0) -> list[int]:
-        url = f"/api/v3/{group}/{scope_pk}/1"
+        collection = _GROUP_TO_COLLECTION.get(group, "publishers")
+        suffix = f"/{scope_pk}" if scope_pk else ""
+        url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         # Group rows surface in ``groups`` (each entry has ``ids`` for
         # multi-pk rollups; in this fixture every chain has one row).
         return [
-            ids[0] for g in response.json().get("groups", []) if (ids := g.get("ids"))
+            ids[0] for g in _v4(response).get("groups", []) if (ids := g.get("ids"))
         ]
 
     def _book_pks(self, group: str, scope_pk: int) -> list[int]:
-        url = f"/api/v3/{group}/{scope_pk}/1"
+        collection = _GROUP_TO_COLLECTION.get(group, "publishers")
+        suffix = f"/{scope_pk}" if scope_pk else ""
+        url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        return [b.get("pk") for b in response.json().get("books", [])]
+        return [b.get("pk") for b in _v4(response).get("books", [])]
 
     def test_favorited_publisher_lights_up_descendant_groups(self):
         """Favorite P1 → its full subtree (I1/S1/V1/C1) passes the filter."""
@@ -418,11 +447,11 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         assert response.status_code == _HTTP_OK, response.content
         for url in (
-            "/api/v3/r/0/1",
-            f"/api/v3/p/{self.p1.pk}/1",
-            f"/api/v3/i/{self.i1.pk}/1",
-            f"/api/v3/s/{self.s1.pk}/1",
-            f"/api/v3/v/{self.v1.pk}/1",
+            "/api/v4/browse/publishers?page=1",
+            f"/api/v4/browse/imprints/{self.p1.pk}?page=1",
+            f"/api/v4/browse/series/{self.i1.pk}?page=1",
+            f"/api/v4/browse/volumes/{self.s1.pk}?page=1",
+            f"/api/v4/browse/comics/{self.v1.pk}?page=1",
         ):
             r = self.client.get(url)
             assert r.status_code == _HTTP_OK, (url, r.content)

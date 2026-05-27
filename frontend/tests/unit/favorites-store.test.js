@@ -15,13 +15,13 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/api/v3/favorites", () => ({
+vi.mock("@/api/v4/favorites", () => ({
   getFavorites: vi.fn(),
   addFavorite: vi.fn(),
   removeFavorite: vi.fn(),
 }));
 
-import * as API from "@/api/v3/favorites";
+import * as API from "@/api/v4/favorites";
 import { useFavoritesStore } from "@/stores/favorites";
 
 beforeEach(() => {

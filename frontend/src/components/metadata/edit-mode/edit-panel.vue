@@ -854,7 +854,7 @@ import ClearFieldIcon from "@/components/metadata/edit-mode/clear-field-icon.vue
 import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
-import { HTTP } from "@/api/v3/base";
+import { HTTP } from "@/api/v4/base";
 import FORMAT_FIELD_SUPPORT from "@/choices/format-field-support.json";
 import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";

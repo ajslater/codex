@@ -8,11 +8,11 @@ from typing import Final, override
 from loguru import logger
 
 # Paths whose routine anon-403s are noise, not abuse. The first-load
-# probe to ``/api/v3/auth/profile/`` is the obvious offender — a fresh
+# probe to ``/api/v4/auth/profile`` is the obvious offender — a fresh
 # browser hits it before any session cookie exists. Django's
 # BaseHandler.get_response logs every 4xx at WARNING; we downgrade the
 # ones we expect so the main log stays useful.
-_NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v3/auth/profile/"})
+_NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v4/auth/profile"})
 
 
 # Query-string credentials we never want in logs. httpx logs the full

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/browser";
+import * as API from "@/api/v4/browser";
 import { getTimestamp } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 

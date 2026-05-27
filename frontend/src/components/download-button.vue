@@ -15,9 +15,9 @@
 import { mdiDownload } from "@mdi/js";
 import { mapState } from "pinia";
 
-import { getGroupDownloadURL } from "@/api/v3/browser";
-import { getDownloadIOSPWAFix } from "@/api/v3/common";
-import { getComicDownloadURL } from "@/api/v3/reader";
+import { getGroupDownloadURL } from "@/api/v4/browser";
+import { getDownloadIOSPWAFix } from "@/api/v4/common";
+import { getComicDownloadURL } from "@/api/v4/reader";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";

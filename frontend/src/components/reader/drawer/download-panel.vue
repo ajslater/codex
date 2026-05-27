@@ -13,8 +13,8 @@
 import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { getDownloadIOSPWAFix } from "@/api/v3/common";
-import { getDownloadPageURL } from "@/api/v3/reader";
+import { getDownloadIOSPWAFix } from "@/api/v4/common";
+import { getDownloadPageURL } from "@/api/v4/reader";
 import CodexListItem from "@/components/codex-list-item.vue";
 import DownloadButton from "@/components/download-button.vue";
 import { useCommonStore } from "@/stores/common";

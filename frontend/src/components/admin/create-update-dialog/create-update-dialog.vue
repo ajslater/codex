@@ -32,7 +32,7 @@ import { mapActions } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
-import { deepClone } from "@/api/v3/common";
+import { deepClone } from "@/api/v4/common";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
