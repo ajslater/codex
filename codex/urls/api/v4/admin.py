@@ -35,6 +35,7 @@ from codex.views.v4.admin import (
     V4AdminTasksCreateView,
     V4AdminTasksListView,
     V4AdminThrottleSettingsView,
+    V4AdminUserBulkView,
     V4AdminUserDataExportView,
     V4AdminUserDataImportView,
     V4AdminUserPasswordView,
@@ -74,6 +75,11 @@ urlpatterns = [
         "users/<int:pk>/send-verification",
         V4AdminUserSendVerificationView.as_view(),
         name="user_send_verification",
+    ),
+    path(
+        "users/bulk",
+        V4AdminUserBulkView.as_view(),
+        name="users_bulk",
     ),
     # Groups
     path(

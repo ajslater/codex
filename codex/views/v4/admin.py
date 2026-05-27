@@ -17,6 +17,7 @@ v3 store is gone with the rest of v3.
 from rest_framework.response import Response
 
 from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
+from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.custom_cover import (
     AdminCustomCoverDeleteView,
@@ -57,13 +58,22 @@ from codex.views.admin.user import (
     AdminUserSendVerificationView,
     AdminUserViewSet,
 )
-from codex.views.v4.common import EnvelopeJSONRenderer
+from codex.views.v4.common import EnvelopeJSONRenderer, V4CursorPagination
 
 
 class _V4AdminMixin:
-    """All v4 admin endpoints wear the envelope renderer."""
+    """All v4 admin endpoints wear the envelope renderer.
+
+    ``pagination_class`` is the v4 cursor paginator: viewset list
+    actions return ``{count?, next, previous, results}`` (the
+    standard DRF pagination shape) inside the envelope's ``data``
+    slot. APIViews ignore the attribute. The page-number paginator
+    stays in use for browser endpoints, where the UI surfaces an
+    explicit page-N control.
+    """
 
     renderer_classes = (EnvelopeJSONRenderer,)
+    pagination_class = V4CursorPagination
 
 
 # ── Resources (CRUD) ────────────────────────────────────────────────
@@ -79,6 +89,57 @@ class V4AdminUserPasswordView(_V4AdminMixin, AdminUserChangePasswordView):
 
 class V4AdminUserSendVerificationView(_V4AdminMixin, AdminUserSendVerificationView):
     """``POST /api/v4/admin/users/{id}/send-verification``."""
+
+
+class V4AdminUserBulkView(_V4AdminMixin, AdminAPIView):
+    """
+    Apply a batch admin action to multiple users.
+
+    ``POST /api/v4/admin/users/bulk``.
+    Body: ``{"action": "delete", "ids": [int, ...]}``. Returns
+    ``{"deleted": [int], "skipped": [{id, reason}]}``. ``delete`` is
+    the only action today; other actions can land here later
+    (deactivate, set-staff, etc.) without changing the URL.
+    """
+
+    def post(self, request, *_args, **_kwargs) -> Response:
+        """Apply the bulk action."""
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
+        from codex.librarian.notifier.tasks import users_changed_task
+        from codex.models import User as UserModel
+
+        action = request.data.get("action")
+        ids_raw = request.data.get("ids") or []
+        if action != "delete":
+            msg = f"Unsupported bulk action {action!r}; only 'delete' is allowed."
+            raise DRFValidationError({"action": msg})
+        if not isinstance(ids_raw, list) or not ids_raw:
+            raise DRFValidationError({"ids": "Provide a non-empty list of user ids."})
+        try:
+            ids = [int(pk) for pk in ids_raw]
+        except (TypeError, ValueError) as exc:
+            raise DRFValidationError({"ids": "All ids must be integers."}) from exc
+
+        current_user_id = getattr(request.user, "pk", None)
+        deleted: list[int] = []
+        skipped: list[dict] = []
+        for pk in ids:
+            if pk == current_user_id:
+                skipped.append({"id": pk, "reason": "self"})
+                continue
+            try:
+                user = UserModel.objects.get(pk=pk)
+            except UserModel.DoesNotExist:
+                skipped.append({"id": pk, "reason": "not_found"})
+                continue
+            user.delete()
+            deleted.append(pk)
+        if deleted:
+            from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+
+            LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
+        return Response({"deleted": deleted, "skipped": skipped})
 
 
 class V4AdminGroupViewSet(_V4AdminMixin, AdminGroupViewSet):

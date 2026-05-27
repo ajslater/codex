@@ -421,16 +421,6 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         names = [g.get("name") for g in _v4(response).get("groups", [])]
         assert names == ["Beta", "Alpha"], names
 
-    @pytest.mark.skip(
-        reason=(
-            "v4 /browse/publishers maps to v3 (group=p, pks=()), which under "
-            "v3's model_group rule returns the next-visible level "
-            "(imprints/series) rather than publisher rows themselves. v3's "
-            "ROOT_GROUP 'r' had dedicated 'list publishers' semantics that "
-            "v4 deliberately dropped (see converter docstring). A "
-            "v4-native publishers-at-root listing is a separate body change."
-        )
-    )
     def test_primary_sort_at_publishers_root(self) -> None:
         """
         Publishers root (top_group=p) sorts by aggregated child values.

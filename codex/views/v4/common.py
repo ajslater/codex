@@ -16,11 +16,28 @@ from typing import Any, override
 
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
 from rest_framework.generics import GenericAPIView
+from rest_framework.pagination import CursorPagination
 from rest_framework.views import APIView
 
 from codex.views.auth import AuthMixin
 
 ENVELOPE_KEYS = frozenset({"data", "meta", "errors"})
+
+
+class V4CursorPagination(CursorPagination):
+    """v4 cursor pagination for admin lists.
+
+    Page-number stays for browser views; admin uses cursor so the
+    front-end can stream large user/library/cover lists without
+    paying for the offset re-scan. Ordering defaults to ``pk``
+    (every admin model has one and it's stably indexed); page size
+    is large enough that typical installations land on one page.
+    """
+
+    ordering = "pk"
+    page_size = 200
+    page_size_query_param = "limit"
+    max_page_size = 1000
 
 
 def envelope(

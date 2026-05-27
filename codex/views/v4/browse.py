@@ -68,12 +68,22 @@ class _V4BrowseTranslateMixin:
         comes from the optional ``parentIds`` segment. v3's
         ``model_group`` advances to the next-visible level per the
         user's ``show`` settings — same behavior as v3.
+
+        Special case: ``/browse/publishers`` (no parent ids) maps to
+        v3's ``ROOT_GROUP`` ('r') instead of 'p' so the response
+        lists publisher rows themselves rather than their next-visible
+        children. v3's ``r`` group was reserved for that "list the
+        publishers" semantics; v4 drops the magic letter but keeps
+        the behavior at the root URL.
         """
         kwargs = self.kwargs
         collection = kwargs.pop("collection", None)
         parent_ids = kwargs.pop("parent_ids", None)
         if collection is not None:
-            kwargs["group"] = COLLECTION_TO_GROUP[collection]
+            if collection == "publishers" and parent_ids is None:
+                kwargs["group"] = "r"
+            else:
+                kwargs["group"] = COLLECTION_TO_GROUP[collection]
         if parent_ids is None:
             kwargs["pks"] = ()
         else:

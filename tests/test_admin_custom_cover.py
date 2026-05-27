@@ -180,7 +180,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert upload_response.status_code == HTTPStatus.CREATED
         response = self.client.get("/api/v4/admin/custom-covers")
         assert response.status_code == HTTPStatus.OK
-        rows = _v4(response)
+        # v4 admin lists use cursor pagination so the envelope's data
+        # slot is ``{count?, next, previous, results}``; unwrap the
+        # paginated shape before asserting on the row count.
+        body = _v4(response)
+        rows = body["results"] if isinstance(body, dict) and "results" in body else body
         assert len(rows) == 1
         row = rows[0]
         assert row["group"] == "p"

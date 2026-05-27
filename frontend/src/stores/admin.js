@@ -98,14 +98,26 @@ export const useAdminStore = defineStore("admin", {
       await t
         .getAll()
         .then((response) => {
-          if (Array.isArray(response.data)) {
-            this[t.stateField] = response.data;
-            this.timestamps[table] = Date.now();
-            return true;
-          } else {
-            console.warn(t.stateField, "response not an array");
+          /*
+           * v4 admin viewsets use cursor pagination, so list responses
+           * arrive as ``{count?, next, previous, results}`` inside the
+           * envelope. Read-only enums (AgeRatingMetron) and the few
+           * non-viewset list endpoints still return a bare array — accept
+           * both shapes so callers don't need to know which is which.
+           */
+          const body = response.data;
+          const rows = Array.isArray(body)
+            ? body
+            : Array.isArray(body?.results)
+              ? body.results
+              : undefined;
+          if (rows === undefined) {
+            console.warn(t.stateField, "response shape unrecognized");
             return false;
           }
+          this[t.stateField] = rows;
+          this.timestamps[table] = Date.now();
+          return true;
         })
         .catch(warnError);
     },
