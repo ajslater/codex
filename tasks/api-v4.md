@@ -453,25 +453,28 @@ Landed. v3 is removed in the same release that ships v4.
 - [x] Update the Django template (`headers-script-globals.html`) to
       stop emitting `API_V3_PATH`.
 
-## Migration Risks
+## Migration Risks (post-cutover assessment)
 
-- **OPDS coexistence.** OPDS endpoints are public and consumed by
-  third-party readers. Verify they aren't accidentally affected by the
-  renderer/inflection changes (they live in `/api/v3/opds/` not
-  `/api/v4/`, so should be isolated, but worth a test pass).
-- **API token consumers.** External scripts may hit `/api/v3/` directly.
-  Deprecation warnings need to land in release notes, not just headers.
-- **`django-rest-framework-json-api` quirks.** Sparse fieldsets,
-  includes, and nested writes can surface bugs in edge cases. Budget
-  extra time for Phase 7.
-- **camelCase migration.** Some serializer field aliases (e.g.,
-  `username` → `login` in auth) are externally-facing contracts.
-  Double-check rest_registration's expected wire shape before
-  blindly camelCasing.
-- **Custom URL converters.** Django supports custom path converters
-  (single-char `<group:group>` today). The new comma-list converter
-  needs the same plumbing.
-- **WebSocket compatibility.** Frontend may briefly run v3 stores
-  against v4 socket (or vice versa) during partial rollouts. Either
-  run both consumers in parallel, or gate the socket version by the
-  same flag.
+- **OPDS coexistence.** OPDS mounts at `/opds/v1.2/` and `/opds/v2.0/`,
+  outside `/api/`. Smoke-tested post-cutover (200 from both versions);
+  the v3 URL deletion didn't touch this surface.
+- **API token consumers.** External callers that targeted `/api/v3/`
+  directly will now 302 to the SPA catch-all. Document in release
+  notes; no in-band redirect from v3 → v4 (the path shapes differ
+  enough that a shim would be misleading more than helpful).
+- **`django-rest-framework-json-api` quirks.** Mitigated: only the
+  six admin resource viewsets render JSON:API, and `JSON_API_FORMAT_
+  FIELD_NAMES = "camelize"` keeps attribute keys on the same casing
+  as the rest of v4. The frontend `flattenJsonApi` adapter collapses
+  the resource shape into the flat `{pk, ...}` the admin store has
+  always read.
+- **camelCase migration.** rest-registration's `login` field stayed
+  named `login` on the wire (the v4 frontend continues to pass
+  `{ ...credentials, login: credentials.username }`). No casing
+  regressions surfaced in test.
+- **Custom URL converters.** `CollectionConverter` ships alongside
+  the existing `GroupConverter` / `IntListConverter` in
+  `codex/urls/converters.py`; registered once in
+  `codex/urls/root.py`. No conflict.
+- **WebSocket compatibility.** Single consumer at `/api/v4/ws`. The
+  v3 URL `/api/v3/ws` is gone; no parallel-run risk.

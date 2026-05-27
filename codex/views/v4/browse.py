@@ -57,7 +57,10 @@ class _V4BrowseTranslateMixin:
     def initial(self, request: "Request", *args, **kwargs):
         """Rewrite self.kwargs before DRF's per-request setup runs."""
         self._translate_kwargs(request)
-        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
+        # super() resolves to the v3 view body at runtime — both
+        # checkers need the bypass because the mixin doesn't name
+        # APIView as a base.
+        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
 
     def _translate_kwargs(self, request: "Request") -> None:
         """
