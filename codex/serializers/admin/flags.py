@@ -50,3 +50,8 @@ class AdminFlagSerializer(BaseModelSerializer):
         model = AdminFlag
         fields = ("key", "on", "value", "age_rating_metron")
         read_only_fields = ("key",)
+
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "flags"

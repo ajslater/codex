@@ -2,6 +2,63 @@ import { HTTP } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
 
 /*
+ * v4 admin resource endpoints render in JSON:API
+ * (``{data: {type, id, attributes, relationships}}``) rather than
+ * the envelope view-endpoints use. This helper flattens a single
+ * resource into the v3 ``{pk, ...fields}`` shape the admin store
+ * components have always consumed. Relationships collapse to id
+ * arrays (or a single id) so ``library.groups`` reads the same as
+ * before. Singletons / RPC actions stay on the envelope and don't
+ * route through here.
+ */
+function flattenRelationships(rels) {
+  if (!rels) return {};
+  const out = {};
+  for (const [key, rel] of Object.entries(rels)) {
+    const d = rel?.data;
+    if (Array.isArray(d)) {
+      out[key] = d.map((entry) => Number.parseInt(entry.id, 10));
+    } else if (d) {
+      out[key] = Number.parseInt(d.id, 10);
+    } else {
+      out[key] = null;
+    }
+  }
+  return out;
+}
+
+function flattenResource(item) {
+  if (!item) return item;
+  const pkRaw = item.id;
+  const pk = /^\d+$/.test(String(pkRaw)) ? Number.parseInt(pkRaw, 10) : pkRaw;
+  return {
+    pk,
+    ...item.attributes,
+    ...flattenRelationships(item.relationships),
+  };
+}
+
+export function flattenJsonApi(body) {
+  if (Array.isArray(body)) {
+    return body.map((entry) => flattenResource(entry));
+  }
+  if (body && typeof body === "object" && "type" in body && "id" in body) {
+    return flattenResource(body);
+  }
+  return body;
+}
+
+async function jsonApiList(response) {
+  response.data = flattenJsonApi(response.data);
+  return response;
+}
+
+async function jsonApiOne(response) {
+  response.data = flattenJsonApi(response.data);
+  return response;
+}
+
+/*
  * v4 admin CRUD factory. Differences from v3:
  *   - Paths are plural (``users`` vs ``user``).
  *   - Updates use PATCH (v3 used PUT for partial_update).
@@ -12,9 +69,10 @@ import { serializeParams } from "@/api/v4/common";
 const makeAdminCRUD = (entity) => {
   const path = `/admin/${entity}`;
   return {
-    create: (data) => HTTP.post(path, data),
-    getAll: () => HTTP.get(path, { params: serializeParams() }),
-    update: (pk, data) => HTTP.patch(`${path}/${pk}`, data),
+    create: (data) => HTTP.post(path, data).then(jsonApiOne),
+    getAll: () =>
+      HTTP.get(path, { params: serializeParams() }).then(jsonApiList),
+    update: (pk, data) => HTTP.patch(`${path}/${pk}`, data).then(jsonApiOne),
     destroy: (pk) => HTTP.delete(`${path}/${pk}`),
   };
 };
@@ -24,26 +82,34 @@ export const TABLES = Object.freeze({
   Group: { ...makeAdminCRUD("groups"), stateField: "groups" },
   Library: { ...makeAdminCRUD("libraries"), stateField: "libraries" },
   Flag: {
-    getAll: () => HTTP.get("/admin/flags", { params: serializeParams() }),
-    update: (key, data) => HTTP.patch(`/admin/flags/${key}`, data),
+    getAll: () =>
+      HTTP.get("/admin/flags", { params: serializeParams() }).then(jsonApiList),
+    update: (key, data) =>
+      HTTP.patch(`/admin/flags/${key}`, data).then(jsonApiOne),
     stateField: "flags",
   },
   FailedImport: {
     getAll: () =>
-      HTTP.get("/admin/failed-imports", { params: serializeParams() }),
+      HTTP.get("/admin/failed-imports", { params: serializeParams() }).then(
+        jsonApiList,
+      ),
     stateField: "failedImports",
   },
+  // ActiveLibrarianStatus stays on the envelope (async APIView, not a
+  // JSON:API resource).
   ActiveLibrarianStatus: {
     getAll: () => HTTP.get("/admin/tasks", { params: { ts: Date.now() } }),
     stateField: "activeLibrarianStatuses",
   },
   AgeRatingMetron: {
-    getAll: () => HTTP.get("/admin/age-ratings"),
+    getAll: () => HTTP.get("/admin/age-ratings").then(jsonApiList),
     stateField: "ageRatingMetrons",
   },
   CustomCover: {
     getAll: () =>
-      HTTP.get("/admin/custom-covers", { params: serializeParams() }),
+      HTTP.get("/admin/custom-covers", { params: serializeParams() }).then(
+        jsonApiList,
+      ),
     destroy: (pk) => HTTP.delete(`/admin/custom-covers/${pk}`),
     stateField: "customCovers",
   },

@@ -59,6 +59,7 @@ from codex.views.admin.user import (
     AdminUserViewSet,
 )
 from codex.views.v4.common import EnvelopeJSONRenderer, V4CursorPagination
+from codex.views.v4.json_api import V4AdminJSONAPIParser, V4AdminJSONAPIRenderer
 
 
 class _V4AdminMixin:
@@ -70,16 +71,34 @@ class _V4AdminMixin:
     slot. APIViews ignore the attribute. The page-number paginator
     stays in use for browser endpoints, where the UI surfaces an
     explicit page-N control.
+
+    Action views (singletons, RPC verbs) keep the envelope by default;
+    resource viewsets opt into JSON:API by mixing in
+    :class:`_V4AdminJsonApiMixin` below.
     """
 
     renderer_classes = (EnvelopeJSONRenderer,)
     pagination_class = V4CursorPagination
 
 
+class _V4AdminJsonApiMixin(_V4AdminMixin):
+    """JSON:API renderer + parser for v4 admin *resource* viewsets.
+
+    Wires :mod:`codex.views.v4.json_api` so list/detail responses
+    ship as JSON:API ``{data: {type, id, attributes, relationships}}``
+    per ``tasks/api-v4.md`` Phase 7. Singletons and RPC actions stay
+    on :class:`_V4AdminMixin` (envelope) — JSON:API's resource shape
+    doesn't fit verb endpoints.
+    """
+
+    renderer_classes = (V4AdminJSONAPIRenderer,)
+    parser_classes = (V4AdminJSONAPIParser,)
+
+
 # ── Resources (CRUD) ────────────────────────────────────────────────
 
 
-class V4AdminUserViewSet(_V4AdminMixin, AdminUserViewSet):
+class V4AdminUserViewSet(_V4AdminJsonApiMixin, AdminUserViewSet):
     """``/api/v4/admin/users`` + ``/api/v4/admin/users/{id}``."""
 
 
@@ -142,30 +161,30 @@ class V4AdminUserBulkView(_V4AdminMixin, AdminAPIView):
         return Response({"deleted": deleted, "skipped": skipped})
 
 
-class V4AdminGroupViewSet(_V4AdminMixin, AdminGroupViewSet):
+class V4AdminGroupViewSet(_V4AdminJsonApiMixin, AdminGroupViewSet):
     """``/api/v4/admin/groups`` + ``/api/v4/admin/groups/{id}``."""
 
 
-class V4AdminLibraryViewSet(_V4AdminMixin, AdminLibraryViewSet):
+class V4AdminLibraryViewSet(_V4AdminJsonApiMixin, AdminLibraryViewSet):
     """``/api/v4/admin/libraries`` + ``/api/v4/admin/libraries/{id}``."""
 
 
-class V4AdminFlagViewSet(_V4AdminMixin, AdminFlagViewSet):
+class V4AdminFlagViewSet(_V4AdminJsonApiMixin, AdminFlagViewSet):
     """``/api/v4/admin/flags`` + ``/api/v4/admin/flags/{key}``."""
 
 
-class V4AdminFailedImportViewSet(_V4AdminMixin, AdminFailedImportViewSet):
+class V4AdminFailedImportViewSet(_V4AdminJsonApiMixin, AdminFailedImportViewSet):
     """``/api/v4/admin/failed-imports``."""
 
 
-class V4AdminAgeRatingsViewSet(_V4AdminMixin, AdminAgeRatingMetronViewSet):
+class V4AdminAgeRatingsViewSet(_V4AdminJsonApiMixin, AdminAgeRatingMetronViewSet):
     """``GET /api/v4/admin/age-ratings`` — read-only canonical Metron table."""
 
 
 # ── Custom covers (URL shape reshuffled for v4) ─────────────────────
 
 
-class V4AdminCustomCoverListView(_V4AdminMixin, AdminCustomCoverListView):
+class V4AdminCustomCoverListView(_V4AdminJsonApiMixin, AdminCustomCoverListView):
     """``GET /api/v4/admin/custom-covers``."""
 
 

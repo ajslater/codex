@@ -43,6 +43,11 @@ class LibrarySerializer(BaseModelSerializer):
             "failed_count",
         )
 
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "libraries"
+
     def validate_path(self, path):
         """Validate new library paths."""
         ppath = Path(path).resolve()
@@ -70,6 +75,11 @@ class FailedImportSerializer(BaseModelSerializer):
         model = FailedImport
         fields = ("pk", "path", "created_at")
         read_only_fields = ("pk", "path", "created_at")
+
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "failed-imports"
 
 
 class AdminFolderListSerializer(Serializer):

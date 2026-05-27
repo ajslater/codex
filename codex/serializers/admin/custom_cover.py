@@ -54,6 +54,11 @@ class CustomCoverSerializer(BaseModelSerializer):
         )
         read_only_fields = fields
 
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "custom-covers"
+
     @staticmethod
     def get_group_label(obj: CustomCover) -> str:
         """Human-readable group name."""

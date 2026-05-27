@@ -180,15 +180,14 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert upload_response.status_code == HTTPStatus.CREATED
         response = self.client.get("/api/v4/admin/custom-covers")
         assert response.status_code == HTTPStatus.OK
-        # v4 admin lists use cursor pagination so the envelope's data
-        # slot is ``{count?, next, previous, results}``; unwrap the
-        # paginated shape before asserting on the row count.
+        # v4 admin resources render JSON:API: data is a list of
+        # ``{type, id, attributes, relationships}`` items.
         body = _v4(response)
-        rows = body["results"] if isinstance(body, dict) and "results" in body else body
+        rows = body if isinstance(body, list) else body.get("data", [])
         assert len(rows) == 1
-        row = rows[0]
-        assert row["group"] == "p"
-        assert row["linkedGroupName"] == "Marvel"
+        attrs = rows[0]["attributes"]
+        assert attrs["group"] == "p"
+        assert attrs["linkedGroupName"] == "Marvel"
 
     @patch(_QUEUE_PATCH)
     def test_replace_displaces_prior_cover(self, mock_queue) -> None:  # noqa: ARG002
