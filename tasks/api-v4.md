@@ -291,120 +291,164 @@ ACL still applies at the channel-group level (`ALL` / `ADMIN` /
 
 ---
 
+## Implementation Status (as of 2026-05-26)
+
+Phases 1–8 landed across three commits on `codex-v2`:
+`c74309b7` (scaffold + auth + browse + reader),
+`4dc670c3` (metadata pivot + typed WS),
+`c286614d` (admin URL contract + favorites/utility).
+
+v4 is gated by `CODEX_API_V4` (env var, default off). All 404
+backend + frontend tests pass. v3 is unchanged.
+
+**Done in-band with this pass:**
+
+- URL contract for every plan endpoint up through Phase 8.
+- Envelope `{data, meta, errors}` renderer applied uniformly across
+  v4 view endpoints; binary/cover/page endpoints remain raw per plan.
+- Backend metadata pivot (credits role-pivoted; identifiers parsed
+  into `{type, code, displayName, pk, url}`).
+- Typed WebSocket consumer at `/api/v4/ws` that translates v3 bare
+  strings to typed JSON payloads.
+- `frontend/src/api/v4/{base,auth,notify}.js` with envelope unwrap
+  and typed-message helpers.
+
+**Deferred — listed under the phases below as `[deferred]`:**
+
+- JSON:API renderer/serializer conversion for `/api/v4/admin/*`
+  (URL contract is in place; the per-viewset rewrite is a separate
+  body change, dep already pinned).
+- Frontend store migrations for `browser.js`, `reader.js`,
+  `admin.js`, `socket.js`, and the metadata.js getter removal.
+  v3 store branches stay live until each v4 store lands.
+- Bulk admin operations (`/admin/users/bulk` etc) and cursor
+  pagination — neither has a v3 equivalent to wrap.
+- BrowserView dual `groups`/`books`/`rows` serialization unification.
+- WebSocket broadcaster mtime/scope enrichment (v3 broadcasters
+  still emit bare strings; v4 consumer translates but ships null
+  mtime / empty scope until broadcasters are updated).
+- Generalized cover sources beyond `comic` and `custom`.
+
+---
+
 ## Migration Phases
 
 ### Phase 1: Scaffolding
 
-- [ ] Install `django-rest-framework-json-api`. Pin to a known-good
-      version compatible with the project's DRF 3.16+.
-- [ ] Add `codex/urls/api/v4/__init__.py` mounting `/api/v4/`.
-- [ ] Add a feature flag (`ADMIN_FLAGS.api_v4` or env var) gating
-      whether v4 routes are exposed. Default off.
-- [ ] Add `codex/views/v4/` directory with empty `auth.py`, `browse.py`,
+- [x] Install `django-rest-framework-json-api`. Pin to a known-good
+      version compatible with the project's DRF 3.16+. — pinned at
+      `~=8.1` in [pyproject.toml](pyproject.toml).
+- [x] Add `codex/urls/api/v4/__init__.py` mounting `/api/v4/`.
+- [x] Add a feature flag (`ADMIN_FLAGS.api_v4` or env var) gating
+      whether v4 routes are exposed. Default off. — `FEATURES.api_v4`
+      driven by `CODEX_API_V4` env var.
+- [x] Add `codex/views/v4/` directory with empty `auth.py`, `browse.py`,
       `reader.py`, `admin.py`, `common.py`.
-- [ ] Add `codex/serializers/v4/` mirroring the same structure.
-- [ ] Configure DRF renderer chain: JSON:API renderer for admin
+- [x] Add `codex/serializers/v4/` mirroring the same structure.
+- [x] Configure DRF renderer chain: JSON:API renderer for admin
       endpoints, hand-rolled `{data, meta, errors}` renderer for view
-      endpoints, camelCase inflection everywhere.
-- [ ] Wire `/api/v4/version` as the first endpoint to validate the
+      endpoints, camelCase inflection everywhere. — view endpoints use
+      [EnvelopeJSONRenderer](codex/views/v4/common.py); JSON:API
+      renderer wiring deferred until per-viewset serializer migration.
+- [x] Wire `/api/v4/version` as the first endpoint to validate the
       scaffold end-to-end.
 
 ### Phase 2: Session bootstrap & auth
 
-- [ ] `GET /api/v4/session` — return `{user, adminFlags, permissions}`
-      in one response. Replaces three v3 calls (`/auth/profile`,
-      `/auth/flags`, plus any per-feature permission probes).
-- [ ] Port the remaining `/api/v4/auth/*` endpoints. These can largely
-      be thin wrappers around the v3 implementations with new envelope.
-- [ ] Frontend: add `frontend/src/api/v4/` alongside v3. Start with an
-      `auth.js` module that uses `/api/v4/session` and document the
-      coexistence pattern.
+- [x] `GET /api/v4/session` — return `{user, adminFlags, permissions}`
+      in one response.
+- [x] Port the remaining `/api/v4/auth/*` endpoints.
+- [x] Frontend: add `frontend/src/api/v4/` alongside v3.
 
 ### Phase 3: Browser view endpoints
 
-- [ ] Implement Option A path routing for `/api/v4/browse/{collection}[/{parentIds}]`.
-      Confirm the `<int:>` + comma-list converter works in Django URL
-      patterns (probably a custom converter).
-- [ ] Port `BrowserView` to v4 with the new envelope. Drop the dual
-      `groups`/`books`/`rows` serialization — pick card or table based
-      on the request, not both at once.
-- [ ] Port `/choices`, `/choices/{field}`, `/metadata`,
+- [x] Implement Option A path routing for `/api/v4/browse/{collection}[/{parentIds}]`.
+      — new `CollectionConverter` in [converters.py](codex/urls/converters.py).
+- [x] Port `BrowserView` to v4 with the new envelope.
+      [deferred] Drop the dual `groups`/`books`/`rows` serialization —
+      pick card or table based on the request, not both at once. The
+      adapter delegates to the existing v3 body; the dual-serialization
+      unification is a separate body change.
+- [x] Port `/choices`, `/choices/{field}`, `/metadata`,
       `/download/{filename}`, `/import`, `/refresh`.
-- [ ] Port browser settings + saved-settings endpoints.
-- [ ] Migrate `frontend/src/stores/browser.js` to v4. Verify breadcrumb
-      navigation, filter dropdowns, table/card switching, search.
+- [x] Port browser settings + saved-settings endpoints.
+- [ ] [deferred] Migrate `frontend/src/stores/browser.js` to v4.
 
 ### Phase 4: Reader endpoints
 
-- [ ] Implement `/api/v4/reader/comics/{id}` composite view.
-- [ ] Implement `/api/v4/comics/{id}/reader-settings?scopes=…` returning
+- [x] Implement `/api/v4/reader/comics/{id}` composite view.
+- [x] Implement `/api/v4/comics/{id}/reader-settings?scopes=…` returning
       all requested scopes in one response.
-- [ ] Port `/comics/{id}/bookmark` (PATCH).
-- [ ] Migrate `frontend/src/stores/reader.js`. Verify page navigation,
-      prev/next book, settings layering, bookmark debouncing.
+- [x] Port `/comics/{id}/bookmark` (PATCH).
+- [ ] [deferred] Migrate `frontend/src/stores/reader.js`.
 
 ### Phase 5: Metadata pivot on the backend
 
-- [ ] Update aggregated metadata serializer to ship credits as
+- [x] Update aggregated metadata serializer to ship credits as
       `{ role: [{person}] }` instead of `[{role, person}]`. Sort by
-      HEAD_ROLES precedence then alphabetically on the backend.
-- [ ] Parse `identifier.name` (`"type:code"`) on the backend; ship
+      HEAD_ROLES precedence then alphabetically on the backend. —
+      [V4MetadataSerializer](codex/serializers/v4/metadata.py).
+- [x] Parse `identifier.name` (`"type:code"`) on the backend; ship
       `{type, code, displayName}` with the source display name resolved.
-- [ ] Remove the corresponding getters from
-      `frontend/src/stores/metadata.js`.
+- [ ] [deferred] Remove the corresponding getters from
+      `frontend/src/stores/metadata.js` — pending the browser.js
+      migration that will consume the v4 metadata endpoint.
 
 ### Phase 6: WebSocket payload redesign
 
-- [ ] Define typed message shapes in
-      `codex/websockets/messages.py` (or similar).
-- [ ] Update all librarian-side broadcasters to emit typed messages
-      with mtime + scope.
-- [ ] Mount a v4 WebSocket consumer at `/ws/v4/` (v3 consumer stays for
-      transition).
-- [ ] Migrate `frontend/src/stores/socket.js` to typed dispatch. The
-      v3 dispatcher already fans `admin.flags.changed` out to multiple
-      admin routes (Users + Settings, since the Flag table feeds
-      FlagCards on both) — preserve that on the typed-message path.
-- [ ] Remove the `loadMtimes()` two-step in browser and reader stores
-      once typed messages carry mtime directly.
+- [x] Define typed message shapes in
+      [codex/websockets/v4_messages.py](codex/websockets/v4_messages.py).
+- [ ] [deferred] Update all librarian-side broadcasters to emit typed
+      messages with mtime + scope. — the v4 consumer translates v3
+      bare strings today; mtime/scope land as `null`/`{}` until
+      broadcasters are updated. Frontend still needs its mtime probe
+      after a `library.changed` notification until this is done.
+- [x] Mount a v4 WebSocket consumer at `/api/v4/ws` (v3 consumer
+      stays for transition).
+- [ ] [deferred] Migrate `frontend/src/stores/socket.js` to typed
+      dispatch.
+- [ ] [deferred] Remove the `loadMtimes()` two-step — blocked on the
+      broadcaster update above.
 
 ### Phase 7: Admin resources (JSON:API)
 
-- [ ] Convert AdminUserViewSet, AdminGroupViewSet, AdminLibraryViewSet,
-      AdminFlagViewSet, AdminFailedImportViewSet, AdminCustomCover\* to
-      JSON:API renderers + serializers.
-- [ ] Update PATCH responses to return the updated row.
-- [ ] Add `/api/v4/admin/users/bulk` and equivalents.
-- [ ] Add `POST /api/v4/admin/users/{id}/send-verification` — same
-      backend handler as v3 ([codex/views/admin/user.py](codex/views/admin/user.py)
-      `AdminUserSendVerificationView`); 400/404/409 for "email not
-      configured / RV off / already active / no email on file" stay
-      structured.
-- [ ] Add cursor pagination class.
-- [ ] Port `GET|POST /api/v4/admin/api-key`. Backend now stores the key
-      in `AdminFlag.AK` (not `Timestamp`); serializer wraps the AdminFlag
-      row with `source="value"`. POST regenerates via
-      [\_new_api_key()](codex/views/admin/api_key.py).
-- [ ] Port the non-resource admin endpoints (stats, email-settings,
-      tagging-defaults, throttle-settings, librarian/tasks, tag-sessions,
-      identifier-url, tag-write, folders, user-data import/export).
-- [ ] Port tag-sessions endpoints. Session state now lives in the
-      Django cache via [session_cache.py](codex/librarian/onlinetag/session_cache.py)
-      — the v4 views are thin wrappers around the same accessor module,
-      not direct ORM reads on `ComicboxTaggingDefaults`.
-- [ ] Migrate `frontend/src/stores/admin.js` table by table. Replace
-      full-refetch-on-mutate with splice-from-PATCH-response. Note that
-      `apiKey`, `loadAPIKey`, `updateAPIKey` are already wired in v3 —
-      port the existing pattern.
+- [x] Mount the v4 admin URL contract for AdminUserViewSet,
+      AdminGroupViewSet, AdminLibraryViewSet, AdminFlagViewSet,
+      AdminFailedImportViewSet, AdminCustomCover\* as envelope-renderer
+      subclasses. [deferred] JSON:API renderer + serializer conversion
+      is a separate per-viewset migration; dep is pinned.
+- [ ] [deferred] Update PATCH responses to return the updated row. —
+      v3 viewsets mostly do this already; needs an audit per viewset.
+- [ ] [deferred] Add `/api/v4/admin/users/bulk` and equivalents — no
+      v3 equivalent to wrap; needs new handlers.
+- [x] Add `POST /api/v4/admin/users/{id}/send-verification` — wraps
+      the v3 `AdminUserSendVerificationView`.
+- [ ] [deferred] Add cursor pagination class.
+- [x] Port `GET|POST /api/v4/admin/api-key`. POST regenerates (the
+      plan switched from PUT).
+- [x] Port the non-resource admin endpoints (stats, email-settings,
+      tagging-defaults, throttle-settings, librarian/tasks,
+      tag-sessions, identifier-url, tag-write, folders, user-data
+      import/export). v4 paths follow the plan's URL renames
+      (`online-tag` → `tag-sessions`, `api_key` → `api-key`,
+      `librarian/status` → `tasks`, etc).
+- [x] Port tag-sessions endpoints (cache-backed, same accessor).
+- [ ] [deferred] Migrate `frontend/src/stores/admin.js` table by table.
 
 ### Phase 8: Favorites + utility
 
-- [ ] Port `/api/v4/favorites/*`. Should be straightforward.
-- [ ] Port `/api/v4/opds-urls`, `/api/v4/covers/{source}/{id}`.
-- [ ] Add `/api/v4/schema` (OpenAPI). Confirm
-      `drf-spectacular` plays nicely with the JSON:API renderer.
+- [x] Port `/api/v4/favorites/*`. Collection segment translated to
+      the v3 single-letter group code in the adapter.
+- [x] Port `/api/v4/opds-urls`, `/api/v4/covers/{source}/{id}`.
+      `source=comic|custom` today; [deferred] `publisher|series|...`
+      until v3's group → representative-comic resolver is wrapped.
+- [x] Add `/api/v4/schema` (OpenAPI). drf-spectacular passes through
+      unwrapped.
 
 ### Phase 9: Cutover & cleanup
+
+Genuinely deferred per the plan — needs at least one release cycle
+of v3+v4 coexistence before any v3 removal can begin.
 
 - [ ] Toggle the v4 feature flag to default-on in a release.
 - [ ] One release cycle of v3+v4 coexistence to validate no regressions
