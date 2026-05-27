@@ -183,11 +183,20 @@ urlpatterns = [
         V4AdminAPIKeyView.as_view(),
         name="api_key",
     ),
-    # Librarian tasks
+    # Librarian tasks.
+    # ``/admin/tasks`` shows only currently-active rows — that's the
+    # sidebar's progress feed. ``/admin/tasks/all`` returns the full
+    # history table the Jobs tab renders. Matches v3's
+    # ``/librarian/status`` + ``/librarian/status/all`` split.
     path(
         "tasks",
-        never_cache(V4AdminTasksListView.as_view({**AREAD})),
+        never_cache(V4AdminTasksListView.as_view({**AREAD}, active_only=True)),
         name="tasks_list",
+    ),
+    path(
+        "tasks/all",
+        never_cache(V4AdminTasksListView.as_view({**AREAD})),
+        name="tasks_list_all",
     ),
     path(
         "tasks/run",

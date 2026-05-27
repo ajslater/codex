@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
 import * as API from "@/api/v4/browser";
+import { useBrowserStore } from "@/stores/browser";
 
 const TAGS = Object.freeze([
   "genres",

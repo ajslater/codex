@@ -140,8 +140,9 @@ export const getFolders = (path, showHidden) =>
 
 export const postLibrarianTask = (data) => HTTP.post("/admin/tasks/run", data);
 
+// History view: every librarian status row, not just active ones.
 export const getAllLibrarianStatuses = () =>
-  HTTP.get("/admin/tasks", { params: { ts: Date.now() } });
+  HTTP.get("/admin/tasks/all", { params: { ts: Date.now() } });
 
 export const getStats = () =>
   HTTP.get("/admin/stats", { params: { ts: Date.now() } });
