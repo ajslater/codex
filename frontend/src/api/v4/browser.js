@@ -25,10 +25,29 @@ const GROUP_TO_COLLECTION = Object.freeze({
 
 const _collection = (group) => GROUP_TO_COLLECTION[group] || group;
 
+/*
+ * Normalize a pks input — Vue Router params arrive as strings
+ * (``"0"`` for root, ``"5,7"`` for parented), while internal helpers
+ * sometimes pass arrays. Returns the cleaned list of non-zero
+ * integers (as strings); empty array means root.
+ */
+const _normalizePks = (pks) => {
+  if (pks === undefined || pks === null) return [];
+  const raw = Array.isArray(pks) ? pks : String(pks).split(",");
+  const cleaned = [];
+  for (const entry of raw) {
+    const str = String(entry).trim();
+    if (!str || str === "0") continue;
+    cleaned.push(str);
+  }
+  return cleaned;
+};
+
 const _segment = (group, pks) => {
   const collection = _collection(group);
-  if (!pks || !pks.length || pks.every((pk) => !pk)) return collection;
-  return `${collection}/${pks.join(",")}`;
+  const ids = _normalizePks(pks);
+  if (!ids.length) return collection;
+  return `${collection}/${ids.join(",")}`;
 };
 
 const getBrowserHrefPath = ({ group, pks, query, ts }) => {
