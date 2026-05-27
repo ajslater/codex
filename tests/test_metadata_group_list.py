@@ -32,6 +32,25 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _EXPECTED_PUBLISHER_ROWS: Final = 2
 
+_GROUP_TO_COLLECTION: Final = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "c": "comics",
+    "f": "folders",
+    "a": "arcs",
+    "r": "publishers",
+}
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
+
 
 class MetadataGroupListTestCase(TestCase):
     """Pin the ``GroupSerializer`` shape on every metadata ``*_list`` field."""
@@ -97,12 +116,13 @@ class MetadataGroupListTestCase(TestCase):
 
     def _get_metadata(self, group: str, pks: list[int]) -> dict:
         joined = ",".join(str(p) for p in pks)
-        url = f"/api/v3/{group}/{joined}/metadata"
+        collection = _GROUP_TO_COLLECTION.get(group, group)
+        url = f"/api/v4/browse/{collection}/{joined}/metadata"
         response = self.client.get(url)
         if response.status_code != _HTTP_OK:
             reason = f"GET {url} returned {response.status_code}: {response.content!r}"
             raise AssertionError(reason)
-        return response.json()
+        return _v4(response)
 
     # --- current-group path (``_highlight_current_group``) ---
 

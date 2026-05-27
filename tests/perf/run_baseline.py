@@ -110,7 +110,7 @@ def _busy_comic_pk() -> int:
     return int(row["pk"])
 
 
-_BROWSE_PLUS_COVERS_URL = "/api/v3/r/0/1"
+_BROWSE_PLUS_COVERS_URL = "/api/v4/browse/publishers?page=1"
 
 
 def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
@@ -119,7 +119,7 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "name": "flow_a_root_browse",
             "description": "Root browse, no filters, no search.",
             "kind": "url",
-            "url": "/api/v3/r/0/1",
+            "url": "/api/v4/browse/publishers?page=1",
         },
         {
             "name": "flow_a2_series_browse",
@@ -130,25 +130,25 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
                 "lands on Publisher."
             ),
             "kind": "url",
-            "url": f"/api/v3/s/{series_pk}/1",
+            "url": f"/api/v4/browse/series/{series_pk}?page=1",
         },
         {
             "name": "flow_b_filtered_search",
             "description": "Root browse with a search term.",
             "kind": "url",
-            "url": "/api/v3/r/0/1?q=man",
+            "url": "/api/v4/browse/publishers?page=1&q=man",
         },
         {
             "name": "flow_c_series_metadata",
             "description": "Metadata detail for the largest series.",
             "kind": "url",
-            "url": f"/api/v3/s/{series_pk}/metadata",
+            "url": f"/api/v4/browse/series/{series_pk}/metadata",
         },
         {
             "name": "flow_c2_comic_metadata",
             "description": "Metadata detail for a single rich comic (exercises FK + M2M hydration).",
             "kind": "url",
-            "url": f"/api/v3/c/{comic_pk}/metadata",
+            "url": f"/api/v4/browse/comics/{comic_pk}/metadata",
         },
         {
             "name": "flow_d_browse_plus_covers",
@@ -160,25 +160,25 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "name": "flow_e_search_plus_covers",
             "description": "Search browse then fetch every returned cover.",
             "kind": "browse_plus_covers",
-            "url": f"{_BROWSE_PLUS_COVERS_URL}?q=man",
+            "url": f"{_BROWSE_PLUS_COVERS_URL}&q=man",
         },
         {
             "name": "flow_f_choices_available",
             "description": "Filter sidebar open: which dynamic filter fields have >1 choice.",
             "kind": "url",
-            "url": "/api/v3/r/0/choices_available",
+            "url": "/api/v4/browse/publishers/choices",
         },
         {
             "name": "flow_g_choices_field_m2m",
             "description": "Filter sidebar expand: m2m field with many choices (characters).",
             "kind": "url",
-            "url": "/api/v3/r/0/choices/characters",
+            "url": "/api/v4/browse/publishers/choices/characters",
         },
         {
             "name": "flow_h_choices_field_fk",
             "description": "Filter sidebar expand: FK field on Comic (year).",
             "kind": "url",
-            "url": "/api/v3/r/0/choices/year",
+            "url": "/api/v4/browse/publishers/choices/year",
         },
     ]
 
@@ -189,17 +189,12 @@ def _build_cover_urls(page: dict[str, Any]) -> list[str]:
     cards = list(page.get("groups") or []) + list(page.get("books") or [])
     for card in cards:
         if custom_pk := card.get("coverCustomPk"):
-            urls.append(f"/api/v3/custom_cover/{custom_pk}/cover.webp")
+            urls.append(f"/api/v4/covers/custom/{custom_pk}")
             continue
         if cover_pk := card.get("coverPk"):
-            urls.append(f"/api/v3/c/{cover_pk}/cover.webp")
+            urls.append(f"/api/v4/covers/comic/{cover_pk}")
             continue
-        # Legacy fallback — group + ids pair.
-        group = card.get("group")
-        ids = card.get("ids") or []
-        if group and ids:
-            pk_list = ",".join(str(p) for p in ids)
-            urls.append(f"/api/v3/{group}/{pk_list}/cover.webp")
+        # No usable cover identifier; skip.
     return urls
 
 
@@ -225,7 +220,7 @@ def _capture_browse_plus_covers(client: Client, url: str) -> dict[str, Any]:
     per-pk endpoint should collapse that to one cheap ACL probe per
     cover.
     """
-    path_prefix = "/api/v3/"
+    path_prefix = "/api/v4/"
     SilkRequest.objects.filter(path__startswith=path_prefix).delete()
     django_cache.clear()
     cachalot_invalidate()
@@ -316,7 +311,7 @@ def _reset_user_settings(client: Client) -> None:
     tanks cold numbers on the correlated cover subquery with a leftover
     FTS match.
     """
-    client.delete("/api/v3/r/settings")
+    client.delete("/api/v4/browse/publishers/settings")
 
 
 def run(out_path: Path) -> int:

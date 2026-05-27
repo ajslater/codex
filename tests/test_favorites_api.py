@@ -40,6 +40,22 @@ _GROUP_TO_COLLECTION: Final = {
     "a": "arcs",
 }
 
+# v3 navigation group → v4 collection used by the transitivity tests.
+# The collection segment names the *current* nav level (matching v3's
+# single-char ``group`` kwarg); v3 ``r`` (root) is the only special
+# case — the v4 plan drops it, so root listings spell as
+# ``/api/v4/browse/publishers`` and the dispatcher fills in
+# ``group="p", pks=()`` for the v3 body to handle.
+_NAV_COLLECTION: Final = {
+    "r": "publishers",
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "f": "folders",
+    "a": "arcs",
+}
+
 
 def _detail_url(group: str, target_id: int) -> str:
     collection = _GROUP_TO_COLLECTION.get(group, group)
@@ -126,7 +142,8 @@ class FavoritesAPITestCase(TestCase):
         assert not Favorite.objects.filter(group="s", target_id=bogus_pk).exists()
 
     def test_put_unmapped_group_does_not_match_route(self):
-        """The v4 collection converter only matches the seven collection names.
+        """
+        The v4 collection converter only matches the seven collection names.
 
         Anything else falls through to the SPA catch-all (the URL is not a
         favorites endpoint at all), so we get the catch-all's 302 → ``/``
@@ -310,7 +327,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
 
     def _group_pks(self, group: str, scope_pk: int = 0) -> list[int]:
-        collection = _GROUP_TO_COLLECTION.get(group, "publishers")
+        collection = _NAV_COLLECTION[group]
         suffix = f"/{scope_pk}" if scope_pk else ""
         url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)
@@ -322,7 +339,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         ]
 
     def _book_pks(self, group: str, scope_pk: int) -> list[int]:
-        collection = _GROUP_TO_COLLECTION.get(group, "publishers")
+        collection = _NAV_COLLECTION[group]
         suffix = f"/{scope_pk}" if scope_pk else ""
         url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)

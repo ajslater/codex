@@ -12,9 +12,17 @@ from codex.librarian.onlinetag.credential_validator import ValidationResult
 from codex.models import ComicboxTaggingDefaults
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_URL: Final = "/api/v3/admin/tagging-defaults/validate"
+_URL: Final = "/api/v4/admin/tagging-defaults/validate"
 _HTTP_OK: Final = 200
 _HTTP_FORBIDDEN: Final = 403
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
 
 
 def _make_admin() -> User:
@@ -105,7 +113,7 @@ class TaggingValidateMergeTestCase(TestCase):
             }
             response = self.client.post(_URL, data={}, content_type="application/json")
         assert response.status_code == _HTTP_OK
-        body = response.json()
+        body = _v4(response)
         assert body == {
             "results": {
                 "metron": {"ok": True, "error": None},

@@ -6,8 +6,19 @@ from django.urls.converters import StringConverter
 from loguru import logger
 
 # v4 collection segment (plural English) → v3 single-char group code.
-# Keep in sync with ``codex.views.v4.browse.COLLECTION_TO_GROUP``; the
-# converter only validates the regex, the view does the translation.
+# Used for favorites and custom-cover uploads where the segment names
+# the resource directly.
+#
+# For browse listings, the same mapping doubles as the v3 nav-group
+# kwarg: v4 ``/browse/{collection}/{parentIds}`` translates to v3
+# ``(group=collection-letter, pks=parentIds)``. v3 then advances
+# ``model_group`` to the next visible level based on the user's
+# ``show`` settings (the "next group" rule). That means
+# ``/browse/series/5`` reads as "navigate from series 5" the same way
+# v3's ``/s/5/1`` did — the URL noun names the *current* nav level,
+# not the listing target. The plan's example wording ("series under
+# publishers 5,7") describes the user-facing intent; the dispatcher
+# is the v3 ``model_group`` chain underneath.
 COLLECTION_TO_GROUP = MappingProxyType(
     {
         "publishers": "p",

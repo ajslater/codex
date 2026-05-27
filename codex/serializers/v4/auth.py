@@ -9,6 +9,8 @@ boots with one request. See ``tasks/api-v4.md`` Phase 2.
 from typing import override
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -95,3 +97,24 @@ class V4ProfileUpdateSerializer(Serializer):
         if settings.AUTH_REMOTE_USER and "username" in fields:
             fields["username"].read_only = True
         return fields
+
+    def validate_username(self, value: str) -> str:
+        """
+        Reject a rename onto an existing username up front.
+
+        The DB has a UNIQUE constraint on ``username`` so a colliding
+        save would raise ``IntegrityError``. Catch it here as a clean
+        400 with field-scoped error rather than letting the constraint
+        surface as a 500.
+        """
+        request = self.context.get("request") if self.context else None
+        current_user = getattr(request, "user", None) if request else None
+        user_model = get_user_model()
+        username_field = getattr(user_model, "USERNAME_FIELD", "username")
+        qs = user_model.objects.filter(**{username_field: value})
+        if current_user and getattr(current_user, "pk", None):
+            qs = qs.exclude(pk=current_user.pk)
+        if qs.exists():
+            msg = "A user with that username already exists."
+            raise ValidationError(msg)
+        return value

@@ -127,7 +127,9 @@ class V4ProfileView(APIView):
         """
         if not getattr(request.user, "is_authenticated", False):
             raise NotAuthenticated
-        serializer = V4ProfileUpdateSerializer(data=request.data, partial=True)
+        serializer = V4ProfileUpdateSerializer(
+            data=request.data, partial=True, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
 

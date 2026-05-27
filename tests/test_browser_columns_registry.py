@@ -53,7 +53,7 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
     def test_only_favorite_is_editable(self):
         # ``favorite`` opted in to ``editable=True`` in Phase 5 of the
         # favorites feature — its star widget toggles via the
-        # ``/api/v3/favorites/<group>/<pk>/`` endpoint. Every other
+        # ``/api/v4/favorites/<collection>/<pk>`` endpoint. Every other
         # column stays read-only until a column-specific edit pipeline
         # ships.
         for key, entry in BROWSER_TABLE_COLUMNS.items():

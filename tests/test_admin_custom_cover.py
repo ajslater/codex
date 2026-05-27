@@ -23,6 +23,14 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _QUEUE_PATCH = "codex.views.admin.custom_cover.LIBRARIAN_QUEUE"
 
 
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
+
+
 def _png_bytes(color: tuple[int, int, int] = (255, 0, 0)) -> bytes:
     buf = io.BytesIO()
     Image.new("RGB", (10, 10), color).save(buf, format="PNG")
@@ -34,7 +42,7 @@ def _upload(name: str = "cover.png") -> SimpleUploadedFile:
 
 
 class AdminCustomCoverUploadTestCase(TestCase):
-    """Cover ``/admin/custom-cover`` upload, validation, and listing."""
+    """Cover ``/admin/custom-covers`` upload, validation, and listing."""
 
     @override
     def setUp(self) -> None:
@@ -52,11 +60,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
     def test_upload_happy_path(self, mock_queue) -> None:
         """A valid PNG creates the row, writes to uploads/, links the group."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.CREATED
-        pk = response.json()["customCoverPk"]
+        pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
         assert cover.group == "p"
         assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
@@ -84,7 +92,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         client = Client()
         client.login(username="plain", password=_TEST_PASSWORD)
         response = client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
@@ -97,7 +105,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
     def test_oversize_upload_rejected(self, mock_bytes, mock_queue) -> None:  # noqa: ARG002
         """Uploads over the byte cap return a 400 and write nothing."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={
                 "group": "p",
                 "pks": str(self.publisher.pk),
@@ -114,7 +122,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
             "fake.png", b"not really png bytes", content_type="image/png"
         )
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": bogus},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
@@ -123,21 +131,21 @@ class AdminCustomCoverUploadTestCase(TestCase):
     def test_group_pk_mismatch_rejected(self, mock_queue) -> None:  # noqa: ARG002
         """``group=s`` with a Publisher pk fails fast with 400."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "s", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     @patch(_QUEUE_PATCH)
     def test_remove_unlinks_and_purges(self, mock_queue) -> None:  # noqa: ARG002
-        """``POST /admin/custom-cover/remove`` clears the FK and GCs orphans."""
+        """``POST /admin/custom-covers/bulk-delete`` clears the FK and GCs orphans."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
-        pk = response.json()["customCoverPk"]
+        pk = _v4(response)["customCoverPk"]
         response = self.client.post(
-            "/api/v3/admin/custom-cover/remove",
+            "/api/v4/admin/custom-covers/bulk-delete",
             data=json.dumps({"group": "p", "pks": str(self.publisher.pk)}),
             content_type="application/json",
         )
@@ -148,27 +156,27 @@ class AdminCustomCoverUploadTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_delete_endpoint_removes_row(self, mock_queue) -> None:  # noqa: ARG002
-        """``DELETE /admin/custom-cover/{pk}`` drops the row and the link."""
+        """``DELETE /admin/custom-covers/{pk}`` drops the row and the link."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
-        pk = response.json()["customCoverPk"]
-        response = self.client.delete(f"/api/v3/admin/custom-cover/{pk}")
+        pk = _v4(response)["customCoverPk"]
+        response = self.client.delete(f"/api/v4/admin/custom-covers/{pk}")
         assert response.status_code == HTTPStatus.NO_CONTENT
         assert not CustomCover.objects.filter(pk=pk).exists()
 
     @patch(_QUEUE_PATCH)
     def test_list_endpoint_returns_linked_group(self, mock_queue) -> None:  # noqa: ARG002
-        """``GET /admin/custom-cover/list`` includes the linked group name."""
+        """``GET /admin/custom-covers`` includes the linked group name."""
         upload_response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert upload_response.status_code == HTTPStatus.CREATED
-        response = self.client.get("/api/v3/admin/custom-cover/list")
+        response = self.client.get("/api/v4/admin/custom-covers")
         assert response.status_code == HTTPStatus.OK
-        rows = response.json()
+        rows = _v4(response)
         assert len(rows) == 1
         row = rows[0]
         assert row["group"] == "p"
@@ -178,15 +186,15 @@ class AdminCustomCoverUploadTestCase(TestCase):
     def test_replace_displaces_prior_cover(self, mock_queue) -> None:  # noqa: ARG002
         """A second upload to the same group purges the previous CustomCover."""
         first = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
-        first_pk = first.json()["customCoverPk"]
+        first_pk = _v4(first)["customCoverPk"]
         second = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
         )
-        second_pk = second.json()["customCoverPk"]
+        second_pk = _v4(second)["customCoverPk"]
         assert second_pk != first_pk
         assert not CustomCover.objects.filter(pk=first_pk).exists()
         self.publisher.refresh_from_db()
@@ -223,13 +231,13 @@ class CustomCoverVolumeSupportTestCase(TestCase):
     def test_volume_upload(self, mock_queue) -> None:  # noqa: ARG002
         """Upload with ``group=v`` binds the Volume's ``custom_cover_id``."""
         response = self.client.post(
-            "/api/v3/admin/custom-cover",
+            "/api/v4/admin/custom-covers/upload",
             data={"group": "v", "pks": str(self.volume.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.CREATED
         self.volume.refresh_from_db()
         assert (
-            self.volume.custom_cover_id == response.json()["customCoverPk"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            self.volume.custom_cover_id == _v4(response)["customCoverPk"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         )
 
 

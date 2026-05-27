@@ -37,7 +37,7 @@ class DowngradeNoisyForbiddenFilterTests(TestCase):
     def test_downgrades_noisy_path(self) -> None:
         """First-load profile probe becomes DEBUG."""
         record = _build_record(
-            logging.WARNING, "%s: %s", "Forbidden", "/api/v3/auth/profile/"
+            logging.WARNING, "%s: %s", "Forbidden", "/api/v4/auth/profile"
         )
         kept = self.flt.filter(record)
         assert kept is True
@@ -47,7 +47,7 @@ class DowngradeNoisyForbiddenFilterTests(TestCase):
     def test_keeps_unrelated_forbidden_at_warning(self) -> None:
         """A Forbidden on a non-noisy path stays at WARNING."""
         record = _build_record(
-            logging.WARNING, "%s: %s", "Forbidden", "/api/v3/admin/users/"
+            logging.WARNING, "%s: %s", "Forbidden", "/api/v4/admin/users"
         )
         kept = self.flt.filter(record)
         assert kept is True
@@ -56,7 +56,7 @@ class DowngradeNoisyForbiddenFilterTests(TestCase):
     def test_keeps_non_forbidden_at_warning(self) -> None:
         """A Bad Request line through django.request stays at WARNING."""
         record = _build_record(
-            logging.WARNING, "%s: %s", "Bad Request", "/api/v3/auth/profile/"
+            logging.WARNING, "%s: %s", "Bad Request", "/api/v4/auth/profile"
         )
         kept = self.flt.filter(record)
         assert kept is True
@@ -65,7 +65,7 @@ class DowngradeNoisyForbiddenFilterTests(TestCase):
     def test_ignores_non_warning_levels(self) -> None:
         """ERROR-level records pass through untouched."""
         record = _build_record(
-            logging.ERROR, "%s: %s", "Forbidden", "/api/v3/auth/profile/"
+            logging.ERROR, "%s: %s", "Forbidden", "/api/v4/auth/profile"
         )
         kept = self.flt.filter(record)
         assert kept is True

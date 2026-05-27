@@ -45,7 +45,8 @@ class V4OPDSURLsView(OPDSURLsView):
 
 
 class V4MtimeView(MtimeView):
-    """``GET /api/v4/mtime`` — interim until typed WS payloads carry mtime+scope.
+    """
+    ``GET /api/v4/mtime`` — interim until typed WS payloads carry mtime+scope.
 
     The v4 plan removes ``/mtime`` in favor of mtime+scope on the
     push side (typed WS messages). That broadcaster enrichment is a

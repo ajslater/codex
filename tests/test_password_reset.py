@@ -15,11 +15,20 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _NEW_PASSWORD: Final = "new-pw-hush-S106"  # noqa: S105
 _TEST_EMAIL: Final = "alice@example.com"
 
-_FLAGS_URL: Final = "/api/v3/auth/flags/"
-_SEND_RESET_URL: Final = "/api/v3/auth/send-reset-password-link/"
-_RESET_URL: Final = "/api/v3/auth/reset-password/"
-_PROFILE_URL: Final = "/api/v3/auth/profile/"
-_REGISTER_URL: Final = "/api/v3/auth/register/"
+_SESSION_URL: Final = "/api/v4/session"
+_SEND_RESET_URL: Final = "/api/v4/auth/password/reset"
+_RESET_URL: Final = "/api/v4/auth/password/reset/confirm"
+_PROFILE_URL: Final = "/api/v4/auth/profile"
+_REGISTER_URL: Final = "/api/v4/auth/register"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
+
 
 _HTTP_OK: Final = 200
 _HTTP_CREATED: Final = 201
@@ -56,27 +65,38 @@ _EMAIL_ON_REST_REGISTRATION = {
 
 def _ensure_admin_flags() -> None:
     """
-    Seed the AdminFlag rows tests rely on.
+    Seed every AdminFlag row tests rely on.
 
     Tests run migrations but skip startup hooks (codex_init), so the
-    AdminFlag rows that startup normally creates may be absent.
+    AdminFlag rows that startup normally creates may be absent. The
+    v4 ``/api/v4/session`` permission pipeline ``.get()``s the
+    ``NON_USERS`` flag *and* a ``Timestamp`` row for ``CODEX_VERSION``
+    — defer to the same seeders ``codex.startup`` calls so every
+    choice row exists.
     """
-    AdminFlag.objects.get_or_create(
-        key=AdminFlagChoices.REGISTRATION.value, defaults={"on": True}
-    )
-    AdminFlag.objects.get_or_create(
-        key=AdminFlagChoices.REGISTER_VERIFICATION.value, defaults={"on": False}
+    from codex.startup import init_admin_flags, init_timestamps
+
+    init_admin_flags()
+    init_timestamps()
+    AdminFlag.objects.filter(key=AdminFlagChoices.REGISTRATION.value).update(on=True)
+    AdminFlag.objects.filter(key=AdminFlagChoices.REGISTER_VERIFICATION.value).update(
+        on=False
     )
 
 
 class PasswordResetDisabledTests(TestCase):
     """Default install (no [email] block) keeps the feature off."""
 
+    @override
+    def setUp(self) -> None:
+        """Seed the AdminFlag rows the v4 session endpoint requires."""
+        _ensure_admin_flags()
+
     def test_flags_report_email_disabled(self) -> None:
-        """``/auth/flags/`` reports ``emailEnabled: false`` by default."""
-        response = self.client.get(_FLAGS_URL)
+        """``/api/v4/session`` reports ``adminFlags.emailEnabled: false`` by default."""
+        response = self.client.get(_SESSION_URL)
         assert response.status_code == _HTTP_OK
-        assert response.json()["emailEnabled"] is False
+        assert _v4(response)["adminFlags"]["emailEnabled"] is False
 
     def test_send_reset_link_404(self) -> None:
         """``send-reset-password-link/`` 404s when feature is off."""
@@ -116,6 +136,7 @@ class PasswordResetEnabledTests(TestCase):
         # without an explicit clear, the 5/hour reset_password rate is
         # exhausted across tests in the same class.
         cache.clear()
+        _ensure_admin_flags()
         self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="alice",
             password=_TEST_PASSWORD,
@@ -126,9 +147,9 @@ class PasswordResetEnabledTests(TestCase):
 
     def test_flags_report_email_enabled(self) -> None:
         """Capability flag flips when EMAIL_ENABLED is True."""
-        response = self.client.get(_FLAGS_URL)
+        response = self.client.get(_SESSION_URL)
         assert response.status_code == _HTTP_OK
-        assert response.json()["emailEnabled"] is True
+        assert _v4(response)["adminFlags"]["emailEnabled"] is True
 
     def test_send_reset_link_sends_email_by_username(self) -> None:
         """A valid username produces a reset email containing a signed link."""

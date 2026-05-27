@@ -19,6 +19,16 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_BAD_REQUEST: Final = 400
 TMP_DIR = Path("/tmp/codex.tests.browser_table_response")  # noqa: S108
+_SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
+
 
 # Through-tables touched by the simple-M2M intersection batch helper.
 # A single ``UNION ALL`` query mentions all of these in its SQL, so
@@ -135,19 +145,19 @@ class BrowserTablePageResponseTestCase(TestCase):
 
     def _set_view_mode_table(self) -> None:
         response = self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=json.dumps({"viewMode": "table"}),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
 
     def _browse_series(self, *, columns: str | None = None) -> dict:
-        url = f"/api/v3/s/{self.series.pk}/1"
+        url = f"/api/v4/browse/series/{self.series.pk}?page=1"
         if columns is not None:
-            url = f"{url}?columns={columns}"
+            url = f"{url}&columns={columns}"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        return response.json()
+        return _v4(response)
 
     def _create_sibling_comic(
         self, anchor: Comic, name: str, issue_number: int
@@ -206,7 +216,7 @@ class BrowserTablePageResponseTestCase(TestCase):
 
     def test_table_view_invalid_columns_rejected(self) -> None:
         self._set_view_mode_table()
-        url = f"/api/v3/s/{self.series.pk}/1?columns=cover,phantom_column"
+        url = f"/api/v4/browse/series/{self.series.pk}?page=1&columns=cover,phantom_column"
         response = self.client.get(url)
         assert response.status_code == _HTTP_BAD_REQUEST
 
@@ -425,7 +435,7 @@ class BrowserTablePageResponseTestCase(TestCase):
 
         self._set_view_mode_table()
         self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=json.dumps({"orderBy": "genres", "orderReverse": False}),
             content_type="application/json",
         )
@@ -488,10 +498,13 @@ class BrowserTablePageResponseTestCase(TestCase):
         # parent — series.
         self._set_view_mode_table()
         # Browse the imprint so the row beneath is a Series.
-        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,year,country"
+        url = (
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,year,country"
+        )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        body = response.json()
+        body = _v4(response)
         rows = body["rows"]
         # One row — the Series.
         assert len(rows) == 1
@@ -531,13 +544,14 @@ class BrowserTablePageResponseTestCase(TestCase):
 
         self._set_view_mode_table()
         url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1"
-            "?columns=cover,name,bookmark_updated_at"
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,bookmark_updated_at"
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        rows = response.json()["rows"]
-        assert rows, response.json()
+        body = _v4(response)
+        rows = body["rows"]
+        assert rows, body
         row = rows[0]
         # The cell uses the per-user-filtered Max aggregate annotation,
         # so it should be a non-empty ISO timestamp string from the
@@ -560,14 +574,15 @@ class BrowserTablePageResponseTestCase(TestCase):
         first_comic = Comic.objects.first()
         assert first_comic is not None
         url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1"
-            "?columns=cover,name,publisher_name,series_name"
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,publisher_name,series_name"
         )
         self._set_view_mode_table()
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        rows = response.json()["rows"]
-        assert rows, response.json()
+        body = _v4(response)
+        rows = body["rows"]
+        assert rows, body
         row = rows[0]
         assert row["publisherName"] == first_comic.publisher.name, row
         assert row["seriesName"] == first_comic.series.name, row
@@ -600,9 +615,12 @@ class BrowserTablePageResponseTestCase(TestCase):
         )
 
         self._set_view_mode_table()
-        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,year"
+        url = (
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,year"
+        )
         response = self.client.get(url)
-        body = response.json()
+        body = _v4(response)
         rows = body["rows"]
         row = rows[0]
         # No intersection — child comics differ.
@@ -637,10 +655,11 @@ class BrowserTablePageResponseTestCase(TestCase):
 
         self._set_view_mode_table()
         url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count,size"
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,page_count,size"
         )
         response = self.client.get(url)
-        body = response.json()
+        body = _v4(response)
         rows = body["rows"]
         row = rows[0]
         # ``page_count`` is cumulative — series row shows the total
@@ -679,7 +698,7 @@ class BrowserTablePageResponseTestCase(TestCase):
 
         self._set_view_mode_table()
         url = (
-            f"/api/v3/p/{comic.publisher.pk}/1?columns="
+            f"/api/v4/browse/publishers/{comic.publisher.pk}?page=1&columns="
             "cover,name,genres,tags,characters,teams,locations,stories,series_groups"
         )
         with CaptureQueriesContext(connection) as ctx:
@@ -722,7 +741,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert first_comic is not None
         self._set_view_mode_table()
         url = (
-            f"/api/v3/p/{first_comic.publisher.pk}/1?columns="
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}?page=1&columns="
             "cover,name,year,page_count,size,publisher_name,country,language"
         )
         with CaptureQueriesContext(connection) as ctx:
@@ -787,9 +806,12 @@ class BrowserTablePageResponseTestCase(TestCase):
         )
 
         self._set_view_mode_table()
-        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,page_count"
+        url = (
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,page_count"
+        )
         response = self.client.get(url)
-        rows = response.json()["rows"]
+        rows = _v4(response)["rows"]
         expected_total = 20 + 20
         assert rows[0]["pageCount"] == expected_total, rows[0]
 
@@ -827,9 +849,12 @@ class BrowserTablePageResponseTestCase(TestCase):
         comic_b.genres.add(drama, comedy)
 
         self._set_view_mode_table()
-        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,genres"
+        url = (
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,genres"
+        )
         response = self.client.get(url)
-        body = response.json()
+        body = _v4(response)
         rows = body["rows"]
         row = rows[0]
         # Drama is the only genre both comics share.
@@ -940,14 +965,16 @@ class BrowserTablePageResponseTestCase(TestCase):
         self._set_view_mode_table()
         # Sort series rows by genres ascending.
         self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=json.dumps({"orderBy": "genres", "orderReverse": False}),
             content_type="application/json",
         )
-        url = f"/api/v3/p/{publisher.pk}/1?columns=cover,name,genres"
+        url = (
+            f"/api/v4/browse/publishers/{publisher.pk}?page=1&columns=cover,name,genres"
+        )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        body = response.json()
+        body = _v4(response)
         rows = body["rows"]
         # Three series rows.
         names = [r["name"] for r in rows]
@@ -968,13 +995,16 @@ class BrowserTablePageResponseTestCase(TestCase):
         self._set_view_mode_table()
         # Sort by an M2M key while browsing a level that produces group rows.
         self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=json.dumps({"orderBy": "universes", "orderReverse": True}),
             content_type="application/json",
         )
         first_comic = Comic.objects.first()
         assert first_comic is not None
-        url = f"/api/v3/p/{first_comic.publisher.pk}/1?columns=cover,name,universes"
+        url = (
+            f"/api/v4/browse/publishers/{first_comic.publisher.pk}"
+            "?page=1&columns=cover,name,universes"
+        )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
 

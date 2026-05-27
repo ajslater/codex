@@ -44,7 +44,9 @@ export const useMetadataStore = defineStore("metadata", {
       const rows = state.md?.identifiers;
       if (!Array.isArray(rows)) return items;
       for (const row of rows) {
-        const label = row.displayName ? `${row.displayName}:${row.code}` : row.code;
+        const label = row.displayName
+          ? `${row.displayName}:${row.code}`
+          : row.code;
         items.push({ pk: row.pk, url: row.url, name: label });
       }
       return items;

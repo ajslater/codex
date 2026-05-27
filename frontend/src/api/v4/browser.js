@@ -151,9 +151,7 @@ export const getLazyImport = ({ group, pks }) =>
 export const forceUpdateGroup = ({ group, ids }, settings) => {
   const params = serializeParams(settings);
   const queryString = new URLSearchParams(params).toString();
-  return HTTP.post(
-    `/browse/${_segment(group, ids)}/refresh?${queryString}`,
-  );
+  return HTTP.post(`/browse/${_segment(group, ids)}/refresh?${queryString}`);
 };
 
 /*

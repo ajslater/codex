@@ -6,8 +6,9 @@ Mirrors the cold-then-warm methodology against the live dev DB and
 writes a JSON artifact in the same shape.
 
 The reader surface authenticates via DRF Session auth on
-``c/<pk>`` and ``c/<pk>/settings``, plus the page-binary endpoint
-``c/<pk>/<page>/page.jpg`` (cookie-authenticated, ACL-filtered).
+``reader/comics/<pk>`` and ``comics/<pk>/reader-settings``, plus
+the page-binary endpoint ``comics/<pk>/pages/<page>``
+(cookie-authenticated, ACL-filtered).
 The harness uses Session (``Client.force_login``) — same as the
 browser / OPDS harnesses — which exercises the same view-side code
 path that interactive sessions use.
@@ -86,7 +87,7 @@ _OK_STATUS_CODES = frozenset({HTTPStatus.OK})
 # Reader path prefix — silk's path filter scopes traces to reader
 # requests only so non-reader noise (silk's own admin pages) doesn't
 # pollute the trace pool.
-_READER_PATH_PREFIX = "/api/v3/c/"
+_READER_PATH_PREFIX = "/api/v4/"
 
 
 def _get_or_create_perf_user() -> User:
@@ -209,7 +210,7 @@ def _build_flows(
                 "(sub-plan 01 #1)."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{comic_pk}",
+            "url": f"/api/v4/reader/comics/{comic_pk}",
         },
         {
             "name": "reader_open_large_arc",
@@ -220,13 +221,13 @@ def _build_flows(
                 "(sub-plan 01 #1)."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{busy_series_comic_pk}",
+            "url": f"/api/v4/reader/comics/{busy_series_comic_pk}",
         },
         {
             "name": "settings_global",
             "description": "Reader settings GET — global scope only.",
             "kind": "url",
-            "url": "/api/v3/c/settings?scopes=g",
+            "url": "/api/v4/reader/settings?scopes=g",
         },
         {
             "name": "settings_multiscope",
@@ -236,7 +237,7 @@ def _build_flows(
                 "(sub-plan 02 #1)."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{comic_pk}/settings?scopes=g,s,c",
+            "url": f"/api/v4/comics/{comic_pk}/reader-settings?scopes=g,s,c",
         },
         {
             "name": "page_first",
@@ -246,7 +247,7 @@ def _build_flows(
                 "+ bookmark-update task enqueue (sub-plan 03 #1)."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{high_page_pk}/0/page.jpg",
+            "url": f"/api/v4/comics/{high_page_pk}/pages/0",
         },
         {
             "name": "page_middle",
@@ -256,7 +257,7 @@ def _build_flows(
                 "wall-time difference reflects per-page extraction variance."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{high_page_pk}/{middle_page}/page.jpg",
+            "url": f"/api/v4/comics/{high_page_pk}/pages/{middle_page}",
         },
         {
             "name": "page_no_bookmark",
@@ -267,7 +268,7 @@ def _build_flows(
                 "overhead (sub-plan 03 #3)."
             ),
             "kind": "url",
-            "url": f"/api/v3/c/{high_page_pk}/0/page.jpg?bookmark=0",
+            "url": f"/api/v4/comics/{high_page_pk}/pages/0?bookmark=0",
         },
     ]
 
@@ -340,7 +341,7 @@ def _reset_user_settings(client: Client) -> None:
     next one's params. Reuse the browser settings DELETE endpoint;
     it's user-scoped and reader settings live in the same row.
     """
-    client.delete("/api/v3/r/settings")
+    client.delete("/api/v4/browse/publishers/settings")
 
 
 def run(out_path: Path) -> int:

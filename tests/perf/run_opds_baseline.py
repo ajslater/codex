@@ -290,7 +290,7 @@ def _reset_user_settings(client: Client) -> None:
     the browser settings DELETE endpoint; it's user-scoped and OPDS
     settings live in the same row.
     """
-    client.delete("/api/v3/r/settings")
+    client.delete("/api/v4/browse/publishers/settings")
 
 
 def run(out_path: Path) -> int:

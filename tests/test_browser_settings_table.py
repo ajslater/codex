@@ -18,7 +18,16 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_CREATED: Final = 201
 _HTTP_BAD_REQUEST: Final = 400
-_SETTINGS_URL: Final = "/api/v3/r/settings"
+_SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
+_SAVED_URL: Final = "/api/v4/browse/publishers/saved-settings"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
 
 
 class BrowserTableSettingsModelTestCase(TestCase):
@@ -158,28 +167,26 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
     def _get(self) -> dict:
         response = self.client.get(_SETTINGS_URL)
         assert response.status_code == _HTTP_OK, response.content
-        return response.json()
+        return _v4(response)
 
     def _save_named_view(self, name: str) -> dict:
         """POST a fresh saved view, then look it up by name in the list."""
         save_resp = self.client.post(
-            f"{_SETTINGS_URL}/saved",
+            _SAVED_URL,
             data=json.dumps({"name": name}),
             content_type="application/json",
         )
         assert save_resp.status_code == _HTTP_CREATED, save_resp.content
-        list_resp = self.client.get(f"{_SETTINGS_URL}/saved")
+        list_resp = self.client.get(_SAVED_URL)
         assert list_resp.status_code == _HTTP_OK, list_resp.content
         return next(
-            entry
-            for entry in list_resp.json()["savedSettings"]
-            if entry["name"] == name
+            entry for entry in _v4(list_resp)["savedSettings"] if entry["name"] == name
         )
 
     def _load_saved_settings(self, pk: int) -> dict:
-        load_resp = self.client.get(f"{_SETTINGS_URL}/saved/{pk}")
+        load_resp = self.client.get(f"{_SAVED_URL}/{pk}")
         assert load_resp.status_code == _HTTP_OK, load_resp.content
-        return load_resp.json()["settings"]
+        return _v4(load_resp)["settings"]
 
     def test_default_get_includes_new_fields(self):
         body = self._get()

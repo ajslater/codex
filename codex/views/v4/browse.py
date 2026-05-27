@@ -60,7 +60,15 @@ class _V4BrowseTranslateMixin:
         super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
 
     def _translate_kwargs(self, request: "Request") -> None:
-        """In-place rewrite of ``self.kwargs`` from v4 → v3 shape."""
+        """
+        In-place rewrite of ``self.kwargs`` from v4 → v3 shape.
+
+        The collection segment names the v4 caller's *current* nav
+        level (matching v3's single-char ``group`` kwarg); ``pks``
+        comes from the optional ``parentIds`` segment. v3's
+        ``model_group`` advances to the next-visible level per the
+        user's ``show`` settings — same behavior as v3.
+        """
         kwargs = self.kwargs
         collection = kwargs.pop("collection", None)
         parent_ids = kwargs.pop("parent_ids", None)
