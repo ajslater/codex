@@ -3,7 +3,7 @@
     <div v-if="!settings" class="adminGroup">
       <v-progress-circular indeterminate />
     </div>
-    <template v-else>
+    <v-form v-else ref="form" @submit.prevent="saveDraft">
       <div class="adminIntro">
         <p>
           Codex sends email only for user self-service flows the admin would
@@ -33,54 +33,52 @@
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.host"
+            v-model="draft.host"
             label="Host"
             placeholder="smtp.example.com"
+            :rules="hostRules"
             hide-details="auto"
             density="compact"
-            @update:model-value="save('host', $event)"
           />
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.port"
+            v-model.number="draft.port"
             type="number"
             label="Port"
             min="1"
             max="65535"
+            :rules="portRules"
             hide-details="auto"
             density="compact"
-            @update:model-value="save('port', toInt($event))"
           />
         </div>
         <div class="adminCard">
           <v-checkbox
-            :model-value="settings.useTls"
+            v-model="draft.useTls"
             label="STARTTLS"
             density="compact"
             hide-details="auto"
-            @update:model-value="save('useTls', $event)"
           />
         </div>
         <div class="adminCard">
           <v-checkbox
-            :model-value="settings.useSsl"
+            v-model="draft.useSsl"
             label="SSL on connect"
             density="compact"
             hide-details="auto"
-            @update:model-value="save('useSsl', $event)"
           />
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.timeout"
+            v-model.number="draft.timeout"
             type="number"
             label="Timeout (seconds)"
             min="1"
             max="600"
+            :rules="timeoutRules"
             hide-details="auto"
             density="compact"
-            @update:model-value="save('timeout', toInt($event))"
           />
         </div>
       </div>
@@ -91,12 +89,11 @@
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.user"
+            v-model="draft.user"
             label="Username"
             hide-details="auto"
             density="compact"
             autocomplete="off"
-            @update:model-value="save('user', $event)"
           />
         </div>
         <v-expansion-panels
@@ -169,25 +166,44 @@
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.fromAddress"
+            v-model="draft.fromAddress"
             label="From Address"
             placeholder="codex@example.com"
             hint="Falls back to the SMTP username when blank."
+            :rules="emailRules"
             persistent-hint
             hide-details="auto"
             density="compact"
-            @update:model-value="save('fromAddress', $event)"
           />
         </div>
         <div class="adminCard">
           <v-text-field
-            :model-value="settings.subjectPrefix"
+            v-model="draft.subjectPrefix"
             label="Subject Prefix"
             hide-details="auto"
             density="compact"
-            @update:model-value="save('subjectPrefix', $event)"
           />
         </div>
+      </div>
+
+      <div class="settingsActions">
+        <v-btn
+          type="submit"
+          variant="tonal"
+          size="small"
+          :loading="saving"
+          :disabled="!hasChanges"
+        >
+          Save Settings
+        </v-btn>
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="!hasChanges || saving"
+          @click="resetDraft"
+        >
+          Revert
+        </v-btn>
       </div>
 
       <div class="adminGroup">
@@ -201,6 +217,7 @@
               label="Recipient"
               placeholder="you@example.com"
               type="email"
+              :rules="recipientRules"
               hide-details="auto"
               density="compact"
             />
@@ -229,23 +246,52 @@
           </div>
         </div>
       </div>
-    </template>
+    </v-form>
   </div>
 </template>
 
 <script>
+import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
+
+const EDITABLE_FIELDS = Object.freeze([
+  "host",
+  "port",
+  "useTls",
+  "useSsl",
+  "timeout",
+  "user",
+  "fromAddress",
+  "subjectPrefix",
+]);
+// Simple hostname/FQDN regex: at least one ``.``, no whitespace.
+const HOST_REGEX = /^\S+\.\S+$/;
+const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+const PORT_MIN = 1;
+const PORT_MAX = 65_535;
+const TIMEOUT_MIN = 1;
+const TIMEOUT_MAX = 600;
+
+function pickFields(source) {
+  const out = {};
+  for (const key of EDITABLE_FIELDS) {
+    out[key] = source?.[key] ?? "";
+  }
+  return out;
+}
 
 export default {
   name: "AdminEmailTab",
   data() {
     return {
+      draft: pickFields(undefined),
       passwordDraft: "",
       testRecipient: "",
       testing: false,
       testResult: undefined,
+      saving: false,
     };
   },
   computed: {
@@ -253,7 +299,56 @@ export default {
       settings: (state) => state.emailSettings,
     }),
     canTest() {
-      return Boolean(this.testRecipient && this.settings?.host);
+      return Boolean(this.testRecipient && this.draft?.host);
+    },
+    hasChanges() {
+      return !dequal(this.draft, pickFields(this.settings));
+    },
+    hostRules() {
+      return [(v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname"];
+    },
+    portRules() {
+      return [
+        (v) => {
+          if (v === "" || v === null || v === undefined) return true;
+          const n = Number(v);
+          return (
+            (Number.isInteger(n) && n >= PORT_MIN && n <= PORT_MAX) ||
+            `Port must be between ${PORT_MIN} and ${PORT_MAX}`
+          );
+        },
+      ];
+    },
+    timeoutRules() {
+      return [
+        (v) => {
+          if (v === "" || v === null || v === undefined) return true;
+          const n = Number(v);
+          return (
+            (Number.isInteger(n) && n >= TIMEOUT_MIN && n <= TIMEOUT_MAX) ||
+            `Timeout must be between ${TIMEOUT_MIN} and ${TIMEOUT_MAX} seconds`
+          );
+        },
+      ];
+    },
+    emailRules() {
+      return [
+        (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",
+      ];
+    },
+    recipientRules() {
+      return [
+        (v) => !!v || "Recipient is required",
+        (v) => EMAIL_REGEX.test(v) || "Enter a valid email address",
+      ];
+    },
+  },
+  watch: {
+    settings: {
+      immediate: true,
+      handler(value) {
+        this.draft = pickFields(value);
+      },
     },
   },
   mounted() {
@@ -265,12 +360,21 @@ export default {
       "updateEmailSettings",
       "sendEmailTest",
     ]),
-    save(field, value) {
-      this.updateEmailSettings({ [field]: value });
+    resetDraft() {
+      this.draft = pickFields(this.settings);
     },
-    toInt(value) {
-      const n = Number.parseInt(value, 10);
-      return Number.isFinite(n) ? n : 0;
+    async saveDraft() {
+      const form = this.$refs.form;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
+      }
+      this.saving = true;
+      try {
+        await this.updateEmailSettings({ ...this.draft });
+      } finally {
+        this.saving = false;
+      }
     },
     savePassword() {
       if (!this.passwordDraft) return;
@@ -354,5 +458,12 @@ export default {
 
 .testResult.error {
   color: rgb(var(--v-theme-error));
+}
+
+.settingsActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 16px;
 }
 </style>

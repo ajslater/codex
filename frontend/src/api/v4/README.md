@@ -14,7 +14,7 @@ they want by importing from `@/api/v3/...` or `@/api/v4/...`.
 
 v4 view endpoints return `{data, meta, errors}`. The xior client in `base.js`
 installs a response interceptor that unwraps `.data` on success and rejects with
-a structured `V4Error` carrying the first error object on failure. **Callers
+a structured `APIError` carrying the first error object on failure. **Callers
 consume the same shape they would in v3** — `response.data` is the inner
 payload, not the envelope.
 

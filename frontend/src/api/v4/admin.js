@@ -187,7 +187,7 @@ export const getTaggingDefaults = () =>
   HTTP.get("/admin/tagging-defaults", { params: { ts: Date.now() } });
 
 export const updateTaggingDefaults = (data) =>
-  HTTP.patch("/admin/tagging-defaults", data);
+  HTTP.put("/admin/tagging-defaults", data);
 
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
@@ -196,7 +196,7 @@ export const getEmailSettings = () =>
   HTTP.get("/admin/email-settings", { params: { ts: Date.now() } });
 
 export const updateEmailSettings = (data) =>
-  HTTP.patch("/admin/email-settings", data);
+  HTTP.put("/admin/email-settings", data);
 
 export const sendEmailTest = (data) =>
   HTTP.post("/admin/email-settings/test", data);
@@ -205,7 +205,7 @@ export const getThrottleSettings = () =>
   HTTP.get("/admin/throttle-settings", { params: { ts: Date.now() } });
 
 export const updateThrottleSettings = (data) =>
-  HTTP.patch("/admin/throttle-settings", data);
+  HTTP.put("/admin/throttle-settings", data);
 
 export const postDumpUserData = () => HTTP.post("/admin/user-data/export");
 

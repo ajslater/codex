@@ -4,80 +4,96 @@
       <v-progress-circular indeterminate />
     </div>
     <template v-else>
-      <!-- Write Defaults -->
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Write Defaults</h3>
+      <v-form ref="form" @submit.prevent="saveDraft">
+        <!-- Write Defaults -->
+        <div class="adminGroup">
+          <div class="adminGroupHeader">
+            <h3>Write Defaults</h3>
+          </div>
+          <div class="adminCard">
+            <v-select
+              v-model="draft.defaultFormats"
+              :items="formatChoices"
+              label="Metadata Formats"
+              hide-details="auto"
+              density="compact"
+              multiple
+              chips
+            />
+          </div>
+          <div class="adminCard">
+            <v-checkbox
+              v-model="draft.deleteOriginal"
+              label="Delete original after converting to CBZ"
+              :hint="deleteOriginalHint"
+              persistent-hint
+              density="compact"
+            />
+          </div>
         </div>
-        <div class="adminCard">
-          <v-select
-            :model-value="defaults.defaultFormats"
-            :items="formatChoices"
-            label="Metadata Formats"
-            hide-details="auto"
-            density="compact"
-            multiple
-            chips
-            @update:model-value="save('defaultFormats', $event)"
-          />
-        </div>
-        <div class="adminCard">
-          <v-checkbox
-            :model-value="defaults.deleteOriginal"
-            label="Delete original after converting to CBZ"
-            :hint="deleteOriginalHint"
-            persistent-hint
-            density="compact"
-            @update:model-value="save('deleteOriginal', $event)"
-          />
-        </div>
-      </div>
 
-      <!-- Online Defaults -->
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Online Tagging Defaults</h3>
+        <!-- Online Defaults -->
+        <div class="adminGroup">
+          <div class="adminGroupHeader">
+            <h3>Online Tagging Defaults</h3>
+          </div>
+          <div class="adminCard">
+            <v-select
+              v-model="draft.defaultMatchMode"
+              :items="matchModeChoices"
+              label="Match Mode"
+              hide-details="auto"
+              density="compact"
+            />
+          </div>
+          <div class="adminCard">
+            <v-select
+              v-model="draft.defaultPromptsMode"
+              :items="promptsModeChoices"
+              label="Prompts"
+              hide-details="auto"
+              density="compact"
+            />
+          </div>
+          <div class="adminCard">
+            <v-select
+              v-model="draft.defaultSources"
+              :items="sourceItems"
+              label="Online Sources"
+              hide-details="auto"
+              density="compact"
+              multiple
+              chips
+            />
+          </div>
+          <div class="adminCard">
+            <TimeoutInput
+              v-model="draft.promptTimeoutSeconds"
+              label="Prompt Timeout"
+            />
+          </div>
         </div>
-        <div class="adminCard">
-          <v-select
-            :model-value="defaults.defaultMatchMode"
-            :items="matchModeChoices"
-            label="Match Mode"
-            hide-details="auto"
-            density="compact"
-            @update:model-value="save('defaultMatchMode', $event)"
-          />
+
+        <div class="settingsActions">
+          <v-btn
+            type="submit"
+            variant="tonal"
+            size="small"
+            :loading="saving"
+            :disabled="!hasChanges"
+          >
+            Save Defaults
+          </v-btn>
+          <v-btn
+            variant="text"
+            size="small"
+            :disabled="!hasChanges || saving"
+            @click="resetDraft"
+          >
+            Revert
+          </v-btn>
         </div>
-        <div class="adminCard">
-          <v-select
-            :model-value="defaults.defaultPromptsMode"
-            :items="promptsModeChoices"
-            label="Prompts"
-            hide-details="auto"
-            density="compact"
-            @update:model-value="save('defaultPromptsMode', $event)"
-          />
-        </div>
-        <div class="adminCard">
-          <v-select
-            :model-value="defaults.defaultSources"
-            :items="sourceItems"
-            label="Online Sources"
-            hide-details="auto"
-            density="compact"
-            multiple
-            chips
-            @update:model-value="save('defaultSources', $event)"
-          />
-        </div>
-        <div class="adminCard">
-          <TimeoutInput
-            label="Prompt Timeout"
-            :model-value="defaults.promptTimeoutSeconds"
-            @update:model-value="save('promptTimeoutSeconds', $event)"
-          />
-        </div>
-      </div>
+      </v-form>
 
       <!-- Credentials -->
       <div class="adminGroup">
@@ -247,6 +263,7 @@
 </template>
 
 <script>
+import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
@@ -259,6 +276,24 @@ const FORMAT_CHOICES = [
   { title: "ComicInfo", value: "COMIC_INFO" },
 ];
 
+const EDITABLE_FIELDS = Object.freeze([
+  "defaultFormats",
+  "deleteOriginal",
+  "defaultMatchMode",
+  "defaultPromptsMode",
+  "defaultSources",
+  "promptTimeoutSeconds",
+]);
+
+function pickFields(source) {
+  const out = {};
+  for (const key of EDITABLE_FIELDS) {
+    const value = source?.[key];
+    out[key] = Array.isArray(value) ? [...value] : (value ?? null);
+  }
+  return out;
+}
+
 export default {
   name: "AdminTaggingTab",
   components: {
@@ -270,6 +305,8 @@ export default {
       formatChoices: FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
+      draft: pickFields(undefined),
+      saving: false,
       metronUser: "",
       metronPassword: "",
       metronUrlLocal: "",
@@ -283,6 +320,9 @@ export default {
     ...mapState(useAdminStore, {
       defaults: (state) => state.taggingDefaults,
     }),
+    hasChanges() {
+      return !dequal(this.draft, pickFields(this.defaults));
+    },
     deleteOriginalHint() {
       return "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.";
     },
@@ -315,6 +355,14 @@ export default {
       );
     },
   },
+  watch: {
+    defaults: {
+      immediate: true,
+      handler(value) {
+        this.draft = pickFields(value);
+      },
+    },
+  },
   mounted() {
     this.loadTaggingDefaults();
   },
@@ -324,8 +372,21 @@ export default {
       "updateTaggingDefaults",
       "validateTaggingCredentials",
     ]),
-    save(field, value) {
-      this.updateTaggingDefaults({ [field]: value });
+    resetDraft() {
+      this.draft = pickFields(this.defaults);
+    },
+    async saveDraft() {
+      const form = this.$refs.form;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
+      }
+      this.saving = true;
+      try {
+        await this.updateTaggingDefaults({ ...this.draft });
+      } finally {
+        this.saving = false;
+      }
     },
     saveMetronCredentials() {
       const data = {};
@@ -418,5 +479,12 @@ export default {
   flex-direction: column;
   gap: 8px;
   padding-top: 8px;
+}
+
+.settingsActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 16px;
 }
 </style>

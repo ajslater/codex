@@ -1,19 +1,41 @@
 <template>
   <div>
-    <div class="customCoverSettings">
+    <v-form
+      ref="form"
+      class="customCoverSettings"
+      @submit.prevent="saveMaxUpload"
+    >
       <v-text-field
-        :model-value="maxUploadMb"
-        :error-messages="maxUploadError"
+        v-model.number="maxUploadDraft"
         type="number"
         min="1"
         max="2048"
         label="Max upload size (MB)"
+        :rules="maxUploadRules"
         density="compact"
         hide-details="auto"
         class="maxUploadField"
-        @update:model-value="saveMaxUpload"
       />
-    </div>
+      <div class="settingsActions">
+        <v-btn
+          type="submit"
+          variant="tonal"
+          size="small"
+          :loading="saving"
+          :disabled="!maxUploadChanged"
+        >
+          Save
+        </v-btn>
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="!maxUploadChanged || saving"
+          @click="resetMaxUpload"
+        >
+          Revert
+        </v-btn>
+      </div>
+    </v-form>
     <AdminTable :headers="headers" :items="customCovers">
       <template #no-data>
         <td class="adminNoData" colspan="100%">
@@ -21,7 +43,27 @@
         </td>
       </template>
       <template #[`item.thumb`]="{ item }">
-        <img alt="cover" class="customCoverThumb" :src="thumbSrc(item)" />
+        <v-menu
+          :close-on-content-click="false"
+          location="end center"
+          offset="8"
+          transition="scale-transition"
+          origin="overlap"
+        >
+          <template #activator="{ props: activator }">
+            <img
+              v-bind="activator"
+              alt="cover"
+              class="customCoverThumb"
+              :src="thumbSrc(item)"
+            />
+          </template>
+          <template #default="{ isActive }">
+            <div class="coverPopup" @mouseleave="isActive.value = false">
+              <img alt="cover" :src="thumbSrc(item)" />
+            </div>
+          </template>
+        </v-menu>
       </template>
       <template #[`item.group`]="{ item }">
         <v-chip class="groupChip" size="small" variant="tonal">
@@ -71,6 +113,8 @@ import { useAdminStore } from "@/stores/admin";
 
 const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
 const MAX_UPLOAD_FLAG_KEY = "CM";
+const MAX_UPLOAD_MIN = 1;
+const MAX_UPLOAD_MAX = 2048;
 
 export default {
   name: "AdminCustomCoversTab",
@@ -82,7 +126,8 @@ export default {
   },
   data() {
     return {
-      maxUploadError: "",
+      maxUploadDraft: "",
+      saving: false,
     };
   },
   computed: {
@@ -93,7 +138,26 @@ export default {
       );
     },
     maxUploadMb() {
-      return this.maxUploadFlag?.value ?? "";
+      const raw = this.maxUploadFlag?.value;
+      if (raw === undefined || raw === null || raw === "") return "";
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : "";
+    },
+    maxUploadChanged() {
+      return String(this.maxUploadDraft) !== String(this.maxUploadMb);
+    },
+    maxUploadRules() {
+      return [
+        (v) => {
+          const n = Number(v);
+          return (
+            (Number.isInteger(n) &&
+              n >= MAX_UPLOAD_MIN &&
+              n <= MAX_UPLOAD_MAX) ||
+            `Must be ${MAX_UPLOAD_MIN}–${MAX_UPLOAD_MAX}`
+          );
+        },
+      ];
     },
     headers() {
       return [
@@ -106,21 +170,36 @@ export default {
       ];
     },
   },
+  watch: {
+    maxUploadMb: {
+      immediate: true,
+      handler(value) {
+        this.maxUploadDraft = value;
+      },
+    },
+  },
   mounted() {
     this.loadTables(["CustomCover", "Flag"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "loadTables", "updateRow"]),
-    saveMaxUpload(value) {
-      const n = Number.parseInt(value, 10);
-      if (!Number.isFinite(n) || n < 1) {
-        this.maxUploadError = "Must be a positive integer.";
-        return;
+    resetMaxUpload() {
+      this.maxUploadDraft = this.maxUploadMb;
+    },
+    async saveMaxUpload() {
+      const form = this.$refs.form;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
       }
-      this.maxUploadError = "";
-      this.updateRow("Flag", MAX_UPLOAD_FLAG_KEY, { value: String(n) }).catch(
-        console.error,
-      );
+      this.saving = true;
+      try {
+        await this.updateRow("Flag", MAX_UPLOAD_FLAG_KEY, {
+          value: String(this.maxUploadDraft),
+        });
+      } finally {
+        this.saving = false;
+      }
     },
     thumbSrc(item) {
       return `/api/v4/covers/custom/${item.pk}?ts=${item.mtime ?? 0}`;
@@ -158,6 +237,14 @@ export default {
   height: 90px;
   object-fit: cover;
   border-radius: 4px;
+  cursor: zoom-in;
+}
+
+.settingsActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .groupChip {
@@ -175,5 +262,26 @@ export default {
 
 .actionButtonCell :deep(> button:hover) {
   opacity: 1;
+}
+</style>
+
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+/*
+ * Cover popup — rendered into the v-menu's teleport target, so the
+ * styles live in an unscoped block. Mirrors the browser-table cover
+ * popup so the admin custom-cover grid feels the same on hover.
+ */
+.coverPopup {
+  display: block;
+  cursor: zoom-out;
+}
+
+.coverPopup img {
+  display: block;
+  max-height: 70vh;
+  max-width: 60vw;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 </style>

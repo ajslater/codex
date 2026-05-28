@@ -35,10 +35,10 @@ HTTP.interceptors.request.use((config) => {
   });
 });
 
-export class V4Error extends Error {
+export class APIError extends Error {
   constructor(envelopeError, status) {
-    super(envelopeError?.detail || envelopeError?.title || "API v4 error");
-    this.name = "V4Error";
+    super(envelopeError?.detail || envelopeError?.title || "API error");
+    this.name = "APIError";
     this.status = status;
     this.envelopeError = envelopeError;
   }
@@ -64,7 +64,7 @@ HTTP.interceptors.response.use(
     if (body && typeof body === "object" && Array.isArray(body.errors)) {
       const first = body.errors[0];
       if (first) {
-        return Promise.reject(new V4Error(first, error.response.status));
+        return Promise.reject(new APIError(first, error.response.status));
       }
     }
     return Promise.reject(error);
