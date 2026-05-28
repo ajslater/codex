@@ -96,87 +96,73 @@
             autocomplete="off"
           />
         </div>
-        <v-expansion-panels
-          :model-value="settings.passwordSet ? [] : [0]"
-          variant="accordion"
-        >
-          <v-expansion-panel>
-            <v-expansion-panel-title>
-              <span class="adminCardTitle">Password or Token</span>
-              <span
-                class="adminCardDesc"
-                :class="{ credentialSet: settings.passwordSet }"
+        <div class="adminCard">
+          <!--
+            Wrapping the password input in a ``<form>`` keeps browser
+            DOM password-field heuristics happy (the console warning
+            "Password field is not contained in a form" goes away) and
+            lets password managers offer to save the credential.
+            ``@submit.prevent`` suppresses default Enter-submit since
+            the Save button drives the actual write via
+            ``savePassword``.
+          -->
+          <form
+            class="credentialFields"
+            autocomplete="off"
+            @submit.prevent="savePassword"
+          >
+            <!--
+              A11y warning: "Password forms should have (optionally
+              hidden) username fields for accessibility." Mirror the
+              SMTP username here as a non-displayed, non-editable input
+              so the browser / password manager can pair it with the
+              password without the user seeing two SMTP username
+              fields.
+            -->
+            <input
+              type="text"
+              autocomplete="username"
+              :value="draft.user || 'codex-smtp'"
+              readonly
+              tabindex="-1"
+              aria-hidden="true"
+              class="smtpUsernameProxy"
+            />
+            <v-text-field
+              v-model="passwordDraft"
+              label="Password or Token"
+              type="password"
+              autocomplete="new-password"
+              hide-details="auto"
+              density="compact"
+              :placeholder="
+                settings.passwordSet
+                  ? 'New Password or Token'
+                  : 'Password or Token'
+              "
+              :hint="settings.passwordSet ? 'Credential set' : 'Not configured'"
+              persistent-hint
+            />
+            <div class="credentialActions">
+              <v-btn
+                type="submit"
+                variant="tonal"
+                size="small"
+                :disabled="!passwordDraft"
               >
-                {{ settings.passwordSet ? "Credential set" : "Not configured" }}
-              </span>
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <!--
-                Wrapping the password input in a ``<form>`` keeps
-                browser DOM password-field heuristics happy (the
-                console warning "Password field is not contained in a
-                form" goes away) and lets password managers offer to
-                save the credential. ``@submit.prevent`` suppresses
-                default Enter-submit since the Save button drives the
-                actual write via ``savePassword``.
-              -->
-              <form
-                class="credentialFields"
-                autocomplete="off"
-                @submit.prevent="savePassword"
+                Save Password
+              </v-btn>
+              <v-btn
+                v-if="settings.passwordSet"
+                variant="text"
+                size="small"
+                @click="clearPassword"
               >
-                <!--
-                  A11y warning: "Password forms should have (optionally
-                  hidden) username fields for accessibility." Mirror the
-                  SMTP username here as a non-displayed, non-editable
-                  input so the browser / password manager can pair it
-                  with the password without the user seeing two SMTP
-                  username fields.
-                -->
-                <input
-                  type="text"
-                  autocomplete="username"
-                  :value="draft.user || 'codex-smtp'"
-                  readonly
-                  tabindex="-1"
-                  aria-hidden="true"
-                  class="smtpUsernameProxy"
-                />
-                <v-text-field
-                  v-model="passwordDraft"
-                  label="Password or Token"
-                  type="password"
-                  autocomplete="new-password"
-                  hide-details="auto"
-                  density="compact"
-                  :placeholder="
-                    settings.passwordSet
-                      ? 'New Password or Token'
-                      : 'Password or Token'
-                  "
-                />
-                <div class="credentialActions">
-                  <v-btn
-                    type="submit"
-                    variant="tonal"
-                    size="small"
-                    :disabled="!passwordDraft"
-                  >
-                    Save Password
-                  </v-btn>
-                  <v-btn
-                    v-if="settings.passwordSet"
-                    variant="text"
-                    size="small"
-                    @click="clearPassword"
-                  >
-                    Clear Password
-                  </v-btn>
-                </div>
-              </form>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+                Clear Password
+              </v-btn>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div class="adminGroup">
@@ -442,15 +428,6 @@ export default {
 
 .adminIntro li {
   margin-bottom: 4px;
-}
-
-.credentialSet {
-  color: rgb(var(--v-theme-success));
-}
-
-.adminCardDesc {
-  margin-left: 8px;
-  font-size: 0.85em;
 }
 
 .credentialFields {
