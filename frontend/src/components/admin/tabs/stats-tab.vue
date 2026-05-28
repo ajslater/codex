@@ -7,9 +7,9 @@
       Config table here drops it from the rendered keys.
     -->
     <StatsTable title="Config" :items="configTable" />
+    <StatsTable title="File Types" :items="fileTypesTable" />
     <StatsTable title="User Settings" :items="userSettingsTable" />
     <StatsTable title="Browser Groups" :items="browserGroupsTable" />
-    <StatsTable title="File Types" :items="fileTypesTable" />
     <StatsTable title="Tags" :items="metadataTable" />
   </div>
 </template>

@@ -250,11 +250,15 @@ export const useBrowserStore = defineStore("browser", {
       return useAuthStore().isAuthorized;
     },
     isDynamicFiltersSelected(state) {
+      /*
+       * "Dynamic" = anything beyond the default bookmark choice. The
+       * favorite filter is a boolean (not a list-of-pks), but counts as
+       * a non-default extra filter for the multi-filter chip indicator —
+       * otherwise toggling Favorites-only would silently drop the icon
+       * that signals "extra filters are active."
+       */
+      if (state.settings.filters.favorite) return true;
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        /*
-         * bookmark and favorite are scalar (string / boolean), not the
-         * list-of-pks shape every other filter uses.
-         */
         if (
           name !== "bookmark" &&
           name !== "favorite" &&

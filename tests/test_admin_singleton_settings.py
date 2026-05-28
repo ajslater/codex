@@ -13,9 +13,7 @@ _USER_THROTTLE: Final = 120
 
 
 def _put_envelope(client, url, payload):
-    return client.put(
-        url, data=json.dumps(payload), content_type="application/json"
-    )
+    return client.put(url, data=json.dumps(payload), content_type="application/json")
 
 
 def _ensure_admin_flags() -> None:

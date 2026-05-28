@@ -125,6 +125,23 @@
                 autocomplete="off"
                 @submit.prevent="savePassword"
               >
+                <!--
+                  A11y warning: "Password forms should have (optionally
+                  hidden) username fields for accessibility." Mirror the
+                  SMTP username here as a non-displayed, non-editable
+                  input so the browser / password manager can pair it
+                  with the password without the user seeing two SMTP
+                  username fields.
+                -->
+                <input
+                  type="text"
+                  autocomplete="username"
+                  :value="draft.user || 'codex-smtp'"
+                  readonly
+                  tabindex="-1"
+                  aria-hidden="true"
+                  class="smtpUsernameProxy"
+                />
                 <v-text-field
                   v-model="passwordDraft"
                   label="Password"
@@ -465,5 +482,16 @@ export default {
   gap: 8px;
   align-items: center;
   margin: 0 0 16px;
+}
+
+.smtpUsernameProxy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 </style>

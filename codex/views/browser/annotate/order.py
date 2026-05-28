@@ -43,7 +43,14 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # ``annotate_order_value``: forward-sort uses Min, reverse uses Max.
     # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
     {
-        "age_rating": Avg,
+        # ``age_rating`` resolves to ``age_rating__name`` via
+        # ``comic_order_path`` — a string column. ``Avg`` on a string
+        # would either error or coerce to garbage; ``Min`` (the
+        # directional sentinel) gives forward-sort = Min(name),
+        # reverse-sort = Max(name), matching the cover subquery's
+        # picked comic so the displayed rating label and the cover
+        # image stay consistent.
+        "age_rating": Min,
         "child_count": Min,
         "country": Min,
         "created_at": Min,

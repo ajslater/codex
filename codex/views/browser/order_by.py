@@ -14,6 +14,16 @@ from codex.views.browser.group_mtime import BrowserGroupMtimeView
 # ``order_value`` annotation used by serializers and group aggregates).
 COMIC_ORDER_FIELD_PATHS = MappingProxyType(
     {
+        # ``age_rating`` is an FK on Comic; resolving to ``__name`` makes
+        # the order_value annotation a meaningful rating label string
+        # (e.g. "G", "PG-13") instead of the FK pk integer that
+        # ``Avg(comic__age_rating)`` used to produce on Folder rows.
+        # See ``_ORDER_AGGREGATE_FUNCS`` in
+        # :mod:`codex.views.browser.annotate.order` — the aggregate
+        # for ``age_rating`` is now Min/Max (directional), which on a
+        # string column gives the alphabetically smallest/largest
+        # descendant rating.
+        "age_rating": "age_rating__name",
         "country": "country__name",
         "imprint_name": "imprint__name",
         # ``issue`` is a virtual order_by key that stands in for the
