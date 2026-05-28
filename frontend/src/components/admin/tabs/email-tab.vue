@@ -102,12 +102,12 @@
         >
           <v-expansion-panel>
             <v-expansion-panel-title>
-              <span class="adminCardTitle">Password</span>
+              <span class="adminCardTitle">Password or Token</span>
               <span
                 class="adminCardDesc"
                 :class="{ credentialSet: settings.passwordSet }"
               >
-                {{ settings.passwordSet ? "Password set" : "Not configured" }}
+                {{ settings.passwordSet ? "Credential set" : "Not configured" }}
               </span>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
@@ -144,7 +144,7 @@
                 />
                 <v-text-field
                   v-model="passwordDraft"
-                  label="Password"
+                  label="Password or Token"
                   type="password"
                   autocomplete="new-password"
                   hide-details="auto"
