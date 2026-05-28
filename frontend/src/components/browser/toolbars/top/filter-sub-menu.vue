@@ -107,7 +107,7 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
-import { toVuetifyItems } from "@/vuetify-items";
+import { NULL_PKS, toVuetifyItems } from "@/vuetify-items";
 import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -163,15 +163,19 @@ export default {
     },
     /*
      * The As-tagged panel exposes raw ComicInfo age-rating strings that
-     * have NO Metron mapping. Strip out any tagged entries that already
-     * carry a ``metronName`` — those are duplicates of what the
-     * Standardized panel already lists. Returns ``undefined`` until the
-     * choices have loaded so the panel can stay hidden during the fetch
-     * instead of flashing an empty list.
+     * have NO Metron mapping. Strip out:
+     *   - entries that already carry a ``metronName`` — the Standardized
+     *     panel covers them
+     *   - the ``None`` sentinel (``pk`` in ``NULL_PKS``) — Standardized
+     *     surfaces it too, so showing it again here is just clutter
+     * Returns ``undefined`` until the choices have loaded so the panel
+     * can stay hidden during the fetch instead of flashing an empty list.
      */
     unstandardizedTaggedChoices() {
       if (!Array.isArray(this.taggedChoices)) return undefined;
-      return this.taggedChoices.filter((c) => !c?.metronName);
+      return this.taggedChoices.filter(
+        (c) => !c?.metronName && !NULL_PKS.has(c?.pk),
+      );
     },
     hasUnstandardizedTagged() {
       const list = this.unstandardizedTaggedChoices;
@@ -187,11 +191,11 @@ export default {
           hasSelections: this.metronHasSelections,
         },
       ];
-      if (this.hasUnstandardizedTagged || this.taggedHasSelections) {
+      if (this.hasUnstandardizedTagged) {
         panels.push({
           key: "ageRatingTagged",
           label: "As tagged",
-          choices: this.unstandardizedTaggedChoices ?? this.taggedChoices,
+          choices: this.unstandardizedTaggedChoices,
           filter: this.taggedFilter,
           hasSelections: this.taggedHasSelections,
         });
