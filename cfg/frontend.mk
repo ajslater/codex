@@ -51,16 +51,10 @@ fix:: fix-frontend
 lint-frontend:
 	bash -c "cd frontend && make lint"
 
-.PHONY: lint-frontend
+.PHONY: lint
 ## Lint
 ## @category Lint
 lint:: lint-frontend
-
-.PHONY: dev-frontend-server
-## Run the vite dev frontend
-## @category Run
-dev-frontend-server:
-	bash -c "cd frontend && make dev-server"
 
 .PHONY: test-frontend
 ## Run frontend tests
@@ -68,7 +62,7 @@ dev-frontend-server:
 test-frontend::
 	cd frontend && make test
 
-.PHONY: test-frontend
+.PHONY: test
 ## Run frontend tests too
 ## Test
 ## @category Test

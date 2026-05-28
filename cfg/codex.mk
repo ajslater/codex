@@ -18,12 +18,6 @@ test-frontend:: build-choices
 dev:
 	./bin/dev.sh
 
-.PHONY: dev-ttabs
-## Run the vite dev frontend and dev-server in ttabs
-## @category Run Server
-dev-ttabs:
-	./bin/dev-ttabs.sh
-
 .PHONY: dev-reverse-proxy
 ## Run an nginx reverse proxy to codex in docker
 ## @category Run Server
