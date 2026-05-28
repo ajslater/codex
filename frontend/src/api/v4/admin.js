@@ -59,6 +59,28 @@ async function jsonApiOne(response) {
 }
 
 /*
+ * Build a JSON:API request body for a write to a resource viewset.
+ *
+ * The backend parser (``codex/views/admin/json_api.py::AdminJSONAPIParser``)
+ * expects ``{data: {type, [id], attributes}}`` with the resource
+ * ``type`` matching the JSONAPIMeta resource_name and (for
+ * PATCH/PUT) the ``id`` matching the URL pk. Everything the admin
+ * store writes — including M2M id lists like ``groups`` /
+ * ``user_set`` — goes into ``attributes`` and lands on the backend
+ * serializer as the same flat dict the v3 surface accepted; the
+ * DRF ``PrimaryKeyRelatedField`` the auto-generated ModelSerializer
+ * uses for those relations only understands plain int pks, so we
+ * avoid the formal ``relationships`` block.
+ */
+function wrapJsonApi(resourceType, data, { pk } = {}) {
+  const body = { data: { type: resourceType, attributes: { ...(data || {}) } } };
+  if (pk !== undefined && pk !== null) {
+    body.data.id = String(pk);
+  }
+  return body;
+}
+
+/*
  * v4 admin CRUD factory. Differences from v3:
  *   - Paths are plural (``users`` vs ``user``).
  *   - Updates use PATCH (v3 used PUT for partial_update).
@@ -69,10 +91,14 @@ async function jsonApiOne(response) {
 const makeAdminCRUD = (entity) => {
   const path = `/admin/${entity}`;
   return {
-    create: (data) => HTTP.post(path, data).then(jsonApiOne),
+    create: (data) =>
+      HTTP.post(path, wrapJsonApi(entity, data)).then(jsonApiOne),
     getAll: () =>
       HTTP.get(path, { params: serializeParams() }).then(jsonApiList),
-    update: (pk, data) => HTTP.patch(`${path}/${pk}`, data).then(jsonApiOne),
+    update: (pk, data) =>
+      HTTP.patch(`${path}/${pk}`, wrapJsonApi(entity, data, { pk })).then(
+        jsonApiOne,
+      ),
     destroy: (pk) => HTTP.delete(`${path}/${pk}`),
   };
 };
@@ -85,7 +111,10 @@ export const TABLES = Object.freeze({
     getAll: () =>
       HTTP.get("/admin/flags", { params: serializeParams() }).then(jsonApiList),
     update: (key, data) =>
-      HTTP.patch(`/admin/flags/${key}`, data).then(jsonApiOne),
+      HTTP.patch(
+        `/admin/flags/${key}`,
+        wrapJsonApi("flags", data, { pk: key }),
+      ).then(jsonApiOne),
     stateField: "flags",
   },
   FailedImport: {
