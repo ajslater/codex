@@ -14,16 +14,6 @@ from codex.views.browser.group_mtime import BrowserGroupMtimeView
 # ``order_value`` annotation used by serializers and group aggregates).
 COMIC_ORDER_FIELD_PATHS = MappingProxyType(
     {
-        # ``age_rating`` is an FK on Comic; resolving to ``__name`` makes
-        # the order_value annotation a meaningful rating label string
-        # (e.g. "G", "PG-13") instead of the FK pk integer that
-        # ``Avg(comic__age_rating)`` used to produce on Folder rows.
-        # See ``_ORDER_AGGREGATE_FUNCS`` in
-        # :mod:`codex.views.browser.annotate.order` — the aggregate
-        # for ``age_rating`` is now Min/Max (directional), which on a
-        # string column gives the alphabetically smallest/largest
-        # descendant rating.
-        "age_rating": "age_rating__name",
         "country": "country__name",
         "imprint_name": "imprint__name",
         # ``issue`` is a virtual order_by key that stands in for the
@@ -107,6 +97,14 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         # Comic orders on indexed fields directly — allegedly faster
         # than using tmp b-trees (annotations) and since that's every
         # cover sort, it's worth it.
+        if order_key == "age_rating":
+            # Comic.age_rating is an FK with no inherent severity order
+            # (FK pks are insertion-ordered). Sort by the denormalized
+            # ``age_rating_metron_index`` so "G < PG < R < Adults Only"
+            # ranks correctly across both Comic and cover-subquery
+            # ORDER BYs. The display value is the rating label string
+            # (see ``_comic_order_value`` / ``annotate_order_value``).
+            return ["age_rating_metron_index"]
         head = [comic_order_path(order_key)]
         # Comic order micro optimizations.
         if order_key == "story_arc_number":
@@ -207,6 +205,12 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             )
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
+        elif self.order_key == "age_rating":
+            # Group rows annotate two columns for age_rating —
+            # ``order_value`` is the metron name string (display) and
+            # ``_age_rating_sort_value`` is the metron index (sort).
+            # See ``BrowserAnnotateOrderView.annotate_order_value``.
+            order_fields_head = ["_age_rating_sort_value"]
         else:
             order_fields_head = ["order_value"]
 

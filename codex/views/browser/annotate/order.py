@@ -42,15 +42,10 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # ``Min`` is a sentinel for "use the directional aggregate" — see
     # ``annotate_order_value``: forward-sort uses Min, reverse uses Max.
     # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
+    #
+    # ``age_rating`` is not listed here because it needs dual aggregation
+    # — see ``_group_age_rating_annotations`` for the display + sort split.
     {
-        # ``age_rating`` resolves to ``age_rating__name`` via
-        # ``comic_order_path`` — a string column. ``Avg`` on a string
-        # would either error or coerce to garbage; ``Min`` (the
-        # directional sentinel) gives forward-sort = Min(name),
-        # reverse-sort = Max(name), matching the cover subquery's
-        # picked comic so the displayed rating label and the cover
-        # image stay consistent.
-        "age_rating": Min,
         "child_count": Min,
         "country": Min,
         "created_at": Min,
@@ -315,7 +310,31 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if self.order_key in m2m_columns():
             return F(m2m_alias_for(self.order_key))
         order_key = "sort_name" if self.order_key == "child_count" else self.order_key
+        if order_key == "age_rating":
+            # Display the metron rating label string; the row's
+            # ORDER BY uses ``age_rating_metron_index`` for severity
+            # ordering (see ``_comic_indexed_head``).
+            return F("age_rating__metron__name")
         return F(comic_order_path(order_key))
+
+    def _group_age_rating_annotations(self):
+        """
+        Annotate display name + severity-sort index for age_rating group rows.
+
+        ``order_value`` carries the metron rating label string (the
+        directional Min / Max across descendants) so the card caption
+        renders "G" / "PG" / etc. instead of an integer. The parallel
+        ``_age_rating_sort_value`` carries Min / Max of
+        ``age_rating_metron_index`` and is what ``add_order_by``
+        references when ``order_key == "age_rating"`` so the row
+        ordering is by severity rather than alphabetical name.
+        """
+        agg_func = self.order_agg_func
+        rel = self.rel_prefix
+        return {
+            "order_value": agg_func(rel + "age_rating__metron__name"),
+            "_age_rating_sort_value": agg_func(rel + "age_rating_metron_index"),
+        }
 
     def _group_m2m_order_value(self, qs):
         """Group-row M2M order_value, falling back to ``sort_name``."""
@@ -358,6 +377,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             order_value = F("name")
         elif qs.model is Comic:
             order_value = self._comic_order_value()
+        elif self.order_key == "age_rating":
+            anns = self._group_age_rating_annotations()
+            return (
+                qs.annotate(**anns) if self.TARGET == "browser" else qs.alias(**anns)
+            )
         elif self.order_key in m2m_columns():
             qs, order_value = self._group_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
@@ -415,14 +439,20 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return F(key)
         if key == "child_count":
             return Count(self.rel_prefix + "pk", distinct=True)
+        agg = Max if reverse else Min
         if key == "filename":
-            if qs.model is Folder:
-                return F("name")
-            agg = Max if reverse else Min
-            return agg(self.get_filename_func(qs.model))
+            return (
+                F("name")
+                if qs.model is Folder
+                else agg(self.get_filename_func(qs.model))
+            )
         if key == "bookmark_updated_at":
-            agg = Max if reverse else Min
             return self.get_max_bookmark_updated_at_aggregate(qs.model, agg_func=agg)
+        if key == "age_rating":
+            # Match the primary's severity-sort behavior — aggregate
+            # the metron index rather than the FK pk so shift-click
+            # extras rank rows the way the primary path does.
+            return agg(self.rel_prefix + "age_rating_metron_index")
         return None
 
     def _extra_group_expr(self, qs, key: str, *, reverse: bool):

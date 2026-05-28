@@ -162,16 +162,20 @@ export default {
       return this.taggedFilter?.length > 0;
     },
     /*
-     * The As-tagged panel exposes raw ComicInfo age-rating strings.
-     * When every tagged value already has a Metron mapping, the Standardized
-     * panel covers them and a second panel is just noise; only show it
-     * when at least one tagged entry is non-standardized (no ``metronName``)
-     * or when there's an active selection there the user might want to
-     * clear.
+     * The As-tagged panel exposes raw ComicInfo age-rating strings that
+     * have NO Metron mapping. Strip out any tagged entries that already
+     * carry a ``metronName`` — those are duplicates of what the
+     * Standardized panel already lists. Returns ``undefined`` until the
+     * choices have loaded so the panel can stay hidden during the fetch
+     * instead of flashing an empty list.
      */
+    unstandardizedTaggedChoices() {
+      if (!Array.isArray(this.taggedChoices)) return undefined;
+      return this.taggedChoices.filter((c) => !c?.metronName);
+    },
     hasUnstandardizedTagged() {
-      if (!Array.isArray(this.taggedChoices)) return false;
-      return this.taggedChoices.some((c) => !c?.metronName);
+      const list = this.unstandardizedTaggedChoices;
+      return Array.isArray(list) && list.length > 0;
     },
     ageRatingPanels() {
       const panels = [
@@ -187,7 +191,7 @@ export default {
         panels.push({
           key: "ageRatingTagged",
           label: "As tagged",
-          choices: this.taggedChoices,
+          choices: this.unstandardizedTaggedChoices ?? this.taggedChoices,
           filter: this.taggedFilter,
           hasSelections: this.taggedHasSelections,
         });
