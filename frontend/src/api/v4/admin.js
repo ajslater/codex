@@ -73,7 +73,9 @@ async function jsonApiOne(response) {
  * avoid the formal ``relationships`` block.
  */
 function wrapJsonApi(resourceType, data, { pk } = {}) {
-  const body = { data: { type: resourceType, attributes: { ...(data || {}) } } };
+  const body = {
+    data: { type: resourceType, attributes: { ...(data || {}) } },
+  };
   if (pk !== undefined && pk !== null) {
     body.data.id = String(pk);
   }

@@ -119,7 +119,24 @@ export default {
     },
     change(event) {
       this.row = event;
-      this.submitButtonEnabled = this.validate();
+      // ``validate()`` returns a Promise<boolean>. Assigning it
+      // directly to ``submitButtonEnabled`` always evaluates truthy
+      // (Promises are objects), so the submit button stayed enabled
+      // even when the form was invalid — including too-short
+      // passwords. Await the result.
+      const result = this.validate();
+      if (typeof result?.then === "function") {
+        result
+          .then((valid) => {
+            this.submitButtonEnabled = !!valid;
+            return valid;
+          })
+          .catch(() => {
+            this.submitButtonEnabled = false;
+          });
+      } else {
+        this.submitButtonEnabled = !!result;
+      }
     },
     getRow(show) {
       if (!show || !this.oldRow) {

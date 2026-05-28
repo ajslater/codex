@@ -75,6 +75,7 @@ import { mapState } from "pinia";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
+import { useAuthStore } from "@/stores/auth";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
@@ -113,7 +114,13 @@ export default {
         email: [
           (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
         ],
-        password: [(v) => !!v || "Password is required"],
+        password: [
+          (v) => !!v || "Password is required",
+          (v) =>
+            !v ||
+            v.length >= this.minPasswordLength ||
+            `Password must be at least ${this.minPasswordLength} characters`,
+        ],
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
         ],
@@ -125,6 +132,9 @@ export default {
       groups: (state) => state.groups,
       users: (state) => state.users,
       ageRatingMetrons: (state) => state.ageRatingMetrons,
+    }),
+    ...mapState(useAuthStore, {
+      minPasswordLength: (state) => state.MIN_PASSWORD_LENGTH,
     }),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);

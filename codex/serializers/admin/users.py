@@ -62,6 +62,11 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
             "email": {"required": False, "allow_blank": True},
         }
 
+    class JSONAPIMeta:
+        """JSON:API resource_name for the admin renderer."""
+
+        resource_name = "users"
+
     @staticmethod
     def _apply_userauth(instance, userauth_data) -> None:
         """
