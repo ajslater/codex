@@ -98,70 +98,44 @@
         </div>
         <div class="adminCard">
           <!--
-            Wrapping the password input in a ``<form>`` keeps browser
-            DOM password-field heuristics happy (the console warning
-            "Password field is not contained in a form" goes away) and
-            lets password managers offer to save the credential.
-            ``@submit.prevent`` suppresses default Enter-submit since
-            the Save button drives the actual write via
-            ``savePassword``.
+            A11y warning: "Password forms should have (optionally
+            hidden) username fields for accessibility." Mirror the
+            SMTP username here as a non-displayed, non-editable input
+            so the browser / password manager can pair it with the
+            password without the user seeing two SMTP username
+            fields. The enclosing ``<v-form>`` already provides the
+            ``<form>`` element this needs to count as a real
+            password form.
           -->
-          <form
-            class="credentialFields"
-            autocomplete="off"
-            @submit.prevent="savePassword"
-          >
-            <!--
-              A11y warning: "Password forms should have (optionally
-              hidden) username fields for accessibility." Mirror the
-              SMTP username here as a non-displayed, non-editable input
-              so the browser / password manager can pair it with the
-              password without the user seeing two SMTP username
-              fields.
-            -->
-            <input
-              type="text"
-              autocomplete="username"
-              :value="draft.user || 'codex-smtp'"
-              readonly
-              tabindex="-1"
-              aria-hidden="true"
-              class="smtpUsernameProxy"
-            />
-            <v-text-field
-              v-model="passwordDraft"
-              label="Password or Token"
-              type="password"
-              autocomplete="new-password"
-              hide-details="auto"
-              density="compact"
-              :placeholder="
-                settings.passwordSet
-                  ? 'New Password or Token'
-                  : 'Password or Token'
-              "
-              :hint="settings.passwordSet ? 'Credential set' : 'Not configured'"
-              persistent-hint
-            />
-            <div class="credentialActions">
-              <v-btn
-                type="submit"
-                variant="tonal"
-                size="small"
-                :disabled="!passwordDraft"
-              >
-                Save Password
-              </v-btn>
-              <v-btn
-                v-if="settings.passwordSet"
-                variant="text"
-                size="small"
-                @click="clearPassword"
-              >
-                Clear Password
-              </v-btn>
-            </div>
-          </form>
+          <input
+            type="text"
+            autocomplete="username"
+            :value="draft.user || 'codex-smtp'"
+            readonly
+            tabindex="-1"
+            aria-hidden="true"
+            class="smtpUsernameProxy"
+          />
+          <v-text-field
+            v-model="passwordDraft"
+            label="Password or Token"
+            type="password"
+            autocomplete="new-password"
+            hide-details="auto"
+            density="compact"
+            :placeholder="
+              settings.passwordSet
+                ? 'New Password or Token'
+                : 'Password or Token'
+            "
+            :hint="passwordHint"
+            persistent-hint
+          />
+          <div v-if="settings.passwordSet" class="credentialActions">
+            <v-btn variant="text" size="small" @click="clearPassword">
+              Clear Credential
+            </v-btn>
+          </div>
         </div>
       </div>
 
@@ -307,7 +281,14 @@ export default {
       return Boolean(this.testRecipient && this.draft?.host);
     },
     hasChanges() {
+      if (this.passwordDraft) return true;
       return !dequal(this.draft, pickFields(this.settings));
+    },
+    passwordHint() {
+      if (this.passwordDraft) {
+        return "Will be saved with the rest of the SMTP settings.";
+      }
+      return this.settings.passwordSet ? "Credential set" : "Not configured";
     },
     hostRules() {
       return [(v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname"];
@@ -374,21 +355,20 @@ export default {
         const { valid } = await form.validate();
         if (!valid) return;
       }
+      const payload = { ...this.draft };
+      if (this.passwordDraft) {
+        payload.password = this.passwordDraft;
+      }
       this.saving = true;
       try {
-        await this.updateEmailSettings({ ...this.draft });
+        await this.updateEmailSettings(payload);
+        this.passwordDraft = "";
       } finally {
         this.saving = false;
       }
     },
-    savePassword() {
-      if (!this.passwordDraft) return;
-      this.updateEmailSettings({ password: this.passwordDraft }).then(() => {
-        this.passwordDraft = "";
-      });
-    },
     clearPassword() {
-      if (!confirm("Clear SMTP password?")) return;
+      if (!confirm("Clear SMTP credential?")) return;
       this.updateEmailSettings({ password: "" });
     },
     async runTest() {
