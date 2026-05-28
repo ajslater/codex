@@ -150,7 +150,9 @@
                   hide-details="auto"
                   density="compact"
                   :placeholder="
-                    settings.passwordSet ? 'New Password' : 'Enter password'
+                    settings.passwordSet
+                      ? 'New Password or Token'
+                      : 'Password or Token'
                   "
                 />
                 <div class="credentialActions">
