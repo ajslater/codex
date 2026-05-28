@@ -1451,7 +1451,7 @@ export default {
       this.saving = true;
       const pks = this.book.ids || [this.book.pk];
       try {
-        const response = await HTTP.post("/admin/tagwrite/preflight", {
+        const response = await HTTP.post("/admin/tag-write/preflight", {
           group: this.book.group,
           pks: pks.map(String),
           formats: this.enabledFormats,
@@ -1491,7 +1491,7 @@ export default {
         if (this.confirmInfo.needConversion > 0) {
           payload.deleteOriginal = this.confirmDeleteOriginal;
         }
-        await HTTP.post("/admin/tagwrite", payload);
+        await HTTP.post("/admin/tag-write", payload);
         useCommonStore().setSuccess("Tag write queued.");
         this.$emit("saved");
       } catch (error) {

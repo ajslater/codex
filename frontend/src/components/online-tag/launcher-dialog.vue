@@ -266,7 +266,7 @@ export default {
       }
       const pks = this.book.ids || [this.book.pk];
       try {
-        const response = await HTTP.post("/admin/tagwrite/preflight", {
+        const response = await HTTP.post("/admin/tag-write/preflight", {
           group: this.book.group,
           pks: pks.map(String),
           formats: this.taggingDefaults?.defaultFormats || ["COMIC_INFO"],

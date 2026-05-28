@@ -106,7 +106,7 @@ export default {
         : this.name == "ageRatingMetron"
           ? ""
           : this.name == "ageRatingTagged"
-            ? "metronIndex"
+            ? "index"
             : "title";
       const copyKeys =
         this.name === "ageRatingMetron"
