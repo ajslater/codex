@@ -14,14 +14,11 @@ from django.conf import settings
 from rest_framework.response import Response
 
 from codex.choices.admin import AdminFlagChoices
-from codex.librarian.bookmark.tasks import CodexLatestVersionTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.models import AdminFlag, Timestamp
+from codex.models import AdminFlag
 from codex.serializers.auth import SessionSerializer
-from codex.settings import DOCKER_IMAGE_DEPRECATED
 from codex.settings.db import email_enabled
-from codex.version import VERSION
-from codex.views.auth import AuthGenericAPIView
+from codex.views.auth import AuthGenericAPIView, user_payload
+from codex.views.version import version_payload
 
 _ADMIN_FLAG_KEYS = (
     AdminFlagChoices.BANNER_TEXT.value,
@@ -39,7 +36,7 @@ class SessionView(AuthGenericAPIView):
 
     @staticmethod
     def _admin_flags() -> dict:
-        """Mirror ``AdminFlagsView`` payload; settings-derived flags inlined."""
+        """Build the auth-relevant admin flags + settings-derived capabilities."""
         flags: dict = {}
         rows = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only(
             "key", "on", "value"
@@ -53,46 +50,18 @@ class SessionView(AuthGenericAPIView):
         flags["remote_user_enabled"] = bool(settings.AUTH_REMOTE_USER)
         return flags
 
-    @staticmethod
-    def _user_payload(user) -> dict | None:
-        """Return the user dict, or None for anonymous sessions."""
-        if not user or not getattr(user, "is_authenticated", False):
-            return None
-        return {
-            "id": user.pk,
-            "username": user.get_username(),
-            "email": getattr(user, "email", "") or "",
-            "is_staff": bool(getattr(user, "is_staff", False)),
-            "is_superuser": bool(getattr(user, "is_superuser", False)),
-        }
-
-    @staticmethod
-    def _version() -> dict:
-        """Mirror ``VersionView`` so the SPA boot doesn't need a second call."""
-        ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
-        if ts.value:
-            latest_version = ts.value
-        else:
-            LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
-            latest_version = "fetching..."
-        return {
-            "installed": VERSION,
-            "latest": latest_version,
-            "warning": DOCKER_IMAGE_DEPRECATED,
-        }
-
     @override
     def get_object(self) -> dict:
         """Build the composite session payload."""
-        user_payload = self._user_payload(self.request.user)
+        user_data = user_payload(self.request.user)
         return {
-            "user": user_payload,
+            "user": user_data,
             "admin_flags": self._admin_flags(),
             "permissions": {
-                "is_staff": bool(user_payload and user_payload["is_staff"]),
-                "is_superuser": bool(user_payload and user_payload["is_superuser"]),
+                "is_staff": bool(user_data and user_data["is_staff"]),
+                "is_superuser": bool(user_data and user_data["is_superuser"]),
             },
-            "version": self._version(),
+            "version": version_payload(),
         }
 
     def get(self, *args, **kwargs) -> Response:

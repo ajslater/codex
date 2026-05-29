@@ -6,10 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import BooleanField, CharField, EmailField, IntegerField
-from rest_framework.serializers import (
-    Serializer,
-    SerializerMetaclass,
-)
+from rest_framework.serializers import Serializer
 from rest_registration.api.serializers import DefaultUserProfileSerializer
 
 from codex.serializers.fields.auth import TimezoneField
@@ -52,30 +49,6 @@ class CodexProfileSerializer(DefaultUserProfileSerializer):
         if settings.AUTH_REMOTE_USER and "username" in fields:
             fields["username"].read_only = True
         return fields
-
-
-class TimezoneSerializerMixin(metaclass=SerializerMetaclass):
-    """Serialize Timezone submission from front end."""
-
-    timezone = TimezoneField(write_only=True)
-
-
-class TimezoneSerializer(TimezoneSerializerMixin, Serializer):
-    """Serialize Timezone submission from front end."""
-
-
-class AuthAdminFlagsSerializer(Serializer):
-    """Admin flags related to auth."""
-
-    banner_text = CharField(read_only=True)
-    lazy_import_metadata = BooleanField(read_only=True)
-    non_users = BooleanField(read_only=True)
-    registration = BooleanField(read_only=True)
-    register_verification = BooleanField(read_only=True)
-    # Settings-derived capabilities (not DB-backed AdminFlags) - exposed
-    # alongside the flag rows so the frontend gets a single payload.
-    email_enabled = BooleanField(read_only=True)
-    remote_user_enabled = BooleanField(read_only=True)
 
 
 class PermissionsSerializer(Serializer):

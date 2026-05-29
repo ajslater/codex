@@ -18,7 +18,7 @@ from typing import Any
 from codex.choices.notifications import Notifications
 
 # Plain-string notification → ``type`` key on the typed payload. Anything
-# not in the map is forwarded as ``{type: "unknown", v3: "<str>"}`` so
+# not in the map is forwarded as ``{type: "unknown", raw: "<str>"}`` so
 # the frontend can log it without crashing.
 NOTIFICATION_TYPE_MAP: Mapping[str, str] = {
     Notifications.ADMIN_FLAGS.value: "admin.flags.changed",
@@ -32,24 +32,10 @@ NOTIFICATION_TYPE_MAP: Mapping[str, str] = {
     Notifications.USERS.value: "users.changed",
 }
 
-# Event types that always carry an ``mtime`` field on the wire.
-# Other types omit it.
-_MTIME_TYPES = frozenset(
-    {
-        "admin.flags.changed",
-        "bookmark.changed",
-        "covers.changed",
-        "failed-imports.changed",
-        "groups.changed",
-        "library.changed",
-        "users.changed",
-    }
-)
-
-# Event types that always carry a ``scope`` dict on the wire.
-# Listed separately from ``_MTIME_TYPES`` because ``task.progress``
-# and ``tag-session.prompt`` ship their own payload shapes.
-_SCOPE_TYPES = frozenset(
+# Event types that carry ``mtime`` + ``scope`` enrichment on the wire.
+# ``task.progress`` and ``tag-session.prompt`` are excluded — they ship
+# their own payload shapes.
+_ENRICHED_TYPES = frozenset(
     {
         "admin.flags.changed",
         "bookmark.changed",
@@ -71,17 +57,16 @@ def typed_payload(
     Build a typed payload from a notification string + optional enrichment.
 
     Unknown ``text`` (no mapping entry) returns
-    ``{type: "unknown", v3: text}`` so the frontend can log without
+    ``{type: "unknown", raw: text}`` so the frontend can log without
     crashing. ``mtime`` and ``scope`` are emitted only for event
     types that carry them; absent fields are ``null``/``{}``.
     """
     type_ = NOTIFICATION_TYPE_MAP.get(text, "unknown")
     payload: dict[str, Any] = {"type": type_}
     if type_ == "unknown":
-        payload["v3"] = text
+        payload["raw"] = text
         return payload
-    if type_ in _MTIME_TYPES:
+    if type_ in _ENRICHED_TYPES:
         payload["mtime"] = mtime
-    if type_ in _SCOPE_TYPES:
         payload["scope"] = dict(scope) if scope else {}
     return payload

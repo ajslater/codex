@@ -537,26 +537,36 @@ class CSRFView(AuthAPIView):
         return Response({"csrfToken": get_token(request)})
 
 
+def user_payload(user) -> dict | None:
+    """
+    Serialize the public user shape, or ``None`` for anonymous sessions.
+
+    Shared by :class:`ProfileView` and the composite
+    :class:`~codex.views.session.SessionView` so the
+    ``{id, username, email, is_staff, is_superuser}`` shape stays in
+    one place.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return {
+        "id": user.pk,
+        "username": user.get_username(),
+        "email": getattr(user, "email", "") or "",
+        "is_staff": bool(getattr(user, "is_staff", False)),
+        "is_superuser": bool(getattr(user, "is_superuser", False)),
+    }
+
+
 class ProfileView(AuthAPIView):
     """``GET`` and ``PATCH /api/v4/auth/profile`` — current user."""
 
     permission_classes = (IsAuthenticated,)
 
-    @staticmethod
-    def _payload(user) -> dict:
-        return {
-            "id": user.pk,
-            "username": user.get_username(),
-            "email": getattr(user, "email", "") or "",
-            "is_staff": bool(getattr(user, "is_staff", False)),
-            "is_superuser": bool(getattr(user, "is_superuser", False)),
-        }
-
     def get(self, request, *args, **kwargs) -> Response:
         """Return the authenticated user's profile."""
         if not getattr(request.user, "is_authenticated", False):
             raise NotAuthenticated
-        data = UserSerializer(self._payload(request.user)).data
+        data = UserSerializer(user_payload(request.user)).data
         return Response(data)
 
     def patch(self, request, *args, **kwargs) -> Response:
@@ -595,5 +605,5 @@ class ProfileView(AuthAPIView):
             session["django_timezone"] = timezone
             session.save()
 
-        data = UserSerializer(self._payload(user)).data
+        data = UserSerializer(user_payload(user)).data
         return Response(data)

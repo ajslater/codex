@@ -1,5 +1,5 @@
 /*
- * v4 WebSocket message shapes — see codex/websockets/v4_messages.py
+ * v4 WebSocket message shapes — see codex/websockets/payloads.py
  * for the backend-side source of truth and tasks/api-v4.md for the
  * design rationale.
  *
@@ -7,7 +7,9 @@
  * WS_URL_V4 and routing on ``payload.type`` instead of bare string
  * equality. The dispatch table below names every known type so a
  * regression (e.g. a renamed type) shows up as an unknown branch
- * rather than a silent miss.
+ * rather than a silent miss. Unmapped notifications arrive as
+ * ``{type: "unknown", raw: "<original string>"}`` so the default
+ * branch can log them without crashing.
  *
  * Path is hardcoded for the same reason as the rest of the v4 client
  * (see frontend/src/api/v4/README.md): one mount point, fixed.

@@ -210,7 +210,7 @@ EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[C
 # Boot-time value reflects TOML/env config only; the runtime check that
 # also consults the EmailSettings singleton lives in
 # ``codex.settings.db.email_enabled`` and is used by the request-time
-# callers (``views/register.py``, ``views/public.py``,
+# callers (``views/register.py``, ``views/session.py``,
 # ``startup/registration.py``).
 EMAIL_ENABLED = bool(EMAIL_HOST and DEFAULT_FROM_EMAIL)
 # Always use the DB-aware backend so admin edits via the Email tab
