@@ -431,8 +431,11 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "label": "Critical Rating",
             "sort_key": "critical_rating",
             "m2m": False,
-            "editable": False,
-            "edit_widget": None,
+            "editable": True,
+            # 0.0-5.0 decimal stepper. Renderer wired up by the eventual
+            # inline-table edit UI; the dialog editor uses its own input
+            # in components/metadata/edit-mode/edit-panel.vue.
+            "edit_widget": "decimal",
         },
         # Timestamps
         "created_at": {

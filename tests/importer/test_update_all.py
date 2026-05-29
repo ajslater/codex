@@ -70,7 +70,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
         CREATE_COMICS: {
             PATH: {
                 "collection_title": "The Big Omnibus Part 2",
-                "critical_rating": Decimal("5.00"),
+                "critical_rating": Decimal("5.0"),
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
@@ -399,7 +399,8 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         UPDATE_COMICS: {
             1: {
                 "collection_title": "The Big Omnibus Part 2",
-                "critical_rating": Decimal("5.00"),
+                # critical_rating omitted: both before (clamped 10->5) and
+                # after (5) collapse to the same canonical 5.0, so no diff.
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
@@ -509,7 +510,8 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         UPDATE_COMICS: {
             1: {
                 "collection_title": "The Big Omnibus Part 2",
-                "critical_rating": Decimal("5.00"),
+                # critical_rating omitted: both before (clamped 10->5) and
+                # after (5) collapse to the same canonical 5.0, so no diff.
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",

@@ -74,7 +74,7 @@ RANGED_FIELDS = {
         "MainCharacterOrTeam": 24,
         "Web": 64,
     },
-    "DECIMALS": {"CommunityRating": 100.0},
+    "DECIMALS": {"CommunityRating": 5.0},
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")

@@ -403,6 +403,34 @@
           </template>
         </v-select>
       </div>
+      <div :title="isFieldDisabled('critical_rating') ? disabledTooltip : ''">
+        <v-text-field
+          v-model.number="patch.critical_rating"
+          label="Critical Rating"
+          type="number"
+          min="0"
+          max="5"
+          step="0.1"
+          :rules="criticalRatingRules"
+          hide-details="auto"
+          density="compact"
+          :disabled="isFieldDisabled('critical_rating')"
+          :class="{
+            fieldCleared: isCleared('critical_rating'),
+            fieldChanged:
+              isFieldChanged('critical_rating') &&
+              !isCleared('critical_rating'),
+          }"
+          @update:model-value="onFieldInput('critical_rating')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('critical_rating')"
+              @toggle="toggleClear('critical_rating')"
+            />
+          </template>
+        </v-text-field>
+      </div>
       <div
         class="monochromeRow"
         :class="{
@@ -922,6 +950,15 @@ const ALL_ROLES = Object.freeze([
   "Editing",
 ]);
 
+const CRITICAL_RATING_RULES = Object.freeze([
+  (v) =>
+    v === null ||
+    v === "" ||
+    v === undefined ||
+    (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 5) ||
+    "Must be 0.0–5.0",
+]);
+
 export default {
   name: "EditPanel",
   components: {
@@ -941,6 +978,7 @@ export default {
       languageChoices: LANGUAGES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
       identifierTypeChoices: IDENTIFIER_TYPES,
+      criticalRatingRules: CRITICAL_RATING_RULES,
       tagKeys: TAG_KEYS,
       saving: false,
       confirmDialog: false,
@@ -974,6 +1012,7 @@ export default {
         monochrome: false,
         language: null,
         age_rating: null,
+        critical_rating: null,
         main_character: "",
         main_team: "",
         genres: [],
@@ -1220,6 +1259,8 @@ export default {
           this.patch[field] = [];
         } else if (typeof val === "boolean") {
           this.patch[field] = false;
+        } else if (field === "critical_rating") {
+          this.patch[field] = null;
         } else {
           this.patch[field] = "";
         }
@@ -1319,6 +1360,8 @@ export default {
       this.patch.monochrome = Boolean(this.md.monochrome);
       this.patch.language = this.md.language?.name || null;
       this.patch.age_rating = this.md.ageRating?.name || null;
+      this.patch.critical_rating =
+        this.md.criticalRating == null ? null : Number(this.md.criticalRating);
       this.patch.main_character = this.md.mainCharacter?.name || "";
       this.patch.main_team = this.md.mainTeam?.name || "";
 
@@ -1437,6 +1480,20 @@ export default {
       }
       if (changed.has("monochrome")) {
         cbPatch.monochrome = this.patch.monochrome;
+      }
+
+      // Critical Rating — clamp+round to canonical 0.0–5.0 (1 dp)
+      if (changed.has("critical_rating")) {
+        const raw = this.patch.critical_rating;
+        if (cleared.has("critical_rating") || raw === null || raw === "") {
+          cbPatch.critical_rating = null;
+        } else {
+          const n = Number(raw);
+          if (Number.isFinite(n)) {
+            cbPatch.critical_rating =
+              Math.round(Math.max(0, Math.min(5, n)) * 10) / 10;
+          }
+        }
       }
 
       // Protagonist — only include if changed

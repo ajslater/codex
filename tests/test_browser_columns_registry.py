@@ -50,14 +50,18 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
                     f"{key} is m2m; sort_key should equal column key"
                 )
 
-    def test_only_favorite_is_editable(self):
+    def test_editable_columns(self):
         # ``favorite`` opted in to ``editable=True`` in Phase 5 of the
         # favorites feature — its star widget toggles via the
-        # ``/api/v4/favorites/<collection>/<pk>`` endpoint. Every other
-        # column stays read-only until a column-specific edit pipeline
+        # ``/api/v4/favorites/<collection>/<pk>`` endpoint.
+        # ``critical_rating`` opted in alongside the comicbox CBI rating
+        # normalization (canonical 0.0-5.0 scale) — the eventual
+        # inline-table edit reads ``edit_widget`` to render a stepper.
+        # Every other column stays read-only until its own edit pipeline
         # ships.
+        editable_keys = frozenset({"favorite", "critical_rating"})
         for key, entry in BROWSER_TABLE_COLUMNS.items():
-            expected = key == "favorite"
+            expected = key in editable_keys
             assert entry["editable"] is expected, (
                 f"{key} editable={entry['editable']!r}; expected {expected}"
             )

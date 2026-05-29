@@ -4,10 +4,12 @@ import calendar
 import math
 import re
 from datetime import MAXYEAR, MINYEAR, date
+from decimal import Decimal
 from pathlib import Path
 from typing import override
 
 from comicbox.enums.comicbox import ReadingDirectionEnum
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -156,9 +158,18 @@ class Comic(WatchedPathBrowserGroup):
     review = CleaningTextField(default="", db_collation="nocase")
     notes = CleaningTextField(default="", db_collation="nocase")
 
-    # Ratings
-    critical_rating = CoercingDecimalField(
-        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
+    # Ratings — ComicInfo 0.0-5.0 scale, one decimal place.
+    critical_rating = CoercingDecimalField(  # pyright: ignore[reportCallIssue]  # ty: ignore[no-matching-overload]
+        db_index=True,
+        decimal_places=1,
+        max_digits=2,
+        default=None,
+        null=True,
+        coerce_max=Decimal("5.0"),
+        validators=(
+            MinValueValidator(Decimal("0.0")),
+            MaxValueValidator(Decimal("5.0")),
+        ),
     )
 
     # Reader
