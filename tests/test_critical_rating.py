@@ -12,8 +12,8 @@ from codex.models.fields import CoercingDecimalField
 
 # Migration filenames start with digits, which Python's import syntax can't
 # express. Use importlib so the test exercises the actual migration helper.
-_MIGRATION = importlib.import_module("codex.migrations.0054_critical_rating_normalize")
-_normalize = _MIGRATION._normalize  # noqa: SLF001
+_MIGRATION = importlib.import_module("codex.migrations.0043_comicbox_tagging_defaults")
+_normalize = _MIGRATION._normalize_rating  # noqa: SLF001
 
 TMP_DIR = Path("/tmp/codex.tests.critical_rating")  # noqa: S108
 
@@ -126,7 +126,7 @@ MIGRATION_NORMALIZE_PARAMS = (
 
 
 class MigrationNormalizerTestCase(TestCase):
-    """The 0054 migration's _normalize helper covers the planned buckets."""
+    """The squashed migration's rating normalizer covers the planned buckets."""
 
     def test_bucketing(self) -> None:
         """Each magnitude bucket lands in [0, 5] at one decimal place."""
