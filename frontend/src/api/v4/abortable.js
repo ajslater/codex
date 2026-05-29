@@ -1,7 +1,6 @@
 /*
  * Helpers for cancelling stale in-flight requests and deduplicating
- * concurrent identical fetches. See @/api/v3/abortable for the
- * original v3 commentary — behavior is unchanged.
+ * concurrent identical fetches.
  */
 
 const _controllers = new Map();

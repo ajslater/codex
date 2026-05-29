@@ -4,7 +4,7 @@ import { HTTP } from "@/api/v4/base";
  * Composite bootstrap endpoint. One round trip returns
  *   {
  *     user: { id, username, email, isStaff, isSuperuser } | null,
- *     adminFlags: { ...same keys as v3 ``/auth/flags/`` },
+ *     adminFlags: { needs Documentation },
  *     permissions: { isStaff, isSuperuser },
  *     version: { installed, latest, warning },
  *   }
