@@ -5,11 +5,11 @@ import { serializeParams } from "@/api/v4/common";
  * v4 admin resource endpoints render in JSON:API
  * (``{data: {type, id, attributes, relationships}}``) rather than
  * the envelope view-endpoints use. This helper flattens a single
- * resource into the v3 ``{pk, ...fields}`` shape the admin store
- * components have always consumed. Relationships collapse to id
- * arrays (or a single id) so ``library.groups`` reads the same as
- * before. Singletons / RPC actions stay on the envelope and don't
- * route through here.
+ * resource into the ``{pk, ...fields}`` shape the admin store
+ * components consume. Relationships collapse to id arrays (or a
+ * single id) so ``library.groups`` reads as a plain pk list.
+ * Singletons / RPC actions stay on the envelope and don't route
+ * through here.
  */
 function flattenRelationships(rels) {
   if (!rels) return {};
@@ -67,10 +67,10 @@ async function jsonApiOne(response) {
  * PATCH/PUT) the ``id`` matching the URL pk. Everything the admin
  * store writes — including M2M id lists like ``groups`` /
  * ``user_set`` — goes into ``attributes`` and lands on the backend
- * serializer as the same flat dict the v3 surface accepted; the
- * DRF ``PrimaryKeyRelatedField`` the auto-generated ModelSerializer
- * uses for those relations only understands plain int pks, so we
- * avoid the formal ``relationships`` block.
+ * serializer as a flat dict; the DRF ``PrimaryKeyRelatedField`` the
+ * auto-generated ModelSerializer uses for those relations only
+ * understands plain int pks, so we avoid the formal
+ * ``relationships`` block.
  */
 function wrapJsonApi(resourceType, data, { pk } = {}) {
   const body = {
@@ -83,12 +83,12 @@ function wrapJsonApi(resourceType, data, { pk } = {}) {
 }
 
 /*
- * v4 admin CRUD factory. Differences from v3:
- *   - Paths are plural (``users`` vs ``user``).
- *   - Updates use PATCH (v3 used PUT for partial_update).
- *   - api-key regeneration is POST (v3 used PUT).
- *   - custom-cover endpoints reshuffled to ``custom-covers`` + actions.
- *   - Librarian status moved to ``tasks``; task enqueue is ``tasks/run``.
+ * v4 admin CRUD factory. Conventions:
+ *   - Paths are plural (``users``, ``groups``, ``libraries``).
+ *   - Updates use PATCH (partial_update).
+ *   - api-key regeneration is POST.
+ *   - custom-cover endpoints live under ``custom-covers`` + actions.
+ *   - Librarian status lives under ``tasks``; task enqueue is ``tasks/run``.
  */
 const makeAdminCRUD = (entity) => {
   const path = `/admin/${entity}`;

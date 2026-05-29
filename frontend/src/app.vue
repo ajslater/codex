@@ -64,8 +64,7 @@ export default {
   created() {
     /*
      * Boot phase: single ``/api/v4/session`` composite returns user +
-     * adminFlags + permissions + version in one round trip. Replaces
-     * the v3 ``loadAdminFlags`` + ``loadProfile`` fan-out.
+     * adminFlags + permissions + version in one round trip.
      */
     this.loadSession();
   },

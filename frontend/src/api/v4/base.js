@@ -45,9 +45,9 @@ export class APIError extends Error {
 }
 
 /*
- * Unwrap the v4 envelope so callers can read ``response.data`` the
- * same way v3 callers do. ``meta`` is preserved as ``response.meta``
- * for the rare caller that needs pagination cursors / mtime hints.
+ * Unwrap the v4 envelope so callers can read ``response.data``
+ * directly. ``meta`` is preserved as ``response.meta`` for the rare
+ * caller that needs pagination cursors / mtime hints.
  */
 HTTP.interceptors.response.use(
   (response) => {

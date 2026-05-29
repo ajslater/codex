@@ -37,8 +37,8 @@ export const useMetadataStore = defineStore("metadata", {
     },
     /*
      * v4 ships identifiers as ``[{pk, type, code, displayName, url}]``.
-     * Display label rule (preserved from the v3 frontend): show
-     * ``displayName:code`` when ``displayName`` is set, else just code.
+     * Display label rule: show ``displayName:code`` when ``displayName``
+     * is set, else just code.
      */
     identifiers(state) {
       const items = [];
