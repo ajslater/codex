@@ -231,6 +231,16 @@ class AdminUserBulkView(AdminAPIView):
 
     def post(self, request, *_args, **_kwargs) -> Response:
         """Apply the bulk action."""
+        ids = self._parse_delete_ids(request)
+        current_user_id = getattr(request.user, "pk", None)
+        deleted, skipped = self._delete_users(ids, current_user_id)
+        if deleted:
+            LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
+        return Response({"deleted": deleted, "skipped": skipped})
+
+    @staticmethod
+    def _parse_delete_ids(request) -> list[int]:
+        """Validate the bulk-delete body and return the integer id list."""
         action = request.data.get("action")
         ids_raw = request.data.get("ids") or []
         if action != "delete":
@@ -239,11 +249,15 @@ class AdminUserBulkView(AdminAPIView):
         if not isinstance(ids_raw, list) or not ids_raw:
             raise DRFValidationError({"ids": "Provide a non-empty list of user ids."})
         try:
-            ids = [int(pk) for pk in ids_raw]
+            return [int(pk) for pk in ids_raw]
         except (TypeError, ValueError) as exc:
             raise DRFValidationError({"ids": "All ids must be integers."}) from exc
 
-        current_user_id = getattr(request.user, "pk", None)
+    @staticmethod
+    def _delete_users(
+        ids: list[int], current_user_id: int | None
+    ) -> tuple[list[int], list[dict]]:
+        """Delete each user, skipping self / not-found; return (deleted, skipped)."""
         deleted: list[int] = []
         skipped: list[dict] = []
         for pk in ids:
@@ -257,6 +271,4 @@ class AdminUserBulkView(AdminAPIView):
                 continue
             user.delete()
             deleted.append(pk)
-        if deleted:
-            LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
-        return Response({"deleted": deleted, "skipped": skipped})
+        return deleted, skipped

@@ -84,27 +84,40 @@ class JanitorVacuum(JanitorIntegrity):
         try:
             if status:
                 self.status_controller.start(status)
-            if backup_path is None:
-                backup_path = BACKUP_DB_DIR / f"{DB_PATH.name}.{date_stamp()}.bak.xz"
-            else:
-                backup_path = backup_path.with_name(backup_path.name + XZ_SUFFIX)
-            budget = read_mem_limit("b")
-            preset = xz_preset(budget)
-            db_size = DB_PATH.stat().st_size if DB_PATH.exists() else 0
-            if db_size <= budget * _SERIALIZE_MAX_FRACTION:
-                self._backup_db_serialize(backup_path, preset)
-            else:
-                self._backup_db_vacuum(backup_path, preset)
+            backup_path = self._resolve_backup_path(backup_path)
+            self._write_backup(backup_path)
             if prune:
-                prune_dated(BACKUP_DB_DIR, _NIGHTLY_BACKUP_PATTERN)
-                _OLD_BACKUP_PATH.unlink(missing_ok=True)
-                BACKUP_DB_PATH.unlink(missing_ok=True)
+                self._prune_dated_backups()
             self.log.info(f"Backed up database to {backup_path}")
         except Exception:
             self.log.exception("Backing up database.")
         finally:
             if status:
                 self.status_controller.finish(status)
+
+    @staticmethod
+    def _resolve_backup_path(backup_path):
+        """Dated nightly name when unset; else the caller's path + ``.xz``."""
+        if backup_path is None:
+            return BACKUP_DB_DIR / f"{DB_PATH.name}.{date_stamp()}.bak.xz"
+        return backup_path.with_name(backup_path.name + XZ_SUFFIX)
+
+    def _write_backup(self, backup_path) -> None:
+        """Pick the serialize vs ``VACUUM INTO`` path from the memory budget."""
+        budget = read_mem_limit("b")
+        preset = xz_preset(budget)
+        db_size = DB_PATH.stat().st_size if DB_PATH.exists() else 0
+        if db_size <= budget * _SERIALIZE_MAX_FRACTION:
+            self._backup_db_serialize(backup_path, preset)
+        else:
+            self._backup_db_vacuum(backup_path, preset)
+
+    @staticmethod
+    def _prune_dated_backups() -> None:
+        """Trim the dated nightly set and remove the pre-dating single backups."""
+        prune_dated(BACKUP_DB_DIR, _NIGHTLY_BACKUP_PATTERN)
+        _OLD_BACKUP_PATH.unlink(missing_ok=True)
+        BACKUP_DB_PATH.unlink(missing_ok=True)
 
     def _backup_db_serialize(self, backup_path, preset) -> None:
         """Fast path: snapshot a consistent image under the lock, compress free."""

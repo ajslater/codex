@@ -103,10 +103,30 @@ class BrowserGroupMtimeView(BrowserFilterView):
         """
         cache_key = self._page_mtime_cache_key(model) if page_mtime else ""
         if cache_key:
-            cached = _django_cache.get(cache_key, _PAGE_MTIME_CACHE_MISS)
+            cached = self._get_cached_page_mtime(cache_key)
             if cached is not _PAGE_MTIME_CACHE_MISS:
-                return None if cached == _PAGE_MTIME_NONE_SENTINEL else cached
+                return cached
+        mtime = self._query_group_mtime(model, group, pks, page_mtime=page_mtime)
+        if cache_key:
+            self._store_page_mtime(cache_key, mtime)
+        return mtime
 
+    @staticmethod
+    def _get_cached_page_mtime(cache_key: str):
+        """Return the cached mtime (decoding the None sentinel) or MISS if absent."""
+        cached = _django_cache.get(cache_key, _PAGE_MTIME_CACHE_MISS)
+        if cached is _PAGE_MTIME_CACHE_MISS:
+            return _PAGE_MTIME_CACHE_MISS
+        return None if cached == _PAGE_MTIME_NONE_SENTINEL else cached
+
+    @staticmethod
+    def _store_page_mtime(cache_key: str, mtime) -> None:
+        """Cache the mtime for the TTL window, encoding None via the sentinel."""
+        stored = _PAGE_MTIME_NONE_SENTINEL if mtime is None else mtime
+        _django_cache.set(cache_key, stored, _PAGE_MTIME_TTL_SECONDS)
+
+    def _query_group_mtime(self, model, group, pks, *, page_mtime: bool):
+        """Run the filtered Max aggregate; None on a (logged) query error."""
         qs = self.get_filtered_queryset(
             model,
             group=group,
@@ -136,7 +156,6 @@ class BrowserGroupMtimeView(BrowserFilterView):
             agg_terms.append(
                 Max("custom_cover__updated_at", default=EPOCH_START_DATETIMEFIELD)
             )
-
         try:
             qs = qs.annotate(max=Greatest(*agg_terms))
             # Forcing inner joins makes search work
@@ -149,8 +168,4 @@ class BrowserGroupMtimeView(BrowserFilterView):
             mtime = None
         if mtime == NotImplemented:
             mtime = None
-
-        if cache_key:
-            stored = _PAGE_MTIME_NONE_SENTINEL if mtime is None else mtime
-            _django_cache.set(cache_key, stored, _PAGE_MTIME_TTL_SECONDS)
         return mtime

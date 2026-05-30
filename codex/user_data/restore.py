@@ -167,6 +167,21 @@ def _restore_groups(
         report.note_written("groups")
 
 
+def _build_user_defaults(row) -> dict[str, Any]:
+    """Map a sidecar users row to ``update_or_create`` defaults."""
+    return {
+        "password": row["password"] or "",
+        "email": row["email"] or "",
+        "first_name": row["first_name"] or "",
+        "last_name": row["last_name"] or "",
+        "is_staff": bool(row["is_staff"]),
+        "is_superuser": bool(row["is_superuser"]),
+        "is_active": bool(row["is_active"]),
+        "date_joined": row["date_joined"] or None,
+        "last_login": row["last_login"] or None,
+    }
+
+
 def _restore_users(
     store: SidecarStore, report: RestoreReport, *, dry_run: bool
 ) -> None:
@@ -184,17 +199,7 @@ def _restore_users(
             continue
         user, _ = user_model.objects.update_or_create(
             username=username,
-            defaults={
-                "password": row["password"] or "",
-                "email": row["email"] or "",
-                "first_name": row["first_name"] or "",
-                "last_name": row["last_name"] or "",
-                "is_staff": bool(row["is_staff"]),
-                "is_superuser": bool(row["is_superuser"]),
-                "is_active": bool(row["is_active"]),
-                "date_joined": row["date_joined"] or None,
-                "last_login": row["last_login"] or None,
-            },
+            defaults=_build_user_defaults(row),
         )
         # AgeRatingMetron name → row.
         age_rating = None
@@ -352,6 +357,33 @@ def _restore_timestamps(
         report.note_written("timestamps")
 
 
+def _build_tagging_defaults(row) -> dict[str, Any]:
+    """Map a sidecar tagging_defaults row to ``update_or_create`` defaults."""
+    # Plain string/scalar fields coalesced to a non-null fallback. Kept as a
+    # ``{column: fallback}`` map so the null-coalescing ``or`` lives in one
+    # comprehension rather than once per field (keeps complexity low).
+    coalesced: dict[str, Any] = {
+        "default_match_mode": "auto",
+        "default_prompts_mode": "ask",
+        "prompt_timeout_seconds": 3600,
+        "metron_user": "",
+        "metron_password": "",
+        "metron_url": "",
+        "comicvine_key": "",
+        "comicvine_url": "",
+    }
+    defaults: dict[str, Any] = {
+        key: row[key] or fallback for key, fallback in coalesced.items()
+    }
+    defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
+    defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
+    defaults["delete_original"] = bool(row["delete_original"])
+    # ``active_session_id`` / ``active_prompts`` used to be on this row; they
+    # moved to the Django cache as transient state. Older sidecar backups still
+    # carry the columns — they are silently ignored on restore.
+    return defaults
+
+
 def _restore_tagging_defaults(
     store: SidecarStore, report: RestoreReport, *, dry_run: bool
 ) -> None:
@@ -365,24 +397,9 @@ def _restore_tagging_defaults(
     if dry_run:
         report.note_written("tagging_defaults")
         return
-    defaults = {
-        "default_formats": json.loads(row["default_formats"] or "[]"),
-        "delete_original": bool(row["delete_original"]),
-        "default_match_mode": row["default_match_mode"] or "auto",
-        "default_prompts_mode": row["default_prompts_mode"] or "ask",
-        "default_sources": json.loads(row["default_sources"] or "[]"),
-        "prompt_timeout_seconds": row["prompt_timeout_seconds"] or 3600,
-        "metron_user": row["metron_user"] or "",
-        "metron_password": row["metron_password"] or "",
-        "metron_url": row["metron_url"] or "",
-        "comicvine_key": row["comicvine_key"] or "",
-        "comicvine_url": row["comicvine_url"] or "",
-        # ``active_session_id`` / ``active_prompts`` used to be on this
-        # row; they moved to the Django cache as transient state.
-        # Older sidecar backups still carry the columns — they are
-        # silently ignored on restore.
-    }
-    ComicboxTaggingDefaults.objects.update_or_create(pk=1, defaults=defaults)
+    ComicboxTaggingDefaults.objects.update_or_create(
+        pk=1, defaults=_build_tagging_defaults(row)
+    )
     report.note_written("tagging_defaults")
 
 

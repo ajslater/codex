@@ -41,6 +41,17 @@ def _upload(name: str = "cover.png") -> SimpleUploadedFile:
     return SimpleUploadedFile(name, _png_bytes(), content_type="image/png")
 
 
+def _assert_covers_enqueued(mock_queue) -> None:
+    """
+    Assert a COVERS notification was enqueued on the librarian queue.
+
+    The v4 factory enriches each enqueue with a fresh mtime, so match on the
+    notification text rather than identity-comparing the singleton.
+    """
+    enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
+    assert any(getattr(t, "text", None) == Notifications.COVERS.value for t in enqueued)
+
+
 class AdminCustomCoverUploadTestCase(TestCase):
     """Cover ``/admin/custom-covers`` upload, validation, and listing."""
 
@@ -80,12 +91,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         # COVERS notification fans out to the WebSocket so connected
         # browsers refresh the changed card without a manual reload.
-        # The v4 factory enriches each enqueue with a fresh mtime, so
-        # check the text rather than identity-comparing the singleton.
-        enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
-        assert any(
-            getattr(t, "text", None) == Notifications.COVERS.value for t in enqueued
-        )
+        _assert_covers_enqueued(mock_queue)
 
     @patch(_QUEUE_PATCH)
     def test_non_admin_forbidden(self, mock_queue) -> None:  # noqa: ARG002
