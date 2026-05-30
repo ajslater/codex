@@ -173,8 +173,10 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
 
+// margin-block only — a `margin: 2em 0` shorthand would zero the inline
+// margins and cancel .adminReadingColumn's centering on this same element.
 .groupHelp {
-  margin: 2em 0;
+  margin-block: 2em;
 }
 
 .see {

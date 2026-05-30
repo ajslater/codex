@@ -103,7 +103,8 @@ Prefer these over bespoke markup. Each enforces the language so it can't drift.
   `#groupHelp`.
 - `.adminHint` — a one-line hint under a section header.
 - `.adminKvTable` — backing style for `AdminKeyValueTable` and any inline
-  key/value `<table>`.
+  key/value `<table>`: striped rows, right-aligned tabular values, an
+  inter-column gap so long labels never touch the value.
 - `.adminCode` — inline `<code>` chips.
 
 ## 5. Tables

@@ -193,12 +193,24 @@
 
 .adminKvTable td {
   padding: d.$space-1 0;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+// Keep a long label (e.g. "Authorization Groups") from butting up against the
+// right-aligned value column.
+.adminKvTable td:first-child {
+  padding-right: d.$space-6;
 }
 
 .adminKvTable td:nth-child(2) {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+// Alternating bands: every other row a touch brighter for readability. The
+// overlay sits on whatever's behind the table (page surface for stats, the
+// card for restore counts), so it stays subtle in both places.
+.adminKvTable tbody tr:nth-child(even) {
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
 }
 
 .adminKvTable .indent {

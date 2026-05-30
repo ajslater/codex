@@ -1,7 +1,7 @@
 /**
  * Shared status display helpers for admin status components.
  *
- * Used by: job-tab.vue, status-list-item.vue, stats-table.vue
+ * Used by: job-tab.vue, status-list-item.vue
  */
 import STATUS_TITLES from "@/choices/admin-status-titles.json";
 import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
