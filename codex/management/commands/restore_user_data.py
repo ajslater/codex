@@ -15,9 +15,9 @@ class Command(BaseCommand):
     """Restore user data from the sidecar SQLite file."""
 
     help = (
-        "Read the user-data sidecar (default: "
-        "$CODEX_CONFIG_DIR/user_data.sqlite) and write each row back "
-        "into the main DB. Use after a main-DB rebuild."
+        "Read a user-data sidecar backup (default: the newest "
+        "user_data.<date>.sql.xz in $CODEX_CONFIG_DIR/backups) and write each "
+        "row back into the main DB. Use after a main-DB rebuild."
     )
 
     @override
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             dest="from_path",
             type=Path,
             default=None,
-            help="Path to an alternate sidecar file.",
+            help="Path to a specific backup (.sql.xz, .sql, or a binary sidecar).",
         )
         parser.add_argument(
             "--dry-run",

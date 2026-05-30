@@ -14,15 +14,19 @@ top of an already-restored DB is safe.
 from __future__ import annotations
 
 import json
+import sqlite3
+import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
+from codex.compression import read_text_maybe_xz
 from codex.user_data.store import SidecarStore, get_store
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Callable
 
 
 @dataclass
@@ -49,27 +53,72 @@ def restore(
     dry_run: bool = False,
 ) -> RestoreReport:
     """
-    Restore the main DB from the sidecar.
+    Restore the main DB from a sidecar backup.
 
-    ``sidecar_path`` lets callers point at an alternate file (e.g. a
-    user-supplied backup); defaults to the process-wide store. ``dry_run``
-    walks every row and resolves identifiers but doesn't write — useful
-    for "what would happen" reporting.
+    ``sidecar_path`` points at a specific backup — a compressed/plain SQL dump
+    (``.sql.xz`` / ``.sql``) or a binary sidecar — and accepts the same files
+    the admin restore picker offers. When omitted, the newest dated backup in
+    the backups dir is used (falling back to a legacy binary sidecar, then the
+    process store). ``dry_run`` resolves every row without writing.
     """
-    store = SidecarStore(sidecar_path) if sidecar_path is not None else get_store()
-    report = RestoreReport()
-    _restore_groups(store, report, dry_run=dry_run)
-    _restore_users(store, report, dry_run=dry_run)
-    _restore_user_groups(store, report, dry_run=dry_run)
-    _restore_libraries(store, report, dry_run=dry_run)
-    _restore_library_groups(store, report, dry_run=dry_run)
-    _restore_admin_flags(store, report, dry_run=dry_run)
-    _restore_timestamps(store, report, dry_run=dry_run)
-    _restore_tagging_defaults(store, report, dry_run=dry_run)
-    _restore_bookmarks(store, report, dry_run=dry_run)
-    _restore_favorites(store, report, dry_run=dry_run)
-    _restore_settings_browser(store, report, dry_run=dry_run)
-    return report
+    resolved, cleanup = _resolve_sidecar(sidecar_path)
+    try:
+        store = SidecarStore(resolved) if resolved is not None else get_store()
+        report = RestoreReport()
+        _restore_groups(store, report, dry_run=dry_run)
+        _restore_users(store, report, dry_run=dry_run)
+        _restore_user_groups(store, report, dry_run=dry_run)
+        _restore_libraries(store, report, dry_run=dry_run)
+        _restore_library_groups(store, report, dry_run=dry_run)
+        _restore_admin_flags(store, report, dry_run=dry_run)
+        _restore_timestamps(store, report, dry_run=dry_run)
+        _restore_tagging_defaults(store, report, dry_run=dry_run)
+        _restore_bookmarks(store, report, dry_run=dry_run)
+        _restore_favorites(store, report, dry_run=dry_run)
+        _restore_settings_browser(store, report, dry_run=dry_run)
+        return report
+    finally:
+        cleanup()
+
+
+def _resolve_sidecar(
+    sidecar_path: Path | None,
+) -> tuple[Path | None, Callable[[], None]]:
+    """
+    Resolve the backup to read into a readable SQLite path + a cleanup callable.
+
+    ``None`` (with a no-op cleanup) means "use the process store" — the
+    file-backed default that keeps test stores and a legacy binary sidecar
+    working.
+    """
+    if sidecar_path is not None:
+        return _materialize(sidecar_path)
+    from codex.settings import BACKUP_DB_DIR, CONFIG_PATH
+    from codex.user_data.backups import newest_sidecar_backup
+
+    newest = newest_sidecar_backup(BACKUP_DB_DIR, CONFIG_PATH)
+    if newest is not None:
+        return _materialize(newest)
+    return None, lambda: None
+
+
+def _materialize(path: Path) -> tuple[Path, Callable[[], None]]:
+    """
+    Return a path to a readable SQLite sidecar, decompressing SQL dumps as needed.
+
+    A ``.sql.xz`` / ``.sql`` dump is replayed into a temp SQLite DB (cleaned up
+    by the returned callable). A binary sidecar is used in place.
+    """
+    if path.name.endswith((".sql.xz", ".sql")):
+        tmpdir = tempfile.TemporaryDirectory(prefix="codex-restore-")
+        db_path = Path(tmpdir.name) / "sidecar.sqlite"
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.executescript(read_text_maybe_xz(path))
+        finally:
+            conn.close()
+        return db_path, tmpdir.cleanup
+    return path, lambda: None
 
 
 # ── Per-table restorers ──────────────────────────────────────────────

@@ -423,15 +423,32 @@ export const useAdminStore = defineStore("admin", {
       }
     },
     /*
-     * Trigger a sidecar → main-DB restore. Returns the report
-     * payload ({ written, skipped, log_path, unmatched }) or
-     * undefined on failure (errors land on the common store).
+     * List the user-data sidecar backups available to restore from
+     * (newest first). Returns an array of { name, label, size, mtime }
+     * or [] on failure.
      */
-    async restoreUserData({ dryRun = false } = {}) {
+    async listUserDataBackups() {
+      if (this._requireAdmin()) return [];
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.getUserDataBackups();
+        commonStore.clearErrors();
+        return response.data?.backups ?? [];
+      } catch (error) {
+        commonStore.setErrors(error);
+        return [];
+      }
+    },
+    /*
+     * Trigger a sidecar → main-DB restore. ``filename`` selects a specific
+     * backup (default: newest). Returns the report payload
+     * ({ written, skipped, log_path, unmatched }) or undefined on failure.
+     */
+    async restoreUserData({ dryRun = false, filename } = {}) {
       if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
-        const response = await API.postRestoreUserData({ dryRun });
+        const response = await API.postRestoreUserData({ dryRun, filename });
         commonStore.clearErrors();
         return response.data;
       } catch (error) {

@@ -160,7 +160,7 @@ class Janitor(JanitorCodexUpdate):
             # Tasks with special parameters
             match task:
                 case JanitorBackupTask():
-                    self.backup_db(show_status=True)
+                    self.backup_db(show_status=True, prune=True)
                 case JanitorIntegrityCheckTask():
                     self.integrity_check(long=task.long)
                 case JanitorCodexUpdateTask():

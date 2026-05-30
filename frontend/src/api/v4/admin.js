@@ -209,5 +209,11 @@ export const updateThrottleSettings = (data) =>
 
 export const postDumpUserData = () => HTTP.post("/admin/user-data/export");
 
-export const postRestoreUserData = ({ dryRun = false } = {}) =>
-  HTTP.post("/admin/user-data/import", { dry_run: dryRun });
+export const getUserDataBackups = () =>
+  HTTP.get("/admin/user-data/backups", { params: { ts: Date.now() } });
+
+export const postRestoreUserData = ({ dryRun = false, filename } = {}) => {
+  const body = { dry_run: dryRun };
+  if (filename) body.filename = filename;
+  return HTTP.post("/admin/user-data/import", body);
+};

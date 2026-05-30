@@ -1,8 +1,11 @@
 """Vacuum the database."""
 
+import re
+
 from django.db import connection
 from humanize import naturalsize
 
+from codex.compression import XZ_SUFFIX, date_stamp, prune_dated, write_xz_bytes
 from codex.librarian.scribe.janitor.integrity import JanitorIntegrity
 from codex.librarian.scribe.janitor.status import (
     JanitorDBBackupStatus,
@@ -11,7 +14,14 @@ from codex.librarian.scribe.janitor.status import (
 )
 from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 
+# Pre-dating single backup + its rotated sibling, removed once dated
+# ``.bak.xz`` backups exist.
 _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
+# Dated nightly DB backups: ``codex.sqlite3.<ISO-date>.bak.xz``. The date class
+# excludes the ``before-v*`` upgrade backups, which are retained indefinitely.
+_NIGHTLY_BACKUP_PATTERN = (
+    rf"^{re.escape(DB_PATH.name)}\.\d{{4}}-\d{{2}}-\d{{2}}\.bak\.xz$"
+)
 
 
 class JanitorVacuum(JanitorIntegrity):
@@ -37,25 +47,39 @@ class JanitorVacuum(JanitorIntegrity):
         finally:
             self.status_controller.finish(status)
 
-    def backup_db(self, backup_path=BACKUP_DB_PATH, *, show_status: bool) -> None:
-        """Backup the database."""
+    def backup_db(
+        self, backup_path=None, *, show_status: bool, prune: bool = False
+    ) -> None:
+        """
+        Back up the database as a streamed, xz-compressed binary snapshot.
+
+        ``Connection.serialize()`` captures a consistent in-memory image in
+        milliseconds, so the ``db_write_lock`` is held only for the snapshot —
+        not the (slow) compression, which runs lock-free. ``serialize`` keeps
+        the FTS5 search index byte-for-byte intact, which a SQL dump would not.
+
+        ``backup_path=None`` writes a dated nightly backup and (with ``prune``)
+        trims the dated set; an explicit ``backup_path`` (the before-upgrade
+        backup) is compressed in place with no dating or pruning.
+        """
         status = JanitorDBBackupStatus() if show_status else None
         try:
             if status:
                 self.status_controller.start(status)
-            BACKUP_DB_DIR.mkdir(exist_ok=True, parents=True)
-            if backup_path.is_file():
-                backup_path.replace(_OLD_BACKUP_PATH)
-            path = str(backup_path)
-            # ``VACUUM INTO`` reads the entire DB and would race with
-            # an in-flight writer. Same lock-acquisition pattern as
-            # ``vacuum_db`` above. The OS-level ``replace`` /
-            # ``unlink`` of the old backup file does not need the lock
-            # — those are filesystem ops on the backup, not the DB.
-            with self.db_write_lock, connection.cursor() as cursor:
-                cursor.execute(f"VACUUM INTO {path!r}")
-            _OLD_BACKUP_PATH.unlink(missing_ok=True)
-            self.log.info(f"Backed up database to {path}")
+            if backup_path is None:
+                backup_path = BACKUP_DB_DIR / f"{DB_PATH.name}.{date_stamp()}.bak.xz"
+            else:
+                backup_path = backup_path.with_name(backup_path.name + XZ_SUFFIX)
+            with self.db_write_lock:
+                connection.ensure_connection()
+                data = connection.connection.serialize()
+            write_xz_bytes(data, backup_path)
+            del data
+            if prune:
+                prune_dated(BACKUP_DB_DIR, _NIGHTLY_BACKUP_PATTERN)
+                _OLD_BACKUP_PATH.unlink(missing_ok=True)
+                BACKUP_DB_PATH.unlink(missing_ok=True)
+            self.log.info(f"Backed up database to {backup_path}")
         except Exception:
             self.log.exception("Backing up database.")
         finally:
@@ -72,12 +96,12 @@ class JanitorVacuum(JanitorIntegrity):
         Failures are caught and logged — the nightly task should never
         block the rest of the janitor pipeline on a sidecar problem.
         """
-        from codex.user_data.dump import dump_user_data
+        from codex.user_data.dump import snapshot_sidecar
 
         status = JanitorDumpUserDataStatus()
         try:
             self.status_controller.start(status)
-            counts = dump_user_data()
+            counts = snapshot_sidecar()
             total = sum(counts.values())
             self.log.info(f"Snapshotted user data sidecar: {total} rows")
         except Exception:

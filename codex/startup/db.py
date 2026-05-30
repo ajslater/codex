@@ -57,8 +57,10 @@ def _has_unapplied_migrations() -> bool:
 
 
 def _get_backup_db_path(prefix):
-    suffix = f".{prefix}{BACKUP_DB_PATH.suffix}"
-    return BACKUP_DB_PATH.with_suffix(suffix)
+    # e.g. ``backups/codex.sqlite3.before-v1.2.3.bak``. ``backup_db`` appends
+    # ``.xz`` for the compressed before-upgrade backup; ``_rebuild_db`` renames
+    # the corrupt DB onto the uncompressed ``.bak`` path as-is.
+    return BACKUP_DB_PATH.with_name(f"{DB_PATH.name}.{prefix}.bak")
 
 
 def _backup_db_before_migration() -> None:

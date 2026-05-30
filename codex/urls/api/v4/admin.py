@@ -31,7 +31,10 @@ from codex.views.admin.onlinetag import (
     AdminOnlineTagSkipAllPromptsView,
     AdminOnlineTagStartView,
 )
-from codex.views.admin.restore_user_data import AdminRestoreUserDataView
+from codex.views.admin.restore_user_data import (
+    AdminRestoreUserDataView,
+    AdminUserDataBackupsView,
+)
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
@@ -250,6 +253,11 @@ urlpatterns = [
         "user-data/export",
         AdminDumpUserDataView.as_view(),
         name="user_data_export",
+    ),
+    path(
+        "user-data/backups",
+        never_cache(AdminUserDataBackupsView.as_view()),
+        name="user_data_backups",
     ),
     path(
         "user-data/import",

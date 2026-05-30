@@ -229,8 +229,9 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "value": "dump_user_data",
                         "title": "Snapshot User Data Sidecar",
                         "desc": (
-                            "Replace user_data.sqlite with a fresh snapshot of"
-                            " every user, bookmark, favorite, and setting."
+                            "Write a dated, compressed snapshot"
+                            " (user_data.<date>.sql.xz) of every user, bookmark,"
+                            " favorite, and setting to the backups dir."
                             " Runs nightly."
                         ),
                         "statuses": ("JDU",),

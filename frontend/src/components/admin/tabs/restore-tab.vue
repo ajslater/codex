@@ -14,11 +14,13 @@
           everything users care about from this snapshot.
         </p>
         <p class="adminCardDesc paragraph">
-          The file lives at <code>user_data.sqlite</code> inside your Codex
-          config directory. A snapshot is taken automatically every night as
-          part of the Janitor sweep; you can also dump one on demand below. Copy
-          the file offsite to back it up, or carry it to a new host before
-          re-importing your library.
+          Snapshots are dated, compressed SQL dumps
+          (<code>user_data.&lt;date&gt;.sql.xz</code>) kept alongside the
+          database backups in <code>config/backups</code>; the last 7 are
+          retained. One is taken automatically every night as part of the
+          Janitor sweep, and you can dump one on demand below. Copy a file
+          offsite to back it up, or carry it to a new host before re-importing
+          your library.
         </p>
       </div>
     </div>
@@ -75,6 +77,22 @@
           skipped — the operation never aborts. Re-running the restore is safe;
           it's idempotent.
         </p>
+        <v-select
+          v-model="selectedBackup"
+          :items="backupItems"
+          label="Backup to restore"
+          :disabled="isRestoring || isDumping || !backupItems.length"
+          :hint="
+            backupItems.length
+              ? ''
+              : 'No backups found yet — snapshot one above.'
+          "
+          persistent-hint
+          density="compact"
+          variant="outlined"
+          hide-details="auto"
+          class="backupSelect"
+        />
         <div class="restoreActions">
           <v-checkbox
             v-model="dryRun"
@@ -90,7 +108,7 @@
             :text="confirmText"
             confirm-text="Restore"
             :block="false"
-            :disabled="isRestoring || isDumping"
+            :disabled="isRestoring || isDumping || !selectedBackup"
             @confirm="runRestore"
           />
         </div>
@@ -171,9 +189,17 @@ export default {
       report: undefined,
       dumpReport: undefined,
       showUnmatched: false,
+      backups: [],
+      selectedBackup: null,
     };
   },
   computed: {
+    backupItems() {
+      return this.backups.map((b) => ({
+        title: `${b.label} (${this.formatSize(b.size)})`,
+        value: b.name,
+      }));
+    },
     confirmText() {
       return this.dryRun
         ? "Preview only — no changes will be written."
@@ -211,8 +237,28 @@ export default {
         : `Show ${total} log ${noun}`;
     },
   },
+  async mounted() {
+    await this.loadBackups();
+  },
   methods: {
-    ...mapActions(useAdminStore, ["dumpUserData", "restoreUserData"]),
+    ...mapActions(useAdminStore, [
+      "dumpUserData",
+      "restoreUserData",
+      "listUserDataBackups",
+    ]),
+    async loadBackups() {
+      this.backups = await this.listUserDataBackups();
+      // Keep the current pick if it still exists, else default to newest.
+      const names = new Set(this.backups.map((b) => b.name));
+      if (!this.selectedBackup || !names.has(this.selectedBackup)) {
+        this.selectedBackup = this.backups[0]?.name ?? null;
+      }
+    },
+    formatSize(bytes) {
+      if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${bytes} B`;
+    },
     async runDump() {
       this.isDumping = true;
       try {
@@ -220,6 +266,8 @@ export default {
         if (data) {
           this.dumpReport = data;
         }
+        // A fresh dated snapshot just landed — refresh and select it.
+        await this.loadBackups();
       } finally {
         this.isDumping = false;
       }
@@ -229,7 +277,10 @@ export default {
       this.showUnmatched = false;
       const dryRun = this.dryRun;
       try {
-        const data = await this.restoreUserData({ dryRun });
+        const data = await this.restoreUserData({
+          dryRun,
+          filename: this.selectedBackup,
+        });
         if (data) {
           this.report = { ...data, _dryRun: dryRun };
         }
@@ -257,6 +308,11 @@ code {
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 0.85em;
+}
+
+.backupSelect {
+  margin-top: 12px;
+  max-width: 28rem;
 }
 
 .restoreActions {

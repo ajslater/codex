@@ -50,12 +50,20 @@ class SidecarStore:
     def __init__(self, path: Path) -> None:
         """Bind the store to a sidecar file path. The file is not opened yet."""
         self._path = path
+        # ``:memory:`` builds a throwaway snapshot we serialize to a
+        # compressed dump (see ``dump.snapshot_sidecar``) — no file is touched.
+        self._is_memory = str(path) == ":memory:"
         self._local = threading.local()
         # ``_schema_lock`` guards first-time DDL across threads in a
         # single process. SQLite handles cross-process concurrency via
         # WAL + busy_timeout.
         self._schema_lock = threading.Lock()
         self._schema_applied = False
+
+    @classmethod
+    def in_memory(cls) -> SidecarStore:
+        """Build an ephemeral in-memory store (used to stage a dump snapshot)."""
+        return cls(Path(":memory:"))
 
     @property
     def path(self) -> Path:
@@ -64,11 +72,18 @@ class SidecarStore:
 
     def _open_connection(self) -> sqlite3.Connection:
         """Open a new connection for the current thread."""
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        if self._is_memory:
+            # A fresh anonymous in-memory DB; thread-local caching keeps the
+            # single dump thread on this same connection so ``iterdump`` sees
+            # the rows it just wrote.
+            database = ":memory:"
+        else:
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            database = self._path
         # ``isolation_level=None`` puts sqlite3 into autocommit mode so
         # we manage transactions explicitly via ``with conn:`` blocks.
         conn = sqlite3.connect(
-            self._path,
+            database,
             isolation_level=None,
             timeout=5.0,
             check_same_thread=True,
