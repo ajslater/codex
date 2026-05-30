@@ -22,8 +22,9 @@ from typing import TYPE_CHECKING, Final
 if TYPE_CHECKING:
     from pathlib import Path
 
-# ``preset=6`` is the lzma default — a good size/speed balance for a
-# background nightly task. Single-threaded; the stdlib has no threaded xz.
+# ``preset=9`` maximizes compression for these archival backups. Slower and
+# more memory-hungry than the default, but backups run nightly in the
+# background. Single-threaded; the stdlib has no threaded xz.
 PRESET: Final[int] = 9
 XZ_SUFFIX: Final[str] = ".xz"
 # Most recent dated backups to retain per artifact set.
