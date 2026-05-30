@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 # ``preset=6`` is the lzma default — a good size/speed balance for a
 # background nightly task. Single-threaded; the stdlib has no threaded xz.
-PRESET: Final[int] = 6
+PRESET: Final[int] = 9
 XZ_SUFFIX: Final[str] = ".xz"
 # Most recent dated backups to retain per artifact set.
 BACKUP_KEEP: Final[int] = 7
