@@ -1,12 +1,9 @@
 <template>
-  <div id="settings" class="adminContainer">
+  <div id="settings" class="adminReadingColumn">
     <template v-for="group in groupedFlags" :key="group.title">
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>{{ group.title }}</h3>
-        </div>
+      <AdminSection :title="group.title">
         <FlagCard v-for="key in group.keys" :key="`f${key}`" :item-key="key" />
-      </div>
+      </AdminSection>
       <!--
         Throttling lives between Tags Import and System per the
         Settings-page layout. ``flag-groups.json`` keeps its own
@@ -22,10 +19,7 @@
       ``/admin/stats``, so an admin who is here for a flag change
       does not have to scroll past it.
     -->
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>API Key</h3>
-      </div>
+    <AdminSection title="API Key">
       <div class="adminCard apiKeyCard">
         <ClipBoard
           v-if="apiKey"
@@ -46,13 +40,14 @@
           @confirm="regenAPIKey"
         />
       </div>
-    </div>
+    </AdminSection>
   </div>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import FlagCard from "@/components/admin/tabs/flag-card.vue";
 import ADMIN_FLAG_GROUPS from "@/components/admin/tabs/flag-groups.json";
 import ThrottlingSection from "@/components/admin/tabs/throttling-section.vue";
@@ -71,6 +66,7 @@ const TAB_HIDDEN_KEYS = new Set(["AA", "AK", "AR", "CM", "NU", "RG", "RV"]);
 export default {
   name: "AdminSettingsTab",
   components: {
+    AdminSection,
     ClipBoard,
     ConfirmDialog,
     FlagCard,

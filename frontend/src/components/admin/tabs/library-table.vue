@@ -36,7 +36,7 @@
       />
     </template>
     <template #[`item.actions`]="{ item }">
-      <span class="actionButtonCell">
+      <span class="adminActionCell">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
           title-text="Poll for updated comics"
@@ -223,16 +223,10 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+@use "@/components/admin/tabs/admin-section.scss";
+
 .disabled {
   color: rgb(var(--v-theme-textDisabled)) !important;
-}
-
-.actionButtonCell :deep(> button) {
-  opacity: 0.7;
-}
-
-.actionButtonCell :deep(> button:hover) {
-  opacity: 1;
 }
 
 .failedComics {

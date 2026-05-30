@@ -1,0 +1,28 @@
+// Admin design tokens. The single source for spacing, radius, type, and
+// the reading-column width used across the admin UI. See frontend/DESIGN.md.
+//
+// This file emits no CSS — it only exports Sass variables. `@use` it with a
+// namespace, e.g. `@use "@/components/admin/tabs/design.scss" as d;` then
+// reference `d.$space-3`.
+
+// Spacing scale (4px base).
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-6: 24px;
+$space-8: 32px;
+
+// Corner radius.
+$radius: 5px;
+$radius-sm: 3px;
+
+// The one width for everything you read or fill in (see DESIGN.md §1).
+// Data tables ignore this and span full width.
+$reading-width: 760px;
+
+// Type scale.
+$text-title: 1rem;
+$text-body: 0.9em;
+$text-small: 0.85em;
+$text-meta: 0.8em;

@@ -14,7 +14,7 @@
     <v-expand-transition>
       <AdminFailedImportsPanel id="failedImports" />
     </v-expand-transition>
-    <p id="libraryHelp">
+    <p class="adminProse libraryHelp">
       Each Watched File Events box checked creates a thread to monitor the
       Library. An large number of watching threads may exceed the limits of your
       operating system or container.
@@ -56,9 +56,9 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#libraryHelp {
+@use "@/components/admin/tabs/admin-section.scss";
+
+.libraryHelp {
   margin-top: 2em;
-  font-size: smaller;
-  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

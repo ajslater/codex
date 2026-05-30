@@ -12,7 +12,7 @@
       />
     </template>
     <v-form ref="form" class="cuForm">
-      <h2>{{ title }}</h2>
+      <h2 class="cuTitle">{{ title }}</h2>
       <component :is="inputs" :old-row="oldRow" @change="change" />
       <SubmitFooter
         :verb="verb"
@@ -203,5 +203,12 @@ export default {
   padding: 20px;
   max-height: 100%;
   overflow-y: scroll;
+}
+
+// Match ConfirmDialog's .title so both admin dialogs share one header look.
+.cuTitle {
+  margin: 0 0 10px;
+  font-weight: bolder;
+  font-size: larger;
 }
 </style>

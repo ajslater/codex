@@ -1,10 +1,9 @@
 <template>
   <!--
-    No ``adminContainer`` wrapper: that class caps width at 700px,
-    which suits a focused settings page but pinches the users table
-    on wide displays. The Groups tab does the same so the two
-    table-heavy tabs match. The flag-card help sections below
-    inherit the unconstrained width so they line up with the table.
+    The users table spans full width (utility: show as many columns as
+    possible). The settings below it — the help prose and the flag-card
+    sections — sit in a .adminReadingColumn so the same controls read at
+    the same width as on the Settings tab. See frontend/DESIGN.md §1.
   -->
   <div>
     <header class="tabHeader">
@@ -116,44 +115,40 @@
         />
       </template>
     </AdminTable>
-    <div id="ageRatingHelp">
-      <h3>Age Rating Restrictions</h3>
-      <p>
-        Age-rating restrictions set a user's age rating ceiling. Comics that
-        carry no age-rating tag are treated as if rated
-        <strong>{{ ageRatingDefault }}</strong> &mdash; the current
-        <em>Age Rating Default</em> set below.
-      </p>
-      <p>
-        <strong>Admins are not exempt.</strong> An admin with an Age Rating
-        ceiling set cannot see comics above that ceiling.
-      </p>
-    </div>
-    <!--
-      Account & Access controls live on the Users tab so admins can
-      change registration / verification / anonymous-access policy
-      next to the user list they affect. The Settings tab no longer
-      mirrors these.
-    -->
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>Account &amp; Access</h3>
+    <div class="adminReadingColumn">
+      <div class="adminProse ageRatingHelp">
+        <h3>Age Rating Restrictions</h3>
+        <p>
+          Age-rating restrictions set a user's age rating ceiling. Comics that
+          carry no age-rating tag are treated as if rated
+          <strong>{{ ageRatingDefault }}</strong> &mdash; the current
+          <em>Age Rating Default</em> set below.
+        </p>
+        <p>
+          <strong>Admins are not exempt.</strong> An admin with an Age Rating
+          ceiling set cannot see comics above that ceiling.
+        </p>
       </div>
-      <FlagCard
-        v-for="key in ACCESS_FLAG_KEYS"
-        :key="`f${key}`"
-        :item-key="key"
-      />
-    </div>
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>Age Ratings</h3>
-      </div>
-      <FlagCard
-        v-for="key in AGE_RATING_FLAG_KEYS"
-        :key="`f${key}`"
-        :item-key="key"
-      />
+      <!--
+        Account & Access controls live on the Users tab so admins can
+        change registration / verification / anonymous-access policy
+        next to the user list they affect. The Settings tab no longer
+        mirrors these.
+      -->
+      <AdminSection title="Account & Access">
+        <FlagCard
+          v-for="key in ACCESS_FLAG_KEYS"
+          :key="`f${key}`"
+          :item-key="key"
+        />
+      </AdminSection>
+      <AdminSection title="Age Ratings">
+        <FlagCard
+          v-for="key in AGE_RATING_FLAG_KEYS"
+          :key="`f${key}`"
+          :item-key="key"
+        />
+      </AdminSection>
     </div>
   </div>
 </template>
@@ -165,6 +160,7 @@ import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
 import AdminUserCreateUpdateInputs from "@/components/admin/create-update-dialog/user-create-update-inputs.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
@@ -180,6 +176,7 @@ const AGE_RATING_FLAG_KEYS = Object.freeze(["AA", "AR"]);
 export default {
   name: "AdminUsersTab",
   components: {
+    AdminSection,
     AdminTable,
     AdminDeleteRowDialog,
     ChangePasswordDialog,
@@ -295,12 +292,7 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
 
-#ageRatingHelp {
-  margin-top: 2em;
-  margin-bottom: 2em;
-  color: rgb(var(--v-theme-textSecondary));
-  // Match ``.adminCardDesc`` so the help text reads at the same
-  // weight as the per-flag descriptions rendered right below.
-  font-size: 0.85em;
+.ageRatingHelp {
+  margin: 2em 0;
 }
 </style>

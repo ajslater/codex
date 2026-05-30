@@ -1,10 +1,6 @@
 <template>
-  <div id="restore" class="adminContainer">
-    <!-- Description card -->
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>User Data Sidecar</h3>
-      </div>
+  <div id="restore" class="adminReadingColumn">
+    <AdminSection title="User Data Sidecar">
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
           Codex can snapshot every user-bound row — accounts, bookmarks,
@@ -14,22 +10,19 @@
           everything users care about from this snapshot.
         </p>
         <p class="adminCardDesc paragraph">
-          Snapshots are dated, compressed SQL dumps
-          (<code>user_data.&lt;date&gt;.sql.xz</code>) kept alongside the
-          database backups in <code>config/backups</code>; the last 7 are
+          Snapshots are dated, compressed SQL dumps (<code class="adminCode"
+            >user_data.&lt;date&gt;.sql.xz</code
+          >) kept alongside the database backups in
+          <code class="adminCode">config/backups</code>; the last 7 are
           retained. One is taken automatically every night as part of the
           Janitor sweep, and you can dump one on demand below. Copy a file
           offsite to back it up, or carry it to a new host before re-importing
           your library.
         </p>
       </div>
-    </div>
+    </AdminSection>
 
-    <!-- Backup action -->
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>Backup</h3>
-      </div>
+    <AdminSection title="Backup">
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
           Replace the sidecar with a fresh snapshot of every user, bookmark,
@@ -38,6 +31,7 @@
         </p>
         <div class="restoreActions">
           <v-btn
+            variant="tonal"
             :disabled="isDumping || isRestoring"
             text="Snapshot Now"
             @click="runDump"
@@ -52,10 +46,10 @@
       </div>
       <div v-if="dumpReport" class="adminCard">
         <h4 class="resultSubhead">Snapshot Result</h4>
-        <table v-if="dumpRows.length" class="resultTable">
+        <table v-if="dumpRows.length" class="adminKvTable">
           <tr v-for="[label, count] in dumpRows" :key="label">
             <td>{{ label }}</td>
-            <td class="resultCount">{{ count }}</td>
+            <td>{{ count }}</td>
           </tr>
         </table>
         <div v-else class="adminCardDesc">Nothing to snapshot.</div>
@@ -63,13 +57,9 @@
           Total rows written: <strong>{{ dumpReport.total }}</strong>
         </div>
       </div>
-    </div>
+    </AdminSection>
 
-    <!-- Restore action -->
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>Restore</h3>
-      </div>
+    <AdminSection title="Restore">
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
           Replay every sidecar row into the main database. Rows whose targets
@@ -107,6 +97,7 @@
             title-text="Restore User Data"
             :text="confirmText"
             confirm-text="Restore"
+            variant="tonal"
             :block="false"
             :disabled="isRestoring || isDumping || !selectedBackup"
             @confirm="runRestore"
@@ -119,38 +110,32 @@
           class="restoreProgress"
         />
       </div>
-    </div>
+    </AdminSection>
 
-    <!-- Restore result -->
-    <div v-if="report" class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>{{ resultTitle }}</h3>
-      </div>
+    <AdminSection v-if="report" :title="resultTitle">
       <div class="adminCard">
         <h4 class="resultSubhead">Restored</h4>
-        <table v-if="writtenRows.length" class="resultTable">
+        <table v-if="writtenRows.length" class="adminKvTable">
           <tr v-for="[label, count] in writtenRows" :key="label">
             <td>{{ label }}</td>
-            <td class="resultCount">{{ count }}</td>
+            <td>{{ count }}</td>
           </tr>
         </table>
         <div v-else class="adminCardDesc">Nothing to restore.</div>
       </div>
       <div v-if="skippedRows.length" class="adminCard">
         <h4 class="resultSubhead resultSkipped">Skipped</h4>
-        <table class="resultTable">
+        <table class="adminKvTable">
           <tr v-for="[label, count] in skippedRows" :key="label">
             <td>{{ label }}</td>
-            <td class="resultCount">{{ count }}</td>
+            <td>{{ count }}</td>
           </tr>
         </table>
         <div v-if="report.unmatched && report.unmatched.length">
-          <button class="expandToggle" @click="showUnmatched = !showUnmatched">
-            <v-icon size="small">
-              {{ showUnmatched ? mdiChevronUp : mdiChevronDown }}
-            </v-icon>
-            <span>{{ unmatchedToggleLabel }}</span>
-          </button>
+          <AdminExpandToggle
+            v-model="showUnmatched"
+            :label="unmatchedToggleLabel"
+          />
           <v-expand-transition>
             <pre v-if="showUnmatched" class="unmatchedLog">{{
               unmatchedPreview
@@ -160,17 +145,19 @@
       </div>
       <div v-if="report.log_path" class="adminCard">
         <div class="adminCardDesc">
-          Full log written to <code>{{ report.log_path }}</code>
+          Full log written to
+          <code class="adminCode">{{ report.log_path }}</code>
         </div>
       </div>
-    </div>
+    </AdminSection>
   </div>
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { mapActions } from "pinia";
 
+import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -178,11 +165,9 @@ const UNMATCHED_PREVIEW_LIMIT = 50;
 
 export default {
   name: "AdminRestoreTab",
-  components: { ConfirmDialog },
+  components: { AdminExpandToggle, AdminSection, ConfirmDialog },
   data() {
     return {
-      mdiChevronDown,
-      mdiChevronUp,
       dryRun: false,
       isRestoring: false,
       isDumping: false,
@@ -303,13 +288,6 @@ export default {
   margin-top: 0.75em;
 }
 
-code {
-  background-color: rgb(var(--v-theme-surface));
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 0.85em;
-}
-
 .backupSelect {
   margin-top: 12px;
   max-width: 28rem;
@@ -334,35 +312,6 @@ code {
 
 .resultSkipped {
   color: rgb(var(--v-theme-warning));
-}
-
-.resultTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9em;
-}
-
-.resultTable td {
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-}
-
-.resultCount {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.expandToggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
 }
 
 .unmatchedLog {

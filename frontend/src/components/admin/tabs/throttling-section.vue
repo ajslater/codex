@@ -1,21 +1,18 @@
 <!--
   Throttling lives as a section on the Settings tab rather than its
   own tab — its admin surface is small enough that a dedicated tab
-  was overkill. The outer ``adminContainer`` belongs to the parent
-  (settings-tab.vue); this component renders just the group.
+  was overkill. The outer reading column belongs to the parent
+  (settings-tab.vue); this component renders just the section.
 -->
 <template>
-  <div v-if="!settings" class="adminGroup">
+  <div v-if="!settings">
     <v-progress-circular indeterminate />
   </div>
   <v-form v-else ref="form" @submit.prevent="saveDraft">
-    <div class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>Throttling</h3>
-        <p class="adminGroupHint">
-          Set to 0 to disable rate limiting for that scope.
-        </p>
-      </div>
+    <AdminSection
+      title="Throttling"
+      hint="Set to 0 to disable rate limiting for that scope."
+    >
       <div v-for="scope in scopes" :key="scope.key" class="adminCard">
         <div class="adminCardHeader">
           <div class="adminCardInfo">
@@ -37,26 +34,14 @@
           </div>
         </div>
       </div>
-      <div class="settingsActions">
-        <v-btn
-          type="submit"
-          variant="tonal"
-          size="small"
-          :loading="saving"
-          :disabled="!hasChanges"
-        >
-          Save Throttling
-        </v-btn>
-        <v-btn
-          variant="text"
-          size="small"
-          :disabled="!hasChanges || saving"
-          @click="resetDraft"
-        >
-          Revert
-        </v-btn>
-      </div>
-    </div>
+      <AdminActionBar
+        save-text="Save Throttling"
+        :saving="saving"
+        :save-disabled="!hasChanges"
+        :revert-disabled="!hasChanges || saving"
+        @revert="resetDraft"
+      />
+    </AdminSection>
   </v-form>
 </template>
 
@@ -64,6 +49,8 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const SCOPES = Object.freeze([
@@ -112,6 +99,10 @@ function pickFields(source) {
 
 export default {
   name: "AdminThrottlingSection",
+  components: {
+    AdminActionBar,
+    AdminSection,
+  },
   data() {
     return {
       scopes: SCOPES,
@@ -178,20 +169,7 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
 
-.adminGroupHint {
-  font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
-  margin-top: 4px;
-}
-
 .throttleField {
   width: 200px;
-}
-
-.settingsActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 16px;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div id="jobs" class="adminContainer">
+  <div id="jobs" class="adminReadingColumn">
     <div class="adminCard">
       <div id="lastTaskLabel">Last Job Queued</div>
       <div id="lastJobResult">
@@ -10,17 +10,20 @@
         <span v-else id="noRecentTask">No recent job</span>
       </div>
     </div>
-    <div v-for="group in ADMIN_JOBS" :key="group.title" class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>{{ group.title }}</h3>
+    <AdminSection
+      v-for="group in ADMIN_JOBS"
+      :key="group.title"
+      :title="group.title"
+    >
+      <template v-if="group.abort && isGroupActive(group)" #actions>
         <v-btn
-          v-if="group.abort && isGroupActive(group)"
           size="small"
+          variant="tonal"
           color="error"
           text="Stop"
           @click="librarianTask(group.abort, 'Abort ' + group.title)"
         />
-      </div>
+      </template>
       <!-- Select-style group (Notify) -->
       <div v-if="isSelectGroup(group.title)" class="adminCard">
         <v-select
@@ -30,6 +33,7 @@
         />
         <v-btn
           block
+          variant="tonal"
           :text="'Notify ' + groupSelectAttr(group.title, 'title')"
           @click="
             librarianTask(
@@ -88,18 +92,21 @@
                 :text="activeConfirm(job)"
                 :block="false"
                 confirm-text="Confirm"
+                variant="tonal"
                 size="small"
                 @confirm="librarianTask(activeValue(job), activeTitle(job))"
               />
               <v-btn
                 v-else
                 size="small"
+                variant="tonal"
                 text="Start"
                 @click="librarianTask(activeValue(job), activeTitle(job))"
               />
               <v-btn
                 v-if="job.abort && isJobActive(job)"
                 size="small"
+                variant="tonal"
                 color="error"
                 class="abortBtn"
                 text="Stop"
@@ -109,14 +116,11 @@
           </div>
           <!-- Expandable sub-statuses -->
           <div v-if="jobStatuses(job).length > 0" class="jobStatusSection">
-            <button class="expandToggle" @click="toggleExpand(job.value)">
-              <v-icon size="small">
-                {{ isExpanded(job) ? mdiChevronUp : mdiChevronDown }}
-              </v-icon>
-              <span class="expandLabel">
-                {{ jobStatusSummary(job) }}
-              </span>
-            </button>
+            <AdminExpandToggle
+              :model-value="isExpanded(job)"
+              :label="jobStatusSummary(job)"
+              @update:model-value="toggleExpand(job.value)"
+            />
             <v-expand-transition>
               <!--
                 No click handler on the expanded panel. The previous
@@ -206,15 +210,16 @@
           </div>
         </div>
       </div>
-    </div>
+    </AdminSection>
   </div>
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
+import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
 import {
   hasNumbers,
   isIndeterminate,
@@ -236,6 +241,8 @@ Object.freeze(ADMIN_JOBS);
 export default {
   name: "AdminJobsTab",
   components: {
+    AdminExpandToggle,
+    AdminSection,
     ConfirmDialog,
   },
   setup() {
@@ -245,8 +252,6 @@ export default {
   data() {
     return {
       ADMIN_JOBS,
-      mdiChevronDown,
-      mdiChevronUp,
       // Per-variant-job selected variant value, keyed by job.value.
       variantSelections: {},
       // Per-group select value for SELECT_GROUPS (Notify).
@@ -517,26 +522,6 @@ export default {
   margin-top: 8px;
   border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   padding-top: 6px;
-}
-
-.expandToggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: rgb(var(--v-theme-textSecondary));
-  cursor: pointer;
-  font-size: 0.8em;
-  padding: 2px 0;
-
-  &:hover {
-    color: rgb(var(--v-theme-textPrimary));
-  }
-}
-
-.expandLabel {
-  user-select: none;
 }
 
 .statusRows {

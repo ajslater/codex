@@ -1,16 +1,16 @@
 <template>
   <div v-if="stats" id="stats">
-    <StatsTable title="Platform" :items="platformTable" />
+    <AdminKeyValueTable title="Platform" :items="platformTable" />
     <!--
       API Key + regenerate button moved to the Settings tab. The
       stats payload still exposes ``stats.config.apiKey`` but the
       Config table here drops it from the rendered keys.
     -->
-    <StatsTable title="Config" :items="configTable" />
-    <StatsTable title="File Types" :items="fileTypesTable" />
-    <StatsTable title="User Settings" :items="userSettingsTable" />
-    <StatsTable title="Browser Groups" :items="browserGroupsTable" />
-    <StatsTable title="Tags" :items="metadataTable" />
+    <AdminKeyValueTable title="Config" :items="configTable" />
+    <AdminKeyValueTable title="File Types" :items="fileTypesTable" />
+    <AdminKeyValueTable title="User Settings" :items="userSettingsTable" />
+    <AdminKeyValueTable title="Browser Groups" :items="browserGroupsTable" />
+    <AdminKeyValueTable title="Tags" :items="metadataTable" />
   </div>
 </template>
 
@@ -18,7 +18,7 @@
 import { mapActions, mapState } from "pinia";
 import { capitalCase, snakeCase } from "text-case";
 
-import StatsTable from "@/components/admin/tabs/stats-table.vue";
+import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -49,7 +49,7 @@ const INDENT_KEYS = Object.freeze(
 export default {
   name: "AdminStatsTab",
   components: {
-    StatsTable,
+    AdminKeyValueTable,
   },
   data() {
     return {

@@ -1,10 +1,10 @@
 <template>
-  <div id="email" class="adminContainer">
-    <div v-if="!settings" class="adminGroup">
+  <div id="email" class="adminReadingColumn">
+    <div v-if="!settings">
       <v-progress-circular indeterminate />
     </div>
     <v-form v-else ref="form" @submit.prevent="saveDraft">
-      <div class="adminIntro">
+      <div class="adminProse">
         <p>
           Codex sends email only for user self-service flows the admin would
           otherwise have to handle by hand:
@@ -27,10 +27,8 @@
           or any other outbound mail.
         </p>
       </div>
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>SMTP Server</h3>
-        </div>
+
+      <AdminSection title="SMTP Server">
         <div class="adminCard">
           <v-text-field
             v-model="draft.host"
@@ -81,12 +79,9 @@
             density="compact"
           />
         </div>
-      </div>
+      </AdminSection>
 
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Authentication</h3>
-        </div>
+      <AdminSection title="Authentication">
         <div class="adminCard">
           <v-text-field
             v-model="draft.user"
@@ -131,18 +126,22 @@
             :hint="passwordHint"
             persistent-hint
           />
-          <div v-if="settings.passwordSet" class="credentialActions">
-            <v-btn variant="text" size="small" @click="clearPassword">
-              Clear Credential
-            </v-btn>
+          <div v-if="settings.passwordSet" class="adminInlineActions">
+            <ConfirmDialog
+              button-text="Clear Credential"
+              title-text="Clear SMTP Credential"
+              text="Clear the saved SMTP password or token?"
+              confirm-text="Clear"
+              variant="text"
+              size="small"
+              :block="false"
+              @confirm="clearPassword"
+            />
           </div>
         </div>
-      </div>
+      </AdminSection>
 
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Message</h3>
-        </div>
+      <AdminSection title="Message">
         <div class="adminCard">
           <v-text-field
             v-model="draft.fromAddress"
@@ -163,34 +162,19 @@
             density="compact"
           />
         </div>
-      </div>
+      </AdminSection>
 
-      <div class="settingsActions">
-        <v-btn
-          type="submit"
-          variant="tonal"
-          size="small"
-          :loading="saving"
-          :disabled="!hasChanges"
-        >
-          Save Settings
-        </v-btn>
-        <v-btn
-          variant="text"
-          size="small"
-          :disabled="!hasChanges || saving"
-          @click="resetDraft"
-        >
-          Revert
-        </v-btn>
-      </div>
+      <AdminActionBar
+        save-text="Save Settings"
+        :saving="saving"
+        :save-disabled="!hasChanges"
+        :revert-disabled="!hasChanges || saving"
+        @revert="resetDraft"
+      />
 
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Test Send</h3>
-        </div>
+      <AdminSection title="Test Send">
         <div class="adminCard">
-          <div class="credentialFields">
+          <div class="adminFieldColumn">
             <v-text-field
               v-model="testRecipient"
               label="Recipient"
@@ -200,7 +184,7 @@
               hide-details="auto"
               density="compact"
             />
-            <div class="credentialActions">
+            <div class="adminInlineActions">
               <v-btn
                 variant="tonal"
                 size="small"
@@ -224,7 +208,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </AdminSection>
     </v-form>
   </div>
 </template>
@@ -233,6 +217,9 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
@@ -263,6 +250,11 @@ function pickFields(source) {
 
 export default {
   name: "AdminEmailTab",
+  components: {
+    AdminActionBar,
+    AdminSection,
+    ConfirmDialog,
+  },
   data() {
     return {
       draft: pickFields(undefined),
@@ -368,7 +360,6 @@ export default {
       }
     },
     clearPassword() {
-      if (!confirm("Clear SMTP credential?")) return;
       this.updateEmailSettings({ password: "" });
     },
     async runTest() {
@@ -390,39 +381,6 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
 
-.adminIntro {
-  max-width: 720px;
-  margin-bottom: 16px;
-  font-size: 0.9em;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.adminIntro p {
-  margin-bottom: 8px;
-}
-
-.adminIntro ul {
-  margin: 0 0 8px 24px;
-  padding: 0;
-}
-
-.adminIntro li {
-  margin-bottom: 4px;
-}
-
-.credentialFields {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.credentialActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
 .testResult {
   font-size: 0.9em;
   padding-top: 4px;
@@ -434,13 +392,6 @@ export default {
 
 .testResult.error {
   color: rgb(var(--v-theme-error));
-}
-
-.settingsActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 16px;
 }
 
 .smtpUsernameProxy {

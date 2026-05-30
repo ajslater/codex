@@ -1,15 +1,11 @@
 <template>
-  <div id="tagging" class="adminContainer">
-    <div v-if="!defaults" class="adminGroup">
+  <div id="tagging" class="adminReadingColumn">
+    <div v-if="!defaults">
       <v-progress-circular indeterminate />
     </div>
     <template v-else>
       <v-form ref="form" @submit.prevent="saveDraft">
-        <!-- Write Defaults -->
-        <div class="adminGroup">
-          <div class="adminGroupHeader">
-            <h3>Write Defaults</h3>
-          </div>
+        <AdminSection title="Write Defaults">
           <div class="adminCard">
             <v-select
               v-model="draft.defaultFormats"
@@ -30,13 +26,9 @@
               density="compact"
             />
           </div>
-        </div>
+        </AdminSection>
 
-        <!-- Online Defaults -->
-        <div class="adminGroup">
-          <div class="adminGroupHeader">
-            <h3>Online Tagging Defaults</h3>
-          </div>
+        <AdminSection title="Online Tagging Defaults">
           <div class="adminCard">
             <v-select
               v-model="draft.defaultMatchMode"
@@ -72,34 +64,18 @@
               label="Prompt Timeout"
             />
           </div>
-        </div>
+        </AdminSection>
 
-        <div class="settingsActions">
-          <v-btn
-            type="submit"
-            variant="tonal"
-            size="small"
-            :loading="saving"
-            :disabled="!hasChanges"
-          >
-            Save Defaults
-          </v-btn>
-          <v-btn
-            variant="text"
-            size="small"
-            :disabled="!hasChanges || saving"
-            @click="resetDraft"
-          >
-            Revert
-          </v-btn>
-        </div>
+        <AdminActionBar
+          save-text="Save Defaults"
+          :saving="saving"
+          :save-disabled="!hasChanges"
+          :revert-disabled="!hasChanges || saving"
+          @revert="resetDraft"
+        />
       </v-form>
 
-      <!-- Credentials -->
-      <div class="adminGroup">
-        <div class="adminGroupHeader">
-          <h3>Online Source Credentials</h3>
-        </div>
+      <AdminSection title="Online Source Credentials">
         <v-expansion-panels
           :model-value="defaults.hasMetronCredentials ? [] : [0]"
           variant="accordion"
@@ -108,7 +84,7 @@
             <v-expansion-panel-title>
               <span class="adminCardTitle">Metron</span>
               <span
-                class="adminCardDesc"
+                class="adminCardDesc credentialStatus"
                 :class="{ credentialSet: defaults.hasMetronCredentials }"
               >
                 {{
@@ -119,7 +95,7 @@
               </span>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <div class="credentialFields">
+              <div class="adminFieldColumn">
                 <v-text-field
                   v-model="metronUser"
                   label="Username"
@@ -148,7 +124,7 @@
                   density="compact"
                   :placeholder="defaults.metronUrl || 'Default'"
                 />
-                <div class="credentialActions">
+                <div class="adminInlineActions">
                   <v-btn
                     variant="tonal"
                     size="small"
@@ -168,14 +144,17 @@
                   >
                     Test
                   </v-btn>
-                  <v-btn
+                  <ConfirmDialog
                     v-if="defaults.hasMetronCredentials"
+                    button-text="Clear Credentials"
+                    title-text="Clear Metron Credentials"
+                    text="Remove the saved Metron username, password, and custom URL?"
+                    confirm-text="Clear"
                     variant="text"
                     size="small"
-                    @click="clearMetronCredentials"
-                  >
-                    Clear Credentials
-                  </v-btn>
+                    :block="false"
+                    @confirm="clearMetronCredentials"
+                  />
                 </div>
                 <ValidationChip
                   v-if="validationResult.metron"
@@ -193,7 +172,7 @@
             <v-expansion-panel-title>
               <span class="adminCardTitle">Comic Vine</span>
               <span
-                class="adminCardDesc"
+                class="adminCardDesc credentialStatus"
                 :class="{ credentialSet: defaults.hasComicvineCredentials }"
               >
                 {{
@@ -204,7 +183,7 @@
               </span>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <div class="credentialFields">
+              <div class="adminFieldColumn">
                 <v-text-field
                   v-model="comicvineKey"
                   label="API Key"
@@ -222,7 +201,7 @@
                   density="compact"
                   :placeholder="defaults.comicvineUrl || 'Default'"
                 />
-                <div class="credentialActions">
+                <div class="adminInlineActions">
                   <v-btn
                     variant="tonal"
                     size="small"
@@ -240,14 +219,17 @@
                   >
                     Test
                   </v-btn>
-                  <v-btn
+                  <ConfirmDialog
                     v-if="defaults.hasComicvineCredentials"
+                    button-text="Clear API Key"
+                    title-text="Clear Comic Vine API Key"
+                    text="Remove the saved Comic Vine API key and custom URL?"
+                    confirm-text="Clear"
                     variant="text"
                     size="small"
-                    @click="clearComicvineCredentials"
-                  >
-                    Clear API Key
-                  </v-btn>
+                    :block="false"
+                    @confirm="clearComicvineCredentials"
+                  />
                 </div>
                 <ValidationChip
                   v-if="validationResult.comicvine"
@@ -257,7 +239,7 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-      </div>
+      </AdminSection>
     </template>
   </div>
 </template>
@@ -267,8 +249,11 @@ import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
+import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import TimeoutInput from "@/components/admin/tabs/timeout-input.vue";
 import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const FORMAT_CHOICES = [
@@ -297,6 +282,9 @@ function pickFields(source) {
 export default {
   name: "AdminTaggingTab",
   components: {
+    AdminActionBar,
+    AdminSection,
+    ConfirmDialog,
     TimeoutInput,
     ValidationChip,
   },
@@ -411,7 +399,6 @@ export default {
       });
     },
     clearMetronCredentials() {
-      if (!confirm("Clear Metron credentials?")) return;
       this.validationResult.metron = undefined;
       this.updateTaggingDefaults({
         metronUser: "",
@@ -420,7 +407,6 @@ export default {
       });
     },
     clearComicvineCredentials() {
-      if (!confirm("Clear Comic Vine API key?")) return;
       this.validationResult.comicvine = undefined;
       this.updateTaggingDefaults({
         comicvineKey: "",
@@ -458,33 +444,13 @@ export default {
 
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
+@use "@/components/admin/tabs/design.scss" as d;
+
+.credentialStatus {
+  margin-left: d.$space-2;
+}
 
 .credentialSet {
   color: rgb(var(--v-theme-success));
-}
-
-.adminCardDesc {
-  margin-left: 8px;
-  font-size: 0.85em;
-}
-
-.credentialActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.credentialFields {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.settingsActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 16px;
 }
 </style>

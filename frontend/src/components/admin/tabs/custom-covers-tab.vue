@@ -16,25 +16,12 @@
         hide-details="auto"
         class="maxUploadField"
       />
-      <div class="settingsActions">
-        <v-btn
-          type="submit"
-          variant="tonal"
-          size="small"
-          :loading="saving"
-          :disabled="!maxUploadChanged"
-        >
-          Save
-        </v-btn>
-        <v-btn
-          variant="text"
-          size="small"
-          :disabled="!maxUploadChanged || saving"
-          @click="resetMaxUpload"
-        >
-          Revert
-        </v-btn>
-      </div>
+      <AdminActionBar
+        :saving="saving"
+        :save-disabled="!maxUploadChanged"
+        :revert-disabled="!maxUploadChanged || saving"
+        @revert="resetMaxUpload"
+      />
     </v-form>
     <AdminTable :headers="headers" :items="customCovers">
       <template #no-data>
@@ -82,7 +69,7 @@
         {{ formatSize(item.sizeBytes) }}
       </template>
       <template #[`item.actions`]="{ item }">
-        <span class="actionButtonCell">
+        <span class="adminActionCell">
           <ReplaceCoverButton
             v-if="item.linkedGroupPk"
             density="compact"
@@ -105,6 +92,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
@@ -119,6 +107,7 @@ const MAX_UPLOAD_MAX = 2048;
 export default {
   name: "AdminCustomCoversTab",
   components: {
+    AdminActionBar,
     AdminTable,
     AdminDeleteRowDialog,
     DateTimeColumn,
@@ -224,6 +213,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "@/components/admin/tabs/admin-section.scss";
+
 .customCoverSettings {
   margin-bottom: 12px;
 }
@@ -240,13 +231,6 @@ export default {
   cursor: zoom-in;
 }
 
-.settingsActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 8px;
-}
-
 .groupChip {
   text-transform: uppercase;
 }
@@ -254,14 +238,6 @@ export default {
 .unlinked {
   color: rgb(var(--v-theme-textDisabled));
   font-style: italic;
-}
-
-.actionButtonCell :deep(> button) {
-  opacity: 0.7;
-}
-
-.actionButtonCell :deep(> button:hover) {
-  opacity: 1;
 }
 </style>
 
