@@ -151,7 +151,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 model,
                 key_args_map,
                 update_args_map,
-                values_tuple,  # ty: ignore[invalid-argument-type]
+                values_tuple,
                 parent_pk_maps,
             )
             obj = model(**key_args, **update_args)
@@ -231,7 +231,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 model,
                 key_args_map,
                 update_args_map,
-                values_tuple,  # ty: ignore[invalid-argument-type]
+                values_tuple,
                 parent_pk_maps,
             )
             obj = model.objects.get(**key_args)

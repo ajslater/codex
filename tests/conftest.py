@@ -5,7 +5,7 @@ from rest_registration.settings import registration_settings
 
 
 @pytest.fixture(autouse=True)
-def _reset_registration_settings():
+def _reset_registration_settings():  # pyright: ignore[reportUnusedFunction]
     """
     Reset rest-registration's runtime settings around every test.
 
