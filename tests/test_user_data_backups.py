@@ -23,8 +23,8 @@ class SidecarBackupsTests(TestCase):
     @override
     def setUp(self) -> None:
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
-        self.backup_dir = _TMP_DIR / "backups"
-        self.config_dir = _TMP_DIR / "config"
+        self.backup_dir = _TMP_DIR / "backups"  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.config_dir = _TMP_DIR / "config"  # pyright: ignore[reportUninitializedInstanceVariable]
         self.backup_dir.mkdir(parents=True, exist_ok=True)
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
