@@ -379,9 +379,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             order_value = self._comic_order_value()
         elif self.order_key == "age_rating":
             anns = self._group_age_rating_annotations()
-            return (
-                qs.annotate(**anns) if self.TARGET == "browser" else qs.alias(**anns)
-            )
+            return qs.annotate(**anns) if self.TARGET == "browser" else qs.alias(**anns)
         elif self.order_key in m2m_columns():
             qs, order_value = self._group_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
