@@ -184,10 +184,11 @@ def snapshot_sidecar() -> dict[str, int]:
     """
     import lzma
 
-    from codex.compression import PRESET, prune_dated
     from codex.settings import BACKUP_DB_DIR, CONFIG_PATH
     from codex.user_data.backups import SIDECAR_BACKUP_PATTERN, sidecar_backup_path
+    from codex.xz import prune_dated, xz_preset
 
+    preset = xz_preset()
     mem = SidecarStore.in_memory()
     try:
         counts = dump_user_data(store=mem)
@@ -195,7 +196,7 @@ def snapshot_sidecar() -> dict[str, int]:
         dest.parent.mkdir(parents=True, exist_ok=True)
         tmp = dest.with_name(dest.name + ".tmp")
         try:
-            with lzma.open(tmp, "wt", encoding="utf-8", preset=PRESET) as out:
+            with lzma.open(tmp, "wt", encoding="utf-8", preset=preset) as out:
                 for line in mem.connection().iterdump():
                     out.write(line + "\n")
             tmp.replace(dest)

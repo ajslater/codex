@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Final, TypedDict
 
-from codex.compression import date_stamp
+from codex.xz import date_stamp
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -22,8 +22,8 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from codex.compression import read_text_maybe_xz
 from codex.user_data.store import SidecarStore, get_store
+from codex.xz import read_text_maybe_xz
 
 if TYPE_CHECKING:
     from collections.abc import Callable

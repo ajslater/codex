@@ -1,11 +1,12 @@
 """Vacuum the database."""
 
 import re
+import sqlite3
 
 from django.db import connection
 from humanize import naturalsize
 
-from codex.compression import XZ_SUFFIX, date_stamp, prune_dated, write_xz_bytes
+from codex.librarian.memory import read_mem_limit
 from codex.librarian.scribe.janitor.integrity import JanitorIntegrity
 from codex.librarian.scribe.janitor.status import (
     JanitorDBBackupStatus,
@@ -13,6 +14,14 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDumpUserDataStatus,
 )
 from codex.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
+from codex.xz import (
+    XZ_SUFFIX,
+    compress_path_to_xz,
+    date_stamp,
+    prune_dated,
+    write_xz_bytes,
+    xz_preset,
+)
 
 # Pre-dating single backup + its rotated sibling, removed once dated
 # ``.bak.xz`` backups exist.
@@ -22,6 +31,11 @@ _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 _NIGHTLY_BACKUP_PATTERN = (
     rf"^{re.escape(DB_PATH.name)}\.\d{{4}}-\d{{2}}-\d{{2}}\.bak\.xz$"
 )
+# A DB up to this share of the memory budget is backed up via the fast,
+# single-write ``serialize()`` path (its image is held in RAM); a larger DB
+# falls back to ``VACUUM INTO`` a temp file + chunked compression so peak
+# memory stays bounded on small / cgroup-capped hosts.
+_SERIALIZE_MAX_FRACTION = 0.5
 
 
 class JanitorVacuum(JanitorIntegrity):
@@ -53,10 +67,14 @@ class JanitorVacuum(JanitorIntegrity):
         """
         Back up the database as a streamed, xz-compressed binary snapshot.
 
-        ``Connection.serialize()`` captures a consistent in-memory image in
-        milliseconds, so the ``db_write_lock`` is held only for the snapshot —
-        not the (slow) compression, which runs lock-free. ``serialize`` keeps
-        the FTS5 search index byte-for-byte intact, which a SQL dump would not.
+        The xz preset and the backup method are both chosen from the host's
+        cgroup-aware memory budget. When the DB fits comfortably in RAM,
+        ``Connection.serialize()`` captures a consistent image in milliseconds
+        (so ``db_write_lock`` is held only for the snapshot, not the slow
+        compression). A DB too large for that falls back to ``VACUUM INTO`` a
+        temp file + chunked compression, bounding peak memory on small hosts.
+        Either way the FTS5 index stays byte-for-byte intact (a SQL dump would
+        drop it).
 
         ``backup_path=None`` writes a dated nightly backup and (with ``prune``)
         trims the dated set; an explicit ``backup_path`` (the before-upgrade
@@ -70,11 +88,13 @@ class JanitorVacuum(JanitorIntegrity):
                 backup_path = BACKUP_DB_DIR / f"{DB_PATH.name}.{date_stamp()}.bak.xz"
             else:
                 backup_path = backup_path.with_name(backup_path.name + XZ_SUFFIX)
-            with self.db_write_lock:
-                connection.ensure_connection()
-                data = connection.connection.serialize()
-            write_xz_bytes(data, backup_path)
-            del data
+            budget = read_mem_limit("b")
+            preset = xz_preset(budget)
+            db_size = DB_PATH.stat().st_size if DB_PATH.exists() else 0
+            if db_size <= budget * _SERIALIZE_MAX_FRACTION:
+                self._backup_db_serialize(backup_path, preset)
+            else:
+                self._backup_db_vacuum(backup_path, preset)
             if prune:
                 prune_dated(BACKUP_DB_DIR, _NIGHTLY_BACKUP_PATTERN)
                 _OLD_BACKUP_PATH.unlink(missing_ok=True)
@@ -85,6 +105,34 @@ class JanitorVacuum(JanitorIntegrity):
         finally:
             if status:
                 self.status_controller.finish(status)
+
+    def _backup_db_serialize(self, backup_path, preset) -> None:
+        """Fast path: snapshot a consistent image under the lock, compress free."""
+        with self.db_write_lock:
+            connection.ensure_connection()
+            data = connection.connection.serialize()
+        write_xz_bytes(data, backup_path, preset=preset)
+        del data
+
+    def _backup_db_vacuum(self, backup_path, preset) -> None:
+        """Bounded-memory path: VACUUM to a temp DB, then chunked compression."""
+        BACKUP_DB_DIR.mkdir(parents=True, exist_ok=True)
+        tmp_db = BACKUP_DB_DIR / f"{DB_PATH.name}.backup.tmp"
+        tmp_db.unlink(missing_ok=True)
+        try:
+            # ``VACUUM INTO`` can't run inside a transaction. Use a dedicated
+            # autocommit connection to the DB file so the backup is immune to
+            # the caller's transaction state; the write lock keeps Python
+            # writers out for a consistent image, matching ``vacuum_db``.
+            with self.db_write_lock:
+                raw = sqlite3.connect(DB_PATH, isolation_level=None)
+                try:
+                    raw.execute(f"VACUUM INTO {str(tmp_db)!r}")
+                finally:
+                    raw.close()
+            compress_path_to_xz(tmp_db, backup_path, preset=preset)
+        finally:
+            tmp_db.unlink(missing_ok=True)
 
     def dump_user_data_sidecar(self) -> None:
         """

@@ -12,9 +12,9 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from codex.compression import date_stamp
 from codex.user_data.dump import snapshot_sidecar
 from codex.user_data.restore import restore
+from codex.xz import date_stamp
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.snapshot")  # noqa: S108
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105

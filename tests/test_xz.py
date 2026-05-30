@@ -10,14 +10,19 @@ from typing import Final, override
 
 from django.test import TestCase
 
-from codex.compression import (
+from codex.xz import (
+    compress_path_to_xz,
     date_stamp,
     prune_dated,
     read_text_maybe_xz,
     write_xz_bytes,
+    xz_preset,
 )
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.compression")  # noqa: S108
+_GiB: Final = 1024**3
+_FULL_PRESET: Final = 9
+_MIN_MIDRANGE_PRESET: Final = 5
 
 
 class CompressionTests(TestCase):
@@ -35,12 +40,28 @@ class CompressionTests(TestCase):
     def test_write_xz_bytes_round_trips_and_leaves_no_tmp(self) -> None:
         dest = _TMP_DIR / "blob.bin.xz"
         payload = b"sqlite-ish bytes \x00\x01\x02" * 1000
-        write_xz_bytes(payload, dest)
+        write_xz_bytes(payload, dest, preset=1)
         assert dest.is_file()
         with lzma.open(dest, "rb") as src:
             assert src.read() == payload
         # The atomic temp must be cleaned up.
         assert not (_TMP_DIR / "blob.bin.xz.tmp").exists()
+
+    def test_compress_path_to_xz_round_trips(self) -> None:
+        src = _TMP_DIR / "src.bin"
+        payload = bytes(range(256)) * 4096
+        src.write_bytes(payload)
+        dest = _TMP_DIR / "src.bin.xz"
+        compress_path_to_xz(src, dest, preset=1)
+        with lzma.open(dest, "rb") as out:
+            assert out.read() == payload
+        assert not (_TMP_DIR / "src.bin.xz.tmp").exists()
+
+    def test_xz_preset_scales_with_memory(self) -> None:
+        # A roomy budget earns the richest preset; a tiny one floors at 0.
+        assert xz_preset(64 * _GiB) == _FULL_PRESET
+        assert xz_preset(1 * _GiB) >= _MIN_MIDRANGE_PRESET  # ~256 MiB encoder budget
+        assert xz_preset(1024) == 0  # nothing fits but the floor
 
     def test_read_text_maybe_xz(self) -> None:
         plain = _TMP_DIR / "a.sql"
