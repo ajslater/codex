@@ -162,6 +162,82 @@
           </v-text-field>
         </div>
         <div
+          :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.volume_count"
+            label="Volume Count"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('volume_count')"
+            :class="{
+              fieldCleared: isCleared('volume_count'),
+              fieldChanged:
+                isFieldChanged('volume_count') && !isCleared('volume_count'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('volume_count')"
+                @toggle="toggleClear('volume_count')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+      </div>
+      <div class="inlineRow">
+        <div
+          :title="isFieldDisabled('issue_number') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.issue_number"
+            label="Issue Number"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('issue_number')"
+            :class="{
+              fieldCleared: isCleared('issue_number'),
+              fieldChanged:
+                isFieldChanged('issue_number') && !isCleared('issue_number'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('issue_number')"
+                @toggle="toggleClear('issue_number')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('issue_suffix') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.issue_suffix"
+            label="Issue Suffix"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('issue_suffix')"
+            :class="{
+              fieldCleared: isCleared('issue_suffix'),
+              fieldChanged:
+                isFieldChanged('issue_suffix') && !isCleared('issue_suffix'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('issue_suffix')"
+                @toggle="toggleClear('issue_suffix')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
           :title="isFieldDisabled('volume_issue_count') ? disabledTooltip : ''"
           class="flexItem"
         >
@@ -183,31 +259,6 @@
               <ClearFieldIcon
                 :cleared="isCleared('volume_issue_count')"
                 @toggle="toggleClear('volume_issue_count')"
-              />
-            </template>
-          </v-text-field>
-        </div>
-        <div
-          :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
-          class="flexItem"
-        >
-          <v-text-field
-            v-model="patch.volume_count"
-            label="Volume Count"
-            type="number"
-            hide-details
-            density="compact"
-            :disabled="isFieldDisabled('volume_count')"
-            :class="{
-              fieldCleared: isCleared('volume_count'),
-              fieldChanged:
-                isFieldChanged('volume_count') && !isCleared('volume_count'),
-            }"
-          >
-            <template #append-inner>
-              <ClearFieldIcon
-                :cleared="isCleared('volume_count')"
-                @toggle="toggleClear('volume_count')"
               />
             </template>
           </v-text-field>
@@ -1003,6 +1054,8 @@ export default {
         volume: "",
         volume_issue_count: "",
         volume_count: "",
+        issue_number: "",
+        issue_suffix: "",
         summary: "",
         review: "",
         notes: "",
@@ -1300,6 +1353,11 @@ export default {
       this.patch.volume = this.md.volumeList?.[0]?.name || "";
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
       this.patch.volume_count = this.md.seriesVolumeCount || "";
+      this.patch.issue_number =
+        this.md.issueNumber == null || this.md.issueNumber === ""
+          ? ""
+          : String(Number(this.md.issueNumber));
+      this.patch.issue_suffix = this.md.issueSuffix || "";
 
       // Tags
       for (const key of TAG_KEYS) {
@@ -1410,6 +1468,21 @@ export default {
             cbPatch.volume = vol;
           }
         }
+      }
+
+      // Issue — number + suffix combine into the comicbox `issue` object;
+      // comicbox computes `issue.name` from the parts. Update mode replaces
+      // the key wholesale, so always send both current parts together.
+      if (changed.has("issue_number") || changed.has("issue_suffix")) {
+        const issue = {};
+        if (!cleared.has("issue_number") && this.patch.issue_number !== "") {
+          const num = Number(this.patch.issue_number);
+          if (Number.isFinite(num)) issue.number = num;
+        }
+        if (!cleared.has("issue_suffix") && this.patch.issue_suffix) {
+          issue.suffix = this.patch.issue_suffix;
+        }
+        cbPatch.issue = issue;
       }
 
       // Story arcs — only include if changed
