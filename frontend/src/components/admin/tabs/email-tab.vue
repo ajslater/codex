@@ -171,7 +171,14 @@
         :revert-disabled="!hasChanges || saving"
         @revert="resetDraft"
       />
+    </v-form>
 
+    <v-form
+      v-if="settings"
+      ref="testForm"
+      class="adminTestForm"
+      @submit.prevent="runTest"
+    >
       <AdminSection title="Test Send">
         <div class="adminCard">
           <div class="adminFieldColumn">
@@ -363,6 +370,11 @@ export default {
       this.updateEmailSettings({ password: "" });
     },
     async runTest() {
+      const form = this.$refs.testForm;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
+      }
       this.testing = true;
       this.testResult = undefined;
       try {
@@ -380,6 +392,13 @@ export default {
 
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
+@use "@/components/admin/tabs/design.scss" as d;
+
+// Test Send is its own form, separate from the settings save/revert above it.
+// Give that boundary a little breathing room so the two don't crowd.
+.adminTestForm {
+  margin-top: d.$space-8;
+}
 
 .testResult {
   font-size: 0.9em;
