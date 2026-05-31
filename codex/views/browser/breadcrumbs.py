@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 from django.db.models import QuerySet
 
+from codex.group import Group
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -72,7 +73,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
-        if not (group == "r" and not pks and page == 1):
+        if not (group == Group.ROOT and not pks and page == 1):
             reason = f"{group}__in={pks} does not exist!"
             # ``raise_redirect`` is ``NoReturn``; the type checker
             # follows the early-return shape so the caller below

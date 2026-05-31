@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.admin import AdminFlagChoices
+from codex.group import Group
 from codex.models import (
     Comic,
     Folder,
@@ -373,7 +374,9 @@ class BrowserView(BrowserTitleView):
         columns = self.params.get("columns") or ()
         if columns:
             return tuple(columns)
-        top_group = self.params.get("top_group") or self.kwargs.get("group") or "p"
+        top_group = (
+            self.params.get("top_group") or self.kwargs.get("group") or Group.PUBLISHER
+        )
         stored = self.params.get("table_columns") or {}
         stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
         if stored_for_group:
