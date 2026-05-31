@@ -442,3 +442,49 @@ class RegisterVerificationTests(TestCase):
             _REGISTER_URL, data=payload, content_type="application/json"
         )
         assert response.status_code == _HTTP_NOT_FOUND
+
+
+class AnonymousSessionFlagsTests(TestCase):
+    """``/api/v4/session`` must boot logged-out visitors even with non-users off."""
+
+    @override
+    def setUp(self) -> None:
+        """Seed flags, then require login (non-users OFF) to reproduce the bug."""
+        _ensure_admin_flags()
+        AdminFlag.objects.filter(key=AdminFlagChoices.NON_USERS.value).update(on=False)
+
+    def test_anonymous_session_ok_when_non_users_off(self) -> None:
+        """
+        Logged-out + non-users off still returns 200 with the public flags.
+
+        Regression: ``/session`` was gated behind
+        ``IsAuthenticatedOrEnabledNonUsers``, so this exact combination
+        401'd. The SPA then never received ``registration`` /
+        ``nonUsers``, ``isAuthChecked`` stayed false, and the browser
+        spun on the placeholder forever.
+        """
+        response = self.client.get(_SESSION_URL)
+        assert response.status_code == _HTTP_OK, response.content
+        data = _v4(response)
+        # Anonymous payload carries no user but is fully formed.
+        assert data["user"] is None
+        flags = data["adminFlags"]
+        # The public subset the logged-out shell renders.
+        assert flags["registration"] is True
+        assert flags["nonUsers"] is False
+        assert "bannerText" in flags
+        assert "registerVerification" in flags
+        assert "emailEnabled" in flags
+        # Least disclosure: authenticated-only behaviour flags withheld.
+        assert "lazyImportMetadata" not in flags
+        assert "remoteUserEnabled" not in flags
+
+    def test_authenticated_session_includes_private_flags(self) -> None:
+        """An authenticated session additionally sees the private flags."""
+        user = User.objects.create_user(username="frank", password=_TEST_PASSWORD)
+        self.client.force_login(user)
+        response = self.client.get(_SESSION_URL)
+        assert response.status_code == _HTTP_OK, response.content
+        flags = _v4(response)["adminFlags"]
+        assert "lazyImportMetadata" in flags
+        assert "remoteUserEnabled" in flags
