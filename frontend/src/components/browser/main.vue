@@ -175,7 +175,7 @@ export default {
       if (!this.search) {
         return res;
       }
-      const page = +this.$route.params.page;
+      const page = Number(this.$route.query.page) || 1;
       const limit = 100 * page;
       if (this.showPlaceHolder) {
         res += `Searching for ${limit} entries...`;

@@ -83,7 +83,7 @@ export default {
           break;
         case "c":
           hn =
-            this.$route.params.group === "f"
+            this.$route.params.collection === "folders"
               ? getFullComicName(this.item, this.zeroPad)
               : getIssueName(this.item, this.zeroPad);
           break;
