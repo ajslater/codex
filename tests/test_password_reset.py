@@ -48,6 +48,11 @@ _EMAIL_ON_REST_REGISTRATION = {
     "RESET_PASSWORD_VERIFICATION_AUTO_LOGIN": False,
     "RESET_PASSWORD_VERIFICATION_ONE_TIME_USE": True,
     "RESET_PASSWORD_FAIL_WHEN_USER_NOT_FOUND": False,
+    "RESET_PASSWORD_VERIFICATION_EMAIL_TEMPLATES": {
+        "subject": "rest_registration/reset_password/subject.txt",
+        "text_body": "rest_registration/reset_password/body.txt",
+        "html_body": "rest_registration/reset_password/body.html",
+    },
     "VERIFICATION_FROM_EMAIL": "codex@example.com",
     "USER_LOGIN_FIELDS": ("username", "email"),
     "USER_EDITABLE_FIELDS": ("username", "email"),
@@ -218,6 +223,32 @@ class PasswordResetEnabledTests(TestCase):
         assert response.status_code == _HTTP_OK
         assert len(mail.outbox) == 1
         assert "&username=alice" in mail.outbox[0].body
+
+    def test_reset_email_is_multipart_with_html_button(self) -> None:
+        """
+        The reset email ships a styled HTML alternative beside the text body.
+
+        HTML clients render the "Reset Password" button; plain-text readers
+        fall back to the text part.
+        """
+        response = self.client.post(
+            _SEND_RESET_URL,
+            data={"login": "alice"},
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        # The plain-text part remains the fallback body.
+        assert "/auth/reset-password/" in msg.body
+        # Exactly one HTML alternative, carrying the button + the signed link.
+        html_parts = [c for c, mime in msg.alternatives if mime == "text/html"]
+        assert len(html_parts) == 1
+        html = html_parts[0]
+        assert "Reset Password" in html
+        assert "#cc7b19" in html.lower()  # codex-orange button
+        # The link is HTML-escaped in the href but still carries the username.
+        assert "&amp;username=alice" in html
 
     def test_send_reset_link_sends_email_by_email(self) -> None:
         """Email also resolves to the user via USER_LOGIN_FIELDS."""

@@ -854,6 +854,16 @@ REST_REGISTRATION = {
     # Don't 404 when a non-existent username/email is submitted; the view
     # returns a generic "if the user exists, a link was sent" response.
     "RESET_PASSWORD_FAIL_WHEN_USER_NOT_FOUND": False,
+    # Send the reset email as multipart text + HTML. Specifying both
+    # ``text_body`` and ``html_body`` makes rest-registration use the text
+    # template verbatim as the plain-text part and attach the HTML as an
+    # alternative, so plain-text mail readers fall back gracefully while HTML
+    # clients get the styled "Reset Password" button.
+    "RESET_PASSWORD_VERIFICATION_EMAIL_TEMPLATES": {
+        "subject": "rest_registration/reset_password/subject.txt",
+        "text_body": "rest_registration/reset_password/body.txt",
+        "html_body": "rest_registration/reset_password/body.html",
+    },
     "VERIFICATION_FROM_EMAIL": DEFAULT_FROM_EMAIL,
     "USER_LOGIN_FIELDS": ("username", "email"),
     # rest-registration treats email as read-only by default (it expects
