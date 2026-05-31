@@ -6,9 +6,25 @@ from typing import override
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
+from codex.group import GROUP_BY_CHAR, Group
 from codex.serializers.fields.group import BrowserRouteGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
+
+
+def _collection_for_group(group) -> str:
+    """Map a legacy group char to its v4 collection name (root → publishers)."""
+    enum_group = GROUP_BY_CHAR.get(group)
+    if enum_group is None or enum_group is Group.ROOT:
+        return Group.PUBLISHER.collection
+    return enum_group.collection
+
+
+def _parent_ids_for(pks: str) -> list[int]:
+    """Parse the legacy comma ``pks`` string into a v4 parent-id list (drops 0)."""
+    if not pks or pks == "0":
+        return []
+    return [int(pk) for pk in pks.split(",") if pk not in {"", "0"}]
 
 
 class SimpleRouteSerializer(Serializer):
@@ -19,14 +35,23 @@ class SimpleRouteSerializer(Serializer):
 
     @override
     def to_representation(self, instance) -> dict:
-        """Allow submission of sequences instead of strings for pks."""
+        """
+        Emit both dialects during the migration.
+
+        The legacy ``group``/``pks`` keys are kept for the current
+        frontend; ``collection``/``parentIds`` are added for the v4
+        frontend. Sequences are still accepted for ``pks``.
+        """
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         pks = instance["pks"]
         if not pks:
             instance["pks"] = "0"
         elif not isinstance(pks, str):
             instance["pks"] = ",".join(str(pk) for pk in sorted(pks))
-        return super().to_representation(instance)
+        data = super().to_representation(instance)
+        data["collection"] = _collection_for_group(instance.get("group"))
+        data["parent_ids"] = _parent_ids_for(instance["pks"])
+        return data
 
     @override
     def to_internal_value(self, data) -> dict:
