@@ -22,6 +22,10 @@ urlpatterns = [
     ),
     path("admin/<str:tab>", IndexView.as_view(), name="admin"),
     path("error/<int:code>", IndexView.as_view(), name="error"),
+    # Client-side auth route reached from an emailed link. Must serve the SPA
+    # so Vue Router can render the reset screen; without it the catch-all below
+    # would redirect the link to the home page.
+    path("auth/reset-password/", IndexView.as_view(), name="reset-password"),
     path("", IndexView.as_view(), name="start"),
     re_path(
         ".*",

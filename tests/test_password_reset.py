@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
+from django.urls import resolve
 from rest_registration.signers.reset_password import ResetPasswordSigner
 
 from codex.choices.admin import AdminFlagChoices
@@ -82,6 +83,21 @@ def _ensure_admin_flags() -> None:
     AdminFlag.objects.filter(key=AdminFlagChoices.REGISTER_VERIFICATION.value).update(
         on=False
     )
+
+
+class ResetPasswordRouteTests(TestCase):
+    """The emailed reset link must reach the SPA, not the catch-all redirect."""
+
+    def test_reset_password_path_resolves_to_spa_index(self) -> None:
+        """
+        ``/auth/reset-password/`` resolves to the SPA index view.
+
+        Regression: the path was not enumerated in the app urlconf, so it
+        fell through to the catch-all ``RedirectView`` and 302'd the emailed
+        link to the home page — the reset screen never rendered.
+        """
+        match = resolve("/auth/reset-password/")
+        assert match.view_name == "app:reset-password"
 
 
 class PasswordResetDisabledTests(TestCase):
@@ -165,6 +181,43 @@ class PasswordResetEnabledTests(TestCase):
         assert "user_id=" in body
         assert "timestamp=" in body
         assert "signature=" in body
+
+    def test_reset_email_link_not_html_escaped(self) -> None:
+        """
+        The emailed link must use raw ``&`` separators, not ``&amp;``.
+
+        body.txt is a plain-text template; Django autoescaping turns the
+        URL's ``&`` into ``&amp;``, which corrupts the query string when the
+        link is clicked (the params parse as ``amp;timestamp`` etc.). The
+        ``|safe`` filter on ``verification_url`` keeps the URL intact.
+        """
+        response = self.client.post(
+            _SEND_RESET_URL,
+            data={"login": "alice"},
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK
+        assert len(mail.outbox) == 1
+        body = mail.outbox[0].body
+        assert "&amp;" not in body
+        assert "&timestamp=" in body
+        assert "&signature=" in body
+
+    def test_reset_email_link_includes_username(self) -> None:
+        """
+        The link carries the username so the reset screen can show it.
+
+        Display-only: the reset is gated by the signed user_id/timestamp/
+        signature, never by this param.
+        """
+        response = self.client.post(
+            _SEND_RESET_URL,
+            data={"login": "alice"},
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK
+        assert len(mail.outbox) == 1
+        assert "&username=alice" in mail.outbox[0].body
 
     def test_send_reset_link_sends_email_by_email(self) -> None:
         """Email also resolves to the user via USER_LOGIN_FIELDS."""

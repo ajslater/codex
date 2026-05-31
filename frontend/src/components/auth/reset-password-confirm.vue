@@ -2,6 +2,9 @@
   <v-container class="resetConfirmContainer">
     <v-card class="resetConfirmCard" max-width="22em">
       <v-card-title>Reset Password</v-card-title>
+      <v-card-subtitle v-if="username" class="resetUsername">
+        {{ username }}
+      </v-card-subtitle>
       <v-card-text>
         <div v-if="!signaturePresent" class="codexFormError">
           This password-reset link is missing required parameters. Use the link
@@ -46,7 +49,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -71,12 +74,19 @@ export default {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
     }),
+    ...mapWritableState(useAuthStore, ["showLoginDialog"]),
     signaturePresent() {
       // rest-registration emits snake_case query params in the email
       // link. Read them as-is from the URL even though the JSON API
       // request below uses camelCase keys (the parser snake_case-ifies).
       const q = this.$route.query;
       return Boolean(q.user_id && q.timestamp && q.signature);
+    },
+    username() {
+      // Display-only, carried by the email link so the user can confirm which
+      // account they're resetting. The reset itself is gated by the signed
+      // user_id/timestamp/signature, never by this value.
+      return this.$route.query.username || "";
     },
     rules() {
       return {
@@ -126,8 +136,12 @@ export default {
         password: this.password,
       });
       if (ok) {
-        // Allow the success banner to remain visible briefly, then route home.
-        setTimeout(() => this.goHome(), 2000);
+        // Let the success banner show briefly, then send the user home with
+        // the login dialog open so they can sign in with their new password.
+        setTimeout(() => {
+          this.showLoginDialog = true;
+          this.goHome();
+        }, 2000);
       }
     },
   },
@@ -144,6 +158,13 @@ export default {
 
 .resetConfirmCard {
   padding: 1em;
+}
+
+// The account being reset — identifying info, so keep it fully legible
+// rather than the muted, single-line-truncated default subtitle.
+.resetUsername {
+  opacity: 1;
+  white-space: normal;
 }
 
 .hint {
