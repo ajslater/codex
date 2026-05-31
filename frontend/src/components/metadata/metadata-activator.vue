@@ -5,7 +5,7 @@
     :variant="variant"
     :icon="mdiTagOutline"
     title="Tags"
-    @mouseenter="lazyImportEnabled ? onMouseEnter : null"
+    @mouseenter="onMouseEnter"
     @click.prevent
   />
 </template>
@@ -34,7 +34,7 @@ export default {
     }),
     lazyImportEnabled() {
       return (
-        this.stateLazyImportMetadata &&
+        this.stateLazyImportEnabled &&
         this.book &&
         this.book.group === "c" &&
         !this.book.hasMetadata &&
