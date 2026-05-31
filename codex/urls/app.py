@@ -14,6 +14,23 @@ app_name = "app"
 BOOK_AGE: Final = 60 * 60 * 24 * 7
 
 urlpatterns = [
+    # v4 collection-based SPA routes. ``IndexView`` ignores the URL kwargs
+    # (it only serves the SPA shell + injects last_route); these patterns
+    # exist so deep links / refreshes on the new URLs serve the app instead
+    # of hitting the catch-all redirect. ``page`` is a ``?page=`` query param.
+    path("<collection:collection>", IndexView.as_view(), name="browser_root"),
+    path(
+        "<collection:collection>/<int_list:parent_ids>",
+        IndexView.as_view(),
+        name="browser",
+    ),
+    path("read/<int:pk>", IndexView.as_view(), name="reader"),
+    path(
+        "read/<int:pk>/book.pdf",
+        cache_control(max_age=BOOK_AGE)(FileView.as_view()),
+        name="reader_pdf",
+    ),
+    # Legacy single-char routes, kept until the frontend flips to collections.
     path("<group:group>/<int_list:pks>/<int:page>", IndexView.as_view(), name="route"),
     path(
         "c/<int:pk>/book.pdf",
