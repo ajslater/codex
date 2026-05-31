@@ -43,9 +43,6 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, ["isAuthorized", "isUserAdmin"]),
-    ...mapState(useAuthStore, {
-      registration: (state) => state.adminFlags.registration,
-    }),
     ...mapState(useBrowserStore, ["isFiltersClearable"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
