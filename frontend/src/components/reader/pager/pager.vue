@@ -52,14 +52,14 @@ export default {
   watch: {
     $route(to) {
       if (+to.params.pk === this.book.pk) {
-        this.setActivePage(+to.params.page, true);
+        this.setActivePage(Number(to.query.page) || 0, true);
       }
     },
   },
   created() {
     if (this.isActiveBook) {
       // Active Book
-      this.setActivePage(+this.$route.params.page, true);
+      this.setActivePage(Number(this.$route.query.page) || 0, true);
     }
   },
   methods: {

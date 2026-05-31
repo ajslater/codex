@@ -34,7 +34,7 @@ const routes = [
   },
   {
     name: "reader",
-    path: "/c/:pk/:page",
+    path: "/read/:pk",
     component: MainReader,
   },
   {

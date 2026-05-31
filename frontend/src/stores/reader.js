@@ -487,7 +487,11 @@ export const useReaderStore = defineStore("reader", {
          * document, so a page change is a v-window slide — no real
          * route change. Update the URL via pushState instead.
          */
-        const route = { params: { pk: this.books.current.pk, page } };
+        const route = {
+          name: "reader",
+          params: { pk: this.books.current.pk },
+          query: { page },
+        };
         const { href } = router.resolve(route);
         globalThis.history.pushState({}, undefined, href);
       }
@@ -842,7 +846,11 @@ export const useReaderStore = defineStore("reader", {
       if (this.isPagesNotRoutes && +params.pk === this.books.current.pk) {
         this.setActivePage(+params.page, true);
       } else {
-        const route = { name: "reader", params };
+        const route = {
+          name: "reader",
+          params: { pk: params.pk },
+          query: { page: params.page },
+        };
         router.push(route).catch(console.debug);
       }
     },

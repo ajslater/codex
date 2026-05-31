@@ -78,7 +78,8 @@ export const getReaderRoute = (
   }
   return {
     name: "reader",
-    params: { pk, page },
+    params: { pk },
+    query: { page },
   };
 };
 

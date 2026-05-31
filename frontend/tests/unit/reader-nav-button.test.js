@@ -13,9 +13,7 @@ const BTN_DISABLED = "v-btn--disabled";
 const setupRouter = function () {
   return createRouter({
     history: createWebHistory(),
-    routes: [
-      { path: "/c/:pk/:page", name: "reader", component: ReaderNavButton },
-    ],
+    routes: [{ path: "/read/:pk", name: "reader", component: ReaderNavButton }],
   });
 };
 
@@ -24,7 +22,7 @@ test("reader-nav-button", async () => {
   expect(ReaderNavButton).toBeTruthy();
 
   const router = setupRouter();
-  router.push("/c/2/0");
+  router.push("/read/2?page=0");
   await router.isReady();
   const store = createTestingPinia({
     initialState: { reader: { books: { current: { pk: 0 } }, page: 0 } },
@@ -50,14 +48,20 @@ test("reader-nav-button", async () => {
 
   expect(btn.classes(BTN_DISABLED)).toBe(true);
   await wrapper.vm.$router.push({
-    params: { pk: 2, page: 10 },
+    name: "reader",
+    params: { pk: 2 },
+    query: { page: 10 },
   });
   readerStore.page = 10;
   await wrapper.vm.$nextTick();
   expect(btn.classes(BTN_DISABLED)).toBe(false);
 
   // push back to original state
-  await wrapper.vm.$router.push({ params: { pk: 2, page: 0 } });
+  await wrapper.vm.$router.push({
+    name: "reader",
+    params: { pk: 2 },
+    query: { page: 0 },
+  });
   readerStore.page = 0;
   await wrapper.vm.$nextTick();
   expect(btn.classes(BTN_DISABLED)).toBe(true);

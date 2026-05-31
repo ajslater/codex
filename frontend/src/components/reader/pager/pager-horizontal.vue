@@ -121,7 +121,7 @@ export default {
   created() {
     if (this.book.pk === this.storePk) {
       // Active Book
-      this.activePage = +this.$route.params.page;
+      this.activePage = Number(this.$route.query.page) || 0;
     } else if (this.book.pk === this.prevBook.pk) {
       // Prev Book
       this.activePage = this.book?.maxPage || 0;
