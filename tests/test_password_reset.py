@@ -242,7 +242,7 @@ class PasswordResetEnabledTests(TestCase):
         # The plain-text part remains the fallback body.
         assert "/auth/reset-password/" in msg.body
         # Exactly one HTML alternative, carrying the button + the signed link.
-        html_parts = [c for c, mime in msg.alternatives if mime == "text/html"]
+        html_parts = [c for c, mime in msg.alternatives if mime == "text/html"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         assert len(html_parts) == 1
         html = html_parts[0]
         assert "Reset Password" in html
