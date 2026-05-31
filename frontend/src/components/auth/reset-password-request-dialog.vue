@@ -15,11 +15,7 @@
         Forgot password?
       </v-btn>
     </template>
-    <div v-if="resetPasswordRequestSent" class="codexFormSuccess">
-      If that account has an email on file, a reset link has been sent.
-      <CloseButton @click="close" />
-    </div>
-    <v-form v-else ref="form" class="resetRequestForm">
+    <v-form ref="form" class="resetRequestForm">
       <h2>Reset Password</h2>
       <p class="hint">
         Enter your username or email address. If an account exists, a reset link
@@ -45,17 +41,15 @@
 </template>
 
 <script>
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapWritableState } from "pinia";
 
 import authFormMixin from "@/components/auth/auth-form-mixin";
-import CloseButton from "@/components/close-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "ResetPasswordRequestDialog",
   components: {
-    CloseButton,
     SubmitFooter,
   },
   mixins: [authFormMixin],
@@ -70,9 +64,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
-      resetPasswordRequestSent: (state) => state.resetPasswordRequestSent,
-    }),
     ...mapWritableState(useAuthStore, ["showResetPasswordRequestDialog"]),
   },
   watch: {
@@ -82,16 +73,11 @@ export default {
     showResetPasswordRequestDialog(open) {
       if (open) {
         this.login = "";
-        this.resetSentState(false);
       }
     },
   },
   methods: {
     ...mapActions(useAuthStore, ["sendResetPasswordLink"]),
-    resetSentState(value) {
-      // Direct store mutation to clear the success state between opens.
-      useAuthStore().$patch({ resetPasswordRequestSent: value });
-    },
     close() {
       this.showResetPasswordRequestDialog = false;
     },
@@ -104,10 +90,14 @@ export default {
       if (!valid) {
         return;
       }
-      // Returns success regardless of whether the user exists (the API
-      // deliberately doesn't leak account presence). Show the same
-      // "check your email" message either way.
-      await this.sendResetPasswordLink(this.login);
+      // The API returns success whether or not the account exists (it
+      // deliberately doesn't leak account presence). Close the dialog; the
+      // green "Reset link sent" banner on the login screen is the only
+      // confirmation needed.
+      const ok = await this.sendResetPasswordLink(this.login);
+      if (ok) {
+        this.close();
+      }
     },
   },
 };
@@ -124,13 +114,6 @@ export default {
 .hint {
   font-size: 0.875em;
   color: rgba(var(--v-theme-on-surface), 0.75);
-}
-
-.codexFormSuccess {
-  padding: 20px;
-  font-size: larger;
-  color: rgb(var(--v-theme-success));
-  text-align: center;
 }
 
 .forgotPasswordLink {

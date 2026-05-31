@@ -34,7 +34,6 @@ export const useAuthStore = defineStore("auth", {
     showProfileDialog: false,
     showAuthTokenDialog: false,
     showResetPasswordRequestDialog: false,
-    resetPasswordRequestSent: false,
   }),
   getters: {
     isAuthorized() {
@@ -182,7 +181,6 @@ export const useAuthStore = defineStore("auth", {
       const commonStore = useCommonStore();
       return API.sendResetPasswordLink(login)
         .then((response) => {
-          this.resetPasswordRequestSent = true;
           commonStore.setSuccess(response.data.detail);
           return true;
         })

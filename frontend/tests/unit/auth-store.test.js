@@ -72,24 +72,23 @@ describe("useAuthStore — updateProfile", () => {
 });
 
 describe("useAuthStore — sendResetPasswordLink", () => {
-  it("posts the login string and flips resetPasswordRequestSent", async () => {
+  it("posts the login string and sets the success banner", async () => {
     API.sendResetPasswordLink.mockResolvedValue({
       data: { detail: "Reset link sent" },
     });
     const store = useAuthStore();
-    expect(store.resetPasswordRequestSent).toBe(false);
     const ok = await store.sendResetPasswordLink("alice");
     expect(ok).toBe(true);
     expect(API.sendResetPasswordLink).toHaveBeenCalledWith("alice");
-    expect(store.resetPasswordRequestSent).toBe(true);
+    // The green banner shown on the login screen comes from commonStore.
+    expect(useCommonStore().form.success).toBe("Reset link sent");
   });
 
-  it("returns false and does not flip the sent flag on error", async () => {
+  it("returns false on error", async () => {
     API.sendResetPasswordLink.mockRejectedValue(new Error("boom"));
     const store = useAuthStore();
     const ok = await store.sendResetPasswordLink("alice");
     expect(ok).toBe(false);
-    expect(store.resetPasswordRequestSent).toBe(false);
   });
 });
 

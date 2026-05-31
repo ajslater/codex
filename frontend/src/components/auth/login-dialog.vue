@@ -12,7 +12,7 @@
         :title="loginLabel"
       />
     </template>
-    <v-form id="authDialog" ref="form">
+    <v-form id="authDialog" ref="form" validate-on="submit">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
