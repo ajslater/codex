@@ -212,14 +212,49 @@ export default {
       }
       return out;
     },
+    isValid() {
+      // Synchronous, client-side validity that mirrors the field `:rules`, so
+      // the Save button stays in lockstep with the inline errors the user sees
+      // while typing — without calling the async form.validate(). The password
+      // rules only gate Save once the user actually starts entering a password;
+      // an open-but-empty "Change Password" panel shouldn't block a profile
+      // edit. submit() still runs the authoritative form.validate().
+      const passes = (rules, value) =>
+        rules.every((rule) => rule(value) === true);
+      if (!passes(this.rules.username, this.profile.username)) {
+        return false;
+      }
+      if (!passes(this.rules.email, this.profile.email)) {
+        return false;
+      }
+      const enteringPassword = Boolean(
+        this.profile.oldPassword ||
+        this.profile.password ||
+        this.profile.passwordConfirm,
+      );
+      if (enteringPassword) {
+        const { oldPassword, password, passwordConfirm } = this.passwordRules;
+        if (
+          !passes(oldPassword, this.profile.oldPassword) ||
+          !passes(password, this.profile.password) ||
+          !passes(passwordConfirm, this.profile.passwordConfirm)
+        ) {
+          return false;
+        }
+      }
+      return true;
+    },
     canSubmit() {
+      // Enable Save only when there is a change to save AND every field is
+      // client-side valid. Each field also validates itself inline as you
+      // type (Vuetify's default validate-on="input").
       const profileChanged = Object.keys(this.diff).length > 0;
       const passwordFilled =
         this.passwordSectionActive &&
         this.profile.oldPassword &&
         this.profile.password &&
         this.profile.passwordConfirm;
-      return (profileChanged || passwordFilled) && this.submitButtonEnabled;
+      return Boolean(profileChanged || passwordFilled) && this.isValid;
     },
   },
   watch: {
@@ -229,11 +264,12 @@ export default {
       }
     },
   },
-  // Used by the auth-form-mixin watcher (it deep-watches `credentials`).
-  // We watch `profile` instead by aliasing it under the same name.
-  created() {
-    this.credentials = this.profile;
-  },
+  // This dialog opts out of the auth-form-mixin's live `credentials` watcher
+  // (we don't alias `profile` onto `credentials`), so the mixin never
+  // re-validates the *whole* form on every keystroke — that flashed "required"
+  // errors on fields the user hadn't touched yet. Each field still validates
+  // itself inline as you type, and `canSubmit`/`isValid` gate the Save button
+  // synchronously. (The mixin is still used for keyup blocking + form state.)
   methods: {
     ...mapActions(useAuthStore, [
       "updateProfile",
