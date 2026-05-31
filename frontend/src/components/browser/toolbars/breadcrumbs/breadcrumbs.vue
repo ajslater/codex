@@ -22,6 +22,7 @@ import {
 import { mapState } from "pinia";
 import { toRaw } from "vue";
 
+import { routeForGroup } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
@@ -75,8 +76,21 @@ export default {
        * proxy that ``structuredClone`` can refuse to clone.
        */
       const { name: _name, ...params } = toRaw(crumb);
-      const to = { name: "browser", params };
-      to.query = { ts: this.timestamp };
+      const { collection, parentIds } = routeForGroup({
+        group: params.group,
+        pks: params.pks,
+      });
+      const to = {
+        name: "browser",
+        params: parentIds.length
+          ? { collection, parentIds: parentIds.join(",") }
+          : { collection },
+      };
+      const query = { ts: this.timestamp };
+      if (params.page && Number(params.page) !== 1) {
+        query.page = Number(params.page);
+      }
+      to.query = query;
       if (parentPks) {
         to.hash = `#card-${parentPks}`;
       }

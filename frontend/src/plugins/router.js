@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import { lastRoute } from "@/choices/browser-defaults.json";
+import { routeForGroup } from "@/route";
 const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
@@ -21,9 +22,17 @@ const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
 const ResetPasswordConfirm = () =>
   import("@/components/auth/reset-password-confirm.vue");
 
+const _lr = globalThis.CODEX.LAST_ROUTE || lastRoute;
+const { collection: _lrCollection, parentIds: _lrParentIds } = routeForGroup({
+  group: _lr.group,
+  pks: _lr.pks,
+});
 const LAST_ROUTE = {
   name: "browser",
-  params: globalThis.CODEX.LAST_ROUTE || lastRoute,
+  params: _lrParentIds.length
+    ? { collection: _lrCollection, parentIds: _lrParentIds.join(",") }
+    : { collection: _lrCollection },
+  query: _lr.page && Number(_lr.page) !== 1 ? { page: Number(_lr.page) } : {},
 };
 
 const routes = [
@@ -39,7 +48,7 @@ const routes = [
   },
   {
     name: "browser",
-    path: "/:group/:pks/:page",
+    path: "/:collection(publishers|imprints|series|volumes|comics|folders|arcs)/:parentIds([\\d,]+)?",
     component: MainBrowser,
   },
   {

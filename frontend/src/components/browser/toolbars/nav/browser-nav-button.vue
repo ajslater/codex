@@ -52,7 +52,7 @@ export default {
       return this.back ? -1 : 1;
     },
     page() {
-      return +this.$route.params.page;
+      return Number(this.$route.query.page) || 1;
     },
     routeParams() {
       return this.$route.params;
@@ -61,8 +61,11 @@ export default {
       return this.page + this.increment;
     },
     toRoute() {
-      const params = { ...this.routeParams, page: this.toPage };
-      return { params };
+      return {
+        name: "browser",
+        params: this.routeParams,
+        query: { page: this.toPage },
+      };
     },
     title() {
       return this.showMore ? "Search for More" : "Page " + this.toPage;

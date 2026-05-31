@@ -81,6 +81,7 @@ import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BrowserEmptyState from "@/components/browser/empty.vue";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
+import { routeForGroup } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
@@ -309,9 +310,20 @@ export default {
       }
       const group = row.group ?? "c";
       const pks = row.ids ?? [row.pk];
-      const path =
-        group === "c" ? `/c/${pks[0]}/1` : `/${group}/${pks.join(",")}/1`;
-      this.$router.push(path);
+      if (group === "c") {
+        this.$router.push({ name: "reader", params: { pk: pks[0] } });
+        return;
+      }
+      const { collection, parentIds } = routeForGroup({
+        group,
+        pks: pks.join(","),
+      });
+      this.$router.push({
+        name: "browser",
+        params: parentIds.length
+          ? { collection, parentIds: parentIds.join(",") }
+          : { collection },
+      });
     },
     cellClasses(column, isHeader) {
       /*

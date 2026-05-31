@@ -16,6 +16,7 @@ import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-colum
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
+import { groupForRoute, routeForGroup } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
 const GROUPS = Object.freeze("rpisvc");
@@ -115,18 +116,63 @@ function _defaultOrderFor(topGroup, viewMode) {
   return _DEFAULT_SINGLE_ORDER;
 }
 
-function cloneRoute(route) {
-  return {
-    ...route,
-    matched: route.matched.map(({ instances, ...rest }) => ({
-      ...rest,
-    })),
-  };
-}
+/*
+ * Read the live browser route as the internal {group, pks, page} shape the
+ * store logic expects. parentIds is the raw "5,7" segment (or undefined =>
+ * root "0"); page is the ?page= query as a string (default "1"), matching the
+ * legacy path-param shape so the redirect/dequal logic below is unchanged.
+ */
+const liveBrowseParams = () => {
+  const route = router.currentRoute.value;
+  const parentIds = route.params.parentIds;
+  const { group } = groupForRoute({
+    collection: route.params.collection,
+    parentIds,
+  });
+  const pks = parentIds && parentIds.length ? parentIds : "0";
+  return { group, pks, page: String(route.query.page || 1) };
+};
+
+/*
+ * Convert an internal {name, params:{group, pks, page}} browser route into a
+ * pushable v4 collection route. Idempotent: an already-collection route passes
+ * through. A numeric page is kept in the query even when 1 (the validate logic
+ * uses a numeric page to force a breadcrumb-repopulating redirect); a string
+ * "1" is dropped for a clean root URL.
+ */
+const toBrowseRoute = (route) => {
+  const params = route?.params || {};
+  if (params.collection !== undefined && params.group === undefined) {
+    return route;
+  }
+  const { collection, parentIds } = routeForGroup({
+    group: params.group,
+    pks: params.pks,
+  });
+  const out = { name: route?.name || "browser", params: { collection } };
+  if (parentIds.length) {
+    out.params.parentIds = parentIds.join(",");
+  }
+  const query = { ...(route?.query || {}) };
+  const page = params.page;
+  if (
+    page !== undefined &&
+    (typeof page === "number" || String(page) !== "1")
+  ) {
+    query.page = Number(page);
+  }
+  if (Object.keys(query).length) {
+    out.query = query;
+  }
+  if (route?.hash) {
+    out.hash = route.hash;
+  }
+  return out;
+};
 
 const redirectRoute = (route) => {
   if (route && route.params) {
-    router.push(route).catch(console.warn);
+    router.push(toBrowseRoute(route)).catch(console.warn);
   }
 };
 
@@ -301,19 +347,12 @@ export const useBrowserStore = defineStore("browser", {
     lastRoute(state) {
       const params =
         state.settings?.breadcrumbs?.at(-1) || globalThis.CODEX.LAST_ROUTE;
-      const route = {};
-      if (params) {
-        route.name = "browser";
-        delete params.name;
-        route.params = params;
-      } else {
-        route.name = "home";
-      }
-      return route;
+      return params
+        ? toBrowseRoute({ name: "browser", params })
+        : { name: "home" };
     },
     coverSettings(state) {
-      const params = router.currentRoute.value.params;
-      const group = params.group;
+      const { group, pks } = liveBrowseParams();
       if (group == "c") {
         return {};
       }
@@ -324,8 +363,7 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-      const pks = params.pks;
-      if (!dc && group !== "r" && pks) {
+      if (!dc && group !== "r" && pks && pks !== "0") {
         settings["parentRoute"] = {
           group,
           pks,
@@ -340,8 +378,8 @@ export const useBrowserStore = defineStore("browser", {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
     },
     routeKey() {
-      const params = router.currentRoute.value.params;
-      return `${params.group}:${params.pk}:${params.page}`;
+      const { group, pks, page } = liveBrowseParams();
+      return `${group}:${pks}:${page}`;
     },
   },
   actions: {
@@ -439,7 +477,7 @@ export const useBrowserStore = defineStore("browser", {
       // If first search redirect to lowest group and change order
       data.orderBy = "search_score";
       data.orderReverse = true;
-      const group = router.currentRoute.value.params?.group;
+      const group = liveBrowseParams().group;
       if (
         NO_REDIRECT_ON_SEARCH_GROUPS.has(group) ||
         group === this.lowestShownGroup
@@ -453,7 +491,7 @@ export const useBrowserStore = defineStore("browser", {
        * If the top group changed supergroups or we're at the root group and the new
        * top group is above the proper nav group
        */
-      const currentParams = router?.currentRoute?.value?.params;
+      const currentParams = liveBrowseParams();
       const currentGroup = currentParams?.group;
       const newTopGroup = data.topGroup;
       if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
@@ -576,7 +614,7 @@ export const useBrowserStore = defineStore("browser", {
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
       redirect = this._validateTopGroup(data, redirect);
-      if (dequal(redirect?.params, router.currentRoute.value.params)) {
+      if (dequal(redirect?.params, liveBrowseParams())) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;
       }
@@ -669,10 +707,10 @@ export const useBrowserStore = defineStore("browser", {
      * ROUTE
      */
     routeToPage(page) {
-      const origRoute = router.currentRoute.value;
-      const route = cloneRoute(origRoute);
-      route.params.page = page;
-      router.push(route).catch(console.warn);
+      const params = { ...liveBrowseParams(), page };
+      router
+        .push(toBrowseRoute({ name: "browser", params }))
+        .catch(console.warn);
     },
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error?.response?.status)) {
@@ -701,7 +739,7 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      const group = router?.currentRoute?.value.params?.group;
+      const group = liveBrowseParams().group;
       await API.getSettings({ group })
         .then((response) => {
           const data = response.data;
@@ -784,7 +822,7 @@ export const useBrowserStore = defineStore("browser", {
           : this.settings;
       try {
         const response = await API.getBrowserPage(
-          route.params,
+          liveBrowseParams(),
           requestSettings,
           mtime,
           { signal },
@@ -815,7 +853,7 @@ export const useBrowserStore = defineStore("browser", {
       const signal = useAbortable("browser:loadAvailableFilterChoices");
       try {
         const response = await API.getAvailableFilterChoices(
-          router.currentRoute.value.params,
+          liveBrowseParams(),
           this.filterOnlySettings,
           this.page.mtime,
           { signal },
@@ -835,7 +873,7 @@ export const useBrowserStore = defineStore("browser", {
       const signal = useAbortable(`browser:loadFilterChoices:${fieldName}`);
       try {
         const response = await API.getFilterChoices(
-          { ...router.currentRoute.value.params, fieldName },
+          { ...liveBrowseParams(), fieldName },
           this.filterOnlySettings,
           this.page.mtime,
           { signal },
@@ -866,11 +904,9 @@ export const useBrowserStore = defineStore("browser", {
         // round-trip required.
         return true;
       }
-      const params = router?.currentRoute?.value?.params;
-      const routeGroup = params?.group;
+      const { group: routeGroup, pks } = liveBrowseParams();
       const group =
         routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
-      const pks = params?.pks || "0";
       const arcs = [{ group, pks }];
       /*
        * Dedup so concurrent callers (websocket fan-out across the
@@ -898,7 +934,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       this._validateAndSaveSettings(settings);
       // ignore redirect
-      router.push(route).catch(console.error);
+      router.push(toBrowseRoute(route)).catch(console.error);
     },
     /*
      * SAVED SETTINGS
