@@ -23,7 +23,7 @@ from codex.serializers.admin.tagging import (
     OnlineTagStartSerializer,
 )
 from codex.views.admin.auth import AdminAPIView
-from codex.views.admin.tagwrite import _resolve_comic_pks
+from codex.views.admin.tagwrite import FilteredComicPksView
 
 
 class AdminOnlineTagActiveView(AdminAPIView):
@@ -35,7 +35,7 @@ class AdminOnlineTagActiveView(AdminAPIView):
         return Response({"session_id": sid})
 
 
-class AdminOnlineTagStartView(AdminAPIView):
+class AdminOnlineTagStartView(FilteredComicPksView):
     """Start an online tagging session."""
 
     def post(self, request):
@@ -44,7 +44,7 @@ class AdminOnlineTagStartView(AdminAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        comic_pks = _resolve_comic_pks(data["group"], data["pks"])
+        comic_pks = self.resolve_comic_pks(data["group"], data["pks"])
         if not comic_pks:
             return Response({"detail": "No comics matched."}, status=400)
 
