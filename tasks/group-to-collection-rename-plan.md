@@ -43,25 +43,41 @@
   property + every reader, the serializer field + payload key, frontend
   `page.modelCollection`.
 
-**REMAINING (invisible engine internals + a couple of small bits):**
-1. **The engine `kwargs["group"]` nav key** (~50 set/read sites: AuthMixin sets
-   it, every browser/reader/OPDS view reads it) + the route-dict `{"group",
-   "pks"}` masks (~32) + the `Route` dataclass (`views/util.py`) + the
-   RouteSerializer INPUT field + mtime/cover consumers. ⚠️ ATTEMPTED + REVERTED:
-   a `kwargs["group"]`→`kwargs["collection"]` pass broke OPDS + favorites in
-   non-obvious set/read-inconsistency ways. This is **invisible** (the route
-   OUTPUT wire is already `collection`/`parentIds`) and overloaded (`"group":`
-   = websocket `ChannelGroups` + `task.group`), so it's low-value/high-risk —
-   do it slowly, one set/read pair at a time, with the OPDS + favorites suites
-   as the guard, NOT a bulk perl.
-2. mtime `groups` input key; the admin-CustomCover list field `group` (kept via
-   `source=`); the metadata `group` PROP name (carries a collection value).
-3. Frontend: `routeForGroup`/`groupForRoute` → `*Collection`,
-   `liveBrowseParams().group`, the internal `{group, pks}` engine shape.
+1. ✅ **DONE** (commit `737ef18d`, backend 405 / vitest 99 / ty unchanged):
+   **The engine `kwargs["group"]` nav key** → `kwargs["collection"]`. The prior
+   bulk attempt failed because the coupling was misread as one unit; it is
+   actually **two independent clusters**:
+   - **Cluster A (renamed):** the nav key itself — AuthMixin's setter + ~50
+     reads, the favorites/tagwrite/bookmark setters, the OPDS url-pattern
+     start/manifest defaults, and the OPDS masks that feed `opds_feed_reverse`.
+   - **Cluster B (kept as `group`):** the `Route` dataclass, browser redirect
+     masks, `DEFAULT_BROWSER_ROUTE`, the persisted `last_route`, and
+     `RouteSerializer` — these double as **frontend wire payloads** (the
+     RouteSerializer INPUT field is still `group`/`pks`; `last_route`
+     serializes `group`). Renaming them needs a coordinated FE flip; out of
+     scope for an internal-only pass.
+   Mechanics: AuthMixin now translates only when `"collection" in kwargs and
+   "pks" not in kwargs` (OPDS direct-kwarg routes carry `pks`); `opds_feed_reverse`
+   is the one choke point that accepts **both** dialects (engine `collection`,
+   wire-payload `group`); the manifest marker moved to `collection` (its view
+   inherits the browse machinery) while `position` stays `group` (progression
+   reads it directly, never hits the browse machinery).
 
-These are all internal/invisible (the entire wire + DB + code vocabulary is
-already `collection`). The engine `kwargs["group"]` is the only conceptually
-meaningful one left and it needs a careful, incremental, non-bulk pass.
+**REMAINING (cosmetic only — wire + DB + code vocabulary already `collection`):**
+2. **The `group` browse-row annotation** (`card.py` `_annotate_group`) + its
+   `OPDS1EntryObject.group` mirror + the ~14 `self.obj.group` readers in
+   `opds/v1/entry/*`. ⚠️ **BLOCKED from becoming `collection`:** `WatchedPath`
+   (Folder/CustomCover base) already declares a real `collection` CharField
+   (`models/paths.py:117`), and `_annotate_group` runs on Folder rows, so
+   `annotate(collection=...)` raises `FieldError`. The annotation is therefore
+   a *forced alias* — the wire already exposes it as `collection` (via
+   `source="group"` / `getattr(instance,"group")`). To unify the name it would
+   have to become a non-colliding third name (e.g. `nav_collection`), not
+   `collection`. Cosmetic; no behavior or wire change either way.
+3. Cluster B above (`Route`/redirect/`last_route`/RouteSerializer INPUT) +
+   `routeForGroup`/`groupForRoute`, `liveBrowseParams().group`, the internal
+   FE `{group, pks}` engine shape, mtime `groups` input key. All require the
+   coordinated FE wire flip; the engine itself is now `collection`.
 
 ## Goal
 
