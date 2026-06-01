@@ -21,7 +21,9 @@ from codex.views.const import EPOCH_START
 class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser, opds & metadata serializers."""
 
-    group = BrowseGroupField(read_only=True)
+    # Wire field ``collection``; the value comes from the ``group``
+    # annotation (an internal name the OPDS entry path still reads).
+    collection = BrowseGroupField(source="group", read_only=True)
     ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations

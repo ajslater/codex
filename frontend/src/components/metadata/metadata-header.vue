@@ -22,7 +22,7 @@
           :key="md.seriesList[0].ids"
           :value="md.seriesList[0]"
           group="series"
-          :highlight="'series' === md.group"
+          :highlight="'series' === md.collection"
         />
         <MetadataText
           v-if="md.volumeList?.length === 1"
@@ -30,14 +30,14 @@
           :key="md.volumeList[0].ids"
           :value="md.volumeList[0]"
           group="volumes"
-          :highlight="'volumes' === md.group"
+          :highlight="'volumes' === md.collection"
         />
         <MetadataText :value="seriesVolumeCount" class="subdued" />
         <MetadataText
           id="issue"
           :value="formattedIssueNumber"
           group="comics"
-          :highlight="'comics' === md.group"
+          :highlight="'comics' === md.collection"
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
@@ -72,7 +72,7 @@
         id="publisher"
         :key="md.publisherList[0].ids"
         group="publishers"
-        :highlight="'publishers' === md.group"
+        :highlight="'publishers' === md.collection"
         :value="md.publisherList[0]"
       />
       <MetadataText
@@ -80,7 +80,7 @@
         id="imprint"
         :key="md.imprintList[0].ids"
         group="imprints"
-        :highlight="'imprints' === md.group"
+        :highlight="'imprints' === md.collection"
         :value="md.imprintList[0]"
       />
     </div>

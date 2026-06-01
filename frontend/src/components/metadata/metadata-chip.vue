@@ -60,7 +60,7 @@ export default {
       topCollection: (state) => state.settings.topCollection,
     }),
     ...mapState(useMetadataStore, {
-      mdGroup: (state) => state.md.group,
+      mdGroup: (state) => state.md.collection,
       mdIds: (state) => state.md.ids,
     }),
     groupMode() {

@@ -99,7 +99,7 @@ export default {
       return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
     },
     sizeLabel() {
-      return this?.md?.group === "comics" ? "Size" : "Total Size";
+      return this?.md?.collection === "comics" ? "Size" : "Total Size";
     },
     fileType() {
       return this?.md?.fileType || "Unknown";

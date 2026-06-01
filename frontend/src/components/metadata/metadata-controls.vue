@@ -104,10 +104,10 @@ export default {
       } else if (md.fileName) {
         name = md.fileName;
       } else {
-        if (this.md.group === "folders") {
+        if (this.md.collection === "folders") {
           return [this.firstNameFromList(md.folderList)];
         }
-        if (this.md.group === "arcs") {
+        if (this.md.collection === "arcs") {
           return [this.firstNameFromList(md.storyArcList)];
         }
         const names = [
@@ -124,7 +124,7 @@ export default {
     },
     downloadItem() {
       return {
-        group: this.md?.group,
+        group: this.md?.collection,
         ids: this.md?.ids,
         childCount: this.md?.childCount,
         mtime: this.md?.mtime,
@@ -151,7 +151,7 @@ export default {
     },
     markReadItem() {
       let name = "";
-      const prefix = GROUP_MAP[this.md.group];
+      const prefix = GROUP_MAP[this.md.collection];
       if (prefix) {
         const nameList = this.md[prefix + "List"] || [];
         const names = nameList.map(({ name }) => name);
@@ -160,7 +160,7 @@ export default {
         name = this.md.name;
       }
       return {
-        group: this.md.group,
+        group: this.md.collection,
         ids: this.md.ids,
         finished: this.md.finished,
         name,
@@ -176,7 +176,7 @@ export default {
     controlBook() {
       return (
         this.book || {
-          group: this.md?.group,
+          group: this.md?.collection,
           pk: this.md?.ids?.[0],
           ids: this.md?.ids,
           childCount: this.md?.childCount,
