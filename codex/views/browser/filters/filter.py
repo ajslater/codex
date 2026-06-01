@@ -6,7 +6,7 @@ from typing import Final
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import Comic
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
@@ -39,24 +39,26 @@ _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
     {"cover", "choices", "bookmark", "download", "force_update"}
 )
 
-# Group codes whose transitive-favorite clauses introduce m2m JOINs on
+# Collection codes whose transitive-favorite clauses introduce m2m JOINs on
 # Comic (``folders`` and ``story_arc_numbers__story_arc``). When neither
 # code has any favorites the filter Q has no m2m clauses and Comic
 # queries don't need ``.distinct()``.
-_FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset({Group.FOLDER, Group.ARC})
+_FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset(
+    {Collection.FOLDER, Collection.ARC}
+)
 
-# Group code → comic-side ORM field used to "transitively" match a
+# Collection code → comic-side ORM field used to "transitively" match a
 # row in that group. ``folders`` and ``story_arc_numbers__story_arc``
 # are m2m relations on Comic that carry every ancestor folder / arc,
 # so a single favorited folder lights up every descendant comic.
 _FAVORITE_GROUP_COMIC_REL: Final[dict[str, str]] = {
-    Group.COMIC: "pk",
-    Group.PUBLISHER: "publisher_id",
-    Group.IMPRINT: "imprint_id",
-    Group.SERIES: "series_id",
-    Group.VOLUME: "volume_id",
-    Group.FOLDER: "folders",
-    Group.ARC: "story_arc_numbers__story_arc",
+    Collection.COMIC: "pk",
+    Collection.PUBLISHER: "publisher_id",
+    Collection.IMPRINT: "imprint_id",
+    Collection.SERIES: "series_id",
+    Collection.VOLUME: "volume_id",
+    Collection.FOLDER: "folders",
+    Collection.ARC: "story_arc_numbers__story_arc",
 }
 
 

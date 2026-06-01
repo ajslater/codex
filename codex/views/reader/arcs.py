@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from django.db.models import Max
 
 from codex.choices.admin import AdminFlagChoices
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import AdminFlag
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 # Drives both the ``show`` gate and the ``arcs`` dict key (collection-valued).
 _COMIC_ARC_FIELD_GROUPS = MappingProxyType(
     {
-        "series": Group.SERIES,
-        "volume": Group.VOLUME,
-        "parent_folder": Group.FOLDER,
+        "series": Collection.SERIES,
+        "volume": Collection.VOLUME,
+        "parent_folder": Collection.FOLDER,
     }
 )
 _COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_GROUPS)
@@ -50,7 +50,7 @@ class ReaderArcsView(ReaderParamsView):
                     continue
             elif not show.get(group):
                 # ``show`` is keyed by collection name now (publishers/…);
-                # ``group`` is the matching ``Group`` member.
+                # ``group`` is the matching ``Collection`` member.
                 continue
             field_names.append(field_name)
         return tuple(field_names)

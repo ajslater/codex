@@ -2,14 +2,14 @@
 
 from rest_framework.response import Response
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.mixins import OKSerializer
 from codex.views.auth import AuthGenericAPIView
 
 # Browse groups that resolve to a set of comics for lazy metadata import.
-_LAZY_IMPORT_GROUPS = frozenset({Group.COMIC, Group.FOLDER})
+_LAZY_IMPORT_GROUPS = frozenset({Collection.COMIC, Collection.FOLDER})
 
 
 class LazyImportView(AuthGenericAPIView):

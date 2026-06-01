@@ -5,13 +5,15 @@ from typing import Any
 
 from loguru import logger
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.serializers.fields.reader import VALID_ARC_GROUPS
 from codex.serializers.reader import ReaderViewInputSerializer
 from codex.views.reader.settings import ReaderSettingsBaseView
 
 # Top groups with no arc of their own — they read within the series scope.
-_SERIES_COLLAPSE_TOP_GROUPS = frozenset({Group.ROOT, Group.PUBLISHER, Group.IMPRINT})
+_SERIES_COLLAPSE_TOP_GROUPS = frozenset(
+    {Collection.ROOT, Collection.PUBLISHER, Collection.IMPRINT}
+)
 
 
 class ReaderParamsView(ReaderSettingsBaseView):
@@ -33,10 +35,12 @@ class ReaderParamsView(ReaderSettingsBaseView):
                 "top_group", browser=True
             )
             group = (
-                Group.SERIES if top_group in _SERIES_COLLAPSE_TOP_GROUPS else top_group
+                Collection.SERIES
+                if top_group in _SERIES_COLLAPSE_TOP_GROUPS
+                else top_group
             )
         if group not in VALID_ARC_GROUPS:
-            group = Group.SERIES
+            group = Collection.SERIES
         params["arc"]["group"] = group
 
     @staticmethod

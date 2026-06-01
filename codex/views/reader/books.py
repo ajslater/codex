@@ -7,7 +7,7 @@ from django.db.models.query import Q, QuerySet
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import Comic
 from codex.models.bookmark import Bookmark
 from codex.models.settings import SettingsReader
@@ -106,11 +106,11 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
     ) -> tuple[dict, tuple]:
         """Get ordering for query."""
         sort_name_annotations = {}
-        if self._selected_arc_group in {Group.SERIES, Group.VOLUME}:
+        if self._selected_arc_group in {Collection.SERIES, Collection.VOLUME}:
             parent_group = (
-                Group.IMPRINT
-                if self._selected_arc_group == Group.SERIES
-                else Group.SERIES
+                Collection.IMPRINT
+                if self._selected_arc_group == Collection.SERIES
+                else Collection.SERIES
             )
             show = self.get_from_settings("show", browser=True)
             sort_name_annotations = self.get_sort_name_annotations(

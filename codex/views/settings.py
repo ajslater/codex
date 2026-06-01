@@ -14,7 +14,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_COLLECTION_CHOICES,
     admin_default_route_for,
 )
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
@@ -32,7 +32,7 @@ from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 # an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
 # default; ``admin_default_route_for("publishers")`` yields the Root
 # redirect target.
-_FALLBACK_DEFAULT_TOP_GROUP = Group.PUBLISHER
+_FALLBACK_DEFAULT_TOP_GROUP = Collection.PUBLISHER
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -42,7 +42,12 @@ SETTINGS_BROWSER_SELECT_RELATED = ("show", "filters", "last_route")
 BROWSER_FILTER_ARGS = MappingProxyType({"name": ""})
 BROWSER_CREATE_ARGS = MappingProxyType({"name": ""})
 NULL_VALUES: frozenset = frozenset({"", None})
-_SHOW_KEYS = (Group.PUBLISHER, Group.IMPRINT, Group.SERIES, Group.VOLUME)
+_SHOW_KEYS = (
+    Collection.PUBLISHER,
+    Collection.IMPRINT,
+    Collection.SERIES,
+    Collection.VOLUME,
+)
 
 
 class SettingsBaseView(AuthFilterGenericAPIView, ABC):

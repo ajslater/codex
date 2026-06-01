@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
@@ -37,7 +37,9 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         """Validate and translate the submitted data."""
         group = self.kwargs.get("group")
         # If the target is recursive, strip everything but finished state data.
-        serializer_class = None if group == Group.COMIC else BookmarkFinishedSerializer
+        serializer_class = (
+            None if group == Collection.COMIC else BookmarkFinishedSerializer
+        )
 
         data = self.request.data
         if serializer_class:
@@ -78,7 +80,7 @@ class ComicBookmarkView(BookmarkView):
     """
     ``PATCH /api/v4/comics/{id}/bookmark`` — single-comic bookmark.
 
-    Synthesizes ``group=Group.COMIC`` and ``pks=(id,)`` so the
+    Synthesizes ``group=Collection.COMIC`` and ``pks=(id,)`` so the
     :class:`BookmarkView` body can run untouched. Body is
     ``{page, finished}``.
     """
@@ -87,6 +89,6 @@ class ComicBookmarkView(BookmarkView):
     def initial(self, request: "Request", *args, **kwargs):
         """Synthesize (group, pks) kwargs before BookmarkView dispatch."""
         pk = self.kwargs.pop("pk", None)
-        self.kwargs["group"] = Group.COMIC
+        self.kwargs["group"] = Collection.COMIC
         self.kwargs["pks"] = (pk,) if pk is not None else ()
         super().initial(request, *args, **kwargs)

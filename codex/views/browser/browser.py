@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.admin import AdminFlagChoices
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import (
     Comic,
     Folder,
@@ -208,7 +208,7 @@ class BrowserView(BrowserTitleView):
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
         try:
-            # Group once here; `add_group_by` is a no-op for Comic so the
+            # Collection once here; `add_group_by` is a no-op for Comic so the
             # book path is unaffected, and the group path no longer needs
             # a second call after ordering.
             qs = self.add_group_by(qs)
@@ -375,7 +375,9 @@ class BrowserView(BrowserTitleView):
         if columns:
             return tuple(columns)
         top_group = (
-            self.params.get("top_group") or self.kwargs.get("group") or Group.PUBLISHER
+            self.params.get("top_group")
+            or self.kwargs.get("group")
+            or Collection.PUBLISHER
         )
         stored = self.params.get("table_columns") or {}
         stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
@@ -394,7 +396,7 @@ class BrowserView(BrowserTitleView):
             # the card grid without a second round-trip.
             columns = self._resolve_table_columns()
             data["columns"] = columns
-            # Group rows in the table view show **intersections** of
+            # Collection rows in the table view show **intersections** of
             # column values across their child comics: M2M values
             # shared by every comic, scalars where every comic has
             # the same value. Computed after pagination so the work

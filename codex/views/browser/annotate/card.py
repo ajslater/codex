@@ -11,7 +11,7 @@ from django.db.models import (
 )
 from django.db.models.fields import CharField
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
@@ -48,7 +48,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         Frontend routing metadata: the table view reads it to tell a Comic
         row from a group node and to build the next route's collection.
         """
-        group = Group.COMIC if qs.model is Comic else self.model_group
+        group = Collection.COMIC if qs.model is Comic else self.model_group
         return qs.annotate(group=Value(str(group), CharField(max_length=16)))
 
     def _annotate_file_name(self, qs):

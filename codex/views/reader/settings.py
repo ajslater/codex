@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.reader import READER_DEFAULTS
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import Comic, Folder, Series
 from codex.models.named import StoryArc
 from codex.models.settings import ClientChoices, SettingsReader
@@ -25,19 +25,21 @@ from codex.views.settings import NULL_VALUES, SettingsBaseView
 # publishers/imprints/series/volumes all resolve to the series scope;
 # "folders" and "arcs" are their own scopes.
 _GLOBAL_SCOPE = "global"
-_COMIC_SCOPE = Group.COMIC
+_COMIC_SCOPE = Collection.COMIC
 # Series-aliased scopes collapse to the canonical "series" scope in responses.
-_SERIES_ALIAS_SCOPES = frozenset({Group.PUBLISHER, Group.IMPRINT, Group.VOLUME})
+_SERIES_ALIAS_SCOPES = frozenset(
+    {Collection.PUBLISHER, Collection.IMPRINT, Collection.VOLUME}
+)
 _SCOPE_MAP = MappingProxyType(
     {
         _GLOBAL_SCOPE: (None, None, None),
         _COMIC_SCOPE: ("comic_id", None, None),
-        Group.PUBLISHER: ("series_id", "series_id", Series),
-        Group.IMPRINT: ("series_id", "series_id", Series),
-        Group.SERIES: ("series_id", "series_id", Series),
-        Group.VOLUME: ("series_id", "series_id", Series),
-        Group.FOLDER: ("folder_id", "parent_folder_id", Folder),
-        Group.ARC: ("story_arc_id", None, StoryArc),
+        Collection.PUBLISHER: ("series_id", "series_id", Series),
+        Collection.IMPRINT: ("series_id", "series_id", Series),
+        Collection.SERIES: ("series_id", "series_id", Series),
+        Collection.VOLUME: ("series_id", "series_id", Series),
+        Collection.FOLDER: ("folder_id", "parent_folder_id", Folder),
+        Collection.ARC: ("story_arc_id", None, StoryArc),
     }
 )
 # Map comic_fk → (related_attr_on_comic, field_to_read_for_name).
@@ -160,7 +162,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         comic: Comic | None,
     ) -> int | None:
         """Return the scope pk for an intermediate scope, or None."""
-        if scope == Group.ARC:
+        if scope == Collection.ARC:
             raw = self.request.GET.get("story_arc_pk")
             return int(raw) if raw else None
         if comic and comic_fk:
@@ -171,7 +173,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
     def _canonical_scope(scope: str) -> str:
         """Normalise arc-group aliases (publishers/imprints/volumes) → series."""
         if scope in _SERIES_ALIAS_SCOPES:
-            return Group.SERIES
+            return Collection.SERIES
         return scope
 
     def _resolve_scope_name(

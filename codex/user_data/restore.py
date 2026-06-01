@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.user_data.store import SidecarStore, get_store
 from codex.xz import read_text_maybe_xz
 
@@ -476,19 +476,19 @@ def _restore_favorites(
 def _resolve_browse_group_pk(group: str, parts: list[Any], model) -> int | None:
     """Resolve a name-chain identifier back to a main-DB PK."""
     match group:
-        case Group.COMIC | Group.FOLDER:
+        case Collection.COMIC | Collection.FOLDER:
             obj = model.objects.filter(path=parts[0]).first()
-        case Group.PUBLISHER | Group.ARC:
+        case Collection.PUBLISHER | Collection.ARC:
             obj = model.objects.filter(name=parts[0]).first()
-        case Group.IMPRINT:
+        case Collection.IMPRINT:
             obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()
-        case Group.SERIES:
+        case Collection.SERIES:
             obj = model.objects.filter(
                 publisher__name=parts[0],
                 imprint__name=parts[1],
                 name=parts[2],
             ).first()
-        case Group.VOLUME:
+        case Collection.VOLUME:
             obj = model.objects.filter(
                 publisher__name=parts[0],
                 imprint__name=parts[1],
@@ -634,7 +634,7 @@ def _resolve_last_route_pks(
     group: str, decoded: list, report: RestoreReport
 ) -> list[int]:
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
-    if group == Group.ROOT or not decoded:
+    if group == Collection.ROOT or not decoded:
         return []
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
 

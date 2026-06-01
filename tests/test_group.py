@@ -2,12 +2,12 @@
 
 from typing import Final
 
-from codex.group import (
-    GROUP_BY_COLLECTION,
-    GROUP_COLLECTIONS,
-    GROUP_LABELS,
-    GROUP_SINGULAR_NAMES,
-    Group,
+from codex.collection import (
+    COLLECTION_BY_NAME,
+    COLLECTION_LABELS,
+    COLLECTION_NAMES,
+    COLLECTION_SINGULAR_NAMES,
+    Collection,
 )
 
 # The seven groups that are real v4 URL collections (everything but ROOT).
@@ -26,57 +26,57 @@ _COLLECTIONS: Final = frozenset(
 
 def test_value_is_collection_name():
     """A member's value is its v4 collection name (ROOT → ``"root"``)."""
-    assert Group.PUBLISHER == "publishers"
-    assert Group.ROOT == "root"
-    assert {g.value for g in Group} == _COLLECTIONS | {"root"}
+    assert Collection.PUBLISHER == "publishers"
+    assert Collection.ROOT == "root"
+    assert {g.value for g in Collection} == _COLLECTIONS | {"root"}
 
 
 def test_strenum_interop_with_collections():
     """
     Members are interchangeable with their collection-name value.
 
-    Equality *and* hashing match, so a dict re-keyed to Group members is found
+    Equality *and* hashing match, so a dict re-keyed to Collection members is found
     by the collection-name string — the property that lets the engine, DB and
     URLConf speak one vocabulary end to end after the value flip.
     """
-    assert Group.SERIES == "series"
-    assert hash(Group.SERIES) == hash("series")
-    # Typed dict[str, str] because Group is a str subtype; the point is that
+    assert Collection.SERIES == "series"
+    assert hash(Collection.SERIES) == hash("series")
+    # Typed dict[str, str] because Collection is a str subtype; the point is that
     # member and collection keys resolve to the same bucket at runtime.
-    sample: dict[str, str] = {Group.SERIES: "x"}
+    sample: dict[str, str] = {Collection.SERIES: "x"}
     assert sample["series"] == "x"
     sample_by_collection: dict[str, str] = {"series": "y"}
-    assert sample_by_collection[Group.SERIES] == "y"
+    assert sample_by_collection[Collection.SERIES] == "y"
 
 
 def test_collection_round_trip():
     """Every non-root group round-trips through its v4 collection name."""
-    for group in Group:
-        if group is Group.ROOT:
+    for group in Collection:
+        if group is Collection.ROOT:
             continue
-        assert Group.from_collection(group.collection) is group
-    assert {g.collection for g in GROUP_COLLECTIONS} == _COLLECTIONS
+        assert Collection.from_collection(group.collection) is group
+    assert {g.collection for g in COLLECTION_NAMES} == _COLLECTIONS
 
 
 def test_root_excluded_from_collection_only_maps():
     """ROOT is synthetic: no collection, cover, or label of its own."""
     for only_real in (
-        GROUP_COLLECTIONS,
-        GROUP_BY_COLLECTION,
-        GROUP_SINGULAR_NAMES,
-        GROUP_LABELS,
+        COLLECTION_NAMES,
+        COLLECTION_BY_NAME,
+        COLLECTION_SINGULAR_NAMES,
+        COLLECTION_LABELS,
     ):
-        assert Group.ROOT not in only_real
-    assert set(GROUP_COLLECTIONS) == set(Group) - {Group.ROOT}
-    assert set(GROUP_SINGULAR_NAMES) == set(Group) - {Group.ROOT}
-    assert set(GROUP_LABELS) == set(Group) - {Group.ROOT}
+        assert Collection.ROOT not in only_real
+    assert set(COLLECTION_NAMES) == set(Collection) - {Collection.ROOT}
+    assert set(COLLECTION_SINGULAR_NAMES) == set(Collection) - {Collection.ROOT}
+    assert set(COLLECTION_LABELS) == set(Collection) - {Collection.ROOT}
 
 
 def test_known_representations():
     """Pin the representations that other layers rely on."""
-    assert Group.COMIC.collection == "comics"
-    assert Group.PUBLISHER.collection == "publishers"
+    assert Collection.COMIC.collection == "comics"
+    assert Collection.PUBLISHER.collection == "publishers"
     # COMIC's display label is the reader-convention "Issues", not "Comics".
-    assert GROUP_LABELS[Group.COMIC] == "Issues"
+    assert COLLECTION_LABELS[Collection.COMIC] == "Issues"
     # Cover filename for arcs is hyphenated.
-    assert GROUP_SINGULAR_NAMES[Group.ARC] == "story-arc"
+    assert COLLECTION_SINGULAR_NAMES[Collection.ARC] == "story-arc"

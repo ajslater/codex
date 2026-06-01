@@ -10,7 +10,7 @@ translates the same scheme back on the way in.
 
 Only the browse-feed url_names are rewritten. The manifest / position /
 start / binary routes carry no nav ``group`` and reverse unchanged.
-``Group.ROOT`` has no collection of its own; like ``AuthMixin`` it
+``Collection.ROOT`` has no collection of its own; like ``AuthMixin`` it
 resolves to its top collection (``publishers``) with no parent ids.
 """
 
@@ -19,7 +19,7 @@ from typing import Any, Final
 
 from django.urls import reverse
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.views.util import pop_name
 
 # url_names whose ``{group, pks, page}`` kwargs name a browse listing.
@@ -36,7 +36,7 @@ def _collection_for(group: str) -> str:
     Every group value the OPDS layer carries is a collection value now;
     ROOT resolves to its top collection.
     """
-    return ROOT_COLLECTION if group == Group.ROOT else group
+    return ROOT_COLLECTION if group == Collection.ROOT else group
 
 
 def opds_feed_reverse(

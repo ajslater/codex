@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models.settings import (
     ClientChoices,
     SettingsBrowser,
@@ -104,7 +104,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
     def _validate_browse_top_group(params, group: str, top_group: str) -> None:
         """Validate top group for browse groups (collection vocabulary)."""
         show = params["show"]
-        if group == Group.ROOT or (
+        if group == Collection.ROOT or (
             group in GROUP_ORDER
             and show.get(top_group)
             and GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
@@ -116,7 +116,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
                 params["top_group"] = show_group
                 break
         else:
-            params["top_group"] = Group.COMIC
+            params["top_group"] = Collection.COMIC
 
     @classmethod
     def _validate_top_group(cls, params, group: str, top_group: str) -> None:
@@ -135,7 +135,9 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         # It would be ideal to combine them but browser validate does redirects so maybe later.
         top_group = params["top_group"]
         group = (
-            validated_data.get("group", Group.ROOT) if validated_data else Group.ROOT
+            validated_data.get("group", Collection.ROOT)
+            if validated_data
+            else Collection.ROOT
         )
         self._validate_top_group(params, group, top_group)
         self.set_order_by_default(params)

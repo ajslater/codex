@@ -11,7 +11,7 @@ from django.db.models import (
     PositiveIntegerField,
 )
 
-from codex.group import GROUP_LABELS, Group
+from codex.collection import COLLECTION_LABELS, Collection
 from codex.models.base import BaseModel
 from codex.models.comic import Comic
 from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
@@ -25,7 +25,7 @@ __all__ = (
 )
 
 # Single source of truth for the model ↔ group dispatch. The group code
-# is the collection vocabulary (a :class:`Group` member, whose value is
+# is the collection vocabulary (a :class:`Collection` member, whose value is
 # the collection name) shared by the whole app. Every favorite-related
 # view, signal, cron, and annotation pulls from these maps so the seven
 # groups stay aligned across the codebase. Filter / annotation / API
@@ -34,13 +34,13 @@ __all__ = (
 FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type[BaseModel], str]] = (
     MappingProxyType(
         {
-            Publisher: Group.PUBLISHER,
-            Imprint: Group.IMPRINT,
-            Series: Group.SERIES,
-            Volume: Group.VOLUME,
-            Folder: Group.FOLDER,
-            StoryArc: Group.ARC,
-            Comic: Group.COMIC,
+            Publisher: Collection.PUBLISHER,
+            Imprint: Collection.IMPRINT,
+            Series: Collection.SERIES,
+            Volume: Collection.VOLUME,
+            Folder: Collection.FOLDER,
+            StoryArc: Collection.ARC,
+            Comic: Collection.COMIC,
         }
     )
 )
@@ -48,7 +48,8 @@ FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyTyp
     {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
 )
 FAVORITE_GROUP_CHOICES: Final = tuple(
-    (group.value, GROUP_LABELS[group]) for group in FAVORITE_MODEL_GROUP_CODES.values()
+    (group.value, COLLECTION_LABELS[group])
+    for group in FAVORITE_MODEL_GROUP_CODES.values()
 )
 
 

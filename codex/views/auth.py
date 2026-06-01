@@ -50,7 +50,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
-from codex.group import Group as BrowseGroup  # not django.contrib.auth Group
+from codex.collection import Collection  # not django.contrib.auth Group
 from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
@@ -130,8 +130,8 @@ class AuthMixin:
         kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
         collection = kwargs.pop("collection")
         parent_ids = kwargs.pop("parent_ids", None)
-        if collection == BrowseGroup.PUBLISHER and parent_ids is None:
-            kwargs["group"] = BrowseGroup.ROOT
+        if collection == Collection.PUBLISHER and parent_ids is None:
+            kwargs["group"] = Collection.ROOT
         else:
             kwargs["group"] = collection
         kwargs["pks"] = tuple(parent_ids) if parent_ids else ()

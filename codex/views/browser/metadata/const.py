@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import BrowserGroupModel, Comic
 from codex.models.age_rating import AgeRating
 from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
@@ -50,12 +50,12 @@ _CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
 GROUP_MODELS: MappingProxyType[str, tuple[type[BrowserGroupModel], ...]] = (
     MappingProxyType(
         {
-            Group.IMPRINT: (Publisher,),
-            Group.SERIES: (Publisher, Imprint),
-            Group.VOLUME: (Publisher, Imprint, Series),
-            Group.COMIC: (Publisher, Imprint, Series, Volume),
-            Group.FOLDER: (Publisher, Imprint, Series, Volume),
-            Group.ARC: (Publisher, Imprint, Series, Volume),
+            Collection.IMPRINT: (Publisher,),
+            Collection.SERIES: (Publisher, Imprint),
+            Collection.VOLUME: (Publisher, Imprint, Series),
+            Collection.COMIC: (Publisher, Imprint, Series, Volume),
+            Collection.FOLDER: (Publisher, Imprint, Series, Volume),
+            Collection.ARC: (Publisher, Imprint, Series, Volume),
         }
     )
 )

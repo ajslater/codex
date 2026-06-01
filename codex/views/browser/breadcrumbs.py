@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 from django.db.models import QuerySet
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import (
     BrowserGroupModel,
     Comic,
@@ -37,21 +37,24 @@ _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
 )
 
 # Map from group to the FK attribute chain for walking up the hierarchy.
-# Each entry is (parent_group, attribute_on_instance). Keyed by ``Group``
+# Each entry is (parent_group, attribute_on_instance). Keyed by ``Collection``
 # members so the lookup resolves against the collection-valued ``kwargs["group"]``.
-_GROUP_PARENT_CHAIN: MappingProxyType[Group, tuple[tuple[Group, str], ...]] = (
-    MappingProxyType(
-        {
-            Group.VOLUME: (
-                (Group.SERIES, "series"),
-                (Group.IMPRINT, "imprint"),
-                (Group.PUBLISHER, "publisher"),
-            ),
-            Group.SERIES: ((Group.IMPRINT, "imprint"), (Group.PUBLISHER, "publisher")),
-            Group.IMPRINT: ((Group.PUBLISHER, "publisher"),),
-            Group.PUBLISHER: (),
-        }
-    )
+_GROUP_PARENT_CHAIN: MappingProxyType[
+    Collection, tuple[tuple[Collection, str], ...]
+] = MappingProxyType(
+    {
+        Collection.VOLUME: (
+            (Collection.SERIES, "series"),
+            (Collection.IMPRINT, "imprint"),
+            (Collection.PUBLISHER, "publisher"),
+        ),
+        Collection.SERIES: (
+            (Collection.IMPRINT, "imprint"),
+            (Collection.PUBLISHER, "publisher"),
+        ),
+        Collection.IMPRINT: ((Collection.PUBLISHER, "publisher"),),
+        Collection.PUBLISHER: (),
+    }
 )
 
 
@@ -78,7 +81,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
-        if not (group == Group.ROOT and not pks and page == 1):
+        if not (group == Collection.ROOT and not pks and page == 1):
             reason = f"{group}__in={pks} does not exist!"
             # ``raise_redirect`` is ``NoReturn``; the type checker
             # follows the early-return shape so the caller below
@@ -116,7 +119,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         page = self.kwargs["page"]
 
         if not gi:
-            return (Route(Group.ROOT, (), 1, ""),)
+            return (Route(Collection.ROOT, (), 1, ""),)
 
         # Start with current crumb
         crumbs: list[Route] = [Route(group, pks, page, gi.name)]
@@ -133,7 +136,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 crumbs.append(Route(parent_group, (), 1, ""))
 
         # Always add root
-        crumbs.append(Route(Group.ROOT, (), 1, ""))
+        crumbs.append(Route(Collection.ROOT, (), 1, ""))
         crumbs.reverse()
         return tuple(crumbs)
 

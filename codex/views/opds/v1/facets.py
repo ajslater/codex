@@ -3,7 +3,7 @@
 from types import MappingProxyType
 from typing import Any
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.route import opds_feed_reverse
@@ -120,7 +120,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         # Special groups are folders and story arcs.
         # The change is meaningful only if exactly one side is special:
         # XOR-style across membership in the special-group set.
-        special = {Group.FOLDER, Group.ARC}
+        special = {Collection.FOLDER, Collection.ARC}
         return (group in special) != (facet_group in special)
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
@@ -148,7 +148,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         folder_view_allowed = bool(self.admin_flags.get("folder_view"))
         facets = []
         for facet in facet_group.facets:
-            if facet.value == Group.FOLDER and not folder_view_allowed:
+            if facet.value == Collection.FOLDER and not folder_view_allowed:
                 continue
             if facet_obj := self._facet_or_facet_entry(
                 facet_group, facet, entries=entries
@@ -164,7 +164,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         else:
             group = self.kwargs.get("group")
             if (
-                group != Group.COMIC
+                group != Collection.COMIC
                 and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
             ):
                 facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)

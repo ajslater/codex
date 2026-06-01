@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.user_data.identifiers import (
     FILTER_TAG_COLUMNS,
     encode_identifier,
@@ -67,7 +67,7 @@ def serialize_user(user) -> tuple[str, tuple[str, ...], dict[str, Any]]:
 
 
 def serialize_group(group) -> tuple[str, tuple[str, ...], dict[str, Any]]:
-    """Group row, with permissions and the GroupAuth.exclude flag."""
+    """Auth Group row, with permissions and the GroupAuth.exclude flag."""
     permissions = sorted(
         f"{perm.content_type.app_label}.{perm.codename}"
         for perm in group.permissions.all()
@@ -299,7 +299,7 @@ def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
     """Resolve a list of browse-group PKs to identifier parts; missing rows drop."""
     if not pks:
         return []
-    if group == Group.ROOT:
+    if group == Collection.ROOT:
         # Root pseudo-group — no PKs to resolve.
         return []
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES

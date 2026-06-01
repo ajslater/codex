@@ -29,7 +29,7 @@ import json
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
-from codex.group import Group
+from codex.collection import Collection
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -97,7 +97,7 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 
 
 # Per-group part extractors. Keys are the collection values from
-# :data:`codex.models.favorite.FAVORITE_MODEL_GROUP_CODES` (a ``Group``
+# :data:`codex.models.favorite.FAVORITE_MODEL_GROUP_CODES` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
 # identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to
@@ -107,13 +107,17 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]]]] = (
     MappingProxyType(
         {
-            Group.COMIC: lambda obj: [str(obj.path)],
-            Group.FOLDER: lambda obj: [str(obj.path)],
-            Group.PUBLISHER: lambda obj: [obj.name],
-            Group.ARC: lambda obj: [obj.name],
-            Group.IMPRINT: lambda obj: [obj.publisher.name, obj.name],
-            Group.SERIES: lambda obj: [obj.publisher.name, obj.imprint.name, obj.name],
-            Group.VOLUME: lambda obj: [
+            Collection.COMIC: lambda obj: [str(obj.path)],
+            Collection.FOLDER: lambda obj: [str(obj.path)],
+            Collection.PUBLISHER: lambda obj: [obj.name],
+            Collection.ARC: lambda obj: [obj.name],
+            Collection.IMPRINT: lambda obj: [obj.publisher.name, obj.name],
+            Collection.SERIES: lambda obj: [
+                obj.publisher.name,
+                obj.imprint.name,
+                obj.name,
+            ],
+            Collection.VOLUME: lambda obj: [
                 obj.publisher.name,
                 obj.imprint.name,
                 obj.series.name,

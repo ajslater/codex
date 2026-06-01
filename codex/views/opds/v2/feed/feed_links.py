@@ -3,7 +3,7 @@
 from types import MappingProxyType
 from typing import Any, override
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.links import OPDS2LinksView
@@ -85,7 +85,11 @@ class OPDS2FeedLinksView(OPDS2LinksView):
         return static_links
 
     def _top_route(self) -> dict[str, Any]:
-        group = Group.FOLDER if self.kwargs.get("group") == Group.FOLDER else Group.ROOT
+        group = (
+            Collection.FOLDER
+            if self.kwargs.get("group") == Collection.FOLDER
+            else Collection.ROOT
+        )
         return {"group": group, "pks": (), "page": 1}
 
     def _link_page(self, rel, page):

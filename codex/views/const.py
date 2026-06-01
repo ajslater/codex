@@ -9,7 +9,7 @@ from django.contrib.sessions.models import Session
 from django.db.models.expressions import Value
 from django.db.models.fields import DateTimeField, PositiveSmallIntegerField
 
-from codex.group import Group
+from codex.collection import Collection
 from codex.models import (
     AgeRating,
     BrowserGroupModel,
@@ -42,19 +42,19 @@ from codex.models import (
 )
 from codex.settings import CODEX_PATH
 
-# Legacy single-char group constants, now sourced from the Group enum.
+# Legacy single-char group constants, now sourced from the Collection enum.
 # Each still compares equal to its char (StrEnum), so existing
 # ``group == ROOT_GROUP`` checks are unaffected.
-ROOT_GROUP = Group.ROOT
-FOLDER_GROUP = Group.FOLDER
-STORY_ARC_GROUP = Group.ARC
-COMIC_GROUP = Group.COMIC
+ROOT_GROUP = Collection.ROOT
+FOLDER_GROUP = Collection.FOLDER
+STORY_ARC_GROUP = Collection.ARC
+COMIC_GROUP = Collection.COMIC
 GROUP_NAME_MAP = MappingProxyType(
     {
-        Group.PUBLISHER: "publisher",
-        Group.IMPRINT: "imprint",
-        Group.SERIES: "series",
-        Group.VOLUME: "volume",
+        Collection.PUBLISHER: "publisher",
+        Collection.IMPRINT: "imprint",
+        Collection.SERIES: "series",
+        Collection.VOLUME: "volume",
     }
 )
 STATIC_IMG_PATH = CODEX_PATH / "static/img"
@@ -68,8 +68,8 @@ MISSING_COVER_NAME_MAP = MappingProxyType(
 MISSING_COVER_FN = "comic-165.webp"
 MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 
-# Annotated ``[str, str]`` (not ``[Group, str]``): the keys are Group members
-# but lookups come in as their collection-value string (Group is a StrEnum, so
+# Annotated ``[str, str]`` (not ``[Collection, str]``): the keys are Collection members
+# but lookups come in as their collection-value string (Collection is a StrEnum, so
 # both resolve to the same bucket). The explicit annotation lets str-typed
 # group values index these maps without a type error.
 GROUP_RELATION: MappingProxyType[str, str] = MappingProxyType(
@@ -99,10 +99,16 @@ CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
 )
 # Publisher-hierarchy nav ordering (root → volume), used for the
 # membership / index checks in browser settings validation. A tuple of
-# Group members (collection-valued) so ``group in GROUP_ORDER`` and
+# Collection members (collection-valued) so ``group in GROUP_ORDER`` and
 # ``GROUP_ORDER.index(group)`` resolve against the engine's collection
 # values (members compare equal to their value).
-GROUP_ORDER = (Group.ROOT, Group.PUBLISHER, Group.IMPRINT, Group.SERIES, Group.VOLUME)
+GROUP_ORDER = (
+    Collection.ROOT,
+    Collection.PUBLISHER,
+    Collection.IMPRINT,
+    Collection.SERIES,
+    Collection.VOLUME,
+)
 MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {
         Publisher: "publisher",
@@ -117,14 +123,14 @@ MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType
 GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
     MappingProxyType(
         {
-            Group.ROOT: None,
-            Group.PUBLISHER: Publisher,
-            Group.IMPRINT: Imprint,
-            Group.SERIES: Series,
-            Group.VOLUME: Volume,
-            Group.COMIC: Comic,
-            Group.FOLDER: Folder,
-            Group.ARC: StoryArc,
+            Collection.ROOT: None,
+            Collection.PUBLISHER: Publisher,
+            Collection.IMPRINT: Imprint,
+            Collection.SERIES: Series,
+            Collection.VOLUME: Volume,
+            Collection.COMIC: Comic,
+            Collection.FOLDER: Folder,
+            Collection.ARC: StoryArc,
         }
     )
 )
@@ -169,7 +175,7 @@ CONFIG_MODELS = (
     Session,
 )
 GROUP_MTIME_MODEL_MAP = MappingProxyType(
-    {Group.ROOT: Publisher, Group.ARC: StoryArc, Group.FOLDER: Folder}
+    {Collection.ROOT: Publisher, Collection.ARC: StoryArc, Collection.FOLDER: Folder}
 )
 EPOCH_START = datetime.fromtimestamp(0, tz=UTC)
 ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
