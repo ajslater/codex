@@ -35,29 +35,33 @@
   `collection = ArcGroupField`, reader.py/params.py/arcs.py arc dicts, the
   frontend `this.arc.collection` reads + arc-select send + DEFAULT_ARC.
 
-**REMAINING (the shared-mixin field + engine internals + frontend helpers):**
-1. **`BrowserAggregateSerializerMixin.group`** (`serializers/browser/mixins.py`)
-   — a SHARED field on the page-level + metadata serializers (distinct from the
-   per-row `collection`). Drives `md.group` / `this.group` in the metadata
-   components (`metadata-text.vue` ~12, `metadata-controls.vue` ~7) + `GROUP_MAP`.
-   Consistent today (BE emits `group`, FE reads `group`); rename is page.py +
-   metadata.py + the ~19 metadata-component refs + the `:group=` prop chain.
-   Also `page.py model_group`.
-2. **The engine route-dict `{"group": …, "pks": …}` key** + `Route` dataclass
-   (`views/util.py`) + `kwargs["group"]` the engine nav key (every view).
-   ⚠️ `"group":` is OVERLOADED — websocket `{"group": ChannelGroups.ALL}`,
-   `task.group` routing — edit concept-aware. Mostly INTERNAL/invisible now (the
-   route OUTPUT wire is already `collection`/`parentIds`).
-3. mtime `groups` input key. The admin-CustomCover list wire field `group`
-   (kept via serializer `source=`) + its `replace-cover`/`custom-covers-tab`
-   readers.
-4. Frontend: `routeForGroup`/`groupForRoute` → `*Collection`,
-   `liveBrowseParams().group`, store internals.
+- ✅ **Shared mixin wire field** `BrowserAggregateSerializerMixin.group` →
+  `collection` (via `source="group"`). This is the card/cover-view row field +
+  the metadata field. Fixed a latent break (cover view emitted `group` while
+  table rows emitted `collection`). Frontend metadata reads `md.collection`.
+- ✅ **`model_group`** → `model_collection` (page-level field): the view
+  property + every reader, the serializer field + payload key, frontend
+  `page.modelCollection`.
 
-Approach for the remainder: the metadata-mixin `group` field (page.py +
-metadata.py + the metadata components), then the engine route-dict +
-`Route` + `kwargs["group"]` (concept-aware, skip ChannelGroups/task), then
-mtime + the frontend helpers. Test after each.
+**REMAINING (invisible engine internals + a couple of small bits):**
+1. **The engine `kwargs["group"]` nav key** (~50 set/read sites: AuthMixin sets
+   it, every browser/reader/OPDS view reads it) + the route-dict `{"group",
+   "pks"}` masks (~32) + the `Route` dataclass (`views/util.py`) + the
+   RouteSerializer INPUT field + mtime/cover consumers. ⚠️ ATTEMPTED + REVERTED:
+   a `kwargs["group"]`→`kwargs["collection"]` pass broke OPDS + favorites in
+   non-obvious set/read-inconsistency ways. This is **invisible** (the route
+   OUTPUT wire is already `collection`/`parentIds`) and overloaded (`"group":`
+   = websocket `ChannelGroups` + `task.group`), so it's low-value/high-risk —
+   do it slowly, one set/read pair at a time, with the OPDS + favorites suites
+   as the guard, NOT a bulk perl.
+2. mtime `groups` input key; the admin-CustomCover list field `group` (kept via
+   `source=`); the metadata `group` PROP name (carries a collection value).
+3. Frontend: `routeForGroup`/`groupForRoute` → `*Collection`,
+   `liveBrowseParams().group`, the internal `{group, pks}` engine shape.
+
+These are all internal/invisible (the entire wire + DB + code vocabulary is
+already `collection`). The engine `kwargs["group"]` is the only conceptually
+meaningful one left and it needs a careful, incremental, non-bulk pass.
 
 ## Goal
 
