@@ -9,7 +9,7 @@ from codex.serializers.mixins import OKSerializer
 from codex.views.auth import AuthGenericAPIView
 
 # Browse groups that resolve to a set of comics for lazy metadata import.
-_LAZY_IMPORT_GROUPS = frozenset({Collection.COMIC, Collection.FOLDER})
+_LAZY_IMPORT_COLLECTIONS = frozenset({Collection.COMIC, Collection.FOLDER})
 
 
 class LazyImportView(AuthGenericAPIView):
@@ -20,7 +20,7 @@ class LazyImportView(AuthGenericAPIView):
     def post(self, *args, **kwargs) -> Response:
         """Enqueue a lazy-import task for a comics / folders group."""
         group = self.kwargs.get("group", "")
-        if group in _LAZY_IMPORT_GROUPS:
+        if group in _LAZY_IMPORT_COLLECTIONS:
             pks = self.kwargs.get("pks", ())
             pks = frozenset(pks)
             LIBRARIAN_QUEUE.put(LazyImportComicsTask(group=group, pks=pks))

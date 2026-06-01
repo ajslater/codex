@@ -39,7 +39,7 @@ _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
 # Map from group to the FK attribute chain for walking up the hierarchy.
 # Each entry is (parent_group, attribute_on_instance). Keyed by ``Collection``
 # members so the lookup resolves against the collection-valued ``kwargs["group"]``.
-_GROUP_PARENT_CHAIN: MappingProxyType[
+_COLLECTION_PARENT_CHAIN: MappingProxyType[
     Collection, tuple[tuple[Collection, str], ...]
 ] = MappingProxyType(
     {
@@ -126,7 +126,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         # Walk up the parent chain via FKs
         vng = self.valid_nav_groups
-        parent_chain = _GROUP_PARENT_CHAIN.get(group, ())
+        parent_chain = _COLLECTION_PARENT_CHAIN.get(group, ())
         for parent_group, attr in parent_chain:
             if parent_group not in vng:
                 continue

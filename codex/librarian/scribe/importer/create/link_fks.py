@@ -14,8 +14,8 @@ from codex.librarian.scribe.importer.const import (
 )
 from codex.librarian.scribe.importer.link import LinkComicsImporter
 from codex.librarian.scribe.importer.link.const import (
+    COLLECTION_KEY_RELS,
     DEFAULT_KEY_RELS,
-    GROUP_KEY_RELS,
 )
 from codex.models import Folder
 from codex.models.comic import Comic
@@ -52,7 +52,7 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
     ) -> None:
         for field_name in tuple(link_fks.keys()):
             model: type[BaseModel] = Comic._meta.get_field(field_name).related_model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]│
-            key_rels = GROUP_KEY_RELS.get(model, DEFAULT_KEY_RELS)
+            key_rels = COLLECTION_KEY_RELS.get(model, DEFAULT_KEY_RELS)
             values = link_fks.pop(field_name)
             filter_dict = dict(zip(key_rels, values, strict=True))
             md[field_name] = model.objects.get(**filter_dict)

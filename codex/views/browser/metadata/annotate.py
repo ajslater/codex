@@ -11,7 +11,7 @@ from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELD_NAMES,
     COMIC_VALUE_FIELDS_CONFLICTING,
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-    PATH_GROUPS,
+    PATH_COLLECTIONS,
     SUM_FIELDS,
 )
 
@@ -25,7 +25,7 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
         group = self.kwargs["group"]
         if (
             not (self.is_admin and self.admin_flags["folder_view"])
-            or group not in PATH_GROUPS
+            or group not in PATH_COLLECTIONS
         ):
             fields -= ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return tuple(fields)

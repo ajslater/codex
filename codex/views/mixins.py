@@ -15,7 +15,7 @@ from codex.views.const import COLLECTION_NAME_MAP, COMIC_COLLECTION
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-_SHOW_GROUPS = tuple(COLLECTION_NAME_MAP.keys())
+_SHOW_COLLECTIONS = tuple(COLLECTION_NAME_MAP.keys())
 _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
@@ -34,7 +34,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
             watermark = index
             if pks and len(pks) == 1:
                 watermark += 1
-            order_groups = _SHOW_GROUPS[watermark:]
+            order_groups = _SHOW_COLLECTIONS[watermark:]
             do_break = True
         return order_groups, do_break
 
@@ -43,14 +43,14 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         """Annotate sort_name."""
         order_groups = ()
         if parent_group != COMIC_COLLECTION:
-            for index, nav_group in enumerate(_SHOW_GROUPS):
+            for index, nav_group in enumerate(_SHOW_COLLECTIONS):
                 order_groups, do_break = cls._get_order_group(
                     nav_group, show, parent_group, index, pks, order_groups
                 )
                 if do_break:
                     break
             else:
-                order_groups = _SHOW_GROUPS
+                order_groups = _SHOW_COLLECTIONS
         return order_groups
 
     @classmethod

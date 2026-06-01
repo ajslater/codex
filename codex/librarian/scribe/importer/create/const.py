@@ -53,8 +53,8 @@ ORDERED_CREATE_MODELS = (
 )
 
 CUSTOM_COVER_MODELS = frozenset({Publisher, Imprint, Series, Volume, Folder, StoryArc})
-GROUP_BASE_MODELS = frozenset({Publisher, Imprint, Series, StoryArc})
-GROUP_BASE_FIELDS = ("name", "sort_name")
+COLLECTION_BASE_MODELS = frozenset({Publisher, Imprint, Series, StoryArc})
+COLLECTION_BASE_FIELDS = ("name", "sort_name")
 DEFAULT_NON_NULL_CHARFIELD_NAMES = frozenset({"name"})
 NON_NULL_CHARFIELD_NAMES: MappingProxyType[type[BaseModel], frozenset[str]] = (
     MappingProxyType(

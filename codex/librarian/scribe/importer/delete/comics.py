@@ -1,6 +1,6 @@
 """Delete comics methods."""
 
-from codex.librarian.scribe.importer.const import ALL_COMIC_GROUP_FIELD_NAMES
+from codex.librarian.scribe.importer.const import ALL_COMIC_COLLECTION_FIELD_NAMES
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
 from codex.models import Comic, Folder, StoryArc
@@ -17,7 +17,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
     def _init_deleted_comic_groups() -> dict:
         """Init deleted_comic_groups, used later even if no deletes."""
         deleted_comic_groups = {}
-        for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
+        for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
             if field_name == "story_arc_numbers":
                 related_model = StoryArc
             else:
@@ -27,7 +27,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
 
     @staticmethod
     def _populate_deleted_comic_group(deleted_comic_groups, comic) -> None:
-        for field_name in ALL_COMIC_GROUP_FIELD_NAMES:
+        for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
             if field_name == "story_arc_numbers":
                 for san in comic.story_arc_numbers.select_related("story_arc").only(
                     "story_arc"
@@ -45,7 +45,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
     def _populate_deleted_comic_groups(cls, delete_qs, deleted_comic_groups) -> None:
         """Populate changed groups for cover timestamp updater."""
         comics_deleted_qs = delete_qs.only(
-            *ALL_COMIC_GROUP_FIELD_NAMES
+            *ALL_COMIC_COLLECTION_FIELD_NAMES
         ).prefetch_related("story_arc_numbers__story_arc")
         for comic in comics_deleted_qs.iterator(
             chunk_size=IMPORTER_DELETE_MAX_CHUNK_SIZE

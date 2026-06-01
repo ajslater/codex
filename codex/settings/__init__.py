@@ -983,7 +983,7 @@ CUSTOM_COVERS_MAX_UPLOAD_MB = get_int(
 CUSTOM_COVERS_MAX_UPLOAD_BYTES = CUSTOM_COVERS_MAX_UPLOAD_MB * 1024 * 1024
 # Legacy group subdirs are migrated into ``uploads/`` on startup. Kept here
 # only so the migration step can read them; remove once that runs.
-CUSTOM_COVERS_GROUP_DIRS = frozenset(
+CUSTOM_COVERS_COLLECTION_DIRS = frozenset(
     {"publishers", "imprints", "series", "volumes", "story-arcs"}
 )
 CUSTOM_COVERS_UPLOADS_DIR.mkdir(exist_ok=True, parents=True)

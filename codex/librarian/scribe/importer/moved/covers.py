@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import (
-    CLASS_CUSTOM_COVER_GROUP_MAP,
+    CLASS_CUSTOM_COVER_COLLECTION_MAP,
     CUSTOM_COVER_UPDATE_FIELDS,
     LINK_COVER_PKS,
 )
@@ -46,7 +46,7 @@ class MovedCoversImporter(MovedComicsImporter):
         if not unlink_pks:
             return
         self.log.debug(f"Unlinking {len(unlink_pks)} moved custom covers.")
-        for model in CLASS_CUSTOM_COVER_GROUP_MAP:
+        for model in CLASS_CUSTOM_COVER_COLLECTION_MAP:
             groups = model.objects.filter(custom_cover__in=unlink_pks)
             unlink_groups = []
             for group in groups:

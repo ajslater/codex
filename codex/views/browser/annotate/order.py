@@ -431,11 +431,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     # already on the queryset — no aggregation needed, just F() the
     # known column. ``favorite`` is added by
     # ``_add_table_view_favorite_annotation``.
-    _EXTRA_GROUP_F_KEYS = frozenset({"sort_name", "favorite"})
+    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "favorite"})
 
     def _extra_group_special(self, qs, key: str, *, reverse: bool):
         """Group-row extra: hand-rolled cases (returns None when not special)."""
-        if key in self._EXTRA_GROUP_F_KEYS:
+        if key in self._EXTRA_COLLECTION_F_KEYS:
             return F(key)
         if key == "child_count":
             return Count(self.rel_prefix + "pk", distinct=True)

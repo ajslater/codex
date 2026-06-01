@@ -23,14 +23,14 @@ if TYPE_CHECKING:
 
 # Comic FK attribute → the browse group it represents as a reader arc.
 # Drives both the ``show`` gate and the ``arcs`` dict key (collection-valued).
-_COMIC_ARC_FIELD_GROUPS = MappingProxyType(
+_COMIC_ARC_FIELD_COLLECTIONS = MappingProxyType(
     {
         "series": Collection.SERIES,
         "volume": Collection.VOLUME,
         "parent_folder": Collection.FOLDER,
     }
 )
-_COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_GROUPS)
+_COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_COLLECTIONS)
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -44,7 +44,7 @@ class ReaderArcsView(ReaderParamsView):
         show: Mapping = self.get_from_settings("show", browser=True) or {}
         folder_view_allowed: bool = self._reader_folder_view_enabled
         field_names = []
-        for field_name, group in _COMIC_ARC_FIELD_GROUPS.items():
+        for field_name, group in _COMIC_ARC_FIELD_COLLECTIONS.items():
             if field_name == "parent_folder":
                 if not folder_view_allowed:
                     continue
@@ -84,7 +84,7 @@ class ReaderArcsView(ReaderParamsView):
         mtime = group.updated_at
         max_mtime = max_none(max_mtime, mtime)
 
-        arc_group = _COMIC_ARC_FIELD_GROUPS[field_name]
+        arc_group = _COMIC_ARC_FIELD_COLLECTIONS[field_name]
         arcs[arc_group] = {arc_ids: {"name": group.name, "mtime": mtime}}
         return max_mtime
 

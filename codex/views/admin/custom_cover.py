@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import covers_changed_task
-from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_GROUP_MAP
+from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_COLLECTION_MAP
 from codex.models import CustomCover
 from codex.serializers.admin.custom_cover import CustomCoverSerializer
 from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
@@ -36,8 +36,8 @@ if TYPE_CHECKING:
 
 _ALLOWED_EXTS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"})
 _GROUP_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
-_MODEL_BY_GROUP: dict[str, type[Model]] = {
-    group: model for model, group in CLASS_CUSTOM_COVER_GROUP_MAP.items()
+_MODEL_BY_COLLECTION: dict[str, type[Model]] = {
+    group: model for model, group in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
 }
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _MAX_SLUG_LEN = 60
@@ -88,7 +88,7 @@ def _validate_image(upload, ext: str) -> None:
 
 
 def _resolve_targets(group: str, pks: tuple[int, ...]):
-    model = _MODEL_BY_GROUP.get(group)
+    model = _MODEL_BY_COLLECTION.get(group)
     if model is None:
         msg = f"Unknown group {group!r}"
         raise ValidationError(msg)
@@ -153,7 +153,7 @@ def _purge_orphaned(cover_pks: tuple[int, ...]) -> None:
             cover = CustomCover.objects.get(pk=pk)
         except CustomCover.DoesNotExist:
             continue
-        model = _MODEL_BY_GROUP.get(cover.group)
+        model = _MODEL_BY_COLLECTION.get(cover.group)
         if model is None:
             continue
         if model.objects.filter(custom_cover_id=pk).exists():
@@ -261,7 +261,7 @@ class AdminCustomCoverDeleteView(AdminAPIView):
         except CustomCover.DoesNotExist as exc:
             msg = f"CustomCover {pk} not found"
             raise ValidationError(msg) from exc
-        model = _MODEL_BY_GROUP.get(cover.group)
+        model = _MODEL_BY_COLLECTION.get(cover.group)
         with transaction.atomic():
             if model is not None:
                 model.objects.filter(custom_cover_id=pk).update(custom_cover=None)

@@ -5,7 +5,7 @@ from codex.serializers.browser.metadata import PREFETCH_PREFIX
 from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELDS_CONFLICTING,
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-    PATH_GROUPS,
+    PATH_COLLECTIONS,
 )
 from codex.views.browser.metadata.group_list import (
     annotate_group_list,
@@ -24,7 +24,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
     def _path_security(self, obj) -> None:
         """Secure filesystem information for acl situation."""
         group = self.kwargs["group"]
-        is_path_group = group in PATH_GROUPS
+        is_path_group = group in PATH_COLLECTIONS
         if is_path_group:
             if self.is_admin:
                 return

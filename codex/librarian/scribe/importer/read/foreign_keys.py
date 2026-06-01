@@ -17,9 +17,9 @@ from django.db.models import Field
 from django.db.models.base import Model
 
 from codex.librarian.scribe.importer.const import (
-    GROUP_FIELD_NAMES,
-    GROUP_FIELD_NAMES_SET,
-    GROUP_MODEL_COUNT_FIELDS,
+    COLLECTION_FIELD_NAMES,
+    COLLECTION_FIELD_NAMES_SET,
+    COLLECTION_MODEL_COUNT_FIELDS,
     LINK_FKS,
     QUERY_MODELS,
 )
@@ -33,7 +33,9 @@ from codex.models.groups import BrowserCollectionModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
 
-_MINIMAL_KEYS = frozenset({"file_type", PAGE_COUNT_KEY, "path"} | GROUP_FIELD_NAMES_SET)
+_MINIMAL_KEYS = frozenset(
+    {"file_type", PAGE_COUNT_KEY, "path"} | COLLECTION_FIELD_NAMES_SET
+)
 
 
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
@@ -118,7 +120,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         else:
             identifier_tuple = self.get_identifier_tuple(model, group)
             extra_vals.append(identifier_tuple)
-        count_key = GROUP_MODEL_COUNT_FIELDS[model]
+        count_key = COLLECTION_MODEL_COUNT_FIELDS[model]
         if count_key:
             count = group.get(count_key)
             with suppress(Exception):
@@ -133,7 +135,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         """Aggregate Simple Foreign Keys."""
         group_list = []
         # prevents skipped metadata from destroying browser group links
-        field_names = tuple(GROUP_FIELD_NAMES) + tuple(
+        field_names = tuple(COLLECTION_FIELD_NAMES) + tuple(
             sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
         )
         for field_name in field_names:

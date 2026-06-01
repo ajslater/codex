@@ -42,7 +42,7 @@ from codex.views.const import MODEL_REL_MAP
 # sort subquery to the outer group row. ``StoryArc`` traverses
 # through ``StoryArcNumber`` so the subquery shape differs; deferred
 # from this v1 group-row M2M sort.
-_COMIC_GROUP_COL: MappingProxyType[type, str] = MappingProxyType(
+_COMIC_COLLECTION_COL: MappingProxyType[type, str] = MappingProxyType(
     {
         Publisher: "publisher_id",
         Imprint: "imprint_id",
@@ -533,7 +533,7 @@ def _build_simple_m2m_intersection_sort_sql(
     Return a correlated-subquery RawSQL for the intersection sort key.
 
     Restricted to ``_SIMPLE_M2M_FIELDS`` and group models in
-    ``_COMIC_GROUP_COL`` (StoryArc, credits, identifiers — deferred).
+    ``_COMIC_COLLECTION_COL`` (StoryArc, credits, identifiers — deferred).
     Returns None when unsupported.
     """
     field_name = _SIMPLE_M2M_FIELDS.get(column)
@@ -559,7 +559,7 @@ def _build_simple_m2m_intersection_sort_sql(
     # All identifiers spliced into ``sql`` come from Django metadata
     # (``_meta.db_table``, ``m2m_reverse_field_name()``); the column
     # whitelist (``_SIMPLE_M2M_FIELDS``) and group whitelist
-    # (``_COMIC_GROUP_COL``) bound the inputs, so RawSQL is safe here.
+    # (``_COMIC_COLLECTION_COL``) bound the inputs, so RawSQL is safe here.
     # Three-stage shape so the per-outer-row work is bounded by the
     # through-table's slice for the group, not the through-target
     # cross-product:
@@ -762,7 +762,7 @@ def _comic_correlation_sql(
             f"WHERE cf2.folder_id = {group_table}.id"
         )
         return extra_join, where, total_count
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
+    comic_group_col = _COMIC_COLLECTION_COL.get(group_model)
     if comic_group_col is None:
         return None
     group_table = group_model._meta.db_table

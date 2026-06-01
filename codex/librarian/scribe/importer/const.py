@@ -147,15 +147,15 @@ FTS_UPDATED_M2MS = "fts_updated_m2ms"
 #######
 # M2M #
 #######
-GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserCollectionModel], str | None] = (
-    MappingProxyType(
-        {
-            Publisher: None,
-            Imprint: None,
-            Series: VOLUME_COUNT_FIELD_NAME,
-            Volume: ISSUE_COUNT_FIELD_NAME,
-        }
-    )
+COLLECTION_MODEL_COUNT_FIELDS: MappingProxyType[
+    type[BrowserCollectionModel], str | None
+] = MappingProxyType(
+    {
+        Publisher: None,
+        Imprint: None,
+        Series: VOLUME_COUNT_FIELD_NAME,
+        Volume: ISSUE_COUNT_FIELD_NAME,
+    }
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
     "tuple[ManyToManyField, ...]",
@@ -200,12 +200,12 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.related_model
     and not issubclass(field.related_model, BrowserCollectionModel)
 )
-GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
-GROUP_FIELD_NAMES_SET = frozenset(GROUP_FIELD_NAMES)
-_COMIC_GROUP_FIELDS: tuple[Field, ...] = tuple(
-    Comic._meta.get_field(field_name) for field_name in GROUP_FIELD_NAMES
+COLLECTION_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
+COLLECTION_FIELD_NAMES_SET = frozenset(COLLECTION_FIELD_NAMES)
+_COMIC_COLLECTION_FIELDS: tuple[Field, ...] = tuple(
+    Comic._meta.get_field(field_name) for field_name in COLLECTION_FIELD_NAMES
 )
-ALL_COMIC_FK_FIELDS = (*_COMIC_GROUP_FIELDS, *COMIC_FK_FIELDS)
+ALL_COMIC_FK_FIELDS = (*_COMIC_COLLECTION_FIELDS, *COMIC_FK_FIELDS)
 COMIC_FK_FIELD_NAMES: tuple[str, ...] = tuple(
     field.name for field in ALL_COMIC_FK_FIELDS
 )
@@ -392,7 +392,7 @@ BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 ##########
 # COVERS #
 ##########
-CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
+CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
     {
         Publisher: CustomCover.GroupChoices.PUBLISHERS.value,
         Imprint: CustomCover.GroupChoices.IMPRINTS.value,
@@ -412,8 +412,8 @@ CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group"
 ###########
 # DELETED #
 ###########
-ALL_COMIC_GROUP_FIELD_NAMES = (
-    *GROUP_FIELD_NAMES,
+ALL_COMIC_COLLECTION_FIELD_NAMES = (
+    *COLLECTION_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
 )

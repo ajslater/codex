@@ -6,7 +6,7 @@ from typing import Any
 from loguru import logger
 
 from codex.collection import Collection
-from codex.serializers.fields.reader import VALID_ARC_GROUPS
+from codex.serializers.fields.reader import VALID_ARC_COLLECTIONS
 from codex.serializers.reader import ReaderViewInputSerializer
 from codex.views.reader.settings import ReaderSettingsBaseView
 
@@ -39,7 +39,7 @@ class ReaderParamsView(ReaderSettingsBaseView):
                 if top_group in _SERIES_COLLAPSE_TOP_GROUPS
                 else top_group
             )
-        if group not in VALID_ARC_GROUPS:
+        if group not in VALID_ARC_COLLECTIONS:
             group = Collection.SERIES
         params["arc"]["group"] = group
 

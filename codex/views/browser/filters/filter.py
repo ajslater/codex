@@ -51,7 +51,7 @@ _FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset(
 # row in that group. ``folders`` and ``story_arc_numbers__story_arc``
 # are m2m relations on Comic that carry every ancestor folder / arc,
 # so a single favorited folder lights up every descendant comic.
-_FAVORITE_GROUP_COMIC_REL: Final[dict[str, str]] = {
+_FAVORITE_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
     Collection.COMIC: "pk",
     Collection.PUBLISHER: "publisher_id",
     Collection.IMPRINT: "imprint_id",
@@ -182,7 +182,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         subqueries = self._favorite_subqueries
         q = Q()
         for code in active:
-            comic_rel = _FAVORITE_GROUP_COMIC_REL[code]
+            comic_rel = _FAVORITE_COLLECTION_COMIC_REL[code]
             q |= Q(**{f"{rel}{comic_rel}__in": subqueries[code]})
         # The row itself is starred. Covers the rare "favorited group
         # with no comics yet" case and short-circuits the comic join

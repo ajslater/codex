@@ -8,20 +8,20 @@ from collections.abc import Mapping
 from itertools import chain
 
 from codex.librarian.scribe.importer.const import (
+    COLLECTION_MODEL_COUNT_FIELDS,
     COMPLEX_M2M_MODELS,
     CREATE_FKS,
     FTS_CREATED_M2MS,
     FTS_UPDATED_M2MS,
-    GROUP_MODEL_COUNT_FIELDS,
     MODEL_REL_MAP,
     TOTAL,
     UPDATE_FKS,
 )
 from codex.librarian.scribe.importer.create.const import (
+    COLLECTION_BASE_FIELDS,
+    COLLECTION_BASE_MODELS,
     CUSTOM_COVER_MODELS,
     DEFAULT_NON_NULL_CHARFIELD_NAMES,
-    GROUP_BASE_FIELDS,
-    GROUP_BASE_MODELS,
     MODEL_CREATE_ARGS_MAP,
     NON_NULL_CHARFIELD_NAMES,
     ORDERED_CREATE_MODELS,
@@ -93,7 +93,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             value = values_tuple[index]
             arg_map = key_args if index < num_keys else update_args
             if field_model and value is not None:
-                if field_model in GROUP_MODEL_COUNT_FIELDS and index < num_keys:
+                if field_model in COLLECTION_MODEL_COUNT_FIELDS and index < num_keys:
                     key = tuple(values_tuple[: index + 1])
                 elif isinstance(value, tuple):
                     key = value
@@ -170,8 +170,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             self.metadata[FTS_CREATED_M2MS][field_name] = created_fts_values
 
         update_fields = tuple(key_args_map.keys()) + tuple(update_args_map.keys())
-        if model in GROUP_BASE_MODELS:
-            update_fields += GROUP_BASE_FIELDS
+        if model in COLLECTION_BASE_MODELS:
+            update_fields += COLLECTION_BASE_FIELDS
 
         count = len(create_objs)
         model.objects.bulk_create(
@@ -253,8 +253,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
 
         update_fields = tuple(update_args_map.keys())
-        if model in GROUP_BASE_MODELS:
-            update_fields += GROUP_BASE_FIELDS
+        if model in COLLECTION_BASE_MODELS:
+            update_fields += COLLECTION_BASE_FIELDS
 
         count = len(update_objs)
         model.objects.bulk_update(update_objs, fields=update_fields)

@@ -96,7 +96,7 @@ class CustomCover(WatchedPath):
 
     FOLDER_COVER_STEM = ".codex-cover"
     # On-disk directory name (user-facing filesystem convention) → group.
-    DIR_GROUP_CHOICE_MAP = MappingProxyType(
+    DIR_COLLECTION_CHOICE_MAP = MappingProxyType(
         {
             "publishers": GroupChoices.PUBLISHERS.value,
             "imprints": GroupChoices.IMPRINTS.value,
@@ -140,7 +140,7 @@ class CustomCover(WatchedPath):
         if stem == self.FOLDER_COVER_STEM:
             group = self.GroupChoices.FOLDERS.value
         else:
-            group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
+            group = self.DIR_COLLECTION_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
         self.group = group
 

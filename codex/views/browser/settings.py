@@ -26,7 +26,7 @@ from codex.views.settings import (
 
 # Groups whose nav owns a dedicated route (folders / story arcs); for these
 # the URL group becomes the top_group directly during validation.
-_OWN_ROUTE_GROUPS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
+_OWN_ROUTE_COLLECTIONS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
 
 
 class BrowserSettingsBaseView(SettingsBaseView):
@@ -124,7 +124,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         if group == top_group:
             return
 
-        if group in _OWN_ROUTE_GROUPS:
+        if group in _OWN_ROUTE_COLLECTIONS:
             params["top_group"] = group
         else:
             cls._validate_browse_top_group(params, group, top_group)

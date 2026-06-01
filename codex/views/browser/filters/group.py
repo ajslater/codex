@@ -11,7 +11,9 @@ from codex.views.const import (
     FOLDER_COLLECTION,
 )
 
-_GROUP_REL_TARGETS: Final = frozenset({"cover", "choices", "bookmark", "force_update"})
+_COLLECTION_REL_TARGETS: Final = frozenset(
+    {"cover", "choices", "bookmark", "force_update"}
+)
 _PK_REL_TARGETS: Final = frozenset({"metadata", "mtime"})
 
 
@@ -22,7 +24,7 @@ class GroupFilterView(BrowserParamsView):
 
     def _get_rel_for_pks(self, group, *, page_mtime: bool):
         """Get the relation from the model to the pks."""
-        if self.TARGET in _GROUP_REL_TARGETS:
+        if self.TARGET in _COLLECTION_REL_TARGETS:
             rel = FILTER_ONLY_COLLECTION_RELATION[group]
         elif self.TARGET in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime

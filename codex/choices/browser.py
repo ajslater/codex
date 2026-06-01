@@ -197,7 +197,7 @@ DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "root", "pks": (), "page": 1}
 # (publishers / imprints / series / volumes / issues) routes through
 # the canonical Root URL — the per-user ``top_group`` setting
 # is what selects the displayed view inside that URL.
-_FLAG_GROUP_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
+_FLAG_COLLECTION_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 
 def admin_default_route_for(top_group: str) -> dict:
@@ -208,7 +208,7 @@ def admin_default_route_for(top_group: str) -> dict:
     per-user ``last_route`` row exists. ``top_group`` is the collection-name
     default; folders / arcs own their route, everything else is Root.
     """
-    group = top_group if top_group in _FLAG_GROUP_HAS_OWN_ROUTE else "root"
+    group = top_group if top_group in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
     return {"group": group, "pks": (), "page": 1}
 
 

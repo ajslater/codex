@@ -40,8 +40,8 @@ from loguru import logger
 
 import codex.models.fields
 from codex.settings import (
+    CUSTOM_COVERS_COLLECTION_DIRS,
     CUSTOM_COVERS_DIR,
-    CUSTOM_COVERS_GROUP_DIRS,
     CUSTOM_COVERS_UPLOADS_DIR,
 )
 
@@ -152,7 +152,7 @@ def _move_covers_to_uploads(apps) -> None:
 
 def _scrub_legacy_cover_dirs() -> None:
     """Best-effort: remove any leftover files under the legacy group dirs."""
-    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
+    for group_dir in CUSTOM_COVERS_COLLECTION_DIRS:
         legacy = CUSTOM_COVERS_DIR / group_dir
         if not legacy.is_dir():
             continue
