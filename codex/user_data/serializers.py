@@ -147,7 +147,7 @@ def serialize_favorite(
     """
     Favorite row keyed by ``(username, collection, identifier_json)``.
 
-    The polymorphic ``(group, target_id)`` pair is resolved into a stable
+    The polymorphic ``(collection, target_id)`` pair is resolved into a stable
     name-chain identifier via :func:`identifier_for_browse_group`.
     Resolution may fail (target deleted between signal queue and write) —
     return ``None`` to skip rather than crash.
@@ -156,7 +156,7 @@ def serialize_favorite(
 
     target_model = None
     for model, code in FAVORITE_MODEL_COLLECTIONS.items():
-        if code == favorite.group:
+        if code == favorite.collection:
             target_model = model
             break
     if target_model is None:
@@ -164,14 +164,14 @@ def serialize_favorite(
     instance = target_model.objects.filter(pk=favorite.target_id).first()
     if instance is None:
         return None
-    parts = identifier_for_browse_group(favorite.group, instance)
+    parts = identifier_for_browse_group(favorite.collection, instance)
     return (
         "favorites",
         ("username", "collection", "identifier_json"),
         {
             "username": favorite.user.username,
-            "collection": favorite.group,
-            "identifier_json": encode_identifier(favorite.group, parts),
+            "collection": favorite.collection,
+            "identifier_json": encode_identifier(favorite.collection, parts),
             "updated_at": _datetime_str(getattr(favorite, "updated_at", None)),
         },
     )

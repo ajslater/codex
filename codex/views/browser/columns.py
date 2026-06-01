@@ -296,7 +296,7 @@ def favorite_annotation_for(model, user) -> dict:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
-    favorited_ids = Favorite.objects.filter(user=user, group=group_code).values(
+    favorited_ids = Favorite.objects.filter(user=user, collection=group_code).values(
         "target_id"
     )
     return {

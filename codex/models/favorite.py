@@ -57,10 +57,10 @@ class Favorite(BaseModel):
     """Per-user favorite tag for a browsable group or comic."""
 
     user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)
-    group = CharField(max_length=16, choices=FAVORITE_COLLECTION_CHOICES)
+    collection = CharField(max_length=16, choices=FAVORITE_COLLECTION_CHOICES)
     target_id = PositiveIntegerField()
 
     class Meta(BaseModel.Meta):
-        """Uniqueness across (user, group, target_id)."""
+        """Uniqueness across (user, collection, target_id)."""
 
-        unique_together = ("user", "group", "target_id")
+        unique_together = ("user", "collection", "target_id")

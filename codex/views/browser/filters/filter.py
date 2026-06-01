@@ -93,7 +93,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             return frozenset()
         return frozenset(
             Favorite.objects.filter(user=user)
-            .values_list("group", flat=True)
+            .values_list("collection", flat=True)
             .distinct()
         )
 
@@ -133,7 +133,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         """Per-group favorited-id subqueries, materialized once per request."""
         user = self.request.user
         return {
-            code: Favorite.objects.filter(user=user, group=code).values("target_id")
+            code: Favorite.objects.filter(user=user, collection=code).values(
+                "target_id"
+            )
             for code in self._active_favorite_group_codes
         }
 

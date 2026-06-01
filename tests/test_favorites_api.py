@@ -121,7 +121,7 @@ class FavoritesAPITestCase(TestCase):
         assert second.status_code == _HTTP_OK
         assert (
             Favorite.objects.filter(
-                user=self.user, group="series", target_id=self.series_pk
+                user=self.user, collection="series", target_id=self.series_pk
             ).count()
             == 1
         )
@@ -139,7 +139,9 @@ class FavoritesAPITestCase(TestCase):
         bogus_pk = self.series_pk + 99999
         response = self.client.put(_detail_url("s", bogus_pk))
         assert response.status_code == _HTTP_NOT_FOUND
-        assert not Favorite.objects.filter(group="series", target_id=bogus_pk).exists()
+        assert not Favorite.objects.filter(
+            collection="series", target_id=bogus_pk
+        ).exists()
 
     def test_put_unmapped_group_does_not_match_route(self):
         """
@@ -169,7 +171,9 @@ class FavoritesAPITestCase(TestCase):
     def test_get_only_returns_requesting_user_favorites(self):
         """A second user's favorites must not leak through GET."""
         other = User.objects.create_user(username="favapi2", password=_TEST_PASSWORD)
-        Favorite.objects.create(user=other, group="series", target_id=self.series_pk)
+        Favorite.objects.create(
+            user=other, collection="series", target_id=self.series_pk
+        )
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
         assert _v4(response)["series"] == []
@@ -228,7 +232,7 @@ class FavoriteFilterTestCase(TestCase):
             name="ignored", publisher=publisher, imprint=imprint
         )
         Favorite.objects.create(
-            user=self.user, group="series", target_id=self.fav_series.pk
+            user=self.user, collection="series", target_id=self.fav_series.pk
         )
 
     def test_favorite_filter_round_trips_via_settings(self):
@@ -251,7 +255,7 @@ class FavoriteFilterTestCase(TestCase):
 
     def test_favorite_subquery_narrows_to_favorited_pks(self):
         """The pk__in subquery restricts the queryset to the user's favorites."""
-        favorited = Favorite.objects.filter(user=self.user, group="series").values(
+        favorited = Favorite.objects.filter(user=self.user, collection="series").values(
             "target_id"
         )
         narrowed = Series.objects.filter(pk__in=favorited).values_list("pk", flat=True)
@@ -368,7 +372,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
     def test_favorited_publisher_lights_up_descendant_groups(self):
         """Favorite P1 → its full subtree (I1/S1/V1/C1) passes the filter."""
         Favorite.objects.create(
-            user=self.user, group="publishers", target_id=self.p1.pk
+            user=self.user, collection="publishers", target_id=self.p1.pk
         )
         self._enable_favorite_filter()
         # Publisher list: only P1.
@@ -384,7 +388,9 @@ class FavoriteFilterTransitivityTestCase(TestCase):
 
     def test_favorited_comic_lights_up_ancestor_groups(self):
         """Favorite C1 → P1/I1/S1/V1 still navigable down to C1."""
-        Favorite.objects.create(user=self.user, group="comics", target_id=self.c1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="comics", target_id=self.c1.pk
+        )
         self._enable_favorite_filter()
         assert self._group_pks("r") == [self.p1.pk]
         assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
@@ -394,7 +400,9 @@ class FavoriteFilterTransitivityTestCase(TestCase):
 
     def test_favorited_series_isolates_unrelated_branch(self):
         """Favorite S1 → S2's subtree stays out; S1's ancestors and C1 surface."""
-        Favorite.objects.create(user=self.user, group="series", target_id=self.s1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.s1.pk
+        )
         self._enable_favorite_filter()
         # Publishers: only P1.
         assert self._group_pks("r") == [self.p1.pk]
@@ -409,7 +417,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
     def test_filter_off_passes_everything_through(self):
         """Sanity: with the filter off, every chain row shows."""
         Favorite.objects.create(
-            user=self.user, group="publishers", target_id=self.p1.pk
+            user=self.user, collection="publishers", target_id=self.p1.pk
         )
         # Filter not enabled. Both P1 and P2 should appear.
         assert sorted(self._group_pks("r")) == sorted([self.p1.pk, self.p2.pk])
@@ -452,7 +460,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # the path chain, not just the direct parent.
         deep_comic.folders.set([f1, f2, f3])
 
-        Favorite.objects.create(user=self.user, group="folders", target_id=f1.pk)
+        Favorite.objects.create(user=self.user, collection="folders", target_id=f1.pk)
         self._enable_favorite_filter()
 
         # Top-level folder list: F1 surfaces (self) and any
@@ -473,7 +481,9 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # aggregated). Pin the no-crash invariant for the primary key
         # at every group level — Comic and group querysets take
         # different code paths.
-        Favorite.objects.create(user=self.user, group="series", target_id=self.s1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.s1.pk
+        )
         response = self.client.patch(
             _SETTINGS_URL,
             data=json.dumps(
@@ -517,7 +527,7 @@ class FavoriteAnnotationTestCase(TestCase):
             name="ignored", publisher=publisher, imprint=imprint
         )
         Favorite.objects.create(
-            user=self.user, group="series", target_id=self.fav_series.pk
+            user=self.user, collection="series", target_id=self.fav_series.pk
         )
 
     def test_authenticated_user_gets_per_row_exists(self):

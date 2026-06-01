@@ -109,8 +109,10 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         Bookmark.objects.create(
             user=user, comic=comic, page=_SEED_BOOKMARK_PAGE, finished=True
         )
-        Favorite.objects.create(user=user, group="publishers", target_id=publisher.pk)
-        Favorite.objects.create(user=user, group="series", target_id=series.pk)
+        Favorite.objects.create(
+            user=user, collection="publishers", target_id=publisher.pk
+        )
+        Favorite.objects.create(user=user, collection="series", target_id=series.pk)
         # update_or_create rather than create — other suites' setUpTestData
         # calls into codex_init() can leak seeded AdminFlag/Timestamp rows
         # past TestCase's per-test rollback.
@@ -168,10 +170,10 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         report = restore(sidecar_path=snapshot)
         assert report.written.get("favorites", 0) >= _SEED_FAVORITES_COUNT
         Favorite.objects.get(
-            user=seed["user"], group="publishers", target_id=seed["publisher"].pk
+            user=seed["user"], collection="publishers", target_id=seed["publisher"].pk
         )
         Favorite.objects.get(
-            user=seed["user"], group="series", target_id=seed["series"].pk
+            user=seed["user"], collection="series", target_id=seed["series"].pk
         )
 
     def test_restore_logs_unmatched_comic(self) -> None:

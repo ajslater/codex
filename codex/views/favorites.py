@@ -23,13 +23,13 @@ class FavoriteListView(_FavoriteAuthMixin):
 
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{collection: [target_id, ...]}`` for the user."""
-        # ``Favorite.group`` is the collection vocabulary, which is exactly
+        # ``Favorite.collection`` is the collection vocabulary, which is exactly
         # the wire shape — no translation needed.
         favorites_by_group: dict[str, list[int]] = {
             group: [] for group in FAVORITE_COLLECTION_MODELS
         }
         rows = Favorite.objects.filter(user=self.request.user).values_list(
-            "group", "target_id"
+            "collection", "target_id"
         )
         for group, target_id in rows:
             if group in favorites_by_group:
@@ -38,7 +38,7 @@ class FavoriteListView(_FavoriteAuthMixin):
 
 
 class FavoriteDetailView(_FavoriteAuthMixin):
-    """PUT/DELETE: idempotent toggle of a single (group, target_id) favorite."""
+    """PUT/DELETE: idempotent toggle of a single (collection, target_id) favorite."""
 
     @override
     def initial(self, request: "Request", *args, **kwargs):
@@ -82,7 +82,7 @@ class FavoriteDetailView(_FavoriteAuthMixin):
 
         _, created = Favorite.objects.get_or_create(
             user=self.request.user,
-            group=group_code,
+            collection=group_code,
             target_id=target_id,
         )
         return Response(status=201 if created else 200)
@@ -96,7 +96,7 @@ class FavoriteDetailView(_FavoriteAuthMixin):
 
         Favorite.objects.filter(
             user=self.request.user,
-            group=group_code,
+            collection=group_code,
             target_id=target_id,
         ).delete()
         return Response(status=204)

@@ -469,7 +469,9 @@ def _restore_favorites(
                 f"unresolvable {group!r} target {parts!r} for user {username!r}",
             )
             continue
-        Favorite.objects.update_or_create(user=user, group=group, target_id=target_pk)
+        Favorite.objects.update_or_create(
+            user=user, collection=group, target_id=target_pk
+        )
         report.note_written("favorites")
 
 
