@@ -1,11 +1,20 @@
 """OPDS v2.0 Feed Groups."""
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from codex.group import Group
+from codex.models.comic import Comic
 from codex.models.favorite import Favorite
-from codex.models.groups import BrowserGroupModel
+from codex.models.groups import (
+    BrowserGroupModel,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.models.named import StoryArc
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
@@ -21,6 +30,21 @@ from codex.views.opds.v2.const import (
     LinkGroup,
 )
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
+
+# OPDS group link-spec model → browse Group. Replaces a fragile
+# "first letter of the class name" char lookup that mis-mapped
+# ``StoryArc`` → ``series`` (both start with "s").
+_LINK_SPEC_GROUP: MappingProxyType[type, Group] = MappingProxyType(
+    {
+        Publisher: Group.PUBLISHER,
+        Imprint: Group.IMPRINT,
+        Series: Group.SERIES,
+        Volume: Group.VOLUME,
+        Comic: Group.COMIC,
+        Folder: Group.FOLDER,
+        StoryArc: Group.ARC,
+    }
+)
 
 
 class OPDS2FeedGroupsView(OPDS2PublicationsView):
@@ -41,7 +65,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             group = link_spec.group or self.kwargs.get("group", Group.ROOT)
             pks = (0,)
         else:
-            group = Group.from_char(link_spec.__class__.__name__[0].lower())
+            group = _LINK_SPEC_GROUP[type(link_spec)]
             pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return {"group": group, "pks": pks, "page": 1}
 

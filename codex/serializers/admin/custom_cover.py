@@ -14,16 +14,16 @@ from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_GROUP_MAP
 from codex.models import CustomCover
 from codex.serializers.models.base import BaseModelSerializer
 
-_MODEL_BY_GROUP_CHAR = {
-    char: model for model, char in CLASS_CUSTOM_COVER_GROUP_MAP.items()
+_MODEL_BY_GROUP = {
+    group: model for model, group in CLASS_CUSTOM_COVER_GROUP_MAP.items()
 }
 _GROUP_LABELS = {
-    "p": "Publisher",
-    "i": "Imprint",
-    "s": "Series",
-    "v": "Volume",
-    "a": "Story Arc",
-    "f": "Folder",
+    "publishers": "Publisher",
+    "imprints": "Imprint",
+    "series": "Series",
+    "volumes": "Volume",
+    "arcs": "Story Arc",
+    "folders": "Folder",
 }
 
 
@@ -66,7 +66,7 @@ class CustomCoverSerializer(BaseModelSerializer):
 
     @staticmethod
     def _linked(obj: CustomCover):
-        model = _MODEL_BY_GROUP_CHAR.get(obj.group)
+        model = _MODEL_BY_GROUP.get(obj.group)
         if model is None:
             return None
         return model.objects.filter(custom_cover_id=obj.pk).first()

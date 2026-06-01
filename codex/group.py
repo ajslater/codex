@@ -20,11 +20,11 @@ the DB and the URLConf now speak one vocabulary end to end.
 
 The values were *previously* the legacy single-char codes during the
 migration; they were flipped to collection names once every layer
-adopted the enum. ``.char`` survives that flip (it reads
-:data:`GROUP_CHARS` below, not the member value) and still serves the
-few legacy char surfaces that remain: the frontend's char wire dialect
-(translated at the serializer edge), ``app.py``'s legacy
-``<group:group>`` route, and ``Favorite``'s char codes.
+adopted the enum. The whole app now speaks collection end to end. The
+only legacy-char machinery that survives is :data:`GROUP_CHARS` /
+:data:`GROUP_BY_CHAR`, kept solely so :func:`group_value` can normalize
+a char read from a *legacy* ``user_data`` backup sidecar back to its
+collection value on restore. No live code emits char anymore.
 
 This module is intentionally dependency-free (no Django/model imports)
 so it can be imported from anywhere — models, views, serializers,
@@ -49,19 +49,9 @@ class Group(StrEnum):
     ARC = "arcs"
 
     @classmethod
-    def from_char(cls, char: str) -> "Group":
-        """Resolve a legacy single-char group code to its member."""
-        return GROUP_BY_CHAR[char]
-
-    @classmethod
     def from_collection(cls, collection: str) -> "Group":
         """Resolve a v4 collection name to its member."""
         return GROUP_BY_COLLECTION[collection]
-
-    @property
-    def char(self) -> str:
-        """The legacy single-char code for this group."""
-        return GROUP_CHARS[self]
 
     @property
     def collection(self) -> str:
@@ -70,9 +60,10 @@ class Group(StrEnum):
 
 
 # Group → legacy single-char code. Held explicitly (not derived from the
-# member value, which is now the collection name) so the few remaining char
-# surfaces — the frontend wire dialect, app.py's legacy route, Favorite — keep
-# resolving across the value flip.
+# member value, which is now the collection name). Retained solely so
+# :func:`group_value` can normalize a char read from a *legacy* user_data
+# backup sidecar back to its collection value on restore; no live code emits
+# char anymore.
 GROUP_CHARS: Final[MappingProxyType[Group, str]] = MappingProxyType(
     {
         Group.ROOT: "r",
@@ -110,18 +101,6 @@ GROUP_BY_COLLECTION: Final[MappingProxyType[str, Group]] = MappingProxyType(
 _GROUP_BY_VALUE: Final[MappingProxyType[str, Group]] = MappingProxyType(
     {group.value: group for group in Group}
 )
-
-
-def group_char(value: str) -> str:
-    """
-    Return the char code for a group value — the collection→char direction.
-
-    Idempotent: accepts either a collection value (``"publishers"``,
-    ``"root"``) or a char (``"p"``, ``"r"``) and returns the char.
-    Unknown values pass through unchanged.
-    """
-    group = _GROUP_BY_VALUE.get(value) or GROUP_BY_CHAR.get(value)
-    return group.char if group else value
 
 
 def group_value(value: str) -> str:

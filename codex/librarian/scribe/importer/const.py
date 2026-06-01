@@ -394,12 +394,12 @@ BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 ##########
 CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
     {
-        Publisher: CustomCover.GroupChoices.P.value,
-        Imprint: CustomCover.GroupChoices.I.value,
-        Series: CustomCover.GroupChoices.S.value,
-        Volume: CustomCover.GroupChoices.V.value,
-        StoryArc: CustomCover.GroupChoices.A.value,
-        Folder: CustomCover.GroupChoices.F.value,
+        Publisher: CustomCover.GroupChoices.PUBLISHERS.value,
+        Imprint: CustomCover.GroupChoices.IMPRINTS.value,
+        Series: CustomCover.GroupChoices.SERIES.value,
+        Volume: CustomCover.GroupChoices.VOLUMES.value,
+        StoryArc: CustomCover.GroupChoices.ARCS.value,
+        Folder: CustomCover.GroupChoices.FOLDERS.value,
     }
 )
 

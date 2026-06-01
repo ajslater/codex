@@ -26,7 +26,9 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
-const UPLOAD_GROUPS = Object.freeze(new Set(["p", "i", "s", "v", "a", "f"]));
+const UPLOAD_GROUPS = Object.freeze(
+  new Set(["publishers", "imprints", "series", "volumes", "arcs", "folders"]),
+);
 
 export default {
   name: "UploadCoverButton",

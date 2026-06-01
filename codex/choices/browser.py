@@ -123,8 +123,8 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
 # The char-keyed choices above are residual scaffolding: every live surface —
 # the model fields, the engine, the serializer route/top-group fields, AND the
 # frontend choices-JSON export — now speaks the collection vocabulary via the
-# ``*_COLLECTION_CHOICES`` variants below. The char maps survive only for
-# ``.char``-style legacy lookups pending the final scaffolding removal.
+# ``*_COLLECTION_CHOICES`` variants below. The char maps are slated for removal
+# with the deferred dual-dialect RouteSerializer collapse.
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 _GROUP_COLLECTION_NAMES = MappingProxyType(
     {

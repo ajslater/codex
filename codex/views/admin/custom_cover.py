@@ -35,9 +35,9 @@ if TYPE_CHECKING:
     from django.db.models import Model
 
 _ALLOWED_EXTS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"})
-_GROUP_CHAR_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
-_MODEL_BY_GROUP_CHAR: dict[str, type[Model]] = {
-    char: model for model, char in CLASS_CUSTOM_COVER_GROUP_MAP.items()
+_GROUP_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
+_MODEL_BY_GROUP: dict[str, type[Model]] = {
+    group: model for model, group in CLASS_CUSTOM_COVER_GROUP_MAP.items()
 }
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _MAX_SLUG_LEN = 60
@@ -87,10 +87,10 @@ def _validate_image(upload, ext: str) -> None:
         raise ValidationError(msg) from exc
 
 
-def _resolve_targets(group_char: str, pks: tuple[int, ...]):
-    model = _MODEL_BY_GROUP_CHAR.get(group_char)
+def _resolve_targets(group: str, pks: tuple[int, ...]):
+    model = _MODEL_BY_GROUP.get(group)
     if model is None:
-        msg = f"Unknown group {group_char!r}"
+        msg = f"Unknown group {group!r}"
         raise ValidationError(msg)
     targets = list(model.objects.filter(pk__in=pks))
     if len(targets) != len(set(pks)):
@@ -153,7 +153,7 @@ def _purge_orphaned(cover_pks: tuple[int, ...]) -> None:
             cover = CustomCover.objects.get(pk=pk)
         except CustomCover.DoesNotExist:
             continue
-        model = _MODEL_BY_GROUP_CHAR.get(cover.group)
+        model = _MODEL_BY_GROUP.get(cover.group)
         if model is None:
             continue
         if model.objects.filter(custom_cover_id=pk).exists():
@@ -170,9 +170,9 @@ class AdminCustomCoverUploadView(AdminAPIView):
 
     def post(self, request, *_args, **_kwargs) -> Response:
         """Accept a multipart upload and link it to ``pks`` of ``group``."""
-        group_char = request.data.get("group", "")
-        if group_char not in _GROUP_CHAR_CHOICES:
-            msg = f"Invalid group {group_char!r}"
+        group = request.data.get("group", "")
+        if group not in _GROUP_CHOICES:
+            msg = f"Invalid group {group!r}"
             raise ValidationError(msg)
         pks = _parse_pks(request.data.get("pks", ""))
         upload = request.FILES.get("image")
@@ -184,7 +184,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             ext = ".jpg"
         _validate_image(upload, ext)
 
-        model, targets = _resolve_targets(group_char, pks)
+        model, targets = _resolve_targets(group, pks)
         first = targets[0]
         sort_name = _sort_name_for(first)
         slug = _slugify(sort_name)
@@ -193,7 +193,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover = CustomCover(
                 library=None,
                 path="",
-                group=group_char,
+                group=group,
                 sort_name=sort_name,
             )
             # Save once to allocate a pk; presave wants ``path`` to stat
@@ -208,7 +208,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover.path = str(placeholder)
             cover.save()
 
-            stem = f"{group_char}-{cover.pk}"
+            stem = f"{group}-{cover.pk}"
             if slug:
                 stem = f"{stem}-{slug}"
             final_path = CUSTOM_COVERS_UPLOADS_DIR / f"{stem}{ext}"
@@ -233,12 +233,12 @@ class AdminCustomCoverRemoveView(AdminAPIView):
 
     def post(self, request, *_args, **_kwargs) -> Response:
         """Unlink the custom cover from each given group pk."""
-        group_char = request.data.get("group", "")
-        if group_char not in _GROUP_CHAR_CHOICES:
-            msg = f"Invalid group {group_char!r}"
+        group = request.data.get("group", "")
+        if group not in _GROUP_CHOICES:
+            msg = f"Invalid group {group!r}"
             raise ValidationError(msg)
         pks = _parse_pks(str(request.data.get("pks", "")))
-        model, targets = _resolve_targets(group_char, pks)
+        model, targets = _resolve_targets(group, pks)
         displaced = tuple(
             cover_id
             for cover_id in (getattr(t, "custom_cover_id", None) for t in targets)
@@ -261,7 +261,7 @@ class AdminCustomCoverDeleteView(AdminAPIView):
         except CustomCover.DoesNotExist as exc:
             msg = f"CustomCover {pk} not found"
             raise ValidationError(msg) from exc
-        model = _MODEL_BY_GROUP_CHAR.get(cover.group)
+        model = _MODEL_BY_GROUP.get(cover.group)
         with transaction.atomic():
             if model is not None:
                 model.objects.filter(custom_cover_id=pk).update(custom_cover=None)

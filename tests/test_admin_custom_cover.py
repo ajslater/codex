@@ -72,19 +72,23 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """A valid PNG creates the row, writes to uploads/, links the group."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         assert response.status_code == HTTPStatus.CREATED
         pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
-        assert cover.group == "p"
+        assert cover.group == "publishers"
         assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
-        # Naming convention: ``{group_char}-{pk}-{slug}.{ext}``. Sortable
-        # by group on disk and trivially scannable for a given linked
+        # Naming convention: ``{group}-{pk}-{slug}.{ext}``. Sortable by
+        # group on disk and trivially scannable for a given linked
         # group; slug uses the linked row's sort_name.
         filename = Path(cover.path).name
-        assert filename.startswith(f"p-{pk}-")
+        assert filename.startswith(f"publishers-{pk}-")
         assert filename.endswith(".png")
         assert "marvel" in filename
         self.publisher.refresh_from_db()
@@ -103,7 +107,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         client.login(username="plain", password=_TEST_PASSWORD)
         response = client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
 
@@ -117,7 +125,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "p",
+                "group": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -133,16 +141,16 @@ class AdminCustomCoverUploadTestCase(TestCase):
         )
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": bogus},
+            data={"group": "publishers", "pks": str(self.publisher.pk), "image": bogus},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     @patch(_QUEUE_PATCH)
     def test_group_pk_mismatch_rejected(self, mock_queue) -> None:  # noqa: ARG002
-        """``group=s`` with a Publisher pk fails fast with 400."""
+        """``group=series`` with a Publisher pk fails fast with 400."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "s", "pks": str(self.publisher.pk), "image": _upload()},
+            data={"group": "series", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
@@ -151,12 +159,16 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """``POST /admin/custom-covers/bulk-delete`` clears the FK and GCs orphans."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         pk = _v4(response)["customCoverPk"]
         response = self.client.post(
             "/api/v4/admin/custom-covers/bulk-delete",
-            data=json.dumps({"group": "p", "pks": str(self.publisher.pk)}),
+            data=json.dumps({"group": "publishers", "pks": str(self.publisher.pk)}),
             content_type="application/json",
         )
         assert response.status_code == HTTPStatus.NO_CONTENT
@@ -169,7 +181,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """``DELETE /admin/custom-covers/{pk}`` drops the row and the link."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         pk = _v4(response)["customCoverPk"]
         response = self.client.delete(f"/api/v4/admin/custom-covers/{pk}")
@@ -181,7 +197,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """``GET /admin/custom-covers`` includes the linked group name."""
         upload_response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         assert upload_response.status_code == HTTPStatus.CREATED
         response = self.client.get("/api/v4/admin/custom-covers")
@@ -192,7 +212,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         rows = body if isinstance(body, list) else body.get("data", [])
         assert len(rows) == 1
         attrs = rows[0]["attributes"]
-        assert attrs["group"] == "p"
+        assert attrs["group"] == "publishers"
         assert attrs["linkedGroupName"] == "Marvel"
 
     @patch(_QUEUE_PATCH)
@@ -200,12 +220,20 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """A second upload to the same group purges the previous CustomCover."""
         first = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         first_pk = _v4(first)["customCoverPk"]
         second = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "p", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "group": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         second_pk = _v4(second)["customCoverPk"]
         assert second_pk != first_pk
@@ -242,10 +270,10 @@ class CustomCoverVolumeSupportTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_volume_upload(self, mock_queue) -> None:  # noqa: ARG002
-        """Upload with ``group=v`` binds the Volume's ``custom_cover_id``."""
+        """Upload with ``group=volumes`` binds the Volume's ``custom_cover_id``."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "v", "pks": str(self.volume.pk), "image": _upload()},
+            data={"group": "volumes", "pks": str(self.volume.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.CREATED
         self.volume.refresh_from_db()

@@ -51,13 +51,6 @@ def test_strenum_interop_with_collections():
     assert sample_by_collection[Group.SERIES] == "y"
 
 
-def test_char_round_trip():
-    """Every group round-trips through its legacy single-char code."""
-    for group in Group:
-        assert Group.from_char(group.char) is group
-    assert Group.from_char("r") is Group.ROOT
-
-
 def test_collection_round_trip():
     """Every non-root group round-trips through its v4 collection name."""
     for group in Group:
@@ -91,7 +84,7 @@ def test_root_excluded_from_collection_only_maps():
 
 def test_known_representations():
     """Pin the legacy-sensitive representations that other layers rely on."""
-    assert Group.COMIC.char == "c"
+    assert GROUP_CHARS[Group.COMIC] == "c"
     assert Group.COMIC.collection == "comics"
     assert Group.PUBLISHER.collection == "publishers"
     # COMIC's display label is the reader-convention "Issues", not "Comics".

@@ -85,22 +85,23 @@ class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
     class GroupChoices(TextChoices):
-        """Reading direction choices."""
+        """Browse groups a custom cover may attach to (collection vocabulary)."""
 
-        P = "p"
-        I = "i"  # noqa: E741
-        S = "s"
-        V = "v"
-        A = "a"
-        F = "f"
+        PUBLISHERS = "publishers"
+        IMPRINTS = "imprints"
+        SERIES = "series"
+        VOLUMES = "volumes"
+        ARCS = "arcs"
+        FOLDERS = "folders"
 
     FOLDER_COVER_STEM = ".codex-cover"
+    # On-disk directory name (user-facing filesystem convention) → group.
     DIR_GROUP_CHOICE_MAP = MappingProxyType(
         {
-            "publishers": GroupChoices.P.value,
-            "imprints": GroupChoices.I.value,
-            "series": GroupChoices.S.value,
-            "story-arcs": GroupChoices.A.value,
+            "publishers": GroupChoices.PUBLISHERS.value,
+            "imprints": GroupChoices.IMPRINTS.value,
+            "series": GroupChoices.SERIES.value,
+            "story-arcs": GroupChoices.ARCS.value,
         }
     )
 
@@ -137,7 +138,7 @@ class CustomCover(WatchedPath):
             return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            group = self.GroupChoices.F.value
+            group = self.GroupChoices.FOLDERS.value
         else:
             group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
