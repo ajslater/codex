@@ -20,6 +20,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
+from codex.group import group_char, group_value
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
@@ -29,12 +30,25 @@ from codex.serializers.settings import SettingsInputSerializer
 
 
 class BrowserSettingsShowGroupFlagsSerializer(Serializer):
-    """Show Group Flags."""
+    """Show Group Flags — char ``p/i/s/v`` wire, collection keys internally."""
 
     p = BooleanField()
     i = BooleanField()
     s = BooleanField()
     v = BooleanField()
+
+    @override
+    def to_internal_value(self, data) -> dict:
+        """Translate char wire keys to collection keys (``p`` → ``publishers``)."""
+        validated = super().to_internal_value(data)
+        return {group_value(key): on for key, on in validated.items()}
+
+    @override
+    def to_representation(self, instance) -> dict:
+        """Render collection keys (internal) as the char ``p/i/s/v`` wire keys."""
+        if isinstance(instance, dict):
+            instance = {group_char(key): on for key, on in instance.items()}
+        return super().to_representation(instance)
 
 
 class BrowserSettingsLastRouteSerializer(Serializer):

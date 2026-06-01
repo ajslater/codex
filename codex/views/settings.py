@@ -14,7 +14,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_CHOICES,
     admin_default_route_for,
 )
-from codex.group import Group
+from codex.group import Group, group_value
 from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
@@ -154,7 +154,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         except AdminFlag.DoesNotExist:
             return _FALLBACK_DEFAULT_TOP_GROUP
         if flag.on and flag.value in BROWSER_TOP_GROUP_CHOICES:
-            return flag.value
+            # The flag stores the char wire value; the engine wants the collection.
+            return group_value(flag.value)
         return _FALLBACK_DEFAULT_TOP_GROUP
 
     @classmethod
@@ -174,10 +175,10 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         pinned ``top_group`` is never overwritten.
         """
         show, _ = SettingsBrowserShow.objects.get_or_create(
-            p=True,
-            i=False,
-            s=True,
-            v=False,
+            publishers=True,
+            imprints=False,
+            series=True,
+            volumes=False,
         )
         create_kwargs = dict(create_args)
         create_kwargs.setdefault("top_group", cls._get_admin_default_top_group())

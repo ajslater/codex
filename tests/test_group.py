@@ -26,29 +26,29 @@ _COLLECTIONS: Final = frozenset(
 )
 
 
-def test_value_is_legacy_char():
-    """A member's value is its legacy single-char code (the transition value)."""
-    assert Group.PUBLISHER == "p"
-    assert Group.ROOT == "r"
-    assert {g.value for g in Group} == set("rpisvcfa")
+def test_value_is_collection_name():
+    """A member's value is its v4 collection name (ROOT → ``"root"``)."""
+    assert Group.PUBLISHER == "publishers"
+    assert Group.ROOT == "root"
+    assert {g.value for g in Group} == _COLLECTIONS | {"root"}
 
 
-def test_strenum_interop_with_chars():
+def test_strenum_interop_with_collections():
     """
-    The migration leans on this: members are interchangeable with their char.
+    Members are interchangeable with their collection-name value.
 
-    Equality *and* hashing match, so a dict re-keyed to Group members is still
-    found by the legacy char string — the property that lets the engine adopt
-    Group incrementally with no behavior change.
+    Equality *and* hashing match, so a dict re-keyed to Group members is found
+    by the collection-name string — the property that lets the engine, DB and
+    URLConf speak one vocabulary end to end after the value flip.
     """
-    assert Group.SERIES == "s"
-    assert hash(Group.SERIES) == hash("s")
+    assert Group.SERIES == "series"
+    assert hash(Group.SERIES) == hash("series")
     # Typed dict[str, str] because Group is a str subtype; the point is that
-    # member and char keys resolve to the same bucket at runtime.
+    # member and collection keys resolve to the same bucket at runtime.
     sample: dict[str, str] = {Group.SERIES: "x"}
-    assert sample["s"] == "x"
-    sample_by_char: dict[str, str] = {"s": "y"}
-    assert sample_by_char[Group.SERIES] == "y"
+    assert sample["series"] == "x"
+    sample_by_collection: dict[str, str] = {"series": "y"}
+    assert sample_by_collection[Group.SERIES] == "y"
 
 
 def test_char_round_trip():

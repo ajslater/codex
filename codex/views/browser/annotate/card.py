@@ -11,6 +11,7 @@ from django.db.models import (
 )
 from django.db.models.fields import CharField
 
+from codex.group import Group, group_char
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
@@ -41,9 +42,15 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         return qs
 
     def _annotate_group(self, qs):
-        """Annotate Group."""
-        value = "c" if qs.model is Comic else self.model_group
-        return qs.annotate(group=Value(value, CharField(max_length=1)))
+        """
+        Annotate the per-row group char.
+
+        This is frontend routing metadata (table view reads it to tell a
+        Comic row from a group node), so it stays in the char wire dialect
+        even though the engine speaks collection values internally.
+        """
+        group = Group.COMIC if qs.model is Comic else self.model_group
+        return qs.annotate(group=Value(group_char(group), CharField(max_length=1)))
 
     def _annotate_file_name(self, qs):
         """Annotate the file name for folder view."""

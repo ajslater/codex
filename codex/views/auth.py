@@ -50,6 +50,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
+from codex.group import Group as BrowseGroup  # not django.contrib.auth Group
 from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
@@ -57,7 +58,6 @@ from codex.models.age_rating import (
 )
 from codex.models.auth import UserAuth
 from codex.serializers.auth import ProfileUpdateSerializer, UserSerializer
-from codex.urls.converters import COLLECTION_TO_GROUP as _COLLECTION_TO_GROUP
 from codex.views.envelope import EnvelopeJSONRenderer as _EnvelopeJSONRenderer
 
 if TYPE_CHECKING:
@@ -119,21 +119,21 @@ class AuthMixin:
 
     def _translate_browser_kwargs(self, request) -> None:
         """
-        Rewrite ``{collection, parent_ids}`` → v3 ``{group, pks}`` kwargs.
+        Rename ``{collection, parent_ids}`` URL kwargs → engine ``{group, pks}``.
 
-        ``/browse/publishers`` (no parent IDs) maps to v3's
-        ``ROOT_GROUP`` so the response lists publisher rows
-        themselves; everything else maps the collection segment to
-        v3's matching single-char group code. ``page`` is pulled
-        out of the GET dict when :attr:`requires_page` is set.
+        The engine speaks the collection vocabulary now, so the collection
+        segment *is* the group value — no char translation. ``/browse/publishers``
+        with no parent IDs is the synthetic ``ROOT`` (lists the top collection);
+        everything else is the named collection. ``page`` is pulled out of the
+        GET dict when :attr:`requires_page` is set.
         """
         kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
         collection = kwargs.pop("collection")
         parent_ids = kwargs.pop("parent_ids", None)
-        if collection == "publishers" and parent_ids is None:
-            kwargs["group"] = "r"
+        if collection == BrowseGroup.PUBLISHER and parent_ids is None:
+            kwargs["group"] = BrowseGroup.ROOT
         else:
-            kwargs["group"] = _COLLECTION_TO_GROUP[collection]
+            kwargs["group"] = collection
         kwargs["pks"] = tuple(parent_ids) if parent_ids else ()
         if self.requires_page and "page" not in kwargs:
             try:

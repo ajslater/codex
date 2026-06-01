@@ -25,6 +25,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
+from codex.group import group_char, group_value
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.functions import JsonGroupArray
 
@@ -123,7 +124,9 @@ _FK_NAME_COLUMN_PATHS = MappingProxyType(
 
 def default_columns_for(top_group: str) -> tuple[str, ...]:
     """Return the default column tuple for a top-group, or empty if unknown."""
-    return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_group, ())
+    # The defaults map is char-keyed (frontend wire); the engine's top_group
+    # is a collection value — bridge it here.
+    return BROWSER_TABLE_DEFAULT_COLUMNS.get(group_char(top_group), ())
 
 
 # Default columns gated on the matching ``show.<key>`` group flag.
@@ -157,8 +160,12 @@ def default_columns_filtered(
     if not cols:
         return cols
     show_map: dict = show if isinstance(show, dict) else {}
+    # ``show`` keys are collection values from the engine but char from
+    # direct unit-test callers; accept either dialect for the gate flags.
     blocked = {
-        col for col, flag in _SHOW_GATED_COLUMNS.items() if not show_map.get(flag)
+        col
+        for col, flag in _SHOW_GATED_COLUMNS.items()
+        if not (show_map.get(flag) or show_map.get(group_value(flag)))
     }
     if not blocked:
         return cols

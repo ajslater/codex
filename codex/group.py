@@ -12,16 +12,19 @@ API and URLs.
 :class:`Group` is the single source of truth that ties those
 representations together.
 
-The member *value* is, for now, the legacy single-char code. This is a
-deliberate transition choice: a ``StrEnum`` member compares and hashes
-equal to its value, so while the value is the char the enum is a
-drop-in for the char strings still threaded through the engine, the DB
-and the URLConf — a dict re-keyed to ``Group`` members is still found
-by the old char keys, letting each layer adopt the enum incrementally
-with no behavior change. The migration's end state flips these values
-to the v4 collection names; ``.char`` and ``.collection`` keep working
-across that flip because they read the explicit maps below rather than
-the member value.
+The member *value* is the v4 **collection name** (``"publishers"``,
+``"series"``, …; ``ROOT`` resolves to ``"root"``). A ``StrEnum`` member
+compares and hashes equal to its value, so a dict re-keyed to ``Group``
+members is found by a collection-name lookup — which is how the engine,
+the DB and the URLConf now speak one vocabulary end to end.
+
+The values were *previously* the legacy single-char codes during the
+migration; they were flipped to collection names once every layer
+adopted the enum. ``.char`` survives that flip (it reads
+:data:`GROUP_CHARS` below, not the member value) and still serves the
+few legacy char surfaces that remain: the frontend's char wire dialect
+(translated at the serializer edge), ``app.py``'s legacy
+``<group:group>`` route, and ``Favorite``'s char codes.
 
 This module is intentionally dependency-free (no Django/model imports)
 so it can be imported from anywhere — models, views, serializers,
@@ -34,16 +37,16 @@ from typing import Final
 
 
 class Group(StrEnum):
-    """A browsable group. The member value is the legacy single-char code."""
+    """A browsable group. The member value is the v4 collection name."""
 
-    ROOT = "r"  # synthetic top level; resolves to its top collection in URLs
-    PUBLISHER = "p"
-    IMPRINT = "i"
-    SERIES = "s"
-    VOLUME = "v"
-    COMIC = "c"
-    FOLDER = "f"
-    ARC = "a"
+    ROOT = "root"  # synthetic top level; resolves to its top collection in URLs
+    PUBLISHER = "publishers"
+    IMPRINT = "imprints"
+    SERIES = "series"
+    VOLUME = "volumes"
+    COMIC = "comics"
+    FOLDER = "folders"
+    ARC = "arcs"
 
     @classmethod
     def from_char(cls, char: str) -> "Group":
@@ -66,9 +69,10 @@ class Group(StrEnum):
         return GROUP_COLLECTIONS[self]
 
 
-# Group → legacy single-char code (engine kwargs, DB columns, OPDS).
-# Held explicitly — not derived from the member value — so it survives the
-# eventual flip of member values to collection names.
+# Group → legacy single-char code. Held explicitly (not derived from the
+# member value, which is now the collection name) so the few remaining char
+# surfaces — the frontend wire dialect, app.py's legacy route, Favorite — keep
+# resolving across the value flip.
 GROUP_CHARS: Final[MappingProxyType[Group, str]] = MappingProxyType(
     {
         Group.ROOT: "r",
@@ -101,6 +105,36 @@ GROUP_COLLECTIONS: Final[MappingProxyType[Group, str]] = MappingProxyType(
 GROUP_BY_COLLECTION: Final[MappingProxyType[str, Group]] = MappingProxyType(
     {collection: group for group, collection in GROUP_COLLECTIONS.items()}
 )
+# Member value (collection name, incl. ROOT="root") → Group. ``Group(value)``
+# is equivalent but raises on a char; this map + the helpers below are tolerant.
+_GROUP_BY_VALUE: Final[MappingProxyType[str, Group]] = MappingProxyType(
+    {group.value: group for group in Group}
+)
+
+
+def group_char(value: str) -> str:
+    """
+    Return the char code for a group value — the collection→char direction.
+
+    Idempotent: accepts either a collection value (``"publishers"``,
+    ``"root"``) or a char (``"p"``, ``"r"``) and returns the char.
+    Unknown values pass through unchanged.
+    """
+    group = _GROUP_BY_VALUE.get(value) or GROUP_BY_CHAR.get(value)
+    return group.char if group else value
+
+
+def group_value(value: str) -> str:
+    """
+    Return the collection value for a group — the char→collection direction.
+
+    Idempotent: accepts either a char (``"p"``, ``"r"``) or a collection
+    value and returns the collection value (``"publishers"``, ``"root"``).
+    Unknown values pass through unchanged.
+    """
+    group = GROUP_BY_CHAR.get(value) or _GROUP_BY_VALUE.get(value)
+    return group.value if group else value
+
 
 # Group → singular name, used only for cover / placeholder filenames
 # (``img/publisher.svg``). ROOT has no cover of its own.

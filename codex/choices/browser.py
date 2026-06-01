@@ -120,7 +120,30 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     }
 )
 
+# Char-keyed choices above serve the frontend's char *wire* dialect (the
+# serializer route/top-group fields + table_columns keys + the browser-choices
+# JSON export). The collection-keyed variants below are what the *model* fields
+# and the engine now store, post value-flip.
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
+_GROUP_COLLECTION_NAMES = MappingProxyType(
+    {
+        "publishers": "Publishers",
+        "imprints": "Imprints",
+        "series": "Series",
+        "volumes": "Volumes",
+    }
+)
+BROWSER_TOP_GROUP_COLLECTION_CHOICES = MappingProxyType(
+    {
+        **_GROUP_COLLECTION_NAMES,
+        "comics": "Issues",
+        "folders": "Folders",
+        "arcs": "Story Arcs",
+    },
+)
+BROWSER_ROUTE_COLLECTION_CHOICES = MappingProxyType(
+    {**BROWSER_TOP_GROUP_COLLECTION_CHOICES, "root": "Root"}
+)
 BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
     {
         "cover": "Cover",
@@ -186,25 +209,28 @@ BROWSER_CHOICES_MAP_KEYS = frozenset(
     }
 )
 
-DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
+# The engine's canonical default route — collection vocabulary, no dummy 0
+# (the wire denormalizes ``group`` to its char at the RouteSerializer edge).
+DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "root", "pks": (), "page": 1})
 
-# Top-group values that own a dedicated browser route. For these,
+# Top-group collections that own a dedicated browser route. For these,
 # the URL ``group`` matches the ``top_group``. Everything else
 # (publishers / imprints / series / volumes / issues) routes through
-# the canonical ``r`` (Root) URL — the per-user ``top_group`` setting
+# the canonical Root URL — the per-user ``top_group`` setting
 # is what selects the displayed view inside that URL.
-_FLAG_GROUP_HAS_OWN_ROUTE = frozenset({"f", "a"})
+_FLAG_GROUP_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 
 def admin_default_route_for(top_group: str) -> dict:
     """
-    Translate a ``BROWSER_DEFAULT_GROUP`` flag value into a route dict.
+    Translate a ``BROWSER_DEFAULT_GROUP`` collection into a route dict.
 
-    Used by :class:`codex.views.frontend.IndexView` to redirect the bare
-    ``/`` URL when no per-user ``last_route`` row exists.
+    Used (via ``get_last_route``) to seed the bare ``/`` redirect when no
+    per-user ``last_route`` row exists. ``top_group`` is the collection-name
+    default; folders / arcs own their route, everything else is Root.
     """
-    group = top_group if top_group in _FLAG_GROUP_HAS_OWN_ROUTE else "r"
-    return {"group": group, "pks": (0,), "page": 1}
+    group = top_group if top_group in _FLAG_GROUP_HAS_OWN_ROUTE else "root"
+    return {"group": group, "pks": (), "page": 1}
 
 
 _DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
@@ -685,7 +711,9 @@ BROWSER_DEFAULTS = MappingProxyType(
         "top_group": "p",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
-        "last_route": DEFAULT_BROWSER_ROUTE,
+        # Frontend export stays in the char wire dialect (the engine's
+        # collection ``DEFAULT_BROWSER_ROUTE`` is denormalized elsewhere).
+        "last_route": MappingProxyType({"group": "r", "pks": (0,), "page": 1}),
         "view_mode": "cover",
         "table_columns": {},
         "table_cover_size": "sm",

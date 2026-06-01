@@ -6,18 +6,16 @@ from typing import override
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
-from codex.group import GROUP_BY_CHAR, Group
+from codex.group import Group, group_value
 from codex.serializers.fields.group import BrowserRouteGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
 
 def _collection_for_group(group) -> str:
-    """Map a legacy group char to its v4 collection name (root → publishers)."""
-    enum_group = GROUP_BY_CHAR.get(group)
-    if enum_group is None or enum_group is Group.ROOT:
-        return Group.PUBLISHER.collection
-    return enum_group.collection
+    """Map a group value (collection or char) to its v4 collection (root → publishers)."""
+    value = group_value(group)
+    return Group.PUBLISHER.collection if value == Group.ROOT else value
 
 
 def _parent_ids_for(pks: str) -> list[int]:

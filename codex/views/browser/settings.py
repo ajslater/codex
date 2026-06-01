@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from codex.group import Group
 from codex.models.settings import (
     ClientChoices,
     SettingsBrowser,
@@ -22,6 +23,10 @@ from codex.views.settings import (
     BROWSER_FILTER_ARGS,
     SettingsBaseView,
 )
+
+# Groups whose nav owns a dedicated route (folders / story arcs); for these
+# the URL group becomes the top_group directly during validation.
+_OWN_ROUTE_GROUPS = frozenset({FOLDER_GROUP, STORY_ARC_GROUP})
 
 
 class BrowserSettingsBaseView(SettingsBaseView):
@@ -97,9 +102,9 @@ class BrowserSettingsView(BrowserSettingsBaseView):
 
     @staticmethod
     def _validate_browse_top_group(params, group: str, top_group: str) -> None:
-        """Validate top group for browse groups."""
+        """Validate top group for browse groups (collection vocabulary)."""
         show = params["show"]
-        if group == "r" or (
+        if group == Group.ROOT or (
             group in GROUP_ORDER
             and show.get(top_group)
             and GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
@@ -111,7 +116,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
                 params["top_group"] = show_group
                 break
         else:
-            params["top_group"] = "c"
+            params["top_group"] = Group.COMIC
 
     @classmethod
     def _validate_top_group(cls, params, group: str, top_group: str) -> None:
@@ -119,7 +124,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         if group == top_group:
             return
 
-        if group in "fa":
+        if group in _OWN_ROUTE_GROUPS:
             params["top_group"] = group
         else:
             cls._validate_browse_top_group(params, group, top_group)
@@ -129,7 +134,9 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         # This is a micro version of browser/validate.py
         # It would be ideal to combine them but browser validate does redirects so maybe later.
         top_group = params["top_group"]
-        group = validated_data.get("group", "r") if validated_data else "r"
+        group = (
+            validated_data.get("group", Group.ROOT) if validated_data else Group.ROOT
+        )
         self._validate_top_group(params, group, top_group)
         self.set_order_by_default(params)
         return params

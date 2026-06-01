@@ -68,7 +68,11 @@ MISSING_COVER_NAME_MAP = MappingProxyType(
 MISSING_COVER_FN = "comic-165.webp"
 MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 
-GROUP_RELATION = MappingProxyType(
+# Annotated ``[str, str]`` (not ``[Group, str]``): the keys are Group members
+# but lookups come in as their collection-value string (Group is a StrEnum, so
+# both resolve to the same bucket). The explicit annotation lets str-typed
+# group values index these maps without a type error.
+GROUP_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
         **GROUP_NAME_MAP,
         COMIC_GROUP: "pk",
@@ -76,7 +80,7 @@ GROUP_RELATION = MappingProxyType(
         STORY_ARC_GROUP: "story_arc_numbers__story_arc",
     }
 )
-FILTER_ONLY_GROUP_RELATION = MappingProxyType(
+FILTER_ONLY_GROUP_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
         **GROUP_RELATION,
         FOLDER_GROUP: "folders",
@@ -93,12 +97,12 @@ METADATA_GROUP_RELATION = MappingProxyType(
 CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
     {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
 )
-# Publisher-hierarchy nav ordering (root → volume) as a string of legacy
-# char codes, kept for the substring/index checks in browser settings.
-GROUP_ORDER = "".join(
-    g.char
-    for g in (Group.ROOT, Group.PUBLISHER, Group.IMPRINT, Group.SERIES, Group.VOLUME)
-)
+# Publisher-hierarchy nav ordering (root → volume), used for the
+# membership / index checks in browser settings validation. A tuple of
+# Group members (collection-valued) so ``group in GROUP_ORDER`` and
+# ``GROUP_ORDER.index(group)`` resolve against the engine's collection
+# values (members compare equal to their value).
+GROUP_ORDER = (Group.ROOT, Group.PUBLISHER, Group.IMPRINT, Group.SERIES, Group.VOLUME)
 MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
     {
         Publisher: "publisher",

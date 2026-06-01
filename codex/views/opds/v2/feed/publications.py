@@ -10,6 +10,7 @@ from urllib.parse import quote_plus
 from caseconverter import snakecase
 from django.db.models import CharField, F, Value
 
+from codex.group import group_value
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
@@ -533,12 +534,17 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
         feed_view._admin_flags = self.admin_flags  # noqa: SLF001
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
-        group = link_spec.group
+        # The preview link_specs carry the char wire dialect; the engine
+        # this feed view drives speaks collection values.
+        group = group_value(link_spec.group) if link_spec.group else link_spec.group
         feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
         params = self.get_browser_default_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
-                params[snakecase(key)] = value
+                snake_key = snakecase(key)
+                params[snake_key] = (
+                    group_value(str(value)) if snake_key == "top_group" else value
+                )
         params["show"].update(_PREVIEW_SHOW_PARAMS)
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 

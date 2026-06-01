@@ -18,7 +18,7 @@ urlpatterns = [
     path(
         "c/<int_list:pks>/1",
         opds_cached(OPDS2ManifestView.as_view()),
-        {"group": "c", "page": 1},
+        {"group": "comics", "page": 1},
         name="manifest",
     ),
     # Progression GET / PUT is correctness-sensitive — a PUT mutates
@@ -28,6 +28,8 @@ urlpatterns = [
     # cost outweighs the ~9-query saving. Comic-only: the ``group``
     # default lets the existing ``{group: "c", pk}`` reverse match.
     path(
+        # Comic-only progression endpoint; ``group`` stays the ``c`` char
+        # the progression-link reverse passes (it never hits the browse engine).
         "comics/<int:pk>/position",
         OPDS2ProgressionView.as_view(),
         {"group": "c"},
@@ -48,7 +50,7 @@ urlpatterns = [
     path(
         "",
         opds_cached(OPDS2StartView.as_view()),
-        {"group": "r", "pks": (), "page": 1},
+        {"group": "root", "pks": (), "page": 1},
         name="start",
     ),
     path("catalog", RedirectView.as_view(pattern_name="opds:v2:start")),

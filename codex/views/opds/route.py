@@ -19,7 +19,7 @@ from typing import Any, Final
 
 from django.urls import reverse
 
-from codex.group import Group
+from codex.group import Group, group_value
 from codex.views.util import pop_name
 
 # url_names whose ``{group, pks, page}`` kwargs name a browse listing.
@@ -30,8 +30,16 @@ _FIRST_PAGE: Final = 1
 
 
 def _collection_for(group: str) -> str:
-    """Map an engine group char (or ``Group`` member) to its collection."""
-    return ROOT_COLLECTION if group == Group.ROOT else Group.from_char(group).collection
+    """
+    Map a group to its collection segment.
+
+    OPDS feeds mix vocabularies: ``self.kwargs["group"]`` is a collection
+    value (from ``AuthMixin``) while ``TopRoutes`` / facet / manifest kwargs
+    are still char literals. ``group_value`` normalizes either to the
+    collection value; ROOT resolves to its top collection.
+    """
+    value = group_value(group)
+    return ROOT_COLLECTION if value == Group.ROOT else value
 
 
 def opds_feed_reverse(

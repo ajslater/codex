@@ -4,6 +4,7 @@ from typing import Final
 
 from django.db.models.query_utils import Q
 
+from codex.group import group_value
 from codex.views.browser.params import BrowserParamsView
 from codex.views.const import (
     FILTER_ONLY_GROUP_RELATION,
@@ -22,13 +23,16 @@ class GroupFilterView(BrowserParamsView):
 
     def _get_rel_for_pks(self, group, *, page_mtime: bool):
         """Get the relation from the model to the pks."""
+        # Tolerate a char group from non-browse callers (e.g. tag-write);
+        # the relation maps are keyed by the collection value.
+        group = group_value(group)
         if self.TARGET in _GROUP_REL_TARGETS:
             rel = FILTER_ONLY_GROUP_RELATION[group]
         elif self.TARGET in _PK_REL_TARGETS or page_mtime:
             # metadata, mtime, browser.page_mtime
             rel = "pk"
         elif self.TARGET == "download":
-            rel = "comic__folders" if group == "f" else "pk"
+            rel = "comic__folders" if group == FOLDER_GROUP else "pk"
         else:
             # browser.group, opds
             rel = GROUP_RELATION[group]
