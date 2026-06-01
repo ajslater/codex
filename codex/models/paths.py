@@ -114,7 +114,7 @@ class CustomCover(WatchedPath):
     library = ForeignKey(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         Library, on_delete=CASCADE, db_index=True, null=True
     )
-    group = CharField(
+    collection = CharField(
         max_length=max_choices_len(GroupChoices),
         db_index=True,
         choices=GroupChoices.choices,
@@ -123,9 +123,9 @@ class CustomCover(WatchedPath):
         max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
     )
 
-    def _set_group_and_sort_name(self) -> None:
-        """Derive group and sort_name from path (legacy filesystem-watch flow)."""
-        # New uploads set ``group`` and ``sort_name`` explicitly before
+    def _set_collection_and_sort_name(self) -> None:
+        """Derive collection and sort_name from path (legacy filesystem-watch flow)."""
+        # New uploads set ``collection`` and ``sort_name`` explicitly before
         # save() — no derivation needed.
         from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
 
@@ -138,14 +138,14 @@ class CustomCover(WatchedPath):
             return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            group = self.GroupChoices.FOLDERS.value
+            collection = self.GroupChoices.FOLDERS.value
         else:
-            group = self.DIR_COLLECTION_CHOICE_MAP[path.parent.name]
+            collection = self.DIR_COLLECTION_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
-        self.group = group
+        self.collection = collection
 
     @override
     def presave(self) -> None:
-        """Presave group and sort_name."""
+        """Presave collection and sort_name."""
         super().presave()
-        self._set_group_and_sort_name()
+        self._set_collection_and_sort_name()

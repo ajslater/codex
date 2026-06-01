@@ -407,7 +407,7 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
 # MOVED #
 #########
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
-CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group")
+CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")
 
 ###########
 # DELETED #

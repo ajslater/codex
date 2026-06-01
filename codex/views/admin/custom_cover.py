@@ -153,7 +153,7 @@ def _purge_orphaned(cover_pks: tuple[int, ...]) -> None:
             cover = CustomCover.objects.get(pk=pk)
         except CustomCover.DoesNotExist:
             continue
-        model = _MODEL_BY_COLLECTION.get(cover.group)
+        model = _MODEL_BY_COLLECTION.get(cover.collection)
         if model is None:
             continue
         if model.objects.filter(custom_cover_id=pk).exists():
@@ -193,7 +193,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover = CustomCover(
                 library=None,
                 path="",
-                group=group,
+                collection=group,
                 sort_name=sort_name,
             )
             # Save once to allocate a pk; presave wants ``path`` to stat
@@ -261,7 +261,7 @@ class AdminCustomCoverDeleteView(AdminAPIView):
         except CustomCover.DoesNotExist as exc:
             msg = f"CustomCover {pk} not found"
             raise ValidationError(msg) from exc
-        model = _MODEL_BY_COLLECTION.get(cover.group)
+        model = _MODEL_BY_COLLECTION.get(cover.collection)
         with transaction.atomic():
             if model is not None:
                 model.objects.filter(custom_cover_id=pk).update(custom_cover=None)
@@ -282,6 +282,6 @@ class AdminCustomCoverListView(AdminJsonApiMixin, ListAPIView):
     """
 
     serializer_class = CustomCoverSerializer
-    queryset = CustomCover.objects.all().order_by("group", "sort_name", "pk")
+    queryset = CustomCover.objects.all().order_by("collection", "sort_name", "pk")
 
     permission_classes = AdminAPIView.permission_classes  # type: ignore[assignment]

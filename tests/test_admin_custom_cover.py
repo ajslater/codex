@@ -81,7 +81,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert response.status_code == HTTPStatus.CREATED
         pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
-        assert cover.group == "publishers"
+        assert cover.collection == "publishers"
         assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
         # Naming convention: ``{group}-{pk}-{slug}.{ext}``. Sortable by

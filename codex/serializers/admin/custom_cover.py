@@ -30,6 +30,10 @@ _GROUP_LABELS = {
 class CustomCoverSerializer(BaseModelSerializer):
     """CustomCover list serializer for the admin tab."""
 
+    # Wire field stays ``group`` (read by the admin tab + browse cards);
+    # the model column is ``collection`` now, so source it explicitly.
+    # The item-wire rename group→collection is a separate Tier-C pass.
+    group = CharField(source="collection", read_only=True)
     group_label = SerializerMethodField()
     linked_group_pk = SerializerMethodField()
     linked_group_name = SerializerMethodField()
@@ -62,11 +66,11 @@ class CustomCoverSerializer(BaseModelSerializer):
     @staticmethod
     def get_group_label(obj: CustomCover) -> str:
         """Human-readable group name."""
-        return _GROUP_LABELS.get(obj.group, obj.group)
+        return _GROUP_LABELS.get(obj.collection, obj.collection)
 
     @staticmethod
     def _linked(obj: CustomCover):
-        model = _MODEL_BY_COLLECTION.get(obj.group)
+        model = _MODEL_BY_COLLECTION.get(obj.collection)
         if model is None:
             return None
         return model.objects.filter(custom_cover_id=obj.pk).first()
