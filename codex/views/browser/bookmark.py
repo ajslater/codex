@@ -35,7 +35,7 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
 
     def _parse_params(self):
         """Validate and translate the submitted data."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         # If the target is recursive, strip everything but finished state data.
         serializer_class = (
             None if group == Collection.COMIC else BookmarkFinishedSerializer
@@ -51,7 +51,7 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
 
     def _get_comic_query(self):
         """Get comic pks for group."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         return self.get_filtered_queryset(Comic, group=group, pks=pks).only("pk")
 
@@ -89,6 +89,6 @@ class ComicBookmarkView(BookmarkView):
     def initial(self, request: "Request", *args, **kwargs):
         """Synthesize (group, pks) kwargs before BookmarkView dispatch."""
         pk = self.kwargs.pop("pk", None)
-        self.kwargs["group"] = Collection.COMIC
+        self.kwargs["collection"] = Collection.COMIC
         self.kwargs["pks"] = (pk,) if pk is not None else ()
         super().initial(request, *args, **kwargs)

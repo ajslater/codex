@@ -91,7 +91,7 @@ class BrowserView(BrowserTitleView):
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
         if not self._model_collection:
-            group = self.kwargs["group"]
+            group = self.kwargs["collection"]
             if group == FOLDER_COLLECTION:
                 self._model_collection = group
             elif group == STORY_ARC_COLLECTION:
@@ -376,7 +376,7 @@ class BrowserView(BrowserTitleView):
             return tuple(columns)
         top_collection = (
             self.params.get("top_collection")
-            or self.kwargs.get("group")
+            or self.kwargs.get("collection")
             or Collection.PUBLISHER
         )
         stored = self.params.get("table_columns") or {}

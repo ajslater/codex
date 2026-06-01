@@ -115,7 +115,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _publication_metadata(self, obj, zero_pad) -> dict:
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
-        if self.kwargs.get("group") == "folders":
+        if self.kwargs.get("collection") == "folders":
             title = Comic.get_filename(obj)
         else:
             title = Comic.get_title(
@@ -149,7 +149,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         group = _CONTRIBUTOR_GROUP_MAP[kind]
         ts = self._obj_ts(obj)
         href_data = HrefData(
-            {"group": group, "pks": (pk,), "page": 1},
+            {"collection": group, "pks": (pk,), "page": 1},
             {"ts": ts, "topCollection": "publishers"},
             url_name="opds:v2:feed",
         )
@@ -453,7 +453,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     def _get_publications_links(self, link_spec) -> list:
         if not link_spec:
             return []
-        kwargs = {"group": link_spec.group, "pks": (0,), "page": 1}
+        kwargs = {"collection": link_spec.group, "pks": (0,), "page": 1}
         href_data = HrefData(kwargs, link_spec.query_params, inherit_query_params=True)
         # Must be rel="self" for Stump to add View All
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)
@@ -533,7 +533,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
         feed_view._admin_flags = self.admin_flags  # noqa: SLF001
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
-        feed_view.kwargs = {"group": link_spec.group, "pks": [0], "page": 1}
+        feed_view.kwargs = {"collection": link_spec.group, "pks": [0], "page": 1}
         params = self.get_browser_default_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():

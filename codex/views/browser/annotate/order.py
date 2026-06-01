@@ -127,7 +127,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if self._is_opds_acquisition is None:
             is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
             if is_opds_acquisition:
-                group = self.kwargs.get("group")
+                group = self.kwargs.get("collection")
                 is_opds_acquisition &= group in self.opds_acquisition_groups
                 if is_opds_acquisition and group == STORY_ARC_COLLECTION:
                     pks = self.kwargs["pks"]
@@ -149,7 +149,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs.model is StoryArc and self.order_key == "story_arc_number"
         ):
             return qs
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         show = MappingProxyType(self.params["show"])
         sort_name_annotations = self.get_sort_name_annotations(
@@ -192,7 +192,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
 
         # Get story_arc__pk
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         pks = self.kwargs["pks"]
         if group == STORY_ARC_COLLECTION and pks:
             story_arc_pks = pks

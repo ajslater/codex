@@ -39,7 +39,7 @@ class ForceUpdateView(BrowserFilterView):
     @extend_schema(request=None, responses=serializer_class)
     def post(self, *_args, **_kwargs) -> Response:
         """Enqueue a force-update task for every comic matching the filters."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         comic_pks = frozenset(
             self.get_filtered_queryset(Comic, group=group, pks=pks).values_list(

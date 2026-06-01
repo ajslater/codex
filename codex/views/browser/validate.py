@@ -42,7 +42,7 @@ class BrowserValidateView(SearchFilterView):
     def model_collection(self) -> str:
         """Memoize the model group."""
         if not self._model_collection:
-            group = self.kwargs["group"]
+            group = self.kwargs["collection"]
             if group == ROOT_COLLECTION:
                 group = self.params["top_collection"]
             self._model_collection = group
@@ -54,7 +54,7 @@ class BrowserValidateView(SearchFilterView):
         if not self._model:
             model = COLLECTION_MODEL_MAP.get(self.model_collection)
             if model is None:
-                group = self.kwargs["group"]
+                group = self.kwargs["collection"]
                 detail = f"Cannot browse {group=}"
                 logger.debug(detail)
                 raise NotFound(detail=detail)
@@ -96,7 +96,7 @@ class BrowserValidateView(SearchFilterView):
         ]
 
     def _validate_top_group(self, valid_top_groups) -> None:
-        nav_group = self.kwargs.get("group")
+        nav_group = self.kwargs.get("collection")
         top_collection = self.params.get("top_collection")
         if top_collection not in valid_top_groups:
             reason = f"top_collection {top_collection} not in valid nav groups {valid_top_groups}, changed to "
@@ -123,7 +123,7 @@ class BrowserValidateView(SearchFilterView):
         May always navigate to root 'r' nav group.
         """
         top_collection = self.params["top_collection"]
-        nav_group = self.kwargs["group"]
+        nav_group = self.kwargs["collection"]
         valid_nav_groups = [ROOT_COLLECTION]
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
@@ -160,7 +160,7 @@ class BrowserValidateView(SearchFilterView):
         self._validate_top_group(valid_top_groups)
 
         # Validate pks
-        nav_group = self.kwargs["group"]
+        nav_group = self.kwargs["collection"]
         pks = self.kwargs["pks"]
         if nav_group == ROOT_COLLECTION and (pks and 0 not in pks):
             # r never has pks
@@ -181,7 +181,7 @@ class BrowserValidateView(SearchFilterView):
     def valid_nav_groups(self) -> tuple[str, ...]:
         """Memoize valid nav groups."""
         if self._valid_nav_groups is None:
-            group = self.kwargs["group"]
+            group = self.kwargs["collection"]
             validate_group = (
                 self.params["top_collection"] if group == COMIC_COLLECTION else group
             )

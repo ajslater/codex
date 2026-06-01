@@ -384,7 +384,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     # ── Save (write) ────────────────────────────────────────────────
 
     def _get_browser_order_defaults(self) -> dict:
-        if group := self.kwargs.get("group"):
+        if group := self.kwargs.get("collection"):
             # order_by has a dynamic group based default
             order_by = (
                 "filename"

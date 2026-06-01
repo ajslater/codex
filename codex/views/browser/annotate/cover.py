@@ -94,7 +94,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if not self.params.get("custom_covers"):
             return None
         # ``model_collection`` is the group the cards being annotated belong to
-        # (the *child* of the URL group). ``kwargs["group"]`` is the URL
+        # (the *child* of the URL group). ``kwargs["collection"]`` is the URL
         # group itself, which is one level too high for the cover lookup —
         # e.g. on ``/r/0/1`` the URL group is ``r`` but the cards are
         # publishers, so the relation we need is ``publisher``, not the

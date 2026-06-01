@@ -73,7 +73,7 @@ class OPDS1EntryLinksMixin:
         try:
             if self.obj.group:
                 pks = sorted(self.obj.ids)
-                kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+                kwargs = {"collection": self.obj.group, "pks": pks, "page": 1}
             else:
                 kwargs = {}
             qps = {}

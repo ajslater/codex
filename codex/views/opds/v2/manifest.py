@@ -103,7 +103,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         name = obj.series_name if obj.series.name else BLANK_TITLE
         pks: list[int] = [obj.series.pk]
         kwargs: Mapping[str, str | Sequence[int] | int] = {
-            "group": "series",
+            "collection": "series",
             "pks": pks,
             "page": 1,
         }
@@ -121,7 +121,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         if volume_name is None:
             return []
         display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
-        kwargs = {"group": "volumes", "pks": [obj.volume_id], "page": 1}
+        kwargs = {"collection": "volumes", "pks": [obj.volume_id], "page": 1}
         ts = self._obj_ts(obj)
         query_params = {"ts": ts, "topCollection": "publishers"}
         return self._publication_belongs_to_link(
@@ -134,7 +134,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         folder = obj.parent_folder
         name = folder.path
         pks = [folder.pk]
-        kwargs = {"group": "folders", "pks": pks, "page": 1}
+        kwargs = {"collection": "folders", "pks": pks, "page": 1}
         number = None
         ts = self._obj_ts(obj)
         query_params = {"ts": ts, "topCollection": "folders"}
@@ -161,7 +161,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
-            kwargs = {"group": "arcs", "pks": pks, "page": 1}
+            kwargs = {"collection": "arcs", "pks": pks, "page": 1}
             query_params = {"ts": ts, "topCollection": "arcs"}
 
             story_arc = self._publication_belongs_to_link(
@@ -189,7 +189,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # ``name`` / ``links`` (the partitioned ``_publication_subject``
         # rows). Typing as ``Any`` lets both shapes through; the
         # function only reads ``pk`` / ``name`` and writes ``links``.
-        kwargs = {"group": "series", "pks": (), "page": 1}
+        kwargs = {"collection": "series", "pks": (), "page": 1}
         value = getattr(obj, subfield) if subfield else obj
         filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)

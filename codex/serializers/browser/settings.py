@@ -51,7 +51,7 @@ class BrowserSettingsLastRouteSerializer(Serializer):
             # Model instance
             pks = instance.pks
             instance = {
-                "group": instance.group,
+                "group": instance.collection,
                 "pks": tuple(pks) if pks else (0,),
                 "page": instance.page,
             }

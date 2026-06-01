@@ -21,7 +21,7 @@ class GroupDownloadView(BrowserFilterView):
     @override
     def get_object(self) -> tuple[str, ...]:
         """Get comic paths for a browse group."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         if not self.model:
             reason = f"Could not find model for group {group}"

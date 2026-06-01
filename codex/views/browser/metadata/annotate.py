@@ -22,7 +22,7 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
     def _get_comic_value_fields(self) -> tuple:
         """Include the path field for staff."""
         fields = set(COMIC_VALUE_FIELD_NAMES)
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         if (
             not (self.is_admin and self.admin_flags["folder_view"])
             or group not in PATH_COLLECTIONS

@@ -99,7 +99,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
         entry_obj = OPDS1EntryObject(
-            group=item.get("group"),
+            group=item.get("collection"),
             ids=item.get("pks"),
             name=name,
         )
@@ -125,12 +125,12 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         if (
             facet_group.query_param == "topCollection"
             and self._did_special_group_change(group, facet.value)
         ):
-            kwargs = {"group": facet.value, "pks": {}, "page": 1}
+            kwargs = {"collection": facet.value, "pks": {}, "page": 1}
         else:
             kwargs = self.kwargs
 
@@ -163,7 +163,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         if self.IS_START_PAGE:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
         else:
-            group = self.kwargs.get("group")
+            group = self.kwargs.get("collection")
             if (
                 group != Collection.COMIC
                 and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS

@@ -32,13 +32,13 @@ class MetadataView(MetadataCopyIntersectionsView):
     def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
         """Limited allowed nav groups for metadata."""
         # Overrides method in browser.validate
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         return (group,)
 
     def _raise_not_found(self, exc=None) -> None:
         """Raise an exception if the object is not found."""
         pks = self.kwargs["pks"]
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         detail = f"Filtered metadata for {group}/{pks} not found"
         raise NotFound(detail=detail) from exc
 

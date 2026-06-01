@@ -41,7 +41,7 @@ class GroupFilterView(BrowserParamsView):
     def get_group_filter(self, group=None, pks=None, *, page_mtime=False) -> Q:
         """Get filter for the displayed group."""
         if group is None:
-            group = self.kwargs["group"]
+            group = self.kwargs["collection"]
         if pks is None:
             pks = self.kwargs["pks"]
 

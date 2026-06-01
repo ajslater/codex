@@ -18,7 +18,7 @@ urlpatterns = [
     path(
         "c/<int_list:pks>/1",
         opds_cached(OPDS2ManifestView.as_view()),
-        {"group": "comics", "page": 1},
+        {"collection": "comics", "page": 1},
         name="manifest",
     ),
     # Progression GET / PUT is correctness-sensitive — a PUT mutates
@@ -50,7 +50,7 @@ urlpatterns = [
     path(
         "",
         opds_cached(OPDS2StartView.as_view()),
-        {"group": "root", "pks": (), "page": 1},
+        {"collection": "root", "pks": (), "page": 1},
         name="start",
     ),
     path("catalog", RedirectView.as_view(pattern_name="opds:v2:start")),

@@ -51,7 +51,7 @@ class FilteredComicPksView(BrowserFilterView):
         int_pks = tuple(sorted({int(pk) for pk in pks if str(pk).isdigit()}))
         if not int_pks:
             return frozenset()
-        self.kwargs["group"] = group
+        self.kwargs["collection"] = group
         self.kwargs["pks"] = int_pks
         qs = self.get_filtered_queryset(Comic, group=group, pks=int_pks)
         return frozenset(qs.values_list("pk", flat=True))

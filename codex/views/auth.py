@@ -86,9 +86,9 @@ class AuthMixin:
 
     The browser URL scheme uses a plural-English ``collection``
     segment and an optional comma-separated ``parentIds`` segment;
-    underneath, the view bodies still consume v3-shape kwargs
-    (``group`` letter + ``pks`` tuple). :meth:`initial` translates
-    the v4 kwargs before the view body runs.
+    underneath, the view bodies consume engine kwargs
+    (``collection`` value + ``pks`` tuple). :meth:`initial` normalizes
+    the URL kwargs before the view body runs.
 
     ``renderer_classes`` defaults to the camelCase envelope renderer.
     Endpoints that ship binary (cover, page) or JSON:API (admin
@@ -110,30 +110,36 @@ class AuthMixin:
         Translate browser-collection URL kwargs before auth dispatch.
 
         No-op on non-collection URLs (the ``collection`` kwarg isn't
-        present). Routes the request through DRF's standard
-        ``initial`` chain after rewriting.
+        present). Also a no-op for the OPDS routes that supply engine
+        kwargs directly via URL-pattern defaults — those carry ``pks``
+        already, so the ``"pks" not in kwargs`` guard tells a raw browse
+        URL (``collection`` segment, no ``pks`` yet) apart from one whose
+        engine kwargs are already in place. Routes the request through
+        DRF's standard ``initial`` chain after rewriting.
         """
-        if "collection" in self.kwargs:  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        if "collection" in kwargs and "pks" not in kwargs:
             self._translate_browser_kwargs(request)
         super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
 
     def _translate_browser_kwargs(self, request) -> None:
         """
-        Rename ``{collection, parent_ids}`` URL kwargs → engine ``{group, pks}``.
+        Normalize ``{collection, parent_ids}`` URL kwargs → engine ``{collection, pks}``.
 
         The engine speaks the collection vocabulary now, so the collection
-        segment *is* the group value — no char translation. ``/browse/publishers``
-        with no parent IDs is the synthetic ``ROOT`` (lists the top collection);
-        everything else is the named collection. ``page`` is pulled out of the
-        GET dict when :attr:`requires_page` is set.
+        segment *is* the engine collection value — no char translation.
+        ``/browse/publishers`` with no parent IDs is the synthetic ``ROOT``
+        (lists the top collection); everything else is the named collection.
+        The optional ``parent_ids`` segment becomes the engine ``pks`` tuple.
+        ``page`` is pulled out of the GET dict when :attr:`requires_page` is set.
         """
         kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
         collection = kwargs.pop("collection")
         parent_ids = kwargs.pop("parent_ids", None)
         if collection == Collection.PUBLISHER and parent_ids is None:
-            kwargs["group"] = Collection.ROOT
+            kwargs["collection"] = Collection.ROOT
         else:
-            kwargs["group"] = collection
+            kwargs["collection"] = collection
         kwargs["pks"] = tuple(parent_ids) if parent_ids else ()
         if self.requires_page and "page" not in kwargs:
             try:

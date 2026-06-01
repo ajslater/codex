@@ -23,7 +23,7 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
 
     def _path_security(self, obj) -> None:
         """Secure filesystem information for acl situation."""
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         is_path_group = group in PATH_COLLECTIONS
         if is_path_group:
             if self.is_admin:

@@ -24,7 +24,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         groups = {}
         if not self.model:
             return groups
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         rel = METADATA_COLLECTION_RELATION.get(group)
         if not rel:
             return groups

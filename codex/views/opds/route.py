@@ -1,15 +1,15 @@
 """
 Render internal OPDS feed routes as collection-based URLs.
 
-OPDS view bodies still speak the browse engine's ``{group, pks, page}``
-vocabulary (single-char group + parent pks + 1-based page). This is the
+OPDS view bodies speak the browse engine's ``{collection, pks, page}``
+vocabulary (collection value + parent pks + 1-based page). This is the
 single *outbound* edge that renders those as the unified collection URL
 ``/<collection>[/<parent_ids>][?page=N]`` — the inverse of
 :meth:`codex.views.auth.AuthMixin._translate_browser_kwargs`, which
-translates the same scheme back on the way in.
+normalizes the same scheme on the way in.
 
 Only the browse-feed url_names are rewritten. The manifest / position /
-start / binary routes carry no nav ``group`` and reverse unchanged.
+start / binary routes carry no nav ``collection`` and reverse unchanged.
 ``Collection.ROOT`` has no collection of its own; like ``AuthMixin`` it
 resolves to its top collection (``publishers``) with no parent ids.
 """
@@ -29,14 +29,14 @@ ROOT_COLLECTION: Final = "publishers"
 _FIRST_PAGE: Final = 1
 
 
-def _collection_for(group: str) -> str:
+def _collection_for(collection: str) -> str:
     """
-    Map a group to its collection segment.
+    Map an engine collection value to its URL collection segment.
 
-    Every group value the OPDS layer carries is a collection value now;
+    Every value the OPDS layer carries is a collection value now;
     ROOT resolves to its top collection.
     """
-    return ROOT_COLLECTION if group == Collection.ROOT else group
+    return ROOT_COLLECTION if collection == Collection.ROOT else collection
 
 
 def opds_feed_reverse(
@@ -45,19 +45,32 @@ def opds_feed_reverse(
     """
     Reverse an OPDS route, mapping feed kwargs to the collection scheme.
 
-    For the browse-feed url_names, ``group`` becomes the ``collection``
-    segment, ``pks`` the optional ``parent_ids`` segment (the dummy
-    ``0`` / empty root is dropped — root listings omit the segment), and
+    For the browse-feed url_names, ``collection`` becomes the URL
+    ``collection`` segment, ``pks`` the optional ``parent_ids`` segment
+    (the dummy ``0`` / empty root is dropped — root listings omit it), and
     ``page`` moves to a ``?page=`` query param (omitted for page 1).
     Every other url_name passes straight through to ``reverse``.
+
+    This is the one choke point that reverses route dicts from two
+    dialects: engine kwargs / OPDS masks already speak ``collection``,
+    while the shared route dicts that double as wire payloads
+    (``DEFAULT_BROWSER_ROUTE``, the persisted ``last_route``, redirect
+    params) still carry the legacy ``group`` key. Both name the nav
+    collection, so either is accepted here.
     """
     out_kwargs: dict[str, Any] = dict(pop_name(kwargs))
     out_query: Mapping | None = query
-    if url_name in FEED_URL_NAMES and "group" in out_kwargs:
-        group = out_kwargs.pop("group")
+    if url_name in FEED_URL_NAMES and (
+        "collection" in out_kwargs or "group" in out_kwargs
+    ):
+        collection = out_kwargs.pop("collection", None)
+        if collection is None:
+            collection = out_kwargs.pop("group", None)
+        else:
+            out_kwargs.pop("group", None)
         pks = out_kwargs.pop("pks", None)
         page = out_kwargs.pop("page", None)
-        out_kwargs["collection"] = _collection_for(group)
+        out_kwargs["collection"] = _collection_for(collection)
         if parent_ids := tuple(pk for pk in (pks or ()) if pk):
             out_kwargs["parent_ids"] = parent_ids
         if page is not None and int(page) != _FIRST_PAGE:

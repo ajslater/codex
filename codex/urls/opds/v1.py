@@ -33,7 +33,7 @@ urlpatterns = [
     path(
         "",
         opds_cached(OPDS1StartView.as_view()),
-        {"group": "root", "pks": (), "page": 1},
+        {"collection": "root", "pks": (), "page": 1},
         name="start",
     ),
 ]

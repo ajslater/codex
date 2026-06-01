@@ -19,7 +19,7 @@ class LazyImportView(AuthGenericAPIView):
 
     def post(self, *args, **kwargs) -> Response:
         """Enqueue a lazy-import task for a comics / folders group."""
-        group = self.kwargs.get("group", "")
+        group = self.kwargs.get("collection", "")
         if group in _LAZY_IMPORT_COLLECTIONS:
             pks = self.kwargs.get("pks", ())
             pks = frozenset(pks)

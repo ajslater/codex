@@ -14,7 +14,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def _get_back_one_page_route(self, num_pages) -> dict[str, Any]:
         """Get max page if oob or 1."""
         logger.debug("Redirect back one page.")
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
         new_page = num_pages if num_pages and page > num_pages else 1
@@ -23,7 +23,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
 
     def _get_up_page_redirect(self) -> tuple[dict, None]:
         """Get a parent route to redirect to when page is out of bounds."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         if group not in (FOLDER_COLLECTION, STORY_ARC_COLLECTION):
             group = ROOT_COLLECTION
         route_mask = {"group": group, "pks": (), "page": 1}
@@ -33,7 +33,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def _handle_page_out_of_bounds(self, num_pages) -> None:
         """Handle out of bounds redirect."""
         # Try to find a logical page to run to.
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         page = self.kwargs.get("page", 1)
         pks = self.kwargs.get("pks")
         reason = f"{group=} {pks=} {page=} does not exist."

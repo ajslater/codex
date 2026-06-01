@@ -38,7 +38,7 @@ _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
 
 # Map from group to the FK attribute chain for walking up the hierarchy.
 # Each entry is (parent_group, attribute_on_instance). Keyed by ``Collection``
-# members so the lookup resolves against the collection-valued ``kwargs["group"]``.
+# members so the lookup resolves against the collection-valued ``kwargs["collection"]``.
 _COLLECTION_PARENT_CHAIN: MappingProxyType[
     Collection, tuple[tuple[Collection, str], ...]
 ] = MappingProxyType(
@@ -78,7 +78,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _handle_group_query_missing_model(self, model) -> QuerySet:
         """Handle a missing model for the group instance."""
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
         if not (group == Collection.ROOT and not pks and page == 1):
@@ -93,7 +93,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def group_instance(self) -> BrowserCollectionModel | None:
         """Memoize group instance for getting group names & counts."""
         if self._group_instance == 0:
-            group = self.kwargs.get("group")
+            group = self.kwargs.get("collection")
             model = COLLECTION_MODEL_MAP[group]
             pks = self.kwargs.get("pks")
             if model and pks and 0 not in pks:
@@ -114,7 +114,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def _build_group_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse group mode by walking FK parents."""
         gi = self.group_instance
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
 
@@ -180,7 +180,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def get_breadcrumbs(self) -> tuple[Route, ...]:
         """Compute breadcrumbs by browser mode from FK hierarchy."""
-        group = self.kwargs["group"]
+        group = self.kwargs["collection"]
         if group == FOLDER_COLLECTION:
             return self._build_folder_breadcrumbs()
         if group == STORY_ARC_COLLECTION:

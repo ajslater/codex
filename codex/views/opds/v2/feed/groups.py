@@ -62,12 +62,12 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             if link_spec.group is None:
                 # Start Link
                 return {}
-            group = link_spec.group or self.kwargs.get("group", Collection.ROOT)
+            group = link_spec.group or self.kwargs.get("collection", Collection.ROOT)
             pks = (0,)
         else:
             group = _LINK_SPEC_GROUP[type(link_spec)]
             pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        return {"group": group, "pks": pks, "page": 1}
+        return {"collection": group, "pks": pks, "page": 1}
 
     @staticmethod
     def _create_link_query_params(
@@ -81,7 +81,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         # Special order by for story_arcs
         if (
             kwargs
-            and kwargs.get("group") == "arcs"
+            and kwargs.get("collection") == "arcs"
             and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):

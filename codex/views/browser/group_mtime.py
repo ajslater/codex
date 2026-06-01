@@ -79,7 +79,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
     def _page_mtime_cache_key(self, model) -> str:
         """Stable key scoped to user + filter-affecting params."""
         user_id = self.request.user.pk if self.request.user.is_authenticated else 0
-        group = self.kwargs.get("group", "r")
+        group = self.kwargs.get("collection", "r")
         pks = tuple(self.kwargs.get("pks") or (0,))
         page = self.kwargs.get("page", 1)
         filter_keys = ("filters", "search", "q", "order_by", "order_reverse")

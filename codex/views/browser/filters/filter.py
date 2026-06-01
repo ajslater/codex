@@ -107,7 +107,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         ACL filter alone traverses ``comic__`` (one-to-many); for Comic
         queries we can skip both unless a real m2m relation joins in.
         """
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         if pks and 0 not in pks:
             if group == STORY_ARC_COLLECTION:

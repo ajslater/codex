@@ -41,7 +41,7 @@ class BrowserSettingsBaseView(SettingsBaseView):
         """Set dynamic default for null order_by by group."""
         if params["order_by"]:
             return
-        group = self.kwargs.get("group")
+        group = self.kwargs.get("collection")
         order_by = (
             "filename"
             if group == FOLDER_COLLECTION

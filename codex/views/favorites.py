@@ -43,21 +43,24 @@ class FavoriteDetailView(_FavoriteAuthMixin):
     @override
     def initial(self, request: "Request", *args, **kwargs):
         """
-        Rename the ``collection`` URL kwarg to ``group``.
+        Normalize the ``collection`` URL kwarg into engine shape.
 
-        The collection name *is* the favorite group code now, so this is
-        a straight rename. Bypasses ``AuthMixin._translate_browser_kwargs``:
-        favorites have no publishers→root special case and never carry
-        ``parent_ids``.
+        The collection name *is* the favorite group code now, so the
+        value passes through unchanged. We set ``pks`` here too: it both
+        records "no parent ids" and trips ``AuthMixin.initial``'s
+        ``"pks" not in kwargs`` guard so the inherited
+        ``_translate_browser_kwargs`` is skipped — favorites have no
+        publishers→root special case and never carry ``parent_ids``.
         """
         collection = self.kwargs.pop("collection", None)
         if collection is not None:
-            self.kwargs["group"] = collection
+            self.kwargs["collection"] = collection
+            self.kwargs["pks"] = ()
         super().initial(request, *args, **kwargs)
 
     def _resolve_target(self):
         """Return (group_code, target_id, model) or a Response on error."""
-        group_code = self.kwargs["group"]
+        group_code = self.kwargs["collection"]
         target_id = self.kwargs["target_id"]
         model = FAVORITE_COLLECTION_MODELS.get(group_code)
         if model is None:
