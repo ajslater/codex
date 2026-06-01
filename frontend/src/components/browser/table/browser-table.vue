@@ -286,7 +286,7 @@ export default {
     },
     rowKey(row) {
       /*
-       * ``rowKey`` matches the BrowserCard's ``${item.group}${item.ids}``
+       * ``rowKey`` matches the BrowserCard's ``${item.collection}${item.ids}``
        * shape so vue's diff is stable across re-renders.
        */
       if (row.group !== undefined) return `${row.group}${row.ids ?? ""}`;

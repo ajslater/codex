@@ -87,7 +87,7 @@ _COLUMN_VALUE_TRANSFORMS = {
 # Routing metadata that ``_row_repr`` always emits regardless of the
 # user's column selection. Skipped during the per-column dispatch loop
 # because the values are pre-populated on the row dict.
-_ROUTING_COLUMNS = frozenset({"pk", "group", "ids"})
+_ROUTING_COLUMNS = frozenset({"pk", "collection", "ids"})
 
 
 def _apply_transform(col: str, value):
@@ -218,15 +218,17 @@ def _row_repr(
     child comic has the same value. When present, intersections take
     precedence over direct attribute lookups for the columns they cover.
     """
-    # ``pk``, ``group``, and ``ids`` are always emitted regardless of
-    # the user's column selection. They're routing metadata: ``group``
-    # tells the frontend whether the row is a Comic or a group node,
-    # and ``ids`` is the list of pks the next route should target.
-    # Without these, clicking a Publisher row would route to a comic
-    # whose id matches the publisher's pk.
+    # ``pk``, ``collection``, and ``ids`` are always emitted regardless
+    # of the user's column selection. They're routing metadata:
+    # ``collection`` tells the frontend whether the row is a Comic or a
+    # collection node, and ``ids`` is the list of pks the next route
+    # should target. (The value comes from the ``group`` annotation, an
+    # internal name the OPDS entry path still reads.) Without these,
+    # clicking a Publisher row would route to a comic whose id matches
+    # the publisher's pk.
     row: dict = {
         "pk": instance.pk,
-        "group": getattr(instance, "group", None),
+        "collection": getattr(instance, "group", None),
         "ids": getattr(instance, "ids", None),
     }
     m2m_keys = m2m_columns()

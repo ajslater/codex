@@ -46,13 +46,13 @@ export default {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
     isOneComic() {
-      return this.item?.group === "comics" && this.item?.ids?.length === 1;
+      return this.item?.collection === "comics" && this.item?.ids?.length === 1;
     },
     downloadFn() {
       if (this.isOneComic) {
         return this.item.name;
       } else {
-        const groupName = this.groupNames[this.item?.group];
+        const groupName = this.groupNames[this.item?.collection];
         return `${groupName} - ${this.item.name} Comics.zip`;
       }
     },
@@ -62,7 +62,7 @@ export default {
         const pk = this.item.ids[0];
         url = getComicDownloadURL({ pk }, this.downloadFn, this.item?.mtime);
       } else {
-        const group = this.item?.group;
+        const group = this.item?.collection;
         const pks = this.item?.ids;
         const settings = this.filterOnlySettings;
         url = getGroupDownloadURL(

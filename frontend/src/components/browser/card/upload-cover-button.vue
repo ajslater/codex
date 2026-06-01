@@ -48,7 +48,7 @@ export default {
     show() {
       return (
         this.isUserAdmin &&
-        UPLOAD_GROUPS.has(this.item?.group) &&
+        UPLOAD_GROUPS.has(this.item?.collection) &&
         this.item?.ids?.length > 0 &&
         !this.item.ids.includes(0)
       );
@@ -75,7 +75,7 @@ export default {
       if (!file) return;
       try {
         const response = await uploadCustomCover({
-          group: this.item.group,
+          group: this.item.collection,
           pks: this.item.ids,
           file,
         });

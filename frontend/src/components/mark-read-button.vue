@@ -58,10 +58,10 @@ export default {
     },
     markReadText() {
       const words = ["Mark"];
-      if (this.item.group != "comics") {
+      if (this.item.collection != "comics") {
         words.push("Entire");
       }
-      const groupName = this.groupNames[this.item.group];
+      const groupName = this.groupNames[this.item.collection];
       words.push(groupName, this.verb);
       return words.join(" ");
     },

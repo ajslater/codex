@@ -44,7 +44,7 @@ export default {
     show() {
       return (
         this.isUserAdmin &&
-        REMOVE_GROUPS.has(this.item?.group) &&
+        REMOVE_GROUPS.has(this.item?.collection) &&
         Boolean(this.item?.coverCustomPk) &&
         this.item?.ids?.length > 0
       );
@@ -56,7 +56,7 @@ export default {
     async remove() {
       try {
         await removeCustomCover({
-          group: this.item.group,
+          group: this.item.collection,
           pks: this.item.ids,
         });
         this.bustCoverCache({ ids: this.item.ids, coverCustomPk: null });

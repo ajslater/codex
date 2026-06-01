@@ -57,7 +57,7 @@ export default {
     ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserStore, ["groupNames"]),
     affectedCount() {
-      if (this.item.group === "comics") {
+      if (this.item.collection === "comics") {
         return this.item.ids?.length || 0;
       }
       return this.item.childCount || 0;
@@ -74,10 +74,10 @@ export default {
     },
     actionText() {
       const words = ["Force Update Tags for"];
-      if (this.item.group !== "comics") {
+      if (this.item.collection !== "comics") {
         words.push("Entire");
       }
-      const groupName = this.groupNames[this.item.group];
+      const groupName = this.groupNames[this.item.collection];
       if (groupName) {
         words.push(groupName);
       }
@@ -93,7 +93,10 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, ["forceUpdateGroup"]),
     forceUpdate() {
-      this.forceUpdateGroup({ group: this.item.group, ids: this.item.ids });
+      this.forceUpdateGroup({
+        group: this.item.collection,
+        ids: this.item.ids,
+      });
     },
   },
 };

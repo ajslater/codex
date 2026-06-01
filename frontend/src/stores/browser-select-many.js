@@ -5,17 +5,17 @@ import { getTimestamp } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
 const _itemKey = (item) => {
-  return `${item.group}:${item.ids.join(",")}`;
+  return `${item.collection}:${item.ids.join(",")}`;
 };
 
 const _groupSelectedItems = (selectedItems) => {
   // Group selected items by their group field.
   const grouped = {};
   for (const item of selectedItems.values()) {
-    if (!grouped[item.group]) {
-      grouped[item.group] = [];
+    if (!grouped[item.collection]) {
+      grouped[item.collection] = [];
     }
-    grouped[item.group].push(item);
+    grouped[item.collection].push(item);
   }
   return grouped;
 };
@@ -69,7 +69,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     selectedTotalChildCount(state) {
       let total = 0;
       for (const item of state.selectedItems.values()) {
-        total += item.childCount || (item.group === "comics" ? 1 : 0);
+        total += item.childCount || (item.collection === "comics" ? 1 : 0);
       }
       return total;
     },

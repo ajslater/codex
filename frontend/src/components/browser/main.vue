@@ -9,7 +9,7 @@
     >
       <BrowserCard
         v-for="item in cards"
-        :key="`${item.group}${item.ids}`"
+        :key="`${item.collection}${item.ids}`"
         :item="item"
       />
     </v-pull-to-refresh>

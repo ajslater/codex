@@ -13,7 +13,7 @@ import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
 const _row = (group, pk, name = `${group}-${pk}`) => ({
-  group,
+  collection: group,
   ids: [pk],
   pk,
   name,

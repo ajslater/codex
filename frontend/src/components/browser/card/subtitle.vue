@@ -53,7 +53,7 @@ export default {
       if (
         (this.topCollection === "arcs" ||
           (this.orderByName && !this.showSeries)) &&
-        ["comics", "volumes"].includes(this.item.group) &&
+        ["comics", "volumes"].includes(this.item.collection) &&
         this.item.seriesName
       ) {
         return this.item.seriesName;
@@ -64,7 +64,7 @@ export default {
       if (
         (this.topCollection === "arcs" ||
           (this.orderByName && !this.showVolume)) &&
-        this.item.group === "comics" &&
+        this.item.collection === "comics" &&
         this.item.volumeName
       ) {
         return formattedVolumeName(
@@ -76,7 +76,7 @@ export default {
     },
     headerName() {
       let hn;
-      switch (this.item.group) {
+      switch (this.item.collection) {
         case "imprints":
           hn = this.item.publisherName;
           break;
@@ -98,7 +98,7 @@ export default {
       return hn;
     },
     displayName() {
-      return this.item.group === "volumes"
+      return this.item.collection === "volumes"
         ? formattedVolumeName(this.item.name, this.item.numberTo)
         : this.item.name;
     },
@@ -110,7 +110,7 @@ export default {
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "comics" ? "Read" : "Browse to";
+      label += this.item.collection === "comics" ? "Read" : "Browse to";
       label += " " + this.headerName;
       return label;
     },

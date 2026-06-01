@@ -3,7 +3,7 @@
     <div class="browserCardCoverWrapper">
       <div class="browserCardTop">
         <BookCover
-          :group="item.group"
+          :group="item.collection"
           :pks="item.ids"
           :cover-pk="item.coverPk"
           :cover-custom-pk="item.coverCustomPk"
@@ -36,7 +36,7 @@
           v-if="favoritePk"
           class="cardFavoriteToggle"
           :class="{ favoriteVisible: isFavoriteCard }"
-          :group="item.group"
+          :group="item.collection"
           :pk="favoritePk"
         />
       </div>
@@ -112,12 +112,13 @@ export default {
     },
     isFavoriteCard() {
       return Boolean(
-        this.favoritePk && this.isFavorite(this.item.group, this.favoritePk),
+        this.favoritePk &&
+        this.isFavorite(this.item.collection, this.favoritePk),
       );
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "comics" ? "Read" : "Browse to";
+      label += this.item.collection === "comics" ? "Read" : "Browse to";
       label += " " + this.item.name;
       return label;
     },
@@ -126,7 +127,7 @@ export default {
     },
     browserRoute() {
       const { collection, parentIds } = routeForGroup({
-        group: this.item.group,
+        group: this.item.collection,
         pks: this.ids,
       });
       return {
@@ -138,7 +139,7 @@ export default {
       };
     },
     toRoute() {
-      return this.item.group === "comics"
+      return this.item.collection === "comics"
         ? getReaderRoute(this.item, this.importMetadata)
         : this.browserRoute;
     },
