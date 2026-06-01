@@ -32,6 +32,8 @@ from codex.views.browser.order_by import (
     comic_order_path,
 )
 from codex.views.const import (
+    COMIC_GROUP,
+    FOLDER_GROUP,
     NONE_INTEGERFIELD,
     STORY_ARC_GROUP,
 )
@@ -114,7 +116,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def opds_acquisition_groups(self):
         """Memoize the opds acquisition groups."""
         if self._opds_acquisition_groups is None:
-            groups = {"a", "f", "c"}
+            groups = {STORY_ARC_GROUP, FOLDER_GROUP, COMIC_GROUP}
             groups |= {*self.valid_nav_groups[-2:]}
             self._opds_acquisition_groups = frozenset(groups)
         return self._opds_acquisition_groups
@@ -127,7 +129,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             if is_opds_acquisition:
                 group = self.kwargs.get("group")
                 is_opds_acquisition &= group in self.opds_acquisition_groups
-                if is_opds_acquisition and group == "a":
+                if is_opds_acquisition and group == STORY_ARC_GROUP:
                     pks = self.kwargs["pks"]
                     is_opds_acquisition &= bool(pks and 0 not in pks)
             self._is_opds_acquisition = is_opds_acquisition

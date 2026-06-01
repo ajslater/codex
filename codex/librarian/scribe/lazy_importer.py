@@ -3,6 +3,7 @@
 from collections import defaultdict
 
 from codex.choices.admin import AdminFlagChoices
+from codex.group import Group
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.worker import WorkerBase
 from codex.models.admin import AdminFlag
@@ -20,13 +21,13 @@ class LazyImporter(WorkerBase):
             self.log.debug("Lazy Import disabled by flag.")
             return
 
-        if task.group == "c":
+        if task.group == Group.COMIC:
             comics = Comic.objects.filter(
-                pk__in=task.pks, metadata_mtime__is_null=True
+                pk__in=task.pks, metadata_mtime__isnull=True
             ).only("path", "library_id")
-        elif task.group == "f":
+        elif task.group == Group.FOLDER:
             comics = Comic.objects.filter(
-                parent_folder__in=task.pks, metadata_mtime_is_null=True
+                parent_folder__in=task.pks, metadata_mtime__isnull=True
             ).only("path", "library_id")
         else:
             self.log.warning(f"No lazy import enabled for group {task}")

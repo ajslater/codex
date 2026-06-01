@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.throttling import BaseThrottle
 
+from codex.group import Group
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
@@ -188,7 +189,9 @@ class OPDS1FeedView(OPDS1LinksView):
                     import_pks.add(obj.pk)
                 entries.append(entry)
             if import_pks:
-                task = LazyImportComicsTask(group="c", pks=frozenset(import_pks))
+                task = LazyImportComicsTask(
+                    group=Group.COMIC, pks=frozenset(import_pks)
+                )
                 LIBRARIAN_QUEUE.put(task)
         return entries
 

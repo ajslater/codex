@@ -1,6 +1,6 @@
 <template>
   <div class="cardControls">
-    <v-icon v-if="item.group === 'c'" class="eye">
+    <v-icon v-if="item.group === 'comics'" class="eye">
       {{ eyeIcon }}
     </v-icon>
     <MetadataButton :book="item" />

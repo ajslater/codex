@@ -7,7 +7,7 @@
       :class="multiPkClasses"
       position="top"
     />
-    <span v-if="group !== 'c'" class="childCount">
+    <span v-if="group !== 'comics'" class="childCount">
       {{ childCount }}
     </span>
   </div>
