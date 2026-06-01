@@ -1,5 +1,50 @@
 # Plan: Rename `group` → `collection` (internal identifiers, all tiers)
 
+## Progress (as of the rename execution)
+
+**DONE (committed, all green — backend 405 / vitest 99 / ty unchanged):**
+- ✅ Tier B core: `Group` enum → `Collection`; `codex/group.py` → `codex/collection.py`;
+  the `COLLECTION_NAMES`/`COLLECTION_BY_NAME`/`COLLECTION_SINGULAR_NAMES`/
+  `COLLECTION_LABELS` maps; all 28 importers + every `Collection.<member>`.
+- ✅ Tier B: the `views/const.py` registry constants (`COLLECTION_RELATION`,
+  `COLLECTION_ORDER`, `COLLECTION_MODEL_MAP`, the named `*_COLLECTION`
+  constants, the relation maps), the `FAVORITE_*` family, and the
+  `BrowserCollectionModel` class hierarchy.
+- ✅ Tier B tail: the private/importer browse `GROUP_*` constants.
+- ✅ Tier C DB: `Favorite.group` → `Favorite.collection` (migration 0047);
+  `CustomCover.group` → `CustomCover.collection` (migration 0048, admin wire
+  field kept as `group` via `source=` — see below).
+
+**REMAINING (the entangled wire/engine + frontend pass — NOT bulk-sed-safe):**
+1. `SettingsBrowserLastRoute.group` column → `collection`. Entangled with the
+   `Route` dataclass (`views/util.py` `self.group`) and the route-dict `"group"`
+   key (settings serialize/restore) — do it with the engine route-dict rename.
+2. `SettingsBrowser.top_group` → `top_collection`: DB field + the
+   `BROWSER_DEFAULT_GROUP` admin flag + serializers + ~29 frontend refs +
+   `BROWSER_TOP_GROUP_COLLECTION_CHOICES`. Self-contained-ish but full-stack.
+3. **The engine route-dict `{"group": …, "pks": …}` key** + `Route` dataclass —
+   pervasive (~50 dict literals: route masks in validate/exceptions/
+   page_in_bounds, OPDS `TopRoutes`/const, breadcrumbs `Route(...)`, mtime,
+   redirect, reader). ⚠️ The literal `"group":` key is OVERLOADED — it also
+   appears for websocket `{"group": ChannelGroups.ALL}` (notifierd/listener)
+   and `task.group` routing. A `s/"group":/"collection":/` would corrupt those.
+   Must be edited concept-aware, file-by-file. Pairs with `pks` → `parent_ids`.
+4. **Item wire field `group`** (browser page serializer + ~15 frontend
+   consumers: `item.group` in card/controls/download-button/subtitle/
+   force-update/select-many, custom-cover upload buttons). The custom-cover
+   `source=group` shim collapses once this lands.
+5. mtime `groups` wire key, reader arc `group` wire field (`ArcCollectionField`).
+6. Frontend: `routeForGroup`/`groupForRoute` → `*Collection`, `liveBrowseParams().group`,
+   store internals, components.
+
+Approach for the remainder: rename the **`Route` dataclass + engine route-dict
+key** first (`group`/`pks` → `collection`/`parent_ids`) editing each dict
+literal by hand (skip the ChannelGroups/task `"group"`), then the three wire
+serializer fields (route input, item, reader arc) + their frontend consumers in
+lockstep, then `top_group`, then `SettingsBrowserLastRoute.group`, then the
+frontend helpers/vars. Test after each. Then the custom-cover `source=` shim and
+the favorites-view `kwargs["group"]` engine kwarg fall away.
+
 ## Goal
 
 The browse-group vocabulary's *values* are already the plural collection
