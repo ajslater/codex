@@ -54,7 +54,7 @@ class OPDS1EntryLinksMixin:
         # for edge cases instead of reverting to a legacy fan-out.
         pk = (
             self.obj.pk
-            if self.obj.group == "c"
+            if self.obj.group == "comics"
             else getattr(self.obj, "cover_pk", None) or self.obj.pk
         )
         return reverse("opds:bin:cover", kwargs={"pk": pk}, query=query_params)
@@ -79,7 +79,7 @@ class OPDS1EntryLinksMixin:
             qps = {}
             qps.update(self.query_params)
             if (
-                self.obj.group == "a"
+                self.obj.group == "arcs"
                 and self.obj.ids
                 and 0 not in self.obj.ids
                 and not self.query_params.get("orderBy")
@@ -105,7 +105,11 @@ class OPDS1EntryLinksMixin:
             mime_type = MimeType.NAV
 
         thr_count = (
-            0 if self.fake else 1 if self.obj.group == "c" else self.obj.child_count
+            0
+            if self.fake
+            else 1
+            if self.obj.group == "comics"
+            else self.obj.child_count
         )
         rel = Rel.ALTERNATE if metadata else "subsection"
 
@@ -174,7 +178,7 @@ class OPDS1EntryLinksMixin:
             if image := self._cover_link(Rel.IMAGE):
                 result += [image]
 
-            if self.obj.group == "c" and not self.fake:
+            if self.obj.group == "comics" and not self.fake:
                 result += self._links_comic()
             elif nav := self._nav_link(metadata=False):
                 result += [nav]

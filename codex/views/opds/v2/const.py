@@ -65,11 +65,11 @@ TOP_GROUPS = (
     LinkGroup(
         "Top Groups",
         (
-            Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
-            Link(Rel.SUB, "Series", "r", {"topGroup": "s"}),
-            Link(Rel.SUB, "Issues", "r", {"topGroup": "c"}),
-            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
-            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+            Link(Rel.SUB, "Publishers", "root", {"topGroup": "publishers"}),
+            Link(Rel.SUB, "Series", "root", {"topGroup": "series"}),
+            Link(Rel.SUB, "Issues", "root", {"topGroup": "comics"}),
+            Link(Rel.SUB, "Folders", "folders", {"topGroup": "folders"}),
+            Link(Rel.SUB, "Story Arcs", "arcs", {"topGroup": "arcs"}),
         ),
     ),
 )
@@ -131,7 +131,7 @@ PREVIEW_GROUPS = (
                 "r",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topGroup": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "bookmark_updated_at",
                         "orderReverse": True,
@@ -145,7 +145,7 @@ PREVIEW_GROUPS = (
                 "r",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topGroup": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "created_at",
                         "orderReverse": True,
@@ -159,7 +159,7 @@ PREVIEW_GROUPS = (
                 "r",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topGroup": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "date",
                         "orderReverse": False,
@@ -185,7 +185,7 @@ FAVORITES_PREVIEW_GROUP = LinkGroup(
             "r",
             MappingProxyType(
                 {
-                    "topGroup": "c",
+                    "topGroup": "comics",
                     "filters": FavoriteFilters.ONLY,
                     "orderBy": "sort_name",
                     "orderReverse": False,

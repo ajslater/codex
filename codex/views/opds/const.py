@@ -115,8 +115,8 @@ class UserAgentNames:
 class TopRoutes:
     """Routes for top groups."""
 
-    ROOT = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
-    PUBLISHER = MappingProxyType({**ROOT, "group": "p"})
-    SERIES = MappingProxyType({**ROOT, "group": "s"})
-    FOLDER = MappingProxyType({**ROOT, "group": "f"})
-    STORY_ARC = MappingProxyType({**ROOT, "group": "a"})
+    ROOT = MappingProxyType({"group": "root", "pks": (), "page": 1})
+    PUBLISHER = MappingProxyType({**ROOT, "group": "publishers"})
+    SERIES = MappingProxyType({**ROOT, "group": "series"})
+    FOLDER = MappingProxyType({**ROOT, "group": "folders"})
+    STORY_ARC = MappingProxyType({**ROOT, "group": "arcs"})

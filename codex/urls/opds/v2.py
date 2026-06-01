@@ -32,7 +32,7 @@ urlpatterns = [
         # the progression-link reverse passes (it never hits the browse engine).
         "comics/<int:pk>/position",
         OPDS2ProgressionView.as_view(),
-        {"group": "c"},
+        {"group": "comics"},
         name="position",
     ),
     # Two patterns share the ``feed`` name: a collection root listing

@@ -3,11 +3,12 @@
 from types import MappingProxyType
 from typing import Any, override
 
+from codex.group import Group
 from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.links import OPDS2LinksView
 
-_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
+_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "series"})
 
 
 class OPDS2FeedLinksView(OPDS2LinksView):
@@ -84,8 +85,8 @@ class OPDS2FeedLinksView(OPDS2LinksView):
         return static_links
 
     def _top_route(self) -> dict[str, Any]:
-        group = "f" if self.kwargs.get("group") == "f" else "r"
-        return {"group": group, "pks": (0,), "page": 1}
+        group = Group.FOLDER if self.kwargs.get("group") == Group.FOLDER else Group.ROOT
+        return {"group": group, "pks": (), "page": 1}
 
     def _link_page(self, rel, page):
         """Links to a page of results."""

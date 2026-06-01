@@ -496,7 +496,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         self._patch_settings(
             {
                 "viewMode": "cover",
-                "topGroup": "p",
+                "topGroup": "publishers",
                 "orderBy": "tagger",
                 "orderReverse": False,
             }
@@ -606,7 +606,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         self._patch_settings(
             {
                 "viewMode": "cover",
-                "topGroup": "f",
+                "topGroup": "folders",
                 "orderBy": "year",
                 "orderReverse": True,
             }

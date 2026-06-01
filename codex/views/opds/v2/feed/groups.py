@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+from codex.group import Group
 from codex.models.favorite import Favorite
 from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
@@ -37,10 +38,10 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             if link_spec.group is None:
                 # Start Link
                 return {}
-            group = link_spec.group or self.kwargs.get("group", "r")
+            group = link_spec.group or self.kwargs.get("group", Group.ROOT)
             pks = (0,)
         else:
-            group = link_spec.__class__.__name__[0].lower()
+            group = Group.from_char(link_spec.__class__.__name__[0].lower())
             pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         return {"group": group, "pks": pks, "page": 1}
 
@@ -56,7 +57,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         # Special order by for story_arcs
         if (
             kwargs
-            and kwargs.get("group") == "a"
+            and kwargs.get("group") == "arcs"
             and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):

@@ -3,6 +3,7 @@
 from types import MappingProxyType
 from typing import Any
 
+from codex.group import Group
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.route import opds_feed_reverse
@@ -116,10 +117,11 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     @staticmethod
     def _did_special_group_change(group, facet_group) -> bool:
         """Test if one of the special groups changed."""
-        # Special groups are folders ("f") and story arcs ("a").
+        # Special groups are folders and story arcs.
         # The change is meaningful only if exactly one side is special:
         # XOR-style across membership in the special-group set.
-        return (group in "fa") != (facet_group in "fa")
+        special = {Group.FOLDER, Group.ARC}
+        return (group in special) != (facet_group in special)
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
@@ -146,7 +148,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         folder_view_allowed = bool(self.admin_flags.get("folder_view"))
         facets = []
         for facet in facet_group.facets:
-            if facet.value == "f" and not folder_view_allowed:
+            if facet.value == Group.FOLDER and not folder_view_allowed:
                 continue
             if facet_obj := self._facet_or_facet_entry(
                 facet_group, facet, entries=entries
@@ -162,7 +164,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         else:
             group = self.kwargs.get("group")
             if (
-                group != "c"
+                group != Group.COMIC
                 and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
             ):
                 facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)

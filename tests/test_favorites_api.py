@@ -313,7 +313,16 @@ class FavoriteFilterTransitivityTestCase(TestCase):
     def _patch_show_all(self) -> None:
         response = self.client.patch(
             _SETTINGS_URL,
-            data=json.dumps({"show": {"p": True, "i": True, "s": True, "v": True}}),
+            data=json.dumps(
+                {
+                    "show": {
+                        "publishers": True,
+                        "imprints": True,
+                        "series": True,
+                        "volumes": True,
+                    }
+                }
+            ),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content

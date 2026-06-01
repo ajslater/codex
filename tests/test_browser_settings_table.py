@@ -68,10 +68,10 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert "view_mode" in s.errors
 
     def test_table_columns_dict_of_lists_validates(self):
-        payload = {"table_columns": {"c": ["cover", "name"]}}
+        payload = {"table_columns": {"comics": ["cover", "name"]}}
         s = BrowserSettingsSerializer(data=payload)
         assert s.is_valid(), s.errors
-        assert s.validated_data["table_columns"] == {"c": ["cover", "name"]}
+        assert s.validated_data["table_columns"] == {"comics": ["cover", "name"]}
 
     def test_table_columns_invalid_top_group_rejected(self):
         s = BrowserSettingsSerializer(
@@ -82,7 +82,7 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
 
     def test_table_columns_invalid_column_key_rejected(self):
         s = BrowserSettingsSerializer(
-            data={"table_columns": {"c": ["cover", "phantom_column"]}},
+            data={"table_columns": {"comics": ["cover", "phantom_column"]}},
         )
         assert not s.is_valid()
         assert "table_columns" in s.errors
@@ -214,7 +214,7 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         assert body["viewMode"] == "table"
 
     def test_patch_table_columns_persists(self):
-        cols = {"c": ["cover", "name", "issue"]}
+        cols = {"comics": ["cover", "name", "issue"]}
         response = self._patch({"tableColumns": cols})
         assert response.status_code == _HTTP_OK, response.content
         body = self._get()
@@ -244,7 +244,7 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         """
         # Customize current settings so a fresh saved view has
         # something distinctive to compare against the model defaults.
-        cols = {"c": ["cover", "name", "issue", "year"]}
+        cols = {"comics": ["cover", "name", "issue", "year"]}
         extras = [
             {"key": "year", "reverse": False},
             {"key": "issue", "reverse": True},
@@ -276,7 +276,7 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         self._patch(
             {
                 "viewMode": "table",
-                "tableColumns": {"c": ["cover", "name"]},
+                "tableColumns": {"comics": ["cover", "name"]},
             }
         )
         # Then reset
@@ -289,13 +289,13 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
 
     def test_get_with_table_columns_query_string(self):
         """
-        GET path: ``?tableColumns={"c":[...]}`` round-trips.
+        GET path: ``?tableColumns={"comics":[...]}`` round-trips.
 
         Frontend always sends settings as URL-encoded JSON in query
         params. Without the JSONFieldSerializer parse step the
         DictField sees a literal string and 400s.
         """
-        cols = {"c": ["cover", "name", "issue"]}
+        cols = {"comics": ["cover", "name", "issue"]}
         url = f"{_SETTINGS_URL}?tableColumns={json.dumps(cols)}"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content

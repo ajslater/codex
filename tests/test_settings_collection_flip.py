@@ -1,11 +1,10 @@
 """
-Phase 2 value-flip: DB stores collection values; the char wire round-trips.
+Phase 2 value-flip: the collection vocabulary round-trips end to end.
 
-After the ``Group`` enum + DB migration flip, the persisted browser settings
-hold collection names (``"publishers"``) while the still-char frontend keeps
-sending / reading the char dialect (``"p"``). These pin both halves at once:
-the API PATCH→GET round-trips the char wire, and the underlying rows store the
-collection value — proving the serializer compat layer + the 0044 migration.
+After the ``Group`` enum + DB migration flip, browser settings speak the
+collection vocabulary on the wire AND in storage (``"publishers"``, no char
+dialect, no dummy ``0`` root). These pin the API PATCH→GET round-trip and the
+underlying row values — proving the value-flip + the 0044 migration.
 """
 
 import json
@@ -52,33 +51,45 @@ class SettingsCollectionFlipTestCase(TestCase):
             user=self.user
         )
 
-    def test_show_char_wire_stores_collection_columns(self) -> None:
-        """PATCH char ``show.{p,i,s,v}`` → char GET; DB row holds the flags."""
+    def test_show_collection_wire_stores_collection_columns(self) -> None:
+        """PATCH collection ``show`` → collection GET; DB row holds the flags."""
         response = self.client.patch(
             _SETTINGS_URL,
-            data=json.dumps({"show": {"p": True, "i": True, "s": False, "v": False}}),
+            data=json.dumps(
+                {
+                    "show": {
+                        "publishers": True,
+                        "imprints": True,
+                        "series": False,
+                        "volumes": False,
+                    }
+                }
+            ),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
-        # Wire stays char.
         show = _v4(self.client.get(_SETTINGS_URL))["show"]
-        assert show == {"p": True, "i": True, "s": False, "v": False}
-        # Storage is on the renamed collection columns.
+        assert show == {
+            "publishers": True,
+            "imprints": True,
+            "series": False,
+            "volumes": False,
+        }
         row = self._browser_row().show
         assert row.publishers is True
         assert row.imprints is True
         assert row.series is False
         assert row.volumes is False
 
-    def test_top_group_char_wire_stores_collection(self) -> None:
-        """PATCH char ``top_group="s"`` → char GET; DB stores ``"series"``."""
+    def test_top_group_collection_wire_stores_collection(self) -> None:
+        """PATCH ``topGroup="series"`` → same GET; DB stores ``"series"``."""
         response = self.client.patch(
             _SETTINGS_URL,
-            data=json.dumps({"topGroup": "s"}),
+            data=json.dumps({"topGroup": "series"}),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
-        assert _v4(self.client.get(_SETTINGS_URL))["topGroup"] == "s"
+        assert _v4(self.client.get(_SETTINGS_URL))["topGroup"] == "series"
         assert self._browser_row().top_group == "series"
 
     def test_defaults_store_collection_and_no_root_zero(self) -> None:

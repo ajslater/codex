@@ -91,10 +91,10 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         if (
             isinstance(link_spec, Link)
             and (
-                link_spec.group == "f"
+                link_spec.group == "folders"
                 or (
                     link_spec.query_params
-                    and link_spec.query_params.get("topGroup") == "f"
+                    and link_spec.query_params.get("topGroup") == "folders"
                 )
             )
         ) or isinstance(link_spec, Folder):
@@ -116,7 +116,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _publication_metadata(self, obj, zero_pad) -> dict:
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
-        if self.kwargs.get("group") == "f":
+        if self.kwargs.get("group") == "folders":
             title = Comic.get_filename(obj)
         else:
             title = Comic.get_title(
@@ -151,7 +151,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         ts = self._obj_ts(obj)
         href_data = HrefData(
             {"group": group, "pks": (pk,), "page": 1},
-            {"ts": ts, "topGroup": "p"},
+            {"ts": ts, "topGroup": "publishers"},
             url_name="opds:v2:feed",
         )
         link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
@@ -221,7 +221,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         )
 
         # Progression Link
-        prog_kwargs = {"group": "c", "pk": obj.pk}
+        prog_kwargs = {"group": "comics", "pk": obj.pk}
         prog_link = self._publication_link(
             prog_kwargs, "opds:v2:position", Rel.PROGRESSION, MimeType.PROGRESSION
         )

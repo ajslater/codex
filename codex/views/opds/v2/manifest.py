@@ -103,7 +103,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         name = obj.series_name if obj.series.name else BLANK_TITLE
         pks: list[int] = [obj.series.pk]
         kwargs: Mapping[str, str | Sequence[int] | int] = {
-            "group": "s",
+            "group": "series",
             "pks": pks,
             "page": 1,
         }
@@ -111,7 +111,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         ts = self._obj_ts(obj)
         query_params = {
             "ts": ts,
-            "topGroup": "p",
+            "topGroup": "publishers",
         }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
@@ -121,9 +121,9 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         if volume_name is None:
             return []
         display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
-        kwargs = {"group": "v", "pks": [obj.volume_id], "page": 1}
+        kwargs = {"group": "volumes", "pks": [obj.volume_id], "page": 1}
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "p"}
+        query_params = {"ts": ts, "topGroup": "publishers"}
         return self._publication_belongs_to_link(
             kwargs, query_params, display_name, volume_name
         )
@@ -134,10 +134,10 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         folder = obj.parent_folder
         name = folder.path
         pks = [folder.pk]
-        kwargs = {"group": "f", "pks": pks, "page": 1}
+        kwargs = {"group": "folders", "pks": pks, "page": 1}
         number = None
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "f"}
+        query_params = {"ts": ts, "topGroup": "folders"}
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
@@ -161,8 +161,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
-            kwargs = {"group": "a", "pks": pks, "page": 1}
-            query_params = {"ts": ts, "topGroup": "a"}
+            kwargs = {"group": "arcs", "pks": pks, "page": 1}
+            query_params = {"ts": ts, "topGroup": "arcs"}
 
             story_arc = self._publication_belongs_to_link(
                 kwargs, query_params, name, number
@@ -189,12 +189,12 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # ``name`` / ``links`` (the partitioned ``_publication_subject``
         # rows). Typing as ``Any`` lets both shapes through; the
         # function only reads ``pk`` / ``name`` and writes ``links``.
-        kwargs = {"group": "s", "pks": (), "page": 1}
+        kwargs = {"group": "series", "pks": (), "page": 1}
         value = getattr(obj, subfield) if subfield else obj
         filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)
         query_params = {
-            "topGroup": "s",
+            "topGroup": "series",
             "filters": filters,
             "title": value.name,
         }

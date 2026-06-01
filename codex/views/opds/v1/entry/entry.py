@@ -38,11 +38,11 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
             parts = []
             group = self.obj.group
             if not self.fake:
-                if group == "i":
+                if group == "imprints":
                     parts.append(self.obj.publisher_name)
-                elif group == "v":
+                elif group == "volumes":
                     parts.append(self.obj.series_name)
-                elif group == "c":
+                elif group == "comics":
                     title = Comic.get_title(
                         self.obj,
                         volume=True,
@@ -52,7 +52,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                     )
                     parts.append(title)
 
-            if group != "c" and (name := self.obj.name):
+            if group != "comics" and (name := self.obj.name):
                 parts.append(name)
 
             result = " ".join(filter(None, parts))
@@ -67,7 +67,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     def issued(self) -> str:
         """Return the published date."""
         date = ""
-        if self.obj.group == "c":
+        if self.obj.group == "comics":
             with suppress(Exception):
                 date = self.obj.date.isoformat()
 
@@ -108,7 +108,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @property
     def summary(self):
         """Return a child count or comic summary."""
-        if self.obj.group == "c":
+        if self.obj.group == "comics":
             desc = self.obj.summary
         else:
             children = self.obj.child_count

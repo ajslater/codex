@@ -17,10 +17,9 @@ from codex.choices.browser import (
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
-from codex.group import group_char, group_value
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
@@ -30,25 +29,12 @@ from codex.serializers.settings import SettingsInputSerializer
 
 
 class BrowserSettingsShowGroupFlagsSerializer(Serializer):
-    """Show Group Flags — char ``p/i/s/v`` wire, collection keys internally."""
+    """Show Group Flags (collection vocabulary)."""
 
-    p = BooleanField()
-    i = BooleanField()
-    s = BooleanField()
-    v = BooleanField()
-
-    @override
-    def to_internal_value(self, data) -> dict:
-        """Translate char wire keys to collection keys (``p`` → ``publishers``)."""
-        validated = super().to_internal_value(data)
-        return {group_value(key): on for key, on in validated.items()}
-
-    @override
-    def to_representation(self, instance) -> dict:
-        """Render collection keys (internal) as the char ``p/i/s/v`` wire keys."""
-        if isinstance(instance, dict):
-            instance = {group_char(key): on for key, on in instance.items()}
-        return super().to_representation(instance)
+    publishers = BooleanField()
+    imprints = BooleanField()
+    series = BooleanField()
+    volumes = BooleanField()
 
 
 class BrowserSettingsLastRouteSerializer(Serializer):
@@ -167,7 +153,9 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 
     def validate_table_columns(self, value):
         """Reject unknown top-group keys and unknown column keys."""
-        invalid_top_groups = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
+        invalid_top_groups = set(value) - set(
+            BROWSER_TOP_GROUP_COLLECTION_CHOICES.keys()
+        )
         if invalid_top_groups:
             reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
             raise ValidationError(reason)

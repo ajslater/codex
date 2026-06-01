@@ -10,7 +10,7 @@ from codex.views.opds.const import MimeType, Rel, TopRoutes
 
 DEFAULT_FACETS = MappingProxyType(
     {
-        "topGroup": "p",
+        "topGroup": "publishers",
         "orderBy": "sort_name",
         "orderReverse": "false",
     }
@@ -55,7 +55,7 @@ class RootTopLinks:
         Rel.FEATURED,
         MimeType.NAV,
         {
-            "topGroup": "s",
+            "topGroup": "series",
             "filters": json.dumps({"bookmark": "UNREAD"}),
             "orderBy": "bookmark_updated_at",
             "orderReverse": True,
@@ -69,7 +69,7 @@ class RootTopLinks:
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
         {
-            "topGroup": "s",
+            "topGroup": "series",
             "orderBy": "created_at",
             "orderReverse": True,
         },
@@ -82,7 +82,7 @@ class RootTopLinks:
         Rel.POPULAR,
         MimeType.NAV,
         {
-            "topGroup": "s",
+            "topGroup": "series",
             "filters": json.dumps({"bookmark": "UNREAD"}),
             "orderBy": "date",
         },
@@ -158,10 +158,10 @@ class RootFacetGroups:
         "topGroup",
         "⊙",
         (
-            Facet("p", "Publishers View"),
-            Facet("s", "Series View"),
-            Facet("f", "Folder View"),
-            Facet("a", "Story Arc View"),
+            Facet("publishers", "Publishers View"),
+            Facet("series", "Series View"),
+            Facet("folders", "Folder View"),
+            Facet("arcs", "Story Arc View"),
         ),
     )
     ALL = (TOP_GROUP,)
