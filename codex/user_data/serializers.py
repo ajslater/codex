@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from codex.group import Group, group_value
 from codex.user_data.identifiers import (
     FILTER_TAG_COLUMNS,
     encode_identifier,
@@ -294,18 +295,21 @@ def serialize_settings_last_route(
     )
 
 
-def _resolve_last_route_pks(group_char: str, pks: list[int]) -> list[list[Any]]:
+def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
     """Resolve a list of browse-group PKs to identifier parts; missing rows drop."""
     if not pks:
         return []
-    if group_char == "r":
+    # ``group`` is the collection vocabulary; ``group_value`` keeps this
+    # tolerant of any stale char value.
+    group = group_value(group)
+    if group == Group.ROOT:
         # Root pseudo-group — no PKs to resolve.
         return []
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
 
     target_model = None
     for model, code in FAVORITE_MODEL_GROUP_CODES.items():
-        if code == group_char:
+        if code == group:
             target_model = model
             break
     if target_model is None:
@@ -317,7 +321,7 @@ def _resolve_last_route_pks(group_char: str, pks: list[int]) -> list[list[Any]]:
         if obj is None:
             continue
         try:
-            resolved.append(identifier_for_browse_group(group_char, obj))
+            resolved.append(identifier_for_browse_group(group, obj))
         except ValueError:
             continue
     return resolved

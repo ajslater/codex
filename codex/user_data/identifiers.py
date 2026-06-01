@@ -7,15 +7,15 @@ with name-chain tuples (or comic paths) — values that *do* survive,
 because the librarian's filesystem-driven import will re-create rows
 with the same names and paths.
 
-Identifier shape per group char:
+Identifier shape per group (the collection value names the group):
 
-* ``c`` (Comic): ``[comic.path]``
-* ``f`` (Folder): ``[folder.path]``
-* ``p`` (Publisher): ``[publisher.name]``
-* ``i`` (Imprint): ``[publisher.name, imprint.name]``
-* ``s`` (Series): ``[publisher.name, imprint.name, series.name]``
-* ``v`` (Volume): ``[publisher.name, imprint.name, series.name, volume.name, volume.number_to]``
-* ``a`` (Story Arc): ``[story_arc.name]``
+* ``comics`` (Comic): ``[comic.path]``
+* ``folders`` (Folder): ``[folder.path]``
+* ``publishers`` (Publisher): ``[publisher.name]``
+* ``imprints`` (Imprint): ``[publisher.name, imprint.name]``
+* ``series`` (Series): ``[publisher.name, imprint.name, series.name]``
+* ``volumes`` (Volume): ``[publisher.name, imprint.name, series.name, volume.name, volume.number_to]``
+* ``arcs`` (Story Arc): ``[story_arc.name]``
 
 Tag filter lists in :class:`SettingsBrowserFilters` JSONField columns
 get rewritten from ``[pk, ...]`` to ``[name, ...]`` per column. Some
@@ -28,6 +28,8 @@ from __future__ import annotations
 import json
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
+
+from codex.group import Group
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -94,22 +96,24 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
     return group_char, parts
 
 
-# Per-group-char part extractors. Keys are the polymorphic group chars
-# from :data:`codex.models.favorite.FAVORITE_MODEL_GROUP_CODES`. Each
-# callable takes the row instance and returns the identifier ``parts``
-# list. Pulled out of an ``if``/``elif`` chain to keep cyclomatic
-# complexity in check; the lambdas use cached FK access (publisher /
-# imprint / series are loaded by ``select_related`` in callers).
+# Per-group part extractors. Keys are the collection values from
+# :data:`codex.models.favorite.FAVORITE_MODEL_GROUP_CODES` (a ``Group``
+# member hashes equal to its collection-name value, so a plain-string
+# lookup finds it). Each callable takes the row instance and returns the
+# identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to
+# keep cyclomatic complexity in check; the lambdas use cached FK access
+# (publisher / imprint / series are loaded by ``select_related`` in
+# callers).
 _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]]]] = (
     MappingProxyType(
         {
-            "c": lambda obj: [str(obj.path)],
-            "f": lambda obj: [str(obj.path)],
-            "p": lambda obj: [obj.name],
-            "a": lambda obj: [obj.name],
-            "i": lambda obj: [obj.publisher.name, obj.name],
-            "s": lambda obj: [obj.publisher.name, obj.imprint.name, obj.name],
-            "v": lambda obj: [
+            Group.COMIC: lambda obj: [str(obj.path)],
+            Group.FOLDER: lambda obj: [str(obj.path)],
+            Group.PUBLISHER: lambda obj: [obj.name],
+            Group.ARC: lambda obj: [obj.name],
+            Group.IMPRINT: lambda obj: [obj.publisher.name, obj.name],
+            Group.SERIES: lambda obj: [obj.publisher.name, obj.imprint.name, obj.name],
+            Group.VOLUME: lambda obj: [
                 obj.publisher.name,
                 obj.imprint.name,
                 obj.series.name,
@@ -121,15 +125,15 @@ _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]
 )
 
 
-def identifier_for_browse_group(group_char: str, instance: Model) -> list[Any]:
+def identifier_for_browse_group(group: str, instance: Model) -> list[Any]:
     """
     Build the name-chain identifier ``parts`` for a browse-group instance.
 
-    Raises ``ValueError`` for unknown group chars. Callers wrap in
-    try/except — sidecar failures must never raise into request paths.
+    Raises ``ValueError`` for unknown groups. Callers wrap in try/except —
+    sidecar failures must never raise into request paths.
     """
-    builder = _IDENTIFIER_PART_BUILDERS.get(group_char)
+    builder = _IDENTIFIER_PART_BUILDERS.get(group)
     if builder is None:
-        msg = f"unknown browse-group char: {group_char!r}"
+        msg = f"unknown browse-group: {group!r}"
         raise ValueError(msg)
     return builder(instance)

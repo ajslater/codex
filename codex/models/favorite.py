@@ -11,6 +11,7 @@ from django.db.models import (
     PositiveIntegerField,
 )
 
+from codex.group import GROUP_LABELS, Group
 from codex.models.base import BaseModel
 from codex.models.comic import Comic
 from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
@@ -23,37 +24,31 @@ __all__ = (
     "Favorite",
 )
 
-FAVORITE_GROUP_CHOICES: Final = (
-    ("p", "Publisher"),
-    ("i", "Imprint"),
-    ("s", "Series"),
-    ("v", "Volume"),
-    ("f", "Folder"),
-    ("a", "Story Arc"),
-    ("c", "Comic"),
-)
-
-# Single source of truth for the model ↔ group-letter dispatch.
-# Every favorite-related view, signal, cron, and annotation pulls
-# from these maps so the seven group letters stay aligned across
-# the codebase. Filter / annotation / API views consume the
-# forward map; the cleanup cron and signal handler consume the
-# reverse map. Both are immutable proxies.
+# Single source of truth for the model ↔ group dispatch. The group code
+# is the collection vocabulary (a :class:`Group` member, whose value is
+# the collection name) shared by the whole app. Every favorite-related
+# view, signal, cron, and annotation pulls from these maps so the seven
+# groups stay aligned across the codebase. Filter / annotation / API
+# views consume the forward map; the cleanup cron and signal handler
+# consume the reverse map. Both are immutable proxies.
 FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type[BaseModel], str]] = (
     MappingProxyType(
         {
-            Publisher: "p",
-            Imprint: "i",
-            Series: "s",
-            Volume: "v",
-            Folder: "f",
-            StoryArc: "a",
-            Comic: "c",
+            Publisher: Group.PUBLISHER,
+            Imprint: Group.IMPRINT,
+            Series: Group.SERIES,
+            Volume: Group.VOLUME,
+            Folder: Group.FOLDER,
+            StoryArc: Group.ARC,
+            Comic: Group.COMIC,
         }
     )
 )
 FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyType(
     {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
+)
+FAVORITE_GROUP_CHOICES: Final = tuple(
+    (group.value, GROUP_LABELS[group]) for group in FAVORITE_MODEL_GROUP_CODES.values()
 )
 
 
@@ -61,7 +56,7 @@ class Favorite(BaseModel):
     """Per-user favorite tag for a browsable group or comic."""
 
     user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)
-    group = CharField(max_length=1, choices=FAVORITE_GROUP_CHOICES)
+    group = CharField(max_length=16, choices=FAVORITE_GROUP_CHOICES)
     target_id = PositiveIntegerField()
 
     class Meta(BaseModel.Meta):

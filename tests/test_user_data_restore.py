@@ -109,8 +109,8 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         Bookmark.objects.create(
             user=user, comic=comic, page=_SEED_BOOKMARK_PAGE, finished=True
         )
-        Favorite.objects.create(user=user, group="p", target_id=publisher.pk)
-        Favorite.objects.create(user=user, group="s", target_id=series.pk)
+        Favorite.objects.create(user=user, group="publishers", target_id=publisher.pk)
+        Favorite.objects.create(user=user, group="series", target_id=series.pk)
         # update_or_create rather than create — other suites' setUpTestData
         # calls into codex_init() can leak seeded AdminFlag/Timestamp rows
         # past TestCase's per-test rollback.
@@ -168,9 +168,32 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         report = restore(sidecar_path=snapshot)
         assert report.written.get("favorites", 0) >= _SEED_FAVORITES_COUNT
         Favorite.objects.get(
-            user=seed["user"], group="p", target_id=seed["publisher"].pk
+            user=seed["user"], group="publishers", target_id=seed["publisher"].pk
         )
-        Favorite.objects.get(user=seed["user"], group="s", target_id=seed["series"].pk)
+        Favorite.objects.get(
+            user=seed["user"], group="series", target_id=seed["series"].pk
+        )
+
+    def test_restores_legacy_char_favorite_sidecar(self) -> None:
+        """A pre-flip char-encoded favorite sidecar still restores to collection."""
+        seed = self._seed_main_db()
+        snapshot = self._snapshot_sidecar()
+        # Rewrite the snapshot's favorite group to the legacy char
+        # vocabulary, mimicking a backup taken before the collection flip.
+        # Restore reads ``decoded[1:]`` for the parts and normalizes the
+        # group via ``group_value``, so only ``group_char`` need change.
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute(
+                "UPDATE favorites SET group_char = 'p' WHERE group_char = 'publishers'"
+            )
+        Favorite.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+        assert report.written.get("favorites", 0) >= 1
+        # ``group_value`` tolerance normalizes the char back to the collection.
+        Favorite.objects.get(
+            user=seed["user"], group="publishers", target_id=seed["publisher"].pk
+        )
 
     def test_restore_logs_unmatched_comic(self) -> None:
         seed = self._seed_main_db()

@@ -5,9 +5,7 @@ from typing import TYPE_CHECKING, override
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from codex.group import group_value
 from codex.models.favorite import FAVORITE_GROUP_CODE_MODELS, Favorite
-from codex.urls.converters import COLLECTION_TO_GROUP
 from codex.views.auth import AuthFilterGenericAPIView
 
 if TYPE_CHECKING:
@@ -25,19 +23,17 @@ class FavoriteListView(_FavoriteAuthMixin):
 
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{collection: [target_id, ...]}`` for the user."""
-        # The Favorite model still stores char group codes (migration
-        # deferred); the wire speaks the collection vocabulary, so translate
-        # the keys on the way out via ``group_value``.
+        # ``Favorite.group`` is the collection vocabulary, which is exactly
+        # the wire shape — no translation needed.
         favorites_by_group: dict[str, list[int]] = {
-            group_value(code): [] for code in FAVORITE_GROUP_CODE_MODELS
+            group: [] for group in FAVORITE_GROUP_CODE_MODELS
         }
         rows = Favorite.objects.filter(user=self.request.user).values_list(
             "group", "target_id"
         )
-        for group_code, target_id in rows:
-            collection = group_value(group_code)
-            if collection in favorites_by_group:
-                favorites_by_group[collection].append(target_id)
+        for group, target_id in rows:
+            if group in favorites_by_group:
+                favorites_by_group[group].append(target_id)
         return Response(favorites_by_group)
 
 
@@ -47,15 +43,16 @@ class FavoriteDetailView(_FavoriteAuthMixin):
     @override
     def initial(self, request: "Request", *args, **kwargs):
         """
-        Rewrite collection → single-letter group code directly.
+        Rename the ``collection`` URL kwarg to ``group``.
 
-        Bypasses ``AuthMixin._translate_browser_kwargs``: favorites
-        always want ``collection → letter`` (no publishers→root
-        special case) and never carries ``parent_ids``.
+        The collection name *is* the favorite group code now, so this is
+        a straight rename. Bypasses ``AuthMixin._translate_browser_kwargs``:
+        favorites have no publishers→root special case and never carry
+        ``parent_ids``.
         """
         collection = self.kwargs.pop("collection", None)
         if collection is not None:
-            self.kwargs["group"] = COLLECTION_TO_GROUP[collection]
+            self.kwargs["group"] = collection
         super().initial(request, *args, **kwargs)
 
     def _resolve_target(self):

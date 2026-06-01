@@ -6,6 +6,7 @@ from typing import Final
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
+from codex.group import Group
 from codex.models import Comic
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
@@ -42,20 +43,20 @@ _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
 # Comic (``folders`` and ``story_arc_numbers__story_arc``). When neither
 # code has any favorites the filter Q has no m2m clauses and Comic
 # queries don't need ``.distinct()``.
-_FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset({"f", "a"})
+_FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset({Group.FOLDER, Group.ARC})
 
 # Group code → comic-side ORM field used to "transitively" match a
 # row in that group. ``folders`` and ``story_arc_numbers__story_arc``
 # are m2m relations on Comic that carry every ancestor folder / arc,
 # so a single favorited folder lights up every descendant comic.
 _FAVORITE_GROUP_COMIC_REL: Final[dict[str, str]] = {
-    "c": "pk",
-    "p": "publisher_id",
-    "i": "imprint_id",
-    "s": "series_id",
-    "v": "volume_id",
-    "f": "folders",
-    "a": "story_arc_numbers__story_arc",
+    Group.COMIC: "pk",
+    Group.PUBLISHER: "publisher_id",
+    Group.IMPRINT: "imprint_id",
+    Group.SERIES: "series_id",
+    Group.VOLUME: "volume_id",
+    Group.FOLDER: "folders",
+    Group.ARC: "story_arc_numbers__story_arc",
 }
 
 
@@ -75,7 +76,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     @cached_property
     def _active_favorite_group_codes(self) -> frozenset[str]:
         """
-        Return the group letters this user has at least one favorite under.
+        Return the groups this user has at least one favorite under.
 
         One ``DISTINCT`` query per request, cached. Used by
         ``get_favorite_filter`` to skip OR clauses for empty groups

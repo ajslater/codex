@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
+from codex.group import Group, group_value
 from codex.user_data.store import SidecarStore, get_store
 from codex.xz import read_text_maybe_xz
 
@@ -452,44 +453,44 @@ def _restore_favorites(
         if user is None:
             report.note_skipped("favorites", f"missing user {row['username']!r}")
             continue
-        group_char = row["group_char"]
-        target_model = code_to_model.get(group_char)
+        # ``group_value`` tolerates legacy char-encoded sidecars (idempotent
+        # for collection values written by current dumps).
+        group = group_value(row["group_char"])
+        target_model = code_to_model.get(group)
         if target_model is None:
-            report.note_skipped("favorites", f"unknown group_char {group_char!r}")
+            report.note_skipped("favorites", f"unknown favorite group {group!r}")
             continue
         decoded = json.loads(row["identifier_json"])
-        # decoded == [group_char, ...parts]
+        # decoded == [group, ...parts]
         parts = decoded[1:]
-        target_pk = _resolve_browse_group_pk(group_char, parts, target_model)
+        target_pk = _resolve_browse_group_pk(group, parts, target_model)
         if target_pk is None:
             username = row["username"]
             report.note_skipped(
                 "favorites",
-                f"unresolvable {group_char!r} target {parts!r} for user {username!r}",
+                f"unresolvable {group!r} target {parts!r} for user {username!r}",
             )
             continue
-        Favorite.objects.update_or_create(
-            user=user, group=group_char, target_id=target_pk
-        )
+        Favorite.objects.update_or_create(user=user, group=group, target_id=target_pk)
         report.note_written("favorites")
 
 
-def _resolve_browse_group_pk(group_char: str, parts: list[Any], model) -> int | None:
+def _resolve_browse_group_pk(group: str, parts: list[Any], model) -> int | None:
     """Resolve a name-chain identifier back to a main-DB PK."""
-    match group_char:
-        case "c" | "f":
+    match group:
+        case Group.COMIC | Group.FOLDER:
             obj = model.objects.filter(path=parts[0]).first()
-        case "p" | "a":
+        case Group.PUBLISHER | Group.ARC:
             obj = model.objects.filter(name=parts[0]).first()
-        case "i":
+        case Group.IMPRINT:
             obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()
-        case "s":
+        case Group.SERIES:
             obj = model.objects.filter(
                 publisher__name=parts[0],
                 imprint__name=parts[1],
                 name=parts[2],
             ).first()
-        case "v":
+        case Group.VOLUME:
             obj = model.objects.filter(
                 publisher__name=parts[0],
                 imprint__name=parts[1],
@@ -632,26 +633,26 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
 
 
 def _resolve_last_route_pks(
-    group_char: str, decoded: list, report: RestoreReport
+    group: str, decoded: list, report: RestoreReport
 ) -> list[int]:
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
-    if group_char == "r" or not decoded:
+    if group == Group.ROOT or not decoded:
         return []
     from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
 
     target_model = next(
-        (m for m, c in FAVORITE_MODEL_GROUP_CODES.items() if c == group_char),
+        (m for m, c in FAVORITE_MODEL_GROUP_CODES.items() if c == group),
         None,
     )
     if target_model is None:
         return []
     pks: list[int] = []
     for parts in decoded:
-        pk = _resolve_browse_group_pk(group_char, parts, target_model)
+        pk = _resolve_browse_group_pk(group, parts, target_model)
         if pk is None:
             report.note_skipped(
                 "settings_last_route",
-                f"unresolvable last-route {group_char!r} target {parts!r}",
+                f"unresolvable last-route {group!r} target {parts!r}",
             )
             continue
         pks.append(pk)
@@ -662,12 +663,14 @@ def _restore_one_last_route(row, browser, report: RestoreReport) -> None:
     """Restore a single ``settings_last_route`` row."""
     from codex.models.settings import SettingsBrowserLastRoute
 
-    group_char = row["group_char"]
+    # ``group_value`` tolerates legacy char-encoded sidecars; the stored
+    # ``SettingsBrowserLastRoute.group`` is the collection vocabulary.
+    group = group_value(row["group_char"])
     decoded = json.loads(row["pks_json"] or "[]")
-    pks = _resolve_last_route_pks(group_char, decoded, report)
+    pks = _resolve_last_route_pks(group, decoded, report)
     SettingsBrowserLastRoute.objects.update_or_create(
         browser=browser,
-        defaults={"group": group_char, "pks": pks, "page": row["page"] or 1},
+        defaults={"group": group, "pks": pks, "page": row["page"] or 1},
     )
     report.note_written("settings_last_route")
 
