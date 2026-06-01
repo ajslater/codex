@@ -290,10 +290,10 @@ export default {
        * shape so vue's diff is stable across re-renders.
        */
       if (row.group !== undefined) return `${row.group}${row.ids ?? ""}`;
-      return `c${row.pk}`;
+      return `comics${row.pk}`;
     },
     coverGroupFor(row) {
-      return row.group ?? "c";
+      return row.group ?? "comics";
     },
     onRowClick(row, event) {
       /*
@@ -308,9 +308,9 @@ export default {
         this.selectItemAt(row, { shift: Boolean(event?.shiftKey) });
         return;
       }
-      const group = row.group ?? "c";
+      const group = row.group ?? "comics";
       const pks = row.ids ?? [row.pk];
-      if (group === "c") {
+      if (group === "comics") {
         this.$router.push({ name: "reader", params: { pk: pks[0] } });
         return;
       }

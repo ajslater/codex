@@ -5,7 +5,7 @@ from django.test import TestCase
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
 )
 from codex.views.browser.columns import (
     default_columns_filtered,
@@ -72,7 +72,7 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
 
     def test_keys_are_valid_top_groups(self):
         for key in BROWSER_TABLE_DEFAULT_COLUMNS:
-            assert key in BROWSER_TOP_GROUP_CHOICES, f"{key} not a top-group"
+            assert key in BROWSER_TOP_GROUP_COLLECTION_CHOICES, f"{key} not a top-group"
 
     def test_columns_reference_registry(self):
         valid = set(BROWSER_TABLE_COLUMNS.keys())

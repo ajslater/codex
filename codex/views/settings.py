@@ -11,7 +11,7 @@ from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.browser import (
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
     admin_default_route_for,
 )
 from codex.group import Group, group_value
@@ -30,8 +30,8 @@ from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 
 # Fallback top-group when the BG flag row is missing, off, or holds
 # an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
-# default; ``admin_default_route_for("p")`` yields the historical
-# ``/r/0/1`` redirect target.
+# default; ``admin_default_route_for("publishers")`` yields the Root
+# redirect target.
 _FALLBACK_DEFAULT_TOP_GROUP = Group.PUBLISHER
 
 CREDIT_PERSON_UI_FIELD = "credits"
@@ -141,11 +141,11 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         Read the admin-configured default top group.
 
         Returns the validated ``BROWSER_DEFAULT_GROUP`` flag value,
-        falling back to ``"p"`` if the row is missing, the flag is
-        off, or the value is out of range (defense against a
-        hand-edited DB / pre-migration state). ``"p"`` mirrors the
-        ``SettingsBrowser.top_group`` model default and resolves to
-        the historical ``/r/0/1`` redirect target.
+        falling back to ``"publishers"`` if the row is missing, the
+        flag is off, or the value is out of range (defense against a
+        hand-edited DB / pre-migration state). ``"publishers"`` mirrors
+        the ``SettingsBrowser.top_group`` model default and resolves to
+        the Root redirect target.
         """
         try:
             flag = AdminFlag.objects.only("on", "value").get(
@@ -153,8 +153,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             )
         except AdminFlag.DoesNotExist:
             return _FALLBACK_DEFAULT_TOP_GROUP
-        if flag.on and flag.value in BROWSER_TOP_GROUP_CHOICES:
-            # The flag stores the char wire value; the engine wants the collection.
+        # ``group_value`` tolerates a legacy char value still on disk; the
+        # flag and the engine both speak the collection vocabulary now.
+        if flag.on and group_value(flag.value) in BROWSER_TOP_GROUP_COLLECTION_CHOICES:
             return group_value(flag.value)
         return _FALLBACK_DEFAULT_TOP_GROUP
 

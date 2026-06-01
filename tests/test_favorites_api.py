@@ -154,17 +154,17 @@ class FavoritesAPITestCase(TestCase):
         assert not Favorite.objects.filter(target_id=1).exists()
 
     def test_get_returns_favorites_grouped_by_code(self):
-        """GET groups the user's favorites by single-letter group code."""
+        """GET groups the user's favorites by collection name."""
         self.client.put(_detail_url("s", self.series_pk))
         self.client.put(_detail_url("p", self.publisher_pk))
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
         body = _v4(response)
-        assert sorted(body["s"]) == [self.series_pk]
-        assert sorted(body["p"]) == [self.publisher_pk]
+        assert sorted(body["series"]) == [self.series_pk]
+        assert sorted(body["publishers"]) == [self.publisher_pk]
         # Untouched groups must still be present (empty list).
-        assert body["c"] == []
-        assert body["v"] == []
+        assert body["comics"] == []
+        assert body["volumes"] == []
 
     def test_get_only_returns_requesting_user_favorites(self):
         """A second user's favorites must not leak through GET."""
@@ -172,7 +172,7 @@ class FavoritesAPITestCase(TestCase):
         Favorite.objects.create(user=other, group="s", target_id=self.series_pk)
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
-        assert _v4(response)["s"] == []
+        assert _v4(response)["series"] == []
 
     def test_anonymous_forbidden(self):
         """Logged-out clients must not reach the favorites surface."""
@@ -189,7 +189,15 @@ class FavoritesAPITestCase(TestCase):
         response = self.client.get(_LIST_URL)
         body = _v4(response)
         assert isinstance(body, dict)
-        assert set(body) >= {"p", "i", "s", "v", "f", "a", "c"}
+        assert set(body) >= {
+            "publishers",
+            "imprints",
+            "series",
+            "volumes",
+            "folders",
+            "arcs",
+            "comics",
+        }
 
 
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"

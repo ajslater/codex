@@ -58,7 +58,7 @@ export default {
     },
     markReadText() {
       const words = ["Mark"];
-      if (this.item.group != "c") {
+      if (this.item.group != "comics") {
         words.push("Entire");
       }
       const groupName = this.groupNames[this.item.group];

@@ -25,7 +25,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
-from codex.group import group_char, group_value
+from codex.group import group_value
 from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
 from codex.models.functions import JsonGroupArray
 
@@ -124,9 +124,9 @@ _FK_NAME_COLUMN_PATHS = MappingProxyType(
 
 def default_columns_for(top_group: str) -> tuple[str, ...]:
     """Return the default column tuple for a top-group, or empty if unknown."""
-    # The defaults map is char-keyed (frontend wire); the engine's top_group
-    # is a collection value — bridge it here.
-    return BROWSER_TABLE_DEFAULT_COLUMNS.get(group_char(top_group), ())
+    # The defaults map is keyed by collection name now, matching the
+    # engine's collection-valued ``top_group`` — a direct lookup.
+    return BROWSER_TABLE_DEFAULT_COLUMNS.get(group_value(top_group), ())
 
 
 # Default columns gated on the matching ``show.<key>`` group flag.

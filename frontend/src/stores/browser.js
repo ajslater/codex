@@ -19,15 +19,28 @@ import router from "@/plugins/router";
 import { groupForRoute, routeForGroup } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
-const GROUPS = Object.freeze("rpisvc");
-export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
+// Browse-group hierarchy, root → deepest. The store speaks the collection
+// vocabulary end to end now; ``GROUPS_REVERSED`` (deepest → root) drives the
+// ``.indexOf`` hierarchy ordering in lowestShownGroup / getTopGroup / topGroup
+// validation.
+const GROUPS = Object.freeze([
+  "root",
+  "publishers",
+  "imprints",
+  "series",
+  "volumes",
+  "comics",
+]);
+export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse());
 const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
 const DEFAULT_BOOKMARK_VALUES = Object.freeze(
   new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
 );
-const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["a", "c"]));
-const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(new Set(["a", "c", "f"]));
-const NON_BROWSE_GROUPS = Object.freeze(new Set(["a", "f"]));
+const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["arcs", "comics"]));
+const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(
+  new Set(["arcs", "comics", "folders"]),
+);
+const NON_BROWSE_GROUPS = Object.freeze(new Set(["arcs", "folders"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
 const DYNAMIC_COVER_KEYS = Object.freeze([
@@ -43,15 +56,15 @@ const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
  * Default-columns gating. ``imprint_name`` and ``volume_name`` lead
  * the per-top-group default column tuples (see
  * ``BROWSER_TABLE_DEFAULT_COLUMNS``), but a user who has the
- * matching ``show.i`` / ``show.v`` flags off — i.e., they hide
- * imprints / volumes from breadcrumb navigation — almost certainly
+ * matching ``show.imprints`` / ``show.volumes`` flags off — i.e., they
+ * hide imprints / volumes from breadcrumb navigation — almost certainly
  * doesn't want those columns leading their default column set
  * either. The backend mirrors this in ``default_columns_filtered``;
  * the two stay in sync via this constant.
  */
 const _SHOW_GATED_COLUMNS = Object.freeze({
-  imprint_name: "i",
-  volume_name: "v",
+  imprint_name: "imprints",
+  volume_name: "volumes",
 });
 
 export function filterShowGatedDefaults(cols, show) {
@@ -83,18 +96,18 @@ export function filterShowGatedDefaults(cols, show) {
  * :func:`add_order_by`).
  */
 const _DEFAULT_TABLE_ORDER = Object.freeze({
-  i: Object.freeze({
+  imprints: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [Object.freeze({ key: "sort_name", reverse: false })],
   }),
-  s: Object.freeze({
+  series: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [
       Object.freeze({ key: "imprint_name", reverse: false }),
       Object.freeze({ key: "sort_name", reverse: false }),
     ],
   }),
-  v: Object.freeze({
+  volumes: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [
       Object.freeze({ key: "imprint_name", reverse: false }),
@@ -118,9 +131,10 @@ function _defaultOrderFor(topGroup, viewMode) {
 
 /*
  * Read the live browser route as the internal {group, pks, page} shape the
- * store logic expects. parentIds is the raw "5,7" segment (or undefined =>
- * root "0"); page is the ?page= query as a string (default "1"), matching the
- * legacy path-param shape so the redirect/dequal logic below is unchanged.
+ * store logic expects. group is the collection value ("publishers", "series",
+ * …) with the synthetic "root" for the bare publishers list; pks is the raw
+ * "5,7" parent-ids segment (or "" at root — no dummy 0 sentinel); page is the
+ * ?page= query as a string (default "1") so the redirect/dequal logic matches.
  */
 const liveBrowseParams = () => {
   const route = router.currentRoute.value;
@@ -129,7 +143,7 @@ const liveBrowseParams = () => {
     collection: route.params.collection,
     parentIds,
   });
-  const pks = parentIds && parentIds.length ? parentIds : "0";
+  const pks = parentIds || "";
   return { group, pks, page: String(route.query.page || 1) };
 };
 
@@ -274,7 +288,8 @@ export const useBrowserStore = defineStore("browser", {
         if (
           !coverKeys.has(item.value) ||
           (item.value === "path" && !state.page.adminFlags.folderView) ||
-          (item.value === "child_count" && state.page.modelGroup === "c") ||
+          (item.value === "child_count" &&
+            state.page.modelGroup === "comics") ||
           (item.value === "search_score" &&
             (!state.settings.search || !state.page.fts))
         ) {
@@ -328,7 +343,7 @@ export const useBrowserStore = defineStore("browser", {
       );
     },
     lowestShownGroup(state) {
-      let lowestGroup = "r";
+      let lowestGroup = "root";
       const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
       for (const [index, group] of [...GROUPS_REVERSED].entries()) {
         const show = state.settings.show[group];
@@ -353,7 +368,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     coverSettings(state) {
       const { group, pks } = liveBrowseParams();
-      if (group == "c") {
+      if (group == "comics") {
         return {};
       }
       let keys = COVER_KEYS;
@@ -363,7 +378,7 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-      if (!dc && group !== "r" && pks && pks !== "0") {
+      if (!dc && group !== "root" && pks) {
         settings["parentRoute"] = {
           group,
           pks,
@@ -456,7 +471,7 @@ export const useBrowserStore = defineStore("browser", {
     _isRootGroupEnabled(topGroup) {
       if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
         return true;
-      } else if (topGroup == "f") {
+      } else if (topGroup == "folders") {
         return this.page.adminFlags?.folderView;
       } else {
         return this.settings.show[topGroup];
@@ -467,7 +482,7 @@ export const useBrowserStore = defineStore("browser", {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
           data.orderBy =
-            this.settings.topGroup === "f" ? "filename" : "sort_name";
+            this.settings.topGroup === "folders" ? "filename" : "sort_name";
         }
         return;
       } else if (this.settings.search) {
@@ -484,7 +499,7 @@ export const useBrowserStore = defineStore("browser", {
       ) {
         return;
       }
-      return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };
+      return { params: { group: this.lowestShownGroup, pks: "", page: "1" } };
     },
     _validateTopGroup(data, redirect) {
       /*
@@ -494,9 +509,9 @@ export const useBrowserStore = defineStore("browser", {
       const currentParams = liveBrowseParams();
       const currentGroup = currentParams?.group;
       const newTopGroup = data.topGroup;
-      if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
+      if (currentGroup === "root" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
         return redirect;
-        // r group can have any top groups?
+        // root group can have any top groups?
       }
 
       const oldTopGroup = this.settings.topGroup;
@@ -540,12 +555,12 @@ export const useBrowserStore = defineStore("browser", {
            * New top group is a child (REVERSED)
            * Redirect to the new root.
            */
-          params = { group: "r", pks: "0", page: "1" };
+          params = { group: "root", pks: "", page: "1" };
         }
       } else {
         // redirect to the new TopGroup
-        const group = newTopGroupIsBrowse ? "r" : newTopGroup;
-        params = { group, pks: "0", page: "1" };
+        const group = newTopGroupIsBrowse ? "root" : newTopGroup;
+        params = { group, pks: "", page: "1" };
       }
       return { params };
     },
@@ -558,7 +573,7 @@ export const useBrowserStore = defineStore("browser", {
         const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
         // Determine browse top group
         for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && this.settings.show[testGroup]) {
+          if (testGroup !== "root" && this.settings.show[testGroup]) {
             topGroup = testGroup;
             break;
           }
@@ -580,7 +595,7 @@ export const useBrowserStore = defineStore("browser", {
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      const topGroup = this.settings.topGroup ?? "p";
+      const topGroup = this.settings.topGroup ?? "publishers";
       const stored = this.settings.tableColumns?.[topGroup];
       if (stored && stored.length > 0) {
         return stored;
@@ -834,7 +849,7 @@ export const useBrowserStore = defineStore("browser", {
           if (
             (state.settings.orderBy === "search_score" && !page.fts) ||
             (state.settings.orderBy === "child_count" &&
-              page.modelGroup === "c")
+              page.modelGroup === "comics")
           ) {
             state.settings.orderBy = "sort_name";
           }
@@ -906,14 +921,18 @@ export const useBrowserStore = defineStore("browser", {
       }
       const { group: routeGroup, pks } = liveBrowseParams();
       const group =
-        routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
-      const arcs = [{ group, pks }];
+        routeGroup && routeGroup != "root" ? routeGroup : this.page.modelGroup;
+      // The mtime endpoint's pks field rejects blanks; the root list sends
+      // the legacy "0" sentinel, which the route serializer strips back to
+      // no-parent-ids (deferred-removal wire compat).
+      const arcPks = pks || "0";
+      const arcs = [{ group, pks: arcPks }];
       /*
        * Dedup so concurrent callers (websocket fan-out across the
        * browser + reader stores, rapid notifications) share one
        * request instead of stampeding.
        */
-      const dedupKey = `browser:loadMtimes:${group}:${pks}`;
+      const dedupKey = `browser:loadMtimes:${group}:${arcPks}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>
           COMMON_API.getMtime(arcs, this.filterOnlySettings),

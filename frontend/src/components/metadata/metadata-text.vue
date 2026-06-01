@@ -93,9 +93,9 @@ export default {
     },
     displayValue() {
       let value;
-      if (this.group === "f" && this.computedValue) {
+      if (this.group === "folders" && this.computedValue) {
         value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
-      } else if (this.group === "v" && this.computedValue) {
+      } else if (this.group === "volumes" && this.computedValue) {
         value = formattedVolumeName(this.computedValue, this.value.numberTo);
       } else {
         value = this.computedValue;
@@ -133,8 +133,9 @@ export default {
       if (
         !this.group ||
         routeGroup === this.group ||
-        (this.group === "f" && !this.folderViewEnabled) ||
-        (!["a", "f"].includes(this.group) && !this.browserShow[this.group])
+        (this.group === "folders" && !this.folderViewEnabled) ||
+        (!["arcs", "folders"].includes(this.group) &&
+          !this.browserShow[this.group])
       ) {
         return false;
       }
@@ -175,7 +176,7 @@ export default {
       return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
-      return this.group === "f"
+      return this.group === "folders"
         ? this.computedValue.slice(Math.max(0, this.lastSlashIndex))
         : "";
     },

@@ -17,16 +17,16 @@ describe("route helpers", () => {
     });
   });
 
-  it("round-trips publishers root back to the r nav group", () => {
+  it("round-trips publishers root back to the synthetic root group", () => {
     expect(groupForRoute({ collection: "publishers", parentIds: [] })).toEqual({
-      group: "r",
+      group: "root",
       pks: [],
     });
   });
 
-  it("maps a parented collection back to its group char", () => {
+  it("maps a parented collection straight through to its group", () => {
     expect(groupForRoute({ collection: "series", parentIds: ["5"] })).toEqual({
-      group: "s",
+      group: "series",
       pks: ["5"],
     });
   });

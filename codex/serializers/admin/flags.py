@@ -5,7 +5,8 @@ from typing import override
 from rest_framework.serializers import PrimaryKeyRelatedField, ValidationError
 
 from codex.choices.admin import AdminFlagChoices
-from codex.choices.browser import BROWSER_TOP_GROUP_CHOICES
+from codex.choices.browser import BROWSER_TOP_GROUP_COLLECTION_CHOICES
+from codex.group import group_value
 from codex.models import AdminFlag, AgeRatingMetron
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -27,19 +28,20 @@ class AdminFlagSerializer(BaseModelSerializer):
         Per-flag value validation.
 
         ``BROWSER_DEFAULT_GROUP`` constrains ``value`` to one of the
-        ``BROWSER_TOP_GROUP_CHOICES`` keys; the route URL is derived
-        from the value at read time via ``admin_default_route_for``.
+        ``BROWSER_TOP_GROUP_COLLECTION_CHOICES`` keys; the route URL is
+        derived from the value at read time via ``admin_default_route_for``.
         Note we validate against the top-group set, not
-        ``BROWSER_ROUTE_CHOICES`` — the ``r`` (Root) pseudo-group is
-        not a valid flag value, only a derived URL.
+        ``BROWSER_ROUTE_COLLECTION_CHOICES`` — the ``root`` pseudo-group is
+        not a valid flag value, only a derived URL. ``group_value`` keeps
+        the check tolerant of a legacy char value still on disk.
         """
         if (
             self.instance
             and self.instance.key == AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
         ):
             value = attrs.get("value", self.instance.value)
-            if value not in BROWSER_TOP_GROUP_CHOICES:
-                valid = tuple(BROWSER_TOP_GROUP_CHOICES)
+            if group_value(value) not in BROWSER_TOP_GROUP_COLLECTION_CHOICES:
+                valid = tuple(BROWSER_TOP_GROUP_COLLECTION_CHOICES)
                 reason = f"value must be one of {valid}"
                 raise ValidationError({"value": reason})
         return attrs

@@ -36,7 +36,7 @@ export default {
       return (
         this.stateLazyImportEnabled &&
         this.book &&
-        this.book.group === "c" &&
+        this.book.group === "comics" &&
         !this.book.hasMetadata &&
         !this.lazyImportStarted
       );

@@ -1,10 +1,12 @@
 /*
- * Single-char group code <-> v4 collection name, mirroring codex/group.py.
- * Root resolves to the publisher hierarchy, matching the backend
- * RouteSerializer (r -> publishers) and AuthMixin (publishers + no
- * parentIds -> r) so a route round-trips through either dialect.
+ * Group value -> v4 collection URL segment. The browser now speaks the
+ * collection vocabulary, so this is mostly an identity map; the entries
+ * that earn their keep are ``root`` (the synthetic top level resolves to
+ * the publishers hierarchy) plus the legacy single-char codes, kept so a
+ * still-char reader breadcrumb / arc value round-trips through here too.
  */
 const GROUP_TO_COLLECTION = Object.freeze({
+  root: "publishers",
   r: "publishers",
   p: "publishers",
   i: "imprints",
@@ -13,15 +15,6 @@ const GROUP_TO_COLLECTION = Object.freeze({
   c: "comics",
   f: "folders",
   a: "arcs",
-});
-const COLLECTION_TO_GROUP = Object.freeze({
-  publishers: "p",
-  imprints: "i",
-  series: "s",
-  volumes: "v",
-  comics: "c",
-  folders: "f",
-  arcs: "a",
 });
 
 /*
@@ -40,22 +33,23 @@ export const normalizeParentIds = (pks) => {
   return ids;
 };
 
-/* Legacy {group, pks} -> v4 {collection, parentIds}. */
+/* {group, pks} -> v4 {collection, parentIds}. Idempotent for collection input. */
 export const routeForGroup = ({ group, pks }) => ({
   collection: GROUP_TO_COLLECTION[group] || group,
   parentIds: normalizeParentIds(pks),
 });
 
 /*
- * v4 {collection, parentIds} -> legacy {group, pks}. Root (publishers with
- * no parentIds) maps back to the "r" nav group, mirroring the backend.
+ * v4 {collection, parentIds} -> internal {group, pks}. The group is the
+ * collection value itself; publishers with no parentIds is the synthetic
+ * ``root`` nav group, mirroring the backend AuthMixin.
  */
 export const groupForRoute = ({ collection, parentIds }) => {
   const ids = normalizeParentIds(parentIds);
   if (collection === "publishers" && !ids.length) {
-    return { group: "r", pks: ids };
+    return { group: "root", pks: ids };
   }
-  return { group: COLLECTION_TO_GROUP[collection] || collection, pks: ids };
+  return { group: collection, pks: ids };
 };
 
 const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));

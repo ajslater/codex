@@ -44,15 +44,15 @@ export default {
       orderByFilename: (state) => state.settings.orderBy === "filename",
       orderByName: (state) => state.settings.orderBy === "sort_name",
       topGroup: (state) => state.settings.topGroup,
-      showSeries: (state) => state.settings.show["s"],
-      showVolume: (state) => state.settings.show["v"],
+      showSeries: (state) => state.settings.show["series"],
+      showVolume: (state) => state.settings.show["volumes"],
       zeroPad: (state) => state.page.zeroPad,
       alwaysShowFilename: (state) => state.settings.alwaysShowFilename,
     }),
     seriesName() {
       if (
-        (this.topGroup === "a" || (this.orderByName && !this.showSeries)) &&
-        ["c", "v"].includes(this.item.group) &&
+        (this.topGroup === "arcs" || (this.orderByName && !this.showSeries)) &&
+        ["comics", "volumes"].includes(this.item.group) &&
         this.item.seriesName
       ) {
         return this.item.seriesName;
@@ -61,8 +61,8 @@ export default {
     },
     volumeName() {
       if (
-        (this.topGroup === "a" || (this.orderByName && !this.showVolume)) &&
-        this.item.group === "c" &&
+        (this.topGroup === "arcs" || (this.orderByName && !this.showVolume)) &&
+        this.item.group === "comics" &&
         this.item.volumeName
       ) {
         return formattedVolumeName(
@@ -75,13 +75,13 @@ export default {
     headerName() {
       let hn;
       switch (this.item.group) {
-        case "i":
+        case "imprints":
           hn = this.item.publisherName;
           break;
-        case "v":
+        case "volumes":
           hn = this.item.seriesName;
           break;
-        case "c":
+        case "comics":
           hn =
             this.$route.params.collection === "folders"
               ? getFullComicName(this.item, this.zeroPad)
@@ -96,19 +96,19 @@ export default {
       return hn;
     },
     displayName() {
-      return this.item.group === "v"
+      return this.item.group === "volumes"
         ? formattedVolumeName(this.item.name, this.item.numberTo)
         : this.item.name;
     },
     fileName() {
       return !this.orderByFilename &&
-        (this.alwaysShowFilename || this.topGroup === "f")
+        (this.alwaysShowFilename || this.topGroup === "folders")
         ? this.item.fileName
         : "";
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "c" ? "Read" : "Browse to";
+      label += this.item.group === "comics" ? "Read" : "Browse to";
       label += " " + this.headerName;
       return label;
     },

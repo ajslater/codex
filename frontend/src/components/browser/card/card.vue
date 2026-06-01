@@ -117,7 +117,7 @@ export default {
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "c" ? "Read" : "Browse to";
+      label += this.item.group === "comics" ? "Read" : "Browse to";
       label += " " + this.item.name;
       return label;
     },
@@ -138,7 +138,7 @@ export default {
       };
     },
     toRoute() {
-      return this.item.group === "c"
+      return this.item.group === "comics"
         ? getReaderRoute(this.item, this.importMetadata)
         : this.browserRoute;
     },

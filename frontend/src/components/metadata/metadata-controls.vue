@@ -104,10 +104,10 @@ export default {
       } else if (md.fileName) {
         name = md.fileName;
       } else {
-        if (this.md.group === "f") {
+        if (this.md.group === "folders") {
           return [this.firstNameFromList(md.folderList)];
         }
-        if (this.md.group === "a") {
+        if (this.md.group === "arcs") {
           return [this.firstNameFromList(md.storyArcList)];
         }
         const names = [
@@ -132,7 +132,7 @@ export default {
       };
     },
     isReadButtonShown() {
-      return this.group === "c" && this.$route.name != "reader";
+      return this.group === "comics" && this.$route.name != "reader";
     },
     favoritePk() {
       /*

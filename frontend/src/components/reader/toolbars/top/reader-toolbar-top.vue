@@ -25,7 +25,7 @@
           <FavoriteToggle
             v-if="currentBookPk"
             class="readerFavoriteToggle"
-            group="c"
+            group="comics"
             :pk="currentBookPk"
           />
           <MetadataDialog
@@ -132,7 +132,7 @@ export default {
     },
     metadataBook() {
       const book = { ...this.currentBook };
-      book.group = "c";
+      book.group = "comics";
       book.childCount = 0;
       return book;
     },

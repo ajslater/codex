@@ -46,7 +46,7 @@ export default {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
     isOneComic() {
-      return this.item?.group === "c" && this.item?.ids?.length === 1;
+      return this.item?.group === "comics" && this.item?.ids?.length === 1;
     },
     downloadFn() {
       if (this.isOneComic) {

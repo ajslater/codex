@@ -27,12 +27,14 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
 const GROUP_ICON_MAP = Object.freeze({
-  f: mdiFolderOutline,
-  r: mdiFormatVerticalAlignTop,
-  p: mdiChessRook,
-  i: mdiFeather,
-  s: mdiBookshelf,
+  folders: mdiFolderOutline,
+  root: mdiFormatVerticalAlignTop,
+  publishers: mdiChessRook,
+  imprints: mdiFeather,
+  series: mdiBookshelf,
 });
+// Top-level (root) crumbs of the three browse modes: the group + no pks.
+const TOP_LEVEL_GROUPS = Object.freeze(new Set(["root", "folders", "arcs"]));
 
 export default {
   name: "BrowserBreadcrumbs",
@@ -52,7 +54,7 @@ export default {
           const group = crumb.group;
           const icon = this.getIcon(crumb.pks, text, group);
           let tooltipText;
-          if (crumb.group === "r") {
+          if (crumb.group === "root") {
             tooltipText = "Top";
           } else {
             tooltipText = crumb.pks == 0 ? "All " : "";
@@ -98,7 +100,7 @@ export default {
     },
     getIcon(pks, title, group) {
       let icon;
-      if ("rfa".includes(group) && pks === "0") {
+      if (TOP_LEVEL_GROUPS.has(group) && pks === "0") {
         icon = mdiFormatVerticalAlignTop;
       } else if (title) {
         icon = "";

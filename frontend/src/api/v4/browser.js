@@ -21,6 +21,7 @@ const GROUP_TO_COLLECTION = Object.freeze({
   f: "folders",
   a: "arcs",
   r: "publishers",
+  root: "publishers",
 });
 
 const _collection = (group) => GROUP_TO_COLLECTION[group] || group;

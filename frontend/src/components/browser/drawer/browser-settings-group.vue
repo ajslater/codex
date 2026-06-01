@@ -26,7 +26,12 @@
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
-const SHOW_SETTINGS_GROUPS = "rpisv";
+// Collections whose route shows the group-level toggles. Root browses as the
+// publishers collection, so "publishers" covers both root and publishers;
+// comics / folders / arcs routes hide the toggles.
+const SHOW_SETTINGS_GROUPS = Object.freeze(
+  new Set(["publishers", "imprints", "series", "volumes"]),
+);
 
 export default {
   name: "BrowserSettingsGroup",
@@ -41,7 +46,7 @@ export default {
       showSettings: (state) => state.settings?.show || {},
     }),
     showShowSettings() {
-      return SHOW_SETTINGS_GROUPS.includes(this.$route?.params?.group);
+      return SHOW_SETTINGS_GROUPS.has(this.$route?.params?.collection);
     },
   },
   methods: {

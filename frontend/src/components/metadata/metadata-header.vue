@@ -21,23 +21,23 @@
           id="series"
           :key="md.seriesList[0].ids"
           :value="md.seriesList[0]"
-          group="s"
-          :highlight="'s' === md.group"
+          group="series"
+          :highlight="'series' === md.group"
         />
         <MetadataText
           v-if="md.volumeList?.length === 1"
           id="volume"
           :key="md.volumeList[0].ids"
           :value="md.volumeList[0]"
-          group="v"
-          :highlight="'v' === md.group"
+          group="volumes"
+          :highlight="'volumes' === md.group"
         />
         <MetadataText :value="seriesVolumeCount" class="subdued" />
         <MetadataText
           id="issue"
           :value="formattedIssueNumber"
-          group="c"
-          :highlight="'c' === md.group"
+          group="comics"
+          :highlight="'comics' === md.group"
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
@@ -51,7 +51,7 @@
       class="groupTags"
       label="Series"
       :values="md.seriesList"
-      filter="s"
+      filter="series"
     />
     <div>
       <MetadataTags
@@ -60,7 +60,7 @@
         class="groupTags"
         label="Volumes"
         :values="md.volumeList"
-        filter="v"
+        filter="volumes"
       />
     </div>
     <div
@@ -71,16 +71,16 @@
       <MetadataText
         id="publisher"
         :key="md.publisherList[0].ids"
-        group="p"
-        :highlight="'p' === md.group"
+        group="publishers"
+        :highlight="'publishers' === md.group"
         :value="md.publisherList[0]"
       />
       <MetadataText
         v-if="md.imprintList?.length === 1"
         id="imprint"
         :key="md.imprintList[0].ids"
-        group="i"
-        :highlight="'i' === md.group"
+        group="imprints"
+        :highlight="'imprints' === md.group"
         :value="md.imprintList[0]"
       />
     </div>
@@ -90,7 +90,7 @@
       class="groupTags"
       label="Publishers"
       :values="md.publisherList"
-      filter="p"
+      filter="publishers"
     />
     <MetadataTags
       v-if="!multiSelect && md.imprintList?.length > 1"
@@ -98,7 +98,7 @@
       class="groupTags"
       label="Imprints"
       :values="md.imprintList"
-      filter="i"
+      filter="imprints"
     />
     <div
       v-if="pages || md.year || md.month || md.day"

@@ -27,7 +27,7 @@ import { mapActions, mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_SET = new Set(["p", "i", "s", "v"]);
+const GROUP_SET = new Set(["publishers", "imprints", "series", "volumes"]);
 
 export default {
   name: "MetadataTags",
@@ -107,14 +107,16 @@ export default {
       if (this.groupMode) {
         linkGroup = this.filter;
       } else {
-        linkGroup = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
+        linkGroup = ["folders", "series"].includes(this.topGroup)
+          ? this.topGroup
+          : "root";
       }
       return linkGroup;
     },
     linkPks() {
       const groupMode =
         this.groupMode ||
-        (this.linkGroup !== "a" && this.filter === "storyArcs");
+        (this.linkGroup !== "arcs" && this.filter === "storyArcs");
       return groupMode ? this.item.value.toString() : "0";
     },
     toRoute() {

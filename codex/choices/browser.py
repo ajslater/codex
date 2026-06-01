@@ -120,10 +120,11 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     }
 )
 
-# Char-keyed choices above serve the frontend's char *wire* dialect (the
-# serializer route/top-group fields + table_columns keys + the browser-choices
-# JSON export). The collection-keyed variants below are what the *model* fields
-# and the engine now store, post value-flip.
+# The char-keyed choices above are residual scaffolding: every live surface —
+# the model fields, the engine, the serializer route/top-group fields, AND the
+# frontend choices-JSON export — now speaks the collection vocabulary via the
+# ``*_COLLECTION_CHOICES`` variants below. The char maps survive only for
+# ``.char``-style legacy lookups pending the final scaffolding removal.
 BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 _GROUP_COLLECTION_NAMES = MappingProxyType(
     {
@@ -170,11 +171,11 @@ BROWSER_CHOICES = MappingProxyType(
         "EXTRA_SORT_UNSUPPORTED_KEYS": tuple(
             sorted(BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS)
         ),
-        "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
+        "TOP_GROUP": BROWSER_TOP_GROUP_COLLECTION_CHOICES,
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
-        "SETTINGS_GROUP": {**_GROUP_NAMES},
+        "SETTINGS_GROUP": {**_GROUP_COLLECTION_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
     }
 )
@@ -233,7 +234,9 @@ def admin_default_route_for(top_group: str) -> dict:
     return {"group": group, "pks": (), "page": 1}
 
 
-_DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
+_DEFAULT_SHOW = MappingProxyType(
+    {"imprints": False, "publishers": True, "series": True, "volumes": False}
+)
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
@@ -650,11 +653,11 @@ BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
 BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
     {
         # Sort: sort_name. → name first.
-        "p": ("cover", "name", "child_count"),
+        "publishers": ("cover", "name", "child_count"),
         # Sort: publisher_name, sort_name. → publisher_name, name.
-        "i": ("cover", "publisher_name", "name", "child_count"),
+        "imprints": ("cover", "publisher_name", "name", "child_count"),
         # Sort: publisher_name, imprint_name, sort_name.
-        "s": (
+        "series": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -664,7 +667,7 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         ),
         # Sort: publisher_name, imprint_name, series_name, sort_name
         # (Volume.sort_name expands to ``name, number_to``).
-        "v": (
+        "volumes": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -679,7 +682,7 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         # volume_number_to → issue_number → issue_suffix →
         # collection_title → sort_name). The visible column set
         # mirrors that ladder so the row order tracks the sort.
-        "c": (
+        "comics": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -692,9 +695,9 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
             "size",
         ),
         # Sort: sort_name. Folder rows show their own name first.
-        "f": ("cover", "name", "child_count"),
+        "folders": ("cover", "name", "child_count"),
         # Sort: sort_name. Story arc rows show their own name first.
-        "a": ("cover", "name", "publisher_name", "child_count"),
+        "arcs": ("cover", "name", "publisher_name", "child_count"),
     }
 )
 
@@ -708,12 +711,12 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_extra_keys": (),
         "search": "",
         "show": _DEFAULT_SHOW,
-        "top_group": "p",
+        "top_group": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
-        # Frontend export stays in the char wire dialect (the engine's
-        # collection ``DEFAULT_BROWSER_ROUTE`` is denormalized elsewhere).
-        "last_route": MappingProxyType({"group": "r", "pks": (0,), "page": 1}),
+        # Frontend export now speaks the collection vocabulary end to end —
+        # root group + no parent ids, no dummy 0 sentinel.
+        "last_route": MappingProxyType({"group": "root", "pks": (), "page": 1}),
         "view_mode": "cover",
         "table_columns": {},
         "table_cover_size": "sm",

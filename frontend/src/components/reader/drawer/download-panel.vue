@@ -55,7 +55,7 @@ export default {
     },
     downloadItem() {
       return {
-        group: "c",
+        group: "comics",
         ids: [this.pk],
         childCount: 1,
         name: this.filename,

@@ -2,7 +2,15 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/favorites";
 
-const FAVORITE_GROUP_CODES = Object.freeze(["p", "i", "s", "v", "f", "a", "c"]);
+const FAVORITE_GROUP_CODES = Object.freeze([
+  "publishers",
+  "imprints",
+  "series",
+  "volumes",
+  "folders",
+  "arcs",
+  "comics",
+]);
 
 function emptyFavoriteIds() {
   const ids = {};

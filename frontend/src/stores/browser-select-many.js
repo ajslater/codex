@@ -69,7 +69,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     selectedTotalChildCount(state) {
       let total = 0;
       for (const item of state.selectedItems.values()) {
-        total += item.childCount || (item.group === "c" ? 1 : 0);
+        total += item.childCount || (item.group === "comics" ? 1 : 0);
       }
       return total;
     },

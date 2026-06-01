@@ -36,15 +36,20 @@ _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
     }
 )
 
-# Map from group letter to the FK attribute chain for walking up the hierarchy.
-# Each entry is (parent_group_letter, attribute_on_instance).
-_GROUP_PARENT_CHAIN: MappingProxyType[str, tuple[tuple[str, str], ...]] = (
+# Map from group to the FK attribute chain for walking up the hierarchy.
+# Each entry is (parent_group, attribute_on_instance). Keyed by ``Group``
+# members so the lookup resolves against the collection-valued ``kwargs["group"]``.
+_GROUP_PARENT_CHAIN: MappingProxyType[Group, tuple[tuple[Group, str], ...]] = (
     MappingProxyType(
         {
-            "v": (("s", "series"), ("i", "imprint"), ("p", "publisher")),
-            "s": (("i", "imprint"), ("p", "publisher")),
-            "i": (("p", "publisher"),),
-            "p": (),
+            Group.VOLUME: (
+                (Group.SERIES, "series"),
+                (Group.IMPRINT, "imprint"),
+                (Group.PUBLISHER, "publisher"),
+            ),
+            Group.SERIES: ((Group.IMPRINT, "imprint"), (Group.PUBLISHER, "publisher")),
+            Group.IMPRINT: ((Group.PUBLISHER, "publisher"),),
+            Group.PUBLISHER: (),
         }
     )
 )
@@ -111,7 +116,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         page = self.kwargs["page"]
 
         if not gi:
-            return (Route("r", (), 1, ""),)
+            return (Route(Group.ROOT, (), 1, ""),)
 
         # Start with current crumb
         crumbs: list[Route] = [Route(group, pks, page, gi.name)]
@@ -128,7 +133,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 crumbs.append(Route(parent_group, (), 1, ""))
 
         # Always add root
-        crumbs.append(Route("r", (), 1, ""))
+        crumbs.append(Route(Group.ROOT, (), 1, ""))
         crumbs.reverse()
         return tuple(crumbs)
 

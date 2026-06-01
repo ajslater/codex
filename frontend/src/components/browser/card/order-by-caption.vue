@@ -51,8 +51,9 @@ export default {
        */
       if (HIDE_ORDER_BYS.has(this.orderBy)) return "";
       if (HIDE_ORDER_VALUES.has(ov)) return "";
-      if (this.orderBy === "filename" && this.item.group !== "c") return "";
-      if (this.orderBy === "story_arc_number" && this.item.group === "a") {
+      if (this.orderBy === "filename" && this.item.group !== "comics")
+        return "";
+      if (this.orderBy === "story_arc_number" && this.item.group === "arcs") {
         return "";
       }
       try {

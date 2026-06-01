@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, override
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from codex.group import group_value
 from codex.models.favorite import FAVORITE_GROUP_CODE_MODELS, Favorite
 from codex.urls.converters import COLLECTION_TO_GROUP
 from codex.views.auth import AuthFilterGenericAPIView
@@ -23,16 +24,20 @@ class FavoriteListView(_FavoriteAuthMixin):
     """GET: per-group ids of the requesting user's favorites."""
 
     def get(self, *_args, **_kwargs) -> Response:
-        """Return ``{group_code: [target_id, ...]}`` for the user."""
+        """Return ``{collection: [target_id, ...]}`` for the user."""
+        # The Favorite model still stores char group codes (migration
+        # deferred); the wire speaks the collection vocabulary, so translate
+        # the keys on the way out via ``group_value``.
         favorites_by_group: dict[str, list[int]] = {
-            code: [] for code in FAVORITE_GROUP_CODE_MODELS
+            group_value(code): [] for code in FAVORITE_GROUP_CODE_MODELS
         }
         rows = Favorite.objects.filter(user=self.request.user).values_list(
             "group", "target_id"
         )
         for group_code, target_id in rows:
-            if group_code in favorites_by_group:
-                favorites_by_group[group_code].append(target_id)
+            collection = group_value(group_code)
+            if collection in favorites_by_group:
+                favorites_by_group[collection].append(target_id)
         return Response(favorites_by_group)
 
 

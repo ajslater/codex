@@ -22,7 +22,7 @@ import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import vuetify from "@/plugins/vuetify";
 import { useMetadataStore } from "@/stores/metadata";
 
-const COMIC = Object.freeze({ group: "c", pk: 42, hasMetadata: false });
+const COMIC = Object.freeze({ group: "comics", pk: 42, hasMetadata: false });
 
 function mountActivator({ lazyImportMetadata = false, book = COMIC } = {}) {
   const pinia = createTestingPinia({
@@ -47,7 +47,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
     await wrapper.find("button").trigger("mouseenter");
 
     expect(metadataStore.lazyImport).toHaveBeenCalledWith({
-      group: "c",
+      group: "comics",
       ids: [42],
     });
 
@@ -68,7 +68,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("does not fire for comics that already have metadata", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "c", pk: 7, hasMetadata: true },
+      book: { group: "comics", pk: 7, hasMetadata: true },
     });
 
     await wrapper.find("button").trigger("mouseenter");
@@ -79,7 +79,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("does not fire for non-comic groups", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "s", pk: 7, hasMetadata: false },
+      book: { group: "series", pk: 7, hasMetadata: false },
     });
 
     await wrapper.find("button").trigger("mouseenter");
@@ -90,7 +90,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("prefers book.ids over book.pk and only imports once", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "c", pk: 42, ids: [1, 2, 3], hasMetadata: false },
+      book: { group: "comics", pk: 42, ids: [1, 2, 3], hasMetadata: false },
     });
 
     const button = wrapper.find("button");
@@ -100,7 +100,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
 
     expect(metadataStore.lazyImport).toHaveBeenCalledTimes(1);
     expect(metadataStore.lazyImport).toHaveBeenCalledWith({
-      group: "c",
+      group: "comics",
       ids: [1, 2, 3],
     });
   });

@@ -24,7 +24,7 @@ import { mapActions, mapState } from "pinia";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
-const DIVIDED_VALUES = new Set(["a", "f"]);
+const DIVIDED_VALUES = new Set(["arcs", "folders"]);
 
 export default {
   name: "BrowserTopGroupSelect",

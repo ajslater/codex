@@ -57,7 +57,7 @@ export default {
     ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserStore, ["groupNames"]),
     affectedCount() {
-      if (this.item.group === "c") {
+      if (this.item.group === "comics") {
         return this.item.ids?.length || 0;
       }
       return this.item.childCount || 0;
@@ -74,7 +74,7 @@ export default {
     },
     actionText() {
       const words = ["Force Update Tags for"];
-      if (this.item.group !== "c") {
+      if (this.item.group !== "comics") {
         words.push("Entire");
       }
       const groupName = this.groupNames[this.item.group];

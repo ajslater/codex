@@ -172,11 +172,11 @@ export default {
     },
     favoriteGroup() {
       /*
-       * Group rows carry an explicit ``group`` letter; comic rows
+       * Group rows carry an explicit ``group`` collection; comic rows
        * omit it (the table view's lone comic-only top-group) and
-       * default to ``c``.
+       * default to ``comics``.
        */
-      return this.row?.group ?? "c";
+      return this.row?.group ?? "comics";
     },
     favoritePk() {
       /*

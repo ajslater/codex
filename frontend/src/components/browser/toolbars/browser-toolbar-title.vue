@@ -59,7 +59,7 @@ export default {
         const { groupName, groupNumberTo, groupCount } = this.browserTitle;
         const group = this.routeGroup;
         const formattedGroupName =
-          group === "v"
+          group === "volumes"
             ? formattedVolumeName(groupName, groupNumberTo)
             : groupName;
         if (formattedGroupName) {
@@ -76,7 +76,9 @@ export default {
       return title;
     },
     subtitle() {
-      return this.routeGroup === "f" ? "" : this.groupNames[this.modelGroup];
+      return this.routeGroup === "folders"
+        ? ""
+        : this.groupNames[this.modelGroup];
     },
   },
 };
