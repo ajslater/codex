@@ -63,8 +63,22 @@
    inherits the browse machinery) while `position` stays `group` (progression
    reads it directly, never hits the browse machinery).
 
-**REMAINING (cosmetic only — wire + DB + code vocabulary already `collection`):**
-2. **The `group` browse-row annotation** (`card.py` `_annotate_group`) + its
+1b. ✅ **DONE** (commit `5675bf58`): the `group` browse-row annotation →
+   `nav_collection` (couldn't be `collection` — `WatchedPath.collection`
+   collision; see below).
+1c. ✅ **DONE** (commit `817f86da`): the **route INPUT wire** `group` →
+   `collection` (`pks` kept). `SimpleRouteSerializer` declared field (drives
+   `mtime.groups[]` + `cover.parent_route`), the whole `last_route` family
+   (`BrowserSettingsLastRouteSerializer`, settings dict + save mapping,
+   `DEFAULT_BROWSER_ROUTE`, `admin_default_route_for`, `params._update_last_route`),
+   the `Route` dataclass + browser redirect masks, and the FE producers (mtime
+   items + cover `parentRoute`). `opds_feed_reverse` simplified back to a single
+   `collection` dialect. The whole route contract now speaks `collection`.
+
+**REMAINING (purely cosmetic FE-internal naming — no wire/behavior change; nav
+is manual-QA'd, so vitest doesn't fully guard it):**
+2. **The `group` browse-row annotation** (`card.py` `_annotate_group`) — ✅ DONE
+   as `nav_collection` (1b). Original note retained for the collision rationale:
    `OPDS1EntryObject.group` mirror + the ~14 `self.obj.group` readers in
    `opds/v1/entry/*`. ⚠️ **BLOCKED from becoming `collection`:** `WatchedPath`
    (Folder/CustomCover base) already declares a real `collection` CharField
@@ -74,10 +88,15 @@
    `source="group"` / `getattr(instance,"group")`). To unify the name it would
    have to become a non-colliding third name (e.g. `nav_collection`), not
    `collection`. Cosmetic; no behavior or wire change either way.
-3. Cluster B above (`Route`/redirect/`last_route`/RouteSerializer INPUT) +
-   `routeForGroup`/`groupForRoute`, `liveBrowseParams().group`, the internal
-   FE `{group, pks}` engine shape, mtime `groups` input key. All require the
-   coordinated FE wire flip; the engine itself is now `collection`.
+3. **FE-internal engine shape** (~70 sites, cosmetic only): `routeForGroup`/
+   `groupForRoute` → `*Collection`, `liveBrowseParams().group` → `.collection`,
+   the internal `{group, pks}` route shape in `stores/browser.js`/`route.js`,
+   and the `api/v4/browser.js` helper `group` param (the collection URL-segment
+   param name, ~45 refs) + its call sites. Plus two small wire fields that also
+   carry collection values but are *separate surfaces*: `BrowserSettingsSerializer.group`
+   (settings GET query param, `views/browser/settings.py:138`) and the mtime
+   `groups` array field name. All no-behavior-change renames; the meaningful
+   vocabulary (engine, DB, route wire) is already `collection`.
 
 ## Goal
 
