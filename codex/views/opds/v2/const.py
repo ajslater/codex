@@ -128,7 +128,7 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.FEATURED,
                 "Keep Reading",
-                "r",
+                "root",
                 MappingProxyType(
                     {
                         "topGroup": "comics",
@@ -142,7 +142,7 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Latest Unread",
-                "r",
+                "root",
                 MappingProxyType(
                     {
                         "topGroup": "comics",
@@ -156,7 +156,7 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Oldest Unread",
-                "r",
+                "root",
                 MappingProxyType(
                     {
                         "topGroup": "comics",
@@ -182,7 +182,7 @@ FAVORITES_PREVIEW_GROUP = LinkGroup(
         Link(
             Rel.FEATURED,
             "Favorites",
-            "r",
+            "root",
             MappingProxyType(
                 {
                     "topGroup": "comics",

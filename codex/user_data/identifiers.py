@@ -79,21 +79,21 @@ def tag_model_for_filter(column: str) -> type[Model] | None:
     return apps.get_model(app_label, model_name)
 
 
-def encode_identifier(group_char: str, parts: list[Any]) -> str:
+def encode_identifier(group: str, parts: list[Any]) -> str:
     """JSON-encode an identifier tuple for use as a sidecar primary-key column."""
     # ``separators`` produces compact output so equal tuples encode identically.
-    return json.dumps([group_char, *parts], separators=(",", ":"))
+    return json.dumps([group, *parts], separators=(",", ":"))
 
 
 def decode_identifier(blob: str) -> tuple[str, list[Any]]:
-    """Reverse of :func:`encode_identifier`. Returns ``(group_char, parts)``."""
+    """Reverse of :func:`encode_identifier`. Returns ``(group, parts)``."""
     parsed = json.loads(blob)
     if not isinstance(parsed, list) or not parsed:
         msg = f"malformed identifier: {blob!r}"
         raise ValueError(msg)
-    group_char = parsed[0]
+    group = parsed[0]
     parts = parsed[1:]
-    return group_char, parts
+    return group, parts
 
 
 # Per-group part extractors. Keys are the collection values from

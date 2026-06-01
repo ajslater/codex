@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from codex.group import Group, group_value
+from codex.group import Group
 from codex.user_data.store import SidecarStore, get_store
 from codex.xz import read_text_maybe_xz
 
@@ -453,9 +453,7 @@ def _restore_favorites(
         if user is None:
             report.note_skipped("favorites", f"missing user {row['username']!r}")
             continue
-        # ``group_value`` tolerates legacy char-encoded sidecars (idempotent
-        # for collection values written by current dumps).
-        group = group_value(row["group_char"])
+        group = row["collection"]
         target_model = code_to_model.get(group)
         if target_model is None:
             report.note_skipped("favorites", f"unknown favorite group {group!r}")
@@ -663,9 +661,7 @@ def _restore_one_last_route(row, browser, report: RestoreReport) -> None:
     """Restore a single ``settings_last_route`` row."""
     from codex.models.settings import SettingsBrowserLastRoute
 
-    # ``group_value`` tolerates legacy char-encoded sidecars; the stored
-    # ``SettingsBrowserLastRoute.group`` is the collection vocabulary.
-    group = group_value(row["group_char"])
+    group = row["collection"]
     decoded = json.loads(row["pks_json"] or "[]")
     pks = _resolve_last_route_pks(group, decoded, report)
     SettingsBrowserLastRoute.objects.update_or_create(

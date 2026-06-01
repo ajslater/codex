@@ -7,16 +7,15 @@ from typing import override
 from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
-from codex.group import Group, group_value
+from codex.group import Group
 from codex.serializers.fields.group import BrowserRouteGroupField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
 
 def _collection_for_group(group) -> str:
-    """Map a group value (collection or char) to its v4 collection (root → publishers)."""
-    value = group_value(group)
-    return Group.PUBLISHER.collection if value == Group.ROOT else value
+    """Map a group value to its v4 collection (root → publishers)."""
+    return Group.PUBLISHER.collection if group == Group.ROOT else group
 
 
 def _parent_ids_for(pks) -> list[int]:

@@ -3,9 +3,7 @@
 from typing import Final
 
 from codex.group import (
-    GROUP_BY_CHAR,
     GROUP_BY_COLLECTION,
-    GROUP_CHARS,
     GROUP_COLLECTIONS,
     GROUP_LABELS,
     GROUP_SINGULAR_NAMES,
@@ -60,16 +58,8 @@ def test_collection_round_trip():
     assert {g.collection for g in GROUP_COLLECTIONS} == _COLLECTIONS
 
 
-def test_chars_are_unique_and_complete():
-    """Every member has a char; chars are the historical single letters."""
-    assert set(GROUP_CHARS) == set(Group)
-    assert set(GROUP_BY_CHAR) == set("rpisvcfa")
-    assert len(GROUP_BY_CHAR) == len(Group)
-
-
 def test_root_excluded_from_collection_only_maps():
-    """ROOT is synthetic: it has a char but no collection, cover, or label."""
-    assert Group.ROOT in GROUP_CHARS
+    """ROOT is synthetic: no collection, cover, or label of its own."""
     for only_real in (
         GROUP_COLLECTIONS,
         GROUP_BY_COLLECTION,
@@ -83,8 +73,7 @@ def test_root_excluded_from_collection_only_maps():
 
 
 def test_known_representations():
-    """Pin the legacy-sensitive representations that other layers rely on."""
-    assert GROUP_CHARS[Group.COMIC] == "c"
+    """Pin the representations that other layers rely on."""
     assert Group.COMIC.collection == "comics"
     assert Group.PUBLISHER.collection == "publishers"
     # COMIC's display label is the reader-convention "Issues", not "Comics".

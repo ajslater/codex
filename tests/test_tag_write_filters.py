@@ -91,7 +91,7 @@ class TagWriteFilterTestCase(TestCase):
     def _write_tags(self) -> frozenset[int]:
         """POST a publisher tag write and return the enqueued task's comic_pks."""
         payload = {
-            "group": "p",
+            "group": "publishers",
             "pks": [str(self.publisher_pk)],
             "patch": json.dumps({"publisher": "Image"}),
             "mode": "update",

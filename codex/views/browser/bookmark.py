@@ -78,7 +78,7 @@ class ComicBookmarkView(BookmarkView):
     """
     ``PATCH /api/v4/comics/{id}/bookmark`` — single-comic bookmark.
 
-    Synthesizes ``group="c"`` and ``pks=(id,)`` so the
+    Synthesizes ``group=Group.COMIC`` and ``pks=(id,)`` so the
     :class:`BookmarkView` body can run untouched. Body is
     ``{page, finished}``.
     """

@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from codex.group import Group, group_value
+from codex.group import Group
 from codex.user_data.identifiers import (
     FILTER_TAG_COLUMNS,
     encode_identifier,
@@ -145,7 +145,7 @@ def serialize_favorite(
     favorite,
 ) -> tuple[str, tuple[str, ...], dict[str, Any]] | None:
     """
-    Favorite row keyed by ``(username, group_char, identifier_json)``.
+    Favorite row keyed by ``(username, collection, identifier_json)``.
 
     The polymorphic ``(group, target_id)`` pair is resolved into a stable
     name-chain identifier via :func:`identifier_for_browse_group`.
@@ -167,10 +167,10 @@ def serialize_favorite(
     parts = identifier_for_browse_group(favorite.group, instance)
     return (
         "favorites",
-        ("username", "group_char", "identifier_json"),
+        ("username", "collection", "identifier_json"),
         {
             "username": favorite.user.username,
-            "group_char": favorite.group,
+            "collection": favorite.group,
             "identifier_json": encode_identifier(favorite.group, parts),
             "updated_at": _datetime_str(getattr(favorite, "updated_at", None)),
         },
@@ -288,7 +288,7 @@ def serialize_settings_last_route(
             "username": browser.user.username,
             "client": browser.client,
             "name": browser.name,
-            "group_char": last_route.group,
+            "collection": last_route.group,
             "pks_json": json.dumps(pks_resolved, separators=(",", ":")),
             "page": last_route.page,
         },
@@ -299,9 +299,6 @@ def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
     """Resolve a list of browse-group PKs to identifier parts; missing rows drop."""
     if not pks:
         return []
-    # ``group`` is the collection vocabulary; ``group_value`` keeps this
-    # tolerant of any stale char value.
-    group = group_value(group)
     if group == Group.ROOT:
         # Root pseudo-group — no PKs to resolve.
         return []

@@ -26,10 +26,10 @@ urlpatterns = [
     # return the pre-PUT position (multi-device sync would also see
     # stale data). cache_page only caches GETs, but the freshness
     # cost outweighs the ~9-query saving. Comic-only: the ``group``
-    # default lets the existing ``{group: "c", pk}`` reverse match.
+    # default lets the existing ``{group: "comics", pk}`` reverse match.
     path(
-        # Comic-only progression endpoint; ``group`` stays the ``c`` char
-        # the progression-link reverse passes (it never hits the browse engine).
+        # Comic-only progression endpoint; ``group`` defaults to the
+        # comics collection (it never hits the browse engine).
         "comics/<int:pk>/position",
         OPDS2ProgressionView.as_view(),
         {"group": "comics"},

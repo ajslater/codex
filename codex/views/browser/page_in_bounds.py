@@ -5,6 +5,7 @@ from typing import Any
 from loguru import logger
 
 from codex.views.browser.annotate.cover import BrowserAnnotateCoverView
+from codex.views.const import FOLDER_GROUP, ROOT_GROUP, STORY_ARC_GROUP
 
 
 class BrowserPageInBoundsView(BrowserAnnotateCoverView):
@@ -23,8 +24,8 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def _get_up_page_redirect(self) -> tuple[dict, None]:
         """Get a parent route to redirect to when page is out of bounds."""
         group = self.kwargs.get("group")
-        if group not in ("f", "a"):
-            group = "r"
+        if group not in (FOLDER_GROUP, STORY_ARC_GROUP):
+            group = ROOT_GROUP
         route_mask = {"group": group, "pks": (), "page": 1}
         logger.debug("Redirect up a level.")
         return route_mask, None

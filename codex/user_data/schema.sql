@@ -66,14 +66,14 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     PRIMARY KEY (username, comic_path)
 );
 
--- target is the polymorphic (group_char, identifier) pair.
+-- target is the polymorphic (collection, identifier) pair.
 -- identifier_json is a JSON-encoded name-chain tuple (see identifiers.py).
 CREATE TABLE IF NOT EXISTS favorites (
     username TEXT NOT NULL,
-    group_char TEXT NOT NULL,
+    collection TEXT NOT NULL,
     identifier_json TEXT NOT NULL,
     updated_at TEXT,
-    PRIMARY KEY (username, group_char, identifier_json)
+    PRIMARY KEY (username, collection, identifier_json)
 );
 
 -- Per-user, per-client browser settings rows.
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS settings_last_route (
     username TEXT NOT NULL,
     client TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
-    group_char TEXT NOT NULL DEFAULT 'r',
+    collection TEXT NOT NULL DEFAULT 'root',
     pks_json TEXT NOT NULL DEFAULT '[]',
     page INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (username, client, name)

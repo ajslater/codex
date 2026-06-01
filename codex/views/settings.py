@@ -14,7 +14,7 @@ from codex.choices.browser import (
     BROWSER_TOP_GROUP_COLLECTION_CHOICES,
     admin_default_route_for,
 )
-from codex.group import Group, group_value
+from codex.group import Group
 from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
@@ -153,10 +153,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             )
         except AdminFlag.DoesNotExist:
             return _FALLBACK_DEFAULT_TOP_GROUP
-        # ``group_value`` tolerates a legacy char value still on disk; the
-        # flag and the engine both speak the collection vocabulary now.
-        if flag.on and group_value(flag.value) in BROWSER_TOP_GROUP_COLLECTION_CHOICES:
-            return group_value(flag.value)
+        if flag.on and flag.value in BROWSER_TOP_GROUP_COLLECTION_CHOICES:
+            return flag.value
         return _FALLBACK_DEFAULT_TOP_GROUP
 
     @classmethod

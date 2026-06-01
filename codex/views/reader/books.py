@@ -106,7 +106,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
     ) -> tuple[dict, tuple]:
         """Get ordering for query."""
         sort_name_annotations = {}
-        if self._selected_arc_group in "sv":
+        if self._selected_arc_group in {Group.SERIES, Group.VOLUME}:
             parent_group = (
                 Group.IMPRINT
                 if self._selected_arc_group == Group.SERIES

@@ -10,7 +10,6 @@ from urllib.parse import quote_plus
 from caseconverter import snakecase
 from django.db.models import CharField, F, Value
 
-from codex.group import group_value
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
 from codex.models.groups import BrowserGroupModel, Folder
@@ -29,7 +28,7 @@ from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
 _PUBLICATION_PREVIEW_LIMIT: Final = 5
 _PREVIEW_SHOW_PARAMS: Final[MappingProxyType[str, bool]] = MappingProxyType(
-    {"p": True, "s": True}
+    {"publishers": True, "series": True}
 )
 # Direct ``Comic`` attribute → metadata key mapping. Mirrors the
 # manifest-side map in ``codex/views/opds/v2/manifest.py``; kept
@@ -46,8 +45,8 @@ _PUBLICATION_DIRECT_FIELDS: Final[MappingProxyType[str, str]] = MappingProxyType
 # so OPDS2 clients can navigate to the publisher/imprint feed.
 _CONTRIBUTOR_GROUP_MAP: Final[MappingProxyType[str, str]] = MappingProxyType(
     {
-        "publisher": "p",
-        "imprint": "i",
+        "publisher": "publishers",
+        "imprint": "imprints",
     }
 )
 # Role-name → metadata-key partition for OPDS2 contributor fields.
@@ -534,17 +533,12 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
         feed_view._admin_flags = self.admin_flags  # noqa: SLF001
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
-        # The preview link_specs carry the char wire dialect; the engine
-        # this feed view drives speaks collection values.
-        group = group_value(link_spec.group) if link_spec.group else link_spec.group
-        feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
+        feed_view.kwargs = {"group": link_spec.group, "pks": [0], "page": 1}
         params = self.get_browser_default_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 snake_key = snakecase(key)
-                params[snake_key] = (
-                    group_value(str(value)) if snake_key == "top_group" else value
-                )
+                params[snake_key] = value
         params["show"].update(_PREVIEW_SHOW_PARAMS)
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 
