@@ -20,21 +20,16 @@ import {
   mdiFormatVerticalAlignTop,
 } from "@mdi/js";
 import { mapState } from "pinia";
-import { toRaw } from "vue";
 
-import { routeForGroup } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
 const GROUP_ICON_MAP = Object.freeze({
   folders: mdiFolderOutline,
-  root: mdiFormatVerticalAlignTop,
   publishers: mdiChessRook,
   imprints: mdiFeather,
   series: mdiBookshelf,
 });
-// Top-level (root) crumbs of the three browse modes: the group + no pks.
-const TOP_LEVEL_GROUPS = Object.freeze(new Set(["root", "folders", "arcs"]));
 
 export default {
   name: "BrowserBreadcrumbs",
@@ -51,19 +46,22 @@ export default {
         for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
           const text = crumb.name || "";
-          const group = crumb.group;
-          const icon = this.getIcon(crumb.pks, text, group);
+          const collection = crumb.collection;
+          // The root crumb is the unique top-level one (no parent ids); it
+          // resolves to the publishers collection.
+          const isTop = !(crumb.parentIds?.length > 0);
+          const icon = this.getIcon(isTop, text, collection);
           let tooltipText;
-          if (crumb.group === "root") {
+          if (collection === "publishers" && isTop) {
             tooltipText = "Top";
           } else {
-            tooltipText = crumb.pks == 0 ? "All " : "";
-            tooltipText += Reflect.get(this.groupNames, group);
+            tooltipText = isTop ? "All " : "";
+            tooltipText += Reflect.get(this.groupNames, collection);
           }
           const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
           vueCrumbs.push(displayCrumb);
-          parentPks = crumb.pks;
+          parentPks = crumb.parentIds?.length ? crumb.parentIds.join(",") : "";
         }
         return vueCrumbs;
       },
@@ -72,25 +70,17 @@ export default {
   },
   methods: {
     getTo(crumb, parentPks) {
-      /*
-       * Destructure rather than ``structuredClone`` — crumbs come from
-       * the reactive browser store and the inner ``pks`` array is a Vue
-       * proxy that ``structuredClone`` can refuse to clone.
-       */
-      const { name: _name, ...params } = toRaw(crumb);
-      const { collection, parentIds } = routeForGroup({
-        group: params.group,
-        pks: params.pks,
-      });
+      // Crumbs already speak the v4 {collection, parentIds} dialect.
+      const parentIds = crumb.parentIds || [];
       const to = {
         name: "browser",
         params: parentIds.length
-          ? { collection, parentIds: parentIds.join(",") }
-          : { collection },
+          ? { collection: crumb.collection, parentIds: parentIds.join(",") }
+          : { collection: crumb.collection },
       };
       const query = { ts: this.timestamp };
-      if (params.page && Number(params.page) !== 1) {
-        query.page = Number(params.page);
+      if (crumb.page && Number(crumb.page) !== 1) {
+        query.page = Number(crumb.page);
       }
       to.query = query;
       if (parentPks) {
@@ -98,14 +88,14 @@ export default {
       }
       return to;
     },
-    getIcon(pks, title, group) {
+    getIcon(isTop, title, collection) {
       let icon;
-      if (TOP_LEVEL_GROUPS.has(group) && pks === "0") {
+      if (isTop) {
         icon = mdiFormatVerticalAlignTop;
       } else if (title) {
         icon = "";
       } else {
-        icon = Reflect.get(GROUP_ICON_MAP, group);
+        icon = Reflect.get(GROUP_ICON_MAP, collection);
       }
       return icon;
     },

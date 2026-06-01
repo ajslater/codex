@@ -210,7 +210,7 @@ export const useReaderStore = defineStore("reader", {
         const breadcrumbs = useBrowserStore()?.settings?.breadcrumbs;
         // Browser breadcrumbs speak the collection vocabulary; the close
         // target is the deepest non-comic crumb (its container listing).
-        route.params = breadcrumbs?.findLast((b) => b.group !== "comics");
+        route.params = breadcrumbs?.findLast((b) => b.collection !== "comics");
       }
       if (route.params) {
         const cardPk = state.books?.current?.pk;

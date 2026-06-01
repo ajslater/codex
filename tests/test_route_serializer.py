@@ -1,4 +1,4 @@
-"""Tests for the dual-dialect route serializer output."""
+"""Tests for the collapsed, collection-only route serializer."""
 
 from typing import Final
 
@@ -6,24 +6,33 @@ from codex.serializers.route import RouteSerializer
 from codex.views.util import Route
 
 _PAGE: Final = 2
+_PARENT_IDS: Final = [5, 7]
 
 
-def test_emits_legacy_and_collection_dialects():
-    """A parented route serializes with both group/pks and collection/parentIds."""
-    data = RouteSerializer(Route("s", (5, 7), _PAGE, "X")).data
-    # legacy dialect, unchanged
-    assert data["group"] == "s"
-    assert data["pks"] == "5,7"
-    assert data["page"] == _PAGE
-    # v4 dialect, additive (snake_case here; camelized at the renderer)
+def test_emits_collection_dialect_only():
+    """A parented route serializes to collection/parentIds — no legacy group/pks."""
+    data = RouteSerializer(Route("series", (5, 7), _PAGE, "X")).data
     assert data["collection"] == "series"
-    assert data["parent_ids"] == [5, 7]
+    assert data["parent_ids"] == _PARENT_IDS
+    assert data["page"] == _PAGE
+    assert data["name"] == "X"
+    # The redundant legacy dialect is gone.
+    assert "group" not in data
+    assert "pks" not in data
 
 
 def test_root_maps_to_publishers_with_no_parent_ids():
     """The synthetic root group serializes to the publishers collection."""
-    data = RouteSerializer(Route("r", (), 1, "")).data
-    assert data["group"] == "r"
-    assert data["pks"] == "0"
+    data = RouteSerializer(Route("root", (), 1, "")).data
     assert data["collection"] == "publishers"
     assert data["parent_ids"] == []
+    assert "group" not in data
+    assert "pks" not in data
+
+
+def test_accepts_engine_group_pks_input():
+    """Input still speaks the engine group/pks dialect (collection-valued)."""
+    serializer = RouteSerializer(data={"group": "series", "pks": "5,7", "page": _PAGE})
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["group"] == "series"
+    assert serializer.validated_data["pks"] == (5, 7)

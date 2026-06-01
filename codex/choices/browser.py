@@ -714,9 +714,11 @@ BROWSER_DEFAULTS = MappingProxyType(
         "top_group": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
-        # Frontend export now speaks the collection vocabulary end to end —
-        # root group + no parent ids, no dummy 0 sentinel.
-        "last_route": MappingProxyType({"group": "root", "pks": (), "page": 1}),
+        # Frontend export now speaks the v4 route dialect end to end —
+        # the publishers collection (root resolves there) + no parent ids.
+        "last_route": MappingProxyType(
+            {"collection": "publishers", "parent_ids": (), "page": 1}
+        ),
         "view_mode": "cover",
         "table_columns": {},
         "table_cover_size": "sm",

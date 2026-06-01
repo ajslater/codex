@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import { lastRoute } from "@/choices/browser-defaults.json";
-import { routeForGroup } from "@/route";
+import { normalizeParentIds } from "@/route";
 const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
@@ -22,16 +22,15 @@ const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
 const ResetPasswordConfirm = () =>
   import("@/components/auth/reset-password-confirm.vue");
 
+// Both CODEX.LAST_ROUTE (server-injected) and the browser-defaults fallback
+// speak the v4 {collection, parentIds} route dialect now.
 const _lr = globalThis.CODEX.LAST_ROUTE || lastRoute;
-const { collection: _lrCollection, parentIds: _lrParentIds } = routeForGroup({
-  group: _lr.group,
-  pks: _lr.pks,
-});
+const _lrParentIds = normalizeParentIds(_lr.parentIds);
 const LAST_ROUTE = {
   name: "browser",
   params: _lrParentIds.length
-    ? { collection: _lrCollection, parentIds: _lrParentIds.join(",") }
-    : { collection: _lrCollection },
+    ? { collection: _lr.collection, parentIds: _lrParentIds.join(",") }
+    : { collection: _lr.collection },
   query: _lr.page && Number(_lr.page) !== 1 ? { page: Number(_lr.page) } : {},
 };
 

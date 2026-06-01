@@ -1,5 +1,6 @@
 """Vue Route Serializer."""
 
+from collections.abc import Iterable
 from dataclasses import asdict
 from typing import override
 
@@ -18,37 +19,42 @@ def _collection_for_group(group) -> str:
     return Group.PUBLISHER.collection if value == Group.ROOT else value
 
 
-def _parent_ids_for(pks: str) -> list[int]:
-    """Parse the legacy comma ``pks`` string into a v4 parent-id list (drops 0)."""
-    if not pks or pks == "0":
+def _parent_ids_for(pks) -> list[int]:
+    """Normalize a ``pks`` tuple/list (or legacy comma string) to a v4 parent-id list (drops 0)."""
+    if not pks:
         return []
-    return [int(pk) for pk in pks.split(",") if pk not in {"", "0"}]
+    if isinstance(pks, str):
+        pks = pks.split(",")
+    if isinstance(pks, Iterable):
+        return sorted({int(pk) for pk in pks if str(pk) not in {"", "0"}})
+    return []
 
 
 class SimpleRouteSerializer(Serializer):
-    """A an abbreviated vue route for the browser."""
+    """
+    An abbreviated vue route for the browser.
+
+    Input accepts the engine ``group``/``pks`` dialect (collection-valued);
+    output emits only the v4 ``collection``/``parentIds`` dialect.
+    """
 
     group = BrowserRouteGroupField()
     pks = CharField()
 
     @override
     def to_representation(self, instance) -> dict:
-        """
-        Emit both dialects during the migration.
-
-        The legacy ``group``/``pks`` keys are kept for the current
-        frontend; ``collection``/``parentIds`` are added for the v4
-        frontend. Sequences are still accepted for ``pks``.
-        """
+        """Emit the v4 ``collection``/``parent_ids`` dialect (+ page/name)."""
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
-        pks = instance["pks"]
-        if not pks:
-            instance["pks"] = "0"
-        elif not isinstance(pks, str):
-            instance["pks"] = ",".join(str(pk) for pk in sorted(pks))
-        data = super().to_representation(instance)
-        data["collection"] = _collection_for_group(instance.get("group"))
-        data["parent_ids"] = _parent_ids_for(instance["pks"])
+        data = {
+            "collection": _collection_for_group(instance.get("group")),
+            "parent_ids": _parent_ids_for(instance.get("pks")),
+        }
+        # ``page``/``name`` only exist on the full ``RouteSerializer``; emit
+        # them through their declared fields so sanitization still applies.
+        if (page_field := self.fields.get("page")) is not None:
+            data["page"] = page_field.to_representation(instance.get("page", 1))
+        if (name_field := self.fields.get("name")) is not None:
+            data["name"] = name_field.to_representation(instance.get("name") or "")
         return data
 
     @override

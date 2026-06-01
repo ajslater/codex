@@ -105,8 +105,9 @@ class BreadcrumbsTestCase(TestCase):
         assert len(crumbs) == 1
         assert crumbs[0]["collection"] == "publishers"
         assert crumbs[0]["parentIds"] == []
-        # The legacy wire field is collection-valued now, not char "r".
-        assert crumbs[0]["group"] == "root"
+        # The redundant legacy group/pks dialect is gone.
+        assert "group" not in crumbs[0]
+        assert "pks" not in crumbs[0]
 
     def test_nested_volume_walks_the_full_parent_chain(self) -> None:
         """A volume's breadcrumbs include every ancestor, not just root+self."""
@@ -123,11 +124,5 @@ class BreadcrumbsTestCase(TestCase):
             ("series", [self.series.pk]),
             ("volumes", [self.volume.pk]),
         ]
-        # The legacy ``group`` field is collection-valued across every crumb.
-        assert [c["group"] for c in crumbs] == [
-            "root",
-            "publishers",
-            "imprints",
-            "series",
-            "volumes",
-        ]
+        # The redundant legacy group/pks dialect is gone from every crumb.
+        assert all("group" not in c and "pks" not in c for c in crumbs)

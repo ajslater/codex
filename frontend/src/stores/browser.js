@@ -16,7 +16,7 @@ import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-colum
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
-import { groupForRoute, routeForGroup } from "@/route";
+import { groupForRoute, normalizeParentIds, routeForGroup } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
 // Browse-group hierarchy, root → deepest. The store speaks the collection
@@ -156,13 +156,21 @@ const liveBrowseParams = () => {
  */
 const toBrowseRoute = (route) => {
   const params = route?.params || {};
+  // Accept either the v4 {collection, parentIds} dialect (backend route
+  // objects: breadcrumbs, last_route, redirect.route) or the internal
+  // {group, pks} engine shape (client-built redirects, liveBrowseParams).
+  // Normalize both into a pushable route (parentIds joined, page → query).
+  let collection;
+  let parentIds;
   if (params.collection !== undefined && params.group === undefined) {
-    return route;
+    collection = params.collection;
+    parentIds = normalizeParentIds(params.parentIds);
+  } else {
+    ({ collection, parentIds } = routeForGroup({
+      group: params.group,
+      pks: params.pks,
+    }));
   }
-  const { collection, parentIds } = routeForGroup({
-    group: params.group,
-    pks: params.pks,
-  });
   const out = { name: route?.name || "browser", params: { collection } };
   if (parentIds.length) {
     out.params.parentIds = parentIds.join(",");
