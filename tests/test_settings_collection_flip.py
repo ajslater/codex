@@ -100,6 +100,6 @@ class SettingsCollectionFlipTestCase(TestCase):
         last_route = row.last_route  # ty: ignore[unresolved-attribute]
         # Model defaults are now collection values.
         assert row.top_group == "publishers"
-        assert last_route.group == "root"
+        assert last_route.collection == "root"
         # The dummy 0 root sentinel is gone from stored pks.
         assert 0 not in (last_route.pks or [])

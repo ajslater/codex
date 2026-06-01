@@ -280,7 +280,7 @@ def serialize_settings_last_route(
     browser = last_route.browser
     if browser.user_id is None:
         return None
-    pks_resolved = _resolve_last_route_pks(last_route.group, last_route.pks)
+    pks_resolved = _resolve_last_route_pks(last_route.collection, last_route.pks)
     return (
         "settings_last_route",
         ("username", "client", "name"),
@@ -288,7 +288,7 @@ def serialize_settings_last_route(
             "username": browser.user.username,
             "client": browser.client,
             "name": browser.name,
-            "collection": last_route.group,
+            "collection": last_route.collection,
             "pks_json": json.dumps(pks_resolved, separators=(",", ":")),
             "page": last_route.page,
         },

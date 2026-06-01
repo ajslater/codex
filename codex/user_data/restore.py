@@ -668,7 +668,7 @@ def _restore_one_last_route(row, browser, report: RestoreReport) -> None:
     pks = _resolve_last_route_pks(group, decoded, report)
     SettingsBrowserLastRoute.objects.update_or_create(
         browser=browser,
-        defaults={"group": group, "pks": pks, "page": row["page"] or 1},
+        defaults={"collection": group, "pks": pks, "page": row["page"] or 1},
     )
     report.note_written("settings_last_route")
 

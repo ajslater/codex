@@ -299,7 +299,7 @@ class SettingsBrowserLastRoute(BaseModel):
         related_name="last_route",
     )
 
-    group = CharField(
+    collection = CharField(
         max_length=32,
         choices=tuple(BROWSER_ROUTE_COLLECTION_CHOICES.items()),
         default="root",
@@ -316,7 +316,7 @@ class SettingsBrowserLastRoute(BaseModel):
     def __repr__(self) -> str:
         return (
             f"<SettingsBrowserLastRoute"
-            f" group={self.group} pks={self.pks} page={self.page}>"
+            f" collection={self.collection} pks={self.pks} page={self.page}>"
         )
 
 
