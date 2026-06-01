@@ -86,7 +86,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             # ``raise_redirect`` is ``NoReturn``; the type checker
             # follows the early-return shape so the caller below
             # is the only path that produces a queryset.
-            self.raise_redirect(reason, route_mask={"group": group})
+            self.raise_redirect(reason, route_mask={"collection": group})
         return model.objects.none()
 
     @property

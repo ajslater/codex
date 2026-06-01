@@ -21,7 +21,7 @@ class MtimeView(BrowserCollectionMtimeView):
 
     def _get_group_mtime(self, item):
         """Get one group's mtimes."""
-        group = item["group"]
+        group = item["collection"]
         pks = item["pks"]
 
         model = COLLECTION_MODEL_MAP[group]

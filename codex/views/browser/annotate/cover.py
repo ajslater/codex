@@ -44,7 +44,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         }
         parent_route = self.params.get("parent_route", {})
         if parent_pks := parent_route.get("pks"):
-            parent_rel = COLLECTION_RELATION[parent_route["group"]]
+            parent_rel = COLLECTION_RELATION[parent_route["collection"]]
             correlation[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**correlation)
 

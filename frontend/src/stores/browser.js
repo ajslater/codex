@@ -393,7 +393,7 @@ export const useBrowserStore = defineStore("browser", {
       const settings = this._filterSettings(state, keys);
       if (!dc && group !== "root" && pks) {
         settings["parentRoute"] = {
-          group,
+          collection: group,
           pks,
         };
       }
@@ -949,7 +949,7 @@ export const useBrowserStore = defineStore("browser", {
       // the legacy "0" sentinel, which the route serializer strips back to
       // no-parent-ids (deferred-removal wire compat).
       const arcPks = pks || "0";
-      const arcs = [{ group, pks: arcPks }];
+      const arcs = [{ collection: group, pks: arcPks }];
       /*
        * Dedup so concurrent callers (websocket fan-out across the
        * browser + reader stores, rapid notifications) share one

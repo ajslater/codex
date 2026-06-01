@@ -613,18 +613,18 @@ export const useReaderStore = defineStore("reader", {
       const arcs = [];
       for (const [group, arcIdInfos] of Object.entries(this.arcs)) {
         for (const pks of Object.keys(arcIdInfos)) {
-          const arc = { group, pks };
+          const arc = { collection: group, pks };
           arcs.push(arc);
         }
       }
       if (!arcs.length) {
         /*
          * No arcs is a 500 from the mtime api. Use the same
-         * ``{ group, pks }`` shape the loop above produces — the
+         * ``{ collection, pks }`` shape the loop above produces — the
          * earlier ``{ r: "0" }`` was a typo that itself returned
          * 500 from the API, so the fallback never actually worked.
          */
-        arcs.push({ group: "root", pks: "0" });
+        arcs.push({ collection: "root", pks: "0" });
       }
       /*
        * Dedup so concurrent callers (websocket fan-out across the
@@ -633,7 +633,7 @@ export const useReaderStore = defineStore("reader", {
        * don't collide; same-shape concurrent calls coalesce.
        */
       const dedupKey = `reader:loadMtimes:${arcs
-        .map((a) => `${a.group}/${a.pks}`)
+        .map((a) => `${a.collection}/${a.pks}`)
         .sort()
         .join(",")}`;
       try {

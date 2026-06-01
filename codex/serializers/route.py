@@ -13,9 +13,11 @@ from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
 
-def _collection_for_group(group) -> str:
-    """Map a group value to its v4 collection (root → publishers)."""
-    return Collection.PUBLISHER.collection if group == Collection.ROOT else group
+def _collection_for_group(collection) -> str:
+    """Map an engine collection value to its v4 collection (root → publishers)."""
+    return (
+        Collection.PUBLISHER.collection if collection == Collection.ROOT else collection
+    )
 
 
 def _parent_ids_for(pks) -> list[int]:
@@ -33,11 +35,11 @@ class SimpleRouteSerializer(Serializer):
     """
     An abbreviated vue route for the browser.
 
-    Input accepts the engine ``group``/``pks`` dialect (collection-valued);
-    output emits only the v4 ``collection``/``parentIds`` dialect.
+    Input and output both speak the ``collection``/``parentIds`` dialect
+    (``pks`` is kept as the input parent-ids key; output emits ``parent_ids``).
     """
 
-    group = BrowserRouteGroupField()
+    collection = BrowserRouteGroupField()
     pks = CharField()
 
     @override
@@ -45,7 +47,7 @@ class SimpleRouteSerializer(Serializer):
         """Emit the v4 ``collection``/``parent_ids`` dialect (+ page/name)."""
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         data = {
-            "collection": _collection_for_group(instance.get("group")),
+            "collection": _collection_for_group(instance.get("collection")),
             "parent_ids": _parent_ids_for(instance.get("pks")),
         }
         # ``page``/``name`` only exist on the full ``RouteSerializer``; emit

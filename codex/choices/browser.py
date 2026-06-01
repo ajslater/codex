@@ -190,7 +190,7 @@ BROWSER_CHOICES_MAP_KEYS = frozenset(
 
 # The engine's canonical default route — collection vocabulary, no dummy 0
 # (the wire denormalizes ``group`` to its char at the RouteSerializer edge).
-DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "root", "pks": (), "page": 1})
+DEFAULT_BROWSER_ROUTE = MappingProxyType({"collection": "root", "pks": (), "page": 1})
 
 # Top-group collections that own a dedicated browser route. For these,
 # the URL ``group`` matches the ``top_collection``. Everything else
@@ -208,10 +208,10 @@ def admin_default_route_for(top_collection: str) -> dict:
     per-user ``last_route`` row exists. ``top_collection`` is the collection-name
     default; folders / arcs own their route, everything else is Root.
     """
-    group = (
+    collection = (
         top_collection if top_collection in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
     )
-    return {"group": group, "pks": (), "page": 1}
+    return {"collection": collection, "pks": (), "page": 1}
 
 
 _DEFAULT_SHOW = MappingProxyType(

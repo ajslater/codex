@@ -51,23 +51,14 @@ def opds_feed_reverse(
     ``page`` moves to a ``?page=`` query param (omitted for page 1).
     Every other url_name passes straight through to ``reverse``.
 
-    This is the one choke point that reverses route dicts from two
-    dialects: engine kwargs / OPDS masks already speak ``collection``,
-    while the shared route dicts that double as wire payloads
-    (``DEFAULT_BROWSER_ROUTE``, the persisted ``last_route``, redirect
-    params) still carry the legacy ``group`` key. Both name the nav
-    collection, so either is accepted here.
+    Every route dict that reaches here — engine kwargs, OPDS masks, the
+    persisted ``last_route``, ``DEFAULT_BROWSER_ROUTE``, and redirect
+    params — now speaks the ``collection`` dialect.
     """
     out_kwargs: dict[str, Any] = dict(pop_name(kwargs))
     out_query: Mapping | None = query
-    if url_name in FEED_URL_NAMES and (
-        "collection" in out_kwargs or "group" in out_kwargs
-    ):
-        collection = out_kwargs.pop("collection", None)
-        if collection is None:
-            collection = out_kwargs.pop("group", None)
-        else:
-            out_kwargs.pop("group", None)
+    if url_name in FEED_URL_NAMES and "collection" in out_kwargs:
+        collection = out_kwargs.pop("collection")
         pks = out_kwargs.pop("pks", None)
         page = out_kwargs.pop("page", None)
         out_kwargs["collection"] = _collection_for(collection)

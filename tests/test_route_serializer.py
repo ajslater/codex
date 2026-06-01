@@ -30,9 +30,11 @@ def test_root_maps_to_publishers_with_no_parent_ids():
     assert "pks" not in data
 
 
-def test_accepts_engine_group_pks_input():
-    """Input still speaks the engine group/pks dialect (collection-valued)."""
-    serializer = RouteSerializer(data={"group": "series", "pks": "5,7", "page": _PAGE})
+def test_accepts_collection_pks_input():
+    """Input speaks the collection/pks dialect (``pks`` kept as the parent-ids key)."""
+    serializer = RouteSerializer(
+        data={"collection": "series", "pks": "5,7", "page": _PAGE}
+    )
     assert serializer.is_valid(), serializer.errors
-    assert serializer.validated_data["group"] == "series"
+    assert serializer.validated_data["collection"] == "series"
     assert serializer.validated_data["pks"] == (5, 7)

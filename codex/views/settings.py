@@ -278,7 +278,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         # Last route — from the related SettingsBrowserLastRoute row.
         route_obj = instance.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         result["last_route"] = {
-            "group": route_obj.collection,
+            "collection": route_obj.collection,
             "pks": tuple(route_obj.pks) if route_obj.pks else (0,),
             "page": route_obj.page,
         }
@@ -363,9 +363,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             for k in SettingsBrowserFilters.FILTER_KEYS
         }
 
-        # Engine route-dict key → model field name (the model column was
-        # renamed ``group`` → ``collection``; the route-dict key stays).
-        last_route_fields = {"group": "collection", "pks": "pks", "page": "page"}
+        # Route-dict key → model field name (now identity — both the
+        # route dict and the model column say ``collection``).
+        last_route_fields = {"collection": "collection", "pks": "pks", "page": "page"}
         result["last_route"] = {
             key: cls._get_field_default(SettingsBrowserLastRoute, field)
             for key, field in last_route_fields.items()
@@ -446,8 +446,11 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     ) -> None:
         """Apply last-route values from the params dict to the route row."""
         dirty = False
-        if "group" in route_data and route_obj.collection != route_data["group"]:
-            route_obj.collection = route_data["group"]
+        if (
+            "collection" in route_data
+            and route_obj.collection != route_data["collection"]
+        ):
+            route_obj.collection = route_data["collection"]
             dirty = True
         if "pks" in route_data:
             pks_value = route_data["pks"]

@@ -39,7 +39,7 @@ class BrowserParamsView(BrowserSettingsBaseView):
         last_route = data.get("last_route", {})
         last_route.update(
             {
-                "group": self.kwargs.get("collection", "r"),
+                "collection": self.kwargs.get("collection", "root"),
                 "pks": self.kwargs.get("pks", (0,)),
                 "page": self.kwargs.get("page", 1),
             }

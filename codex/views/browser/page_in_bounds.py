@@ -19,14 +19,14 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
         page = self.kwargs.get("page", 1)
         new_page = num_pages if num_pages and page > num_pages else 1
         pks = pks or (0,)
-        return {"group": group, "pks": pks, "page": new_page}
+        return {"collection": group, "pks": pks, "page": new_page}
 
     def _get_up_page_redirect(self) -> tuple[dict, None]:
         """Get a parent route to redirect to when page is out of bounds."""
         group = self.kwargs.get("collection")
         if group not in (FOLDER_COLLECTION, STORY_ARC_COLLECTION):
             group = ROOT_COLLECTION
-        route_mask = {"group": group, "pks": (), "page": 1}
+        route_mask = {"collection": group, "pks": (), "page": 1}
         logger.debug("Redirect up a level.")
         return route_mask, None
 

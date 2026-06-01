@@ -109,7 +109,7 @@ class BrowserValidateView(SearchFilterView):
             reason += valid_top_group
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
-            route = {"group": nav_group, "pks": pks, "page": page}
+            route = {"collection": nav_group, "pks": pks, "page": page}
             settings_mask = {"top_collection": valid_top_group}
             self.raise_redirect(reason, route, settings_mask)
 

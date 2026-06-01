@@ -40,7 +40,7 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
 class BrowserSettingsLastRouteSerializer(Serializer):
     """Last route for browser settings output."""
 
-    group = CharField()
+    collection = CharField()
     pks = CharField()
     page = IntegerField()
 
@@ -51,7 +51,7 @@ class BrowserSettingsLastRouteSerializer(Serializer):
             # Model instance
             pks = instance.pks
             instance = {
-                "group": instance.collection,
+                "collection": instance.collection,
                 "pks": tuple(pks) if pks else (0,),
                 "page": instance.page,
             }
