@@ -24,34 +24,40 @@
     ~62 FE, the `topCollection` wire field, `TOP_COLLECTION` choices, OPDS
     `topGroup` query-param emitters, choices JSON regen).
 
-**REMAINING (the entangled wire/engine + frontend pass — NOT bulk-sed-safe):**
-1. **The engine route-dict `{"group": …, "pks": …}` key** + `Route` dataclass
-   (`views/util.py`) — pervasive (~50 dict literals: route masks in validate/
-   exceptions/page_in_bounds, OPDS `TopRoutes`/const, breadcrumbs `Route(...)`,
-   mtime, redirect, reader) + `kwargs["group"]` the engine nav key (every view).
+- ✅ **Item wire field** `group` → `collection`: the browse page serializer's
+  `_row_repr` OUTPUT key + ~12 frontend `item.group` readers (card/controls/
+  subtitle/order-by/download/mark-read/force-update/browser-table/main/
+  select-many/upload+remove-cover buttons) + the `metadataBook`/metadata-dialog
+  `book.group` ripple. Avoided the OPDS-entry reverse breakage by keeping the
+  internal `card.py` annotation named `group` (read by OPDS v1 entry rendering)
+  and flipping only the serializer output key.
+- ✅ **Reader arc wire field** `group` → `collection`: serializer
+  `collection = ArcGroupField`, reader.py/params.py/arcs.py arc dicts, the
+  frontend `this.arc.collection` reads + arc-select send + DEFAULT_ARC.
+
+**REMAINING (the shared-mixin field + engine internals + frontend helpers):**
+1. **`BrowserAggregateSerializerMixin.group`** (`serializers/browser/mixins.py`)
+   — a SHARED field on the page-level + metadata serializers (distinct from the
+   per-row `collection`). Drives `md.group` / `this.group` in the metadata
+   components (`metadata-text.vue` ~12, `metadata-controls.vue` ~7) + `GROUP_MAP`.
+   Consistent today (BE emits `group`, FE reads `group`); rename is page.py +
+   metadata.py + the ~19 metadata-component refs + the `:group=` prop chain.
+   Also `page.py model_group`.
+2. **The engine route-dict `{"group": …, "pks": …}` key** + `Route` dataclass
+   (`views/util.py`) + `kwargs["group"]` the engine nav key (every view).
    ⚠️ `"group":` is OVERLOADED — websocket `{"group": ChannelGroups.ALL}`,
    `task.group` routing — edit concept-aware. Mostly INTERNAL/invisible now (the
-   route OUTPUT wire is already `collection`/`parentIds` from the dual-dialect
-   collapse), so this is consistency, not a contract change.
-2. **Item wire field `group`** (browse page serializer + the `card.py`
-   `_annotate_collection` annotation + ~15 frontend `item.group` consumers).
-   ⚠️ GOTCHA (attempted + reverted): the browse-row routing annotation is also
-   read by OPDS v1 entry rendering — `OPDS1EntryObject.group` (`opds/v1/const.py`)
-   + `self.obj.group` in `entry/links.py`/`entry.py`. Renaming the annotation to
-   `collection` surfaced a failure in the START-feed nav-href `opds_feed_reverse`
-   path that needs careful debugging before this can land. Frontend `item.group`
-   is also overloaded (browse item vs admin-CustomCover vs reader-arc) — flip
-   only the browse-item readers.
-3. reader arc `group` wire field; mtime `groups` input key.
+   route OUTPUT wire is already `collection`/`parentIds`).
+3. mtime `groups` input key. The admin-CustomCover list wire field `group`
+   (kept via serializer `source=`) + its `replace-cover`/`custom-covers-tab`
+   readers.
 4. Frontend: `routeForGroup`/`groupForRoute` → `*Collection`,
-   `liveBrowseParams().group`, store internals, components.
+   `liveBrowseParams().group`, store internals.
 
-Approach for the remainder: do the **engine route-dict + `Route` dataclass +
-`kwargs["group"]`** as one concept-aware pass (skip the ChannelGroups/task
-`"group"`), then the item wire field (debug the OPDS-entry reverse first), then
-reader arc + mtime, then the frontend helpers/vars. Test after each. The
-custom-cover `source=` shim and the favorites-view `kwargs["group"]` collapse
-once the item + engine-key renames land.
+Approach for the remainder: the metadata-mixin `group` field (page.py +
+metadata.py + the metadata components), then the engine route-dict +
+`Route` + `kwargs["group"]` (concept-aware, skip ChannelGroups/task), then
+mtime + the frontend helpers. Test after each.
 
 ## Goal
 
