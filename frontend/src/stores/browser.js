@@ -244,7 +244,7 @@ export const useBrowserStore = defineStore("browser", {
         groupCount: undefined,
       },
       librariesExist: undefined,
-      modelGroup: undefined,
+      modelCollection: undefined,
       numPages: 1,
       groups: [],
       books: [],
@@ -300,7 +300,7 @@ export const useBrowserStore = defineStore("browser", {
           !coverKeys.has(item.value) ||
           (item.value === "path" && !state.page.adminFlags.folderView) ||
           (item.value === "child_count" &&
-            state.page.modelGroup === "comics") ||
+            state.page.modelCollection === "comics") ||
           (item.value === "search_score" &&
             (!state.settings.search || !state.page.fts))
         ) {
@@ -870,7 +870,7 @@ export const useBrowserStore = defineStore("browser", {
           if (
             (state.settings.orderBy === "search_score" && !page.fts) ||
             (state.settings.orderBy === "child_count" &&
-              page.modelGroup === "comics")
+              page.modelCollection === "comics")
           ) {
             state.settings.orderBy = "sort_name";
           }
@@ -942,7 +942,9 @@ export const useBrowserStore = defineStore("browser", {
       }
       const { group: routeGroup, pks } = liveBrowseParams();
       const group =
-        routeGroup && routeGroup != "root" ? routeGroup : this.page.modelGroup;
+        routeGroup && routeGroup != "root"
+          ? routeGroup
+          : this.page.modelCollection;
       // The mtime endpoint's pks field rejects blanks; the root list sends
       // the legacy "0" sentinel, which the route serializer strips back to
       // no-parent-ids (deferred-removal wire compat).

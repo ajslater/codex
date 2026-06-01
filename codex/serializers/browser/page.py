@@ -259,7 +259,7 @@ class BrowserPageSerializer(Serializer):
     title = BrowserTitleSerializer(read_only=True)
     zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
-    model_group = BrowseGroupField(read_only=True)
+    model_collection = BrowseGroupField(read_only=True)
     num_pages = IntegerField(read_only=True)
     groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)

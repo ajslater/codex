@@ -22,7 +22,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
 
     def _cover_group_q(self, group_model) -> Q:
         """Group filter Q for a cover subquery, correlated via OuterRef."""
-        group_rel = COLLECTION_RELATION[self.model_group]
+        group_rel = COLLECTION_RELATION[self.model_collection]
         if self.params.get("dynamic_covers") or group_model in (Volume, Folder):
             # Folders are hierarchical: parent_folder is the direct FK, but the
             # browse filter uses the ``folders`` M2M that includes every
@@ -93,13 +93,13 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         """Correlated subquery returning a CustomCover pk, if applicable."""
         if not self.params.get("custom_covers"):
             return None
-        # ``model_group`` is the group the cards being annotated belong to
+        # ``model_collection`` is the group the cards being annotated belong to
         # (the *child* of the URL group). ``kwargs["group"]`` is the URL
         # group itself, which is one level too high for the cover lookup —
         # e.g. on ``/r/0/1`` the URL group is ``r`` but the cards are
         # publishers, so the relation we need is ``publisher``, not the
         # (nonexistent) ``r`` entry.
-        group_rel = CUSTOM_COVER_COLLECTION_RELATION.get(self.model_group)
+        group_rel = CUSTOM_COVER_COLLECTION_RELATION.get(self.model_collection)
         if not group_rel:
             return None
         qs = CustomCover.objects.filter(**{group_rel: OuterRef("pk")}).values("pk")[:1]

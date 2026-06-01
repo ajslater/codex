@@ -33,26 +33,26 @@ class BrowserValidateView(SearchFilterView):
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._is_admin: bool | None = None
-        self._model_group: str = ""
+        self._model_collection: str = ""
         self._model: type[BrowserCollectionModel] | None = None
         self._rel_prefix: str | None = None
         self._valid_nav_groups: tuple[str, ...] | None = None
 
     @property
-    def model_group(self) -> str:
+    def model_collection(self) -> str:
         """Memoize the model group."""
-        if not self._model_group:
+        if not self._model_collection:
             group = self.kwargs["group"]
             if group == ROOT_COLLECTION:
                 group = self.params["top_collection"]
-            self._model_group = group
-        return self._model_group
+            self._model_collection = group
+        return self._model_collection
 
     @property
     def model(self) -> type[BrowserCollectionModel] | None:
         """Memoize the model for the browse list."""
         if not self._model:
-            model = COLLECTION_MODEL_MAP.get(self.model_group)
+            model = COLLECTION_MODEL_MAP.get(self.model_collection)
             if model is None:
                 group = self.kwargs["group"]
                 detail = f"Cannot browse {group=}"

@@ -54,7 +54,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         Frontend routing metadata: the table view reads it to tell a Comic
         row from a group node and to build the next route's collection.
         """
-        group = Collection.COMIC if qs.model is Comic else self.model_group
+        group = Collection.COMIC if qs.model is Comic else self.model_collection
         return qs.annotate(group=Value(str(group), CharField(max_length=16)))
 
     def _annotate_file_name(self, qs):

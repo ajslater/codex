@@ -30,7 +30,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             return qs.model.objects.none(), 0
         orphans = (
             0
-            if self.model_group == FOLDER_COLLECTION or self.params.get("search")
+            if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
             else 5
         )
         paginator = Paginator(qs, get_browser_max_obj_per_page(), orphans=orphans)
@@ -42,7 +42,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             qs = paginator_page.object_list
             count = paginator_page.end_index() - paginator_page.start_index() + 1
         except EmptyPage:
-            if self.model_group != FOLDER_COLLECTION:
+            if self.model_collection != FOLDER_COLLECTION:
                 model_name = qs.model.__name__ if qs.model else "UnknownGroup"
                 logger.warning(f"No {model_name}s on page {page}")
             qs = qs.model.objects.none()

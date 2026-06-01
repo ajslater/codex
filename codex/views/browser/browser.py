@@ -85,26 +85,26 @@ class BrowserView(BrowserTitleView):
 
     @property
     @override
-    def model_group(self):
+    def model_collection(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
-        if not self._model_group:
+        if not self._model_collection:
             group = self.kwargs["group"]
             if group == FOLDER_COLLECTION:
-                self._model_group = group
+                self._model_collection = group
             elif group == STORY_ARC_COLLECTION:
                 pks = self.kwargs.get("pks")
-                self._model_group = COMIC_COLLECTION if pks else group
+                self._model_collection = COMIC_COLLECTION if pks else group
             elif group == self.valid_nav_groups[-1] or group == COMIC_COLLECTION:
                 # special case for lowest valid group
-                self._model_group = COMIC_COLLECTION
+                self._model_collection = COMIC_COLLECTION
             else:
-                self._model_group = self.valid_nav_groups[
+                self._model_collection = self.valid_nav_groups[
                     self.valid_nav_groups.index(group) + 1
                 ]
-        return self._model_group
+        return self._model_collection
 
     ################
     # MAIN QUERIES #
@@ -348,7 +348,7 @@ class BrowserView(BrowserTitleView):
             {
                 "breadcrumbs": breadcrumbs,
                 "title": title,
-                "model_group": self.model_group,
+                "model_collection": self.model_collection,
                 "groups": group_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,

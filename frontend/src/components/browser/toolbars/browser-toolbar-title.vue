@@ -41,7 +41,7 @@ export default {
     ...mapState(useBrowserStore, {
       browserTitle: (state) => state.page?.title,
       groupNames: (state) => state.choices.static.groupNames,
-      modelGroup: (state) => state.page.modelGroup,
+      modelCollection: (state) => state.page.modelCollection,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
     routeGroup() {
@@ -78,7 +78,7 @@ export default {
     subtitle() {
       return this.routeGroup === "folders"
         ? ""
-        : this.groupNames[this.modelGroup];
+        : this.groupNames[this.modelCollection];
     },
   },
 };
