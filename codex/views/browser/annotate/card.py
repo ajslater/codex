@@ -47,15 +47,21 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
             qs = qs.group_by(*group_by)
         return qs
 
-    def _annotate_group(self, qs):
+    def _annotate_nav_collection(self, qs):
         """
-        Annotate the per-row group (collection value).
+        Annotate the per-row collection this card routes to.
 
         Frontend routing metadata: the table view reads it to tell a Comic
         row from a group node and to build the next route's collection.
+        Aliased ``nav_collection`` rather than ``collection`` because
+        ``WatchedPath`` (Folder/CustomCover) already declares a real
+        ``collection`` field — an annotation of that name would
+        ``FieldError`` on folder rows. The wire exposes it as ``collection``.
         """
-        group = Collection.COMIC if qs.model is Comic else self.model_collection
-        return qs.annotate(group=Value(str(group), CharField(max_length=16)))
+        collection = Collection.COMIC if qs.model is Comic else self.model_collection
+        return qs.annotate(
+            nav_collection=Value(str(collection), CharField(max_length=16))
+        )
 
     def _annotate_file_name(self, qs):
         """Annotate the file name for folder view."""
@@ -86,7 +92,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         if qs.model is Comic:
             # comic adds order_value for cards late
             qs = self.annotate_order_value(qs)
-        qs = self._annotate_group(qs)
+        qs = self._annotate_nav_collection(qs)
         qs = self.annotate_group_names(qs)
         qs = self._annotate_file_name(qs)
         qs = self.annotate_child_count(qs)

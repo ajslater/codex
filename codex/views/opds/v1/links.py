@@ -116,7 +116,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         """Create a entry instead of a facet."""
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(
-            group=top_link.kwargs["collection"],
+            nav_collection=top_link.kwargs["collection"],
             ids=top_link.kwargs["pks"],
             name=name,
             summary=top_link.desc,

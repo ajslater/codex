@@ -36,7 +36,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         result = ""
         try:
             parts = []
-            group = self.obj.group
+            group = self.obj.nav_collection
             if not self.fake:
                 if group == "imprints":
                     parts.append(self.obj.publisher_name)
@@ -67,7 +67,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     def issued(self) -> str:
         """Return the published date."""
         date = ""
-        if self.obj.group == "comics":
+        if self.obj.nav_collection == "comics":
             with suppress(Exception):
                 date = self.obj.date.isoformat()
 
@@ -108,7 +108,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @property
     def summary(self):
         """Return a child count or comic summary."""
-        if self.obj.group == "comics":
+        if self.obj.nav_collection == "comics":
             desc = self.obj.summary
         else:
             children = self.obj.child_count

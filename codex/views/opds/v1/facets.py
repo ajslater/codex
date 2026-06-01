@@ -99,7 +99,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
         entry_obj = OPDS1EntryObject(
-            group=item.get("collection"),
+            nav_collection=item.get("collection"),
             ids=item.get("pks"),
             name=name,
         )

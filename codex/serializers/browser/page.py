@@ -222,13 +222,13 @@ def _row_repr(
     # of the user's column selection. They're routing metadata:
     # ``collection`` tells the frontend whether the row is a Comic or a
     # collection node, and ``ids`` is the list of pks the next route
-    # should target. (The value comes from the ``group`` annotation, an
-    # internal name the OPDS entry path still reads.) Without these,
-    # clicking a Publisher row would route to a comic whose id matches
-    # the publisher's pk.
+    # should target. (The value comes from the ``nav_collection``
+    # annotation, an internal alias the OPDS entry path also reads.)
+    # Without these, clicking a Publisher row would route to a comic
+    # whose id matches the publisher's pk.
     row: dict = {
         "pk": instance.pk,
-        "collection": getattr(instance, "group", None),
+        "collection": getattr(instance, "nav_collection", None),
         "ids": getattr(instance, "ids", None),
     }
     m2m_keys = m2m_columns()

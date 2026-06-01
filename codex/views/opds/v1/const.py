@@ -178,7 +178,10 @@ class OpdsNs:
 class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
-    group: str = ""
+    # Mirrors the ``nav_collection`` annotation on real browse rows (the
+    # collection this entry routes to). Named to avoid the model-field
+    # collision that blocks calling it ``collection`` (WatchedPath owns it).
+    nav_collection: str = ""
     ids: frozenset[int] = frozenset()
     name: str = ""
     summary: str = ""

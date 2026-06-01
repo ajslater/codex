@@ -54,7 +54,7 @@ class OPDS1EntryLinksMixin:
         # for edge cases instead of reverting to a legacy fan-out.
         pk = (
             self.obj.pk
-            if self.obj.group == "comics"
+            if self.obj.nav_collection == "comics"
             else getattr(self.obj, "cover_pk", None) or self.obj.pk
         )
         return reverse("opds:bin:cover", kwargs={"pk": pk}, query=query_params)
@@ -71,15 +71,15 @@ class OPDS1EntryLinksMixin:
 
     def _nav_href(self, *, metadata: bool) -> str:
         try:
-            if self.obj.group:
+            if self.obj.nav_collection:
                 pks = sorted(self.obj.ids)
-                kwargs = {"collection": self.obj.group, "pks": pks, "page": 1}
+                kwargs = {"collection": self.obj.nav_collection, "pks": pks, "page": 1}
             else:
                 kwargs = {}
             qps = {}
             qps.update(self.query_params)
             if (
-                self.obj.group == "arcs"
+                self.obj.nav_collection == "arcs"
                 and self.obj.ids
                 and 0 not in self.obj.ids
                 and not self.query_params.get("orderBy")
@@ -98,7 +98,7 @@ class OPDS1EntryLinksMixin:
     def _nav_link(self, *, metadata: bool) -> OPDS1Link:
         href = self._nav_href(metadata=metadata)
 
-        group = self.obj.group
+        group = self.obj.nav_collection
         if group in self.acquisition_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
@@ -108,7 +108,7 @@ class OPDS1EntryLinksMixin:
             0
             if self.fake
             else 1
-            if self.obj.group == "comics"
+            if self.obj.nav_collection == "comics"
             else self.obj.child_count
         )
         rel = Rel.ALTERNATE if metadata else "subsection"
@@ -178,7 +178,7 @@ class OPDS1EntryLinksMixin:
             if image := self._cover_link(Rel.IMAGE):
                 result += [image]
 
-            if self.obj.group == "comics" and not self.fake:
+            if self.obj.nav_collection == "comics" and not self.fake:
                 result += self._links_comic()
             elif nav := self._nav_link(metadata=False):
                 result += [nav]
