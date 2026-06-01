@@ -11,9 +11,9 @@ from codex.models.paths import CustomCover, WatchedPath
 from codex.models.util import get_sort_name
 
 __all__ = (
-    "BrowserGroupModel",
+    "BrowserCollectionModel",
     "Folder",
-    "IdentifiedBrowserGroupModel",
+    "IdentifiedBrowserCollectionModel",
     "Imprint",
     "Publisher",
     "Series",
@@ -21,7 +21,7 @@ __all__ = (
 )
 
 
-class BrowserGroupModel(BaseModel):
+class BrowserCollectionModel(BaseModel):
     """Browser groups."""
 
     DEFAULT_NAME: str | None = ""
@@ -69,7 +69,7 @@ class BrowserGroupModel(BaseModel):
         return "/".join(self._repr_parts())
 
 
-class IdentifiedBrowserGroupModel(BrowserGroupModel):
+class IdentifiedBrowserCollectionModel(BrowserCollectionModel):
     """
     Identified Browser Group Model.
 
@@ -82,29 +82,29 @@ class IdentifiedBrowserGroupModel(BrowserGroupModel):
 
     identifier = ForeignKey(Identifier, on_delete=CASCADE, null=True)
 
-    class Meta(BrowserGroupModel.Meta):
+    class Meta(BrowserCollectionModel.Meta):
         """Without this a real table is created and joined to."""
 
         abstract = True
 
 
-class Publisher(IdentifiedBrowserGroupModel):
+class Publisher(IdentifiedBrowserCollectionModel):
     """The publisher of the comic."""
 
-    class Meta(IdentifiedBrowserGroupModel.Meta):
+    class Meta(IdentifiedBrowserCollectionModel.Meta):
         """Constraints."""
 
         unique_together = ("name",)
 
 
-class Imprint(IdentifiedBrowserGroupModel):
+class Imprint(IdentifiedBrowserCollectionModel):
     """A Publishing imprint."""
 
     PARENT: str = "publisher"
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
-    class Meta(IdentifiedBrowserGroupModel.Meta):
+    class Meta(IdentifiedBrowserCollectionModel.Meta):
         """Constraints."""
 
         unique_together = ("publisher", "name")
@@ -114,7 +114,7 @@ class Imprint(IdentifiedBrowserGroupModel):
         return (self.publisher.name, self.name)
 
 
-class Series(IdentifiedBrowserGroupModel):
+class Series(IdentifiedBrowserCollectionModel):
     """The series the comic belongs to."""
 
     PARENT: str = "imprint"
@@ -123,7 +123,7 @@ class Series(IdentifiedBrowserGroupModel):
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = CoercingPositiveSmallIntegerField(null=True)
 
-    class Meta(IdentifiedBrowserGroupModel.Meta):
+    class Meta(IdentifiedBrowserCollectionModel.Meta):
         """Constraints."""
 
         unique_together = ("imprint", "name")
@@ -138,7 +138,7 @@ class Series(IdentifiedBrowserGroupModel):
         )
 
 
-class Volume(BrowserGroupModel):
+class Volume(BrowserCollectionModel):
     """The volume of the series the comic belongs to."""
 
     DEFAULT_NAME: str | None = None
@@ -163,7 +163,7 @@ class Volume(BrowserGroupModel):
     def set_sort_name(self):
         """Noop."""
 
-    class Meta(BrowserGroupModel.Meta):
+    class Meta(BrowserCollectionModel.Meta):
         """Constraints."""
 
         unique_together = ("series", "name", "number_to")
@@ -195,7 +195,7 @@ class Volume(BrowserGroupModel):
         )
 
 
-class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
+class WatchedPathBrowserCollection(BrowserCollectionModel, WatchedPath):
     """Watched Path Browser Group."""
 
     @override
@@ -204,11 +204,11 @@ class WatchedPathBrowserGroup(BrowserGroupModel, WatchedPath):
         super().presave()
         WatchedPath.presave(self)
 
-    class Meta(BrowserGroupModel.Meta, WatchedPath.Meta):
+    class Meta(BrowserCollectionModel.Meta, WatchedPath.Meta):
         """Use Mixin Meta."""
 
         abstract = True
 
 
-class Folder(WatchedPathBrowserGroup):
+class Folder(WatchedPathBrowserCollection):
     """File system folder."""

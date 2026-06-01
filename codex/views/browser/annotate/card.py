@@ -14,11 +14,17 @@ from django.db.models.fields import CharField
 from codex.collection import Collection
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
-from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
+from codex.models.groups import (
+    BrowserCollectionModel,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
-_GROUP_BY: MappingProxyType[type[BrowserGroupModel], tuple[str, ...]] = (
+_GROUP_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
     MappingProxyType(
         {
             Publisher: ("sort_name",),

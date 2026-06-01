@@ -13,7 +13,7 @@ from codex.views.auth import AuthAPIView, AuthMixin, GroupACLMixin
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-    from codex.models import BrowserGroupModel
+    from codex.models import BrowserCollectionModel
 
 
 class BookmarkFilterMixin(GroupACLMixin, ABC):
@@ -23,8 +23,8 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
         """Initialize the bm_annotation_data."""
         if TYPE_CHECKING:
             self.request: Request
-        self._bm_rels: dict[BrowserGroupModel, str] = {}
-        self._bm_filters: dict[BrowserGroupModel, Q] = {}
+        self._bm_rels: dict[BrowserCollectionModel, str] = {}
+        self._bm_filters: dict[BrowserCollectionModel, Q] = {}
 
     def get_bm_rel(self, model):
         """Create bookmark relation."""

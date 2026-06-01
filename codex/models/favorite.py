@@ -18,9 +18,9 @@ from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
 from codex.models.named import StoryArc
 
 __all__ = (
-    "FAVORITE_GROUP_CHOICES",
-    "FAVORITE_GROUP_CODE_MODELS",
-    "FAVORITE_MODEL_GROUP_CODES",
+    "FAVORITE_COLLECTION_CHOICES",
+    "FAVORITE_COLLECTION_MODELS",
+    "FAVORITE_MODEL_COLLECTIONS",
     "Favorite",
 )
 
@@ -31,7 +31,7 @@ __all__ = (
 # groups stay aligned across the codebase. Filter / annotation / API
 # views consume the forward map; the cleanup cron and signal handler
 # consume the reverse map. Both are immutable proxies.
-FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type[BaseModel], str]] = (
+FAVORITE_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], str]] = (
     MappingProxyType(
         {
             Publisher: Collection.PUBLISHER,
@@ -44,12 +44,12 @@ FAVORITE_MODEL_GROUP_CODES: Final[MappingProxyType[type[BaseModel], str]] = (
         }
     )
 )
-FAVORITE_GROUP_CODE_MODELS: Final[MappingProxyType[str, type]] = MappingProxyType(
-    {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
+FAVORITE_COLLECTION_MODELS: Final[MappingProxyType[str, type]] = MappingProxyType(
+    {code: model for model, code in FAVORITE_MODEL_COLLECTIONS.items()}
 )
-FAVORITE_GROUP_CHOICES: Final = tuple(
+FAVORITE_COLLECTION_CHOICES: Final = tuple(
     (group.value, COLLECTION_LABELS[group])
-    for group in FAVORITE_MODEL_GROUP_CODES.values()
+    for group in FAVORITE_MODEL_COLLECTIONS.values()
 )
 
 
@@ -57,7 +57,7 @@ class Favorite(BaseModel):
     """Per-user favorite tag for a browsable group or comic."""
 
     user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)
-    group = CharField(max_length=16, choices=FAVORITE_GROUP_CHOICES)
+    group = CharField(max_length=16, choices=FAVORITE_COLLECTION_CHOICES)
     target_id = PositiveIntegerField()
 
     class Meta(BaseModel.Meta):

@@ -441,10 +441,10 @@ def _restore_favorites(
     """Restore Favorite rows; resolve identifier_json → main-DB PK."""
     from django.contrib.auth import get_user_model
 
-    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 
     user_model = get_user_model()
-    code_to_model = {code: model for model, code in FAVORITE_MODEL_GROUP_CODES.items()}
+    code_to_model = {code: model for model, code in FAVORITE_MODEL_COLLECTIONS.items()}
     for row in store.fetchall("favorites"):
         if dry_run:
             report.note_written("favorites")
@@ -636,10 +636,10 @@ def _resolve_last_route_pks(
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
     if group == Collection.ROOT or not decoded:
         return []
-    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
+    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
 
     target_model = next(
-        (m for m, c in FAVORITE_MODEL_GROUP_CODES.items() if c == group),
+        (m for m, c in FAVORITE_MODEL_COLLECTIONS.items() if c == group),
         None,
     )
     if target_model is None:

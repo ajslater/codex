@@ -29,7 +29,7 @@ from codex.librarian.scribe.importer.read.const import (
     COMIC_FK_FIELD_NAMES_FIELD_MAP,
 )
 from codex.models.base import BaseModel
-from codex.models.groups import BrowserGroupModel, Volume
+from codex.models.groups import BrowserCollectionModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
 
@@ -98,7 +98,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
 
     def _set_group_tree_group(
         self,
-        model: type[BrowserGroupModel],
+        model: type[BrowserCollectionModel],
         name_field: Field,
         group: dict | None,
         group_list: list,
@@ -144,7 +144,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             md_key = field_name
             value = md.pop(md_key, None)
 
-            if issubclass(model, BrowserGroupModel):
+            if issubclass(model, BrowserCollectionModel):
                 key_values, extra_values = self._set_group_tree_group(
                     model, related_field, value, group_list
                 )

@@ -8,9 +8,9 @@ from django.db.models.query_utils import Q
 
 from codex.collection import Collection
 from codex.models import Comic
-from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
+from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
 # on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
@@ -110,10 +110,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         if pks and 0 not in pks:
-            if group == STORY_ARC_GROUP:
+            if group == STORY_ARC_COLLECTION:
                 # ``story_arc_numbers__story_arc`` is m2m-through on Comic.
                 return True
-            if group == FOLDER_GROUP and self.TARGET in _M2M_FOLDER_GROUP_TARGETS:
+            if group == FOLDER_COLLECTION and self.TARGET in _M2M_FOLDER_GROUP_TARGETS:
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
         filters = self.params.get("filters") or {}
@@ -161,12 +161,12 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         to StoryArc.
 
         Anonymous users and models outside
-        :data:`FAVORITE_MODEL_GROUP_CODES` (search results, intermediate
+        :data:`FAVORITE_MODEL_COLLECTIONS` (search results, intermediate
         querysets) get the no-op.
         """
         if not self.params.get("filters", {}).get("favorite"):
             return Q()
-        if FAVORITE_MODEL_GROUP_CODES.get(model) is None:
+        if FAVORITE_MODEL_COLLECTIONS.get(model) is None:
             return Q()
         active = self._active_favorite_group_codes
         if not active:
@@ -187,7 +187,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         # The row itself is starred. Covers the rare "favorited group
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.
-        self_code = FAVORITE_MODEL_GROUP_CODES[model]
+        self_code = FAVORITE_MODEL_COLLECTIONS[model]
         if self_code in subqueries:
             q |= Q(pk__in=subqueries[self_code])
         return q

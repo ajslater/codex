@@ -9,15 +9,15 @@ from loguru import logger
 from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.models.groups import BrowserGroupModel
+from codex.models.groups import BrowserCollectionModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
 from codex.views.const import (
-    COMIC_GROUP,
-    FOLDER_GROUP,
-    GROUP_MODEL_MAP,
-    ROOT_GROUP,
-    STORY_ARC_GROUP,
+    COLLECTION_MODEL_MAP,
+    COMIC_COLLECTION,
+    FOLDER_COLLECTION,
+    ROOT_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.exceptions import SeeOtherRedirectError
 
@@ -34,7 +34,7 @@ class BrowserValidateView(SearchFilterView):
         super().__init__(*args, **kwargs)
         self._is_admin: bool | None = None
         self._model_group: str = ""
-        self._model: type[BrowserGroupModel] | None = None
+        self._model: type[BrowserCollectionModel] | None = None
         self._rel_prefix: str | None = None
         self._valid_nav_groups: tuple[str, ...] | None = None
 
@@ -43,16 +43,16 @@ class BrowserValidateView(SearchFilterView):
         """Memoize the model group."""
         if not self._model_group:
             group = self.kwargs["group"]
-            if group == ROOT_GROUP:
+            if group == ROOT_COLLECTION:
                 group = self.params["top_group"]
             self._model_group = group
         return self._model_group
 
     @property
-    def model(self) -> type[BrowserGroupModel] | None:
+    def model(self) -> type[BrowserCollectionModel] | None:
         """Memoize the model for the browse list."""
         if not self._model:
-            model = GROUP_MODEL_MAP.get(self.model_group)
+            model = COLLECTION_MODEL_MAP.get(self.model_group)
             if model is None:
                 group = self.kwargs["group"]
                 detail = f"Cannot browse {group=}"
@@ -92,7 +92,7 @@ class BrowserValidateView(SearchFilterView):
         # show-driven groups so the existing ordering is preserved.
         return [
             *(nav_group for nav_group, allowed in show.items() if allowed),
-            COMIC_GROUP,
+            COMIC_COLLECTION,
         ]
 
     def _validate_top_group(self, valid_top_groups) -> None:
@@ -124,7 +124,7 @@ class BrowserValidateView(SearchFilterView):
         """
         top_group = self.params["top_group"]
         nav_group = self.kwargs["group"]
-        valid_nav_groups = [ROOT_GROUP]
+        valid_nav_groups = [ROOT_COLLECTION]
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
             if top_group == possible_nav_group:
@@ -134,7 +134,7 @@ class BrowserValidateView(SearchFilterView):
                 valid_nav_groups += tail_top_groups
                 break
         if nav_group not in valid_nav_groups:
-            reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_GROUP}"
+            reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_COLLECTION}"
             self.raise_redirect(reason)
 
         return tuple(valid_nav_groups)
@@ -148,7 +148,7 @@ class BrowserValidateView(SearchFilterView):
             settings_mask = {"top_group": valid_top_groups[0]}
             self.raise_redirect(reason, settings_mask=settings_mask)
 
-        valid_top_groups = (FOLDER_GROUP,)
+        valid_top_groups = (FOLDER_COLLECTION,)
         self._validate_top_group(valid_top_groups)
         return valid_top_groups
 
@@ -162,7 +162,7 @@ class BrowserValidateView(SearchFilterView):
         # Validate pks
         nav_group = self.kwargs["group"]
         pks = self.kwargs["pks"]
-        if nav_group == ROOT_GROUP and (pks and 0 not in pks):
+        if nav_group == ROOT_COLLECTION and (pks and 0 not in pks):
             # r never has pks
             reason = f"Redirect r with {pks=} to pks 0"
             self.raise_redirect(reason)
@@ -173,7 +173,7 @@ class BrowserValidateView(SearchFilterView):
 
     def _validate_story_arc_settings(self) -> tuple[str, ...]:
         """Validate story arc settings."""
-        valid_top_groups = (STORY_ARC_GROUP,)
+        valid_top_groups = (STORY_ARC_COLLECTION,)
         self._validate_top_group(valid_top_groups)
         return valid_top_groups
 
@@ -182,11 +182,13 @@ class BrowserValidateView(SearchFilterView):
         """Memoize valid nav groups."""
         if self._valid_nav_groups is None:
             group = self.kwargs["group"]
-            validate_group = self.params["top_group"] if group == COMIC_GROUP else group
+            validate_group = (
+                self.params["top_group"] if group == COMIC_COLLECTION else group
+            )
 
-            if validate_group == FOLDER_GROUP:
+            if validate_group == FOLDER_COLLECTION:
                 vng = self._validate_folder_settings()
-            elif validate_group == STORY_ARC_GROUP:
+            elif validate_group == STORY_ARC_COLLECTION:
                 vng = self._validate_story_arc_settings()
             else:
                 vng = self._validate_browser_group_settings()

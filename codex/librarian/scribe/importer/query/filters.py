@@ -5,7 +5,7 @@ from django.db.models.query_utils import Q
 from codex.librarian.scribe.importer.const import DictModelType
 from codex.librarian.scribe.importer.query.covers import QueryCustomCoversImporter
 from codex.models.base import BaseModel
-from codex.models.groups import BrowserGroupModel
+from codex.models.groups import BrowserCollectionModel
 
 
 class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
@@ -50,7 +50,7 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
         key_value_tuples: tuple,
     ) -> Q:
         """Get filters for the model."""
-        if issubclass(model, DictModelType | BrowserGroupModel):
+        if issubclass(model, DictModelType | BrowserCollectionModel):
             fk_filter = self._query_missing_complex_model_filter(
                 key_rels, key_value_tuples
             )

@@ -5,7 +5,7 @@ from django.db.models import OuterRef, Q, Subquery
 from codex.models import Comic, Folder, Volume
 from codex.models.paths import CustomCover
 from codex.views.browser.annotate.card import _GROUP_BY, BrowserAnnotateCardView
-from codex.views.const import CUSTOM_COVER_GROUP_RELATION, GROUP_RELATION
+from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
 
 
 class BrowserAnnotateCoverView(BrowserAnnotateCardView):
@@ -22,7 +22,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
 
     def _cover_group_q(self, group_model) -> Q:
         """Group filter Q for a cover subquery, correlated via OuterRef."""
-        group_rel = GROUP_RELATION[self.model_group]
+        group_rel = COLLECTION_RELATION[self.model_group]
         if self.params.get("dynamic_covers") or group_model in (Volume, Folder):
             # Folders are hierarchical: parent_folder is the direct FK, but the
             # browse filter uses the ``folders`` M2M that includes every
@@ -44,7 +44,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         }
         parent_route = self.params.get("parent_route", {})
         if parent_pks := parent_route.get("pks"):
-            parent_rel = GROUP_RELATION[parent_route["group"]]
+            parent_rel = COLLECTION_RELATION[parent_route["group"]]
             correlation[f"{parent_rel}__pk__in"] = parent_pks
         return Q(**correlation)
 
@@ -99,7 +99,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         # e.g. on ``/r/0/1`` the URL group is ``r`` but the cards are
         # publishers, so the relation we need is ``publisher``, not the
         # (nonexistent) ``r`` entry.
-        group_rel = CUSTOM_COVER_GROUP_RELATION.get(self.model_group)
+        group_rel = CUSTOM_COVER_COLLECTION_RELATION.get(self.model_group)
         if not group_rel:
             return None
         qs = CustomCover.objects.filter(**{group_rel: OuterRef("pk")}).values("pk")[:1]

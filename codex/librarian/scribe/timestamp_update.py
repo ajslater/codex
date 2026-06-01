@@ -14,9 +14,9 @@ from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import StoryArc, Volume
-from codex.models.groups import BrowserGroupModel
+from codex.models.groups import BrowserCollectionModel
 from codex.models.library import Library
-from codex.views.const import GROUP_MODELS
+from codex.views.const import COLLECTION_MODELS
 
 _UPDATE_FIELDS = ("updated_at",)
 
@@ -26,7 +26,7 @@ class TimestampUpdater(WorkerStatusBase):
 
     @staticmethod
     def _get_update_filter(
-        model: type[BrowserGroupModel],
+        model: type[BrowserCollectionModel],
         start_time: datetime,
         force_update_group_map: Mapping,
         library: Library,
@@ -49,7 +49,7 @@ class TimestampUpdater(WorkerStatusBase):
         return update_filter
 
     @staticmethod
-    def _add_child_count_filter(qs: QuerySet, model: type[BrowserGroupModel]):
+    def _add_child_count_filter(qs: QuerySet, model: type[BrowserCollectionModel]):
         """Filter out groups with no comics."""
         rel_prefix = "storyarcnumber__" if model == StoryArc else ""
         rel_prefix += "comic"
@@ -60,7 +60,7 @@ class TimestampUpdater(WorkerStatusBase):
     def _update_group_model(
         cls,
         force_update_group_map: Mapping,
-        model: type[BrowserGroupModel],
+        model: type[BrowserCollectionModel],
         start_time: datetime,
         library: Library,
         log_list,
@@ -102,7 +102,7 @@ class TimestampUpdater(WorkerStatusBase):
         self.status_controller.start(status)
         try:
             log_list = []
-            for model in GROUP_MODELS:
+            for model in COLLECTION_MODELS:
                 count = self._update_group_model(
                     force_update_group_map, model, start_time, library, log_list
                 )

@@ -9,7 +9,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import BaseModel, NamedModel
 from codex.models.comic import Comic
-from codex.models.groups import BrowserGroupModel
+from codex.models.groups import BrowserCollectionModel
 from codex.settings import (
     IMPORTER_LINK_FK_BATCH_SIZE,
     IMPORTER_LINK_M2M_BATCH_SIZE,
@@ -25,7 +25,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         value_tuple = []
         for attr in key_attrs:
             value = getattr(m2m_obj, attr)
-            if isinstance(value, NamedModel | BrowserGroupModel):
+            if isinstance(value, NamedModel | BrowserCollectionModel):
                 value = value.name
             value_tuple.append(value)
         return tuple(value_tuple)

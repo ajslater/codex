@@ -12,7 +12,7 @@ from django.db.models import CharField, F, Value
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
-from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.groups import BrowserCollectionModel, Folder
 from codex.models.identifier import Identifier
 from codex.models.named import Credit
 from codex.settings.db import get_browser_max_obj_per_page
@@ -77,7 +77,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         self._auth_link = None
         super().__init__(*args, **kwargs)
 
-    def is_allowed(self, link_spec: Link | BrowserGroupModel) -> bool:
+    def is_allowed(self, link_spec: Link | BrowserCollectionModel) -> bool:
         """
         Return if the link is allowed.
 

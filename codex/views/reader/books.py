@@ -15,10 +15,10 @@ from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
-    FOLDER_GROUP,
-    GROUP_RELATION,
+    COLLECTION_RELATION,
+    FOLDER_COLLECTION,
     NONE_INTEGERFIELD,
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.reader.arcs import ReaderArcsView
@@ -123,7 +123,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
 
     def _get_comics_list(self) -> QuerySet:
         """Get the reader navigation group filter."""
-        rel = GROUP_RELATION[self._selected_arc_group]
+        rel = COLLECTION_RELATION[self._selected_arc_group]
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
@@ -131,11 +131,11 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         prefetch_related = ()
         ordering = ()
 
-        if self._selected_arc_group == STORY_ARC_GROUP:
+        if self._selected_arc_group == STORY_ARC_COLLECTION:
             arc_index = F("story_arc_numbers__number")
             prefetch_related = (*prefetch_related, rel)
             ordering = ("arc_index", "date", "pk")
-        elif self._selected_arc_group == FOLDER_GROUP:
+        elif self._selected_arc_group == FOLDER_COLLECTION:
             fields = (*_COMIC_FIELDS, rel)
             select_related = (rel,)
             ordering = ("path", "pk")

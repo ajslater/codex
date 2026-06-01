@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, override
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from codex.models.favorite import FAVORITE_GROUP_CODE_MODELS, Favorite
+from codex.models.favorite import FAVORITE_COLLECTION_MODELS, Favorite
 from codex.views.auth import AuthFilterGenericAPIView
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class FavoriteListView(_FavoriteAuthMixin):
         # ``Favorite.group`` is the collection vocabulary, which is exactly
         # the wire shape — no translation needed.
         favorites_by_group: dict[str, list[int]] = {
-            group: [] for group in FAVORITE_GROUP_CODE_MODELS
+            group: [] for group in FAVORITE_COLLECTION_MODELS
         }
         rows = Favorite.objects.filter(user=self.request.user).values_list(
             "group", "target_id"
@@ -59,7 +59,7 @@ class FavoriteDetailView(_FavoriteAuthMixin):
         """Return (group_code, target_id, model) or a Response on error."""
         group_code = self.kwargs["group"]
         target_id = self.kwargs["target_id"]
-        model = FAVORITE_GROUP_CODE_MODELS.get(group_code)
+        model = FAVORITE_COLLECTION_MODELS.get(group_code)
         if model is None:
             return Response(
                 {"detail": f"Unknown favorite group {group_code!r}."},

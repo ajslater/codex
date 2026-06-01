@@ -55,7 +55,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.bookmark import Bookmark
-from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
 
@@ -134,7 +134,7 @@ _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
 # machinery). Iteration order is the model→code map's insertion
 # order; the per-iteration query is independent so order doesn't
 # matter functionally.
-_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_GROUP_CODES.items())
+_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_COLLECTIONS.items())
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic

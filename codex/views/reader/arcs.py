@@ -14,7 +14,7 @@ from codex.models.functions import JsonGroupArray
 from codex.models.named import StoryArc
 from codex.util import max_none
 from codex.views.const import (
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.reader.params import ReaderParamsView
 
@@ -107,12 +107,12 @@ class ReaderArcsView(ReaderParamsView):
         )
         qs = qs.order_by("sort_name").only("name")
 
-        arcs[STORY_ARC_GROUP] = {}
+        arcs[STORY_ARC_COLLECTION] = {}
 
         for sa in qs:
             ids = tuple(sorted(set(sa.ids)))
             mtime = sa.mtime
-            arcs[STORY_ARC_GROUP][ids] = {"name": sa.name, "mtime": mtime}
+            arcs[STORY_ARC_COLLECTION][ids] = {"name": sa.name, "mtime": mtime}
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
@@ -125,7 +125,7 @@ class ReaderArcsView(ReaderParamsView):
             frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
         )
         arc_ids = ()
-        if arc_group == STORY_ARC_GROUP:
+        if arc_group == STORY_ARC_COLLECTION:
             if requested_arc_ids in all_arc_ids:
                 arc_ids = requested_arc_ids
             else:

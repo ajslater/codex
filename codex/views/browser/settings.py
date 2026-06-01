@@ -17,7 +17,7 @@ from codex.serializers.browser.settings import (
     BrowserSettingsSerializer,
 )
 from codex.serializers.settings import SettingsInputSerializer
-from codex.views.const import FOLDER_GROUP, GROUP_ORDER, STORY_ARC_GROUP
+from codex.views.const import COLLECTION_ORDER, FOLDER_COLLECTION, STORY_ARC_COLLECTION
 from codex.views.settings import (
     BROWSER_CREATE_ARGS,
     BROWSER_FILTER_ARGS,
@@ -26,7 +26,7 @@ from codex.views.settings import (
 
 # Groups whose nav owns a dedicated route (folders / story arcs); for these
 # the URL group becomes the top_group directly during validation.
-_OWN_ROUTE_GROUPS = frozenset({FOLDER_GROUP, STORY_ARC_GROUP})
+_OWN_ROUTE_GROUPS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
 
 
 class BrowserSettingsBaseView(SettingsBaseView):
@@ -44,9 +44,9 @@ class BrowserSettingsBaseView(SettingsBaseView):
         group = self.kwargs.get("group")
         order_by = (
             "filename"
-            if group == FOLDER_GROUP
+            if group == FOLDER_COLLECTION
             else "story_arc_number"
-            if group == STORY_ARC_GROUP
+            if group == STORY_ARC_COLLECTION
             else "sort_name"
         )
         params["order_by"] = order_by
@@ -105,9 +105,9 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         """Validate top group for browse groups (collection vocabulary)."""
         show = params["show"]
         if group == Collection.ROOT or (
-            group in GROUP_ORDER
+            group in COLLECTION_ORDER
             and show.get(top_group)
-            and GROUP_ORDER.index(top_group) < GROUP_ORDER.index(group)
+            and COLLECTION_ORDER.index(top_group) < COLLECTION_ORDER.index(group)
         ):
             return
 

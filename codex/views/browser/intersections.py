@@ -28,7 +28,7 @@ from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
 from codex.models.groups import (
-    BrowserGroupModel,
+    BrowserCollectionModel,
     Folder,
     Imprint,
     Publisher,
@@ -114,7 +114,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
-def _intersection_relation(group_model: type[BrowserGroupModel]) -> str | None:
+def _intersection_relation(group_model: type[BrowserCollectionModel]) -> str | None:
     """
     Return the ORM lookup that traverses Comic → group for intersections.
 
@@ -527,7 +527,7 @@ _SIMPLE_M2M_FIELDS = MappingProxyType(
 
 
 def _build_simple_m2m_intersection_sort_sql(
-    group_model: type[BrowserGroupModel], column: str
+    group_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
     Return a correlated-subquery RawSQL for the intersection sort key.
@@ -630,7 +630,7 @@ def _wrap_intersection_sort(
 
 
 def _build_universes_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    group_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Universes display as ``name:designation`` (or just ``name`` when blank)."""
     correlation = _comic_correlation_sql(group_model)
@@ -653,7 +653,7 @@ def _build_universes_intersection_sort_sql(
 
 
 def _build_credits_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    group_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
     correlation = _comic_correlation_sql(group_model)
@@ -681,7 +681,7 @@ def _build_credits_intersection_sort_sql(
 
 
 def _build_identifiers_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    group_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Render identifiers intersection as ``[source:]type:key`` per shared row."""
     correlation = _comic_correlation_sql(group_model)
@@ -704,7 +704,7 @@ def _build_identifiers_intersection_sort_sql(
 
 
 def _build_story_arcs_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    group_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
     correlation = _comic_correlation_sql(group_model)
@@ -728,7 +728,7 @@ def _build_story_arcs_intersection_sort_sql(
 
 
 def _comic_correlation_sql(
-    group_model: type[BrowserGroupModel],
+    group_model: type[BrowserCollectionModel],
 ) -> tuple[str, str, str] | None:
     """
     Return the SQL fragments correlating Comic rows to the outer group row.
@@ -775,7 +775,7 @@ def _comic_correlation_sql(
 
 
 def scalar_intersection_sort_expr(
-    group_model: type[BrowserGroupModel], column: str
+    group_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
     Build a sort-key RawSQL for scalar / FK-name group-row sort.
@@ -856,7 +856,7 @@ def scalar_intersection_sort_expr(
 
 
 def m2m_intersection_sort_expr(
-    group_model: type[BrowserGroupModel], column: str
+    group_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
     Build a sort-key RawSQL for the given (group_model, M2M column).

@@ -10,7 +10,7 @@ from codex.serializers.models.named import NamedModelSerializer
 
 
 class GroupModelSerializer(NamedModelSerializer):
-    """A common class for BrowserGroupModels."""
+    """A common class for BrowserCollectionModels."""
 
     class Meta(NamedModelSerializer.Meta):
         """Abstract class."""

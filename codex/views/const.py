@@ -12,7 +12,7 @@ from django.db.models.fields import DateTimeField, PositiveSmallIntegerField
 from codex.collection import Collection
 from codex.models import (
     AgeRating,
-    BrowserGroupModel,
+    BrowserCollectionModel,
     Character,
     Comic,
     Country,
@@ -44,12 +44,12 @@ from codex.settings import CODEX_PATH
 
 # Legacy single-char group constants, now sourced from the Collection enum.
 # Each still compares equal to its char (StrEnum), so existing
-# ``group == ROOT_GROUP`` checks are unaffected.
-ROOT_GROUP = Collection.ROOT
-FOLDER_GROUP = Collection.FOLDER
-STORY_ARC_GROUP = Collection.ARC
-COMIC_GROUP = Collection.COMIC
-GROUP_NAME_MAP = MappingProxyType(
+# ``group == ROOT_COLLECTION`` checks are unaffected.
+ROOT_COLLECTION = Collection.ROOT
+FOLDER_COLLECTION = Collection.FOLDER
+STORY_ARC_COLLECTION = Collection.ARC
+COMIC_COLLECTION = Collection.COMIC
+COLLECTION_NAME_MAP = MappingProxyType(
     {
         Collection.PUBLISHER: "publisher",
         Collection.IMPRINT: "imprint",
@@ -60,9 +60,9 @@ GROUP_NAME_MAP = MappingProxyType(
 STATIC_IMG_PATH = CODEX_PATH / "static/img"
 MISSING_COVER_NAME_MAP = MappingProxyType(
     {
-        **GROUP_NAME_MAP,
-        FOLDER_GROUP: "folder",
-        STORY_ARC_GROUP: "story-arc",
+        **COLLECTION_NAME_MAP,
+        FOLDER_COLLECTION: "folder",
+        STORY_ARC_COLLECTION: "story-arc",
     }
 )
 MISSING_COVER_FN = "comic-165.webp"
@@ -72,44 +72,48 @@ MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 # but lookups come in as their collection-value string (Collection is a StrEnum, so
 # both resolve to the same bucket). The explicit annotation lets str-typed
 # group values index these maps without a type error.
-GROUP_RELATION: MappingProxyType[str, str] = MappingProxyType(
+COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
-        **GROUP_NAME_MAP,
-        COMIC_GROUP: "pk",
-        FOLDER_GROUP: "parent_folder",
-        STORY_ARC_GROUP: "story_arc_numbers__story_arc",
+        **COLLECTION_NAME_MAP,
+        COMIC_COLLECTION: "pk",
+        FOLDER_COLLECTION: "parent_folder",
+        STORY_ARC_COLLECTION: "story_arc_numbers__story_arc",
     }
 )
-FILTER_ONLY_GROUP_RELATION: MappingProxyType[str, str] = MappingProxyType(
+FILTER_ONLY_COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
-        **GROUP_RELATION,
-        FOLDER_GROUP: "folders",
+        **COLLECTION_RELATION,
+        FOLDER_COLLECTION: "folders",
     }
 )
-METADATA_GROUP_RELATION = MappingProxyType(
+METADATA_COLLECTION_RELATION = MappingProxyType(
     {
-        **GROUP_NAME_MAP,
-        COMIC_GROUP: "comic",
-        FOLDER_GROUP: "comic__folders",
-        STORY_ARC_GROUP: "comic__story_arc_numbers__story_arc",
+        **COLLECTION_NAME_MAP,
+        COMIC_COLLECTION: "comic",
+        FOLDER_COLLECTION: "comic__folders",
+        STORY_ARC_COLLECTION: "comic__story_arc_numbers__story_arc",
     }
 )
-CUSTOM_COVER_GROUP_RELATION = MappingProxyType(
-    {**GROUP_NAME_MAP, FOLDER_GROUP: "folder", STORY_ARC_GROUP: "storyarc"}
+CUSTOM_COVER_COLLECTION_RELATION = MappingProxyType(
+    {
+        **COLLECTION_NAME_MAP,
+        FOLDER_COLLECTION: "folder",
+        STORY_ARC_COLLECTION: "storyarc",
+    }
 )
 # Publisher-hierarchy nav ordering (root → volume), used for the
 # membership / index checks in browser settings validation. A tuple of
-# Collection members (collection-valued) so ``group in GROUP_ORDER`` and
-# ``GROUP_ORDER.index(group)`` resolve against the engine's collection
+# Collection members (collection-valued) so ``group in COLLECTION_ORDER`` and
+# ``COLLECTION_ORDER.index(group)`` resolve against the engine's collection
 # values (members compare equal to their value).
-GROUP_ORDER = (
+COLLECTION_ORDER = (
     Collection.ROOT,
     Collection.PUBLISHER,
     Collection.IMPRINT,
     Collection.SERIES,
     Collection.VOLUME,
 )
-MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType(
+MODEL_REL_MAP: MappingProxyType[type[BrowserCollectionModel], str] = MappingProxyType(
     {
         Publisher: "publisher",
         Imprint: "imprint",
@@ -120,7 +124,7 @@ MODEL_REL_MAP: MappingProxyType[type[BrowserGroupModel], str] = MappingProxyType
         Comic: "pk",
     }
 )
-GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
+COLLECTION_MODEL_MAP: MappingProxyType[str, type[BrowserCollectionModel] | None] = (
     MappingProxyType(
         {
             Collection.ROOT: None,
@@ -134,7 +138,7 @@ GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
         }
     )
 )
-GROUP_MODELS = (
+COLLECTION_MODELS = (
     Publisher,
     Imprint,
     Series,
@@ -142,8 +146,8 @@ GROUP_MODELS = (
     Folder,
     StoryArc,
 )
-STATS_GROUP_MODELS = (
-    *GROUP_MODELS,
+STATS_COLLECTION_MODELS = (
+    *COLLECTION_MODELS,
     Comic,
 )
 METADATA_MODELS = (
@@ -174,7 +178,7 @@ CONFIG_MODELS = (
     AuthGroup,
     Session,
 )
-GROUP_MTIME_MODEL_MAP = MappingProxyType(
+COLLECTION_MTIME_MODEL_MAP = MappingProxyType(
     {Collection.ROOT: Publisher, Collection.ARC: StoryArc, Collection.FOLDER: Folder}
 )
 EPOCH_START = datetime.fromtimestamp(0, tz=UTC)

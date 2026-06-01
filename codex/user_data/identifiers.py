@@ -97,7 +97,7 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 
 
 # Per-group part extractors. Keys are the collection values from
-# :data:`codex.models.favorite.FAVORITE_MODEL_GROUP_CODES` (a ``Collection``
+# :data:`codex.models.favorite.FAVORITE_MODEL_COLLECTIONS` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
 # identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to

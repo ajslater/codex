@@ -11,7 +11,7 @@ from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
 from codex.models.comic import Comic
 from codex.models.groups import (
-    BrowserGroupModel,
+    BrowserCollectionModel,
     Folder,
     Imprint,
     Publisher,
@@ -147,7 +147,7 @@ FTS_UPDATED_M2MS = "fts_updated_m2ms"
 #######
 # M2M #
 #######
-GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] = (
+GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserCollectionModel], str | None] = (
     MappingProxyType(
         {
             Publisher: None,
@@ -198,7 +198,7 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.many_to_one
     and field.name != "library"
     and field.related_model
-    and not issubclass(field.related_model, BrowserGroupModel)
+    and not issubclass(field.related_model, BrowserCollectionModel)
 )
 GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
 GROUP_FIELD_NAMES_SET = frozenset(GROUP_FIELD_NAMES)

@@ -3,7 +3,7 @@
 from types import MappingProxyType
 
 from codex.collection import Collection
-from codex.models import BrowserGroupModel, Comic
+from codex.models import BrowserCollectionModel, Comic
 from codex.models.age_rating import AgeRating
 from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
 from codex.models.identifier import Identifier
@@ -47,7 +47,7 @@ SUM_FIELDS = frozenset({"page_count", "size"})
 #########
 _CREDIT_ONLY = ("role", "person")
 _CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
-GROUP_MODELS: MappingProxyType[str, tuple[type[BrowserGroupModel], ...]] = (
+COLLECTION_MODELS: MappingProxyType[str, tuple[type[BrowserCollectionModel], ...]] = (
     MappingProxyType(
         {
             Collection.IMPRINT: (Publisher,),

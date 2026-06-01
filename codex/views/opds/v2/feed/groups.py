@@ -8,7 +8,7 @@ from codex.collection import Collection
 from codex.models.comic import Comic
 from codex.models.favorite import Favorite
 from codex.models.groups import (
-    BrowserGroupModel,
+    BrowserCollectionModel,
     Folder,
     Imprint,
     Publisher,
@@ -55,7 +55,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
     #########
 
     def _create_link_kwargs(
-        self, link_spec: Link | BrowserGroupModel
+        self, link_spec: Link | BrowserCollectionModel
     ) -> dict[str, Any] | dict:
         """Create link kwargs."""
         if isinstance(link_spec, Link):
@@ -71,7 +71,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
     @staticmethod
     def _create_link_query_params(
-        link_spec: Link | BrowserGroupModel, kwargs: Mapping
+        link_spec: Link | BrowserCollectionModel, kwargs: Mapping
     ) -> Mapping | None:
         """Create link query params."""
         if not isinstance(link_spec, Link | StoryArc):
@@ -91,7 +91,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
     def _create_links_from_link_spec(
         self,
-        link_spec: Link | BrowserGroupModel,
+        link_spec: Link | BrowserCollectionModel,
         link_dict: Mapping,
     ) -> None:
         if not self.is_allowed(link_spec):

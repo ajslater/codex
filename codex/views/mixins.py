@@ -10,12 +10,12 @@ from codex.librarian.bookmark.tasks import UserActiveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models.comic import Comic
 from codex.models.groups import Imprint, Volume
-from codex.views.const import COMIC_GROUP, GROUP_NAME_MAP
+from codex.views.const import COLLECTION_NAME_MAP, COMIC_COLLECTION
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-_SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
+_SHOW_GROUPS = tuple(COLLECTION_NAME_MAP.keys())
 _GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
@@ -42,7 +42,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
     def _get_order_groups(cls, parent_group, pks, show) -> tuple:
         """Annotate sort_name."""
         order_groups = ()
-        if parent_group != COMIC_GROUP:
+        if parent_group != COMIC_COLLECTION:
             for index, nav_group in enumerate(_SHOW_GROUPS):
                 order_groups, do_break = cls._get_order_group(
                     nav_group, show, parent_group, index, pks, order_groups
@@ -60,7 +60,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         if model is Comic:
             order_groups = cls._get_order_groups(parent_group, pks, show)
             for order_group in order_groups:
-                group_name = GROUP_NAME_MAP[order_group]
+                group_name = COLLECTION_NAME_MAP[order_group]
                 ann_name = f"{group_name}_sort_name"
                 name_field = "name" if group_name == "volume" else "sort_name"
                 sort_name = F(f"{group_name}__{name_field}")

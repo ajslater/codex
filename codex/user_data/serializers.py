@@ -152,10 +152,10 @@ def serialize_favorite(
     Resolution may fail (target deleted between signal queue and write) —
     return ``None`` to skip rather than crash.
     """
-    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
+    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
 
     target_model = None
-    for model, code in FAVORITE_MODEL_GROUP_CODES.items():
+    for model, code in FAVORITE_MODEL_COLLECTIONS.items():
         if code == favorite.group:
             target_model = model
             break
@@ -302,10 +302,10 @@ def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
     if group == Collection.ROOT:
         # Root pseudo-group — no PKs to resolve.
         return []
-    from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES
+    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
 
     target_model = None
-    for model, code in FAVORITE_MODEL_GROUP_CODES.items():
+    for model, code in FAVORITE_MODEL_COLLECTIONS.items():
         if code == group:
             target_model = model
             break

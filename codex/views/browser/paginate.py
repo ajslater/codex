@@ -8,7 +8,7 @@ from loguru import logger
 
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
-from codex.views.const import FOLDER_GROUP
+from codex.views.const import FOLDER_COLLECTION
 
 
 class BrowserPaginateView(BrowserPageInBoundsView):
@@ -29,7 +29,9 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         if not total_count:
             return qs.model.objects.none(), 0
         orphans = (
-            0 if self.model_group == FOLDER_GROUP or self.params.get("search") else 5
+            0
+            if self.model_group == FOLDER_COLLECTION or self.params.get("search")
+            else 5
         )
         paginator = Paginator(qs, get_browser_max_obj_per_page(), orphans=orphans)
         # Shadow the @cached_property with the pre-computed total so
@@ -40,7 +42,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             qs = paginator_page.object_list
             count = paginator_page.end_index() - paginator_page.start_index() + 1
         except EmptyPage:
-            if self.model_group != FOLDER_GROUP:
+            if self.model_group != FOLDER_COLLECTION:
                 model_name = qs.model.__name__ if qs.model else "UnknownGroup"
                 logger.warning(f"No {model_name}s on page {page}")
             qs = qs.model.objects.none()

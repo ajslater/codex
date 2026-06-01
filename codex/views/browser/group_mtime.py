@@ -23,7 +23,7 @@ _PAGE_MTIME_CACHE_MISS = object()
 _PAGE_MTIME_NONE_SENTINEL = "none"
 
 
-class BrowserGroupMtimeView(BrowserFilterView):
+class BrowserCollectionMtimeView(BrowserFilterView):
     """Annotations that also filter."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -149,7 +149,7 @@ class BrowserGroupMtimeView(BrowserFilterView):
         # frontend's ``loadMtimes`` shortcut sees an unchanged value
         # after a COVERS broadcast and never triggers the page reload.
         # ``model.custom_cover`` is the (inherited) FK on every
-        # ``BrowserGroupModel`` subclass; ``Comic`` is the only model
+        # ``BrowserCollectionModel`` subclass; ``Comic`` is the only model
         # we route through this view that lacks it.
         agg_terms = [mua, mbua]
         if any(f.name == "custom_cover" for f in model._meta.get_fields()):

@@ -32,10 +32,10 @@ from codex.views.browser.order_by import (
     comic_order_path,
 )
 from codex.views.const import (
-    COMIC_GROUP,
-    FOLDER_GROUP,
+    COMIC_COLLECTION,
+    FOLDER_COLLECTION,
     NONE_INTEGERFIELD,
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
 
@@ -116,7 +116,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def opds_acquisition_groups(self):
         """Memoize the opds acquisition groups."""
         if self._opds_acquisition_groups is None:
-            groups = {STORY_ARC_GROUP, FOLDER_GROUP, COMIC_GROUP}
+            groups = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
             groups |= {*self.valid_nav_groups[-2:]}
             self._opds_acquisition_groups = frozenset(groups)
         return self._opds_acquisition_groups
@@ -129,7 +129,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             if is_opds_acquisition:
                 group = self.kwargs.get("group")
                 is_opds_acquisition &= group in self.opds_acquisition_groups
-                if is_opds_acquisition and group == STORY_ARC_GROUP:
+                if is_opds_acquisition and group == STORY_ARC_COLLECTION:
                     pks = self.kwargs["pks"]
                     is_opds_acquisition &= bool(pks and 0 not in pks)
             self._is_opds_acquisition = is_opds_acquisition
@@ -194,7 +194,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Get story_arc__pk
         group = self.kwargs["group"]
         pks = self.kwargs["pks"]
-        if group == STORY_ARC_GROUP and pks:
+        if group == STORY_ARC_COLLECTION and pks:
             story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())

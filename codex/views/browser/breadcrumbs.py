@@ -7,7 +7,7 @@ from django.db.models import QuerySet
 
 from codex.collection import Collection
 from codex.models import (
-    BrowserGroupModel,
+    BrowserCollectionModel,
     Comic,
     Imprint,
     Series,
@@ -16,9 +16,9 @@ from codex.models import (
 from codex.models.groups import Publisher
 from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
-    FOLDER_GROUP,
-    GROUP_MODEL_MAP,
-    STORY_ARC_GROUP,
+    COLLECTION_MODEL_MAP,
+    FOLDER_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.util import Route
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from codex.models.groups import Folder
 
 _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
-    type[BrowserGroupModel], tuple[str, ...]
+    type[BrowserCollectionModel], tuple[str, ...]
 ] = MappingProxyType(
     {
         Comic: ("series", "volume"),
@@ -65,7 +65,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         # Use 0 to indicate unmemoized because None is a valid value
-        self._group_instance: BrowserGroupModel | None | int = 0
+        self._group_instance: BrowserCollectionModel | None | int = 0
 
     def _get_group_query(self, model):
         """Get the group query for the group instance."""
@@ -90,11 +90,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         return model.objects.none()
 
     @property
-    def group_instance(self) -> BrowserGroupModel | None:
+    def group_instance(self) -> BrowserCollectionModel | None:
         """Memoize group instance for getting group names & counts."""
         if self._group_instance == 0:
             group = self.kwargs.get("group")
-            model = GROUP_MODEL_MAP[group]
+            model = COLLECTION_MODEL_MAP[group]
             pks = self.kwargs.get("pks")
             if model and pks and 0 not in pks:
                 try:
@@ -109,7 +109,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         # ``_group_instance`` carries an ``int`` sentinel (``0``) for the
         # unmemoized state; by this point it's been resolved to a real
         # model row or ``None``.
-        return cast("BrowserGroupModel | None", self._group_instance)
+        return cast("BrowserCollectionModel | None", self._group_instance)
 
     def _build_group_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse group mode by walking FK parents."""
@@ -145,20 +145,20 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
         # In folder mode ``group_instance`` is a Folder (or None) by
-        # construction — the caller branches on ``group == FOLDER_GROUP``.
+        # construction — the caller branches on ``group == FOLDER_COLLECTION``.
         folder = cast("Folder | None", self.group_instance)
         name = folder.name if folder and pks else ""
 
-        crumbs: list[Route] = [Route(FOLDER_GROUP, pks, page, name)]
+        crumbs: list[Route] = [Route(FOLDER_COLLECTION, pks, page, name)]
 
         # Walk up the parent_folder chain
         while folder and (parent := folder.parent_folder):
             folder = parent
-            crumbs.append(Route(FOLDER_GROUP, (folder.pk,), 1, folder.name))
+            crumbs.append(Route(FOLDER_COLLECTION, (folder.pk,), 1, folder.name))
 
         # Add folder root if not already there
         if crumbs[-1].pks:
-            crumbs.append(Route(FOLDER_GROUP, (), 1, ""))
+            crumbs.append(Route(FOLDER_COLLECTION, (), 1, ""))
 
         crumbs.reverse()
         return tuple(crumbs)
@@ -170,19 +170,19 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         gi = self.group_instance
         name = gi.name if gi else ""
 
-        crumbs: list[Route] = [Route(STORY_ARC_GROUP, pks, page, name)]
+        crumbs: list[Route] = [Route(STORY_ARC_COLLECTION, pks, page, name)]
 
         # Add story arc root if viewing a specific arc
         if pks and 0 not in pks:
-            crumbs.insert(0, Route(STORY_ARC_GROUP, (), 1, ""))
+            crumbs.insert(0, Route(STORY_ARC_COLLECTION, (), 1, ""))
 
         return tuple(crumbs)
 
     def get_breadcrumbs(self) -> tuple[Route, ...]:
         """Compute breadcrumbs by browser mode from FK hierarchy."""
         group = self.kwargs["group"]
-        if group == FOLDER_GROUP:
+        if group == FOLDER_COLLECTION:
             return self._build_folder_breadcrumbs()
-        if group == STORY_ARC_GROUP:
+        if group == STORY_ARC_COLLECTION:
             return self._build_story_arc_breadcrumbs()
         return self._build_group_breadcrumbs()

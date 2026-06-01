@@ -26,7 +26,7 @@ from codex.models.settings import (
     SettingsReader,
 )
 from codex.views.auth import AuthFilterGenericAPIView
-from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
+from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
 # Fallback top-group when the BG flag row is missing, off, or holds
 # an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
@@ -386,9 +386,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             # order_by has a dynamic group based default
             order_by = (
                 "filename"
-                if group == FOLDER_GROUP
+                if group == FOLDER_COLLECTION
                 else "story_arc_number"
-                if group == STORY_ARC_GROUP
+                if group == STORY_ARC_COLLECTION
                 else "sort_name"
             )
             order_defaults = {"order_by": order_by}

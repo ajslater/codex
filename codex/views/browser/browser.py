@@ -31,9 +31,9 @@ from codex.views.browser.columns import (
 from codex.views.browser.intersections import compute_group_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
-    COMIC_GROUP,
-    FOLDER_GROUP,
-    STORY_ARC_GROUP,
+    COMIC_COLLECTION,
+    FOLDER_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 
 _LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
@@ -92,14 +92,14 @@ class BrowserView(BrowserTitleView):
         #   the child of the current nav group or 'c'
         if not self._model_group:
             group = self.kwargs["group"]
-            if group == FOLDER_GROUP:
+            if group == FOLDER_COLLECTION:
                 self._model_group = group
-            elif group == STORY_ARC_GROUP:
+            elif group == STORY_ARC_COLLECTION:
                 pks = self.kwargs.get("pks")
-                self._model_group = COMIC_GROUP if pks else group
-            elif group == self.valid_nav_groups[-1] or group == COMIC_GROUP:
+                self._model_group = COMIC_COLLECTION if pks else group
+            elif group == self.valid_nav_groups[-1] or group == COMIC_COLLECTION:
                 # special case for lowest valid group
-                self._model_group = COMIC_GROUP
+                self._model_group = COMIC_COLLECTION
             else:
                 self._model_group = self.valid_nav_groups[
                     self.valid_nav_groups.index(group) + 1

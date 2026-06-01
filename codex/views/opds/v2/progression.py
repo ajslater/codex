@@ -23,7 +23,7 @@ from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
-from codex.views.const import GROUP_MODEL_MAP
+from codex.views.const import COLLECTION_MODEL_MAP
 from codex.views.exceptions import NoContent
 from codex.views.opds.auth import OPDSAuthMixin
 from codex.views.opds.v2.const import HrefData
@@ -149,7 +149,7 @@ class OPDS2ProgressionView(
             reason = f"Bad primary key for {group}:{pk}"
             raise ValidationError(reason, code="422")
 
-        model = GROUP_MODEL_MAP.get(group)
+        model = COLLECTION_MODEL_MAP.get(group)
         if not model:
             reason = f"No model found for group {group}"
             raise ValidationError(reason, code="422")

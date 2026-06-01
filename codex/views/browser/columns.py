@@ -25,7 +25,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
-from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
@@ -291,7 +291,7 @@ def favorite_annotation_for(model, user) -> dict:
       the table-view caller passes a known model so this branch is
       rare in practice.
     """
-    group_code = FAVORITE_MODEL_GROUP_CODES.get(model)
+    group_code = FAVORITE_MODEL_COLLECTIONS.get(model)
     if group_code is None:
         return {}
     if not user or not user.is_authenticated:

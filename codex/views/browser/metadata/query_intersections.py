@@ -7,13 +7,13 @@ from codex.librarian.scribe.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIE
 from codex.models import Comic
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
 from codex.views.browser.metadata.const import (
+    COLLECTION_MODELS,
     COMIC_MAIN_FIELD_NAME_BACK_REL_MAP,
     FK_QUERY_OPTIMIZERS,
-    GROUP_MODELS,
     M2M_QUERY_OPTIMIZERS,
 )
 from codex.views.browser.metadata.group_list import annotate_group_list
-from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
+from codex.views.const import METADATA_COLLECTION_RELATION, MODEL_REL_MAP
 
 
 class MetadataQueryIntersectionsView(MetadataAnnotateView):
@@ -25,14 +25,14 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         if not self.model:
             return groups
         group = self.kwargs["group"]
-        rel = METADATA_GROUP_RELATION.get(group)
+        rel = METADATA_COLLECTION_RELATION.get(group)
         if not rel:
             return groups
         rel = rel + "__in"
         pks = self.kwargs["pks"]
         group_filter = {rel: pks}
 
-        for model in GROUP_MODELS.get(group, ()):
+        for model in COLLECTION_MODELS.get(group, ()):
             field_name = MODEL_REL_MAP[model]
             qs = model.objects.filter(**group_filter)
             groups[field_name] = annotate_group_list(qs)

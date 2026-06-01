@@ -7,11 +7,11 @@ from rest_framework.serializers import BaseSerializer
 from codex.models.groups import Publisher
 from codex.serializers.browser.mtime import GroupsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
-from codex.views.browser.group_mtime import BrowserGroupMtimeView
-from codex.views.const import GROUP_MODEL_MAP
+from codex.views.browser.group_mtime import BrowserCollectionMtimeView
+from codex.views.const import COLLECTION_MODEL_MAP
 
 
-class MtimeView(BrowserGroupMtimeView):
+class MtimeView(BrowserCollectionMtimeView):
     """Get the mtimes for the submitted groups."""
 
     input_serializer_class: type[GroupsMtimeSerializer] = GroupsMtimeSerializer  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -24,7 +24,7 @@ class MtimeView(BrowserGroupMtimeView):
         group = item["group"]
         pks = item["pks"]
 
-        model = GROUP_MODEL_MAP[group]
+        model = COLLECTION_MODEL_MAP[group]
         if not model:
             model = Publisher
 

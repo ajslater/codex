@@ -15,7 +15,7 @@ from codex.models import (
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
-from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
+from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_COLLECTION_MODELS
 
 # Cap on per-call session decodes for the anonymous-session estimate.
 # ``Session.get_decoded()`` runs HMAC + JSON parse per row; on installs
@@ -26,7 +26,7 @@ _SESSION_SAMPLE_LIMIT: Final = 100
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,
-        "groups": STATS_GROUP_MODELS,
+        "groups": STATS_COLLECTION_MODELS,
         "metadata": METADATA_MODELS,
     }
 )

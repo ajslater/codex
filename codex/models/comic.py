@@ -48,7 +48,7 @@ from codex.models.groups import (
     Publisher,
     Series,
     Volume,
-    WatchedPathBrowserGroup,
+    WatchedPathBrowserCollection,
 )
 from codex.models.identifier import Identifier
 from codex.models.named import (
@@ -72,7 +72,7 @@ from codex.models.named import (
 __all__ = ("Comic",)
 
 
-class Comic(WatchedPathBrowserGroup):
+class Comic(WatchedPathBrowserCollection):
     """Comic metadata."""
 
     _ORDERING = (
@@ -227,7 +227,7 @@ class Comic(WatchedPathBrowserGroup):
     # Not useful
     custom_cover: ForeignKey | None = None
 
-    class Meta(WatchedPathBrowserGroup.Meta):
+    class Meta(WatchedPathBrowserCollection.Meta):
         """Constraints."""
 
         verbose_name = "Issue"
