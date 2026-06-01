@@ -62,22 +62,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "year": "Year",
     }
 )
-_GROUP_NAMES = MappingProxyType(
-    {
-        "p": "Publishers",
-        "i": "Imprints",
-        "s": "Series",
-        "v": "Volumes",
-    }
-)
-BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
-    {
-        **_GROUP_NAMES,
-        "c": "Issues",
-        "f": "Folders",
-        "a": "Story Arcs",
-    },
-)
 # Subset of order-by keys that make sense in cover view's dropdown.
 # The full enum (33 keys) is needed for the table view's header-click
 # sorting, but most of the table-only additions (reading_direction,
@@ -120,12 +104,6 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     }
 )
 
-# The char-keyed choices above are residual scaffolding: every live surface —
-# the model fields, the engine, the serializer route/top-group fields, AND the
-# frontend choices-JSON export — now speaks the collection vocabulary via the
-# ``*_COLLECTION_CHOICES`` variants below. The char maps are slated for removal
-# with the deferred dual-dialect RouteSerializer collapse.
-BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
 _GROUP_COLLECTION_NAMES = MappingProxyType(
     {
         "publishers": "Publishers",
