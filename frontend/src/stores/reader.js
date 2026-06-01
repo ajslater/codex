@@ -85,7 +85,7 @@ const ROUTES_NULL = Object.freeze({
   close: undefined,
 });
 const DEFAULT_ARC = Object.freeze({
-  group: "s",
+  group: "series",
   ids: [],
 });
 
@@ -122,7 +122,7 @@ export const useReaderStore = defineStore("reader", {
     intermediateInfo: null,
     books: structuredClone(BOOKS_NULL),
     arcs: {},
-    arc: { group: "s", ids: [] },
+    arc: { group: "series", ids: [] },
     mtime: 0,
 
     // local reader
@@ -156,7 +156,7 @@ export const useReaderStore = defineStore("reader", {
       const book = state.books.current;
       let title;
       if (book) {
-        if (state.arc?.group != "f") {
+        if (state.arc?.group != "folders") {
           title = getFullComicName(book);
         }
         if (!title) {
@@ -516,9 +516,9 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadGlobalSettings() {
-      READER_API.getSettings(null, ["g"])
+      READER_API.getSettings(null, ["global"])
         .then((response) => {
-          const data = response.data?.scopes?.g;
+          const data = response.data?.scopes?.global;
           if (data) {
             this._applyGlobalSettings(data);
           }
@@ -624,7 +624,7 @@ export const useReaderStore = defineStore("reader", {
          * earlier ``{ r: "0" }`` was a typo that itself returned
          * 500 from the API, so the fallback never actually worked.
          */
-        arcs.push({ group: "r", pks: "0" });
+        arcs.push({ group: "root", pks: "0" });
       }
       /*
        * Dedup so concurrent callers (websocket fan-out across the
@@ -650,7 +650,7 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", ids: [+this.books.current.pk] };
+      const groupParams = { group: "comics", ids: [+this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       if (
@@ -670,7 +670,7 @@ export const useReaderStore = defineStore("reader", {
       const pk = +this.books.current.pk;
       const payload = {
         ...newBookSettings,
-        scope: "c",
+        scope: "comics",
         scopePk: pk,
       };
       await READER_API.updateSettings(payload)
@@ -689,7 +689,7 @@ export const useReaderStore = defineStore("reader", {
     async clearComicSettings() {
       const pk = +this.books?.current?.pk;
       if (!pk) return;
-      await READER_API.resetSettings({ scope: "c", scopePk: pk })
+      await READER_API.resetSettings({ scope: "comics", scopePk: pk })
         .then(() => {
           this.$patch((state) => {
             if (state.books.current) {
@@ -702,7 +702,7 @@ export const useReaderStore = defineStore("reader", {
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
-      if (this.arc?.group === "a" && this.arc?.ids?.length) {
+      if (this.arc?.group === "arcs" && this.arc?.ids?.length) {
         return this.arc.ids[0];
       }
       return null;
@@ -711,22 +711,28 @@ export const useReaderStore = defineStore("reader", {
       if (!pk) {
         return;
       }
-      const arcGroup = this.arc?.group || "s";
+      const arcGroup = this.arc?.group || "series";
       const storyArcPk = this._getStoryArcPk();
-      await READER_API.getSettings(pk, ["g", arcGroup, "c"], storyArcPk)
+      await READER_API.getSettings(
+        pk,
+        ["global", arcGroup, "comics"],
+        storyArcPk,
+      )
         .then((response) => {
           const data = response.data;
           const scopes = data.scopes || {};
           const scopeInfo = data.scopeInfo || {};
 
           // Determine the canonical intermediate scope key.
-          const intermediateKey = ["s", "f", "a"].find((k) => k in scopes);
+          const intermediateKey = ["series", "folders", "arcs"].find(
+            (k) => k in scopes,
+          );
 
           this.$patch((state) => {
-            if (scopes.g) {
+            if (scopes.global) {
               state.globalSettings = {
                 ...state.globalSettings,
-                ...scopes.g,
+                ...scopes.global,
               };
             }
             state.intermediateSettings =
@@ -739,8 +745,8 @@ export const useReaderStore = defineStore("reader", {
                     name: scopeInfo[intermediateKey].name,
                   }
                 : null;
-            if (scopes.c && state.books.current) {
-              state.books.current.settings = scopes.c;
+            if (scopes.comics && state.books.current) {
+              state.books.current.settings = scopes.comics;
             }
             state.bookSettings = {};
           });
@@ -785,7 +791,7 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async clearGlobalSettings() {
-      await READER_API.resetSettings({ scope: "g" })
+      await READER_API.resetSettings({ scope: "global" })
         .then((response) => {
           const data = response.data;
           this._applyGlobalSettings(data);
@@ -800,7 +806,7 @@ export const useReaderStore = defineStore("reader", {
       };
       const payload = {
         ...newGlobalSettings,
-        scope: "g",
+        scope: "global",
       };
       await READER_API.updateSettings(payload)
         .then((response) => {

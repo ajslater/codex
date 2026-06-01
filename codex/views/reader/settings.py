@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.reader import READER_DEFAULTS
+from codex.group import Group
 from codex.models import Comic, Folder, Series
 from codex.models.named import StoryArc
 from codex.models.settings import ClientChoices, SettingsReader
@@ -19,22 +20,24 @@ from codex.serializers.reader import (
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings import NULL_VALUES, SettingsBaseView
 
-# scope letter → (SettingsReader FK field, Comic FK for auto-resolve, Model for name)
-# "g" = global (no FK).  "c" = comic.
-# p/i/s/v all resolve to series scope.  "f" = folder.  "a" = story_arc.
-#
-_GLOBAL_SCOPE = "g"
-_COMIC_SCOPE = "c"
+# scope → (SettingsReader FK field, Comic FK for auto-resolve, Model for name).
+# Collection vocabulary now: "global" (reader-only, no FK), "comics" = per-comic.
+# publishers/imprints/series/volumes all resolve to the series scope;
+# "folders" and "arcs" are their own scopes.
+_GLOBAL_SCOPE = "global"
+_COMIC_SCOPE = Group.COMIC
+# Series-aliased scopes collapse to the canonical "series" scope in responses.
+_SERIES_ALIAS_SCOPES = frozenset({Group.PUBLISHER, Group.IMPRINT, Group.VOLUME})
 _SCOPE_MAP = MappingProxyType(
     {
         _GLOBAL_SCOPE: (None, None, None),
         _COMIC_SCOPE: ("comic_id", None, None),
-        "p": ("series_id", "series_id", Series),
-        "i": ("series_id", "series_id", Series),
-        "s": ("series_id", "series_id", Series),
-        "v": ("series_id", "series_id", Series),
-        "f": ("folder_id", "parent_folder_id", Folder),
-        "a": ("story_arc_id", None, StoryArc),
+        Group.PUBLISHER: ("series_id", "series_id", Series),
+        Group.IMPRINT: ("series_id", "series_id", Series),
+        Group.SERIES: ("series_id", "series_id", Series),
+        Group.VOLUME: ("series_id", "series_id", Series),
+        Group.FOLDER: ("folder_id", "parent_folder_id", Folder),
+        Group.ARC: ("story_arc_id", None, StoryArc),
     }
 )
 # Map comic_fk → (related_attr_on_comic, field_to_read_for_name).
@@ -136,14 +139,14 @@ class ReaderSettingsView(ReaderSettingsBaseView):
     Mounted at both ``c/settings`` (no comic context) and
     ``c/<int:pk>/settings`` (comic context available).
 
-    GET — request one or more scopes via ``?scopes=g,s,c``.
+    GET — request one or more scopes via ``?scopes=global,series,comics``.
           When *pk* is in the URL the view can auto-resolve
           intermediate scope pks from the comic.
-          ``?story_arc_pk=<id>`` is required for the *a* scope.
+          ``?story_arc_pk=<id>`` is required for the ``arcs`` scope.
 
-    PATCH — send ``scope`` (g/c/s/f/a) and, for every scope
-            except *g*, ``scope_pk`` together with the settings
-            fields to update.
+    PATCH — send ``scope`` (global/comics/series/folders/arcs) and, for
+            every scope except ``global``, ``scope_pk`` together with the
+            settings fields to update.
     """
 
     serializer_class: type[BaseSerializer] | None = ReaderScopedUpdateSerializer
@@ -157,7 +160,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         comic: Comic | None,
     ) -> int | None:
         """Return the scope pk for an intermediate scope, or None."""
-        if scope == "a":
+        if scope == Group.ARC:
             raw = self.request.GET.get("story_arc_pk")
             return int(raw) if raw else None
         if comic and comic_fk:
@@ -166,9 +169,9 @@ class ReaderSettingsView(ReaderSettingsBaseView):
 
     @staticmethod
     def _canonical_scope(scope: str) -> str:
-        """Normalise arc-group aliases (p/i/v) to their canonical scope letter."""
-        if scope in "piv":
-            return "s"
+        """Normalise arc-group aliases (publishers/imprints/volumes) → series."""
+        if scope in _SERIES_ALIAS_SCOPES:
+            return Group.SERIES
         return scope
 
     def _resolve_scope_name(

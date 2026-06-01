@@ -54,12 +54,12 @@ import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const ARC_ICONS = {
-  a: mdiRedo,
-  f: mdiFolderOutline,
-  p: mdiChessRook,
-  i: mdiFeather,
-  s: mdiBookshelf,
-  v: mdiBookMultiple,
+  arcs: mdiRedo,
+  folders: mdiFolderOutline,
+  publishers: mdiChessRook,
+  imprints: mdiFeather,
+  series: mdiBookshelf,
+  volumes: mdiBookMultiple,
 };
 
 export default {
@@ -85,7 +85,7 @@ export default {
       for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
           let subtitle = Reflect.get(TOP_GROUP, group);
-          if (group !== "s") {
+          if (group !== "series") {
             subtitle = subtitle.slice(0, -1);
           }
           const prependIcon = Reflect.get(ARC_ICONS, group);

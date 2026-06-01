@@ -1,11 +1,13 @@
 """Reader get Arcs methods."""
 
 from functools import cached_property
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db.models import Max
 
 from codex.choices.admin import AdminFlagChoices
+from codex.group import Group
 from codex.models import AdminFlag
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
@@ -19,7 +21,16 @@ from codex.views.reader.params import ReaderParamsView
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-_COMIC_ARC_FIELD_NAMES = ("series", "volume", "parent_folder")
+# Comic FK attribute → the browse group it represents as a reader arc.
+# Drives both the ``show`` gate and the ``arcs`` dict key (collection-valued).
+_COMIC_ARC_FIELD_GROUPS = MappingProxyType(
+    {
+        "series": Group.SERIES,
+        "volume": Group.VOLUME,
+        "parent_folder": Group.FOLDER,
+    }
+)
+_COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_GROUPS)
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -33,14 +44,14 @@ class ReaderArcsView(ReaderParamsView):
         show: Mapping = self.get_from_settings("show", browser=True) or {}
         folder_view_allowed: bool = self._reader_folder_view_enabled
         field_names = []
-        for field_name in _COMIC_ARC_FIELD_NAMES:
+        for field_name, group in _COMIC_ARC_FIELD_GROUPS.items():
             if field_name == "parent_folder":
                 if not folder_view_allowed:
                     continue
-            else:
-                group = field_name[0]
-                if not show.get(group):
-                    continue
+            elif not show.get(group):
+                # ``show`` is keyed by collection name now (publishers/…);
+                # ``group`` is the matching ``Group`` member.
+                continue
             field_names.append(field_name)
         return tuple(field_names)
 
@@ -73,8 +84,8 @@ class ReaderArcsView(ReaderParamsView):
         mtime = group.updated_at
         max_mtime = max_none(max_mtime, mtime)
 
-        group_letter = "f" if field_name == "parent_folder" else field_name[0]
-        arcs[group_letter] = {arc_ids: {"name": group.name, "mtime": mtime}}
+        arc_group = _COMIC_ARC_FIELD_GROUPS[field_name]
+        arcs[arc_group] = {arc_ids: {"name": group.name, "mtime": mtime}}
         return max_mtime
 
     def _get_story_arcs(self, comic: Comic, arcs, max_mtime: int | None):

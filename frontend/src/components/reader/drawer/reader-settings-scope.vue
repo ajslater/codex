@@ -77,9 +77,9 @@ const ATTRS = Object.freeze([
 ]);
 
 const SCOPE_TYPE_TITLES = Object.freeze({
-  s: "Series Settings",
-  f: "Folder Settings",
-  a: "Story Arc Settings",
+  series: "Series Settings",
+  folders: "Folder Settings",
+  arcs: "Story Arc Settings",
 });
 
 /*
