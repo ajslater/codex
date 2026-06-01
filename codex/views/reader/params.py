@@ -29,7 +29,7 @@ class ReaderParamsView(ReaderSettingsBaseView):
 
     def _ensure_arc_group(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
-        group = arc.get("group", "")
+        group = arc.get("collection", "")
         if not group:
             top_collection: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
                 "top_collection", browser=True
@@ -41,7 +41,7 @@ class ReaderParamsView(ReaderSettingsBaseView):
             )
         if group not in VALID_ARC_COLLECTIONS:
             group = Collection.SERIES
-        params["arc"]["group"] = group
+        params["arc"]["collection"] = group
 
     @staticmethod
     def _ensure_arc_ids(params: dict[str, Any]) -> None:

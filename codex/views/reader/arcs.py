@@ -118,7 +118,7 @@ class ReaderArcsView(ReaderParamsView):
 
     def _set_selected_arc(self, arcs) -> None:
         arc = self.params["arc"]
-        arc_group = arc["group"]
+        arc_group = arc["collection"]
         requested_arc_ids = arc.get("ids", ())
         arc_id_infos = arcs.get(arc_group)
         all_arc_ids: frozenset[tuple[int, ...]] = (

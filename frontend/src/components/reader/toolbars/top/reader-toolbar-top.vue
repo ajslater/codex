@@ -132,7 +132,7 @@ export default {
     },
     metadataBook() {
       const book = { ...this.currentBook };
-      book.group = "comics";
+      book.collection = "comics";
       book.childCount = 0;
       return book;
     },

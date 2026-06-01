@@ -27,7 +27,7 @@
     </template>
     <template #selection="{ props }">
       <v-icon
-        :icon="prependIcon(arc.group)"
+        :icon="prependIcon(arc.collection)"
         size="large"
         v-bind="props"
         class="arcSelectIcon"
@@ -90,7 +90,9 @@ export default {
           }
           const prependIcon = Reflect.get(ARC_ICONS, group);
           const appendIcon =
-            group === this.arc?.group && ids == this.arc?.ids ? mdiCheck : "";
+            group === this.arc?.collection && ids == this.arc?.ids
+              ? mdiCheck
+              : "";
           const value = { group, ids, prependIcon, ...arcInfo };
           const item = {
             group,
@@ -109,21 +111,21 @@ export default {
       if (!this.arcs || !this.arc) {
         return {};
       }
-      const arcIdsInfo = this.arcs[this.arc?.group];
+      const arcIdsInfo = this.arcs[this.arc?.collection];
       if (!arcIdsInfo) {
         return {};
       }
       return arcIdsInfo[this.arc?.ids];
     },
     arcIcon() {
-      return ARC_ICONS[this.arc?.group];
+      return ARC_ICONS[this.arc?.collection];
     },
   },
   methods: {
     ...mapActions(useReaderStore, ["loadBooks"]),
     onUpdate(item) {
       const arc = {
-        group: item.group,
+        collection: item.collection,
         ids: item.ids.split(",").map(Number),
       };
       this.loadBooks({ arc });

@@ -4,7 +4,7 @@ End-to-end reader vocabulary: arc-nav + settings-scope speak collection names.
 The reader was flipped off single-char codes onto the collection vocabulary
 (``series``/``volumes``/``folders``/``arcs`` for arcs;
 ``global``/``comics``/``series``/… for settings scopes). These pin the wire:
-the ``arcs`` map + selected ``arc.group`` are collection-keyed, the
+the ``arcs`` map + selected ``arc.collection`` are collection-keyed, the
 settings-scope GET/PATCH round-trip on collection scope names, and the
 ``p/i/v→series`` collapse + ``folders``/``arcs`` keys resolve. No reader tests
 existed before, which is why the earlier browser flip silently broke the
@@ -95,7 +95,7 @@ class ReaderVocabularyTestCase(TestCase):
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
     def test_reader_arcs_are_collection_keyed(self) -> None:
-        """The arcs map + selected arc.group use collection names, not chars."""
+        """The arcs map + selected arc.collection use collection names, not chars."""
         response = self.client.get(f"/api/v4/reader/comics/{self.comic.pk}")
         assert response.status_code == _HTTP_OK, response.content
         data = _v4(response)
@@ -105,7 +105,7 @@ class ReaderVocabularyTestCase(TestCase):
         assert set(data["arcs"]) == {"series", "volumes", "folders", "arcs"}
         assert not ({"s", "v", "f"} & set(data["arcs"]))
         # The selected arc group is a valid collection arc group.
-        assert data["arc"]["group"] in {"series", "volumes", "folders", "arcs"}
+        assert data["arc"]["collection"] in {"series", "volumes", "folders", "arcs"}
 
     def test_reader_settings_scopes_are_collection_keyed(self) -> None:
         """GET ?scopes=global,series,comics returns collection-keyed scopes."""

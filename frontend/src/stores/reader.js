@@ -85,7 +85,7 @@ const ROUTES_NULL = Object.freeze({
   close: undefined,
 });
 const DEFAULT_ARC = Object.freeze({
-  group: "series",
+  collection: "series",
   ids: [],
 });
 
@@ -122,7 +122,7 @@ export const useReaderStore = defineStore("reader", {
     intermediateInfo: null,
     books: structuredClone(BOOKS_NULL),
     arcs: {},
-    arc: { group: "series", ids: [] },
+    arc: { collection: "series", ids: [] },
     mtime: 0,
 
     // local reader
@@ -156,7 +156,7 @@ export const useReaderStore = defineStore("reader", {
       const book = state.books.current;
       let title;
       if (book) {
-        if (state.arc?.group != "folders") {
+        if (state.arc?.collection != "folders") {
           title = getFullComicName(book);
         }
         if (!title) {
@@ -702,7 +702,7 @@ export const useReaderStore = defineStore("reader", {
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
-      if (this.arc?.group === "arcs" && this.arc?.ids?.length) {
+      if (this.arc?.collection === "arcs" && this.arc?.ids?.length) {
         return this.arc.ids[0];
       }
       return null;
@@ -711,7 +711,7 @@ export const useReaderStore = defineStore("reader", {
       if (!pk) {
         return;
       }
-      const arcGroup = this.arc?.group || "series";
+      const arcGroup = this.arc?.collection || "series";
       const storyArcPk = this._getStoryArcPk();
       await READER_API.getSettings(
         pk,

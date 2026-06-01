@@ -73,7 +73,7 @@ class ReaderArcInfoSerializer(Serializer):
 class ReaderSelectedArcSerializer(Serializer):
     """And arc key serializer."""
 
-    group = ArcGroupField(required=False)
+    collection = ArcGroupField(required=False)
     ids = ListField(child=IntegerField(), required=False)
     index = IntegerField(read_only=True, required=False)
     count = IntegerField(read_only=True, required=False)
