@@ -32,12 +32,6 @@ COLLECTION_TO_GROUP = MappingProxyType(
 )
 
 
-class GroupConverter(StringConverter):
-    """Only accept valid browser groups."""
-
-    regex = r"[rpisvcfa]"
-
-
 class CollectionConverter(StringConverter):
     """Validate v4 collection segment (plural English collection name)."""
 

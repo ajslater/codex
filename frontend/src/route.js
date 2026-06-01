@@ -1,25 +1,6 @@
 /*
- * Group value -> v4 collection URL segment. The browser now speaks the
- * collection vocabulary, so this is mostly an identity map; the entries
- * that earn their keep are ``root`` (the synthetic top level resolves to
- * the publishers hierarchy) plus the legacy single-char codes, kept so a
- * still-char reader breadcrumb / arc value round-trips through here too.
- */
-const GROUP_TO_COLLECTION = Object.freeze({
-  root: "publishers",
-  r: "publishers",
-  p: "publishers",
-  i: "imprints",
-  s: "series",
-  v: "volumes",
-  c: "comics",
-  f: "folders",
-  a: "arcs",
-});
-
-/*
- * Normalize a pks value (array, or "5,7"/"0" string) to a clean array of
- * positive integer strings; the dummy 0 and empties drop out (root = []).
+ * Normalize a pks value (array, or "5,7" string) to a clean array of
+ * positive integer strings; empties drop out (root = []).
  */
 export const normalizeParentIds = (pks) => {
   if (pks === undefined || pks === null) return [];
@@ -33,9 +14,13 @@ export const normalizeParentIds = (pks) => {
   return ids;
 };
 
-/* {group, pks} -> v4 {collection, parentIds}. Idempotent for collection input. */
+/*
+ * {group, pks} -> v4 {collection, parentIds}. The whole app speaks the
+ * collection vocabulary now, so group *is* the collection — except the
+ * synthetic ``root``, which resolves to the publishers hierarchy.
+ */
 export const routeForGroup = ({ group, pks }) => ({
-  collection: GROUP_TO_COLLECTION[group] || group,
+  collection: group === "root" ? "publishers" : group,
   parentIds: normalizeParentIds(pks),
 });
 

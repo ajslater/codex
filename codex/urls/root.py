@@ -11,12 +11,10 @@ from django.views.generic.base import RedirectView
 from codex.settings import FEATURES
 from codex.urls.converters import (
     CollectionConverter,
-    GroupConverter,
     IntListConverter,
 )
 from codex.views.healthcheck import health_check_view
 
-register_converter(GroupConverter, "group")
 register_converter(IntListConverter, "int_list")
 register_converter(CollectionConverter, "collection")
 

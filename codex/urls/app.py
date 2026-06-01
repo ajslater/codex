@@ -30,8 +30,6 @@ urlpatterns = [
         cache_control(max_age=BOOK_AGE)(FileView.as_view()),
         name="reader_pdf",
     ),
-    # Legacy single-char routes, kept until the frontend flips to collections.
-    path("<group:group>/<int_list:pks>/<int:page>", IndexView.as_view(), name="route"),
     path(
         "c/<int:pk>/book.pdf",
         cache_control(max_age=BOOK_AGE)(FileView.as_view()),

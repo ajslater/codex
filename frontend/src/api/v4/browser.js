@@ -12,19 +12,9 @@ const APP_BASE = (() => globalThis.CODEX?.APP_PATH || "/")();
  * the parent-IDs segment entirely. Page is a query param, not a path
  * segment.
  */
-const GROUP_TO_COLLECTION = Object.freeze({
-  p: "publishers",
-  i: "imprints",
-  s: "series",
-  v: "volumes",
-  c: "comics",
-  f: "folders",
-  a: "arcs",
-  r: "publishers",
-  root: "publishers",
-});
-
-const _collection = (group) => GROUP_TO_COLLECTION[group] || group;
+// group is the collection value now; only the synthetic ``root`` resolves
+// to its top collection (publishers).
+const _collection = (group) => (group === "root" ? "publishers" : group);
 
 /*
  * Normalize a pks input — Vue Router params arrive as strings
@@ -62,7 +52,7 @@ export const getBrowserHref = ({ group, pks, query }) => {
   return `${APP_BASE}${hrefPath}/1?${queryString}`;
 };
 
-export const getCoverSrc = ({ coverPk, coverCustomPk, group }, ts) => {
+export const getCoverSrc = ({ coverPk, coverCustomPk }, ts) => {
   const query = ts ? `?ts=${ts}` : "";
   if (coverCustomPk) {
     return `${V4_BASE}covers/custom/${coverCustomPk}${query}`;
@@ -70,18 +60,17 @@ export const getCoverSrc = ({ coverPk, coverCustomPk, group }, ts) => {
   // ``coverPk`` is the representative comic pk pre-annotated by the
   // browser response. v4 keeps the per-comic source so the URL is
   // cacheable across cards that share a representative.
-  const source = group && group !== "c" ? "comic" : "comic";
-  return `${V4_BASE}covers/${source}/${coverPk}${query}`;
+  return `${V4_BASE}covers/comic/${coverPk}${query}`;
 };
 
 const PLACEHOLDER_BY_GROUP = Object.freeze({
-  p: "publisher",
-  i: "imprint",
-  s: "series",
-  v: "volume",
-  f: "folder",
-  a: "story-arc",
-  c: "comic",
+  publishers: "publisher",
+  imprints: "imprint",
+  series: "series",
+  volumes: "volume",
+  folders: "folder",
+  arcs: "story-arc",
+  comics: "comic",
 });
 
 export const getPlaceholderSrc = (group) => {

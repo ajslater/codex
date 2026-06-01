@@ -35,6 +35,6 @@ def test_reader_pdf_downloads_file():
     assert resolve(f"/read/{_PK}/book.pdf").url_name == "reader_pdf"
 
 
-def test_legacy_char_route_still_serves_spa():
-    """The legacy ``/p/0/1`` route still resolves during the transition."""
-    assert resolve("/p/0/1").url_name == "route"
+def test_legacy_char_route_is_gone():
+    """The legacy ``/p/0/1`` char route was removed — it falls to the catchall."""
+    assert resolve("/p/0/1").url_name == "catchall"

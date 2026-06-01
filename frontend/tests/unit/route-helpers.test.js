@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { groupForRoute, normalizeParentIds, routeForGroup } from "@/route";
 
 describe("route helpers", () => {
-  it("maps legacy group/pks to v4 collection/parentIds", () => {
-    expect(routeForGroup({ group: "s", pks: "5,7" })).toEqual({
+  it("passes a collection group/pks straight to collection/parentIds", () => {
+    expect(routeForGroup({ group: "series", pks: "5,7" })).toEqual({
       collection: "series",
       parentIds: ["5", "7"],
     });
   });
 
-  it("drops the dummy 0 to an empty parentIds (root)", () => {
-    expect(routeForGroup({ group: "r", pks: "0" })).toEqual({
+  it("resolves the synthetic root group to the publishers collection", () => {
+    expect(routeForGroup({ group: "root", pks: "0" })).toEqual({
       collection: "publishers",
       parentIds: [],
     });
