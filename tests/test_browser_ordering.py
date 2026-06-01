@@ -438,7 +438,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
     def test_primary_sort_at_publishers_root(self) -> None:
         """
-        Publishers root (top_group=p) sorts by aggregated child values.
+        Publishers root (top_collection=p) sorts by aggregated child values.
 
         Adds a second publisher with one comic, picks a sort key
         whose aggregate differs between the two publishers, and
@@ -486,7 +486,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
             tagger=tagger_c,
         )
 
-        # Browse the root (top_group=p so each row is a publisher).
+        # Browse the root (top_collection=p so each row is a publisher).
         # Use cover view: the assertion below describes Min aggregate
         # semantics (table mode would route through intersection,
         # giving NULL for ZZ Press with mixed taggers). v4 strips
@@ -496,7 +496,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         self._patch_settings(
             {
                 "viewMode": "cover",
-                "topGroup": "publishers",
+                "topCollection": "publishers",
                 "orderBy": "tagger",
                 "orderReverse": False,
             }
@@ -606,7 +606,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         self._patch_settings(
             {
                 "viewMode": "cover",
-                "topGroup": "folders",
+                "topCollection": "folders",
                 "orderBy": "year",
                 "orderReverse": True,
             }

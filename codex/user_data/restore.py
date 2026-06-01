@@ -542,7 +542,7 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
     """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
     return {
         "show": show,
-        "top_group": row["top_group"] or "",
+        "top_collection": row["top_collection"] or "",
         "order_by": row["order_by"] or "",
         "order_reverse": bool(row["order_reverse"]),
         "order_extra_keys": json.loads(row["order_extra_keys"] or "[]"),

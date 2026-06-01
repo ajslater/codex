@@ -22,11 +22,11 @@ import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
-import { ORDER_BY, TOP_GROUP } from "@/choices/browser-map.json";
+import { ORDER_BY, TOP_COLLECTION } from "@/choices/browser-map.json";
 import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
 const LOOKUPS = Object.freeze({
-  topGroup: TOP_GROUP,
+  topCollection: TOP_COLLECTION,
   orderBy: ORDER_BY,
   fitTo: FIT_TO,
   readingDirection: READING_DIRECTION,

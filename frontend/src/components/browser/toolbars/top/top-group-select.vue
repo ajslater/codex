@@ -1,6 +1,6 @@
 <template>
   <ToolbarSelect
-    v-model="topGroup"
+    v-model="topCollection"
     class="topGroupSelect"
     select-label="top group"
     :items="topGroupChoicesWithDividers"
@@ -39,15 +39,15 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      topGroupSetting: (state) => state.settings.topGroup,
+      topGroupSetting: (state) => state.settings.topCollection,
     }),
     ...mapState(useBrowserStore, ["topGroupChoices", "topGroupChoicesMaxLen"]),
-    topGroup: {
+    topCollection: {
       get() {
         return this.topGroupSetting;
       },
       set(value) {
-        const settings = { topGroup: value };
+        const settings = { topCollection: value };
         this.setSettings(settings);
       },
     },

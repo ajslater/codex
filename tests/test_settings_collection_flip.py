@@ -82,15 +82,15 @@ class SettingsCollectionFlipTestCase(TestCase):
         assert row.volumes is False
 
     def test_top_group_collection_wire_stores_collection(self) -> None:
-        """PATCH ``topGroup="series"`` → same GET; DB stores ``"series"``."""
+        """PATCH ``topCollection="series"`` → same GET; DB stores ``"series"``."""
         response = self.client.patch(
             _SETTINGS_URL,
-            data=json.dumps({"topGroup": "series"}),
+            data=json.dumps({"topCollection": "series"}),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
-        assert _v4(self.client.get(_SETTINGS_URL))["topGroup"] == "series"
-        assert self._browser_row().top_group == "series"
+        assert _v4(self.client.get(_SETTINGS_URL))["topCollection"] == "series"
+        assert self._browser_row().top_collection == "series"
 
     def test_defaults_store_collection_and_no_root_zero(self) -> None:
         """A fresh row defaults to collection values on the migrated schema."""
@@ -99,7 +99,7 @@ class SettingsCollectionFlipTestCase(TestCase):
         row = self._browser_row()
         last_route = row.last_route  # ty: ignore[unresolved-attribute]
         # Model defaults are now collection values.
-        assert row.top_group == "publishers"
+        assert row.top_collection == "publishers"
         assert last_route.collection == "root"
         # The dummy 0 root sentinel is gone from stored pks.
         assert 0 not in (last_route.pks or [])

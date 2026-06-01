@@ -25,7 +25,7 @@ from codex.views.settings import (
 )
 
 # Groups whose nav owns a dedicated route (folders / story arcs); for these
-# the URL group becomes the top_group directly during validation.
+# the URL group becomes the top_collection directly during validation.
 _OWN_ROUTE_COLLECTIONS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
 
 
@@ -101,45 +101,45 @@ class BrowserSettingsView(BrowserSettingsBaseView):
     # ── Validation ──────────────────────────────────────────────────
 
     @staticmethod
-    def _validate_browse_top_group(params, group: str, top_group: str) -> None:
+    def _validate_browse_top_group(params, group: str, top_collection: str) -> None:
         """Validate top group for browse groups (collection vocabulary)."""
         show = params["show"]
         if group == Collection.ROOT or (
             group in COLLECTION_ORDER
-            and show.get(top_group)
-            and COLLECTION_ORDER.index(top_group) < COLLECTION_ORDER.index(group)
+            and show.get(top_collection)
+            and COLLECTION_ORDER.index(top_collection) < COLLECTION_ORDER.index(group)
         ):
             return
 
         for show_group, on in show.items():
             if on:
-                params["top_group"] = show_group
+                params["top_collection"] = show_group
                 break
         else:
-            params["top_group"] = Collection.COMIC
+            params["top_collection"] = Collection.COMIC
 
     @classmethod
-    def _validate_top_group(cls, params, group: str, top_group: str) -> None:
+    def _validate_top_group(cls, params, group: str, top_collection: str) -> None:
         """Validate top group."""
-        if group == top_group:
+        if group == top_collection:
             return
 
         if group in _OWN_ROUTE_COLLECTIONS:
-            params["top_group"] = group
+            params["top_collection"] = group
         else:
-            cls._validate_browse_top_group(params, group, top_group)
+            cls._validate_browse_top_group(params, group, top_collection)
 
     def _validate_settings_get(self, validated_data, params: dict) -> dict:
         """Validate and fix settings on GET."""
         # This is a micro version of browser/validate.py
         # It would be ideal to combine them but browser validate does redirects so maybe later.
-        top_group = params["top_group"]
+        top_collection = params["top_collection"]
         group = (
             validated_data.get("group", Collection.ROOT)
             if validated_data
             else Collection.ROOT
         )
-        self._validate_top_group(params, group, top_group)
+        self._validate_top_group(params, group, top_collection)
         self.set_order_by_default(params)
         return params
 

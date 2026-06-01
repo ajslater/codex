@@ -8,7 +8,7 @@ from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.links import OPDS2LinksView
 
-_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "series"})
+_SEARCH_QUERY_PARAMS = MappingProxyType({"topCollection": "series"})
 
 
 class OPDS2FeedLinksView(OPDS2LinksView):

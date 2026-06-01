@@ -25,7 +25,7 @@ from codex.choices.browser import (
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_ROUTE_COLLECTION_CHOICES,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
-    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.models.base import MAX_NAME_LEN, BaseModel
@@ -331,9 +331,9 @@ class SettingsBrowser(SettingsBase):
     name = CharField(max_length=MAX_NAME_LEN, default="", blank=True, db_index=True)
 
     # Browse state
-    top_group = CharField(
+    top_collection = CharField(
         max_length=32,
-        choices=tuple(BROWSER_TOP_GROUP_COLLECTION_CHOICES.items()),
+        choices=tuple(BROWSER_TOP_COLLECTION_CHOICES.items()),
         default="publishers",
     )
     order_by = CharField(
@@ -381,7 +381,7 @@ class SettingsBrowser(SettingsBase):
 
     DIRECT_KEYS = frozenset(
         {
-            "top_group",
+            "top_collection",
             "order_by",
             "order_reverse",
             "order_extra_keys",

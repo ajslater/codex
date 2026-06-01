@@ -79,7 +79,7 @@ class BreadcrumbsTestCase(TestCase):
         """
         Enable every browse group with the shallowest top group.
 
-        ``top_group="publishers"`` keeps publishers/imprints/series/volumes all
+        ``top_collection="publishers"`` keeps publishers/imprints/series/volumes all
         in the valid nav set, so drilling down to a volume produces the full
         ancestor chain. (A deeper top group would correctly *prune* the levels
         above it — root would list volumes directly.)
@@ -87,7 +87,7 @@ class BreadcrumbsTestCase(TestCase):
         response = self.client.patch(
             "/api/v4/browse/publishers/settings",
             data=(
-                '{"topGroup": "publishers", "show": {"publishers": true,'
+                '{"topCollection": "publishers", "show": {"publishers": true,'
                 ' "imprints": true, "series": true, "volumes": true}}'
             ),
             content_type="application/json",

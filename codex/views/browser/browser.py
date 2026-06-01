@@ -368,22 +368,24 @@ class BrowserView(BrowserTitleView):
 
         Priority: explicit ``columns=`` query param (already validated
         and stored on params), then the user's persisted
-        ``table_columns[top_group]``, then the registry defaults for
+        ``table_columns[top_collection]``, then the registry defaults for
         the current top-group.
         """
         columns = self.params.get("columns") or ()
         if columns:
             return tuple(columns)
-        top_group = (
-            self.params.get("top_group")
+        top_collection = (
+            self.params.get("top_collection")
             or self.kwargs.get("group")
             or Collection.PUBLISHER
         )
         stored = self.params.get("table_columns") or {}
-        stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
+        stored_for_group = (
+            stored.get(top_collection) if isinstance(stored, dict) else None
+        )
         if stored_for_group:
             return tuple(stored_for_group)
-        return default_columns_filtered(top_group, self.params.get("show"))
+        return default_columns_filtered(top_collection, self.params.get("show"))
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:

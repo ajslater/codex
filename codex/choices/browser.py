@@ -112,7 +112,7 @@ _GROUP_COLLECTION_NAMES = MappingProxyType(
         "volumes": "Volumes",
     }
 )
-BROWSER_TOP_GROUP_COLLECTION_CHOICES = MappingProxyType(
+BROWSER_TOP_COLLECTION_CHOICES = MappingProxyType(
     {
         **_GROUP_COLLECTION_NAMES,
         "comics": "Issues",
@@ -121,7 +121,7 @@ BROWSER_TOP_GROUP_COLLECTION_CHOICES = MappingProxyType(
     },
 )
 BROWSER_ROUTE_COLLECTION_CHOICES = MappingProxyType(
-    {**BROWSER_TOP_GROUP_COLLECTION_CHOICES, "root": "Root"}
+    {**BROWSER_TOP_COLLECTION_CHOICES, "root": "Root"}
 )
 BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
     {
@@ -149,7 +149,7 @@ BROWSER_CHOICES = MappingProxyType(
         "EXTRA_SORT_UNSUPPORTED_KEYS": tuple(
             sorted(BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS)
         ),
-        "TOP_GROUP": BROWSER_TOP_GROUP_COLLECTION_CHOICES,
+        "TOP_COLLECTION": BROWSER_TOP_COLLECTION_CHOICES,
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
@@ -170,7 +170,7 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "ORDER_BY",
         "COVER_ORDER_BY_KEYS",
         "EXTRA_SORT_UNSUPPORTED_KEYS",
-        "TOP_GROUP",
+        "TOP_COLLECTION",
         "VUETIFY_NULL_CODE",
         "SETTINGS_GROUP",
     }
@@ -183,7 +183,7 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
 BROWSER_CHOICES_MAP_KEYS = frozenset(
     {
         "ORDER_BY",
-        "TOP_GROUP",
+        "TOP_COLLECTION",
         "IDENTIFIER_SOURCES",
     }
 )
@@ -193,22 +193,24 @@ BROWSER_CHOICES_MAP_KEYS = frozenset(
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "root", "pks": (), "page": 1})
 
 # Top-group collections that own a dedicated browser route. For these,
-# the URL ``group`` matches the ``top_group``. Everything else
+# the URL ``group`` matches the ``top_collection``. Everything else
 # (publishers / imprints / series / volumes / issues) routes through
-# the canonical Root URL — the per-user ``top_group`` setting
+# the canonical Root URL — the per-user ``top_collection`` setting
 # is what selects the displayed view inside that URL.
 _FLAG_COLLECTION_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 
-def admin_default_route_for(top_group: str) -> dict:
+def admin_default_route_for(top_collection: str) -> dict:
     """
     Translate a ``BROWSER_DEFAULT_GROUP`` collection into a route dict.
 
     Used (via ``get_last_route``) to seed the bare ``/`` redirect when no
-    per-user ``last_route`` row exists. ``top_group`` is the collection-name
+    per-user ``last_route`` row exists. ``top_collection`` is the collection-name
     default; folders / arcs own their route, everything else is Root.
     """
-    group = top_group if top_group in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
+    group = (
+        top_collection if top_collection in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
+    )
     return {"group": group, "pks": (), "page": 1}
 
 
@@ -689,7 +691,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_extra_keys": (),
         "search": "",
         "show": _DEFAULT_SHOW,
-        "top_group": "publishers",
+        "top_collection": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
         # Frontend export now speaks the v4 route dialect end to end —

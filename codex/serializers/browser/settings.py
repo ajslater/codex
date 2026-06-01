@@ -17,7 +17,7 @@ from codex.choices.browser import (
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
-    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
@@ -95,7 +95,7 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    top_group = BrowseGroupField(required=False)
+    top_collection = BrowseGroupField(required=False)
 
     @override
     def to_internal_value(self, data) -> dict:
@@ -153,19 +153,15 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 
     def validate_table_columns(self, value):
         """Reject unknown top-group keys and unknown column keys."""
-        invalid_top_groups = set(value) - set(
-            BROWSER_TOP_GROUP_COLLECTION_CHOICES.keys()
-        )
+        invalid_top_groups = set(value) - set(BROWSER_TOP_COLLECTION_CHOICES.keys())
         if invalid_top_groups:
-            reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
+            reason = f"Invalid top_collection keys: {sorted(invalid_top_groups)}"
             raise ValidationError(reason)
         valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
-        for top_group, columns in value.items():
+        for top_collection, columns in value.items():
             invalid_columns = set(columns) - valid_columns
             if invalid_columns:
-                reason = (
-                    f"Invalid column keys for {top_group!r}: {sorted(invalid_columns)}"
-                )
+                reason = f"Invalid column keys for {top_collection!r}: {sorted(invalid_columns)}"
                 raise ValidationError(reason)
         return value
 

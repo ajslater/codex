@@ -11,7 +11,7 @@ import * as API from "@/api/v4/browser";
 import * as COMMON_API from "@/api/v4/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
-import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";
+import { IDENTIFIER_SOURCES, TOP_COLLECTION } from "@/choices/browser-map.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
@@ -21,7 +21,7 @@ import { useAuthStore } from "@/stores/auth";
 
 // Browse-group hierarchy, root → deepest. The store speaks the collection
 // vocabulary end to end now; ``GROUPS_REVERSED`` (deepest → root) drives the
-// ``.indexOf`` hierarchy ordering in lowestShownGroup / getTopGroup / topGroup
+// ``.indexOf`` hierarchy ordering in lowestShownGroup / getTopGroup / topCollection
 // validation.
 const GROUPS = Object.freeze([
   "root",
@@ -122,9 +122,12 @@ const _DEFAULT_SINGLE_ORDER = Object.freeze({
   orderExtraKeys: [],
 });
 
-function _defaultOrderFor(topGroup, viewMode) {
-  if (viewMode === "table" && Object.hasOwn(_DEFAULT_TABLE_ORDER, topGroup)) {
-    return _DEFAULT_TABLE_ORDER[topGroup];
+function _defaultOrderFor(topCollection, viewMode) {
+  if (
+    viewMode === "table" &&
+    Object.hasOwn(_DEFAULT_TABLE_ORDER, topCollection)
+  ) {
+    return _DEFAULT_TABLE_ORDER[topCollection];
   }
   return _DEFAULT_SINGLE_ORDER;
 }
@@ -207,7 +210,7 @@ export const useBrowserStore = defineStore("browser", {
     choices: {
       static: Object.freeze({
         bookmark: BROWSER_CHOICES.BOOKMARK_FILTER,
-        groupNames: TOP_GROUP,
+        groupNames: TOP_COLLECTION,
         settingsGroup: BROWSER_CHOICES.SETTINGS_GROUP,
         readingDirection: READING_DIRECTION,
         identifierSources: IDENTIFIER_SOURCES,
@@ -224,7 +227,7 @@ export const useBrowserStore = defineStore("browser", {
       orderExtraKeys: BROWSER_DEFAULTS.orderExtraKeys ?? [],
       search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
-      topGroup: BROWSER_DEFAULTS.topGroup,
+      topCollection: BROWSER_DEFAULTS.topCollection,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
       viewMode: BROWSER_DEFAULTS.viewMode,
       tableColumns: BROWSER_DEFAULTS.tableColumns,
@@ -263,7 +266,7 @@ export const useBrowserStore = defineStore("browser", {
   getters: {
     groupNames() {
       const groupNames = {};
-      for (const [key, pluralName] of Object.entries(TOP_GROUP)) {
+      for (const [key, pluralName] of Object.entries(TOP_COLLECTION)) {
         groupNames[key] =
           pluralName === "Series" ? pluralName : pluralName.slice(0, -1);
       }
@@ -271,7 +274,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     topGroupChoices() {
       const choices = [];
-      for (const item of BROWSER_CHOICES.TOP_GROUP) {
+      for (const item of BROWSER_CHOICES.TOP_COLLECTION) {
         if (this._isRootGroupEnabled(item.value)) {
           choices.push(item);
         }
@@ -279,7 +282,7 @@ export const useBrowserStore = defineStore("browser", {
       return choices;
     },
     topGroupChoicesMaxLen() {
-      return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
+      return this._maxLenChoices(BROWSER_CHOICES.TOP_COLLECTION);
     },
     orderByChoices(state) {
       /*
@@ -352,7 +355,9 @@ export const useBrowserStore = defineStore("browser", {
     },
     lowestShownGroup(state) {
       let lowestGroup = "root";
-      const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
+      const topGroupIndex = GROUPS_REVERSED.indexOf(
+        state.settings.topCollection,
+      );
       for (const [index, group] of [...GROUPS_REVERSED].entries()) {
         const show = state.settings.show[group];
         if (show) {
@@ -476,13 +481,13 @@ export const useBrowserStore = defineStore("browser", {
     /*
      * VALIDATORS
      */
-    _isRootGroupEnabled(topGroup) {
-      if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
+    _isRootGroupEnabled(topCollection) {
+      if (ALWAYS_ENABLED_TOP_GROUPS.has(topCollection)) {
         return true;
-      } else if (topGroup == "folders") {
+      } else if (topCollection == "folders") {
         return this.page.adminFlags?.folderView;
       } else {
-        return this.settings.show[topGroup];
+        return this.settings.show[topCollection];
       }
     },
     _validateSearch(data) {
@@ -490,7 +495,9 @@ export const useBrowserStore = defineStore("browser", {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
           data.orderBy =
-            this.settings.topGroup === "folders" ? "filename" : "sort_name";
+            this.settings.topCollection === "folders"
+              ? "filename"
+              : "sort_name";
         }
         return;
       } else if (this.settings.search) {
@@ -516,13 +523,16 @@ export const useBrowserStore = defineStore("browser", {
        */
       const currentParams = liveBrowseParams();
       const currentGroup = currentParams?.group;
-      const newTopGroup = data.topGroup;
-      if (currentGroup === "root" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
+      const newTopGroup = data.topCollection;
+      if (
+        currentGroup === "root" &&
+        !NON_BROWSE_GROUPS.has(data.topCollection)
+      ) {
         return redirect;
         // root group can have any top groups?
       }
 
-      const oldTopGroup = this.settings.topGroup;
+      const oldTopGroup = this.settings.topCollection;
       if (
         oldTopGroup === newTopGroup ||
         !newTopGroup ||
@@ -532,9 +542,9 @@ export const useBrowserStore = defineStore("browser", {
         /*
          * First url, initializing settings.
          * or
-         * topGroup didn't change.
+         * topCollection didn't change.
          * or
-         * topGroup and group are the same, request is well formed.
+         * topCollection and group are the same, request is well formed.
          */
         return redirect;
       }
@@ -574,20 +584,23 @@ export const useBrowserStore = defineStore("browser", {
     },
     getTopGroup(group) {
       // Similar to browser store logic.
-      let topGroup;
-      if (this.settings.topGroup === group || NON_BROWSE_GROUPS.has(group)) {
-        topGroup = group;
+      let topCollection;
+      if (
+        this.settings.topCollection === group ||
+        NON_BROWSE_GROUPS.has(group)
+      ) {
+        topCollection = group;
       } else {
         const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
         // Determine browse top group
         for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
           if (testGroup !== "root" && this.settings.show[testGroup]) {
-            topGroup = testGroup;
+            topCollection = testGroup;
             break;
           }
         }
       }
-      return topGroup;
+      return topCollection;
     },
     /*
      * TABLE VIEW
@@ -595,7 +608,7 @@ export const useBrowserStore = defineStore("browser", {
     _resolveTableColumns() {
       /*
        * Pick the column set for the current table-view request.
-       * Persisted overrides (``settings.tableColumns[topGroup]``) win
+       * Persisted overrides (``settings.tableColumns[topCollection]``) win
        * over the registry defaults; both fall back to an empty tuple
        * for unknown top-groups (the backend then uses its own
        * defaults). Defaults are filtered by the user's ``show.i``
@@ -603,13 +616,13 @@ export const useBrowserStore = defineStore("browser", {
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      const topGroup = this.settings.topGroup ?? "publishers";
-      const stored = this.settings.tableColumns?.[topGroup];
+      const topCollection = this.settings.topCollection ?? "publishers";
+      const stored = this.settings.tableColumns?.[topCollection];
       if (stored && stored.length > 0) {
         return stored;
       }
       return filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [],
+        BROWSER_TABLE_DEFAULT_COLUMNS[topCollection] ?? [],
         this.settings.show,
       );
     },
@@ -801,7 +814,7 @@ export const useBrowserStore = defineStore("browser", {
       const aborted = abortKey("browser:loadBrowserPage");
       if (!aborted) return;
       const order = _defaultOrderFor(
-        this.settings.topGroup,
+        this.settings.topCollection,
         this.settings.viewMode,
       );
       await this.setSettings({

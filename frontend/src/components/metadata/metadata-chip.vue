@@ -57,7 +57,7 @@ export default {
       filterValues(state) {
         return state.settings.filters[this.filter];
       },
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
     }),
     ...mapState(useMetadataStore, {
       mdGroup: (state) => state.md.group,
@@ -107,8 +107,8 @@ export default {
       if (this.groupMode) {
         linkGroup = this.filter;
       } else {
-        linkGroup = ["folders", "series"].includes(this.topGroup)
-          ? this.topGroup
+        linkGroup = ["folders", "series"].includes(this.topCollection)
+          ? this.topCollection
           : "root";
       }
       return linkGroup;
@@ -133,8 +133,8 @@ export default {
       if (this.linkPks === "0") {
         settings = { filters: { [this.filter]: [this.item.value] } };
       } else {
-        const topGroup = this.getTopGroup(this.linkGroup);
-        settings = { topGroup };
+        const topCollection = this.getTopGroup(this.linkGroup);
+        settings = { topCollection };
       }
       return settings;
     },

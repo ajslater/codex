@@ -198,7 +198,7 @@ def serialize_settings_browser(
             "username": browser.user.username,
             "client": browser.client,
             "name": browser.name,
-            "top_group": browser.top_group,
+            "top_collection": browser.top_collection,
             "order_by": browser.order_by,
             "order_reverse": int(browser.order_reverse),
             "order_extra_keys": json.dumps(

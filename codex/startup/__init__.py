@@ -84,7 +84,7 @@ def init_admin_flags() -> None:
     # default. Heals the row to a sensible state if an admin deletes
     # it; the migration that introduced the flag does the same insert.
     value_defaults = {
-        # Mirrors the ``SettingsBrowser.top_group`` model default so
+        # Mirrors the ``SettingsBrowser.top_collection`` model default so
         # ``admin_default_route_for("publishers")`` resolves to the root
         # publishers listing — upgrade-day no-op.
         AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "publishers",

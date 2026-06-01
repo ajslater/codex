@@ -49,7 +49,7 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { TOP_GROUP } from "@/choices/browser-map";
+import { TOP_COLLECTION } from "@/choices/browser-map";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -84,7 +84,7 @@ export default {
       }
       for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = Reflect.get(TOP_GROUP, group);
+          let subtitle = Reflect.get(TOP_COLLECTION, group);
           if (group !== "series") {
             subtitle = subtitle.slice(0, -1);
           }

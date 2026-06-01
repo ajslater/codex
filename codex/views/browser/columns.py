@@ -121,11 +121,11 @@ _FK_NAME_COLUMN_PATHS = MappingProxyType(
 )
 
 
-def default_columns_for(top_group: str) -> tuple[str, ...]:
+def default_columns_for(top_collection: str) -> tuple[str, ...]:
     """Return the default column tuple for a top-group, or empty if unknown."""
     # The defaults map is keyed by collection name now, matching the
-    # engine's collection-valued ``top_group`` — a direct lookup.
-    return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_group, ())
+    # engine's collection-valued ``top_collection`` — a direct lookup.
+    return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_collection, ())
 
 
 # Default columns gated on the matching ``show.<key>`` group flag.
@@ -142,10 +142,10 @@ _SHOW_GATED_COLUMNS: MappingProxyType[str, str] = MappingProxyType(
 
 
 def default_columns_filtered(
-    top_group: str, show: object | None = None
+    top_collection: str, show: object | None = None
 ) -> tuple[str, ...]:
     """
-    Return ``default_columns_for(top_group)`` minus show-gated columns.
+    Return ``default_columns_for(top_collection)`` minus show-gated columns.
 
     ``show`` is the per-user group-flag dict from
     ``BrowserSettingsShowGroupFlagsSerializer`` (collection keys
@@ -156,7 +156,7 @@ def default_columns_filtered(
     table-view defaults. Static ``default_columns_for`` stays
     unchanged for tests / migrations that need the canonical tuple.
     """
-    cols = default_columns_for(top_group)
+    cols = default_columns_for(top_collection)
     if not cols:
         return cols
     show_map: dict = show if isinstance(show, dict) else {}

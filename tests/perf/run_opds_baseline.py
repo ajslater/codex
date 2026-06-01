@@ -150,12 +150,12 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "description": (
                 "v1 acquisition feed for the busiest series — exercises the "
                 "per-entry stream / download / cover link generation in "
-                "v1/entry/links.py. ``topGroup=s`` is required because the "
-                "between-flow settings reset defaults topGroup to ``p`` "
+                "v1/entry/links.py. ``topCollection=s`` is required because the "
+                "between-flow settings reset defaults topCollection to ``p`` "
                 "(Publisher) and ``s/325/1`` would 302 to root otherwise."
             ),
             "kind": "url",
-            "url": f"/opds/v1.2/s/{series_pk}/1?topGroup=s",
+            "url": f"/opds/v1.2/s/{series_pk}/1?topCollection=s",
         },
         {
             "name": "v1_acquisition_with_metadata",
@@ -165,7 +165,7 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
                 "entry. Headline number for sub-plan 03 #1."
             ),
             "kind": "url",
-            "url": f"/opds/v1.2/s/{series_pk}/1?topGroup=s&opdsMetadata=1",
+            "url": f"/opds/v1.2/s/{series_pk}/1?topCollection=s&opdsMetadata=1",
         },
         {
             "name": "v1_opensearch",
@@ -192,11 +192,11 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
             "name": "v2_series_publications",
             "description": (
                 "v2 publications feed for the busiest series — per-publication "
-                "_thumb / link assembly hot path. ``topGroup=s`` for the same "
+                "_thumb / link assembly hot path. ``topCollection=s`` for the same "
                 "reason as v1_series_acquisition."
             ),
             "kind": "url",
-            "url": f"/opds/v2.0/s/{series_pk}/1?topGroup=s",
+            "url": f"/opds/v2.0/s/{series_pk}/1?topCollection=s",
         },
         {
             "name": "v2_manifest",

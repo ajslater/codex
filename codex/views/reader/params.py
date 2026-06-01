@@ -11,7 +11,7 @@ from codex.serializers.reader import ReaderViewInputSerializer
 from codex.views.reader.settings import ReaderSettingsBaseView
 
 # Top groups with no arc of their own — they read within the series scope.
-_SERIES_COLLAPSE_TOP_GROUPS = frozenset(
+_SERIES_COLLAPSE_TOP_COLLECTIONS = frozenset(
     {Collection.ROOT, Collection.PUBLISHER, Collection.IMPRINT}
 )
 
@@ -31,13 +31,13 @@ class ReaderParamsView(ReaderSettingsBaseView):
         arc = params.get("arc", {})
         group = arc.get("group", "")
         if not group:
-            top_group: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
-                "top_group", browser=True
+            top_collection: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
+                "top_collection", browser=True
             )
             group = (
                 Collection.SERIES
-                if top_group in _SERIES_COLLAPSE_TOP_GROUPS
-                else top_group
+                if top_collection in _SERIES_COLLAPSE_TOP_COLLECTIONS
+                else top_collection
             )
         if group not in VALID_ARC_COLLECTIONS:
             group = Collection.SERIES

@@ -111,7 +111,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         ts = self._obj_ts(obj)
         query_params = {
             "ts": ts,
-            "topGroup": "publishers",
+            "topCollection": "publishers",
         }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
@@ -123,7 +123,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
         kwargs = {"group": "volumes", "pks": [obj.volume_id], "page": 1}
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "publishers"}
+        query_params = {"ts": ts, "topCollection": "publishers"}
         return self._publication_belongs_to_link(
             kwargs, query_params, display_name, volume_name
         )
@@ -137,7 +137,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         kwargs = {"group": "folders", "pks": pks, "page": 1}
         number = None
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "folders"}
+        query_params = {"ts": ts, "topCollection": "folders"}
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
@@ -162,7 +162,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             pks = [story_arc.pk]
             number = story_arc_number.number
             kwargs = {"group": "arcs", "pks": pks, "page": 1}
-            query_params = {"ts": ts, "topGroup": "arcs"}
+            query_params = {"ts": ts, "topCollection": "arcs"}
 
             story_arc = self._publication_belongs_to_link(
                 kwargs, query_params, name, number
@@ -194,7 +194,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)
         query_params = {
-            "topGroup": "series",
+            "topCollection": "series",
             "filters": filters,
             "title": value.name,
         }

@@ -43,7 +43,7 @@ export default {
     ...mapState(useBrowserStore, {
       orderByFilename: (state) => state.settings.orderBy === "filename",
       orderByName: (state) => state.settings.orderBy === "sort_name",
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
       showSeries: (state) => state.settings.show["series"],
       showVolume: (state) => state.settings.show["volumes"],
       zeroPad: (state) => state.page.zeroPad,
@@ -51,7 +51,8 @@ export default {
     }),
     seriesName() {
       if (
-        (this.topGroup === "arcs" || (this.orderByName && !this.showSeries)) &&
+        (this.topCollection === "arcs" ||
+          (this.orderByName && !this.showSeries)) &&
         ["comics", "volumes"].includes(this.item.group) &&
         this.item.seriesName
       ) {
@@ -61,7 +62,8 @@ export default {
     },
     volumeName() {
       if (
-        (this.topGroup === "arcs" || (this.orderByName && !this.showVolume)) &&
+        (this.topCollection === "arcs" ||
+          (this.orderByName && !this.showVolume)) &&
         this.item.group === "comics" &&
         this.item.volumeName
       ) {
@@ -102,7 +104,7 @@ export default {
     },
     fileName() {
       return !this.orderByFilename &&
-        (this.alwaysShowFilename || this.topGroup === "folders")
+        (this.alwaysShowFilename || this.topCollection === "folders")
         ? this.item.fileName
         : "";
     },

@@ -50,7 +50,7 @@ class StatsConfigSerializer(Serializer):
 class StatsSessionsSerializer(Serializer):
     """Session Settings."""
 
-    top_group = CountDictField(required=False, read_only=True)
+    top_collection = CountDictField(required=False, read_only=True)
     order_by = CountDictField(required=False, read_only=True)
     dynamic_covers = CountDictField(required=False, read_only=True)
     finish_on_last_page = CountDictField(required=False, read_only=True)

@@ -126,8 +126,9 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
         group = self.kwargs.get("group")
-        if facet_group.query_param == "topGroup" and self._did_special_group_change(
-            group, facet.value
+        if (
+            facet_group.query_param == "topCollection"
+            and self._did_special_group_change(group, facet.value)
         ):
             kwargs = {"group": facet.value, "pks": {}, "page": 1}
         else:

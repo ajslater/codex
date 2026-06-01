@@ -78,7 +78,7 @@
       />
     </div>
     <!--
-      ``BG`` (Default View) reuses the existing ``TOP_GROUP``
+      ``BG`` (Default View) reuses the existing ``TOP_COLLECTION``
       choices JSON so the seven labels stay in sync with the
       rest of the browser UI. Persisted on the flag's ``value``
       string column; the route-URL derivation happens server-
@@ -168,7 +168,7 @@ export default {
       return this.ageRatingMetrons || [];
     },
     topGroupChoices() {
-      return BROWSER_CHOICES.TOP_GROUP || [];
+      return BROWSER_CHOICES.TOP_COLLECTION || [];
     },
   },
   watch: {

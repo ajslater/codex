@@ -19,7 +19,7 @@ from codex.views.util import pop_name
 
 _OPDS_REDIRECT_SETTINGS_SNAKE_CASE_KEYS = {
     "filter",
-    "top_group",
+    "top_collection",
     "order_by",
     "order_reverse",
 }

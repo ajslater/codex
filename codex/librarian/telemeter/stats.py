@@ -33,7 +33,7 @@ _KEY_MODELS_MAP = MappingProxyType(
 _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
 _USER_STATS: Final = (
-    (SettingsBrowser, ("top_group", "order_by", "dynamic_covers")),
+    (SettingsBrowser, ("top_collection", "order_by", "dynamic_covers")),
     (SettingsReader, ("finish_on_last_page", "fit_to", "reading_direction")),
 )
 

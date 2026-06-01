@@ -93,7 +93,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
                 link_spec.group == "folders"
                 or (
                     link_spec.query_params
-                    and link_spec.query_params.get("topGroup") == "folders"
+                    and link_spec.query_params.get("topCollection") == "folders"
                 )
             )
         ) or isinstance(link_spec, Folder):
@@ -150,7 +150,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         ts = self._obj_ts(obj)
         href_data = HrefData(
             {"group": group, "pks": (pk,), "page": 1},
-            {"ts": ts, "topGroup": "publishers"},
+            {"ts": ts, "topCollection": "publishers"},
             url_name="opds:v2:feed",
         )
         link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)

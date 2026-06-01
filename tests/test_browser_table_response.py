@@ -516,7 +516,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         Regression: ``annotate_group_names`` only annotated
         ``publisher_name`` for Comic and Imprint querysets, and
         ``publisher_name`` was missing from ``_SCALAR_FIELD_PATHS``,
-        so Series rows (top_group=s) — and Volume / Folder /
+        so Series rows (top_collection=s) — and Volume / Folder /
         StoryArc by extension — rendered the publisher cell blank
         even when every child comic shared a publisher. The fix
         added the FK-name path to the scalar-intersection set so

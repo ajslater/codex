@@ -11,7 +11,7 @@ from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.browser import (
-    BROWSER_TOP_GROUP_COLLECTION_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     admin_default_route_for,
 )
 from codex.collection import Collection
@@ -29,10 +29,10 @@ from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
 # Fallback top-group when the BG flag row is missing, off, or holds
-# an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
+# an invalid value. Mirrors ``SettingsBrowser.top_collection``'s model
 # default; ``admin_default_route_for("publishers")`` yields the Root
 # redirect target.
-_FALLBACK_DEFAULT_TOP_GROUP = Collection.PUBLISHER
+_FALLBACK_DEFAULT_TOP_COLLECTION = Collection.PUBLISHER
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -149,7 +149,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         falling back to ``"publishers"`` if the row is missing, the
         flag is off, or the value is out of range (defense against a
         hand-edited DB / pre-migration state). ``"publishers"`` mirrors
-        the ``SettingsBrowser.top_group`` model default and resolves to
+        the ``SettingsBrowser.top_collection`` model default and resolves to
         the Root redirect target.
         """
         try:
@@ -157,10 +157,10 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
                 key=AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
             )
         except AdminFlag.DoesNotExist:
-            return _FALLBACK_DEFAULT_TOP_GROUP
-        if flag.on and flag.value in BROWSER_TOP_GROUP_COLLECTION_CHOICES:
+            return _FALLBACK_DEFAULT_TOP_COLLECTION
+        if flag.on and flag.value in BROWSER_TOP_COLLECTION_CHOICES:
             return flag.value
-        return _FALLBACK_DEFAULT_TOP_GROUP
+        return _FALLBACK_DEFAULT_TOP_COLLECTION
 
     @classmethod
     def _get_admin_default_route(cls) -> Mapping:
@@ -172,11 +172,11 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         """
         Create a SettingsBrowser with its related show/filters/last_route.
 
-        Sets ``top_group`` from the admin-configured default unless
+        Sets ``top_collection`` from the admin-configured default unless
         the caller already supplied one. The override applies only on
         row creation; ``_get_or_create_settings`` returns existing
         rows before reaching this branch, so a returning user's
-        pinned ``top_group`` is never overwritten.
+        pinned ``top_collection`` is never overwritten.
         """
         show, _ = SettingsBrowserShow.objects.get_or_create(
             publishers=True,
@@ -185,7 +185,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             volumes=False,
         )
         create_kwargs = dict(create_args)
-        create_kwargs.setdefault("top_group", cls._get_admin_default_top_group())
+        create_kwargs.setdefault("top_collection", cls._get_admin_default_top_group())
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,

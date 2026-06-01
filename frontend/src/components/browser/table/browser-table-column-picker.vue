@@ -96,7 +96,7 @@ import { mapActions, mapState } from "pinia";
 import BROWSER_TABLE_COLUMN_COSTS from "@/choices/browser-table-column-costs.json";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
-import { TOP_GROUP } from "@/choices/browser-map.json";
+import { TOP_COLLECTION } from "@/choices/browser-map.json";
 import { filterShowGatedDefaults, useBrowserStore } from "@/stores/browser";
 
 /*
@@ -272,12 +272,12 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
       tableColumns: (state) => state.settings.tableColumns,
       show: (state) => state.settings.show,
     }),
     topGroupLabel() {
-      return TOP_GROUP[this.topGroup] ?? this.topGroup;
+      return TOP_COLLECTION[this.topCollection] ?? this.topCollection;
     },
     selectedSet() {
       return new Set(this.draft);
@@ -342,12 +342,12 @@ export default {
       };
     },
     _snapshot() {
-      const stored = this.tableColumns?.[this.topGroup];
+      const stored = this.tableColumns?.[this.topCollection];
       if (Array.isArray(stored) && stored.length > 0) {
         this.draft = [...stored];
       } else {
         this.draft = filterShowGatedDefaults(
-          BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+          BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
           this.show,
         );
       }
@@ -374,7 +374,7 @@ export default {
     },
     resetToDefaults() {
       this.draft = filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+        BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
         this.show,
       );
     },
@@ -438,7 +438,7 @@ export default {
     onSave() {
       const next = {
         ...(this.tableColumns ?? {}),
-        [this.topGroup]: this.draft,
+        [this.topCollection]: this.draft,
       };
       this.setSettings({ tableColumns: next });
       this.$emit("update:modelValue", false);

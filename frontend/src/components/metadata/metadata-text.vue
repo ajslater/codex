@@ -80,7 +80,7 @@ export default {
     ...mapState(useBrowserStore, ["groupNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
-      browserTopGroup: (state) => state.settings.topGroup,
+      browserTopGroup: (state) => state.settings.topCollection,
       folderViewEnabled: (state) => state.page.adminFlags.folderView,
     }),
     computedValue() {
@@ -150,7 +150,7 @@ export default {
       };
     },
     toRoute() {
-      // Using router-link gets hijacked and topGroup is not submitted.
+      // Using router-link gets hijacked and topCollection is not submitted.
       if (!this.clickable) {
         return "";
       }
@@ -161,8 +161,8 @@ export default {
       return { name: "browser", params };
     },
     linkSettings() {
-      const topGroup = this.getTopGroup(this.group);
-      return { topGroup };
+      const topCollection = this.getTopGroup(this.group);
+      return { topCollection };
     },
     title() {
       let label;

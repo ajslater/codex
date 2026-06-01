@@ -44,7 +44,7 @@ class BrowserValidateView(SearchFilterView):
         if not self._model_group:
             group = self.kwargs["group"]
             if group == ROOT_COLLECTION:
-                group = self.params["top_group"]
+                group = self.params["top_collection"]
             self._model_group = group
         return self._model_group
 
@@ -97,9 +97,9 @@ class BrowserValidateView(SearchFilterView):
 
     def _validate_top_group(self, valid_top_groups) -> None:
         nav_group = self.kwargs.get("group")
-        top_group = self.params.get("top_group")
-        if top_group not in valid_top_groups:
-            reason = f"top_group {top_group} not in valid nav groups {valid_top_groups}, changed to "
+        top_collection = self.params.get("top_collection")
+        if top_collection not in valid_top_groups:
+            reason = f"top_collection {top_collection} not in valid nav groups {valid_top_groups}, changed to "
             if nav_group in valid_top_groups:
                 valid_top_group = nav_group
                 reason += "nav group: "
@@ -110,7 +110,7 @@ class BrowserValidateView(SearchFilterView):
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
             route = {"group": nav_group, "pks": pks, "page": page}
-            settings_mask = {"top_group": valid_top_group}
+            settings_mask = {"top_collection": valid_top_group}
             self.raise_redirect(reason, route, settings_mask)
 
     def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
@@ -122,12 +122,12 @@ class BrowserValidateView(SearchFilterView):
 
         May always navigate to root 'r' nav group.
         """
-        top_group = self.params["top_group"]
+        top_collection = self.params["top_collection"]
         nav_group = self.kwargs["group"]
         valid_nav_groups = [ROOT_COLLECTION]
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
-            if top_group == possible_nav_group:
+            if top_collection == possible_nav_group:
                 # all the nav groups past this point,
                 # 'c' is obscured by the web reader url, but valid for opds
                 tail_top_groups = valid_top_groups[possible_index:]
@@ -145,7 +145,7 @@ class BrowserValidateView(SearchFilterView):
         if not self.admin_flags["folder_view"]:
             reason = "folder view disabled"
             valid_top_groups = self._get_valid_browse_top_groups()
-            settings_mask = {"top_group": valid_top_groups[0]}
+            settings_mask = {"top_collection": valid_top_groups[0]}
             self.raise_redirect(reason, settings_mask=settings_mask)
 
         valid_top_groups = (FOLDER_COLLECTION,)
@@ -154,8 +154,8 @@ class BrowserValidateView(SearchFilterView):
 
     def _validate_browser_group_settings(self) -> tuple:
         """Check that all the view variables for browser mode are set right."""
-        # Validate Browser top_group
-        # Change top_group if its not in the valid top groups
+        # Validate Browser top_collection
+        # Change top_collection if its not in the valid top groups
         valid_top_groups = self._get_valid_browse_top_groups()
         self._validate_top_group(valid_top_groups)
 
@@ -183,7 +183,7 @@ class BrowserValidateView(SearchFilterView):
         if self._valid_nav_groups is None:
             group = self.kwargs["group"]
             validate_group = (
-                self.params["top_group"] if group == COMIC_COLLECTION else group
+                self.params["top_collection"] if group == COMIC_COLLECTION else group
             )
 
             if validate_group == FOLDER_COLLECTION:

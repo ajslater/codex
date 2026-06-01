@@ -37,7 +37,7 @@ export default {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
     }),
     orderValue() {
       const ov = this.item.orderValue;
