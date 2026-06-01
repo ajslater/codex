@@ -13,7 +13,7 @@ scheme and green again on the collection scheme.
 import shutil
 import xml.etree.ElementTree as ET
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Final
 from urllib.parse import urlsplit
@@ -95,6 +95,55 @@ def _followable(href: str, root: str) -> str | None:
     return f"{path}?{parts.query}" if parts.query else path
 
 
+def _response_links(
+    response, parse: Callable[[object], list[tuple[str | None, str]]], root: str
+) -> tuple[set[str], list[str]]:
+    """
+    Return the (rels, followable paths) a feed response contributes.
+
+    A ``2xx`` is parsed for its links; a ``3xx`` contributes only its
+    redirect target (the engine self-correcting to a valid route);
+    a ``>= 400`` contributes nothing.
+    """
+    code = response.status_code
+    if code == _HTTP_OK:
+        pairs = parse(response)
+    elif _HTTP_REDIRECT <= code < _HTTP_ERROR:
+        pairs = [(None, response.headers.get("Location", ""))]
+    else:
+        return set(), []
+    rels = {rel for rel, _href in pairs if isinstance(rel, str)}
+    follows = [follow for _rel, href in pairs if (follow := _followable(href, root))]
+    return rels, follows
+
+
+_COLLECTIONS: Final = frozenset(
+    {"publishers", "imprints", "series", "volumes", "comics", "folders", "arcs"}
+)
+
+
+def _first_segment(path: str, root: str) -> str:
+    """Return the first path segment below the version root (query stripped)."""
+    return path[len(root) :].split("?", 1)[0].split("/", 1)[0]
+
+
+def _assert_collection_scheme(paths: Iterable[str], root: str) -> None:
+    """Pin that emitted feed URLs use the collection scheme, not the legacy one."""
+    paths = list(paths)
+    segments = {_first_segment(p, root) for p in paths}
+    assert _COLLECTIONS & segments, f"no collection segment among {segments}"
+    for path in paths:
+        # "" is the catalog root; "c" is the v2 manifest's intentional
+        # literal route (it never used the single-char group converter).
+        segment = _first_segment(path, root)
+        assert segment in _COLLECTIONS or segment in {"", "c"}, (
+            f"legacy group segment {segment!r} in {path}"
+        )
+        no_query = path.split("?", 1)[0]
+        assert "/0/" not in no_query, f"dummy-0 root sentinel in {path}"
+        assert not no_query.endswith("/0"), f"dummy-0 root sentinel in {path}"
+
+
 class _OPDSFixtureMixin:
     """One publisher hierarchy + a folder, behind an authed client."""
 
@@ -173,19 +222,12 @@ class _OPDSFixtureMixin:
                 continue
             seen.add(path)
             response = self.client.get(path)
-            code = response.status_code
-            statuses[path] = code
-            if code == _HTTP_OK:
+            statuses[path] = response.status_code
+            if response.status_code == _HTTP_OK:
                 body.extend(response.content)
-                for rel, href in parse(response):
-                    if isinstance(rel, str):
-                        rels.add(rel)
-                    if (follow := _followable(href, start)) and follow not in seen:
-                        queue.append(follow)
-            elif _HTTP_REDIRECT <= code < _HTTP_ERROR:
-                location = response.headers.get("Location", "")
-                if (follow := _followable(location, start)) and follow not in seen:
-                    queue.append(follow)
+            new_rels, follows = _response_links(response, parse, start)
+            rels |= new_rels
+            queue.extend(follow for follow in follows if follow not in seen)
         return statuses, rels, bytes(body)
 
 
@@ -210,6 +252,8 @@ class OPDSv1FeedTestCase(_OPDSFixtureMixin, TestCase):
         assert len(statuses) > _MIN_WALK_VISITS, "walk did not traverse the catalog"
         # Real listing content surfaces, not just empty 200 shells.
         assert b"SeriesNo1" in body, "series row never appeared in any feed"
+        # The flip landed: collection segments, no dummy-0, no char groups.
+        _assert_collection_scheme(statuses, _V1_START)
 
     def test_pagination_emits_followable_next(self) -> None:
         """With page size 1, a multi-row listing emits a resolvable next."""
@@ -243,6 +287,8 @@ class OPDSv2FeedTestCase(_OPDSFixtureMixin, TestCase):
         assert not bad, bad
         assert len(statuses) > _MIN_WALK_VISITS, "walk did not traverse the catalog"
         assert b"SeriesNo1" in body, "series row never appeared in any feed"
+        # The flip landed: collection segments, no dummy-0, no char groups.
+        _assert_collection_scheme(statuses, _V2_START)
 
     def test_pagination_emits_followable_next(self) -> None:
         """With page size 1, a multi-row listing emits a resolvable next."""

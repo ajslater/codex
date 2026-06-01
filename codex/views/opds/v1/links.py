@@ -4,6 +4,7 @@ from django.urls import reverse
 from loguru import logger
 
 from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import (
     OPDS1EntryData,
     OPDS1EntryObject,
@@ -14,7 +15,6 @@ from codex.views.opds.v1.const import (
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
-from codex.views.util import pop_name
 
 
 class OPDS1LinksView(OPDS1FacetsView):
@@ -38,8 +38,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         """Create a link."""
         if query_params is None:
             query_params = self.request.GET
-        kwargs = pop_name(kwargs)
-        href = reverse("opds:v1:feed", kwargs=dict(kwargs), query=query_params)
+        href = opds_feed_reverse("opds:v1:feed", kwargs, query_params)
         return OPDS1Link(rel, href, mime_type)
 
     def _top_link(self, top_link):

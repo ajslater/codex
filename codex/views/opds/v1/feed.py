@@ -79,6 +79,9 @@ class OPDS1FeedView(OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
+    # The collection feed URLs carry no page segment; AuthMixin pulls
+    # ``page`` from ``?page=`` (defaulting to 1) on the way in.
+    requires_page = True
 
     @property
     def version(self):

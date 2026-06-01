@@ -11,6 +11,7 @@ from loguru import logger
 
 from codex.settings import COMICBOX_CONFIG
 from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import OPDS1EntryData, OPDS1EntryObject, OPDS1Link
 
 
@@ -88,7 +89,7 @@ class OPDS1EntryLinksMixin:
             if metadata:
                 qps.update({"opdsMetadata": 1})
             url_name = getattr(self.obj, "url_name", "opds:v1:feed")
-            return reverse(url_name, kwargs=kwargs, query=qps)
+            return opds_feed_reverse(url_name, kwargs, qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
             logger.exception(msg)

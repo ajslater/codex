@@ -3,10 +3,9 @@
 from types import MappingProxyType
 from typing import Any
 
-from django.urls import reverse
-
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import (
     FacetGroups,
     OPDS1EntryData,
@@ -16,7 +15,6 @@ from codex.views.opds.v1.const import (
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.template import CodexXMLTemplateMixin
-from codex.views.util import pop_name
 
 
 class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
@@ -75,7 +73,6 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return self._obj
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params) -> OPDS1Link:
-        kwargs = pop_name(kwargs)
         facet_active = False
         for key, val in new_query_params.items():
             if self.request.GET.get(key) == val:
@@ -84,7 +81,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         query = {}
         query.update(self.request.GET)
         query.update(new_query_params)
-        href = reverse("opds:v1:feed", kwargs=dict(kwargs), query=query)
+        href = opds_feed_reverse("opds:v1:feed", kwargs, query)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(

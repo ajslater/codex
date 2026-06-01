@@ -8,13 +8,13 @@ from caseconverter import camelcase
 from django.core.validators import EMPTY_VALUES
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect
-from django.urls import reverse
 from loguru import logger
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.serializers.route import RouteSerializer
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.util import pop_name
 
 _OPDS_REDIRECT_SETTINGS_SNAKE_CASE_KEYS = {
@@ -92,7 +92,7 @@ class SeeOtherRedirectError(APIException):
         """Return a Django Redirect Response."""
         # only used in codex_exception_handler for opds stuff
         query = self._get_query_params()
-        url = reverse(url_name, kwargs=dict(self.route_kwargs), query=query)
+        url = opds_feed_reverse(url_name, self.route_kwargs, query)
         return redirect(url, permanent=False)
 
 

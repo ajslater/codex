@@ -5,7 +5,6 @@ from contextlib import suppress
 from datetime import UTC, datetime
 
 from dateutil import parser
-from django.urls import reverse
 from loguru import logger
 
 from codex.models import Comic
@@ -18,6 +17,7 @@ from codex.views.opds.metadata import (
     get_credit_people,
     get_m2m_objects,
 )
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
 
@@ -122,9 +122,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         for obj in objs:
             filters = json.dumps({filter_key: [obj.pk]})
             query = {"filters": filters}
-            obj.url = reverse(
-                "opds:v1:feed", kwargs=dict(TopRoutes.SERIES), query=query
-            )
+            obj.url = opds_feed_reverse("opds:v1:feed", TopRoutes.SERIES, query)
             result.append(obj)
         return result
 

@@ -5,13 +5,13 @@ from collections.abc import Collection, Iterable, Sequence
 from types import SimpleNamespace
 
 from django.db.models import CharField, F, Value
-from django.urls import reverse
 
 from codex.models import (
     CreditPerson,
 )
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import OPDS_M2M_MODELS, TopRoutes
+from codex.views.opds.route import opds_feed_reverse
 
 #################
 # M2M QuerySets #
@@ -52,9 +52,7 @@ def get_m2m_objects(pks: Sequence[int]) -> dict:
 def _credit_url_for(person_pk: int) -> str:
     """Build the OPDS v1 facet-style URL for a credit person."""
     filters = json.dumps({"credits": [person_pk]})
-    return reverse(
-        "opds:v1:feed", kwargs=dict(TopRoutes.SERIES), query={"filters": filters}
-    )
+    return opds_feed_reverse("opds:v1:feed", TopRoutes.SERIES, {"filters": filters})
 
 
 def get_credit_people_by_comic(

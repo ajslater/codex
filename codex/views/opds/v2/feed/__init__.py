@@ -31,6 +31,9 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     input_serializer_class = OPDSSettingsSerializer
 
     IS_START_PAGE: bool = False
+    # The collection feed URLs carry no page segment; AuthMixin pulls
+    # ``page`` from ``?page=`` (defaulting to 1) on the way in.
+    requires_page = True
 
     def _subtitle_filters(self) -> list[str]:
         parts: list[str] = []
