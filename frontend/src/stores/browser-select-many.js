@@ -88,9 +88,9 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         return null;
       }
       const grouped = _groupSelectedItems(state.selectedItems);
-      const groups = Object.keys(grouped);
+      const collections = Object.keys(grouped);
       // Use the first collection type found.
-      const collection = groups[0];
+      const collection = collections[0];
       const items = grouped[collection];
       const pks = _collectPks(items);
       const names = items.map((item) => item.name).filter(Boolean);
