@@ -124,7 +124,7 @@ export default {
     },
     downloadItem() {
       return {
-        group: this.md?.collection,
+        collection: this.md?.collection,
         ids: this.md?.ids,
         childCount: this.md?.childCount,
         mtime: this.md?.mtime,
@@ -160,7 +160,7 @@ export default {
         name = this.md.name;
       }
       return {
-        group: this.md.collection,
+        collection: this.md.collection,
         ids: this.md.ids,
         finished: this.md.finished,
         name,
@@ -176,7 +176,7 @@ export default {
     controlBook() {
       return (
         this.book || {
-          group: this.md?.collection,
+          collection: this.md?.collection,
           pk: this.md?.ids?.[0],
           ids: this.md?.ids,
           childCount: this.md?.childCount,
