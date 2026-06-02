@@ -8,8 +8,8 @@ from codex.librarian.scribe.importer.const import (
 )
 from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import BaseModel, NamedModel
+from codex.models.collections import BrowserCollectionModel
 from codex.models.comic import Comic
-from codex.models.groups import BrowserCollectionModel
 from codex.settings import (
     IMPORTER_LINK_FK_BATCH_SIZE,
     IMPORTER_LINK_M2M_BATCH_SIZE,

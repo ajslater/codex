@@ -24,8 +24,8 @@ from codex.librarian.scribe.importer.read.const import (
 from codex.librarian.scribe.importer.read.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
+from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.groups import Folder
 from codex.models.identifier import IdentifierSource
 from codex.models.named import CreditRole
 

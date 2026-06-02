@@ -4,7 +4,7 @@ from django.db.models import OuterRef, Q, Subquery
 
 from codex.models import Comic, Folder, Volume
 from codex.models.paths import CustomCover
-from codex.views.browser.annotate.card import _GROUP_BY, BrowserAnnotateCardView
+from codex.views.browser.annotate.card import _COLLECTION_BY, BrowserAnnotateCardView
 from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
 
 
@@ -38,7 +38,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         # same columns used by add_group_by, so ``ids`` (the JsonGroupArray
         # of merged group pks) and the cover subquery pick the exact same
         # comic set — without recomputing sort_names in Python.
-        group_by_cols = _GROUP_BY.get(group_model, ("sort_name",))
+        group_by_cols = _COLLECTION_BY.get(group_model, ("sort_name",))
         correlation: dict = {
             f"{group_rel}__{col}": OuterRef(col) for col in group_by_cols
         }

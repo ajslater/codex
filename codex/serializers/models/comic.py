@@ -6,7 +6,7 @@ from codex.models import (
     Comic,
 )
 from codex.serializers.models.base import BaseModelSerializer
-from codex.serializers.models.groups import (
+from codex.serializers.models.collections import (
     ImprintSerializer,
     PublisherSerializer,
     SeriesSerializer,

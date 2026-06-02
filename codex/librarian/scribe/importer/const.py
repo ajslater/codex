@@ -9,8 +9,7 @@ from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
 from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
-from codex.models.comic import Comic
-from codex.models.groups import (
+from codex.models.collections import (
     BrowserCollectionModel,
     Folder,
     Imprint,
@@ -18,6 +17,7 @@ from codex.models.groups import (
     Series,
     Volume,
 )
+from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.models.named import (
     Character,

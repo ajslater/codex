@@ -36,19 +36,19 @@ from codex.models.choices import (
     ReadingDirectionChoices,
     max_choices_len,
 )
-from codex.models.fields import (
-    CleaningCharField,
-    CleaningTextField,
-    CoercingDecimalField,
-    CoercingPositiveSmallIntegerField,
-)
-from codex.models.groups import (
+from codex.models.collections import (
     Folder,
     Imprint,
     Publisher,
     Series,
     Volume,
     WatchedPathBrowserCollection,
+)
+from codex.models.fields import (
+    CleaningCharField,
+    CleaningTextField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
 )
 from codex.models.identifier import Identifier
 from codex.models.named import (

@@ -27,7 +27,7 @@ from django.test import Client, TestCase
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES, BROWSER_TABLE_COLUMNS
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.startup import init_admin_flags
 from codex.views.browser.order_by import (

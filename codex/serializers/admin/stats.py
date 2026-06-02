@@ -58,7 +58,7 @@ class StatsSessionsSerializer(Serializer):
     reading_direction = CountDictField(required=False, read_only=True)
 
 
-class StatsGroupSerializer(Serializer):
+class StatsCollectionSerializer(Serializer):
     """Group Counts."""
 
     publisher_count = IntegerField(required=False, read_only=True)
@@ -101,7 +101,7 @@ class StatsSerializer(Serializer):
     platform = StatsPlatformSerializer(required=False)
     config = StatsConfigSerializer(required=False)
     sessions = StatsSessionsSerializer(required=False)
-    groups = StatsGroupSerializer(required=False)
+    groups = StatsCollectionSerializer(required=False)
     file_types = CountDictField(required=False)
     metadata = StatsComicMetadataSerializer(required=False)
 
@@ -116,7 +116,9 @@ class AdminStatsRequestSerializer(Serializer):
     sessions = SerializerChoicesField(
         serializer=StatsSessionsSerializer, required=False
     )
-    groups = SerializerChoicesField(serializer=StatsGroupSerializer, required=False)
+    groups = SerializerChoicesField(
+        serializer=StatsCollectionSerializer, required=False
+    )
     file_types = StringListMultipleChoiceField(choices=FILE_TYPES_CHOICES)
     metadata = SerializerChoicesField(
         serializer=StatsComicMetadataSerializer, required=False

@@ -13,8 +13,8 @@ from django.db.models import (
 
 from codex.collection import COLLECTION_LABELS, Collection
 from codex.models.base import BaseModel
+from codex.models.collections import Folder, Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
-from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
 from codex.models.named import StoryArc
 
 __all__ = (

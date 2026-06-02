@@ -513,7 +513,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         """
         Series rows show ``publisher_name`` via child-comic intersection.
 
-        Regression: ``annotate_group_names`` only annotated
+        Regression: ``annotate_collection_names`` only annotated
         ``publisher_name`` for Comic and Imprint querysets, and
         ``publisher_name`` was missing from ``_SCALAR_FIELD_PATHS``,
         so Series rows (top_collection=s) — and Volume / Folder /

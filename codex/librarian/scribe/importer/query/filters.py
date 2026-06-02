@@ -5,7 +5,7 @@ from django.db.models.query_utils import Q
 from codex.librarian.scribe.importer.const import DictModelType
 from codex.librarian.scribe.importer.query.covers import QueryCustomCoversImporter
 from codex.models.base import BaseModel
-from codex.models.groups import BrowserCollectionModel
+from codex.models.collections import BrowserCollectionModel
 
 
 class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):

@@ -17,7 +17,7 @@ _COLLECTION_REL_TARGETS: Final = frozenset(
 _PK_REL_TARGETS: Final = frozenset({"metadata", "mtime"})
 
 
-class GroupFilterView(BrowserParamsView):
+class CollectionFilterView(BrowserParamsView):
     """Group Filters."""
 
     TARGET: str = ""

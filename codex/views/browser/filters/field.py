@@ -5,7 +5,7 @@ from types import MappingProxyType
 from django.db.models.query_utils import Q
 
 from codex.views.browser.const import BROWSER_FILTER_KEYS
-from codex.views.browser.filters.group import GroupFilterView
+from codex.views.browser.filters.collection import CollectionFilterView
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
@@ -28,7 +28,7 @@ _FILTER_REL_MAP = MappingProxyType(
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)
 
 
-class ComicFieldFilterView(GroupFilterView):
+class ComicFieldFilterView(CollectionFilterView):
     """Comic field filters."""
 
     @staticmethod

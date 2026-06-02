@@ -9,7 +9,7 @@ from loguru import logger
 from rest_framework.exceptions import NotFound
 
 from codex.choices.browser import DEFAULT_BROWSER_ROUTE
-from codex.models.groups import BrowserCollectionModel
+from codex.models.collections import BrowserCollectionModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
 from codex.views.const import (

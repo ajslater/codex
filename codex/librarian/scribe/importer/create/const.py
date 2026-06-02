@@ -31,8 +31,8 @@ from codex.models import (
     Volume,
 )
 from codex.models.base import BaseModel
+from codex.models.collections import Folder, Imprint, Publisher, Series
 from codex.models.comic import Comic
-from codex.models.groups import Folder, Imprint, Publisher, Series
 from codex.models.identifier import (
     Identifier,
     IdentifierSource,

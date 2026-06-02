@@ -35,7 +35,7 @@ from codex.librarian.scribe.importer.statii.create import (
 )
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 from codex.models.named import Universe
 
 

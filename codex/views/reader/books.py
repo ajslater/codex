@@ -148,7 +148,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         if select_related:
             qs = qs.select_related(*select_related)
         qs = qs.only(*fields)
-        qs = self.annotate_group_names(qs)
+        qs = self.annotate_collection_names(qs)
         # ``has_metadata`` is read as a ``BooleanField`` on the reader
         # serializer; selecting the IS-NOT-NULL predicate skips dragging a
         # full ``DateTimeField`` value through the result row.

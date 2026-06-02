@@ -15,8 +15,8 @@ from types import MappingProxyType
 from django.db.models import QuerySet
 
 from codex.models import BrowserCollectionModel
+from codex.models.collections import Volume
 from codex.models.functions import JsonGroupArray
-from codex.models.groups import Volume
 
 # Model class names whose ``*_list`` attribute name on the metadata
 # response object doesn't match ``__name__.lower() + "_list"``.

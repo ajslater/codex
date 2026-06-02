@@ -8,8 +8,8 @@ from django.db.models import (
 )
 
 from codex.models.base import MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.collections import BrowserCollectionModel
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
-from codex.models.groups import BrowserCollectionModel
 from codex.models.identifier import Identifier
 
 __all__ = (

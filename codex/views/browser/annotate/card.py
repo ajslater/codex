@@ -12,19 +12,19 @@ from django.db.models import (
 from django.db.models.fields import CharField
 
 from codex.collection import Collection
-from codex.models.comic import Comic
-from codex.models.functions import JsonGroupArray
-from codex.models.groups import (
+from codex.models.collections import (
     BrowserCollectionModel,
     Imprint,
     Publisher,
     Series,
     Volume,
 )
+from codex.models.comic import Comic
+from codex.models.functions import JsonGroupArray
 from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
-_GROUP_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
+_COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
     MappingProxyType(
         {
             Publisher: ("sort_name",),
@@ -43,7 +43,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
     def add_group_by(self, qs):
         """Get the group by for the model."""
         # this method is here because this is class is what metadata imports
-        if group_by := _GROUP_BY.get(qs.model):
+        if group_by := _COLLECTION_BY.get(qs.model):
             qs = qs.group_by(*group_by)
         return qs
 
@@ -93,7 +93,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
             # comic adds order_value for cards late
             qs = self.annotate_order_value(qs)
         qs = self._annotate_nav_collection(qs)
-        qs = self.annotate_group_names(qs)
+        qs = self.annotate_collection_names(qs)
         qs = self._annotate_file_name(qs)
         qs = self.annotate_child_count(qs)
         qs = self.annotate_bookmarks(qs)

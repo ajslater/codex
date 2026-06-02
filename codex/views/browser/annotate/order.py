@@ -20,8 +20,8 @@ from codex.models import (
     Folder,
     StoryArc,
 )
+from codex.models.collections import Volume
 from codex.models.functions import ComicFTSRank, JsonGroupArray
-from codex.models.groups import Volume
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
 from codex.views.browser.intersections import (
     m2m_intersection_sort_expr,

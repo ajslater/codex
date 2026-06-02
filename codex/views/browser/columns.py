@@ -104,7 +104,7 @@ _M2M_AGGREGATE_FILTERS = MappingProxyType(
 # FK-name columns: their value is a single related model's ``name``.
 # All keys here also collide with a Comic FK field (``country``,
 # ``language``, ``age_rating``, etc.) or aren't already covered by
-# ``annotate_group_names``, so we annotate via a prefixed alias and
+# ``annotate_collection_names``, so we annotate via a prefixed alias and
 # read it back through ``fk_alias_for``.
 _FK_NAME_COLUMN_PATHS = MappingProxyType(
     {

@@ -8,7 +8,7 @@ from typing import Any, override
 from django.db.models import CharField, F, Value
 
 from codex.models.base import NamedModel
-from codex.models.groups import Volume
+from codex.models.collections import Volume
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (

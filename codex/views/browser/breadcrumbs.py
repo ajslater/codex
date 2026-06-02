@@ -13,7 +13,7 @@ from codex.models import (
     Series,
     Volume,
 )
-from codex.models.groups import Publisher
+from codex.models.collections import Publisher
 from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -23,9 +23,9 @@ from codex.views.const import (
 from codex.views.util import Route
 
 if TYPE_CHECKING:
-    from codex.models.groups import Folder
+    from codex.models.collections import Folder
 
-_GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
+_COLLECTION_INSTANCE_SELECT_RELATED: MappingProxyType[
     type[BrowserCollectionModel], tuple[str, ...]
 ] = MappingProxyType(
     {
@@ -65,18 +65,18 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         # Use 0 to indicate unmemoized because None is a valid value
-        self._group_instance: BrowserCollectionModel | None | int = 0
+        self._collection_instance: BrowserCollectionModel | None | int = 0
 
-    def _get_group_query(self, model):
+    def _get_collection_query(self, model):
         """Get the group query for the group instance."""
         pks = self.kwargs.get("pks")
         qs = model.objects.filter(pk__in=pks)
-        if select_related := _GROUP_INSTANCE_SELECT_RELATED.get(model):
+        if select_related := _COLLECTION_INSTANCE_SELECT_RELATED.get(model):
             qs = qs.select_related(*select_related)
         order_by = "name" if model is Volume else "sort_name"
         return qs.order_by(order_by)
 
-    def _handle_group_query_missing_model(self, model) -> QuerySet:
+    def _handle_collection_query_missing_model(self, model) -> QuerySet:
         """Handle a missing model for the group instance."""
         group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
@@ -90,30 +90,32 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         return model.objects.none()
 
     @property
-    def group_instance(self) -> BrowserCollectionModel | None:
+    def collection_instance(self) -> BrowserCollectionModel | None:
         """Memoize group instance for getting group names & counts."""
-        if self._group_instance == 0:
+        if self._collection_instance == 0:
             group = self.kwargs.get("collection")
             model = COLLECTION_MODEL_MAP[group]
             pks = self.kwargs.get("pks")
             if model and pks and 0 not in pks:
                 try:
-                    group_query = self._get_group_query(model)
+                    collection_query = self._get_collection_query(model)
                 except model.DoesNotExist:
-                    group_query = self._handle_group_query_missing_model(model)
+                    collection_query = self._handle_collection_query_missing_model(
+                        model
+                    )
             else:
                 if not model:
                     model = Publisher
-                group_query = model.objects.none()
-            self._group_instance = group_query.first()
-        # ``_group_instance`` carries an ``int`` sentinel (``0``) for the
+                collection_query = model.objects.none()
+            self._collection_instance = collection_query.first()
+        # ``_collection_instance`` carries an ``int`` sentinel (``0``) for the
         # unmemoized state; by this point it's been resolved to a real
         # model row or ``None``.
-        return cast("BrowserCollectionModel | None", self._group_instance)
+        return cast("BrowserCollectionModel | None", self._collection_instance)
 
-    def _build_group_breadcrumbs(self) -> tuple[Route, ...]:
+    def _build_collection_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse group mode by walking FK parents."""
-        gi = self.group_instance
+        gi = self.collection_instance
         group = self.kwargs["collection"]
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
@@ -144,9 +146,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Build breadcrumbs for folder mode by walking parent_folder FKs."""
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        # In folder mode ``group_instance`` is a Folder (or None) by
+        # In folder mode ``collection_instance`` is a Folder (or None) by
         # construction — the caller branches on ``group == FOLDER_COLLECTION``.
-        folder = cast("Folder | None", self.group_instance)
+        folder = cast("Folder | None", self.collection_instance)
         name = folder.name if folder and pks else ""
 
         crumbs: list[Route] = [Route(FOLDER_COLLECTION, pks, page, name)]
@@ -167,7 +169,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Build breadcrumbs for story arc mode."""
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
-        gi = self.group_instance
+        gi = self.collection_instance
         name = gi.name if gi else ""
 
         crumbs: list[Route] = [Route(STORY_ARC_COLLECTION, pks, page, name)]
@@ -185,4 +187,4 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             return self._build_folder_breadcrumbs()
         if group == STORY_ARC_COLLECTION:
             return self._build_story_arc_breadcrumbs()
-        return self._build_group_breadcrumbs()
+        return self._build_collection_breadcrumbs()

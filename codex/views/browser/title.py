@@ -23,7 +23,7 @@ class BrowserTitleView(BrowserBreadcrumbsView):
         collection_number_to = None
         collection_count = 0
         collection_name = ""
-        if gi := self.group_instance:
+        if gi := self.collection_instance:
             collection_name = gi.name
             if isinstance(gi, Volume):
                 collection_number_to = gi.number_to

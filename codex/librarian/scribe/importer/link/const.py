@@ -8,7 +8,7 @@ from codex.librarian.scribe.importer.const import (
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models.base import BaseModel
-from codex.models.groups import Imprint, Series, Volume
+from codex.models.collections import Imprint, Series, Volume
 
 COMPLEX_MODEL_FIELD_NAMES = (
     CREDITS_FIELD_NAME,

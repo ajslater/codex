@@ -14,7 +14,7 @@ from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import StoryArc, Volume
-from codex.models.groups import BrowserCollectionModel
+from codex.models.collections import BrowserCollectionModel
 from codex.models.library import Library
 from codex.views.const import COLLECTION_MODELS
 

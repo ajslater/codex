@@ -15,7 +15,7 @@ from codex.librarian.fs.events import FSChange, FSEvent
 from codex.librarian.fs.watcher.data import ChangeBatch
 from codex.librarian.fs.watcher.dirs import expand_dir_added, expand_dir_deleted
 from codex.librarian.fs.watcher.move import detect_moves
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 
 
 def _process_change(

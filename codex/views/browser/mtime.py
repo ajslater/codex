@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.models.groups import Publisher
+from codex.models.collections import Publisher
 from codex.serializers.browser.mtime import CollectionsMtimeSerializer, MtimeSerializer
 from codex.util import max_none
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView

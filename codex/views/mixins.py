@@ -8,8 +8,8 @@ from django.db.models.functions import Concat
 
 from codex.librarian.bookmark.tasks import UserActiveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.models.collections import Imprint, Volume
 from codex.models.comic import Comic
-from codex.models.groups import Imprint, Volume
 from codex.views.const import COLLECTION_NAME_MAP, COMIC_COLLECTION
 
 if TYPE_CHECKING:
@@ -86,7 +86,7 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         )
 
     @classmethod
-    def annotate_group_names(cls, qs):
+    def annotate_collection_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
         target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]

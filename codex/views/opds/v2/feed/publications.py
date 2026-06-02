@@ -12,7 +12,7 @@ from django.db.models import CharField, F, Value
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
-from codex.models.groups import BrowserCollectionModel, Folder
+from codex.models.collections import BrowserCollectionModel, Folder
 from codex.models.identifier import Identifier
 from codex.models.named import Credit
 from codex.settings.db import get_browser_max_obj_per_page

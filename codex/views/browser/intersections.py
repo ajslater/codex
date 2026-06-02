@@ -27,7 +27,7 @@ from django.db.models import CharField, Count, F, Min, Q, Sum, Value
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
-from codex.models.groups import (
+from codex.models.collections import (
     BrowserCollectionModel,
     Folder,
     Imprint,

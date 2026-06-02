@@ -8,8 +8,8 @@ from loguru import logger
 from codex.librarian.fs.events import FSChange, FSEvent
 from codex.librarian.fs.filters import is_ignored_basename, match_comic
 from codex.librarian.fs.watcher.data import ChangeBatch
+from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.groups import Folder
 from codex.models.paths import FailedImport
 
 

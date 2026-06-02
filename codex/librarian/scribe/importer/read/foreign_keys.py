@@ -29,7 +29,7 @@ from codex.librarian.scribe.importer.read.const import (
     COMIC_FK_FIELD_NAMES_FIELD_MAP,
 )
 from codex.models.base import BaseModel
-from codex.models.groups import BrowserCollectionModel, Volume
+from codex.models.collections import BrowserCollectionModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
 

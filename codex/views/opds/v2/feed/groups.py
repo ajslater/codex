@@ -5,9 +5,7 @@ from types import MappingProxyType
 from typing import Any
 
 from codex.collection import Collection
-from codex.models.comic import Comic
-from codex.models.favorite import Favorite
-from codex.models.groups import (
+from codex.models.collections import (
     BrowserCollectionModel,
     Folder,
     Imprint,
@@ -15,6 +13,8 @@ from codex.models.groups import (
     Series,
     Volume,
 )
+from codex.models.comic import Comic
+from codex.models.favorite import Favorite
 from codex.models.named import StoryArc
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel

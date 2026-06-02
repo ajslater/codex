@@ -4,7 +4,7 @@ from types import MappingProxyType
 
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
-from codex.models.groups import Volume
+from codex.models.collections import Volume
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
 

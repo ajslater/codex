@@ -5,7 +5,7 @@ from types import MappingProxyType
 from codex.collection import Collection
 from codex.models import BrowserCollectionModel, Comic
 from codex.models.age_rating import AgeRating
-from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
+from codex.models.collections import Folder, Imprint, Publisher, Series, Volume
 from codex.models.identifier import Identifier
 from codex.models.named import (
     Character,
