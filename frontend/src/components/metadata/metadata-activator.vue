@@ -50,7 +50,7 @@ export default {
     onMouseEnter() {
       if (this.lazyImportEnabled) {
         const ids = this.book.ids || [this.book.pk];
-        this.lazyImport({ group: this.book.collection, ids }).then(() => {
+        this.lazyImport({ collection: this.book.collection, ids }).then(() => {
           this.lazyImportStarted = true;
         });
       }

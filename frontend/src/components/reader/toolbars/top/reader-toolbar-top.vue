@@ -25,7 +25,7 @@
           <FavoriteToggle
             v-if="currentBookPk"
             class="readerFavoriteToggle"
-            group="comics"
+            collection="comics"
             :pk="currentBookPk"
           />
           <MetadataDialog

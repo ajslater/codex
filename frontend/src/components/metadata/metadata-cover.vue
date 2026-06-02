@@ -8,7 +8,7 @@
     <BookCover
       v-else
       id="bookCover"
-      :group="group"
+      :collection="collection"
       :pks="md.ids"
       :cover-pk="md.coverPk"
       :cover-custom-pk="md.coverCustomPk"
@@ -39,7 +39,7 @@ export default {
     BookCover,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
@@ -53,7 +53,7 @@ export default {
       md: (state) => state.md,
     }),
     genericCoverSrc() {
-      return getPlaceholderSrc(this.group);
+      return getPlaceholderSrc(this.collection);
     },
   },
 };

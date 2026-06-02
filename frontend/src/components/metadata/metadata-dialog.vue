@@ -10,7 +10,7 @@
     <CloseButton class="closeButton" title="Close Tags (esc)" @click="close" />
     <div v-if="showContainer" id="metadataContainer" @keyup.esc="close">
       <MetadataHeader
-        :group="book.collection"
+        :collection="book.collection"
         :multi-select="isMultiSelect"
         :book="book"
         :editing="editing"
@@ -141,7 +141,7 @@ export default {
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
       const data = {
-        group: this.book.collection,
+        collection: this.book.collection,
         pks,
       };
       this.loadMetadata(data);

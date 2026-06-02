@@ -46,7 +46,7 @@ export default {
     ExpandButton,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       default: "",
     },
@@ -93,9 +93,9 @@ export default {
     },
     displayValue() {
       let value;
-      if (this.group === "folders" && this.computedValue) {
+      if (this.collection === "folders" && this.computedValue) {
         value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
-      } else if (this.group === "volumes" && this.computedValue) {
+      } else if (this.collection === "volumes" && this.computedValue) {
         value = formattedVolumeName(this.computedValue, this.value.numberTo);
       } else {
         value = this.computedValue;
@@ -131,11 +131,11 @@ export default {
 
       // Validate Group
       if (
-        !this.group ||
-        routeCollection === this.group ||
-        (this.group === "folders" && !this.folderViewEnabled) ||
-        (!["arcs", "folders"].includes(this.group) &&
-          !this.browserShow[this.group])
+        !this.collection ||
+        routeCollection === this.collection ||
+        (this.collection === "folders" && !this.folderViewEnabled) ||
+        (!["arcs", "folders"].includes(this.collection) &&
+          !this.browserShow[this.collection])
       ) {
         return false;
       }
@@ -155,28 +155,28 @@ export default {
         return "";
       }
 
-      const group = this.group;
+      const collection = this.collection;
       const pks = this.linkPks;
-      const params = { collection: group, pks, page: 1 };
+      const params = { collection: collection, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {
-      const topCollection = this.getTopGroup(this.group);
+      const topCollection = this.getTopGroup(this.collection);
       return { topCollection };
     },
     title() {
       let label;
       if (this.label) {
         label = this.label;
-      } else if (this.group) {
-        label = this.groupNames[this.group];
+      } else if (this.collection) {
+        label = this.groupNames[this.collection];
       } else {
         label = "";
       }
       return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
-      return this.group === "folders"
+      return this.collection === "folders"
         ? this.computedValue.slice(Math.max(0, this.lastSlashIndex))
         : "";
     },

@@ -3,7 +3,7 @@
     <div class="browserCardCoverWrapper">
       <div class="browserCardTop">
         <BookCover
-          :group="item.collection"
+          :collection="item.collection"
           :pks="item.ids"
           :cover-pk="item.coverPk"
           :cover-custom-pk="item.coverCustomPk"
@@ -36,7 +36,7 @@
           v-if="favoritePk"
           class="cardFavoriteToggle"
           :class="{ favoriteVisible: isFavoriteCard }"
-          :group="item.collection"
+          :collection="item.collection"
           :pk="favoritePk"
         />
       </div>

@@ -51,7 +51,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
     await wrapper.find("button").trigger("mouseenter");
 
     expect(metadataStore.lazyImport).toHaveBeenCalledWith({
-      group: "comics",
+      collection: "comics",
       ids: [42],
     });
 
@@ -109,7 +109,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
 
     expect(metadataStore.lazyImport).toHaveBeenCalledTimes(1);
     expect(metadataStore.lazyImport).toHaveBeenCalledWith({
-      group: "comics",
+      collection: "comics",
       ids: [1, 2, 3],
     });
   });

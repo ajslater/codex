@@ -68,9 +68,9 @@ export const useMetadataStore = defineStore("metadata", {
     },
   },
   actions: {
-    async loadMetadata({ group, pks }) {
+    async loadMetadata({ collection, pks }) {
       await API.getMetadata(
-        { collection: group, pks },
+        { collection, pks },
         useBrowserStore().metadataSettings,
       )
         .then((response) => {
@@ -147,8 +147,8 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return tagMap;
     },
-    lazyImport({ group, ids }) {
-      return API.getLazyImport({ collection: group, pks: ids });
+    lazyImport({ collection, ids }) {
+      return API.getLazyImport({ collection, pks: ids });
     },
   },
 });

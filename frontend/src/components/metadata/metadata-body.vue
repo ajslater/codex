@@ -35,7 +35,7 @@
       </div>
       <div class="lastSmallRow">
         <MetadataText
-          group="folders"
+          collection="folders"
           :value="{ pk: md.parentFolderId, name: md.path }"
           label="Path"
         />

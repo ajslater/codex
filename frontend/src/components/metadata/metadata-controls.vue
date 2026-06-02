@@ -15,7 +15,7 @@
     <FavoriteToggle
       v-if="favoritePk"
       id="favoriteButton"
-      :group="group"
+      :collection="collection"
       :pk="favoritePk"
     />
     <v-btn
@@ -60,13 +60,16 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_MAP = Object.freeze({
-  p: "publisher",
-  i: "imprint",
-  s: "series",
-  v: "volume",
-  f: "folder",
-  a: "storyArc",
+// Maps a collection value to its singular metadata-list prefix
+// (``md.publisherList`` etc.). Keyed by collection name now — the old
+// single-char keys never matched the collection-valued ``md.collection``.
+const COLLECTION_PREFIX_MAP = Object.freeze({
+  publishers: "publisher",
+  imprints: "imprint",
+  series: "series",
+  volumes: "volume",
+  folders: "folder",
+  arcs: "storyArc",
 });
 
 export default {
@@ -78,7 +81,7 @@ export default {
     OnlineTagLauncherDialog,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
@@ -132,7 +135,7 @@ export default {
       };
     },
     isReadButtonShown() {
-      return this.group === "comics" && this.$route.name != "reader";
+      return this.collection === "comics" && this.$route.name != "reader";
     },
     favoritePk() {
       /*
@@ -151,7 +154,7 @@ export default {
     },
     markReadItem() {
       let name = "";
-      const prefix = GROUP_MAP[this.md.collection];
+      const prefix = COLLECTION_PREFIX_MAP[this.md.collection];
       if (prefix) {
         const nameList = this.md[prefix + "List"] || [];
         const names = nameList.map(({ name }) => name);

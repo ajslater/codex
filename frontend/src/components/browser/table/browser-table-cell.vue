@@ -29,7 +29,11 @@
     </v-menu>
   </span>
   <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
-    <FavoriteToggle v-if="favoritePk" :group="favoriteGroup" :pk="favoritePk" />
+    <FavoriteToggle
+      v-if="favoritePk"
+      :collection="favoriteGroup"
+      :pk="favoritePk"
+    />
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
@@ -139,7 +143,7 @@ export default {
     return {
       /*
        * Once a cover URL fails (404 / network error) we swap to the
-       * group's placeholder svg so the browser never renders the
+       * collection's placeholder svg so the browser never renders the
        * broken-image icon. Reset when the row identity changes.
        */
       imgErrored: false,
@@ -172,15 +176,15 @@ export default {
     },
     favoriteGroup() {
       /*
-       * Group rows carry an explicit ``group`` collection; comic rows
-       * omit it (the table view's lone comic-only top-group) and
+       * Group rows carry an explicit ``collection`` collection; comic rows
+       * omit it (the table view's lone comic-only top-collection) and
        * default to ``comics``.
        */
-      return this.row?.group ?? "comics";
+      return this.row?.collection ?? "comics";
     },
     favoritePk() {
       /*
-       * Comic rows expose ``pk`` directly; group rows use ``ids``
+       * Comic rows expose ``pk`` directly; collection rows use ``ids``
        * and only the single-id case can be favorited atomically.
        */
       const ids = this.row?.ids;

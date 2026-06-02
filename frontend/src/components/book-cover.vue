@@ -7,7 +7,7 @@
       :class="multiPkClasses"
       position="top"
     />
-    <span v-if="group !== 'comics'" class="childCount">
+    <span v-if="collection !== 'comics'" class="childCount">
       {{ childCount }}
     </span>
   </div>
@@ -22,7 +22,7 @@ const DEFAULT_RETRY_AFTER_SEC = 2;
 export default {
   name: "BookCover",
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
@@ -67,7 +67,7 @@ export default {
       return `${base}${sep}r=${this.retry}`;
     },
     placeholderSrc() {
-      return getPlaceholderSrc(this.group);
+      return getPlaceholderSrc(this.collection);
     },
     imgSrc() {
       /*

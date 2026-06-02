@@ -9,7 +9,7 @@
     />
     <MetadataBookCover
       id="metadataBookCover"
-      :group="group"
+      :collection="collection"
       :force-generic-cover="multiSelect"
     />
     <section
@@ -21,7 +21,7 @@
           id="series"
           :key="md.seriesList[0].ids"
           :value="md.seriesList[0]"
-          group="series"
+          collection="series"
           :highlight="'series' === md.collection"
         />
         <MetadataText
@@ -29,14 +29,14 @@
           id="volume"
           :key="md.volumeList[0].ids"
           :value="md.volumeList[0]"
-          group="volumes"
+          collection="volumes"
           :highlight="'volumes' === md.collection"
         />
         <MetadataText :value="seriesVolumeCount" class="subdued" />
         <MetadataText
           id="issue"
           :value="formattedIssueNumber"
-          group="comics"
+          collection="comics"
           :highlight="'comics' === md.collection"
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
@@ -71,7 +71,7 @@
       <MetadataText
         id="publisher"
         :key="md.publisherList[0].ids"
-        group="publishers"
+        collection="publishers"
         :highlight="'publishers' === md.collection"
         :value="md.publisherList[0]"
       />
@@ -79,7 +79,7 @@
         v-if="md.imprintList?.length === 1"
         id="imprint"
         :key="md.imprintList[0].ids"
-        group="imprints"
+        collection="imprints"
         :highlight="'imprints' === md.collection"
         :value="md.imprintList[0]"
       />
@@ -112,7 +112,7 @@
   <MetadataControls
     v-if="!multiSelect && !editing"
     id="controls"
-    :group="group"
+    :collection="collection"
     :book="book"
     @edit-tags="$emit('editTags')"
     @online-tag-started="$emit('onlineTagStarted')"
@@ -142,7 +142,7 @@ export default {
     MetadataText,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },

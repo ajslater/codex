@@ -24,7 +24,7 @@ import { useFavoritesStore } from "@/stores/favorites";
 export default {
   name: "FavoriteToggle",
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
@@ -39,7 +39,7 @@ export default {
     }),
     ...mapState(useFavoritesStore, ["isFavorite"]),
     on() {
-      return this.isFavorite(this.group, Number(this.pk));
+      return this.isFavorite(this.collection, Number(this.pk));
     },
     icon() {
       return this.on ? mdiStar : mdiStarOutline;
@@ -60,7 +60,7 @@ export default {
     ...mapActions(useFavoritesStore, ["toggle"]),
     onClick() {
       if (this.disabled) return;
-      this.toggle(this.group, Number(this.pk));
+      this.toggle(this.collection, Number(this.pk));
     },
   },
 };
