@@ -247,8 +247,8 @@ class BrowserPageSerializer(Serializer):
     """
     The main browse list.
 
-    Mode-aware: table-mode responses emit ``rows`` (no ``groups``/
-    ``books``) and card-mode responses emit ``groups``/``books`` (no
+    Mode-aware: table-mode responses emit ``rows`` (no ``collections``/
+    ``books``) and card-mode responses emit ``collections``/``books`` (no
     ``rows``). The active view mode is inferred from the presence of
     ``columns`` on the payload (``BrowserView`` only populates them
     when ``view_mode == "table"``).
@@ -261,7 +261,7 @@ class BrowserPageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_collection = BrowseCollectionField(read_only=True)
     num_pages = IntegerField(read_only=True)
-    groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    collections = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     rows = SerializerMethodField()
     fts = BooleanField(read_only=True)
@@ -269,17 +269,17 @@ class BrowserPageSerializer(Serializer):
     mtime = TimestampField(read_only=True)
 
     def get_rows(self, obj) -> list:
-        """Project groups + books through ``columns`` if requested."""
+        """Project collections + books through ``columns`` if requested."""
         columns = obj.get("columns") if isinstance(obj, dict) else None
         if not columns:
             return []
         columns = tuple(columns)
-        groups = obj.get("groups", ()) or ()
+        collections = obj.get("collections", ()) or ()
         books = obj.get("books", ()) or ()
         intersections = obj.get("group_intersections") or None
         return [
             _row_repr(item, columns, intersections=intersections)
-            for item in (*groups, *books)
+            for item in (*collections, *books)
         ]
 
     @override
@@ -294,7 +294,7 @@ class BrowserPageSerializer(Serializer):
         """
         data = super().to_representation(instance)
         if self._view_mode(instance) == "table":
-            data.pop("groups", None)
+            data.pop("collections", None)
             data.pop("books", None)
         else:
             data.pop("rows", None)

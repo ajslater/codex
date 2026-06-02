@@ -91,9 +91,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["forceUpdateGroup"]),
+    ...mapActions(useBrowserStore, ["forceUpdateCollection"]),
     forceUpdate() {
-      this.forceUpdateGroup({
+      this.forceUpdateCollection({
         collection: this.item.collection,
         ids: this.item.ids,
       });

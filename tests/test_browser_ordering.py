@@ -406,14 +406,14 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Alpha", "Beta"], names
 
         cache.clear()
         self._patch_settings({"orderReverse": True})
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_by_page_count_on_group_rows(self) -> None:
@@ -433,7 +433,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_at_publishers_root(self) -> None:
@@ -503,7 +503,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get("/api/v4/browse/publishers?page=1")
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         # Min(comic__tagger__name) per publisher: ZZ Press = Alice (alpha
         # children dominate) tied with Bob → Min = "Alice"; AA Press =
         # "Carol". Asc on those Mins → ZZ Press ("Alice") then AA Press
@@ -613,8 +613,8 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get("/api/v4/browse/folders?page=1")
         assert response.status_code == _HTTP_OK, response.content
-        groups = _v4(response).get("groups", [])
-        names = [g.get("name") for g in groups]
+        collections = _v4(response).get("collections", [])
+        names = [g.get("name") for g in collections]
         # MarvelTop (intersection 2024) sorts before ImageTop (NULL).
         # Both top folders should be present.
         assert "MarvelTop" in names, names
@@ -746,8 +746,8 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        groups = _v4(response).get("groups", [])
-        by_name = {g["name"]: g for g in groups}
+        collections = _v4(response).get("collections", [])
+        by_name = {g["name"]: g for g in collections}
         # Aggregate (Min year asc): Mixed=2018, Alpha=2020, Beta=2021.
         # None must be null — the user-visible regression was a null
         # caption on Mixed (children disagree). The serializer emits
@@ -773,13 +773,13 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Alpha", "Beta"], names
 
         cache.clear()
         self._patch_settings({"orderReverse": True})
         response = self.client.get(url)
-        names = [g.get("name") for g in _v4(response).get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_with_table_columns_query_params(self) -> None:

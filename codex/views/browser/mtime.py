@@ -36,7 +36,7 @@ class MtimeView(BrowserCollectionMtimeView):
         """Get max mtime for all groups."""
         max_mtime = None
 
-        for item in self.params["groups"]:
+        for item in self.params["collections"]:
             mtime = self._get_collection_mtime(item)
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime

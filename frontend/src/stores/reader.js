@@ -662,7 +662,7 @@ export const useReaderStore = defineStore("reader", {
       ) {
         updates["finished"] = true;
       }
-      await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
+      await BROWSER_API.updateCollectionBookmarks(groupParams, {}, updates);
     },
     async updateComicSettings(updates) {
       const newBookSettings = {

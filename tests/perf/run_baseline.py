@@ -186,7 +186,7 @@ def _build_flows(series_pk: int, comic_pk: int) -> list[dict[str, Any]]:
 def _build_cover_urls(page: dict[str, Any]) -> list[str]:
     """Pick the best cover URL for each card."""
     urls: list[str] = []
-    cards = list(page.get("groups") or []) + list(page.get("books") or [])
+    cards = list(page.get("collections") or []) + list(page.get("books") or [])
     for card in cards:
         if custom_pk := card.get("coverCustomPk"):
             urls.append(f"/api/v4/covers/custom/{custom_pk}")

@@ -430,7 +430,7 @@ export const useBrowserStore = defineStore("browser", {
         row.coverCustomPk = coverCustomPk;
         row.mtime = ts;
       };
-      for (const row of this.page.groups) updateRow(row);
+      for (const row of this.page.collections) updateRow(row);
       for (const row of this.page.books) updateRow(row);
     },
     _filterSettings(state, keys) {
@@ -716,18 +716,18 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await API.updateGroupBookmarks(params, this.filterOnlySettings, {
+      await API.updateCollectionBookmarks(params, this.filterOnlySettings, {
         finished,
       }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
     },
-    async forceUpdateGroup(params) {
+    async forceUpdateCollection(params) {
       if (!this.isAuthorized) {
         return;
       }
-      await API.forceUpdateGroup(params, this.filterOnlySettings);
+      await API.forceUpdateCollection(params, this.filterOnlySettings);
     },
     clearSearchHideTimeout() {
       clearTimeout(this.searchHideTimeout);

@@ -152,7 +152,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         # mobile auto-fallback re-fetches with ``?view_mode=card`` if it
         # wants the card shape.
         assert "books" not in body
-        assert "groups" not in body
+        assert "collections" not in body
         rows = body["rows"]
         assert len(rows) == 1
         row = rows[0]

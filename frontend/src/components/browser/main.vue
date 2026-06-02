@@ -110,11 +110,11 @@ export default {
          * we can lets Vue's diff cache shortcut to "same array,
          * same items" and the v-for stays stable across renders.
          */
-        const groups = state.page.groups;
+        const collections = state.page.collections;
         const books = state.page.books;
-        if (!groups || groups.length === 0) return books ?? [];
-        if (!books || books.length === 0) return groups;
-        return [...groups, ...books];
+        if (!collections || collections.length === 0) return books ?? [];
+        if (!books || books.length === 0) return collections;
+        return [...collections, ...books];
       },
       tableModeRequested: (state) => state.settings.viewMode === "table",
       tableRowCount: (state) =>

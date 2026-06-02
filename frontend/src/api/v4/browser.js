@@ -152,7 +152,7 @@ export const getGroupDownloadURL = ({ collection, pks }, fn, settings, ts) => {
   return `${V4_BASE}browse/${_segment(collection, pks)}/download/${encoded}?${queryString}`;
 };
 
-export const updateGroupBookmarks = (
+export const updateCollectionBookmarks = (
   { collection, ids },
   settings,
   updates,
@@ -169,7 +169,7 @@ export const updateGroupBookmarks = (
 export const getLazyImport = ({ collection, pks }) =>
   HTTP.post(`/browse/${_segment(collection, pks)}/import`);
 
-export const forceUpdateGroup = ({ collection, ids }, settings) => {
+export const forceUpdateCollection = ({ collection, ids }, settings) => {
   const params = serializeParams(settings);
   const queryString = new URLSearchParams(params).toString();
   return HTTP.post(

@@ -349,7 +349,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         assert response.status_code == _HTTP_OK, response.content
 
-    def _group_pks(self, group: str, scope_pk: int = 0) -> list[int]:
+    def _collection_pks(self, group: str, scope_pk: int = 0) -> list[int]:
         collection = _NAV_COLLECTION[group]
         suffix = f"/{scope_pk}" if scope_pk else ""
         url = f"/api/v4/browse/{collection}{suffix}?page=1"
@@ -358,7 +358,9 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # Group rows surface in ``groups`` (each entry has ``ids`` for
         # multi-pk rollups; in this fixture every chain has one row).
         return [
-            ids[0] for g in _v4(response).get("groups", []) if (ids := g.get("ids"))
+            ids[0]
+            for g in _v4(response).get("collections", [])
+            if (ids := g.get("ids"))
         ]
 
     def _book_pks(self, group: str, scope_pk: int) -> list[int]:
@@ -376,13 +378,13 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         self._enable_favorite_filter()
         # Publisher list: only P1.
-        assert self._group_pks("r") == [self.p1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
         # Imprint list under P1: I1.
-        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
+        assert self._collection_pks("p", self.p1.pk) == [self.i1.pk]
         # Series list under I1: S1.
-        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
+        assert self._collection_pks("i", self.i1.pk) == [self.s1.pk]
         # Volume list under S1: V1.
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         # Comic list under V1: C1.
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
@@ -392,10 +394,10 @@ class FavoriteFilterTransitivityTestCase(TestCase):
             user=self.user, collection="comics", target_id=self.c1.pk
         )
         self._enable_favorite_filter()
-        assert self._group_pks("r") == [self.p1.pk]
-        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
-        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
+        assert self._collection_pks("p", self.p1.pk) == [self.i1.pk]
+        assert self._collection_pks("i", self.i1.pk) == [self.s1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
     def test_favorited_series_isolates_unrelated_branch(self):
@@ -405,12 +407,12 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         self._enable_favorite_filter()
         # Publishers: only P1.
-        assert self._group_pks("r") == [self.p1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
         # Series under P2's imprint should be empty (filter narrows P2 out
         # at the publisher level — descending into I2 returns no rows).
-        assert self._group_pks("i", self.i2.pk) == []
+        assert self._collection_pks("i", self.i2.pk) == []
         # Volumes under S1: V1 surfaces (so the user can drill to C1).
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         # Comic under V1: C1 surfaces.
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
@@ -420,7 +422,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
             user=self.user, collection="publishers", target_id=self.p1.pk
         )
         # Filter not enabled. Both P1 and P2 should appear.
-        assert sorted(self._group_pks("r")) == sorted([self.p1.pk, self.p2.pk])
+        assert sorted(self._collection_pks("r")) == sorted([self.p1.pk, self.p2.pk])
 
     def test_favorited_folder_lights_up_empty_intermediate_descendants(self):
         """Favorite a top folder → every nested sub-folder surfaces, empty mids included."""
@@ -465,11 +467,11 @@ class FavoriteFilterTransitivityTestCase(TestCase):
 
         # Top-level folder list: F1 surfaces (self) and any
         # descendants the filter pulls in.
-        top = self._group_pks("f")
+        top = self._collection_pks("f")
         assert f1.pk in top
         # Inside F1, the empty intermediate F2 must surface so the
         # user can keep drilling toward the deep comic.
-        children = self._group_pks("f", f1.pk)
+        children = self._collection_pks("f", f1.pk)
         assert f2.pk in children, children
 
     def test_table_view_sort_by_favorite_does_not_crash(self):

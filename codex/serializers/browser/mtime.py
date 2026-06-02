@@ -11,13 +11,13 @@ class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
     """Groups Mtimes."""
 
     JSON_FIELDS = frozenset(
-        BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"groups"}
+        BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"collections"}
     )
 
-    groups = SimpleRouteSerializer(many=True, required=True)
+    collections = SimpleRouteSerializer(many=True, required=True)
 
 
 class MtimeSerializer(Serializer):
-    """Max mtime for all submitted groups."""
+    """Max mtime for all submitted collections."""
 
     max_mtime = TimestampField(read_only=True)

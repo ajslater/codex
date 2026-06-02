@@ -11,7 +11,7 @@
     <v-checkbox
       v-for="choice of groupChoices"
       :key="choice.title"
-      class="browserGroupCheckbox"
+      class="browserCollectionCheckbox"
       density="compact"
       hide-details="auto"
       :model-value="showSettings[choice.value]"
@@ -59,7 +59,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.browserGroupCheckbox {
+.browserCollectionCheckbox {
   padding-right: 10px;
   padding-left: 15px;
 }

@@ -82,7 +82,7 @@ export const getOPDSURLs = () => HTTP.get("/opds-urls");
 
 export const getVersions = (ts) => HTTP.get("/version", { params: { ts } });
 
-export const getMtime = (groups, settings, options = {}) => {
-  const params = serializeParams({ groups, ...settings }, Date.now());
+export const getMtime = (collections, settings, options = {}) => {
+  const params = serializeParams({ collections, ...settings }, Date.now());
   return HTTP.get("/mtime", { params, ...options });
 };

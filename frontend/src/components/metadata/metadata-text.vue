@@ -80,7 +80,7 @@ export default {
     ...mapState(useBrowserStore, ["collectionNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
-      browserTopGroup: (state) => state.settings.topCollection,
+      browserTopCollection: (state) => state.settings.topCollection,
       folderViewEnabled: (state) => state.page.adminFlags.folderView,
     }),
     computedValue() {

@@ -349,7 +349,7 @@ class BrowserView(BrowserTitleView):
                 "breadcrumbs": breadcrumbs,
                 "title": title,
                 "model_collection": self.model_collection,
-                "groups": group_qs,
+                "collections": group_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,
@@ -403,7 +403,7 @@ class BrowserView(BrowserTitleView):
             # shared by every comic, scalars where every comic has
             # the same value. Computed after pagination so the work
             # is bounded to the visible page.
-            group_qs = data.get("groups")
+            group_qs = data.get("collections")
             if group_qs is not None:
                 data["group_intersections"] = compute_collection_intersections(
                     group_qs, columns

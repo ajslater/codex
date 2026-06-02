@@ -45,7 +45,7 @@ const _visibleItems = () => {
     return rows;
   }
   return [
-    ...(browserStore.page.groups ?? []),
+    ...(browserStore.page.collections ?? []),
     ...(browserStore.page.books ?? []),
   ];
 };
@@ -202,9 +202,13 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         const pks = _collectPks(items);
         const params = { collection: group, ids: pks };
         promises.push(
-          API.updateGroupBookmarks(params, browserStore.filterOnlySettings, {
-            finished,
-          }),
+          API.updateCollectionBookmarks(
+            params,
+            browserStore.filterOnlySettings,
+            {
+              finished,
+            },
+          ),
         );
       }
       await Promise.all(promises);
@@ -247,7 +251,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       for (const [group, items] of Object.entries(grouped)) {
         const ids = _collectPks(items);
         promises.push(
-          API.forceUpdateGroup(
+          API.forceUpdateCollection(
             { collection: group, ids },
             browserStore.filterOnlySettings,
           ),
