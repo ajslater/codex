@@ -135,7 +135,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         # It would be ideal to combine them but browser validate does redirects so maybe later.
         top_collection = params["top_collection"]
         group = (
-            validated_data.get("group", Collection.ROOT)
+            validated_data.get("collection", Collection.ROOT)
             if validated_data
             else Collection.ROOT
         )

@@ -16,7 +16,7 @@ import { mdiReload } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
-import { groupForRoute } from "@/route";
+import { collectionForRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -44,11 +44,11 @@ export default {
       modelCollection: (state) => state.page.modelCollection,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
-    routeGroup() {
-      return groupForRoute({
+    routeCollection() {
+      return collectionForRoute({
         collection: this.$route.params.collection,
         parentIds: this.$route.params.parentIds,
-      }).group;
+      }).collection;
     },
     title() {
       let title;
@@ -57,9 +57,9 @@ export default {
       } else if (this.browserTitle) {
         let names = [];
         const { groupName, groupNumberTo, groupCount } = this.browserTitle;
-        const group = this.routeGroup;
+        const collection = this.routeCollection;
         const formattedGroupName =
-          group === "volumes"
+          collection === "volumes"
             ? formattedVolumeName(groupName, groupNumberTo)
             : groupName;
         if (formattedGroupName) {
@@ -76,7 +76,7 @@ export default {
       return title;
     },
     subtitle() {
-      return this.routeGroup === "folders"
+      return this.routeCollection === "folders"
         ? ""
         : this.groupNames[this.modelCollection];
     },

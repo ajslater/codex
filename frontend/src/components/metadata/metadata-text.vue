@@ -37,7 +37,7 @@ import { mapActions, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
-import { groupForRoute } from "@/route";
+import { collectionForRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -124,15 +124,15 @@ export default {
     },
     clickable() {
       const params = this.$router.currentRoute.value.params;
-      const routeGroup = groupForRoute({
+      const routeCollection = collectionForRoute({
         collection: params.collection,
         parentIds: params.parentIds,
-      }).group;
+      }).collection;
 
       // Validate Group
       if (
         !this.group ||
-        routeGroup === this.group ||
+        routeCollection === this.group ||
         (this.group === "folders" && !this.folderViewEnabled) ||
         (!["arcs", "folders"].includes(this.group) &&
           !this.browserShow[this.group])
@@ -157,7 +157,7 @@ export default {
 
       const group = this.group;
       const pks = this.linkPks;
-      const params = { group, pks, page: 1 };
+      const params = { collection: group, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {

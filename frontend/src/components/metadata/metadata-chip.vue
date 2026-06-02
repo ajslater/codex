@@ -125,7 +125,7 @@ export default {
       }
       const group = this.linkGroup;
       const pks = this.linkPks;
-      const params = { group, pks, page: 1 };
+      const params = { collection: group, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {

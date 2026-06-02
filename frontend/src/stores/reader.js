@@ -650,7 +650,10 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "comics", ids: [+this.books.current.pk] };
+      const groupParams = {
+        collection: "comics",
+        ids: [+this.books.current.pk],
+      };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       if (

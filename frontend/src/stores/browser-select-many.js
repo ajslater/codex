@@ -200,7 +200,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       const promises = [];
       for (const [group, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const params = { group, ids: pks };
+        const params = { collection: group, ids: pks };
         promises.push(
           API.updateGroupBookmarks(params, browserStore.filterOnlySettings, {
             finished,
@@ -222,7 +222,12 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         const plural = groupName.endsWith("s") ? groupName : groupName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
-        const url = API.getGroupDownloadURL({ group, pks }, fn, settings, 0);
+        const url = API.getGroupDownloadURL(
+          { collection: group, pks },
+          fn,
+          settings,
+          0,
+        );
         const link = document.createElement("a");
         link.download = fn;
         link.href = url;
@@ -240,7 +245,10 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       for (const [group, items] of Object.entries(grouped)) {
         const ids = _collectPks(items);
         promises.push(
-          API.forceUpdateGroup({ group, ids }, browserStore.filterOnlySettings),
+          API.forceUpdateGroup(
+            { collection: group, ids },
+            browserStore.filterOnlySettings,
+          ),
         );
       }
       await Promise.all(promises);

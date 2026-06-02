@@ -16,7 +16,11 @@ import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-colum
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
-import { groupForRoute, normalizeParentIds, routeForGroup } from "@/route";
+import {
+  collectionForRoute,
+  normalizeParentIds,
+  routeForCollection,
+} from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
 // Browse-group hierarchy, root → deepest. The store speaks the collection
@@ -133,26 +137,26 @@ function _defaultOrderFor(topCollection, viewMode) {
 }
 
 /*
- * Read the live browser route as the internal {group, pks, page} shape the
- * store logic expects. group is the collection value ("publishers", "series",
- * …) with the synthetic "root" for the bare publishers list; pks is the raw
- * "5,7" parent-ids segment (or "" at root — no dummy 0 sentinel); page is the
- * ?page= query as a string (default "1") so the redirect/dequal logic matches.
+ * Read the live browser route as the internal {collection, pks, page} shape the
+ * store logic expects. collection is the collection value ("publishers",
+ * "series", …) with the synthetic "root" for the bare publishers list; pks is
+ * the raw "5,7" parent-ids segment (or "" at root — no dummy 0 sentinel); page
+ * is the ?page= query as a string (default "1") so the redirect/dequal matches.
  */
 const liveBrowseParams = () => {
   const route = router.currentRoute.value;
   const parentIds = route.params.parentIds;
-  const { group } = groupForRoute({
+  const { collection } = collectionForRoute({
     collection: route.params.collection,
     parentIds,
   });
   const pks = parentIds || "";
-  return { group, pks, page: String(route.query.page || 1) };
+  return { collection, pks, page: String(route.query.page || 1) };
 };
 
 /*
- * Convert an internal {name, params:{group, pks, page}} browser route into a
- * pushable v4 collection route. Idempotent: an already-collection route passes
+ * Convert an internal {name, params:{collection, pks, page}} browser route into
+ * a pushable v4 collection route. Idempotent: an already-collection route passes
  * through. A numeric page is kept in the query even when 1 (the validate logic
  * uses a numeric page to force a breadcrumb-repopulating redirect); a string
  * "1" is dropped for a clean root URL.
@@ -161,16 +165,17 @@ const toBrowseRoute = (route) => {
   const params = route?.params || {};
   // Accept either the v4 {collection, parentIds} dialect (backend route
   // objects: breadcrumbs, last_route, redirect.route) or the internal
-  // {group, pks} engine shape (client-built redirects, liveBrowseParams).
-  // Normalize both into a pushable route (parentIds joined, page → query).
+  // {collection, pks} engine shape (client-built redirects, liveBrowseParams).
+  // Both carry `collection`; disambiguate on which parent-ids key is present
+  // (engine shapes always carry `pks`, even ""; v4 routes carry `parentIds`).
   let collection;
   let parentIds;
-  if (params.collection !== undefined && params.group === undefined) {
+  if (params.pks === undefined) {
     collection = params.collection;
     parentIds = normalizeParentIds(params.parentIds);
   } else {
-    ({ collection, parentIds } = routeForGroup({
-      group: params.group,
+    ({ collection, parentIds } = routeForCollection({
+      collection: params.collection,
       pks: params.pks,
     }));
   }
@@ -380,8 +385,8 @@ export const useBrowserStore = defineStore("browser", {
         : { name: "home" };
     },
     coverSettings(state) {
-      const { group, pks } = liveBrowseParams();
-      if (group == "comics") {
+      const { collection, pks } = liveBrowseParams();
+      if (collection == "comics") {
         return {};
       }
       let keys = COVER_KEYS;
@@ -391,9 +396,9 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-      if (!dc && group !== "root" && pks) {
+      if (!dc && collection !== "root" && pks) {
         settings["parentRoute"] = {
-          collection: group,
+          collection,
           pks,
         };
       }
@@ -406,8 +411,8 @@ export const useBrowserStore = defineStore("browser", {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
     },
     routeKey() {
-      const { group, pks, page } = liveBrowseParams();
-      return `${group}:${pks}:${page}`;
+      const { collection, pks, page } = liveBrowseParams();
+      return `${collection}:${pks}:${page}`;
     },
   },
   actions: {
@@ -507,14 +512,16 @@ export const useBrowserStore = defineStore("browser", {
       // If first search redirect to lowest group and change order
       data.orderBy = "search_score";
       data.orderReverse = true;
-      const group = liveBrowseParams().group;
+      const collection = liveBrowseParams().collection;
       if (
-        NO_REDIRECT_ON_SEARCH_GROUPS.has(group) ||
-        group === this.lowestShownGroup
+        NO_REDIRECT_ON_SEARCH_GROUPS.has(collection) ||
+        collection === this.lowestShownGroup
       ) {
         return;
       }
-      return { params: { group: this.lowestShownGroup, pks: "", page: "1" } };
+      return {
+        params: { collection: this.lowestShownGroup, pks: "", page: "1" },
+      };
     },
     _validateTopGroup(data, redirect) {
       /*
@@ -522,10 +529,10 @@ export const useBrowserStore = defineStore("browser", {
        * top group is above the proper nav group
        */
       const currentParams = liveBrowseParams();
-      const currentGroup = currentParams?.group;
+      const currentCollection = currentParams?.collection;
       const newTopGroup = data.topCollection;
       if (
-        currentGroup === "root" &&
+        currentCollection === "root" &&
         !NON_BROWSE_GROUPS.has(data.topCollection)
       ) {
         return redirect;
@@ -537,7 +544,7 @@ export const useBrowserStore = defineStore("browser", {
         oldTopGroup === newTopGroup ||
         !newTopGroup ||
         (!oldTopGroup && newTopGroup) ||
-        newTopGroup === currentGroup
+        newTopGroup === currentCollection
       ) {
         /*
          * First url, initializing settings.
@@ -573,12 +580,12 @@ export const useBrowserStore = defineStore("browser", {
            * New top group is a child (REVERSED)
            * Redirect to the new root.
            */
-          params = { group: "root", pks: "", page: "1" };
+          params = { collection: "root", pks: "", page: "1" };
         }
       } else {
         // redirect to the new TopGroup
-        const group = newTopGroupIsBrowse ? "root" : newTopGroup;
-        params = { group, pks: "", page: "1" };
+        const collection = newTopGroupIsBrowse ? "root" : newTopGroup;
+        params = { collection, pks: "", page: "1" };
       }
       return { params };
     },
@@ -775,8 +782,8 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      const group = liveBrowseParams().group;
-      await API.getSettings({ group })
+      const collection = liveBrowseParams().collection;
+      await API.getSettings({ collection })
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -940,22 +947,22 @@ export const useBrowserStore = defineStore("browser", {
         // round-trip required.
         return true;
       }
-      const { group: routeGroup, pks } = liveBrowseParams();
-      const group =
-        routeGroup && routeGroup != "root"
-          ? routeGroup
+      const { collection: routeCollection, pks } = liveBrowseParams();
+      const collection =
+        routeCollection && routeCollection != "root"
+          ? routeCollection
           : this.page.modelCollection;
       // The mtime endpoint's pks field rejects blanks; the root list sends
       // the legacy "0" sentinel, which the route serializer strips back to
       // no-parent-ids (deferred-removal wire compat).
       const arcPks = pks || "0";
-      const arcs = [{ collection: group, pks: arcPks }];
+      const arcs = [{ collection, pks: arcPks }];
       /*
        * Dedup so concurrent callers (websocket fan-out across the
        * browser + reader stores, rapid notifications) share one
        * request instead of stampeding.
        */
-      const dedupKey = `browser:loadMtimes:${group}:${arcPks}`;
+      const dedupKey = `browser:loadMtimes:${collection}:${arcPks}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>
           COMMON_API.getMtime(arcs, this.filterOnlySettings),

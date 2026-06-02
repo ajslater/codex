@@ -81,7 +81,7 @@ import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BrowserEmptyState from "@/components/browser/empty.vue";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
-import { routeForGroup } from "@/route";
+import { routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
@@ -289,11 +289,12 @@ export default {
        * ``rowKey`` matches the BrowserCard's ``${item.collection}${item.ids}``
        * shape so vue's diff is stable across re-renders.
        */
-      if (row.group !== undefined) return `${row.group}${row.ids ?? ""}`;
+      if (row.collection !== undefined)
+        return `${row.collection}${row.ids ?? ""}`;
       return `comics${row.pk}`;
     },
     coverGroupFor(row) {
-      return row.group ?? "comics";
+      return row.collection ?? "comics";
     },
     onRowClick(row, event) {
       /*
@@ -308,14 +309,14 @@ export default {
         this.selectItemAt(row, { shift: Boolean(event?.shiftKey) });
         return;
       }
-      const group = row.group ?? "comics";
+      const rowCollection = row.collection ?? "comics";
       const pks = row.ids ?? [row.pk];
-      if (group === "comics") {
+      if (rowCollection === "comics") {
         this.$router.push({ name: "reader", params: { pk: pks[0] } });
         return;
       }
-      const { collection, parentIds } = routeForGroup({
-        group,
+      const { collection, parentIds } = routeForCollection({
+        collection: rowCollection,
         pks: pks.join(","),
       });
       this.$router.push({

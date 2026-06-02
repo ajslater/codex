@@ -1,32 +1,40 @@
 import { describe, expect, it } from "vitest";
 
-import { groupForRoute, normalizeParentIds, routeForGroup } from "@/route";
+import {
+  collectionForRoute,
+  normalizeParentIds,
+  routeForCollection,
+} from "@/route";
 
 describe("route helpers", () => {
-  it("passes a collection group/pks straight to collection/parentIds", () => {
-    expect(routeForGroup({ group: "series", pks: "5,7" })).toEqual({
+  it("passes an engine collection/pks straight to collection/parentIds", () => {
+    expect(routeForCollection({ collection: "series", pks: "5,7" })).toEqual({
       collection: "series",
       parentIds: ["5", "7"],
     });
   });
 
-  it("resolves the synthetic root group to the publishers collection", () => {
-    expect(routeForGroup({ group: "root", pks: "0" })).toEqual({
+  it("resolves the synthetic root collection to the publishers collection", () => {
+    expect(routeForCollection({ collection: "root", pks: "0" })).toEqual({
       collection: "publishers",
       parentIds: [],
     });
   });
 
-  it("round-trips publishers root back to the synthetic root group", () => {
-    expect(groupForRoute({ collection: "publishers", parentIds: [] })).toEqual({
-      group: "root",
+  it("round-trips publishers root back to the synthetic root collection", () => {
+    expect(
+      collectionForRoute({ collection: "publishers", parentIds: [] }),
+    ).toEqual({
+      collection: "root",
       pks: [],
     });
   });
 
-  it("maps a parented collection straight through to its group", () => {
-    expect(groupForRoute({ collection: "series", parentIds: ["5"] })).toEqual({
-      group: "series",
+  it("maps a parented collection straight through to the engine shape", () => {
+    expect(
+      collectionForRoute({ collection: "series", parentIds: ["5"] }),
+    ).toEqual({
+      collection: "series",
       pks: ["5"],
     });
   });

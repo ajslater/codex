@@ -62,11 +62,11 @@ export default {
         const pk = this.item.ids[0];
         url = getComicDownloadURL({ pk }, this.downloadFn, this.item?.mtime);
       } else {
-        const group = this.item?.collection;
+        const collection = this.item?.collection;
         const pks = this.item?.ids;
         const settings = this.filterOnlySettings;
         url = getGroupDownloadURL(
-          { group, pks },
+          { collection, pks },
           this.downloadFn,
           settings,
           this.item?.mtime,

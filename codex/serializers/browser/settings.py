@@ -197,7 +197,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
-    group = BrowserRouteGroupField(required=False)
+    collection = BrowserRouteGroupField(required=False)
 
 
 class BrowserPageInputSerializer(BrowserSettingsSerializer):

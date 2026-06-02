@@ -64,7 +64,7 @@ import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
-import { getReaderRoute, routeForGroup } from "@/route";
+import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -126,8 +126,8 @@ export default {
       return this.item.ids.join(",");
     },
     browserRoute() {
-      const { collection, parentIds } = routeForGroup({
-        group: this.item.collection,
+      const { collection, parentIds } = routeForCollection({
+        collection: this.item.collection,
         pks: this.ids,
       });
       return {

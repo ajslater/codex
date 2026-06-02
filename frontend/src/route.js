@@ -15,26 +15,25 @@ export const normalizeParentIds = (pks) => {
 };
 
 /*
- * {group, pks} -> v4 {collection, parentIds}. The whole app speaks the
- * collection vocabulary now, so group *is* the collection — except the
- * synthetic ``root``, which resolves to the publishers hierarchy.
+ * Engine {collection, pks} -> v4 route {collection, parentIds}. The
+ * synthetic ``root`` collection resolves to the publishers hierarchy.
  */
-export const routeForGroup = ({ group, pks }) => ({
-  collection: group === "root" ? "publishers" : group,
+export const routeForCollection = ({ collection, pks }) => ({
+  collection: collection === "root" ? "publishers" : collection,
   parentIds: normalizeParentIds(pks),
 });
 
 /*
- * v4 {collection, parentIds} -> internal {group, pks}. The group is the
- * collection value itself; publishers with no parentIds is the synthetic
- * ``root`` nav group, mirroring the backend AuthMixin.
+ * v4 route {collection, parentIds} -> engine {collection, pks}. Publishers
+ * with no parentIds is the synthetic ``root`` nav collection, mirroring the
+ * backend AuthMixin.
  */
-export const groupForRoute = ({ collection, parentIds }) => {
+export const collectionForRoute = ({ collection, parentIds }) => {
   const ids = normalizeParentIds(parentIds);
   if (collection === "publishers" && !ids.length) {
-    return { group: "root", pks: ids };
+    return { collection: "root", pks: ids };
   }
-  return { group: collection, pks: ids };
+  return { collection, pks: ids };
 };
 
 const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));
@@ -63,8 +62,8 @@ export const getReaderRoute = (
 };
 
 export default {
+  collectionForRoute,
   getReaderRoute,
-  groupForRoute,
   normalizeParentIds,
-  routeForGroup,
+  routeForCollection,
 };
