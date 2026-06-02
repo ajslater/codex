@@ -87,7 +87,7 @@
     <div v-else-if="itemKey === 'BG'" class="flagValueRow">
       <v-select
         :model-value="item.value"
-        :items="topGroupChoices"
+        :items="topCollectionChoices"
         label="Default View"
         hide-details="auto"
         density="compact"
@@ -167,7 +167,7 @@ export default {
     ageRatingChoices() {
       return this.ageRatingMetrons || [];
     },
-    topGroupChoices() {
+    topCollectionChoices() {
       return BROWSER_CHOICES.TOP_COLLECTION || [];
     },
   },

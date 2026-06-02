@@ -77,7 +77,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["collectionNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
       browserTopGroup: (state) => state.settings.topCollection,
@@ -161,7 +161,7 @@ export default {
       return { name: "browser", params };
     },
     linkSettings() {
-      const topCollection = this.getTopGroup(this.collection);
+      const topCollection = this.getTopCollection(this.collection);
       return { topCollection };
     },
     title() {
@@ -169,7 +169,7 @@ export default {
       if (this.label) {
         label = this.label;
       } else if (this.collection) {
-        label = this.groupNames[this.collection];
+        label = this.collectionNames[this.collection];
       } else {
         label = "";
       }
@@ -208,7 +208,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
+    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopCollection"]),
     onClick() {
       if (!this.clickable) {
         return;

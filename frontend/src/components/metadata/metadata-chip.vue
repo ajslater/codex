@@ -102,28 +102,28 @@ export default {
        */
       return this.highlight ? "primary-darken-1" : "";
     },
-    linkGroup() {
-      let linkGroup;
+    linkCollection() {
+      let linkCollection;
       if (this.groupMode) {
-        linkGroup = this.filter;
+        linkCollection = this.filter;
       } else {
-        linkGroup = ["folders", "series"].includes(this.topCollection)
+        linkCollection = ["folders", "series"].includes(this.topCollection)
           ? this.topCollection
           : "root";
       }
-      return linkGroup;
+      return linkCollection;
     },
     linkPks() {
       const groupMode =
         this.groupMode ||
-        (this.linkGroup !== "arcs" && this.filter === "storyArcs");
+        (this.linkCollection !== "arcs" && this.filter === "storyArcs");
       return groupMode ? this.item.value.toString() : "0";
     },
     toRoute() {
       if (!this.clickable) {
         return "";
       }
-      const group = this.linkGroup;
+      const group = this.linkCollection;
       const pks = this.linkPks;
       const params = { collection: group, pks, page: 1 };
       return { name: "browser", params };
@@ -133,7 +133,7 @@ export default {
       if (this.linkPks === "0") {
         settings = { filters: { [this.filter]: [this.item.value] } };
       } else {
-        const topCollection = this.getTopGroup(this.linkGroup);
+        const topCollection = this.getTopCollection(this.linkCollection);
         settings = { topCollection };
       }
       return settings;
@@ -148,7 +148,7 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "routeWithSettings",
-      "getTopGroup",
+      "getTopCollection",
       "identifierSourceTitle",
     ]),
     async onClick() {

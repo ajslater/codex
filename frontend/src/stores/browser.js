@@ -24,10 +24,10 @@ import {
 import { useAuthStore } from "@/stores/auth";
 
 // Browse-group hierarchy, root → deepest. The store speaks the collection
-// vocabulary end to end now; ``GROUPS_REVERSED`` (deepest → root) drives the
-// ``.indexOf`` hierarchy ordering in lowestShownGroup / getTopGroup / topCollection
+// vocabulary end to end now; ``COLLECTIONS_REVERSED`` (deepest → root) drives the
+// ``.indexOf`` hierarchy ordering in lowestShownCollection / getTopCollection / topCollection
 // validation.
-const GROUPS = Object.freeze([
+const COLLECTIONS = Object.freeze([
   "root",
   "publishers",
   "imprints",
@@ -35,16 +35,18 @@ const GROUPS = Object.freeze([
   "volumes",
   "comics",
 ]);
-export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse());
+export const COLLECTIONS_REVERSED = Object.freeze([...COLLECTIONS].reverse());
 const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
 const DEFAULT_BOOKMARK_VALUES = Object.freeze(
   new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
 );
-const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["arcs", "comics"]));
-const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(
+const ALWAYS_ENABLED_TOP_COLLECTIONS = Object.freeze(
+  new Set(["arcs", "comics"]),
+);
+const NO_REDIRECT_ON_SEARCH_COLLECTIONS = Object.freeze(
   new Set(["arcs", "comics", "folders"]),
 );
-const NON_BROWSE_GROUPS = Object.freeze(new Set(["arcs", "folders"]));
+const NON_BROWSE_COLLECTIONS = Object.freeze(new Set(["arcs", "folders"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
 const DYNAMIC_COVER_KEYS = Object.freeze([
@@ -215,7 +217,7 @@ export const useBrowserStore = defineStore("browser", {
     choices: {
       static: Object.freeze({
         bookmark: BROWSER_CHOICES.BOOKMARK_FILTER,
-        groupNames: TOP_COLLECTION,
+        collectionNames: TOP_COLLECTION,
         settingsGroup: BROWSER_CHOICES.SETTINGS_GROUP,
         readingDirection: READING_DIRECTION,
         identifierSources: IDENTIFIER_SOURCES,
@@ -245,7 +247,7 @@ export const useBrowserStore = defineStore("browser", {
         importMetadata: undefined,
       },
       title: {
-        groupName: undefined,
+        collectionName: undefined,
         groupCount: undefined,
       },
       librariesExist: undefined,
@@ -269,15 +271,15 @@ export const useBrowserStore = defineStore("browser", {
     savedSettingsSnackbar: [],
   }),
   getters: {
-    groupNames() {
-      const groupNames = {};
+    collectionNames() {
+      const collectionNames = {};
       for (const [key, pluralName] of Object.entries(TOP_COLLECTION)) {
-        groupNames[key] =
+        collectionNames[key] =
           pluralName === "Series" ? pluralName : pluralName.slice(0, -1);
       }
-      return groupNames;
+      return collectionNames;
     },
-    topGroupChoices() {
+    topCollectionChoices() {
       const choices = [];
       for (const item of BROWSER_CHOICES.TOP_COLLECTION) {
         if (this._isRootGroupEnabled(item.value)) {
@@ -286,7 +288,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       return choices;
     },
-    topGroupChoicesMaxLen() {
+    topCollectionChoicesMaxLen() {
       return this._maxLenChoices(BROWSER_CHOICES.TOP_COLLECTION);
     },
     orderByChoices(state) {
@@ -358,21 +360,21 @@ export const useBrowserStore = defineStore("browser", {
         this.isDynamicFiltersSelected
       );
     },
-    lowestShownGroup(state) {
-      let lowestGroup = "root";
-      const topGroupIndex = GROUPS_REVERSED.indexOf(
+    lowestShownCollection(state) {
+      let lowestCollection = "root";
+      const topCollectionIndex = COLLECTIONS_REVERSED.indexOf(
         state.settings.topCollection,
       );
-      for (const [index, group] of [...GROUPS_REVERSED].entries()) {
+      for (const [index, group] of [...COLLECTIONS_REVERSED].entries()) {
         const show = state.settings.show[group];
         if (show) {
-          if (index <= topGroupIndex) {
-            lowestGroup = group;
+          if (index <= topCollectionIndex) {
+            lowestCollection = group;
           }
           break;
         }
       }
-      return lowestGroup;
+      return lowestCollection;
     },
     isSearchMode(state) {
       return Boolean(state.settings.search);
@@ -487,7 +489,7 @@ export const useBrowserStore = defineStore("browser", {
      * VALIDATORS
      */
     _isRootGroupEnabled(topCollection) {
-      if (ALWAYS_ENABLED_TOP_GROUPS.has(topCollection)) {
+      if (ALWAYS_ENABLED_TOP_COLLECTIONS.has(topCollection)) {
         return true;
       } else if (topCollection == "folders") {
         return this.page.adminFlags?.folderView;
@@ -514,37 +516,37 @@ export const useBrowserStore = defineStore("browser", {
       data.orderReverse = true;
       const collection = liveBrowseParams().collection;
       if (
-        NO_REDIRECT_ON_SEARCH_GROUPS.has(collection) ||
-        collection === this.lowestShownGroup
+        NO_REDIRECT_ON_SEARCH_COLLECTIONS.has(collection) ||
+        collection === this.lowestShownCollection
       ) {
         return;
       }
       return {
-        params: { collection: this.lowestShownGroup, pks: "", page: "1" },
+        params: { collection: this.lowestShownCollection, pks: "", page: "1" },
       };
     },
-    _validateTopGroup(data, redirect) {
+    _validateTopCollection(data, redirect) {
       /*
        * If the top group changed supergroups or we're at the root group and the new
        * top group is above the proper nav group
        */
       const currentParams = liveBrowseParams();
       const currentCollection = currentParams?.collection;
-      const newTopGroup = data.topCollection;
+      const newTopCollection = data.topCollection;
       if (
         currentCollection === "root" &&
-        !NON_BROWSE_GROUPS.has(data.topCollection)
+        !NON_BROWSE_COLLECTIONS.has(data.topCollection)
       ) {
         return redirect;
         // root group can have any top groups?
       }
 
-      const oldTopGroup = this.settings.topCollection;
+      const oldTopCollection = this.settings.topCollection;
       if (
-        oldTopGroup === newTopGroup ||
-        !newTopGroup ||
-        (!oldTopGroup && newTopGroup) ||
-        newTopGroup === currentCollection
+        oldTopCollection === newTopCollection ||
+        !newTopCollection ||
+        (!oldTopCollection && newTopCollection) ||
+        newTopCollection === currentCollection
       ) {
         /*
          * First url, initializing settings.
@@ -555,16 +557,18 @@ export const useBrowserStore = defineStore("browser", {
          */
         return redirect;
       }
-      const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
-      const newTopGroupIndex = GROUPS_REVERSED.indexOf(newTopGroup);
-      const newTopGroupIsBrowse = newTopGroupIndex !== -1;
+      const oldTopCollectionIndex =
+        COLLECTIONS_REVERSED.indexOf(oldTopCollection);
+      const newTopCollectionIndex =
+        COLLECTIONS_REVERSED.indexOf(newTopCollection);
+      const newTopCollectionIsBrowse = newTopCollectionIndex !== -1;
       const oldAndNewBothBrowseGroups =
-        newTopGroupIsBrowse && oldTopGroupIndex !== -1;
+        newTopCollectionIsBrowse && oldTopCollectionIndex !== -1;
 
       // Construct and return new redirect
       let params;
       if (oldAndNewBothBrowseGroups) {
-        if (oldTopGroupIndex < newTopGroupIndex) {
+        if (oldTopCollectionIndex < newTopCollectionIndex) {
           /*
            * new top group is a parent (REVERSED)
            * Signal that we need new breadcrumbs. we do that by redirecting in place?
@@ -584,25 +588,27 @@ export const useBrowserStore = defineStore("browser", {
         }
       } else {
         // redirect to the new TopGroup
-        const collection = newTopGroupIsBrowse ? "root" : newTopGroup;
+        const collection = newTopCollectionIsBrowse ? "root" : newTopCollection;
         params = { collection, pks: "", page: "1" };
       }
       return { params };
     },
-    getTopGroup(group) {
+    getTopCollection(group) {
       // Similar to browser store logic.
       let topCollection;
       if (
         this.settings.topCollection === group ||
-        NON_BROWSE_GROUPS.has(group)
+        NON_BROWSE_COLLECTIONS.has(group)
       ) {
         topCollection = group;
       } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
+        const collectionIndex = COLLECTIONS_REVERSED.indexOf(group); // + 1;
         // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "root" && this.settings.show[testGroup]) {
-            topCollection = testGroup;
+        for (const testCollection of COLLECTIONS_REVERSED.slice(
+          collectionIndex,
+        )) {
+          if (testCollection !== "root" && this.settings.show[testCollection]) {
+            topCollection = testCollection;
             break;
           }
         }
@@ -656,7 +662,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
-      redirect = this._validateTopGroup(data, redirect);
+      redirect = this._validateTopCollection(data, redirect);
       if (dequal(redirect?.params, liveBrowseParams())) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;

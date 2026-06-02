@@ -29,7 +29,7 @@ import { useBrowserStore } from "@/stores/browser";
 // Collections whose route shows the group-level toggles. Root browses as the
 // publishers collection, so "publishers" covers both root and publishers;
 // comics / folders / arcs routes hide the toggles.
-const SHOW_SETTINGS_GROUPS = Object.freeze(
+const SHOW_SETTINGS_COLLECTIONS = Object.freeze(
   new Set(["publishers", "imprints", "series", "volumes"]),
 );
 
@@ -46,7 +46,7 @@ export default {
       showSettings: (state) => state.settings?.show || {},
     }),
     showShowSettings() {
-      return SHOW_SETTINGS_GROUPS.has(this.$route?.params?.collection);
+      return SHOW_SETTINGS_COLLECTIONS.has(this.$route?.params?.collection);
     },
   },
   methods: {

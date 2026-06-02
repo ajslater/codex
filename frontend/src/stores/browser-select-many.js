@@ -218,8 +218,10 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       const grouped = _groupSelectedItems(this.selectedItems);
       for (const [group, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const groupName = browserStore.groupNames[group] || "Items";
-        const plural = groupName.endsWith("s") ? groupName : groupName + "s";
+        const collectionName = browserStore.collectionNames[group] || "Items";
+        const plural = collectionName.endsWith("s")
+          ? collectionName
+          : collectionName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
         const url = API.getGroupDownloadURL(

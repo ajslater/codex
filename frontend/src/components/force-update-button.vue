@@ -55,7 +55,7 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
-    ...mapState(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["collectionNames"]),
     affectedCount() {
       if (this.item.collection === "comics") {
         return this.item.ids?.length || 0;
@@ -77,9 +77,9 @@ export default {
       if (this.item.collection !== "comics") {
         words.push("Entire");
       }
-      const groupName = this.groupNames[this.item.collection];
-      if (groupName) {
-        words.push(groupName);
+      const collectionName = this.collectionNames[this.item.collection];
+      if (collectionName) {
+        words.push(collectionName);
       }
       return words.join(" ");
     },

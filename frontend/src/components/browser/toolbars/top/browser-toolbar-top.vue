@@ -1,7 +1,7 @@
 <template>
   <v-toolbar id="browserToolbarTop" flat density="compact" :height="48">
     <v-toolbar-items id="browserToolbarLeftItems">
-      <BrowserTopGroupSelect />
+      <BrowserTopCollectionSelect />
       <BrowserFilterBySelect />
       <BrowserOrderBySelect v-if="!isTableMode" />
       <BrowserOrderReverseButton v-if="!isTableMode" />
@@ -27,7 +27,7 @@ import BrowserFilterBySelect from "@/components/browser/toolbars/top/filter-by-s
 import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-select.vue";
 import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-reverse-button.vue";
 import BrowserSearchButton from "@/components/browser/toolbars/top/search-button.vue";
-import BrowserTopGroupSelect from "@/components/browser/toolbars/top/top-group-select.vue";
+import BrowserTopCollectionSelect from "@/components/browser/toolbars/top/top-collection-select.vue";
 import BrowserViewModeToggle from "@/components/browser/toolbars/top/view-mode-toggle.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -39,7 +39,7 @@ export default {
     BrowserFilterBySelect,
     OnlineTagPromptButton,
     BrowserSearchButton,
-    BrowserTopGroupSelect,
+    BrowserTopCollectionSelect,
     BrowserOrderBySelect,
     BrowserOrderReverseButton,
     BrowserViewModeToggle,

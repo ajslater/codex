@@ -40,7 +40,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       browserTitle: (state) => state.page?.title,
-      groupNames: (state) => state.choices.static.groupNames,
+      collectionNames: (state) => state.choices.static.collectionNames,
       modelCollection: (state) => state.page.modelCollection,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
@@ -78,7 +78,7 @@ export default {
     subtitle() {
       return this.routeCollection === "folders"
         ? ""
-        : this.groupNames[this.modelCollection];
+        : this.collectionNames[this.modelCollection];
     },
   },
 };

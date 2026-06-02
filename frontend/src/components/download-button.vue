@@ -41,7 +41,7 @@ export default {
     return { mdiDownload };
   },
   computed: {
-    ...mapState(useBrowserStore, ["filterOnlySettings", "groupNames"]),
+    ...mapState(useBrowserStore, ["filterOnlySettings", "collectionNames"]),
     show() {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
@@ -52,8 +52,8 @@ export default {
       if (this.isOneComic) {
         return this.item.name;
       } else {
-        const groupName = this.groupNames[this.item?.collection];
-        return `${groupName} - ${this.item.name} Comics.zip`;
+        const collectionName = this.collectionNames[this.item?.collection];
+        return `${collectionName} - ${this.item.name} Comics.zip`;
       }
     },
     downloadURL() {

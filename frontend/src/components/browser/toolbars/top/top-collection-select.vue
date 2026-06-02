@@ -3,8 +3,8 @@
     v-model="topCollection"
     class="topGroupSelect"
     select-label="top group"
-    :items="topGroupChoicesWithDividers"
-    :max-select-len="topGroupChoicesMaxLen - 2.25"
+    :items="topCollectionChoicesWithDividers"
+    :max-select-len="topCollectionChoicesMaxLen - 2.25"
   >
     <template #item="{ internalItem, props }">
       <v-list-item
@@ -27,7 +27,7 @@ import { useBrowserStore } from "@/stores/browser";
 const DIVIDED_VALUES = new Set(["arcs", "folders"]);
 
 export default {
-  name: "BrowserTopGroupSelect",
+  name: "BrowserTopCollectionSelect",
   components: {
     ToolbarSelect,
   },
@@ -41,7 +41,10 @@ export default {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topCollection,
     }),
-    ...mapState(useBrowserStore, ["topGroupChoices", "topGroupChoicesMaxLen"]),
+    ...mapState(useBrowserStore, [
+      "topCollectionChoices",
+      "topCollectionChoicesMaxLen",
+    ]),
     topCollection: {
       get() {
         return this.topGroupSetting;
@@ -51,9 +54,9 @@ export default {
         this.setSettings(settings);
       },
     },
-    topGroupChoicesWithDividers() {
+    topCollectionChoicesWithDividers() {
       const items = [];
-      for (const item of this.topGroupChoices) {
+      for (const item of this.topCollectionChoices) {
         if (DIVIDED_VALUES.has(item.value)) {
           items.push({ type: "divider" });
         }

@@ -56,7 +56,7 @@ export default {
             tooltipText = "Top";
           } else {
             tooltipText = isTop ? "All " : "";
-            tooltipText += Reflect.get(this.groupNames, collection);
+            tooltipText += Reflect.get(this.collectionNames, collection);
           }
           const tooltip = { text: tooltipText, openDelay: 1500 };
           const displayCrumb = { to, text, icon, tooltip };
@@ -65,7 +65,7 @@ export default {
         }
         return vueCrumbs;
       },
-      groupNames: (state) => state.groupNames,
+      collectionNames: (state) => state.collectionNames,
     }),
   },
   methods: {
