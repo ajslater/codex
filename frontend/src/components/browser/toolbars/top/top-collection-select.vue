@@ -2,7 +2,7 @@
   <ToolbarSelect
     v-model="topCollection"
     class="topGroupSelect"
-    select-label="top group"
+    select-label="top collection"
     :items="topCollectionChoicesWithDividers"
     :max-select-len="topCollectionChoicesMaxLen - 2.25"
   >

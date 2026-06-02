@@ -259,7 +259,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             # Only set in the primary branch — that path annotates both
             # group and Comic querysets, so the scalar exists on every
             # serialized row. The table-column branch annotates only
-            # group rows; flipping the flag here would make
+            # collection row; flipping the flag here would make
             # ``get_mtime`` reach for a missing ``bookmark_updated_at``
             # on Comic books in the same response.
             self.bmua_is_max = agg_func is Max
@@ -321,7 +321,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def _group_age_rating_annotations(self):
         """
-        Annotate display name + severity-sort index for age_rating group rows.
+        Annotate display name + severity-sort index for age_rating collection row.
 
         ``order_value`` carries the metron rating label string (the
         directional Min / Max across descendants) so the card caption
@@ -359,7 +359,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # card caption shows order_value directly — intersection there
         # would blank the caption for any group with mixed children,
         # which is the regression we're avoiding. Falls back to the
-        # legacy aggregate path when the column / group model isn't
+        # legacy aggregate path when the column / collection model isn't
         # wired so adding a new registry scalar doesn't silently
         # regress its sort.
         if self.params.get("view_mode") == "table":
@@ -499,7 +499,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             expr = self._extra_group_expr(qs, key, reverse=bool(entry.get("reverse")))
             if expr is None:
                 # Unsupported (e.g. M2M without an intersection
-                # expression for this group model, or an
+                # expression for this collection model, or an
                 # annotated-only key without bespoke extra wiring)
                 # — fall back to ``sort_name`` so the alias still
                 # binds and the ORDER BY emitted in
@@ -511,7 +511,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_extra_order_values(self, qs):
         """
-        Annotate per-extra ``order_value`` aliases on group querysets.
+        Annotate per-extra ``order_value`` aliases on collection queryset.
 
         Comic queries don't go through this path — their multi-sort
         tail references direct Comic fields, M2M aliases annotated

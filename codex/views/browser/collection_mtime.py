@@ -134,8 +134,8 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             page_mtime=page_mtime,
             bookmark_filter=self.is_bookmark_filtered,
         )
-        # For group models, traverse to Comic.updated_at via rel_prefix.
-        # The group model's own updated_at is not reliably refreshed by
+        # For collection model, traverse to Comic.updated_at via rel_prefix.
+        # The collection model's own updated_at is not reliably refreshed by
         # bulk_update / bulk_create(update_conflicts) because auto_now
         # only fires on Model.save().
         prefix = self.get_rel_prefix(model)

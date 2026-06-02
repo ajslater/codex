@@ -128,9 +128,9 @@ export default {
        */
       const page = this.pageData;
       if (Array.isArray(page?.rows)) return page.rows;
-      const groups = page?.groups ?? [];
+      const collections = page?.collections ?? [];
       const books = page?.books ?? [];
-      return [...groups, ...books];
+      return [...collections, ...books];
     },
     visibleColumns() {
       return useBrowserStore()._resolveTableColumns();
@@ -298,7 +298,7 @@ export default {
     },
     onRowClick(row, event) {
       /*
-       * Comic rows -> reader; group rows -> drill in. Mirrors the
+       * Comic rows -> reader; collection row -> drill in. Mirrors the
        * navigation contract of <BrowserCard> so the table behaves as
        * an alternate presentation, not an alternate router. When
        * select-many is active, plain row clicks toggle the selection

@@ -101,7 +101,7 @@ export default {
       cards(state) {
         /*
          * Skip the spread when one of the lists is empty. The
-         * typical browser page is either all groups (publishers,
+         * typical browser page is either all collections (publishers,
          * series, volumes) or all books — never a mix — so the
          * common case is "spread an array against an empty
          * array", which still allocates a fresh wrapper per

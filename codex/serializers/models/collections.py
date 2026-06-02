@@ -1,4 +1,4 @@
-"""Browser Group Model Serializers."""
+"""Browser Collection Model Serializers."""
 
 from codex.models import (
     Imprint,

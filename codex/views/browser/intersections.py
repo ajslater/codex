@@ -1,7 +1,7 @@
 """
 Per-group column intersections for table view.
 
-For a group row (Series, Publisher, Volume, etc.), each column's
+For a collection row (Series, Publisher, Volume, etc.), each column's
 displayed value is the *intersection* across the group's child comics:
 
 - M2M (genres / tags / characters / ...): values present in **every**
@@ -11,7 +11,7 @@ displayed value is the *intersection* across the group's child comics:
 - Scalar (year / country / language / file_type / monochrome / ...):
   the value if **every** child comic shares it, otherwise empty.
 
-This is what the user asked for in the group-row table experiment.
+This is what the user asked for in the collection-row table experiment.
 The helper is invoked after pagination so we only compute for the
 visible page; per visible column it issues one batched query that
 groups results by the parent group's pk.
@@ -38,10 +38,10 @@ from codex.models.collections import (
 from codex.views.browser.columns import fk_name_columns, m2m_columns
 from codex.views.const import MODEL_REL_MAP
 
-# Comic FK column → group model. Used to correlate the intersection
-# sort subquery to the outer group row. ``StoryArc`` traverses
+# Comic FK column → collection model. Used to correlate the intersection
+# sort subquery to the outer collection row. ``StoryArc`` traverses
 # through ``StoryArcNumber`` so the subquery shape differs; deferred
-# from this v1 group-row M2M sort.
+# from this v1 collection-row M2M sort.
 _COMIC_COLLECTION_COL: MappingProxyType[type, str] = MappingProxyType(
     {
         Publisher: "publisher_id",
@@ -66,9 +66,9 @@ def _format_identifier(source_name: str | None, id_type: str, key: str) -> str:
 
 
 # Comic field paths for scalar / FK-name columns that participate in
-# group-row intersection. Keys mirror the column registry; values are
+# collection-row intersection. Keys mirror the column registry; values are
 # Django ORM paths from Comic. The intersection path runs only for
-# non-Comic group querysets — Comic rows show their own values via
+# non-Comic collection queryset — Comic rows show their own values via
 # the regular ``getattr`` lookup in ``_row_repr``.
 _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
     {
@@ -101,7 +101,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "main_character": "main_character__name",
         "main_team": "main_team__name",
         # Hierarchy FK-to-name columns. Series / Volume / Imprint
-        # have a direct FK on the group model itself but we aggregate
+        # have a direct FK on the collection model itself but we aggregate
         # via the children's Comic FK chain so the intersection path
         # works uniformly across all non-Comic models — including
         # Folder and StoryArc, which lack the direct FK and so would
@@ -140,7 +140,7 @@ def compute_collection_intersections(
     """
     Build ``{group_pk: {column_key: intersection_value}}`` for the page.
 
-    ``group_qs`` should be the already-paginated group queryset. Comic
+    ``group_qs`` should be the already-paginated collection queryset. Comic
     querysets short-circuit to an empty dict — Comic rows show their
     own values, not group intersections. Columns whose value source
     isn't recognized are skipped (the row's existing value path
@@ -215,7 +215,7 @@ def _bucket_intersection_columns(
     return m2m_cols, intersect_cols, sum_cols
 
 
-# Scalar columns whose group-row value is the *sum* of the children's
+# Scalar columns whose collection-row value is the *sum* of the children's
 # values rather than the per-row intersection. Both ``page_count`` and
 # ``size`` are cumulative quantities — the cover-view card already
 # shows ``Sum`` for these, so the table view (display + sort) follows
@@ -481,9 +481,9 @@ _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
 
 
 # ──────────────────────────────────────────────────────────────────────
-# M2M-intersection sort key for group rows
+# M2M-intersection sort key for collection row
 #
-# The order_value annotation for a group row sorting by an M2M column
+# The order_value annotation for a collection row sorting by an M2M column
 # is the alphabetized concatenation of M2M values present in every
 # child comic. Identical intersection sets render identical strings
 # under SQLite's binary collation, so ORDER BY clusters equivalent
@@ -499,7 +499,7 @@ _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
 #      efficient shape SQLite can deliver — see the perf note below.
 #
 # Performance: the subquery executes once per row in the outer
-# queryset's ORDER BY phase. With indexes on the comic's group FK
+# queryset's ORDER BY phase. With indexes on the comic's collection FK
 # (codex_comic.<group>_id) and the through table's (comic_id, target_id)
 # pair, each subquery scans only the relevant rows for that group.
 # Profile-and-tune is the user's call; the SELECT is structurally
@@ -532,7 +532,7 @@ def _build_simple_m2m_intersection_sort_sql(
     """
     Return a correlated-subquery RawSQL for the intersection sort key.
 
-    Restricted to ``_SIMPLE_M2M_FIELDS`` and group models in
+    Restricted to ``_SIMPLE_M2M_FIELDS`` and collection model in
     ``_COMIC_COLLECTION_COL`` (StoryArc, credits, identifiers — deferred).
     Returns None when unsupported.
     """
@@ -731,7 +731,7 @@ def _comic_correlation_sql(
     group_model: type[BrowserCollectionModel],
 ) -> tuple[str, str, str] | None:
     """
-    Return the SQL fragments correlating Comic rows to the outer group row.
+    Return the SQL fragments correlating Comic rows to the outer collection row.
 
     Most groups (Publisher, Imprint, Series, Volume) carry a direct
     FK on Comic — the JOIN is implicit and the WHERE clause is
@@ -744,7 +744,7 @@ def _comic_correlation_sql(
     extra JOIN clause is empty for non-Folder groups.
 
     Returns ``(extra_join, where_clause, total_count_select)`` or
-    ``None`` when the group model isn't supported.
+    ``None`` when the collection model isn't supported.
     """
     if group_model is Folder:
         folders_field = Comic._meta.get_field("folders")
@@ -778,9 +778,9 @@ def scalar_intersection_sort_expr(
     group_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
-    Build a sort-key RawSQL for scalar / FK-name group-row sort.
+    Build a sort-key RawSQL for scalar / FK-name collection-row sort.
 
-    The group-row *display* uses intersection (``_compute_scalar_intersection``):
+    The collection-row *display* uses intersection (``_compute_scalar_intersection``):
     a value renders only when every child comic in the group shares it
     (same non-NULL value, no missing children). The default
     ``Min`` / ``Avg`` / ``Sum`` aggregates used by ``annotate_order_value``
@@ -791,7 +791,7 @@ def scalar_intersection_sort_expr(
     every child agrees, NULL otherwise. NULLs follow SQLite's default
     sort position (smallest in ASC, last in DESC).
 
-    Returns None when the column or group model isn't supported;
+    Returns None when the column or collection model isn't supported;
     callers fall back to the previous aggregate path so we don't
     silently break an existing sort if the registry adds a new field
     we haven't wired here yet. Cumulative scalars (``page_count``,

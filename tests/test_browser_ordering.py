@@ -696,7 +696,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """
         Cover view's group order_value is an aggregate, not an intersection.
 
-        Regression: the table-view PR routed group-row scalar sort
+        Regression: the table-view PR routed collection-row scalar sort
         through ``scalar_intersection_sort_expr`` for every view mode.
         That's correct for table view (sort matches the intersection
         cell display) but blanks the order_value caption beneath
@@ -707,7 +707,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
         Setup matches ``test_year_sort_matches_intersection_display``
         — Alpha (clean 2020), Beta (single 2021), Mixed (2018 + 2024)
-        — but the request uses ``viewMode=cover``. Every group row
+        — but the request uses ``viewMode=cover``. Every collection row
         must come back with a non-null ``orderValue`` so the card
         caption renders.
         """

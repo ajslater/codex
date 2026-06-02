@@ -118,7 +118,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
     has_metadata = BooleanField(read_only=True)
-    # cover_pk and cover_custom_pk are pre-computed on group cards by
+    # cover_pk and cover_custom_pk are pre-computed on collection card by
     # BrowserAnnotateCoverView. Comic book cards lack the annotations; the
     # method fields fall back to ``obj.pk`` so the frontend can build a
     # uniform ``/c/<pk>/cover.webp`` URL without a per-card branch.
@@ -179,7 +179,7 @@ def _emit_column(
     """
     Resolve and emit a single column's value onto ``row``.
 
-    Lookup order: special-case (cover / issue) → group-row intersection
+    Lookup order: special-case (cover / issue) → collection-row intersection
     (with country / language transform) → M2M annotation alias → FK-name
     annotation alias (with transform) → direct attribute lookup. M2M and
     FK-name aliases are prefixed because the unprefixed name collides
@@ -212,7 +212,7 @@ def _row_repr(
     Project a queryset row to the per-row dict for table view.
 
     For Comic rows, values come from the queryset annotations / direct
-    fields. For group rows (Series, Publisher, etc.), the optional
+    fields. For collection row (Series, Publisher, etc.), the optional
     ``intersections`` dict carries per-row intersections of child-comic
     values: M2M values shared by every child comic, scalars where every
     child comic has the same value. When present, intersections take

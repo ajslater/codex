@@ -1,4 +1,4 @@
-"""Browser Group models."""
+"""Browser Collection models."""
 
 from typing import override
 
@@ -22,7 +22,7 @@ __all__ = (
 
 
 class BrowserCollectionModel(BaseModel):
-    """Browser groups."""
+    """Browser collections."""
 
     DEFAULT_NAME: str | None = ""
     PARENT: str = ""
@@ -71,12 +71,12 @@ class BrowserCollectionModel(BaseModel):
 
 class IdentifiedBrowserCollectionModel(BrowserCollectionModel):
     """
-    Identified Browser Group Model.
+    Identified Browser Collection Model.
 
-    Comicbox objects can have multiple identifiers, but if I let BrowserGroups have them
+    Comicbox objects can have multiple identifiers, but if I let BrowserCollections have them
     then it would impossible to unlink a second level m2m relationship when comics are
     deleted. So I choose the highest priority one in import.
-    Additionally, Browser groups will update to the highest priority identifier by
+    Additionally, Browser collections will update to the highest priority identifier by
     source instead of creating duplicate groups to keep the hierarchy consolidated.
     """
 
@@ -196,7 +196,7 @@ class Volume(BrowserCollectionModel):
 
 
 class WatchedPathBrowserCollection(BrowserCollectionModel, WatchedPath):
-    """Watched Path Browser Group."""
+    """Watched Path Browser Collection."""
 
     @override
     def presave(self) -> None:

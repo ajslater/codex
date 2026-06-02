@@ -52,7 +52,7 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         Annotate the per-row collection this card routes to.
 
         Frontend routing metadata: the table view reads it to tell a Comic
-        row from a group node and to build the next route's collection.
+        row from a collection node and to build the next route's collection.
         Aliased ``nav_collection`` rather than ``collection`` because
         ``WatchedPath`` (Folder/CustomCover) already declares a real
         ``collection`` field — an annotation of that name would
@@ -104,11 +104,11 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         # use that mixin. OPDS feeds compute their own mtime from the
         # bookmark aggregate; cover/download paths never read it. Skipping
         # the JsonGroupArray on those targets removes one DISTINCT scalar
-        # aggregate per group row in the cold path.
+        # aggregate per collection row in the cold path.
         if self.TARGET not in self.CARD_TARGETS:
             return qs
-        # For group models, traverse to Comic.updated_at via rel_prefix.
-        # The group model's own updated_at is not reliably refreshed by
+        # For collection model, traverse to Comic.updated_at via rel_prefix.
+        # The collection model's own updated_at is not reliably refreshed by
         # bulk_update / bulk_create(update_conflicts) because auto_now
         # only fires on Model.save().
         prefix = "" if qs.model is Comic else self.rel_prefix

@@ -65,7 +65,7 @@ class TimestampUpdater(WorkerStatusBase):
         library: Library,
         log_list,
     ) -> int:
-        """Update a single group model."""
+        """Update a single collection model."""
         update_filter = cls._get_update_filter(
             model, start_time, force_update_group_map, library
         )

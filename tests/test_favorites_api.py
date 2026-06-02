@@ -481,7 +481,7 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # annotation rather than dispatching to ``_ORDER_AGGREGATE_FUNCS``
         # (which would KeyError because ``favorite`` is annotated, not
         # aggregated). Pin the no-crash invariant for the primary key
-        # at every group level — Comic and group querysets take
+        # at every group level — Comic and collection queryset take
         # different code paths.
         Favorite.objects.create(
             user=self.user, collection="series", target_id=self.s1.pk

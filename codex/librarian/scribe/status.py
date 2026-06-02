@@ -13,7 +13,7 @@ class UpdateGroupTimestampsStatus(ScribeStatus):
     """Update Group Timestamps Status."""
 
     CODE = "IGU"
-    ITEM_NAME = "browser groups"
+    ITEM_NAME = "browser collections"
     VERB = "Update timestamps for"
     _verbed = "Updated timestamps for"
 

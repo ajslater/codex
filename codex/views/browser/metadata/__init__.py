@@ -30,7 +30,7 @@ class MetadataView(MetadataCopyIntersectionsView):
 
     @override
     def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
-        """Limited allowed nav groups for metadata."""
+        """Limited allowed nav collections for metadata."""
         # Overrides method in browser.validate
         group = self.kwargs["collection"]
         return (group,)
@@ -53,10 +53,10 @@ class MetadataView(MetadataCopyIntersectionsView):
         """
         Aggregate sum fields across multiple selected items.
 
-        When multiple pks are selected for any group model, qs[0]
+        When multiple pks are selected for any collection model, qs[0]
         only returns the first item's values. This method computes
         the correct sums across all selected items using rel_prefix
-        to traverse from the group model to the Comic fields.
+        to traverse from the collection model to the Comic fields.
         """
         aggs = {}
         for field in SUM_FIELDS:
@@ -70,7 +70,7 @@ class MetadataView(MetadataCopyIntersectionsView):
 
     @override
     def get_object(self) -> Any:
-        """Create a comic-like object from the current browser group."""
+        """Create a comic-like object from the current browser collection."""
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.

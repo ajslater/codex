@@ -10,7 +10,7 @@ from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELAT
 
 class BrowserAnnotateCoverView(BrowserAnnotateCardView):
     """
-    Annotate cover_pk / cover_custom_pk on browser group cards.
+    Annotate cover_pk / cover_custom_pk on browser collection cards.
 
     Pre-computes the representative comic pk per card via a correlated
     subquery, replacing the 72-request fan-out to ``CoverView`` with a
@@ -67,7 +67,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
             # pk__in over the pre-materialized FTS match set: SQLite
             # materializes this sub-SELECT once, giving the correlated cover
             # subquery a cheap indexed membership test instead of re-scanning
-            # the FTS5 virtual table per outer group row for the filter.
+            # the FTS5 virtual table per outer collection row for the filter.
             fts_sq = Comic.objects.filter(fts_q).values("pk")
             q &= Q(pk__in=fts_sq)
             # Also apply fts_q directly: this forces a JOIN to
@@ -82,7 +82,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         return q
 
     def _cover_comic_subquery(self, group_model) -> Subquery:
-        """Correlated subquery returning one comic pk per outer group row."""
+        """Correlated subquery returning one comic pk per outer collection row."""
         q = self._cover_filter_q(group_model)
         qs = Comic.objects.filter(q).distinct()
         qs = self.annotate_order_aggregates(qs, for_cover=True)
@@ -106,7 +106,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         return Subquery(qs)
 
     def annotate_cover(self, qs):
-        """Annotate cover_pk (and optionally cover_custom_pk) on group cards."""
+        """Annotate cover_pk (and optionally cover_custom_pk) on collection card."""
         if qs.model is Comic:
             # Comic cards use their own pk as the cover pk — the serializer
             # falls back to pk when cover_pk is absent.

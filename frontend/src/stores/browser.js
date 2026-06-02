@@ -23,7 +23,7 @@ import {
 } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
-// Browse-group hierarchy, root → deepest. The store speaks the collection
+// Browse-collection hierarchy, root → deepest. The store speaks the collection
 // vocabulary end to end now; ``COLLECTIONS_REVERSED`` (deepest → root) drives the
 // ``.indexOf`` hierarchy ordering in lowestShownCollection / getTopCollection / topCollection
 // validation.
@@ -527,8 +527,8 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateTopCollection(data, redirect) {
       /*
-       * If the top group changed supergroups or we're at the root group and the new
-       * top group is above the proper nav group
+       * If the top collection changed supergroups or we're at the root group and the new
+       * top collection is above the proper nav collection
        */
       const currentParams = liveBrowseParams();
       const currentCollection = currentParams?.collection;
@@ -538,7 +538,7 @@ export const useBrowserStore = defineStore("browser", {
         !NON_BROWSE_COLLECTIONS.has(data.topCollection)
       ) {
         return redirect;
-        // root group can have any top groups?
+        // root group can have any top collections?
       }
 
       const oldTopCollection = this.settings.topCollection;
@@ -570,7 +570,7 @@ export const useBrowserStore = defineStore("browser", {
       if (oldAndNewBothBrowseGroups) {
         if (oldTopCollectionIndex < newTopCollectionIndex) {
           /*
-           * new top group is a parent (REVERSED)
+           * new top collection is a parent (REVERSED)
            * Signal that we need new breadcrumbs. we do that by redirecting in place?
            */
           params = currentParams;
@@ -581,7 +581,7 @@ export const useBrowserStore = defineStore("browser", {
           params.page = +params.page;
         } else {
           /*
-           * New top group is a child (REVERSED)
+           * New top collection is a child (REVERSED)
            * Redirect to the new root.
            */
           params = { collection: "root", pks: "", page: "1" };
@@ -603,7 +603,7 @@ export const useBrowserStore = defineStore("browser", {
         topCollection = group;
       } else {
         const collectionIndex = COLLECTIONS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
+        // Determine browse top collection
         for (const testCollection of COLLECTIONS_REVERSED.slice(
           collectionIndex,
         )) {

@@ -131,7 +131,7 @@ _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]
 
 def identifier_for_browse_group(group: str, instance: Model) -> list[Any]:
     """
-    Build the name-chain identifier ``parts`` for a browse-group instance.
+    Build the name-chain identifier ``parts`` for a browse-collection instance.
 
     Raises ``ValueError`` for unknown groups. Callers wrap in try/except —
     sidecar failures must never raise into request paths.

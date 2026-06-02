@@ -76,7 +76,7 @@ class CustomCoverSerializer(BaseModelSerializer):
         return model.objects.filter(custom_cover_id=obj.pk).first()
 
     def get_linked_group_pk(self, obj: CustomCover) -> int | None:
-        """First linked browser group's pk, if any."""
+        """First linked browser collection's pk, if any."""
         linked = self._linked(obj)
         return None if linked is None else linked.pk
 

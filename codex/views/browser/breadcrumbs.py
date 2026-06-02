@@ -68,7 +68,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         self._collection_instance: BrowserCollectionModel | None | int = 0
 
     def _get_collection_query(self, model):
-        """Get the group query for the group instance."""
+        """Get the collection query for the collection instance."""
         pks = self.kwargs.get("pks")
         qs = model.objects.filter(pk__in=pks)
         if select_related := _COLLECTION_INSTANCE_SELECT_RELATED.get(model):
@@ -77,7 +77,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         return qs.order_by(order_by)
 
     def _handle_collection_query_missing_model(self, model) -> QuerySet:
-        """Handle a missing model for the group instance."""
+        """Handle a missing model for the collection instance."""
         group = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
@@ -91,7 +91,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     @property
     def collection_instance(self) -> BrowserCollectionModel | None:
-        """Memoize group instance for getting group names & counts."""
+        """Memoize collection instance for getting group names & counts."""
         if self._collection_instance == 0:
             group = self.kwargs.get("collection")
             model = COLLECTION_MODEL_MAP[group]
@@ -114,7 +114,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         return cast("BrowserCollectionModel | None", self._collection_instance)
 
     def _build_collection_breadcrumbs(self) -> tuple[Route, ...]:
-        """Build breadcrumbs for browse group mode by walking FK parents."""
+        """Build breadcrumbs for browse collection mode by walking FK parents."""
         gi = self.collection_instance
         group = self.kwargs["collection"]
         pks = self.kwargs["pks"]

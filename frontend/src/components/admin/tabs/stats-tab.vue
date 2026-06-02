@@ -9,7 +9,10 @@
     <AdminKeyValueTable title="Config" :items="configTable" />
     <AdminKeyValueTable title="File Types" :items="fileTypesTable" />
     <AdminKeyValueTable title="User Settings" :items="userSettingsTable" />
-    <AdminKeyValueTable title="Browser Groups" :items="browserGroupsTable" />
+    <AdminKeyValueTable
+      title="Browser Collections"
+      :items="browserGroupsTable"
+    />
     <AdminKeyValueTable title="Tags" :items="metadataTable" />
   </div>
 </template>

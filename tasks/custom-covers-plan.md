@@ -53,7 +53,7 @@ End state:
 
 ### Volume custom-cover support
 
-Volume was the only browser group with `custom_cover = None` overriding the inherited FK ([`models/groups.py:161`](codex/models/groups.py)). Re-enable:
+Volume was the only browser collection with `custom_cover = None` overriding the inherited FK ([`models/groups.py:161`](codex/models/groups.py)). Re-enable:
 
 - Delete the `custom_cover = None` line on `Volume`. The FK inherited from `BrowserGroupModel` ([`models/groups.py:39-41`](codex/models/groups.py)) now takes effect.
 - Add `Volume: CustomCover.GroupChoices.V.value` to `CLASS_CUSTOM_COVER_GROUP_MAP` ([`codex/librarian/scribe/importer/const.py:395-403`](codex/librarian/scribe/importer/const.py)).
@@ -109,7 +109,7 @@ All under `/api/v3/admin/`. Reuse `AdminAPIView` / `AdminModelViewSet` base from
 
 **`POST /api/v3/admin/custom-cover`** — multipart upload.
 - Form fields: `group` (`p|i|s|a|f`), `pks` (comma-separated ints — typically one, support multi for bulk-link to multiple groups sharing the same artwork), file as `image`.
-- Validate: auth (superuser/staff), image type (extension + Pillow open), size ≤ `CUSTOM_COVERS_MAX_UPLOAD_BYTES`, all target group rows exist and match `group`.
+- Validate: auth (superuser/staff), image type (extension + Pillow open), size ≤ `CUSTOM_COVERS_MAX_UPLOAD_BYTES`, all target collection row exist and match `group`.
 - Transaction:
   1. `cover = CustomCover.objects.create(library=None, path="", group=group_char, sort_name=first_group.sort_name)`.
   2. Compute `final_path` from `cover.pk`, `group_char`, slug, extension.
@@ -121,7 +121,7 @@ All under `/api/v3/admin/`. Reuse `AdminAPIView` / `AdminModelViewSet` base from
 - Response: `{"customCoverPk": cover.pk}`.
 
 **`DELETE /api/v3/admin/custom-cover/{pk}`** — delete a CustomCover by pk.
-- Unset `custom_cover` FK on every linked group row (search across Publisher/Imprint/Series/StoryArc/Folder using `CLASS_CUSTOM_COVER_GROUP_MAP[cover.group]` to pick the model).
+- Unset `custom_cover` FK on every linked collection row (search across Publisher/Imprint/Series/StoryArc/Folder using `CLASS_CUSTOM_COVER_GROUP_MAP[cover.group]` to pick the model).
 - Delete the original file in uploads.
 - Enqueue `CoverRemoveTask` to clear the cached thumb.
 - Delete the row.
@@ -130,7 +130,7 @@ All under `/api/v3/admin/`. Reuse `AdminAPIView` / `AdminModelViewSet` base from
 
 **`GET /api/v3/admin/custom-cover/`** — list all CustomCover rows for the new admin tab.
 - DRF `ListAPIView` with serializer returning: `pk`, `group`, `groupCharLabel`, `linkedGroupPk`, `linkedGroupName`, `path`, `mtime`, `sizeBytes`.
-- `linkedGroup*` are resolved by querying the group model for the first row with `custom_cover_id == cover.pk` (typical case is one).
+- `linkedGroup*` are resolved by querying the collection model for the first row with `custom_cover_id == cover.pk` (typical case is one).
 - Thumbnail URL is `/api/v3/custom_cover/{pk}/cover.webp` (existing).
 
 Wire all four to a new sub-router in [`codex/urls/api/admin.py`](codex/urls/api/admin.py).
@@ -241,7 +241,7 @@ Frontend:
 2. **`make test`** — new backend tests for upload/remove/list/migration pass; updated `test_fs_filters_ignore.py` and `test_snapshot_diff.py` pass without `covers_only` args; new frontend vitests pass.
 3. **Manual end-to-end**:
    - Pre-seed: drop a `config/custom-covers/publishers/Marvel.jpg`, a `config/custom-covers/series/Watchmen.jpg`, and a `.codex-cover.jpg` inside a library folder. Boot once with the *current* code so the legacy rows exist.
-   - Switch to the new branch and boot. Confirm the data migration moved all three files to `config/custom-covers/uploads/{pk}-p-marvel.jpg` etc., paths in the DB updated, group FKs still resolve, cards render the correct covers, the singleton library row is gone.
+   - Switch to the new branch and boot. Confirm the data migration moved all three files to `config/custom-covers/uploads/{pk}-p-marvel.jpg` etc., paths in the DB updated, collection FKs still resolve, cards render the correct covers, the singleton library row is gone.
    - As a non-admin user: confirm no Upload/Remove items on card menus.
    - As admin: on a Series card without a custom cover, click ⋮ → Upload Cover, pick a JPEG. Card thumbnail updates within a few seconds.
    - Confirm on disk: `uploads/{pk}-s-{slug}.jpg` exists; `cache/custom-covers/...` has a fresh `.webp`; `Series.custom_cover_id` points to the new row.

@@ -113,7 +113,7 @@ class UserAgentNames:
 
 
 class TopRoutes:
-    """Routes for top groups."""
+    """Routes for top collections."""
 
     ROOT = MappingProxyType({"collection": "root", "pks": (), "page": 1})
     PUBLISHER = MappingProxyType({**ROOT, "collection": "publishers"})

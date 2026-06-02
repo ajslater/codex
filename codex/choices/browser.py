@@ -589,7 +589,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 # cheap vs. expensive to display + sort. Only non-``low`` entries
 # appear here; everything not listed defaults to ``low`` (no badge
 # rendered). The rating reflects the worse of display vs. sort
-# cost for the column on group-row queries (the most expensive
+# cost for the column on collection-row queries (the most expensive
 # query shape):
 #
 # - ``low`` (default, omitted): the column reads from the group's

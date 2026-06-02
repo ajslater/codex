@@ -63,7 +63,7 @@ class LinkGroup:
 
 TOP_GROUPS = (
     LinkGroup(
-        "Top Groups",
+        "Top Collections",
         (
             Link(Rel.SUB, "Publishers", "root", {"topCollection": "publishers"}),
             Link(Rel.SUB, "Series", "root", {"topCollection": "series"}),

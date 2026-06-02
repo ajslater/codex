@@ -222,7 +222,7 @@ class RelPrefixMixin:
         Folder has its own ``library`` FK (inherited from
         :class:`~codex.models.paths.WatchedPath`), so it skips the
         ``comic__`` hop. Everything else — Comic, StoryArc, and the
-        browser group models — reaches ``library_id`` through the Comic
+        browser collection models — reaches ``library_id`` through the Comic
         FK chain built by :meth:`get_rel_prefix`.
         """
         prefix = "" if model is Folder else cls.get_rel_prefix(model)

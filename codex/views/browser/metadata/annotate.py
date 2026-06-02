@@ -103,7 +103,7 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
         field_groups: iterable of ``(fields, annotation_prefix)`` tuples. Each
         group's fields are partitioned into SUM aggregations (direct) and
         intersection fields (distinct-count check). All intersection fields
-        across all groups are collapsed into ONE ``aggregate()`` query and ONE
+        across all collections are collapsed into ONE ``aggregate()`` query and ONE
         ``values_list()`` query, regardless of group count.
         """
         filtered_qs, qs = querysets

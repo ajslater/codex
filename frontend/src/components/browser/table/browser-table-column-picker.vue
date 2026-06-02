@@ -541,7 +541,7 @@ export default {
 /*
  * Per-column cost indicator. ``medium`` columns batch their
  * display query but the sort still scales with library size on
- * group rows; ``high`` columns issue per-column display + sort
+ * collection row; ``high`` columns issue per-column display + sort
  * queries with bespoke composite SQL. Faded tint for ``medium``,
  * warning tint for ``high``. The hover ``title`` tooltip carries
  * the explanation.

@@ -102,7 +102,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
 
     @staticmethod
     def _validate_browse_top_group(params, group: str, top_collection: str) -> None:
-        """Validate top group for browse groups (collection vocabulary)."""
+        """Validate top collection for browse groups (collection vocabulary)."""
         show = params["show"]
         if group == Collection.ROOT or (
             group in COLLECTION_ORDER
@@ -120,7 +120,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
 
     @classmethod
     def _validate_top_group(cls, params, group: str, top_collection: str) -> None:
-        """Validate top group."""
+        """Validate top collection."""
         if group == top_collection:
             return
 

@@ -163,7 +163,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     series_volume_count = IntegerField(read_only=True)
     volume_issue_count = IntegerField(read_only=True)
 
-    # cover_pk and cover_custom_pk are annotated on group querysets by
+    # cover_pk and cover_custom_pk are annotated on collection queryset by
     # BrowserAnnotateCoverView; Comic metadata skips the annotation and
     # falls back to ``obj.pk`` — so the frontend can always build a
     # ``/c/<pk>/cover.webp`` URL without a per-group branch.

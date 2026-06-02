@@ -142,7 +142,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
 
     @staticmethod
     def extra_order_value_alias(idx: int) -> str:
-        """Return the queryset alias used for the n-th extra key on a group queryset."""
+        """Return the queryset alias used for the n-th extra key on a collection queryset."""
         return f"_table_extra_value_{idx}"
 
     def _comic_extra_fields(self, key: str) -> list[str]:
@@ -167,7 +167,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         return tail
 
     def _group_extra_order_by(self, extras) -> list[str]:
-        """Build the ORDER BY tail for a group-row queryset."""
+        """Build the ORDER BY tail for a collection-row queryset."""
         tail: list[str] = []
         for idx, entry in enumerate(extras):
             if not entry.get("key"):

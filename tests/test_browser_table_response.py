@@ -115,7 +115,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         Create a Comic in the same publisher / imprint / series / volume as ``anchor``.
 
         Used by tests that need a small fixture of comics under one
-        series to exercise group-row aggregation. ``size`` and
+        series to exercise collection-row aggregation. ``size`` and
         ``page_count`` are deliberately uniform so cumulative-sum
         assertions in those tests stay deterministic without per-call
         plumbing.
@@ -483,7 +483,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         and a different order key (the default). The fix drops the
         broken intersection entry and extends
         ``_annotate_bookmark_updated_at`` to attach the aggregate to
-        group querysets in table view so the cell display can read
+        collection queryset in table view so the cell display can read
         it via ``getattr``.
         """
         from codex.models.bookmark import Bookmark
@@ -615,7 +615,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         row = rows[0]
         # ``page_count`` is cumulative — series row shows the total
         # across both children, not the intersected value (which
-        # would be NULL since 22 ≠ 18). Cover-view's group cards
+        # would be NULL since 22 ≠ 18). Cover-view's collection card
         # display Sum here too; table view matches.
         expected_total_pages = 22 + 18
         assert row["pageCount"] == expected_total_pages, row
@@ -944,7 +944,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         an M2M ORDER BY would resolve a nonexistent column and 500.
         """
         self._set_view_mode_table()
-        # Sort by an M2M key while browsing a level that produces group rows.
+        # Sort by an M2M key while browsing a level that produces collection row.
         self.client.patch(
             _SETTINGS_URL,
             data=json.dumps({"orderBy": "universes", "orderReverse": True}),

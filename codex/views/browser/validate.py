@@ -71,7 +71,7 @@ class BrowserValidateView(SearchFilterView):
     def raise_redirect(
         self, reason, route_mask=None, settings_mask: Mapping | None = None
     ) -> NoReturn:
-        """Redirect the client to a valid group url."""
+        """Redirect the client to a valid collection url."""
         route = cast("dict[str, Any]", mapping_to_dict(self.DEFAULT_ROUTE))
         if route_mask:
             route["params"].update(route_mask)
@@ -83,12 +83,12 @@ class BrowserValidateView(SearchFilterView):
 
     def _get_valid_browse_top_collections(self) -> list:
         """
-        Get valid top groups for the current settings.
+        Get valid top collections for the current settings.
 
-        Valid top groups are determined by the Browser Settings.
+        Valid top collections are determined by the Browser Settings.
         """
         show = self.params["show"]
-        # Issues is always a valid top group; appended after the
+        # Issues is always a valid top collection; appended after the
         # show-driven groups so the existing ordering is preserved.
         return [
             *(nav_collection for nav_collection, allowed in show.items() if allowed),
@@ -99,13 +99,13 @@ class BrowserValidateView(SearchFilterView):
         nav_collection = self.kwargs.get("collection")
         top_collection = self.params.get("top_collection")
         if top_collection not in valid_top_collections:
-            reason = f"top_collection {top_collection} not in valid nav groups {valid_top_collections}, changed to "
+            reason = f"top_collection {top_collection} not in valid nav collections {valid_top_collections}, changed to "
             if nav_collection in valid_top_collections:
                 valid_top_group = nav_collection
-                reason += "nav group: "
+                reason += "nav collection: "
             else:
                 valid_top_group = valid_top_collections[0]
-                reason += "first valid top group "
+                reason += "first valid top collection "
             reason += valid_top_group
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
@@ -115,12 +115,12 @@ class BrowserValidateView(SearchFilterView):
 
     def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
         """
-        Get valid nav groups for the current settings.
+        Get valid nav collections for the current settings.
 
-        Valid nav groups are the top group and below that are also
+        Valid nav collections are the top collection and below that are also
         enabled in browser settings.
 
-        May always navigate to root 'r' nav group.
+        May always navigate to root 'r' nav collection.
         """
         top_collection = self.params["top_collection"]
         nav_collection = self.kwargs["collection"]
@@ -128,7 +128,7 @@ class BrowserValidateView(SearchFilterView):
 
         for possible_index, possible_nav_collection in enumerate(valid_top_collections):
             if top_collection == possible_nav_collection:
-                # all the nav groups past this point,
+                # all the nav collections past this point,
                 # 'c' is obscured by the web reader url, but valid for opds
                 tail_top_collections = valid_top_collections[possible_index:]
                 valid_nav_collections += tail_top_collections
@@ -157,7 +157,7 @@ class BrowserValidateView(SearchFilterView):
     def _validate_browser_collection_settings(self) -> tuple:
         """Check that all the view variables for browser mode are set right."""
         # Validate Browser top_collection
-        # Change top_collection if its not in the valid top groups
+        # Change top_collection if its not in the valid top collections
         valid_top_collections = self._get_valid_browse_top_collections()
         self._validate_top_group(valid_top_collections)
 
@@ -170,7 +170,7 @@ class BrowserValidateView(SearchFilterView):
             self.raise_redirect(reason)
 
         # Validate Browser nav_collection
-        # Redirect if nav group is wrong
+        # Redirect if nav collection is wrong
         return self._get_valid_browse_nav_collections(valid_top_collections)
 
     def _validate_story_arc_settings(self) -> tuple[str, ...]:
@@ -181,7 +181,7 @@ class BrowserValidateView(SearchFilterView):
 
     @property
     def valid_nav_collections(self) -> tuple[str, ...]:
-        """Memoize valid nav groups."""
+        """Memoize valid nav collections."""
         if self._valid_nav_collections is None:
             group = self.kwargs["collection"]
             validate_group = (

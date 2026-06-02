@@ -1,4 +1,4 @@
-"""Aggregate Browser Group Trees."""
+"""Aggregate Browser Collection Trees."""
 
 from collections.abc import Mapping
 from contextlib import suppress
@@ -39,7 +39,7 @@ _MINIMAL_KEYS = frozenset(
 
 
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
-    """Aggregate Browser Group Trees."""
+    """Aggregate Browser Collection Trees."""
 
     def add_query_model(
         self,
@@ -134,7 +134,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
     def get_fk_metadata(self, md, path) -> None:
         """Aggregate Simple Foreign Keys."""
         group_list = []
-        # prevents skipped metadata from destroying browser group links
+        # prevents skipped metadata from destroying browser collection links
         field_names = tuple(COLLECTION_FIELD_NAMES) + tuple(
             sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
         )

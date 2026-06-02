@@ -143,7 +143,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     @staticmethod
     def _get_admin_default_top_group() -> str:
         """
-        Read the admin-configured default top group.
+        Read the admin-configured default top collection.
 
         Returns the validated ``BROWSER_DEFAULT_COLLECTION`` flag value,
         falling back to ``"publishers"`` if the row is missing, the
@@ -164,7 +164,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
 
     @classmethod
     def _get_admin_default_route(cls) -> Mapping:
-        """Translate the admin default top group into a redirect target."""
+        """Translate the admin default top collection into a redirect target."""
         return admin_default_route_for(cls._get_admin_default_top_group())
 
     @classmethod

@@ -206,7 +206,7 @@ class _OPDSFixtureMixin:
 
         A ``2xx`` is parsed and descended into; a ``3xx`` is a valid
         self-correcting redirect (the engine steering a client off an
-        unavailable nav group) whose target is enqueued and verified.
+        unavailable nav collection) whose target is enqueued and verified.
         Only ``>= 400`` counts as a broken link. Returns the per-path
         status map, the set of link ``rel`` values seen, and the
         concatenated ``2xx`` bodies (for content checks).

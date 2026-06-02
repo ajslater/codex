@@ -5,7 +5,7 @@ Breadcrumbs walk the FK parent hierarchy and emit one crumb per level.
 After the collection value-flip, ``self.kwargs["group"]`` is a collection
 value (``"volumes"``), so the parent-chain map and the root crumb must be
 keyed/built with ``Group`` members — otherwise the chain lookup misses and
-nested-group breadcrumbs collapse to just ``[root, current]``. These pin the
+nested-collection breadcrumbs collapse to just ``[root, current]``. These pin the
 full chain + the collection wire shape.
 """
 
@@ -31,7 +31,7 @@ def _v4(response):
 
 
 class BreadcrumbsTestCase(TestCase):
-    """Browser breadcrumb resolution across the group hierarchy."""
+    """Browser breadcrumb resolution across the collection hierarchy."""
 
     @override
     def setUp(self) -> None:
@@ -77,11 +77,11 @@ class BreadcrumbsTestCase(TestCase):
 
     def _show_full_hierarchy(self) -> None:
         """
-        Enable every browse group with the shallowest top group.
+        Enable every browse group with the shallowest top collection.
 
         ``top_collection="publishers"`` keeps publishers/imprints/series/volumes all
         in the valid nav set, so drilling down to a volume produces the full
-        ancestor chain. (A deeper top group would correctly *prune* the levels
+        ancestor chain. (A deeper top collection would correctly *prune* the levels
         above it — root would list volumes directly.)
         """
         response = self.client.patch(

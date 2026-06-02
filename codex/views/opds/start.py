@@ -14,7 +14,7 @@ class OPDSStartViewMixin:
         return self.get_browser_default_params()  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
 
     def _get_group_queryset(self) -> tuple:
-        """Force empty group query on start page."""
+        """Force empty collection query on start page."""
         qs = self.model.objects.none().order_by("pk")  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         count = 0
         return qs, count

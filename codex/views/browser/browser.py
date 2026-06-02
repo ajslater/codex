@@ -88,8 +88,8 @@ class BrowserView(BrowserTitleView):
     def model_collection(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
-        #   A valid nav group or 'c'
-        #   the child of the current nav group or 'c'
+        #   A valid nav collection or 'c'
+        #   the child of the current nav collection or 'c'
         if not self._model_collection:
             group = self.kwargs["collection"]
             if group == FOLDER_COLLECTION:
@@ -229,7 +229,7 @@ class BrowserView(BrowserTitleView):
             # targets against the queryset's known annotations at
             # ``annotate()`` call time, not at SQL compile time, so
             # an out-of-order add raises ``Cannot resolve keyword
-            # 'favorite' into field`` for the group queryset.
+            # 'favorite' into field`` for the collection queryset.
             qs = self._add_table_view_favorite_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
@@ -242,7 +242,7 @@ class BrowserView(BrowserTitleView):
         return qs, count
 
     def _get_group_queryset(self) -> tuple:
-        """Create group queryset."""
+        """Create collection queryset."""
         if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
             count = 0
