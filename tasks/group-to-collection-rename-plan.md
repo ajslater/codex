@@ -97,19 +97,31 @@ is manual-QA'd, so vitest doesn't fully guard it):**
    Surfaced + fixed two latent bugs from the earlier item-flip (`browser-table`
    row-click → reader instead of drill-in; `download-panel` item shape).
 
-**STILL `group` — deliberately out of scope (separate clusters, no further work
-planned unless requested):**
-- The **metadata `group` prop** chain (prop definitions + `md.collection`→`group`
-  prop bindings across ~7 metadata components); carries a collection value but is
-  a self-contained prop cluster.
+4. ✅ **DONE** (commit `0e6ac347`): the **shared `group` prop convention** →
+   `collection` (favorite-toggle, book-cover, metadata-text/cover/header/controls
+   + all `:group=`/`group=` bindings + the loadMetadata/lazyImport store actions).
+   Also fixed a char-vestige bug (`GROUP_MAP` keyed by chars, looked up by
+   collection → `markReadItem` name fallback) → `COLLECTION_PREFIX_MAP`.
+   And a prior latent-bug sweep (commits `75ce24b0`, `1715347b`) fixed
+   `book.group`/item-shape `group` reads that broke table-row drill-in,
+   lazy-import, tag-write, and metadata mark-read.
+
+**STILL `group` — genuinely different meaning or out-of-scope wire (NOT rename
+targets):**
 - The **admin custom-cover** (`uploadCustomCover`/`removeCustomCover`/replace) and
   **tag-write** (`onlinetag`, edit-panel) `group` API fields — a *different wire
   surface*; the backend still expects `group` there (pinned by
   `test_admin_custom_cover` / `test_tag_write_filters`).
 - The **reader-arc** internal select shape (`reader-arc-select.vue`) and the mtime
   `groups` array *field name* (its items are `collection` now).
+- **metadata-chip**'s internal `linkGroup` computed (self-contained chip vocab).
 - The store **hierarchy vocabulary** (`topGroup`/`lowestShownGroup`/`GROUPS`/
   `getTopGroup`) — "group" as a browse *level*, a legitimately distinct meaning.
+
+**Net result: every collection-valued `group` identifier across engine, DB,
+wire, and frontend is now `collection`.** What remains named `group` is either a
+genuinely different concept (browse *level*) or an external API contract
+(admin custom-cover / tag-write) the backend still keys on `group`.
 
 **Manual nav QA recommended** (vitest doesn't drive live routing): drill
 publishers→series→volumes via cards AND table rows, breadcrumb back, "/" → last
