@@ -88,15 +88,34 @@ is manual-QA'd, so vitest doesn't fully guard it):**
    `source="group"` / `getattr(instance,"group")`). To unify the name it would
    have to become a non-colliding third name (e.g. `nav_collection`), not
    `collection`. Cosmetic; no behavior or wire change either way.
-3. **FE-internal engine shape** (~70 sites, cosmetic only): `routeForGroup`/
-   `groupForRoute` → `*Collection`, `liveBrowseParams().group` → `.collection`,
-   the internal `{group, pks}` route shape in `stores/browser.js`/`route.js`,
-   and the `api/v4/browser.js` helper `group` param (the collection URL-segment
-   param name, ~45 refs) + its call sites. Plus two small wire fields that also
-   carry collection values but are *separate surfaces*: `BrowserSettingsSerializer.group`
-   (settings GET query param, `views/browser/settings.py:138`) and the mtime
-   `groups` array field name. All no-behavior-change renames; the meaningful
-   vocabulary (engine, DB, route wire) is already `collection`.
+3. ✅ **DONE** (commit `5d3f17f1`): the **FE-internal route engine shape**.
+   `routeForGroup`/`groupForRoute` → `routeForCollection`/`collectionForRoute`,
+   `liveBrowseParams()` → `{collection, pks, page}`, `toBrowseRoute` disambiguates
+   v4-vs-engine on `pks` presence, the `api/v4/browser.js` segment param `group`
+   → `collection` (+ two `"r"`→`"root"` vestiges), every api caller, and the
+   coupled `BrowserSettingsInputSerializer.group` → `collection` query field.
+   Surfaced + fixed two latent bugs from the earlier item-flip (`browser-table`
+   row-click → reader instead of drill-in; `download-panel` item shape).
+
+**STILL `group` — deliberately out of scope (separate clusters, no further work
+planned unless requested):**
+- The **metadata `group` prop** chain (prop definitions + `md.collection`→`group`
+  prop bindings across ~7 metadata components); carries a collection value but is
+  a self-contained prop cluster.
+- The **admin custom-cover** (`uploadCustomCover`/`removeCustomCover`/replace) and
+  **tag-write** (`onlinetag`, edit-panel) `group` API fields — a *different wire
+  surface*; the backend still expects `group` there (pinned by
+  `test_admin_custom_cover` / `test_tag_write_filters`).
+- The **reader-arc** internal select shape (`reader-arc-select.vue`) and the mtime
+  `groups` array *field name* (its items are `collection` now).
+- The store **hierarchy vocabulary** (`topGroup`/`lowestShownGroup`/`GROUPS`/
+  `getTopGroup`) — "group" as a browse *level*, a legitimately distinct meaning.
+
+**Manual nav QA recommended** (vitest doesn't drive live routing): drill
+publishers→series→volumes via cards AND table rows, breadcrumb back, "/" → last
+route, open→close a comic returns to the right route, cover parent-route renders,
+mark-read / force-update / download / select-many actions, no `/api/v4/mtime` or
+`/settings` 400s.
 
 ## Goal
 
