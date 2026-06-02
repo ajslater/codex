@@ -650,7 +650,7 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async _setBookmarkPage(page) {
-      const groupParams = {
+      const collectionParams = {
         collection: "comics",
         ids: [+this.books.current.pk],
       };
@@ -662,7 +662,11 @@ export const useReaderStore = defineStore("reader", {
       ) {
         updates["finished"] = true;
       }
-      await BROWSER_API.updateCollectionBookmarks(groupParams, {}, updates);
+      await BROWSER_API.updateCollectionBookmarks(
+        collectionParams,
+        {},
+        updates,
+      );
     },
     async updateComicSettings(updates) {
       const newBookSettings = {

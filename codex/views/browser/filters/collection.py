@@ -32,7 +32,7 @@ class CollectionFilterView(BrowserParamsView):
         elif self.TARGET == "download":
             rel = "comic__folders" if group == FOLDER_COLLECTION else "pk"
         else:
-            # browser.group, opds
+            # browser.collection, opds
             rel = COLLECTION_RELATION[group]
 
         rel += "__in"

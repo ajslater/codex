@@ -105,7 +105,7 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - Released as both a Python wheel (PyPI) and Docker image (GHCR).
 - Config file is TOML (`codex.toml`), not env vars.
 - Browser API groups comics by: publisher, series, folder, arc, volume — the
-  `group` URL param selects which.
+  `collection` URL param selects which.
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.

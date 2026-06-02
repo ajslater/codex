@@ -9,7 +9,7 @@ const _itemKey = (item) => {
 };
 
 const _groupSelectedItems = (selectedItems) => {
-  // Group selected items by their group field.
+  // Group selected items by their collection field.
   const grouped = {};
   for (const item of selectedItems.values()) {
     if (!grouped[item.collection]) {
@@ -89,9 +89,9 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       }
       const grouped = _groupSelectedItems(state.selectedItems);
       const groups = Object.keys(grouped);
-      // Use the first group type found.
-      const group = groups[0];
-      const items = grouped[group];
+      // Use the first collection type found.
+      const collection = groups[0];
+      const items = grouped[collection];
       const pks = _collectPks(items);
       const names = items.map((item) => item.name).filter(Boolean);
       const childCount = items.reduce(
@@ -99,7 +99,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         0,
       );
       return {
-        group,
+        collection,
         ids: pks,
         pks,
         name: names.length > 1 ? `${names.length} items` : names[0] || "",
@@ -198,9 +198,9 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       }
       const grouped = _groupSelectedItems(this.selectedItems);
       const promises = [];
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const params = { collection: group, ids: pks };
+        const params = { collection: collection, ids: pks };
         promises.push(
           API.updateCollectionBookmarks(
             params,
@@ -220,16 +220,17 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         return;
       }
       const grouped = _groupSelectedItems(this.selectedItems);
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const collectionName = browserStore.collectionNames[group] || "Items";
+        const collectionName =
+          browserStore.collectionNames[collection] || "Items";
         const plural = collectionName.endsWith("s")
           ? collectionName
           : collectionName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
         const url = API.getGroupDownloadURL(
-          { collection: group, pks },
+          { collection: collection, pks },
           fn,
           settings,
           0,
@@ -248,11 +249,11 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       }
       const grouped = _groupSelectedItems(this.selectedItems);
       const promises = [];
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const ids = _collectPks(items);
         promises.push(
           API.forceUpdateCollection(
-            { collection: group, ids },
+            { collection: collection, ids },
             browserStore.filterOnlySettings,
           ),
         );

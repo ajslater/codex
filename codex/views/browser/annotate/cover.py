@@ -56,7 +56,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if self.is_bookmark_filtered:
             q &= self.get_bookmark_filter(Comic)
         # Apply favorites-only the same way ``_get_query_filters`` does for
-        # the outer browser query. Without this the topmost group's cover
+        # the outer browser query. Without this the topmost collection's cover
         # subquery happily picks a non-favorited descendant, while
         # intermediate groups (whose query already runs through the main
         # filter pipeline) honor it.

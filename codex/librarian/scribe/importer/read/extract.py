@@ -163,7 +163,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             # unchanged or full_metadata=False). Route any envelope
             # changes through the stat-only path so aggregate doesn't
             # see an empty-tag md and clobber the comic's existing
-            # browser-collection FKs with the empty default groups.
+            # browser-collection FKs with the empty default collections.
             if envelope_md:
                 envelope_md["path"] = path_str
                 self.metadata[EXTRACTED_STAT_ONLY][path_str] = envelope_md

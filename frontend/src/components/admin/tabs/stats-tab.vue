@@ -11,7 +11,7 @@
     <AdminKeyValueTable title="User Settings" :items="userSettingsTable" />
     <AdminKeyValueTable
       title="Browser Collections"
-      :items="browserGroupsTable"
+      :items="browserCollectionsTable"
     />
     <AdminKeyValueTable title="Tags" :items="metadataTable" />
   </div>
@@ -101,7 +101,7 @@ export default {
       }
       return table;
     },
-    browserGroupsTable() {
+    browserCollectionsTable() {
       const table = {};
       for (const [key, value] of Object.entries(this.stats?.groups)) {
         let label = this.keyToLabel(key);
