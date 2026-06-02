@@ -56,17 +56,18 @@ export default {
         title = "All";
       } else if (this.browserTitle) {
         let names = [];
-        const { groupName, groupNumberTo, groupCount } = this.browserTitle;
+        const { collectionName, collectionNumberTo, collectionCount } =
+          this.browserTitle;
         const collection = this.routeCollection;
         const formattedGroupName =
           collection === "volumes"
-            ? formattedVolumeName(groupName, groupNumberTo)
-            : groupName;
+            ? formattedVolumeName(collectionName, collectionNumberTo)
+            : collectionName;
         if (formattedGroupName) {
           names.push(formattedGroupName);
         }
-        if (groupCount) {
-          const formattedGroupCount = `of ${groupCount}`;
+        if (collectionCount) {
+          const formattedGroupCount = `of ${collectionCount}`;
           names.push(formattedGroupCount);
         }
         title = names.join(" ");

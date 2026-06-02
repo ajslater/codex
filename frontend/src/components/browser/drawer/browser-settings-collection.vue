@@ -34,7 +34,7 @@ const SHOW_SETTINGS_COLLECTIONS = Object.freeze(
 );
 
 export default {
-  name: "BrowserSettingsGroup",
+  name: "BrowserSettingsCollection",
   data() {
     return {
       openDelay: 2000,
@@ -42,7 +42,7 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      groupChoices: (state) => state.choices?.static?.settingsGroup || {},
+      groupChoices: (state) => state.choices?.static?.settingsCollection || {},
       showSettings: (state) => state.settings?.show || {},
     }),
     showShowSettings() {

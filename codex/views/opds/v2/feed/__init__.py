@@ -86,8 +86,8 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             pks = self.kwargs["pks"]
             if not parent_name and not pks:
                 parent_name = "All"
-            group_name = browser_title.get("group_name")
-            result = " ".join(filter(None, (parent_name, group_name))).strip()
+            collection_name = browser_title.get("collection_name")
+            result = " ".join(filter(None, (parent_name, collection_name))).strip()
 
         if not result:
             result = BLANK_TITLE

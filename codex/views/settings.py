@@ -145,7 +145,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         """
         Read the admin-configured default top group.
 
-        Returns the validated ``BROWSER_DEFAULT_GROUP`` flag value,
+        Returns the validated ``BROWSER_DEFAULT_COLLECTION`` flag value,
         falling back to ``"publishers"`` if the row is missing, the
         flag is off, or the value is out of range (defense against a
         hand-edited DB / pre-migration state). ``"publishers"`` mirrors
@@ -154,7 +154,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         """
         try:
             flag = AdminFlag.objects.only("on", "value").get(
-                key=AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
+                key=AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value
             )
         except AdminFlag.DoesNotExist:
             return _FALLBACK_DEFAULT_TOP_COLLECTION

@@ -87,7 +87,7 @@ def init_admin_flags() -> None:
         # Mirrors the ``SettingsBrowser.top_collection`` model default so
         # ``admin_default_route_for("publishers")`` resolves to the root
         # publishers listing — upgrade-day no-op.
-        AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "publishers",
+        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value: "publishers",
         # Migrated from TOML at first boot of the new version;
         # the value reflects the live settings constant so deleted
         # rows heal back to the operator's configured value.

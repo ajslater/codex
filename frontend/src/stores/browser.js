@@ -218,7 +218,7 @@ export const useBrowserStore = defineStore("browser", {
       static: Object.freeze({
         bookmark: BROWSER_CHOICES.BOOKMARK_FILTER,
         collectionNames: TOP_COLLECTION,
-        settingsGroup: BROWSER_CHOICES.SETTINGS_GROUP,
+        settingsCollection: BROWSER_CHOICES.SETTINGS_COLLECTION,
         readingDirection: READING_DIRECTION,
         identifierSources: IDENTIFIER_SOURCES,
       }),
@@ -248,7 +248,7 @@ export const useBrowserStore = defineStore("browser", {
       },
       title: {
         collectionName: undefined,
-        groupCount: undefined,
+        collectionCount: undefined,
       },
       librariesExist: undefined,
       modelCollection: undefined,

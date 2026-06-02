@@ -9,7 +9,7 @@ from codex.views.browser.breadcrumbs import BrowserBreadcrumbsView
 class BrowserTitleView(BrowserBreadcrumbsView):
     """Browser title methods."""
 
-    def _get_root_group_name(self) -> tuple:
+    def _get_root_collection_name(self) -> tuple:
         if not self.model:
             reason = "No model set in browser"
             raise ValueError(reason)
@@ -19,31 +19,33 @@ class BrowserTitleView(BrowserBreadcrumbsView):
             raise ValueError(reason)
         return plural.capitalize(), 0
 
-    def _get_group_name(self) -> tuple:
-        group_number_to = None
-        group_count = 0
-        group_name = ""
+    def _get_collection_name(self) -> tuple:
+        collection_number_to = None
+        collection_count = 0
+        collection_name = ""
         if gi := self.group_instance:
-            group_name = gi.name
+            collection_name = gi.name
             if isinstance(gi, Volume):
-                group_number_to = gi.number_to
-                group_count = gi.series.volume_count
+                collection_number_to = gi.number_to
+                collection_count = gi.series.volume_count
             elif isinstance(gi, Comic):
-                group_number_to = gi.volume.number_to
-                group_count = gi.volume.issue_count
-        return group_name, group_number_to, group_count
+                collection_number_to = gi.volume.number_to
+                collection_count = gi.volume.issue_count
+        return collection_name, collection_number_to, collection_count
 
     def get_browser_page_title(self) -> Mapping:
         """Get the proper title for this browse level."""
         pks = self.kwargs.get("pks")
         if not pks:
-            group_name, group_count = self._get_root_group_name()
-            group_number_to = None
+            collection_name, collection_count = self._get_root_collection_name()
+            collection_number_to = None
         else:
-            group_name, group_number_to, group_count = self._get_group_name()
+            collection_name, collection_number_to, collection_count = (
+                self._get_collection_name()
+            )
 
         return {
-            "group_name": group_name,
-            "group_number_to": group_number_to,
-            "group_count": group_count,
+            "collection_name": collection_name,
+            "collection_number_to": collection_number_to,
+            "collection_count": collection_count,
         }

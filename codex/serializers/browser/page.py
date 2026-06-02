@@ -145,9 +145,9 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    group_name = CharField(read_only=True)
-    group_number_to = CharField(read_only=True)
-    group_count = IntegerField(read_only=True, allow_null=True)
+    collection_name = CharField(read_only=True)
+    collection_number_to = CharField(read_only=True)
+    collection_count = IntegerField(read_only=True, allow_null=True)
 
 
 def _emit_cover(row, instance) -> None:

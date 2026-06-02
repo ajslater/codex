@@ -26,7 +26,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         """
         Per-flag value validation.
 
-        ``BROWSER_DEFAULT_GROUP`` constrains ``value`` to one of the
+        ``BROWSER_DEFAULT_COLLECTION`` constrains ``value`` to one of the
         ``BROWSER_TOP_COLLECTION_CHOICES`` keys; the route URL is
         derived from the value at read time via ``admin_default_route_for``.
         Note we validate against the top-group set, not
@@ -35,7 +35,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         """
         if (
             self.instance
-            and self.instance.key == AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
+            and self.instance.key == AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value
         ):
             value = attrs.get("value", self.instance.value)
             if value not in BROWSER_TOP_COLLECTION_CHOICES:

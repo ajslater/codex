@@ -104,7 +104,7 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     }
 )
 
-_GROUP_COLLECTION_NAMES = MappingProxyType(
+_COLLECTION_NAMES = MappingProxyType(
     {
         "publishers": "Publishers",
         "imprints": "Imprints",
@@ -114,7 +114,7 @@ _GROUP_COLLECTION_NAMES = MappingProxyType(
 )
 BROWSER_TOP_COLLECTION_CHOICES = MappingProxyType(
     {
-        **_GROUP_COLLECTION_NAMES,
+        **_COLLECTION_NAMES,
         "comics": "Issues",
         "folders": "Folders",
         "arcs": "Story Arcs",
@@ -153,7 +153,7 @@ BROWSER_CHOICES = MappingProxyType(
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
-        "SETTINGS_GROUP": {**_GROUP_COLLECTION_NAMES},
+        "SETTINGS_COLLECTION": {**_COLLECTION_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
     }
 )
@@ -172,7 +172,7 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "EXTRA_SORT_UNSUPPORTED_KEYS",
         "TOP_COLLECTION",
         "VUETIFY_NULL_CODE",
-        "SETTINGS_GROUP",
+        "SETTINGS_COLLECTION",
     }
 )
 
@@ -202,7 +202,7 @@ _FLAG_COLLECTION_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 def admin_default_route_for(top_collection: str) -> dict:
     """
-    Translate a ``BROWSER_DEFAULT_GROUP`` collection into a route dict.
+    Translate a ``BROWSER_DEFAULT_COLLECTION`` collection into a route dict.
 
     Used (via ``get_last_route``) to seed the bare ``/`` redirect when no
     per-user ``last_route`` row exists. ``top_collection`` is the collection-name
