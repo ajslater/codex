@@ -267,7 +267,7 @@ export default {
       const pks = this.book.ids || [this.book.pk];
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
-          group: this.book.group,
+          group: this.book.collection,
           pks: pks.map(String),
           formats: this.taggingDefaults?.defaultFormats || ["COMIC_INFO"],
         });
@@ -282,7 +282,7 @@ export default {
       const pks = this.book.ids || [this.book.pk];
       try {
         await this.startSession({
-          group: this.book.group,
+          group: this.book.collection,
           pks,
           sources: this.sources,
           mode: this.matchMode,

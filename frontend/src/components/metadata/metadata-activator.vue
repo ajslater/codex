@@ -36,7 +36,7 @@ export default {
       return (
         this.stateLazyImportEnabled &&
         this.book &&
-        this.book.group === "comics" &&
+        this.book.collection === "comics" &&
         !this.book.hasMetadata &&
         !this.lazyImportStarted
       );
@@ -50,7 +50,7 @@ export default {
     onMouseEnter() {
       if (this.lazyImportEnabled) {
         const ids = this.book.ids || [this.book.pk];
-        this.lazyImport({ group: this.book.group, ids }).then(() => {
+        this.lazyImport({ group: this.book.collection, ids }).then(() => {
           this.lazyImportStarted = true;
         });
       }

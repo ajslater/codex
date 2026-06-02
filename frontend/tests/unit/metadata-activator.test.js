@@ -22,7 +22,11 @@ import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import vuetify from "@/plugins/vuetify";
 import { useMetadataStore } from "@/stores/metadata";
 
-const COMIC = Object.freeze({ group: "comics", pk: 42, hasMetadata: false });
+const COMIC = Object.freeze({
+  collection: "comics",
+  pk: 42,
+  hasMetadata: false,
+});
 
 function mountActivator({ lazyImportMetadata = false, book = COMIC } = {}) {
   const pinia = createTestingPinia({
@@ -68,7 +72,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("does not fire for comics that already have metadata", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "comics", pk: 7, hasMetadata: true },
+      book: { collection: "comics", pk: 7, hasMetadata: true },
     });
 
     await wrapper.find("button").trigger("mouseenter");
@@ -79,7 +83,7 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("does not fire for non-comic groups", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "series", pk: 7, hasMetadata: false },
+      book: { collection: "series", pk: 7, hasMetadata: false },
     });
 
     await wrapper.find("button").trigger("mouseenter");
@@ -90,7 +94,12 @@ describe("MetadataActivator lazy-import-on-hover", () => {
   test("prefers book.ids over book.pk and only imports once", async () => {
     const { wrapper, metadataStore } = mountActivator({
       lazyImportMetadata: true,
-      book: { group: "comics", pk: 42, ids: [1, 2, 3], hasMetadata: false },
+      book: {
+        collection: "comics",
+        pk: 42,
+        ids: [1, 2, 3],
+        hasMetadata: false,
+      },
     });
 
     const button = wrapper.find("button");

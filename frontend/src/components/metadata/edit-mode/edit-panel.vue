@@ -1582,7 +1582,7 @@ export default {
       const pks = this.book.ids || [this.book.pk];
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
-          group: this.book.group,
+          group: this.book.collection,
           pks: pks.map(String),
           formats: this.enabledFormats,
         });
@@ -1612,7 +1612,7 @@ export default {
 
       try {
         const payload = {
-          group: this.book.group,
+          group: this.book.collection,
           pks: pks.map(String),
           patch: JSON.stringify(cbPatch),
           mode: "update",
