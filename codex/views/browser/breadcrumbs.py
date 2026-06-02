@@ -125,7 +125,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         crumbs: list[Route] = [Route(group, pks, page, gi.name)]
 
         # Walk up the parent chain via FKs
-        vng = self.valid_nav_groups
+        vng = self.valid_nav_collections
         parent_chain = _COLLECTION_PARENT_CHAIN.get(group, ())
         for parent_group, attr in parent_chain:
             if parent_group not in vng:

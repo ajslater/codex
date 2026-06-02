@@ -8,7 +8,7 @@ from rest_framework.fields import CharField, IntegerField
 from rest_framework.serializers import Serializer
 
 from codex.collection import Collection
-from codex.serializers.fields.group import BrowserRouteGroupField
+from codex.serializers.fields.collection import BrowserRouteCollectionField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
@@ -39,7 +39,7 @@ class SimpleRouteSerializer(Serializer):
     (``pks`` is kept as the input parent-ids key; output emits ``parent_ids``).
     """
 
-    collection = BrowserRouteGroupField()
+    collection = BrowserRouteCollectionField()
     pks = CharField()
 
     @override

@@ -29,7 +29,7 @@ class MetadataView(MetadataCopyIntersectionsView):
     ADMIN_FLAGS = (AdminFlagChoices.FOLDER_VIEW,)
 
     @override
-    def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
+    def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
         """Limited allowed nav groups for metadata."""
         # Overrides method in browser.validate
         group = self.kwargs["collection"]

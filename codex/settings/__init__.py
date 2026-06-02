@@ -914,9 +914,9 @@ SPECTACULAR_SETTINGS = {
         "description": "Codex Docs",
     },
     "ENUM_NAME_OVERRIDES": {
-        # group
-        "BrowseGroupEnum": "codex.serializers.fields.group.BrowseGroupField.class_choices",
-        "BrowserRouteGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
+        # collection
+        "BrowseCollectionEnum": "codex.serializers.fields.collection.BrowseCollectionField.class_choices",
+        "BrowserRouteCollectionEnum": "codex.serializers.fields.collection.BrowserRouteCollectionField.class_choices",
         # reading_direction
         "BookmarkReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices.choices",
         "ReaderReadingDirectionEnum": "codex.serializers.fields.reader.ReadingDirectionField.class_choices",

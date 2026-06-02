@@ -11,7 +11,7 @@ from zipstream import ZipStream
 from codex.views.browser.filters.filter import BrowserFilterView
 
 
-class GroupDownloadView(BrowserFilterView):
+class CollectionDownloadView(BrowserFilterView):
     """Return a group of comic archives as a streaming zipfile."""
 
     content_type = "application/zip"

@@ -20,7 +20,7 @@ from codex.views.browser.choices import (
     BrowserChoicesAvailableView,
     BrowserChoicesView,
 )
-from codex.views.browser.download import GroupDownloadView
+from codex.views.browser.download import CollectionDownloadView
 from codex.views.browser.force_update import ForceUpdateView
 from codex.views.browser.metadata import MetadataView
 from codex.views.browser.saved_settings import (
@@ -50,7 +50,7 @@ urlpatterns = [
     *_pair("/metadata", MetadataView, "metadata"),
     path(
         "<collection:collection>/<int_list:parent_ids>/download/<str:filename>",
-        GroupDownloadView.as_view(),
+        CollectionDownloadView.as_view(),
         name="download",
     ),
     path(

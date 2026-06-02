@@ -13,7 +13,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.serializers.fields.group import BrowseGroupField
+from codex.serializers.fields.collection import BrowseCollectionField
 from codex.util import max_none
 from codex.views.const import EPOCH_START
 
@@ -25,7 +25,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     # annotation (an internal alias the OPDS entry path also reads — it
     # can't be named ``collection`` without colliding with WatchedPath's
     # real ``collection`` field).
-    collection = BrowseGroupField(source="nav_collection", read_only=True)
+    collection = BrowseCollectionField(source="nav_collection", read_only=True)
     ids = ListField(child=IntegerField(), read_only=True)
 
     # Aggregate Annotations

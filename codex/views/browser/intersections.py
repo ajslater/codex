@@ -134,7 +134,7 @@ def _intersection_relation(group_model: type[BrowserCollectionModel]) -> str | N
     return MODEL_REL_MAP.get(group_model)
 
 
-def compute_group_intersections(
+def compute_collection_intersections(
     group_qs, columns: Iterable[str]
 ) -> dict[int, dict[str, Any]]:
     """
@@ -266,7 +266,7 @@ def _compute_batched_scalars(
     """
     Aggregate every scalar / cumulative column in one grouped query.
 
-    Replaces the previous ``compute_group_intersections`` per-column
+    Replaces the previous ``compute_collection_intersections`` per-column
     loop (one query each) with a single ``Comic.filter().values(rel)
     .annotate(...)`` that emits, per group, the comic_count plus the
     aggregates needed for each requested scalar column. Returns

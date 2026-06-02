@@ -7,13 +7,13 @@ from codex.choices.browser import (
 from codex.serializers.fields.base import CodexChoiceField
 
 
-class BrowseGroupField(CodexChoiceField):
+class BrowseCollectionField(CodexChoiceField):
     """Valid Top Groups Only (collection vocabulary)."""
 
     class_choices = tuple(BROWSER_TOP_COLLECTION_CHOICES.keys())
 
 
-class BrowserRouteGroupField(CodexChoiceField):
+class BrowserRouteCollectionField(CodexChoiceField):
     """Valid Top Groups Only (+ root) — collection vocabulary."""
 
     class_choices = tuple(BROWSER_ROUTE_COLLECTION_CHOICES.keys())

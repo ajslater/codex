@@ -22,13 +22,16 @@ from codex.choices.browser import (
 )
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
-from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
+from codex.serializers.fields.collection import (
+    BrowseCollectionField,
+    BrowserRouteCollectionField,
+)
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
 
 
-class BrowserSettingsShowGroupFlagsSerializer(Serializer):
+class BrowserSettingsShowCollectionFlagsSerializer(Serializer):
     """Show Group Flags (collection vocabulary)."""
 
     publishers = BooleanField()
@@ -79,7 +82,7 @@ class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerializer):
         choices=tuple(BROWSER_ORDER_BY_CHOICES.keys()), required=False
     )
     order_reverse = BooleanField(required=False)
-    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    show = BrowserSettingsShowCollectionFlagsSerializer(required=False)
 
 
 class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
@@ -95,7 +98,7 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    top_collection = BrowseGroupField(required=False)
+    top_collection = BrowseCollectionField(required=False)
 
     @override
     def to_internal_value(self, data) -> dict:
@@ -197,7 +200,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
-    collection = BrowserRouteGroupField(required=False)
+    collection = BrowserRouteCollectionField(required=False)
 
 
 class BrowserPageInputSerializer(BrowserSettingsSerializer):

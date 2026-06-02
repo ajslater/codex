@@ -25,7 +25,7 @@ from django.test import Client, TestCase
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.named import StoryArc
 from codex.startup import init_admin_flags
-from codex.views.browser.metadata.group_list import group_list_field_name
+from codex.views.browser.metadata.collection_list import collection_list_field_name
 
 TMP_DIR = Path("/tmp/codex.tests.metadata_group_list")  # noqa: S108
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -177,19 +177,19 @@ class GroupListFieldNameTestCase(TestCase):
 
     def test_publisher_field_name(self) -> None:
         """Publisher → ``publisher_list``."""
-        assert group_list_field_name(Publisher) == "publisher_list"
+        assert collection_list_field_name(Publisher) == "publisher_list"
 
     def test_imprint_field_name(self) -> None:
         """Imprint → ``imprint_list``."""
-        assert group_list_field_name(Imprint) == "imprint_list"
+        assert collection_list_field_name(Imprint) == "imprint_list"
 
     def test_series_field_name(self) -> None:
         """Series → ``series_list``."""
-        assert group_list_field_name(Series) == "series_list"
+        assert collection_list_field_name(Series) == "series_list"
 
     def test_volume_field_name(self) -> None:
         """Volume → ``volume_list``."""
-        assert group_list_field_name(Volume) == "volume_list"
+        assert collection_list_field_name(Volume) == "volume_list"
 
     def test_story_arc_field_name_is_overridden(self) -> None:
         """
@@ -199,4 +199,4 @@ class GroupListFieldNameTestCase(TestCase):
         ``storyArcList`` because the serializer only reads
         ``story_arc_list``.
         """
-        assert group_list_field_name(StoryArc) == "story_arc_list"
+        assert collection_list_field_name(StoryArc) == "story_arc_list"

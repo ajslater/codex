@@ -117,7 +117,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         """Memoize the opds acquisition groups."""
         if self._opds_acquisition_groups is None:
             groups = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
-            groups |= {*self.valid_nav_groups[-2:]}
+            groups |= {*self.valid_nav_collections[-2:]}
             self._opds_acquisition_groups = frozenset(groups)
         return self._opds_acquisition_groups
 
@@ -237,7 +237,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # - Group rows in table view display it as a column; the cell
         #   display path (``_emit_column`` → ``getattr``) reads the
         #   annotation directly, so without this branch the column would
-        #   crash ``compute_group_intersections`` (the field can't be
+        #   crash ``compute_collection_intersections`` (the field can't be
         #   aggregated as a Comic-relative scalar without the user
         #   filter). Comic rows keep going through
         #   ``annotate_comic_extra_specials`` to avoid double-annotation.

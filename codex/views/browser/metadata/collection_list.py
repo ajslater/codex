@@ -1,8 +1,8 @@
 """
-Shared queryset shape for ``GroupSerializer`` consumers.
+Shared queryset shape for ``CollectionSerializer`` consumers.
 
 The metadata view emits ``*_list`` fields populated by
-``codex.serializers.browser.metadata.GroupSerializer``, which expects
+``codex.serializers.browser.metadata.CollectionSerializer``, which expects
 each row to expose ``ids``, ``name`` (and ``number_to`` for Volume).
 Two call sites populate these lists — parent groups in
 ``MetadataQueryIntersectionsView._query_groups`` and the current group
@@ -26,14 +26,14 @@ from codex.models.groups import Volume
 _GROUP_LIST_FIELD_OVERRIDES = MappingProxyType({"StoryArc": "story_arc_list"})
 
 
-def group_list_field_name(model: type[BrowserCollectionModel]) -> str:
+def collection_list_field_name(model: type[BrowserCollectionModel]) -> str:
     """Return the metadata-obj attribute the serializer reads for ``model``."""
     name = model.__name__
     return _GROUP_LIST_FIELD_OVERRIDES.get(name, name.lower() + "_list")
 
 
-def annotate_group_list(qs: QuerySet) -> QuerySet:
-    """Project a pre-filtered BrowserCollectionModel qs into ``GroupSerializer`` shape."""
+def annotate_collection_list(qs: QuerySet) -> QuerySet:
+    """Project a pre-filtered BrowserCollectionModel qs into ``CollectionSerializer`` shape."""
     only = ["name", "number_to"] if qs.model is Volume else ["name"]
     return (
         qs.only(*only)

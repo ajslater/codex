@@ -141,7 +141,7 @@ def shape_identifiers(identifiers) -> list[dict[str, Any]]:
     return out
 
 
-class GroupSerializer(Serializer):
+class CollectionSerializer(Serializer):
     """Serialize a group pk and name."""
 
     ids = ListField(child=IntegerField(), read_only=True)
@@ -179,12 +179,12 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Return the custom cover pk when present, else None."""
         return getattr(obj, "cover_custom_pk", None)
 
-    publisher_list = GroupSerializer(many=True, required=False)
-    imprint_list = GroupSerializer(many=True, required=False)
-    series_list = GroupSerializer(many=True, required=False)
-    volume_list = GroupSerializer(many=True, required=False)
-    folder_list = GroupSerializer(many=True, required=False)
-    story_arc_list = GroupSerializer(many=True, required=False)
+    publisher_list = CollectionSerializer(many=True, required=False)
+    imprint_list = CollectionSerializer(many=True, required=False)
+    series_list = CollectionSerializer(many=True, required=False)
+    volume_list = CollectionSerializer(many=True, required=False)
+    folder_list = CollectionSerializer(many=True, required=False)
+    story_arc_list = CollectionSerializer(many=True, required=False)
     publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]

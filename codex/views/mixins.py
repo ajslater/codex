@@ -25,12 +25,12 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
 
     @staticmethod
     def _get_order_group(
-        nav_group, show, parent_group, index, pks, order_groups
+        nav_collection, show, parent_group, index, pks, order_groups
     ) -> tuple:
         do_break = False
         if (
-            nav_group not in _VARIABLE_SHOW or show.get(nav_group)
-        ) and nav_group == parent_group:
+            nav_collection not in _VARIABLE_SHOW or show.get(nav_collection)
+        ) and nav_collection == parent_group:
             watermark = index
             if pks and len(pks) == 1:
                 watermark += 1
@@ -43,9 +43,9 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         """Annotate sort_name."""
         order_groups = ()
         if parent_group != COMIC_COLLECTION:
-            for index, nav_group in enumerate(_SHOW_COLLECTIONS):
+            for index, nav_collection in enumerate(_SHOW_COLLECTIONS):
                 order_groups, do_break = cls._get_order_group(
-                    nav_group, show, parent_group, index, pks, order_groups
+                    nav_collection, show, parent_group, index, pks, order_groups
                 )
                 if do_break:
                     break

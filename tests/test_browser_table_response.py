@@ -477,7 +477,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         ``"bookmark_updated_at"`` path that resolved against Comic
         directly, but that's not a Comic field — it's the per-user
         filtered ``Max(bookmark__updated_at)`` aggregate the order
-        path already builds. ``compute_group_intersections`` therefore
+        path already builds. ``compute_collection_intersections`` therefore
         crashed with ``FieldError`` the moment a group view was
         rendered in table mode with the "Last Read" column visible
         and a different order key (the default). The fix drops the
@@ -673,7 +673,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         """
         Regression: the per-page scalar / cumulative aggregates issue one query.
 
-        ``compute_group_intersections`` previously emitted one query
+        ``compute_collection_intersections`` previously emitted one query
         per visible scalar column (year, country, language, tagger,
         page_count, size, …). On a wide table the round-trip count
         scaled with the column set. The batched helper combines all
@@ -698,7 +698,7 @@ class BrowserTablePageResponseTestCase(TestCase):
         with CaptureQueriesContext(connection) as ctx:
             response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        # ``compute_group_intersections``-attributable queries have a
+        # ``compute_collection_intersections``-attributable queries have a
         # signature stable across schema additions: a SELECT against
         # ``codex_comic`` that GROUPs by the parent FK column. M2M
         # intersections look similar but JOIN through a

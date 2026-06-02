@@ -91,7 +91,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             f"{group}:{pks}:{page}:{params_hash}"
         )
 
-    def get_group_mtime(self, model, group=None, pks=None, *, page_mtime=False):
+    def get_collection_mtime(self, model, group=None, pks=None, *, page_mtime=False):
         """
         Get a filtered mtime for browser pages and mtime checker.
 
@@ -106,7 +106,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             cached = self._get_cached_page_mtime(cache_key)
             if cached is not _PAGE_MTIME_CACHE_MISS:
                 return cached
-        mtime = self._query_group_mtime(model, group, pks, page_mtime=page_mtime)
+        mtime = self._query_collection_mtime(model, group, pks, page_mtime=page_mtime)
         if cache_key:
             self._store_page_mtime(cache_key, mtime)
         return mtime
@@ -125,7 +125,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
         stored = _PAGE_MTIME_NONE_SENTINEL if mtime is None else mtime
         _django_cache.set(cache_key, stored, _PAGE_MTIME_TTL_SECONDS)
 
-    def _query_group_mtime(self, model, group, pks, *, page_mtime: bool):
+    def _query_collection_mtime(self, model, group, pks, *, page_mtime: bool):
         """Run the filtered Max aggregate; None on a (logged) query error."""
         qs = self.get_filtered_queryset(
             model,

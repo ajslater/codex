@@ -36,7 +36,7 @@ class BrowserValidateView(SearchFilterView):
         self._model_collection: str = ""
         self._model: type[BrowserCollectionModel] | None = None
         self._rel_prefix: str | None = None
-        self._valid_nav_groups: tuple[str, ...] | None = None
+        self._valid_nav_collections: tuple[str, ...] | None = None
 
     @property
     def model_collection(self) -> str:
@@ -81,7 +81,7 @@ class BrowserValidateView(SearchFilterView):
         detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
-    def _get_valid_browse_top_groups(self) -> list:
+    def _get_valid_browse_top_collections(self) -> list:
         """
         Get valid top groups for the current settings.
 
@@ -91,29 +91,29 @@ class BrowserValidateView(SearchFilterView):
         # Issues is always a valid top group; appended after the
         # show-driven groups so the existing ordering is preserved.
         return [
-            *(nav_group for nav_group, allowed in show.items() if allowed),
+            *(nav_collection for nav_collection, allowed in show.items() if allowed),
             COMIC_COLLECTION,
         ]
 
-    def _validate_top_group(self, valid_top_groups) -> None:
-        nav_group = self.kwargs.get("collection")
+    def _validate_top_group(self, valid_top_collections) -> None:
+        nav_collection = self.kwargs.get("collection")
         top_collection = self.params.get("top_collection")
-        if top_collection not in valid_top_groups:
-            reason = f"top_collection {top_collection} not in valid nav groups {valid_top_groups}, changed to "
-            if nav_group in valid_top_groups:
-                valid_top_group = nav_group
+        if top_collection not in valid_top_collections:
+            reason = f"top_collection {top_collection} not in valid nav groups {valid_top_collections}, changed to "
+            if nav_collection in valid_top_collections:
+                valid_top_group = nav_collection
                 reason += "nav group: "
             else:
-                valid_top_group = valid_top_groups[0]
+                valid_top_group = valid_top_collections[0]
                 reason += "first valid top group "
             reason += valid_top_group
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
-            route = {"collection": nav_group, "pks": pks, "page": page}
+            route = {"collection": nav_collection, "pks": pks, "page": page}
             settings_mask = {"top_collection": valid_top_group}
             self.raise_redirect(reason, route, settings_mask)
 
-    def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
+    def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
         """
         Get valid nav groups for the current settings.
 
@@ -123,64 +123,66 @@ class BrowserValidateView(SearchFilterView):
         May always navigate to root 'r' nav group.
         """
         top_collection = self.params["top_collection"]
-        nav_group = self.kwargs["collection"]
-        valid_nav_groups = [ROOT_COLLECTION]
+        nav_collection = self.kwargs["collection"]
+        valid_nav_collections = [ROOT_COLLECTION]
 
-        for possible_index, possible_nav_group in enumerate(valid_top_groups):
-            if top_collection == possible_nav_group:
+        for possible_index, possible_nav_collection in enumerate(valid_top_collections):
+            if top_collection == possible_nav_collection:
                 # all the nav groups past this point,
                 # 'c' is obscured by the web reader url, but valid for opds
-                tail_top_groups = valid_top_groups[possible_index:]
-                valid_nav_groups += tail_top_groups
+                tail_top_collections = valid_top_collections[possible_index:]
+                valid_nav_collections += tail_top_collections
                 break
-        if nav_group not in valid_nav_groups:
-            reason = f"Nav group {nav_group} unavailable, redirect to {ROOT_COLLECTION}"
+        if nav_collection not in valid_nav_collections:
+            reason = (
+                f"Nav group {nav_collection} unavailable, redirect to {ROOT_COLLECTION}"
+            )
             self.raise_redirect(reason)
 
-        return tuple(valid_nav_groups)
+        return tuple(valid_nav_collections)
 
     def _validate_folder_settings(self) -> tuple:
         """Check that all the view variables for folder mode are set right."""
         # Check folder view admin flag
         if not self.admin_flags["folder_view"]:
             reason = "folder view disabled"
-            valid_top_groups = self._get_valid_browse_top_groups()
-            settings_mask = {"top_collection": valid_top_groups[0]}
+            valid_top_collections = self._get_valid_browse_top_collections()
+            settings_mask = {"top_collection": valid_top_collections[0]}
             self.raise_redirect(reason, settings_mask=settings_mask)
 
-        valid_top_groups = (FOLDER_COLLECTION,)
-        self._validate_top_group(valid_top_groups)
-        return valid_top_groups
+        valid_top_collections = (FOLDER_COLLECTION,)
+        self._validate_top_group(valid_top_collections)
+        return valid_top_collections
 
-    def _validate_browser_group_settings(self) -> tuple:
+    def _validate_browser_collection_settings(self) -> tuple:
         """Check that all the view variables for browser mode are set right."""
         # Validate Browser top_collection
         # Change top_collection if its not in the valid top groups
-        valid_top_groups = self._get_valid_browse_top_groups()
-        self._validate_top_group(valid_top_groups)
+        valid_top_collections = self._get_valid_browse_top_collections()
+        self._validate_top_group(valid_top_collections)
 
         # Validate pks
-        nav_group = self.kwargs["collection"]
+        nav_collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if nav_group == ROOT_COLLECTION and (pks and 0 not in pks):
+        if nav_collection == ROOT_COLLECTION and (pks and 0 not in pks):
             # r never has pks
             reason = f"Redirect r with {pks=} to pks 0"
             self.raise_redirect(reason)
 
-        # Validate Browser nav_group
+        # Validate Browser nav_collection
         # Redirect if nav group is wrong
-        return self._get_valid_browse_nav_groups(valid_top_groups)
+        return self._get_valid_browse_nav_collections(valid_top_collections)
 
     def _validate_story_arc_settings(self) -> tuple[str, ...]:
         """Validate story arc settings."""
-        valid_top_groups = (STORY_ARC_COLLECTION,)
-        self._validate_top_group(valid_top_groups)
-        return valid_top_groups
+        valid_top_collections = (STORY_ARC_COLLECTION,)
+        self._validate_top_group(valid_top_collections)
+        return valid_top_collections
 
     @property
-    def valid_nav_groups(self) -> tuple[str, ...]:
+    def valid_nav_collections(self) -> tuple[str, ...]:
         """Memoize valid nav groups."""
-        if self._valid_nav_groups is None:
+        if self._valid_nav_collections is None:
             group = self.kwargs["collection"]
             validate_group = (
                 self.params["top_collection"] if group == COMIC_COLLECTION else group
@@ -191,6 +193,6 @@ class BrowserValidateView(SearchFilterView):
             elif validate_group == STORY_ARC_COLLECTION:
                 vng = self._validate_story_arc_settings()
             else:
-                vng = self._validate_browser_group_settings()
-            self._valid_nav_groups = vng
-        return self._valid_nav_groups
+                vng = self._validate_browser_collection_settings()
+            self._valid_nav_collections = vng
+        return self._valid_nav_collections

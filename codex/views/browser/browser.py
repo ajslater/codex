@@ -28,7 +28,7 @@ from codex.views.browser.columns import (
     fk_name_annotations_for,
     m2m_annotations_for,
 )
-from codex.views.browser.intersections import compute_group_intersections
+from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COMIC_COLLECTION,
@@ -97,12 +97,12 @@ class BrowserView(BrowserTitleView):
             elif group == STORY_ARC_COLLECTION:
                 pks = self.kwargs.get("pks")
                 self._model_collection = COMIC_COLLECTION if pks else group
-            elif group == self.valid_nav_groups[-1] or group == COMIC_COLLECTION:
+            elif group == self.valid_nav_collections[-1] or group == COMIC_COLLECTION:
                 # special case for lowest valid group
                 self._model_collection = COMIC_COLLECTION
             else:
-                self._model_collection = self.valid_nav_groups[
-                    self.valid_nav_groups.index(group) + 1
+                self._model_collection = self.valid_nav_collections[
+                    self.valid_nav_collections.index(group) + 1
                 ]
         return self._model_collection
 
@@ -271,7 +271,7 @@ class BrowserView(BrowserTitleView):
         return zero_pad
 
     def _get_page_mtime(self):
-        return self.get_group_mtime(self.model, page_mtime=True)
+        return self.get_collection_mtime(self.model, page_mtime=True)
 
     def _debug_queries(self, group_count, book_count, group_qs, book_qs) -> None:
         """Log query details."""
@@ -405,7 +405,7 @@ class BrowserView(BrowserTitleView):
             # is bounded to the visible page.
             group_qs = data.get("groups")
             if group_qs is not None:
-                data["group_intersections"] = compute_group_intersections(
+                data["group_intersections"] = compute_collection_intersections(
                     group_qs, columns
                 )
         serializer = self.get_serializer(data)

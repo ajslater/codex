@@ -7,7 +7,7 @@ from codex.serializers.fields import TimestampField
 from codex.serializers.route import SimpleRouteSerializer
 
 
-class GroupsMtimeSerializer(BrowserFilterChoicesInputSerializer):
+class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
     """Groups Mtimes."""
 
     JSON_FIELDS = frozenset(

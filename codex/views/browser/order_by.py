@@ -5,8 +5,8 @@ from types import MappingProxyType
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.groups import Volume
+from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
-from codex.views.browser.group_mtime import BrowserCollectionMtimeView
 
 # Order keys that don't map directly to a Comic field name need an
 # explicit ORM path. The map is consumed both by ``_add_comic_order_by``

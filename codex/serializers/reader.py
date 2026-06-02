@@ -17,7 +17,7 @@ from codex.serializers.fields import (
     ReadingDirectionField,
     TimestampField,
 )
-from codex.serializers.fields.reader import ArcGroupField
+from codex.serializers.fields.reader import ArcCollectionField
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import RouteSerializer
 
@@ -73,7 +73,7 @@ class ReaderArcInfoSerializer(Serializer):
 class ReaderSelectedArcSerializer(Serializer):
     """And arc key serializer."""
 
-    collection = ArcGroupField(required=False)
+    collection = ArcCollectionField(required=False)
     ids = ListField(child=IntegerField(), required=False)
     index = IntegerField(read_only=True, required=False)
     count = IntegerField(read_only=True, required=False)

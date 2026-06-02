@@ -148,7 +148,7 @@ def default_columns_filtered(
     Return ``default_columns_for(top_collection)`` minus show-gated columns.
 
     ``show`` is the per-user group-flag dict from
-    ``BrowserSettingsShowGroupFlagsSerializer`` (collection keys
+    ``BrowserSettingsShowCollectionFlagsSerializer`` (collection keys
     ``publishers``, ``imprints``, ``series``, ``volumes``). When a flag
     is False or missing, the matching
     column is dropped from the defaults — a user who hides imprints

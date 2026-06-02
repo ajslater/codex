@@ -27,7 +27,7 @@ class ReadingDirectionField(CodexChoiceField):
     class_choices = ReadingDirectionChoices.values
 
 
-class ArcGroupField(CodexChoiceField):
+class ArcCollectionField(CodexChoiceField):
     """Arc Collection Field."""
 
     class_choices = VALID_ARC_COLLECTIONS
