@@ -45,7 +45,7 @@ import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
-import { VPullToRefresh } from "vuetify/labs/VPullToRefresh";
+import { VPullToRefresh } from "vuetify/components/VPullToRefresh";
 
 const CANCEL_TIMEOUT = 5_000;
 
