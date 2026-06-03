@@ -55,7 +55,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         """Get the browser page and serialize it for this subclass."""
         if self._obj is None:
             group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-                self._get_group_and_books()
+                self._get_collection_and_books()
             )
             book_qs = book_qs.select_related("series", "volume", "language")
 

@@ -23,6 +23,6 @@ class DeletedImporter(DeletedFoldersImporter):
         timestamp_updater = TimestampUpdater(
             self.log, self.librarian_queue, self.db_write_lock
         )
-        timestamp_updater.update_library_groups(
+        timestamp_updater.update_library_collections(
             self.library, self.start_time, deleted_comic_groups
         )

@@ -101,7 +101,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
     # ── Validation ──────────────────────────────────────────────────
 
     @staticmethod
-    def _validate_browse_top_group(
+    def _validate_browse_top_collection(
         params, collection: str, top_collection: str
     ) -> None:
         """Validate top collection for browse collections (collection vocabulary)."""
@@ -122,7 +122,9 @@ class BrowserSettingsView(BrowserSettingsBaseView):
             params["top_collection"] = Collection.COMIC
 
     @classmethod
-    def _validate_top_group(cls, params, collection: str, top_collection: str) -> None:
+    def _validate_top_collection(
+        cls, params, collection: str, top_collection: str
+    ) -> None:
         """Validate top collection."""
         if collection == top_collection:
             return
@@ -130,7 +132,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
         if collection in _OWN_ROUTE_COLLECTIONS:
             params["top_collection"] = collection
         else:
-            cls._validate_browse_top_group(params, collection, top_collection)
+            cls._validate_browse_top_collection(params, collection, top_collection)
 
     def _validate_settings_get(self, validated_data, params: dict) -> dict:
         """Validate and fix settings on GET."""
@@ -142,7 +144,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
             if validated_data
             else Collection.ROOT
         )
-        self._validate_top_group(params, collection, top_collection)
+        self._validate_top_collection(params, collection, top_collection)
         self.set_order_by_default(params)
         return params
 

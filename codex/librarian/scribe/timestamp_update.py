@@ -28,7 +28,7 @@ class TimestampUpdater(WorkerStatusBase):
     def _get_update_filter(
         model: type[BrowserCollectionModel],
         start_time: datetime,
-        force_update_group_map: Mapping,
+        force_update_collection_map: Mapping,
         library: Library,
     ) -> Q:
         # Get groups with comics updated during this import
@@ -43,7 +43,7 @@ class TimestampUpdater(WorkerStatusBase):
             update_filter |= Q(custom_cover__updated_at__gt=start_time)
 
         # Get groups to be force updated (usually those with deleted children)
-        if pks := force_update_group_map.get(model):
+        if pks := force_update_collection_map.get(model):
             update_filter |= Q(pk__in=pks)
 
         return update_filter
@@ -57,9 +57,9 @@ class TimestampUpdater(WorkerStatusBase):
         return qs.filter(child_count__gt=0)
 
     @classmethod
-    def _update_group_model(
+    def _update_collection_model(
         cls,
-        force_update_group_map: Mapping,
+        force_update_collection_map: Mapping,
         model: type[BrowserCollectionModel],
         start_time: datetime,
         library: Library,
@@ -67,7 +67,7 @@ class TimestampUpdater(WorkerStatusBase):
     ) -> int:
         """Update a single collection model."""
         update_filter = cls._get_update_filter(
-            model, start_time, force_update_group_map, library
+            model, start_time, force_update_collection_map, library
         )
         qs = model.objects.filter(update_filter)
         qs = cls._add_child_count_filter(qs, model)
@@ -86,11 +86,11 @@ class TimestampUpdater(WorkerStatusBase):
             log_list.append(f"{count} {model.__name__}s")
         return count
 
-    def update_library_groups(
+    def update_library_collections(
         self,
         library: Library,
         start_time: datetime,
-        force_update_group_map: Mapping,
+        force_update_collection_map: Mapping,
         *,
         mark_library_in_progress=False,
     ) -> int:
@@ -103,8 +103,8 @@ class TimestampUpdater(WorkerStatusBase):
         try:
             log_list = []
             for model in COLLECTION_MODELS:
-                count = self._update_group_model(
-                    force_update_group_map, model, start_time, library, log_list
+                count = self._update_collection_model(
+                    force_update_collection_map, model, start_time, library, log_list
                 )
                 if not count:
                     continue
@@ -118,13 +118,13 @@ class TimestampUpdater(WorkerStatusBase):
             self.status_controller.finish(status)
         return total_count
 
-    def update_groups(self, task) -> None:
-        """Update groups in all libraries."""
+    def update_collections(self, task) -> None:
+        """Update collections in all libraries."""
         count = 0
         start_time = task.start_time or timezone.now()
         libraries = Library.objects.only("pk")
         for library in libraries:
-            count += self.update_library_groups(
+            count += self.update_library_collections(
                 library, start_time, {}, mark_library_in_progress=True
             )
         level = "INFO" if count else "DEBUG"

@@ -46,7 +46,7 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
     #
     # ``age_rating`` is not listed here because it needs dual aggregation
-    # — see ``_group_age_rating_annotations`` for the display + sort split.
+    # — see ``_collection_age_rating_annotations`` for the display + sort split.
     {
         "child_count": Min,
         "country": Min,
@@ -319,7 +319,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return F("age_rating__metron__name")
         return F(comic_order_path(order_key))
 
-    def _group_age_rating_annotations(self):
+    def _collection_age_rating_annotations(self):
         """
         Annotate display name + severity-sort index for age_rating collection row.
 
@@ -338,8 +338,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             "_age_rating_sort_value": agg_func(rel + "age_rating_metron_index"),
         }
 
-    def _group_m2m_order_value(self, qs):
-        """Group-row M2M order_value, falling back to ``sort_name``."""
+    def _collection_m2m_order_value(self, qs):
+        """Collection-row M2M order_value, falling back to ``sort_name``."""
         # Intersection sort matches the table-view cell display. Cover
         # view's caption can't render M2M intersection and the rule
         # would leave most cards with a NULL sort key, so card mode
@@ -352,8 +352,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(sort_name=F("name"))
         return qs, F("sort_name")
 
-    def _group_scalar_order_value(self, qs):
-        """Group-row scalar / FK-name order_value."""
+    def _collection_scalar_order_value(self, qs):
+        """Collection-row scalar / FK-name order_value."""
         # Table view uses intersection so the sort key matches the
         # displayed cell (blank when children disagree). Cover view's
         # card caption shows order_value directly — intersection there
@@ -380,14 +380,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         elif qs.model is Comic:
             order_value = self._comic_order_value()
         elif self.order_key == "age_rating":
-            anns = self._group_age_rating_annotations()
+            anns = self._collection_age_rating_annotations()
             return qs.annotate(**anns) if self.TARGET == "browser" else qs.alias(**anns)
         elif self.order_key in m2m_columns():
-            qs, order_value = self._group_m2m_order_value(qs)
+            qs, order_value = self._collection_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             order_value = F(self.order_key)
         else:
-            order_value = self._group_scalar_order_value(qs)
+            order_value = self._collection_scalar_order_value(qs)
 
         if self.TARGET == "browser":
             qs = qs.annotate(order_value=order_value)
@@ -433,8 +433,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     # ``_add_table_view_favorite_annotation``.
     _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "favorite"})
 
-    def _extra_group_special(self, qs, key: str, *, reverse: bool):
-        """Group-row extra: hand-rolled cases (returns None when not special)."""
+    def _extra_collection_special(self, qs, key: str, *, reverse: bool):
+        """Collection-row extra: hand-rolled cases (returns None when not special)."""
         if key in self._EXTRA_COLLECTION_F_KEYS:
             return F(key)
         if key == "child_count":
@@ -455,13 +455,13 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return agg(self.rel_prefix + "age_rating_metron_index")
         return None
 
-    def _extra_group_expr(self, qs, key: str, *, reverse: bool):
-        """Group-row extra: aggregate, intersection, or direct field."""
+    def _extra_collection_expr(self, qs, key: str, *, reverse: bool):
+        """Collection-row extra: aggregate, intersection, or direct field."""
         if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS:
             return None
         if key in m2m_columns():
             return m2m_intersection_sort_expr(qs.model, key)
-        special = self._extra_group_special(qs, key, reverse=reverse)
+        special = self._extra_collection_special(qs, key, reverse=reverse)
         if special is not None:
             return special
         # Match the primary's intersection-aware sort for scalars /
@@ -496,7 +496,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             key = entry.get("key")
             if not key:
                 continue
-            expr = self._extra_group_expr(qs, key, reverse=bool(entry.get("reverse")))
+            expr = self._extra_collection_expr(
+                qs, key, reverse=bool(entry.get("reverse"))
+            )
             if expr is None:
                 # Unsupported (e.g. M2M without an intersection
                 # expression for this collection model, or an

@@ -97,7 +97,7 @@ class ScribeThread(QueuedThread):
                 worker = TimestampUpdater(
                     self.log, self.librarian_queue, self.db_write_lock
                 )
-                worker.update_groups(task)
+                worker.update_collections(task)
             case JanitorAdoptOrphanFoldersTask():
                 worker = OrphanFolderAdopter(
                     self.log,

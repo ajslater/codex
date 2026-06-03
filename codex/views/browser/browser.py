@@ -244,7 +244,7 @@ class BrowserView(BrowserTitleView):
 
         return qs, count
 
-    def _get_group_queryset(self) -> tuple:
+    def _get_collection_queryset(self) -> tuple:
         """Create collection queryset."""
         if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
@@ -300,9 +300,9 @@ class BrowserView(BrowserTitleView):
             zero_pad = 0
         return book_qs, book_count, zero_pad
 
-    def _get_group_and_books(self) -> tuple:
+    def _get_collection_and_books(self) -> tuple:
         """Create the main queries with filters, annotation and pagination."""
-        collection_qs, collection_count = self._get_group_queryset()
+        collection_qs, collection_count = self._get_collection_queryset()
         book_qs, book_count = self._get_book_queryset()
 
         # Paginate
@@ -341,7 +341,7 @@ class BrowserView(BrowserTitleView):
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
         collection_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-            self._get_group_and_books()
+            self._get_collection_and_books()
         )
 
         # get additional context

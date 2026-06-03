@@ -38,7 +38,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         """Memoize Group And Books for num_pages."""
         # group_qs, book_qs, num_pages, total_count, zero_pad, mtime
         if self._group_and_books is None:
-            self._group_and_books = self._get_group_and_books()
+            self._group_and_books = self._get_collection_and_books()
         return self._group_and_books
 
     @property

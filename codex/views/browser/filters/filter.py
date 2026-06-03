@@ -43,7 +43,7 @@ _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
 # Comic (``folders`` and ``story_arc_numbers__story_arc``). When neither
 # code has any favorites the filter Q has no m2m clauses and Comic
 # queries don't need ``.distinct()``.
-_FAVORITE_M2M_GROUP_CODES: Final[frozenset[str]] = frozenset(
+_FAVORITE_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
     {Collection.FOLDER, Collection.ARC}
 )
 
@@ -76,7 +76,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         return qs.demote_joins(demote_tables)
 
     @cached_property
-    def _active_favorite_group_codes(self) -> frozenset[str]:
+    def _active_favorite_collection_codes(self) -> frozenset[str]:
         """
         Return the collections this user has at least one favorite under.
 
@@ -122,7 +122,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         filters = self.params.get("filters") or {}
         if (
             filters.get("favorite")
-            and self._active_favorite_group_codes & _FAVORITE_M2M_GROUP_CODES
+            and self._active_favorite_collection_codes & _FAVORITE_M2M_COLLECTION_CODES
         ):
             # The transitive favorites Q only introduces m2m clauses
             # for collections the user has actually favorited under. With
@@ -139,7 +139,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             code: Favorite.objects.filter(user=user, collection=code).values(
                 "target_id"
             )
-            for code in self._active_favorite_group_codes
+            for code in self._active_favorite_collection_codes
         }
 
     def get_favorite_filter(self, model) -> Q:
@@ -156,7 +156,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         Each OR clause traces ``rel_prefix + comic_field`` to a
         per-collection favorited-id subquery, but only for collections the user
         has actually favorited under (see
-        :attr:`_active_favorite_group_codes`). That keeps the m2m
+        :attr:`_active_favorite_collection_codes`). That keeps the m2m
         ``folders`` / ``story_arc_numbers__story_arc`` JOINs out of
         the SQL when no folder / arc favorites exist — typically the
         common case. ``folders`` is the m2m of every ancestor folder
@@ -173,7 +173,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             return Q()
         if FAVORITE_MODEL_COLLECTIONS.get(model) is None:
             return Q()
-        active = self._active_favorite_group_codes
+        active = self._active_favorite_collection_codes
         if not active:
             # User has the filter on but zero favorites — nothing matches.
             return Q(pk__in=())

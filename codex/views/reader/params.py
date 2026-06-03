@@ -24,10 +24,10 @@ class ReaderParamsView(ReaderSettingsBaseView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
-        self._group_pks: dict[str, tuple[int, ...]] = {}
+        self._collection_pks: dict[str, tuple[int, ...]] = {}
         self._params: MappingProxyType[str, Any] | None = None
 
-    def _ensure_arc_group(self, params: dict[str, Any]) -> None:
+    def _ensure_arc_collection(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
         collection = arc.get("collection", "")
         if not collection:
@@ -57,7 +57,7 @@ class ReaderParamsView(ReaderSettingsBaseView):
         if "arc" not in params:
             params["arc"] = {}
 
-        self._ensure_arc_group(params)
+        self._ensure_arc_collection(params)
         self._ensure_arc_ids(params)
 
     @property

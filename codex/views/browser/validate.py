@@ -95,7 +95,7 @@ class BrowserValidateView(SearchFilterView):
             COMIC_COLLECTION,
         ]
 
-    def _validate_top_group(self, valid_top_collections) -> None:
+    def _validate_top_collection(self, valid_top_collections) -> None:
         nav_collection = self.kwargs.get("collection")
         top_collection = self.params.get("top_collection")
         if top_collection not in valid_top_collections:
@@ -149,7 +149,7 @@ class BrowserValidateView(SearchFilterView):
             self.raise_redirect(reason, settings_mask=settings_mask)
 
         valid_top_collections = (FOLDER_COLLECTION,)
-        self._validate_top_group(valid_top_collections)
+        self._validate_top_collection(valid_top_collections)
         return valid_top_collections
 
     def _validate_browser_collection_settings(self) -> tuple:
@@ -157,7 +157,7 @@ class BrowserValidateView(SearchFilterView):
         # Validate Browser top_collection
         # Change top_collection if its not in the valid top collections
         valid_top_collections = self._get_valid_browse_top_collections()
-        self._validate_top_group(valid_top_collections)
+        self._validate_top_collection(valid_top_collections)
 
         # Validate pks
         nav_collection = self.kwargs["collection"]
@@ -174,7 +174,7 @@ class BrowserValidateView(SearchFilterView):
     def _validate_story_arc_settings(self) -> tuple[str, ...]:
         """Validate story arc settings."""
         valid_top_collections = (STORY_ARC_COLLECTION,)
-        self._validate_top_group(valid_top_collections)
+        self._validate_top_collection(valid_top_collections)
         return valid_top_collections
 
     @property
