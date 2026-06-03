@@ -32,14 +32,14 @@ class MetadataView(MetadataCopyIntersectionsView):
     def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
         """Limited allowed nav collections for metadata."""
         # Overrides method in browser.validate
-        group = self.kwargs["collection"]
-        return (group,)
+        collection = self.kwargs["collection"]
+        return (collection,)
 
     def _raise_not_found(self, exc=None) -> None:
         """Raise an exception if the object is not found."""
         pks = self.kwargs["pks"]
-        group = self.kwargs["collection"]
-        detail = f"Filtered metadata for {group}/{pks} not found"
+        collection = self.kwargs["collection"]
+        detail = f"Filtered metadata for {collection}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
     def _get_first_object(self, qs: QuerySet):
@@ -98,11 +98,11 @@ class MetadataView(MetadataCopyIntersectionsView):
             obj = self._aggregate_multi_pk_sums(filtered_qs, obj)
 
         # Hacks to add to object after query
-        groups, fk_intersections, m2m_intersections = self.query_intersections(
-            filtered_qs
+        collection_lists, fk_intersections, m2m_intersections = (
+            self.query_intersections(filtered_qs)
         )
         return self.copy_intersections_into_comic_fields(
-            obj, groups, fk_intersections, m2m_intersections
+            obj, collection_lists, fk_intersections, m2m_intersections
         )
 
     @extend_schema(parameters=[input_serializer_class])

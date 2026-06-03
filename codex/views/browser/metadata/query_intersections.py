@@ -19,24 +19,24 @@ from codex.views.const import METADATA_COLLECTION_RELATION, MODEL_REL_MAP
 class MetadataQueryIntersectionsView(MetadataAnnotateView):
     """Metadata query fk & m2m intersections."""
 
-    def _query_groups(self) -> dict:
-        """Query the through models to show group lists."""
-        groups = {}
+    def _query_collection_lists(self) -> dict:
+        """Query the through models to show collection lists."""
+        collection_lists = {}
         if not self.model:
-            return groups
-        group = self.kwargs["collection"]
-        rel = METADATA_COLLECTION_RELATION.get(group)
+            return collection_lists
+        collection = self.kwargs["collection"]
+        rel = METADATA_COLLECTION_RELATION.get(collection)
         if not rel:
-            return groups
+            return collection_lists
         rel = rel + "__in"
         pks = self.kwargs["pks"]
-        group_filter = {rel: pks}
+        collection_filter = {rel: pks}
 
-        for model in COLLECTION_MODELS.get(group, ()):
+        for model in COLLECTION_MODELS.get(collection, ()):
             field_name = MODEL_REL_MAP[model]
-            qs = model.objects.filter(**group_filter)
-            groups[field_name] = annotate_collection_list(qs)
-        return groups
+            qs = model.objects.filter(**collection_filter)
+            collection_lists[field_name] = annotate_collection_list(qs)
+        return collection_lists
 
     def _get_comic_pks(self, filtered_qs: QuerySet) -> frozenset[int]:
         pk_field = self.rel_prefix + "pk"
@@ -145,8 +145,8 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
 
     def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict]:
         """Query complex intersections."""
-        groups = self._query_groups()
+        collection_lists = self._query_collection_lists()
         comic_pks = self._get_comic_pks(filtered_qs)
         fk_intersections = self._query_fk_intersections(comic_pks)
         m2m_intersections = self._query_m2m_intersections(comic_pks)
-        return groups, fk_intersections, m2m_intersections
+        return collection_lists, fk_intersections, m2m_intersections

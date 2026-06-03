@@ -23,9 +23,9 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
 
     def _path_security(self, obj) -> None:
         """Secure filesystem information for acl situation."""
-        group = self.kwargs["collection"]
-        is_path_group = group in PATH_COLLECTIONS
-        if is_path_group:
+        collection = self.kwargs["collection"]
+        is_path_collection = collection in PATH_COLLECTIONS
+        if is_path_collection:
             if self.is_admin:
                 return
             if self.admin_flags["folder_view"]:
@@ -33,8 +33,8 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         else:
             obj.path = ""
 
-    def _highlight_current_group(self, obj) -> None:
-        """Values for highlighting the current group."""
+    def _highlight_current_collection(self, obj) -> None:
+        """Values for highlighting the current collection."""
         if self.model and self.model is not Comic:
             field = collection_list_field_name(self.model)
             qs = self.model.objects.filter(pk__in=obj.ids)
@@ -58,9 +58,9 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
                 setattr(obj, serializer_key, qs)
 
     @staticmethod
-    def _copy_groups(obj, groups) -> None:
-        for field, group_qs in groups.items():
-            setattr(obj, field + "_list", group_qs)
+    def _copy_collection_lists(obj, collection_lists) -> None:
+        for field, collection_qs in collection_lists.items():
+            setattr(obj, field + "_list", collection_qs)
 
     @staticmethod
     def _copy_fks(obj, fks) -> None:
@@ -76,12 +76,12 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
             setattr(obj, field, val)
 
     def copy_intersections_into_comic_fields(
-        self, obj, groups, fk_intersections, m2m_intersections
+        self, obj, collection_lists, fk_intersections, m2m_intersections
     ):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
         self._path_security(obj)
-        self._highlight_current_group(obj)
-        self._copy_groups(obj, groups)
+        self._highlight_current_collection(obj)
+        self._copy_collection_lists(obj, collection_lists)
         self._copy_fks(obj, fk_intersections)
         self._copy_m2m_intersections(obj, m2m_intersections)
         if self.model is not Comic:
