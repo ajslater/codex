@@ -69,7 +69,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_upload_happy_path(self, mock_queue) -> None:
-        """A valid PNG creates the row, writes to uploads/, links the group."""
+        """A valid PNG creates the row, writes to uploads/, links the collection."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
@@ -84,9 +84,9 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert cover.collection == "publishers"
         assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
-        # Naming convention: ``{group}-{pk}-{slug}.{ext}``. Sortable by
-        # group on disk and trivially scannable for a given linked
-        # group; slug uses the linked row's sort_name.
+        # Naming convention: ``{collection}-{pk}-{slug}.{ext}``. Sortable by
+        # collection on disk and trivially scannable for a given linked
+        # collection; slug uses the linked row's sort_name.
         filename = Path(cover.path).name
         assert filename.startswith(f"publishers-{pk}-")
         assert filename.endswith(".png")
@@ -141,7 +141,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         )
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"collection": "publishers", "pks": str(self.publisher.pk), "image": bogus},
+            data={
+                "collection": "publishers",
+                "pks": str(self.publisher.pk),
+                "image": bogus,
+            },
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
@@ -150,7 +154,11 @@ class AdminCustomCoverUploadTestCase(TestCase):
         """``collection=series`` with a Publisher pk fails fast with 400."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"collection": "series", "pks": str(self.publisher.pk), "image": _upload()},
+            data={
+                "collection": "series",
+                "pks": str(self.publisher.pk),
+                "image": _upload(),
+            },
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
@@ -168,7 +176,9 @@ class AdminCustomCoverUploadTestCase(TestCase):
         pk = _v4(response)["customCoverPk"]
         response = self.client.post(
             "/api/v4/admin/custom-covers/bulk-delete",
-            data=json.dumps({"collection": "publishers", "pks": str(self.publisher.pk)}),
+            data=json.dumps(
+                {"collection": "publishers", "pks": str(self.publisher.pk)}
+            ),
             content_type="application/json",
         )
         assert response.status_code == HTTPStatus.NO_CONTENT
@@ -194,7 +204,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_list_endpoint_returns_linked_group(self, mock_queue) -> None:  # noqa: ARG002
-        """``GET /admin/custom-covers`` includes the linked group name."""
+        """``GET /admin/custom-covers`` includes the linked collection name."""
         upload_response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
@@ -217,7 +227,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_replace_displaces_prior_cover(self, mock_queue) -> None:  # noqa: ARG002
-        """A second upload to the same group purges the previous CustomCover."""
+        """A second upload to the same collection purges the previous CustomCover."""
         first = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
@@ -273,7 +283,11 @@ class CustomCoverVolumeSupportTestCase(TestCase):
         """Upload with ``collection=volumes`` binds the Volume's ``custom_cover_id``."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"collection": "volumes", "pks": str(self.volume.pk), "image": _upload()},
+            data={
+                "collection": "volumes",
+                "pks": str(self.volume.pk),
+                "image": _upload(),
+            },
         )
         assert response.status_code == HTTPStatus.CREATED
         self.volume.refresh_from_db()

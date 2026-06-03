@@ -20,13 +20,13 @@ from codex.views.browser.filters.filter import BrowserFilterView
 
 class FilteredComicPksView(BrowserFilterView):
     """
-    Resolve a browse group + pks to the *filtered* comic pks.
+    Resolve a browse collection + pks to the *filtered* comic pks.
 
     Admin tag-write / online-tag select comics exactly like the browser:
-    a group plus the user's active filters (file_type, read/unread, ACL,
+    a collection plus the user's active filters (file_type, read/unread, ACL,
     favorite, search). Resolving through ``get_filtered_queryset`` keeps
     writes confined to the comics the user actually selected — never the
-    unfiltered remainder of the group. Mirrors
+    unfiltered remainder of the collection. Mirrors
     :class:`~codex.views.browser.force_update.ForceUpdateView`.
     """
 
@@ -92,7 +92,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
 
     def post(self, request):
-        """Return conversion stats for the given group+pks."""
+        """Return conversion stats for the given collection+pks."""
         serializer = TagWriteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

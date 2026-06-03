@@ -66,7 +66,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     """Browser Filters."""
 
     def force_inner_joins(self, qs):
-        """Force INNER JOINS to filter empty groups."""
+        """Force INNER JOINS to filter empty collections."""
         demote_tables = {"codex_library"}
         if qs.model is not Comic:
             demote_tables.add("codex_comic")
@@ -78,10 +78,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     @cached_property
     def _active_favorite_group_codes(self) -> frozenset[str]:
         """
-        Return the groups this user has at least one favorite under.
+        Return the collections this user has at least one favorite under.
 
         One ``DISTINCT`` query per request, cached. Used by
-        ``get_favorite_filter`` to skip OR clauses for empty groups
+        ``get_favorite_filter`` to skip OR clauses for empty collections
         (which would otherwise force m2m JOINs through ``folders`` and
         ``story_arc_numbers`` on every favorite-filtered request) and
         by ``comic_filter_uses_m2m`` to gate ``.distinct()``.
@@ -125,7 +125,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             and self._active_favorite_group_codes & _FAVORITE_M2M_GROUP_CODES
         ):
             # The transitive favorites Q only introduces m2m clauses
-            # for groups the user has actually favorited under. With
+            # for collections the user has actually favorited under. With
             # zero folder / arc favorites the Q stays on direct fields
             # and Comic queries don't need ``.distinct()``.
             return True
@@ -133,7 +133,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     @cached_property
     def _favorite_subqueries(self):
-        """Per-group favorited-id subqueries, materialized once per request."""
+        """Per-collection favorited-id subqueries, materialized once per request."""
         user = self.request.user
         return {
             code: Favorite.objects.filter(user=user, collection=code).values(
@@ -154,7 +154,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         ancestor (Publisher → Series → Volume → Comic) reachable.
 
         Each OR clause traces ``rel_prefix + comic_field`` to a
-        per-group favorited-id subquery, but only for groups the user
+        per-collection favorited-id subquery, but only for collections the user
         has actually favorited under (see
         :attr:`_active_favorite_group_codes`). That keeps the m2m
         ``folders`` / ``story_arc_numbers__story_arc`` JOINs out of
@@ -189,7 +189,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         for code in active:
             comic_rel = _FAVORITE_COLLECTION_COMIC_REL[code]
             q |= Q(**{f"{rel}{comic_rel}__in": subqueries[code]})
-        # The row itself is starred. Covers the rare "favorited group
+        # The row itself is starred. Covers the rare "favorited collection
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.
         self_code = FAVORITE_MODEL_COLLECTIONS[model]
