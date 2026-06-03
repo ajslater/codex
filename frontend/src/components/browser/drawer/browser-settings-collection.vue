@@ -3,13 +3,13 @@
     v-if="showShowSettings"
     v-tooltip="{
       openDelay,
-      text: 'Show these groups when navigating the browse tree',
+      text: 'Show these collections when navigating the browse tree',
     }"
     class="browserSettingsBlock"
   >
-    <div class="settingsSubHeader">Show Group Levels</div>
+    <div class="settingsSubHeader">Show Collection Levels</div>
     <v-checkbox
-      v-for="choice of groupChoices"
+      v-for="choice of collectionChoices"
       :key="choice.title"
       class="browserCollectionCheckbox"
       density="compact"
@@ -26,7 +26,7 @@
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
-// Collections whose route shows the group-level toggles. Root browses as the
+// Collections whose route shows the collection-level toggles. Root browses as the
 // publishers collection, so "publishers" covers both root and publishers;
 // comics / folders / arcs routes hide the toggles.
 const SHOW_SETTINGS_COLLECTIONS = Object.freeze(
@@ -42,7 +42,8 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      groupChoices: (state) => state.choices?.static?.settingsCollection || {},
+      collectionChoices: (state) =>
+        state.choices?.static?.settingsCollection || {},
       showSettings: (state) => state.settings?.show || {},
     }),
     showShowSettings() {
@@ -51,8 +52,8 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
-    setShow(group, value) {
-      const data = { show: { [group]: value === true } };
+    setShow(collection, value) {
+      const data = { show: { [collection]: value === true } };
       this.setSettings(data);
     },
   },
