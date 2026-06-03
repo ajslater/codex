@@ -39,7 +39,7 @@ from codex.librarian.scribe.tasks import (
     ScribeTask,
     SearchIndexSyncAbortTask,
     TagWriteAbortTask,
-    UpdateGroupsTask,
+    UpdateCollectionsTask,
 )
 
 _SCRIBE_TASK_PRIORITY = (
@@ -58,7 +58,7 @@ _SCRIBE_TASK_PRIORITY = (
     BulkTagWriteTask,
     ImportTask,
     LazyImportComicsTask,
-    UpdateGroupsTask,
+    UpdateCollectionsTask,
     JanitorCleanFKsTask,
     JanitorCleanCoversTask,
     JanitorCleanupSessionsTask,

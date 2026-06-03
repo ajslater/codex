@@ -12,8 +12,8 @@ class ScribeTask(LibrarianTask):
 
 
 @dataclass
-class UpdateGroupsTask(ScribeTask):
-    """Force the update of group timestamp."""
+class UpdateCollectionsTask(ScribeTask):
+    """Force the update of collection timestamp."""
 
     start_time: datetime | None = None
 

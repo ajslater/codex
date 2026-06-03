@@ -61,7 +61,7 @@ from codex.librarian.scribe.tasks import (
     CleanupAbortTask,
     ImportAbortTask,
     SearchIndexSyncAbortTask,
-    UpdateGroupsTask,
+    UpdateCollectionsTask,
 )
 from codex.librarian.tasks import LibrarianTask
 from codex.models import LibrarianStatus
@@ -117,7 +117,7 @@ _TASK_MAP = MappingProxyType(
         "poll": FSPollLibrariesTask(frozenset(), force=False),
         "poll_force": FSPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
-        "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
+        "force_update_collections": UpdateCollectionsTask(start_time=EPOCH_START),
         "adopt_folders": JanitorAdoptOrphanFoldersTask(),
     }
 )

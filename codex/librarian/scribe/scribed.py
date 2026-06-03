@@ -30,7 +30,7 @@ from codex.librarian.scribe.tasks import (
     LazyImportComicsTask,
     SearchIndexSyncAbortTask,
     TagWriteAbortTask,
-    UpdateGroupsTask,
+    UpdateCollectionsTask,
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
@@ -93,7 +93,7 @@ class ScribeThread(QueuedThread):
                     self.log, self.librarian_queue, self.db_write_lock
                 )
                 worker.force_update(task)
-            case UpdateGroupsTask():
+            case UpdateCollectionsTask():
                 worker = TimestampUpdater(
                     self.log, self.librarian_queue, self.db_write_lock
                 )

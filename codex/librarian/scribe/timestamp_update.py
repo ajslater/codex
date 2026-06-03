@@ -1,4 +1,4 @@
-"""Update Groups timestamp for cover cache busting."""
+"""Update Collections timestamp for cover cache busting."""
 
 from collections.abc import Mapping
 from dataclasses import replace
@@ -22,7 +22,7 @@ _UPDATE_FIELDS = ("updated_at",)
 
 
 class TimestampUpdater(WorkerStatusBase):
-    """Update Groups timestamp for cover cache busting."""
+    """Update Collections timestamp for cover cache busting."""
 
     @staticmethod
     def _get_update_filter(

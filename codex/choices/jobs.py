@@ -130,10 +130,10 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "statuses": ("CCC",),
                     },
                     {
-                        "value": "force_update_groups",
-                        "title": "Update Group Timestamps",
+                        "value": "force_update_collections",
+                        "title": "Update Collection Timestamps",
                         "desc": (
-                            "Force the update of group timestamps. Will bust"
+                            "Force the update of collection timestamps. Will bust"
                             " the browser cache for browser views and covers."
                         ),
                         "statuses": ("IGU",),
