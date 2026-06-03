@@ -26,7 +26,7 @@ class ReaderView(ReaderBooksView):
         arcs, mtime = self.get_arcs()
         books = self.get_book_collection()
         arc = {
-            "collection": self._selected_arc_group,
+            "collection": self._selected_arc_collection,
             "ids": self._selected_arc_ids,
             "index": self._selected_arc_index,
             "count": self._selected_arc_count,

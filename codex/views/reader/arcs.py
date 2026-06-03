@@ -21,7 +21,7 @@ from codex.views.reader.params import ReaderParamsView
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-# Comic FK attribute → the browse group it represents as a reader arc.
+# Comic FK attribute → the browse collection it represents as a reader arc.
 # Drives both the ``show`` gate and the ``arcs`` dict key (collection-valued).
 _COMIC_ARC_FIELD_COLLECTIONS = MappingProxyType(
     {
@@ -44,13 +44,13 @@ class ReaderArcsView(ReaderParamsView):
         show: Mapping = self.get_from_settings("show", browser=True) or {}
         folder_view_allowed: bool = self._reader_folder_view_enabled
         field_names = []
-        for field_name, group in _COMIC_ARC_FIELD_COLLECTIONS.items():
+        for field_name, collection in _COMIC_ARC_FIELD_COLLECTIONS.items():
             if field_name == "parent_folder":
                 if not folder_view_allowed:
                     continue
-            elif not show.get(group):
+            elif not show.get(collection):
                 # ``show`` is keyed by collection name now (publishers/…);
-                # ``group`` is the matching ``Collection`` member.
+                # ``collection`` is the matching ``Collection`` member.
                 continue
             field_names.append(field_name)
         return tuple(field_names)
@@ -79,13 +79,13 @@ class ReaderArcsView(ReaderParamsView):
         max_mtime: int | None,
     ):
         """Append the series, volume, or folder arc from the comic's own FKs."""
-        group = getattr(comic, field_name)
-        arc_ids = (group.pk,)
-        mtime = group.updated_at
+        collection = getattr(comic, field_name)
+        arc_ids = (collection.pk,)
+        mtime = collection.updated_at
         max_mtime = max_none(max_mtime, mtime)
 
-        arc_group = _COMIC_ARC_FIELD_COLLECTIONS[field_name]
-        arcs[arc_group] = {arc_ids: {"name": group.name, "mtime": mtime}}
+        arc_collection = _COMIC_ARC_FIELD_COLLECTIONS[field_name]
+        arcs[arc_collection] = {arc_ids: {"name": collection.name, "mtime": mtime}}
         return max_mtime
 
     def _get_story_arcs(self, comic: Comic, arcs, max_mtime: int | None):
@@ -118,14 +118,14 @@ class ReaderArcsView(ReaderParamsView):
 
     def _set_selected_arc(self, arcs) -> None:
         arc = self.params["arc"]
-        arc_group = arc["collection"]
+        arc_collection = arc["collection"]
         requested_arc_ids = arc.get("ids", ())
-        arc_id_infos = arcs.get(arc_group)
+        arc_id_infos = arcs.get(arc_collection)
         all_arc_ids: frozenset[tuple[int, ...]] = (
             frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
         )
         arc_ids = ()
-        if arc_group == STORY_ARC_COLLECTION:
+        if arc_collection == STORY_ARC_COLLECTION:
             if requested_arc_ids in all_arc_ids:
                 arc_ids = requested_arc_ids
             else:
@@ -138,7 +138,7 @@ class ReaderArcsView(ReaderParamsView):
                         break
         if not arc_ids:
             arc_ids = next(iter(all_arc_ids))
-        self._selected_arc_group = arc_group
+        self._selected_arc_collection = arc_collection
         self._selected_arc_ids = arc_ids
 
     def get_arcs(self) -> tuple[dict, int | None]:

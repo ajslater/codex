@@ -412,7 +412,7 @@ class BrowserView(BrowserTitleView):
             # is bounded to the visible page.
             collection_qs = data.get("collections")
             if collection_qs is not None:
-                data["group_intersections"] = compute_collection_intersections(
+                data["collection_intersections"] = compute_collection_intersections(
                     collection_qs, columns
                 )
         serializer = self.get_serializer(data)

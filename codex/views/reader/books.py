@@ -106,10 +106,10 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
     ) -> tuple[dict, tuple]:
         """Get ordering for query."""
         sort_name_annotations = {}
-        if self._selected_arc_group in {Collection.SERIES, Collection.VOLUME}:
+        if self._selected_arc_collection in {Collection.SERIES, Collection.VOLUME}:
             parent_group = (
                 Collection.IMPRINT
-                if self._selected_arc_group == Collection.SERIES
+                if self._selected_arc_collection == Collection.SERIES
                 else Collection.SERIES
             )
             show = self.get_from_settings("show", browser=True)
@@ -123,7 +123,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
 
     def _get_comics_list(self) -> QuerySet:
         """Get the reader navigation group filter."""
-        rel = COLLECTION_RELATION[self._selected_arc_group]
+        rel = COLLECTION_RELATION[self._selected_arc_collection]
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
@@ -131,11 +131,11 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         prefetch_related = ()
         ordering = ()
 
-        if self._selected_arc_group == STORY_ARC_COLLECTION:
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
             arc_index = F("story_arc_numbers__number")
             prefetch_related = (*prefetch_related, rel)
             ordering = ("arc_index", "date", "pk")
-        elif self._selected_arc_group == FOLDER_COLLECTION:
+        elif self._selected_arc_collection == FOLDER_COLLECTION:
             fields = (*_COMIC_FIELDS, rel)
             select_related = (rel,)
             ordering = ("path", "pk")

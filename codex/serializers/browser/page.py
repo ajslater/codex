@@ -276,7 +276,7 @@ class BrowserPageSerializer(Serializer):
         columns = tuple(columns)
         collections = obj.get("collections", ()) or ()
         books = obj.get("books", ()) or ()
-        intersections = obj.get("group_intersections") or None
+        intersections = obj.get("collection_intersections") or None
         return [
             _row_repr(item, columns, intersections=intersections)
             for item in (*collections, *books)
