@@ -253,7 +253,7 @@ export const useBrowserStore = defineStore("browser", {
       librariesExist: undefined,
       modelCollection: undefined,
       numPages: 1,
-      groups: [],
+      collections: [],
       books: [],
       fts: undefined,
       searchError: undefined,
@@ -562,12 +562,12 @@ export const useBrowserStore = defineStore("browser", {
       const newTopCollectionIndex =
         COLLECTIONS_REVERSED.indexOf(newTopCollection);
       const newTopCollectionIsBrowse = newTopCollectionIndex !== -1;
-      const oldAndNewBothBrowseGroups =
+      const oldAndNewBothBrowseCollections =
         newTopCollectionIsBrowse && oldTopCollectionIndex !== -1;
 
       // Construct and return new redirect
       let params;
-      if (oldAndNewBothBrowseGroups) {
+      if (oldAndNewBothBrowseCollections) {
         if (oldTopCollectionIndex < newTopCollectionIndex) {
           /*
            * new top collection is a parent (REVERSED)

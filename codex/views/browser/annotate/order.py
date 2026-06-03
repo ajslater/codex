@@ -108,18 +108,18 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         super().__init__(*args, **kwargs)
         self._order_agg_func: type[Min | Max] | None = None
         self._is_opds_acquisition: bool | None = None
-        self._opds_acquisition_groups: frozenset[str] | None = None
+        self._opds_acquisition_collections: frozenset[str] | None = None
         self.bmua_is_max = False
         self._child_count_annotated = False
 
     @property
-    def opds_acquisition_groups(self):
-        """Memoize the opds acquisition groups."""
-        if self._opds_acquisition_groups is None:
-            groups = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
-            groups |= {*self.valid_nav_collections[-2:]}
-            self._opds_acquisition_groups = frozenset(groups)
-        return self._opds_acquisition_groups
+    def opds_acquisition_collections(self):
+        """Memoize the opds acquisition collections."""
+        if self._opds_acquisition_collections is None:
+            collections = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
+            collections |= {*self.valid_nav_collections[-2:]}
+            self._opds_acquisition_collections = frozenset(collections)
+        return self._opds_acquisition_collections
 
     @property
     def is_opds_acquisition(self) -> bool:
@@ -127,9 +127,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if self._is_opds_acquisition is None:
             is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
             if is_opds_acquisition:
-                group = self.kwargs.get("collection")
-                is_opds_acquisition &= group in self.opds_acquisition_groups
-                if is_opds_acquisition and group == STORY_ARC_COLLECTION:
+                collection = self.kwargs.get("collection")
+                is_opds_acquisition &= collection in self.opds_acquisition_collections
+                if is_opds_acquisition and collection == STORY_ARC_COLLECTION:
                     pks = self.kwargs["pks"]
                     is_opds_acquisition &= bool(pks and 0 not in pks)
             self._is_opds_acquisition = is_opds_acquisition

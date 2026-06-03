@@ -22,7 +22,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
-const REMOVE_GROUPS = Object.freeze(
+const REMOVE_COLLECTIONS = Object.freeze(
   new Set(["publishers", "imprints", "series", "volumes", "arcs", "folders"]),
 );
 
@@ -44,7 +44,7 @@ export default {
     show() {
       return (
         this.isUserAdmin &&
-        REMOVE_GROUPS.has(this.item?.collection) &&
+        REMOVE_COLLECTIONS.has(this.item?.collection) &&
         Boolean(this.item?.coverCustomPk) &&
         this.item?.ids?.length > 0
       );

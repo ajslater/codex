@@ -1,7 +1,7 @@
 <template>
   <ToolbarSelect
     v-model="topCollection"
-    class="topGroupSelect"
+    class="topCollectionSelect"
     select-label="top collection"
     :items="topCollectionChoicesWithDividers"
     :max-select-len="topCollectionChoicesMaxLen - 2.25"
@@ -39,7 +39,7 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      topGroupSetting: (state) => state.settings.topCollection,
+      topCollectionSetting: (state) => state.settings.topCollection,
     }),
     ...mapState(useBrowserStore, [
       "topCollectionChoices",
@@ -47,7 +47,7 @@ export default {
     ]),
     topCollection: {
       get() {
-        return this.topGroupSetting;
+        return this.topCollectionSetting;
       },
       set(value) {
         const settings = { topCollection: value };

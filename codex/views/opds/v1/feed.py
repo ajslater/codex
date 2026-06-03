@@ -168,7 +168,7 @@ class OPDS1FeedView(OPDS1LinksView):
                 )
                 category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
             data = OPDS1EntryData(
-                self.opds_acquisition_groups,
+                self.opds_acquisition_collections,
                 zero_pad,
                 metadata,
                 self.mime_type_map,

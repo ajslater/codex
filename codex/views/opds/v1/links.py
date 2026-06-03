@@ -123,7 +123,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         )
         zero_pad: int = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.opds_acquisition_groups,
+            self.opds_acquisition_collections,
             zero_pad,
             metadata=False,
             mime_type_map=self.mime_type_map,

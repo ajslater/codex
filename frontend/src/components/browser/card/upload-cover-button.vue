@@ -26,7 +26,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
-const UPLOAD_GROUPS = Object.freeze(
+const UPLOAD_COLLECTIONS = Object.freeze(
   new Set(["publishers", "imprints", "series", "volumes", "arcs", "folders"]),
 );
 
@@ -48,7 +48,7 @@ export default {
     show() {
       return (
         this.isUserAdmin &&
-        UPLOAD_GROUPS.has(this.item?.collection) &&
+        UPLOAD_COLLECTIONS.has(this.item?.collection) &&
         this.item?.ids?.length > 0 &&
         !this.item.ids.includes(0)
       );
