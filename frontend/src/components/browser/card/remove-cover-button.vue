@@ -56,7 +56,7 @@ export default {
     async remove() {
       try {
         await removeCustomCover({
-          group: this.item.collection,
+          collection: this.item.collection,
           pks: this.item.ids,
         });
         this.bustCoverCache({ ids: this.item.ids, coverCustomPk: null });

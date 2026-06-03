@@ -1,8 +1,8 @@
 """
 Tag writes must honor the user's active browser filters.
 
-Regression for a bug where writing a tag to a selected group resolved to
-*every* comic in the group, ignoring the active file_type / read-unread
+Regression for a bug where writing a tag to a selected collection resolved to
+*every* comic in the collection, ignoring the active file_type / read-unread
 filters — e.g. a CBR-filtered publisher write leaking onto an unread CBZ.
 """
 
@@ -91,7 +91,7 @@ class TagWriteFilterTestCase(TestCase):
     def _write_tags(self) -> frozenset[int]:
         """POST a publisher tag write and return the enqueued task's comic_pks."""
         payload = {
-            "group": "publishers",
+            "collection": "publishers",
             "pks": [str(self.publisher_pk)],
             "patch": json.dumps({"publisher": "Image"}),
             "mode": "update",
@@ -109,7 +109,7 @@ class TagWriteFilterTestCase(TestCase):
         return frozenset(task.comic_pks)
 
     def test_no_filter_writes_all(self) -> None:
-        """Control: with no active filter, every comic in the group is written."""
+        """Control: with no active filter, every comic in the collection is written."""
         assert self._write_tags() == {self.cbr.pk, self.cbz.pk}
 
     def test_file_type_filter_excludes_unselected(self) -> None:

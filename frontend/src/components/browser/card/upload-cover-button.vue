@@ -75,7 +75,7 @@ export default {
       if (!file) return;
       try {
         const response = await uploadCustomCover({
-          group: this.item.collection,
+          collection: this.item.collection,
           pks: this.item.ids,
           file,
         });

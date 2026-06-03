@@ -52,14 +52,14 @@
           </template>
         </v-menu>
       </template>
-      <template #[`item.group`]="{ item }">
-        <v-chip class="groupChip" size="small" variant="tonal">
-          {{ item.groupLabel }}
+      <template #[`item.collection`]="{ item }">
+        <v-chip class="collectionChip" size="small" variant="tonal">
+          {{ item.collectionLabel }}
         </v-chip>
       </template>
-      <template #[`item.linkedGroupName`]="{ item }">
-        <span :class="{ unlinked: !item.linkedGroupName }">
-          {{ item.linkedGroupName || "— unlinked —" }}
+      <template #[`item.linkedCollectionName`]="{ item }">
+        <span :class="{ unlinked: !item.linkedCollectionName }">
+          {{ item.linkedCollectionName || "— unlinked —" }}
         </span>
       </template>
       <template #[`item.mtime`]="{ item }">
@@ -71,7 +71,7 @@
       <template #[`item.actions`]="{ item }">
         <span class="adminActionCell">
           <ReplaceCoverButton
-            v-if="item.linkedGroupPk"
+            v-if="item.linkedCollectionPk"
             density="compact"
             :item="item"
             size="small"
@@ -151,8 +151,8 @@ export default {
     headers() {
       return [
         { title: "", key: "thumb", sortable: false },
-        { title: "Group", key: "group" },
-        { title: "Linked To", key: "linkedGroupName" },
+        { title: "Collection", key: "collection" },
+        { title: "Linked To", key: "linkedCollectionName" },
         { title: "Modified", key: "mtime" },
         { title: "Size", key: "sizeBytes" },
         { title: "Actions", key: "actions", sortable: false },
@@ -231,7 +231,7 @@ export default {
   cursor: zoom-in;
 }
 
-.groupChip {
+.collectionChip {
   text-transform: uppercase;
 }
 

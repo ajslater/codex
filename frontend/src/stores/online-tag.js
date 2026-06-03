@@ -10,7 +10,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
   }),
   actions: {
     async startSession({
-      group,
+      collection,
       pks,
       sources,
       mode,
@@ -18,7 +18,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       deleteOriginal,
     }) {
       const response = await HTTP.post("/admin/tag-sessions/start", {
-        group,
+        collection,
         pks: pks.map(String),
         sources,
         mode,

@@ -15,9 +15,9 @@ from codex.models import CustomCover
 from codex.serializers.models.base import BaseModelSerializer
 
 _MODEL_BY_COLLECTION = {
-    group: model for model, group in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
+    collection: model for model, collection in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
 }
-_GROUP_LABELS = {
+_COLLECTION_LABELS = {
     "publishers": "Publisher",
     "imprints": "Imprint",
     "series": "Series",
@@ -30,13 +30,10 @@ _GROUP_LABELS = {
 class CustomCoverSerializer(BaseModelSerializer):
     """CustomCover list serializer for the admin tab."""
 
-    # Wire field stays ``group`` (read by the admin tab + browse cards);
-    # the model column is ``collection`` now, so source it explicitly.
-    # The item-wire rename group→collection is a separate Tier-C pass.
-    group = CharField(source="collection", read_only=True)
-    group_label = SerializerMethodField()
-    linked_group_pk = SerializerMethodField()
-    linked_group_name = SerializerMethodField()
+    collection = CharField(read_only=True)
+    collection_label = SerializerMethodField()
+    linked_collection_pk = SerializerMethodField()
+    linked_collection_name = SerializerMethodField()
     size_bytes = SerializerMethodField()
     mtime = SerializerMethodField()
     path = CharField(read_only=True)
@@ -48,10 +45,10 @@ class CustomCoverSerializer(BaseModelSerializer):
         model = CustomCover
         fields = (
             "pk",
-            "group",
-            "group_label",
-            "linked_group_pk",
-            "linked_group_name",
+            "collection",
+            "collection_label",
+            "linked_collection_pk",
+            "linked_collection_name",
             "path",
             "mtime",
             "size_bytes",
@@ -64,9 +61,9 @@ class CustomCoverSerializer(BaseModelSerializer):
         resource_name = "custom-covers"
 
     @staticmethod
-    def get_group_label(obj: CustomCover) -> str:
-        """Human-readable group name."""
-        return _GROUP_LABELS.get(obj.collection, obj.collection)
+    def get_collection_label(obj: CustomCover) -> str:
+        """Human-readable collection name."""
+        return _COLLECTION_LABELS.get(obj.collection, obj.collection)
 
     @staticmethod
     def _linked(obj: CustomCover):
@@ -75,13 +72,13 @@ class CustomCoverSerializer(BaseModelSerializer):
             return None
         return model.objects.filter(custom_cover_id=obj.pk).first()
 
-    def get_linked_group_pk(self, obj: CustomCover) -> int | None:
+    def get_linked_collection_pk(self, obj: CustomCover) -> int | None:
         """First linked browser collection's pk, if any."""
         linked = self._linked(obj)
         return None if linked is None else linked.pk
 
-    def get_linked_group_name(self, obj: CustomCover) -> str | None:
-        """Display name of the first linked group."""
+    def get_linked_collection_name(self, obj: CustomCover) -> str | None:
+        """Display name of the first linked collection."""
         linked = self._linked(obj)
         if linked is None:
             return None

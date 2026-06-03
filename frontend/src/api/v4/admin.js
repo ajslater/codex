@@ -146,17 +146,17 @@ export const TABLES = Object.freeze({
   },
 });
 
-export const uploadCustomCover = ({ group, pks, file }) => {
+export const uploadCustomCover = ({ collection, pks, file }) => {
   const form = new FormData();
-  form.append("group", group);
+  form.append("collection", collection);
   form.append("pks", Array.isArray(pks) ? pks.join(",") : String(pks));
   form.append("image", file);
   return HTTP.post("/admin/custom-covers/upload", form);
 };
 
-export const removeCustomCover = ({ group, pks }) =>
+export const removeCustomCover = ({ collection, pks }) =>
   HTTP.post("/admin/custom-covers/bulk-delete", {
-    group,
+    collection,
     pks: Array.isArray(pks) ? pks.join(",") : String(pks),
   });
 

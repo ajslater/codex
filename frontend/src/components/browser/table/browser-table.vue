@@ -63,7 +63,7 @@
               :column="col"
               :row="row"
               :cover-size="coverSize"
-              :cover-group="coverGroupFor(row)"
+              :cover-collection="coverCollectionFor(row)"
             />
           </td>
         </tr>
@@ -293,7 +293,7 @@ export default {
         return `${row.collection}${row.ids ?? ""}`;
       return `comics${row.pk}`;
     },
-    coverGroupFor(row) {
+    coverCollectionFor(row) {
       return row.collection ?? "comics";
     },
     onRowClick(row, event) {

@@ -134,7 +134,7 @@ export default {
       type: String,
       default: "sm",
     },
-    coverGroup: {
+    coverCollection: {
       type: String,
       default: "c",
     },
@@ -159,7 +159,7 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     placeholderSrc() {
-      return getPlaceholderSrc(this.coverGroup);
+      return getPlaceholderSrc(this.coverCollection);
     },
     coverSrc() {
       const { coverPk, coverCustomPk } = this.row;

@@ -44,7 +44,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        comic_pks = self.resolve_comic_pks(data["group"], data["pks"])
+        comic_pks = self.resolve_comic_pks(data["collection"], data["pks"])
         if not comic_pks:
             return Response({"detail": "No comics matched."}, status=400)
 

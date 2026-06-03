@@ -18,7 +18,7 @@ from codex.serializers.models.base import BaseModelSerializer
 class TagWriteRequestSerializer(Serializer):
     """Serializer for tag write requests."""
 
-    group = CharField()
+    collection = CharField()
     pks = ListField(child=CharField())
     patch = CharField(required=False, default="")
     mode = CharField(required=False, default="update")
@@ -29,7 +29,7 @@ class TagWriteRequestSerializer(Serializer):
 class OnlineTagStartSerializer(Serializer):
     """Serializer for starting an online tagging session."""
 
-    group = CharField()
+    collection = CharField()
     pks = ListField(child=CharField())
     sources = ListField(
         child=CharField(), required=False, default=["metron", "comicvine"]

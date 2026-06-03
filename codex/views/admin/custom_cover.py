@@ -35,9 +35,9 @@ if TYPE_CHECKING:
     from django.db.models import Model
 
 _ALLOWED_EXTS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"})
-_GROUP_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
+_COLLECTION_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
 _MODEL_BY_COLLECTION: dict[str, type[Model]] = {
-    group: model for model, group in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
+    collection: model for model, collection in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
 }
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _MAX_SLUG_LEN = 60
@@ -87,10 +87,10 @@ def _validate_image(upload, ext: str) -> None:
         raise ValidationError(msg) from exc
 
 
-def _resolve_targets(group: str, pks: tuple[int, ...]):
-    model = _MODEL_BY_COLLECTION.get(group)
+def _resolve_targets(collection: str, pks: tuple[int, ...]):
+    model = _MODEL_BY_COLLECTION.get(collection)
     if model is None:
-        msg = f"Unknown group {group!r}"
+        msg = f"Unknown collection {collection!r}"
         raise ValidationError(msg)
     targets = list(model.objects.filter(pk__in=pks))
     if len(targets) != len(set(pks)):
@@ -147,7 +147,7 @@ def _swap_links(model, pks: tuple[int, ...], cover: CustomCover) -> tuple[int, .
 
 
 def _purge_orphaned(cover_pks: tuple[int, ...]) -> None:
-    """Delete CustomCover rows + files that no group references."""
+    """Delete CustomCover rows + files that no collection references."""
     for pk in cover_pks:
         try:
             cover = CustomCover.objects.get(pk=pk)
@@ -169,10 +169,10 @@ class AdminCustomCoverUploadView(AdminAPIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *_args, **_kwargs) -> Response:
-        """Accept a multipart upload and link it to ``pks`` of ``group``."""
-        group = request.data.get("group", "")
-        if group not in _GROUP_CHOICES:
-            msg = f"Invalid group {group!r}"
+        """Accept a multipart upload and link it to ``pks`` of ``collection``."""
+        collection = request.data.get("collection", "")
+        if collection not in _COLLECTION_CHOICES:
+            msg = f"Invalid collection {collection!r}"
             raise ValidationError(msg)
         pks = _parse_pks(request.data.get("pks", ""))
         upload = request.FILES.get("image")
@@ -184,7 +184,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             ext = ".jpg"
         _validate_image(upload, ext)
 
-        model, targets = _resolve_targets(group, pks)
+        model, targets = _resolve_targets(collection, pks)
         first = targets[0]
         sort_name = _sort_name_for(first)
         slug = _slugify(sort_name)
@@ -193,7 +193,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover = CustomCover(
                 library=None,
                 path="",
-                collection=group,
+                collection=collection,
                 sort_name=sort_name,
             )
             # Save once to allocate a pk; presave wants ``path`` to stat
@@ -208,7 +208,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
             cover.path = str(placeholder)
             cover.save()
 
-            stem = f"{group}-{cover.pk}"
+            stem = f"{collection}-{cover.pk}"
             if slug:
                 stem = f"{stem}-{slug}"
             final_path = CUSTOM_COVERS_UPLOADS_DIR / f"{stem}{ext}"
@@ -232,13 +232,13 @@ class AdminCustomCoverRemoveView(AdminAPIView):
     """Unlink the custom cover from one or more groups, GC if orphaned."""
 
     def post(self, request, *_args, **_kwargs) -> Response:
-        """Unlink the custom cover from each given group pk."""
-        group = request.data.get("group", "")
-        if group not in _GROUP_CHOICES:
-            msg = f"Invalid group {group!r}"
+        """Unlink the custom cover from each given collection pk."""
+        collection = request.data.get("collection", "")
+        if collection not in _COLLECTION_CHOICES:
+            msg = f"Invalid collection {collection!r}"
             raise ValidationError(msg)
         pks = _parse_pks(str(request.data.get("pks", "")))
-        model, targets = _resolve_targets(group, pks)
+        model, targets = _resolve_targets(collection, pks)
         displaced = tuple(
             cover_id
             for cover_id in (getattr(t, "custom_cover_id", None) for t in targets)

@@ -73,7 +73,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -108,7 +108,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -125,7 +125,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -141,16 +141,16 @@ class AdminCustomCoverUploadTestCase(TestCase):
         )
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "publishers", "pks": str(self.publisher.pk), "image": bogus},
+            data={"collection": "publishers", "pks": str(self.publisher.pk), "image": bogus},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
     @patch(_QUEUE_PATCH)
     def test_group_pk_mismatch_rejected(self, mock_queue) -> None:  # noqa: ARG002
-        """``group=series`` with a Publisher pk fails fast with 400."""
+        """``collection=series`` with a Publisher pk fails fast with 400."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "series", "pks": str(self.publisher.pk), "image": _upload()},
+            data={"collection": "series", "pks": str(self.publisher.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
@@ -160,7 +160,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -168,7 +168,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         pk = _v4(response)["customCoverPk"]
         response = self.client.post(
             "/api/v4/admin/custom-covers/bulk-delete",
-            data=json.dumps({"group": "publishers", "pks": str(self.publisher.pk)}),
+            data=json.dumps({"collection": "publishers", "pks": str(self.publisher.pk)}),
             content_type="application/json",
         )
         assert response.status_code == HTTPStatus.NO_CONTENT
@@ -182,7 +182,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -198,7 +198,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         upload_response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -212,8 +212,8 @@ class AdminCustomCoverUploadTestCase(TestCase):
         rows = body if isinstance(body, list) else body.get("data", [])
         assert len(rows) == 1
         attrs = rows[0]["attributes"]
-        assert attrs["group"] == "publishers"
-        assert attrs["linkedGroupName"] == "Marvel"
+        assert attrs["collection"] == "publishers"
+        assert attrs["linkedCollectionName"] == "Marvel"
 
     @patch(_QUEUE_PATCH)
     def test_replace_displaces_prior_cover(self, mock_queue) -> None:  # noqa: ARG002
@@ -221,7 +221,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         first = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -230,7 +230,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         second = self.client.post(
             "/api/v4/admin/custom-covers/upload",
             data={
-                "group": "publishers",
+                "collection": "publishers",
                 "pks": str(self.publisher.pk),
                 "image": _upload(),
             },
@@ -270,10 +270,10 @@ class CustomCoverVolumeSupportTestCase(TestCase):
 
     @patch(_QUEUE_PATCH)
     def test_volume_upload(self, mock_queue) -> None:  # noqa: ARG002
-        """Upload with ``group=volumes`` binds the Volume's ``custom_cover_id``."""
+        """Upload with ``collection=volumes`` binds the Volume's ``custom_cover_id``."""
         response = self.client.post(
             "/api/v4/admin/custom-covers/upload",
-            data={"group": "volumes", "pks": str(self.volume.pk), "image": _upload()},
+            data={"collection": "volumes", "pks": str(self.volume.pk), "image": _upload()},
         )
         assert response.status_code == HTTPStatus.CREATED
         self.volume.refresh_from_db()

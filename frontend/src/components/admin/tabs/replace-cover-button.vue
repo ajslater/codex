@@ -46,11 +46,11 @@ export default {
     async onFile(event) {
       const file = event.target.files?.[0];
       event.target.value = "";
-      if (!file || !this.item?.linkedGroupPk) return;
+      if (!file || !this.item?.linkedCollectionPk) return;
       try {
         const response = await uploadCustomCover({
-          group: this.item.group,
-          pks: [this.item.linkedGroupPk],
+          collection: this.item.collection,
+          pks: [this.item.linkedCollectionPk],
           file,
         });
         const pk = response?.data?.customCoverPk;
@@ -59,7 +59,7 @@ export default {
         this.loadTable("CustomCover", { force: true });
         // Bust any browser cards still rendering the replaced cover.
         this.bustCoverCache({
-          ids: [this.item.linkedGroupPk],
+          ids: [this.item.linkedCollectionPk],
           coverCustomPk: pk,
         });
       } catch (error) {
