@@ -36,8 +36,8 @@ _COLLECTION_INSTANCE_SELECT_RELATED: MappingProxyType[
     }
 )
 
-# Map from group to the FK attribute chain for walking up the hierarchy.
-# Each entry is (parent_group, attribute_on_instance). Keyed by ``Collection``
+# Map from collection to the FK attribute chain for walking up the hierarchy.
+# Each entry is (parent_collection, attribute_on_instance). Keyed by ``Collection``
 # members so the lookup resolves against the collection-valued ``kwargs["collection"]``.
 _COLLECTION_PARENT_CHAIN: MappingProxyType[
     Collection, tuple[tuple[Collection, str], ...]
@@ -78,23 +78,23 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def _handle_collection_query_missing_model(self, model) -> QuerySet:
         """Handle a missing model for the collection instance."""
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page")
-        if not (group == Collection.ROOT and not pks and page == 1):
-            reason = f"{group}__in={pks} does not exist!"
+        if not (collection == Collection.ROOT and not pks and page == 1):
+            reason = f"{collection}__in={pks} does not exist!"
             # ``raise_redirect`` is ``NoReturn``; the type checker
             # follows the early-return shape so the caller below
             # is the only path that produces a queryset.
-            self.raise_redirect(reason, route_mask={"collection": group})
+            self.raise_redirect(reason, route_mask={"collection": collection})
         return model.objects.none()
 
     @property
     def collection_instance(self) -> BrowserCollectionModel | None:
-        """Memoize collection instance for getting group names & counts."""
+        """Memoize collection instance for getting collection names & counts."""
         if self._collection_instance == 0:
-            group = self.kwargs.get("collection")
-            model = COLLECTION_MODEL_MAP[group]
+            collection = self.kwargs.get("collection")
+            model = COLLECTION_MODEL_MAP[collection]
             pks = self.kwargs.get("pks")
             if model and pks and 0 not in pks:
                 try:
@@ -116,7 +116,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
     def _build_collection_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse collection mode by walking FK parents."""
         gi = self.collection_instance
-        group = self.kwargs["collection"]
+        collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
 
@@ -124,18 +124,18 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             return (Route(Collection.ROOT, (), 1, ""),)
 
         # Start with current crumb
-        crumbs: list[Route] = [Route(group, pks, page, gi.name)]
+        crumbs: list[Route] = [Route(collection, pks, page, gi.name)]
 
         # Walk up the parent chain via FKs
         vng = self.valid_nav_collections
-        parent_chain = _COLLECTION_PARENT_CHAIN.get(group, ())
-        for parent_group, attr in parent_chain:
-            if parent_group not in vng:
+        parent_chain = _COLLECTION_PARENT_CHAIN.get(collection, ())
+        for parent_collection, attr in parent_chain:
+            if parent_collection not in vng:
                 continue
             if parent := getattr(gi, attr, None):
-                crumbs.append(Route(parent_group, (parent.pk,), 1, parent.name))
+                crumbs.append(Route(parent_collection, (parent.pk,), 1, parent.name))
             else:
-                crumbs.append(Route(parent_group, (), 1, ""))
+                crumbs.append(Route(parent_collection, (), 1, ""))
 
         # Always add root
         crumbs.append(Route(Collection.ROOT, (), 1, ""))
@@ -147,7 +147,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         pks = self.kwargs["pks"]
         page = self.kwargs["page"]
         # In folder mode ``collection_instance`` is a Folder (or None) by
-        # construction — the caller branches on ``group == FOLDER_COLLECTION``.
+        # construction — the caller branches on ``collection == FOLDER_COLLECTION``.
         folder = cast("Folder | None", self.collection_instance)
         name = folder.name if folder and pks else ""
 
@@ -182,9 +182,9 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
     def get_breadcrumbs(self) -> tuple[Route, ...]:
         """Compute breadcrumbs by browser mode from FK hierarchy."""
-        group = self.kwargs["collection"]
-        if group == FOLDER_COLLECTION:
+        collection = self.kwargs["collection"]
+        if collection == FOLDER_COLLECTION:
             return self._build_folder_breadcrumbs()
-        if group == STORY_ARC_COLLECTION:
+        if collection == STORY_ARC_COLLECTION:
             return self._build_story_arc_breadcrumbs()
         return self._build_collection_breadcrumbs()

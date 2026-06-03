@@ -36,13 +36,13 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         result = ""
         try:
             parts = []
-            group = self.obj.nav_collection
+            collection = self.obj.nav_collection
             if not self.fake:
-                if group == "imprints":
+                if collection == "imprints":
                     parts.append(self.obj.publisher_name)
-                elif group == "volumes":
+                elif collection == "volumes":
                     parts.append(self.obj.series_name)
-                elif group == "comics":
+                elif collection == "comics":
                     title = Comic.get_title(
                         self.obj,
                         volume=True,
@@ -52,7 +52,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                     )
                     parts.append(title)
 
-            if group != "comics" and (name := self.obj.name):
+            if collection != "comics" and (name := self.obj.name):
                 parts.append(name)
 
             result = " ".join(filter(None, parts))

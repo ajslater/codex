@@ -14,7 +14,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
 
     Pre-computes the representative comic pk per card via a correlated
     subquery, replacing the 72-request fan-out to ``CoverView`` with a
-    single aggregation pass. Reproduces ``CoverView.get_group_filter``
+    single aggregation pass. Reproduces ``CoverView.get_collection_filter``
     semantics exactly: direct group-fk match when ``dynamic_covers`` is
     on or the model is Volume/Folder; sort-name fuzzy match (correlated
     on the GROUP BY columns) otherwise.

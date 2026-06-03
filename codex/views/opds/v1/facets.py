@@ -115,20 +115,20 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
     @staticmethod
-    def _did_special_group_change(group, facet_group) -> bool:
-        """Test if one of the special groups changed."""
-        # Special groups are folders and story arcs.
+    def _did_special_group_change(collection, facet_group) -> bool:
+        """Test if one of the special collections changed."""
+        # Special collections are folders and story arcs.
         # The change is meaningful only if exactly one side is special:
-        # XOR-style across membership in the special-group set.
+        # XOR-style across membership in the special-collection set.
         special = {Collection.FOLDER, Collection.ARC}
-        return (group in special) != (facet_group in special)
+        return (collection in special) != (facet_group in special)
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         if (
             facet_group.query_param == "topCollection"
-            and self._did_special_group_change(group, facet.value)
+            and self._did_special_group_change(collection, facet.value)
         ):
             kwargs = {"collection": facet.value, "pks": {}, "page": 1}
         else:
@@ -163,9 +163,9 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         if self.IS_START_PAGE:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
         else:
-            group = self.kwargs.get("collection")
+            collection = self.kwargs.get("collection")
             if (
-                group != Collection.COMIC
+                collection != Collection.COMIC
                 and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
             ):
                 facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)

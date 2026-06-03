@@ -107,13 +107,16 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         ACL filter alone traverses ``comic__`` (one-to-many); for Comic
         queries we can skip both unless a real m2m relation joins in.
         """
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         if pks and 0 not in pks:
-            if group == STORY_ARC_COLLECTION:
+            if collection == STORY_ARC_COLLECTION:
                 # ``story_arc_numbers__story_arc`` is m2m-through on Comic.
                 return True
-            if group == FOLDER_COLLECTION and self.TARGET in _M2M_FOLDER_GROUP_TARGETS:
+            if (
+                collection == FOLDER_COLLECTION
+                and self.TARGET in _M2M_FOLDER_GROUP_TARGETS
+            ):
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
         filters = self.params.get("filters") or {}
@@ -199,14 +202,16 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         model,
         page_mtime,
         bookmark_filter,
-        group=None,
+        collection=None,
         pks=None,
     ) -> Q:
-        """Return all the filters except the group filter."""
+        """Return all the filters except the collection filter."""
         big_include_filter = Q()
         big_exclude_filter = Q()
         big_include_filter &= self.get_acl_filter(model, self.request.user)
-        big_include_filter &= self.get_group_filter(group, pks, page_mtime=page_mtime)
+        big_include_filter &= self.get_collection_filter(
+            collection, pks, page_mtime=page_mtime
+        )
         big_include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
@@ -222,7 +227,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
     def get_filtered_queryset(
         self,
         model,
-        group=None,
+        collection=None,
         pks=None,
         *,
         page_mtime=False,
@@ -233,7 +238,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             model,
             page_mtime=page_mtime,
             bookmark_filter=bookmark_filter,
-            group=group,
+            collection=collection,
             pks=pks,
         )
         qs = model.objects.filter(query_filters)

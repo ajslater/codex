@@ -12,13 +12,13 @@ from codex.views.const import FOLDER_COLLECTION
 
 
 class BrowserPaginateView(BrowserPageInBoundsView):
-    """Paginate Groups and Books."""
+    """Paginate Collections and Books."""
 
     def _paginate_section(
         self, qs: QuerySet, page: int, total_count: int
     ) -> tuple[QuerySet, int]:
         """
-        Paginate a group or Comic section.
+        Paginate a collection or Comic section.
 
         ``total_count`` is the pre-computed section total (already run by
         the caller via one grouped COUNT). It's stuffed into
@@ -50,39 +50,39 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
         return qs, count
 
-    def _paginate_groups(
-        self, group_qs: QuerySet, group_count: int
+    def _paginate_collections(
+        self, collection_qs: QuerySet, collection_count: int
     ) -> tuple[QuerySet, int]:
-        """Paginate the group object list before books."""
+        """Paginate the collection object list before books."""
         page = self.kwargs.get("page", 1)
-        return self._paginate_section(group_qs, page, group_count)
+        return self._paginate_section(collection_qs, page, collection_count)
 
     def _paginate_books(
         self,
         book_qs: QuerySet,
         book_count: int,
-        total_group_count: int,
-        page_group_count: int,
+        total_collection_count: int,
+        page_collection_count: int,
     ) -> tuple[QuerySet, int]:
-        """Paginate the book object list based on how many group/folders are showing."""
+        """Paginate the book object list based on how many collections/folders are showing."""
         page_size = get_browser_max_obj_per_page()
-        group_remainder = total_group_count % page_size
-        num_books_on_mixed_page = page_size - group_remainder
-        if page_group_count:
-            # There are books after the groups on the same page
+        collection_remainder = total_collection_count % page_size
+        num_books_on_mixed_page = page_size - collection_remainder
+        if page_collection_count:
+            # There are books after the collections on the same page
             # Add remainder books without the paginator
             page_book_qs = book_qs[:num_books_on_mixed_page]
             page_book_count = min(num_books_on_mixed_page, book_count)
             return page_book_qs, page_book_count
 
-        # There are books after the groups on a new page
-        book_offset = 0 if not group_remainder else num_books_on_mixed_page
+        # There are books after the collections on a new page
+        book_offset = 0 if not collection_remainder else num_books_on_mixed_page
         page_book_qs = book_qs[book_offset:]
 
-        # Which book page are we on after groups?
+        # Which book page are we on after collections?
         page = self.kwargs.get("page", 1)
-        num_group_and_mixed_pages = ceil(total_group_count / page_size)
-        book_only_page = page - num_group_and_mixed_pages
+        num_collection_and_mixed_pages = ceil(total_collection_count / page_size)
+        book_only_page = page - num_collection_and_mixed_pages
 
         remaining_book_count = max(0, book_count - book_offset)
         return self._paginate_section(
@@ -91,19 +91,21 @@ class BrowserPaginateView(BrowserPageInBoundsView):
 
     def paginate(
         self,
-        group_qs: QuerySet,
+        collection_qs: QuerySet,
         book_qs: QuerySet,
-        group_count: int,
+        collection_count: int,
         book_count: int,
     ) -> tuple[QuerySet, QuerySet, int, int]:
-        """Paginate the queryset into a group and book object lists."""
+        """Paginate the queryset into a collection and book object lists."""
         if self.TARGET == "opds2":
             self._opds_number_of_books = book_count
-            self._opds_number_of_groups = group_count
+            self._opds_number_of_collections = collection_count
 
-        page_group_qs, page_group_count = self._paginate_groups(group_qs, group_count)
+        page_collection_qs, page_collection_count = self._paginate_collections(
+            collection_qs, collection_count
+        )
         page_book_qs, page_book_count = self._paginate_books(
-            book_qs, book_count, group_count, page_group_count
+            book_qs, book_count, collection_count, page_collection_count
         )
 
-        return page_group_qs, page_book_qs, page_group_count, page_book_count
+        return page_collection_qs, page_book_qs, page_collection_count, page_book_count

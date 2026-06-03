@@ -149,11 +149,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs.model is StoryArc and self.order_key == "story_arc_number"
         ):
             return qs
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         show = MappingProxyType(self.params["show"])
         sort_name_annotations = self.get_sort_name_annotations(
-            qs.model, group, pks, show
+            qs.model, collection, pks, show
         )
         if sort_name_annotations:
             qs = qs.alias(**sort_name_annotations)
@@ -192,9 +192,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
 
         # Get story_arc__pk
-        group = self.kwargs["collection"]
+        collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if group == STORY_ARC_COLLECTION and pks:
+        if collection == STORY_ARC_COLLECTION and pks:
             story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())
@@ -257,7 +257,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
             # second aggregate, and by the serializer to compute mtime.
             # Only set in the primary branch — that path annotates both
-            # group and Comic querysets, so the scalar exists on every
+            # collection and Comic querysets, so the scalar exists on every
             # serialized row. The table-column branch annotates only
             # collection row; flipping the flag here would make
             # ``get_mtime`` reach for a missing ``bookmark_updated_at``

@@ -86,23 +86,26 @@ class BrowserView(BrowserTitleView):
     @property
     @override
     def model_collection(self):
-        """Get the group of the models to browse."""
-        # the model group shown must be:
+        """Get the collection of the models to browse."""
+        # the model collection shown must be:
         #   A valid nav collection or 'c'
         #   the child of the current nav collection or 'c'
         if not self._model_collection:
-            group = self.kwargs["collection"]
-            if group == FOLDER_COLLECTION:
-                self._model_collection = group
-            elif group == STORY_ARC_COLLECTION:
+            collection = self.kwargs["collection"]
+            if collection == FOLDER_COLLECTION:
+                self._model_collection = collection
+            elif collection == STORY_ARC_COLLECTION:
                 pks = self.kwargs.get("pks")
-                self._model_collection = COMIC_COLLECTION if pks else group
-            elif group == self.valid_nav_collections[-1] or group == COMIC_COLLECTION:
-                # special case for lowest valid group
+                self._model_collection = COMIC_COLLECTION if pks else collection
+            elif (
+                collection == self.valid_nav_collections[-1]
+                or collection == COMIC_COLLECTION
+            ):
+                # special case for lowest valid collection
                 self._model_collection = COMIC_COLLECTION
             else:
                 self._model_collection = self.valid_nav_collections[
-                    self.valid_nav_collections.index(group) + 1
+                    self.valid_nav_collections.index(collection) + 1
                 ]
         return self._model_collection
 
@@ -139,7 +142,7 @@ class BrowserView(BrowserTitleView):
         Annotate ``qs`` with ``favorite`` (Exists subquery) for table view.
 
         Runs unconditional on model — favorites apply to every
-        browsable group as well as Comic — and unconditional on
+        browsable collection as well as Comic — and unconditional on
         column selection: the per-row Exists is cheap (one indexed
         scan) and being always-on lets the user sort by ``favorite``
         from the order_by enum without separate gating.
@@ -204,12 +207,12 @@ class BrowserView(BrowserTitleView):
         return qs
 
     def _get_common_queryset(self, model) -> tuple:
-        """Create queryset common to group & books."""
+        """Create queryset common to collection & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
         try:
             # Collection once here; `add_group_by` is a no-op for Comic so the
-            # book path is unaffected, and the group path no longer needs
+            # book path is unaffected, and the collection path no longer needs
             # a second call after ordering.
             qs = self.add_group_by(qs)
             count_qs = qs[:limit] if limit else qs
@@ -273,11 +276,13 @@ class BrowserView(BrowserTitleView):
     def _get_page_mtime(self):
         return self.get_collection_mtime(self.model, page_mtime=True)
 
-    def _debug_queries(self, group_count, book_count, group_qs, book_qs) -> None:
+    def _debug_queries(
+        self, collection_count, book_count, collection_qs, book_qs
+    ) -> None:
         """Log query details."""
-        if group_count:
-            logger.debug(group_qs.explain())
-            logger.debug(group_qs.query)
+        if collection_count:
+            logger.debug(collection_qs.explain())
+            logger.debug(collection_qs.query)
         if book_count:
             logger.debug(book_qs.explain())
             logger.debug(book_qs.query)
@@ -297,21 +302,23 @@ class BrowserView(BrowserTitleView):
 
     def _get_group_and_books(self) -> tuple:
         """Create the main queries with filters, annotation and pagination."""
-        group_qs, group_count = self._get_group_queryset()
+        collection_qs, collection_count = self._get_group_queryset()
         book_qs, book_count = self._get_book_queryset()
 
         # Paginate
-        num_pages = ceil((group_count + book_count) / get_browser_max_obj_per_page())
+        num_pages = ceil(
+            (collection_count + book_count) / get_browser_max_obj_per_page()
+        )
         self.check_page_in_bounds(num_pages)
-        group_qs, book_qs, page_group_count, page_book_count = self.paginate(
-            group_qs, book_qs, group_count, book_count
+        collection_qs, book_qs, page_collection_count, page_book_count = self.paginate(
+            collection_qs, book_qs, collection_count, book_count
         )
 
         # Annotate
-        if page_group_count:
-            group_qs = self.annotate_card_aggregates(group_qs)
-            group_qs = self.annotate_cover(group_qs)
-            group_qs = self.force_inner_joins(group_qs)
+        if page_collection_count:
+            collection_qs = self.annotate_card_aggregates(collection_qs)
+            collection_qs = self.annotate_cover(collection_qs)
+            collection_qs = self.force_inner_joins(collection_qs)
         if page_book_count:
             zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
@@ -324,16 +331,16 @@ class BrowserView(BrowserTitleView):
         else:
             zero_pad = 1
 
-        # self._debug_queries(page_group_count, page_book_count, group_qs, book_qs) # noqa: ERA001
+        # self._debug_queries(page_collection_count, page_book_count, collection_qs, book_qs) # noqa: ERA001
 
-        total_page_count = page_group_count + page_book_count
+        total_page_count = page_collection_count + page_book_count
         mtime = self._get_page_mtime()
-        return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
+        return collection_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
 
     @override
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
-        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+        collection_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
             self._get_group_and_books()
         )
 
@@ -349,7 +356,7 @@ class BrowserView(BrowserTitleView):
                 "breadcrumbs": breadcrumbs,
                 "title": title,
                 "model_collection": self.model_collection,
-                "collections": group_qs,
+                "collections": collection_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,
@@ -369,7 +376,7 @@ class BrowserView(BrowserTitleView):
         Priority: explicit ``columns=`` query param (already validated
         and stored on params), then the user's persisted
         ``table_columns[top_collection]``, then the registry defaults for
-        the current top-group.
+        the current top-collection.
         """
         columns = self.params.get("columns") or ()
         if columns:
@@ -380,11 +387,11 @@ class BrowserView(BrowserTitleView):
             or Collection.PUBLISHER
         )
         stored = self.params.get("table_columns") or {}
-        stored_for_group = (
+        stored_for_collection = (
             stored.get(top_collection) if isinstance(stored, dict) else None
         )
-        if stored_for_group:
-            return tuple(stored_for_group)
+        if stored_for_collection:
+            return tuple(stored_for_collection)
         return default_columns_filtered(top_collection, self.params.get("show"))
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
@@ -392,7 +399,7 @@ class BrowserView(BrowserTitleView):
         """Return the page data — both cards and (in table mode) rows."""
         data = dict(self.get_object())
         if self.params.get("view_mode") == "table":
-            # The unified serializer projects groups+books through these
+            # The unified serializer projects collections+books through these
             # columns into a parallel ``rows`` list. ``cards`` stays
             # populated unconditionally so a mobile fallback can render
             # the card grid without a second round-trip.
@@ -403,10 +410,10 @@ class BrowserView(BrowserTitleView):
             # shared by every comic, scalars where every comic has
             # the same value. Computed after pagination so the work
             # is bounded to the visible page.
-            group_qs = data.get("collections")
-            if group_qs is not None:
+            collection_qs = data.get("collections")
+            if collection_qs is not None:
                 data["group_intersections"] = compute_collection_intersections(
-                    group_qs, columns
+                    collection_qs, columns
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

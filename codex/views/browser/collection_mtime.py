@@ -1,4 +1,4 @@
-"""Group Mtime Function."""
+"""Collection Mtime Function."""
 
 import hashlib
 import json
@@ -79,7 +79,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
     def _page_mtime_cache_key(self, model) -> str:
         """Stable key scoped to user + filter-affecting params."""
         user_id = self.request.user.pk if self.request.user.is_authenticated else 0
-        group = self.kwargs.get("collection", "r")
+        collection = self.kwargs.get("collection", "r")
         pks = tuple(self.kwargs.get("pks") or (0,))
         page = self.kwargs.get("page", 1)
         filter_keys = ("filters", "search", "q", "order_by", "order_reverse")
@@ -88,10 +88,12 @@ class BrowserCollectionMtimeView(BrowserFilterView):
         params_hash = hashlib.blake2s(params_str.encode(), digest_size=8).hexdigest()
         return (
             f"codex:page_mtime:{user_id}:{model.__name__}:"
-            f"{group}:{pks}:{page}:{params_hash}"
+            f"{collection}:{pks}:{page}:{params_hash}"
         )
 
-    def get_collection_mtime(self, model, group=None, pks=None, *, page_mtime=False):
+    def get_collection_mtime(
+        self, model, collection=None, pks=None, *, page_mtime=False
+    ):
         """
         Get a filtered mtime for browser pages and mtime checker.
 
@@ -106,7 +108,9 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             cached = self._get_cached_page_mtime(cache_key)
             if cached is not _PAGE_MTIME_CACHE_MISS:
                 return cached
-        mtime = self._query_collection_mtime(model, group, pks, page_mtime=page_mtime)
+        mtime = self._query_collection_mtime(
+            model, collection, pks, page_mtime=page_mtime
+        )
         if cache_key:
             self._store_page_mtime(cache_key, mtime)
         return mtime
@@ -125,11 +129,11 @@ class BrowserCollectionMtimeView(BrowserFilterView):
         stored = _PAGE_MTIME_NONE_SENTINEL if mtime is None else mtime
         _django_cache.set(cache_key, stored, _PAGE_MTIME_TTL_SECONDS)
 
-    def _query_collection_mtime(self, model, group, pks, *, page_mtime: bool):
+    def _query_collection_mtime(self, model, collection, pks, *, page_mtime: bool):
         """Run the filtered Max aggregate; None on a (logged) query error."""
         qs = self.get_filtered_queryset(
             model,
-            group=group,
+            collection=collection,
             pks=pks,
             page_mtime=page_mtime,
             bookmark_filter=self.is_bookmark_filtered,
@@ -145,7 +149,7 @@ class BrowserCollectionMtimeView(BrowserFilterView):
         )
         # Folding the linked ``CustomCover.updated_at`` into the
         # aggregate makes a cover upload (which never touches a Comic
-        # row) bump the group's reported mtime — without this, the
+        # row) bump the collection's reported mtime — without this, the
         # frontend's ``loadMtimes`` shortcut sees an unchanged value
         # after a COVERS broadcast and never triggers the page reload.
         # ``model.custom_cover`` is the (inherited) FK on every

@@ -22,15 +22,15 @@ class MtimeView(BrowserCollectionMtimeView):
     TARGET: str = "mtime"
 
     def _get_collection_mtime(self, item):
-        """Get one group's mtimes."""
-        group = item["collection"]
+        """Get one collection's mtimes."""
+        collection = item["collection"]
         pks = item["pks"]
 
-        model = COLLECTION_MODEL_MAP[group]
+        model = COLLECTION_MODEL_MAP[collection]
         if not model:
             model = Publisher
 
-        return self.get_collection_mtime(model, group, pks)
+        return self.get_collection_mtime(model, collection, pks)
 
     def get_max_collections_mtime(self):
         """Get max mtime for all collections."""

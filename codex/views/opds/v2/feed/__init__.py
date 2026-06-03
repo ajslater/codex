@@ -95,7 +95,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         return result
 
     def _feed_metadata(self, title: str, mtime: datetime | None) -> MappingProxyType:
-        number_of_items = self._opds_number_of_books + self._opds_number_of_groups
+        number_of_items = self._opds_number_of_books + self._opds_number_of_collections
         current_page = self.kwargs.get("page")
         md = {
             "title": title,

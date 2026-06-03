@@ -24,8 +24,8 @@ from codex.views.settings import (
     SettingsBaseView,
 )
 
-# Groups whose nav owns a dedicated route (folders / story arcs); for these
-# the URL group becomes the top_collection directly during validation.
+# Collections whose nav owns a dedicated route (folders / story arcs); for these
+# the URL collection becomes the top_collection directly during validation.
 _OWN_ROUTE_COLLECTIONS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
 
 
@@ -38,15 +38,15 @@ class BrowserSettingsBaseView(SettingsBaseView):
     CREATE_ARGS = BROWSER_CREATE_ARGS
 
     def set_order_by_default(self, params: MutableMapping) -> None:
-        """Set dynamic default for null order_by by group."""
+        """Set dynamic default for null order_by by collection."""
         if params["order_by"]:
             return
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         order_by = (
             "filename"
-            if group == FOLDER_COLLECTION
+            if collection == FOLDER_COLLECTION
             else "story_arc_number"
-            if group == STORY_ARC_COLLECTION
+            if collection == STORY_ARC_COLLECTION
             else "sort_name"
         )
         params["order_by"] = order_by
@@ -101,45 +101,48 @@ class BrowserSettingsView(BrowserSettingsBaseView):
     # ── Validation ──────────────────────────────────────────────────
 
     @staticmethod
-    def _validate_browse_top_group(params, group: str, top_collection: str) -> None:
-        """Validate top collection for browse groups (collection vocabulary)."""
+    def _validate_browse_top_group(
+        params, collection: str, top_collection: str
+    ) -> None:
+        """Validate top collection for browse collections (collection vocabulary)."""
         show = params["show"]
-        if group == Collection.ROOT or (
-            group in COLLECTION_ORDER
+        if collection == Collection.ROOT or (
+            collection in COLLECTION_ORDER
             and show.get(top_collection)
-            and COLLECTION_ORDER.index(top_collection) < COLLECTION_ORDER.index(group)
+            and COLLECTION_ORDER.index(top_collection)
+            < COLLECTION_ORDER.index(collection)
         ):
             return
 
-        for show_group, on in show.items():
+        for show_collection, on in show.items():
             if on:
-                params["top_collection"] = show_group
+                params["top_collection"] = show_collection
                 break
         else:
             params["top_collection"] = Collection.COMIC
 
     @classmethod
-    def _validate_top_group(cls, params, group: str, top_collection: str) -> None:
+    def _validate_top_group(cls, params, collection: str, top_collection: str) -> None:
         """Validate top collection."""
-        if group == top_collection:
+        if collection == top_collection:
             return
 
-        if group in _OWN_ROUTE_COLLECTIONS:
-            params["top_collection"] = group
+        if collection in _OWN_ROUTE_COLLECTIONS:
+            params["top_collection"] = collection
         else:
-            cls._validate_browse_top_group(params, group, top_collection)
+            cls._validate_browse_top_group(params, collection, top_collection)
 
     def _validate_settings_get(self, validated_data, params: dict) -> dict:
         """Validate and fix settings on GET."""
         # This is a micro version of browser/validate.py
         # It would be ideal to combine them but browser validate does redirects so maybe later.
         top_collection = params["top_collection"]
-        group = (
+        collection = (
             validated_data.get("collection", Collection.ROOT)
             if validated_data
             else Collection.ROOT
         )
-        self._validate_top_group(params, group, top_collection)
+        self._validate_top_group(params, collection, top_collection)
         self.set_order_by_default(params)
         return params
 

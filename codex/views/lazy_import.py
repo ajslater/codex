@@ -8,21 +8,21 @@ from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.mixins import OKSerializer
 from codex.views.auth import AuthGenericAPIView
 
-# Browse groups that resolve to a set of comics for lazy metadata import.
+# Browse collections that resolve to a set of comics for lazy metadata import.
 _LAZY_IMPORT_COLLECTIONS = frozenset({Collection.COMIC, Collection.FOLDER})
 
 
 class LazyImportView(AuthGenericAPIView):
-    """Queue a lazy metadata import for the comics under a browse group."""
+    """Queue a lazy metadata import for the comics under a browse collection."""
 
     serializer_class = OKSerializer
 
     def post(self, *args, **kwargs) -> Response:
-        """Enqueue a lazy-import task for a comics / folders group."""
-        group = self.kwargs.get("collection", "")
-        if group in _LAZY_IMPORT_COLLECTIONS:
+        """Enqueue a lazy-import task for a comics / folders collection."""
+        collection = self.kwargs.get("collection", "")
+        if collection in _LAZY_IMPORT_COLLECTIONS:
             pks = self.kwargs.get("pks", ())
             pks = frozenset(pks)
-            LIBRARIAN_QUEUE.put(LazyImportComicsTask(group=group, pks=pks))
+            LIBRARIAN_QUEUE.put(LazyImportComicsTask(group=collection, pks=pks))
         serializer = self.get_serializer()
         return Response(serializer.data)

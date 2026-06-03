@@ -10,7 +10,7 @@ from codex.serializers.fields.reader import VALID_ARC_COLLECTIONS
 from codex.serializers.reader import ReaderViewInputSerializer
 from codex.views.reader.settings import ReaderSettingsBaseView
 
-# Top groups with no arc of their own — they read within the series scope.
+# Top collections with no arc of their own — they read within the series scope.
 _SERIES_COLLAPSE_TOP_COLLECTIONS = frozenset(
     {Collection.ROOT, Collection.PUBLISHER, Collection.IMPRINT}
 )
@@ -29,19 +29,19 @@ class ReaderParamsView(ReaderSettingsBaseView):
 
     def _ensure_arc_group(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
-        group = arc.get("collection", "")
-        if not group:
+        collection = arc.get("collection", "")
+        if not collection:
             top_collection: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
                 "top_collection", browser=True
             )
-            group = (
+            collection = (
                 Collection.SERIES
                 if top_collection in _SERIES_COLLAPSE_TOP_COLLECTIONS
                 else top_collection
             )
-        if group not in VALID_ARC_COLLECTIONS:
-            group = Collection.SERIES
-        params["arc"]["collection"] = group
+        if collection not in VALID_ARC_COLLECTIONS:
+            collection = Collection.SERIES
+        params["arc"]["collection"] = collection
 
     @staticmethod
     def _ensure_arc_ids(params: dict[str, Any]) -> None:
@@ -53,7 +53,7 @@ class ReaderParamsView(ReaderSettingsBaseView):
         params["arc"]["ids"] = ids
 
     def _ensure_arc(self, params: dict[str, Any]) -> None:
-        """Ensure the group is valid."""
+        """Ensure the collection is valid."""
         if "arc" not in params:
             params["arc"] = {}
 

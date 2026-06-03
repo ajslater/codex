@@ -40,12 +40,12 @@ class BrowserValidateView(SearchFilterView):
 
     @property
     def model_collection(self) -> str:
-        """Memoize the model group."""
+        """Memoize the model collection."""
         if not self._model_collection:
-            group = self.kwargs["collection"]
-            if group == ROOT_COLLECTION:
-                group = self.params["top_collection"]
-            self._model_collection = group
+            collection = self.kwargs["collection"]
+            if collection == ROOT_COLLECTION:
+                collection = self.params["top_collection"]
+            self._model_collection = collection
         return self._model_collection
 
     @property
@@ -54,8 +54,8 @@ class BrowserValidateView(SearchFilterView):
         if not self._model:
             model = COLLECTION_MODEL_MAP.get(self.model_collection)
             if model is None:
-                group = self.kwargs["collection"]
-                detail = f"Cannot browse {group=}"
+                collection = self.kwargs["collection"]
+                detail = f"Cannot browse {collection=}"
                 logger.debug(detail)
                 raise NotFound(detail=detail)
             self._model = model
@@ -89,7 +89,7 @@ class BrowserValidateView(SearchFilterView):
         """
         show = self.params["show"]
         # Issues is always a valid top collection; appended after the
-        # show-driven groups so the existing ordering is preserved.
+        # show-driven collections so the existing ordering is preserved.
         return [
             *(nav_collection for nav_collection, allowed in show.items() if allowed),
             COMIC_COLLECTION,
@@ -101,16 +101,16 @@ class BrowserValidateView(SearchFilterView):
         if top_collection not in valid_top_collections:
             reason = f"top_collection {top_collection} not in valid nav collections {valid_top_collections}, changed to "
             if nav_collection in valid_top_collections:
-                valid_top_group = nav_collection
+                valid_top_collection = nav_collection
                 reason += "nav collection: "
             else:
-                valid_top_group = valid_top_collections[0]
+                valid_top_collection = valid_top_collections[0]
                 reason += "first valid top collection "
-            reason += valid_top_group
+            reason += valid_top_collection
             pks = self.kwargs.get("pks", ())
             page = self.kwargs["page"]
             route = {"collection": nav_collection, "pks": pks, "page": page}
-            settings_mask = {"top_collection": valid_top_group}
+            settings_mask = {"top_collection": valid_top_collection}
             self.raise_redirect(reason, route, settings_mask)
 
     def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
@@ -134,9 +134,7 @@ class BrowserValidateView(SearchFilterView):
                 valid_nav_collections += tail_top_collections
                 break
         if nav_collection not in valid_nav_collections:
-            reason = (
-                f"Nav group {nav_collection} unavailable, redirect to {ROOT_COLLECTION}"
-            )
+            reason = f"Nav collection {nav_collection} unavailable, redirect to {ROOT_COLLECTION}"
             self.raise_redirect(reason)
 
         return tuple(valid_nav_collections)
@@ -183,14 +181,16 @@ class BrowserValidateView(SearchFilterView):
     def valid_nav_collections(self) -> tuple[str, ...]:
         """Memoize valid nav collections."""
         if self._valid_nav_collections is None:
-            group = self.kwargs["collection"]
-            validate_group = (
-                self.params["top_collection"] if group == COMIC_COLLECTION else group
+            collection = self.kwargs["collection"]
+            validate_collection = (
+                self.params["top_collection"]
+                if collection == COMIC_COLLECTION
+                else collection
             )
 
-            if validate_group == FOLDER_COLLECTION:
+            if validate_collection == FOLDER_COLLECTION:
                 vng = self._validate_folder_settings()
-            elif validate_group == STORY_ARC_COLLECTION:
+            elif validate_collection == STORY_ARC_COLLECTION:
                 vng = self._validate_story_arc_settings()
             else:
                 vng = self._validate_browser_collection_settings()

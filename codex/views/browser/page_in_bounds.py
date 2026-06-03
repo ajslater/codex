@@ -14,29 +14,29 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
     def _get_back_one_page_route(self, num_pages) -> dict[str, Any]:
         """Get max page if oob or 1."""
         logger.debug("Redirect back one page.")
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
         new_page = num_pages if num_pages and page > num_pages else 1
         pks = pks or (0,)
-        return {"collection": group, "pks": pks, "page": new_page}
+        return {"collection": collection, "pks": pks, "page": new_page}
 
     def _get_up_page_redirect(self) -> tuple[dict, None]:
         """Get a parent route to redirect to when page is out of bounds."""
-        group = self.kwargs.get("collection")
-        if group not in (FOLDER_COLLECTION, STORY_ARC_COLLECTION):
-            group = ROOT_COLLECTION
-        route_mask = {"collection": group, "pks": (), "page": 1}
+        collection = self.kwargs.get("collection")
+        if collection not in (FOLDER_COLLECTION, STORY_ARC_COLLECTION):
+            collection = ROOT_COLLECTION
+        route_mask = {"collection": collection, "pks": (), "page": 1}
         logger.debug("Redirect up a level.")
         return route_mask, None
 
     def _handle_page_out_of_bounds(self, num_pages) -> None:
         """Handle out of bounds redirect."""
         # Try to find a logical page to run to.
-        group = self.kwargs.get("collection")
+        collection = self.kwargs.get("collection")
         page = self.kwargs.get("page", 1)
         pks = self.kwargs.get("pks")
-        reason = f"{group=} {pks=} {page=} does not exist."
+        reason = f"{collection=} {pks=} {page=} does not exist."
 
         # Adjust route mask for redirect
         if num_pages and page > 1:
@@ -52,7 +52,7 @@ class BrowserPageInBoundsView(BrowserAnnotateCoverView):
         """Redirect page out of bounds."""
         page = self.kwargs.get("page", 1)
         # ``page == 1`` is the root page and is always in bounds,
-        # even when the group is empty (``num_pages == 0`` — the
+        # even when the collection is empty (``num_pages == 0`` — the
         # state on a fresh install where the importer hasn't run
         # yet). Without that special case, an empty database
         # redirects ``r/0/1`` → ``_get_up_page_redirect`` →

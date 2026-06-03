@@ -46,14 +46,14 @@ class FilteredComicPksView(BrowserFilterView):
             self._params = MappingProxyType(self.load_params_from_settings())
         return self._params
 
-    def resolve_comic_pks(self, group: str, pks) -> frozenset[int]:
-        """Resolve group+pks to filtered comic pks via the browser pipeline."""
+    def resolve_comic_pks(self, collection: str, pks) -> frozenset[int]:
+        """Resolve collection+pks to filtered comic pks via the browser pipeline."""
         int_pks = tuple(sorted({int(pk) for pk in pks if str(pk).isdigit()}))
         if not int_pks:
             return frozenset()
-        self.kwargs["collection"] = group
+        self.kwargs["collection"] = collection
         self.kwargs["pks"] = int_pks
-        qs = self.get_filtered_queryset(Comic, group=group, pks=int_pks)
+        qs = self.get_filtered_queryset(Comic, collection=collection, pks=int_pks)
         return frozenset(qs.values_list("pk", flat=True))
 
 

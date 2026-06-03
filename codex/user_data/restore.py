@@ -453,31 +453,35 @@ def _restore_favorites(
         if user is None:
             report.note_skipped("favorites", f"missing user {row['username']!r}")
             continue
-        group = row["collection"]
-        target_model = code_to_model.get(group)
+        collection = row["collection"]
+        target_model = code_to_model.get(collection)
         if target_model is None:
-            report.note_skipped("favorites", f"unknown favorite group {group!r}")
+            report.note_skipped(
+                "favorites", f"unknown favorite collection {collection!r}"
+            )
             continue
         decoded = json.loads(row["identifier_json"])
-        # decoded == [group, ...parts]
+        # decoded == [collection, ...parts]
         parts = decoded[1:]
-        target_pk = _resolve_browse_group_pk(group, parts, target_model)
+        target_pk = _resolve_browse_collection_pk(collection, parts, target_model)
         if target_pk is None:
             username = row["username"]
             report.note_skipped(
                 "favorites",
-                f"unresolvable {group!r} target {parts!r} for user {username!r}",
+                f"unresolvable {collection!r} target {parts!r} for user {username!r}",
             )
             continue
         Favorite.objects.update_or_create(
-            user=user, collection=group, target_id=target_pk
+            user=user, collection=collection, target_id=target_pk
         )
         report.note_written("favorites")
 
 
-def _resolve_browse_group_pk(group: str, parts: list[Any], model) -> int | None:
+def _resolve_browse_collection_pk(
+    collection: str, parts: list[Any], model
+) -> int | None:
     """Resolve a name-chain identifier back to a main-DB PK."""
-    match group:
+    match collection:
         case Collection.COMIC | Collection.FOLDER:
             obj = model.objects.filter(path=parts[0]).first()
         case Collection.PUBLISHER | Collection.ARC:
@@ -633,26 +637,26 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
 
 
 def _resolve_last_route_pks(
-    group: str, decoded: list, report: RestoreReport
+    collection: str, decoded: list, report: RestoreReport
 ) -> list[int]:
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
-    if group == Collection.ROOT or not decoded:
+    if collection == Collection.ROOT or not decoded:
         return []
     from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
 
     target_model = next(
-        (m for m, c in FAVORITE_MODEL_COLLECTIONS.items() if c == group),
+        (m for m, c in FAVORITE_MODEL_COLLECTIONS.items() if c == collection),
         None,
     )
     if target_model is None:
         return []
     pks: list[int] = []
     for parts in decoded:
-        pk = _resolve_browse_group_pk(group, parts, target_model)
+        pk = _resolve_browse_collection_pk(collection, parts, target_model)
         if pk is None:
             report.note_skipped(
                 "settings_last_route",
-                f"unresolvable last-route {group!r} target {parts!r}",
+                f"unresolvable last-route {collection!r} target {parts!r}",
             )
             continue
         pks.append(pk)
@@ -663,12 +667,12 @@ def _restore_one_last_route(row, browser, report: RestoreReport) -> None:
     """Restore a single ``settings_last_route`` row."""
     from codex.models.settings import SettingsBrowserLastRoute
 
-    group = row["collection"]
+    collection = row["collection"]
     decoded = json.loads(row["pks_json"] or "[]")
-    pks = _resolve_last_route_pks(group, decoded, report)
+    pks = _resolve_last_route_pks(collection, decoded, report)
     SettingsBrowserLastRoute.objects.update_or_create(
         browser=browser,
-        defaults={"collection": group, "pks": pks, "page": row["page"] or 1},
+        defaults={"collection": collection, "pks": pks, "page": row["page"] or 1},
     )
     report.note_written("settings_last_route")
 

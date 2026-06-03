@@ -48,8 +48,8 @@ class OPDS1EntryLinksMixin:
                 kwargs={"pk": custom_pk},
                 query=query_params,
             )
-        # Comic entries serve their own cover; group entries use the
-        # annotated cover_pk, falling back to obj.pk (the group's own pk)
+        # Comic entries serve their own cover; collection entries use the
+        # annotated cover_pk, falling back to obj.pk (the collection's own pk)
         # so the thin endpoint can serve the missing-cover placeholder
         # for edge cases instead of reverting to a legacy fan-out.
         pk = (
@@ -98,8 +98,8 @@ class OPDS1EntryLinksMixin:
     def _nav_link(self, *, metadata: bool) -> OPDS1Link:
         href = self._nav_href(metadata=metadata)
 
-        group = self.obj.nav_collection
-        if group in self.acquisition_groups:
+        collection = self.obj.nav_collection
+        if collection in self.acquisition_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV

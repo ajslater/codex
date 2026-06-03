@@ -144,7 +144,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
                 pagination = {
                     "current_page": current_page,
                     "items_per_page": get_browser_max_obj_per_page(),
-                    "number_of_items": self._opds_number_of_groups,
+                    "number_of_items": self._opds_number_of_collections,
                 }
                 metadata.update(pagination)
             group: dict[str, Mapping | list] = {
