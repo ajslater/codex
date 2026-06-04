@@ -11,6 +11,7 @@ import READER_CHOICES from "@/choices/reader-choices.json";
 import READER_DEFAULTS from "@/choices/reader-defaults.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
+import { browserRouteParams } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
 const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
@@ -203,23 +204,29 @@ export const useReaderStore = defineStore("reader", {
       return this.page >= limit;
     },
     closeBookRoute(state) {
-      const route = { name: "browser" };
-      if (state.routes.close) {
-        route.params = state.routes.close;
-      } else {
+      // Browser breadcrumbs speak the collection vocabulary; the close
+      // target is the deepest non-comic crumb (its container listing).
+      let src = state.routes.close;
+      if (!src) {
         const breadcrumbs = useBrowserStore()?.settings?.breadcrumbs;
-        // Browser breadcrumbs speak the collection vocabulary; the close
-        // target is the deepest non-comic crumb (its container listing).
-        route.params = breadcrumbs?.findLast((b) => b.collection !== "comics");
+        src = breadcrumbs?.findLast((b) => b.collection !== "comics");
       }
-      if (route.params) {
+      // A #card hash only makes sense when we know which listing the book
+      // lived in; the generic last-route fallback below has no card context.
+      const hasContext = Boolean(src);
+      if (!src) {
+        src = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
+      }
+      // browserRouteParams coerces parentIds to a "1,2" string (or omits it).
+      // The browser route's parentIds token is not repeatable, so handing it
+      // an array — e.g. LAST_ROUTE's parentIds: [] — makes vue-router's
+      // resolve() throw and takes the whole reader render down with it.
+      const route = { name: "browser", params: browserRouteParams(src) };
+      if (hasContext) {
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
           route.hash = `#card-${cardPk}`;
         }
-      } else {
-        route.params =
-          globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
       return route;
     },

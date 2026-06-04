@@ -36,6 +36,18 @@ export const collectionForRoute = ({ collection, parentIds }) => {
   return { collection, pks: ids };
 };
 
+/*
+ * Build vue-router params for the ``browser`` route from any
+ * {collection, parentIds|pks} source. The route's ``parentIds`` segment is a
+ * single optional token, so it must be a ``"1,2"`` string or omitted entirely
+ * — handing vue-router an array throws "Provided param parentIds is an array
+ * but it is not repeatable". Mirrors the breadcrumb / LAST_ROUTE shaping.
+ */
+export const browserRouteParams = ({ collection, parentIds, pks }) => {
+  const ids = normalizeParentIds(parentIds ?? pks);
+  return ids.length ? { collection, parentIds: ids.join(",") } : { collection };
+};
+
 const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));
 export const getReaderRoute = (
   { ids, page, readingDirection, pageCount },
@@ -62,6 +74,7 @@ export const getReaderRoute = (
 };
 
 export default {
+  browserRouteParams,
   collectionForRoute,
   getReaderRoute,
   normalizeParentIds,
