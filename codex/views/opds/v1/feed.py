@@ -189,7 +189,8 @@ class OPDS1FeedView(OPDS1LinksView):
                     import_pks.add(obj.pk)
                 entries.append(entry)
             if import_pks:
-                task = LazyImportComicsTask(                    collection=Collection.COMIC, pks=frozenset(import_pks)
+                task = LazyImportComicsTask(
+                    collection=Collection.COMIC, pks=frozenset(import_pks)
                 )
                 LIBRARIAN_QUEUE.put(task)
         return entries

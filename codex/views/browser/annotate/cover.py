@@ -102,7 +102,9 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         collection_rel = CUSTOM_COVER_COLLECTION_RELATION.get(self.model_collection)
         if not collection_rel:
             return None
-        qs = CustomCover.objects.filter(**{collection_rel: OuterRef("pk")}).values("pk")[:1]
+        qs = CustomCover.objects.filter(**{collection_rel: OuterRef("pk")}).values(
+            "pk"
+        )[:1]
         return Subquery(qs)
 
     def annotate_cover(self, qs):

@@ -42,7 +42,9 @@ class DeletedComicsImporter(DeletedCoversImporter):
                 deleted_comic_collections[related_model].add(related_id)
 
     @classmethod
-    def _populate_deleted_comic_collections(cls, delete_qs, deleted_comic_collections) -> None:
+    def _populate_deleted_comic_collections(
+        cls, delete_qs, deleted_comic_collections
+    ) -> None:
         """Populate changed collections for cover timestamp updater."""
         comics_deleted_qs = delete_qs.only(
             *ALL_COMIC_COLLECTION_FIELD_NAMES
@@ -72,7 +74,9 @@ class DeletedComicsImporter(DeletedCoversImporter):
                 delete_qs = Comic.objects.filter(
                     library=self.library, path__in=batch_paths
                 )
-                self._populate_deleted_comic_collections(delete_qs, deleted_comic_collections)
+                self._populate_deleted_comic_collections(
+                    delete_qs, deleted_comic_collections
+                )
                 delete_comic_pks.update(delete_qs.values_list("pk", flat=True))
                 delete_qs.delete()
 

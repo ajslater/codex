@@ -213,7 +213,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         for name in ("credits", "identifiers"):
             field = fields.get(name)
             if field is not None:
-                field.source_attrs = []  # type: ignore[assignment]
+                field.source_attrs = []
         return fields
 
     def get_credits(self, obj):

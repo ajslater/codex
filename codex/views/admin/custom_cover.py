@@ -284,4 +284,4 @@ class AdminCustomCoverListView(AdminJsonApiMixin, ListAPIView):
     serializer_class = CustomCoverSerializer
     queryset = CustomCover.objects.all().order_by("collection", "sort_name", "pk")
 
-    permission_classes = AdminAPIView.permission_classes  # type: ignore[assignment]
+    permission_classes = AdminAPIView.permission_classes

@@ -45,7 +45,12 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         if parent_collection != COMIC_COLLECTION:
             for index, nav_collection in enumerate(_SHOW_COLLECTIONS):
                 order_collections, do_break = cls._get_order_collection(
-                    nav_collection, show, parent_collection, index, pks, order_collections
+                    nav_collection,
+                    show,
+                    parent_collection,
+                    index,
+                    pks,
+                    order_collections,
                 )
                 if do_break:
                     break

@@ -201,7 +201,9 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
         # Regular Groups
         tup = (LinkGroup(title, collection_qs),)
-        subtitle = collection_qs.model.__name__ if collection_qs.model else "UnknownGroup"
+        subtitle = (
+            collection_qs.model.__name__ if collection_qs.model else "UnknownGroup"
+        )
         if subtitle != "Series":
             subtitle += "s"
         groups += self._create_group(tup, paginate=True)

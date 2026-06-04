@@ -14,7 +14,9 @@ class DeletedImporter(DeletedFoldersImporter):
         self.counts.folders_deleted += self.bulk_folders_deleted()
         if self.abort_event.is_set():
             return
-        self.counts.comics_deleted, deleted_comic_collections = self.bulk_comics_deleted()
+        self.counts.comics_deleted, deleted_comic_collections = (
+            self.bulk_comics_deleted()
+        )
         if self.abort_event.is_set():
             return
         self.counts.covers_deleted = self.bulk_covers_deleted()

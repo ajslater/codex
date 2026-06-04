@@ -185,7 +185,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             volumes=False,
         )
         create_kwargs = dict(create_args)
-        create_kwargs.setdefault("top_collection", cls._get_admin_default_top_collection())
+        create_kwargs.setdefault(
+            "top_collection", cls._get_admin_default_top_collection()
+        )
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,

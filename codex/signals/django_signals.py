@@ -17,7 +17,9 @@ def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
     from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 
     if collection_code := FAVORITE_MODEL_COLLECTIONS.get(sender):
-        Favorite.objects.filter(collection=collection_code, target_id=instance.pk).delete()
+        Favorite.objects.filter(
+            collection=collection_code, target_id=instance.pk
+        ).delete()
 
 
 def _ensure_user_auth(sender, instance, created, **_kwargs) -> None:

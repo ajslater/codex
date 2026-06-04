@@ -424,7 +424,9 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             total = 0
             with self.db_write_lock:
                 for model, collection_code in _FAVORITE_TARGETS:
-                    orphans = Favorite.objects.filter(collection=collection_code).exclude(
+                    orphans = Favorite.objects.filter(
+                        collection=collection_code
+                    ).exclude(
                         target_id__in=model.objects.values("pk"),
                     )
                     count, _ = orphans.delete()

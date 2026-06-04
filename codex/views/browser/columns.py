@@ -296,9 +296,9 @@ def favorite_annotation_for(model, user) -> dict:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
-    favorited_ids = Favorite.objects.filter(user=user, collection=collection_code).values(
-        "target_id"
-    )
+    favorited_ids = Favorite.objects.filter(
+        user=user, collection=collection_code
+    ).values("target_id")
     return {
         "favorite": Case(
             When(pk__in=favorited_ids, then=_FAVORITE_TRUE),
