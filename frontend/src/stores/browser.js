@@ -60,7 +60,7 @@ const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 /*
  * Default-columns gating. ``imprint_name`` and ``volume_name`` lead
- * the per-top-group default column tuples (see
+ * the per-top-collection default column tuples (see
  * ``BROWSER_TABLE_DEFAULT_COLUMNS``), but a user who has the
  * matching ``show.imprints`` / ``show.volumes`` flags off — i.e., they
  * hide imprints / volumes from breadcrumb navigation — almost certainly
@@ -85,9 +85,9 @@ export function filterShowGatedDefaults(cols, show) {
 }
 
 /*
- * Per-top-group default order applied when the user hits the
+ * Per-top-collection default order applied when the user hits the
  * "Cancel" button on the loading spinner. Cover view, Folder,
- * StoryArc, Publisher and Comic top-groups all want the plain
+ * StoryArc, Publisher and Comic top-collections all want the plain
  * ``sort_name`` single sort — Comic's order pipeline already
  * expands ``sort_name`` into the full
  * ``publisher_sort_name → ... → sort_name`` ladder via
@@ -282,7 +282,7 @@ export const useBrowserStore = defineStore("browser", {
     topCollectionChoices() {
       const choices = [];
       for (const item of BROWSER_CHOICES.TOP_COLLECTION) {
-        if (this._isRootGroupEnabled(item.value)) {
+        if (this._isRootCollectionEnabled(item.value)) {
           choices.push(item);
         }
       }
@@ -365,11 +365,11 @@ export const useBrowserStore = defineStore("browser", {
       const topCollectionIndex = COLLECTIONS_REVERSED.indexOf(
         state.settings.topCollection,
       );
-      for (const [index, group] of [...COLLECTIONS_REVERSED].entries()) {
-        const show = state.settings.show[group];
+      for (const [index, collection] of [...COLLECTIONS_REVERSED].entries()) {
+        const show = state.settings.show[collection];
         if (show) {
           if (index <= topCollectionIndex) {
-            lowestCollection = group;
+            lowestCollection = collection;
           }
           break;
         }
@@ -488,7 +488,7 @@ export const useBrowserStore = defineStore("browser", {
     /*
      * VALIDATORS
      */
-    _isRootGroupEnabled(topCollection) {
+    _isRootCollectionEnabled(topCollection) {
       if (ALWAYS_ENABLED_TOP_COLLECTIONS.has(topCollection)) {
         return true;
       } else if (topCollection == "folders") {
@@ -511,7 +511,7 @@ export const useBrowserStore = defineStore("browser", {
         // Do not redirect to first search if already in search mode.
         return;
       }
-      // If first search redirect to lowest group and change order
+      // If first search redirect to lowest collection and change order
       data.orderBy = "search_score";
       data.orderReverse = true;
       const collection = liveBrowseParams().collection;
@@ -527,8 +527,8 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateTopCollection(data, redirect) {
       /*
-       * If the top collection changed supergroups or we're at the root group and the new
-       * top collection is above the proper nav collection
+       * If the top collection changed super-collections or we're at the root
+       * collection and the new top collection is above the proper nav collection
        */
       const currentParams = liveBrowseParams();
       const currentCollection = currentParams?.collection;
@@ -538,7 +538,7 @@ export const useBrowserStore = defineStore("browser", {
         !NON_BROWSE_COLLECTIONS.has(data.topCollection)
       ) {
         return redirect;
-        // root group can have any top collections?
+        // root collection can have any top collections?
       }
 
       const oldTopCollection = this.settings.topCollection;
@@ -553,7 +553,7 @@ export const useBrowserStore = defineStore("browser", {
          * or
          * topCollection didn't change.
          * or
-         * topCollection and group are the same, request is well formed.
+         * topCollection and collection are the same, request is well formed.
          */
         return redirect;
       }
@@ -587,22 +587,22 @@ export const useBrowserStore = defineStore("browser", {
           params = { collection: "root", pks: "", page: "1" };
         }
       } else {
-        // redirect to the new TopGroup
+        // redirect to the new TopCollection
         const collection = newTopCollectionIsBrowse ? "root" : newTopCollection;
         params = { collection, pks: "", page: "1" };
       }
       return { params };
     },
-    getTopCollection(group) {
+    getTopCollection(collection) {
       // Similar to browser store logic.
       let topCollection;
       if (
-        this.settings.topCollection === group ||
-        NON_BROWSE_COLLECTIONS.has(group)
+        this.settings.topCollection === collection ||
+        NON_BROWSE_COLLECTIONS.has(collection)
       ) {
-        topCollection = group;
+        topCollection = collection;
       } else {
-        const collectionIndex = COLLECTIONS_REVERSED.indexOf(group); // + 1;
+        const collectionIndex = COLLECTIONS_REVERSED.indexOf(collection); // + 1;
         // Determine browse top collection
         for (const testCollection of COLLECTIONS_REVERSED.slice(
           collectionIndex,
@@ -623,7 +623,7 @@ export const useBrowserStore = defineStore("browser", {
        * Pick the column set for the current table-view request.
        * Persisted overrides (``settings.tableColumns[topCollection]``) win
        * over the registry defaults; both fall back to an empty tuple
-       * for unknown top-groups (the backend then uses its own
+       * for unknown top-collections (the backend then uses its own
        * defaults). Defaults are filtered by the user's ``show.i``
        * and ``show.v`` flags so a user who hides imprints / volumes
        * from breadcrumb navigation doesn't get those columns leading
@@ -811,8 +811,8 @@ export const useBrowserStore = defineStore("browser", {
        * indeterminate spinner after a 10s grace period.
        *
        * Stays on the current route. Keeps filters, search, view-
-       * mode, top-group, columns, and every other display
-       * preference. Only resets the order to the per-top-group
+       * mode, top-collection, columns, and every other display
+       * preference. Only resets the order to the per-top-collection
        * default (see ``_defaultOrderFor``) so the next fetch lands
        * on a configuration the backend can serve quickly.
        *
@@ -854,7 +854,7 @@ export const useBrowserStore = defineStore("browser", {
         return this.loadSettings();
       }
       /*
-       * Single-flight: a rapid group switch aborts the previous
+       * Single-flight: a rapid collection switch aborts the previous
        * fetch so its late-arriving response can't ``$patch`` stale
        * state over the current route's data.
        */
@@ -862,7 +862,7 @@ export const useBrowserStore = defineStore("browser", {
       /*
        * Table mode requests need ``columns=`` so the backend knows
        * which fields to project / annotate. The list comes from the
-       * user's persisted table_columns map (per top-group) and falls
+       * user's persisted table_columns map (per top-collection) and falls
        * back to the registry defaults; cover mode never sets it.
        */
       const requestSettings =

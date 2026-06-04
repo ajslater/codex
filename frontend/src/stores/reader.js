@@ -611,9 +611,9 @@ export const useReaderStore = defineStore("reader", {
         return true;
       }
       const arcs = [];
-      for (const [group, arcIdInfos] of Object.entries(this.arcs)) {
+      for (const [collection, arcIdInfos] of Object.entries(this.arcs)) {
         for (const pks of Object.keys(arcIdInfos)) {
-          const arc = { collection: group, pks };
+          const arc = { collection, pks };
           arcs.push(arc);
         }
       }
@@ -718,11 +718,11 @@ export const useReaderStore = defineStore("reader", {
       if (!pk) {
         return;
       }
-      const arcGroup = this.arc?.collection || "series";
+      const arcCollection = this.arc?.collection || "series";
       const storyArcPk = this._getStoryArcPk();
       await READER_API.getSettings(
         pk,
-        ["global", arcGroup, "comics"],
+        ["global", arcCollection, "comics"],
         storyArcPk,
       )
         .then((response) => {

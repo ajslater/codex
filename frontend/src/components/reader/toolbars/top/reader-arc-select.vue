@@ -82,20 +82,20 @@ export default {
       if (!this.arcs) {
         return items;
       }
-      for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
+      for (const [collection, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = Reflect.get(TOP_COLLECTION, group);
-          if (group !== "series") {
+          let subtitle = Reflect.get(TOP_COLLECTION, collection);
+          if (collection !== "series") {
             subtitle = subtitle.slice(0, -1);
           }
-          const prependIcon = Reflect.get(ARC_ICONS, group);
+          const prependIcon = Reflect.get(ARC_ICONS, collection);
           const appendIcon =
-            group === this.arc?.collection && ids == this.arc?.ids
+            collection === this.arc?.collection && ids == this.arc?.ids
               ? mdiCheck
               : "";
-          const value = { group, ids, prependIcon, ...arcInfo };
+          const value = { collection, ids, prependIcon, ...arcInfo };
           const item = {
-            group,
+            collection,
             value,
             title: arcInfo.name,
             subtitle,
@@ -130,8 +130,8 @@ export default {
       };
       this.loadBooks({ arc });
     },
-    prependIcon(group) {
-      return Reflect.get(ARC_ICONS, group);
+    prependIcon(collection) {
+      return Reflect.get(ARC_ICONS, collection);
     },
   },
 };

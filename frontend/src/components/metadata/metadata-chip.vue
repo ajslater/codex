@@ -27,7 +27,7 @@ import { mapActions, mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_SET = new Set(["publishers", "imprints", "series", "volumes"]);
+const COLLECTION_SET = new Set(["publishers", "imprints", "series", "volumes"]);
 
 export default {
   name: "MetadataTags",
@@ -60,17 +60,17 @@ export default {
       topCollection: (state) => state.settings.topCollection,
     }),
     ...mapState(useMetadataStore, {
-      mdGroup: (state) => state.md.collection,
+      mdCollection: (state) => state.md.collection,
       mdIds: (state) => state.md.ids,
     }),
-    groupMode() {
-      return GROUP_SET.has(this.filter);
+    collectionMode() {
+      return COLLECTION_SET.has(this.filter);
     },
     clickable() {
       return (
         this.filter &&
         this.item.value &&
-        (!this.groupMode || this.browserShow[this.filter])
+        (!this.collectionMode || this.browserShow[this.filter])
       );
     },
     classes() {
@@ -80,8 +80,8 @@ export default {
     },
     highlight() {
       return Boolean(
-        (this.groupMode &&
-          this.filter === this.mdGroup &&
+        (this.collectionMode &&
+          this.filter === this.mdCollection &&
           this.mdIds.includes(this.item.value)) ||
         this.filterValues?.includes(this.item.value),
       );
@@ -104,7 +104,7 @@ export default {
     },
     linkCollection() {
       let linkCollection;
-      if (this.groupMode) {
+      if (this.collectionMode) {
         linkCollection = this.filter;
       } else {
         linkCollection = ["folders", "series"].includes(this.topCollection)
@@ -114,18 +114,18 @@ export default {
       return linkCollection;
     },
     linkPks() {
-      const groupMode =
-        this.groupMode ||
+      const collectionMode =
+        this.collectionMode ||
         (this.linkCollection !== "arcs" && this.filter === "storyArcs");
-      return groupMode ? this.item.value.toString() : "0";
+      return collectionMode ? this.item.value.toString() : "0";
     },
     toRoute() {
       if (!this.clickable) {
         return "";
       }
-      const group = this.linkCollection;
+      const collection = this.linkCollection;
       const pks = this.linkPks;
-      const params = { collection: group, pks, page: 1 };
+      const params = { collection, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {

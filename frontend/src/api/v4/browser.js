@@ -8,7 +8,7 @@ const APP_BASE = (() => globalThis.CODEX?.APP_PATH || "/")();
 
 /*
  * v4 path scheme — Option A: ``/browse/{collection}[/{parentIds}]``.
- * No magic ``pks=0``, no single-char group codes. Root listings omit
+ * No magic ``pks=0``, no single-char collection codes. Root listings omit
  * the parent-IDs segment entirely. Page is a query param, not a path
  * segment.
  */
@@ -145,7 +145,12 @@ export const updateSettings = (settings) => {
 export const resetSettings = (settings) =>
   HTTP.delete(_collectionSettingsBase(settings?.collection));
 
-export const getGroupDownloadURL = ({ collection, pks }, fn, settings, ts) => {
+export const getCollectionDownloadURL = (
+  { collection, pks },
+  fn,
+  settings,
+  ts,
+) => {
   const { show: _show, ...query } = settings;
   const { queryString } = getBrowserHrefPath({ collection, pks, query, ts });
   const encoded = encodeURIComponent(fn);

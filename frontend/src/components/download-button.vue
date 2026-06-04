@@ -15,7 +15,7 @@
 import { mdiDownload } from "@mdi/js";
 import { mapState } from "pinia";
 
-import { getGroupDownloadURL } from "@/api/v4/browser";
+import { getCollectionDownloadURL } from "@/api/v4/browser";
 import { getDownloadIOSPWAFix } from "@/api/v4/common";
 import { getComicDownloadURL } from "@/api/v4/reader";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
@@ -65,7 +65,7 @@ export default {
         const collection = this.item?.collection;
         const pks = this.item?.ids;
         const settings = this.filterOnlySettings;
-        url = getGroupDownloadURL(
+        url = getCollectionDownloadURL(
           { collection, pks },
           this.downloadFn,
           settings,

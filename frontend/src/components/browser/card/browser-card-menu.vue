@@ -53,7 +53,7 @@ export default {
     };
   },
   computed: {
-    _groupName() {
+    _collectionName() {
       const names = [
         this.item?.publisherName,
         this.item?.imprintName,
@@ -65,7 +65,7 @@ export default {
       return names.filter(Boolean).join(" ");
     },
     downloadName() {
-      return this.item?.fileName || this._groupName;
+      return this.item?.fileName || this._collectionName;
     },
     downloadItem() {
       return { ...this.item, name: this.downloadName };

@@ -129,7 +129,7 @@ export default {
         parentIds: params.parentIds,
       }).collection;
 
-      // Validate Group
+      // Validate collection
       if (
         !this.collection ||
         routeCollection === this.collection ||

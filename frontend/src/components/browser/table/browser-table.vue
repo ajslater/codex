@@ -122,7 +122,7 @@ export default {
     }),
     rows() {
       /*
-       * Backend emits ``rows`` for table mode, ``groups``/``books`` for
+       * Backend emits ``rows`` for table mode, ``collections``/``books`` for
        * cover mode. Be tolerant: mid-toggle the store may briefly hold
        * a cover-shaped page, so fall back to the concatenated list.
        */

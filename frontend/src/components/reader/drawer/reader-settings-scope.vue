@@ -141,10 +141,11 @@ export default {
     },
     intermediateTitle() {
       if (!this.intermediateInfo) {
-        return "Group Settings";
+        return "Collection Settings";
       }
       return (
-        SCOPE_TYPE_TITLES[this.intermediateInfo.scopeType] || "Group Settings"
+        SCOPE_TYPE_TITLES[this.intermediateInfo.scopeType] ||
+        "Collection Settings"
       );
     },
     intermediateName() {

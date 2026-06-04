@@ -35,7 +35,7 @@ const _visibleItems = () => {
   /*
    * Ordered list of items currently shown on the browser page.
    * Mirrors ``BrowserMain.cards`` and the table view's ``rows``:
-   * table mode wins when present, otherwise spread groups + books.
+   * table mode wins when present, otherwise spread collections + books.
    * Used by both ``selectAll`` and ``selectItemAt`` so the displayed
    * order is the single source of truth for "between" semantics.
    */
@@ -229,7 +229,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
           : collectionName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
-        const url = API.getGroupDownloadURL(
+        const url = API.getCollectionDownloadURL(
           { collection: collection, pks },
           fn,
           settings,

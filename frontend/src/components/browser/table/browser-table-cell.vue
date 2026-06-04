@@ -31,7 +31,7 @@
   <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
     <FavoriteToggle
       v-if="favoritePk"
-      :collection="favoriteGroup"
+      :collection="favoriteCollection"
       :pk="favoritePk"
     />
   </span>
@@ -174,9 +174,9 @@ export default {
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
     },
-    favoriteGroup() {
+    favoriteCollection() {
       /*
-       * Group rows carry an explicit ``collection`` collection; comic rows
+       * Collection rows carry an explicit ``collection``; comic rows
        * omit it (the table view's lone comic-only top-collection) and
        * default to ``comics``.
        */

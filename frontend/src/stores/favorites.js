@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/favorites";
 
-const FAVORITE_GROUP_CODES = Object.freeze([
+const FAVORITE_COLLECTION_CODES = Object.freeze([
   "publishers",
   "imprints",
   "series",
@@ -14,8 +14,8 @@ const FAVORITE_GROUP_CODES = Object.freeze([
 
 function emptyFavoriteIds() {
   const ids = {};
-  for (const group of FAVORITE_GROUP_CODES) {
-    ids[group] = new Set();
+  for (const collection of FAVORITE_COLLECTION_CODES) {
+    ids[collection] = new Set();
   }
   return ids;
 }
@@ -29,11 +29,11 @@ export const useFavoritesStore = defineStore("favorites", {
     /*
      * Curried so callers can spread the getter into a computed
      * without recomputing on every dependency change. Example:
-     *   isFavorite: (state) => (group, pk) => ...
-     * lets ``isFavorite(group, pk)`` track only the matching Set.
+     *   isFavorite: (state) => (collection, pk) => ...
+     * lets ``isFavorite(collection, pk)`` track only the matching Set.
      */
-    isFavorite: (state) => (group, pk) => {
-      const set = state.favoriteIds[group];
+    isFavorite: (state) => (collection, pk) => {
+      const set = state.favoriteIds[collection];
       return Boolean(set && set.has(pk));
     },
   },
@@ -43,10 +43,10 @@ export const useFavoritesStore = defineStore("favorites", {
         const response = await API.getFavorites();
         const data = response.data || {};
         const next = emptyFavoriteIds();
-        for (const group of FAVORITE_GROUP_CODES) {
-          const ids = data[group];
+        for (const collection of FAVORITE_COLLECTION_CODES) {
+          const ids = data[collection];
           if (Array.isArray(ids)) {
-            next[group] = new Set(ids);
+            next[collection] = new Set(ids);
           }
         }
         this.$patch({
@@ -57,10 +57,10 @@ export const useFavoritesStore = defineStore("favorites", {
         console.error(error);
       }
     },
-    async toggle(group, pk) {
-      const set = this.favoriteIds[group];
+    async toggle(collection, pk) {
+      const set = this.favoriteIds[collection];
       if (!set) {
-        console.error(`Unknown favorite group ${group}`);
+        console.error(`Unknown favorite collection ${collection}`);
         return;
       }
       /*
@@ -68,17 +68,17 @@ export const useFavoritesStore = defineStore("favorites", {
        * and roll back if the server rejects so the UI never lies.
        */
       const wasFavorite = set.has(pk);
-      this._setLocal(group, pk, !wasFavorite);
+      this._setLocal(collection, pk, !wasFavorite);
       const apiCall = wasFavorite ? API.removeFavorite : API.addFavorite;
       try {
-        await apiCall(group, pk);
+        await apiCall(collection, pk);
       } catch (error) {
-        this._setLocal(group, pk, wasFavorite);
+        this._setLocal(collection, pk, wasFavorite);
         console.error(error);
       }
     },
-    _setLocal(group, pk, on) {
-      const set = this.favoriteIds[group];
+    _setLocal(collection, pk, on) {
+      const set = this.favoriteIds[collection];
       if (!set) return;
       if (on) {
         set.add(pk);

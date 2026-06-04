@@ -24,7 +24,7 @@ import { mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
-const GROUP_ICON_MAP = Object.freeze({
+const COLLECTION_ICON_MAP = Object.freeze({
   folders: mdiFolderOutline,
   publishers: mdiChessRook,
   imprints: mdiFeather,
@@ -95,7 +95,7 @@ export default {
       } else if (title) {
         icon = "";
       } else {
-        icon = Reflect.get(GROUP_ICON_MAP, collection);
+        icon = Reflect.get(COLLECTION_ICON_MAP, collection);
       }
       return icon;
     },

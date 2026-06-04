@@ -6,7 +6,7 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card>
-      <v-card-title> Columns for {{ topGroupLabel }} </v-card-title>
+      <v-card-title> Columns for {{ topCollectionLabel }} </v-card-title>
       <v-card-subtitle class="pickerSubtitle">
         Drag columns in the Order list to rearrange them. Toggle a column in the
         Add list to show or hide it.
@@ -276,7 +276,7 @@ export default {
       tableColumns: (state) => state.settings.tableColumns,
       show: (state) => state.settings.show,
     }),
-    topGroupLabel() {
+    topCollectionLabel() {
       return TOP_COLLECTION[this.topCollection] ?? this.topCollection;
     },
     selectedSet() {

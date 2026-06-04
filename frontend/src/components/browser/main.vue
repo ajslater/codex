@@ -157,7 +157,7 @@ export default {
     },
     cancelButtonTitle() {
       /*
-       * Cancel resets only the sort to the per-top-group default —
+       * Cancel resets only the sort to the per-top-collection default —
        * columns, filters, and the rest of the user's settings stay
        * put. The tooltip text matches.
        */
