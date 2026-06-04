@@ -1,8 +1,10 @@
 """
-Tagging defaults, settings singletons, custom-cover relink, rating rescale.
+Tagging defaults, settings, custom-cover relink, rating rescale, group->collection.
 
-A single migration carrying the v1.12.7 -> v2 schema and data changes (the
-range originally developed as migrations 0043-0054):
+A single migration carrying the v1.12.7 -> v2 schema and data changes
+(originally developed as migrations 0043-0054), extended to fold in the later
+group->collection batch (migrations 0044-0050, squashed here because 2.0.0
+ships 0043 as its head and no released DB is ever past 0042):
 
 * ``ComicboxTaggingDefaults`` singleton + seed.
 * ``LibrarianStatus`` status-type choices.
@@ -19,11 +21,22 @@ range originally developed as migrations 0043-0054):
   ``AK``); then ``Timestamp.version`` renamed to ``value``.
 * ``Comic.critical_rating`` rescaled to the ComicInfo 0.0-5.0 scale, then
   the column shrunk to ``max_digits=2, decimal_places=1``.
+* **Group -> collection unification** (folded from migrations 0044-0050):
+  ``SettingsBrowserShow`` flag columns renamed ``p/i/s/v`` ->
+  ``publishers/imprints/series/volumes``; ``Favorite.group``,
+  ``CustomCover.group``, ``SettingsBrowser.top_group`` and
+  ``SettingsBrowserLastRoute.group`` widened, their stored single-char codes
+  data-migrated to collection names, then renamed to ``collection`` /
+  ``top_collection`` (the dummy root ``0`` last-route sentinel is stripped
+  going forward).
 
 Operation order is load-bearing: ``move_api_key_to_admin_flag`` reads
 ``Timestamp.version`` so it runs before the rename; the custom-cover data
 migration runs after its schema exists but before ``covers_only`` is
-dropped; ``normalize_critical_ratings`` runs before the column is shrunk.
+dropped; ``normalize_critical_ratings`` runs before the column is shrunk;
+each group->collection field is widened and its char codes data-migrated
+*before* the field is renamed to its collection name (the data steps still
+read the legacy single-char codes).
 """
 
 import contextlib
@@ -308,6 +321,176 @@ def normalize_critical_ratings(apps, _schema_editor) -> None:
 
 def _noop_reverse(_apps, _schema_editor) -> None:
     """No reverse: the rescale is intentionally lossy."""
+
+
+# ===========================================================================
+# Group -> Collection unification (folded from migrations 0044-0050)
+# ===========================================================================
+# Each char<->collection map and choices list is held inline, frozen at this
+# migration's point in time, so the data moves replay deterministically
+# against old DBs no matter how the live collection vocabulary drifts later.
+
+
+# ---------------------------------------------------------------------------
+# 0044 - SettingsBrowser* group char -> collection value flip
+# ---------------------------------------------------------------------------
+
+_SB_CHAR_TO_COLLECTION = {
+    "r": "root",
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "c": "comics",
+    "f": "folders",
+    "a": "arcs",
+}
+_SB_COLLECTION_TO_CHAR = {value: key for key, value in _SB_CHAR_TO_COLLECTION.items()}
+
+_TOP_GROUP_COLLECTION_CHOICES = [
+    ("publishers", "Publishers"),
+    ("imprints", "Imprints"),
+    ("series", "Series"),
+    ("volumes", "Volumes"),
+    ("comics", "Issues"),
+    ("folders", "Folders"),
+    ("arcs", "Story Arcs"),
+]
+_ROUTE_COLLECTION_CHOICES = [*_TOP_GROUP_COLLECTION_CHOICES, ("root", "Root")]
+
+
+def _sb_migrate_top_group(model, value_map) -> None:
+    """Remap ``SettingsBrowser.top_group`` through ``value_map``."""
+    for row in model.objects.all().iterator():
+        mapped = value_map.get(row.top_group)
+        if mapped and mapped != row.top_group:
+            row.top_group = mapped
+            row.save(update_fields=["top_group"])
+
+
+def _sb_migrate_last_route_row(row, value_map, *, to_collection: bool) -> None:
+    """Remap one last-route row's group + strip the root 0 (forward only)."""
+    update_fields = []
+    mapped = value_map.get(row.group)
+    if mapped not in (None, row.group):
+        row.group = mapped
+        update_fields.append("group")
+    # Purge the dummy 0 root sentinel going forward; root is the empty list.
+    stripped = [pk for pk in (row.pks or []) if pk]
+    if to_collection and stripped != list(row.pks or []):
+        row.pks = stripped
+        update_fields.append("pks")
+    if update_fields:
+        row.save(update_fields=update_fields)
+
+
+def _sb_migrate_last_route(model, value_map, *, to_collection: bool) -> None:
+    """Remap ``SettingsBrowserLastRoute.group`` and strip the root 0 forward."""
+    for row in model.objects.all().iterator():
+        _sb_migrate_last_route_row(row, value_map, to_collection=to_collection)
+
+
+def _sb_migrate_values(apps, *, to_collection: bool) -> None:
+    """Map stored group chars <-> collection names (+ strip the root 0)."""
+    value_map = _SB_CHAR_TO_COLLECTION if to_collection else _SB_COLLECTION_TO_CHAR
+    _sb_migrate_top_group(apps.get_model("codex", "SettingsBrowser"), value_map)
+    _sb_migrate_last_route(
+        apps.get_model("codex", "SettingsBrowserLastRoute"),
+        value_map,
+        to_collection=to_collection,
+    )
+
+
+def migrate_settings_browser_groups_forward(apps, _schema_editor):
+    """Map stored group chars -> collection names."""
+    _sb_migrate_values(apps, to_collection=True)
+
+
+def migrate_settings_browser_groups_reverse(apps, _schema_editor):
+    """Map stored collection names -> group chars."""
+    _sb_migrate_values(apps, to_collection=False)
+
+
+# ---------------------------------------------------------------------------
+# 0045 - Favorite.group char -> collection value flip
+# ---------------------------------------------------------------------------
+
+_FAVORITE_CHAR_TO_COLLECTION = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "f": "folders",
+    "a": "arcs",
+    "c": "comics",
+}
+_FAVORITE_COLLECTION_TO_CHAR = {
+    collection: char for char, collection in _FAVORITE_CHAR_TO_COLLECTION.items()
+}
+
+_FAVORITE_GROUP_CHOICES = [
+    ("publishers", "Publishers"),
+    ("imprints", "Imprints"),
+    ("series", "Series"),
+    ("volumes", "Volumes"),
+    ("folders", "Folders"),
+    ("arcs", "Story Arcs"),
+    ("comics", "Issues"),
+]
+
+
+def favorite_groups_to_collections(apps, _schema_editor):
+    """Rewrite each char-coded favorite group to its collection value."""
+    favorite = apps.get_model("codex", "Favorite")
+    for char, collection in _FAVORITE_CHAR_TO_COLLECTION.items():
+        favorite.objects.filter(group=char).update(group=collection)
+
+
+def favorite_collections_to_groups(apps, _schema_editor):
+    """Reverse: rewrite collection values back to their char codes."""
+    favorite = apps.get_model("codex", "Favorite")
+    for collection, char in _FAVORITE_COLLECTION_TO_CHAR.items():
+        favorite.objects.filter(group=collection).update(group=char)
+
+
+# ---------------------------------------------------------------------------
+# 0046 - CustomCover.group char -> collection value flip
+# ---------------------------------------------------------------------------
+
+_CUSTOM_COVER_CHAR_TO_COLLECTION = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "a": "arcs",
+    "f": "folders",
+}
+_CUSTOM_COVER_COLLECTION_TO_CHAR = {
+    collection: char for char, collection in _CUSTOM_COVER_CHAR_TO_COLLECTION.items()
+}
+
+_CUSTOM_COVER_GROUP_CHOICES = [
+    ("publishers", "Publishers"),
+    ("imprints", "Imprints"),
+    ("series", "Series"),
+    ("volumes", "Volumes"),
+    ("arcs", "Arcs"),
+    ("folders", "Folders"),
+]
+
+
+def custom_cover_groups_to_collections(apps, _schema_editor):
+    """Rewrite each char-coded custom-cover group to its collection value."""
+    custom_cover = apps.get_model("codex", "CustomCover")
+    for char, collection in _CUSTOM_COVER_CHAR_TO_COLLECTION.items():
+        custom_cover.objects.filter(group=char).update(group=collection)
+
+
+def custom_cover_collections_to_groups(apps, _schema_editor):
+    """Reverse: rewrite collection values back to their char codes."""
+    custom_cover = apps.get_model("codex", "CustomCover")
+    for collection, char in _CUSTOM_COVER_COLLECTION_TO_CHAR.items():
+        custom_cover.objects.filter(group=collection).update(group=char)
 
 
 class Migration(migrations.Migration):
@@ -667,5 +850,111 @@ class Migration(migrations.Migration):
                     django.core.validators.MaxValueValidator(Decimal("5.0")),
                 ],
             ),
+        ),
+        # ===================================================================
+        # Group -> Collection unification (folded from migrations 0044-0050)
+        # ===================================================================
+        # The char->collection RunPython moves are load-bearing for real
+        # <=0042 DBs that still hold single-char group codes; each field is
+        # widened + data-migrated before it is renamed to its collection name.
+        #
+        # --- from 0044_group_collection_values -----------------------------
+        # SettingsBrowserShow flag columns + SettingsBrowser.top_group /
+        # SettingsBrowserLastRoute.group widen + char->collection data
+        # (and strip the dummy root 0 sentinel).
+        migrations.RemoveConstraint(
+            model_name="settingsbrowsershow",
+            name="unique_settingsbrowsershow_flags",
+        ),
+        migrations.RenameField(
+            model_name="settingsbrowsershow", old_name="p", new_name="publishers"
+        ),
+        migrations.RenameField(
+            model_name="settingsbrowsershow", old_name="i", new_name="imprints"
+        ),
+        migrations.RenameField(
+            model_name="settingsbrowsershow", old_name="s", new_name="series"
+        ),
+        migrations.RenameField(
+            model_name="settingsbrowsershow", old_name="v", new_name="volumes"
+        ),
+        migrations.AddConstraint(
+            model_name="settingsbrowsershow",
+            constraint=models.UniqueConstraint(
+                fields=("publishers", "imprints", "series", "volumes"),
+                name="unique_settingsbrowsershow_flags",
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowser",
+            name="top_group",
+            field=models.CharField(
+                choices=_TOP_GROUP_COLLECTION_CHOICES,
+                default="publishers",
+                max_length=32,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsbrowserlastroute",
+            name="group",
+            field=models.CharField(
+                choices=_ROUTE_COLLECTION_CHOICES, default="root", max_length=32
+            ),
+        ),
+        migrations.RunPython(
+            code=migrate_settings_browser_groups_forward,
+            reverse_code=migrate_settings_browser_groups_reverse,
+        ),
+        # --- from 0045_favorite_group_collection ---------------------------
+        # Widen Favorite.group, then char->collection data move.
+        migrations.AlterField(
+            model_name="favorite",
+            name="group",
+            field=models.CharField(choices=_FAVORITE_GROUP_CHOICES, max_length=16),
+        ),
+        migrations.RunPython(
+            code=favorite_groups_to_collections,
+            reverse_code=favorite_collections_to_groups,
+        ),
+        # --- from 0046_custom_cover_group_collection -----------------------
+        # Widen CustomCover.group, then char->collection data move.
+        migrations.AlterField(
+            model_name="customcover",
+            name="group",
+            field=models.CharField(
+                choices=_CUSTOM_COVER_GROUP_CHOICES, db_index=True, max_length=10
+            ),
+        ),
+        migrations.RunPython(
+            code=custom_cover_groups_to_collections,
+            reverse_code=custom_cover_collections_to_groups,
+        ),
+        # --- from 0047_rename_favorite_group_to_collection -----------------
+        migrations.RenameField(
+            model_name="favorite",
+            old_name="group",
+            new_name="collection",
+        ),
+        migrations.AlterUniqueTogether(
+            name="favorite",
+            unique_together={("user", "collection", "target_id")},
+        ),
+        # --- from 0048_rename_custom_cover_group_to_collection -------------
+        migrations.RenameField(
+            model_name="customcover",
+            old_name="group",
+            new_name="collection",
+        ),
+        # --- from 0049_rename_last_route_group_to_collection ---------------
+        migrations.RenameField(
+            model_name="settingsbrowserlastroute",
+            old_name="group",
+            new_name="collection",
+        ),
+        # --- from 0050_rename_top_group_to_top_collection -----------------
+        migrations.RenameField(
+            model_name="settingsbrowser",
+            old_name="top_group",
+            new_name="top_collection",
         ),
     ]
