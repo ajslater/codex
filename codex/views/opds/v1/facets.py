@@ -115,7 +115,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
     @staticmethod
-    def _did_special_group_change(collection, facet_group) -> bool:
+    def _did_special_collection_change(collection, facet_group) -> bool:
         """Test if one of the special collections changed."""
         # Special collections are folders and story arcs.
         # The change is meaningful only if exactly one side is special:
@@ -128,7 +128,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         collection = self.kwargs.get("collection")
         if (
             facet_group.query_param == "topCollection"
-            and self._did_special_group_change(collection, facet.value)
+            and self._did_special_collection_change(collection, facet.value)
         ):
             kwargs = {"collection": facet.value, "pks": {}, "page": 1}
         else:
