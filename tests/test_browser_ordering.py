@@ -233,6 +233,42 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         assert after > before, (before, after)
         assert abs(after - int(future.timestamp() * 1000)) <= 1, after
 
+    def test_cover_mtime_tracks_representative_not_siblings(self) -> None:
+        """
+        ``cover_mtime`` is the representative cover comic's own updated_at.
+
+        Stage 5 precise busting: a change to a *sibling* comic bumps the
+        group mtime but must NOT move the cover ``?ts=`` (the shown image
+        is unchanged); a change to the representative comic does.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        self._patch_settings({"viewMode": "cover", "orderBy": "sort_name"})
+
+        def _alpha_cover_mtime() -> int:
+            cache.clear()
+            response = self.client.get(url)
+            assert response.status_code == _HTTP_OK, response.content
+            cards = _v4(response).get("collections", [])
+            alpha = next(c for c in cards if c.get("name") == "Alpha")
+            return alpha["coverMtime"]
+
+        before = _alpha_cover_mtime()
+
+        # Bump the sibling (issue 2). The representative is issue 1, so the
+        # cover timestamp must not move even though the group changed.
+        Comic.objects.filter(pk=self.comic_alpha_2.pk).update(
+            updated_at=timezone.now() + timedelta(days=1)
+        )
+        assert _alpha_cover_mtime() == before
+
+        # Bump the representative (issue 1). Now the cover timestamp moves.
+        future = timezone.now() + timedelta(days=2)
+        Comic.objects.filter(pk=self.comic_alpha_1.pk).update(updated_at=future)
+        after = _alpha_cover_mtime()
+        assert after != before
+        assert abs(after - int(future.timestamp() * 1000)) <= 1, after
+
     def _browse_comics(self) -> list[int]:
         # Browse the Series containing the alpha comics; with the default
         # ``show.v == False`` the response flattens to direct comic books.

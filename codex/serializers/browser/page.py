@@ -118,12 +118,13 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
     has_metadata = BooleanField(read_only=True)
-    # cover_pk and cover_custom_pk are pre-computed on collection card by
-    # BrowserAnnotateCoverView. Comic book cards lack the annotations; the
-    # method fields fall back to ``obj.pk`` so the frontend can build a
-    # uniform ``/c/<pk>/cover.webp`` URL without a per-card branch.
+    # cover_pk, cover_custom_pk and cover_mtime are pre-computed on collection
+    # cards by BrowserAnnotateCoverView. Comic book cards lack the annotations;
+    # the method fields fall back to ``obj.pk`` / the card's own updated_at so
+    # the frontend can build a uniform cover URL without a per-card branch.
     cover_pk = SerializerMethodField(read_only=True)
     cover_custom_pk = SerializerMethodField(read_only=True)
+    cover_mtime = SerializerMethodField(read_only=True)
 
     def get_cover_pk(self, obj) -> int:
         """Return pre-computed cover pk, falling back to the card's own pk."""
@@ -133,6 +134,11 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     def get_cover_custom_pk(self, obj) -> int | None:
         """Return the custom cover pk when present, else None."""
         return getattr(obj, "cover_custom_pk", None)
+
+    def get_cover_mtime(self, obj) -> int:
+        """Epoch-ms of the shown cover's own updated_at, for a precise ``?ts=``."""
+        dt = getattr(obj, "cover_mtime", None) or getattr(obj, "updated_at_max", None)
+        return int(dt.timestamp() * 1000) if dt else 0
 
 
 class BrowserAdminFlagsSerializer(Serializer):

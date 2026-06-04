@@ -1,6 +1,7 @@
 """Cover pk annotation for browser card querysets."""
 
 from django.db.models import OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 
 from codex.models import Comic, Folder, Volume
 from codex.models.paths import CustomCover
@@ -81,18 +82,17 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
             q &= fts_q
         return q
 
-    def _cover_comic_subquery(self, collection_model) -> Subquery:
-        """Correlated subquery returning one comic pk per outer collection row."""
+    def _cover_comic_ordered_qs(self, collection_model):
+        """Ordered comic queryset feeding the cover pk + mtime subqueries."""
         q = self._cover_filter_q(collection_model)
         qs = Comic.objects.filter(q).distinct()
         qs = self.annotate_order_aggregates(qs, for_cover=True)
-        qs = self.add_order_by(qs, for_cover=True)
-        return Subquery(qs.values("pk")[:1])
+        return self.add_order_by(qs, for_cover=True)
 
-    def _cover_custom_subquery(self) -> Subquery | None:
-        """Correlated subquery returning a CustomCover pk, if applicable."""
+    def _cover_custom_subqueries(self):
+        """Return (pk, updated_at) subqueries for a CustomCover, or (None, None)."""
         if not self.params.get("custom_covers"):
-            return None
+            return None, None
         # ``model_collection`` is the collection the cards being annotated belong to
         # (the *child* of the URL collection). ``kwargs["collection"]`` is the URL
         # collection itself, which is one level too high for the cover lookup —
@@ -101,20 +101,28 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         # (nonexistent) ``r`` entry.
         collection_rel = CUSTOM_COVER_COLLECTION_RELATION.get(self.model_collection)
         if not collection_rel:
-            return None
-        qs = CustomCover.objects.filter(**{collection_rel: OuterRef("pk")}).values(
-            "pk"
-        )[:1]
-        return Subquery(qs)
+            return None, None
+        base = CustomCover.objects.filter(**{collection_rel: OuterRef("pk")})
+        return (
+            Subquery(base.values("pk")[:1]),
+            Subquery(base.values("updated_at")[:1]),
+        )
 
     def annotate_cover(self, qs):
-        """Annotate cover_pk (and optionally cover_custom_pk) on collection card."""
+        """Annotate cover_pk / cover_custom_pk / cover_mtime on collection card."""
         if qs.model is Comic:
-            # Comic cards use their own pk as the cover pk — the serializer
-            # falls back to pk when cover_pk is absent.
+            # Comic cards use their own pk + updated_at; the serializer falls
+            # back to those when the cover_* annotations are absent.
             return qs
-        qs = qs.annotate(cover_pk=self._cover_comic_subquery(qs.model))
-        custom_sq = self._cover_custom_subquery()
-        if custom_sq is not None:
-            qs = qs.annotate(cover_custom_pk=custom_sq)
-        return qs
+        cover_qs = self._cover_comic_ordered_qs(qs.model)
+        qs = qs.annotate(cover_pk=Subquery(cover_qs.values("pk")[:1]))
+        # ``cover_mtime`` is the *representative* comic's own updated_at, so the
+        # cover ``?ts=`` only changes when the shown image does — not when any
+        # sibling comic in the collection is re-imported.
+        cover_mtime = Subquery(cover_qs.values("updated_at")[:1])
+        custom_pk_sq, custom_mtime_sq = self._cover_custom_subqueries()
+        if custom_pk_sq is not None:
+            qs = qs.annotate(cover_custom_pk=custom_pk_sq)
+            # A custom cover overrides the comic cover, so its mtime wins.
+            cover_mtime = Coalesce(custom_mtime_sq, cover_mtime)
+        return qs.annotate(cover_mtime=cover_mtime)

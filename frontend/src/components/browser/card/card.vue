@@ -7,7 +7,7 @@
           :pks="item.ids"
           :cover-pk="item.coverPk"
           :cover-custom-pk="item.coverCustomPk"
-          :mtime="item.mtime"
+          :mtime="item.coverMtime ?? item.mtime"
           :child-count="item.childCount"
         />
         <div
