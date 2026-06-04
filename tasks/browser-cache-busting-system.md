@@ -172,16 +172,29 @@ all three `covers.changed` sites passed empty scope, and the frontend never read
       `scope` key; `test_group` + `test_admin_custom_cover` + `test_admin_writes`
       pass (19 tests).
 
-### Stage 4 — (optional) Honest refresh gate
-Only meaningfully helps multi-library / scoped-subtree views.
-- [ ] Make `library.changed` gate on the scoped per-collection probe (correct
-      per-view granularity) instead of the non-comparable mtime hint. Same
-      pattern exists in `reader.js` `loadMtimes`.
+### Stage 4 — Honest refresh gate  ✅ DONE
+Two parts:
+- [x] **4a (frontend gate):** `browser.js`/`reader.js` `loadMtimes` now always
+      probe the scoped `/api/v4/mtime` and reload only when the *viewed*
+      collection's max mtime moved, instead of trusting the non-comparable
+      `library.updated_at` hint (which never matched, so every broadcast forced a
+      full reload). `socket.js` `libraryNotified` drops the hint. 99 vitest green.
+- [x] **4b (drop dead wire mtime):** with the hint gone the frontend never reads
+      `payload.mtime`, so the whole `{type, mtime}` enrichment is dead. Removed the
+      `NotifierTask.mtime` field, `_ENRICHED_TYPES`, and the channel forwarding —
+      the wire payload is now just **`{type}`**. The five mtime-only factories
+      collapsed to their shared constants (callers enqueue the constant directly);
+      `users_changed_task` stays for per-user targeting. Importer + admin suites green.
 
-### Stage 5 — (optional) Precise cover busting
-- [ ] Have the `cover_pk` subquery also return the representative comic's own
-      `updated_at`; use that for the cover `?ts=` so a change to *any* comic in a
-      large group stops cache-busting a cover whose bytes didn't change.
+### Stage 5 — Precise cover busting  ✅ DONE
+- [x] `annotate_cover` now also returns the representative comic's own
+      `updated_at` as `cover_mtime` (Coalesce'd with a linked custom cover's), and
+      the cover `?ts=` uses it (`card.vue`) instead of the group mtime — so a cover
+      image re-downloads only when the image it shows changes, not when a sibling
+      comic in the collection is re-imported.
+- [x] Added `test_cover_mtime_tracks_representative_not_siblings`. The extra
+      correlated subquery adds no Django round-trips (query-count test green).
+      Cost note: one more correlated subquery per collection card per browse.
 
 ## Open decisions (forks)
 1. **Scope plumbing:** delete as dead (Stage 3 default, de-complicate) **vs**
