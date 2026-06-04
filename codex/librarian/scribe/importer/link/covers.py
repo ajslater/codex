@@ -2,7 +2,7 @@
 Link Covers — vestigial passthrough.
 
 Custom covers are uploaded directly via the admin endpoint, which sets
-``GroupModel.custom_cover`` in the same transaction as the upload. The
+``BrowserCollectionModel.custom_cover`` in the same transaction as the upload. The
 watcher-driven sort-name-or-path linker that used to live here is gone.
 """
 

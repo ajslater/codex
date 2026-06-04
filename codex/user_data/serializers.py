@@ -25,7 +25,7 @@ from codex.collection import Collection
 from codex.user_data.identifiers import (
     FILTER_TAG_COLUMNS,
     encode_identifier,
-    identifier_for_browse_group,
+    identifier_for_browse_collection,
     tag_model_for_filter,
 )
 
@@ -148,7 +148,7 @@ def serialize_favorite(
     Favorite row keyed by ``(username, collection, identifier_json)``.
 
     The polymorphic ``(collection, target_id)`` pair is resolved into a stable
-    name-chain identifier via :func:`identifier_for_browse_group`.
+    name-chain identifier via :func:`identifier_for_browse_collection`.
     Resolution may fail (target deleted between signal queue and write) —
     return ``None`` to skip rather than crash.
     """
@@ -164,7 +164,7 @@ def serialize_favorite(
     instance = target_model.objects.filter(pk=favorite.target_id).first()
     if instance is None:
         return None
-    parts = identifier_for_browse_group(favorite.collection, instance)
+    parts = identifier_for_browse_collection(favorite.collection, instance)
     return (
         "favorites",
         ("username", "collection", "identifier_json"),
@@ -295,18 +295,18 @@ def serialize_settings_last_route(
     )
 
 
-def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
-    """Resolve a list of browse-group PKs to identifier parts; missing rows drop."""
+def _resolve_last_route_pks(collection: str, pks: list[int]) -> list[list[Any]]:
+    """Resolve a list of browse-collection PKs to identifier parts; missing rows drop."""
     if not pks:
         return []
-    if group == Collection.ROOT:
-        # Root pseudo-group — no PKs to resolve.
+    if collection == Collection.ROOT:
+        # Root pseudo-collection — no PKs to resolve.
         return []
     from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
 
     target_model = None
     for model, code in FAVORITE_MODEL_COLLECTIONS.items():
-        if code == group:
+        if code == collection:
             target_model = model
             break
     if target_model is None:
@@ -318,7 +318,7 @@ def _resolve_last_route_pks(group: str, pks: list[int]) -> list[list[Any]]:
         if obj is None:
             continue
         try:
-            resolved.append(identifier_for_browse_group(group, obj))
+            resolved.append(identifier_for_browse_collection(collection, obj))
         except ValueError:
             continue
     return resolved

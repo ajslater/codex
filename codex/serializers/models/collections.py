@@ -9,7 +9,7 @@ from codex.models import (
 from codex.serializers.models.named import NamedModelSerializer
 
 
-class GroupModelSerializer(NamedModelSerializer):
+class CollectionModelSerializer(NamedModelSerializer):
     """A common class for BrowserCollectionModels."""
 
     class Meta(NamedModelSerializer.Meta):
@@ -18,37 +18,37 @@ class GroupModelSerializer(NamedModelSerializer):
         abstract = True
 
 
-class PublisherSerializer(GroupModelSerializer):
+class PublisherSerializer(CollectionModelSerializer):
     """Publisher Model."""
 
-    class Meta(GroupModelSerializer.Meta):
+    class Meta(CollectionModelSerializer.Meta):
         """Configure model."""
 
         model = Publisher
 
 
-class ImprintSerializer(GroupModelSerializer):
+class ImprintSerializer(CollectionModelSerializer):
     """Imprint Model."""
 
-    class Meta(GroupModelSerializer.Meta):
+    class Meta(CollectionModelSerializer.Meta):
         """Configure model."""
 
         model = Imprint
 
 
-class SeriesSerializer(GroupModelSerializer):
+class SeriesSerializer(CollectionModelSerializer):
     """Series Model."""
 
-    class Meta(GroupModelSerializer.Meta):
+    class Meta(CollectionModelSerializer.Meta):
         """Configure model."""
 
         model = Series
 
 
-class VolumeSerializer(GroupModelSerializer):
+class VolumeSerializer(CollectionModelSerializer):
     """Volume Model."""
 
-    class Meta(GroupModelSerializer.Meta):
+    class Meta(CollectionModelSerializer.Meta):
         """Configure model."""
 
         model = Volume

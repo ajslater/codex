@@ -7,7 +7,7 @@ with name-chain tuples (or comic paths) — values that *do* survive,
 because the librarian's filesystem-driven import will re-create rows
 with the same names and paths.
 
-Identifier shape per group (the collection value names the group):
+Identifier shape per collection (the collection value names the collection):
 
 * ``comics`` (Comic): ``[comic.path]``
 * ``folders`` (Folder): ``[folder.path]``
@@ -79,24 +79,24 @@ def tag_model_for_filter(column: str) -> type[Model] | None:
     return apps.get_model(app_label, model_name)
 
 
-def encode_identifier(group: str, parts: list[Any]) -> str:
+def encode_identifier(collection: str, parts: list[Any]) -> str:
     """JSON-encode an identifier tuple for use as a sidecar primary-key column."""
     # ``separators`` produces compact output so equal tuples encode identically.
-    return json.dumps([group, *parts], separators=(",", ":"))
+    return json.dumps([collection, *parts], separators=(",", ":"))
 
 
 def decode_identifier(blob: str) -> tuple[str, list[Any]]:
-    """Reverse of :func:`encode_identifier`. Returns ``(group, parts)``."""
+    """Reverse of :func:`encode_identifier`. Returns ``(collection, parts)``."""
     parsed = json.loads(blob)
     if not isinstance(parsed, list) or not parsed:
         msg = f"malformed identifier: {blob!r}"
         raise ValueError(msg)
-    group = parsed[0]
+    collection = parsed[0]
     parts = parsed[1:]
-    return group, parts
+    return collection, parts
 
 
-# Per-group part extractors. Keys are the collection values from
+# Per-collection part extractors. Keys are the collection values from
 # :data:`codex.models.favorite.FAVORITE_MODEL_COLLECTIONS` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
@@ -129,15 +129,15 @@ _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]
 )
 
 
-def identifier_for_browse_group(group: str, instance: Model) -> list[Any]:
+def identifier_for_browse_collection(collection: str, instance: Model) -> list[Any]:
     """
     Build the name-chain identifier ``parts`` for a browse-collection instance.
 
-    Raises ``ValueError`` for unknown groups. Callers wrap in try/except —
+    Raises ``ValueError`` for unknown collections. Callers wrap in try/except —
     sidecar failures must never raise into request paths.
     """
-    builder = _IDENTIFIER_PART_BUILDERS.get(group)
+    builder = _IDENTIFIER_PART_BUILDERS.get(collection)
     if builder is None:
-        msg = f"unknown browse-group: {group!r}"
+        msg = f"unknown browse-collection: {collection!r}"
         raise ValueError(msg)
     return builder(instance)

@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS settings_browser (
     username TEXT NOT NULL,
     client TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
-    top_group TEXT NOT NULL DEFAULT '',
+    top_collection TEXT NOT NULL DEFAULT '',
     order_by TEXT NOT NULL DEFAULT '',
     order_reverse INTEGER NOT NULL DEFAULT 0,
     order_extra_keys TEXT NOT NULL DEFAULT '[]',

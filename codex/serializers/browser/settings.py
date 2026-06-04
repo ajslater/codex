@@ -156,9 +156,9 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 
     def validate_table_columns(self, value):
         """Reject unknown top-group keys and unknown column keys."""
-        invalid_top_groups = set(value) - set(BROWSER_TOP_COLLECTION_CHOICES.keys())
-        if invalid_top_groups:
-            reason = f"Invalid top_collection keys: {sorted(invalid_top_groups)}"
+        invalid_top_collections = set(value) - set(BROWSER_TOP_COLLECTION_CHOICES.keys())
+        if invalid_top_collections:
+            reason = f"Invalid top_collection keys: {sorted(invalid_top_collections)}"
             raise ValidationError(reason)
         valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
         for top_collection, columns in value.items():

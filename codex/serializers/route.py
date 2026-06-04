@@ -13,7 +13,7 @@ from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.views.util import Route
 
 
-def _collection_for_group(collection) -> str:
+def _v4_collection(collection) -> str:
     """Map an engine collection value to its v4 collection (root → publishers)."""
     return (
         Collection.PUBLISHER.collection if collection == Collection.ROOT else collection
@@ -47,7 +47,7 @@ class SimpleRouteSerializer(Serializer):
         """Emit the v4 ``collection``/``parent_ids`` dialect (+ page/name)."""
         instance = asdict(instance) if isinstance(instance, Route) else dict(instance)
         data = {
-            "collection": _collection_for_group(instance.get("collection")),
+            "collection": _v4_collection(instance.get("collection")),
             "parent_ids": _parent_ids_for(instance.get("pks")),
         }
         # ``page``/``name`` only exist on the full ``RouteSerializer``; emit
