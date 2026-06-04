@@ -17,6 +17,7 @@ These tests confirm:
 
 import json
 import shutil
+from datetime import timedelta
 from pathlib import Path
 from typing import Final, override
 
@@ -24,6 +25,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
+from django.utils import timezone
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES, BROWSER_TABLE_COLUMNS
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
@@ -197,6 +199,39 @@ class BrowserOrderByIntegrationTestCase(TestCase):
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
+
+    def test_card_mtime_tracks_collection_updated_at(self) -> None:
+        """
+        The card mtime reads the collection row's own ``updated_at`` column.
+
+        Option B consolidation: the browser no longer re-aggregates
+        ``comic__updated_at`` for the card mtime — it reads the collection
+        row's own ``updated_at`` (kept fresh by ``TimestampUpdater``).
+        Bumping ``Series.updated_at`` directly must move that series card's
+        mtime; the old ``Max(comic__updated_at)`` path would have ignored it.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        self._patch_settings({"viewMode": "cover", "orderBy": "sort_name"})
+
+        def _alpha_card_mtime() -> int:
+            cache.clear()
+            response = self.client.get(url)
+            assert response.status_code == _HTTP_OK, response.content
+            cards = _v4(response).get("collections", [])
+            alpha = next(c for c in cards if c.get("name") == "Alpha")
+            return alpha["mtime"]
+
+        before = _alpha_card_mtime()
+
+        # Simulate TimestampUpdater bumping the collection row's own column.
+        # ``update()`` bypasses ``auto_now`` so the literal value sticks.
+        future = timezone.now() + timedelta(days=1)
+        Series.objects.filter(name="Alpha").update(updated_at=future)
+
+        after = _alpha_card_mtime()
+        assert after > before, (before, after)
+        assert abs(after - int(future.timestamp() * 1000)) <= 1, after
 
     def _browse_comics(self) -> list[int]:
         # Browse the Series containing the alpha comics; with the default

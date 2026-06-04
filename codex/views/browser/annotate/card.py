@@ -6,6 +6,7 @@ from django.db.models import (
     BooleanField,
     ExpressionWrapper,
     F,
+    Max,
     Q,
     Value,
 )
@@ -20,7 +21,6 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
-from codex.models.functions import JsonGroupArray
 from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
@@ -99,22 +99,19 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
-        # ``updated_ats`` is read only by ``BrowserAggregateSerializerMixin``
+        # ``updated_at_max`` is read only by ``BrowserAggregateSerializerMixin``
         # to compute the card mtime — and only browser + metadata responses
         # use that mixin. OPDS feeds compute their own mtime from the
         # bookmark aggregate; cover/download paths never read it. Skipping
-        # the JsonGroupArray on those targets removes one DISTINCT scalar
-        # aggregate per collection row in the cold path.
+        # the aggregate on those targets removes one scalar aggregate per
+        # collection row in the cold path.
         if self.TARGET not in self.CARD_TARGETS:
             return qs
-        # For collection model, traverse to Comic.updated_at via rel_prefix.
-        # The collection model's own updated_at is not reliably refreshed by
-        # bulk_update / bulk_create(update_conflicts) because auto_now
-        # only fires on Model.save().
-        prefix = "" if qs.model is Comic else self.rel_prefix
-        updated_at_field = prefix + "updated_at"
-        return qs.annotate(
-            updated_ats=JsonGroupArray(
-                updated_at_field, distinct=True, order_by=updated_at_field
-            )
-        )
+        # The row's own ``updated_at`` is the card mtime source: for a
+        # collection it's the collection row (kept fresh by ``TimestampUpdater``
+        # when a child comic or custom cover changes); for a comic it's the
+        # comic itself. Reading the column instead of re-aggregating
+        # ``comic__updated_at`` drops the deep comic join and the serializer's
+        # JSON-array Python reduction, and matches how OPDS and the reader
+        # already read this timestamp.
+        return qs.annotate(updated_at_max=Max("updated_at"))

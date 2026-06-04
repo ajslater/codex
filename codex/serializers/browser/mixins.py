@@ -1,7 +1,6 @@
 """Serializer mixins."""
 
 from datetime import UTC, datetime
-from itertools import chain
 
 from loguru import logger
 from rest_framework.serializers import (
@@ -41,7 +40,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
 
     @staticmethod
     def _get_max_updated_at(mtime, updated_ats) -> datetime:
-        """Because orm won't aggregate aggregates."""
+        """Fold a JSON-array of ISO timestamps into a running max."""
         for dt_str in updated_ats:
             if not dt_str:
                 continue
@@ -61,18 +60,17 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
         return mtime
 
     def get_mtime(self, obj) -> int:
-        """Compute mtime from json array aggregates."""
+        """Compute the card mtime from the row's updated_at + bookmark."""
+        # ``updated_at_max`` is Max(updated_at) on the row's own column — the
+        # collection's own timestamp (kept fresh by TimestampUpdater) or the
+        # comic's own — folded with the per-user bookmark updated_at so a read
+        # also bumps the card.
+        mtime: datetime | None = getattr(obj, "updated_at_max", None) or EPOCH_START
         bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
-        updated_ats = (
-            obj.updated_ats
-            if bmua_is_max
-            else chain(obj.updated_ats, obj.bookmark_updated_ats)
-        )
-        mtime = self._get_max_updated_at(EPOCH_START, updated_ats)
         if bmua_is_max:
-            mtime: datetime | None = max_none(
-                mtime, obj.bookmark_updated_at, EPOCH_START
-            )
+            mtime = max_none(mtime, obj.bookmark_updated_at, EPOCH_START)
+        else:
+            mtime = self._get_max_updated_at(mtime, obj.bookmark_updated_ats)
         if mtime is None:
             return 0
         return int(mtime.timestamp() * 1000)

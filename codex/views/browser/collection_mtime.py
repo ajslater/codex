@@ -138,12 +138,11 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             page_mtime=page_mtime,
             bookmark_filter=self.is_bookmark_filtered,
         )
-        # For collection model, traverse to Comic.updated_at via rel_prefix.
-        # The collection model's own updated_at is not reliably refreshed by
-        # bulk_update / bulk_create(update_conflicts) because auto_now
-        # only fires on Model.save().
-        prefix = self.get_rel_prefix(model)
-        mua = Max(prefix + "updated_at", default=EPOCH_START_DATETIMEFIELD)
+        # Read the collection's own ``updated_at`` (kept fresh by
+        # ``TimestampUpdater`` when a child comic or custom cover changes)
+        # rather than re-aggregating ``comic__updated_at`` — drops the comic
+        # join and matches the per-card mtime and how OPDS/reader read it.
+        mua = Max("updated_at", default=EPOCH_START_DATETIMEFIELD)
         mbua = self.get_max_bookmark_updated_at_aggregate(
             model, default=EPOCH_START_DATETIMEFIELD
         )
