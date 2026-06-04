@@ -166,7 +166,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             tail.extend(prefix + field for field in self._comic_extra_fields(key))
         return tail
 
-    def _group_extra_order_by(self, extras) -> list[str]:
+    def _collection_extra_order_by(self, extras) -> list[str]:
         """Build the ORDER BY tail for a collection-row queryset."""
         tail: list[str] = []
         for idx, entry in enumerate(extras):
@@ -193,7 +193,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             return []
         if qs.model is Comic:
             return self._comic_extra_order_by(extras)
-        return self._group_extra_order_by(extras)
+        return self._collection_extra_order_by(extras)
 
     def add_order_by(
         self, qs, order_key="", comic_sort_names=None, *, for_cover: bool = False

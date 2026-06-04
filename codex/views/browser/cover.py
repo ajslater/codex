@@ -160,7 +160,7 @@ class CustomCoverView(_CoverBaseView):
             return self._missing_cover_response()
 
 
-def _resolve_group_comic_pk(source: str, pk: int, user) -> int | None:
+def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     """Pick a representative comic pk for a group source, ACL-aware."""
     field = _GROUP_COMIC_FILTER.get(source)
     if field is None:
@@ -188,7 +188,7 @@ def cover_dispatch_by_source(request, source: str, pk: int) -> HttpResponse:
         return CoverView.as_view()(request, pk=pk)
     if source == "custom":
         return CustomCoverView.as_view()(request, pk=pk)
-    comic_pk = _resolve_group_comic_pk(source, pk, request.user)
+    comic_pk = _resolve_collection_comic_pk(source, pk, request.user)
     if comic_pk is None:
         return _missing_cover_404()
     return CoverView.as_view()(request, pk=comic_pk)

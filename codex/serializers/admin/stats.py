@@ -101,7 +101,7 @@ class StatsSerializer(Serializer):
     platform = StatsPlatformSerializer(required=False)
     config = StatsConfigSerializer(required=False)
     sessions = StatsSessionsSerializer(required=False)
-    groups = StatsCollectionSerializer(required=False)
+    collections = StatsCollectionSerializer(required=False)
     file_types = CountDictField(required=False)
     metadata = StatsComicMetadataSerializer(required=False)
 
@@ -116,7 +116,7 @@ class AdminStatsRequestSerializer(Serializer):
     sessions = SerializerChoicesField(
         serializer=StatsSessionsSerializer, required=False
     )
-    groups = SerializerChoicesField(
+    collections = SerializerChoicesField(
         serializer=StatsCollectionSerializer, required=False
     )
     file_types = StringListMultipleChoiceField(choices=FILE_TYPES_CHOICES)

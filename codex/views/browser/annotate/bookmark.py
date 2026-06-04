@@ -21,7 +21,7 @@ from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     """Base class for views that need special metadata annotations."""
 
-    def _get_group_bookmark_page_annotation(
+    def _get_collection_bookmark_page_annotation(
         self, qs, bm_rel, bm_filter, page_rel, finished_rel
     ) -> Sum:
         """Get bookmark page subquery."""
@@ -45,7 +45,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         )
 
     @classmethod
-    def _get_group_bookmark_finished_annotation(
+    def _get_collection_bookmark_finished_annotation(
         cls, qs, bm_filter, finished_rel
     ) -> tuple:
         """Get finished_count subquery."""
@@ -77,10 +77,10 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             bookmark_page = Sum(page_rel, filter=bm_filter, default=0)
             finished_aggregate = Sum(finished_rel, filter=bm_filter, default=False)
         else:
-            bookmark_page = self._get_group_bookmark_page_annotation(
+            bookmark_page = self._get_collection_bookmark_page_annotation(
                 qs, bm_rel, bm_filter, page_rel, finished_rel
             )
-            qs, finished_aggregate = self._get_group_bookmark_finished_annotation(
+            qs, finished_aggregate = self._get_collection_bookmark_finished_annotation(
                 qs, bm_filter, finished_rel
             )
 

@@ -103,7 +103,7 @@ export default {
     },
     browserCollectionsTable() {
       const table = {};
-      for (const [key, value] of Object.entries(this.stats?.groups)) {
+      for (const [key, value] of Object.entries(this.stats?.collections)) {
         let label = this.keyToLabel(key);
         if (label !== "Series") {
           label += "s";

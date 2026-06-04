@@ -26,7 +26,7 @@ _SESSION_SAMPLE_LIMIT: Final = 100
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,
-        "groups": STATS_COLLECTION_MODELS,
+        "collections": STATS_COLLECTION_MODELS,
         "metadata": METADATA_MODELS,
     }
 )
@@ -159,13 +159,13 @@ class CodexStats:
         obj["config"] = config
         obj["sessions"] = sessions
 
-    def _add_groups(self, obj) -> None:
-        """Add dict of groups information to object."""
-        if self.params and "groups" not in self.params:
+    def _add_collections(self, obj) -> None:
+        """Add dict of collections information to object."""
+        if self.params and "collections" not in self.params:
             return
-        groups = self._get_model_counts("groups")
-        groups["issue_count"] = groups.pop("comic_count", 0)
-        obj["groups"] = groups
+        collections = self._get_model_counts("collections")
+        collections["issue_count"] = collections.pop("comic_count", 0)
+        obj["collections"] = collections
 
     def _add_file_types(self, obj) -> None:
         """Query for file types."""
@@ -196,7 +196,7 @@ class CodexStats:
         obj = {}
         self._add_platform(obj)
         self._add_config(obj)
-        self._add_groups(obj)
+        self._add_collections(obj)
         self._add_file_types(obj)
         self._add_metadata(obj)
         return obj
