@@ -1,16 +1,11 @@
 """
 WebSocket typed message shapes.
 
-The wire ships JSON envelopes ``{type, mtime}`` so clients can route
-by ``type`` and read the mtime directly — the browser uses it as the
-``library.changed`` refresh hint instead of a second ``loadMtimes()``
-probe.
-
-Broadcaster sites stamp :class:`codex.librarian.notifier.tasks.NotifierTask`
-with ``mtime`` when known; the channel-layer event plumbing in
-:func:`codex.librarian.notifier.notifierd.NotifierThread._send_task`
-forwards it onto the wire dict that
-:class:`codex.websockets.consumers.NotifierConsumer` reads.
+The wire ships a minimal ``{type}`` envelope so clients route by
+``type``. A notification only signals that a class of thing changed;
+the client reacts on its own (probe ``/api/v4/mtime``, reload a table).
+Unknown ``type`` strings are forwarded as ``{type: "unknown", raw}`` so
+the frontend can log them without crashing.
 """
 
 from collections.abc import Mapping
@@ -33,36 +28,17 @@ NOTIFICATION_TYPE_MAP: Mapping[str, WebsocketMessages] = {
     Notifications.USERS.value: WebsocketMessages.USERS_CHANGED,
 }
 
-# Event types that carry an ``mtime`` on the wire. ``task.progress``
-# and ``tag-session.prompt`` are excluded — they ship their own
-# payload shapes.
-_ENRICHED_TYPES = frozenset(
-    {
-        WebsocketMessages.ADMIN_FLAGS_CHANGED,
-        WebsocketMessages.BOOKMARK_CHANGED,
-        WebsocketMessages.COVERS_CHANGED,
-        WebsocketMessages.FAILED_IMPORTS_CHANGED,
-        WebsocketMessages.GROUPS_CHANGED,
-        WebsocketMessages.LIBRARY_CHANGED,
-        WebsocketMessages.USERS_CHANGED,
-    }
-)
 
-
-def typed_payload(text: str, mtime: int | None = None) -> dict[str, Any]:
+def typed_payload(text: str) -> dict[str, Any]:
     """
-    Build a typed payload from a notification string + optional mtime.
+    Build a typed payload from a notification string.
 
     Unknown ``text`` (no mapping entry) returns
     ``{type: "unknown", raw: text}`` so the frontend can log without
-    crashing. ``mtime`` is emitted only for event types that carry it;
-    an absent mtime is ``null``.
+    crashing.
     """
     type_ = NOTIFICATION_TYPE_MAP.get(text, "unknown")
     payload: dict[str, Any] = {"type": type_}
     if type_ == "unknown":
         payload["raw"] = text
-        return payload
-    if type_ in _ENRICHED_TYPES:
-        payload["mtime"] = mtime
     return payload

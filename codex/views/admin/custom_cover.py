@@ -19,7 +19,7 @@ from rest_framework.response import Response
 
 from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import covers_changed_task
+from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
 from codex.librarian.scribe.importer.const import CLASS_CUSTOM_COVER_COLLECTION_MAP
 from codex.models import CustomCover
 from codex.serializers.admin.custom_cover import CustomCoverSerializer
@@ -129,7 +129,7 @@ def _enqueue_thumb_create(pk: int) -> None:
 
 def _notify_covers_changed() -> None:
     """Broadcast a ``covers.changed`` event."""
-    LIBRARIAN_QUEUE.put(covers_changed_task())
+    LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
 
 
 def _swap_links(model, pks: tuple[int, ...], cover: CustomCover) -> tuple[int, ...]:

@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group
 from django.core.cache import cache
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import groups_changed_task
+from codex.librarian.notifier.tasks import GROUPS_CHANGED_TASK
 from codex.serializers.admin.groups import GroupSerializer
 from codex.views.admin.auth import AdminModelViewSet
 
@@ -27,7 +27,7 @@ class AdminGroupViewSet(AdminModelViewSet):
             self._CHANGE_FIELDS
         ):
             cache.clear()
-            LIBRARIAN_QUEUE.put(groups_changed_task())
+            LIBRARIAN_QUEUE.put(GROUPS_CHANGED_TASK)
 
     @override
     def get_serializer(self, *args, **kwargs):

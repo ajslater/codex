@@ -27,11 +27,7 @@ class NotifierConsumer(AsyncWebsocketConsumer):
 
     Subscribes to the ``ALL`` / ``ADMIN`` / ``user_<uid>`` channel
     groups and translates each ``send_text`` event into a typed JSON
-    payload. The broadcaster side carries ``mtime`` on the
-    channel-layer event (see
-    :func:`codex.librarian.notifier.notifierd.NotifierThread._send_task`);
-    this consumer reads it and merges it into the typed payload so the
-    browser can use it as a refresh hint without a separate mtime probe.
+    payload (``{type}``) that clients route on.
     """
 
     def _get_groups(self) -> list[str]:
@@ -66,10 +62,10 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         await self.close(code)
 
     async def send_text(self, event) -> None:
-        """Translate ``send_text`` events to typed JSON with mtime."""
+        """Translate ``send_text`` events to a typed JSON payload."""
         text = event.get("text")
         if not text:
             logger.warning(f"No text in websockets message: {event}")
             return
-        payload = typed_payload(text, mtime=event.get("mtime"))
+        payload = typed_payload(text)
         await self.send(json.dumps(payload, separators=(",", ":")))
