@@ -28,7 +28,7 @@ from codex.models.settings import (
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
-# Fallback top-group when the BG flag row is missing, off, or holds
+# Fallback top-collection when the BG flag row is missing, off, or holds
 # an invalid value. Mirrors ``SettingsBrowser.top_collection``'s model
 # default; ``admin_default_route_for("publishers")`` yields the Root
 # redirect target.
@@ -384,13 +384,13 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     # ── Save (write) ────────────────────────────────────────────────
 
     def _get_browser_order_defaults(self) -> dict:
-        if group := self.kwargs.get("collection"):
-            # order_by has a dynamic group based default
+        if collection := self.kwargs.get("collection"):
+            # order_by has a dynamic collection based default
             order_by = (
                 "filename"
-                if group == FOLDER_COLLECTION
+                if collection == FOLDER_COLLECTION
                 else "story_arc_number"
-                if group == STORY_ARC_COLLECTION
+                if collection == STORY_ARC_COLLECTION
                 else "sort_name"
             )
             order_defaults = {"order_by": order_by}

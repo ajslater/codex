@@ -37,7 +37,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         elif key == AdminFlagChoices.SEND_TELEMETRY.value:
             LIBRARIAN_QUEUE.put(WakeCronTask())
         # Heavy handed refresh everything, but simple.
-        # Folder View could only change the group view and let the ui decide
+        # Folder View could only change the collection view and let the ui decide
         # Registration only needs to change the enable flag
         if key in _REFRESH_LIBRARY_FLAGS:
             LIBRARIAN_QUEUE.put(admin_flags_changed_task(keys=[key]))

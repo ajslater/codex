@@ -164,7 +164,7 @@ def _purge_orphaned(cover_pks: tuple[int, ...]) -> None:
 
 
 class AdminCustomCoverUploadView(AdminAPIView):
-    """``POST`` a new custom cover for one or more groups."""
+    """``POST`` a new custom cover for one or more collections."""
 
     parser_classes = (MultiPartParser, FormParser)
 
@@ -229,7 +229,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
 
 
 class AdminCustomCoverRemoveView(AdminAPIView):
-    """Unlink the custom cover from one or more groups, GC if orphaned."""
+    """Unlink the custom cover from one or more collections, GC if orphaned."""
 
     def post(self, request, *_args, **_kwargs) -> Response:
         """Unlink the custom cover from each given collection pk."""
