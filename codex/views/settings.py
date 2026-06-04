@@ -141,7 +141,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return instance
 
     @staticmethod
-    def _get_admin_default_top_group() -> str:
+    def _get_admin_default_top_collection() -> str:
         """
         Read the admin-configured default top collection.
 
@@ -165,7 +165,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     @classmethod
     def _get_admin_default_route(cls) -> Mapping:
         """Translate the admin default top collection into a redirect target."""
-        return admin_default_route_for(cls._get_admin_default_top_group())
+        return admin_default_route_for(cls._get_admin_default_top_collection())
 
     @classmethod
     def _create_browser_settings(cls, user, session_key, client, create_args):
@@ -185,7 +185,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             volumes=False,
         )
         create_kwargs = dict(create_args)
-        create_kwargs.setdefault("top_collection", cls._get_admin_default_top_group())
+        create_kwargs.setdefault("top_collection", cls._get_admin_default_top_collection())
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,

@@ -6,7 +6,7 @@ The metadata view emits ``*_list`` fields populated by
 each row to expose ``ids``, ``name`` (and ``number_to`` for Volume).
 Two call sites populate these lists — parent groups in
 ``MetadataQueryIntersectionsView._query_groups`` and the current group
-in ``MetadataCopyIntersectionsView._highlight_current_group`` — so the
+in ``MetadataCopyIntersectionsView._highlight_current_collection`` — so the
 projection lives here to keep them from drifting.
 """
 
@@ -23,13 +23,13 @@ from codex.models.functions import JsonGroupArray
 # ``StoryArc.__name__.lower() == "storyarc"`` but the serializer reads
 # ``story_arc_list``; without this map the populated attribute would
 # silently fall on the floor.
-_GROUP_LIST_FIELD_OVERRIDES = MappingProxyType({"StoryArc": "story_arc_list"})
+_COLLECTION_LIST_FIELD_OVERRIDES = MappingProxyType({"StoryArc": "story_arc_list"})
 
 
 def collection_list_field_name(model: type[BrowserCollectionModel]) -> str:
     """Return the metadata-obj attribute the serializer reads for ``model``."""
     name = model.__name__
-    return _GROUP_LIST_FIELD_OVERRIDES.get(name, name.lower() + "_list")
+    return _COLLECTION_LIST_FIELD_OVERRIDES.get(name, name.lower() + "_list")
 
 
 def annotate_collection_list(qs: QuerySet) -> QuerySet:

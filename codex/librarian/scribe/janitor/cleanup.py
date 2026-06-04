@@ -423,8 +423,8 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.start(status)
             total = 0
             with self.db_write_lock:
-                for model, group_code in _FAVORITE_TARGETS:
-                    orphans = Favorite.objects.filter(collection=group_code).exclude(
+                for model, collection_code in _FAVORITE_TARGETS:
+                    orphans = Favorite.objects.filter(collection=collection_code).exclude(
                         target_id__in=model.objects.values("pk"),
                     )
                     count, _ = orphans.delete()

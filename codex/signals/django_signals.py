@@ -16,8 +16,8 @@ def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
     # Lazy imports so the module is safe to load before ``django.setup()``.
     from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 
-    if group_code := FAVORITE_MODEL_COLLECTIONS.get(sender):
-        Favorite.objects.filter(collection=group_code, target_id=instance.pk).delete()
+    if collection_code := FAVORITE_MODEL_COLLECTIONS.get(sender):
+        Favorite.objects.filter(collection=collection_code, target_id=instance.pk).delete()
 
 
 def _ensure_user_auth(sender, instance, created, **_kwargs) -> None:

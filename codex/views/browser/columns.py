@@ -291,12 +291,12 @@ def favorite_annotation_for(model, user) -> dict:
       the table-view caller passes a known model so this branch is
       rare in practice.
     """
-    group_code = FAVORITE_MODEL_COLLECTIONS.get(model)
-    if group_code is None:
+    collection_code = FAVORITE_MODEL_COLLECTIONS.get(model)
+    if collection_code is None:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
-    favorited_ids = Favorite.objects.filter(user=user, collection=group_code).values(
+    favorited_ids = Favorite.objects.filter(user=user, collection=collection_code).values(
         "target_id"
     )
     return {

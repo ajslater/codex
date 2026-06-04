@@ -107,14 +107,14 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         """Get ordering for query."""
         sort_name_annotations = {}
         if self._selected_arc_collection in {Collection.SERIES, Collection.VOLUME}:
-            parent_group = (
+            parent_collection = (
                 Collection.IMPRINT
                 if self._selected_arc_collection == Collection.SERIES
                 else Collection.SERIES
             )
             show = self.get_from_settings("show", browser=True)
             sort_name_annotations = self.get_sort_name_annotations(
-                model, parent_group, self._selected_arc_ids, show
+                model, parent_collection, self._selected_arc_ids, show
             )
             if sort_name_annotations and model is Comic:
                 ordering += (*sort_name_annotations.keys(),)
@@ -122,7 +122,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         return sort_name_annotations, tuple(ordering)
 
     def _get_comics_list(self) -> QuerySet:
-        """Get the reader navigation group filter."""
+        """Get the reader navigation collection filter."""
         rel = COLLECTION_RELATION[self._selected_arc_collection]
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
