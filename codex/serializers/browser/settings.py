@@ -32,7 +32,7 @@ from codex.serializers.settings import SettingsInputSerializer
 
 
 class BrowserSettingsShowCollectionFlagsSerializer(Serializer):
-    """Show Group Flags (collection vocabulary)."""
+    """Show Collection Flags (collection vocabulary)."""
 
     publishers = BooleanField()
     imprints = BooleanField()
@@ -155,7 +155,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     )
 
     def validate_table_columns(self, value):
-        """Reject unknown top-group keys and unknown column keys."""
+        """Reject unknown top-collection keys and unknown column keys."""
         invalid_top_collections = set(value) - set(BROWSER_TOP_COLLECTION_CHOICES.keys())
         if invalid_top_collections:
             reason = f"Invalid top_collection keys: {sorted(invalid_top_collections)}"

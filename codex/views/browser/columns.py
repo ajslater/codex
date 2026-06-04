@@ -122,13 +122,13 @@ _FK_NAME_COLUMN_PATHS = MappingProxyType(
 
 
 def default_columns_for(top_collection: str) -> tuple[str, ...]:
-    """Return the default column tuple for a top-group, or empty if unknown."""
+    """Return the default column tuple for a top-collection, or empty if unknown."""
     # The defaults map is keyed by collection name now, matching the
     # engine's collection-valued ``top_collection`` — a direct lookup.
     return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_collection, ())
 
 
-# Default columns gated on the matching ``show.<key>`` group flag.
+# Default columns gated on the matching ``show.<key>`` collection flag.
 # A user who hides imprints / volumes from breadcrumb navigation
 # almost certainly doesn't want the corresponding column to lead
 # their default column set either; filtering the defaults keeps the
@@ -147,7 +147,7 @@ def default_columns_filtered(
     """
     Return ``default_columns_for(top_collection)`` minus show-gated columns.
 
-    ``show`` is the per-user group-flag dict from
+    ``show`` is the per-user collection-flag dict from
     ``BrowserSettingsShowCollectionFlagsSerializer`` (collection keys
     ``publishers``, ``imprints``, ``series``, ``volumes``). When a flag
     is False or missing, the matching

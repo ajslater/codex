@@ -1,4 +1,4 @@
-"""Download a group of comics in a zipfile."""
+"""Download a collection of comics in a zipfile."""
 
 from typing import override
 
@@ -12,7 +12,7 @@ from codex.views.browser.filters.filter import BrowserFilterView
 
 
 class CollectionDownloadView(BrowserFilterView):
-    """Return a group of comic archives as a streaming zipfile."""
+    """Return a collection of comic archives as a streaming zipfile."""
 
     content_type = "application/zip"
     AS_ATTACHMENT = True

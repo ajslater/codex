@@ -1,11 +1,11 @@
 """
 Per-pk cover endpoints.
 
-Serve a single already-resolved cover pk — no group filter, no ordering,
+Serve a single already-resolved cover pk — no collection filter, no ordering,
 no fuzzy sort_name matching. The browser response pre-computes the
 representative comic pk per card (see :mod:`codex.views.browser.annotate.cover`),
 so the per-card cover URL is a cheap single-row lookup instead of re-running
-the group-resolution pipeline 72x per page.
+the collection-resolution pipeline 72x per page.
 
 Cover generation is never run inline. If the cached thumb is missing we
 enqueue a :class:`CoverCreateTask` on the librarian queue and respond 202
@@ -144,7 +144,7 @@ class CustomCoverView(_CoverBaseView):
     """
     Serve a CustomCover by its pk.
 
-    No ACL check — custom covers are admin-provisioned artwork for groups,
+    No ACL check — custom covers are admin-provisioned artwork for collections,
     not comic content.
     """
 
@@ -161,7 +161,7 @@ class CustomCoverView(_CoverBaseView):
 
 
 def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
-    """Pick a representative comic pk for a group source, ACL-aware."""
+    """Pick a representative comic pk for a collection source, ACL-aware."""
     field = _COLLECTION_COMIC_FILTER.get(source)
     if field is None:
         return None

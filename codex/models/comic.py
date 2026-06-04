@@ -107,7 +107,7 @@ class Comic(WatchedPathBrowserCollection):
         default="",
         db_collation="nocase",
     )
-    # Group FKs
+    # Collection FKs
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -382,7 +382,7 @@ class ComicFTS(BaseModel):
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     review = TextField(db_collation="nocase")
     summary = TextField(db_collation="nocase")
-    # FK groups
+    # FK collections
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

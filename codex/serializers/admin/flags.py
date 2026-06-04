@@ -29,7 +29,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         ``BROWSER_DEFAULT_COLLECTION`` constrains ``value`` to one of the
         ``BROWSER_TOP_COLLECTION_CHOICES`` keys; the route URL is
         derived from the value at read time via ``admin_default_route_for``.
-        Note we validate against the top-group set, not
+        Note we validate against the top-collection set, not
         ``BROWSER_ROUTE_COLLECTION_CHOICES`` — the ``root`` pseudo-collection is
         not a valid flag value, only a derived URL.
         """

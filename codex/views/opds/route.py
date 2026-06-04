@@ -22,7 +22,7 @@ from django.urls import reverse
 from codex.collection import Collection
 from codex.views.util import pop_name
 
-# url_names whose ``{group, pks, page}`` kwargs name a browse listing.
+# url_names whose ``{collection, pks, page}`` kwargs name a browse listing.
 FEED_URL_NAMES: Final[frozenset[str]] = frozenset({"opds:v1:feed", "opds:v2:feed"})
 # ROOT is not a URL collection; it resolves to its top collection.
 ROOT_COLLECTION: Final = "publishers"

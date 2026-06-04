@@ -11,7 +11,7 @@ from codex.views.browser.columns import m2m_alias_for, m2m_columns
 # Order keys that don't map directly to a Comic field name need an
 # explicit ORM path. The map is consumed both by ``_add_comic_order_by``
 # (the Comic ORDER BY clause) and by ``annotate_order_value`` (the
-# ``order_value`` annotation used by serializers and group aggregates).
+# ``order_value`` annotation used by serializers and collection aggregates).
 COMIC_ORDER_FIELD_PATHS = MappingProxyType(
     {
         "country": "country__name",
@@ -185,7 +185,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         silently affect cover-grid order. Comic-row queries chain
         each extra through :func:`_add_comic_order_by` so M2M and
         FK-name keys resolve to their upstream-annotated aliases.
-        Group queries reference the per-extra ``order_value`` aliases
+        Collection queries reference the per-extra ``order_value`` aliases
         annotated by ``annotate_extra_order_values`` upstream.
         """
         extras = self.params.get("order_extra_keys") or ()
@@ -206,7 +206,7 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
         elif self.order_key == "age_rating":
-            # Group rows annotate two columns for age_rating —
+            # Collection rows annotate two columns for age_rating —
             # ``order_value`` is the metron name string (display) and
             # ``_age_rating_sort_value`` is the metron index (sort).
             # See ``BrowserAnnotateOrderView.annotate_order_value``.

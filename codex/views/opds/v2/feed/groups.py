@@ -195,13 +195,13 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Start Groups."""
         return self._create_group(START_GROUPS)
 
-    def get_groups(self, group_qs, book_qs, title: str, zero_pad: int):
+    def get_groups(self, collection_qs, book_qs, title: str, zero_pad: int):
         """Regular publication groups."""
         groups = []
 
         # Regular Groups
-        tup = (LinkGroup(title, group_qs),)
-        subtitle = group_qs.model.__name__ if group_qs.model else "UnknownGroup"
+        tup = (LinkGroup(title, collection_qs),)
+        subtitle = collection_qs.model.__name__ if collection_qs.model else "UnknownGroup"
         if subtitle != "Series":
             subtitle += "s"
         groups += self._create_group(tup, paginate=True)

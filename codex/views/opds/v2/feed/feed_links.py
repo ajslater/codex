@@ -85,12 +85,12 @@ class OPDS2FeedLinksView(OPDS2LinksView):
         return static_links
 
     def _top_route(self) -> dict[str, Any]:
-        group = (
+        collection = (
             Collection.FOLDER
             if self.kwargs.get("collection") == Collection.FOLDER
             else Collection.ROOT
         )
-        return {"collection": group, "pks": (), "page": 1}
+        return {"collection": collection, "pks": (), "page": 1}
 
     def _link_page(self, rel, page):
         """Links to a page of results."""
@@ -113,7 +113,7 @@ class OPDS2FeedLinksView(OPDS2LinksView):
             # no top or up links if we're already at the top
             top_href_data = HrefData(self._top_route(), inherit_query_params=True)
             top_link_data = LinkData(Rel.TOP, top_href_data)
-            # ``up_route`` is the wire-shaped ``last_route`` (keyed ``group``);
+            # ``up_route`` is the wire-shaped ``last_route`` (keyed ``collection``);
             # ``opds_feed_reverse`` accepts that dialect directly.
             up_href_data = HrefData(up_route, inherit_query_params=True)
             up_link_data = LinkData(Rel.UP, up_href_data)

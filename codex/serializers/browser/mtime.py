@@ -1,4 +1,4 @@
-"""Group Mtimes."""
+"""Collection Mtimes."""
 
 from rest_framework.serializers import Serializer
 
@@ -8,7 +8,7 @@ from codex.serializers.route import SimpleRouteSerializer
 
 
 class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
-    """Groups Mtimes."""
+    """Collections Mtimes."""
 
     JSON_FIELDS = frozenset(
         BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"collections"}

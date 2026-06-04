@@ -5,7 +5,7 @@ from codex.models.choices import ReadingDirectionChoices
 from codex.models.settings import FitToChoices
 from codex.serializers.fields.base import CodexChoiceField
 
-# Browse groups a comic can be read "within". All collection-valued now;
+# Browse collections a comic can be read "within". All collection-valued now;
 # p/i/root have no arc of their own (params collapses them to series).
 VALID_ARC_COLLECTIONS = (
     Collection.SERIES,

@@ -24,11 +24,11 @@ __all__ = (
     "Favorite",
 )
 
-# Single source of truth for the model ↔ group dispatch. The group code
-# is the collection vocabulary (a :class:`Collection` member, whose value is
-# the collection name) shared by the whole app. Every favorite-related
+# Single source of truth for the model ↔ collection dispatch. The collection
+# code is the collection vocabulary (a :class:`Collection` member, whose value
+# is the collection name) shared by the whole app. Every favorite-related
 # view, signal, cron, and annotation pulls from these maps so the seven
-# groups stay aligned across the codebase. Filter / annotation / API
+# collections stay aligned across the codebase. Filter / annotation / API
 # views consume the forward map; the cleanup cron and signal handler
 # consume the reverse map. Both are immutable proxies.
 FAVORITE_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], str]] = (
@@ -48,13 +48,13 @@ FAVORITE_COLLECTION_MODELS: Final[MappingProxyType[str, type]] = MappingProxyTyp
     {code: model for model, code in FAVORITE_MODEL_COLLECTIONS.items()}
 )
 FAVORITE_COLLECTION_CHOICES: Final = tuple(
-    (group.value, COLLECTION_LABELS[group])
-    for group in FAVORITE_MODEL_COLLECTIONS.values()
+    (collection.value, COLLECTION_LABELS[collection])
+    for collection in FAVORITE_MODEL_COLLECTIONS.values()
 )
 
 
 class Favorite(BaseModel):
-    """Per-user favorite tag for a browsable group or comic."""
+    """Per-user favorite tag for a browsable collection or comic."""
 
     user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)
     collection = CharField(max_length=16, choices=FAVORITE_COLLECTION_CHOICES)

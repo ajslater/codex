@@ -4,8 +4,8 @@ Shared queryset shape for ``CollectionSerializer`` consumers.
 The metadata view emits ``*_list`` fields populated by
 ``codex.serializers.browser.metadata.CollectionSerializer``, which expects
 each row to expose ``ids``, ``name`` (and ``number_to`` for Volume).
-Two call sites populate these lists — parent groups in
-``MetadataQueryIntersectionsView._query_groups`` and the current group
+Two call sites populate these lists — parent collections in
+``MetadataQueryIntersectionsView._query_collection_lists`` and the current collection
 in ``MetadataCopyIntersectionsView._highlight_current_collection`` — so the
 projection lives here to keep them from drifting.
 """

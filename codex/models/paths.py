@@ -85,7 +85,7 @@ class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
     class CollectionChoices(TextChoices):
-        """Browse groups a custom cover may attach to (collection vocabulary)."""
+        """Browse collections a custom cover may attach to (collection vocabulary)."""
 
         PUBLISHERS = "publishers"
         IMPRINTS = "imprints"
@@ -95,7 +95,7 @@ class CustomCover(WatchedPath):
         FOLDERS = "folders"
 
     FOLDER_COVER_STEM = ".codex-cover"
-    # On-disk directory name (user-facing filesystem convention) → group.
+    # On-disk directory name (user-facing filesystem convention) → collection.
     DIR_COLLECTION_CHOICE_MAP = MappingProxyType(
         {
             "publishers": CollectionChoices.PUBLISHERS.value,

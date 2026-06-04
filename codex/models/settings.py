@@ -166,7 +166,7 @@ class SettingsBase(BaseModel):
 
 class SettingsBrowserShow(BaseModel):
     """
-    Show-group boolean grid.
+    Show-collection boolean grid.
 
     Shared across SettingsBrowser rows — created but never deleted.
     With 4 booleans there are at most 16 distinct rows (in practice ~6).

@@ -58,7 +58,7 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
         "imprint_name": Min,
         # ``issue`` is virtual: its order_value annotation aggregates
         # the underlying ``issue_number`` field (resolved via
-        # ``comic_order_path``). Group rows therefore sort by their
+        # ``comic_order_path``). Collection rows therefore sort by their
         # min/max child issue number; the suffix secondary applies
         # only to Comic-row ORDER BY.
         "issue": Min,
@@ -234,7 +234,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Aggregate triggers:
         # - OPDS acquisition needs the per-entry "last read" timestamp.
         # - Sorting by ``bookmark_updated_at`` needs it as the order key.
-        # - Group rows in table view display it as a column; the cell
+        # - Collection rows in table view display it as a column; the cell
         #   display path (``_emit_column`` → ``getattr``) reads the
         #   annotation directly, so without this branch the column would
         #   crash ``compute_collection_intersections`` (the field can't be
@@ -284,7 +284,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Skip ``group_by("id")`` on Comic queries that don't actually fan out
         # via an m2m join — there's nothing to dedupe and the GROUP BY just
         # forces SQLite to materialize an unnecessary aggregate. Non-Comic
-        # queries traverse ``comic__`` (one-to-many) for ACL/group filters
+        # queries traverse ``comic__`` (one-to-many) for ACL/collection filters
         # and always need the dedupe.
         if qs.model is not Comic or self.comic_filter_uses_m2m:
             qs = qs.group_by("id")
@@ -357,7 +357,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Table view uses intersection so the sort key matches the
         # displayed cell (blank when children disagree). Cover view's
         # card caption shows order_value directly — intersection there
-        # would blank the caption for any group with mixed children,
+        # would blank the caption for any collection with mixed children,
         # which is the regression we're avoiding. Falls back to the
         # legacy aggregate path when the column / collection model isn't
         # wired so adding a new registry scalar doesn't silently
@@ -519,7 +519,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         tail references direct Comic fields, M2M aliases annotated
         by ``_add_table_view_sort_annotations``, or
         ``bookmark_updated_at`` / ``filename`` aliases annotated by
-        ``annotate_comic_extra_specials``. Group querysets need a
+        ``annotate_comic_extra_specials``. Collection querysets need a
         parallel ``_table_extra_value_<idx>`` annotation per extra
         so the ORDER BY tail can reference an aggregated child-comic
         value. Skipped outside table-view mode so cover requests

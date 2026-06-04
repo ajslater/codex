@@ -4,7 +4,7 @@ Per-model row → sidecar dict converters.
 Each ``serialize_*`` callable takes a main-DB model instance and returns
 ``(table_name, key_columns, data_dict)`` ready to feed
 :meth:`SidecarStore.upsert`. Foreign keys are resolved to stable
-identifiers (usernames, comic paths, group name-chains, tag names) so
+identifiers (usernames, comic paths, collection name-chains, tag names) so
 the sidecar survives a main-DB rebuild.
 
 These functions assume the instance is fully populated (saved) and that
@@ -273,7 +273,7 @@ def serialize_settings_last_route(
     """
     Last-route row.
 
-    The ``pks`` list holds main-DB PKs for whatever group the user was
+    The ``pks`` list holds main-DB PKs for whatever collection the user was
     last browsing. We resolve each PK to a name-chain identifier so
     restore can find the row again post-rebuild.
     """

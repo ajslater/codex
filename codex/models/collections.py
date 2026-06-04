@@ -77,7 +77,7 @@ class IdentifiedBrowserCollectionModel(BrowserCollectionModel):
     then it would impossible to unlink a second level m2m relationship when comics are
     deleted. So I choose the highest priority one in import.
     Additionally, Browser collections will update to the highest priority identifier by
-    source instead of creating duplicate groups to keep the hierarchy consolidated.
+    source instead of creating duplicate collections to keep the hierarchy consolidated.
     """
 
     identifier = ForeignKey(Identifier, on_delete=CASCADE, null=True)

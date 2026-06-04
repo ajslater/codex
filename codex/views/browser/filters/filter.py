@@ -48,7 +48,7 @@ _FAVORITE_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
 )
 
 # Collection code → comic-side ORM field used to "transitively" match a
-# row in that group. ``folders`` and ``story_arc_numbers__story_arc``
+# row in that collection. ``folders`` and ``story_arc_numbers__story_arc``
 # are m2m relations on Comic that carry every ancestor folder / arc,
 # so a single favorited folder lights up every descendant comic.
 _FAVORITE_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
@@ -181,7 +181,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         # ``rel`` must be relative to the queryset's model — not the
         # cached ``self.rel_prefix``, which is pinned to the BROWSE
         # model. The browser pipeline runs sub-queries against Comic
-        # under group browses; using the browse-model rel there would
+        # under collection browses; using the browse-model rel there would
         # produce ``comic__pk`` against Comic and FieldError out.
         rel = self.get_rel_prefix(model)
         subqueries = self._favorite_subqueries

@@ -54,7 +54,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
                 dt = datetime.fromisoformat(dt_str).replace(tzinfo=UTC)
             except ValueError:
                 logger.warning(
-                    f"computing group mtime: {dt_str} is not a valid datetime string."
+                    f"computing collection mtime: {dt_str} is not a valid datetime string."
                 )
                 continue
             mtime = max(dt, mtime)

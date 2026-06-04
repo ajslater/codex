@@ -111,7 +111,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     def _feed_navigation_and_groups(
         self,
-        group_qs: QuerySet,
+        collection_qs: QuerySet,
         book_qs: QuerySet,
         zero_pad: int | None,
         title: str,
@@ -128,7 +128,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             # Move the first group's navigation to become the feed navigation.
             # The feed navigation is titled "Browse"" in Stump
             zero_pad = zero_pad or 0
-            regular_groups = self.get_groups(group_qs, book_qs, title, zero_pad)
+            regular_groups = self.get_groups(collection_qs, book_qs, title, zero_pad)
             first_regular_group = next(iter(regular_groups), {})
             navigation = first_regular_group.pop("navigation", [])
 
@@ -150,7 +150,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     @override
     def get_object(self) -> MappingProxyType:
         """Get the browser page and serialize it for this subclass."""
-        group_qs, book_qs, _, _, zero_pad, mtime = self.group_and_books
+        collection_qs, book_qs, _, _, zero_pad, mtime = self.collection_and_books
         # convert browser_page into opds pagej
         browser_title = self.get_browser_page_title()
         title = "Start" if self.IS_START_PAGE else self._title(browser_title)
@@ -164,7 +164,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
         # Navigation & Groups
         navigation, groups, publications = self._feed_navigation_and_groups(
-            group_qs, book_qs, zero_pad, title
+            collection_qs, book_qs, zero_pad, title
         )
         metadata = self._update_feed_modified(metadata, groups)
 

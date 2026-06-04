@@ -2,7 +2,7 @@
 --
 -- Every table is denormalized: foreign keys to volatile main-DB rows are
 -- replaced with stable string identifiers (usernames, comic paths,
--- group name-chains, tag names) at write time. The sidecar has no
+-- collection name-chains, tag names) at write time. The sidecar has no
 -- foreign keys of its own — that's the point. It must survive the main
 -- DB being deleted and rebuilt from a filesystem scan.
 
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS settings_filters (
 );
 
 -- 1:1 with settings_browser. pks_json is a JSON list of identifier
--- tuples (one per group, e.g. ["FooPub", "BarComics", "Baz Patrol"] for
+-- tuples (one per collection, e.g. ["FooPub", "BarComics", "Baz Patrol"] for
 -- a Series row).
 CREATE TABLE IF NOT EXISTS settings_last_route (
     username TEXT NOT NULL,

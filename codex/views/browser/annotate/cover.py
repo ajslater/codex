@@ -21,7 +21,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
     """
 
     def _cover_collection_q(self, collection_model) -> Q:
-        """Group filter Q for a cover subquery, correlated via OuterRef."""
+        """Build the collection filter Q for a cover subquery (correlated via OuterRef)."""
         collection_rel = COLLECTION_RELATION[self.model_collection]
         if self.params.get("dynamic_covers") or collection_model in (Volume, Folder):
             # Folders are hierarchical: parent_folder is the direct FK, but the

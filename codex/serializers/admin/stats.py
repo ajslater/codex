@@ -59,7 +59,7 @@ class StatsSessionsSerializer(Serializer):
 
 
 class StatsCollectionSerializer(Serializer):
-    """Group Counts."""
+    """Collection Counts."""
 
     publisher_count = IntegerField(required=False, read_only=True)
     imprint_count = IntegerField(required=False, read_only=True)

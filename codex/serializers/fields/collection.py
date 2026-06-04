@@ -1,4 +1,4 @@
-"""Browse Group Field."""
+"""Browse Collection Field."""
 
 from codex.choices.browser import (
     BROWSER_ROUTE_COLLECTION_CHOICES,

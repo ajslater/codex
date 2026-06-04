@@ -42,7 +42,7 @@ class ComicSerializer(BaseModelSerializer):
     # issue_count = IntegerField(allow_null=True) could be 1
     # volume_count = IntegerField(allow_null=True) could be 1
 
-    # Group FKs
+    # Collection FKs
     publisher = PublisherSerializer(allow_null=True)
     imprint = ImprintSerializer(allow_null=True)
     series = SeriesSerializer(allow_null=True)

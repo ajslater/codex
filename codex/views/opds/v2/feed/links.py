@@ -26,27 +26,27 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._num_pages: int | None = None
-        self._group_and_books: (
+        self._collection_and_books: (
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
         ) = None
         self._user_agent_name: str | None = None
 
     @property
-    def group_and_books(
+    def collection_and_books(
         self,
     ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None]:
-        """Memoize Group And Books for num_pages."""
-        # group_qs, book_qs, num_pages, total_count, zero_pad, mtime
-        if self._group_and_books is None:
-            self._group_and_books = self._get_collection_and_books()
-        return self._group_and_books
+        """Memoize Collection And Books for num_pages."""
+        # collection_qs, book_qs, num_pages, total_count, zero_pad, mtime
+        if self._collection_and_books is None:
+            self._collection_and_books = self._get_collection_and_books()
+        return self._collection_and_books
 
     @property
     @override
     def num_pages(self) -> int:
         """Memoize num_pages."""
         if self._num_pages is None:
-            self._num_pages = self.group_and_books[2]
+            self._num_pages = self.collection_and_books[2]
         return self._num_pages
 
     @staticmethod

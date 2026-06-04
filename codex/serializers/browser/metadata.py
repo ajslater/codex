@@ -142,7 +142,7 @@ def shape_identifiers(identifiers) -> list[dict[str, Any]]:
 
 
 class CollectionSerializer(Serializer):
-    """Serialize a group pk and name."""
+    """Serialize a collection pk and name."""
 
     ids = ListField(child=IntegerField(), read_only=True)
     name = CharField(read_only=True)
@@ -166,7 +166,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     # cover_pk and cover_custom_pk are annotated on collection queryset by
     # BrowserAnnotateCoverView; Comic metadata skips the annotation and
     # falls back to ``obj.pk`` — so the frontend can always build a
-    # ``/c/<pk>/cover.webp`` URL without a per-group branch.
+    # ``/c/<pk>/cover.webp`` URL without a per-coollection branch.
     cover_pk = SerializerMethodField(read_only=True)
     cover_custom_pk = SerializerMethodField(read_only=True)
 

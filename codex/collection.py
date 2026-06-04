@@ -1,9 +1,9 @@
 """
-The canonical browse-group vocabulary.
+The canonical browse-collection vocabulary.
 
-Codex browses comics by group: publishers, imprints, series, volumes,
+Codex browses comics by collection: publishers, imprints, series, volumes,
 issues, folders and story arcs, plus a synthetic *root* level that
-defers to the user's top-group setting. A group is identified two ways:
+defers to the user's top-collection setting. A collection is identified two ways:
 a plural collection name (``"publishers"``) in the engine, DB, OPDS and
 v4 API/URLs, and a singular name (``"publisher"``) for cover filenames.
 
@@ -27,7 +27,7 @@ from typing import Final
 
 
 class Collection(StrEnum):
-    """A browsable group. The member value is the v4 collection name."""
+    """A browsable collection. The member value is the v4 collection name."""
 
     ROOT = "root"  # synthetic top level; resolves to its top collection in URLs
     PUBLISHER = "publishers"
@@ -45,7 +45,7 @@ class Collection(StrEnum):
 
     @property
     def collection(self) -> str:
-        """The v4 collection name for this group (ROOT has none of its own)."""
+        """The v4 collection name for this collection (ROOT has none of its own)."""
         return COLLECTION_NAMES[self]
 
 
@@ -63,7 +63,7 @@ COLLECTION_NAMES: Final[MappingProxyType[Collection, str]] = MappingProxyType(
     }
 )
 COLLECTION_BY_NAME: Final[MappingProxyType[str, Collection]] = MappingProxyType(
-    {collection: group for group, collection in COLLECTION_NAMES.items()}
+    {name: collection for collection, name in COLLECTION_NAMES.items()}
 )
 
 # Collection → singular name, used only for cover / placeholder filenames

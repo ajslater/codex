@@ -160,7 +160,7 @@ def _emit_issue(row, instance) -> None:
     """Render the compound issue column as ``{number, suffix}`` on the row."""
     # Compound from issue_number + issue_suffix on the Comic, emitted as
     # ``{number, suffix}`` so the cell can split-justify the halves.
-    # Group rows yield empty strings for both (intersection of distinct
+    # Collection rows yield empty strings for both (intersection of distinct
     # issues across child comics is rarely meaningful).
     row["issue"] = _format_issue(
         getattr(instance, "issue_number", None),
@@ -190,7 +190,7 @@ def _emit_column(
     elif col == "issue":
         _emit_issue(row, instance)
     elif col in row_intersections:
-        # Group-row intersection takes precedence (and applies country /
+        # Collection-row intersection takes precedence (and applies country /
         # language transforms the same way the FK-alias path does).
         row[col] = _apply_transform(col, row_intersections[col])
     elif col in m2m_keys:
