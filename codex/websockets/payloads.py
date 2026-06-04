@@ -15,21 +15,21 @@ forwards both fields onto the wire dict that
 from collections.abc import Mapping
 from typing import Any
 
-from codex.choices.notifications import Notifications
+from codex.choices.notifications import Notifications, WebsocketMessages
 
 # Plain-string notification → ``type`` key on the typed payload. Anything
 # not in the map is forwarded as ``{type: "unknown", raw: "<str>"}`` so
 # the frontend can log it without crashing.
-NOTIFICATION_TYPE_MAP: Mapping[str, str] = {
-    Notifications.ADMIN_FLAGS.value: "admin.flags.changed",
-    Notifications.BOOKMARK.value: "bookmark.changed",
-    Notifications.COVERS.value: "covers.changed",
-    Notifications.FAILED_IMPORTS.value: "failed-imports.changed",
-    Notifications.GROUPS.value: "groups.changed",
-    Notifications.LIBRARY.value: "library.changed",
-    Notifications.LIBRARIAN_STATUS.value: "task.progress",
-    Notifications.ONLINE_TAG_PROMPT.value: "tag-session.prompt",
-    Notifications.USERS.value: "users.changed",
+NOTIFICATION_TYPE_MAP: Mapping[str, WebsocketMessages] = {
+    Notifications.ADMIN_FLAGS.value: WebsocketMessages.ADMIN_FLAGS_CHANGED,
+    Notifications.BOOKMARK.value: WebsocketMessages.BOOKMARK_CHANGED,
+    Notifications.COVERS.value: WebsocketMessages.COVERS_CHANGED,
+    Notifications.FAILED_IMPORTS.value: WebsocketMessages.FAILED_IMPORTS_CHANGED,
+    Notifications.GROUPS.value: WebsocketMessages.GROUPS_CHANGED,
+    Notifications.LIBRARY.value: WebsocketMessages.LIBRARY_CHANGED,
+    Notifications.LIBRARIAN_STATUS.value: WebsocketMessages.TASK_PROGRESS,
+    Notifications.ONLINE_TAG_PROMPT.value: WebsocketMessages.TAG_SESSION_PROMPT,
+    Notifications.USERS.value: WebsocketMessages.USERS_CHANGED,
 }
 
 # Event types that carry ``mtime`` + ``scope`` enrichment on the wire.
@@ -37,13 +37,13 @@ NOTIFICATION_TYPE_MAP: Mapping[str, str] = {
 # their own payload shapes.
 _ENRICHED_TYPES = frozenset(
     {
-        "admin.flags.changed",
-        "bookmark.changed",
-        "covers.changed",
-        "failed-imports.changed",
-        "groups.changed",
-        "library.changed",
-        "users.changed",
+        WebsocketMessages.ADMIN_FLAGS_CHANGED,
+        WebsocketMessages.BOOKMARK_CHANGED,
+        WebsocketMessages.COVERS_CHANGED,
+        WebsocketMessages.FAILED_IMPORTS_CHANGED,
+        WebsocketMessages.GROUPS_CHANGED,
+        WebsocketMessages.LIBRARY_CHANGED,
+        WebsocketMessages.USERS_CHANGED,
     }
 )
 

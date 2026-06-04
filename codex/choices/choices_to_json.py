@@ -19,7 +19,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
 from codex.choices.jobs import ADMIN_JOBS
-from codex.choices.notifications import Notifications
+from codex.choices.notifications import WebsocketMessages
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
@@ -135,7 +135,7 @@ def _dump(
 
 def _make_websocket_messages() -> MappingProxyType:
     return MappingProxyType(
-        {"messages": {msg.name: msg.value for msg in Notifications}}
+        {"messages": {msg.name: msg.value for msg in WebsocketMessages}}
     )
 
 

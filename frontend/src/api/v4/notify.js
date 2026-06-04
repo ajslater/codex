@@ -5,15 +5,20 @@
  *
  * Stores migrate to this module by switching the WebSocket URL to
  * WS_URL_V4 and routing on ``payload.type`` instead of bare string
- * equality. The dispatch table below names every known type so a
- * regression (e.g. a renamed type) shows up as an unknown branch
- * rather than a silent miss. Unmapped notifications arrive as
+ * equality. MESSAGE_TYPES names every known type so a regression
+ * (e.g. a renamed type) shows up as an unknown branch rather than a
+ * silent miss. It is generated from
+ * codex/choices/notifications.py:WebsocketMessages via
+ * ``make build-choices``, so the frontend cannot drift from the
+ * backend. Unmapped notifications arrive as
  * ``{type: "unknown", raw: "<original string>"}`` so the default
  * branch can log them without crashing.
  *
  * Path is hardcoded for the same reason as the rest of the v4 client
  * (see frontend/src/api/v4/README.md): one mount point, fixed.
  */
+
+import { messages } from "@/choices/websocket-messages.json";
 
 const WS_PATH = "/api/v4/ws";
 
@@ -22,18 +27,7 @@ export const WS_URL_V4 = (() => {
   return `${protocol}//${location.host}${WS_PATH}`;
 })();
 
-export const MESSAGE_TYPES = Object.freeze({
-  ADMIN_FLAGS_CHANGED: "admin.flags.changed",
-  BOOKMARK_CHANGED: "bookmark.changed",
-  COVERS_CHANGED: "covers.changed",
-  FAILED_IMPORTS_CHANGED: "failed-imports.changed",
-  GROUPS_CHANGED: "groups.changed",
-  LIBRARY_CHANGED: "library.changed",
-  SESSION_ENDED: "session.ended",
-  TAG_SESSION_PROMPT: "tag-session.prompt",
-  TASK_PROGRESS: "task.progress",
-  USERS_CHANGED: "users.changed",
-});
+export const MESSAGE_TYPES = Object.freeze(messages);
 
 /*
  * Parse a wire message into a v4 typed payload. The backend always
