@@ -935,24 +935,14 @@ export const useBrowserStore = defineStore("browser", {
       }
     },
     /*
-     * v4 ``library.changed`` WebSocket payloads carry mtime directly,
-     * so the socket-store dispatcher passes it in here and we can
-     * skip the HTTP mtime probe entirely. ``hintedMtime=null`` falls
-     * back to the legacy ``/api/v4/mtime`` probe (still mounted as an
-     * interim — see codex/views/v4/utility.py — for the cross-library
-     * fan-out events where no single library mtime is meaningful).
+     * Refresh gate for ``library.changed`` (and groups/users) events.
+     * The notification only says *something* changed, so probe the
+     * scoped ``/api/v4/mtime`` for the currently-viewed collection and
+     * reload only when its max mtime differs from the page we last
+     * fetched — skipping a full reload for views the change didn't touch
+     * instead of reloading on every broadcast.
      */
-    async loadMtimes(hintedMtime) {
-      if (hintedMtime && hintedMtime !== this.page.mtime) {
-        this.choices.dynamic = undefined;
-        this.loadBrowserPage(hintedMtime);
-        return true;
-      }
-      if (hintedMtime) {
-        // Hint matches our last-fetched mtime — nothing to do, no
-        // round-trip required.
-        return true;
-      }
+    async loadMtimes() {
       const { collection: routeCollection, pks } = liveBrowseParams();
       const collection =
         routeCollection && routeCollection != "root"

@@ -186,22 +186,18 @@ export const useSocketStore = defineStore("socket", () => {
   }
 
   /*
-   * v4 ``library.changed`` payloads carry an mtime directly so the
-   * browser/reader stores can skip the loadMtimes() probe and refetch
-   * (or no-op) based on the wire value. ``mtime=null`` falls through
-   * to the legacy probe — that's still the case for the cross-library
-   * fan-out events (timestamp_update, adopt_folders) where no single
-   * library mtime is meaningful.
+   * ``library.changed`` (and groups/users) only signal that something
+   * changed; the browser/reader stores probe the scoped ``/api/v4/mtime``
+   * and reload only if the currently-viewed collection actually moved.
    */
-  async function libraryNotified(payload) {
+  async function libraryNotified() {
     useCommonStore().setTimestamp();
-    const mtime = payload?.mtime;
     switch (currentRouteName()) {
       case "browser":
-        useBrowserStore().loadMtimes(mtime);
+        useBrowserStore().loadMtimes();
         break;
       case "reader":
-        useReaderStore().loadMtimes(mtime);
+        useReaderStore().loadMtimes();
         break;
       case "admin-libraries":
         adminLoadTables(["Library", "FailedImport"]);
@@ -249,14 +245,14 @@ export const useSocketStore = defineStore("socket", () => {
         break;
       case MESSAGE_TYPES.GROUPS_CHANGED:
         groupsNotified();
-        libraryNotified(payload);
+        libraryNotified();
         break;
       case MESSAGE_TYPES.USERS_CHANGED:
         usersNotified();
-        libraryNotified(payload);
+        libraryNotified();
         break;
       case MESSAGE_TYPES.LIBRARY_CHANGED:
-        libraryNotified(payload);
+        libraryNotified();
         break;
       case MESSAGE_TYPES.TASK_PROGRESS:
         adminLoadTables(["ActiveLibrarianStatus"]);

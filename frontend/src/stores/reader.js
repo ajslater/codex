@@ -597,19 +597,12 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     /*
-     * v4 ``library.changed`` WebSocket payloads carry mtime directly,
-     * so the socket-store dispatcher passes it in here and we can skip
-     * the HTTP mtime probe entirely. ``hintedMtime=null`` falls back
-     * to the legacy ``/api/v4/mtime`` probe for the cross-library
-     * fan-out events where no single library mtime is meaningful.
+     * Refresh gate for ``library.changed`` events: probe the scoped
+     * ``/api/v4/mtime`` for the comic's arcs and reload the books only
+     * when the max mtime differs from what we last fetched, so an
+     * unrelated library change doesn't reload the open book.
      */
-    async loadMtimes(hintedMtime) {
-      if (hintedMtime && hintedMtime !== this.mtime) {
-        return this.loadBooks({ mtime: hintedMtime });
-      }
-      if (hintedMtime) {
-        return true;
-      }
+    async loadMtimes() {
       const arcs = [];
       for (const [collection, arcIdInfos] of Object.entries(this.arcs)) {
         for (const pks of Object.keys(arcIdInfos)) {
