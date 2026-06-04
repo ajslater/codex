@@ -1,4 +1,4 @@
-"""Aggregate Group and Comic Metadata View."""
+"""Aggregate Collection and Comic Metadata View."""
 
 from typing import Any, override
 
@@ -19,7 +19,7 @@ from codex.views.browser.metadata.copy_intersections import (
 
 
 class MetadataView(MetadataCopyIntersectionsView):
-    """Aggregate Group and Comic Metadata View."""
+    """Aggregate Collection and Comic Metadata View."""
 
     serializer_class: type[BaseSerializer] | None = MetadataSerializer
     input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -71,7 +71,7 @@ class MetadataView(MetadataCopyIntersectionsView):
     @override
     def get_object(self) -> Any:
         """Create a comic-like object from the current browser collection."""
-        # Comic model goes through the same code path as groups because
+        # Comic model goes through the same code path as collections because
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
 
@@ -107,7 +107,7 @@ class MetadataView(MetadataCopyIntersectionsView):
 
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
-        """Get metadata for a filtered browse group."""
+        """Get metadata for a filtered browse collection."""
         # Init
         try:
             obj = self.get_object()
