@@ -1,14 +1,15 @@
 """
 WebSocket typed message shapes.
 
-The wire ships JSON envelopes ``{type, mtime, scope, ...}`` so
-clients can route by ``type`` and read scope+mtime directly — no
-extra ``loadMtimes()`` probe after a ``library.changed`` notification.
+The wire ships JSON envelopes ``{type, mtime}`` so clients can route
+by ``type`` and read the mtime directly — the browser uses it as the
+``library.changed`` refresh hint instead of a second ``loadMtimes()``
+probe.
 
-Broadcaster sites enrich :class:`codex.librarian.notifier.tasks.NotifierTask`
-with ``mtime``/``scope`` when known; the channel-layer event
-plumbing in :func:`codex.librarian.notifier.notifierd.NotifierThread._send_task`
-forwards both fields onto the wire dict that
+Broadcaster sites stamp :class:`codex.librarian.notifier.tasks.NotifierTask`
+with ``mtime`` when known; the channel-layer event plumbing in
+:func:`codex.librarian.notifier.notifierd.NotifierThread._send_task`
+forwards it onto the wire dict that
 :class:`codex.websockets.consumers.NotifierConsumer` reads.
 """
 
@@ -32,9 +33,9 @@ NOTIFICATION_TYPE_MAP: Mapping[str, WebsocketMessages] = {
     Notifications.USERS.value: WebsocketMessages.USERS_CHANGED,
 }
 
-# Event types that carry ``mtime`` + ``scope`` enrichment on the wire.
-# ``task.progress`` and ``tag-session.prompt`` are excluded — they ship
-# their own payload shapes.
+# Event types that carry an ``mtime`` on the wire. ``task.progress``
+# and ``tag-session.prompt`` are excluded — they ship their own
+# payload shapes.
 _ENRICHED_TYPES = frozenset(
     {
         WebsocketMessages.ADMIN_FLAGS_CHANGED,
@@ -48,18 +49,14 @@ _ENRICHED_TYPES = frozenset(
 )
 
 
-def typed_payload(
-    text: str,
-    mtime: int | None = None,
-    scope: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
+def typed_payload(text: str, mtime: int | None = None) -> dict[str, Any]:
     """
-    Build a typed payload from a notification string + optional enrichment.
+    Build a typed payload from a notification string + optional mtime.
 
     Unknown ``text`` (no mapping entry) returns
     ``{type: "unknown", raw: text}`` so the frontend can log without
-    crashing. ``mtime`` and ``scope`` are emitted only for event
-    types that carry them; absent fields are ``null``/``{}``.
+    crashing. ``mtime`` is emitted only for event types that carry it;
+    an absent mtime is ``null``.
     """
     type_ = NOTIFICATION_TYPE_MAP.get(text, "unknown")
     payload: dict[str, Any] = {"type": type_}
@@ -68,5 +65,4 @@ def typed_payload(
         return payload
     if type_ in _ENRICHED_TYPES:
         payload["mtime"] = mtime
-        payload["scope"] = dict(scope) if scope else {}
     return payload

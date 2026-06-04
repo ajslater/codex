@@ -34,7 +34,6 @@ class WebsocketMessages(StrEnum):
     FAILED_IMPORTS_CHANGED = "failed-imports.changed"
     GROUPS_CHANGED = "groups.changed"
     LIBRARY_CHANGED = "library.changed"
-    SESSION_ENDED = "session.ended"
     TAG_SESSION_PROMPT = "tag-session.prompt"
     TASK_PROGRESS = "task.progress"
     USERS_CHANGED = "users.changed"

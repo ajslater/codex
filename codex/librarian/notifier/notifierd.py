@@ -25,9 +25,9 @@ class NotifierThread(AggregateMessageQueuedThread):
         A random consumer awaiting the broadcast channel will consume it,
         and do a group_send with it's message.
 
-        ``mtime`` and ``scope`` ride along on the channel-layer message
-        so :class:`codex.websockets.consumers.NotifierConsumer` can merge
-        them into the typed JSON payload.
+        ``mtime`` rides along on the channel-layer message so
+        :class:`codex.websockets.consumers.NotifierConsumer` can merge
+        it into the typed JSON payload.
         """
         item = {
             "group": task.group,
@@ -35,7 +35,6 @@ class NotifierThread(AggregateMessageQueuedThread):
                 "type": "send_text",
                 "text": task.text,
                 "mtime": task.mtime,
-                "scope": task.scope or {},
             },
         }
         self.broadcast_queue.put(item)

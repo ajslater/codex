@@ -21,14 +21,13 @@ class AdminGroupViewSet(AdminModelViewSet):
 
     _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
 
-    def _on_change(self, validated_data=None, instance=None) -> None:
+    def _on_change(self, validated_data=None) -> None:
         """On change hook."""
         if not validated_data or frozenset(validated_data.keys()).intersection(
             self._CHANGE_FIELDS
         ):
             cache.clear()
-            ids = [instance.pk] if instance is not None else None
-            LIBRARIAN_QUEUE.put(groups_changed_task(ids=ids))
+            LIBRARIAN_QUEUE.put(groups_changed_task())
 
     @override
     def get_serializer(self, *args, **kwargs):
@@ -41,20 +40,17 @@ class AdminGroupViewSet(AdminModelViewSet):
         """Perform update and run hooks."""
         validated_data = serializer.validated_data
         super().perform_update(serializer)
-        self._on_change(validated_data, serializer.instance)
+        self._on_change(validated_data)
 
     @override
     def perform_create(self, serializer) -> None:
         """Perform create and run hooks."""
         validated_data = serializer.validated_data
         super().perform_create(serializer)
-        self._on_change(validated_data, serializer.instance)
+        self._on_change(validated_data)
 
     @override
     def perform_destroy(self, instance) -> None:
         """Perform destroy and run hooks."""
-        pk = instance.pk
         super().perform_destroy(instance)
-        # Synthesize an instance shim so the notify scope still carries
-        # the now-deleted group's pk.
-        self._on_change(instance=type("Deleted", (), {"pk": pk})())
+        self._on_change()

@@ -46,8 +46,8 @@ class AdminUserViewSet(AdminModelViewSet):
             # User-targeted change: send to that user's private
             # channel plus the ADMIN channel so admin tables refresh.
             tasks = (
-                users_changed_task(ids=[uid]),
-                users_changed_task(uid=uid, ids=[uid]),
+                users_changed_task(),
+                users_changed_task(uid=uid),
             )
         else:
             # Broadcast change (e.g. bulk delete).
@@ -235,7 +235,7 @@ class AdminUserBulkView(AdminAPIView):
         current_user_id = getattr(request.user, "pk", None)
         deleted, skipped = self._delete_users(ids, current_user_id)
         if deleted:
-            LIBRARIAN_QUEUE.put(users_changed_task(ids=deleted))
+            LIBRARIAN_QUEUE.put(users_changed_task())
         return Response({"deleted": deleted, "skipped": skipped})
 
     @staticmethod

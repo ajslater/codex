@@ -40,7 +40,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         # Folder View could only change the collection view and let the ui decide
         # Registration only needs to change the enable flag
         if key in _REFRESH_LIBRARY_FLAGS:
-            LIBRARIAN_QUEUE.put(admin_flags_changed_task(keys=[key]))
+            LIBRARIAN_QUEUE.put(admin_flags_changed_task())
 
     @override
     def perform_update(self, serializer) -> None:
