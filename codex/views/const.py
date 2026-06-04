@@ -42,9 +42,9 @@ from codex.models import (
 )
 from codex.settings import CODEX_PATH
 
-# Legacy single-char group constants, now sourced from the Collection enum.
-# Each still compares equal to its char (StrEnum), so existing
-# ``group == ROOT_COLLECTION`` checks are unaffected.
+# Collection constants sourced from the Collection enum. Each is a StrEnum
+# member equal to its collection-name value, so existing
+# ``collection == ROOT_COLLECTION`` checks are unaffected.
 ROOT_COLLECTION = Collection.ROOT
 FOLDER_COLLECTION = Collection.FOLDER
 STORY_ARC_COLLECTION = Collection.ARC
@@ -71,7 +71,7 @@ MISSING_COVER_PATH = STATIC_IMG_PATH / MISSING_COVER_FN
 # Annotated ``[str, str]`` (not ``[Collection, str]``): the keys are Collection members
 # but lookups come in as their collection-value string (Collection is a StrEnum, so
 # both resolve to the same bucket). The explicit annotation lets str-typed
-# group values index these maps without a type error.
+# collection values index these maps without a type error.
 COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
         **COLLECTION_NAME_MAP,
@@ -103,9 +103,9 @@ CUSTOM_COVER_COLLECTION_RELATION = MappingProxyType(
 )
 # Publisher-hierarchy nav ordering (root → volume), used for the
 # membership / index checks in browser settings validation. A tuple of
-# Collection members (collection-valued) so ``group in COLLECTION_ORDER`` and
-# ``COLLECTION_ORDER.index(group)`` resolve against the engine's collection
-# values (members compare equal to their value).
+# Collection members (collection-valued) so ``collection in COLLECTION_ORDER``
+# and ``COLLECTION_ORDER.index(collection)`` resolve against the engine's
+# collection values (members compare equal to their value).
 COLLECTION_ORDER = (
     Collection.ROOT,
     Collection.PUBLISHER,

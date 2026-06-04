@@ -84,7 +84,7 @@ class FailedImport(WatchedPath):
 class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
-    class GroupChoices(TextChoices):
+    class CollectionChoices(TextChoices):
         """Browse groups a custom cover may attach to (collection vocabulary)."""
 
         PUBLISHERS = "publishers"
@@ -98,10 +98,10 @@ class CustomCover(WatchedPath):
     # On-disk directory name (user-facing filesystem convention) → group.
     DIR_COLLECTION_CHOICE_MAP = MappingProxyType(
         {
-            "publishers": GroupChoices.PUBLISHERS.value,
-            "imprints": GroupChoices.IMPRINTS.value,
-            "series": GroupChoices.SERIES.value,
-            "story-arcs": GroupChoices.ARCS.value,
+            "publishers": CollectionChoices.PUBLISHERS.value,
+            "imprints": CollectionChoices.IMPRINTS.value,
+            "series": CollectionChoices.SERIES.value,
+            "story-arcs": CollectionChoices.ARCS.value,
         }
     )
 
@@ -115,9 +115,9 @@ class CustomCover(WatchedPath):
         Library, on_delete=CASCADE, db_index=True, null=True
     )
     collection = CharField(
-        max_length=max_choices_len(GroupChoices),
+        max_length=max_choices_len(CollectionChoices),
         db_index=True,
-        choices=GroupChoices.choices,
+        choices=CollectionChoices.choices,
     )
     sort_name = CharField(
         max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
@@ -138,7 +138,7 @@ class CustomCover(WatchedPath):
             return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            collection = self.GroupChoices.FOLDERS.value
+            collection = self.CollectionChoices.FOLDERS.value
         else:
             collection = self.DIR_COLLECTION_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)

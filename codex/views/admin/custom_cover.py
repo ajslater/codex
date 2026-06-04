@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from django.db.models import Model
 
 _ALLOWED_EXTS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"})
-_COLLECTION_CHOICES = frozenset(c.value for c in CustomCover.GroupChoices)
+_COLLECTION_CHOICES = frozenset(c.value for c in CustomCover.CollectionChoices)
 _MODEL_BY_COLLECTION: dict[str, type[Model]] = {
     collection: model for model, collection in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
 }
