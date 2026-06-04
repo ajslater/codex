@@ -22,7 +22,7 @@ class UpdateCollectionsTask(ScribeTask):
 class LazyImportComicsTask(ScribeTask):
     """Lazy import of metadaa for existing comics."""
 
-    group: str
+    collection: str
     pks: frozenset[int]
 
 

@@ -22,9 +22,9 @@ class CreateCoversImporter(CreateComicsImporter):
     """Create Custom Covers."""
 
     @staticmethod
-    def add_custom_cover_to_group(group_class, obj) -> None:
+    def add_custom_cover_to_collection(collection_class, obj) -> None:
         """Bind nothing — custom covers are linked explicitly via upload."""
-        del group_class, obj
+        del collection_class, obj
 
     def _update_custom_covers(self, update_covers_qs: QuerySet, status) -> int:
         count = 0

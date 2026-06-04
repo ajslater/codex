@@ -51,7 +51,7 @@ class LazyImportViewTestCase(TestCase):
         tasks = self._tasks(mock_queue)
         assert any(
             isinstance(t, LazyImportComicsTask)
-            and t.group == "comics"
+            and t.collection == "comics"
             and t.pks == frozenset({5, 7})
             for t in tasks
         ), tasks
@@ -62,7 +62,7 @@ class LazyImportViewTestCase(TestCase):
         response = self.client.post("/api/v4/browse/folders/3/import")
         assert response.status_code == _HTTP_OK
         assert any(
-            isinstance(t, LazyImportComicsTask) and t.group == "folders"
+            isinstance(t, LazyImportComicsTask) and t.collection == "folders"
             for t in self._tasks(mock_queue)
         )
 

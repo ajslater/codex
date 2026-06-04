@@ -9,8 +9,8 @@ class ScribeStatus(Status, ABC):
     """Scribe Statii."""
 
 
-class UpdateGroupTimestampsStatus(ScribeStatus):
-    """Update Group Timestamps Status."""
+class UpdateCollectionTimestampsStatus(ScribeStatus):
+    """Update Collection Timestamps Status."""
 
     CODE = "IGU"
     ITEM_NAME = "browser collections"
@@ -27,4 +27,4 @@ class TagWriteStatus(ScribeStatus):
     _verbed = "Wrote"
 
 
-SCRIBE_STATII = (UpdateGroupTimestampsStatus, TagWriteStatus)
+SCRIBE_STATII = (UpdateCollectionTimestampsStatus, TagWriteStatus)

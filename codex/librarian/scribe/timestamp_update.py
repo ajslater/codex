@@ -11,7 +11,7 @@ from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
+from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import StoryArc, Volume
 from codex.models.collections import BrowserCollectionModel
@@ -98,7 +98,7 @@ class TimestampUpdater(WorkerStatusBase):
         total_count = 0
         if mark_library_in_progress:
             library.start_update()
-        status = UpdateGroupTimestampsStatus()
+        status = UpdateCollectionTimestampsStatus()
         self.status_controller.start(status)
         try:
             log_list = []

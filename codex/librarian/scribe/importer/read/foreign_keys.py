@@ -98,42 +98,42 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             return ()
         return (value,), None
 
-    def _set_group_tree_group(
+    def _set_collection_tree_node(
         self,
         model: type[BrowserCollectionModel],
         name_field: Field,
-        group: dict | None,
-        group_list: list,
+        collection: dict | None,
+        collection_list: list,
     ) -> tuple:
         name_key = NUMBER_KEY if model == Volume else NAME_KEY
-        if group is None:
-            group = {}
+        if collection is None:
+            collection = {}
 
-        group_name = group.get(name_key, model.DEFAULT_NAME)
-        clean_group_name = name_field.get_prep_value(group_name)
-        group_list.append(clean_group_name)
+        collection_name = collection.get(name_key, model.DEFAULT_NAME)
+        clean_collection_name = name_field.get_prep_value(collection_name)
+        collection_list.append(clean_collection_name)
         extra_vals = []
         if model == Volume:
-            number_to = group.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
+            number_to = collection.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
             clean_number_to = name_field.get_prep_value(number_to)
-            group_list.append(clean_number_to)
+            collection_list.append(clean_number_to)
         else:
-            identifier_tuple = self.get_identifier_tuple(model, group)
+            identifier_tuple = self.get_identifier_tuple(model, collection)
             extra_vals.append(identifier_tuple)
         count_key = COLLECTION_MODEL_COUNT_FIELDS[model]
         if count_key:
-            count = group.get(count_key)
+            count = collection.get(count_key)
             with suppress(Exception):
                 old_count_val = (
-                    self.metadata[QUERY_MODELS].get(model, {}).get(group_list)
+                    self.metadata[QUERY_MODELS].get(model, {}).get(collection_list)
                 )
                 count = max_none(old_count_val, count)
             extra_vals.append(count)
-        return tuple(group_list), frozenset((tuple(extra_vals),))
+        return tuple(collection_list), frozenset((tuple(extra_vals),))
 
     def get_fk_metadata(self, md, path) -> None:
         """Aggregate Simple Foreign Keys."""
-        group_list = []
+        collection_list = []
         # prevents skipped metadata from destroying browser collection links
         field_names = tuple(COLLECTION_FIELD_NAMES) + tuple(
             sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
@@ -147,8 +147,8 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             value = md.pop(md_key, None)
 
             if issubclass(model, BrowserCollectionModel):
-                key_values, extra_values = self._set_group_tree_group(
-                    model, related_field, value, group_list
+                key_values, extra_values = self._set_collection_tree_node(
+                    model, related_field, value, collection_list
                 )
             elif value is None:
                 continue

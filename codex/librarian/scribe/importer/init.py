@@ -48,7 +48,7 @@ from codex.librarian.scribe.importer.statii.search import (
 )
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.search.status import SearchIndexCleanStatus
-from codex.librarian.scribe.status import UpdateGroupTimestampsStatus
+from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
 from codex.settings import LOGLEVEL
@@ -329,7 +329,7 @@ class InitImporter(WorkerStatusBase):
         moved = self._init_librarian_status_moved(status_list)
         modified, created = self._init_if_modified_or_created(path, status_list)
         deleted = self._init_librarian_status_deleted(status_list)
-        status_list += [UpdateGroupTimestampsStatus()]
+        status_list += [UpdateCollectionTimestampsStatus()]
         self._init_librarian_status_search_index(
             modified + moved,
             created,

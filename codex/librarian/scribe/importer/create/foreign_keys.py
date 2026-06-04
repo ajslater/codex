@@ -112,7 +112,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         return key_args, update_args
 
     def _add_custom_cover(self, model, obj) -> None:
-        self.add_custom_cover_to_group(model, obj)
+        self.add_custom_cover_to_collection(model, obj)
 
     def _finish_create_update(self, model, objs, status: Status) -> None:
         count = len(objs)

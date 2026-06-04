@@ -23,6 +23,6 @@ class LazyImportView(AuthGenericAPIView):
         if collection in _LAZY_IMPORT_COLLECTIONS:
             pks = self.kwargs.get("pks", ())
             pks = frozenset(pks)
-            LIBRARIAN_QUEUE.put(LazyImportComicsTask(group=collection, pks=pks))
+            LIBRARIAN_QUEUE.put(LazyImportComicsTask(collection=collection, pks=pks))
         serializer = self.get_serializer()
         return Response(serializer.data)

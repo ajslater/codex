@@ -21,16 +21,16 @@ class LazyImporter(WorkerBase):
             self.log.debug("Lazy Import disabled by flag.")
             return
 
-        if task.group == Collection.COMIC:
+        if task.collection == Collection.COMIC:
             comics = Comic.objects.filter(
                 pk__in=task.pks, metadata_mtime__isnull=True
             ).only("path", "library_id")
-        elif task.group == Collection.FOLDER:
+        elif task.collection == Collection.FOLDER:
             comics = Comic.objects.filter(
                 parent_folder__in=task.pks, metadata_mtime__isnull=True
             ).only("path", "library_id")
         else:
-            self.log.warning(f"No lazy import enabled for group {task}")
+            self.log.warning(f"No lazy import enabled for collection {task}")
             return
 
         # Map comics to libraries.

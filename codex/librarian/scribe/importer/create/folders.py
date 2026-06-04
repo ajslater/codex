@@ -37,7 +37,7 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
             parent_folder=parent_folder,
         )
         folder.presave()
-        self.add_custom_cover_to_group(Folder, folder)
+        self.add_custom_cover_to_collection(Folder, folder)
         create_folders.append(folder)
 
     def _bulk_folders_create_depth_level(self, paths, status: Status) -> int:
