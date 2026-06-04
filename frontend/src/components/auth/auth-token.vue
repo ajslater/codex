@@ -3,7 +3,7 @@
     v-model="showAuthTokenDialog"
     origin="center-top"
     transition="slide-y-transition"
-    max-width="32em"
+    max-width="512"
   >
     <template #activator="{ props }">
       <v-btn

@@ -3,7 +3,7 @@
     <header class="tabHeader">
       <AdminCreateUpdateDialog
         table="Group"
-        max-width="20em"
+        max-width="320"
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
@@ -28,7 +28,7 @@
         <AdminCreateUpdateDialog
           table="Group"
           :old-row="item"
-          max-width="20em"
+          max-width="320"
           :inputs="AdminGroupCreateUpdateInputs"
           size="small"
           density="compact"

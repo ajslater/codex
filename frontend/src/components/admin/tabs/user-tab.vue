@@ -10,7 +10,7 @@
       <AdminCreateUpdateDialog
         table="User"
         :inputs="AdminUserCreateUpdateInputs"
-        max-width="20em"
+        max-width="320"
       />
     </header>
     <AdminTable item-title="username" :headers="headers" :items="users">
@@ -78,7 +78,7 @@
           table="User"
           :inputs="AdminUserCreateUpdateInputs"
           :old-row="item"
-          max-width="20em"
+          max-width="320"
           size="small"
           density="compact"
         />

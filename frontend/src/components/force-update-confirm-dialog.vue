@@ -2,7 +2,7 @@
   <v-dialog
     v-model="show"
     transition="fab-transition"
-    min-width="20em"
+    min-width="320"
     width="auto"
     overlay-opacity="0.5"
   >

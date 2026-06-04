@@ -3,7 +3,7 @@
     v-model="showResetPasswordRequestDialog"
     origin="center-top"
     transition="slide-y-transition"
-    max-width="22em"
+    max-width="352"
   >
     <template #activator="{ props }">
       <v-btn

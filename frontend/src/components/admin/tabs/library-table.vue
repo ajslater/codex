@@ -59,7 +59,7 @@
           table="Library"
           :old-row="item"
           :inputs="AdminLibraryCreateUpdateInputs"
-          max-width="22em"
+          max-width="352"
           :size="iconSize"
           density="compact"
         />

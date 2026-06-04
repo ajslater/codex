@@ -4,7 +4,7 @@
     v-model="showProfileDialog"
     origin="center-top"
     transition="slide-y-transition"
-    max-width="24em"
+    max-width="384"
   >
     <template #activator="{ props }">
       <CodexListItem

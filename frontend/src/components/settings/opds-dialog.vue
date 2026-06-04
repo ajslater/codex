@@ -1,5 +1,5 @@
 <template>
-  <v-dialog max-width="30em">
+  <v-dialog max-width="480">
     <template #activator="{ props }">
       <v-btn
         id="opdsButton"
