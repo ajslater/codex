@@ -36,7 +36,7 @@ from codex.views.auth import AuthFilterAPIView, GroupACLMixin
 # resolution. Keys mirror the v4 ``collection`` vocabulary but use the
 # singular noun the URL emits. ``comic`` and ``custom`` are handled
 # directly by the cover views and never enter this map.
-_GROUP_COMIC_FILTER: Final = {
+_COLLECTION_COMIC_FILTER: Final = {
     "publisher": "publisher_id",
     "imprint": "imprint_id",
     "series": "series_id",
@@ -162,7 +162,7 @@ class CustomCoverView(_CoverBaseView):
 
 def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     """Pick a representative comic pk for a group source, ACL-aware."""
-    field = _GROUP_COMIC_FILTER.get(source)
+    field = _COLLECTION_COMIC_FILTER.get(source)
     if field is None:
         return None
     acl_q = GroupACLMixin.get_group_acl_filter(Comic, user)
