@@ -20,7 +20,7 @@ class ReaderView(ReaderBooksView):
 
     @override
     def get_object(self) -> dict[str, Mapping | int | None]:
-        """Get the previous and next comics in a group or story arc."""
+        """Get the previous and next comics in a collection or story arc."""
         # get_arcs & get_book_collection populates those arc self valirables.
         # So order is important.
         arcs, mtime = self.get_arcs()

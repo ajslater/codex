@@ -171,7 +171,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
 
     @staticmethod
     def _canonical_scope(scope: str) -> str:
-        """Normalise arc-group aliases (publishers/imprints/volumes) → series."""
+        """Normalise arc-collection aliases (publishers/imprints/volumes) → series."""
         if scope in _SERIES_ALIAS_SCOPES:
             return Collection.SERIES
         return scope

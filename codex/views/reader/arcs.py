@@ -72,7 +72,7 @@ class ReaderArcsView(ReaderParamsView):
         )
 
     @staticmethod
-    def _get_group_arc(
+    def _get_collection_arc(
         comic: Comic,
         field_name: str,
         arcs: dict,
@@ -154,7 +154,7 @@ class ReaderArcsView(ReaderParamsView):
         arcs = {}
         max_mtime = None
         for field_name in field_names:
-            max_mtime = self._get_group_arc(comic, field_name, arcs, max_mtime)
+            max_mtime = self._get_collection_arc(comic, field_name, arcs, max_mtime)
         max_mtime = self._get_story_arcs(comic, arcs, max_mtime)
         self._set_selected_arc(arcs)
         return arcs, max_mtime
