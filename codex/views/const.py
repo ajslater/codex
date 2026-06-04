@@ -94,7 +94,7 @@ METADATA_COLLECTION_RELATION = MappingProxyType(
         STORY_ARC_COLLECTION: "comic__story_arc_numbers__story_arc",
     }
 )
-CUSTOM_COVER_COLLECTION_RELATION = MappingProxyType(
+CUSTOM_COVER_COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
         **COLLECTION_NAME_MAP,
         FOLDER_COLLECTION: "folder",

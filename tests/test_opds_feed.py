@@ -154,8 +154,8 @@ class _OPDSFixtureMixin:
         init_admin_flags()
         _TMP_DIR.mkdir(parents=True, exist_ok=True)
 
-        self.user = User.objects.create_user(username="opds", password=_TEST_PASSWORD)
-        self.client = Client()
+        self.user = User.objects.create_user(username="opds", password=_TEST_PASSWORD)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.client = Client()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.client.force_login(self.user)
 
         library = Library.objects.create(path=str(_TMP_DIR))
@@ -193,7 +193,7 @@ class _OPDSFixtureMixin:
                     size=1,
                 )
                 comic.folders.set([folder])
-        self.publisher_pk = publisher.pk
+        self.publisher_pk = publisher.pk  # pyright: ignore[reportUninitializedInstanceVariable]
 
     def tearDown(self) -> None:
         shutil.rmtree(_TMP_DIR, ignore_errors=True)

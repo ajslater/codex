@@ -31,7 +31,7 @@ __all__ = (
 # collections stay aligned across the codebase. Filter / annotation / API
 # views consume the forward map; the cleanup cron and signal handler
 # consume the reverse map. Both are immutable proxies.
-FAVORITE_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], str]] = (
+FAVORITE_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], Collection]] = (
     MappingProxyType(
         {
             Publisher: Collection.PUBLISHER,

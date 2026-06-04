@@ -38,7 +38,7 @@ class SettingsCollectionFlipTestCase(TestCase):
         cache.clear()
         init_admin_flags()
         _TMP_DIR.mkdir(parents=True, exist_ok=True)
-        self.user = User.objects.create_user(username="flip", password=_TEST_PASSWORD)
+        self.user = User.objects.create_user(username="flip", password=_TEST_PASSWORD)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.client = Client()
         self.client.force_login(self.user)
 
@@ -97,7 +97,7 @@ class SettingsCollectionFlipTestCase(TestCase):
         # Touch settings so the row + its related rows are created.
         assert self.client.get(_SETTINGS_URL).status_code == _HTTP_OK
         row = self._browser_row()
-        last_route = row.last_route  # ty: ignore[unresolved-attribute]
+        last_route = row.last_route  # ty: ignore[unresolved-attribute]  # pyright: ignore[reportAttributeAccessIssue]
         # Model defaults are now collection values.
         assert row.top_collection == "publishers"
         assert last_route.collection == "root"

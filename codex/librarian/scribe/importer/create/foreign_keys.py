@@ -130,7 +130,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
     ) -> int:
         """Bulk create a dict type m2m model."""
         count = 0
-        create_tuples = self.metadata[CREATE_FKS].pop(model, None)
+        create_tuples: list[tuple] | None = self.metadata[CREATE_FKS].pop(model, None)
         if not create_tuples:
             return count
         # ``verbose_name_plural`` is a ``gettext_lazy`` __proxy__,
@@ -215,7 +215,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
 
     def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
-        update_tuples = self.metadata[UPDATE_FKS].pop(model, None)
+        update_tuples: list[tuple] | None = self.metadata[UPDATE_FKS].pop(model, None)
         if not update_tuples:
             return count
         # See ``_bulk_create_models`` — same lazy-proxy coercion.

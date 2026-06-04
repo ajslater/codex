@@ -97,9 +97,9 @@ def _reverse(apps, schema_editor):  # noqa: ARG001
 class Migration(migrations.Migration):
     """Char→collection value flip for persisted browser settings."""
 
-    dependencies = (("codex", "0043_comicbox_tagging_defaults"),)
+    dependencies = [("codex", "0043_comicbox_tagging_defaults")]
 
-    operations = (
+    operations = [
         # ── SettingsBrowserShow: rename the four flag columns ──
         migrations.RemoveConstraint(
             model_name="settingsbrowsershow",
@@ -143,4 +143,4 @@ class Migration(migrations.Migration):
         ),
         # ── Data: char → collection (+ strip root 0) ──
         migrations.RunPython(_forward, _reverse),
-    )
+    ]
