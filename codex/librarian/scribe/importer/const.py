@@ -121,7 +121,7 @@ EXTRACTED = "extracted"
 # Per-path envelope-only updates from comicbox skip results
 # (metadata_mtime / page_count / file_type changed but tags weren't
 # re-extracted). Routed around aggregate so existing browser-collection
-# FKs stay attached to their non-empty groups.
+# FKs stay attached to their non-empty collections.
 EXTRACTED_STAT_ONLY = "extracted_stat_only"
 SKIPPED = "skipped"
 QUERY_MODELS = "query_models"

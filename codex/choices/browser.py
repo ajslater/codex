@@ -189,11 +189,11 @@ BROWSER_CHOICES_MAP_KEYS = frozenset(
 )
 
 # The engine's canonical default route — collection vocabulary, no dummy 0
-# (the wire denormalizes ``group`` to its char at the RouteSerializer edge).
+# (the RouteSerializer emits the ``collection`` / ``parent_ids`` dialect).
 DEFAULT_BROWSER_ROUTE = MappingProxyType({"collection": "root", "pks": (), "page": 1})
 
-# Top-group collections that own a dedicated browser route. For these,
-# the URL ``group`` matches the ``top_collection``. Everything else
+# Top collections that own a dedicated browser route. For these,
+# the URL ``collection`` matches the ``top_collection``. Everything else
 # (publishers / imprints / series / volumes / issues) routes through
 # the canonical Root URL — the per-user ``top_collection`` setting
 # is what selects the displayed view inside that URL.
@@ -269,7 +269,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        # Group hierarchy
+        # Collection hierarchy
         "publisher_name": {
             "label": "Publisher",
             "sort_key": "publisher_name",
@@ -478,10 +478,10 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         # Per-user state. ``favorite`` is the only currently-editable
         # cell — clicking the star toggles via ``PUT|DELETE
         # /api/v4/favorites/<collection>/<pk>``. The annotation
-        # ``favorite=Exists(Favorite.objects.filter(user, group,
+        # ``favorite=Exists(Favorite.objects.filter(user, collection,
         # target_id))`` is added in
         # ``BrowserView._add_table_view_favorite_annotation`` for both
-        # group and Comic querysets so the column is sortable and
+        # collection and Comic querysets so the column is sortable and
         # renderable across all browsable models.
         "favorite": {
             "label": "Favorite",
@@ -573,8 +573,8 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
     }
 )
 
-# Default visible columns per top-group when the user hasn't set
-# their own. Layout follows the per-top-group default sort:
+# Default visible columns per top-collection when the user hasn't set
+# their own. Layout follows the per-top-collection default sort:
 # columns referenced by the default ``order_by`` (primary + extras)
 # appear first — after ``cover``, which always anchors the row —
 # so row content visually tracks the sort order. ``sort_name``
@@ -582,7 +582,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 # purposes; ``publisher_name`` / ``imprint_name`` / ``series_name``
 # map to their like-named columns. The frontend's
 # ``_DEFAULT_TABLE_ORDER`` lookup must stay in sync with this map
-# — both define the per-top-group baseline the cancel button and
+# — both define the per-top-collection baseline the cancel button and
 # the initial-render path lean on.
 # Per-column relative cost rating shown next to picker rows so
 # users on huge libraries can see at a glance which columns are
@@ -592,7 +592,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 # cost for the column on collection-row queries (the most expensive
 # query shape):
 #
-# - ``low`` (default, omitted): the column reads from the group's
+# - ``low`` (default, omitted): the column reads from the collection's
 #   own field, an already-annotated alias, or batches into the
 #   single per-page scalar / FK-name aggregate query. One query
 #   regardless of how many low-cost columns are visible.
@@ -600,7 +600,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 #   ``UNION ALL`` through-table helper but whose sort still runs a
 #   per-outer-row correlated subquery (the ``_build_simple_m2m_…``
 #   shape). Display is one query for the whole page; sort scales
-#   with the filtered group count when the user clicks the header.
+#   with the filtered collection count when the user clicks the header.
 # - ``high``: composite-M2M columns (``credits`` / ``identifiers``
 #   / ``universes`` / ``story_arcs``). Display issues its own
 #   per-column query (composite display strings can't share the

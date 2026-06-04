@@ -31,18 +31,18 @@ class TimestampUpdater(WorkerStatusBase):
         force_update_collection_map: Mapping,
         library: Library,
     ) -> Q:
-        # Get groups with comics updated during this import
+        # Get collections with comics updated during this import
         rel = "storyarcnumber__" if model == StoryArc else ""
         updated_at_rel = rel + "comic__updated_at__gt"
         library_rel = rel + "comic__library"
         updated_filter = {library_rel: library, updated_at_rel: start_time}
         update_filter = Q(**updated_filter)
 
-        # Get groups with custom covers updated during this import
+        # Get collections with custom covers updated during this import
         if model != Volume:
             update_filter |= Q(custom_cover__updated_at__gt=start_time)
 
-        # Get groups to be force updated (usually those with deleted children)
+        # Get collections to be force updated (usually those with deleted children)
         if pks := force_update_collection_map.get(model):
             update_filter |= Q(pk__in=pks)
 
@@ -50,7 +50,7 @@ class TimestampUpdater(WorkerStatusBase):
 
     @staticmethod
     def _add_child_count_filter(qs: QuerySet, model: type[BrowserCollectionModel]):
-        """Filter out groups with no comics."""
+        """Filter out collections with no comics."""
         rel_prefix = "storyarcnumber__" if model == StoryArc else ""
         rel_prefix += "comic"
         qs = qs.alias(child_count=Count(f"{rel_prefix}__pk", distinct=True))
@@ -94,7 +94,7 @@ class TimestampUpdater(WorkerStatusBase):
         *,
         mark_library_in_progress=False,
     ) -> int:
-        """Update timestamps for each group for cover cache busting."""
+        """Update timestamps for each collection for cover cache busting."""
         total_count = 0
         if mark_library_in_progress:
             library.start_update()
@@ -128,7 +128,7 @@ class TimestampUpdater(WorkerStatusBase):
                 library, start_time, {}, mark_library_in_progress=True
             )
         level = "INFO" if count else "DEBUG"
-        self.log.log(level, f"Updated timestamps for {count} groups.")
+        self.log.log(level, f"Updated timestamps for {count} collections.")
         # All-libraries fan-out — leave ``scope`` empty so clients
         # invalidate any library view; ``mtime`` is the start of this
         # update pass so older mtime probes resolve correctly.
