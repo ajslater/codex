@@ -8,13 +8,9 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## 🚨 Announcement 🚨
-
-### Docker
-
-The Docker image has moved to
-[ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex).
-A final docker.io image has been released on dockerhub.
+> **Note:** The Docker image has moved to
+> [ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex).
+> A final `docker.io` image was published on Docker Hub.
 
 ## ✨ Features
 
@@ -35,6 +31,13 @@ A final docker.io image has been released on dockerhub.
 - **Save and load** named views and searches.
 - **Favorites** at the Publisher, Series, Volume, Folder, Story Arc, or Issue
   level — filterable per user.
+
+### 🏷️ Edit & Tag
+
+- **Edit tags** on one or many comics right in the browser — credits, story
+  arcs, identifiers, and more — written back to your comic files.
+- **Online tagging** looks up and applies metadata from online sources, with
+  interactive match prompts and per-source credentials in the Admin Tagging tab.
 
 ### 📖 Read
 
@@ -121,7 +124,7 @@ before installing Codex.
 ...and Ubuntu, Mint, MX, Window Subsystem for Linux, and others.
 
 ```sh
-apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip sqlite3 unrar zlib1g
+apt install build-essential libimagequant0 libjpeg-turbo8 libopenjp2-7 libssl3 libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip sqlite3 unrar zlib1g
 ```
 
 Versions of packages like libjpeg, libssl, libtiff may differ between flavors
@@ -154,18 +157,6 @@ Using [Homebrew](https://brew.sh/):
 ```sh
 brew install jpeg libffi libyaml libzip openssl python sqlite unrar webp
 ```
-
-#### Installing Codex on Linux on ARM (AARCH64) with Python 3.13
-
-Pymupdf has no pre-built wheels for AARCH64 so pip must build it and the build
-fails on Python 3.13 without this environment variable set:
-
-```sh
-PYMUPDF_SETUP_PY_LIMITED_API=0 pip install codex
-```
-
-You will also have to have the `build-essential` and `python3-dev` or equivalent
-packages installed on on your Linux.
 
 #### Windows Installation
 
@@ -232,7 +223,7 @@ CODEX_RESET_ADMIN=1 codex
 or, if using Docker:
 
 ```sh
-docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
+docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ghcr.io/ajslater/codex
 ```
 
 ### 💾 Backup & Restore User Data
@@ -314,9 +305,9 @@ skipped — the operation never aborts.
 5. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, favorites by group name-chain (e.g. publisher
-→ imprint → series), and tag filters by tag name. As long as your library paths
-and tag names match, everything reattaches.
+Bookmarks reattach by comic path, favorites by collection name-chain (e.g.
+publisher → imprint → series), and tag filters by tag name. As long as your
+library paths and tag names match, everything reattaches.
 
 ### Private Libraries
 
@@ -362,11 +353,15 @@ API Key is available on the admin/stats tab.
 ### 📧 Email & Password Reset
 
 By default Codex has no outbound email and the "Forgot password?" link is
-hidden. To enable self-service password reset, configure the `[email]` section
-in `codex.toml` (see the
-[Full `codex.toml` Reference](#full-codextoml-reference) below). The section
-requires at least `host` and either `from_address` or `user` — when both are
-missing the feature stays off and the reset endpoints return 404.
+hidden. To enable self-service password reset, configure SMTP in the Admin
+Panel's **Email** tab — editable without a restart. You must set at least a host
+and either a from-address or user; until then the feature stays off and the
+reset endpoints return 404.
+
+The `[email]` section in `codex.toml` (and the `CODEX_EMAIL_*` environment
+variables) is **deprecated**: those values are imported once on upgrade and
+otherwise only seed the initial Admin settings. See the
+[Full `codex.toml` Reference](#full-codextoml-reference) below.
 
 Provider-specific notes:
 
@@ -382,7 +377,7 @@ Provider-specific notes:
 
 If `register_verification` is enabled (Admin → Flags → "Verify New User Email"),
 new sign-ups receive an activation email and stay inactive until they click the
-link. Has no effect when `[email]` is not configured.
+link. Has no effect until email (SMTP) is configured.
 
 Existing users created before this feature won't have an email on file and can't
 request a reset; admins can backfill addresses on the Users admin tab, or users
@@ -416,6 +411,14 @@ Django cache, and comic book cover thumbnails.
 All available options with their defaults. Uncomment to override. Codex writes
 this file to the config directory on first startup if one is not already
 present.
+
+> **Deprecated since v2.0.0:** the `[browser]`, `[throttle]`, and `[email]`
+> sections (and their matching `CODEX_*` environment variables) are now managed
+> in the Admin Panel — browser page size and rate limits on the **Settings**
+> tab, SMTP on the **Email** tab — and are editable without a restart. Values
+> here are imported once on upgrade and otherwise only seed the initial Admin
+> settings. The `[server]`, `[logging]`, `[cache]`, and `[auth]` sections are
+> still configured here.
 
 ```toml
 # Codex Configuration File
@@ -451,9 +454,11 @@ present.
 # dir = ""
 
 # [browser]
+# Deprecated: now set on the Admin Settings tab (seeds the initial default).
 # max_obj_per_page = 100
 
 # [throttle]
+# Deprecated: now set on the Admin Settings tab (seeds initial defaults).
 # Rate limiting (requests per minute). 0 = disabled.
 # anon = 0
 # user = 0
@@ -463,6 +468,7 @@ present.
 # reset_password = 5
 
 # [email]
+# Deprecated: now set on the Admin Email tab (seeds initial defaults).
 # SMTP configuration for outbound email. When unset, password-reset and
 # email-verification features stay disabled and the related endpoints
 # respond 404. Set `host` AND `from_address` (or `user`) to enable.
@@ -562,10 +568,16 @@ Environment variables override values set in the TOML config file.
 
 ##### Browser
 
+> **Deprecated:** set Browser Page Size on the Admin **Settings** tab instead;
+> this only seeds the initial default.
+
 - `CODEX_BROWSER_MAX_OBJ_PER_PAGE` the maximum number of objects per page.
   Defaults to 100.
 
 #### Throttling
+
+> **Deprecated:** set rate limits on the Admin **Settings** tab instead; these
+> variables only seed the initial defaults.
 
 Codex contains some experimental throttling controls. The value supplied to
 these variables will be interpreted as the maximum number of allowed requests
@@ -689,10 +701,10 @@ failed_login_log = true
 # failed_login_log_trust_forwarded_for = true      # set false if exposed directly
 ```
 
-A single signal receiver covers both the form login at `/api/v3/auth/login/` and
+A single signal receiver covers both the form login at `/api/v4/auth/login` and
 OPDS HTTP Basic auth — no separate setup per endpoint. The IP-bearing line is
 written **only** to `failed_logins.log`; the main `codex.log` still records
-Django's standard `"Unauthorized: /api/v3/auth/login/"` (or `"Forbidden: ..."`)
+Django's standard `"Unauthorized: /api/v4/auth/login"` (or `"Forbidden: ..."`)
 WARNING for the same request, so the failure is visible in the main log without
 the client IP. This keeps PII (IP + username) concentrated in one file that you
 can chmod, forward to a SIEM, or retain on its own schedule.
@@ -888,9 +900,9 @@ Shut down and restart Codex.
 
 The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
-`config/db.sqlite3`. If this procedure goes kablooey, you may recover the
-original database at `config/backups/codex.sqlite3.before-rebuild`. Codex will
-remove the `rebuild_db` file.
+`config/codex.sqlite3`. If this procedure goes kablooey, you may recover the
+original database at `config/backups/codex.sqlite3.before-rebuild.bak`. Codex
+will remove the `rebuild_db` file.
 
 ### Warnings to Ignore
 
