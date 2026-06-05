@@ -175,10 +175,11 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
                 continue
             invalid_columns = set(columns) - valid_columns
             if invalid_columns:
-                logger.warning(
+                msg = (
                     f"Dropping unknown table_columns columns for "
                     f"{top_collection!r}: {sorted(invalid_columns)}"
                 )
+                logger.warning(msg)
             cleaned[top_collection] = [c for c in columns if c in valid_columns]
         return cleaned
 
