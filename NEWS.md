@@ -6,6 +6,45 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.0 - Tag Editing & Online Tagging
+
+- Notice
+    - This is a major upgrade. A one-time database migration runs on first
+      startup; back up your `config` directory before upgrading.
+- Breaking Changes
+    - Admin settings (SMTP, rate limits, browser page size, cover upload size)
+      moved from `codex.toml` into the Admin UI and are now editable without a
+      restart. Existing values are imported automatically on upgrade; those
+      `codex.toml` sections are deprecated.
+    - Custom covers are now managed in the web UI. Legacy filesystem covers
+      (in-library `.codex-cover.*` files and the covers-only library) migrate
+      automatically on first startup.
+    - The browser and reader page URLs changed; bookmarks to specific pages may
+      need re-navigating from the home screen. OPDS apps reconnect on their own.
+    - The HTTP API moved from `/api/v3/` to `/api/v4/`.
+- Fixes
+    - OPDS 1.2, 2.0, and OpenSearch feeds are now spec-compliant.
+    - Folder covers respect favorites.
+    - Critical ratings normalized to a consistent 0–5 scale.
+    - The age-rating "As Tagged" panel hides when it has no entries.
+- Features
+    - Edit the tags on one or many comics directly in the browser — credits,
+      story arcs, identifiers, and more — written back to your comic files.
+    - Online tagging: look up and apply metadata from online sources, with
+      interactive match prompts, rate-limit display, and per-source credentials
+      in the new Admin Tagging tab.
+    - Upload, replace, and remove custom covers for any group from the web UI,
+      plus a Custom Covers admin tab.
+    - Back up and restore all user data — accounts, bookmarks, favorites,
+      settings, libraries — via a `user_data.sqlite` sidecar, the Admin Restore
+      tab, or `codex restore_user_data`. Snapshotted nightly.
+    - Optional self-service password reset, and email verification for new
+      sign-ups (both require SMTP).
+    - New user Profile dialog for self-service username, email, and API token
+      (moved here from the sidebar).
+    - Database and user-data backups are now compressed, dated, and auto-pruned.
+    - Redesigned admin panel has moves settings under relevant tabs.
+
 ## v1.12.7
 
 - Fixes
