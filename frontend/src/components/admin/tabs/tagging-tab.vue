@@ -117,6 +117,14 @@
                       : 'Enter password'
                   "
                 />
+                <p class="adminHint">
+                  Get a username and password from
+                  <a
+                    href="https://metron.cloud/accounts/signup/"
+                    target="_blank"
+                    >Metron<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+                  >
+                </p>
                 <v-text-field
                   v-model="metronUrlLocal"
                   label="Custom URL (optional)"
@@ -194,6 +202,14 @@
                     defaults.comicvineKeySet ? 'New API Key' : 'Enter API key'
                   "
                 />
+                <p class="adminHint">
+                  Get an API key from the
+                  <a href="https://comicvine.gamespot.com/api/" target="_blank"
+                    >Comic Vine API<v-icon size="small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
+                  >
+                </p>
                 <v-text-field
                   v-model="comicvineUrlLocal"
                   label="Custom URL (optional)"
@@ -245,6 +261,7 @@
 </template>
 
 <script>
+import { mdiOpenInNew } from "@mdi/js";
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
@@ -290,6 +307,7 @@ export default {
   },
   data() {
     return {
+      mdiOpenInNew,
       formatChoices: FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
