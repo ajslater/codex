@@ -907,7 +907,18 @@ export const useReaderStore = defineStore("reader", {
       this._routeTo(this.routes.books[direction], this.books[direction]);
     },
     toRoute(params) {
-      return params ? { params } : {};
+      // The reader route is /read/:pk and carries the page in the query —
+      // pager.vue reads route.query.page. Returning a bare { params: {pk,
+      // page} } stuffs page where there is no :page segment, so vue-router
+      // discards it and every flip lands back on the cover. Mirror the
+      // { name, params:{pk}, query:{page} } shape _routeTo() pushes.
+      return params
+        ? {
+            name: "reader",
+            params: { pk: params.pk },
+            query: { page: params.page },
+          }
+        : {};
     },
     // PREFETCH
     _prefetchSrc(params, direction, bookChange = false, secondPage = false) {

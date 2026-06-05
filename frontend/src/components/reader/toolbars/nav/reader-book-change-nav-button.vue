@@ -10,7 +10,6 @@
 </template>
 
 <script>
-import { toRaw } from "vue";
 import { mapActions, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
@@ -27,18 +26,14 @@ export default {
     },
   },
   computed: {
-    ...mapState(useReaderStore, ["isBTT"]),
-    ...mapState(useReaderStore, {
-      toRoute(state) {
-        /*
-         * ``vue-router`` snapshots ``params`` when the route is
-         * resolved, so a defensive clone here is unnecessary; just
-         * hand it the raw object.
-         */
-        const params = state?.routes?.books[this.direction];
-        return params ? { params: toRaw(params) } : "";
-      },
-    }),
+    ...mapState(useReaderStore, ["isBTT", "routes"]),
+    toRoute() {
+      // Delegate the route shape to the store's toRoute so the reader's
+      // page-in-query convention lives in one place. Keep "" (not {}) when
+      // there's no adjacent book so the v-if hides the button.
+      const params = this.routes?.books?.[this.direction];
+      return params ? this.makeReaderRoute(params) : "";
+    },
     title() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";
       return prefix + " Book";
@@ -55,6 +50,7 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, ["bookChangeIcon"]),
+    ...mapActions(useReaderStore, { makeReaderRoute: "toRoute" }),
   },
 };
 </script>
