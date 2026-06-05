@@ -347,6 +347,21 @@ _SB_CHAR_TO_COLLECTION = {
 }
 _SB_COLLECTION_TO_CHAR = {value: key for key, value in _SB_CHAR_TO_COLLECTION.items()}
 
+
+def _remap_table_columns_keys(table_columns, value_map):
+    """
+    Remap a ``table_columns`` dict's top-collection keys through ``value_map``.
+
+    ``table_columns`` is ``{top_collection: [column, ...]}``. Only the keys are
+    char-coded; the column values are field names and pass through. Keys absent
+    from ``value_map`` (already collection names, or unknown) are left as-is, so
+    the move is idempotent and reversible.
+    """
+    if not table_columns:
+        return table_columns
+    return {value_map.get(key, key): columns for key, columns in table_columns.items()}
+
+
 _TOP_GROUP_COLLECTION_CHOICES = [
     ("publishers", "Publishers"),
     ("imprints", "Imprints"),
@@ -359,13 +374,26 @@ _TOP_GROUP_COLLECTION_CHOICES = [
 _ROUTE_COLLECTION_CHOICES = [*_TOP_GROUP_COLLECTION_CHOICES, ("root", "Root")]
 
 
-def _sb_migrate_top_group(model, value_map) -> None:
-    """Remap ``SettingsBrowser.top_group`` through ``value_map``."""
+def _sb_migrate_browser_rows(model, value_map) -> None:
+    """
+    Remap ``SettingsBrowser.top_group`` + ``table_columns`` keys via ``value_map``.
+
+    Iterates every row — the active settings row *and* every named Saved View —
+    so saved views keep their per-collection column config; only the char-coded
+    keys flip to collection names.
+    """
     for row in model.objects.all().iterator():
+        update_fields = []
         mapped = value_map.get(row.top_group)
         if mapped and mapped != row.top_group:
             row.top_group = mapped
-            row.save(update_fields=["top_group"])
+            update_fields.append("top_group")
+        remapped = _remap_table_columns_keys(row.table_columns, value_map)
+        if remapped != row.table_columns:
+            row.table_columns = remapped
+            update_fields.append("table_columns")
+        if update_fields:
+            row.save(update_fields=update_fields)
 
 
 def _sb_migrate_last_route_row(row, value_map, *, to_collection: bool) -> None:
@@ -393,7 +421,7 @@ def _sb_migrate_last_route(model, value_map, *, to_collection: bool) -> None:
 def _sb_migrate_values(apps, *, to_collection: bool) -> None:
     """Map stored group chars <-> collection names (+ strip the root 0)."""
     value_map = _SB_CHAR_TO_COLLECTION if to_collection else _SB_COLLECTION_TO_CHAR
-    _sb_migrate_top_group(apps.get_model("codex", "SettingsBrowser"), value_map)
+    _sb_migrate_browser_rows(apps.get_model("codex", "SettingsBrowser"), value_map)
     _sb_migrate_last_route(
         apps.get_model("codex", "SettingsBrowserLastRoute"),
         value_map,

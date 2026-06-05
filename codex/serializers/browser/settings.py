@@ -2,6 +2,7 @@
 
 from typing import override
 
+from loguru import logger
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -155,20 +156,31 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     )
 
     def validate_table_columns(self, value):
-        """Reject unknown top-collection keys and unknown column keys."""
-        invalid_top_collections = set(value) - set(
-            BROWSER_TOP_COLLECTION_CHOICES.keys()
-        )
-        if invalid_top_collections:
-            reason = f"Invalid top_collection keys: {sorted(invalid_top_collections)}"
-            raise ValidationError(reason)
+        """
+        Drop unknown top-collection keys and unknown column keys.
+
+        ``table_columns`` is round-tripped from stored settings, so a stale or
+        partially-migrated client must not hard-400 the entire browse page.
+        Unknown top-collection keys (e.g. legacy single-char group codes) and
+        unknown column keys are dropped with a warning rather than raising.
+        """
+        valid_top_collections = set(BROWSER_TOP_COLLECTION_CHOICES.keys())
         valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
+        cleaned: dict[str, list[str]] = {}
         for top_collection, columns in value.items():
+            if top_collection not in valid_top_collections:
+                logger.warning(
+                    f"Dropping unknown table_columns top_collection {top_collection!r}"
+                )
+                continue
             invalid_columns = set(columns) - valid_columns
             if invalid_columns:
-                reason = f"Invalid column keys for {top_collection!r}: {sorted(invalid_columns)}"
-                raise ValidationError(reason)
-        return value
+                logger.warning(
+                    f"Dropping unknown table_columns columns for "
+                    f"{top_collection!r}: {sorted(invalid_columns)}"
+                )
+            cleaned[top_collection] = [c for c in columns if c in valid_columns]
+        return cleaned
 
     def validate_order_extra_keys(self, value):
         """

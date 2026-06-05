@@ -54,3 +54,31 @@ class BrowserPageInputColumnsTestCase(TestCase):
         s = BrowserPageInputSerializer(data={"columns": "cover,phantom_column"})
         assert not s.is_valid()
         assert "columns" in s.errors
+
+
+class BrowserTableColumnsValidateTestCase(TestCase):
+    """``validate_table_columns`` drops stale keys instead of 400ing the page."""
+
+    def test_legacy_char_top_collection_dropped(self):
+        # A migrated-but-stale dict with a legacy single-char key must not 400.
+        s = BrowserPageInputSerializer(
+            data={"table_columns": {"comics": ["issue"], "c": ["name"]}}
+        )
+        assert s.is_valid(), s.errors
+        table_columns = s.validated_data["table_columns"]
+        assert "c" not in table_columns
+        assert table_columns["comics"] == ["issue"]
+
+    def test_unknown_column_dropped_within_valid_collection(self):
+        s = BrowserPageInputSerializer(
+            data={"table_columns": {"comics": ["issue", "phantom_column"]}}
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["table_columns"]["comics"] == ["issue"]
+
+    def test_clean_table_columns_pass_through(self):
+        s = BrowserPageInputSerializer(
+            data={"table_columns": {"publishers": ["name", "cover"]}}
+        )
+        assert s.is_valid(), s.errors
+        assert s.validated_data["table_columns"] == {"publishers": ["name", "cover"]}

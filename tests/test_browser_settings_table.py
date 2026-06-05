@@ -17,7 +17,6 @@ from codex.startup import init_admin_flags
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_CREATED: Final = 201
-_HTTP_BAD_REQUEST: Final = 400
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 _SAVED_URL: Final = "/api/v4/browse/publishers/saved-settings"
 
@@ -73,19 +72,24 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert s.is_valid(), s.errors
         assert s.validated_data["table_columns"] == {"comics": ["cover", "name"]}
 
-    def test_table_columns_invalid_top_group_rejected(self):
+    def test_table_columns_invalid_top_group_dropped(self):
+        # Hardened: an unknown top-collection key (e.g. a legacy char code) is
+        # dropped, not 400'd, so a stale client can't brick the browse page.
         s = BrowserSettingsSerializer(
-            data={"table_columns": {"x": ["cover"]}},
+            data={"table_columns": {"x": ["cover"], "comics": ["name"]}},
         )
-        assert not s.is_valid()
-        assert "table_columns" in s.errors
+        assert s.is_valid(), s.errors
+        table_columns = s.validated_data["table_columns"]
+        assert "x" not in table_columns
+        assert table_columns["comics"] == ["name"]
 
-    def test_table_columns_invalid_column_key_rejected(self):
+    def test_table_columns_invalid_column_key_dropped(self):
+        # Hardened: unknown column keys within a valid collection are dropped.
         s = BrowserSettingsSerializer(
             data={"table_columns": {"comics": ["cover", "phantom_column"]}},
         )
-        assert not s.is_valid()
-        assert "table_columns" in s.errors
+        assert s.is_valid(), s.errors
+        assert s.validated_data["table_columns"]["comics"] == ["cover"]
 
     def test_table_cover_size_sm_validates(self):
         s = BrowserSettingsSerializer(data={"table_cover_size": "sm"})
@@ -220,9 +224,13 @@ class BrowserTableSettingsRoundTripTestCase(TestCase):
         body = self._get()
         assert body["tableColumns"] == cols
 
-    def test_patch_table_columns_invalid_top_group_rejected(self):
-        response = self._patch({"tableColumns": {"x": ["cover"]}})
-        assert response.status_code == _HTTP_BAD_REQUEST
+    def test_patch_table_columns_invalid_top_group_dropped(self):
+        # Hardened: the unknown key is dropped and the PATCH still succeeds.
+        response = self._patch({"tableColumns": {"x": ["cover"], "comics": ["name"]}})
+        assert response.status_code == _HTTP_OK, response.content
+        body = self._get()
+        assert "x" not in body["tableColumns"]
+        assert body["tableColumns"]["comics"] == ["name"]
 
     def test_patch_table_cover_size_persists(self):
         response = self._patch({"tableCoverSize": "sm"})
