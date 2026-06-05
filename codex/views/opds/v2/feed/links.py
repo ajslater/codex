@@ -13,6 +13,7 @@ from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentName
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.href import OPDS2HrefMixin
+from codex.views.opds.v2.renderers import OPDS2FeedRenderer
 
 _BOOKMARK_FILTERS_NONE_STR = json.dumps(dict(BookmarkFilters.NONE))
 
@@ -21,6 +22,11 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
     TARGET = "opds2"
+    # OPDS 2.0 wants the feed object at the JSON root. Override the inherited
+    # ``EnvelopeJSONRenderer`` (which wraps in ``{data, meta, errors}`` for the
+    # SPA) so feeds are valid OPDS 2.0 documents. The manifest view narrows this
+    # to the Divina media type.
+    renderer_classes = (OPDS2FeedRenderer,)
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""

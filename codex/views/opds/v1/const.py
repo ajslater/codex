@@ -106,7 +106,7 @@ class OPDS1Link:
     facet_active: bool = False
     thr_count: int = 0
     pse_count: int = 0
-    pse_last_read: int = 0
+    pse_last_read: int | None = None
     pse_last_read_date: datetime | None = None
 
 

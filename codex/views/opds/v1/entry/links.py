@@ -148,12 +148,19 @@ class OPDS1EntryLinksMixin:
         self.lazy_metadata()
         pse_count = self.obj.page_count
         bookmark_updated_at = self.obj.bookmark_updated_at
+        # OPDS-PSE 1.2 numbers lastRead from 1; obj.page is Codex's 0-indexed
+        # bookmark page. The page annotation is Sum(..., default=0), so an
+        # unbookmarked comic reports page 0 — indistinguishable by page alone
+        # from a real bookmark on the first page. bookmark_updated_at is None
+        # only when there is no bookmark, so use it to tell them apart: emit no
+        # lastRead for an unread comic, but lastRead="1" for a page-0 bookmark.
+        pse_last_read = page + 1 if bookmark_updated_at is not None else None
         return OPDS1Link(
             Rel.STREAM,
             href,
             MimeType.STREAM,
             pse_count=pse_count,
-            pse_last_read=page,
+            pse_last_read=pse_last_read,
             pse_last_read_date=bookmark_updated_at,
         )
 

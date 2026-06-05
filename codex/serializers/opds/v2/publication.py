@@ -120,9 +120,9 @@ class OPDS2PublicationSerializer(OPDS2FacetSerializer):
     https://drafts.opds.io/schema/publication.schema.json
     """
 
-    conforms_to = CharField(
-        read_only=True, default="https://drafts.opds.io/schema/publication.schema.json"
-    )
+    # ``conformsTo`` belongs in ``metadata`` (the Readium webpub-manifest /
+    # OPDS schemas have no publication-root ``conformsTo`` — at the manifest
+    # root it trips ``additionalProperties``). See the metadata serializers.
     metadata = OPDS2PublicationMetadataSerializer(read_only=True)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     links = OPDS2LinkListField(read_only=True)
     images = OPDS2LinkListField(read_only=True, required=False)
@@ -136,7 +136,7 @@ class OPDS2PublicationDivinaMetadataSerializer(OPDS2PublicationMetadataSerialize
     """
 
     conforms_to = CharField(
-        read_only=True, default="https://readium.org/webpub-manifest/profiles/divina "
+        read_only=True, default="https://readium.org/webpub-manifest/profiles/divina"
     )
 
 
@@ -150,10 +150,8 @@ class OPDS2PublicationDivinaManifestSerializer(OPDS2PublicationSerializer):
     vars()["@context"] = CharField(
         read_only=True, default="https://readium.org/webpub-manifest/context.jsonld"
     )
-    conforms_to = CharField(
-        read_only=True, default="https://readium.org/webpub-manifest/profiles/divina"
-    )
-
+    # Divina profile is declared via ``metadata.conformsTo`` (above), not at the
+    # manifest root — the webpub-manifest schema rejects a root ``conformsTo``.
     metadata = OPDS2PublicationDivinaMetadataSerializer(read_only=True)  # pyright: ignore[reportIncompatibleUnannotatedOverride]
 
     reading_order = OPDS2LinkListField(read_only=True, required=False)

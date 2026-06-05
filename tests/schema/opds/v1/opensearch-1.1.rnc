@@ -1,0 +1,93 @@
+# RELAX NG Compact grammar for an OpenSearch 1.1 description document.
+#
+# OpenSearch 1.1 has no official schema; this grammar is hand-authored from the
+# spec (draft 6):
+#   https://github.com/dewitt/opensearch/blob/master/opensearch-1-1-draft-6.md
+#
+# It validates the OpenSearchDescription document Codex serves at
+# /opds/v1.2/opensearch/v1.1 and links from its OPDS 1.x feeds. The spec does
+# not mandate child-element order, so the children are interleaved. Foreign
+# (non-OpenSearch namespace) elements/attributes are tolerated per the spec's
+# extensibility rules.
+
+namespace os = "http://a9.com/-/spec/opensearch/1.1/"
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = openSearchDescription
+
+openSearchDescription =
+  element os:OpenSearchDescription {
+    osShortName
+    & osDescription
+    & osUrl+
+    & osContact?
+    & osTags?
+    & osLongName?
+    & osImage*
+    & osQuery*
+    & osDeveloper?
+    & osAttribution?
+    & osSyndicationRight?
+    & osAdultContent?
+    & osLanguage*
+    & osInputEncoding*
+    & osOutputEncoding*
+    & anyForeignElement*
+  }
+
+# Required, exactly once.
+osShortName = element os:ShortName { xsd:string { maxLength="16" } }
+osDescription = element os:Description { xsd:string { maxLength="1024" } }
+
+# Optional text elements with the spec's length caps.
+osLongName = element os:LongName { xsd:string { maxLength="48" } }
+osDeveloper = element os:Developer { xsd:string { maxLength="64" } }
+osAttribution = element os:Attribution { xsd:string { maxLength="256" } }
+osTags = element os:Tags { xsd:string { maxLength="256" } }
+osContact = element os:Contact { text }
+osLanguage = element os:Language { text }
+osInputEncoding = element os:InputEncoding { text }
+osOutputEncoding = element os:OutputEncoding { text }
+osAdultContent = element os:AdultContent { text }
+osSyndicationRight =
+  element os:SyndicationRight { "open" | "limited" | "private" | "closed" }
+
+# Required one-or-more. ``template`` and ``type`` are mandatory attributes.
+osUrl =
+  element os:Url {
+    attribute template { text },
+    attribute type { text },
+    attribute rel { text }?,
+    attribute indexOffset { xsd:integer }?,
+    attribute pageOffset { xsd:integer }?,
+    anyForeignElement*
+  }
+
+osImage =
+  element os:Image {
+    attribute height { xsd:nonNegativeInteger }?,
+    attribute width { xsd:nonNegativeInteger }?,
+    attribute type { text }?,
+    text
+  }
+
+osQuery =
+  element os:Query {
+    attribute role { text },
+    attribute title { text }?,
+    attribute totalResults { xsd:nonNegativeInteger }?,
+    attribute searchTerms { text }?,
+    attribute count { xsd:nonNegativeInteger }?,
+    attribute startIndex { xsd:integer }?,
+    attribute startPage { xsd:integer }?,
+    attribute language { text }?,
+    attribute inputEncoding { text }?,
+    attribute outputEncoding { text }?,
+    empty
+  }
+
+# Extensibility: any element outside the OpenSearch namespace.
+anyForeignElement =
+  element * - os:* {
+    (attribute * { text } | text | anyForeignElement)*
+  }

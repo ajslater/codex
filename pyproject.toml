@@ -97,10 +97,17 @@ lint = [
 ]
 test = [
   "coverage~=7.0",
+  # OPDS feed schema-compliance validation (tests/test_opds_schema.py):
+  # jsonschema (+referencing) for OPDS 2.0 JSON Schema, lxml for OPDS 1.2
+  # RELAX NG, rnc2rng to read the .rnc grammars. jsonschema/lxml were already
+  # present transitively; pinned here so the test group is self-sufficient.
+  "jsonschema~=4.26",
+  "lxml~=6.1",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
   "pytest-gitignore~=1.3",
+  "rnc2rng~=2.7",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []

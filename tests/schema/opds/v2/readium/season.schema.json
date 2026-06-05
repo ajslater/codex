@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://readium.org/webpub-manifest/schema/season.schema.json",
+  "title": "Season",
+  "anyOf": [
+    {
+      "type": "number"
+    },
+    {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "$ref": "#/$defs/object"
+          }
+        ]
+      }
+    },
+    {
+      "$ref": "#/$defs/object"
+    }
+  ],
+  "$defs": {
+    "object": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "language-map.schema.json"
+        },
+        "identifier": {
+          "type": "string",
+          "format": "uri"
+        },
+        "altIdentifier": {
+          "$ref": "altIdentifier.schema.json"
+        },
+        "sortAs": {
+          "$ref": "language-map.schema.json"
+        },
+        "position": {
+          "type": "number"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "link.schema.json"
+          }
+        },
+        "episode": {
+          "$ref": "episode.schema.json"
+        }
+      },
+      "required": [
+        "position"
+      ]
+    }
+  }
+}

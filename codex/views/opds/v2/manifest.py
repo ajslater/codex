@@ -24,6 +24,7 @@ from codex.views.opds.const import (
 )
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
+from codex.views.opds.v2.renderers import OPDS2ManifestRenderer
 
 _MD_CREDIT_MAP = MappingProxyType(
     # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
@@ -297,8 +298,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # Special cases with transforms
         if lang := obj.language:
             md["language"] = lang.name
-        if layout := obj.reading_direction:
-            md["layout"] = "scrolled" if layout == "ttb" else layout
+        self._set_layout_and_progression(md, obj.reading_direction)
 
         # Method-based keys
         for key in _PUBLICATION_METHOD_KEYS:
@@ -314,6 +314,9 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
     """Single publication manifest view."""
 
     serializer_class = OPDS2PublicationDivinaManifestSerializer
+    # The manifest is a Divina webpub manifest, not a feed — serve it under the
+    # media type its in-feed ``self`` link advertises (still envelope-free).
+    renderer_classes = (OPDS2ManifestRenderer,)
 
     def _publication_reading_order(self, obj) -> list:
         """

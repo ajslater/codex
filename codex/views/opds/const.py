@@ -44,7 +44,8 @@ class Rel:
     SORT_NEW = "http://opds-spec.org/sort/new"
     POPULAR = "http://opds-spec.org/sort/popular"
     FEATURED = "http://opds-spec.org/featured"
-    PROGRESSION = "http://www.cantook.com/api/progression"
+    # OPDS Progression 1.0 (https://drafts.opds.io/opds-progression-1.0.html)
+    PROGRESSION = "http://opds-spec.org/progression"
     SELF = "self"
     START = "start"
     UP = "up"
@@ -73,7 +74,8 @@ class MimeType:
     STREAM = "image/jpeg"
     OPDS_JSON = "application/opds+json"
     OPDS_PUB = "application/opds-publication+json"
-    PROGRESSION = "application/vnd.readium.progression+json"
+    # OPDS Progression 1.0 media type (was the readium/cantook draft type).
+    PROGRESSION = "application/opds-progression+json"
     BOOK = "http://schema.org/Book"
     # COMIC = "https://schema.org/ComicStory" unused
     JPEG = "image/jpeg"

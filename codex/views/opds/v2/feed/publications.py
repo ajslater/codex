@@ -137,6 +137,25 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             md["number_of_pages"] = page_count
         return md
 
+    @staticmethod
+    def _set_layout_and_progression(md: dict, direction: str | None) -> None:
+        """
+        Map ``Comic.reading_direction`` to schema-valid metadata.
+
+        The webpub-manifest ``readingProgression`` enum is only ``rtl``/``ltr``,
+        and ``layout`` is ``fixed``/``reflowable``/``scrolled``. Page-image
+        comics are fixed-layout; vertical directions (``ttb``/``btt``, i.e.
+        webtoons) are expressed as ``layout=scrolled`` rather than an invalid
+        ``readingProgression``.
+        """
+        if not direction:
+            return
+        if direction in {"ltr", "rtl"}:
+            md["reading_progression"] = direction
+            md["layout"] = "fixed"
+        else:  # ttb / btt -> vertical scroll
+            md["layout"] = "scrolled"
+
     def _publication_contributor(self, obj, kind: str) -> dict | None:
         """Build a Readium Contributor for publisher/imprint with a browse link."""
         name = getattr(obj, f"{kind}_name", None)
@@ -431,8 +450,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # Special-case transforms (mirror manifest semantics).
         if lang := getattr(obj, "language", None):
             md["language"] = lang.name
-        if layout := getattr(obj, "reading_direction", None):
-            md["layout"] = "scrolled" if layout == "ttb" else layout
+        self._set_layout_and_progression(md, getattr(obj, "reading_direction", None))
 
         # Pre-batched per-pk credit + subject hydration (set up by
         # ``get_publications`` before the loop).

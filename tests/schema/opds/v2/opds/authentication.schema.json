@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drafts.opds.io/schema/authentication.schema.json",
+  "title": "OPDS Authentication Document",
+  "type": "object",
+  "properties": {
+    "title": {
+      "description": "Title of the Catalog being accessed",
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique identifier for the Catalog provider and canonical location for the Authentication Document",
+      "type": "string",
+      "format": "uri"
+    },
+    "description": {
+      "description": "A description of the service being displayed to the user",
+      "type": "string"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "$ref": "https://readium.org/webpub-manifest/schema/link.schema.json"
+      },
+      "uniqueItems": true
+    },
+    "authentication": {
+      "description": "A list of supported Authentication Flows",
+      "type": "array",
+      "items": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "https://readium.org/webpub-manifest/schema/link.schema.json"
+            },
+            "uniqueItems": true
+          },
+          "labels": {
+            "type": "object",
+            "properties": {
+              "login": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": ["type"]
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "authentication",
+    "title",
+    "id"
+  ]
+}

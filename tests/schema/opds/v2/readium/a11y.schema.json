@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://readium.org/webpub-manifest/schema/a11y.schema.json",
+  "title": "Accessibility Object",
+  "type": "object",
+  "properties": {
+    "conformsTo": {
+      "type": [
+        "string",
+        "array"
+      ],
+      "format": "uri",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "exemption": {
+      "type": "string",
+      "enum": [
+        "eaa-disproportionate-burden",
+        "eaa-fundamental-alteration",
+        "eaa-microenterprise"
+      ]
+    },
+    "accessMode": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "auditory",
+          "chartOnVisual",
+          "chemOnVisual",
+          "colorDependent",
+          "diagramOnVisual",
+          "mathOnVisual",
+          "musicOnVisual",
+          "tactile",
+          "textOnVisual",
+          "textual",
+          "visual"
+        ]
+      }
+    },
+    "accessModeSufficient": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "auditory",
+              "tactile",
+              "textual",
+              "visual"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "auditory",
+                "tactile",
+                "textual",
+                "visual"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "feature": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "annotations",
+          "ARIA",
+          "bookmarks",
+          "index",
+          "pageBreakMarkers",
+          "printPageNumbers",
+          "pageNavigation",
+          "readingOrder",
+          "structuralNavigation",
+          "tableOfContents",
+          "taggedPDF",
+          "alternativeText",
+          "audioDescription",
+          "closedCaptions",
+          "captions",
+          "describedMath",
+          "longDescription",
+          "openCaptions",
+          "signLanguage",
+          "transcript",
+          "displayTransformability",
+          "synchronizedAudioText",
+          "timingControl",
+          "unlocked",
+          "ChemML",
+          "latex",
+          "latex-chemistry",
+          "MathML",
+          "MathML-chemistry",
+          "ttsMarkup",
+          "highContrastAudio",
+          "highContrastDisplay",
+          "largePrint",
+          "braille",
+          "tactileGraphic",
+          "tactileObject",
+          "fullRubyAnnotations",
+          "horizontalWriting",
+          "rubyAnnotations",
+          "verticalWriting",
+          "withAdditionalWordSegmentation",
+          "withoutAdditionalWordSegmentation",
+          "none",
+          "unknown"
+        ]
+      }
+    },
+    "hazard": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "flashing",
+          "motionSimulation",
+          "sound",
+          "none",
+          "noFlashingHazard",
+          "noMotionSimulationHazard",
+          "noSoundHazard",
+          "unknown",
+          "unknownFlashingHazard",
+          "unknownMotionSimulationHazard",
+          "unknownSoundHazard"
+        ]
+      }
+    },
+    "certification": {
+      "type": "object",
+      "properties": {
+        "certifiedBy": {
+          "type": "string"
+        },
+        "credential": {
+          "type": "string"
+        },
+        "report": {
+          "type": "string"
+        }
+      }
+    },
+    "summary": {
+      "type": "string"
+    }
+  }
+}

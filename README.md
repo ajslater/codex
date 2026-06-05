@@ -831,14 +831,19 @@ and may be found in the Web UI sidebar.
 
 - [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
 - [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
-- [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
+- [OPDS Authentication 1.0 (draft)](https://drafts.opds.io/authentication-for-opds-1.0.html)
 
 ##### OPDS v2
 
-- [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
+- [OPDS Catalog 2.0](https://specs.opds.io/opds-2.0.html)
+
 - [OPDS 2.0 Digital Visual Narratives Profile (DiViNa)](https://github.com/readium/webpub-manifest/blob/master/profiles/divina.md)
+
+- [OPDS Authentication 1.0 (draft)](https://drafts.opds.io/authentication-for-opds-1.0.html)
+
+- [OPDS Progression 1.0 (draft)](https://drafts.opds.io/opds-progression-1.0.html)
+
 - [OPDS 2.0 Authentication (proposal)](https://github.com/opds-community/drafts/discussions/43)
-- [OPDS 2.0 Progression (proposal)](https://github.com/opds-community/drafts/discussions/67)
 
 ##### OpenSearch v1
 
