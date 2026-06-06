@@ -137,7 +137,7 @@ class Comic(WatchedPathBrowserCollection):
         related_name="main_character_in_comics",
     )
     main_team = ForeignKey(
-        Character,
+        Team,
         db_index=True,
         null=True,
         on_delete=CASCADE,

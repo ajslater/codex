@@ -21,6 +21,8 @@ ships 0043 as its head and no released DB is ever past 0042):
   ``AK``); then ``Timestamp.version`` renamed to ``value``.
 * ``Comic.critical_rating`` rescaled to the ComicInfo 0.0-5.0 scale, then
   the column shrunk to ``max_digits=2, decimal_places=1``.
+* ``Comic.main_team`` foreign key repointed from ``Character`` to ``Team``
+  (a copy-paste bug from ``main_character``).
 * **Group -> collection unification** (folded from migrations 0044-0050):
   ``SettingsBrowserShow`` flag columns renamed ``p/i/s/v`` ->
   ``publishers/imprints/series/volumes``; ``Favorite.group``,
@@ -877,6 +879,20 @@ class Migration(migrations.Migration):
                     django.core.validators.MinValueValidator(Decimal("0.0")),
                     django.core.validators.MaxValueValidator(Decimal("5.0")),
                 ],
+            ),
+        ),
+        # ``Comic.main_team`` was copy-pasted from ``main_character`` and
+        # wrongly targeted ``Character``; repoint the FK at ``Team``. The
+        # importer, serializers, and browser queries already treat it as a
+        # team, so only the column's foreign-key target is corrected here.
+        migrations.AlterField(
+            model_name="comic",
+            name="main_team",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="main_team_in_comics",
+                to="codex.team",
             ),
         ),
         # ===================================================================
