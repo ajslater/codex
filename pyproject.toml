@@ -168,9 +168,6 @@ wheel-exclude = [
   "codex/static_src",
 ]
 
-[tool.uv.sources]
-comicbox = { path = "../comicbox", editable = true }
-
 [tool.basedpyright]
 exclude = [
   "**/.*",
