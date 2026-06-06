@@ -19,12 +19,12 @@ from types import MappingProxyType
 from typing import cast
 
 import pycountry  # a hard dependency of comicbox
+from comicbox.enums.comicbox import IdSources
 from comicbox.enums.generic import GenericFormatEnum
 from comicbox.enums.maps.age_rating import COMICINFO_AGE_RATING_MAP
 from comicbox.enums.metroninfo import MetronAgeRatingEnum, MetronFormatEnum
 from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
-from comicbox.identifiers.identifiers import IdSources
 
 from codex.choices.reader import READER_CHOICES
 from codex.models.identifier import IdentifierType
