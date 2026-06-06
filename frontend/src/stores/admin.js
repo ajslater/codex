@@ -51,6 +51,7 @@ export const useAdminStore = defineStore("admin", {
     libraries: undefined,
     customCovers: [],
     failedImports: [],
+    tagWriteErrors: [],
     flags: [],
     folderPicker: {
       root: undefined,
@@ -330,6 +331,37 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
         return undefined;
       }
+    },
+    async loadTagWriteErrors({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.TagWriteErrors || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getTagWriteErrors()
+        .then((response) => {
+          this.tagWriteErrors = Array.isArray(response.data)
+            ? response.data
+            : [];
+          this.timestamps.TagWriteErrors = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async clearTagWriteErrors() {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.clearTagWriteErrors()
+        .then(() => {
+          this.tagWriteErrors = [];
+          this.timestamps.TagWriteErrors = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
     },
     async loadEmailSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;

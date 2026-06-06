@@ -50,6 +50,12 @@ services:
             start_period: 15s
 ```
 
+> **Note:** The `compose.yaml` example mounts `/comics` read-only (`:ro`), which
+> is safe for browsing. But **editing tags writes back to your comic files**, so
+> to use tag editing you must remove the `:ro` flag and make sure the container
+> user (`PUID`/`PGID`) has write permission to the comics. The `docker` example
+> above already mounts `/comics` writable.
+
 Special volume setup for a CIFS share:
 
 ```yaml

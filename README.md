@@ -35,7 +35,8 @@ border-radius: 128px;
 ### 🏷️ Edit & Tag
 
 - **Edit tags** on one or many comics right in the browser — credits, story
-  arcs, identifiers, and more — written back to your comic files.
+  arcs, identifiers, and more — written back to your comic files. Requires the
+  comics directory mounted **writable** with filesystem write permission.
 - **Online tagging** looks up and applies metadata from online sources, with
   interactive match prompts and per-source credentials in the Admin Tagging tab.
 

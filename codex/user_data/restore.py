@@ -366,7 +366,6 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     coalesced: dict[str, Any] = {
         "default_match_mode": "auto",
         "default_prompts_mode": "ask",
-        "prompt_timeout_seconds": 3600,
         "metron_user": "",
         "metron_password": "",
         "metron_url": "",

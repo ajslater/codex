@@ -12,9 +12,10 @@ from django.db import transaction
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.onlinetag.session_cache import (
-    clear_active_session,
-    get_active_prompts,
-    get_active_session_id,
+    get_active_scan_id,
+    get_pending_prompts,
+    set_active_scan_id,
+    set_pending_prompts,
 )
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import (
@@ -55,6 +56,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.bookmark import Bookmark
+from codex.models.comic import Comic
 from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
@@ -438,32 +440,43 @@ class JanitorCleanup(JanitorUpdateFailedImports):
 
     def cleanup_tagging_state(self) -> None:
         """
-        Clear orphan online tagging session and prompt state.
+        Prune online tagging state that no longer has a referent.
 
-        The ``OnlineTagThread`` startup hook already clears cached
-        state on every process restart, and the session manager's
-        ``finally`` block clears it on normal session end. This sweep
-        is a defensive nightly backstop for the narrow case where the
-        daemon kept running but in-memory state diverged from the
-        cache (e.g. a crash inside ``finally`` itself).
+        Pending prompts deliberately linger across restarts until an admin
+        answers them, so prompts-without-a-live-scan is the normal steady
+        state, not something to clear. This nightly sweep only drops prompts
+        whose comic has since been deleted, and clears an active-scan marker
+        left behind by a crash mid-scan.
         """
         status = JanitorCleanupTaggingStateStatus()
         try:
             self.status_controller.start(status)
-            session_id = get_active_session_id()
-            has_prompts = bool(get_active_prompts())
-            stale_session = bool(session_id) and (
-                self.online_tag_thread is None
-                or not self.online_tag_thread.has_active_session(session_id)
-            )
-            orphan_prompts = not session_id and has_prompts
-            if not stale_session and not orphan_prompts:
-                self.log.debug("Online tagging state is clean; nothing to do.")
-                return
-            clear_active_session()
-            if stale_session:
-                self.log.info(f"Cleared stale online tagging session {session_id!r}.")
-            else:
-                self.log.info("Cleared orphan online tagging prompts.")
+            self._prune_dead_prompts()
+            self._clear_stale_scan_marker()
         finally:
             self.status_controller.finish(status)
+
+    def _prune_dead_prompts(self) -> None:
+        """Drop pending prompts whose comic no longer exists."""
+        prompts = get_pending_prompts()
+        if not prompts:
+            return
+        pks = {p.get("pk") for p in prompts.values() if p.get("pk") is not None}
+        live = set(Comic.objects.filter(pk__in=pks).values_list("pk", flat=True))
+        kept = {fp: p for fp, p in prompts.items() if p.get("pk") in live}
+        if len(kept) != len(prompts):
+            set_pending_prompts(kept)
+            dropped = len(prompts) - len(kept)
+            self.log.info(f"Pruned {dropped} online tag prompt(s) for missing comics.")
+
+    def _clear_stale_scan_marker(self) -> None:
+        """Clear an active-scan marker with no live scan behind it."""
+        scan_id = get_active_scan_id()
+        if not scan_id:
+            return
+        live = self.online_tag_thread is not None and (
+            self.online_tag_thread.has_active_session(scan_id)
+        )
+        if not live:
+            set_active_scan_id("")
+            self.log.info(f"Cleared stale online tag scan marker {scan_id!r}.")

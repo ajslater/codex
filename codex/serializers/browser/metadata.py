@@ -123,7 +123,13 @@ def pivot_credits(credit_rows) -> dict[str, list[dict[str, Any]]]:
 
 
 def shape_identifiers(identifiers) -> list[dict[str, Any]]:
-    """Reshape ``[Identifier]`` → ``[{type, code, displayName, pk, url}]``."""
+    """
+    Reshape ``[Identifier]`` → ``[{source, type, code, displayName, pk, url}]``.
+
+    ``source`` is the raw source name (e.g. ``"comicvine"``) that the tag
+    editor's Source select binds to; ``displayName`` is its human label
+    (e.g. ``"Comic Vine"``) shown in the read-only metadata pane.
+    """
     out: list[dict[str, Any]] = []
     for identifier in identifiers or ():
         source = getattr(identifier, "source", None)
@@ -132,6 +138,7 @@ def shape_identifiers(identifiers) -> list[dict[str, Any]]:
         out.append(
             {
                 "pk": identifier.pk,
+                "source": source_name,
                 "type": identifier.id_type,
                 "code": identifier.key,
                 "displayName": display_name,

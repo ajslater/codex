@@ -192,6 +192,11 @@ export const updateTaggingDefaults = (data) =>
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
 
+export const getTagWriteErrors = () =>
+  HTTP.get("/admin/tag-write/errors", { params: { ts: Date.now() } });
+
+export const clearTagWriteErrors = () => HTTP.delete("/admin/tag-write/errors");
+
 export const getEmailSettings = () =>
   HTTP.get("/admin/email-settings", { params: { ts: Date.now() } });
 

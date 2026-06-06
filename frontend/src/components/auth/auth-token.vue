@@ -7,20 +7,20 @@
   >
     <template #activator="{ props }">
       <v-btn
-        :prepend-icon="mdiTicketConfirmationOutline"
+        :prepend-icon="mdiKeyOutline"
         v-bind="props"
-        text="Auth Token"
+        text="Authorization Bearer Token"
       />
     </template>
     <div id="tokenDialog">
       <h2>
-        Auth Token<br />
-        for {{ username }}
+        Authorization Bearer Token for <br />
+        {{ username }}
       </h2>
       <ClipBoard
         class="tokenContainer"
         :tooltip="TOOLTIP"
-        title="Token"
+        title="Bearer Token"
         :text="token"
       />
       <div id="bearerTokenHelp">
@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import { mdiTicketConfirmationOutline } from "@mdi/js";
+import { mdiKeyOutline } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import ClipBoard from "@/components/clipboard.vue";
@@ -64,7 +64,7 @@ export default {
   },
   data() {
     return {
-      mdiTicketConfirmationOutline,
+      mdiKeyOutline,
       showTooltip: { show: false },
       TOOLTIP,
     };

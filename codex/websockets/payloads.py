@@ -25,6 +25,7 @@ NOTIFICATION_TYPE_MAP: Mapping[str, WebsocketMessages] = {
     Notifications.LIBRARY.value: WebsocketMessages.LIBRARY_CHANGED,
     Notifications.LIBRARIAN_STATUS.value: WebsocketMessages.TASK_PROGRESS,
     Notifications.ONLINE_TAG_PROMPT.value: WebsocketMessages.TAG_SESSION_PROMPT,
+    Notifications.TAG_WRITE_ERRORS.value: WebsocketMessages.TAG_WRITE_ERRORS_CHANGED,
     Notifications.USERS.value: WebsocketMessages.USERS_CHANGED,
 }
 

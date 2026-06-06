@@ -31,7 +31,9 @@
                 <span class="promptPath">{{
                   promptFilename(prompt.path)
                 }}</span>
-                <v-chip size="x-small" class="ml-2">{{ prompt.source }}</v-chip>
+                <v-chip size="x-small" class="ml-2">{{
+                  sourceLabel(prompt.source)
+                }}</v-chip>
                 <v-chip size="x-small" class="ml-1">
                   {{ prompt.candidates.length }} candidates
                 </v-chip>
@@ -92,6 +94,13 @@ import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { useOnlineTagStore } from "@/stores/online-tag";
 
+// Friendly display names for online tagging sources. Falls back to the raw
+// source id for anything not listed. Internal source values are unchanged.
+const SOURCE_LABELS = Object.freeze({
+  metron: "Metron Cloud",
+  comicvine: "Comic Vine",
+});
+
 export default {
   name: "OnlineTagPromptPopup",
   computed: {
@@ -104,6 +113,9 @@ export default {
       "abortSession",
       "skipAllPrompts",
     ]),
+    sourceLabel(source) {
+      return SOURCE_LABELS[source] || source;
+    },
     promptFilename(path) {
       if (!path) return "Unknown";
       const parts = path.split("/");

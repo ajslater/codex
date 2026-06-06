@@ -376,7 +376,6 @@ def serialize_tagging_defaults(
             "default_sources": json.dumps(
                 defaults.default_sources, separators=(",", ":")
             ),
-            "prompt_timeout_seconds": defaults.prompt_timeout_seconds,
             "metron_user": defaults.metron_user or "",
             "metron_password": defaults.metron_password or "",
             "metron_url": defaults.metron_url or "",

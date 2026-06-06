@@ -11,6 +11,8 @@ border-radius: 128px;
 - Notice
     - This is a major upgrade. A one-time database migration runs on first
       startup; back up your `config` directory before upgrading.
+    - Editing tags writes to your comic files; the comics directory must be
+      mounted writable with write permission for tag editing to work.
 - Breaking Changes
     - Admin settings (SMTP, rate limits, browser page size, cover upload size)
       moved from `codex.toml` into the Admin UI and are now editable without a

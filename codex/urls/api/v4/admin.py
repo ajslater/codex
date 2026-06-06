@@ -36,6 +36,7 @@ from codex.views.admin.restore_user_data import (
     AdminUserDataBackupsView,
 )
 from codex.views.admin.stats import AdminStatsView
+from codex.views.admin.tag_write_errors import AdminTagWriteErrorsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
 from codex.views.admin.tagwrite import (
@@ -198,7 +199,8 @@ urlpatterns = [
         AdminLibrarianTaskView.as_view(),
         name="tasks_run",
     ),
-    # Online tagging (renamed tag-sessions in v4).
+    # Online tagging. The scan ("tag-session") is the live Pass-1 lookup;
+    # deferred prompts persist independently and are addressed by fingerprint.
     path(
         "tag-sessions",
         AdminOnlineTagActiveView.as_view(),
@@ -215,19 +217,19 @@ urlpatterns = [
         name="tag_session_abort",
     ),
     path(
-        "tag-sessions/<str:session_id>/skip-all",
-        AdminOnlineTagSkipAllPromptsView.as_view(),
-        name="tag_session_skip_all",
-    ),
-    path(
-        "tag-sessions/<str:session_id>/prompts",
+        "tag-prompts",
         AdminOnlineTagPromptsView.as_view(),
-        name="tag_session_prompts",
+        name="tag_prompts",
     ),
     path(
-        "tag-sessions/<str:session_id>/prompts/<str:fingerprint>",
+        "tag-prompts/skip-all",
+        AdminOnlineTagSkipAllPromptsView.as_view(),
+        name="tag_prompts_skip_all",
+    ),
+    path(
+        "tag-prompts/<str:fingerprint>",
         AdminOnlineTagPromptResponseView.as_view(),
-        name="tag_session_prompt_response",
+        name="tag_prompt_response",
     ),
     path(
         "identifier-url",
@@ -238,6 +240,11 @@ urlpatterns = [
         "tag-write/preflight",
         AdminTagWritePreflightView.as_view(),
         name="tag_write_preflight",
+    ),
+    path(
+        "tag-write/errors",
+        AdminTagWriteErrorsView.as_view(),
+        name="tag_write_errors",
     ),
     path(
         "tag-write",

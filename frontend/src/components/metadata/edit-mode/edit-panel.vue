@@ -321,7 +321,7 @@
           <td class="key" :class="{ labelChanged: isCreditRoleChanged(role) }">
             {{ role }}
           </td>
-          <td>
+          <td :title="isFieldDisabled('credits') ? disabledTooltip : ''">
             <v-combobox
               v-model="creditsByRole[role]"
               multiple
@@ -337,17 +337,21 @@
       </tbody>
     </v-table>
     <div class="tableFooter">
-      <v-select
+      <div
         v-if="availableRoles.length > 0"
-        v-model="selectedNewRole"
-        :items="availableRoles"
-        label="Add role..."
-        density="compact"
-        hide-details
-        class="addRoleSelect"
-        :disabled="isFieldDisabled('credits')"
-        @update:model-value="addRole"
-      />
+        :title="isFieldDisabled('credits') ? disabledTooltip : ''"
+      >
+        <v-select
+          v-model="selectedNewRole"
+          :items="availableRoles"
+          label="Add role..."
+          density="compact"
+          hide-details
+          class="addRoleSelect"
+          :disabled="isFieldDisabled('credits')"
+          @update:model-value="addRole"
+        />
+      </div>
       <v-spacer />
       <v-btn
         v-if="creditRoles.length"
@@ -618,29 +622,33 @@
                   </div>
                 </template>
               </v-tooltip>
-              <v-select
+              <div
                 v-else
-                v-model="patch.main_character"
-                :items="patch.characters"
-                label="Main Character"
-                hide-details
-                density="compact"
-                :disabled="isFieldDisabled('protagonist')"
-                :class="{
-                  fieldCleared: isCleared('main_character'),
-                  fieldChanged:
-                    isFieldChanged('main_character') &&
-                    !isCleared('main_character'),
-                }"
-                @update:model-value="onFieldInput('main_character')"
+                :title="isFieldDisabled('protagonist') ? disabledTooltip : ''"
               >
-                <template #append-inner>
-                  <ClearFieldIcon
-                    :cleared="isCleared('main_character')"
-                    @toggle="toggleClear('main_character')"
-                  />
-                </template>
-              </v-select>
+                <v-select
+                  v-model="patch.main_character"
+                  :items="patch.characters"
+                  label="Main Character"
+                  hide-details
+                  density="compact"
+                  :disabled="isFieldDisabled('protagonist')"
+                  :class="{
+                    fieldCleared: isCleared('main_character'),
+                    fieldChanged:
+                      isFieldChanged('main_character') &&
+                      !isCleared('main_character'),
+                  }"
+                  @update:model-value="onFieldInput('main_character')"
+                >
+                  <template #append-inner>
+                    <ClearFieldIcon
+                      :cleared="isCleared('main_character')"
+                      @toggle="toggleClear('main_character')"
+                    />
+                  </template>
+                </v-select>
+              </div>
             </td>
           </tr>
           <tr v-if="tagKey === 'teams'" class="subSelectRow">
@@ -664,34 +672,38 @@
                   </div>
                 </template>
               </v-tooltip>
-              <v-select
+              <div
                 v-else
-                v-model="patch.main_team"
-                :items="patch.teams"
-                label="Main Team"
-                hide-details
-                density="compact"
-                :disabled="isFieldDisabled('protagonist')"
-                :class="{
-                  fieldCleared: isCleared('main_team'),
-                  fieldChanged:
-                    isFieldChanged('main_team') && !isCleared('main_team'),
-                }"
-                @update:model-value="onFieldInput('main_team')"
+                :title="isFieldDisabled('protagonist') ? disabledTooltip : ''"
               >
-                <template #append-inner>
-                  <ClearFieldIcon
-                    :cleared="isCleared('main_team')"
-                    @toggle="toggleClear('main_team')"
-                  />
-                </template>
-              </v-select>
+                <v-select
+                  v-model="patch.main_team"
+                  :items="patch.teams"
+                  label="Main Team"
+                  hide-details
+                  density="compact"
+                  :disabled="isFieldDisabled('protagonist')"
+                  :class="{
+                    fieldCleared: isCleared('main_team'),
+                    fieldChanged:
+                      isFieldChanged('main_team') && !isCleared('main_team'),
+                  }"
+                  @update:model-value="onFieldInput('main_team')"
+                >
+                  <template #append-inner>
+                    <ClearFieldIcon
+                      :cleared="isCleared('main_team')"
+                      @toggle="toggleClear('main_team')"
+                    />
+                  </template>
+                </v-select>
+              </div>
             </td>
           </tr>
         </template>
         <tr>
           <td class="key">Story Arcs</td>
-          <td>
+          <td :title="isFieldDisabled('story_arcs') ? disabledTooltip : ''">
             <v-combobox
               v-model="storyArcNames"
               multiple
@@ -722,7 +734,7 @@
     <v-table class="mdSection">
       <tbody>
         <tr v-for="(u, i) in universes" :key="i">
-          <td>
+          <td :title="isFieldDisabled('universes') ? disabledTooltip : ''">
             <v-combobox
               v-model="universes[i].name"
               label="Universe"
@@ -731,7 +743,7 @@
               :disabled="isFieldDisabled('universes')"
             />
           </td>
-          <td>
+          <td :title="isFieldDisabled('universes') ? disabledTooltip : ''">
             <v-text-field
               v-model="universes[i].designation"
               label="Designation"
@@ -754,14 +766,16 @@
       </tbody>
     </v-table>
     <div class="tableFooter">
-      <v-btn
-        variant="text"
-        size="small"
-        :disabled="isFieldDisabled('universes')"
-        @click="universes.push({ name: '', designation: '' })"
-      >
-        + Add Universe
-      </v-btn>
+      <div :title="isFieldDisabled('universes') ? disabledTooltip : ''">
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="isFieldDisabled('universes')"
+          @click="universes.push({ name: '', designation: '' })"
+        >
+          + Add Universe
+        </v-btn>
+      </div>
       <v-spacer />
       <v-btn
         v-if="universes.length"
@@ -777,7 +791,7 @@
     <v-table class="mdSection">
       <tbody>
         <tr v-for="(id, i) in identifiers" :key="i">
-          <td>
+          <td :title="isFieldDisabled('identifiers') ? disabledTooltip : ''">
             <v-select
               v-model="identifiers[i].source"
               :items="identifierSourceChoices"
@@ -787,7 +801,7 @@
               :disabled="isFieldDisabled('identifiers')"
             />
           </td>
-          <td>
+          <td :title="isFieldDisabled('identifiers') ? disabledTooltip : ''">
             <v-select
               v-model="identifiers[i].id_type"
               :items="identifierTypeChoices"
@@ -797,7 +811,7 @@
               :disabled="isFieldDisabled('identifiers')"
             />
           </td>
-          <td>
+          <td :title="isFieldDisabled('identifiers') ? disabledTooltip : ''">
             <v-text-field
               v-model="identifiers[i].key"
               label="Key"
@@ -820,22 +834,26 @@
       </tbody>
     </v-table>
     <div class="tableFooter">
-      <v-btn
-        variant="text"
-        size="small"
-        :disabled="isFieldDisabled('identifiers')"
-        @click="identifiers.push({ source: '', id_type: 'comic', key: '' })"
-      >
-        + Add Identifier
-      </v-btn>
-      <v-btn
-        variant="text"
-        size="small"
-        :disabled="isFieldDisabled('identifiers')"
-        @click="addUrlDialog = true"
-      >
-        + Add URL
-      </v-btn>
+      <div :title="isFieldDisabled('identifiers') ? disabledTooltip : ''">
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="isFieldDisabled('identifiers')"
+          @click="identifiers.push({ source: '', id_type: 'comic', key: '' })"
+        >
+          + Add Identifier
+        </v-btn>
+      </div>
+      <div :title="isFieldDisabled('identifiers') ? disabledTooltip : ''">
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="isFieldDisabled('identifiers')"
+          @click="addUrlDialog = true"
+        >
+          + Add URL
+        </v-btn>
+      </div>
       <v-spacer />
       <v-btn
         v-if="identifiers.length"
@@ -1394,22 +1412,13 @@ export default {
         }));
       }
 
-      /* Identifiers — name property format: "source::id_type:key" */
+      /* Identifiers — shaped as {pk, source, type, code, displayName, url} */
       if (this.md.identifiers?.length) {
-        this.identifiers = this.md.identifiers.map((id) => {
-          const rawKey = id.key || "";
-          const name = id.name || "";
-          const prefix =
-            rawKey && name.endsWith(`:${rawKey}`)
-              ? name.slice(0, -(rawKey.length + 1))
-              : name;
-          const parts = prefix.split(":").filter(Boolean);
-          return {
-            source: parts.length > 1 ? parts[0] : "",
-            id_type: parts.length > 1 ? parts[1] : parts[0] || "",
-            key: rawKey,
-          };
-        });
+        this.identifiers = this.md.identifiers.map((id) => ({
+          source: id.source || "",
+          id_type: id.type || "",
+          key: id.code || "",
+        }));
       }
 
       // Technical

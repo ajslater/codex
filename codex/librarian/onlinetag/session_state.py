@@ -1,8 +1,7 @@
-"""State and helpers for an in-flight online tagging session."""
+"""State and helpers for an in-flight online tagging scan."""
 
 from __future__ import annotations
 
-import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -11,19 +10,15 @@ from comicbox.online_session import PromptResponse
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from comicbox.online_session import DeferredPrompt, OnlinePrompt, OnlineSession
+    from comicbox.online_session import OnlinePrompt, OnlineSession
 
 
 @dataclass
 class SessionState:
-    """Tracks a single online tagging session."""
+    """Tracks a single online tagging scan (Pass 1)."""
 
     session: OnlineSession
     collected_tags: dict[int, dict[str, Any]] = field(default_factory=dict)
-    deferred_prompts: list[DeferredPrompt] = field(default_factory=list)
-    resolved_count: int = 0
-    total_prompts: int = 0
-    event: threading.Event = field(default_factory=threading.Event)
     path_to_pk: dict[Path, int] = field(default_factory=dict)
     pending_paths: list[Path] = field(default_factory=list)
     mode: str = "additive"

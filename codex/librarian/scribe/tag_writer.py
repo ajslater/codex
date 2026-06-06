@@ -11,8 +11,10 @@ from comicbox.config import get_config
 from comicbox.events import BatchFinished, BatchStarted, FileParsed
 from comicbox.write import BulkWriteItem, bulk_write
 
+from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.status import TagWriteStatus
+from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.comic import Comic
 
@@ -104,6 +106,7 @@ class TagWriter(WorkerStatusAbortableBase):
     ) -> set[int]:
         """Run bulk_write and return pks that were successfully written."""
         written_pks: set[int] = set()
+        had_errors = False
         for result in bulk_write(
             items,
             on_event=self._on_event,
@@ -112,12 +115,17 @@ class TagWriter(WorkerStatusAbortableBase):
         ):
             if result.error:
                 self.log.warning(f"Tag write error for {result.path}: {result.error}")
+                add_tag_write_error(str(result.path), str(result.error))
+                had_errors = True
                 continue
             if not result.written:
                 continue
             pk = path_to_pk.get(result.path)
             if pk is not None:
                 written_pks.add(pk)
+        if had_errors:
+            # Surface the failures to admins (red badge + Tagging-tab panel).
+            self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
         return written_pks
 
     def write_tags(self, task: BulkTagWriteTask) -> None:

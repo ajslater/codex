@@ -31,35 +31,35 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     async discoverSession() {
       const response = await HTTP.get("/admin/tag-sessions");
       const sid = response.data.sessionId;
-      if (sid) {
-        this.activeSessionId = sid;
-      }
+      this.activeSessionId = sid || null;
       return sid;
     },
-    async loadPrompts() {
-      if (!this.activeSessionId) {
-        await this.discoverSession();
-      }
-      if (!this.activeSessionId) return;
-      const response = await HTTP.get(
-        `/admin/tag-sessions/${this.activeSessionId}/prompts`,
-        { params: { ts: Date.now() } },
-      );
+    async loadPrompts({ autoOpen = true } = {}) {
+      /*
+       * Pending prompts persist in the cache independently of any running
+       * scan, so they're fetched globally — no active session required. They
+       * survive daemon restarts and page reloads until answered or skipped.
+       */
+      const response = await HTTP.get("/admin/tag-prompts", {
+        params: { ts: Date.now() },
+      });
       this.pendingPrompts = response.data.prompts || [];
-      if (this.pendingPrompts.length > 0 && !this.promptDialogOpen) {
+      if (
+        autoOpen &&
+        this.pendingPrompts.length > 0 &&
+        !this.promptDialogOpen
+      ) {
         this.promptDialogOpen = true;
       }
     },
     async resolvePrompt(fingerprint, action, payload, chosenVolumeId) {
-      if (!this.activeSessionId) return;
-      await HTTP.post(
-        `/admin/tag-sessions/${this.activeSessionId}/prompts/${fingerprint}`,
-        {
-          action,
-          payload: String(payload ?? ""),
-          chosenVolumeId: String(chosenVolumeId ?? ""),
-        },
-      );
+      // Answering a prompt is decoupled from any scan: the server applies the
+      // chosen match in a fresh session and writes that one comic.
+      await HTTP.post(`/admin/tag-prompts/${fingerprint}`, {
+        action,
+        payload: String(payload ?? ""),
+        chosenVolumeId: String(chosenVolumeId ?? ""),
+      });
       this.pendingPrompts = this.pendingPrompts.filter(
         (p) => p.fingerprint !== fingerprint,
       );
@@ -68,16 +68,21 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       }
     },
     async abortSession() {
+      // Stops the in-flight scan only; lingering prompts are left intact.
       if (!this.activeSessionId) return;
       await HTTP.delete(`/admin/tag-sessions/${this.activeSessionId}`);
       this.activeSessionId = null;
+    },
+    async skipAllPrompts() {
+      await HTTP.post("/admin/tag-prompts/skip-all");
       this.pendingPrompts = [];
       this.promptDialogOpen = false;
     },
-    async skipAllPrompts() {
-      if (!this.activeSessionId) return;
-      await HTTP.post(`/admin/tag-sessions/${this.activeSessionId}/skip-all`);
-      this.pendingPrompts = [];
+    async refresh() {
+      // Sync transient tagging state after a (re)connect: which scan (if any)
+      // is live, plus any prompts still awaiting an answer.
+      await this.discoverSession();
+      await this.loadPrompts({ autoOpen: false });
     },
     onPromptNotification() {
       this.loadPrompts();

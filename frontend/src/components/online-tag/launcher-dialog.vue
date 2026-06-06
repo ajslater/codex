@@ -109,7 +109,7 @@ const PROMPTS_MODE_HINTS = {
 };
 
 const SOURCE_RATES = {
-  metron: { perMinute: 20, perHour: 1200, label: "Metron" },
+  metron: { perMinute: 20, perHour: 1200, label: "Metron Cloud" },
   comicvine: { perMinute: 3, perHour: 200, label: "Comic Vine" },
 };
 
@@ -162,7 +162,7 @@ export default {
     sourceItems() {
       return [
         {
-          title: "Metron",
+          title: "Metron Cloud",
           value: "metron",
           props: this.taggingDefaults?.hasMetronCredentials
             ? {}

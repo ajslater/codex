@@ -42,6 +42,9 @@ LIBRARY_CHANGED_TASK = NotifierTask(Notifications.LIBRARY.value, ChannelGroups.A
 ONLINE_TAG_PROMPT_TASK = NotifierTask(
     Notifications.ONLINE_TAG_PROMPT.value, ChannelGroups.ADMIN
 )
+TAG_WRITE_ERRORS_CHANGED_TASK = NotifierTask(
+    Notifications.TAG_WRITE_ERRORS.value, ChannelGroups.ADMIN
+)
 USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ALL)
 ADMIN_USERS_CHANGED_TASK = NotifierTask(Notifications.USERS.value, ChannelGroups.ADMIN)
 

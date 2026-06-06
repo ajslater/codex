@@ -519,6 +519,47 @@ def custom_cover_collections_to_groups(apps, _schema_editor):
         custom_cover.objects.filter(group=collection).update(group=char)
 
 
+# ---------------------------------------------------------------------------
+# AdminFlag BROWSER_DEFAULT_COLLECTION (BG) char -> collection value flip
+# ---------------------------------------------------------------------------
+# Migration 0039 seeds the BG flag with the legacy top-group char ("p"); flip
+# it here alongside the per-user SettingsBrowser.top_collection it mirrors so a
+# DB upgraded through this migration stores a valid collection name. These are
+# exactly the seven BROWSER_TOP_COLLECTION_CHOICES keys (no "root" pseudo-row).
+
+_BROWSER_DEFAULT_COLLECTION_KEY = "BG"
+_BG_CHAR_TO_COLLECTION = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "c": "comics",
+    "f": "folders",
+    "a": "arcs",
+}
+_BG_COLLECTION_TO_CHAR = {
+    collection: char for char, collection in _BG_CHAR_TO_COLLECTION.items()
+}
+
+
+def browser_default_flag_char_to_collection(apps, _schema_editor):
+    """Rewrite the BG admin flag's char-coded value to its collection name."""
+    admin_flag = apps.get_model("codex", "AdminFlag")
+    for char, collection in _BG_CHAR_TO_COLLECTION.items():
+        admin_flag.objects.filter(
+            key=_BROWSER_DEFAULT_COLLECTION_KEY, value=char
+        ).update(value=collection)
+
+
+def browser_default_flag_collection_to_char(apps, _schema_editor):
+    """Reverse: rewrite the BG admin flag's collection value back to its char."""
+    admin_flag = apps.get_model("codex", "AdminFlag")
+    for collection, char in _BG_COLLECTION_TO_CHAR.items():
+        admin_flag.objects.filter(
+            key=_BROWSER_DEFAULT_COLLECTION_KEY, value=collection
+        ).update(value=char)
+
+
 class Migration(migrations.Migration):
     """Consolidated v1.12.7 -> v2 schema and data migration."""
 
@@ -564,7 +605,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("default_sources", models.JSONField(default=list)),
-                ("prompt_timeout_seconds", models.IntegerField(default=3600)),
                 (
                     "metron_user",
                     codex.models.fields.EncryptedCharField(
@@ -642,6 +682,7 @@ class Migration(migrations.Migration):
                     ("JCU", "Update Codex Server Software"),
                     ("JDB", "Backup Database"),
                     ("JDO", "Optimize Database"),
+                    ("JDU", "Snapshot User Data Sidecar"),
                     ("JID", "Check Integrity Of Entire Database"),
                     ("JIF", "Check Integrtity Of Database Foreign Keys"),
                     ("JIS", "Check Integrity Of Full Text Virtual Table"),
@@ -651,6 +692,7 @@ class Migration(migrations.Migration):
                     ("JRS", "Cleanup Old Sessions"),
                     ("JRV", "Cleanup Orphan Covers"),
                     ("JSR", "Rebuild Full Text Search Virtual Table"),
+                    ("JTG", "Cleanup Stale Online Tagging State"),
                     ("OTG", "Look Up Online Tags"),
                     ("OTP", "Await Prompts Pending"),
                     ("RCR", "Restart Codex Server"),
@@ -679,7 +721,7 @@ class Migration(migrations.Migration):
                     ("AR", "Age Rating Default"),
                     ("AU", "Auto Update"),
                     ("BT", "Banner Text"),
-                    ("BG", "Browser Default Group"),
+                    ("BG", "Browser Default Collection"),
                     ("CM", "Custom Cover Max Upload Mb"),
                     ("FV", "Folder View"),
                     ("IM", "Import Metadata"),
@@ -928,6 +970,60 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterField(
+            model_name="settingsbrowser",
+            name="order_by",
+            field=models.CharField(
+                choices=[
+                    ("created_at", "Added Time"),
+                    ("age_rating", "Age Rating"),
+                    ("characters", "Characters"),
+                    ("child_count", "Child Count"),
+                    ("country", "Country"),
+                    ("credits", "Credits"),
+                    ("critical_rating", "Critical Rating"),
+                    ("day", "Day"),
+                    ("favorite", "Favorite"),
+                    ("filename", "Filename"),
+                    ("size", "File Size"),
+                    ("file_type", "File Type"),
+                    ("original_format", "Format"),
+                    ("genres", "Genres"),
+                    ("identifiers", "Identifiers"),
+                    ("imprint_name", "Imprint"),
+                    ("issue", "Issue"),
+                    ("language", "Language"),
+                    ("bookmark_updated_at", "Last Read"),
+                    ("locations", "Locations"),
+                    ("main_character", "Main Character"),
+                    ("main_team", "Main Team"),
+                    ("metadata_mtime", "Tags Updated"),
+                    ("month", "Month"),
+                    ("monochrome", "Monochrome"),
+                    ("sort_name", "Name"),
+                    ("page_count", "Page Count"),
+                    ("publisher_name", "Publisher"),
+                    ("date", "Publish Date"),
+                    ("reading_direction", "Reading Direction"),
+                    ("scan_info", "Scan Info"),
+                    ("search_score", "Search Score"),
+                    ("series_name", "Series"),
+                    ("series_groups", "Series Groups"),
+                    ("stories", "Stories"),
+                    ("story_arc_number", "Story Arc Number"),
+                    ("story_arcs", "Story Arcs"),
+                    ("tags", "Tags"),
+                    ("tagger", "Tagger"),
+                    ("teams", "Teams"),
+                    ("universes", "Universes"),
+                    ("updated_at", "Updated Time"),
+                    ("volume_name", "Volume"),
+                    ("year", "Year"),
+                ],
+                default="",
+                max_length=32,
+            ),
+        ),
+        migrations.AlterField(
             model_name="settingsbrowserlastroute",
             name="group",
             field=models.CharField(
@@ -937,6 +1033,12 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=migrate_settings_browser_groups_forward,
             reverse_code=migrate_settings_browser_groups_reverse,
+        ),
+        # The BROWSER_DEFAULT_COLLECTION (BG) admin flag mirrors
+        # SettingsBrowser.top_collection; flip its seeded char value too.
+        migrations.RunPython(
+            code=browser_default_flag_char_to_collection,
+            reverse_code=browser_default_flag_collection_to_char,
         ),
         # Widen Favorite.group, then char->collection data move.
         migrations.AlterField(

@@ -2,10 +2,7 @@
 
 from typing import override
 
-from codex.librarian.onlinetag.session_cache import (
-    clear_active_session,
-    get_active_session_id,
-)
+from codex.librarian.onlinetag.session_cache import set_active_scan_id
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -34,7 +31,7 @@ class OnlineTagThread(QueuedThread):
         return self._session_manager
 
     def has_active_session(self, session_id: str) -> bool:
-        """Whether ``session_id`` is currently tracked in-memory."""
+        """Whether ``session_id`` is currently running in-memory."""
         if self._session_manager is None:
             return False
         return self._session_manager.has_session(session_id)
@@ -42,21 +39,17 @@ class OnlineTagThread(QueuedThread):
     @override
     def run_start(self) -> None:
         """
-        Clear stale cached session state before entering the loop.
+        Clear only the active-scan marker before entering the loop.
 
-        In-memory session state cannot survive a process restart, so
-        any cached ``active_session_id`` / ``active_prompts`` at
-        startup is by definition orphan.
+        An in-flight Pass-1 scan cannot survive a process restart, so its
+        cached marker is orphan. Pending prompts, by contrast, are designed
+        to linger across restarts and are deliberately left untouched.
         """
         super().run_start()
         try:
-            had_session = bool(get_active_session_id())
-            clear_active_session()
+            set_active_scan_id("")
         except Exception:
-            self.log.exception("Clearing stale online tagging state on startup")
-            return
-        if had_session:
-            self.log.debug("Cleared stale online tagging session state on startup.")
+            self.log.exception("Clearing stale online tag scan marker on startup")
 
     @override
     def process_item(self, item) -> None:
@@ -68,13 +61,12 @@ class OnlineTagThread(QueuedThread):
                 self.session_manager.cancel_session(item.session_id)
             case OnlineTagPromptResponseTask():
                 self.session_manager.resolve_prompt(
-                    item.session_id,
                     item.prompt_fingerprint,
                     item.action,
                     item.payload,
                     item.chosen_volume_id,
                 )
             case OnlineTagSkipAllPromptsTask():
-                self.session_manager.skip_all_prompts(item.session_id)
+                self.session_manager.skip_all_prompts()
             case _:
                 self.log.warning(f"Bad task sent to online tag thread: {item}")

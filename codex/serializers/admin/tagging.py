@@ -125,7 +125,6 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "default_match_mode",
             "default_prompts_mode",
             "default_sources",
-            "prompt_timeout_seconds",
             "metron_user",
             "metron_password",
             "metron_url",

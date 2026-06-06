@@ -14,6 +14,7 @@ class Notifications(Enum):
     LIBRARY = "LIBRARY_CHANGED"
     LIBRARIAN_STATUS = "LIBRARIAN_STATUS"
     ONLINE_TAG_PROMPT = "ONLINE_TAG_PROMPT"
+    TAG_WRITE_ERRORS = "TAG_WRITE_ERRORS"
     USERS = "USERS_CHANGED"
 
 
@@ -35,5 +36,6 @@ class WebsocketMessages(StrEnum):
     GROUPS_CHANGED = "groups.changed"
     LIBRARY_CHANGED = "library.changed"
     TAG_SESSION_PROMPT = "tag-session.prompt"
+    TAG_WRITE_ERRORS_CHANGED = "tag-write.errors.changed"
     TASK_PROGRESS = "task.progress"
     USERS_CHANGED = "users.changed"

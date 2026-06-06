@@ -171,7 +171,6 @@ CREATE TABLE IF NOT EXISTS tagging_defaults (
     default_match_mode TEXT NOT NULL DEFAULT 'auto',
     default_prompts_mode TEXT NOT NULL DEFAULT 'ask',
     default_sources TEXT NOT NULL DEFAULT '[]',
-    prompt_timeout_seconds INTEGER NOT NULL DEFAULT 3600,
     metron_user TEXT NOT NULL DEFAULT '',
     metron_password TEXT NOT NULL DEFAULT '',
     metron_url TEXT NOT NULL DEFAULT '',

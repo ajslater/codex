@@ -68,7 +68,6 @@ class AdminSingletonSettingsTestCase(TestCase):
                 "defaultMatchMode": "auto",
                 "defaultPromptsMode": "ask",
                 "defaultSources": [],
-                "promptTimeoutSeconds": 60,
             },
         )
         assert resp.status_code == HTTPStatus.OK, resp.content

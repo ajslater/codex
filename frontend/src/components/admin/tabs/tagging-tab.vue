@@ -4,18 +4,44 @@
       <v-progress-circular indeterminate />
     </div>
     <template v-else>
-      <v-form ref="form" @submit.prevent="saveDraft">
-        <AdminSection title="Write Defaults">
+      <v-form @submit.prevent>
+        <AdminSection title="Tagging Defaults">
+          <template #hint>
+            Tags are written directly into your comic files, so the comics
+            directory must be on a writable filesystem and Codex must have
+            permission to write to it. Read-only mounts cause tag writes to
+            fail.
+          </template>
           <div class="adminCard">
             <v-select
               v-model="draft.defaultFormats"
               :items="formatChoices"
               label="Metadata Formats"
+              :hint="metadataFormatsHint"
+              persistent-hint
               hide-details="auto"
               density="compact"
               multiple
               chips
-            />
+            >
+              <!-- Render the hint via the message slot so the docs links live
+                   inside the field's own hint, styled like every other. -->
+              <template #message>
+                These metadata formats are written into each comic every time
+                its tags are edited. Learn more about
+                <a
+                  href="https://anansi-project.github.io/docs/category/comicinfo"
+                  target="_blank"
+                  >ComicInfo<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+                >
+                and
+                <a
+                  href="https://metron-project.github.io/docs/category/metroninfo"
+                  target="_blank"
+                  >MetronInfo<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+                >.
+              </template>
+            </v-select>
           </div>
           <div class="adminCard">
             <v-checkbox
@@ -34,6 +60,8 @@
               v-model="draft.defaultMatchMode"
               :items="matchModeChoices"
               label="Match Mode"
+              :hint="matchModeHint"
+              persistent-hint
               hide-details="auto"
               density="compact"
             />
@@ -43,219 +71,248 @@
               v-model="draft.defaultPromptsMode"
               :items="promptsModeChoices"
               label="Prompts"
+              :hint="promptsModeHint"
+              persistent-hint
               hide-details="auto"
               density="compact"
-            />
-          </div>
-          <div class="adminCard">
-            <v-select
-              v-model="draft.defaultSources"
-              :items="sourceItems"
-              label="Online Sources"
-              hide-details="auto"
-              density="compact"
-              multiple
-              chips
-            />
-          </div>
-          <div class="adminCard">
-            <TimeoutInput
-              v-model="draft.promptTimeoutSeconds"
-              label="Prompt Timeout"
             />
           </div>
         </AdminSection>
 
-        <AdminActionBar
-          save-text="Save Defaults"
-          :saving="saving"
-          :save-disabled="!hasChanges"
-          :revert-disabled="!hasChanges || saving"
-          @revert="resetDraft"
-        />
-      </v-form>
+        <AdminSection title="Online Tagging Sources">
+          <div class="sourcesGroup">
+            <div class="sourceRow">
+              <div
+                class="sourceEnable"
+                :title="
+                  defaults.hasMetronCredentials ? '' : sourceDisabledTooltip
+                "
+              >
+                <v-checkbox
+                  v-model="metronEnabled"
+                  :disabled="!defaults.hasMetronCredentials"
+                  aria-label="Enable Metron Cloud"
+                  hide-details
+                  density="compact"
+                />
+              </div>
+              <div class="sourcePanel">
+                <v-expansion-panels
+                  :model-value="defaults.hasMetronCredentials ? [] : [0]"
+                  variant="accordion"
+                >
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <span class="adminCardTitle">Metron Cloud</span>
+                      <span
+                        class="adminCardDesc credentialStatus"
+                        :class="{
+                          credentialSet: defaults.hasMetronCredentials,
+                        }"
+                      >
+                        {{
+                          defaults.hasMetronCredentials
+                            ? "Credentials set"
+                            : "Not configured"
+                        }}
+                      </span>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <div class="adminFieldColumn">
+                        <v-text-field
+                          v-model="metronUser"
+                          label="Username"
+                          hide-details="auto"
+                          density="compact"
+                          :placeholder="
+                            defaults.metronUserSet
+                              ? 'New Username'
+                              : 'Enter username'
+                          "
+                        />
+                        <v-text-field
+                          v-model="metronPassword"
+                          label="Password"
+                          type="password"
+                          hide-details="auto"
+                          density="compact"
+                          :placeholder="
+                            defaults.metronPasswordSet
+                              ? 'New Password'
+                              : 'Enter password'
+                          "
+                        />
+                        <p class="adminHint">
+                          Get a username and password from
+                          <a
+                            href="https://metron.cloud/accounts/signup/"
+                            target="_blank"
+                            >Metron Cloud<v-icon size="small">{{
+                              mdiOpenInNew
+                            }}</v-icon></a
+                          >
+                        </p>
+                        <v-text-field
+                          v-model="metronUrlLocal"
+                          label="Custom URL (optional)"
+                          hide-details="auto"
+                          density="compact"
+                          :placeholder="defaults.metronUrl || 'Default'"
+                        />
+                        <div class="adminInlineActions">
+                          <v-btn
+                            variant="tonal"
+                            size="small"
+                            :disabled="
+                              !metronUser && !metronPassword && !metronUrlLocal
+                            "
+                            @click="saveMetronCredentials"
+                          >
+                            Save Metron Cloud Credentials
+                          </v-btn>
+                          <v-btn
+                            variant="text"
+                            size="small"
+                            :loading="validating.metron"
+                            :disabled="!canTestMetron"
+                            @click="testMetronCredentials"
+                          >
+                            Test
+                          </v-btn>
+                          <ConfirmDialog
+                            v-if="defaults.hasMetronCredentials"
+                            button-text="Clear Credentials"
+                            title-text="Clear Metron Cloud Credentials"
+                            text="Remove the saved Metron Cloud username, password, and custom URL?"
+                            confirm-text="Clear"
+                            variant="text"
+                            size="small"
+                            :block="false"
+                            @confirm="clearMetronCredentials"
+                          />
+                        </div>
+                        <ValidationChip
+                          v-if="validationResult.metron"
+                          :result="validationResult.metron"
+                        />
+                      </div>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </div>
+            </div>
 
-      <AdminSection title="Online Source Credentials">
-        <v-expansion-panels
-          :model-value="defaults.hasMetronCredentials ? [] : [0]"
-          variant="accordion"
-        >
-          <v-expansion-panel>
-            <v-expansion-panel-title>
-              <span class="adminCardTitle">Metron</span>
-              <span
-                class="adminCardDesc credentialStatus"
-                :class="{ credentialSet: defaults.hasMetronCredentials }"
+            <div class="sourceRow">
+              <div
+                class="sourceEnable"
+                :title="
+                  defaults.hasComicvineCredentials ? '' : sourceDisabledTooltip
+                "
               >
-                {{
-                  defaults.hasMetronCredentials
-                    ? "Credentials set"
-                    : "Not configured"
-                }}
-              </span>
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <div class="adminFieldColumn">
-                <v-text-field
-                  v-model="metronUser"
-                  label="Username"
-                  hide-details="auto"
+                <v-checkbox
+                  v-model="comicvineEnabled"
+                  :disabled="!defaults.hasComicvineCredentials"
+                  aria-label="Enable Comic Vine"
+                  hide-details
                   density="compact"
-                  :placeholder="
-                    defaults.metronUserSet ? 'New Username' : 'Enter username'
-                  "
-                />
-                <v-text-field
-                  v-model="metronPassword"
-                  label="Password"
-                  type="password"
-                  hide-details="auto"
-                  density="compact"
-                  :placeholder="
-                    defaults.metronPasswordSet
-                      ? 'New Password'
-                      : 'Enter password'
-                  "
-                />
-                <p class="adminHint">
-                  Get a username and password from
-                  <a
-                    href="https://metron.cloud/accounts/signup/"
-                    target="_blank"
-                    >Metron<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-                  >
-                </p>
-                <v-text-field
-                  v-model="metronUrlLocal"
-                  label="Custom URL (optional)"
-                  hide-details="auto"
-                  density="compact"
-                  :placeholder="defaults.metronUrl || 'Default'"
-                />
-                <div class="adminInlineActions">
-                  <v-btn
-                    variant="tonal"
-                    size="small"
-                    :disabled="
-                      !metronUser && !metronPassword && !metronUrlLocal
-                    "
-                    @click="saveMetronCredentials"
-                  >
-                    Save Metron Credentials
-                  </v-btn>
-                  <v-btn
-                    variant="text"
-                    size="small"
-                    :loading="validating.metron"
-                    :disabled="!canTestMetron"
-                    @click="testMetronCredentials"
-                  >
-                    Test
-                  </v-btn>
-                  <ConfirmDialog
-                    v-if="defaults.hasMetronCredentials"
-                    button-text="Clear Credentials"
-                    title-text="Clear Metron Credentials"
-                    text="Remove the saved Metron username, password, and custom URL?"
-                    confirm-text="Clear"
-                    variant="text"
-                    size="small"
-                    :block="false"
-                    @confirm="clearMetronCredentials"
-                  />
-                </div>
-                <ValidationChip
-                  v-if="validationResult.metron"
-                  :result="validationResult.metron"
                 />
               </div>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
-        <v-expansion-panels
-          :model-value="defaults.hasComicvineCredentials ? [] : [0]"
-          variant="accordion"
-        >
-          <v-expansion-panel>
-            <v-expansion-panel-title>
-              <span class="adminCardTitle">Comic Vine</span>
-              <span
-                class="adminCardDesc credentialStatus"
-                :class="{ credentialSet: defaults.hasComicvineCredentials }"
-              >
-                {{
-                  defaults.hasComicvineCredentials
-                    ? "API key set"
-                    : "Not configured"
-                }}
-              </span>
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <div class="adminFieldColumn">
-                <v-text-field
-                  v-model="comicvineKey"
-                  label="API Key"
-                  type="password"
-                  hide-details="auto"
-                  density="compact"
-                  :placeholder="
-                    defaults.comicvineKeySet ? 'New API Key' : 'Enter API key'
-                  "
-                />
-                <p class="adminHint">
-                  Get an API key from the
-                  <a href="https://comicvine.gamespot.com/api/" target="_blank"
-                    >Comic Vine API<v-icon size="small">{{
-                      mdiOpenInNew
-                    }}</v-icon></a
-                  >
-                </p>
-                <v-text-field
-                  v-model="comicvineUrlLocal"
-                  label="Custom URL (optional)"
-                  hide-details="auto"
-                  density="compact"
-                  :placeholder="defaults.comicvineUrl || 'Default'"
-                />
-                <div class="adminInlineActions">
-                  <v-btn
-                    variant="tonal"
-                    size="small"
-                    :disabled="!comicvineKey && !comicvineUrlLocal"
-                    @click="saveComicvineCredentials"
-                  >
-                    Save Comic Vine Credentials
-                  </v-btn>
-                  <v-btn
-                    variant="text"
-                    size="small"
-                    :loading="validating.comicvine"
-                    :disabled="!canTestComicvine"
-                    @click="testComicvineCredentials"
-                  >
-                    Test
-                  </v-btn>
-                  <ConfirmDialog
-                    v-if="defaults.hasComicvineCredentials"
-                    button-text="Clear API Key"
-                    title-text="Clear Comic Vine API Key"
-                    text="Remove the saved Comic Vine API key and custom URL?"
-                    confirm-text="Clear"
-                    variant="text"
-                    size="small"
-                    :block="false"
-                    @confirm="clearComicvineCredentials"
-                  />
-                </div>
-                <ValidationChip
-                  v-if="validationResult.comicvine"
-                  :result="validationResult.comicvine"
-                />
+              <div class="sourcePanel">
+                <v-expansion-panels
+                  :model-value="defaults.hasComicvineCredentials ? [] : [0]"
+                  variant="accordion"
+                >
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <span class="adminCardTitle">Comic Vine</span>
+                      <span
+                        class="adminCardDesc credentialStatus"
+                        :class="{
+                          credentialSet: defaults.hasComicvineCredentials,
+                        }"
+                      >
+                        {{
+                          defaults.hasComicvineCredentials
+                            ? "API key set"
+                            : "Not configured"
+                        }}
+                      </span>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <div class="adminFieldColumn">
+                        <v-text-field
+                          v-model="comicvineKey"
+                          label="API Key"
+                          type="password"
+                          hide-details="auto"
+                          density="compact"
+                          :placeholder="
+                            defaults.comicvineKeySet
+                              ? 'New API Key'
+                              : 'Enter API key'
+                          "
+                        />
+                        <p class="adminHint">
+                          Get an API key from the
+                          <a
+                            href="https://comicvine.gamespot.com/api/"
+                            target="_blank"
+                            >Comic Vine API<v-icon size="small">{{
+                              mdiOpenInNew
+                            }}</v-icon></a
+                          >
+                        </p>
+                        <v-text-field
+                          v-model="comicvineUrlLocal"
+                          label="Custom URL (optional)"
+                          hide-details="auto"
+                          density="compact"
+                          :placeholder="defaults.comicvineUrl || 'Default'"
+                        />
+                        <div class="adminInlineActions">
+                          <v-btn
+                            variant="tonal"
+                            size="small"
+                            :disabled="!comicvineKey && !comicvineUrlLocal"
+                            @click="saveComicvineCredentials"
+                          >
+                            Save Comic Vine Credentials
+                          </v-btn>
+                          <v-btn
+                            variant="text"
+                            size="small"
+                            :loading="validating.comicvine"
+                            :disabled="!canTestComicvine"
+                            @click="testComicvineCredentials"
+                          >
+                            Test
+                          </v-btn>
+                          <ConfirmDialog
+                            v-if="defaults.hasComicvineCredentials"
+                            button-text="Clear API Key"
+                            title-text="Clear Comic Vine API Key"
+                            text="Remove the saved Comic Vine API key and custom URL?"
+                            confirm-text="Clear"
+                            variant="text"
+                            size="small"
+                            :block="false"
+                            @confirm="clearComicvineCredentials"
+                          />
+                        </div>
+                        <ValidationChip
+                          v-if="validationResult.comicvine"
+                          :result="validationResult.comicvine"
+                        />
+                      </div>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
               </div>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
-      </AdminSection>
+            </div>
+          </div>
+        </AdminSection>
+      </v-form>
+      <TagWriteErrorsPanel />
     </template>
   </div>
 </template>
@@ -266,9 +323,8 @@ import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
-import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
-import TimeoutInput from "@/components/admin/tabs/timeout-input.vue";
+import TagWriteErrorsPanel from "@/components/admin/tabs/tag-write-errors-panel.vue";
 import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -284,7 +340,6 @@ const EDITABLE_FIELDS = Object.freeze([
   "defaultMatchMode",
   "defaultPromptsMode",
   "defaultSources",
-  "promptTimeoutSeconds",
 ]);
 
 function pickFields(source) {
@@ -299,10 +354,9 @@ function pickFields(source) {
 export default {
   name: "AdminTaggingTab",
   components: {
-    AdminActionBar,
     AdminSection,
     ConfirmDialog,
-    TimeoutInput,
+    TagWriteErrorsPanel,
     ValidationChip,
   },
   data() {
@@ -311,8 +365,19 @@ export default {
       formatChoices: FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
+      metadataFormatsHint:
+        "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
+      deleteOriginalHint:
+        "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.",
+      matchModeHint:
+        "How aggressively to accept online matches. Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
+      promptsModeHint:
+        "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
+      sourceDisabledTooltip:
+        "A source can only be enabled once its credentials are saved.",
       draft: pickFields(undefined),
       saving: false,
+      pendingSave: false,
       metronUser: "",
       metronPassword: "",
       metronUrlLocal: "",
@@ -326,27 +391,31 @@ export default {
     ...mapState(useAdminStore, {
       defaults: (state) => state.taggingDefaults,
     }),
-    hasChanges() {
-      return !dequal(this.draft, pickFields(this.defaults));
+    // The Online Sources enable checkboxes drive ``draft.defaultSources``, which
+    // auto-saves with the rest of the defaults. A source can only be checked once
+    // its credentials exist, so gate the getter on the stored credential flag
+    // too — a credential-less source always reads as off-and-disabled.
+    metronEnabled: {
+      get() {
+        return (
+          Boolean(this.defaults?.hasMetronCredentials) &&
+          (this.draft.defaultSources || []).includes("metron")
+        );
+      },
+      set(value) {
+        this.setSourceEnabled("metron", value);
+      },
     },
-    deleteOriginalHint() {
-      return "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.";
-    },
-    sourceItems() {
-      return [
-        {
-          title: "Metron",
-          value: "metron",
-          props: this.defaults?.hasMetronCredentials ? {} : { disabled: true },
-        },
-        {
-          title: "Comic Vine",
-          value: "comicvine",
-          props: this.defaults?.hasComicvineCredentials
-            ? {}
-            : { disabled: true },
-        },
-      ];
+    comicvineEnabled: {
+      get() {
+        return (
+          Boolean(this.defaults?.hasComicvineCredentials) &&
+          (this.draft.defaultSources || []).includes("comicvine")
+        );
+      },
+      set(value) {
+        this.setSourceEnabled("comicvine", value);
+      },
     },
     canTestMetron() {
       const formHasUser = Boolean(this.metronUser);
@@ -363,35 +432,64 @@ export default {
   },
   watch: {
     defaults: {
+      // Populate the editable draft once, when the defaults first load. The
+      // server echoes these fields back unchanged on save, so re-syncing after
+      // that would only risk clobbering an edit made while a save is in flight.
       immediate: true,
-      handler(value) {
-        this.draft = pickFields(value);
+      handler(value, oldValue) {
+        if (!oldValue && value) {
+          this.draft = pickFields(value);
+        }
+      },
+    },
+    draft: {
+      // Auto-save the Tagging Defaults and Online Tagging Defaults sections as
+      // soon as a field changes, so the tab needs no Save button.
+      deep: true,
+      handler() {
+        this.autoSave();
       },
     },
   },
   mounted() {
     this.loadTaggingDefaults();
+    this.loadTagWriteErrors();
   },
   methods: {
     ...mapActions(useAdminStore, [
       "loadTaggingDefaults",
+      "loadTagWriteErrors",
       "updateTaggingDefaults",
       "validateTaggingCredentials",
     ]),
-    resetDraft() {
-      this.draft = pickFields(this.defaults);
+    setSourceEnabled(source, enabled) {
+      const sources = new Set(this.draft.defaultSources || []);
+      if (enabled) {
+        sources.add(source);
+      } else {
+        sources.delete(source);
+      }
+      this.draft.defaultSources = [...sources];
     },
-    async saveDraft() {
-      const form = this.$refs.form;
-      if (form) {
-        const { valid } = await form.validate();
-        if (!valid) return;
+    async autoSave() {
+      // Serialize saves so overlapping requests can't land out of order; if the
+      // draft changes again mid-save, save once more when the current one ends.
+      if (this.saving) {
+        this.pendingSave = true;
+        return;
+      }
+      if (dequal(this.draft, pickFields(this.defaults))) {
+        return;
       }
       this.saving = true;
+      this.pendingSave = false;
       try {
         await this.updateTaggingDefaults({ ...this.draft });
       } finally {
         this.saving = false;
+      }
+      if (this.pendingSave) {
+        this.autoSave();
       }
     },
     saveMetronCredentials() {
@@ -470,5 +568,33 @@ export default {
 
 .credentialSet {
   color: rgb(var(--v-theme-success));
+}
+
+// The body of the Online Tagging Sources section: one row per source.
+.sourcesGroup {
+  margin-top: d.$space-4;
+}
+
+// Each source: the enable checkbox to the left of its credential panel.
+.sourceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: d.$space-2;
+}
+
+.sourceRow + .sourceRow {
+  margin-top: d.$space-2;
+}
+
+// Pin the checkbox to its panel's title bar instead of letting it ride the
+// full (expandable) height of the panel.
+.sourceEnable {
+  flex: 0 0 auto;
+  margin-top: d.$space-1;
+}
+
+.sourcePanel {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 </style>

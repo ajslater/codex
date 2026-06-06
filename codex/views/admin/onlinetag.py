@@ -8,8 +8,8 @@ from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
-    get_active_prompts,
-    get_active_session_id,
+    get_active_scan_id,
+    get_pending_prompts,
 )
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -27,16 +27,16 @@ from codex.views.admin.tagwrite import FilteredComicPksView
 
 
 class AdminOnlineTagActiveView(AdminAPIView):
-    """Return the active online tagging session ID, if any."""
+    """Return the in-flight online tagging scan id, if any."""
 
     def get(self, _request):
-        """Return active session from the cache."""
-        sid = get_active_session_id() or None
+        """Return the active scan id from the cache."""
+        sid = get_active_scan_id() or None
         return Response({"session_id": sid})
 
 
 class AdminOnlineTagStartView(FilteredComicPksView):
-    """Start an online tagging session."""
+    """Start an online tagging scan."""
 
     def post(self, request):
         """Validate and enqueue a BulkOnlineTagTask."""
@@ -75,20 +75,28 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         )
 
 
-class AdminOnlineTagPromptsView(AdminAPIView):
-    """List pending prompts for an online tagging session."""
+class AdminOnlineTagAbortView(AdminAPIView):
+    """Abort the in-flight online tagging scan (DELETE on the tag-session URL)."""
 
-    def get(self, _request, session_id):
-        """Return pending prompts from the cache for the given session."""
-        if get_active_session_id() != session_id:
-            return Response({"session_id": session_id, "prompts": []})
-        return Response({"session_id": session_id, "prompts": get_active_prompts()})
+    def delete(self, _request, session_id):
+        """Enqueue an abort task for the running scan."""
+        LIBRARIAN_QUEUE.put(OnlineTagAbortTask(session_id=session_id))
+        return Response({"detail": "Abort signal sent."}, status=HTTP_202_ACCEPTED)
+
+
+class AdminOnlineTagPromptsView(AdminAPIView):
+    """List every pending deferred prompt (independent of any running scan)."""
+
+    def get(self, _request):
+        """Return all pending prompts from the cache."""
+        prompts = list(get_pending_prompts().values())
+        return Response({"prompts": prompts})
 
 
 class AdminOnlineTagPromptResponseView(AdminAPIView):
-    """Resolve a single deferred prompt."""
+    """Resolve a single deferred prompt by fingerprint."""
 
-    def post(self, request, session_id, fingerprint):
+    def post(self, request, fingerprint):
         """Enqueue a prompt response task."""
         serializer = OnlineTagPromptResponseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -105,7 +113,6 @@ class AdminOnlineTagPromptResponseView(AdminAPIView):
                 payload = int(payload)
 
         task = OnlineTagPromptResponseTask(
-            session_id=session_id,
             prompt_fingerprint=fingerprint,
             action=data["action"],
             payload=payload,
@@ -115,19 +122,10 @@ class AdminOnlineTagPromptResponseView(AdminAPIView):
         return Response({"detail": "Prompt response queued."}, status=HTTP_202_ACCEPTED)
 
 
-class AdminOnlineTagAbortView(AdminAPIView):
-    """Abort an online tagging session (DELETE on the tag-session URL)."""
-
-    def delete(self, _request, session_id):
-        """Enqueue an abort task."""
-        LIBRARIAN_QUEUE.put(OnlineTagAbortTask(session_id=session_id))
-        return Response({"detail": "Abort signal sent."}, status=HTTP_202_ACCEPTED)
-
-
 class AdminOnlineTagSkipAllPromptsView(AdminAPIView):
-    """Skip every currently queued prompt for an online tagging session."""
+    """Skip every pending deferred prompt in one shot."""
 
-    def post(self, _request, session_id):
+    def post(self, _request):
         """Enqueue a skip-all-prompts task."""
-        LIBRARIAN_QUEUE.put(OnlineTagSkipAllPromptsTask(session_id=session_id))
+        LIBRARIAN_QUEUE.put(OnlineTagSkipAllPromptsTask())
         return Response({"detail": "Skip-all signal sent."}, status=HTTP_202_ACCEPTED)

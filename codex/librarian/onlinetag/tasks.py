@@ -34,9 +34,8 @@ class OnlineTagAbortTask(OnlineTagTask):
 
 @dataclass
 class OnlineTagPromptResponseTask(OnlineTagTask):
-    """Admin response to a deferred online tagging prompt."""
+    """Admin response to a deferred online tagging prompt (keyed by fingerprint)."""
 
-    session_id: str = ""
     prompt_fingerprint: str = ""
     action: str = "skip"
     payload: Any = None
@@ -45,6 +44,4 @@ class OnlineTagPromptResponseTask(OnlineTagTask):
 
 @dataclass
 class OnlineTagSkipAllPromptsTask(OnlineTagTask):
-    """Skip every currently queued deferred prompt in one shot."""
-
-    session_id: str = ""
+    """Skip every pending deferred prompt in one shot."""

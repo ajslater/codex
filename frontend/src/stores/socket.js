@@ -95,6 +95,7 @@ export const useSocketStore = defineStore("socket", () => {
       reconnectAttempts = 0;
       startHeartbeat(ws);
       console.debug("[socket] Connected.");
+      onlineTagSync();
     },
     onMessage(_ws, event) {
       dispatchMessage(event.data);
@@ -215,10 +216,27 @@ export const useSocketStore = defineStore("socket", () => {
     if (adminStore) adminStore.unseenFailedImports = true;
   }
 
+  async function tagWriteErrorsNotified() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadTagWriteErrors({ force: true });
+  }
+
   async function onlineTagPromptNotified() {
     if (!useAuthStore().isUserAdmin) return;
     import("@/stores/online-tag")
       .then((m) => m.useOnlineTagStore().onPromptNotification())
+      .catch(console.error);
+  }
+
+  /*
+   * On (re)connect, resync transient online-tagging state so any prompts
+   * left pending from a previous run or restart surface without waiting for
+   * a fresh notification. Best-effort and admin-only.
+   */
+  function onlineTagSync() {
+    if (!useAuthStore().isUserAdmin) return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().refresh())
       .catch(console.error);
   }
 
@@ -260,6 +278,9 @@ export const useSocketStore = defineStore("socket", () => {
         break;
       case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();
+        break;
+      case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
+        tagWriteErrorsNotified();
         break;
       case MESSAGE_TYPES.TAG_SESSION_PROMPT:
         onlineTagPromptNotified();

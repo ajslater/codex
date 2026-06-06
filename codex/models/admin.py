@@ -9,7 +9,6 @@ from django.db.models import (
     DateTimeField,
     ForeignKey,
     Index,
-    IntegerField,
     JSONField,
     PositiveSmallIntegerField,
     Q,
@@ -107,7 +106,6 @@ class ComicboxTaggingDefaults(BaseModel):
         default=PromptsModeChoices.ASK,
     )
     default_sources = JSONField(default=list)
-    prompt_timeout_seconds = IntegerField(default=3600)
 
     metron_user = EncryptedCharField()
     metron_password = EncryptedCharField()

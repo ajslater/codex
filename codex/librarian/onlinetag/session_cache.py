@@ -1,22 +1,31 @@
 """
-Cache-backed transient state for the online tagging daemon.
+Cache-backed persistent state for the online tagging daemon.
 
-The active session ID and the pending-prompts payload used to live on
-the :class:`ComicboxTaggingDefaults` singleton row. That conflated
-persistent admin configuration (credentials, default formats) with
-operational state that only matters while a tagging job is in flight,
-so the two fields moved to the Django cache.
+Two things live in the Django cache, namespaced under ``onlinetag:``:
 
-Codex's default cache backend is ``ResilientFileBasedCache``, which
-persists across restarts — important because the onlinetagd daemon's
-``run_start`` deliberately clears the cached session at boot to avoid
-adopting a stale ID, and the admin views read these values to render
-the live tagging dialog.
+- **pending prompts** — a dict keyed by deferred-prompt ``fingerprint``.
+  Each entry is fully self-contained so a later, independent task can apply
+  the admin's choice *without* the original tagging run's in-memory session:
+  it carries the comic ``pk`` and ``path``, the ``source``, the serialized
+  ``candidates``, the match ``mode``, and the write params (``formats``,
+  ``delete_original``). Prompts persist with no TTL and deliberately survive
+  daemon restarts — they linger until answered, skipped, or pruned (when
+  their comic disappears). The deferred-prompt fingerprint is deterministic
+  across processes, so a fresh session can replay the choice.
 
-The keys live behind tiny accessors so any future migration to a
-different store (Redis, etc.) is a single-module change. Not to be
-confused with :mod:`codex.librarian.onlinetag.session_state`, which
-holds the in-process ``SessionState`` dataclass for a running job.
+- **active scan id** — set only while a Pass-1 lookup is running, so the
+  admin UI can show live progress and abort it. Unlike prompts, this is
+  cleared at daemon startup: an in-flight scan cannot survive a restart.
+
+Codex's default cache backend is ``ResilientFileBasedCache``, which persists
+across restarts. Keys are namespaced under ``onlinetag:`` so a
+``cache.clear()`` from a CRUD viewset doesn't strand them.
+
+All writes happen on the single ``OnlineTagThread`` (run/resolve/skip) plus
+the nightly janitor prune; the admin views only read prompts and enqueue
+tasks. Not to be confused with
+:mod:`codex.librarian.onlinetag.session_state`, which holds the in-process
+``SessionState`` for a running job.
 """
 
 from __future__ import annotations
@@ -25,43 +34,57 @@ from typing import Any
 
 from django.core.cache import cache
 
-# Cache keys are intentionally namespaced under ``onlinetag:`` so a
-# ``cache.clear()`` from a CRUD viewset doesn't strand them (clear()
-# wipes the whole default cache). If you need granular invalidation,
-# call ``clear_active_session`` directly.
-_SESSION_KEY = "onlinetag:active_session_id"
-_PROMPTS_KEY = "onlinetag:active_prompts"
-# No TTL: tagging sessions can run for hours. The daemon explicitly
-# clears at the end of a session, on cancel, and at process start.
+_SCAN_KEY = "onlinetag:active_scan_id"
+_PROMPTS_KEY = "onlinetag:pending_prompts"
+# No TTL: pending prompts linger until answered/skipped/pruned; the active
+# scan id is cleared explicitly at scan end and at daemon startup.
 _NO_TIMEOUT = None
 
 
-def get_active_session_id() -> str:
-    """Return the current session ID or the empty string when none is set."""
-    return cache.get(_SESSION_KEY, "") or ""
+def get_active_scan_id() -> str:
+    """Return the id of the in-flight Pass-1 scan, or the empty string."""
+    return cache.get(_SCAN_KEY, "") or ""
 
 
-def set_active_session_id(session_id: str) -> None:
-    """Persist the active session ID, or clear it when ``session_id`` is empty."""
-    if session_id:
-        cache.set(_SESSION_KEY, session_id, timeout=_NO_TIMEOUT)
+def set_active_scan_id(scan_id: str) -> None:
+    """Persist the active scan id, or clear it when ``scan_id`` is empty."""
+    if scan_id:
+        cache.set(_SCAN_KEY, scan_id, timeout=_NO_TIMEOUT)
     else:
-        cache.delete(_SESSION_KEY)
+        cache.delete(_SCAN_KEY)
 
 
-def get_active_prompts() -> list[Any]:
-    """Return the pending-prompt payload as a list (empty when missing)."""
-    return cache.get(_PROMPTS_KEY, []) or []
+def get_pending_prompts() -> dict[str, Any]:
+    """Return the pending-prompt map (fingerprint -> prompt dict)."""
+    return cache.get(_PROMPTS_KEY, {}) or {}
 
 
-def set_active_prompts(prompts: list[Any]) -> None:
-    """Persist the pending-prompt payload, or clear when empty."""
+def set_pending_prompts(prompts: dict[str, Any]) -> None:
+    """Replace the pending-prompt map, or clear it when empty."""
     if prompts:
         cache.set(_PROMPTS_KEY, prompts, timeout=_NO_TIMEOUT)
     else:
         cache.delete(_PROMPTS_KEY)
 
 
-def clear_active_session() -> None:
-    """Drop both the session ID and the pending prompts."""
-    cache.delete_many((_SESSION_KEY, _PROMPTS_KEY))
+def add_pending_prompts(new_prompts: dict[str, Any]) -> dict[str, Any]:
+    """Merge ``new_prompts`` into the map (keyed by fingerprint) and persist."""
+    if not new_prompts:
+        return get_pending_prompts()
+    prompts = get_pending_prompts()
+    prompts.update(new_prompts)
+    set_pending_prompts(prompts)
+    return prompts
+
+
+def remove_pending_prompt(fingerprint: str) -> dict[str, Any]:
+    """Drop one prompt by fingerprint and persist; return what remains."""
+    prompts = get_pending_prompts()
+    if prompts.pop(fingerprint, None) is not None:
+        set_pending_prompts(prompts)
+    return prompts
+
+
+def clear_all() -> None:
+    """Drop the active scan id and every pending prompt."""
+    cache.delete_many((_SCAN_KEY, _PROMPTS_KEY))

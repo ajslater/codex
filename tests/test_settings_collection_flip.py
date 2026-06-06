@@ -4,7 +4,7 @@ Phase 2 value-flip: the collection vocabulary round-trips end to end.
 After the ``Group`` enum + DB migration flip, browser settings speak the
 collection vocabulary on the wire AND in storage (``"publishers"``, no char
 dialect, no dummy ``0`` root). These pin the API PATCH→GET round-trip and the
-underlying row values — proving the value-flip + the 0044 migration.
+underlying row values — proving the value-flip + the 0043 migration.
 """
 
 import importlib
@@ -13,10 +13,12 @@ import shutil
 from pathlib import Path
 from typing import Final, override
 
+from django.apps import apps as django_apps
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 
+from codex.models.admin import AdminFlag
 from codex.models.settings import SettingsBrowser
 from codex.startup import init_admin_flags
 
@@ -32,6 +34,11 @@ _remap_table_columns_keys = _MIGRATION._remap_table_columns_keys  # noqa: SLF001
 _sb_migrate_browser_rows = _MIGRATION._sb_migrate_browser_rows  # noqa: SLF001
 _CHAR_TO_COLLECTION = _MIGRATION._SB_CHAR_TO_COLLECTION  # noqa: SLF001
 _COLLECTION_TO_CHAR = _MIGRATION._SB_COLLECTION_TO_CHAR  # noqa: SLF001
+
+_bg_char_to_collection = _MIGRATION.browser_default_flag_char_to_collection
+_bg_collection_to_char = _MIGRATION.browser_default_flag_collection_to_char
+_BG_CHAR_TO_COLLECTION = _MIGRATION._BG_CHAR_TO_COLLECTION  # noqa: SLF001
+_BG_KEY = _MIGRATION._BROWSER_DEFAULT_COLLECTION_KEY  # noqa: SLF001
 
 
 def _v4(response):
@@ -200,3 +207,43 @@ class MigrationBrowserRowWiringTestCase(TestCase):
         model = _FakeModel([row])
         _sb_migrate_browser_rows(model, _CHAR_TO_COLLECTION)
         assert row.saved_fields is None
+
+
+class BrowserDefaultFlagMigrationTestCase(TestCase):
+    """0043 flips the ``BG`` (Default View) admin flag value char<->collection."""
+
+    @staticmethod
+    def _set_bg(value) -> None:
+        AdminFlag.objects.update_or_create(
+            key=_BG_KEY, defaults={"on": True, "value": value}
+        )
+
+    @staticmethod
+    def _bg_value() -> str:
+        return AdminFlag.objects.get(key=_BG_KEY).value
+
+    def test_every_char_maps_to_its_collection(self) -> None:
+        """Each legacy top-group char (e.g. ``"p"``) flips to its collection."""
+        for char, collection in _BG_CHAR_TO_COLLECTION.items():
+            self._set_bg(char)
+            _bg_char_to_collection(django_apps, None)
+            assert self._bg_value() == collection
+
+    def test_reverse_restores_char(self) -> None:
+        """The reverse move restores the single-char dialect."""
+        for char, collection in _BG_CHAR_TO_COLLECTION.items():
+            self._set_bg(collection)
+            _bg_collection_to_char(django_apps, None)
+            assert self._bg_value() == char
+
+    def test_already_collection_value_unchanged(self) -> None:
+        """An already-migrated collection value is left untouched (idempotent)."""
+        self._set_bg("publishers")
+        _bg_char_to_collection(django_apps, None)
+        assert self._bg_value() == "publishers"
+
+    def test_unknown_value_unchanged(self) -> None:
+        """A value outside the legacy char map (e.g. the empty default) is kept."""
+        self._set_bg("")
+        _bg_char_to_collection(django_apps, None)
+        assert self._bg_value() == ""

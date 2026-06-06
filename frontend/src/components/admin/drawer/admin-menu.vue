@@ -15,12 +15,20 @@
       title="Admin Panel"
       :append-icon="failedImportsIcon"
     />
+    <CodexListItem
+      v-if="showTagWriteErrors"
+      class="tagWriteErrorsLink"
+      :to="{ name: 'admin-tagging', hash: '#tagging-errors' }"
+      :prepend-icon="mdiAlertCircle"
+      title="Tag Write Errors"
+    />
     <AdminStatusList />
   </div>
 </template>
 
 <script>
 import {
+  mdiAlertCircle,
   mdiBookAlert,
   mdiCrownOutline,
   mdiDatabaseClockOutline,
@@ -44,13 +52,17 @@ export default {
       mdiOpenInNew,
       mdiDatabaseClockOutline,
       mdiCrownOutline,
+      mdiAlertCircle,
     };
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
-    ...mapState(useAdminStore, ["unseenFailedImports"]),
+    ...mapState(useAdminStore, ["unseenFailedImports", "tagWriteErrors"]),
     failedImportsIcon() {
       return this.unseenFailedImports ? mdiBookAlert : undefined;
+    },
+    showTagWriteErrors() {
+      return this.tagWriteErrors.length > 0;
     },
     showAdminPanelLink() {
       return !this.$router.currentRoute?.value?.name?.startsWith("admin");
@@ -65,4 +77,8 @@ export default {
 };
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.tagWriteErrorsLink :deep(.v-list-item__prepend .v-icon) {
+  color: rgb(var(--v-theme-error));
+}
+</style>

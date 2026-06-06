@@ -148,26 +148,3 @@ class TagPassRunner:
 
         self.lookup_status = None
         self.status_controller.finish(status)
-
-    def run_deferred_pass(self, state: SessionState) -> None:
-        """Pass 2: re-run deferred files with preloaded cache."""
-        state.session.set_defer_prompts(defer=False)
-        deferred_paths = [d.path for d in state.deferred_prompts if d.path]
-        self.collect_results(state, deferred_paths)
-
-    def enqueue_write(self, state: SessionState, session_id: str) -> None:
-        """Enqueue a BulkTagWriteTask for all collected tags."""
-        if not state.collected_tags:
-            return
-        write_task = BulkTagWriteTask(
-            comic_pks=frozenset(state.collected_tags.keys()),
-            per_comic_patches=state.collected_tags,
-            mode=state.mode,
-            formats=state.formats,
-            delete_original=state.delete_original,
-        )
-        count = len(state.collected_tags)
-        self.librarian_queue.put(write_task)
-        self.log.info(
-            f"Online tag session {session_id}: queued write for {count} comics."
-        )
