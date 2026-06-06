@@ -1,11 +1,7 @@
 """
 Tagging defaults, settings, custom-cover relink, rating rescale, group->collection.
 
-A single migration carrying the v1.12.7 -> v2 schema and data changes
-(originally developed as migrations 0043-0054), extended to fold in the later
-group->collection batch (migrations 0044-0050, squashed here because 2.0.0
-ships 0043 as its head and no released DB is ever past 0042):
-
+A single migration carrying the v1.12.7 -> v2 schema and data changes.
 * ``ComicboxTaggingDefaults`` singleton + seed.
 * ``LibrarianStatus`` status-type choices.
 * ``AdminFlag.key`` final choice set (adds RV, CM, MP, AK) + seeded MP/CM
@@ -23,7 +19,7 @@ ships 0043 as its head and no released DB is ever past 0042):
   the column shrunk to ``max_digits=2, decimal_places=1``.
 * ``Comic.main_team`` foreign key repointed from ``Character`` to ``Team``
   (a copy-paste bug from ``main_character``).
-* **Group -> collection unification** (folded from migrations 0044-0050):
+* **Group -> collection unification**
   ``SettingsBrowserShow`` flag columns renamed ``p/i/s/v`` ->
   ``publishers/imprints/series/volumes``; ``Favorite.group``,
   ``CustomCover.group``, ``SettingsBrowser.top_group`` and
@@ -61,7 +57,7 @@ from codex.settings import (
 )
 
 # ---------------------------------------------------------------------------
-# 0043 - ComicboxTaggingDefaults seed
+# ComicboxTaggingDefaults seed
 # ---------------------------------------------------------------------------
 
 
@@ -78,7 +74,7 @@ def seed_comicbox_tagging_defaults(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0046 - custom-cover file + library data migration
+# custom-cover file + library data migration
 # ---------------------------------------------------------------------------
 
 # Inline copy of the group-char map the live code uses, frozen at this
@@ -197,7 +193,7 @@ def migrate_custom_covers(apps, _schema_editor) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 0048 / 0049 - settings singletons
+# settings singletons
 # ---------------------------------------------------------------------------
 
 
@@ -223,7 +219,7 @@ def seed_throttle_settings(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0050 - AdminFlag MP / CM value-flag rows
+# AdminFlag MP / CM value-flag rows
 # ---------------------------------------------------------------------------
 
 
@@ -243,7 +239,7 @@ def seed_value_flags(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0051 - move API key Timestamp -> AdminFlag
+# move API key Timestamp -> AdminFlag
 # ---------------------------------------------------------------------------
 
 
@@ -276,7 +272,7 @@ def restore_api_key_to_timestamp(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0054 - normalize Comic.critical_rating to the 0.0-5.0 scale
+# normalize Comic.critical_rating to the 0.0-5.0 scale
 # ---------------------------------------------------------------------------
 
 _ONE_DP = Decimal("0.1")
@@ -326,7 +322,7 @@ def _noop_reverse(_apps, _schema_editor) -> None:
 
 
 # ===========================================================================
-# Group -> Collection unification (folded from migrations 0044-0050)
+# Group -> Collection unification
 # ===========================================================================
 # Each char<->collection map and choices list is held inline, frozen at this
 # migration's point in time, so the data moves replay deterministically
@@ -334,7 +330,7 @@ def _noop_reverse(_apps, _schema_editor) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 0044 - SettingsBrowser* group char -> collection value flip
+# SettingsBrowser* group char -> collection value flip
 # ---------------------------------------------------------------------------
 
 _SB_CHAR_TO_COLLECTION = {
@@ -442,7 +438,7 @@ def migrate_settings_browser_groups_reverse(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0045 - Favorite.group char -> collection value flip
+# Favorite.group char -> collection value flip
 # ---------------------------------------------------------------------------
 
 _FAVORITE_CHAR_TO_COLLECTION = {
@@ -484,7 +480,7 @@ def favorite_collections_to_groups(apps, _schema_editor):
 
 
 # ---------------------------------------------------------------------------
-# 0046 - CustomCover.group char -> collection value flip
+# CustomCover.group char -> collection value flip
 # ---------------------------------------------------------------------------
 
 _CUSTOM_COVER_CHAR_TO_COLLECTION = {
@@ -531,10 +527,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # --- 0043: ComicboxTaggingDefaults singleton -----------------------
-        # The id is BigAutoField from the start and the transient
-        # active_session_id / active_prompts columns (added here, dropped in
-        # 0053) are omitted entirely.
         migrations.CreateModel(
             name="ComicboxTaggingDefaults",
             fields=[
@@ -607,7 +599,7 @@ class Migration(migrations.Migration):
             code=seed_comicbox_tagging_defaults,
             reverse_code=migrations.RunPython.noop,
         ),
-        # --- 0043: LibrarianStatus status types ----------------------------
+        # --- LibrarianStatus status types ----------------------------
         migrations.AlterField(
             model_name="librarianstatus",
             name="status_type",
@@ -676,9 +668,7 @@ class Migration(migrations.Migration):
                 max_length=3,
             ),
         ),
-        # --- 0044 + 0050 + 0051: AdminFlag.key choices (collapsed) ---------
-        # Choice edits emit no DDL, so the three incremental alters reduce to
-        # one redefinition holding the final post-0054 choice set.
+        # --- AdminFlag.key choices ---------
         migrations.AlterField(
             model_name="adminflag",
             name="key",
@@ -704,7 +694,7 @@ class Migration(migrations.Migration):
                 max_length=2,
             ),
         ),
-        # --- 0045 + 0046 + 0047: custom-cover schema + data migration ------
+        # --- custom-cover schema + data migration ------
         migrations.AddField(
             model_name="volume",
             name="custom_cover",
@@ -748,7 +738,7 @@ class Migration(migrations.Migration):
             model_name="library",
             name="covers_only",
         ),
-        # --- 0048: EmailSettings singleton ---------------------------------
+        # --- EmailSettings singleton ---------------------------------
         migrations.CreateModel(
             name="EmailSettings",
             fields=[
@@ -794,7 +784,7 @@ class Migration(migrations.Migration):
             code=seed_email_settings,
             reverse_code=migrations.RunPython.noop,
         ),
-        # --- 0049: ThrottleSettings singleton ------------------------------
+        # --- ThrottleSettings singleton ------------------------------
         migrations.CreateModel(
             name="ThrottleSettings",
             fields=[
@@ -825,7 +815,7 @@ class Migration(migrations.Migration):
             code=seed_throttle_settings,
             reverse_code=migrations.RunPython.noop,
         ),
-        # --- 0050 + 0051: seed value-flag rows (MP/CM) and move API key ----
+        # --- seed value-flag rows (MP/CM) and move API key ----
         # move_api_key_to_admin_flag reads Timestamp.version, so it must run
         # before the version -> value rename below.
         migrations.RunPython(
@@ -836,7 +826,7 @@ class Migration(migrations.Migration):
             code=move_api_key_to_admin_flag,
             reverse_code=restore_api_key_to_timestamp,
         ),
-        # --- 0051 + 0052: Timestamp key choices + version -> value ---------
+        # --- Timestamp key choices + version -> value ---------
         migrations.AlterField(
             model_name="timestamp",
             name="key",
@@ -860,7 +850,7 @@ class Migration(migrations.Migration):
             name="value",
             field=models.CharField(default="", max_length=32),
         ),
-        # --- 0054: normalize critical_rating then shrink the column --------
+        # --- normalize critical_rating then shrink the column --------
         migrations.RunPython(
             code=normalize_critical_ratings,
             reverse_code=_noop_reverse,
@@ -896,13 +886,12 @@ class Migration(migrations.Migration):
             ),
         ),
         # ===================================================================
-        # Group -> Collection unification (folded from migrations 0044-0050)
+        # Group -> Collection unification
         # ===================================================================
         # The char->collection RunPython moves are load-bearing for real
         # <=0042 DBs that still hold single-char group codes; each field is
         # widened + data-migrated before it is renamed to its collection name.
         #
-        # --- from 0044_group_collection_values -----------------------------
         # SettingsBrowserShow flag columns + SettingsBrowser.top_group /
         # SettingsBrowserLastRoute.group widen + char->collection data
         # (and strip the dummy root 0 sentinel).
@@ -949,7 +938,6 @@ class Migration(migrations.Migration):
             code=migrate_settings_browser_groups_forward,
             reverse_code=migrate_settings_browser_groups_reverse,
         ),
-        # --- from 0045_favorite_group_collection ---------------------------
         # Widen Favorite.group, then char->collection data move.
         migrations.AlterField(
             model_name="favorite",
@@ -960,7 +948,6 @@ class Migration(migrations.Migration):
             code=favorite_groups_to_collections,
             reverse_code=favorite_collections_to_groups,
         ),
-        # --- from 0046_custom_cover_group_collection -----------------------
         # Widen CustomCover.group, then char->collection data move.
         migrations.AlterField(
             model_name="customcover",
@@ -973,7 +960,6 @@ class Migration(migrations.Migration):
             code=custom_cover_groups_to_collections,
             reverse_code=custom_cover_collections_to_groups,
         ),
-        # --- from 0047_rename_favorite_group_to_collection -----------------
         migrations.RenameField(
             model_name="favorite",
             old_name="group",
@@ -983,19 +969,16 @@ class Migration(migrations.Migration):
             name="favorite",
             unique_together={("user", "collection", "target_id")},
         ),
-        # --- from 0048_rename_custom_cover_group_to_collection -------------
         migrations.RenameField(
             model_name="customcover",
             old_name="group",
             new_name="collection",
         ),
-        # --- from 0049_rename_last_route_group_to_collection ---------------
         migrations.RenameField(
             model_name="settingsbrowserlastroute",
             old_name="group",
             new_name="collection",
         ),
-        # --- from 0050_rename_top_group_to_top_collection -----------------
         migrations.RenameField(
             model_name="settingsbrowser",
             old_name="top_group",
