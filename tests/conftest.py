@@ -4,7 +4,7 @@ import pytest
 from rest_registration.settings import registration_settings
 
 
-def pytest_sessionfinish(_session, _exitstatus):
+def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
     """
     Stop the librarian/broadcast queues from hanging interpreter shutdown.
 
