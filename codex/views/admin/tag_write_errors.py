@@ -15,7 +15,8 @@ class AdminTagWriteErrorsView(AdminAPIView):
     """Read and clear the collected tag-write errors."""
 
     def get(self, _request, *_args, **_kwargs) -> Response:
-        """Return the collected tag-write errors (newest first).
+        """
+        Return the collected tag-write errors (newest first).
 
         Returns a bare list: the envelope renderer reserves an ``errors``
         key for DRF error objects, so a ``{"errors": [...]}`` payload would
