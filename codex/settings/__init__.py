@@ -865,7 +865,22 @@ REST_REGISTRATION = {
         "html_body": "rest_registration/reset_password/body.html",
     },
     "VERIFICATION_FROM_EMAIL": DEFAULT_FROM_EMAIL,
+    # Login is by username (the login dialog only collects a username); email
+    # rides here so the "forgot password" form can resolve a user by *either*
+    # username or email via the default reset-link finder (see
+    # test_send_reset_link_sends_email_by_email).
     "USER_LOGIN_FIELDS": ("username", "email"),
+    # rest-registration's E010 system check insists every USER_LOGIN_FIELDS
+    # entry be DB-unique. Codex runs on the stock ``auth.User`` whose ``email``
+    # is both non-unique and ``blank=True`` — most self-hosted / admin-created
+    # accounts have no email at all, so a ``unique=True`` is impossible (it
+    # would forbid more than one empty-email user). Email lookup is therefore
+    # best-effort by design: the form never logs in by email, and the
+    # reset-link endpoint always returns a generic success (no account
+    # enumeration), so a non-unique email degrades gracefully instead of being
+    # an integrity hazard. Disable the structural check accordingly — this is
+    # the package's sanctioned escape hatch for exactly this configuration.
+    "USER_LOGIN_FIELDS_UNIQUE_CHECK_ENABLED": False,
     # rest-registration treats email as read-only by default (it expects
     # changes to flow through its register-email -> verify-email
     # handshake). Codex doesn't run that flow; profile dialog edits the
