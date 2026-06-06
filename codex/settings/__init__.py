@@ -966,6 +966,19 @@ if FEATURES.vite_hmr:
 
 CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
 
+# cachalot.W001 fires as a false positive here. Its compatibility check
+# (cachalot/apps.py) does a string-membership test of CACHES['default']
+# ['BACKEND'] against a hardcoded set of dotted paths — it does not call
+# issubclass(). ``codex.cache.ResilientFileBasedCache`` is a thin subclass
+# of django.core.cache.backends.filebased.FileBasedCache, which *is* on
+# cachalot's supported list; the subclass only treats corrupt files as
+# misses and no-ops validate_key, neither of which affects cachalot's
+# get/set/invalidate path. Filebased is also the correct choice for our
+# multi-process layout (Granian workers + librarian daemon share one
+# on-disk cache; LocMemCache would not propagate invalidation). cachalot
+# exposes no hook to extend its cache-backend set, so silence the check.
+SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
+
 ########
 # Silk #
 ########
