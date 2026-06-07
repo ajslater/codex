@@ -277,6 +277,25 @@ class OPDSv1SchemaTestCase(_SchemaWalkMixin, TestCase):
         assert feeds > _MIN_WALK_VISITS, "walk did not traverse the v1.2 catalog"
         assert not violations, _format(violations)
 
+    def _stream_last_read_by_pk(self) -> dict[int, str | None]:
+        """Walk the v1.2 catalog, mapping comic pk -> its PSE ``lastRead``."""
+        atom_link = "{http://www.w3.org/2005/Atom}link"
+        pse_last_read = "{http://vaemendis.net/opds-pse/ns}lastRead"
+        last_read_by_pk: dict[int, str | None] = {}
+        for _path, response in self._iter_feeds(
+            _V1_START, lambda r: _v1_links(r.content)
+        ):
+            if response.status_code != _HTTP_OK:
+                continue
+            root = ET.fromstring(response.content)  # noqa: S314
+            for link in root.iter(atom_link):
+                if link.get("rel") != Rel.STREAM:
+                    continue
+                match = re.search(r"/c/(\d+)/", link.get("href", ""))
+                assert match, f"stream link href has no pk: {link.get('href')!r}"
+                last_read_by_pk[int(match.group(1))] = link.get(pse_last_read)
+        return last_read_by_pk
+
     def test_pse_last_read_is_one_indexed(self) -> None:
         """
         PSE ``lastRead`` is 1-indexed where Codex's bookmark page is 0-indexed.
@@ -291,9 +310,6 @@ class OPDSv1SchemaTestCase(_SchemaWalkMixin, TestCase):
         ``Sum(default=0)``, no bookmark) must stay silent — guarding on ``page``
         alone would wrongly tag every unread comic ``lastRead="1"``.
         """
-        atom_link = "{http://www.w3.org/2005/Atom}link"
-        pse_last_read = "{http://vaemendis.net/opds-pse/ns}lastRead"
-
         # Second bookmark on a non-zero page; bump page_count so the page is in
         # range and lazy_metadata stays short-circuited (page_count+file_type).
         other = Comic.objects.exclude(pk=self.bookmarked_pk).order_by("pk").first()
@@ -302,19 +318,7 @@ class OPDSv1SchemaTestCase(_SchemaWalkMixin, TestCase):
         Bookmark.objects.create(user=self.user, comic=other, page=2)
         cache.clear()  # browser feeds are cachalot-cached
 
-        last_read_by_pk: dict[int, str | None] = {}
-        for _path, response in self._iter_feeds(
-            _V1_START, lambda r: _v1_links(r.content)
-        ):
-            if response.status_code != _HTTP_OK:
-                continue
-            root = ET.fromstring(response.content)  # noqa: S314
-            for link in root.iter(atom_link):
-                if link.get("rel") != Rel.STREAM:
-                    continue
-                match = re.search(r"/c/(\d+)/", link.get("href", ""))
-                assert match, f"stream link href has no pk: {link.get('href')!r}"
-                last_read_by_pk[int(match.group(1))] = link.get(pse_last_read)
+        last_read_by_pk = self._stream_last_read_by_pk()
 
         assert last_read_by_pk, "walk surfaced no PSE stream links"
         # 0-indexed page 0 -> 1-indexed "1" (absent pre-fix); page 2 -> "3".

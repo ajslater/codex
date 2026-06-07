@@ -249,6 +249,7 @@ class Timestamp(BaseModel):
         CODEX_VERSION = "VR", _("Codex Version")
         JANITOR = "JA", _("Janitor")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
+        FAILED_IMPORTS_SEEN = "FI", _("Failed Imports Seen")
 
     key = CharField(
         db_index=True,

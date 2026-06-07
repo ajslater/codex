@@ -197,6 +197,12 @@ export const getTagWriteErrors = () =>
 
 export const clearTagWriteErrors = () => HTTP.delete("/admin/tag-write/errors");
 
+export const getFailedImportsSeen = () =>
+  HTTP.get("/admin/failed-imports/seen", { params: { ts: Date.now() } });
+
+export const markFailedImportsSeen = () =>
+  HTTP.put("/admin/failed-imports/seen");
+
 export const getEmailSettings = () =>
   HTTP.get("/admin/email-settings", { params: { ts: Date.now() } });
 

@@ -50,7 +50,7 @@ export const useAdminStore = defineStore("admin", {
     libraries: undefined,
     customCovers: [],
     failedImports: [],
-    failedImportsDismissed: false,
+    failedImportsSeenAt: "",
     tagWriteErrors: [],
     flags: [],
     folderPicker: {
@@ -72,6 +72,17 @@ export const useAdminStore = defineStore("admin", {
     },
     doNormalComicLibrariesExist() {
       return Boolean(this.libraries?.length);
+    },
+    // A failed-import warning is "unseen" when a failed import is newer than
+    // the server-persisted seen marker (empty marker = never cleared, so all
+    // count). Drives the hamburger dot + sidebar item; survives reloads.
+    hasUnseenFailedImports() {
+      if (!this.failedImports?.length) return false;
+      if (!this.failedImportsSeenAt) return true;
+      const seen = new Date(this.failedImportsSeenAt).getTime();
+      return this.failedImports.some(
+        (fi) => new Date(fi.createdAt).getTime() > seen,
+      );
     },
   },
   actions: {
@@ -363,12 +374,28 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(commonStore.setErrors);
     },
-    dismissFailedImports() {
+    async loadFailedImportsSeen() {
       if (this._requireAdmin()) return false;
-      // Acknowledge the current failed imports so the hamburger dot and the
-      // sidebar list item hide. The Libraries-tab table persists; a
-      // failed-imports change event re-activates the warning.
-      this.failedImportsDismissed = true;
+      await API.getFailedImportsSeen()
+        .then((response) => {
+          this.failedImportsSeenAt = response.data?.seenAt ?? "";
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async markFailedImportsSeen() {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      // Persist the "seen" marker so the hamburger dot + sidebar item stay
+      // cleared across reloads and sessions. The Libraries-tab table persists;
+      // failed imports created after this moment re-activate the warning.
+      await API.markFailedImportsSeen()
+        .then((response) => {
+          this.failedImportsSeenAt = response.data?.seenAt ?? "";
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
     },
     async loadEmailSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;

@@ -22,24 +22,22 @@ import { useAdminStore } from "@/stores/admin";
 export default {
   name: "AdminSettingsButtonErrors",
   computed: {
-    ...mapState(useAdminStore, [
-      "tagWriteErrors",
-      "failedImports",
-      "failedImportsDismissed",
-    ]),
+    ...mapState(useAdminStore, ["tagWriteErrors", "hasUnseenFailedImports"]),
     hasErrors() {
-      return (
-        this.tagWriteErrors.length > 0 ||
-        (this.failedImports.length > 0 && !this.failedImportsDismissed)
-      );
+      return this.tagWriteErrors.length > 0 || this.hasUnseenFailedImports;
     },
   },
   created() {
     this.loadTagWriteErrors();
     this.loadTable("FailedImport");
+    this.loadFailedImportsSeen();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTagWriteErrors", "loadTable"]),
+    ...mapActions(useAdminStore, [
+      "loadTagWriteErrors",
+      "loadTable",
+      "loadFailedImportsSeen",
+    ]),
   },
 };
 </script>

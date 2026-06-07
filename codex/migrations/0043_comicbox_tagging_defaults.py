@@ -877,6 +877,7 @@ class Migration(migrations.Migration):
                     ("VR", "Codex Version"),
                     ("JA", "Janitor"),
                     ("TS", "Telemeter Sent"),
+                    ("FI", "Failed Imports Seen"),
                 ],
                 db_index=True,
                 max_length=2,

@@ -72,18 +72,14 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),
-    ...mapState(useAdminStore, [
-      "failedImports",
-      "failedImportsDismissed",
-      "tagWriteErrors",
-    ]),
+    ...mapState(useAdminStore, ["hasUnseenFailedImports", "tagWriteErrors"]),
     ...mapState(useOnlineTagStore, ["pendingPrompts"]),
     ...mapWritableState(useOnlineTagStore, ["promptDialogOpen"]),
     showTagWriteErrors() {
       return this.tagWriteErrors.length > 0;
     },
     showFailedImports() {
-      return this.failedImports.length > 0 && !this.failedImportsDismissed;
+      return this.hasUnseenFailedImports;
     },
     showPrompts() {
       return this.pendingPrompts.length > 0;
@@ -97,12 +93,17 @@ export default {
     },
   },
   created() {
-    // Mirror the hamburger error-dot: load failed imports so this menu reflects
-    // them even on admin tabs that don't otherwise fetch the FailedImport table.
+    // Mirror the hamburger error-dot: load failed imports + the seen marker so
+    // this menu reflects them even on admin tabs that don't fetch them.
     this.loadTable("FailedImport");
+    this.loadFailedImportsSeen();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
+    ...mapActions(useAdminStore, [
+      "loadTable",
+      "loadFailedImportsSeen",
+      "librarianTask",
+    ]),
     onPoll() {
       this.librarianTask("poll");
     },

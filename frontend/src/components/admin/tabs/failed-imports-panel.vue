@@ -7,8 +7,8 @@
   <div v-if="showFailedImports" id="failedImports" class="failedImports">
     <AdminSection title="Failed Imports">
       <template #actions>
-        <div v-if="!failedImportsDismissed" class="failedImportsActions">
-          <v-btn variant="text" size="small" @click="dismissFailedImports">
+        <div v-if="hasUnseenFailedImports" class="failedImportsActions">
+          <v-btn variant="text" size="small" @click="markFailedImportsSeen">
             Clear Warning
           </v-btn>
           <span class="errorCount">
@@ -106,12 +106,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      failedImports: (state) => state.failedImports,
-      failedImportsDismissed: (state) => state.failedImportsDismissed,
-      showFailedImports: (state) =>
-        state.failedImports && state.failedImports.length > 0,
-    }),
+    ...mapState(useAdminStore, ["failedImports", "hasUnseenFailedImports"]),
+    showFailedImports() {
+      return Boolean(this.failedImports?.length);
+    },
   },
   watch: {
     // Re-scroll if the deep link fires while already on the Libraries tab.
@@ -123,11 +121,18 @@ export default {
       if (isShown) this.maybeScroll();
     },
   },
+  created() {
+    // Load the seen marker so hasUnseenFailedImports resolves on this tab.
+    this.loadFailedImportsSeen();
+  },
   mounted() {
     this.maybeScroll();
   },
   methods: {
-    ...mapActions(useAdminStore, ["dismissFailedImports"]),
+    ...mapActions(useAdminStore, [
+      "loadFailedImportsSeen",
+      "markFailedImportsSeen",
+    ]),
     maybeScroll() {
       if (this.$route.hash !== "#failedImports") return;
       this.$nextTick(() => {

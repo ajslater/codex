@@ -16,6 +16,7 @@ from codex.views.admin.custom_cover import (
 )
 from codex.views.admin.dump_user_data import AdminDumpUserDataView
 from codex.views.admin.email import AdminEmailSettingsView, AdminEmailTestSendView
+from codex.views.admin.failed_imports_seen import AdminFailedImportsSeenView
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.library import (
@@ -121,6 +122,11 @@ urlpatterns = [
         "failed-imports",
         AdminFailedImportViewSet.as_view({**READ}),
         name="failed_imports",
+    ),
+    path(
+        "failed-imports/seen",
+        AdminFailedImportsSeenView.as_view(),
+        name="failed_imports_seen",
     ),
     path(
         "age-ratings",

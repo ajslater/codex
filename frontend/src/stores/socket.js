@@ -214,12 +214,12 @@ export const useSocketStore = defineStore("socket", () => {
   async function failedImportsNotified() {
     const adminStore = await getAdminStore();
     if (!adminStore) return;
-    // New/changed failed imports re-activate a previously dismissed warning.
-    adminStore.failedImportsDismissed = false;
-    // Force-skip the sticky cache so the hamburger dot, sidebar list item, and
-    // the Libraries-tab panel count update live app-wide (mirrors
-    // tagWriteErrorsNotified()).
+    // Force-skip the sticky cache so the hamburger dot, sidebar item, and the
+    // Libraries-tab panel update live app-wide. Reload the seen marker too so a
+    // clear performed in another admin session propagates here; new failed
+    // imports (created after the marker) re-activate the warning on their own.
     adminStore.loadTables(["FailedImport"], { force: true });
+    adminStore.loadFailedImportsSeen();
   }
 
   async function tagWriteErrorsNotified() {

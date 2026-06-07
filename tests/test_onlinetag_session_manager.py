@@ -167,7 +167,7 @@ class OnlineTagSessionManagerTests(TestCase):
         _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
         # No-op Pass 1: we only exercise the persist step here.
         self.manager._pass_runner = _double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *a, **k: None)
+            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
         )
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
@@ -192,7 +192,7 @@ class OnlineTagSessionManagerTests(TestCase):
         _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
         # No-op Pass 1: we only exercise the (skipped) persist step here.
         self.manager._pass_runner = _double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *a, **k: None)
+            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
         )
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
