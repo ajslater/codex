@@ -11,6 +11,7 @@
     </v-icon>
     <component :is="AdminSettingsButtonProgress" v-if="isUserAdmin" />
     <component :is="AdminSettingsButtonErrors" v-if="isUserAdmin" />
+    <component :is="AdminSettingsButtonPrompts" v-if="isUserAdmin" />
   </ScaleButton>
 </template>
 
@@ -36,11 +37,18 @@ const AdminSettingsButtonErrors = markRaw(
   ),
 );
 
+const AdminSettingsButtonPrompts = markRaw(
+  defineAsyncComponent(
+    () => import("@/components/admin/drawer/admin-settings-button-prompts.vue"),
+  ),
+);
+
 export default {
   name: "SettingsDrawerButton",
   components: {
     AdminSettingsButtonErrors,
     AdminSettingsButtonProgress,
+    AdminSettingsButtonPrompts,
     ScaleButton,
   },
   data() {
@@ -48,6 +56,7 @@ export default {
       mdiMenu,
       AdminSettingsButtonProgress,
       AdminSettingsButtonErrors,
+      AdminSettingsButtonPrompts,
     };
   },
   computed: {

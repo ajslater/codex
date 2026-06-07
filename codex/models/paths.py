@@ -77,8 +77,13 @@ class FailedImport(WatchedPath):
         suffixes = (f": {self.path}", f": {self.path!r}")
         for suffix in suffixes:
             reason = reason.removesuffix(suffix)
-        reason = reason[:MAX_NAME_LEN]
-        self.name = reason.strip()
+        reason = reason[:MAX_NAME_LEN].strip()
+        if not reason:
+            # Some exceptions stringify to empty (or to just the path, stripped
+            # above). Fall back to the exception class name so a failed import
+            # always records some reason rather than a blank.
+            reason = type(exc).__name__
+        self.name = reason
 
 
 class CustomCover(WatchedPath):

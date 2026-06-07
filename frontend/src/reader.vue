@@ -9,6 +9,7 @@
     </div>
     <ReaderEmpty v-else />
     <ReaderSettingsDrawer />
+    <OnlineTagPromptPopup />
   </v-main>
   <Unauthorized v-else />
 </template>
@@ -16,6 +17,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import BooksWindow from "@/components/reader/books-window.vue";
 import ReaderSettingsDrawer from "@/components/reader/drawer/reader-settings-drawer.vue";
 import ReaderEmpty from "@/components/reader/empty.vue";
@@ -29,6 +31,7 @@ export default {
   name: "MainReader",
   components: {
     BooksWindow,
+    OnlineTagPromptPopup,
     ReaderEmpty,
     ReaderNavToolbar,
     ReaderTopToolbar,

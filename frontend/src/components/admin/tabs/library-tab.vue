@@ -12,7 +12,7 @@
     />
 
     <v-expand-transition>
-      <AdminFailedImportsPanel id="failedImports" />
+      <AdminFailedImportsPanel />
     </v-expand-transition>
     <p class="adminProse libraryHelp">
       Each Watched File Events box checked creates a thread to monitor the

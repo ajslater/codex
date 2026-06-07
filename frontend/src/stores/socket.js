@@ -213,7 +213,13 @@ export const useSocketStore = defineStore("socket", () => {
 
   async function failedImportsNotified() {
     const adminStore = await getAdminStore();
-    if (adminStore) adminStore.unseenFailedImports = true;
+    if (!adminStore) return;
+    // New/changed failed imports re-activate a previously dismissed warning.
+    adminStore.failedImportsDismissed = false;
+    // Force-skip the sticky cache so the hamburger dot, sidebar list item, and
+    // the Libraries-tab panel count update live app-wide (mirrors
+    // tagWriteErrorsNotified()).
+    adminStore.loadTables(["FailedImport"], { force: true });
   }
 
   async function tagWriteErrorsNotified() {

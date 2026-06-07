@@ -69,11 +69,15 @@ class LibrarySerializer(BaseModelSerializer):
 class FailedImportSerializer(BaseModelSerializer):
     """Failed Import Serializer."""
 
+    # The failure reason is stored in the inherited ``name`` field
+    # (see FailedImport.set_reason); expose it under a clearer alias.
+    reason = CharField(source="name", read_only=True)
+
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = FailedImport
-        fields = ("pk", "path", "created_at")
+        fields = ("pk", "path", "created_at", "reason")
         read_only_fields = ("pk", "path", "created_at")
 
     class JSONAPIMeta:

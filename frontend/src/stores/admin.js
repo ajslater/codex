@@ -44,13 +44,13 @@ export const useAdminStore = defineStore("admin", {
   state: () => ({
     allLibrarianStatuses: {},
     activeLibrarianStatuses: [],
-    unseenFailedImports: false,
     users: [],
     groups: [],
     ageRatingMetrons: [],
     libraries: undefined,
     customCovers: [],
     failedImports: [],
+    failedImportsDismissed: false,
     tagWriteErrors: [],
     flags: [],
     folderPicker: {
@@ -362,6 +362,13 @@ export const useAdminStore = defineStore("admin", {
           return true;
         })
         .catch(commonStore.setErrors);
+    },
+    dismissFailedImports() {
+      if (this._requireAdmin()) return false;
+      // Acknowledge the current failed imports so the hamburger dot and the
+      // sidebar list item hide. The Libraries-tab table persists; a
+      // failed-imports change event re-activates the warning.
+      this.failedImportsDismissed = true;
     },
     async loadEmailSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;

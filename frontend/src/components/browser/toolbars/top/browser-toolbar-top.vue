@@ -8,7 +8,6 @@
       <BrowserSearchButton />
     </v-toolbar-items>
     <v-spacer />
-    <OnlineTagPromptButton />
     <v-toolbar-items>
       <BrowserColumnsButton />
       <BrowserViewModeToggle />
@@ -22,7 +21,6 @@ import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapState } from "pinia";
 
 import BrowserColumnsButton from "@/components/browser/toolbars/top/columns-button.vue";
-import OnlineTagPromptButton from "@/components/online-tag/prompt-button.vue";
 import BrowserFilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-select.vue";
 import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-reverse-button.vue";
@@ -37,7 +35,6 @@ export default {
   components: {
     BrowserColumnsButton,
     BrowserFilterBySelect,
-    OnlineTagPromptButton,
     BrowserSearchButton,
     BrowserTopCollectionSelect,
     BrowserOrderBySelect,
