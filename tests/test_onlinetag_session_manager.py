@@ -12,7 +12,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
-from typing import ClassVar, Final, override
+from typing import Any, ClassVar, Final, override
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -39,6 +39,19 @@ from codex.models import (
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.onlinetag.manager")  # noqa: S108
 _PATCH_TARGET: Final = "codex.librarian.onlinetag.session_manager.OnlineSession"
+
+
+def _double(stub: object) -> Any:
+    """
+    Pass a test double through a strictly-typed seam.
+
+    The manager's constructor and ``_pass_runner`` attribute are annotated
+    with concrete production types (loguru ``Logger``, multiprocessing
+    ``Queue``, ``TagPassRunner``). These fakes only implement the slice the
+    tests exercise, so erase to ``Any`` at the injection point instead of
+    weakening the production annotations.
+    """
+    return stub
 
 
 class _FakeQueue:
@@ -139,7 +152,9 @@ class OnlineTagSessionManagerTests(TestCase):
         )
         self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]
-            logger, self.queue, thread_queue=None
+            _double(logger),
+            _double(self.queue),
+            thread_queue=None,
         )
 
     @override
@@ -151,8 +166,8 @@ class OnlineTagSessionManagerTests(TestCase):
         comic_path = Path(comic.path)
         _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
         # No-op Pass 1: we only exercise the persist step here.
-        self.manager._pass_runner = SimpleNamespace(  # noqa: SLF001
-            collect_results=lambda *a, **k: None
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(collect_results=lambda *a, **k: None)
         )
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
@@ -176,8 +191,8 @@ class OnlineTagSessionManagerTests(TestCase):
         # An ambiguous match is available, but "never" must not persist it.
         _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
         # No-op Pass 1: we only exercise the (skipped) persist step here.
-        self.manager._pass_runner = SimpleNamespace(  # noqa: SLF001
-            collect_results=lambda *a, **k: None
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(collect_results=lambda *a, **k: None)
         )
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),

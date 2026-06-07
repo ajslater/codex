@@ -65,7 +65,7 @@ class TagPromptsTestCase(TestCase):
     @override
     def setUp(self) -> None:
         cache.clear()
-        self.client = Client()  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.client = Client()
         self.client.force_login(_make_admin())
 
     def test_lists_pending_prompts(self) -> None:

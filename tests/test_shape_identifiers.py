@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from typing import Final
 
 from codex.serializers.browser.metadata import (
-    _SOURCE_DISPLAY_MAP,  # pyright: ignore[reportPrivateUsage]
+    _SOURCE_DISPLAY_MAP,
     shape_identifiers,
 )
 

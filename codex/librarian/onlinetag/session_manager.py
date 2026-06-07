@@ -203,7 +203,7 @@ class OnlineTagSessionManager:
         # skips ambiguous comics inline instead of queueing them as deferred
         # prompts — only confidently-matched comics get written this run.
         defer_prompts = (
-            task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER
+            task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
         )
         session = OnlineSession(
             sources=task.sources,
