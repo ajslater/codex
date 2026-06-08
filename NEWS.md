@@ -29,6 +29,7 @@ border-radius: 128px;
     - Folder covers respect favorites.
     - Critical ratings normalized to a consistent 0–5 scale.
     - The age-rating "As Tagged" panel hides when it has no entries.
+    - Browser refreshes more often when comics change.
 - Features
     - Edit the tags on one or many comics directly in the browser — credits,
       story arcs, identifiers, and more — written back to your comic files.
