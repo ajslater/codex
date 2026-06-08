@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "2.0.0-a4",
+  "version": "2.0.0-a5",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -26,7 +26,7 @@
     "vue": "^3.5.35",
     "vue-pdf-embed": "^2.1.4",
     "vue-router": "^5.1.0",
-    "vuetify": "^4.1.0",
+    "vuetify": "^4.1.1",
     "xior": "^0.8.3"
   },
   "devDependencies": {

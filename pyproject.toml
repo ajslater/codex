@@ -48,7 +48,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.0.0a4"
+version = "2.0.0a5"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -85,7 +85,7 @@ lint = [
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
-  "djlint==1.38",
+  "djlint~=1.39",
   "icecream~=2.1",
   "mbake~=1.4.5",
   "pathspec~=1.1.0",
@@ -413,7 +413,7 @@ min_confidence = 61
 sort_by_size = true
 
 [tool.djlint]
-extend_exclude = "*/.*,site,typings"
+extend_exclude = "site,typings"
 ignore = "H030,H031"
 profile = "django"
 use_gitignore = true

@@ -15,7 +15,7 @@
       <v-spacer />
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
-        color="primary"
+        :color="hasChanges ? 'primary' : 'grey-darken-1'"
         variant="flat"
         :loading="saving"
         :disabled="!hasChanges"
@@ -1389,8 +1389,23 @@ export default {
       }
       return names;
     },
+    collectionDistinctCount(field) {
+      // Distinct values across the group's comics, counting a missing
+      // collection (empty/null name — the default unnamed Publisher/Imprint/
+      // …) as its own state. A group mixing an unnamed collection with a
+      // named one (some comics have an imprint, some have none) has no common
+      // value, so the field must blank — even though collectionOptions(),
+      // which only feeds the dropdown, drops the empty entry.
+      const list = this.md?.[`${field}List`] || [];
+      const seen = new Set();
+      for (const o of list) {
+        const n = o?.name;
+        seen.add(n === null || n === undefined ? "" : String(n));
+      }
+      return seen.size;
+    },
     collectionPlaceholder(field) {
-      return this.collectionOptions(field).length > 1
+      return this.collectionDistinctCount(field) > 1
         ? "Multiple — select one to apply to all"
         : undefined;
     },
@@ -1404,10 +1419,13 @@ export default {
       this.patch.scan_info = this.md.scanInfo?.name || "";
 
       // Groups — seed from the group's own values. Blank when the group spans
-      // more than one distinct value so any pick registers as a change.
+      // more than one distinct value — including the "no collection" state — so
+      // any pick registers as a change. collectionOptions drops empties for the
+      // dropdown, so distinctness is counted separately.
       for (const field of COLLECTION_FIELDS) {
         const opts = this.collectionOptions(field);
-        this.patch[field] = opts.length > 1 ? "" : (opts[0] ?? "");
+        this.patch[field] =
+          this.collectionDistinctCount(field) > 1 ? "" : (opts[0] ?? "");
       }
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
       this.patch.volume_count = this.md.seriesVolumeCount || "";
