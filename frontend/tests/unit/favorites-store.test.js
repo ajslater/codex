@@ -160,6 +160,69 @@ describe("useFavoritesStore — toggle", () => {
   });
 });
 
+describe("useFavoritesStore — setManyFavorites", () => {
+  it("favorites every not-already-favorited pk via PUT", async () => {
+    API.addFavorite.mockResolvedValue({});
+    const store = useFavoritesStore();
+    store.favoriteIds.series.add(2); // already on — must be skipped
+
+    const promise = store.setManyFavorites("series", [1, 2, 3], true);
+    // Optimistic: the stragglers flip before the API resolves.
+    expect(store.isFavorite("series", 1)).toBe(true);
+    expect(store.isFavorite("series", 3)).toBe(true);
+    await promise;
+
+    expect(store.isFavorite("series", 1)).toBe(true);
+    expect(store.isFavorite("series", 2)).toBe(true);
+    expect(store.isFavorite("series", 3)).toBe(true);
+    // pk 2 was already favorited → no redundant request.
+    expect(API.addFavorite).toHaveBeenCalledTimes(2);
+    expect(API.addFavorite).toHaveBeenCalledWith("series", 1);
+    expect(API.addFavorite).toHaveBeenCalledWith("series", 3);
+    expect(API.addFavorite).not.toHaveBeenCalledWith("series", 2);
+    expect(API.removeFavorite).not.toHaveBeenCalled();
+  });
+
+  it("unfavorites every favorited pk via DELETE", async () => {
+    API.removeFavorite.mockResolvedValue({});
+    const store = useFavoritesStore();
+    store.favoriteIds.comics.add(10);
+    store.favoriteIds.comics.add(11);
+
+    await store.setManyFavorites("comics", [10, 11, 12], false);
+
+    expect(store.isFavorite("comics", 10)).toBe(false);
+    expect(store.isFavorite("comics", 11)).toBe(false);
+    // pk 12 wasn't favorited → nothing to remove.
+    expect(API.removeFavorite).toHaveBeenCalledTimes(2);
+    expect(API.removeFavorite).toHaveBeenCalledWith("comics", 10);
+    expect(API.removeFavorite).toHaveBeenCalledWith("comics", 11);
+    expect(API.removeFavorite).not.toHaveBeenCalledWith("comics", 12);
+    expect(API.addFavorite).not.toHaveBeenCalled();
+  });
+
+  it("rolls back only the pk whose call rejected", async () => {
+    API.addFavorite.mockImplementation((_collection, pk) =>
+      pk === 2 ? Promise.reject(new Error("nope")) : Promise.resolve({}),
+    );
+    const store = useFavoritesStore();
+
+    await store.setManyFavorites("series", [1, 2, 3], true);
+
+    // 1 and 3 stick; only the rejected 2 rolls back.
+    expect(store.isFavorite("series", 1)).toBe(true);
+    expect(store.isFavorite("series", 2)).toBe(false);
+    expect(store.isFavorite("series", 3)).toBe(true);
+  });
+
+  it("no-ops on an unknown group code", async () => {
+    const store = useFavoritesStore();
+    await store.setManyFavorites("nope", [1, 2], true);
+    expect(API.addFavorite).not.toHaveBeenCalled();
+    expect(API.removeFavorite).not.toHaveBeenCalled();
+  });
+});
+
 describe("useFavoritesStore — clear", () => {
   it("wipes Sets and resets the hydrated flag", async () => {
     API.getFavorites.mockResolvedValue({

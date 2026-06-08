@@ -28,9 +28,19 @@ export default {
       type: String,
       required: true,
     },
+    /*
+     * Single-target convenience prop (browser cards). The metadata
+     * toolbar passes ``pks`` instead to favorite a whole multi-select.
+     * Exactly one of ``pk`` / ``pks`` is expected; both normalize to
+     * ``targetPks``.
+     */
     pk: {
       type: [Number, String],
-      required: true,
+      default: null,
+    },
+    pks: {
+      type: Array,
+      default: () => [],
     },
   },
   computed: {
@@ -38,13 +48,30 @@ export default {
       isLoggedIn: (state) => Boolean(state.user),
     }),
     ...mapState(useFavoritesStore, ["isFavorite"]),
+    targetPks() {
+      const source = this.pks?.length ? this.pks : [this.pk];
+      return source.filter((pk) => pk !== null && pk !== undefined).map(Number);
+    },
+    isBulk() {
+      return this.targetPks.length > 1;
+    },
     on() {
-      return this.isFavorite(this.collection, Number(this.pk));
+      // Filled only when every target is favorited (mixed reads as off,
+      // so the first click favorites the stragglers).
+      return (
+        this.targetPks.length > 0 &&
+        this.targetPks.every((pk) => this.isFavorite(this.collection, pk))
+      );
     },
     icon() {
       return this.on ? mdiStar : mdiStarOutline;
     },
     title() {
+      const verb = this.on ? "Remove" : "Add";
+      if (this.isBulk) {
+        const preposition = this.on ? "from" : "to";
+        return `${verb} ${this.targetPks.length} ${preposition} Favorites`;
+      }
       return this.on ? "Remove from Favorites" : "Add to Favorites";
     },
     disabled() {
@@ -53,14 +80,18 @@ export default {
        * Hide the affordance rather than letting the user click into
        * an error.
        */
-      return !this.isLoggedIn;
+      return !this.isLoggedIn || this.targetPks.length === 0;
     },
   },
   methods: {
-    ...mapActions(useFavoritesStore, ["toggle"]),
+    ...mapActions(useFavoritesStore, ["toggle", "setManyFavorites"]),
     onClick() {
       if (this.disabled) return;
-      this.toggle(this.collection, Number(this.pk));
+      if (this.isBulk) {
+        this.setManyFavorites(this.collection, this.targetPks, !this.on);
+      } else {
+        this.toggle(this.collection, this.targetPks[0]);
+      }
     },
   },
 };

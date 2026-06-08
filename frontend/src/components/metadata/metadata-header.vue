@@ -110,7 +110,7 @@
     </div>
   </header>
   <MetadataControls
-    v-if="!multiSelect && !editing"
+    v-if="!editing"
     id="controls"
     :collection="collection"
     :book="book"

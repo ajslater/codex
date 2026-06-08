@@ -48,7 +48,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.0.0a2"
+version = "2.0.0a3"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -97,10 +97,6 @@ lint = [
 ]
 test = [
   "coverage~=7.0",
-  # OPDS feed schema-compliance validation (tests/test_opds_schema.py):
-  # jsonschema (+referencing) for OPDS 2.0 JSON Schema, lxml for OPDS 1.2
-  # RELAX NG, rnc2rng to read the .rnc grammars. jsonschema/lxml were already
-  # present transitively; pinned here so the test group is self-sufficient.
   "jsonschema~=4.26",
   "lxml~=6.1",
   "pytest-asyncio~=1.0",

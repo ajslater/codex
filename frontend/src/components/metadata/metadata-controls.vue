@@ -13,10 +13,10 @@
       :size="size"
     />
     <FavoriteToggle
-      v-if="favoritePk"
+      v-if="favoritePks.length"
       id="favoriteButton"
-      :collection="collection"
-      :pk="favoritePk"
+      :collection="controlBook.collection"
+      :pks="favoritePks"
     />
     <v-btn
       v-if="isReadButtonShown"
@@ -135,19 +135,26 @@ export default {
       };
     },
     isReadButtonShown() {
-      return this.collection === "comics" && this.$route.name != "reader";
-    },
-    favoritePk() {
       /*
-       * The metadata header only renders this control row when a
-       * single-target view is active, so ``ids`` will normally be a
-       * one-element list. The toggle drives a single backend row, so
-       * hide the star for any unexpected multi-id payload rather
-       * than guessing which target to write.
+       * The control row now renders for multi-select too. "Read" opens
+       * a single comic, so only show it when the selection resolves to
+       * exactly one comic — never the arbitrary "first of N selected".
        */
-      const ids = this.md?.ids;
-      if (!Array.isArray(ids) || ids.length !== 1) return undefined;
-      return ids[0];
+      return (
+        this.collection === "comics" &&
+        this.$route.name != "reader" &&
+        (this.md?.ids?.length ?? 0) === 1
+      );
+    },
+    favoritePks() {
+      /*
+       * Favorite the selection target itself (``controlBook`` = the
+       * card item or the multi-select composite), keyed by its own
+       * collection + ids — never ``md.ids`` (the tag aggregate). The
+       * star handles one or many; bulk-favorites the whole selection.
+       */
+      const ids = this.controlBook?.ids;
+      return Array.isArray(ids) ? ids.map(Number) : [];
     },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);

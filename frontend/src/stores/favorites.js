@@ -77,6 +77,40 @@ export const useFavoritesStore = defineStore("favorites", {
         console.error(error);
       }
     },
+    async setManyFavorites(collection, pks, on) {
+      /*
+       * Bulk variant of ``toggle`` for multi-select: drive every pk to
+       * the same target state ``on``. There's no bulk favorites
+       * endpoint, so loop the idempotent single-target PUT/DELETE calls.
+       * Same optimistic contract as ``toggle`` — flip locally first,
+       * then roll back only the pks whose call rejected so the UI never
+       * lies. pks already in the target state are skipped (no redundant
+       * request, nothing to roll back).
+       */
+      const set = this.favoriteIds[collection];
+      if (!set) {
+        console.error(`Unknown favorite collection ${collection}`);
+        return;
+      }
+      const changed = [];
+      for (const pk of pks) {
+        if (set.has(pk) === on) {
+          continue;
+        }
+        this._setLocal(collection, pk, on);
+        changed.push(pk);
+      }
+      const apiCall = on ? API.addFavorite : API.removeFavorite;
+      const results = await Promise.allSettled(
+        changed.map((pk) => apiCall(collection, pk)),
+      );
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          this._setLocal(collection, changed[index], !on);
+          console.error(result.reason);
+        }
+      });
+    },
     _setLocal(collection, pk, on) {
       const set = this.favoriteIds[collection];
       if (!set) return;
