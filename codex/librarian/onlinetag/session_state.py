@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 from comicbox.online_session import PromptResponse
 
+from codex.librarian.onlinetag.outcome_stats import OnlineTagOutcomeStats
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -27,6 +29,7 @@ class SessionState:
     cancelled: bool = False
     total_comics: int = 0
     completed_comics: int = 0
+    stats: OnlineTagOutcomeStats = field(default_factory=OnlineTagOutcomeStats)
 
 
 class CodexPromptHandler:

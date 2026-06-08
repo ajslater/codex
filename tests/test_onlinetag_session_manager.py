@@ -15,6 +15,7 @@ from types import SimpleNamespace
 from typing import Any, ClassVar, Final, override
 from unittest.mock import patch
 
+from comicbox.events import AutoWritten, FileFinished
 from django.core.cache import cache
 from django.test import TestCase
 from loguru import logger
@@ -210,6 +211,38 @@ class OnlineTagSessionManagerTests(TestCase):
         # No ambiguous match was queued for later resolution.
         assert get_pending_prompts() == {}
         assert get_active_scan_id() == ""
+
+    def test_run_session_logs_outcome_summary(self) -> None:
+        comic = _make_comic()
+        comic_path = Path(comic.path)
+        on_event = self.manager._on_event  # noqa: SLF001
+
+        def _drive(_state, _paths, **_kwargs) -> None:
+            # Stand in for comicbox emitting events as it tags the one comic.
+            on_event(AutoWritten(path=comic_path, source="metron"))
+            on_event(FileFinished(path=comic_path, outcome="written"))
+
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(collect_results=_drive)
+        )
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-summary",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        messages: list[str] = []
+        sink_id = logger.add(messages.append, level="INFO", format="{message}")
+        try:
+            with patch(_PATCH_TARGET, _FakeSession):
+                self.manager.run_session(task)
+        finally:
+            logger.remove(sink_id)
+
+        summaries = [m for m in messages if "Online tag session finished" in m]
+        assert len(summaries) == 1
+        assert "matched 1 (metron 1)" in summaries[0]
 
     def test_resolve_choose_applies_via_fresh_session_and_writes(self) -> None:
         comic = _make_comic()

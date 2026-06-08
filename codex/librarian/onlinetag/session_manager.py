@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
+from time import monotonic
 from typing import TYPE_CHECKING, Any, cast
 
 from comicbox.events import Event, PromptDeferred, RateLimited
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
+from humanize import naturaldelta
 
 from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
 from codex.librarian.onlinetag.session_cache import (
@@ -80,8 +82,18 @@ class OnlineTagSessionManager:
 
     # --- events --------------------------------------------------------
 
+    def _active_state(self) -> SessionState | None:
+        """Return the running scan's state, or None when no scan is in flight."""
+        with self._lock:
+            if not self._active_session_id:
+                return None
+            return self._sessions.get(self._active_session_id)
+
     def _on_event(self, event: Event) -> None:
         """Handle comicbox online events."""
+        state = self._active_state()
+        if state is not None:
+            state.stats.record(event)
         match event:
             case RateLimited():
                 self._pass_runner.rate_limited = True
@@ -92,21 +104,10 @@ class OnlineTagSessionManager:
                     lookup_status.subtitle = f"rate limited by {event.source}{wait}"
                     lookup_status.since_updated = 0
                     self.status_controller.update(lookup_status, notify=True)
-            case PromptDeferred():
-                self._persist_active_prompts()
+            case PromptDeferred() if state is not None:
+                self._persist_prompts(state)
             case _:
                 pass
-
-    def _persist_active_prompts(self) -> None:
-        """Snapshot the running scan's deferred prompts into the cache."""
-        with self._lock:
-            state = (
-                self._sessions.get(self._active_session_id)
-                if self._active_session_id
-                else None
-            )
-        if state:
-            self._persist_prompts(state)
 
     # --- mid-scan queue draining ---------------------------------------
 
@@ -227,6 +228,7 @@ class OnlineTagSessionManager:
             self._sessions[task.session_id] = state
         set_active_scan_id(task.session_id)
 
+        start = monotonic()
         try:
             # Pass 1: auto-match and write the confident comics. When deferring,
             # ambiguous matches become deferred prompts persisted for later,
@@ -237,11 +239,21 @@ class OnlineTagSessionManager:
             )
             if defer_prompts:
                 self._persist_prompts(state)
+            self._log_summary(state, start)
         finally:
             with self._lock:
                 self._sessions.pop(task.session_id, None)
             self._active_session_id = None
             set_active_scan_id("")
+
+    def _log_summary(self, state: SessionState, start: float) -> None:
+        """Log how the scan's comics resolved across sources, skips, and prompts."""
+        stats = state.stats
+        if not stats.total:
+            self.log.debug("Online tag: session finished with no comics processed.")
+            return
+        level = "SUCCESS" if stats.matched else "INFO"
+        self.log.log(level, stats.summary(elapsed=naturaldelta(monotonic() - start)))
 
     def cancel_session(self, session_id: str) -> None:
         """Cancel the in-flight scan (does not touch lingering prompts)."""
