@@ -42,6 +42,14 @@ class _RecordingController:
         total = status.total if status else None
         self.calls.append(("finish", complete, total, id(status) if status else 0))
 
+    def non_finish(self) -> list[tuple[str, int | None, int | None, int]]:
+        """Every recorded call except the terminal ``finish``."""
+        return [call for call in self.calls if call[0] != "finish"]
+
+    def named(self, name: str) -> list[tuple[str, int | None, int | None, int]]:
+        """Every recorded call matching ``name``."""
+        return [call for call in self.calls if call[0] == name]
+
 
 def _writer_with_recorder() -> tuple[TagWriter, _RecordingController]:
     """Build a TagWriter without the threading machinery, recording status calls."""
@@ -64,20 +72,19 @@ def test_progress_monotonic_under_out_of_order_completion() -> None:
         writer._on_event(FileParsed(index=index, total=total))  # noqa: SLF001
     writer._on_event(BatchFinished(total=total, parsed=total))  # noqa: SLF001
 
-    progress = [count for name, count, _, _ in controller.calls if name != "finish"]
+    non_finish = controller.non_finish()
+    progress = [complete for _, complete, _, _ in non_finish]
     # Strictly increasing despite the jumbled indices: the regression guard.
     # With the old ``status.complete = event.index`` this would read
     # [0, 3, 0, 4, 1, 2] -- up, down, up, down.
     assert progress == [0, 1, 2, 3, 4, 5]
 
-    totals = {t for name, _, t, _ in controller.calls if name != "finish"}
+    totals = {t for _, _, t, _ in non_finish}
     assert totals == {total}  # denominator stays constant
 
     # A single status instance for the whole batch keeps ``since_updated``
     # alive so StatusController's rate-limit can actually throttle.
-    update_idents = {
-        ident for name, _, _, ident in controller.calls if name == "update"
-    }
+    update_idents = {ident for _, _, _, ident in controller.named("update")}
     assert len(update_idents) == 1
 
     assert controller.calls[-1][0] == "finish"
@@ -94,5 +101,5 @@ def test_errored_files_still_advance_progress() -> None:
     writer._on_event(FileParsed(index=2, total=total))  # noqa: SLF001
     writer._on_event(BatchFinished(total=total, parsed=2, errored=1))  # noqa: SLF001
 
-    final = [count for name, count, _, _ in controller.calls if name == "update"][-1]
+    final = [complete for _, complete, _, _ in controller.named("update")][-1]
     assert final == total

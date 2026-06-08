@@ -28,12 +28,16 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         """
         if not total_count:
             return qs.model.objects.none(), 0
+        per_page = get_browser_max_obj_per_page()
         orphans = (
             0
             if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
             else 5
         )
-        paginator = Paginator(qs, get_browser_max_obj_per_page(), orphans=orphans)
+        # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
+        # A small admin-configured page size would otherwise trip this.
+        orphans = min(orphans, per_page - 1)
+        paginator = Paginator(qs, per_page, orphans=orphans)
         # Shadow the @cached_property with the pre-computed total so
         # Paginator.num_pages doesn't issue its own COUNT query.
         paginator.count = total_count  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[invalid-assignment]

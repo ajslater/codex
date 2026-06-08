@@ -24,6 +24,9 @@ from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 # "issue" (code 4000). Volumes/series/etc. are not taggable issue ids.
 _ISSUE_TYPE = "issue"
 _CV_ISSUE_CODE = "4000"
+# Default for ``configured_sources`` — hoisted out of the signature so the
+# empty-frozenset construction isn't a call in a parameter default.
+_NO_SOURCES: frozenset[str] = frozenset()
 
 
 def parse_identifier_url(url: str) -> tuple[str, str, str] | None:
@@ -51,7 +54,7 @@ def parse_identifier_input(
     raw: str,
     *,
     source_hint: str | None = None,
-    configured_sources: frozenset[str] = frozenset(),
+    configured_sources: frozenset[str] = _NO_SOURCES,
 ) -> tuple[str, int]:
     """
     Resolve a free-form identifier to ``(source, issue_id)``.
