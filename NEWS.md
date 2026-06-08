@@ -35,7 +35,8 @@ border-radius: 128px;
       story arcs, identifiers, and more — written back to your comic files.
     - Online tagging: look up and apply metadata from online sources, with
       interactive match prompts, rate-limit display, and per-source credentials
-      in the new Admin Tagging tab.
+      in the new Admin Tagging tab. Or tag a single comic directly by a known
+      Metron or Comic Vine issue id or URL, skipping the search.
     - Upload, replace, and remove custom covers for any group from the web UI,
       plus a Custom Covers admin tab.
     - Back up and restore all user data — accounts, bookmarks, favorites,

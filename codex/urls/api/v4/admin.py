@@ -42,6 +42,7 @@ from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
 from codex.views.admin.tagwrite import (
     AdminParseIdentifierURLView,
+    AdminTagByIdView,
     AdminTagWritePreflightView,
     AdminTagWriteView,
 )
@@ -241,6 +242,11 @@ urlpatterns = [
         "identifier-url",
         AdminParseIdentifierURLView.as_view(),
         name="identifier_url",
+    ),
+    path(
+        "tag-by-id",
+        AdminTagByIdView.as_view(),
+        name="tag_by_id",
     ),
     path(
         "tag-write/preflight",

@@ -7,6 +7,7 @@ from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
+    OnlineTagByIdTask,
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
@@ -57,6 +58,8 @@ class OnlineTagThread(QueuedThread):
         match item:
             case BulkOnlineTagTask():
                 self.session_manager.run_session(item)
+            case OnlineTagByIdTask():
+                self.session_manager.tag_by_id(item)
             case OnlineTagAbortTask():
                 self.session_manager.cancel_session(item.session_id)
             case OnlineTagPromptResponseTask():

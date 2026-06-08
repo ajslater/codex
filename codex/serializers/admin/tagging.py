@@ -42,6 +42,15 @@ class OnlineTagStartSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
 
 
+class TagByIdRequestSerializer(Serializer):
+    """Serializer for tagging one comic by a known online issue id."""
+
+    collection = CharField()
+    pk = CharField()
+    identifier = CharField()
+    source = CharField(required=False, allow_blank=True, default="")
+
+
 class OnlineTagPromptResponseSerializer(Serializer):
     """Serializer for admin response to an online tag prompt."""
 

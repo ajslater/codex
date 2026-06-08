@@ -10,11 +10,19 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.onlinetag.tasks import OnlineTagByIdTask
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
-from codex.serializers.admin.tagging import TagWriteRequestSerializer
+from codex.serializers.admin.tagging import (
+    TagByIdRequestSerializer,
+    TagWriteRequestSerializer,
+)
 from codex.views.admin.auth import AdminAPIView
+from codex.views.admin.identifier_parse import (
+    parse_identifier_input,
+    parse_identifier_url,
+)
 from codex.views.browser.filters.filter import BrowserFilterView
 
 
@@ -62,30 +70,93 @@ class AdminParseIdentifierURLView(AdminAPIView):
 
     def post(self, request):
         """Parse a URL and return identifier components."""
-        from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
-
         url = request.data.get("url", "").strip()
         if not url:
             return Response({"detail": "No URL provided."}, status=400)
 
-        for source_enum, parts in IDENTIFIER_PARTS_MAP.items():
-            if parts.domain in url:
-                try:
-                    id_type, id_key = parts.parse_url_path(url)
-                    return Response(
-                        {
-                            "source": source_enum.value,
-                            "id_type": id_type,
-                            "key": id_key,
-                        }
-                    )
-                except Exception:
-                    break
+        parsed = parse_identifier_url(url)
+        if parsed is None:
+            return Response(
+                {"detail": "Could not parse URL. No matching source found."},
+                status=400,
+            )
+        source, id_type, id_key = parsed
+        return Response({"source": source, "id_type": id_type, "key": id_key})
 
-        return Response(
-            {"detail": "Could not parse URL. No matching source found."},
-            status=400,
+
+class AdminTagByIdView(FilteredComicPksView):
+    """Tag a single comic by a known Metron / Comic Vine issue id (no search)."""
+
+    @staticmethod
+    def _get_defaults() -> ComicboxTaggingDefaults | None:
+        """Load the tagging-defaults singleton, or None when unset."""
+        try:
+            return ComicboxTaggingDefaults.objects.get(pk=1)
+        except ComicboxTaggingDefaults.DoesNotExist:
+            return None
+
+    @staticmethod
+    def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
+        """Which online sources actually have credentials configured."""
+        if not defaults:
+            return frozenset()
+        sources = set()
+        if defaults.metron_user and defaults.metron_password:
+            sources.add("metron")
+        if defaults.comicvine_key:
+            sources.add("comicvine")
+        return frozenset(sources)
+
+    @staticmethod
+    def _write_defaults(
+        defaults: ComicboxTaggingDefaults | None,
+    ) -> tuple[tuple[str, ...], bool]:
+        """Resolve the write formats and delete-original flag from defaults."""
+        if not defaults:
+            return ("COMIC_INFO",), False
+        formats = tuple(defaults.default_formats) or ("COMIC_INFO",)
+        return formats, bool(defaults.delete_original)
+
+    def post(self, request):
+        """Parse the identifier, resolve the comic, and enqueue an id fetch."""
+        serializer = TagByIdRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        defaults = self._get_defaults()
+        configured = self._configured_sources(defaults)
+        if not configured:
+            return Response(
+                {"detail": "No online source credentials configured."}, status=400
+            )
+        try:
+            source, issue_id = parse_identifier_input(
+                data["identifier"],
+                source_hint=data.get("source") or None,
+                configured_sources=configured,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        if source not in configured:
+            return Response(
+                {"detail": f"No {source} credentials configured."}, status=400
+            )
+
+        comic_pks = self.resolve_comic_pks(data["collection"], [data["pk"]])
+        if len(comic_pks) != 1:
+            return Response({"detail": "No comic matched."}, status=400)
+        (comic_pk,) = tuple(comic_pks)
+
+        formats, delete_original = self._write_defaults(defaults)
+        task = OnlineTagByIdTask(
+            comic_pk=comic_pk,
+            source=source,
+            issue_id=issue_id,
+            formats=formats,
+            delete_original=delete_original,
         )
+        LIBRARIAN_QUEUE.put(task)
+        return Response({"source": source, "id": issue_id}, status=HTTP_202_ACCEPTED)
 
 
 class AdminTagWritePreflightView(FilteredComicPksView):

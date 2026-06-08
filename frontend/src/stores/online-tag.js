@@ -28,6 +28,17 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.activeSessionId = response.data.sessionId;
       return response.data;
     },
+    async tagById({ collection, pk, identifier, source }) {
+      // Tag one comic by a known Metron / Comic Vine issue id, skipping
+      // search. Returns the resolved { source, id } the server queued.
+      const response = await HTTP.post("/admin/tag-by-id", {
+        collection,
+        pk: String(pk),
+        identifier,
+        source: source || "",
+      });
+      return response.data;
+    },
     async discoverSession() {
       const response = await HTTP.get("/admin/tag-sessions");
       const sid = response.data.sessionId;

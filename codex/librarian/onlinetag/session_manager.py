@@ -21,7 +21,11 @@ from comicbox.events import Event, PromptDeferred, RateLimited
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
 from humanize import naturaldelta
 
-from codex.librarian.notifier.tasks import ONLINE_TAG_PROMPT_TASK
+from codex.librarian.notifier.tasks import (
+    ONLINE_TAG_PROMPT_TASK,
+    TAG_WRITE_ERRORS_CHANGED_TASK,
+)
+from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
 from codex.librarian.onlinetag.session_cache import (
     add_pending_prompts,
     get_pending_prompts,
@@ -35,7 +39,12 @@ from codex.librarian.onlinetag.session_state import (
     serialize_candidate,
 )
 from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
-from codex.librarian.onlinetag.tasks import BulkOnlineTagTask, OnlineTagAbortTask
+from codex.librarian.onlinetag.tasks import (
+    BulkOnlineTagTask,
+    OnlineTagAbortTask,
+    OnlineTagByIdTask,
+)
+from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
@@ -78,6 +87,61 @@ class OnlineTagSessionManager:
             metron_url=defaults.metron_url or "",
             comicvine_key=defaults.comicvine_key or "",
             comicvine_url=defaults.comicvine_url or "",
+        )
+
+    @staticmethod
+    def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
+        """Whether ``credentials`` actually carries auth for ``source``."""
+        if source == "metron":
+            return bool(credentials.metron_user and credentials.metron_password)
+        if source == "comicvine":
+            return bool(credentials.comicvine_key)
+        return False
+
+    # --- tag by explicit id (no search) --------------------------------
+
+    def tag_by_id(self, task: OnlineTagByIdTask) -> None:
+        """
+        Tag one comic by a known online issue id, skipping search entirely.
+
+        The operator already knows the exact Metron / Comic Vine issue, so we
+        fetch that record directly and hand the tags to the same
+        ``BulkTagWriteTask`` write + re-import path the scan uses. A wrong or
+        unknown id resolves to nothing; that surfaces in the admin Tagging-tab
+        error panel rather than silently re-writing the comic's existing tags.
+        """
+        comic = Comic.objects.filter(pk=task.comic_pk).only("pk", "path").first()
+        if not comic:
+            self.log.warning(f"Online tag by id: comic {task.comic_pk} not found.")
+            return
+        path = Path(comic.path)
+        credentials = self._build_credentials()
+        if not credentials or not self._source_has_credentials(
+            credentials, task.source
+        ):
+            self.log.warning(
+                f"Online tag by id: no {task.source} credentials configured."
+            )
+            return
+
+        tags = fetch_tags_by_explicit_id(path, task.source, task.issue_id, credentials)
+        if not tags:
+            msg = f"No {task.source} issue found for id {task.issue_id}."
+            self.log.warning(f"Online tag by id: {msg} ({path})")
+            add_tag_write_error(str(path), msg)
+            self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
+            return
+
+        write_task = BulkTagWriteTask(
+            comic_pks=frozenset({comic.pk}),
+            per_comic_patches={comic.pk: tags},
+            mode="update",
+            formats=task.formats,
+            delete_original=task.delete_original,
+        )
+        self.librarian_queue.put(write_task)
+        self.log.info(
+            f"Online tag by id: applied {task.source}:{task.issue_id} to {path}."
         )
 
     # --- events --------------------------------------------------------

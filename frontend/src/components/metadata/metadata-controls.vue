@@ -32,6 +32,7 @@
     <OnlineTagLauncherDialog
       v-if="isUserAdmin"
       :book="controlBook"
+      :identifiers="md?.identifiers"
       :size="size"
       @started="$emit('onlineTagStarted')"
     />

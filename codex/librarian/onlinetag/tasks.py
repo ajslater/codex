@@ -33,6 +33,17 @@ class OnlineTagAbortTask(OnlineTagTask):
 
 
 @dataclass
+class OnlineTagByIdTask(OnlineTagTask):
+    """Tag one comic by a known online issue id (skips search)."""
+
+    comic_pk: int
+    source: str
+    issue_id: int
+    formats: tuple[str, ...] = ("COMIC_INFO",)
+    delete_original: bool = False
+
+
+@dataclass
 class OnlineTagPromptResponseTask(OnlineTagTask):
     """Admin response to a deferred online tagging prompt (keyed by fingerprint)."""
 
