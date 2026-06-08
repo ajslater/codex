@@ -751,6 +751,15 @@ ROOT_CACHE_PATH = (
 )
 DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
 DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+# Persist comicbox's online-tagging sqlite caches alongside Codex's other
+# caches (under the /config volume) instead of comicbox's default ephemeral
+# platformdirs location (e.g. ~/.cache/comicbox), which is lost when a Docker
+# container is recreated. comicbox reads COMICBOX_ONLINE_CACHE_DIR in
+# get_config(); OnlineSession picks it up per scan and on worker subprocesses.
+# setdefault leaves an explicitly-set value in place as a power-user override.
+COMICBOX_CACHE_PATH = ROOT_CACHE_PATH / "comicbox"
+COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+environ.setdefault("COMICBOX_ONLINE_CACHE_DIR", str(COMICBOX_CACHE_PATH))
 # MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
 # too small once the cache holds (a) cachalot query results — often
 # 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
