@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from comicbox.config import get_config
-from comicbox.events import BatchFinished, BatchStarted, FileParsed
+from comicbox.events import (
+    BatchFinished,
+    BatchStarted,
+    FileError,
+    FileParsed,
+    FileShortCircuited,
+)
 from comicbox.write import BulkWriteItem, bulk_write
 
 from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
@@ -28,20 +34,32 @@ if TYPE_CHECKING:
 class TagWriter(WorkerStatusAbortableBase):
     """Write tags via comicbox.bulk_write and trigger re-import."""
 
+    # One status instance for the whole batch, created on BatchStarted.
+    # comicbox runs writes on a thread pool and emits per-file events in
+    # *completion* order, each carrying the file's *submission* index.
+    # Tracking our own monotonic completion count (rather than echoing
+    # ``event.index``) stops the progress bar oscillating. Reusing one
+    # instance also keeps ``since_updated`` alive so StatusController's
+    # rate-limit throttles instead of firing a DB write per file.
+    _status: TagWriteStatus | None = None
+
     def _on_event(self, event: Event) -> None:
         """Translate comicbox write events into librarian status updates."""
-        status = TagWriteStatus()
         match event:
             case BatchStarted():
-                status.total = event.total
-                status.complete = 0
-                self.status_controller.start(status)
-            case FileParsed():
-                status.complete = event.index
-                status.total = event.total
-                self.status_controller.update(status)
+                self._status = TagWriteStatus(complete=0, total=event.total)
+                self.status_controller.start(self._status)
+            case FileParsed() | FileError() | FileShortCircuited():
+                # Every terminal per-file outcome advances progress so the
+                # count climbs monotonically to ``total`` even when some
+                # files error out.
+                if self._status is None:
+                    return
+                self._status.increment_complete()
+                self.status_controller.update(self._status)
             case BatchFinished():
-                self.status_controller.finish(status)
+                self.status_controller.finish(self._status)
+                self._status = None
             case _:
                 pass
 

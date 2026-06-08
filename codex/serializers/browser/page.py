@@ -267,6 +267,11 @@ class BrowserPageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_collection = BrowseCollectionField(read_only=True)
     num_pages = IntegerField(read_only=True)
+    # Full filtered membership count (collections + books, pre-pagination). The
+    # refresh gate stores it and compares against BrowserHeadView's count so a
+    # filtered-view membership change (a comic leaving the filter) reloads even
+    # when the mtime alone wouldn't move. See BrowserHeadSerializer.
+    count = IntegerField(read_only=True)
     collections = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     rows = SerializerMethodField()
@@ -321,3 +326,17 @@ class BrowserPageSerializer(Serializer):
             return "cover"
         columns = instance.get("columns")
         return "table" if columns else "cover"
+
+
+class BrowserHeadSerializer(Serializer):
+    """
+    Lightweight ``library.changed`` refresh-gate probe.
+
+    Returns just the page ``mtime`` and the full filtered membership ``count``
+    for a route, computed by the same ``BrowserView`` querysets as the page, so
+    the frontend can compare both against its last full page load and reload
+    when either moved — without re-fetching/serializing the whole page.
+    """
+
+    mtime = TimestampField(read_only=True)
+    count = IntegerField(read_only=True)

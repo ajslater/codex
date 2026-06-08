@@ -150,7 +150,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     @override
     def get_object(self) -> MappingProxyType:
         """Get the browser page and serialize it for this subclass."""
-        collection_qs, book_qs, _, _, zero_pad, mtime = self.collection_and_books
+        collection_qs, book_qs, _, _, zero_pad, mtime, _ = self.collection_and_books
         # convert browser_page into opds pagej
         browser_title = self.get_browser_page_title()
         title = "Start" if self.IS_START_PAGE else self._title(browser_title)

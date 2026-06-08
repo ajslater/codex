@@ -189,14 +189,14 @@ wheels = [
 
 [[package]]
 name = "basedpyright"
-version = "1.39.6"
+version = "1.39.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nodejs-wheel-binaries" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/1a/48296b4479ccc9051eb9617a6507a69a68f5b68693fb6a118cfe08199270/basedpyright-1.39.6.tar.gz", hash = "sha256:d00ec5f8ba4e1a67dfc2fa3a9474229c89f61f207d14c02d320db78f57aa16ef", size = 25504244, upload-time = "2026-05-24T07:44:41.864Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/e5/0d685b5808436c628ab8b9edad6810b889d11044a962bc42b128543910ea/basedpyright-1.39.7.tar.gz", hash = "sha256:688d913a19c417870c164c630ed9cdd83a8d8b484b30ab8e99f5dec4ae9604a6", size = 25503256, upload-time = "2026-06-07T11:33:27.266Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/07/6d1b3192715d42e8c9887876684a941eff28ec5d79c23a0f3758377e2182/basedpyright-1.39.6-py3-none-any.whl", hash = "sha256:5e0b9befbae6b26d0fbcc6645ac26923725e749d1224539e24f05ab07f9365ad", size = 13182122, upload-time = "2026-05-24T07:44:47.086Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/f4/5b1e8ea279ce8f97a6bb1518c84fa25f5794022053ce10eab22ad3f0b51b/basedpyright-1.39.7-py3-none-any.whl", hash = "sha256:81266deb6044c9be98fb4555e4b7b1a521d8aee06b66e80858d183b0e3991140", size = 13182666, upload-time = "2026-06-07T11:33:24.119Z" },
 ]
 
 [[package]]
@@ -560,7 +560,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "2.0.0a1"
+version = "2.0.0a2"
 source = { editable = "." }
 dependencies = [
     { name = "adrf" },
@@ -3767,14 +3767,14 @@ wheels = [
 
 [[package]]
 name = "servestatic"
-version = "4.3.0"
+version = "4.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/43/67/b295f796111b5b8cc7ff6547e58e5f7c33607ac9f3c41d9f515dbf38b326/servestatic-4.3.0.tar.gz", hash = "sha256:76ccf85cf5acc818348cff3fbcf7343ef182fd90aab6d6a18f038401b609f411", size = 33047, upload-time = "2026-04-10T01:59:06.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/07/c1d5fe373c4f1d86a7a976f5a407daa9335cd8f9b9682b1c25d5f2386207/servestatic-4.3.1.tar.gz", hash = "sha256:e28bdd4fbe13a28374754c2554cec4e1d6c8af4dc65d604b71ef8860a16408fa", size = 32810, upload-time = "2026-06-07T06:17:05.512Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/5e/aa8301dd20c665d3b9255a54face0778ab4ac0c855a32f1e19334f7b5798/servestatic-4.3.0-py3-none-any.whl", hash = "sha256:a1df56fc21175ba826d442310239b4dd65f65b610dfabfa6be4e1101366ca46e", size = 40183, upload-time = "2026-04-10T01:59:05.112Z" },
+    { url = "https://files.pythonhosted.org/packages/50/2f/c1a7d5b949b55bda4a55e49b040f385bc098d307bd4bdeb498c550219473/servestatic-4.3.1-py3-none-any.whl", hash = "sha256:9792a4fe2de1df67e1e87aa4efb3c8d28bb3ebd64128a1a10162db84d87c6b36", size = 39921, upload-time = "2026-06-07T06:17:04.347Z" },
 ]
 
 [package.optional-dependencies]

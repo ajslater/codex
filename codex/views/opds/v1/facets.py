@@ -54,7 +54,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def obj(self) -> MappingProxyType[str, Any]:
         """Get the browser page and serialize it for this subclass."""
         if self._obj is None:
-            collection_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+            collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, _ = (
                 self._get_collection_and_books()
             )
             book_qs = book_qs.select_related("series", "volume", "language")

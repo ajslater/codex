@@ -227,6 +227,11 @@ export const useSocketStore = defineStore("socket", () => {
     adminStore?.loadTagWriteErrors({ force: true });
   }
 
+  async function tagWriteErrorsNotified() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadTagWriteErrors({ force: true });
+  }
+
   async function onlineTagPromptNotified() {
     if (!useAuthStore().isUserAdmin) return;
     import("@/stores/online-tag")

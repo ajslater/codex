@@ -69,8 +69,10 @@
           :title="isFieldDisabled('publisher') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-text-field
+          <v-combobox
             v-model="patch.publisher"
+            :items="collectionOptions('publisher')"
+            :placeholder="collectionPlaceholder('publisher')"
             label="Publisher"
             hide-details
             density="compact"
@@ -87,14 +89,16 @@
                 @toggle="toggleClear('publisher')"
               />
             </template>
-          </v-text-field>
+          </v-combobox>
         </div>
         <div
           :title="isFieldDisabled('imprint') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-text-field
+          <v-combobox
             v-model="patch.imprint"
+            :items="collectionOptions('imprint')"
+            :placeholder="collectionPlaceholder('imprint')"
             label="Imprint"
             hide-details
             density="compact"
@@ -110,7 +114,7 @@
                 @toggle="toggleClear('imprint')"
               />
             </template>
-          </v-text-field>
+          </v-combobox>
         </div>
       </div>
       <div class="inlineRow">
@@ -118,8 +122,10 @@
           :title="isFieldDisabled('series') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-text-field
+          <v-combobox
             v-model="patch.series"
+            :items="collectionOptions('series')"
+            :placeholder="collectionPlaceholder('series')"
             label="Series"
             hide-details
             density="compact"
@@ -135,16 +141,17 @@
                 @toggle="toggleClear('series')"
               />
             </template>
-          </v-text-field>
+          </v-combobox>
         </div>
         <div
           :title="isFieldDisabled('volume') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-text-field
+          <v-combobox
             v-model="patch.volume"
+            :items="collectionOptions('volume')"
+            :placeholder="collectionPlaceholder('volume')"
             label="Volume"
-            type="number"
             hide-details
             density="compact"
             :disabled="isFieldDisabled('volume')"
@@ -159,7 +166,7 @@
                 @toggle="toggleClear('volume')"
               />
             </template>
-          </v-text-field>
+          </v-combobox>
         </div>
         <div
           :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
@@ -978,6 +985,17 @@ const TAG_KEYS = [
   "tags",
 ];
 
+// Single-value collection inputs whose dropdown is seeded from the opened
+// group's own values. When a group spans more than one distinct value (e.g.
+// case-variant publishers) the field starts blank so picking any option —
+// including the first — registers as a change and enables Save.
+const COLLECTION_FIELDS = Object.freeze([
+  "publisher",
+  "imprint",
+  "series",
+  "volume",
+]);
+
 const ALL_ROLES = Object.freeze([
   "Writer",
   "Author",
@@ -1355,6 +1373,27 @@ export default {
     formatDateTime(ds) {
       return getDateTime(ds, this.twentyFourHourTime);
     },
+    collectionOptions(field) {
+      // Distinct, non-empty names from the opened group's list
+      // (md.publisherList, md.imprintList, etc.) for the combobox dropdown.
+      const list = this.md?.[`${field}List`] || [];
+      const seen = new Set();
+      const names = [];
+      for (const o of list) {
+        const n = o?.name;
+        if (n === null || n === undefined || n === "") continue;
+        const key = String(n);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        names.push(n);
+      }
+      return names;
+    },
+    collectionPlaceholder(field) {
+      return this.collectionOptions(field).length > 1
+        ? "Multiple — select one to apply to all"
+        : undefined;
+    },
     initFromMetadata() {
       if (!this.md) return;
 
@@ -1364,11 +1403,12 @@ export default {
       this.patch.notes = this.md.notes || "";
       this.patch.scan_info = this.md.scanInfo?.name || "";
 
-      // Groups
-      this.patch.publisher = this.md.publisherList?.[0]?.name || "";
-      this.patch.imprint = this.md.imprintList?.[0]?.name || "";
-      this.patch.series = this.md.seriesList?.[0]?.name || "";
-      this.patch.volume = this.md.volumeList?.[0]?.name || "";
+      // Groups — seed from the group's own values. Blank when the group spans
+      // more than one distinct value so any pick registers as a change.
+      for (const field of COLLECTION_FIELDS) {
+        const opts = this.collectionOptions(field);
+        this.patch[field] = opts.length > 1 ? "" : (opts[0] ?? "");
+      }
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
       this.patch.volume_count = this.md.seriesVolumeCount || "";
       this.patch.issue_number =

@@ -4,12 +4,16 @@ from codex.librarian.scribe.importer.const import (
     COMIC_M2M_FIELD_NAMES,
     DELETE_M2MS,
     FIELD_NAME_KEY_ATTRS_MAP,
+    FOLDERS_FIELD_NAME,
     LINK_M2MS,
+    STORY_ARC_FIELD_NAME,
+    STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import BaseModel, NamedModel
-from codex.models.collections import BrowserCollectionModel
+from codex.models.collections import BrowserCollectionModel, Folder
 from codex.models.comic import Comic
+from codex.models.named import StoryArc
 from codex.settings import (
     IMPORTER_LINK_FK_BATCH_SIZE,
     IMPORTER_LINK_M2M_BATCH_SIZE,
@@ -29,6 +33,31 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
                 value = value.name
             value_tuple.append(value)
         return tuple(value_tuple)
+
+    def _record_removed_m2m_source_collection(
+        self, field_name: str, m2m_obj: BaseModel
+    ) -> None:
+        """
+        Stash the collection a comic was just removed from (m2m unlink).
+
+        Story arcs (and folders) are browse collections linked m2m, so a comic
+        leaving one must re-stamp the SOURCE arc/folder — ``TimestampUpdater``
+        only re-stamps collections a *current* comic still links into. Mirrors
+        the FK move capture in ``CreateComicsImporter``; the delete phase folds
+        these into the force-update map. Tag-style m2ms (genres, characters, …)
+        are not collections and are ignored here.
+        """
+        if field_name == STORY_ARC_NUMBERS_FIELD_NAME:
+            model: type[BrowserCollectionModel] = StoryArc
+            # m2m_obj is a StoryArcNumber; read its story_arc FK id without a
+            # query (dynamic getattr → Any, matching the codebase's _id idiom).
+            source_pk = getattr(m2m_obj, f"{STORY_ARC_FIELD_NAME}_id")
+        elif field_name == FOLDERS_FIELD_NAME:
+            model = Folder
+            source_pk = m2m_obj.pk
+        else:
+            return
+        self.moved_source_collections.setdefault(model, set()).add(source_pk)
 
     def _query_prune_comic_m2m_links_field_obj(
         self,
@@ -51,6 +80,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
             # Delete existing m2m links that aren't in the new comic
             delete_m2m = (comic.pk, m2m_obj.pk)
             self.metadata[DELETE_M2MS][field_name].add(delete_m2m)
+            self._record_removed_m2m_source_collection(field_name, m2m_obj)
             deleted = True
         return deleted
 

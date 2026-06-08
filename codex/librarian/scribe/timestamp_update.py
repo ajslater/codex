@@ -1,6 +1,6 @@
 """Update Collections timestamp for cover cache busting."""
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import datetime
 
 from django.db.models import QuerySet
@@ -30,16 +30,31 @@ class TimestampUpdater(WorkerStatusBase):
         force_update_collection_map: Mapping,
         library: Library,
     ) -> Q:
+        # Comic/CustomCover ``updated_at`` is stamped with the DB ``Now()``,
+        # which SQLite stores at millisecond precision and *three* fractional
+        # digits (e.g. ``…26.986``). ``start_time`` is a Python microsecond
+        # datetime the ORM serialises with *six* digits (``…26.986605``).
+        # SQLite compares these as TEXT, where ``"…26.986" < "…26.986605"``
+        # (the shorter string is the prefix) — so a comic written in the same
+        # second the import started is *excluded* by ``> start_time``. Its
+        # collections then never get re-stamped and the browser's
+        # ``library.changed`` mtime gate stays blind to a fast re-import such
+        # as a tag write. Floor to the whole second so the bound is
+        # ``…26.000000``, which orders correctly before every millisecond
+        # value in that second. Over-including rows touched earlier in the
+        # same second is harmless — at worst one extra (correct) reload.
+        start_floor = start_time.replace(microsecond=0)
+
         # Get collections with comics updated during this import
         rel = "storyarcnumber__" if model == StoryArc else ""
         updated_at_rel = rel + "comic__updated_at__gt"
         library_rel = rel + "comic__library"
-        updated_filter = {library_rel: library, updated_at_rel: start_time}
+        updated_filter = {library_rel: library, updated_at_rel: start_floor}
         update_filter = Q(**updated_filter)
 
         # Get collections with custom covers updated during this import
         if model != Volume:
-            update_filter |= Q(custom_cover__updated_at__gt=start_time)
+            update_filter |= Q(custom_cover__updated_at__gt=start_floor)
 
         # Get collections to be force updated (usually those with deleted children)
         if pks := force_update_collection_map.get(model):
@@ -48,12 +63,23 @@ class TimestampUpdater(WorkerStatusBase):
         return update_filter
 
     @staticmethod
-    def _add_child_count_filter(qs: QuerySet, model: type[BrowserCollectionModel]):
-        """Filter out collections with no comics."""
+    def _add_child_count_filter(
+        qs: QuerySet,
+        model: type[BrowserCollectionModel],
+        exempt_pks: Collection[int] = (),
+    ):
+        """Filter out collections with no comics, keeping force-updated ones."""
         rel_prefix = "storyarcnumber__" if model == StoryArc else ""
         rel_prefix += "comic"
         qs = qs.alias(child_count=Count(f"{rel_prefix}__pk", distinct=True))
-        return qs.filter(child_count__gt=0)
+        child_filter = Q(child_count__gt=0)
+        if exempt_pks:
+            # A force-updated collection (a comic moved or was deleted OUT of
+            # it) must re-stamp even when it's now empty — otherwise a viewer
+            # of the just-emptied collection never gets the library.changed
+            # refresh. The empty row is reaped by the janitor afterwards.
+            child_filter |= Q(pk__in=exempt_pks)
+        return qs.filter(child_filter)
 
     @classmethod
     def _update_collection_model(
@@ -69,7 +95,9 @@ class TimestampUpdater(WorkerStatusBase):
             model, start_time, force_update_collection_map, library
         )
         qs = model.objects.filter(update_filter)
-        qs = cls._add_child_count_filter(qs, model)
+        qs = cls._add_child_count_filter(
+            qs, model, force_update_collection_map.get(model) or ()
+        )
 
         qs = qs.distinct()
         qs = qs.only(*_UPDATE_FIELDS)

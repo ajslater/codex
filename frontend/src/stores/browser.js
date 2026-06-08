@@ -8,7 +8,6 @@ import {
   useAbortable,
 } from "@/api/v4/abortable";
 import * as API from "@/api/v4/browser";
-import * as COMMON_API from "@/api/v4/common";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { IDENTIFIER_SOURCES, TOP_COLLECTION } from "@/choices/browser-map.json";
@@ -936,37 +935,31 @@ export const useBrowserStore = defineStore("browser", {
     },
     /*
      * Refresh gate for ``library.changed`` (and groups/users) events.
-     * The notification only says *something* changed, so probe the
-     * scoped ``/api/v4/mtime`` for the currently-viewed collection and
-     * reload only when its max mtime differs from the page we last
-     * fetched — skipping a full reload for views the change didn't touch
-     * instead of reloading on every broadcast.
+     * The notification only says *something* changed, so probe the scoped
+     * ``/head`` for the current route — same querysets as the page — and
+     * reload only when its ``mtime`` (in-view content changed) or ``count``
+     * (filtered membership changed: a comic entered or left the active filter)
+     * differs from the page we last fetched. Skips a reload for views the
+     * change didn't touch instead of reloading on every broadcast.
      */
     async loadMtimes() {
-      const { collection: routeCollection, pks } = liveBrowseParams();
-      const collection =
-        routeCollection && routeCollection != "root"
-          ? routeCollection
-          : this.page.modelCollection;
-      // The mtime endpoint's pks field rejects blanks; the root list sends
-      // the legacy "0" sentinel, which the route serializer strips back to
-      // no-parent-ids (deferred-removal wire compat).
-      const arcPks = pks || "0";
-      const arcs = [{ collection, pks: arcPks }];
+      const params = liveBrowseParams();
       /*
        * Dedup so concurrent callers (websocket fan-out across the
        * browser + reader stores, rapid notifications) share one
        * request instead of stampeding.
        */
-      const dedupKey = `browser:loadMtimes:${collection}:${arcPks}`;
+      const dedupKey = `browser:loadMtimes:${params.collection}:${params.pks}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>
-          COMMON_API.getMtime(arcs, this.filterOnlySettings),
+          API.getBrowserHead(params, this.settings),
         );
-        const newMtime = response?.data?.maxMtime;
-        if (newMtime !== this.page.mtime) {
+        const head = response?.data;
+        const changed =
+          head?.mtime !== this.page.mtime || head?.count !== this.page.count;
+        if (changed) {
           this.choices.dynamic = undefined;
-          this.loadBrowserPage(newMtime);
+          this.loadBrowserPage(head?.mtime);
         }
         return true;
       } catch (error) {

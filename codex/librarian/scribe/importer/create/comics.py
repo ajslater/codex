@@ -1,11 +1,14 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 
+from typing import TYPE_CHECKING, cast
+
 from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import (
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
+    COLLECTION_FIELD_NAMES,
     CREATE_COMICS,
     FTS_CREATE,
     FTS_UPDATE,
@@ -25,6 +28,9 @@ from codex.librarian.status import Status
 from codex.models import Comic
 from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
+if TYPE_CHECKING:
+    from codex.models.collections import BrowserCollectionModel
+
 
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
     """Create comics methods."""
@@ -36,6 +42,28 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             if field_name not in NON_FTS_FIELDS:
                 self.metadata[key][sub_key][field_name] = (value,)
 
+    def _record_moved_source_collections(
+        self, comic: Comic, old_collection_pks: dict[str, int | None]
+    ) -> None:
+        """
+        Stash collections this comic just moved OUT of (changed FK).
+
+        ``TimestampUpdater`` only re-stamps a collection a *current* comic
+        still points into, so a publisher/imprint/series/volume change would
+        leave the *source* collection's ``updated_at`` stale and the browser's
+        ``library.changed`` refresh gate blind to the source view's change.
+        The delete phase folds these pks into its force-update map.
+        """
+        for field_name, old_pk in old_collection_pks.items():
+            if old_pk is None or old_pk == getattr(comic, f"{field_name}_id"):
+                continue
+            # COLLECTION_FIELD_NAMES are always concrete collection FKs.
+            model = cast(
+                "type[BrowserCollectionModel]",
+                Comic._meta.get_field(field_name).related_model,
+            )
+            self.moved_source_collections.setdefault(model, set()).add(old_pk)
+
     def _update_comic_values(
         self, comic: Comic, update_comics: list, comic_pks: list
     ) -> None:
@@ -44,6 +72,13 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             setattr(comic, field_name, value)
 
         self._populate_fts_attribute_values(FTS_UPDATE, comic.pk, md)
+        # Snapshot the collection FKs before linking overwrites them so a move
+        # re-stamps the collection the comic left (see
+        # ``_record_moved_source_collections``).
+        old_collection_pks = {
+            field_name: getattr(comic, f"{field_name}_id")
+            for field_name in COLLECTION_FIELD_NAMES
+        }
         link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
         for field_name, value in link_md.items():
             set_value = value
@@ -52,6 +87,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                 if default_value != NOT_PROVIDED:
                     set_value = default_value
             setattr(comic, field_name, set_value)
+        self._record_moved_source_collections(comic, old_collection_pks)
         comic.presave()
         comic.updated_at = Now()
         update_comics.append(comic)

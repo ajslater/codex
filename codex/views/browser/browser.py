@@ -19,7 +19,10 @@ from codex.models import (
     Folder,
     Library,
 )
-from codex.serializers.browser.page import BrowserPageSerializer
+from codex.serializers.browser.page import (
+    BrowserHeadSerializer,
+    BrowserPageSerializer,
+)
 from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
@@ -31,6 +34,7 @@ from codex.views.browser.columns import (
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
+    COLLECTION_MODEL_MAP,
     COMIC_COLLECTION,
     FOLDER_COLLECTION,
     STORY_ARC_COLLECTION,
@@ -274,7 +278,23 @@ class BrowserView(BrowserTitleView):
         return zero_pad
 
     def _get_page_mtime(self):
-        return self.get_collection_mtime(self.model, page_mtime=True)
+        # Compute the mtime of the *container node* being viewed (the rows at
+        # the route collection identified by the route pks), matching exactly
+        # what ``MtimeView`` probes on a ``library.changed`` event so the
+        # frontend's reload gate compares like with like.
+        #
+        # ``self.model`` is the *child* collection shown in the page, but the
+        # page-mtime filter scopes by ``pk__in=route_pks`` (the parent pks).
+        # Reading ``self.model`` there only matched child rows whose pk
+        # happened to equal a parent pk — for real data it never does, so the
+        # aggregate was empty and the page mtime collapsed to EPOCH. Reading
+        # the route collection's own model (kept fresh for the whole subtree by
+        # ``TimestampUpdater``) restores a meaningful, probe-comparable value.
+        # ``Collection.ROOT`` maps to ``None``; fall back to ``self.model``,
+        # which is the top collection there and matches the probe's
+        # model-collection request.
+        model = COLLECTION_MODEL_MAP.get(self.kwargs["collection"]) or self.model
+        return self.get_collection_mtime(model, page_mtime=True)
 
     def _debug_queries(
         self, collection_count, book_count, collection_qs, book_qs
@@ -304,11 +324,11 @@ class BrowserView(BrowserTitleView):
         """Create the main queries with filters, annotation and pagination."""
         collection_qs, collection_count = self._get_collection_queryset()
         book_qs, book_count = self._get_book_queryset()
+        # Full filtered membership (pre-pagination), for the refresh gate.
+        full_count = collection_count + book_count
 
         # Paginate
-        num_pages = ceil(
-            (collection_count + book_count) / get_browser_max_obj_per_page()
-        )
+        num_pages = ceil(full_count / get_browser_max_obj_per_page())
         self.check_page_in_bounds(num_pages)
         collection_qs, book_qs, page_collection_count, page_book_count = self.paginate(
             collection_qs, book_qs, collection_count, book_count
@@ -335,12 +355,20 @@ class BrowserView(BrowserTitleView):
 
         total_page_count = page_collection_count + page_book_count
         mtime = self._get_page_mtime()
-        return collection_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
+        return (
+            collection_qs,
+            book_qs,
+            num_pages,
+            total_page_count,
+            zero_pad,
+            mtime,
+            full_count,
+        )
 
     @override
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
-        collection_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
+        collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count = (
             self._get_collection_and_books()
         )
 
@@ -361,6 +389,7 @@ class BrowserView(BrowserTitleView):
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,
                 "total_count": total_count,
+                "count": count,
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist_flag,
                 "mtime": mtime,
@@ -417,3 +446,29 @@ class BrowserView(BrowserTitleView):
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)
+
+
+class BrowserHeadView(BrowserView):
+    """
+    Lightweight ``{mtime, count}`` probe for the ``library.changed`` gate.
+
+    Reuses ``BrowserView``'s filtered querysets so both signals match the page
+    exactly, but skips pagination, card/cover annotation, and card
+    serialization. The frontend compares ``(mtime, count)`` against the values
+    from its last full page load: ``mtime`` catches in-view edits; ``count``
+    (full filtered membership) catches a comic entering or *leaving* the active
+    filter, which the per-collection ``mtime`` alone can miss.
+    """
+
+    serializer_class: type[BaseSerializer] | None = BrowserHeadSerializer
+
+    @override
+    def get(self, *_args, **_kwargs) -> Response:
+        """Return only the page mtime and the full filtered membership count."""
+        _, collection_count = self._get_collection_queryset()
+        _, book_count = self._get_book_queryset()
+        data = {
+            "mtime": self._get_page_mtime(),
+            "count": collection_count + book_count,
+        }
+        return Response(self.get_serializer(data).data)

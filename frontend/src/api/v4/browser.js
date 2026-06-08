@@ -122,6 +122,19 @@ export const getBrowserPage = (
   });
 };
 
+/*
+ * Lightweight {mtime, count} probe for the library.changed refresh gate.
+ * Same route + settings as getBrowserPage so both signals match the page;
+ * a fresh ts busts any cache so the probe reflects the current DB.
+ */
+export const getBrowserHead = ({ collection, pks }, data, options = {}) => {
+  const params = serializeParams(data, Date.now(), false);
+  return HTTP.get(`/browse/${_segment(collection, pks)}/head`, {
+    params,
+    ...options,
+  });
+};
+
 export const getMetadata = ({ collection, pks }, settings) => {
   const { mtime, ...data } = toRaw(settings) || {};
   const params = serializeParams(data, mtime, false);

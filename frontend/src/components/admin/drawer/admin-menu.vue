@@ -35,6 +35,13 @@
       :title="promptsLabel"
       @click="openPrompts"
     />
+    <CodexListItem
+      v-if="showTagWriteErrors"
+      class="tagWriteErrorsLink"
+      :to="{ name: 'admin-tagging', hash: '#tagging-errors' }"
+      :prepend-icon="mdiAlertCircle"
+      title="Tag Write Errors"
+    />
     <AdminStatusList />
   </div>
 </template>

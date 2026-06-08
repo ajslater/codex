@@ -15,7 +15,7 @@ the optional segment, once with — so Django's URLconf doesn't need a
 from django.urls import path
 
 from codex.views.browser.bookmark import BookmarkView
-from codex.views.browser.browser import BrowserView
+from codex.views.browser.browser import BrowserHeadView, BrowserView
 from codex.views.browser.choices import (
     BrowserChoicesAvailableView,
     BrowserChoicesView,
@@ -45,6 +45,7 @@ def _pair(suffix: str, view, name: str):
 
 urlpatterns = [
     *_pair("", BrowserView, "list"),
+    *_pair("/head", BrowserHeadView, "head"),
     *_pair("/choices", BrowserChoicesAvailableView, "choices"),
     *_pair("/choices/<str:field_name>", BrowserChoicesView, "choices_field"),
     *_pair("/metadata", MetadataView, "metadata"),

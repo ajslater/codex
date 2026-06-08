@@ -33,16 +33,16 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         super().__init__(*args, **kwargs)
         self._num_pages: int | None = None
         self._collection_and_books: (
-            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
+            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int] | None
         ) = None
         self._user_agent_name: str | None = None
 
     @property
     def collection_and_books(
         self,
-    ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None]:
+    ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int]:
         """Memoize Collection And Books for num_pages."""
-        # collection_qs, book_qs, num_pages, total_count, zero_pad, mtime
+        # collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count
         if self._collection_and_books is None:
             self._collection_and_books = self._get_collection_and_books()
         return self._collection_and_books

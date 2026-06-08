@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from multiprocessing.queues import Queue
 from pathlib import Path
 from time import sleep, time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.utils.timezone import now
 
@@ -52,6 +52,9 @@ from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
 from codex.settings import LOGLEVEL
+
+if TYPE_CHECKING:
+    from codex.models.collections import BrowserCollectionModel
 
 _WRITE_WAIT_EXPIRY = 60
 
@@ -108,6 +111,14 @@ class InitImporter(WorkerStatusBase):
         # operational state, not parsed comic data — keeps the metadata
         # fixture-comparable in tests.
         self.cover_create_pks: set[int] = set()
+        # Per-import accumulator of collections a comic moved OUT of when its
+        # publisher/imprint/series/volume FK changed during an update. The
+        # delete phase folds these into ``TimestampUpdater``'s force-update map
+        # so the *source* collection's ``updated_at`` advances too — otherwise a
+        # move only re-stamps the destination (the one collection a current
+        # comic still points into) and the browser's ``library.changed`` refresh
+        # gate never sees the source view change. Keyed by collection model.
+        self.moved_source_collections: dict[type[BrowserCollectionModel], set[int]] = {}
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()

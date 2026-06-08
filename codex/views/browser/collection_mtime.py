@@ -4,6 +4,7 @@ import hashlib
 import json
 from typing import TYPE_CHECKING
 
+from cachalot.api import cachalot_disabled
 from django.core.cache import cache as _django_cache
 from django.db.models.aggregates import Aggregate, Max
 from django.db.models.functions import Greatest
@@ -161,10 +162,24 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             )
         try:
             qs = qs.annotate(max=Greatest(*agg_terms))
-            # Forcing inner joins makes search work
-            # Can't run demote_joins on aggregate.
+            # ``force_inner_joins`` makes search work and drops empty
+            # collections. It can't run on an ``.aggregate()``, so we annotate
+            # the per-row mtime and then take the MAX row explicitly.
             qs = self.force_inner_joins(qs)
-            first = qs.first()
+            # Order by the per-row mtime DESC and take the top row so this is
+            # the GLOBAL max across the collection — NOT whichever row an
+            # implicit ``ORDER BY pk`` ``.first()`` surfaced. At root that
+            # returned the lowest-pk publisher's mtime, so an edit to any
+            # other collection never moved the value and the refresh gate
+            # stayed blind.
+            #
+            # Read fresh, bypassing cachalot: this is the "did the viewed
+            # collection change?" probe, and a librarian-process
+            # ``bulk_update`` of ``collection.updated_at`` is not reliably
+            # reflected in a web worker's cached aggregate. It's a single
+            # indexed scan — cheap to run uncached every probe.
+            with cachalot_disabled():
+                first = qs.order_by("-max").first()
             mtime = first.max if first else EPOCH_START
         except OperationalError as exc:
             self._handle_operational_error(exc)
