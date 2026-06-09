@@ -77,6 +77,10 @@ def restore(
         _restore_bookmarks(store, report, dry_run=dry_run)
         _restore_favorites(store, report, dry_run=dry_run)
         _restore_settings_browser(store, report, dry_run=dry_run)
+        total_written = sum(report.written.values())
+        total_skipped = sum(report.skipped.values())
+        mode = "Dry-run restore" if dry_run else "Restored user data"
+        logger.info(f"{mode}: {total_written} written, {total_skipped} skipped.")
         return report
     finally:
         cleanup()

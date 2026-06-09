@@ -162,9 +162,7 @@ class JanitorVacuum(JanitorIntegrity):
         status = JanitorDumpUserDataStatus()
         try:
             self.status_controller.start(status)
-            counts = snapshot_sidecar()
-            total = sum(counts.values())
-            self.log.info(f"Snapshotted user data sidecar: {total} rows")
+            snapshot_sidecar()
         except Exception:
             self.log.exception("Sidecar dump failed.")
         finally:

@@ -207,6 +207,8 @@ def snapshot_sidecar() -> dict[str, int]:
 
     prune_dated(BACKUP_DB_DIR, SIDECAR_BACKUP_PATTERN)
     _remove_legacy_sidecar(CONFIG_PATH)
+    total = sum(counts.values())
+    logger.info(f"Snapshotted user data sidecar to {dest.name}: {total} rows")
     return counts
 
 

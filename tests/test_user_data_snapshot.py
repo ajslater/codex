@@ -5,19 +5,35 @@ from __future__ import annotations
 import lzma
 import shutil
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from loguru import logger
 
 from codex.user_data.dump import snapshot_sidecar
 from codex.user_data.restore import restore
 from codex.xz import date_stamp
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 _TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.snapshot")  # noqa: S108
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
+
+
+@contextmanager
+def _capture_logs() -> Iterator[list[str]]:
+    """Collect loguru INFO+ messages emitted inside the ``with`` block."""
+    records: list[str] = []
+    sink_id = logger.add(records.append, level="INFO", format="{message}")
+    try:
+        yield records
+    finally:
+        logger.remove(sink_id)
 
 
 class SnapshotSidecarTests(TestCase):
@@ -89,3 +105,29 @@ class SnapshotSidecarTests(TestCase):
         report = restore(sidecar_path=snapshot)
         assert report.written.get("users", 0) >= 1
         assert User.objects.filter(username="carol").exists()
+
+    def test_snapshot_logs_row_summary(self) -> None:
+        """The shared snapshot path logs a summary for every caller."""
+        User.objects.create_user(username="dave", password=_TEST_PASSWORD)
+        with self._patch_settings(), _capture_logs() as logs:
+            snapshot_sidecar()
+        assert any("Snapshotted user data sidecar" in line for line in logs)
+
+    def test_restore_logs_summary(self) -> None:
+        """restore() logs a completion line so the admin restore leaves a trace."""
+        User.objects.create_user(username="erin", password=_TEST_PASSWORD)
+        with self._patch_settings():
+            snapshot_sidecar()
+            with _capture_logs() as logs:
+                restore()
+        assert any("Restored user data:" in line for line in logs)
+
+    def test_dry_run_restore_logs_distinct_prefix(self) -> None:
+        """A dry run logs its own prefix and never claims a real restore."""
+        User.objects.create_user(username="frank", password=_TEST_PASSWORD)
+        with self._patch_settings():
+            snapshot_sidecar()
+            with _capture_logs() as logs:
+                restore(dry_run=True)
+        assert any("Dry-run restore:" in line for line in logs)
+        assert not any("Restored user data:" in line for line in logs)

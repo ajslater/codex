@@ -170,7 +170,16 @@ class JanitorDBFTSRebuildStatus(JanitorStatus):
     _verbed = "Rebuilt"
     ITEM_NAME = "full text search virtual table"
     SINGLE = True
-    log_success = True
+
+
+class JanitorFolderRelationsStatus(JanitorStatus):
+    """Janitor Repair Comic Folder Relations Status."""
+
+    CODE = "JFR"
+    VERB = "Repair"
+    _verbed = "Repaired"
+    ITEM_NAME = "comic folder relations"
+    SINGLE = True
 
 
 class JanitorFolderRelationsStatus(JanitorStatus):

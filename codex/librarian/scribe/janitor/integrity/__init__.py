@@ -53,9 +53,10 @@ def integrity_check(log, *, long: bool) -> None:
         )
 
 
-def fts_rebuild() -> None:
+def fts_rebuild(log) -> None:
     """FTS Rebuild."""
     _exec_sql("INSERT INTO codex_comicfts (codex_comicfts) VALUES('rebuild');")
+    log.success("Rebuilt the Full Text Search Index.")
 
 
 def fts_integrity_check(log) -> bool:
@@ -117,7 +118,7 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
-                fts_rebuild()
+                fts_rebuild(self.log)
         finally:
             self.status_controller.finish(status)
 
