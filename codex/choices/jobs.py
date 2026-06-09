@@ -48,6 +48,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JRV",
     "JRS",
     "JRB",
+    "JAS",
     "JRF",
     "JTG",
     "SIR",
@@ -345,6 +346,15 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "statuses": ("JRB",),
                     },
                     {
+                        "value": "cleanup_settings",
+                        "title": "Remove Orphan Settings",
+                        "desc": (
+                            "Drop browser and reader settings rows owned by no"
+                            " session or user. Runs nightly."
+                        ),
+                        "statuses": ("JAS",),
+                    },
+                    {
                         "value": "cleanup_favorites",
                         "title": "Remove Orphan Favorites",
                         "desc": (
@@ -368,8 +378,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "desc": (
                             "Re-derive comic parent folders and folder"
                             " membership from comic paths, recreate missing"
-                            " folders, and prune empty ones. Runs nightly"
-                            " and on demand."
+                            " folders, and prune empty ones. Runs nightly."
                         ),
                         "statuses": ("JFR",),
                     },
