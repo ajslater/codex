@@ -18,7 +18,7 @@
 
 // --- Sections --------------------------------------------------------------
 
-.adminGroup + .adminGroup {
+.adminGroup+.adminGroup {
   margin-top: d.$space-6;
 }
 
@@ -29,7 +29,7 @@
   margin-bottom: d.$space-1;
 }
 
-.adminGroupHeader > h3 {
+.adminGroupHeader>h3 {
   margin: 0;
   font-size: d.$text-title;
 }
@@ -93,6 +93,7 @@
   gap: d.$space-2;
   align-items: center;
   margin-top: d.$space-4;
+  margin-bottom: d.$space-4;
 }
 
 // A horizontal cluster of buttons (Save credential / Test / Clear).
@@ -132,7 +133,7 @@
   color: rgb(var(--v-theme-textSecondary));
 }
 
-.adminProse p + p {
+.adminProse p+p {
   margin-top: 0.75em;
 }
 
