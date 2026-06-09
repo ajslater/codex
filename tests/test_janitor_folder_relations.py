@@ -29,13 +29,13 @@ class FixFolderRelationsTests(TestCase):
     def setUp(self) -> None:
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
         _TMP_DIR.mkdir(parents=True, exist_ok=True)
-        self.library = Library.objects.create(path=str(_TMP_DIR))
-        self.publisher = Publisher.objects.create(name="P")
-        self.imprint = Imprint.objects.create(name="I", publisher=self.publisher)
-        self.series = Series.objects.create(
+        self.library = Library.objects.create(path=str(_TMP_DIR))  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.publisher = Publisher.objects.create(name="P")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.imprint = Imprint.objects.create(name="I", publisher=self.publisher)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="S", publisher=self.publisher, imprint=self.imprint
         )
-        self.volume = Volume.objects.create(
+        self.volume = Volume.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="1", publisher=self.publisher, imprint=self.imprint, series=self.series
         )
 
@@ -114,6 +114,7 @@ class FixFolderRelationsTests(TestCase):
         """Assert the comic's FK and M2M match the ancestor chain from its path."""
         comic.refresh_from_db()
         parent = Path(comic.path).parent
+        assert comic.parent_folder is not None
         assert comic.parent_folder.path == str(parent)
         expected = set()
         node = parent
@@ -127,7 +128,8 @@ class FixFolderRelationsTests(TestCase):
     def _assert_repaired(self, t: dict) -> None:
         """Post-heal invariants: missing folder back, comics consistent, stale gone."""
         recreated = Folder.objects.get(path=str(_TMP_DIR / "Marvel" / "Series C"))
-        assert recreated.parent_folder_id == t["pub"].pk
+        assert recreated.parent_folder is not None
+        assert recreated.parent_folder.pk == t["pub"].pk
         assert recreated.sort_name == "series c"
         for comic in (t["c_a"], t["c_b"], t["c_c"]):
             self._assert_consistent(comic)

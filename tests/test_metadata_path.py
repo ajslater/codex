@@ -113,14 +113,14 @@ class MetadataPathTestCase(TestCase):
         )
         self.client.force_login(user)
 
-    def _get_path(self, collection: str, pk: int):
+    def _get_path(self, collection: str, pk: int) -> str:
         """Return the ``path`` field from a metadata response."""
         url = f"/api/v4/browse/{collection}/{pk}/metadata"
         response = self.client.get(url)
         if response.status_code != _HTTP_OK:
             reason = f"GET {url} returned {response.status_code}: {response.content!r}"
             raise AssertionError(reason)
-        return _v4(response).get("path")
+        return _v4(response).get("path") or ""
 
     # --- comic (``model is Comic`` — path read straight off the instance) ---
 

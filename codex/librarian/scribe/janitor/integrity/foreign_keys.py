@@ -3,7 +3,7 @@
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
@@ -12,6 +12,7 @@ from django.db.models.functions import Now
 from codex.models.util import get_sort_name
 
 if TYPE_CHECKING:
+    from django.db.models.fields.reverse_related import ManyToManyRel
     from django.db.models.manager import BaseManager
 
     from codex.models.comic import Comic
@@ -556,9 +557,11 @@ def fix_folder_relations(
     comic_model = registry.get_model("codex", "Comic")
     folder_model = registry.get_model("codex", "Folder")
     library_model = registry.get_model("codex", "Library")
-    # Auto-created M2M through model; ``.through`` is dynamic so the type
-    # checker can't see it, but it resolves at runtime and migration time.
-    through = comic_model._meta.get_field("folders").remote_field.through  # ty: ignore[unresolved-attribute]
+    # Auto-created M2M through model. django-stubs types ``Field.remote_field``
+    # as ``Field`` (not the rel), hiding ``.through``; cast to the real
+    # ``ManyToManyRel`` so both type checkers resolve it.
+    m2m_rel = cast("ManyToManyRel", comic_model._meta.get_field("folders").remote_field)
+    through = m2m_rel.through
 
     library_path_by_id = dict(library_model.objects.values_list("id", "path"))
     needed, desired_links = _compute_desired_folder_state(
