@@ -26,7 +26,6 @@ from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
 from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
-from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
@@ -69,10 +68,13 @@ class LibrarianDaemon(Process):
         self.queue = queue
         self.broadcast_queue = broadcast_queue
         self.status_controller = StatusController(logger_, queue)
-        startup_tasks = (
-            JanitorAdoptOrphanFoldersTask(),
-            SearchIndexSyncTask(),
-        )
+        # Startup reconciles the search index against the DB after any
+        # changes made while Codex was offline. Structural folder repair
+        # (adopt-folders, folder-relations) is intentionally *not* here:
+        # those only drift from botched imports, are idempotent no-ops
+        # when consistent, and belong after a re-poll — they run nightly
+        # and on demand instead.
+        startup_tasks = (SearchIndexSyncTask(),)
 
         for task in startup_tasks:
             self.queue.put(task)

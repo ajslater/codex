@@ -367,8 +367,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "title": "Adopt Orphan Folders",
                         "desc": (
                             "Move orphaned folders from the top of the folder"
-                            " tree to under their correct parent. Runs"
-                            " nightly and at startup."
+                            " tree to under their correct parent. Runs nightly."
                         ),
                         "statuses": ("JAF",),
                     },
@@ -387,7 +386,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "title": "Clear Stale Online Tagging State",
                         "desc": (
                             "Reset orphan online tagging session and prompt"
-                            " state. Runs nightly and on Codex startup."
+                            " state. Runs nightly."
                         ),
                         "statuses": ("JTG",),
                     },
