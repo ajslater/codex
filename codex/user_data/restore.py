@@ -580,10 +580,10 @@ def _restore_one_settings_browser(
         report.note_skipped("settings_browser", f"missing user {row['username']!r}")
         return
     show, _ = SettingsBrowserShow.objects.get_or_create(
-        p=bool(row["show_p"]),
-        i=bool(row["show_i"]),
-        s=bool(row["show_s"]),
-        v=bool(row["show_v"]),
+        publishers=bool(row["show_p"]),
+        imprints=bool(row["show_i"]),
+        series=bool(row["show_s"]),
+        volumes=bool(row["show_v"]),
     )
     browser, _ = SettingsBrowser.objects.update_or_create(
         user=user,

@@ -10,6 +10,7 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase
 
 from codex.models.admin import AdminFlag, Timestamp
+from codex.models.settings import SettingsBrowser, SettingsBrowserShow
 from codex.user_data.dump import dump_user_data
 from codex.user_data.store import SidecarStore, reset_store_for_tests
 
@@ -79,3 +80,27 @@ class DumpUserDataTests(TestCase):
         assert flags["AU"]["value"] == "off"
         timestamps = {r["key"]: r for r in self.store.fetchall("timestamps")}
         assert timestamps["VR"]["value"] == "1.2.3"
+
+    def test_dump_settings_browser_show_flags(self) -> None:
+        """show.{publishers,imprints,series,volumes} → show_{p,i,s,v} columns."""
+        user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)
+        # A combination flipped off every default so each column is pinned.
+        show = SettingsBrowserShow.objects.create(
+            publishers=False, imprints=True, series=False, volumes=True
+        )
+        SettingsBrowser.objects.create(user=user, show=show)
+
+        counts = dump_user_data()
+        assert counts["settings_browser"] >= 1
+
+        rows = [
+            r
+            for r in self.store.fetchall("settings_browser")
+            if r["username"] == "alice"
+        ]
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["show_p"] == 0
+        assert row["show_i"] == 1
+        assert row["show_s"] == 0
+        assert row["show_v"] == 1

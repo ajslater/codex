@@ -219,6 +219,29 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         ts = Timestamp.objects.get(key="VR")
         assert ts.value == "1.2.3"
 
+    def test_round_trip_restores_settings_browser_show(self) -> None:
+        from codex.models.settings import SettingsBrowser, SettingsBrowserShow
+
+        user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)
+        show = SettingsBrowserShow.objects.create(
+            publishers=False, imprints=True, series=False, volumes=True
+        )
+        SettingsBrowser.objects.create(user=user, show=show)
+        snapshot = self._snapshot_sidecar()
+
+        # Drop the browser first (PROTECT), then the shared show row, so
+        # restore must reconstruct both via get_or_create kwargs.
+        SettingsBrowser.objects.all().delete()
+        SettingsBrowserShow.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+        assert report.written.get("settings_browser", 0) >= 1
+        browser = SettingsBrowser.objects.get(user=user)
+        assert browser.show.publishers is False
+        assert browser.show.imprints is True
+        assert browser.show.series is False
+        assert browser.show.volumes is True
+
     def test_restore_is_idempotent(self) -> None:
         self._seed_main_db()
         snapshot = self._snapshot_sidecar()
