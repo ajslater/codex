@@ -143,6 +143,54 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                 ),
             },
             {
+                "title": "Database",
+                "jobs": (
+                    {
+                        "value": "db_vacuum",
+                        "title": "Optimize & Compact Database",
+                        "desc": (
+                            "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
+                        ),
+                        "statuses": ("JDO",),
+                    },
+                    {
+                        "value": "db_backup",
+                        "title": "Backup Database",
+                        "desc": "Runs nightly",
+                        "statuses": ("JDB",),
+                    },
+                    {
+                        "value": "dump_user_data",
+                        "title": "Snapshot User Data Sidecar",
+                        "desc": (
+                            "Write a dated, compressed snapshot"
+                            " (user_data.<date>.sql.xz) of every user, bookmark,"
+                            " favorite, and setting to the backups dir."
+                            " Runs nightly."
+                        ),
+                        "statuses": ("JDU",),
+                    },
+                    {
+                        "value": "db_foreign_key_check",
+                        "title": "Remove Illegal Foreign Keys",
+                        "desc": (
+                            "Check for and remove illegal foreign keys. Mark"
+                            " affected comics for update. Runs nightly."
+                        ),
+                        "statuses": ("JIF",),
+                    },
+                    {
+                        "value": "db_integrity_check",
+                        "title": "Check Database Integrity",
+                        "desc": "Check logs for results. Runs nightly.",
+                        "confirm": (
+                            "Can take a while on large databases, Are you sure?"
+                        ),
+                        "statuses": ("JID",),
+                    },
+                ),
+            },
+            {
                 "title": "Search Index",
                 "jobs": (
                     {
@@ -207,54 +255,6 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             "Probably faster than Rebuild if the integrity check fails."
                         ),
                         "statuses": ("JSR",),
-                    },
-                ),
-            },
-            {
-                "title": "Database",
-                "jobs": (
-                    {
-                        "value": "db_vacuum",
-                        "title": "Optimize & Compact Database",
-                        "desc": (
-                            "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
-                        ),
-                        "statuses": ("JDO",),
-                    },
-                    {
-                        "value": "db_backup",
-                        "title": "Backup Database",
-                        "desc": "Runs nightly",
-                        "statuses": ("JDB",),
-                    },
-                    {
-                        "value": "dump_user_data",
-                        "title": "Snapshot User Data Sidecar",
-                        "desc": (
-                            "Write a dated, compressed snapshot"
-                            " (user_data.<date>.sql.xz) of every user, bookmark,"
-                            " favorite, and setting to the backups dir."
-                            " Runs nightly."
-                        ),
-                        "statuses": ("JDU",),
-                    },
-                    {
-                        "value": "db_foreign_key_check",
-                        "title": "Remove Illegal Foreign Keys",
-                        "desc": (
-                            "Check for and remove illegal foreign keys. Mark"
-                            " affected comics for update. Runs nightly."
-                        ),
-                        "statuses": ("JIF",),
-                    },
-                    {
-                        "value": "db_integrity_check",
-                        "title": "Check Database Integrity",
-                        "desc": "Check logs for results. Runs nightly.",
-                        "confirm": (
-                            "Can take a while on large databases, Are you sure?"
-                        ),
-                        "statuses": ("JID",),
                     },
                 ),
             },
