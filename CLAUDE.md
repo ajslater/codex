@@ -112,8 +112,8 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - **Every new librarian job needs a priority.** When adding a `ScribeTask`
   (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
   (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in
-  `_JANITOR_METHOD_MAP` + `_NIGHTLY_TASK_CLASSES` (`.../janitor/janitor.py`).
-  A task missing from the priority tuple makes `get_task_priority` raise
+  `_JANITOR_METHOD_MAP` + `_NIGHTLY_TASK_CLASSES` (`.../janitor/janitor.py`). A
+  task missing from the priority tuple makes `get_task_priority` raise
   `ValueError: tuple.index(x): x not in tuple` when it's queued, so the job
   never runs. `tests/test_scribe_priority.py` guards the janitor subset.
 
