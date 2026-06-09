@@ -28,13 +28,13 @@ COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     }
 )
 COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-PATH_COLLECTIONS = frozenset({"c", "f"})
+PATH_COLLECTIONS = frozenset({Collection.COMIC, Collection.FOLDER})
 ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
     {"id", "pk", "sort_name", "stat"} | COMIC_VALUE_FIELDS_CONFLICTING
 )
 COMIC_VALUE_FIELD_NAMES = frozenset(
-    # contains path
+    # excludes "path" (it lives in CONFLICTING); _path_security gates it instead
     field.name
     for field in Comic._meta.get_fields()
     if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES

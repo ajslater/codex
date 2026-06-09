@@ -29,7 +29,13 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
             if self.is_admin:
                 return
             if self.admin_flags["folder_view"]:
-                obj.path = obj.search_path()
+                # Non-staff folder viewers see the library-relative path only;
+                # the absolute server layout stays hidden. obj.path may be None
+                # for a conflicting/absent intersection (this runs after
+                # _copy_conflicting_simple_fields), so guard search_path.
+                obj.path = obj.search_path() if obj.path else ""
+            else:
+                obj.path = ""
         else:
             obj.path = ""
 
@@ -79,12 +85,15 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         self, obj, collection_lists, fk_intersections, m2m_intersections
     ):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
-        self._path_security(obj)
         self._highlight_current_collection(obj)
         self._copy_collection_lists(obj, collection_lists)
         self._copy_fks(obj, fk_intersections)
         self._copy_m2m_intersections(obj, m2m_intersections)
         if self.model is not Comic:
             self._copy_conflicting_simple_fields(obj)
+        # Run last so per-tier path scrubbing is the final word for every
+        # collection: _copy_conflicting_simple_fields overwrites obj.path for
+        # non-comic collections, which would otherwise undo securing it first.
+        self._path_security(obj)
 
         return obj
