@@ -9,6 +9,8 @@ from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
+from codex.models.util import get_sort_name
+
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
 
@@ -22,6 +24,9 @@ _COMIC_SUFFIXES = (".cbz", ".cbr", ".cb7", ".cbt", ".pdf")
 # where Django / the driver sneaks in extra bound values. Each rowid
 # in a batched ``WHERE rowid IN (?, ?, ...)`` consumes one parameter.
 _SQLITE_MAX_VARS = 32000
+
+# bulk_create batch size for new folder M2M through rows.
+_BULK_CREATE_BATCH = 1000
 
 
 def _get_fk_column_name(cursor, table_name: str, fkid: int) -> str | None:
@@ -65,11 +70,18 @@ def _collect_comic_ids_for_table(cursor, table_name: str, rowids: set) -> set:
     return {row[0] for row in cursor.fetchall() if row[0] is not None}
 
 
-def _mark_comics_for_update(fix_comic_pks, log) -> None:
-    """Mark comics with altered foreign keys for update."""
+def _mark_comics_for_update(fix_comic_pks, log, apps_registry=None) -> None:
+    """
+    Mark comics with altered foreign keys for update.
+
+    ``apps_registry`` lets callers in a ``RunPython`` migration pass the
+    migration-time ``apps`` so the historical Comic model is used rather
+    than the live one (which may carry not-yet-migrated columns).
+    """
     if not fix_comic_pks:
         return
-    comic_model: type[Comic] = apps.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+    registry = apps_registry if apps_registry is not None else apps
+    comic_model: type[Comic] = registry.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
         pk__in=fix_comic_pks
     ).only("stat", "updated_at")
@@ -370,3 +382,218 @@ def fix_foreign_keys(log) -> None:
 
     except Exception:
         log.exception("Integrity: foreign_key_check")
+
+
+def _comic_ancestor_dirs(comic_path: str, library_path: str) -> list[str]:
+    """
+    Ancestor dir paths of a comic that live under the library root.
+
+    Shallowest-first, matching importer
+    ``read/folders.py:get_all_library_relative_paths`` (every
+    ``Path(comic_path).parents`` entry relative to the library path).
+    """
+    library = Path(library_path)
+    ancestors: list[str] = []
+    for parent in Path(comic_path).parents:
+        try:
+            parent.relative_to(library)
+        except ValueError:
+            continue
+        ancestors.append(str(parent))
+    ancestors.reverse()
+    return ancestors
+
+
+def _compute_desired_folder_state(
+    comic_model, library_path_by_id: dict[int, str]
+) -> tuple[set[tuple[int, str]], dict[int, set[tuple[int, str]]]]:
+    """Derive (needed (library_id, path) dirs, comic_id→ancestor-key set) from paths."""
+    needed: set[tuple[int, str]] = set()
+    desired_links: dict[int, set[tuple[int, str]]] = {}
+    rows = comic_model.objects.values_list("id", "path", "library_id").iterator(
+        chunk_size=2000
+    )
+    for comic_id, comic_path, library_id in rows:
+        if not comic_path.endswith(_COMIC_SUFFIXES):
+            continue
+        library_path = library_path_by_id.get(library_id)
+        if not library_path:
+            continue
+        keys = {
+            (library_id, ancestor)
+            for ancestor in _comic_ancestor_dirs(comic_path, library_path)
+        }
+        if keys:
+            desired_links[comic_id] = keys
+            needed |= keys
+    return needed, desired_links
+
+
+def _create_missing_folders(
+    folder_model, folder_pk_by_key: dict[tuple[int, str], int], needed, log
+) -> int:
+    """Create folder rows for needed dirs that have none. Mutates the lookup."""
+    missing = sorted(
+        (key for key in needed if key not in folder_pk_by_key),
+        key=lambda key: key[1].count("/"),  # shallowest first → parent exists
+    )
+    for library_id, path in missing:
+        name = Path(path).name
+        parent_key = (library_id, str(Path(path).parent))
+        folder = folder_model.objects.create(
+            library_id=library_id,
+            path=path,
+            name=name,
+            sort_name=get_sort_name(name),
+            parent_folder_id=folder_pk_by_key.get(parent_key),
+        )
+        folder_pk_by_key[(library_id, path)] = folder.pk
+    if missing:
+        log.info(f"Created {len(missing)} missing folders from comic paths.")
+    return len(missing)
+
+
+def _desired_m2m_pairs(
+    desired_links: dict[int, set[tuple[int, str]]],
+    folder_pk_by_key: dict[tuple[int, str], int],
+) -> set[tuple[int, int]]:
+    """Map comic→ancestor-key links onto (comic_id, folder_pk) pairs."""
+    pairs: set[tuple[int, int]] = set()
+    for comic_id, keys in desired_links.items():
+        for key in keys:
+            folder_pk = folder_pk_by_key.get(key)
+            if folder_pk is not None:
+                pairs.add((comic_id, folder_pk))
+    return pairs
+
+
+def _delete_m2m_pairs(through, remove: set[tuple[int, int]]) -> int:
+    """Delete the given (comic_id, folder_id) through rows; return count."""
+    if not remove:
+        return 0
+    remove_ids = [
+        row_id
+        for row_id, comic_id, folder_id in through.objects.values_list(
+            "id", "comic_id", "folder_id"
+        )
+        if (comic_id, folder_id) in remove
+    ]
+    deleted = 0
+    for start in range(0, len(remove_ids), _SQLITE_MAX_VARS):
+        batch = remove_ids[start : start + _SQLITE_MAX_VARS]
+        deleted += through.objects.filter(id__in=batch).delete()[0]
+    return deleted
+
+
+def _rebuild_folder_m2m(
+    through, desired_pairs: set[tuple[int, int]], log
+) -> tuple[int, int, set[int]]:
+    """Reconcile the folders M2M to ``desired_pairs``. Returns (added, removed, comics)."""
+    existing = set(through.objects.values_list("comic_id", "folder_id"))
+    add = desired_pairs - existing
+    remove = existing - desired_pairs
+    if add:
+        through.objects.bulk_create(
+            [
+                through(comic_id=comic_id, folder_id=folder_id)
+                for comic_id, folder_id in sorted(add)
+            ],
+            ignore_conflicts=True,
+            batch_size=_BULK_CREATE_BATCH,
+        )
+    removed = _delete_m2m_pairs(through, remove)
+    if add or removed:
+        log.info(f"Folder M2M reconciled: added {len(add)}, removed {removed} links.")
+    touched = {comic_id for comic_id, _ in add} | {comic_id for comic_id, _ in remove}
+    return len(add), removed, touched
+
+
+def _prune_stale_folders(folder_model, needed: set[tuple[int, str]], log) -> int:
+    """Delete folder rows no comic lives under (deepest-first, FK-safe)."""
+    stale = [
+        (folder_id, path)
+        for folder_id, library_id, path in folder_model.objects.values_list(
+            "id", "library_id", "path"
+        )
+        if (library_id, path) not in needed
+    ]
+    if not stale:
+        return 0
+    # Deepest-first so deleting a parent never cascade-removes a child we
+    # then try to delete again. Safe to cascade: the repoint step above
+    # guarantees no live comic still points at a stale folder.
+    stale.sort(key=lambda item: item[1].count("/"), reverse=True)
+    stale_ids = [folder_id for folder_id, _ in stale]
+    for start in range(0, len(stale_ids), _SQLITE_MAX_VARS):
+        batch = stale_ids[start : start + _SQLITE_MAX_VARS]
+        folder_model.objects.filter(id__in=batch).delete()
+    log.info(f"Pruned {len(stale_ids)} stale empty folders.")
+    return len(stale_ids)
+
+
+def fix_folder_relations(
+    log, apps_registry=None, *, prune: bool = True
+) -> dict[str, int]:
+    """
+    Re-derive every comic↔folder relationship from ``Comic.path`` (the source of truth).
+
+    A normally-functioning importer keeps ``Comic.path``,
+    ``Comic.parent_folder``, and the ``Comic.folders`` M2M all consistent
+    with the on-disk hierarchy. A botched move/rename import event can
+    leave the two *derived* sides drifted: the FK and/or M2M point at the
+    wrong ``Folder``, the true series folder may be missing entirely, and
+    empty folders may linger. This is the complete superset of
+    ``fix_parent_folder_drift`` — it (1) creates missing ancestor folders,
+    (2) re-points ``parent_folder_id``, (3) rebuilds the ``folders`` M2M to
+    the exact ancestor set, (4) prunes stale empty folders, and (5) marks
+    repaired comics so the poller re-indexes covers/search.
+
+    Idempotent: a no-op once the database is consistent. ``apps_registry``
+    passes the migration-time ``apps`` for ``RunPython`` use. ``prune=False``
+    leaves empty folders in place.
+    """
+    registry = apps_registry if apps_registry is not None else apps
+    comic_model = registry.get_model("codex", "Comic")
+    folder_model = registry.get_model("codex", "Folder")
+    library_model = registry.get_model("codex", "Library")
+    # Auto-created M2M through model; ``.through`` is dynamic so the type
+    # checker can't see it, but it resolves at runtime and migration time.
+    through = comic_model._meta.get_field("folders").remote_field.through  # ty: ignore[unresolved-attribute]
+
+    library_path_by_id = dict(library_model.objects.values_list("id", "path"))
+    needed, desired_links = _compute_desired_folder_state(
+        comic_model, library_path_by_id
+    )
+
+    folder_pk_by_key, _ = _build_folder_lookups(folder_model)
+    created = _create_missing_folders(folder_model, folder_pk_by_key, needed, log)
+    folder_path_by_pk = {pk: path for (_lib, path), pk in folder_pk_by_key.items()}
+
+    repointed, orphaned = _classify_comic_drift(
+        comic_model, folder_pk_by_key, folder_path_by_pk
+    )
+    _apply_parent_folder_repoints(comic_model, repointed, log)
+    _log_drift_orphans(orphaned, log)  # expected empty: step 1 created the folders
+
+    desired_pairs = _desired_m2m_pairs(desired_links, folder_pk_by_key)
+    m2m_added, m2m_removed, m2m_comics = _rebuild_folder_m2m(
+        through, desired_pairs, log
+    )
+
+    touched = {comic_id for comic_id, _ in repointed} | m2m_comics
+    _mark_comics_for_update(touched, log, apps_registry=registry)
+
+    pruned = _prune_stale_folders(folder_model, needed, log) if prune else 0
+
+    result = {
+        "created": created,
+        "repointed": len(repointed),
+        "m2m_added": m2m_added,
+        "m2m_removed": m2m_removed,
+        "pruned": pruned,
+    }
+    if any(result.values()):
+        log.info(f"Folder relations repaired: {result}")
+    else:
+        log.debug("Folder relations already consistent.")
+    return result

@@ -23,6 +23,14 @@ class Snapshot:
         self._ignore_device = ignore_device
         self._stat_info: dict[str, os.stat_result] = {}
         self._device_inode_to_path: dict[tuple[int, int], str] = {}
+        # Inodes seen on more than one path within this snapshot. With
+        # ``_ignore_device=True`` (Docker/multi-mount) or after a remount
+        # rotates the kernel's inode space, an inode key is no longer a
+        # unique file identity, so it must NOT drive move detection — a
+        # collided inode could otherwise pair an unrelated delete/add and
+        # let the importer reparent comics under the wrong folder. ``path``
+        # returns ``None`` for these so such pairs degrade to delete+add.
+        self._ambiguous_inodes: set[tuple[int, int]] = set()
         # ``DatabaseSnapshot`` populates this with the source model for
         # each path so the poller can refresh stale stats by model.
         # ``DiskSnapshot`` leaves it empty.
@@ -37,6 +45,11 @@ class Snapshot:
         """Populate the lookup dicts for a single path."""
         self._stat_info[path] = st
         inode_key = self._inode(st)
+        existing = self._device_inode_to_path.get(inode_key)
+        if existing is not None and existing != path:
+            # Collision: this inode now maps to two distinct paths. Flag it
+            # so ``path`` refuses to use it for move matching.
+            self._ambiguous_inodes.add(inode_key)
         self._device_inode_to_path[inode_key] = path
 
     @property
@@ -50,8 +63,17 @@ class Snapshot:
         return self._inode(st)
 
     def path(self, st_lookup: tuple[int, int]) -> str | None:
-        """Return the path for an device, inode pair."""
+        """Return the path for a device, inode pair, or None if ambiguous."""
+        if st_lookup in self._ambiguous_inodes:
+            # An inode shared by multiple paths can't identify a unique
+            # rename target; suppress the match so the diff falls back to
+            # delete+add rather than risking a wrong-folder reparent.
+            return None
         return self._device_inode_to_path.get(st_lookup)
+
+    def is_ambiguous_inode(self, st_lookup: tuple[int, int]) -> bool:
+        """Return whether this inode maps to more than one path here."""
+        return st_lookup in self._ambiguous_inodes
 
     def mtime(self, path: str) -> float:
         """Return mtime for a path."""

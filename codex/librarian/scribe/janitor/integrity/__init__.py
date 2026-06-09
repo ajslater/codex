@@ -4,12 +4,16 @@
 
 from django.db import DEFAULT_DB_ALIAS, connections
 
-from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_foreign_keys
+from codex.librarian.scribe.janitor.integrity.foreign_keys import (
+    fix_folder_relations,
+    fix_foreign_keys,
+)
 from codex.librarian.scribe.janitor.status import (
     JanitorDBFKIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorDBFTSRebuildStatus,
     JanitorDBIntegrityStatus,
+    JanitorFolderRelationsStatus,
 )
 from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
 from codex.librarian.worker import WorkerStatusAbortableBase
@@ -83,6 +87,16 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
             self.status_controller.start(status)
             with self.db_write_lock:
                 fix_foreign_keys(self.log)
+        finally:
+            self.status_controller.finish(status)
+
+    def folder_relations_check(self) -> None:
+        """Repair drifted comic↔folder relations (FK, M2M, missing/stale folders)."""
+        status = JanitorFolderRelationsStatus()
+        try:
+            self.status_controller.start(status)
+            with self.db_write_lock:
+                fix_folder_relations(self.log)
         finally:
             self.status_controller.finish(status)
 

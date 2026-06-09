@@ -64,6 +64,10 @@ class JanitorForeignKeyCheckTask(JanitorTask):
     """Check and repair foreign keys integrity."""
 
 
+class JanitorFolderRelationsCheckTask(JanitorTask):
+    """Check and repair drifted comic↔folder relations."""
+
+
 class JanitorImportForceAllFailedTask(JanitorTask):
     """Force update for failed imports in every library."""
 

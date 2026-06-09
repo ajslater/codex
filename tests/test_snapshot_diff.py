@@ -21,16 +21,22 @@ def _snapshot(
     *,
     models: dict[str, type] | None = None,
 ) -> Snapshot:
-    """Build a Snapshot directly from a path→stat map, bypassing disk/db."""
+    """
+    Build a Snapshot from a path→stat map, bypassing disk/db.
+
+    Drives the real ``_set_lookups`` so intra-snapshot inode collisions
+    populate ``_ambiguous_inodes`` exactly as production would.
+    """
     snap = Snapshot.__new__(Snapshot)
     snap._root = "/comics"  # noqa: SLF001
     snap.log = getLogger("test")
     snap._ignore_device = True  # noqa: SLF001
-    snap._stat_info = dict(entries)  # noqa: SLF001
-    snap._device_inode_to_path = {  # noqa: SLF001
-        (0, st.st_ino): path for path, st in entries.items()
-    }
+    snap._stat_info = {}  # noqa: SLF001
+    snap._device_inode_to_path = {}  # noqa: SLF001
+    snap._ambiguous_inodes = set()  # noqa: SLF001
     snap._path_to_model = dict(models) if models else {}  # noqa: SLF001
+    for path, st in entries.items():
+        snap._set_lookups(path, st)  # noqa: SLF001
     return snap
 
 
@@ -220,3 +226,61 @@ def test_stale_stat_refresh_empty_when_inodes_match() -> None:
     disk = _snapshot({"/comics/a.cbz": stat})
     diff = SnapshotDiff(db, disk)
     assert diff.stale_stat_refreshes == ()
+
+
+def test_intra_snapshot_file_inode_collision_suppresses_move() -> None:
+    """
+    Two disk files sharing one inode can't be a unique rename target.
+
+    Regression: with ``_ignore_device`` (or after an inode-space
+    rotation), a single inode can map to several paths. The old
+    last-write-wins lookup would pair the deleted file with whichever
+    colliding path happened to be stored, fabricating a move. The
+    ambiguity guard must instead degrade to delete+add.
+    """
+    db = _snapshot({"/comics/a.cbz": _stat(mode=_FILE_MODE, ino=42, size=1000)})
+    disk = _snapshot(
+        {
+            "/comics/b.cbz": _stat(mode=_FILE_MODE, ino=42, size=1000),
+            "/comics/c.cbz": _stat(mode=_FILE_MODE, ino=42, size=1000),
+        }
+    )
+    diff = SnapshotDiff(db, disk)
+    assert not diff.files_moved
+    assert diff.files_deleted == ["/comics/a.cbz"]
+    assert sorted(diff.files_added) == ["/comics/b.cbz", "/comics/c.cbz"]
+
+
+def test_intra_snapshot_dir_inode_collision_suppresses_move() -> None:
+    """
+    Two disk dirs sharing one inode must not pair (the wrong-folder trigger).
+
+    Directory pairs skip the size check, so without the ambiguity guard a
+    collided inode would reparent comics under an unrelated folder.
+    """
+    db = _snapshot({"/comics/Punisher": _stat(mode=_DIR_MODE, ino=50, size=128)})
+    disk = _snapshot(
+        {
+            "/comics/Wolverine": _stat(mode=_DIR_MODE, ino=50, size=128),
+            "/comics/Akira": _stat(mode=_DIR_MODE, ino=50, size=96),
+        }
+    )
+    diff = SnapshotDiff(db, disk)
+    assert not diff.dirs_moved
+    assert diff.dirs_deleted == ["/comics/Punisher"]
+    assert sorted(diff.dirs_added) == ["/comics/Akira", "/comics/Wolverine"]
+
+
+def test_db_side_inode_collision_suppresses_move() -> None:
+    """Ambiguity on the reference (DB) side also suppresses a move pair."""
+    db = _snapshot(
+        {
+            "/comics/a.cbz": _stat(mode=_FILE_MODE, ino=7, size=1000),
+            "/comics/b.cbz": _stat(mode=_FILE_MODE, ino=7, size=1000),
+        }
+    )
+    disk = _snapshot({"/comics/c.cbz": _stat(mode=_FILE_MODE, ino=7, size=1000)})
+    diff = SnapshotDiff(db, disk)
+    assert not diff.files_moved
+    assert sorted(diff.files_deleted) == ["/comics/a.cbz", "/comics/b.cbz"]
+    assert diff.files_added == ["/comics/c.cbz"]

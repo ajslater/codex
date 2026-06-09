@@ -560,6 +560,21 @@ def browser_default_flag_collection_to_char(apps, _schema_editor):
         ).update(value=char)
 
 
+def _repair_folder_relations(apps, _schema_editor) -> None:
+    """
+    Re-derive parent_folder, the folders M2M, and missing/stale folders from path.
+
+    Shares the janitor heal (``folder_relations_check``) so the one-time
+    migration and the nightly task can't diverge. Idempotent: a no-op on
+    an already-consistent database.
+    """
+    from codex.librarian.scribe.janitor.integrity.foreign_keys import (
+        fix_folder_relations,
+    )
+
+    fix_folder_relations(logger, apps_registry=apps)
+
+
 class Migration(migrations.Migration):
     """Consolidated v1.12.7 -> v2 schema and data migration."""
 
@@ -1087,4 +1102,9 @@ class Migration(migrations.Migration):
             old_name="top_group",
             new_name="top_collection",
         ),
+        # Re-derive comic↔folder relations from comic paths: recreate
+        # missing folders, fix parent_folder + the folders M2M, prune
+        # empties. Folded in from the former 0044; the nightly
+        # ``folder_relations_check`` task keeps already-migrated installs healed.
+        migrations.RunPython(_repair_folder_relations, _noop_reverse),
     ]

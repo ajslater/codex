@@ -41,6 +41,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JAF",
     "IMF",
     "JIF",
+    "JFR",
     "JID",
     "JIS",
     "JCT",
@@ -360,6 +361,17 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             " nightly and at startup."
                         ),
                         "statuses": ("JAF",),
+                    },
+                    {
+                        "value": "db_folder_relations_check",
+                        "title": "Repair Folder Relations",
+                        "desc": (
+                            "Re-derive comic parent folders and folder"
+                            " membership from comic paths, recreate missing"
+                            " folders, and prune empty ones. Runs nightly"
+                            " and on demand."
+                        ),
+                        "statuses": ("JFR",),
                     },
                     {
                         "value": "cleanup_tagging_state",
