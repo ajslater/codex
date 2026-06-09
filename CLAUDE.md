@@ -109,6 +109,13 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.
+- **Every new librarian job needs a priority.** When adding a `ScribeTask`
+  (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
+  (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in
+  `_JANITOR_METHOD_MAP` + `_NIGHTLY_TASK_CLASSES` (`.../janitor/janitor.py`).
+  A task missing from the priority tuple makes `get_task_priority` raise
+  `ValueError: tuple.index(x): x not in tuple` when it's queued, so the job
+  never runs. `tests/test_scribe_priority.py` guards the janitor subset.
 
 ## Linting & Testing
 
