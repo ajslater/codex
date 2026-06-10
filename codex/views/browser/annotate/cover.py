@@ -1,5 +1,7 @@
 """Cover pk annotation for browser card querysets."""
 
+from typing import override
+
 from django.db.models import OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 
@@ -7,6 +9,28 @@ from codex.models import Comic, Folder, Volume
 from codex.models.paths import CustomCover
 from codex.views.browser.annotate.card import _COLLECTION_BY, BrowserAnnotateCardView
 from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
+
+
+class _CoverMtimeCoalesce(Coalesce):
+    """
+    Coalesce of correlated cover subqueries, kept out of GROUP BY.
+
+    Django adds non-aggregate Func annotations to the GROUP BY wholesale.
+    Grouping by an expression containing correlated subqueries makes SQLite
+    evaluate them once per pre-aggregation joined row — quadratic in folder
+    mode, where the root folder's ``folders`` M2M fans out to every
+    descendant comic and each evaluation re-scans that same set (an 18k-comic
+    folder took minutes). Delegating to the source subqueries' own group-by
+    columns (their correlation column, already in the GROUP BY) restores the
+    bare-Subquery behavior: evaluated once per output group.
+    """
+
+    @override
+    def get_group_by_cols(self):
+        cols = []
+        for source in self.get_source_expressions():
+            cols.extend(source.get_group_by_cols())
+        return cols
 
 
 class BrowserAnnotateCoverView(BrowserAnnotateCardView):
@@ -124,5 +148,5 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if custom_pk_sq is not None:
             qs = qs.annotate(cover_custom_pk=custom_pk_sq)
             # A custom cover overrides the comic cover, so its mtime wins.
-            cover_mtime = Coalesce(custom_mtime_sq, cover_mtime)
+            cover_mtime = _CoverMtimeCoalesce(custom_mtime_sq, cover_mtime)
         return qs.annotate(cover_mtime=cover_mtime)
