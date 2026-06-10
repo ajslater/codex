@@ -48,18 +48,19 @@
         </header>
         <!--
           Age Rating: dual-tab UI. The "Standardized" tab (metron
-          values) is selected by default; "As tagged" holds raw
-          values with no metron mapping. When there are no
-          unstandardized values the tab bar is hidden and only the
-          Standardized list renders. A tab shows a primary-colored
-          checkbox icon when its filter has any selections. The
-          shared search box at the top filters both tabs' items at
-          once; if matches land only in the other tab, the view
-          switches to it.
+          values) is selected by default; "As tagged" holds every
+          raw tagged value, each annotated with its standardized
+          equivalent in parentheses. When there are no tagged
+          values the tab bar is hidden and only the Standardized
+          list renders. A tab shows a primary-colored checkbox
+          icon when its filter has any selections. The shared
+          search box at the top filters both tabs' items at once;
+          if matches land only in the other tab, the view switches
+          to it.
         -->
         <template v-if="isAgeRating">
           <v-tabs
-            v-if="hasUnstandardizedTagged"
+            v-if="hasTaggedChoices"
             v-model="activeTab"
             grow
             density="compact"
@@ -172,24 +173,14 @@ export default {
       return this.taggedFilter?.length > 0;
     },
     /*
-     * The As-tagged panel exposes raw ComicInfo age-rating strings that
-     * have NO Metron mapping. Strip out:
-     *   - entries that already carry a ``metronName`` — the Standardized
-     *     panel covers them
-     *   - the ``None`` sentinel (``pk`` in ``NULL_PKS``) — Standardized
-     *     surfaces it too, so showing it again here is just clutter
-     * Returns ``undefined`` until the choices have loaded so the panel
-     * can stay hidden during the fetch instead of flashing an empty list.
+     * The As-tagged tab exposes every raw tagged age-rating string.
+     * Hide the tab only when the library has no tagged values at all
+     * (just the ``None`` sentinel, which the Standardized tab already
+     * surfaces) — then the second tab would duplicate the first.
      */
-    unstandardizedTaggedChoices() {
-      if (!Array.isArray(this.taggedChoices)) return undefined;
-      return this.taggedChoices.filter(
-        (c) => !c?.metronName && !NULL_PKS.has(c?.pk),
-      );
-    },
-    hasUnstandardizedTagged() {
-      const list = this.unstandardizedTaggedChoices;
-      return Array.isArray(list) && list.length > 0;
+    hasTaggedChoices() {
+      if (!Array.isArray(this.taggedChoices)) return false;
+      return this.taggedChoices.some((c) => !NULL_PKS.has(c?.pk));
     },
     ageRatingPanels() {
       const panels = [
@@ -201,11 +192,11 @@ export default {
           hasSelections: this.metronHasSelections,
         },
       ];
-      if (this.hasUnstandardizedTagged) {
+      if (this.hasTaggedChoices) {
         panels.push({
           key: "ageRatingTagged",
           label: "As tagged",
-          choices: this.unstandardizedTaggedChoices,
+          choices: this.taggedChoices,
           filter: this.taggedFilter,
           hasSelections: this.taggedHasSelections,
         });
@@ -245,7 +236,7 @@ export default {
   },
   watch: {
     search(val) {
-      if (!this.isAgeRating || !this.hasUnstandardizedTagged || !val) {
+      if (!this.isAgeRating || !this.hasTaggedChoices || !val) {
         return;
       }
       /*
@@ -255,17 +246,14 @@ export default {
        * tab, or when the search is cleared, stay on the current tab.
        */
       const metronMatches = this._countMatches(this.metronChoices, val);
-      const taggedMatches = this._countMatches(
-        this.unstandardizedTaggedChoices,
-        val,
-      );
+      const taggedMatches = this._countMatches(this.taggedChoices, val);
       if (taggedMatches > 0 && metronMatches === 0) {
         this.activeTab = "ageRatingTagged";
       } else if (metronMatches > 0 && taggedMatches === 0) {
         this.activeTab = AGE_RATING_DEFAULT_TAB;
       }
     },
-    hasUnstandardizedTagged(val) {
+    hasTaggedChoices(val) {
       // The As-tagged tab can vanish after a clear or re-filter;
       // don't leave the window pointed at a tab that no longer exists.
       if (!val) {
