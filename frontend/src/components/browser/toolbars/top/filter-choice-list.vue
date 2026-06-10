@@ -10,8 +10,10 @@
       <!--
         Manual ``v-for`` instead of ``:items=...`` — Vuetify would
         render each row a second time on top of this loop. Also needed
-        for the per-item ``#append`` slot (the standardized age-rating
-        column in the As-tagged tab).
+        for the per-item ``#prepend`` slot (the standardized age-rating
+        column in the As-tagged tab). The column renders for every
+        As-tagged row — empty for unmapped tags — so the raw tags stay
+        vertically aligned.
       -->
       <v-list-item
         v-for="item of vuetifyItems"
@@ -24,8 +26,8 @@
         :disabled="item.active"
         :append-icon="item.icon"
       >
-        <template v-if="item.metronName" #append>
-          <span class="metronName">({{ item.metronName }})</span>
+        <template v-if="name === 'ageRatingTagged'" #prepend>
+          <span class="metronName">{{ item.metronName }}</span>
         </template>
       </v-list-item>
     </v-list>
