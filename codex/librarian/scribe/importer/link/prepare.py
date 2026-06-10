@@ -10,6 +10,7 @@ from codex.librarian.scribe.importer.const import (
     FOLDERS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
+    MODEL_SELECTOR_REL_MAP,
     NON_FTS_FIELDS,
 )
 from codex.librarian.scribe.importer.link.const import COMPLEX_MODEL_FIELD_NAMES
@@ -99,21 +100,48 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         return pk_map
 
     @staticmethod
-    def _build_pk_map_multi_key(
-        model: type["BaseModel"], rels: tuple[str, ...], key_tuples: set[tuple]
+    def _build_pk_map_rows(
+        model: type["BaseModel"], rels: tuple[str, ...], or_q: Q
     ) -> dict[tuple, int]:
-        """Resolve key tuples for a multi-column model via batched Q-OR."""
+        """Fetch (pk, *key rels) rows for a filter into a key map."""
+        rows = model.objects.filter(or_q).values_list("pk", *rels)
+        return {tuple(row[1:]): row[0] for row in rows}
+
+    @classmethod
+    def _build_pk_map_multi_key(
+        cls, model: type["BaseModel"], rels: tuple[str, ...], key_tuples: set[tuple]
+    ) -> dict[tuple, int]:
+        """
+        Resolve key tuples for a multi-column model.
+
+        Narrowed by one indexed IN on the model's selector key rel —
+        exact matching happens through the returned map, so superset
+        rows (same selector value under a different parent) are
+        harmless extra entries. Keys with a None selector value
+        (selector columns are non-null, so normally none) fall back to
+        batched Q-OR chains.
+        """
         pk_map: dict[tuple, int] = {}
+        residual_tuples = key_tuples
+        selector_rel = MODEL_SELECTOR_REL_MAP.get(model)
+        if selector_rel and selector_rel in rels:
+            index = rels.index(selector_rel)
+            selector_values = sorted(
+                {tup[index] for tup in key_tuples if tup[index] is not None}
+            )
+            residual_tuples = {tup for tup in key_tuples if tup[index] is None}
+            for start in range(0, len(selector_values), IMPORTER_LINK_FK_BATCH_SIZE):
+                batch = selector_values[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+                or_q = Q(**{f"{selector_rel}__in": batch})
+                pk_map.update(cls._build_pk_map_rows(model, rels, or_q))
         # Q-OR chain batched at a planner-friendly cap.
-        tuples = sorted(key_tuples, key=_none_safe_key)
+        tuples = sorted(residual_tuples, key=_none_safe_key)
         for start in range(0, len(tuples), _M2M_OR_CHAIN_CAP):
             batch = tuples[start : start + _M2M_OR_CHAIN_CAP]
             or_q = Q()
             for tup in batch:
                 or_q |= Q(**dict(zip(rels, tup, strict=False)))
-            rows = model.objects.filter(or_q).values_list("pk", *rels)
-            for row in rows:
-                pk_map[tuple(row[1:])] = row[0]
+            pk_map.update(cls._build_pk_map_rows(model, rels, or_q))
         return pk_map
 
     def _build_field_pk_map(

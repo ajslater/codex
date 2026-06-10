@@ -67,6 +67,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--json", type=Path, default=None, help="also write results to this JSON file"
     )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="cProfile each scenario; print top functions and dump .prof files",
+    )
     args = parser.parse_args()
     args.scenarios = tuple(
         name for name in _SCENARIOS if name in args.scenarios.split(",")
@@ -138,7 +143,7 @@ def _build_task(scenario: str, library_id: int, paths: frozenset[str]):
 
 
 def _run_scenario(
-    scenario: str, library_id: int, paths: frozenset[str]
+    scenario: str, library_id: int, paths: frozenset[str], *, profile: bool
 ) -> dict[str, Any]:
     """Run one import scenario and collect timings."""
     from threading import Event, Lock
@@ -150,15 +155,36 @@ def _run_scenario(
 
     task = _build_task(scenario, library_id, paths)
     importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+    profiler = None
+    if profile:
+        import cProfile
+
+        profiler = cProfile.Profile()
+        profiler.enable()
     start = perf_counter()
     importer.apply()
     elapsed = perf_counter() - start
+    if profiler:
+        profiler.disable()
+        _report_profile(scenario, profiler)
     return {
         "scenario": scenario,
         "elapsed": elapsed,
         "phase_times": dict(importer.phase_times),
         "counts": asdict(importer.counts),
     }
+
+
+def _report_profile(scenario: str, profiler) -> None:
+    """Dump the profile and print the hottest functions."""
+    import pstats
+
+    prof_path = Path(f"test-results/benchmark-import-{scenario}.prof")
+    prof_path.parent.mkdir(exist_ok=True)
+    profiler.dump_stats(prof_path)
+    print(f"\n--- profile: {scenario} (full dump: {prof_path}) ---")
+    stats = pstats.Stats(profiler)
+    stats.sort_stats("cumulative").print_stats("codex/", 25)
 
 
 def _report(result: dict[str, Any], count: int) -> None:
@@ -170,13 +196,15 @@ def _report(result: dict[str, Any], count: int) -> None:
         f"({rate:.1f}/s) ==="
     )
     phase_times = result["phase_times"]
-    total = sum(phase_times.values())
+    # Dotted "phase.step" sub-steps already count inside their parent
+    # phase, so only top-level phases sum to the total.
+    total = sum(secs for name, secs in phase_times.items() if "." not in name)
     if not total:
         print("no phases ran")
         return
-    print(f"{'phase':<24}{'seconds':>10}{'share':>8}")
+    print(f"{'phase':<40}{'seconds':>10}{'share':>8}")
     for name, secs in sorted(phase_times.items(), key=lambda kv: kv[1], reverse=True):
-        print(f"{name:<24}{secs:>10.2f}{secs / total:>8.1%}")
+        print(f"{name:<40}{secs:>10.2f}{secs / total:>8.1%}")
     counts = {key: value for key, value in result["counts"].items() if value}
     print(f"counts: {counts or 'no changes'}")
 
@@ -200,7 +228,8 @@ def main() -> None:
     paths = frozenset(str(path) for path in comics_dir.rglob("*.cbz"))
 
     results = [
-        _run_scenario(scenario, library.pk, paths) for scenario in args.scenarios
+        _run_scenario(scenario, library.pk, paths, profile=args.profile)
+        for scenario in args.scenarios
     ]
     for result in results:
         _report(result, len(paths))

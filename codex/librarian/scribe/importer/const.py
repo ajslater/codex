@@ -352,6 +352,27 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
 )
 
 
+# The most selective non-null key rel per complex/multi-key model.
+# Existing-row queries narrow with one indexed IN filter on this rel
+# instead of a per-key AND/OR chain — both the query phase
+# (query_existing_mds) and the link/create pk-map builders match exact
+# key tuples in Python afterward, so fetching a superset (the same
+# selector value under a different parent) is harmless.
+MODEL_SELECTOR_REL_MAP: MappingProxyType[type[BaseModel], str] = MappingProxyType(
+    {
+        Credit: f"{CREDIT_PERSON_FIELD_NAME}__name",
+        Folder: PATH_FIELD_NAME,
+        Identifier: IDENTIFIER_ID_KEY_FIELD_NAME,
+        Imprint: NAME_FIELD_NAME,
+        Publisher: NAME_FIELD_NAME,
+        Series: NAME_FIELD_NAME,
+        StoryArc: NAME_FIELD_NAME,
+        StoryArcNumber: f"{STORY_ARC_FIELD_NAME}__name",
+        Volume: "series__name",
+    }
+)
+
+
 def get_key_index(model: type[BaseModel]) -> int:
     """Return the key index divider for a model tuple."""
     return len(MODEL_REL_MAP[model][0])
