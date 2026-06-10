@@ -9,7 +9,9 @@
     >
       <!--
         Manual ``v-for`` instead of ``:items=...`` — Vuetify would
-        render each row a second time on top of this loop.
+        render each row a second time on top of this loop. Also needed
+        for the per-item ``#append`` slot (the standardized age-rating
+        column in the As-tagged tab).
       -->
       <v-list-item
         v-for="item of vuetifyItems"
@@ -21,7 +23,11 @@
         :active="item.active"
         :disabled="item.active"
         :append-icon="item.icon"
-      />
+      >
+        <template v-if="item.metronName" #append>
+          <span class="metronName">({{ item.metronName }})</span>
+        </template>
+      </v-list-item>
     </v-list>
   </div>
 </template>
@@ -116,16 +122,6 @@ export default {
         return this.readingDirectionTitles[item.value];
       } else if (this.name === "identifierSource") {
         return this.identifierSourceTitle(item.title);
-      } else if (this.name === "ageRatingTagged") {
-        /*
-         * Annotate each raw tagged value with its standardized
-         * (metron) equivalent. Skipped when they're spelled the
-         * same ("Teen (Teen)") or there is no mapping.
-         */
-        const metron = item.metronName;
-        return metron && metron !== item.title
-          ? `${item.title} (${metron})`
-          : item.title;
       }
       return item.title;
     },
@@ -137,5 +133,18 @@ export default {
 .filterGroup {
   max-height: 80vh;
   /* has to be less than the menu height */
+}
+
+.metronName {
+  /*
+   * The standardized (metron) equivalent of a raw tagged age
+   * rating, right-justified as a second column. ``textDisabled``
+   * is too dim against the dark menu surface, so use ``on-surface``
+   * dimmed by opacity instead.
+   */
+  color: rgb(var(--v-theme-on-surface));
+  opacity: 0.7;
+  text-align: right;
+  font-size: smaller;
 }
 </style>
