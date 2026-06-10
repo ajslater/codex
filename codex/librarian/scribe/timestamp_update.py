@@ -1,10 +1,8 @@
 """Update Collections timestamp for cover cache busting."""
 
-from collections.abc import Collection, Mapping
+from collections.abc import Mapping
 from datetime import datetime
 
-from django.db.models import QuerySet
-from django.db.models.aggregates import Count
 from django.db.models.functions.datetime import Now
 from django.db.models.query_utils import Q
 from django.utils import timezone
@@ -15,9 +13,8 @@ from codex.librarian.worker import WorkerStatusBase
 from codex.models import StoryArc, Volume
 from codex.models.collections import BrowserCollectionModel
 from codex.models.library import Library
+from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 from codex.views.const import COLLECTION_MODELS
-
-_UPDATE_FIELDS = ("updated_at",)
 
 
 class TimestampUpdater(WorkerStatusBase):
@@ -45,41 +42,34 @@ class TimestampUpdater(WorkerStatusBase):
         # same second is harmless — at worst one extra (correct) reload.
         start_floor = start_time.replace(microsecond=0)
 
-        # Get collections with comics updated during this import
+        # Get collections with comics updated during this import. A match
+        # here implies the collection has children — no count needed.
         rel = "storyarcnumber__" if model == StoryArc else ""
         updated_at_rel = rel + "comic__updated_at__gt"
         library_rel = rel + "comic__library"
         updated_filter = {library_rel: library, updated_at_rel: start_floor}
         update_filter = Q(**updated_filter)
 
-        # Get collections with custom covers updated during this import
+        # Get collections with custom covers updated during this import.
+        # Only this branch can match an empty collection, so it carries
+        # its own has-children join test. This used to be a
+        # Count-aggregate filter over the whole OR — a per-row
+        # GROUP BY join explosion costing ~1.5s per import.
         if model != Volume:
-            update_filter |= Q(custom_cover__updated_at__gt=start_floor)
+            update_filter |= Q(custom_cover__updated_at__gt=start_floor) & Q(
+                **{rel + "comic__isnull": False}
+            )
 
-        # Get collections to be force updated (usually those with deleted children)
+        # Get collections to be force updated (usually those with deleted
+        # children). A force-updated collection (a comic moved or was
+        # deleted OUT of it) must re-stamp even when it's now empty —
+        # otherwise a viewer of the just-emptied collection never gets
+        # the library.changed refresh. The empty row is reaped by the
+        # janitor afterwards.
         if pks := force_update_collection_map.get(model):
             update_filter |= Q(pk__in=pks)
 
         return update_filter
-
-    @staticmethod
-    def _add_child_count_filter(
-        qs: QuerySet,
-        model: type[BrowserCollectionModel],
-        exempt_pks: Collection[int] = (),
-    ):
-        """Filter out collections with no comics, keeping force-updated ones."""
-        rel_prefix = "storyarcnumber__" if model == StoryArc else ""
-        rel_prefix += "comic"
-        qs = qs.alias(child_count=Count(f"{rel_prefix}__pk", distinct=True))
-        child_filter = Q(child_count__gt=0)
-        if exempt_pks:
-            # A force-updated collection (a comic moved or was deleted OUT of
-            # it) must re-stamp even when it's now empty — otherwise a viewer
-            # of the just-emptied collection never gets the library.changed
-            # refresh. The empty row is reaped by the janitor afterwards.
-            child_filter |= Q(pk__in=exempt_pks)
-        return qs.filter(child_filter)
 
     @classmethod
     def _update_collection_model(
@@ -94,22 +84,16 @@ class TimestampUpdater(WorkerStatusBase):
         update_filter = cls._get_update_filter(
             model, start_time, force_update_collection_map, library
         )
-        qs = model.objects.filter(update_filter)
-        qs = cls._add_child_count_filter(
-            qs, model, force_update_collection_map.get(model) or ()
+        pks = tuple(
+            model.objects.filter(update_filter).distinct().values_list("pk", flat=True)
         )
-
-        qs = qs.distinct()
-        qs = qs.only(*_UPDATE_FIELDS)
-
-        updated = []
-        for obj in qs:
-            obj.updated_at = Now()
-            updated.append(obj)
-
-        count = len(updated)
+        count = len(pks)
         if count:
-            model.objects.bulk_update(updated, _UPDATE_FIELDS)
+            # .update() can't run on a .distinct() queryset; route the
+            # distinct pks back through a batched plain filter.
+            for start in range(0, count, IMPORTER_LINK_FK_BATCH_SIZE):
+                batch = pks[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+                model.objects.filter(pk__in=batch).update(updated_at=Now())
             log_list.append(f"{count} {model.__name__}s")
         return count
 

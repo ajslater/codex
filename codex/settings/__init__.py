@@ -228,8 +228,10 @@ EMAIL_BACKEND = "codex.mail.DBEmailBackend"
 IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
     CODEX_CONFIG, "importer.delete_max_chunk_size", default=2000
 )
-# OR-chain Q()s in filters.py:32-43 and link/delete.py:37-41
-# Limit: 990, 900 for safety.
+# OR-chain Q()s in link/delete.py and the residual-key fallbacks in
+# query/filters.py and link/prepare.py. The binding constraint is
+# SQLITE_LIMIT_EXPR_DEPTH (1000) — a flat OR parses as a deep tree —
+# not the 32766 variable cap, so 900 stays correct on modern SQLite.
 IMPORTER_FILTER_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.filter_batch_size", default=900
 )
