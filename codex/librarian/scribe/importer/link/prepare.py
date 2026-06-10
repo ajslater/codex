@@ -33,6 +33,17 @@ _M2M_OR_CHAIN_CAP = 500
 _COMPLEX_FIELDS_FOR_FTS = frozenset((FOLDERS_FIELD_NAME, *COMPLEX_MODEL_FIELD_NAMES))
 
 
+def _none_safe_key(key_tuple: tuple) -> tuple:
+    """
+    Sort key for key tuples that mix None with comparable values.
+
+    Plain ``sorted`` raises TypeError comparing None against a value
+    when two tuples first differ at a None position (e.g. volume keys
+    ``(…, 1950, None)`` vs ``(…, None, 7)``). None sorts last.
+    """
+    return tuple((value is None, value) for value in key_tuple)
+
+
 class LinkComicsImporterPrepare(LinkCoversImporter):
     """Prepare links with database objects."""
 
@@ -94,7 +105,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         """Resolve key tuples for a multi-column model via batched Q-OR."""
         pk_map: dict[tuple, int] = {}
         # Q-OR chain batched at a planner-friendly cap.
-        tuples = sorted(key_tuples)
+        tuples = sorted(key_tuples, key=_none_safe_key)
         for start in range(0, len(tuples), _M2M_OR_CHAIN_CAP):
             batch = tuples[start : start + _M2M_OR_CHAIN_CAP]
             or_q = Q()

@@ -1,9 +1,10 @@
 """Initialize Importer."""
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from multiprocessing.queues import Queue
 from pathlib import Path
-from time import sleep, time
+from time import perf_counter, sleep, time
 from typing import TYPE_CHECKING, Any
 
 from django.utils.timezone import now
@@ -54,7 +55,8 @@ from codex.models import Library
 from codex.settings import LOGLEVEL
 
 if TYPE_CHECKING:
-    from codex.models.collections import BrowserCollectionModel
+    from codex.models.base import BaseModel
+    from codex.models.collections import BrowserCollectionModel, Folder
 
 _WRITE_WAIT_EXPIRY = 60
 
@@ -111,6 +113,15 @@ class InitImporter(WorkerStatusBase):
         # operational state, not parsed comic data — keeps the metadata
         # fixture-comparable in tests.
         self.cover_create_pks: set[int] = set()
+        # Per-chunk FK-link instance maps built by
+        # ``prepare_fk_link_instance_maps`` after the FK create/update
+        # steps; consumed by ``get_comic_fk_links`` during comic
+        # update/create instead of one ``objects.get`` per (comic,
+        # field). Held off ``metadata`` for the same reason as
+        # ``cover_create_pks``.
+        self.fk_link_instance_maps: dict[str, dict[tuple, BaseModel]] = {}
+        self.protagonist_instance_maps: dict[str, dict[str, BaseModel]] = {}
+        self.parent_folder_map: dict[str, Folder] = {}
         # Per-import accumulator of collections a comic moved OUT of when its
         # publisher/imprint/series/volume FK changed during an update. The
         # delete phase folds these into ``TimestampUpdater``'s force-update map
@@ -124,12 +135,22 @@ class InitImporter(WorkerStatusBase):
         self.start_time = now()
         # Wall time accumulated per phase name across all chunks, keyed
         # by the method names in importer.py's _PRE/_PER_COMIC/_POST
-        # phase tuples. Logged as a share table at finish and read
+        # phase tuples. Sub-steps nest with a dotted "phase.step" name
+        # and are excluded from totals (their time is inside their
+        # parent's). Logged as a share table at finish and read
         # directly by bin/benchmark-import.py.
         self.phase_times: dict[str, float] = {}
         self._is_log_debug_task = (
             self.log.level(LOGLEVEL).no <= self.log.level("DEBUG").no
         )
+
+    def timed_step(self, name: str, method: Callable[[], Any]) -> Any:
+        """Run a method, accumulating its wall time into phase_times."""
+        start = perf_counter()
+        result = method()
+        elapsed = perf_counter() - start
+        self.phase_times[name] = self.phase_times.get(name, 0.0) + elapsed
+        return result
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
         """Watcher sends events before filesystem events finish, so wait for them."""

@@ -856,6 +856,7 @@ class TestImporterBasic(BaseTestImporter):
         assert Identifier.objects.count() == 3  # noqa: PLR2004
 
         # Create Comics
+        self.importer.prepare_fk_link_instance_maps()
         self.importer.update_comics()
         self.importer.create_comics()
         md = MappingProxyType(self.importer.metadata)

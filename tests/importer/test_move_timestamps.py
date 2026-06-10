@@ -44,6 +44,7 @@ def _run_full_import(importer) -> None:
     importer.query()
     importer.create_all_fks()
     importer.update_all_fks()
+    importer.prepare_fk_link_instance_maps()
     importer.update_comics()
     importer.create_comics()
     importer.link()
