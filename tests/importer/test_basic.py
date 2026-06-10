@@ -815,6 +815,10 @@ class BaseTestImporter(SerializeMixin, TestCase, ABC):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(TMP_DIR)
+        # Without this, TestCase's class-level atomics are never rolled
+        # back: the import's open transaction (and its SQLite table
+        # locks) leaks into every test that runs afterward.
+        super().tearDownClass()
 
     @override
     def setUp(self):

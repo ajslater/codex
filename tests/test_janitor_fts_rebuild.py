@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from django.test import TestCase
+from django.test import TransactionTestCase
 from loguru import logger
 
 from codex.librarian.scribe.janitor.integrity import fts_rebuild
@@ -25,8 +25,16 @@ def _capture_logs() -> Generator[list[str]]:
         logger.remove(sink_id)
 
 
-class FtsRebuildTests(TestCase):
-    """The shared rebuild helper logs its own success, like its integrity siblings."""
+class FtsRebuildTests(TransactionTestCase):
+    """
+    The shared rebuild helper logs its own success, like its integrity siblings.
+
+    ``TransactionTestCase`` because ``fts_rebuild`` runs ``PRAGMA
+    wal_checkpoint`` — inside a ``TestCase`` wrapping transaction that
+    raises ``OperationalError: database table is locked`` on the
+    shared-cache in-memory test database once any prior statement holds
+    table locks. Production calls it from the janitor in autocommit.
+    """
 
     def test_fts_rebuild_logs_success(self) -> None:
         """Any caller of the shared fn gets a completion log, not just the wrapper."""
