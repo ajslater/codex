@@ -1,5 +1,7 @@
 """The main importer class."""
 
+from time import perf_counter
+
 from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.moved import MovedImporter
 from codex.librarian.scribe.importer.pragmas import importer_pragmas
@@ -46,7 +48,10 @@ class ComicImporter(MovedImporter):
         """Run named phases in order. Return False if aborted mid-run."""
         for name in names:
             method = getattr(self, name)
+            start = perf_counter()
             method()
+            elapsed = perf_counter() - start
+            self.phase_times[name] = self.phase_times.get(name, 0.0) + elapsed
             if self.abort_event.is_set():
                 return False
         return True

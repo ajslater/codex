@@ -122,6 +122,11 @@ class InitImporter(WorkerStatusBase):
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()
+        # Wall time accumulated per phase name across all chunks, keyed
+        # by the method names in importer.py's _PRE/_PER_COMIC/_POST
+        # phase tuples. Logged as a share table at finish and read
+        # directly by bin/benchmark-import.py.
+        self.phase_times: dict[str, float] = {}
         self._is_log_debug_task = (
             self.log.level(LOGLEVEL).no <= self.log.level("DEBUG").no
         )

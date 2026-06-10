@@ -1,5 +1,6 @@
 """The main importer class."""
 
+from operator import itemgetter
 from time import time
 from types import MappingProxyType
 
@@ -56,6 +57,19 @@ class FinishImporter(InitImporter):
 
         return log_txt
 
+    def _log_phase_times(self) -> None:
+        """Log each phase's accumulated wall time, largest share first."""
+        total = sum(self.phase_times.values())
+        if not total:
+            return
+        parts = ", ".join(
+            f"{name} {secs:.2f}s ({secs / total:.0%})"
+            for name, secs in sorted(
+                self.phase_times.items(), key=itemgetter(1), reverse=True
+            )
+        )
+        self.log.debug(f"Import phase times: {parts}")
+
     def _log_finish(self) -> None:
         """Log Finish."""
         elapsed_time = time() - self.start_time.timestamp()
@@ -65,6 +79,7 @@ class FinishImporter(InitImporter):
         else:
             log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
+        self._log_phase_times()
 
     def finish(self) -> None:
         """Perform final tasks when the apply is done."""

@@ -292,8 +292,10 @@ def _hex_path(num):
     fnv = adler32(bytes(num_str, "utf-8"))
     hex_str = format(fnv, f"0{HEX_FILL}x")
     parts = [hex_str[i : i + PATH_STEP] for i in range(0, len(hex_str), PATH_STEP)]
-    path = Path("/".join(parts))
-    return path.with_suffix(".cbz")
+    # Dirs from the checksum for spread, but the filename from the
+    # index: adler32 of short digit strings collides often, and a
+    # colliding full path silently overwrites an earlier comic.
+    return Path("/".join(parts[:-1])) / f"{num_str}.cbz"
 
 
 def create_file(root, index):
