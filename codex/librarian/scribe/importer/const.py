@@ -1,11 +1,14 @@
 """BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related import ManyToManyRel
 
 from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
@@ -352,6 +355,16 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
 def get_key_index(model: type[BaseModel]) -> int:
     """Return the key index divider for a model tuple."""
     return len(MODEL_REL_MAP[model][0])
+
+
+def get_through_model(field: ManyToManyField) -> type[BaseModel]:
+    """Get the through model for a m2m field."""
+    # ``ManyToManyField.remote_field`` is typed as the broader
+    # ``Field`` and ``.through`` only exists on ``ManyToManyRel``.
+    # Cast through ``object`` because pyright correctly observes
+    # the type-system gap.
+    remote_field = cast("ManyToManyRel", cast("object", field.remote_field))
+    return cast("type[BaseModel]", remote_field.through)
 
 
 #################
