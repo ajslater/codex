@@ -14,11 +14,6 @@
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
-    <p class="adminProse libraryHelp">
-      Each Watched File Events box checked creates a thread to monitor the
-      Library. An large number of watching threads may exceed the limits of your
-      operating system or container.
-    </p>
   </div>
 </template>
 
