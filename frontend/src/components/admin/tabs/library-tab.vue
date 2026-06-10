@@ -52,8 +52,4 @@ export default {
 </script>
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
-
-.libraryHelp {
-  margin-top: 2em;
-}
 </style>
