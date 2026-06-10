@@ -182,16 +182,6 @@ class JanitorFolderRelationsStatus(JanitorStatus):
     SINGLE = True
 
 
-class JanitorFolderRelationsStatus(JanitorStatus):
-    """Janitor Repair Comic Folder Relations Status."""
-
-    CODE = "JFR"
-    VERB = "Repair"
-    _verbed = "Repaired"
-    ITEM_NAME = "comic folder relations"
-    SINGLE = True
-
-
 JANITOR_STATII = (
     JanitorAdoptOrphanFoldersStatus,
     JanitorCleanupTagsStatus,
