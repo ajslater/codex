@@ -19,14 +19,14 @@ from codex.user_data.restore import restore
 from codex.xz import date_stamp
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.snapshot")  # noqa: S108
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 
 
 @contextmanager
-def _capture_logs() -> Iterator[list[str]]:
+def _capture_logs() -> Generator[list[str]]:
     """Collect loguru INFO+ messages emitted inside the ``with`` block."""
     records: list[str] = []
     sink_id = logger.add(records.append, level="INFO", format="{message}")

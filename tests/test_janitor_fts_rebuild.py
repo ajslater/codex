@@ -11,11 +11,11 @@ from loguru import logger
 from codex.librarian.scribe.janitor.integrity import fts_rebuild
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 
 @contextmanager
-def _capture_logs() -> Iterator[list[str]]:
+def _capture_logs() -> Generator[list[str]]:
     """Collect loguru INFO+ messages emitted inside the ``with`` block."""
     records: list[str] = []
     sink_id = logger.add(records.append, level="INFO", format="{message}")
