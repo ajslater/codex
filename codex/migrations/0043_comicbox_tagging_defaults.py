@@ -27,6 +27,8 @@ A single migration carrying the v1.12.7 -> v2 schema and data changes.
   data-migrated to collection names, then renamed to ``collection`` /
   ``top_collection`` (the dummy root ``0`` last-route sentinel is stripped
   going forward).
+* ``AgeRating.metron`` FKs relinked with the current comicbox mapping (plus
+  the ``Comic.age_rating_metron_index`` / FTS denormalizations).
 
 Operation order is load-bearing: ``move_api_key_to_admin_flag`` reads
 ``Timestamp.version`` so it runs before the rename; the custom-cover data
@@ -45,8 +47,10 @@ from pathlib import Path
 
 import django.core.validators
 import django.db.models.deletion
+from comicbox.enums.maps.age_rating import to_metron_age_rating
 from django.conf import settings
 from django.db import migrations, models
+from django.utils import timezone
 from loguru import logger
 
 import codex.models.fields
@@ -558,6 +562,74 @@ def browser_default_flag_collection_to_char(apps, _schema_editor):
         admin_flag.objects.filter(
             key=_BROWSER_DEFAULT_COLLECTION_KEY, value=collection
         ).update(value=char)
+
+
+# ---------------------------------------------------------------------------
+# AgeRating.metron relink
+# ---------------------------------------------------------------------------
+
+
+def _compute_metron_name(name) -> str:
+    """Map an ``AgeRating.name`` to its canonical Metron rating name (or ``""``)."""
+    if not name:
+        return ""
+    result = to_metron_age_rating(name)
+    return result.value if result else ""
+
+
+def relink_age_rating_metron(apps, _schema_editor) -> None:
+    """
+    Re-derive every ``AgeRating.metron`` FK with the current comicbox mapping.
+
+    The FK is normally computed once, in ``presave`` when the row is created,
+    so mappings comicbox gains later (e.g. ``Rating Pending`` -> ``Unknown``)
+    never reach existing rows. Unlike this migration's frozen char maps, the
+    comicbox lookup is intentionally live: the point is to adopt whatever the
+    installed comicbox maps today.
+
+    Two denormalizations derive from the FK; heal both for relinked rows:
+    the ``Comic.age_rating_metron_index`` ACL column, and the search index's
+    ``age_rating_metron`` column — bumping ``Comic.updated_at`` pushes the
+    comics past the FTS watermark so the next sync refreshes their entries.
+    """
+    age_rating_model = apps.get_model("codex", "agerating")
+    metron_model = apps.get_model("codex", "ageratingmetron")
+    comic_model = apps.get_model("codex", "comic")
+
+    name_to_pk = dict(metron_model.objects.values_list("name", "pk"))
+    qs = age_rating_model.objects.only("pk", "name", "metron_id")
+    to_update = []
+    for age_rating in qs.iterator(chunk_size=_RATING_CHUNK_SIZE):
+        metron_name = _compute_metron_name(age_rating.name)
+        metron_pk = name_to_pk.get(metron_name) if metron_name else None
+        if metron_pk == age_rating.metron_id:
+            continue
+        logger.info(f"age rating metron: {age_rating.name!r} -> {metron_name or None}")
+        age_rating.metron_id = metron_pk
+        to_update.append(age_rating)
+    if not to_update:
+        return
+    age_rating_model.objects.bulk_update(
+        to_update, ("metron_id",), batch_size=_RATING_CHUNK_SIZE
+    )
+
+    # Group relinked ratings by their new denormalized index so the comic
+    # heal is one UPDATE per distinct index value.
+    index_by_pk = dict(metron_model.objects.values_list("pk", "index"))
+    now = timezone.now()
+    pks_by_index: dict = {}
+    for age_rating in to_update:
+        index = (
+            index_by_pk.get(age_rating.metron_id)
+            if age_rating.metron_id is not None
+            else None
+        )
+        pks_by_index.setdefault(index, []).append(age_rating.pk)
+    for index, age_rating_pks in pks_by_index.items():
+        comic_model.objects.filter(age_rating_id__in=age_rating_pks).update(
+            age_rating_metron_index=index,
+            updated_at=now,
+        )
 
 
 def _repair_folder_relations(apps, _schema_editor) -> None:
@@ -1107,4 +1179,8 @@ class Migration(migrations.Migration):
         # empties. Folded in from the former 0044; the nightly
         # ``folder_relations_check`` task keeps already-migrated installs healed.
         migrations.RunPython(_repair_folder_relations, _noop_reverse),
+        # Relink AgeRating.metron FKs (and their comic denormalizations)
+        # with the current comicbox mapping — heals rows imported before
+        # comicbox learned a mapping (e.g. Rating Pending -> Unknown).
+        migrations.RunPython(relink_age_rating_metron, _noop_reverse),
     ]
