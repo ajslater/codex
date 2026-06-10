@@ -25,6 +25,10 @@ from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG, LOGLEVEL
 from codex.startup.loguru import CODEX_LOG_FORMAT
 
+# Indices into the WatchedPath.set_stat JSON list.
+_STAT_SIZE_INDEX = 6
+_STAT_MTIME_INDEX = 8
+
 
 class ExtractMetadataImporter(AggregateMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
@@ -85,37 +89,56 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             self.log.warning("Admin flag set to NOT import tags.")
         return import_metadata
 
-    def _get_old_comic_mtime(
-        self, old_comic: MutableMapping[str, datetime | str | int]
+    @staticmethod
+    def _normalize_old_comic_mtime(
+        old_comic: MutableMapping[str, Any],
     ) -> datetime | None:
-        if not self.task.check_metadata_mtime:
-            return None
-        old_mtime: datetime = old_comic.pop("metadata_mtime")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        """Normalize the stored metadata_mtime to an aware UTC datetime."""
+        old_mtime: datetime | None = old_comic.get("metadata_mtime")
         if old_mtime and (
             old_mtime.tzinfo is None or old_mtime.tzinfo.utcoffset(old_mtime) is None
         ):
             old_mtime = old_mtime.replace(tzinfo=UTC)
+            old_comic["metadata_mtime"] = old_mtime
         return old_mtime
 
     def _get_all_old_comic_values(
         self,
         all_paths: frozenset[str],
-    ) -> tuple[
-        MappingProxyType[str, datetime], MappingProxyType[str, dict[str, str | int]]
-    ]:
+    ) -> tuple[MappingProxyType[str, datetime], MappingProxyType[str, dict[str, Any]]]:
         """Get some old comic values."""
-        values = ["path", "page_count", "file_type"]
-        if self.task.check_metadata_mtime:
-            values.append("metadata_mtime")
+        values = ("path", "page_count", "file_type", "metadata_mtime", "stat")
         old_comics = Comic.objects.filter(path__in=all_paths).values(*values)
         old_comic_values = {}
         old_comic_mtimes = {}
         for old_comic in old_comics:
             old_path_str = old_comic.pop("path")
-            if old_mtime := self._get_old_comic_mtime(old_comic):
+            old_mtime = self._normalize_old_comic_mtime(old_comic)
+            if self.task.check_metadata_mtime and old_mtime:
                 old_comic_mtimes[old_path_str] = old_mtime
             old_comic_values[old_path_str] = old_comic
         return MappingProxyType(old_comic_mtimes), MappingProxyType(old_comic_values)
+
+    @staticmethod
+    def _fs_stat_unchanged(path_str: str, old_comic: dict[str, Any]) -> bool:
+        """
+        Return whether the on-disk stat matches the stored Comic.stat.
+
+        Mirrors the poller's modified test ((mtime, size) equality, see
+        SnapshotDiff._is_stats_equal) so a skipped file is exactly one
+        the poller would not re-emit.
+        """
+        stored = old_comic.get("stat")
+        if not stored:
+            return False
+        try:
+            st = Path(path_str).stat()
+        except OSError:
+            return False
+        # Indices per WatchedPath.set_stat: [6]=st_size, [8]=st_mtime.
+        return st.st_mtime == stored[_STAT_MTIME_INDEX] and (
+            st.st_size == stored[_STAT_SIZE_INDEX]
+        )
 
     @staticmethod
     def _envelope_deltas(
@@ -123,7 +146,8 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
     ) -> dict[str, Any]:
         """Build the subset of envelope fields that actually changed vs DB."""
         delta: dict[str, Any] = {}
-        if (mtime := result.get("metadata_mtime")) is not None:
+        mtime = result.get("metadata_mtime")
+        if mtime is not None and mtime != old_comic.get("metadata_mtime"):
             delta["metadata_mtime"] = mtime
         new_page_count = result.get("page_count")
         if (
@@ -164,7 +188,13 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             # changes through the stat-only path so aggregate doesn't
             # see an empty-tag md and clobber the comic's existing
             # browser-collection FKs with the empty default collections.
-            if envelope_md:
+            # When the envelope AND the on-disk stat both match the DB,
+            # skip the update entirely — the row write was pure churn
+            # (every spurious watcher event rewrote the comic, purged
+            # its covers, and broadcast LIBRARY_CHANGED). A moved stat
+            # must still flow through so Comic.stat refreshes and the
+            # poller stops re-emitting the file as modified.
+            if envelope_md or not self._fs_stat_unchanged(path_str, old_comic):
                 envelope_md["path"] = path_str
                 self.metadata[EXTRACTED_STAT_ONLY][path_str] = envelope_md
             self.metadata[SKIPPED].add(path_str)
