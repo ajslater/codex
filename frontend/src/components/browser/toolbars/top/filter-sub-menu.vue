@@ -49,8 +49,8 @@
         <!--
           Age Rating: dual-tab UI. The "Standardized" tab (metron
           values) is selected by default; "As tagged" holds every
-          raw tagged value, each annotated with its standardized
-          equivalent in parentheses. When there are no tagged
+          raw tagged value, each preceded by its standardized
+          equivalent in a dim left column. When there are no tagged
           values the tab bar is hidden and only the Standardized
           list renders. A tab shows a primary-colored checkbox
           icon when its filter has any selections. The shared
