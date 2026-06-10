@@ -412,6 +412,17 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )
 )
+BULK_UPDATE_COMIC_FIELDS_SET = frozenset(BULK_UPDATE_COMIC_FIELDS)
+# Fields update_comics always rewrites: presave-derived values
+# (stat/size from disk, date/decade from year-month-day,
+# age_rating_metron_index from the age_rating FK) plus the updated_at
+# stamp. The other BULK_UPDATE_COMIC_FIELDS are only written when some
+# comic in the batch actually changed them — bulk_update's CASE-WHEN
+# SQL scales with rows x fields, and a force-reimport of unchanged
+# comics otherwise rewrites ~40 columns per row to identical values.
+ALWAYS_UPDATE_COMIC_FIELDS = frozenset(
+    {"age_rating_metron_index", "date", "decade", "size", "stat", "updated_at"}
+)
 BULK_CREATE_COMIC_FIELDS = (*BULK_UPDATE_COMIC_FIELDS, "library")
 BULK_UPDATE_FOLDER_FIELDS = (
     "name",

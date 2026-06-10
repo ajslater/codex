@@ -6,8 +6,10 @@ from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import (
+    ALWAYS_UPDATE_COMIC_FIELDS,
     BULK_CREATE_COMIC_FIELDS,
     BULK_UPDATE_COMIC_FIELDS,
+    BULK_UPDATE_COMIC_FIELDS_SET,
     COLLECTION_FIELD_NAMES,
     CREATE_COMICS,
     FTS_CREATE,
@@ -65,11 +67,12 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             self.moved_source_collections.setdefault(model, set()).add(old_pk)
 
     def _update_comic_values(
-        self, comic: Comic, update_comics: list, comic_pks: list
+        self, comic: Comic, update_comics: list, comic_pks: list, changed_fields: set
     ) -> None:
         md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
         for field_name, value in md.items():
             setattr(comic, field_name, value)
+        changed_fields.update(md)
 
         self._populate_fts_attribute_values(FTS_UPDATE, comic.pk, md)
         # Snapshot the collection FKs before linking overwrites them so a move
@@ -80,6 +83,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             for field_name in COLLECTION_FIELD_NAMES
         }
         link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
+        changed_fields.update(link_md)
         for field_name, value in link_md.items():
             set_value = value
             if set_value is None:
@@ -120,21 +124,34 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             # set attributes for each comic
             update_comics = []
             comic_pks = []
+            changed_fields: set[str] = set()
             for comic in comics:
                 if self.abort_event.is_set():
                     return count
                 try:
-                    self._update_comic_values(comic, update_comics, comic_pks)
+                    self._update_comic_values(
+                        comic, update_comics, comic_pks, changed_fields
+                    )
                 except Exception:
                     self.log.exception(f"Error preparing {comic} for update.")
             self.metadata.pop(UPDATE_COMICS)
 
             count = len(update_comics)
             if count:
-                self.log.debug(f"Bulk updating {len(update_comics)} comics.")
+                # Write only fields some comic actually changed plus the
+                # presave-derived/timestamp set — CASE-WHEN bulk_update
+                # cost scales with rows x fields.
+                update_fields = sorted(
+                    ALWAYS_UPDATE_COMIC_FIELDS
+                    | (changed_fields & BULK_UPDATE_COMIC_FIELDS_SET)
+                )
+                self.log.debug(
+                    f"Bulk updating {len(update_comics)} comics on "
+                    f"{len(update_fields)} fields."
+                )
                 Comic.objects.bulk_update(
                     update_comics,
-                    BULK_UPDATE_COMIC_FIELDS,
+                    update_fields,
                     batch_size=IMPORTER_UPDATE_COMIC_BATCH_SIZE,
                 )
                 if comic_pks:
