@@ -59,7 +59,9 @@ class FinishImporter(InitImporter):
 
     def _log_phase_times(self) -> None:
         """Log each phase's accumulated wall time, largest share first."""
-        total = sum(self.phase_times.values())
+        # Dotted "phase.step" sub-steps already count inside their
+        # parent phase, so only top-level phases sum to the total.
+        total = sum(secs for name, secs in self.phase_times.items() if "." not in name)
         if not total:
             return
         parts = ", ".join(
