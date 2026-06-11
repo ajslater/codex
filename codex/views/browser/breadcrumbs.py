@@ -1,5 +1,6 @@
 """Browser breadcrumbs calculations."""
 
+from pathlib import PurePath
 from types import MappingProxyType
 from typing import TYPE_CHECKING, cast
 
@@ -13,6 +14,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.models.collections import Folder as FolderModel
 from codex.models.collections import Publisher
 from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
@@ -153,10 +155,28 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         crumbs: list[Route] = [Route(FOLDER_COLLECTION, pks, page, name)]
 
-        # Walk up the parent_folder chain
-        while folder and (parent := folder.parent_folder):
-            folder = parent
-            crumbs.append(Route(FOLDER_COLLECTION, (folder.pk,), 1, folder.name))
+        if folder:
+            # Batch the ancestor chain in one query via the indexed
+            # materialized ``path`` instead of lazy ``parent_folder``
+            # walking — that issued one SELECT per ancestor level (a
+            # depth-12 folder paid 11 round-trips per browse with cold
+            # cachalot, and every import invalidates the Folder table).
+            # ``PurePath.parents`` yields nearest-first; prefixes above
+            # the library root match no rows and drop out, and
+            # ``library_id`` keeps sibling libraries' folders excluded.
+            prefixes = [str(p) for p in PurePath(folder.path).parents]
+            ancestors = {
+                ancestor.path: ancestor
+                for ancestor in FolderModel.objects.filter(
+                    library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+                    path__in=prefixes,
+                ).only("pk", "path", "name")
+            }
+            crumbs.extend(
+                Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)
+                for prefix in prefixes
+                if (ancestor := ancestors.get(prefix))
+            )
 
         # Add folder root if not already there
         if crumbs[-1].pks:
