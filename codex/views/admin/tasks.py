@@ -72,6 +72,7 @@ from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
 from codex.views.admin.auth import AdminAPIView, AsyncAdminReadOnlyModelViewSet
 from codex.views.const import EPOCH_START
+from codex.views.pagination import LibrarianStatusCursorPagination
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -141,6 +142,9 @@ class AdminLibrarianStatusViewSet(AsyncAdminReadOnlyModelViewSet):
     """
 
     serializer_class = LibrarianStatusSerializer
+    # The pagination ordering must match the get_queryset order below —
+    # CursorPagination re-orders the queryset itself.
+    pagination_class = LibrarianStatusCursorPagination
     # Set per-route at ``as_view()`` time. ``True`` for the live status
     # poller; ``False`` for the Jobs tab's full history view.
     active_only: ClassVar[bool] = False
