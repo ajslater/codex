@@ -64,24 +64,30 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         include_q, exclude_q, fts_q = self.get_search_filters(Comic)
         q &= include_q & ~exclude_q
         if fts_q:
-            # pk__in over the pre-materialized FTS match set: SQLite
-            # materializes this sub-SELECT once, giving the correlated cover
-            # subquery a cheap indexed membership test instead of re-scanning
-            # the FTS5 virtual table per outer collection row for the filter.
-            fts_sq = Comic.objects.filter(fts_q).values("pk")
-            q &= Q(pk__in=fts_sq)
-            # Also apply fts_q directly — but only when the cover subquery's
-            # ORDER BY actually references the rank. The direct fts_q forces
-            # a JOIN to ``codex_comicfts`` with MATCH active, populating
-            # ``codex_comicfts.rank`` so ``search_score=ComicFTSRank()`` is
-            # resolvable in the subquery's ORDER BY; without it the cover
-            # picked would be arbitrary among the FTS matches rather than
-            # the highest-ranked one. For every other order key the rank is
-            # unused and the MATCH re-executes once per correlated cover
-            # evaluation (a name-sorted search browse measured 135s vs 14s
-            # with the pre-materialized ``fts_sq`` membership test alone).
-            if self.order_key == "search_score":
+            if self.fts_q_is_pk_set:
+                # Already the materialized match-set membership Q.
                 q &= fts_q
+            else:
+                # pk__in over a pre-materialized FTS match sub-SELECT:
+                # SQLite materializes it once, giving the correlated cover
+                # subquery a cheap indexed membership test instead of
+                # re-scanning the FTS5 virtual table per outer collection
+                # row for the filter.
+                fts_sq = Comic.objects.filter(fts_q).values("pk")
+                q &= Q(pk__in=fts_sq)
+                # Also apply fts_q directly — but only when the cover
+                # subquery's ORDER BY actually references the rank. The
+                # direct fts_q forces a JOIN to ``codex_comicfts`` with
+                # MATCH active, populating ``codex_comicfts.rank`` so
+                # ``search_score=ComicFTSRank()`` is resolvable in the
+                # subquery's ORDER BY; without it the cover picked would
+                # be arbitrary among the FTS matches rather than the
+                # highest-ranked one. For every other order key the rank
+                # is unused and the MATCH re-executes once per correlated
+                # cover evaluation (a name-sorted search browse measured
+                # 135s vs 14s with the membership test alone).
+                if self.order_key == "search_score":
+                    q &= fts_q
         return q
 
     def _cover_comic_ordered_qs(self, collection_model):
