@@ -608,8 +608,15 @@
               </v-combobox>
             </td>
           </tr>
-          <tr v-if="tagKey === 'teams'" class="subSelectRow">
-            <td class="key subSelectLabel">Protagonist</td>
+          <tr
+            v-if="tagKey === 'teams'"
+            :class="{
+              fieldCleared: isCleared('protagonist'),
+              fieldChanged:
+                isFieldChanged('protagonist') && !isCleared('protagonist'),
+            }"
+          >
+            <td class="key">Protagonist</td>
             <td>
               <v-tooltip
                 v-if="!protagonistItems.length"
@@ -1196,6 +1203,17 @@ export default {
       return changed;
     },
   },
+  watch: {
+    protagonistItems(newItems, oldItems) {
+      // Removing the picked character/team clears the pick. A protagonist
+      // seeded from the DB but absent from the entered lists survives
+      // load: oldItems is the pre-init empty list on the first fire.
+      const name = this.patch.protagonist;
+      if (name && oldItems.includes(name) && !newItems.includes(name)) {
+        this.patch.protagonist = "";
+      }
+    },
+  },
   mounted() {
     this.loadTaggingDefaults();
     if (this.taggingDefaults?.defaultFormats?.length) {
@@ -1728,15 +1746,6 @@ td.labelChanged {
 
 .fieldCleared :deep(.v-label) {
   text-decoration: line-through;
-}
-
-.subSelectRow {
-  opacity: 0.85;
-}
-
-.subSelectLabel {
-  font-size: 0.85em;
-  padding-left: 16px !important;
 }
 
 .monochromeRow {

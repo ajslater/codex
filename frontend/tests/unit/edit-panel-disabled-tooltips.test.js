@@ -122,6 +122,28 @@ describe("EditPanel — protagonist select", () => {
     wrapper.vm.patch.protagonist = "Avengers";
     expect(wrapper.vm.buildPatch()).toEqual({ protagonist: "Avengers" });
   });
+
+  test("newly entered tags join the menu; removing the picked one clears it", async () => {
+    const wrapper = await mountPanel({ formats: ["COMIC_INFO"], md });
+    wrapper.vm.patch.characters.push("Venom");
+    await flushPromises();
+    expect(wrapper.vm.protagonistItems).toContain("Venom");
+
+    wrapper.vm.patch.protagonist = "Venom";
+    wrapper.vm.patch.characters = ["Spider-Man"];
+    await flushPromises();
+    expect(wrapper.vm.protagonistItems).not.toContain("Venom");
+    expect(wrapper.vm.patch.protagonist).toBe("");
+  });
+
+  test("a protagonist absent from the entered tags survives load unchanged", async () => {
+    const wrapper = await mountPanel({
+      formats: ["COMIC_INFO"],
+      md: { ...md, mainCharacter: { pk: 9, name: "Mysterio" } },
+    });
+    expect(wrapper.vm.patch.protagonist).toBe("Mysterio");
+    expect(wrapper.vm.hasChanges).toBe(false);
+  });
 });
 
 export default {};
