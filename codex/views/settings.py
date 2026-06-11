@@ -71,6 +71,15 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     BROWSER_MODEL: type[SettingsBrowser] = SettingsBrowser
     BROWSER_CLIENT: ClientChoices = ClientChoices.API
 
+    def __init__(self, *args, **kwargs) -> None:
+        """Init the per-request settings-row memo."""
+        super().__init__(*args, **kwargs)
+        # (model, client) → settings instance. Views are instantiated per
+        # request, so this caches the row for the request only — dropping
+        # the second fetch (and its uncachable django_session probe) that
+        # the load-then-save pattern used to pay on every browse GET.
+        self._settings_instances: dict = {}
+
     # ── Session / user helpers ──────────────────────────────────────
 
     def _get_request_user(self):
@@ -217,41 +226,52 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         Handles login transitions (promoting anonymous session rows to user
         rows) and keeps the session FK current.
         """
+        memo_key = (model, client)
+        if (memoized := self._settings_instances.get(memo_key)) is not None:
+            # A full row fetched earlier this request satisfies any
+            # ``only`` subset too.
+            return memoized
+
         user = self._get_request_user()
         session_key = self._ensure_session_key()
 
         base_filter = {"client": client, **filter_args}
 
+        instance = None
         # 1. Authenticated user — look up by user first.
-        if user and (
-            instance := self._get_or_create_settings_user(
+        if user:
+            instance = self._get_or_create_settings_user(
                 model, user, session_key, base_filter, only
             )
-        ):
-            return instance
 
         # 2. Try by session.
-        if session_key and (
-            instance := self._get_or_create_settings_session(
+        if instance is None and session_key:
+            instance = self._get_or_create_settings_session(
                 model, user, session_key, base_filter, only
             )
-        ):
-            return instance
 
         # 3. Nothing found — create.
-        if model is SettingsBrowser:
-            return self._create_browser_settings(
-                user,
-                session_key,
-                client,
-                create_args,
-            )
-        return model.objects.create(
-            user=user,
-            session_id=session_key,
-            client=client,
-            **create_args,
-        )
+        if instance is None:
+            if model is SettingsBrowser:
+                instance = self._create_browser_settings(
+                    user,
+                    session_key,
+                    client,
+                    create_args,
+                )
+            else:
+                instance = model.objects.create(
+                    user=user,
+                    session_id=session_key,
+                    client=client,
+                    **create_args,
+                )
+
+        if only is None:
+            # Only memoize full rows: an ``only()``-deferred instance
+            # would lazy-load fields one query at a time if reused.
+            self._settings_instances[memo_key] = instance
+        return instance
 
     # ── Instance → dict conversion ──────────────────────────────────
 
@@ -464,7 +484,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             route_obj.page = route_data["page"]
             dirty = True
         if dirty:
-            route_obj.save()
+            # Scoped update: the full-row save rewrote created_at too.
+            route_obj.save(update_fields=("collection", "pks", "page", "updated_at"))
 
     @staticmethod
     def _save_browser_settings_direct_key(key: str, data, instance):
@@ -476,17 +497,20 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     @classmethod
     def _save_browser_settings_data(cls, instance: SettingsBrowser, data: dict) -> None:
         """Persist a params dict to a SettingsBrowser and its related rows."""
-        instance_dirty = False
-        for key in instance.DIRECT_KEYS:
-            instance_dirty |= cls._save_browser_settings_direct_key(key, data, instance)
+        dirty_fields = [
+            key
+            for key in instance.DIRECT_KEYS
+            if cls._save_browser_settings_direct_key(key, data, instance)
+        ]
         if "q" in data and instance.search != data["q"]:
             instance.search = data["q"]
-            instance_dirty = True
+            dirty_fields.append("search")
         show_data = data.get("show")
         if show_data and cls._save_browser_show(instance, show_data):
-            instance_dirty = True
-        if instance_dirty:
-            instance.save()
+            dirty_fields.append("show")
+        if dirty_fields:
+            # Scoped update — the full-row save rewrote created_at.
+            instance.save(update_fields=(*dirty_fields, "updated_at"))
 
         if filters_data := data.get("filters"):
             cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -515,11 +539,24 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             # Same branch invariant as ``_load_settings_data``.
             self._save_reader_settings_data(cast("SettingsReader", instance), data)
 
-    def save_params_to_settings(self, params) -> None:  # reader session & browser final
-        """Save the session from params with defaults for missing values."""
+    def save_params_to_settings(
+        self,
+        params,
+        *,
+        defer_last_route: bool = False,
+    ) -> None:  # reader session & browser final
+        """
+        Save the session from params with defaults for missing values.
+
+        ``defer_last_route`` drops the route from the synchronous save —
+        browse GETs queue it to the librarian writer instead so the read
+        path never waits on the WAL writer lock.
+        """
         try:
             # Deepcopy this so serializing the values later for http response doesn't alter them
             data = deepcopy(dict(params))
+            if defer_last_route:
+                data.pop("last_route", None)
             self._save_settings_data(data)
         except Exception as exc:
             logger.warning(f"Saving params to session: {exc}")
