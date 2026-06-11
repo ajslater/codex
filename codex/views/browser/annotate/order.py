@@ -182,6 +182,15 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         if qs.model is Folder:
             filename = F("name")
+        elif qs.model is Comic:
+            # A comic IS its own file — aggregating its single path only
+            # turned the alias into an aggregate, which dragged every
+            # selected column into GROUP BY inside both the listing and
+            # the cover subqueries (a filename-ordered folder browse
+            # measured in minutes). Same expression, no aggregate;
+            # ``annotate_comic_extra_specials`` already does this for
+            # the multi-sort tail.
+            filename = self.get_filename_func(qs.model)
         else:
             filename_func = self.get_filename_func(qs.model)
             filename = self.order_agg_func(filename_func)
@@ -561,4 +570,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 qs = self.annotate_extra_order_values(qs)
         elif not for_cover:
             qs = self.annotate_comic_extra_specials(qs)
+            # The ``ids`` aggregate above makes Django compute a GROUP BY
+            # over every selected column (~50 on Comic, including TEXT
+            # blobs like summary/review). Force the pk instead — every
+            # other column is functionally dependent on it, so the groups
+            # are identical and SQLite sorts a one-column key (~25-35%
+            # off the books query). Idempotent with the FTS-path
+            # ``group_by("id")`` in ``_annotate_search_scores``; must not
+            # apply to the cover path, where the forced literal column
+            # doesn't survive the nested-subquery aliasing.
+            qs = qs.group_by("id")
         return qs
