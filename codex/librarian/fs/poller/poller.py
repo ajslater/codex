@@ -290,7 +290,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             qs = Library.objects.all()
             if poll_ids:
                 qs = qs.filter(pk__in=poll_ids)
-            qs.only(*_LIBRARY_ONLY)
+            qs = qs.only(*_LIBRARY_ONLY)
             for library in qs:
                 self._poll_library(library, force=force)
         except Exception:
