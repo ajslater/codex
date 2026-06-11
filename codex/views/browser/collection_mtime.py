@@ -11,7 +11,6 @@ from django.db.models.functions import Greatest
 from django.db.utils import OperationalError
 from loguru import logger
 
-from codex.models.functions import JsonGroupArray
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import EPOCH_START, EPOCH_START_DATETIMEFIELD, NONE_DATETIMEFIELD
 
@@ -69,27 +68,30 @@ class BrowserCollectionMtimeView(BrowserFilterView):
             "default": default,
             "filter": bm_filter,
         }
-        if agg_func is JsonGroupArray:
-            kwargs["distinct"] = True
-            kwargs["order_by"] = bmua_rel
-
         aggregate = agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         self._bmua_agg_cache[key] = aggregate
         return aggregate
 
     def _page_mtime_cache_key(self, model) -> str:
-        """Stable key scoped to user + filter-affecting params."""
+        """
+        Stable key scoped to user + filter-affecting params.
+
+        Deliberately excludes the page number and order params: the
+        probed value is the max mtime of the whole filtered collection,
+        which neither affects. Keying on them fragmented the TTL cache
+        so every page flip and order toggle re-paid the probe (~20% of
+        a bookmark-filtered page-flip request).
+        """
         user_id = self.request.user.pk if self.request.user.is_authenticated else 0
         collection = self.kwargs.get("collection", "r")
         pks = tuple(self.kwargs.get("pks") or (0,))
-        page = self.kwargs.get("page", 1)
-        filter_keys = ("filters", "search", "q", "order_by", "order_reverse")
+        filter_keys = ("filters", "search", "q")
         params_data = {k: self.params.get(k) for k in filter_keys}
         params_str = json.dumps(params_data, sort_keys=True, default=str)
         params_hash = hashlib.blake2s(params_str.encode(), digest_size=8).hexdigest()
         return (
             f"codex:page_mtime:{user_id}:{model.__name__}:"
-            f"{collection}:{pks}:{page}:{params_hash}"
+            f"{collection}:{pks}:{params_hash}"
         )
 
     def get_collection_mtime(
@@ -161,29 +163,28 @@ class BrowserCollectionMtimeView(BrowserFilterView):
                 Max("custom_cover__updated_at", default=EPOCH_START_DATETIMEFIELD)
             )
         try:
-            qs = qs.annotate(max=Greatest(*agg_terms))
-            # ``force_inner_joins`` makes search work and drops empty
-            # collections. It can't run on an ``.aggregate()``, so we annotate
-            # the per-row mtime and then take the MAX row explicitly.
-            qs = self.force_inner_joins(qs)
-            # Order by the per-row mtime DESC and take the top row so this is
-            # the GLOBAL max across the collection — NOT whichever row an
-            # implicit ``ORDER BY pk`` ``.first()`` surfaced. At root that
-            # returned the lowest-pk publisher's mtime, so an edit to any
-            # other collection never moved the value and the refresh gate
-            # stayed blind.
-            #
+            # Keep the filtered queryset — with its demoted joins and any
+            # FTS MATCH intact — as a pk-subquery and aggregate over a
+            # fresh queryset. A plain ``.aggregate()`` on the filtered qs
+            # is NOT equivalent: join demotion doesn't survive Django's
+            # aggregation rewrite and FTS5 raises ``unable to use function
+            # MATCH``. The previous annotate + GROUP BY-all-columns +
+            # ORDER BY shape computed the same global max by sorting every
+            # row (3x slower at 18k).
+            inner = self.force_inner_joins(qs).values("pk")
+            agg_qs = model.objects.filter(pk__in=inner)
             # Read fresh, bypassing cachalot: this is the "did the viewed
             # collection change?" probe, and a librarian-process
             # ``bulk_update`` of ``collection.updated_at`` is not reliably
             # reflected in a web worker's cached aggregate. It's a single
             # indexed scan — cheap to run uncached every probe.
             with cachalot_disabled():
-                first = qs.order_by("-max").first()
-            mtime = first.max if first else EPOCH_START
+                mtime = agg_qs.aggregate(max=Greatest(*agg_terms))["max"]
+            if mtime == NotImplemented:
+                mtime = None
+            elif not mtime:
+                mtime = EPOCH_START
         except OperationalError as exc:
             self._handle_operational_error(exc)
-            mtime = None
-        if mtime == NotImplemented:
             mtime = None
         return mtime
