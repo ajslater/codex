@@ -17,23 +17,23 @@ class BrowserFilterBookmarkView(BookmarkFilterMixin, BrowserValidateView):
     def get_bookmark_filter(self, model):
         """Build bookmark query."""
         choice: str = self.params.get("filters", {}).get("bookmark", "")
-        if choice:
-            bm_rel = self.get_bm_rel(model)
-            my_bookmark_filter = self.get_my_bookmark_filter(bm_rel)
-            if choice == "READ":
-                bookmark_filter = my_bookmark_filter & Q(
-                    **{f"{bm_rel}__finished": True}
-                )
-            else:
-                my_not_finished_filter = my_bookmark_filter & Q(
-                    **{f"{bm_rel}__finished__in": (False, None)}
-                )
-                if choice == "UNREAD":
-                    bookmark_filter = Q(**{bm_rel: None}) | my_not_finished_filter
-                else:  # IN_PROGRESS
-                    bookmark_filter = my_not_finished_filter & Q(
-                        **{f"{bm_rel}__page__gt": 0}
-                    )
-        else:
-            bookmark_filter = Q()
-        return bookmark_filter
+        if not choice:
+            return Q()
+        if choice == "UNREAD":
+            # "I have no finished bookmark on this comic." The old
+            # ``Q(bookmark=None) | my-unfinished`` pair was wrong in
+            # multi-user installs: ``bookmark=None`` matches only comics
+            # with no bookmark from ANY user or session, so a comic
+            # finished by someone else matched neither arm and silently
+            # vanished from my unread listing.
+            return ~Q(self.get_my_finished_bookmark_exists(model))
+        bm_rel = self.get_bm_rel(model)
+        my_bookmark_filter = self.get_my_bookmark_filter(bm_rel)
+        if choice == "READ":
+            return my_bookmark_filter & Q(**{f"{bm_rel}__finished": True})
+        # IN_PROGRESS
+        return (
+            my_bookmark_filter
+            & Q(**{f"{bm_rel}__finished__in": (False, None)})
+            & Q(**{f"{bm_rel}__page__gt": 0})
+        )

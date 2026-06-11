@@ -3,11 +3,13 @@
 from abc import ABC
 from typing import TYPE_CHECKING
 
+from django.db.models import Exists, OuterRef
 from django.db.models.query_utils import Q
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.models import Bookmark
 from codex.views.auth import AuthAPIView, AuthMixin, GroupACLMixin
 
 if TYPE_CHECKING:
@@ -43,6 +45,24 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
             value = self.request.session.session_key
         my_bookmarks_kwargs = {key: value}
         return Q(**my_bookmarks_kwargs)
+
+    def get_my_finished_bookmark_exists(self, model) -> Exists:
+        """
+        Build a correlated probe for my finished bookmark on the comic row.
+
+        Correlates on the queryset's comic pk (``rel_prefix + pk``), so on
+        collection querysets it binds to the same joined comic row as the
+        other comic-relation filters in the combined ``.filter()`` call —
+        preserving the "one comic satisfies all conditions" semantics.
+        """
+        outer_pk = self.get_rel_prefix(model) + "pk"
+        if self.request.user and self.request.user.is_authenticated:
+            my = Q(user=self.request.user)
+        else:
+            my = Q(session=self.request.session.session_key)
+        return Exists(
+            Bookmark.objects.filter(my, comic=OuterRef(outer_pk), finished=True)
+        )
 
 
 class BookmarkAuthMixin(AuthMixin):
