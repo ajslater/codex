@@ -1,36 +1,11 @@
 """Cover pk annotation for browser card querysets."""
 
-from typing import override
-
 from django.db.models import OuterRef, Q, Subquery
-from django.db.models.functions import Coalesce
 
 from codex.models import Comic, Folder, Volume
 from codex.models.paths import CustomCover
 from codex.views.browser.annotate.card import _COLLECTION_BY, BrowserAnnotateCardView
 from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
-
-
-class _CoverMtimeCoalesce(Coalesce):
-    """
-    Coalesce of correlated cover subqueries, kept out of GROUP BY.
-
-    Django adds non-aggregate Func annotations to the GROUP BY wholesale.
-    Grouping by an expression containing correlated subqueries makes SQLite
-    evaluate them once per pre-aggregation joined row — quadratic in folder
-    mode, where the root folder's ``folders`` M2M fans out to every
-    descendant comic and each evaluation re-scans that same set (an 18k-comic
-    folder took minutes). Delegating to the source subqueries' own group-by
-    columns (their correlation column, already in the GROUP BY) restores the
-    bare-Subquery behavior: evaluated once per output group.
-    """
-
-    @override
-    def get_group_by_cols(self):
-        cols = []
-        for source in self.get_source_expressions():
-            cols.extend(source.get_group_by_cols())
-        return cols
 
 
 class BrowserAnnotateCoverView(BrowserAnnotateCardView):
@@ -136,20 +111,49 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         )
 
     def annotate_cover(self, qs):
-        """Annotate cover_pk / cover_custom_pk / cover_mtime on collection card."""
+        """Annotate cover_pk / cover_custom_pk / cover_custom_mtime on collection card."""
         if qs.model is Comic:
             # Comic cards use their own pk + updated_at; the serializer falls
             # back to those when the cover_* annotations are absent.
             return qs
         cover_qs = self._cover_comic_ordered_qs(qs.model)
+        # The representative comic's own updated_at (the cover ``?ts=``
+        # source) is NOT annotated here: a ``.values("updated_at")``
+        # subquery would be a second execution of the identical correlated
+        # cover query per card (measured 40-49% of the card query).
+        # ``attach_cover_mtimes`` resolves it post-pagination with one
+        # batched pk lookup over the page's cover_pks.
         qs = qs.annotate(cover_pk=Subquery(cover_qs.values("pk")[:1]))
-        # ``cover_mtime`` is the *representative* comic's own updated_at, so the
-        # cover ``?ts=`` only changes when the shown image does — not when any
-        # sibling comic in the collection is re-imported.
-        cover_mtime = Subquery(cover_qs.values("updated_at")[:1])
         custom_pk_sq, custom_mtime_sq = self._cover_custom_subqueries()
         if custom_pk_sq is not None:
-            qs = qs.annotate(cover_custom_pk=custom_pk_sq)
-            # A custom cover overrides the comic cover, so its mtime wins.
-            cover_mtime = _CoverMtimeCoalesce(custom_mtime_sq, cover_mtime)
-        return qs.annotate(cover_mtime=cover_mtime)
+            # Cheap rowid lookups; a custom cover overrides the comic
+            # cover, so its mtime wins in ``attach_cover_mtimes``.
+            qs = qs.annotate(
+                cover_custom_pk=custom_pk_sq, cover_custom_mtime=custom_mtime_sq
+            )
+        return qs
+
+    @staticmethod
+    def attach_cover_mtimes(collection_qs):
+        """
+        Attach ``cover_mtime`` to the page's collection rows in one batch.
+
+        Materializes the (paginated) queryset — priming the result cache
+        the serializer reuses — and resolves every representative comic's
+        ``updated_at`` with a single indexed ``pk__in`` query, instead of
+        re-running the correlated cover subquery per card. The cover
+        ``?ts=`` still only changes when the shown image does.
+        """
+        collections = list(collection_qs)
+        cover_pks = {
+            pk for c in collections if (pk := getattr(c, "cover_pk", None))
+        }
+        mtimes = (
+            dict(Comic.objects.filter(pk__in=cover_pks).values_list("pk", "updated_at"))
+            if cover_pks
+            else {}
+        )
+        for c in collections:
+            custom_mtime = getattr(c, "cover_custom_mtime", None)
+            c.cover_mtime = custom_mtime or mtimes.get(getattr(c, "cover_pk", None))
+        return collection_qs

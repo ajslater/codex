@@ -62,8 +62,9 @@ class _IntersectionSortRawSQL(RawSQL):
     into the GROUP BY, and SQLite evaluates it once per *pre-aggregation
     joined row* — quadratic on Folder browse, where the ancestor M2M fans
     out to every descendant comic (a folders-root table request measured
-    in minutes). Same mechanism as ``_CoverMtimeCoalesce`` in
-    ``annotate/cover.py``, recurring through a different expression type.
+    in minutes). The cover_mtime Coalesce annotation had the same failure
+    mode (commit 93475e710) before it was replaced by a post-pagination
+    batch lookup.
 
     The subquery's only outer reference is the collection table's pk,
     which is always in the GROUP BY, so the expression is functionally

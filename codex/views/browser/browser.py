@@ -344,6 +344,7 @@ class BrowserView(BrowserTitleView):
             collection_qs = self.annotate_card_aggregates(collection_qs)
             collection_qs = self.annotate_cover(collection_qs)
             collection_qs = self.force_inner_joins(collection_qs)
+            collection_qs = self.attach_cover_mtimes(collection_qs)
         if page_book_count:
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,
