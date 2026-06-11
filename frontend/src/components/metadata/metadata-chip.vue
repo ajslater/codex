@@ -8,20 +8,13 @@
   >
     <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
     <a v-if="item.url" :href="item.url" target="_blank"
-      ><v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon
-      >{{ title }}
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-      <v-icon>{{ mdiOpenInNew }}</v-icon></a
-    ><span v-else>
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-      {{ title }}
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-    </span>
+      >{{ title }} <v-icon>{{ mdiOpenInNew }}</v-icon></a
+    ><span v-else>{{ title }}</span>
   </v-chip>
 </template>
 
 <script>
-import { mdiOpenInNew, mdiStar } from "@mdi/js";
+import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
@@ -40,14 +33,9 @@ export default {
       type: String,
       default: "",
     },
-    main: {
-      type: Boolean,
-      default: false,
-    },
   },
   data() {
     return {
-      mdiStar,
       mdiOpenInNew,
     };
   },
@@ -175,10 +163,6 @@ export default {
 
 .clickable:hover :deep(.v-chip__content) {
   color: rgb(var(--v-theme-linkHover));
-}
-
-.mainStar {
-  vertical-align: text-bottom;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'xs')} {

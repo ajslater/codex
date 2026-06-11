@@ -608,70 +608,19 @@
               </v-combobox>
             </td>
           </tr>
-          <tr v-if="tagKey === 'characters'" class="subSelectRow">
-            <td class="key subSelectLabel">Main</td>
-            <td>
-              <v-tooltip
-                v-if="!patch.characters.length"
-                text="Add characters above first"
-                location="top"
-              >
-                <template #activator="{ props: tipProps }">
-                  <div v-bind="tipProps">
-                    <v-select
-                      v-model="patch.main_character"
-                      :items="[]"
-                      label="Main Character"
-                      hide-details
-                      density="compact"
-                      disabled
-                    />
-                  </div>
-                </template>
-              </v-tooltip>
-              <div
-                v-else
-                :title="isFieldDisabled('protagonist') ? disabledTooltip : ''"
-              >
-                <v-select
-                  v-model="patch.main_character"
-                  :items="patch.characters"
-                  label="Main Character"
-                  hide-details
-                  density="compact"
-                  :disabled="isFieldDisabled('protagonist')"
-                  :class="{
-                    fieldCleared: isCleared('main_character'),
-                    fieldChanged:
-                      isFieldChanged('main_character') &&
-                      !isCleared('main_character'),
-                  }"
-                  @update:model-value="onFieldInput('main_character')"
-                >
-                  <template #append-inner>
-                    <ClearFieldIcon
-                      :cleared="isCleared('main_character')"
-                      @toggle="toggleClear('main_character')"
-                    />
-                  </template>
-                </v-select>
-              </div>
-            </td>
-          </tr>
           <tr v-if="tagKey === 'teams'" class="subSelectRow">
-            <td class="key subSelectLabel">Main</td>
+            <td class="key subSelectLabel">Protagonist</td>
             <td>
               <v-tooltip
-                v-if="!patch.teams.length"
-                text="Add teams above first"
+                v-if="!protagonistItems.length"
+                text="Add characters or teams above first"
                 location="top"
               >
                 <template #activator="{ props: tipProps }">
                   <div v-bind="tipProps">
                     <v-select
-                      v-model="patch.main_team"
+                      v-model="patch.protagonist"
                       :items="[]"
-                      label="Main Team"
                       hide-details
                       density="compact"
                       disabled
@@ -684,23 +633,23 @@
                 :title="isFieldDisabled('protagonist') ? disabledTooltip : ''"
               >
                 <v-select
-                  v-model="patch.main_team"
-                  :items="patch.teams"
-                  label="Main Team"
+                  v-model="patch.protagonist"
+                  :items="protagonistItems"
                   hide-details
                   density="compact"
                   :disabled="isFieldDisabled('protagonist')"
                   :class="{
-                    fieldCleared: isCleared('main_team'),
+                    fieldCleared: isCleared('protagonist'),
                     fieldChanged:
-                      isFieldChanged('main_team') && !isCleared('main_team'),
+                      isFieldChanged('protagonist') &&
+                      !isCleared('protagonist'),
                   }"
-                  @update:model-value="onFieldInput('main_team')"
+                  @update:model-value="onFieldInput('protagonist')"
                 >
                   <template #append-inner>
                     <ClearFieldIcon
-                      :cleared="isCleared('main_team')"
-                      @toggle="toggleClear('main_team')"
+                      :cleared="isCleared('protagonist')"
+                      @toggle="toggleClear('protagonist')"
                     />
                   </template>
                 </v-select>
@@ -1102,8 +1051,7 @@ export default {
         language: null,
         age_rating: null,
         critical_rating: null,
-        main_character: "",
-        main_team: "",
+        protagonist: "",
         genres: [],
         characters: [],
         teams: [],
@@ -1154,6 +1102,10 @@ export default {
     },
     disabledTooltip() {
       return "Not supported by selected metadata formats";
+    },
+    protagonistItems() {
+      // One protagonist, picked from the entered characters and teams.
+      return [...new Set([...this.patch.characters, ...this.patch.teams])];
     },
     creditRoles() {
       return Object.keys(this.creditsByRole);
@@ -1487,8 +1439,9 @@ export default {
       this.patch.age_rating = this.md.ageRating?.name || null;
       this.patch.critical_rating =
         this.md.criticalRating == null ? null : Number(this.md.criticalRating);
-      this.patch.main_character = this.md.mainCharacter?.name || "";
-      this.patch.main_team = this.md.mainTeam?.name || "";
+      // Protagonist is stored as mainCharacter XOR mainTeam.
+      this.patch.protagonist =
+        this.md.mainCharacter?.name || this.md.mainTeam?.name || "";
 
       this.origSnapshot = { ...this.currentSnapshot };
     },
@@ -1636,10 +1589,13 @@ export default {
         }
       }
 
-      // Protagonist — only include if changed
-      if (changed.has("main_character") || changed.has("main_team")) {
-        const protagonist = this.patch.main_character || this.patch.main_team;
-        cbPatch.protagonist = protagonist || "";
+      // Protagonist — only include if changed. The importer resolves the
+      // name to main_character or main_team and nulls the other on
+      // re-import.
+      if (changed.has("protagonist")) {
+        cbPatch.protagonist = cleared.has("protagonist")
+          ? ""
+          : this.patch.protagonist || "";
       }
 
       return cbPatch;

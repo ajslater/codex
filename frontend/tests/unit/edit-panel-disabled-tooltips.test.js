@@ -8,8 +8,8 @@
  *     disabled control explains why it is disabled.
  *   - The Add Universe button is the headline case: disabled + explained when
  *     MetronInfo is off, enabled + unexplained when MetronInfo is on.
- *   - Per-row table inputs (e.g. Universe designation) and the Main
- *     Character / Main Team selects are covered too.
+ *   - Per-row table inputs (e.g. Universe designation) and the Protagonist
+ *     select are covered too.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -87,21 +87,40 @@ describe("EditPanel — disabled per-row inputs", () => {
   });
 });
 
-describe("EditPanel — protagonist selects", () => {
-  test("Main Character and Main Team explain themselves when protagonist is unsupported", async () => {
+describe("EditPanel — protagonist select", () => {
+  const md = {
+    characters: [{ name: "Spider-Man" }],
+    teams: [{ name: "Avengers" }],
+  };
+
+  function findProtagonistRow(wrapper) {
+    return wrapper
+      .findAll("tr")
+      .find((r) => r.find("td")?.text() === "Protagonist");
+  }
+
+  test("explains itself when protagonist is unsupported", async () => {
+    const wrapper = await mountPanel({ formats: ["METRON_INFO"], md });
+    const row = findProtagonistRow(wrapper);
+    expect(row).toBeTruthy();
+    expect(row.find(`div[title="${DISABLED_TIP}"]`).exists()).toBe(true);
+  });
+
+  test("offers the entered characters and teams as one choice list", async () => {
+    const wrapper = await mountPanel({ formats: ["COMIC_INFO"], md });
+    const row = findProtagonistRow(wrapper);
+    expect(row.find(`div[title="${DISABLED_TIP}"]`).exists()).toBe(false);
+    expect(wrapper.vm.protagonistItems).toEqual(["Spider-Man", "Avengers"]);
+  });
+
+  test("seeds from mainCharacter or mainTeam and patches as protagonist", async () => {
     const wrapper = await mountPanel({
-      formats: ["METRON_INFO"],
-      md: {
-        characters: [{ name: "Spider-Man" }],
-        teams: [{ name: "Avengers" }],
-      },
+      formats: ["COMIC_INFO"],
+      md: { ...md, mainCharacter: { pk: 5, name: "Spider-Man" } },
     });
-    const explained = wrapper
-      .findAll("div[title]")
-      .filter((d) => d.attributes("title") === DISABLED_TIP)
-      .map((d) => d.text());
-    expect(explained.some((t) => t.includes("Main Character"))).toBe(true);
-    expect(explained.some((t) => t.includes("Main Team"))).toBe(true);
+    expect(wrapper.vm.patch.protagonist).toBe("Spider-Man");
+    wrapper.vm.patch.protagonist = "Avengers";
+    expect(wrapper.vm.buildPatch()).toEqual({ protagonist: "Avengers" });
   });
 });
 

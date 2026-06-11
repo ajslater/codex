@@ -16,7 +16,6 @@ const TAGS = Object.freeze([
   "tags",
   "universes",
 ]);
-const MAIN_TAGS = Object.freeze(new Set(["Characters", "Teams"]));
 
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
@@ -52,8 +51,28 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return items;
     },
+    /*
+     * The protagonist is stored as mainCharacter XOR mainTeam — both
+     * filled should never happen, but display both if it does. Each
+     * chip carries its own browser filter key so the character chip
+     * filters characters and the team chip filters teams.
+     */
+    protagonists(state) {
+      const protagonists = [];
+      if (state.md?.mainCharacter) {
+        protagonists.push({ ...state.md.mainCharacter, filter: "characters" });
+      }
+      if (state.md?.mainTeam) {
+        protagonists.push({ ...state.md.mainTeam, filter: "teams" });
+      }
+      return protagonists;
+    },
     tags(state) {
-      const tags = state.mapTag(state.md, TAGS);
+      const tags = {};
+      if (state.protagonists.length) {
+        tags["Protagonist"] = { filter: "", tags: state.protagonists };
+      }
+      Object.assign(tags, state.mapTag(state.md, TAGS));
 
       if (state.identifiers?.length) {
         tags["Identifiers"] = {
@@ -96,27 +115,6 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return tagName;
     },
-    /*
-     *labelUniverses(tags) {
-     *  for (const tag of tags) {
-     *    tag.name += ` (${tag.designation})`;
-     *  }
-     *},
-     */
-    markTagMain(tagName, tags) {
-      const attr = "main" + tagName.slice(0, -1);
-      const mainPk = this.md[attr]?.pk;
-      const regularTags = [];
-      var mainTags = [];
-      for (const tag of tags) {
-        if (mainPk === tag.pk) {
-          mainTags.push(tag);
-        } else {
-          regularTags.push(tag);
-        }
-      }
-      return { mainTags, regularTags };
-    },
     mapTag(tagSource, keys, filter = undefined) {
       const tagMap = {};
 
@@ -126,24 +124,7 @@ export const useMetadataStore = defineStore("metadata", {
           continue;
         }
         const tagName = this.getTagName(key);
-
-        var mainTags = [];
-        var regularTags = [];
-        /*
-         *if (tagName === "Universes") {
-         *  this.labelUniverses(tags);
-         *  regularTags = tags;
-         *} else
-         */
-        if (MAIN_TAGS.has(tagName)) {
-          ({ mainTags, regularTags } = this.markTagMain(tagName, tags));
-        } else {
-          regularTags = tags;
-        }
-
-        filter = filter ? filter : key;
-
-        tagMap[tagName] = { filter, tags: regularTags, mainTags };
+        tagMap[tagName] = { filter: filter || key, tags };
       }
       return tagMap;
     },
