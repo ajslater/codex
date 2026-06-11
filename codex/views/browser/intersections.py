@@ -20,7 +20,7 @@ groups results by the parent collection's pk.
 from collections import defaultdict
 from collections.abc import Iterable
 from types import MappingProxyType
-from typing import Any
+from typing import Any, override
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CharField, Count, F, Min, Q, Sum, Value
@@ -51,6 +51,28 @@ _COMIC_COLLECTION_COL: MappingProxyType[type, str] = MappingProxyType(
         Folder: "parent_folder_id",
     }
 )
+
+
+class _IntersectionSortRawSQL(RawSQL):
+    """
+    Correlated intersection-sort subquery, kept out of GROUP BY.
+
+    ``RawSQL.get_group_by_cols`` returns ``[self]``, so annotating one of
+    these onto an aggregated queryset puts the entire correlated subquery
+    into the GROUP BY, and SQLite evaluates it once per *pre-aggregation
+    joined row* — quadratic on Folder browse, where the ancestor M2M fans
+    out to every descendant comic (a folders-root table request measured
+    in minutes). Same mechanism as ``_CoverMtimeCoalesce`` in
+    ``annotate/cover.py``, recurring through a different expression type.
+
+    The subquery's only outer reference is the collection table's pk,
+    which is always in the GROUP BY, so the expression is functionally
+    determined by the existing grouping and can be omitted entirely.
+    """
+
+    @override
+    def get_group_by_cols(self) -> list:
+        return []
 
 
 def _format_credit(person_name: str, role_name: str | None) -> str:
@@ -603,7 +625,7 @@ def _build_simple_m2m_intersection_sort_sql(
             ORDER BY t.name
         ) AS named
     )"""  # noqa: S608
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _wrap_intersection_sort(
@@ -659,7 +681,7 @@ def _build_universes_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_credits_intersection_sort_sql(
@@ -687,7 +709,7 @@ def _build_credits_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_identifiers_intersection_sort_sql(
@@ -710,7 +732,7 @@ def _build_identifiers_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_story_arcs_intersection_sort_sql(
@@ -734,7 +756,7 @@ def _build_story_arcs_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _comic_correlation_sql(
@@ -835,7 +857,7 @@ def scalar_intersection_sort_expr(
             {extra_join}
             WHERE {where}
         )"""  # noqa: S608
-        return RawSQL(sql, [])  # noqa: S611
+        return _IntersectionSortRawSQL(sql, [])
 
     # FK-to-name field — tagger__name, country__name, age_rating__name, …
     fk_attr, target_field = path.split("__", 1)
@@ -862,7 +884,7 @@ def scalar_intersection_sort_expr(
         LEFT JOIN {target_table} t ON c.{fk_col} = t.id
         WHERE {where}
     )"""  # noqa: S608
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def m2m_intersection_sort_expr(
