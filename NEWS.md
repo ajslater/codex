@@ -51,8 +51,12 @@ border-radius: 128px;
 - Performance
     - Library imports are much faster: forced re-imports run over 20x faster,
       fresh imports almost 4x, and polls that find nothing changed are now
-      nearly instant — no more rewriting every comic, regenerating every
-      cover, and refreshing every browser on a no-op poll.
+      nearly instant — no more rewriting every comic, regenerating every cover,
+      and refreshing every browser on a no-op poll.
+    - Browsing large libraries is dramatically faster: table, search, and sorted
+      folder views that could take minutes now load in about a second, metadata
+      works on collections of any size, and browsing stays responsive during
+      imports.
 
 ## v1.12.7
 
