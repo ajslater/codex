@@ -145,9 +145,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         ``?ts=`` still only changes when the shown image does.
         """
         collections = list(collection_qs)
-        cover_pks = {
-            pk for c in collections if (pk := getattr(c, "cover_pk", None))
-        }
+        cover_pks = {pk for c in collections if (pk := getattr(c, "cover_pk", None))}
         mtimes = (
             dict(Comic.objects.filter(pk__in=cover_pks).values_list("pk", "updated_at"))
             if cover_pks

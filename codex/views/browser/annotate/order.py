@@ -579,5 +579,5 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             # ``group_by("id")`` in ``_annotate_search_scores``; must not
             # apply to the cover path, where the forced literal column
             # doesn't survive the nested-subquery aliasing.
-            qs = qs.group_by("id")
+            qs = qs.group_by("id")  # pyright: ignore[reportAttributeAccessIssue]
         return qs
