@@ -95,15 +95,18 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
             # the FTS5 virtual table per outer collection row for the filter.
             fts_sq = Comic.objects.filter(fts_q).values("pk")
             q &= Q(pk__in=fts_sq)
-            # Also apply fts_q directly: this forces a JOIN to
-            # ``codex_comicfts`` with MATCH active, populating
+            # Also apply fts_q directly — but only when the cover subquery's
+            # ORDER BY actually references the rank. The direct fts_q forces
+            # a JOIN to ``codex_comicfts`` with MATCH active, populating
             # ``codex_comicfts.rank`` so ``search_score=ComicFTSRank()`` is
-            # resolvable in the cover subquery's ORDER BY. Without this, the
-            # cover picked for a collection would be arbitrary among the FTS
-            # matches rather than the highest-ranked one. The MATCH is
-            # constant across outer rows, so SQLite's planner typically
-            # hoists / shares it with the pre-materialized ``fts_sq``.
-            q &= fts_q
+            # resolvable in the subquery's ORDER BY; without it the cover
+            # picked would be arbitrary among the FTS matches rather than
+            # the highest-ranked one. For every other order key the rank is
+            # unused and the MATCH re-executes once per correlated cover
+            # evaluation (a name-sorted search browse measured 135s vs 14s
+            # with the pre-materialized ``fts_sq`` membership test alone).
+            if self.order_key == "search_score":
+                q &= fts_q
         return q
 
     def _cover_comic_ordered_qs(self, collection_model):
