@@ -121,8 +121,15 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
             (parent_path,),
         )
 
-    def _get_comic_protagonist_fk_link(self, md, link_fks: dict[str, tuple]) -> None:
+    def _get_comic_protagonist_fk_link(
+        self, md, link_fks: dict[str, tuple], *, for_create: bool
+    ) -> None:
         """Protagonist does not create. Only links."""
+        if PROTAGONIST_KEY not in link_fks and not for_create:
+            # Update path: an absent key means the query prune dropped an
+            # unchanged protagonist (or the file never tagged one) — leave
+            # the existing links alone instead of clearing them.
+            return
         name_tuple = link_fks.pop(PROTAGONIST_KEY, None)
         name: str | None = name_tuple[0] if name_tuple else None
         for field_name in PROTAGONIST_FIELD_MODEL_MAP:
@@ -132,6 +139,10 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
                 else None
             )
             md[field_name] = value
+            if value is not None:
+                # A name that is both a Character and a Team links only
+                # the first field (main_character), never both.
+                name = None
 
     def _get_comic_simple_fk_links(
         self, md, subkey: int | str, link_fks: dict[str, tuple]
@@ -174,6 +185,6 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
         if for_create:
             self._get_comic_folder_fk_link(md, subkey, path)
         if link_fks := self.metadata[LINK_FKS].pop(path, {}):
-            self._get_comic_protagonist_fk_link(md, link_fks)
+            self._get_comic_protagonist_fk_link(md, link_fks, for_create=for_create)
             self._get_comic_simple_fk_links(md, subkey, link_fks)
         return md
