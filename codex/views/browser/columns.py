@@ -296,8 +296,12 @@ def favorite_annotation_for(model, user) -> dict:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
+    # ``.value``: binding the Collection StrEnum member itself makes
+    # cachalot's parameter-type check raise UncachableQuery for every
+    # query this subquery lands in — silently uncaching all browse
+    # queries. The bound SQL value is identical either way.
     favorited_ids = Favorite.objects.filter(
-        user=user, collection=collection_code
+        user=user, collection=collection_code.value
     ).values("target_id")
     return {
         "favorite": Case(
