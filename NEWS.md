@@ -48,6 +48,11 @@ border-radius: 128px;
       (moved here from the sidebar).
     - Database and user-data backups are now compressed, dated, and auto-pruned.
     - Redesigned admin panel has moves settings under relevant tabs.
+- Performance
+    - Library imports are much faster: forced re-imports run over 20x faster,
+      fresh imports almost 4x, and polls that find nothing changed are now
+      nearly instant — no more rewriting every comic, regenerating every
+      cover, and refreshing every browser on a no-op poll.
 
 ## v1.12.7
 
