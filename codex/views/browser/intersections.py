@@ -184,7 +184,12 @@ def compute_collection_intersections(
     if not comic_to_collection:
         return {}
 
-    collection_pks = list(collection_qs.values_list("pk", flat=True))
+    # Iterate the queryset itself rather than ``.values_list("pk")``:
+    # the values_list clone re-executes the entire annotated/grouped/
+    # sorted page query just to read pks, while iterating primes this
+    # queryset's result cache — the serializer consumes the same object,
+    # so the heaviest query in a table-mode request runs once, not twice.
+    collection_pks = [obj.pk for obj in collection_qs]
     if not collection_pks:
         return {}
 
