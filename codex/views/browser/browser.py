@@ -267,15 +267,20 @@ class BrowserView(BrowserTitleView):
         return qs, count
 
     @staticmethod
-    def _get_zero_pad(book_qs) -> int:
-        """Get the zero padding for the display."""
-        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
-            "issue_number__max"
-        ]
+    def _zero_pad(issue_number_max) -> int:
+        """Compute display zero padding from the max issue number."""
         zero_pad = 1
         if issue_number_max:
             zero_pad += floor(log10(issue_number_max))
         return zero_pad
+
+    @classmethod
+    def _get_zero_pad(cls, book_qs) -> int:
+        """Get the zero padding for the display."""
+        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
+            "issue_number__max"
+        ]
+        return cls._zero_pad(issue_number_max)
 
     def _get_page_mtime(self):
         # Compute the mtime of the *container node* being viewed (the rows at
@@ -340,7 +345,6 @@ class BrowserView(BrowserTitleView):
             collection_qs = self.annotate_cover(collection_qs)
             collection_qs = self.force_inner_joins(collection_qs)
         if page_book_count:
-            zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,
             # so the JsonGroupArray aggregates run only over the
@@ -348,6 +352,17 @@ class BrowserView(BrowserTitleView):
             # upstream (``_add_table_view_sort_annotations``).
             book_qs = self._add_table_view_display_annotations(book_qs)
             book_qs = self.force_inner_joins(book_qs)
+            # Materialize the final page once: this primes the queryset's
+            # result cache (the serializer iterates the same object) and
+            # lets zero-pad read the page rows instead of re-running the
+            # whole ordered/annotated book query as a MAX subquery.
+            books = list(book_qs)
+            zero_pad = self._zero_pad(
+                max(
+                    (b.issue_number for b in books if b.issue_number is not None),
+                    default=None,
+                )
+            )
         else:
             zero_pad = 1
 
@@ -428,10 +443,10 @@ class BrowserView(BrowserTitleView):
         """Return the page data — both cards and (in table mode) rows."""
         data = dict(self.get_object())
         if self.params.get("view_mode") == "table":
-            # The unified serializer projects collections+books through these
-            # columns into a parallel ``rows`` list. ``cards`` stays
-            # populated unconditionally so a mobile fallback can render
-            # the card grid without a second round-trip.
+            # The unified serializer projects collections+books through
+            # these columns into a parallel ``rows`` list and drops the
+            # card fields from the table-mode payload (they never reach
+            # the wire — see BrowserPageSerializer.to_representation).
             columns = self._resolve_table_columns()
             data["columns"] = columns
             # Collection rows in the table view show **intersections** of

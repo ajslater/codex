@@ -296,20 +296,21 @@ class BrowserPageSerializer(Serializer):
     @override
     def to_representation(self, instance):
         """
-        Strip the unused mode's fields after the base projection.
+        Drop the unused mode's fields before the base projection.
 
         Table mode: ``rows`` carries every projected column; the card
-        fields are noise and the largest part of the payload.
-        Card mode: ``rows`` is empty unless columns were requested,
-        so drop the always-empty ``rows`` slot.
+        fields are noise and the largest part of the payload. Card
+        mode: ``rows`` is empty unless columns were requested. Popping
+        from ``self.fields`` (per-instance dict) instead of the result
+        skips serializing ~100 cards per table request just to discard
+        them — same wire output, none of the dead per-card work.
         """
-        data = super().to_representation(instance)
         if self._view_mode(instance) == "table":
-            data.pop("collections", None)
-            data.pop("books", None)
+            self.fields.pop("collections", None)
+            self.fields.pop("books", None)
         else:
-            data.pop("rows", None)
-        return data
+            self.fields.pop("rows", None)
+        return super().to_representation(instance)
 
     @staticmethod
     def _view_mode(instance) -> str:
