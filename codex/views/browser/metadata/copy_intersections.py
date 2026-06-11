@@ -56,9 +56,18 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
                 f"{PREFETCH_PREFIX}{key}" if key in _PREFETCH_DICT_FIELDS else key
             )
             if hasattr(obj, serializer_key):
-                # real db fields need to use their special set method.
-                field = getattr(obj, serializer_key)
-                field.set(qs, clear=True)
+                # Real m2m field — the Comic path: ``obj`` is a live saved
+                # instance, so serve the intersection through the prefetch
+                # cache (RelatedManager.get_queryset consults it, keyed by
+                # field name). NEVER ManyRelatedManager.set() here: this is
+                # a GET, and set(clear=True) DELETE+INSERTs the through
+                # tables — on a multi-comic selection it permanently
+                # rewrote the first comic's tags to the intersection.
+                cache = getattr(obj, "_prefetched_objects_cache", None)
+                if cache is None:
+                    cache = {}
+                    obj._prefetched_objects_cache = cache  # noqa: SLF001
+                cache[serializer_key] = qs
             else:
                 # fake db field is just a queryset attached.
                 setattr(obj, serializer_key, qs)

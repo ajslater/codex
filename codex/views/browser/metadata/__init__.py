@@ -71,9 +71,11 @@ class MetadataView(MetadataCopyIntersectionsView):
     @override
     def get_object(self) -> Any:
         """Create a comic-like object from the current browser collection."""
-        # Comic model goes through the same code path as collections because
-        # values dicts don't copy relations to the serializer. The values
-        # dict is necessary because of the folders view union in browser.py.
+        # ``qs[0]`` below is a LIVE model instance (Comic or a collection
+        # model), not a values dict. Relations the serializer reads are
+        # attached afterwards: real m2m fields via the prefetch cache,
+        # everything else as plain attributes
+        # (see copy_intersections_into_comic_fields).
 
         qs = self.get_filtered_queryset(self.model)
         filtered_qs = qs
