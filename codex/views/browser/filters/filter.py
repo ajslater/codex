@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
 from codex.collection import Collection
-from codex.models import Comic
+from codex.models import Comic, StoryArc
 from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
@@ -70,6 +70,20 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         demote_tables = {"codex_library"}
         if qs.model is not Comic:
             demote_tables.add("codex_comic")
+        if qs.model is StoryArc:
+            # StoryArc browse reaches Comic through two more LEFT-JOINed
+            # tables (StoryArcNumber and the M2M through table) — the
+            # collection relation itself, so NULL-extended rows are
+            # exactly the empty collections this method exists to drop.
+            # Demoting them lets SQLite start the plan from the FTS/comic
+            # side instead of a cartesian arc-side scan (an arc search
+            # browse measured 150s vs 36ms per query). Scoped to StoryArc:
+            # on other models these tables join as table-view *annotation*
+            # LEFT JOINs, where demotion would drop rows whose comics have
+            # no story arcs.
+            demote_tables.update(
+                ("codex_storyarcnumber", "codex_comic_story_arc_numbers")
+            )
         if self.fts_mode:
             # Forcing INNER JOINS required to make fts5 work
             demote_tables.add("codex_comicfts")
