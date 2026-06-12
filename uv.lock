@@ -637,7 +637,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], editable = "../comicbox" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=4.0.0a3" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -724,7 +724,7 @@ wheels = [
 [[package]]
 name = "comicbox"
 version = "4.0.0a3"
-source = { editable = "../comicbox" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
     { name = "case-converter" },
@@ -760,93 +760,14 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/65/c5/91f040fadd74abde1db2dd0c7d9e27899f3fd31a3971f057c43d8308308d/comicbox-4.0.0a3.tar.gz", hash = "sha256:5ffc336b68da115b7f87c085aa112971f364f70190553f98b06884c271a8a238", size = 954370, upload-time = "2026-06-12T09:44:29.43Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/e5/c6568b4a281d713b5e6e2d20a3035d7b2f3f53b2d129c5c3754faec50aa4/comicbox-4.0.0a3-py3-none-any.whl", hash = "sha256:21151d347b6f0058944510f8fe66adc05642f092c25923e3a7963f61fac6fa8a", size = 321009, upload-time = "2026-06-12T09:44:27.872Z" },
+]
 
 [package.optional-dependencies]
 pdf = [
     { name = "comicbox-pdffile" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bidict", specifier = "~=0.23" },
-    { name = "case-converter", specifier = "~=1.2" },
-    { name = "comicbox-pdffile", marker = "extra == 'pdf'", specifier = ">=0.6.1,<0.7" },
-    { name = "comicfn2dict", specifier = ">=0.3.0,<1.0.0" },
-    { name = "confuse", specifier = "~=2.2.0" },
-    { name = "deepdiff", specifier = "~=9.0" },
-    { name = "glom", specifier = "~=25.12" },
-    { name = "httpx", specifier = "~=0.28" },
-    { name = "imagehash", specifier = ">=4.3.2" },
-    { name = "jsonschema", extras = ["format"], specifier = "~=4.20" },
-    { name = "keyring", specifier = "~=25.6" },
-    { name = "loguru", specifier = "~=0.7" },
-    { name = "marshmallow", specifier = "~=4.3" },
-    { name = "marshmallow-union", specifier = ">=0.1.15.post1" },
-    { name = "mokkari", specifier = ">=3.25.4,<4" },
-    { name = "nh3", specifier = ">=0.3.5" },
-    { name = "pillow", specifier = ">=12.2.0" },
-    { name = "platformdirs", specifier = ">=4.9.6" },
-    { name = "py7zr", specifier = "~=1.1.0" },
-    { name = "pycountry", specifier = "~=26.2" },
-    { name = "python-dateutil", specifier = "~=2.8" },
-    { name = "questionary", specifier = ">=2.1.1" },
-    { name = "rapidfuzz", specifier = ">=3.14.5" },
-    { name = "rarfile", specifier = "~=4.0" },
-    { name = "rich", specifier = "~=15.0" },
-    { name = "rich-argparse", specifier = "~=1.7" },
-    { name = "ruamel-yaml", specifier = "~=0.18" },
-    { name = "simplejson", specifier = "~=4.0" },
-    { name = "simyan", specifier = ">=2.0.0,<3" },
-    { name = "typing-extensions", specifier = "~=4.13" },
-    { name = "urnparse", specifier = "~=0.2" },
-    { name = "xmlschema", specifier = "~=4.0" },
-    { name = "xmltodict", specifier = "~=1.0" },
-    { name = "zipremove", specifier = "~=0.1" },
-]
-provides-extras = ["pdf"]
-
-[package.metadata.requires-dev]
-build = []
-ci = [{ name = "requests", specifier = "~=2.32" }]
-dev = [
-    { name = "icecream", specifier = "~=2.1" },
-    { name = "infer-types", specifier = "~=1.0.0" },
-    { name = "marshmallow-jsonschema", specifier = ">=0.15.0" },
-    { name = "neovim", specifier = "~=0.3" },
-    { name = "packaging", specifier = ">=26.1" },
-    { name = "pyclean", specifier = "~=3.1" },
-    { name = "pypi-cleanup", specifier = "~=0.1.10" },
-    { name = "semver", specifier = "~=3.0.4" },
-    { name = "toml-cli", specifier = "~=0.7" },
-    { name = "tomlkit", specifier = "~=0.14" },
-]
-docs = [
-    { name = "mkapi", specifier = "~=4.4" },
-    { name = "mkdocs", specifier = "~=1.6" },
-    { name = "mkdocs-minify-plugin", specifier = "~=0.8" },
-]
-lint = [
-    { name = "basedpyright", specifier = "~=1.38" },
-    { name = "check-jsonschema", specifier = "~=0.36" },
-    { name = "codespell", specifier = "~=2.4" },
-    { name = "complexipy", specifier = "~=5.1" },
-    { name = "djlint", specifier = "~=1.3.dev0" },
-    { name = "icecream", specifier = "~=2.1" },
-    { name = "mbake", specifier = "~=1.4.5" },
-    { name = "pathspec", specifier = "~=1.1.0" },
-    { name = "radon", extras = ["toml"], specifier = "~=6.0" },
-    { name = "ruff", specifier = "~=0.15" },
-    { name = "ty", specifier = "~=0.0.17" },
-    { name = "types-python-dateutil", specifier = "~=2.9" },
-    { name = "types-xmltodict", specifier = "~=1.0" },
-    { name = "vulture", specifier = "~=2.3" },
-]
-test = [
-    { name = "coverage", extras = ["toml"], specifier = "~=7.0" },
-    { name = "pytest", specifier = "~=9.0" },
-    { name = "pytest-asyncio", specifier = "~=1.0" },
-    { name = "pytest-cov", specifier = "~=7.0" },
-    { name = "pytest-gitignore", specifier = "~=1.3" },
 ]
 
 [[package]]
