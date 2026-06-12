@@ -29,7 +29,7 @@
         "eslint-plugin-prettier": "^5.5.6",
         "eslint-plugin-promise": "^7.3.0",
         "eslint-plugin-regexp": "^3.1.0",
-        "eslint-plugin-security": "^4.0.0",
+        "eslint-plugin-security": "^4.0.1",
         "eslint-plugin-sonarjs": "^4.0.3",
         "eslint-plugin-toml": "^1.4.0",
         "eslint-plugin-unicorn": "^65.0.1",
