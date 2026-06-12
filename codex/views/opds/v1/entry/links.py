@@ -129,7 +129,7 @@ class OPDS1EntryLinksMixin:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
         if self.obj.page_count and self.obj.file_type:
             return False
-        with Comicbox(self.obj.path, config=COMICBOX_CONFIG, logger=logger) as cb:
+        with Comicbox(self.obj.path, config=COMICBOX_CONFIG) as cb:
             self.obj.page_count = cb.get_page_count()
             self.obj.file_type = cb.get_file_type()
         logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")

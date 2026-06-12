@@ -18,6 +18,7 @@ from time import monotonic
 from typing import TYPE_CHECKING, Any, cast
 
 from comicbox.events import Event, PromptDeferred, RateLimited
+from comicbox.exceptions import ComicboxError
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
 from humanize import naturaldelta
 
@@ -124,7 +125,16 @@ class OnlineTagSessionManager:
             )
             return
 
-        tags = fetch_tags_by_explicit_id(path, task.source, task.issue_id, credentials)
+        try:
+            tags = fetch_tags_by_explicit_id(
+                path, task.source, task.issue_id, credentials
+            )
+        except ComicboxError as exc:
+            msg = f"Fetching {task.source} issue {task.issue_id} failed: {exc}"
+            self.log.warning(f"Online tag by id: {msg} ({path})")
+            add_tag_write_error(str(path), msg)
+            self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
+            return
         if not tags:
             msg = f"No {task.source} issue found for id {task.issue_id}."
             self.log.warning(f"Online tag by id: {msg} ({path})")

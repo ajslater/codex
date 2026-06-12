@@ -30,6 +30,10 @@ border-radius: 128px;
     - Critical ratings normalized to a consistent 0–5 scale.
     - The age-rating "As Tagged" panel hides when it has no entries.
     - Browser refreshes more often when comics change. container restarts.
+    - Online tagging is more dependable (comicbox 4.0.0a3): cancelling a scan
+      or bulk tag write now stops promptly instead of finishing the batch,
+      admin rate-limit overrides are actually enforced, and bad credentials
+      fail fast instead of retrying.
 - Features
     - Edit the tags on one or many comics directly in the browser — credits,
       story arcs, identifiers, and more — written back to your comic files.

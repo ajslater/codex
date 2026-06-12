@@ -163,7 +163,7 @@ class ArchiveCache:
             # constructor returns immediately; the underlying archive
             # opens lazily on first access. Either way the open cost is
             # paid once per cache lifetime, not once per request.
-            comicbox = Comicbox(path, config=COMICBOX_CONFIG, logger=logger)
+            comicbox = Comicbox(path, config=COMICBOX_CONFIG)
             entry = _ArchiveEntry(path, comicbox, now)
             self._archives[path] = entry
             while len(self._archives) > self.max_entries:
@@ -185,7 +185,7 @@ class ArchiveCache:
         ``Comicbox`` per call — same behaviour as the pre-cache code.
         """
         if not self.enabled:
-            with Comicbox(path, config=COMICBOX_CONFIG, logger=logger) as cb:
+            with Comicbox(path, config=COMICBOX_CONFIG) as cb:
                 yield cb
             return
         entry = self._open_or_get(path)
@@ -204,7 +204,7 @@ class ArchiveCache:
         verdict memoization is a no-op in that mode.
         """
         if not self.enabled:
-            with Comicbox(path, config=COMICBOX_CONFIG, logger=logger) as cb:
+            with Comicbox(path, config=COMICBOX_CONFIG) as cb:
                 yield _ArchiveEntry(path, cb, time.monotonic())
             return
         entry = self._open_or_get(path)

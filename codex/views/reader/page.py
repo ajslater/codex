@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Final
 
+from comicbox.exceptions import ComicboxError
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -216,7 +217,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             pk = self.kwargs.get("pk")
             detail = f"comic path for {pk} not found: {exc}."
             raise NotFound(detail=detail) from exc
-        except Exception as exc:
+        except ComicboxError as exc:
             logger.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
