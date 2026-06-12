@@ -144,7 +144,7 @@ source-include = [
   "frontend/**",
   "img/**",
   "mkdocs.yml",
-  "fixtures/**",
+  "benchmark/**",
   "package.json",
   "tests/**",
   "uv.lock",
@@ -371,7 +371,7 @@ ignore-overlong-task-comments = true
 "tests/*" = ["D101", "D102", "T201", "T203"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-"fixtures/*" = ["S311", "T201"]
+"benchmark/*" = ["S311", "T201"]
 
 [tool.ruff.lint.pylint]
 max-args = 8

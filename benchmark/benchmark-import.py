@@ -84,7 +84,7 @@ def _parse_args() -> argparse.Namespace:
 def _generate_library(comics_dir: Path, count: int, seed: int, *, regen: bool) -> None:
     """Create the mock comic library unless it already matches."""
     sys.path.insert(0, str(_REPO_ROOT))
-    from fixutres.mock_comics.mock_comics import create_file
+    from fixtures.mock_comics.mock_comics import create_file
 
     existing = len(tuple(comics_dir.rglob("*.cbz"))) if comics_dir.exists() else 0
     if existing == count and not regen:
