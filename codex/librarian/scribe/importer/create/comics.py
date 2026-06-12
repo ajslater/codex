@@ -146,8 +146,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                     | (changed_fields & BULK_UPDATE_COMIC_FIELDS_SET)
                 )
                 self.log.debug(
-                    f"Bulk updating {len(update_comics)} comics on "
-                    f"{len(update_fields)} fields."
+                    f"Bulk updating {len(update_comics)} comics on {len(update_fields)} fields."
                 )
                 Comic.objects.bulk_update(
                     update_comics,

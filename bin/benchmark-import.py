@@ -192,8 +192,7 @@ def _report(result: dict[str, Any], count: int) -> None:
     elapsed = result["elapsed"]
     rate = count / elapsed if elapsed else 0.0
     print(
-        f"\n=== {result['scenario']}: {count} comics in {elapsed:.2f}s "
-        f"({rate:.1f}/s) ==="
+        f"\n=== {result['scenario']}: {count} comics in {elapsed:.2f}s ({rate:.1f}/s) ==="
     )
     phase_times = result["phase_times"]
     # Dotted "phase.step" sub-steps already count inside their parent

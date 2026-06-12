@@ -7,6 +7,8 @@ frontend can stream large user / library / cover lists without paying
 for the offset re-scan on every fetch.
 """
 
+from typing import override
+
 from rest_framework.pagination import CursorPagination
 
 
@@ -45,6 +47,7 @@ class LibrarianStatusCursorPagination(CodexCursorPagination):
     view keeps the ``pk`` default.
     """
 
+    @override
     def get_ordering(self, request, queryset, view) -> tuple[str, ...]:
         """Registration-stamp order for the active poll; pk for history."""
         if getattr(view, "active_only", False):
