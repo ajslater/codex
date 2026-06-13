@@ -16,6 +16,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       mode,
       promptsMode,
       deleteOriginal,
+      mergeAllSources,
     }) {
       const response = await HTTP.post("/admin/tag-sessions/start", {
         collection,
@@ -24,18 +25,28 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         mode,
         promptsMode,
         deleteOriginal,
+        mergeAllSources,
       });
       this.activeSessionId = response.data.sessionId;
       return response.data;
     },
-    async tagById({ collection, pk, identifier, source }) {
+    async tagById({
+      collection,
+      pk,
+      identifier,
+      identifiers,
+      source,
+      mergeAllSources,
+    }) {
       // Tag one comic by a known Metron / Comic Vine issue id, skipping
       // search. Returns the resolved { source, id } the server queued.
       const response = await HTTP.post("/admin/tag-by-id", {
         collection,
         pk: String(pk),
         identifier,
+        identifiers: identifiers || [identifier],
         source: source || "",
+        mergeAllSources,
       });
       return response.data;
     },

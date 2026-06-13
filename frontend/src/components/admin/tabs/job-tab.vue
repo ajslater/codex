@@ -177,8 +177,11 @@
                     "
                     class="statusDetails"
                   >
-                    <span v-if="status.subtitle" class="statusSubtitle">
-                      {{ status.subtitle }}
+                    <span v-if="subtitleText(status)" class="statusSubtitle">
+                      {{ subtitleText(status) }}
+                    </span>
+                    <span v-if="etaText(status)" class="statusEta">
+                      {{ etaText(status) }}
                     </span>
                     <span v-if="hasNumbers(status)" class="statusNumbers">
                       <span v-if="Number.isInteger(status.complete)">
@@ -221,9 +224,11 @@ import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
 import {
+  etaRemaining,
   hasNumbers,
   isIndeterminate,
   nf,
+  retryRemaining,
   statusDuration,
   statusProgress,
   statusTitle,
@@ -438,6 +443,13 @@ export default {
     getStatusUpdatedAgo(status) {
       return statusUpdatedAgo(status, this.now);
     },
+    subtitleText(status) {
+      const retry = retryRemaining(status, this.now);
+      return [status.subtitle, retry].filter(Boolean).join(" · ");
+    },
+    etaText(status) {
+      return etaRemaining(status, this.now);
+    },
     jobLastRun(job) {
       if (!job.statuses || job.statuses.length === 0) {
         return "";
@@ -584,6 +596,11 @@ export default {
   overflow-x: auto;
   flex: 1;
   min-width: 0;
+}
+
+.statusEta {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .statusNumbers {

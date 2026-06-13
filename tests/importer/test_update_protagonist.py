@@ -21,11 +21,16 @@ class TestImporterUpdateProtagonist(BaseTestImporterUpdate):
     and NULL main_character/main_team on every such update.
     """
 
-    def test_update_fk_change_keeps_protagonist(self):
-        comic = Comic.objects.get(path=PATH)
+    @staticmethod
+    def _assert_protagonist_linked(comic):
+        """Assert the protagonist stays linked: Captain Science, no main team."""
         assert comic.main_character
         assert comic.main_character.name == PROTAGONIST
         assert comic.main_team is None
+
+    def test_update_fk_change_keeps_protagonist(self):
+        comic = Comic.objects.get(path=PATH)
+        self._assert_protagonist_linked(comic)
 
         # Same file metadata except a changed scan_info tag.
         metadata: dict = deepcopy(dict(AGGREGATED))
@@ -48,6 +53,4 @@ class TestImporterUpdateProtagonist(BaseTestImporterUpdate):
         comic = Comic.objects.get(path=PATH)
         assert comic.scan_info
         assert comic.scan_info.name == NEW_SCAN_INFO
-        assert comic.main_character
-        assert comic.main_character.name == PROTAGONIST
-        assert comic.main_team is None
+        self._assert_protagonist_linked(comic)

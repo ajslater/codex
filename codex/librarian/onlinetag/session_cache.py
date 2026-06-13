@@ -1,7 +1,8 @@
 """
 Cache-backed persistent state for the online tagging daemon.
 
-Two things live in the Django cache, namespaced under ``onlinetag:``:
+Two things live in the dedicated ``tagging`` cache, namespaced under
+``onlinetag:``:
 
 - **pending prompts** — a dict keyed by deferred-prompt ``fingerprint``.
   Each entry is fully self-contained so a later, independent task can apply
@@ -17,9 +18,12 @@ Two things live in the Django cache, namespaced under ``onlinetag:``:
   admin UI can show live progress and abort it. Unlike prompts, this is
   cleared at daemon startup: an in-flight scan cannot survive a restart.
 
-Codex's default cache backend is ``ResilientFileBasedCache``, which persists
-across restarts. Keys are namespaced under ``onlinetag:`` so a
-``cache.clear()`` from a CRUD viewset doesn't strand them.
+This state lives in ``caches["tagging"]`` (a ``ResilientFileBasedCache``
+with its own directory), NOT the default cache. Key prefixes are no
+protection: Django's file-based ``cache.clear()`` deletes every entry
+regardless of key, and the default cache is cleared after every import
+that changed anything, on Library/Group CRUD, and at startup — any of
+which would have stranded prompts mid-answer.
 
 All writes happen on the single ``OnlineTagThread`` (run/resolve/skip) plus
 the nightly janitor prune; the admin views only read prompts and enqueue
@@ -32,7 +36,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.core.cache import cache
+from codex.cache import tagging_cache as cache
 
 _SCAN_KEY = "onlinetag:active_scan_id"
 _PROMPTS_KEY = "onlinetag:pending_prompts"

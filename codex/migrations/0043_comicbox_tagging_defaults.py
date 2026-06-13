@@ -29,6 +29,10 @@ A single migration carrying the v1.12.7 -> v2 schema and data changes.
   going forward).
 * ``AgeRating.metron`` FKs relinked with the current comicbox mapping (plus
   the ``Comic.age_rating_metron_index`` / FTS denormalizations).
+* Comic-leading composite ``Bookmark`` indexes (``comic, user`` /
+  ``comic, session``) for per-comic bookmark probes (folded in from 0044).
+* ``LibrarianStatus.eta`` / ``retry_at`` live countdown timestamps and the
+  ``JFR`` status-type choice (folded in from 0045).
 
 Operation order is load-bearing: ``move_api_key_to_admin_flag`` reads
 ``Timestamp.version`` so it runs before the rename; the custom-cover data
@@ -71,7 +75,7 @@ def seed_comicbox_tagging_defaults(apps, _schema_editor):
     comicbox_tagging_defaults.objects.get_or_create(
         pk=1,
         defaults={
-            "default_formats": ["COMIC_INFO"],
+            "default_formats": ["COMIC_INFO", "METRON_INFO"],
             "default_sources": ["metron", "comicvine"],
         },
     )
@@ -692,6 +696,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("default_sources", models.JSONField(default=list)),
+                ("merge_all_sources", models.BooleanField(default=False)),
                 (
                     "metron_user",
                     codex.models.fields.EncryptedCharField(
@@ -770,6 +775,7 @@ class Migration(migrations.Migration):
                     ("JDB", "Backup Database"),
                     ("JDO", "Optimize Database"),
                     ("JDU", "Snapshot User Data Sidecar"),
+                    ("JFR", "Repair Comic Folder Relations"),
                     ("JID", "Check Integrity Of Entire Database"),
                     ("JIF", "Check Integrtity Of Database Foreign Keys"),
                     ("JIS", "Check Integrity Of Full Text Virtual Table"),
@@ -1183,4 +1189,30 @@ class Migration(migrations.Migration):
         # with the current comicbox mapping — heals rows imported before
         # comicbox learned a mapping (e.g. Rating Pending -> Unknown).
         migrations.RunPython(relink_age_rating_metron, _noop_reverse),
+        # Comic-leading composite bookmark indexes for per-comic bookmark
+        # probes (UNREAD/READ correlated EXISTS). Folded in from the former
+        # 0044.
+        migrations.AddIndex(
+            model_name="bookmark",
+            index=models.Index(fields=["comic", "user"], name="bookmark_comic_user"),
+        ),
+        migrations.AddIndex(
+            model_name="bookmark",
+            index=models.Index(
+                fields=["comic", "session"], name="bookmark_comic_session"
+            ),
+        ),
+        # Live countdown timestamps for librarian statuses: eta (estimated
+        # completion) and retry_at (next online request while rate-limited).
+        # Folded in from the former 0045.
+        migrations.AddField(
+            model_name="librarianstatus",
+            name="eta",
+            field=models.DateTimeField(default=None, null=True),
+        ),
+        migrations.AddField(
+            model_name="librarianstatus",
+            name="retry_at",
+            field=models.DateTimeField(default=None, null=True),
+        ),
     ]

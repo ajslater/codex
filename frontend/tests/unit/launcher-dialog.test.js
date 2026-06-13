@@ -8,8 +8,9 @@
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
+import { HTTP } from "@/api/v4/base";
 import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import vuetify from "@/plugins/vuetify";
 import { useAdminStore } from "@/stores/admin";
@@ -71,7 +72,7 @@ describe("OnlineTagLauncherDialog", () => {
       await wrapper.vm.$nextTick();
       expect(wrapper.vm.actionDisabled).toBe(true);
 
-      wrapper.vm.identifier = "metron:12345";
+      wrapper.vm.idInputs = ["metron:12345"];
       await wrapper.vm.$nextTick();
       expect(wrapper.vm.actionDisabled).toBe(false);
     });
@@ -130,6 +131,27 @@ describe("OnlineTagLauncherDialog", () => {
       );
       expect(onlineTagStore.tagById).not.toHaveBeenCalled();
     });
+
+    test("submits sources in the admin-configured priority order", async () => {
+      const { wrapper, onlineTagStore } = mountDialog();
+      const adminStore = useAdminStore();
+      adminStore.taggingDefaults = {
+        hasMetronCredentials: true,
+        hasComicvineCredentials: true,
+        defaultSources: ["comicvine", "metron"],
+      };
+
+      wrapper.vm.activeTab = "search";
+      // Checkbox v-model recorded the clicks metron-first...
+      wrapper.vm.sources = ["metron", "comicvine"];
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.submit();
+
+      // ...but the session is started in the admin's priority order.
+      expect(onlineTagStore.startSession).toHaveBeenCalledWith(
+        expect.objectContaining({ sources: ["comicvine", "metron"] }),
+      );
+    });
   });
 
   describe("By ID panel", () => {
@@ -138,7 +160,7 @@ describe("OnlineTagLauncherDialog", () => {
       onlineTagStore.tagById.mockResolvedValue({ source: "metron", id: 12345 });
 
       wrapper.vm.activeTab = "byId";
-      wrapper.vm.identifier = "metron:12345";
+      wrapper.vm.idInputs = ["metron:12345"];
       await wrapper.vm.$nextTick();
       await wrapper.vm.submit();
 
@@ -146,7 +168,9 @@ describe("OnlineTagLauncherDialog", () => {
         collection: "comics",
         pk: 7,
         identifier: "metron:12345",
+        identifiers: ["metron:12345"],
         source: "",
+        mergeAllSources: false,
       });
       expect(onlineTagStore.startSession).not.toHaveBeenCalled();
     });
@@ -196,9 +220,10 @@ describe("OnlineTagLauncherDialog", () => {
       const { wrapper } = mountDialog();
 
       wrapper.vm.activeTab = "byId";
-      wrapper.vm.identifier = "12345";
+      wrapper.vm.idInputs = ["12345"];
       await wrapper.vm.$nextTick();
 
+      expect(wrapper.vm.needsSourceSelect).toBe(true);
       expect(wrapper.vm.needsSourcePick).toBe(true);
       expect(wrapper.vm.actionDisabled).toBe(true);
     });
@@ -212,9 +237,10 @@ describe("OnlineTagLauncherDialog", () => {
       });
 
       wrapper.vm.activeTab = "byId";
-      wrapper.vm.identifier = "12345";
+      wrapper.vm.idInputs = ["12345"];
       await wrapper.vm.$nextTick();
 
+      expect(wrapper.vm.needsSourceSelect).toBe(false);
       expect(wrapper.vm.needsSourcePick).toBe(false);
       expect(wrapper.vm.actionDisabled).toBe(false);
     });
@@ -233,16 +259,133 @@ describe("OnlineTagLauncherDialog", () => {
       onlineTagStore.tagById.mockResolvedValue({ source: "metron", id: 12345 });
 
       wrapper.vm.activeTab = "byId";
-      // The chip's @click sets identifier to the option value.
-      wrapper.vm.identifier = wrapper.vm.existingOptions[0].value;
+      // The chip's @click adds the option value to the chips input.
+      wrapper.vm.addId(wrapper.vm.existingOptions[0].value);
       await wrapper.vm.submit();
 
       expect(onlineTagStore.tagById).toHaveBeenCalledWith({
         collection: "comics",
         pk: 7,
         identifier: "metron:12345",
+        identifiers: ["metron:12345"],
         source: "",
+        mergeAllSources: false,
       });
+    });
+
+    test("only the bare-number chip triggers the source select", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.activeTab = "byId";
+      wrapper.vm.idInputs = ["https://metron.cloud/issue/12345/"];
+      await wrapper.vm.$nextTick();
+      // A URL self-identifies, so no manual source needed.
+      expect(wrapper.vm.needsSourceSelect).toBe(false);
+
+      wrapper.vm.idInputs = ["54321"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.needsSourceSelect).toBe(true);
+    });
+
+    test("merge is gated on two identifiers in the input", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.activeTab = "byId";
+      wrapper.vm.idInputs = ["metron:12345"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.canMergeById).toBe(false);
+
+      wrapper.vm.setIdInputs(["metron:12345 comicvine:4000-456"]);
+      await wrapper.vm.$nextTick();
+      // The space-joined paste splits into two chips.
+      expect(wrapper.vm.idInputs).toEqual([
+        "metron:12345",
+        "comicvine:4000-456",
+      ]);
+      expect(wrapper.vm.canMergeById).toBe(true);
+    });
+
+    test("submits both identifiers when merging by id", async () => {
+      const { wrapper, onlineTagStore } = mountDialog();
+      onlineTagStore.tagById.mockResolvedValue({ source: "metron", id: 12345 });
+
+      wrapper.vm.activeTab = "byId";
+      wrapper.vm.idInputs = ["metron:12345", "comicvine:4000-456"];
+      wrapper.vm.mergeAllSources = true;
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.submit();
+
+      expect(onlineTagStore.tagById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifier: "metron:12345",
+          identifiers: ["metron:12345", "comicvine:4000-456"],
+          mergeAllSources: true,
+        }),
+      );
+    });
+  });
+
+  describe("merge all sources", () => {
+    test("defaults the search checkbox from the admin tagging default on open", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: true,
+          hasComicvineCredentials: true,
+          defaultSources: ["metron", "comicvine"],
+          mergeAllSources: true,
+        },
+      });
+      vi.spyOn(HTTP, "post").mockResolvedValue({ data: {} });
+
+      // Data default is off; opening the dialog seeds it from the admin default.
+      expect(wrapper.vm.mergeAllSources).toBe(false);
+      await wrapper.vm.initFromDefaults();
+
+      expect(wrapper.vm.mergeAllSources).toBe(true);
+      expect(wrapper.vm.canMerge).toBe(true);
+    });
+
+    test("passes mergeAllSources through startSession", async () => {
+      const { wrapper, onlineTagStore } = mountDialog();
+
+      wrapper.vm.activeTab = "search";
+      wrapper.vm.sources = ["metron", "comicvine"];
+      wrapper.vm.mergeAllSources = true;
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.submit();
+
+      expect(onlineTagStore.startSession).toHaveBeenCalledWith(
+        expect.objectContaining({ mergeAllSources: true }),
+      );
+    });
+
+    test("is enabled only with two or more sources selected", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.activeTab = "search";
+      wrapper.vm.sources = ["metron", "comicvine"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.canMerge).toBe(true);
+
+      wrapper.vm.sources = ["metron"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.canMerge).toBe(false);
+    });
+
+    test("doubles the estimated calls when merging two sources", async () => {
+      const { wrapper } = mountDialog({
+        book: { collection: "series", pk: 3, ids: [3], childCount: 10 },
+      });
+
+      wrapper.vm.activeTab = "search";
+      wrapper.vm.sources = ["metron", "comicvine"];
+      await wrapper.vm.$nextTick();
+      const firstWinsCalls = wrapper.vm.totalCalls;
+
+      wrapper.vm.mergeAllSources = true;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.totalCalls).toBe(firstWinsCalls * 2);
     });
   });
 });

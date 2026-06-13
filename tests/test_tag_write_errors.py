@@ -7,7 +7,7 @@ from typing import Final, override
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import Client, TestCase
 
 from codex.librarian.scribe.tagwrite_errors import (
@@ -35,7 +35,8 @@ class TagWriteErrorsCacheTestCase(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
 
     def test_add_and_get(self) -> None:
         add_tag_write_error("/comics/a.cbz", "Read-only file system")
@@ -87,7 +88,8 @@ class TagWriteErrorsAuthTestCase(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
 
     def test_anonymous_blocked(self) -> None:
         response = Client().get(_URL)
@@ -106,7 +108,8 @@ class TagWriteErrorsEndpointTestCase(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
         self.client = Client()
         self.client.force_login(_make_admin())
 

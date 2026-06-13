@@ -15,9 +15,11 @@ from types import SimpleNamespace
 from typing import Any, ClassVar, Final, override
 from unittest.mock import patch
 
-from comicbox.events import AutoWritten, FileFinished
-from django.core.cache import cache
+import pytest
+from comicbox.events import AutoWritten, FileFinished, RateLimited
+from django.core.cache import caches
 from django.test import TestCase
+from django.utils.timezone import now, timedelta
 from loguru import logger
 
 from codex.librarian.onlinetag.session_cache import (
@@ -26,7 +28,11 @@ from codex.librarian.onlinetag.session_cache import (
     set_pending_prompts,
 )
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
-from codex.librarian.onlinetag.tasks import BulkOnlineTagTask
+from codex.librarian.onlinetag.session_state import SessionState
+from codex.librarian.onlinetag.tasks import (
+    BulkOnlineTagTask,
+    OnlineTagPromptResponseTask,
+)
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -142,7 +148,8 @@ class OnlineTagSessionManagerTests(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
         _FakeSession.deferred = []
         _FakeSession.tag_results = []
         _FakeSession.preloaded = []
@@ -185,6 +192,24 @@ class OnlineTagSessionManagerTests(TestCase):
         assert prompts["fp1"]["pk"] == comic.pk
         # The scan released its marker (non-blocking; nothing lingers in-flight).
         assert get_active_scan_id() == ""
+
+    def test_run_session_passes_source_order_to_session(self) -> None:
+        """The task's source order (run priority) reaches OnlineSession verbatim."""
+        comic = _make_comic()
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
+        )
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-order",
+            sources=("comicvine", "metron"),
+            mode="auto",
+        )
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.run_session(task)
+
+        assert _FakeSession.last_kwargs["sources"] == ("comicvine", "metron")
 
     def test_run_session_never_prompts_skips_persistence(self) -> None:
         comic = _make_comic()
@@ -262,7 +287,9 @@ class OnlineTagSessionManagerTests(TestCase):
             }
         )
         _FakeSession.tag_results = [
-            SimpleNamespace(path=Path(comic_path), tags={"series": "X"}, error=None)
+            SimpleNamespace(
+                path=Path(comic_path), tags={"series": "X"}, error=None, matched=True
+            )
         ]
 
         with patch(_PATCH_TARGET, _FakeSession):
@@ -270,6 +297,9 @@ class OnlineTagSessionManagerTests(TestCase):
 
         # Prompt consumed.
         assert get_pending_prompts() == {}
+        # The replay session defers on a cache miss instead of falling
+        # through to comicbox's interactive CLI prompt in the daemon.
+        assert _FakeSession.last_kwargs["defer_prompts"] is True
         # A chosen index is pinned to a manual issue-id resolution.
         assert _FakeSession.preloaded == [("fp1", "manual", "metron:123", None)]
         # A single-comic write was enqueued.
@@ -277,6 +307,77 @@ class OnlineTagSessionManagerTests(TestCase):
         assert len(writes) == 1
         assert writes[0].comic_pks == frozenset({comic.pk})
         assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
+
+    def test_resolve_unmatched_result_does_not_write(self) -> None:
+        """An unmatched replay (tags = merged existing metadata) writes nothing."""
+        comic = _make_comic()
+        comic_path = str(comic.path)
+        set_pending_prompts(
+            {
+                "fp1": {
+                    "fingerprint": "fp1",
+                    "pk": comic.pk,
+                    "path": comic_path,
+                    "source": "metron",
+                    "candidates": [{"issue_id": 123, "source": "metron"}],
+                    "mode": "auto",
+                    "formats": ["COMIC_INFO"],
+                    "delete_original": False,
+                }
+            }
+        )
+        _FakeSession.tag_results = [
+            SimpleNamespace(
+                path=Path(comic_path),
+                tags={"series": "Existing"},
+                error=None,
+                matched=False,
+            )
+        ]
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+
+    def test_resolve_drifted_prompt_requeues_fresh_prompt(self) -> None:
+        """A fingerprint miss on replay re-persists the fresh deferred prompt."""
+        comic = _make_comic()
+        comic_path = str(comic.path)
+        set_pending_prompts(
+            {
+                "fp1": {
+                    "fingerprint": "fp1",
+                    "pk": comic.pk,
+                    "path": comic_path,
+                    "source": "metron",
+                    "candidates": [{"issue_id": 123, "source": "metron"}],
+                    "mode": "auto",
+                    "formats": ["COMIC_INFO"],
+                    "delete_original": False,
+                }
+            }
+        )
+        # The re-search produced a different candidate set: the preloaded
+        # fingerprint misses and the session defers a fresh prompt instead.
+        _FakeSession.deferred = [_FakeDP(Path(comic_path), "fp2", "metron")]
+        _FakeSession.tag_results = [
+            SimpleNamespace(
+                path=Path(comic_path),
+                tags={"series": "Existing"},
+                error=None,
+                matched=False,
+            )
+        ]
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        prompts = get_pending_prompts()
+        assert set(prompts) == {"fp2"}
+        assert prompts["fp2"]["pk"] == comic.pk
+        assert prompts["fp2"]["formats"] == ["COMIC_INFO"]
 
     def test_resolve_skip_drops_prompt_without_writing(self) -> None:
         set_pending_prompts(
@@ -306,3 +407,232 @@ class OnlineTagSessionManagerTests(TestCase):
             self.manager.resolve_prompt("nope", "choose", 0, None)
 
         assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+
+    def test_pending_prompts_survive_default_cache_clear(self) -> None:
+        """Importer-finish / CRUD cache.clear() must not strand pending prompts."""
+        set_pending_prompts(
+            {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
+        )
+
+        caches["default"].clear()
+
+        assert "fp1" in get_pending_prompts()
+
+    def _seed_prompt(self, comic) -> dict:
+        prompt = {
+            "fingerprint": "fp1",
+            "pk": comic.pk,
+            "path": str(comic.path),
+            "source": "metron",
+            "candidates": [{"issue_id": 123, "source": "metron"}],
+            "mode": "auto",
+            "formats": ["COMIC_INFO"],
+            "delete_original": False,
+        }
+        set_pending_prompts({"fp1": prompt})
+        return prompt
+
+    def test_defer_prompt_response_removes_from_cache_and_defers_apply(self) -> None:
+        """A mid-scan "choose" clears the cache now but defers the write."""
+        comic = _make_comic()
+        self._seed_prompt(comic)
+        state = SessionState(
+            session=_double(_FakeSession()), path_to_pk={Path(comic.path): comic.pk}
+        )
+        task = OnlineTagPromptResponseTask(
+            prompt_fingerprint="fp1", action="choose", payload=0
+        )
+
+        self.manager._defer_prompt_response(state, task)  # noqa: SLF001
+
+        # Gone from the cache immediately, so a refresh won't resurrect it.
+        assert get_pending_prompts() == {}
+        assert "fp1" in state.answered_fingerprints
+        # The network apply is deferred, not run inline mid-scan.
+        assert len(state.deferred_applies) == 1
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+
+    def test_defer_prompt_response_skip_drops_without_deferring_apply(self) -> None:
+        comic = _make_comic()
+        self._seed_prompt(comic)
+        state = SessionState(
+            session=_double(_FakeSession()), path_to_pk={Path(comic.path): comic.pk}
+        )
+        task = OnlineTagPromptResponseTask(prompt_fingerprint="fp1", action="skip")
+
+        self.manager._defer_prompt_response(state, task)  # noqa: SLF001
+
+        assert get_pending_prompts() == {}
+        assert "fp1" in state.answered_fingerprints
+        assert state.deferred_applies == []
+
+    def test_persist_prompts_skips_answered_fingerprints(self) -> None:
+        """A scan must not re-persist a prompt the admin answered mid-scan."""
+        comic = _make_comic()
+        comic_path = Path(comic.path)
+        _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
+        state = SessionState(
+            session=_double(_FakeSession()),
+            path_to_pk={comic_path: comic.pk},
+            formats=("COMIC_INFO",),
+        )
+        state.answered_fingerprints.add("fp1")
+
+        self.manager._persist_prompts(state)  # noqa: SLF001
+
+        assert get_pending_prompts() == {}
+
+    def test_apply_deferred_resolutions_writes_then_clears(self) -> None:
+        comic = _make_comic()
+        comic_path = str(comic.path)
+        prompt = self._seed_prompt(comic)
+        # The cache entry was already removed inline; the apply re-fetches.
+        set_pending_prompts({})
+        _FakeSession.tag_results = [
+            SimpleNamespace(
+                path=Path(comic_path), tags={"series": "X"}, error=None, matched=True
+            )
+        ]
+        state = SessionState(session=_double(_FakeSession()))
+        state.deferred_applies.append((prompt, "choose", 0, None))
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager._apply_deferred_resolutions(state)  # noqa: SLF001
+
+        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        assert len(writes) == 1
+        assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
+        assert state.deferred_applies == []
+
+    def test_mark_rate_limited_sets_retry_and_eta(self) -> None:
+        """A rate-limit event arms the retry countdown and pushes eta out."""
+        from codex.librarian.onlinetag.status import OnlineLookupStatus
+
+        status = OnlineLookupStatus()
+        state = SessionState(
+            session=_double(_FakeSession()),
+            match_mode="auto",
+            sources=("comicvine",),
+            total_comics=10,
+            completed_comics=2,
+        )
+        event = RateLimited(source="comicvine", retry_after_seconds=30)
+
+        self.manager._mark_rate_limited(status, state, event)  # noqa: SLF001
+
+        assert status.subtitle == "rate limited by comicvine"
+        assert status.retry_at is not None
+        assert status.eta is not None
+        # eta = wait + remaining work, so it's strictly later than the retry.
+        assert status.eta > status.retry_at
+
+    def test_unmatched_scan_result_is_not_batched(self) -> None:
+        """Pass-1 must not write a comic whose lookup applied nothing new."""
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        path = Path("/c/a.cbz")
+        state = _double(SimpleNamespace(path_to_pk={path: 1}, collected_tags={}))
+        batch: dict = {}
+        unmatched = SimpleNamespace(
+            path=path, tags={"series": "Existing"}, error=None, matched=False
+        )
+        TagPassRunner._store_result_tags(state, unmatched, batch, flush_writes=True)  # noqa: SLF001
+        assert batch == {}
+
+        matched = SimpleNamespace(
+            path=path, tags={"series": "New"}, error=None, matched=True
+        )
+        TagPassRunner._store_result_tags(state, matched, batch, flush_writes=True)  # noqa: SLF001
+        assert batch == {1: {"series": "New"}}
+
+
+class TagPassRunnerFinishTests(TestCase):
+    """collect_results must always finish its status, even when a pass raises."""
+
+    def test_collect_results_finishes_status_on_error(self) -> None:
+        """A raise mid-pass must not strand the status row (frozen forever)."""
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        finished: list = []
+
+        class _FakeStatusController:
+            def start(self, _status, **_kwargs) -> None:
+                pass
+
+            def update(self, _status, **_kwargs) -> None:
+                pass
+
+            def finish(self, status, **_kwargs) -> None:
+                finished.append(status)
+
+        class _BoomSession:
+            def tag_many(self, _paths):
+                msg = "rate-limit budget exhausted"
+                raise RuntimeError(msg)
+
+        state = _double(
+            SimpleNamespace(
+                session=_BoomSession(),
+                cancelled=False,
+                pending_paths=[],
+                total_comics=0,
+                completed_comics=0,
+                path_to_pk={},
+                collected_tags={},
+                match_mode="auto",
+                sources=("metron",),
+                merge_all_sources=False,
+            )
+        )
+        runner = TagPassRunner(
+            _double(logger),
+            _double(_FakeQueue()),
+            _double(_FakeStatusController()),
+            lambda _state: None,
+        )
+
+        with pytest.raises(RuntimeError):
+            runner.collect_results(state, [Path("/c/a.cbz")], flush_writes=True)
+
+        # The status was finished despite the raise, and the live reference
+        # was cleared so a stray event can't poke a finished status.
+        assert len(finished) == 1
+        assert runner.lookup_status is None
+        assert runner.rate_limited is False
+
+    def test_advance_result_clears_retry_and_reestimates_eta(self) -> None:
+        """A yielded result ends the wait and refreshes the time estimate."""
+        from codex.librarian.onlinetag.status import OnlineLookupStatus
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        class _NoopStatusController:
+            def update(self, _status, **_kwargs) -> None:
+                pass
+
+        status = OnlineLookupStatus()
+        status.subtitle = "rate limited by comicvine"
+        status.retry_at = now() + timedelta(seconds=30)
+        state = _double(
+            SimpleNamespace(
+                completed_comics=0,
+                total_comics=10,
+                match_mode="auto",
+                sources=("metron",),
+                merge_all_sources=False,
+            )
+        )
+        runner = TagPassRunner(
+            _double(logger),
+            _double(_FakeQueue()),
+            _double(_NoopStatusController()),
+            lambda _state: None,
+        )
+        runner.rate_limited = True
+
+        runner._advance_result_status(state, status)  # noqa: SLF001
+
+        assert state.completed_comics == 1
+        assert status.subtitle == ""
+        assert status.retry_at is None
+        assert status.eta is not None
+        assert runner.rate_limited is False

@@ -13,7 +13,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Final, override
 
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import TestCase
 from loguru import logger
 
@@ -60,7 +60,8 @@ class CleanupTaggingStateTests(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
 
     @override
     def tearDown(self) -> None:

@@ -12,10 +12,13 @@
  *   - That checkbox drives ``draft.defaultSources``, which auto-saves the moment
  *     it changes, and is disabled until the source's credentials exist.
  *   - A disabled source checkbox explains itself with a title tooltip (on a
- *     wrapper element, since Vuetify kills pointer events on disabled controls);
- *     there is no longer an inline sources hint paragraph.
+ *     wrapper element, since Vuetify kills pointer events on disabled controls).
+ *   - ``defaultSources`` order is run priority; enabling appends to the end,
+ *     and per-row arrows reorder it. The section shows a hint explaining this.
  *   - A source with no stored credentials always reads as off, even if it
  *     lingers in ``defaultSources``.
+ *   - Saving credentials for a source that had none enables it as a default
+ *     source automatically; re-saving credentials leaves the checkbox alone.
  *   - The Online Tagging Defaults section shows help for Match Mode and Prompts.
  *   - The Metadata Formats field's hint (not a section header) links out to the
  *     ComicInfo and MetronInfo docs.
@@ -91,6 +94,22 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     expect(wrapper.vm.metronEnabled).toBe(false);
   });
 
+  test("canMerge is true only with two or more enabled sources", () => {
+    const oneEnabled = mountTab({
+      hasMetronCredentials: true,
+      hasComicvineCredentials: true,
+      defaultSources: ["metron"],
+    });
+    expect(oneEnabled.vm.canMerge).toBe(false);
+
+    const bothEnabled = mountTab({
+      hasMetronCredentials: true,
+      hasComicvineCredentials: true,
+      defaultSources: ["metron", "comicvine"],
+    });
+    expect(bothEnabled.vm.canMerge).toBe(true);
+  });
+
   test("the enable checkbox is disabled until credentials exist", () => {
     const off = mountTab({ hasMetronCredentials: false });
     const offInput = off.findAll(".sourceEnable")[0].find("input");
@@ -113,8 +132,61 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     expect(on.findAll(".sourceEnable")[0].attributes("title")).toBe("");
   });
 
-  test("no longer renders the inline sources hint paragraph", () => {
-    expect(mountTab().find(".sourcesHint").exists()).toBe(false);
+  test("renders the priority-order hint paragraph", () => {
+    expect(mountTab().find(".sourcesHint").exists()).toBe(true);
+  });
+
+  test("saving credentials for a new source enables it automatically", async () => {
+    const wrapper = mountTab();
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+    // Simulate the server accepting the credentials and echoing back the model.
+    store.updateTaggingDefaults.mockImplementation(() => {
+      store.taggingDefaults = {
+        ...store.taggingDefaults,
+        hasMetronCredentials: true,
+      };
+    });
+
+    vm.metronUser = "user";
+    vm.metronPassword = "pass";
+    await vm.saveMetronCredentials();
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).toContain("metron");
+    expect(vm.metronEnabled).toBe(true);
+    // The enable persists through the draft auto-save.
+    expect(store.updateTaggingDefaults).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        defaultSources: expect.arrayContaining(["metron"]),
+      }),
+    );
+  });
+
+  test("re-saving credentials respects a deliberately disabled source", async () => {
+    const wrapper = mountTab({ hasMetronCredentials: true });
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.metronUser = "user";
+    vm.metronPassword = "pass";
+    await vm.saveMetronCredentials();
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).not.toContain("metron");
+    expect(vm.metronEnabled).toBe(false);
+    // Only the credential save itself hit the server — no defaultSources write.
+    expect(store.updateTaggingDefaults).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failed credential save does not enable the source", async () => {
+    const wrapper = mountTab();
+    const vm = wrapper.vm;
+
+    vm.metronUser = "user";
+    // No password — the server would reject; defaults keep no credentials.
+    await vm.saveMetronCredentials();
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).not.toContain("metron");
+    expect(vm.metronEnabled).toBe(false);
   });
 
   test("toggling one source leaves the other untouched", async () => {
@@ -132,6 +204,62 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
       expect.arrayContaining(["comicvine", "metron"]),
     );
     expect(vm.comicvineEnabled).toBe(true);
+  });
+});
+
+describe("AdminTaggingTab — source priority order", () => {
+  function mountBoth(defaultSources) {
+    return mountTab({
+      hasMetronCredentials: true,
+      hasComicvineCredentials: true,
+      defaultSources,
+    });
+  }
+
+  test("enabling a source appends it at the end (lowest priority)", async () => {
+    const vm = mountBoth(["comicvine"]).vm;
+    vm.metronEnabled = true;
+    await vm.$nextTick();
+    // Appended after the existing comicvine, not prepended.
+    expect(vm.draft.defaultSources).toEqual(["comicvine", "metron"]);
+  });
+
+  test("moveSource swaps adjacent entries and auto-saves", async () => {
+    const wrapper = mountBoth(["metron", "comicvine"]);
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.moveSource("comicvine", -1);
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).toEqual(["comicvine", "metron"]);
+    expect(store.updateTaggingDefaults).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        defaultSources: ["comicvine", "metron"],
+      }),
+    );
+  });
+
+  test("moveSource is a no-op at the priority boundaries", async () => {
+    const vm = mountBoth(["metron", "comicvine"]).vm;
+    vm.moveSource("metron", -1); // already first
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).toEqual(["metron", "comicvine"]);
+    vm.moveSource("comicvine", 1); // already last
+    await vm.$nextTick();
+    expect(vm.draft.defaultSources).toEqual(["metron", "comicvine"]);
+  });
+
+  test("sourceRowStyle orders rows by priority, disabled sinks below", () => {
+    const vm = mountBoth(["comicvine", "metron"]).vm;
+    expect(vm.sourceRowStyle("comicvine")).toEqual({ order: 0 });
+    expect(vm.sourceRowStyle("metron")).toEqual({ order: 1 });
+
+    const off = mountTab({
+      hasComicvineCredentials: true,
+      defaultSources: ["comicvine"],
+    }).vm;
+    // Metron isn't in the priority list — it sinks below the enabled rows.
+    expect(off.sourceRowStyle("metron")).toEqual({ order: 99 });
   });
 });
 
@@ -156,6 +284,17 @@ describe("AdminTaggingTab — auto-save & layout", () => {
     await wrapper.vm.$nextTick();
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith(
       expect.objectContaining({ defaultMatchMode: "eager" }),
+    );
+  });
+
+  test("toggling Merge all sources saves immediately", async () => {
+    const wrapper = mountTab();
+    const store = useAdminStore();
+
+    wrapper.vm.draft.mergeAllSources = true;
+    await wrapper.vm.$nextTick();
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith(
+      expect.objectContaining({ mergeAllSources: true }),
     );
   });
 

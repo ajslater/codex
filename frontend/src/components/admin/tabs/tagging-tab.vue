@@ -80,8 +80,11 @@
         </AdminSection>
 
         <AdminSection title="Online Tagging Sources">
+          <p class="adminHint sourcesHint">
+            {{ sourcesOrderHint }}
+          </p>
           <div class="sourcesGroup">
-            <div class="sourceRow">
+            <div class="sourceRow" :style="sourceRowStyle('metron')">
               <div
                 class="sourceEnable"
                 :title="
@@ -95,6 +98,31 @@
                   hide-details
                   density="compact"
                 />
+                <div v-if="metronEnabled" class="sourceOrderButtons">
+                  <v-btn
+                    icon
+                    variant="text"
+                    density="compact"
+                    aria-label="Raise Metron Cloud priority"
+                    :disabled="sourcePriority('metron') <= 0"
+                    @click="moveSource('metron', -1)"
+                  >
+                    <v-icon>{{ mdiChevronUp }}</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    variant="text"
+                    density="compact"
+                    aria-label="Lower Metron Cloud priority"
+                    :disabled="
+                      sourcePriority('metron') >=
+                      (draft.defaultSources || []).length - 1
+                    "
+                    @click="moveSource('metron', 1)"
+                  >
+                    <v-icon>{{ mdiChevronDown }}</v-icon>
+                  </v-btn>
+                </div>
               </div>
               <div class="sourcePanel">
                 <v-expansion-panels
@@ -202,7 +230,7 @@
               </div>
             </div>
 
-            <div class="sourceRow">
+            <div class="sourceRow" :style="sourceRowStyle('comicvine')">
               <div
                 class="sourceEnable"
                 :title="
@@ -216,6 +244,31 @@
                   hide-details
                   density="compact"
                 />
+                <div v-if="comicvineEnabled" class="sourceOrderButtons">
+                  <v-btn
+                    icon
+                    variant="text"
+                    density="compact"
+                    aria-label="Raise Comic Vine priority"
+                    :disabled="sourcePriority('comicvine') <= 0"
+                    @click="moveSource('comicvine', -1)"
+                  >
+                    <v-icon>{{ mdiChevronUp }}</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    variant="text"
+                    density="compact"
+                    aria-label="Lower Comic Vine priority"
+                    :disabled="
+                      sourcePriority('comicvine') >=
+                      (draft.defaultSources || []).length - 1
+                    "
+                    @click="moveSource('comicvine', 1)"
+                  >
+                    <v-icon>{{ mdiChevronDown }}</v-icon>
+                  </v-btn>
+                </div>
               </div>
               <div class="sourcePanel">
                 <v-expansion-panels
@@ -310,6 +363,17 @@
               </div>
             </div>
           </div>
+          <div class="adminCard mergeAllSourcesCard">
+            <v-checkbox
+              v-model="draft.mergeAllSources"
+              label="Merge all sources"
+              :hint="mergeAllSourcesHint"
+              :disabled="!canMerge"
+              persistent-hint
+              hide-details="auto"
+              density="compact"
+            />
+          </div>
         </AdminSection>
       </v-form>
       <TagWriteErrorsPanel />
@@ -318,7 +382,7 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiChevronDown, mdiChevronUp, mdiOpenInNew } from "@mdi/js";
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
@@ -340,6 +404,7 @@ const EDITABLE_FIELDS = Object.freeze([
   "defaultMatchMode",
   "defaultPromptsMode",
   "defaultSources",
+  "mergeAllSources",
 ]);
 
 function pickFields(source) {
@@ -361,6 +426,8 @@ export default {
   },
   data() {
     return {
+      mdiChevronDown,
+      mdiChevronUp,
       mdiOpenInNew,
       formatChoices: FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
@@ -375,6 +442,10 @@ export default {
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
         "A source can only be enabled once its credentials are saved.",
+      sourcesOrderHint:
+        "Enabled sources run in priority order — use the arrows to reorder. With Merge all sources off, the highest-priority source that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried for each comic and their results are merged into one record for the most complete metadata.",
+      mergeAllSourcesHint:
+        "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
@@ -429,6 +500,13 @@ export default {
         Boolean(this.comicvineKey) || Boolean(this.defaults?.comicvineKeySet)
       );
     },
+    canMerge() {
+      // Merging needs at least two enabled sources; with one there's nothing
+      // to merge. metronEnabled / comicvineEnabled already gate on credentials.
+      return (
+        [this.metronEnabled, this.comicvineEnabled].filter(Boolean).length >= 2
+      );
+    },
   },
   watch: {
     defaults: {
@@ -463,13 +541,34 @@ export default {
       "validateTaggingCredentials",
     ]),
     setSourceEnabled(source, enabled) {
-      const sources = new Set(this.draft.defaultSources || []);
+      // defaultSources order is run priority; a newly enabled source
+      // joins at the end (lowest priority).
+      const sources = (this.draft.defaultSources || []).filter(
+        (s) => s !== source,
+      );
       if (enabled) {
-        sources.add(source);
-      } else {
-        sources.delete(source);
+        sources.push(source);
       }
-      this.draft.defaultSources = [...sources];
+      this.draft.defaultSources = sources;
+    },
+    sourcePriority(source) {
+      return (this.draft.defaultSources || []).indexOf(source);
+    },
+    sourceRowStyle(source) {
+      // Render rows in priority order via flex order; sources not in the
+      // priority list (disabled) sink below the enabled ones.
+      const index = this.sourcePriority(source);
+      return { order: index === -1 ? 99 : index };
+    },
+    moveSource(source, delta) {
+      const sources = [...(this.draft.defaultSources || [])];
+      const from = sources.indexOf(source);
+      const to = from + delta;
+      if (from === -1 || to < 0 || to >= sources.length) {
+        return;
+      }
+      [sources[from], sources[to]] = [sources[to], sources[from]];
+      this.draft.defaultSources = sources;
     },
     async autoSave() {
       // Serialize saves so overlapping requests can't land out of order; if the
@@ -492,27 +591,35 @@ export default {
         this.autoSave();
       }
     },
-    saveMetronCredentials() {
+    async saveMetronCredentials() {
       const data = {};
       if (this.metronUser) data.metronUser = this.metronUser;
       if (this.metronPassword) data.metronPassword = this.metronPassword;
       if (this.metronUrlLocal) data.metronUrl = this.metronUrlLocal;
       this.validationResult.metron = undefined;
-      this.updateTaggingDefaults(data).then(() => {
-        this.metronUser = "";
-        this.metronPassword = "";
-        this.metronUrlLocal = "";
-      });
+      const hadCredentials = Boolean(this.defaults?.hasMetronCredentials);
+      await this.updateTaggingDefaults(data);
+      this.metronUser = "";
+      this.metronPassword = "";
+      this.metronUrlLocal = "";
+      // Configuring a brand-new source enables it automatically; re-saving
+      // credentials respects the existing checkbox state.
+      if (!hadCredentials && this.defaults?.hasMetronCredentials) {
+        this.setSourceEnabled("metron", true);
+      }
     },
-    saveComicvineCredentials() {
+    async saveComicvineCredentials() {
       const data = {};
       if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
       if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
       this.validationResult.comicvine = undefined;
-      this.updateTaggingDefaults(data).then(() => {
-        this.comicvineKey = "";
-        this.comicvineUrlLocal = "";
-      });
+      const hadCredentials = Boolean(this.defaults?.hasComicvineCredentials);
+      await this.updateTaggingDefaults(data);
+      this.comicvineKey = "";
+      this.comicvineUrlLocal = "";
+      if (!hadCredentials && this.defaults?.hasComicvineCredentials) {
+        this.setSourceEnabled("comicvine", true);
+      }
     },
     clearMetronCredentials() {
       this.validationResult.metron = undefined;
@@ -570,9 +677,18 @@ export default {
   color: rgb(var(--v-theme-success));
 }
 
+.sourcesHint {
+  margin-top: d.$space-2;
+}
+
 // The body of the Online Tagging Sources section: one row per source.
+// Flex column so the rows can be visually reordered by priority via
+// the per-row `order` style without moving template blocks.
 .sourcesGroup {
   margin-top: d.$space-4;
+  display: flex;
+  flex-direction: column;
+  gap: d.$space-2;
 }
 
 // Each source: the enable checkbox to the left of its credential panel.
@@ -582,10 +698,6 @@ export default {
   gap: d.$space-2;
 }
 
-.sourceRow + .sourceRow {
-  margin-top: d.$space-2;
-}
-
 // Pin the checkbox to its panel's title bar instead of letting it ride the
 // full (expandable) height of the panel.
 .sourceEnable {
@@ -593,8 +705,19 @@ export default {
   margin-top: d.$space-1;
 }
 
+// Priority arrows under the enable checkbox.
+.sourceOrderButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .sourcePanel {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.mergeAllSourcesCard {
+  margin-top: d.$space-4;
 }
 </style>

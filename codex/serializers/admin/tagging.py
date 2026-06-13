@@ -8,11 +8,31 @@ from rest_framework.serializers import (
     DictField,
     ListField,
     Serializer,
+    ValidationError,
 )
 
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
+
+
+def _validate_ordered_sources(value: list) -> list:
+    """
+    Validate an ordered source list: known names, deduped, order kept.
+
+    List order is run priority (comicbox tries the first source first and,
+    under first-wins, its match ends the lookup), so order must survive
+    validation untouched.
+    """
+    sources = list(dict.fromkeys(value))
+    unknown = [s for s in sources if s not in KNOWN_SOURCES]
+    if unknown:
+        msg = (
+            f"Unknown online tagging source(s): {', '.join(unknown)}. "
+            f"Known: {', '.join(sorted(KNOWN_SOURCES))}."
+        )
+        raise ValidationError(msg)
+    return sources
 
 
 class TagWriteRequestSerializer(Serializer):
@@ -40,6 +60,27 @@ class OnlineTagStartSerializer(Serializer):
     auto_threshold = CharField(required=False, default="0.85")
     dry_run = CharField(required=False, default="false")
     delete_original = BooleanField(required=False, default=None)
+    # None falls back to the admin ComicboxTaggingDefaults default.
+    merge_all_sources = BooleanField(required=False, default=None)
+
+    @staticmethod
+    def validate_sources(value: list) -> list:
+        """Require known source names; preserve the priority order."""
+        return _validate_ordered_sources(value)
+
+
+class TagByIdRequestSerializer(Serializer):
+    """Serializer for tagging one comic by a known online issue id."""
+
+    collection = CharField()
+    pk = CharField()
+    identifier = CharField()
+    source = CharField(required=False, allow_blank=True, default="")
+    # All identifiers entered (one per source) when merging by id; the primary
+    # ``identifier`` is the first. Ignored unless merging.
+    identifiers = ListField(child=CharField(), required=False, default=list)
+    # None falls back to the admin ComicboxTaggingDefaults default.
+    merge_all_sources = BooleanField(required=False, default=None)
 
 
 class TagByIdRequestSerializer(Serializer):
@@ -124,6 +165,11 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         """Whether a Comic Vine API key is set."""
         return bool(obj.comicvine_key)
 
+    @staticmethod
+    def validate_default_sources(value: list) -> list:
+        """Require known source names; preserve the priority order."""
+        return _validate_ordered_sources(value)
+
     class Meta(BaseModelSerializer.Meta):
         """Specify model and fields."""
 
@@ -134,6 +180,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "default_match_mode",
             "default_prompts_mode",
             "default_sources",
+            "merge_all_sources",
             "metron_user",
             "metron_password",
             "metron_url",

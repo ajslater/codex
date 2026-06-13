@@ -5,6 +5,9 @@ from __future__ import annotations
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
+from django.utils.timezone import now, timedelta
+
+from codex.librarian.onlinetag.estimate import estimate_seconds
 from codex.librarian.onlinetag.status import OnlineLookupStatus
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 
@@ -55,15 +58,25 @@ class TagPassRunner:
         self.log.info(f"Online tag: flushed write batch of {len(batch)} comics.")
         batch.clear()
 
+    @staticmethod
+    def _update_eta(state: SessionState, status: OnlineLookupStatus) -> None:
+        """Re-estimate the completion time from the comics left to look up."""
+        remaining = max(0, state.total_comics - state.completed_comics)
+        secs = estimate_seconds(
+            remaining,
+            state.match_mode,
+            state.sources,
+            merge_all_sources=state.merge_all_sources,
+        )
+        status.eta = now() + timedelta(seconds=secs) if secs else None
+
     def _detect_rate_limit_recovery(self, status: OnlineLookupStatus) -> bool:
-        """Detect a rate-limit recovery and surface it in status."""
+        """Return whether we're recovering from a rate limit (to flush writes)."""
         elapsed = monotonic() - status.since_updated if status.since_updated else 0
-        was_rate_limited = self.rate_limited or elapsed > _RATE_LIMIT_THRESHOLD
-        if not self.rate_limited and was_rate_limited:
-            status.subtitle = f"rate limited ~{elapsed:.0f}s"
-            status.since_updated = 0
-            self.status_controller.update(status, notify=True)
-        return was_rate_limited
+        # The live "rate limited" subtitle and the retry countdown are owned
+        # by session_manager._on_event (it has the retry delay); this only
+        # decides whether to flush the deferred write batch on recovery.
+        return self.rate_limited or elapsed > _RATE_LIMIT_THRESHOLD
 
     def _advance_result_status(
         self, state: SessionState, status: OnlineLookupStatus
@@ -72,8 +85,11 @@ class TagPassRunner:
         state.completed_comics += 1
         status.complete = state.completed_comics
         status.total = state.total_comics
-        if not self.rate_limited:
-            status.subtitle = ""
+        # A yielded result means the wait (if any) is over: clear the
+        # rate-limit subtitle and the retry countdown, and re-estimate.
+        status.subtitle = ""
+        status.retry_at = None
+        self._update_eta(state, status)
         self.rate_limited = False
         self.status_controller.update(status)
 
@@ -86,7 +102,10 @@ class TagPassRunner:
         flush_writes: bool,
     ) -> None:
         """Stash tags from one result into batch or collected_tags."""
-        if not result.tags or result.error:
+        # result.tags holds the file's merged metadata even when the lookup
+        # applied nothing (skip / no-match / deferred prompt); only matched
+        # results carry new online data worth writing back.
+        if not result.matched or not result.tags or result.error:
             return
         pk = state.path_to_pk.get(result.path)
         if pk is None:
@@ -129,22 +148,32 @@ class TagPassRunner:
         status = OnlineLookupStatus()
         status.total = state.total_comics
         status.complete = state.completed_comics
+        self._update_eta(state, status)
         self.lookup_status = status
         self.rate_limited = False
         self.status_controller.start(status)
 
         batch: dict[int, dict] = {}
-        self._run_pass(state, path_list, status, batch, flush_writes=flush_writes)
+        try:
+            self._run_pass(state, path_list, status, batch, flush_writes=flush_writes)
 
-        while state.pending_paths and not state.cancelled:
-            new_paths = list(state.pending_paths)
-            state.pending_paths.clear()
-            status.total = state.total_comics
-            self.status_controller.update(status, notify=True)
-            self._run_pass(state, new_paths, status, batch, flush_writes=flush_writes)
+            while state.pending_paths and not state.cancelled:
+                new_paths = list(state.pending_paths)
+                state.pending_paths.clear()
+                status.total = state.total_comics
+                self.status_controller.update(status, notify=True)
+                self._run_pass(
+                    state, new_paths, status, batch, flush_writes=flush_writes
+                )
 
-        if flush_writes:
-            self._flush_batch(state, batch)
-
-        self.lookup_status = None
-        self.status_controller.finish(status)
+            if flush_writes:
+                self._flush_batch(state, batch)
+        finally:
+            # finish() in a finally so a raise mid-pass (rate-limit budget
+            # exhausted, network error, cancel) can't strand the status row
+            # frozen on its last "rate limited" subtitle — the librarian
+            # thread recovers but the admin status bar would otherwise show
+            # the wait forever, indistinguishable from a hang.
+            self.lookup_status = None
+            self.rate_limited = False
+            self.status_controller.finish(status)

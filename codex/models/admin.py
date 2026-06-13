@@ -106,6 +106,11 @@ class ComicboxTaggingDefaults(BaseModel):
         default=PromptsModeChoices.ASK,
     )
     default_sources = JSONField(default=list)
+    # When True, query every enabled source per comic and merge the results
+    # (comicbox first_wins=False) instead of stopping at the first match. More
+    # complete metadata, but roughly multiplies online API calls by the number
+    # of enabled sources. Admin default; overridable per scan.
+    merge_all_sources = BooleanField(default=False)
 
     metron_user = EncryptedCharField()
     metron_password = EncryptedCharField()
@@ -212,6 +217,12 @@ class LibrarianStatus(BaseModel):
     total = PositiveSmallIntegerField(null=True, default=None)
     preactive = DateTimeField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
+    # Absolute target timestamps the admin UI counts down to live: ``eta``
+    # is the estimated completion of the whole task; ``retry_at`` is when the
+    # next online request will be attempted while rate-limited. Both are
+    # online-tag-specific today but generic enough to reuse.
+    eta = DateTimeField(null=True, default=None)
+    retry_at = DateTimeField(null=True, default=None)
 
     class Meta(BaseModel.Meta):
         """Constraints."""

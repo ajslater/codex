@@ -49,15 +49,22 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             return Response({"detail": "No comics matched."}, status=400)
 
         session_id = str(uuid.uuid4())
+        try:
+            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        except ComicboxTaggingDefaults.DoesNotExist:
+            defaults = None
+
         req_delete = data.get("delete_original")
         if req_delete is not None:
             delete_original = req_delete
         else:
-            try:
-                defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-                delete_original = defaults.delete_original
-            except ComicboxTaggingDefaults.DoesNotExist:
-                delete_original = False
+            delete_original = bool(defaults and defaults.delete_original)
+
+        req_merge = data.get("merge_all_sources")
+        if req_merge is not None:
+            merge_all_sources = req_merge
+        else:
+            merge_all_sources = bool(defaults and defaults.merge_all_sources)
 
         task = BulkOnlineTagTask(
             comic_pks=comic_pks,
@@ -67,6 +74,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             prompts_mode=data["prompts_mode"],
             auto_threshold=float(data.get("auto_threshold", 0.85)),
             delete_original=delete_original,
+            merge_all_sources=merge_all_sources,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

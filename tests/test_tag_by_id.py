@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pytest
 from comicbox.online_session import OnlineCredentials
 from django.contrib.auth.models import User
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import Client, SimpleTestCase, TestCase
 from loguru import logger
 
@@ -139,8 +139,25 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         settings = build_explicit_id_config("metron", 123, creds)
         assert settings.online.lookup.enabled is True
         assert dict(settings.online.lookup.ids) == {"metron": 123}
-        assert settings.online.lookup.sources == frozenset({"metron"})
+        assert settings.online.lookup.sources == ("metron",)
+        assert settings.online.lookup.first_wins is True
         assert "metron" in settings.online.auth.sources
+
+    def test_build_explicit_id_config_merge(self) -> None:
+        # Merge: both sources pinned by explicit id (primary first), first_wins
+        # off, auth for both. comicbox runs every id-pinned source and merges.
+        creds = OnlineCredentials(
+            metron_user="u",
+            metron_password="p",  # noqa: S106
+            comicvine_key="k",
+        )
+        settings = build_explicit_id_config(
+            "metron", 123, creds, extra_ids=(("comicvine", 456),)
+        )
+        assert settings.online.lookup.sources == ("metron", "comicvine")
+        assert dict(settings.online.lookup.ids) == {"metron": 123, "comicvine": 456}
+        assert settings.online.lookup.first_wins is False
+        assert set(settings.online.auth.sources) == {"metron", "comicvine"}
 
 
 def _double(stub: object) -> Any:
@@ -188,7 +205,8 @@ class TagByIdSessionManagerTests(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
             defaults={"metron_user": "u", "metron_password": "p"},
@@ -276,7 +294,8 @@ class TagByIdViewTests(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
         self.client = Client()
         self.client.force_login(_make_admin())
         ComicboxTaggingDefaults.objects.update_or_create(
@@ -328,3 +347,37 @@ class TagByIdViewTests(TestCase):
         assert task.comic_pk == _PK
         assert task.source == "metron"
         assert task.issue_id == _ISSUE_ID
+        assert task.extra_ids == ()
+
+    def test_merge_two_ids_enqueues_extra_ids(self) -> None:
+        # Merge on + a Metron and a Comic Vine id: the second id rides along as
+        # an extra to fetch and merge. A single id leaves extra_ids empty.
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "metron_user": "u",
+                "metron_password": "p",
+                "comicvine_key": "k",
+                "default_sources": ["metron", "comicvine"],
+                "merge_all_sources": True,
+            },
+        )
+        data = {
+            "collection": "comics",
+            "pk": str(_PK),
+            "identifier": f"metron:{_ISSUE_ID}",
+            "identifiers": [f"metron:{_ISSUE_ID}", "comicvine:4000-456"],
+        }
+        with (
+            patch.object(
+                AdminTagByIdView, "resolve_comic_pks", return_value=frozenset({_PK})
+            ),
+            patch(_VIEW_QUEUE_TARGET) as mocked_queue,
+        ):
+            response = self.client.post(
+                _TAG_BY_ID_URL, data=data, content_type="application/json"
+            )
+
+        assert response.status_code == HTTPStatus.ACCEPTED
+        task = mocked_queue.put.call_args.args[0]
+        assert task.extra_ids == (("comicvine", 456),)

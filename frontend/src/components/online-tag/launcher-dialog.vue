@@ -31,6 +31,16 @@
                 hide-details
                 density="compact"
               />
+              <v-checkbox
+                v-if="bothConfigured"
+                v-model="mergeAllSources"
+                label="Merge all sources"
+                :hint="mergeAllSourcesHint"
+                :disabled="!canMerge"
+                persistent-hint
+                density="compact"
+                class="mt-3"
+              />
               <v-select
                 v-model="matchMode"
                 :items="matchModeChoices"
@@ -90,26 +100,29 @@
                   class="existingIdChip"
                   size="small"
                   variant="outlined"
-                  @click="identifier = opt.value"
+                  @click="addId(opt.value)"
                 >
                   {{ opt.title }}
                 </v-chip>
               </div>
-              <v-text-field
-                v-model="identifier"
-                label="Issue URL or ID"
-                placeholder="Issue URL, metron:ID, or comicvine:ID"
-                hint="Paste a Metron / Comic Vine issue URL, or enter metron:ID / comicvine:ID, or a bare ID."
+              <v-combobox
+                :model-value="idInputs"
+                label="Issue URLs or IDs"
+                placeholder="metron:ID, comicvine:ID, or issue URL"
+                hint="Enter one or more issue URLs or ids (metron:ID, comicvine:ID, 4000-ID). Add a second source's id to merge."
                 persistent-hint
+                multiple
+                chips
+                closable-chips
                 density="compact"
-                @keyup.enter="submit"
+                @update:model-value="setIdInputs"
               />
               <v-select
-                v-if="bothConfigured"
+                v-if="needsSourceSelect"
                 v-model="sourceChoice"
                 :items="sourceChoices"
                 label="Source"
-                hint="Used only for a bare numeric ID. URLs and 4000- IDs detect the source automatically."
+                hint="That id is just a number — choose which source it belongs to."
                 persistent-hint
                 density="compact"
                 class="mt-3"
@@ -117,6 +130,16 @@
               <div v-if="needsSourcePick" class="pickSourceWarning">
                 Bare ID &mdash; choose Metron or Comic Vine.
               </div>
+              <v-checkbox
+                v-if="bothConfigured"
+                v-model="mergeAllSources"
+                label="Merge all sources"
+                :hint="mergeAllSourcesHint"
+                :disabled="!canMergeById"
+                persistent-hint
+                density="compact"
+                class="mt-3"
+              />
             </v-window-item>
           </v-window>
         </template>
@@ -219,15 +242,30 @@ export default {
       sources: ["metron", "comicvine"],
       matchMode: "auto",
       promptsMode: "ask",
+      mergeAllSources: false,
+      mergeAllSourcesHint:
+        "Off: the highest-priority selected source that matches tags the comic and the rest are skipped. On: every selected source is queried and their results are merged for the most complete tags — but that roughly multiplies API calls by the number of sources, so it's slower and rate-limited sooner.",
       needConversion: 0,
       deleteOriginal: false,
       // By ID
-      identifier: "",
+      idInputs: [],
       sourceChoice: "auto",
     };
   },
   computed: {
     ...mapState(useAdminStore, ["taggingDefaults"]),
+    orderedSelectedSources() {
+      // Checkbox v-model arrays append in click order; submit in the
+      // admin-configured priority order instead, since source order is
+      // run priority (first match wins). Unlisted sources keep their
+      // relative selection order after the listed ones.
+      const priority = this.taggingDefaults?.defaultSources || [];
+      const rank = (s) => {
+        const index = priority.indexOf(s);
+        return index === -1 ? priority.length : index;
+      };
+      return [...this.sources].sort((a, b) => rank(a) - rank(b));
+    },
     hasMetron() {
       return Boolean(this.taggingDefaults?.hasMetronCredentials);
     },
@@ -298,17 +336,25 @@ export default {
       }
       return choices;
     },
-    isBareInteger() {
-      return /^\d+$/.test(this.identifier.trim());
+    idTokens() {
+      // Each chip is one identifier; trim and drop blanks.
+      return this.idInputs.map((s) => String(s).trim()).filter(Boolean);
     },
-    needsSourcePick() {
-      // A bare integer is ambiguous when both sources are configured; the
-      // server can't auto-detect it, so require an explicit pick first.
+    needsSourceSelect() {
+      // Only a bare number (or otherwise unrecognizable token) needs a manual
+      // source — URLs, metron:/comicvine: prefixes, and 4000- ids self-identify.
+      // A lone configured source resolves a bare number on its own.
       return (
         this.bothConfigured &&
-        this.isBareInteger &&
-        this.sourceChoice === "auto"
+        this.idTokens.some((t) => this.detectSource(t) === null)
       );
+    },
+    needsSourcePick() {
+      return this.needsSourceSelect && this.sourceChoice === "auto";
+    },
+    canMergeById() {
+      // Merging by id needs an id for each of two configured sources.
+      return this.bothConfigured && this.idTokens.length >= 2;
     },
     // --- action button --------------------------------------------------
     actionLabel() {
@@ -321,7 +367,7 @@ export default {
       return !this.sources.some((s) => enabled.has(s));
     },
     byIdDisabled() {
-      return !this.identifier.trim() || this.needsSourcePick;
+      return this.idTokens.length === 0 || this.needsSourcePick;
     },
     actionDisabled() {
       if (this.allSourcesDisabled) return true;
@@ -345,11 +391,22 @@ export default {
       );
       return this.sources.filter((s) => enabled.has(s));
     },
+    canMerge() {
+      // Nothing to merge with fewer than two sources selected.
+      return this.activeSources.length >= 2;
+    },
     callsPerComic() {
       return MATCH_MODE_CALLS_PER_COMIC[this.matchMode] || 3;
     },
     totalCalls() {
-      return this.comicCount * this.callsPerComic;
+      // Merge mode queries every active source per comic instead of stopping
+      // at the first match, so calls scale with the number of sources. Keep
+      // this in sync with estimate_seconds in codex/librarian/onlinetag.
+      const sourceMultiplier =
+        this.mergeAllSources && this.activeSources.length
+          ? this.activeSources.length
+          : 1;
+      return this.comicCount * this.callsPerComic * sourceMultiplier;
     },
     slowestRate() {
       let minRate = Infinity;
@@ -388,7 +445,7 @@ export default {
     dialog(to) {
       if (to) {
         this.activeTab = "search";
-        this.identifier = "";
+        this.idInputs = [];
         this.sourceChoice = "auto";
         this.initFromDefaults();
       }
@@ -397,6 +454,36 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
     ...mapActions(useOnlineTagStore, ["startSession", "tagById"]),
+    detectSource(token) {
+      // Cheap source detection mirroring the backend parser's self-identifying
+      // forms; returns null when the token is just a number (ambiguous) or
+      // otherwise unrecognizable, so the UI can ask which source it is.
+      const t = String(token).trim().toLowerCase();
+      if (!t) return null;
+      if (t.includes("metron")) return "metron";
+      if (t.includes("comicvine")) return "comicvine";
+      if (/^4000-\d+$/.test(t)) return "comicvine";
+      return null;
+    },
+    setIdInputs(value) {
+      // Chips may arrive with embedded separators (paste / typed "a, b"); split
+      // on whitespace and commas and dedupe so each chip is one identifier.
+      const out = [];
+      for (const item of value || []) {
+        for (const part of String(item).split(/[\s,]+/)) {
+          const token = part.trim();
+          if (token && !out.includes(token)) {
+            out.push(token);
+          }
+        }
+      }
+      this.idInputs = out;
+    },
+    addId(value) {
+      if (!this.idInputs.includes(value)) {
+        this.idInputs = [...this.idInputs, value];
+      }
+    },
     async initFromDefaults() {
       await this.loadTaggingDefaults();
       if (this.taggingDefaults) {
@@ -411,6 +498,7 @@ export default {
           this.taggingDefaults.defaultMatchMode || this.matchMode;
         this.promptsMode =
           this.taggingDefaults.defaultPromptsMode || this.promptsMode;
+        this.mergeAllSources = Boolean(this.taggingDefaults.mergeAllSources);
       }
       const pks = this.book.ids || [this.book.pk];
       try {
@@ -438,10 +526,11 @@ export default {
         await this.startSession({
           collection: this.book.collection,
           pks,
-          sources: this.sources,
+          sources: this.orderedSelectedSources,
           mode: this.matchMode,
           promptsMode: this.promptsMode,
           deleteOriginal: this.deleteOriginal,
+          mergeAllSources: this.mergeAllSources && this.canMerge,
         });
         useCommonStore().setSuccess("Online tagging started.");
         this.dialog = false;
@@ -456,12 +545,15 @@ export default {
       this.working = true;
       const pk = this.book.pk || this.book.ids?.[0];
       const source = this.sourceChoice === "auto" ? "" : this.sourceChoice;
+      const tokens = this.idTokens;
       try {
         const data = await this.tagById({
           collection: this.book.collection,
           pk,
-          identifier: this.identifier.trim(),
+          identifier: tokens[0],
+          identifiers: tokens,
           source,
+          mergeAllSources: this.mergeAllSources && this.canMergeById,
         });
         useCommonStore().setSuccess(
           `Tagging ${data.source} #${data.id} queued.`,

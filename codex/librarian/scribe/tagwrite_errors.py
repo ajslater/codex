@@ -7,13 +7,13 @@ returns the exception on its result object and :class:`TagWriter` would
 otherwise only log it. These accessors persist those failures so the
 admin Tagging tab can present them and clear them.
 
-The store is the Django default cache (``ResilientFileBasedCache``),
-*not* the database — the failures are operational feedback, not durable
-records. The file-based cache persists across restarts, so an admin who
-sees the red badge after a restart still finds the errors waiting. Keys
-are namespaced under ``tagwrite:`` (like
-:mod:`codex.librarian.onlinetag.session_cache`) so only an explicit
-``cache.clear()`` from a CRUD viewset strands them; use
+The store is the dedicated ``tagging`` Django cache (a
+``ResilientFileBasedCache``), *not* the database — the failures are
+operational feedback, not durable records. The file-based cache persists
+across restarts, so an admin who sees the red badge after a restart still
+finds the errors waiting. The default cache would not do: its broad
+``cache.clear()`` calls (import finish, Library/Group CRUD, startup)
+delete every entry regardless of key prefix. Use
 :func:`clear_tag_write_errors` for granular clearing.
 """
 
@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.core.cache import cache
 from django.utils import timezone
+
+from codex.cache import tagging_cache as cache
 
 _ERRORS_KEY = "tagwrite:errors"
 # No TTL: errors persist until the admin clears them.

@@ -117,6 +117,57 @@ class AdminTagByIdView(FilteredComicPksView):
         formats = tuple(defaults.default_formats) or ("COMIC_INFO",)
         return formats, bool(defaults.delete_original)
 
+    @staticmethod
+    def _parse_extra_ids(
+        identifiers: list[str], primary_source: str, configured: frozenset[str]
+    ) -> tuple[tuple[str, int], ...]:
+        """
+        Parse the entered identifiers into extra ``(source, id)`` pairs to merge.
+
+        Keeps one id per source (the primary source excluded — it's already
+        pinned), so a Metron + Comic Vine pair yields the Comic Vine entry.
+        Raises ValueError on an unparseable or unconfigured-source identifier.
+        """
+        seen = {primary_source}
+        extras: list[tuple[str, int]] = []
+        for raw in identifiers:
+            if not (raw or "").strip():
+                continue
+            src, issue_id = parse_identifier_input(raw, configured_sources=configured)
+            if src in seen or src not in configured:
+                continue
+            seen.add(src)
+            extras.append((src, issue_id))
+        return tuple(extras)
+
+    @staticmethod
+    def _resolve_primary(data, configured: frozenset[str]) -> tuple[str, int]:
+        """Parse the primary identifier and confirm its source is configured."""
+        source, issue_id = parse_identifier_input(
+            data["identifier"],
+            source_hint=data.get("source") or None,
+            configured_sources=configured,
+        )
+        if source not in configured:
+            msg = f"No {source} credentials configured."
+            raise ValueError(msg)
+        return source, issue_id
+
+    def _resolve_extra_ids(
+        self,
+        data,
+        defaults: ComicboxTaggingDefaults | None,
+        source: str,
+        configured: frozenset[str],
+    ) -> tuple[tuple[str, int], ...]:
+        """Resolve the merge default and parse the extra ids to merge, if any."""
+        req_merge = data.get("merge_all_sources")
+        if req_merge is None:
+            req_merge = bool(defaults and defaults.merge_all_sources)
+        if not req_merge:
+            return ()
+        return self._parse_extra_ids(data.get("identifiers") or [], source, configured)
+
     def post(self, request):
         """Parse the identifier, resolve the comic, and enqueue an id fetch."""
         serializer = TagByIdRequestSerializer(data=request.data)
@@ -130,17 +181,10 @@ class AdminTagByIdView(FilteredComicPksView):
                 {"detail": "No online source credentials configured."}, status=400
             )
         try:
-            source, issue_id = parse_identifier_input(
-                data["identifier"],
-                source_hint=data.get("source") or None,
-                configured_sources=configured,
-            )
+            source, issue_id = self._resolve_primary(data, configured)
+            extra_ids = self._resolve_extra_ids(data, defaults, source, configured)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
-        if source not in configured:
-            return Response(
-                {"detail": f"No {source} credentials configured."}, status=400
-            )
 
         comic_pks = self.resolve_comic_pks(data["collection"], [data["pk"]])
         if len(comic_pks) != 1:
@@ -154,6 +198,7 @@ class AdminTagByIdView(FilteredComicPksView):
             issue_id=issue_id,
             formats=formats,
             delete_original=delete_original,
+            extra_ids=extra_ids,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response({"source": source, "id": issue_id}, status=HTTP_202_ACCEPTED)

@@ -56,25 +56,41 @@ def _build_auth_source(
 
 
 def build_explicit_id_config(
-    source: str, issue_id: int, credentials: OnlineCredentials
+    source: str,
+    issue_id: int,
+    credentials: OnlineCredentials,
+    extra_ids: tuple[tuple[str, int], ...] = (),
 ) -> ComicboxSettings:
     """
-    Build comicbox settings that fetch one issue by explicit id.
+    Build comicbox settings that fetch one or more issues by explicit id.
 
     Layered as ``replace`` over the defaults exactly like
     ``OnlineSession._build_config`` — but with ``online.lookup.ids`` set so
     comicbox skips the search and calls ``source.get(issue_id)`` directly.
     ``prompts=NEVER`` because the explicit-id path never reaches the matcher.
+
+    When ``extra_ids`` is given (the "merge all sources" path), each
+    ``(source, issue_id)`` is also pinned. comicbox always runs every source
+    that carries an explicit id, so all are fetched and merged into one record;
+    the primary ``source`` is listed first and wins per-field conflicts.
     """
     base = get_config()
+    # Primary source first (highest merge priority), then the extra pinned
+    # sources; dedup keeps the primary's id if a source repeats.
+    ids = {source: issue_id}
+    for extra_source, extra_id in extra_ids:
+        ids.setdefault(extra_source, extra_id)
+    sources = tuple(ids)
+    auth_sources = {s: _build_auth_source(s, credentials) for s in sources}
     lookup = OnlineLookupSettings(
         enabled=True,
-        sources=frozenset({source}),
-        ids={source: issue_id},
+        sources=sources,
+        ids=ids,
         match=MatchMode.AUTO,
         prompts=Prompts.NEVER,
+        first_wins=len(sources) <= 1,
     )
-    auth = OnlineAuthSettings(sources={source: _build_auth_source(source, credentials)})
+    auth = OnlineAuthSettings(sources=auth_sources)
     return replace(base, online=replace(base.online, lookup=lookup, auth=auth))
 
 
@@ -97,14 +113,23 @@ def _result_has_requested_id(tags: dict[str, Any], source: str, issue_id: int) -
 
 
 def fetch_tags_by_explicit_id(
-    path: Path, source: str, issue_id: int, credentials: OnlineCredentials
+    path: Path,
+    source: str,
+    issue_id: int,
+    credentials: OnlineCredentials,
+    extra_ids: tuple[tuple[str, int], ...] = (),
 ) -> dict[str, Any] | None:
     """
     Fetch one issue's metadata by explicit id, or ``None`` if it didn't resolve.
 
     Returns the comicbox-shaped tag dict ready to hand to ``BulkTagWriteTask``.
+    With ``extra_ids`` the other sources are also fetched by explicit id and
+    merged in. Resolution is keyed on the primary ``source``: an ``extra_ids``
+    entry that doesn't resolve simply contributes nothing to the merge.
     """
-    settings = build_explicit_id_config(source, issue_id, credentials)
+    # Drop any extra entry for the primary source; it always runs id-pinned.
+    extra_ids = tuple((s, i) for s, i in extra_ids if s != source)
+    settings = build_explicit_id_config(source, issue_id, credentials, extra_ids)
     with Comicbox(path, config=settings) as cb:
         cb.run_online_lookup()
         payload = cb.to_dict()

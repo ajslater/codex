@@ -771,11 +771,25 @@ environ.setdefault("COMICBOX_ONLINE_CACHE_DIR", str(COMICBOX_CACHE_PATH))
 # silently evicts just-written cover responses before the next request
 # can read them. 10k is cheap on disk (~<100 MB of tiny files) and
 # cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
+TAGGING_CACHE_PATH = ROOT_CACHE_PATH / "tagging"
+TAGGING_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+
 CACHES = {
     "default": {
         "BACKEND": "codex.cache.ResilientFileBasedCache",
         "LOCATION": str(DEFAULT_CACHE_PATH),
         "OPTIONS": {"MAX_ENTRIES": 10000},
+    },
+    # Durable tagging state: pending online-tag prompts and tag-write
+    # errors. Lives in its own cache directory because Django's
+    # file-based cache.clear() deletes every entry regardless of key
+    # prefix, and the default cache is cleared broadly — after every
+    # import that changed anything, on Library/Group CRUD, and at
+    # startup. Prompts and errors must linger until the admin acts.
+    "tagging": {
+        "BACKEND": "codex.cache.ResilientFileBasedCache",
+        "LOCATION": str(TAGGING_CACHE_PATH),
+        "OPTIONS": {"MAX_ENTRIES": 1000},
     },
 }
 

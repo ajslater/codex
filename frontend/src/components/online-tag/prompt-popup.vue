@@ -15,7 +15,7 @@
           >
             Skip All
           </v-btn>
-          <v-btn variant="text" size="small" color="error" @click="abort">
+          <v-btn variant="text" size="small" @click="abort">
             Abort Session
           </v-btn>
         </div>

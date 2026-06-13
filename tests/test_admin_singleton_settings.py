@@ -74,6 +74,37 @@ class AdminSingletonSettingsTestCase(TestCase):
         body = resp.json()["data"]
         assert body["defaultFormats"] == ["METRON_INFO"]
 
+    def test_tagging_defaults_preserves_source_order(self) -> None:
+        """DefaultSources order (run priority) round-trips comicvine-first."""
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {
+                "defaultFormats": ["COMIC_INFO"],
+                "deleteOriginal": False,
+                "defaultMatchMode": "auto",
+                "defaultPromptsMode": "ask",
+                "defaultSources": ["comicvine", "metron"],
+            },
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        assert resp.json()["data"]["defaultSources"] == ["comicvine", "metron"]
+
+    def test_tagging_defaults_rejects_unknown_source(self) -> None:
+        """An unknown source name is a 400, not a silently-stored junk value."""
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {
+                "defaultFormats": ["COMIC_INFO"],
+                "deleteOriginal": False,
+                "defaultMatchMode": "auto",
+                "defaultPromptsMode": "ask",
+                "defaultSources": ["comicvine", "grand_comics_db"],
+            },
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
     def test_throttle_settings_put(self) -> None:
         """PUT /admin/throttle-settings returns 200 with the saved row."""
         resp = _put_envelope(

@@ -7,7 +7,7 @@ from typing import Final, override
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import Client, TestCase
 
 from codex.librarian.onlinetag.session_cache import set_pending_prompts
@@ -64,7 +64,8 @@ class TagPromptsTestCase(TestCase):
 
     @override
     def setUp(self) -> None:
-        cache.clear()
+        caches["default"].clear()
+        caches["tagging"].clear()
         self.client = Client()
         self.client.force_login(_make_admin())
 
