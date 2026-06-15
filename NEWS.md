@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.12.8
+
+- Fixes
+    - Fix read/unread filter leaking one user's read state to other users.
+
 ## v1.12.7
 
 - Fixes

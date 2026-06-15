@@ -39,8 +39,17 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
             key = f"{bm_rel}__user"
             value = self.request.user
         else:
+            session_key = self.request.session.session_key
+            if not session_key:
+                # An anonymous visitor with no established session owns no
+                # bookmarks. Returning the raw ``session_id IS NULL`` filter
+                # here would match *every* authenticated user's bookmarks
+                # (their ``session_id`` is NULL), leaking read state and
+                # progress across users. Match nothing instead; a session key
+                # is created only when the visitor actually writes a bookmark.
+                return Q(pk__in=())
             key = f"{bm_rel}__session"
-            value = self.request.session.session_key
+            value = session_key
         my_bookmarks_kwargs = {key: value}
         return Q(**my_bookmarks_kwargs)
 

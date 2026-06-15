@@ -2,7 +2,7 @@
 # Lint complexity
 set -euo pipefail
 if [ "$(uname)" != "Darwin" ]; then
-	exit 0
+  exit 0
 fi
 
 uv run --group lint complexipy
