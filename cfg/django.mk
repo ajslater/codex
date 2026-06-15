@@ -19,16 +19,10 @@ lint::
 django-check:
 	bin/pm check
 
-.PHONY: dev-server
-## Run the dev webserver
-## @category Serve
-dev-server:
-	./bin/dev-server.sh
-
-.PHONY: dev-prod-server
+.PHONY: prod-server
 ## Run a bundled production webserver
 ## @category Run Server
-dev-prod-server: build-frontend collectstatic
+prod-server: build-frontend collectstatic
 	./bin/dev-prod-server.sh
 
 .PHONY: collectstatic

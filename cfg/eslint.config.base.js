@@ -29,6 +29,15 @@ import globals from "globals";
 export const FLAT_ALL = "flat/all";
 export const FLAT_RECOMMENDED = "flat/recommended";
 
+export const SHARED_RULES = {
+  "@stylistic/multiline-comment-style": "off",
+  "max-params": ["warn", 4],
+  "no-console": "warn",
+  "no-debugger": "warn",
+  "no-secrets/no-secrets": "error",
+  "security/detect-object-injection": "off",
+};
+
 export const CONFIGS = {
   js: {
     ...eslintJs.configs.recommended,
@@ -53,12 +62,7 @@ export const CONFIGS = {
       ecmaVersion: "latest",
     },
     rules: {
-      "@stylistic/multiline-comment-style": "off", // Multiple bugs with this rule
-      "max-params": ["warn", 4],
-      "no-console": "warn",
-      "no-debugger": "warn",
-      "no-secrets/no-secrets": "error",
-      "security/detect-object-injection": "off",
+      ...SHARED_RULES,
     },
   },
 };
