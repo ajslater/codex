@@ -4,4 +4,4 @@ set -euxo pipefail
 shopt -s globstar
 
 shellharden --replace ./**/*.sh
-shfmt --simplify --write ./**/*.sh
+shfmt --simplify --indent 2 --write ./**/*.sh
