@@ -57,6 +57,11 @@ border-radius: 128px;
       that could take minutes now load in about a second, metadata works on
       collections of any size, and browsing stays responsive during imports.
 
+## v1.12.8
+
+- Fixes
+    - Fix read/unread filter leaking one user's read state to other users.
+
 ## v1.12.7
 
 - Fixes

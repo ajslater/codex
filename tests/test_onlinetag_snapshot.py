@@ -117,19 +117,23 @@ def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
     statuses = {row["pk"]: row["status"] for row in snap["comics"]}
     won = {row["pk"]: row["won_source"] for row in snap["comics"]}
 
-    assert statuses[1] == session_snapshot.MATCHED
-    assert won[1] == "metron"
-    assert statuses[2] == session_snapshot.NO_MATCH
-    assert statuses[3] == session_snapshot.ERROR
-    assert statuses[4] == session_snapshot.NEEDS_REVIEW
     # Comic 5 is the next unprocessed comic → in-flight.
-    assert statuses[5] == session_snapshot.IN_FLIGHT
+    assert statuses == {
+        1: session_snapshot.MATCHED,
+        2: session_snapshot.NO_MATCH,
+        3: session_snapshot.ERROR,
+        4: session_snapshot.NEEDS_REVIEW,
+        5: session_snapshot.IN_FLIGHT,
+    }
+    assert won[1] == "metron"
 
     batch = snap["batch"]
-    assert batch["matched"] == 1
-    assert batch["no_match"] == 1
-    assert batch["error"] == 1
-    assert batch["needs_review"] == 1
+    assert {k: batch[k] for k in ("matched", "no_match", "error", "needs_review")} == {
+        "matched": 1,
+        "no_match": 1,
+        "error": 1,
+        "needs_review": 1,
+    }
 
 
 def test_sources_strip_reports_rate_limit_countdown() -> None:

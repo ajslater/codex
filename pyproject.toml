@@ -48,7 +48,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.0.0a12"
+version = "2.0.0a13"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -143,7 +143,7 @@ source-include = [
   "frontend/**",
   "img/**",
   "mkdocs.yml",
-  "mock_comics/**",
+  "benchmark/**",
   "package.json",
   "tests/**",
   "uv.lock",

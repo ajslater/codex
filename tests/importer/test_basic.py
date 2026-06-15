@@ -814,11 +814,14 @@ class BaseTestImporter(SerializeMixin, TestCase, ABC):
     @override
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(TMP_DIR)
-        # Without this, TestCase's class-level atomics are never rolled
-        # back: the import's open transaction (and its SQLite table
-        # locks) leaks into every test that runs afterward.
-        super().tearDownClass()
+        # ``super().tearDownClass()`` rolls back the class-level atomic that
+        # ``setUpTestData`` opened. Skipping it leaks everything ``codex_init``
+        # commits (notably the ``admin`` superuser) into later test classes,
+        # which then hit ``UNIQUE constraint failed: auth_user.username``.
+        try:
+            shutil.rmtree(TMP_DIR, ignore_errors=True)
+        finally:
+            super().tearDownClass()
 
     @override
     def setUp(self):

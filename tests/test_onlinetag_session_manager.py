@@ -381,6 +381,39 @@ class OnlineTagSessionManagerTests(TestCase):
         assert prompts["fp2"]["pk"] == comic.pk
         assert prompts["fp2"]["formats"] == ["COMIC_INFO"]
 
+    def test_resolve_unmatched_result_does_not_write(self) -> None:
+        """An unmatched replay (tags = merged existing metadata) writes nothing."""
+        comic = _make_comic()
+        comic_path = str(comic.path)
+        set_pending_prompts(
+            {
+                "fp1": {
+                    "fingerprint": "fp1",
+                    "pk": comic.pk,
+                    "path": comic_path,
+                    "source": "metron",
+                    # No issue_id → not an explicit pick → replay path.
+                    "candidates": [{"source": "metron"}],
+                    "mode": "auto",
+                    "formats": ["COMIC_INFO"],
+                    "delete_original": False,
+                }
+            }
+        )
+        _FakeSession.tag_results = [
+            SimpleNamespace(
+                path=Path(comic_path),
+                tags={"series": "Existing"},
+                error=None,
+                matched=False,
+            )
+        ]
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+
     def test_resolve_skip_drops_prompt_without_writing(self) -> None:
         set_pending_prompts(
             {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}

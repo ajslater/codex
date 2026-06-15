@@ -82,7 +82,7 @@ class SeeOtherRedirectError(APIException):
     def _get_query_params(self) -> dict:
         """Change OPDS settings like the frontend does with error.detail."""
         settings = (
-            self.detail.get("settings") if isinstance(self.detail, Mapping) else None
+            self.detail.get("settings", {}) if isinstance(self.detail, Mapping) else {}
         )
         if not isinstance(settings, Mapping):
             settings = {}
