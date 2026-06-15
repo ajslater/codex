@@ -38,7 +38,7 @@ from codex.librarian.onlinetag.session_state import SessionState
 
 
 @pytest.fixture(autouse=True)
-def _clear_prompts():
+def _clear_prompts():  # pyright: ignore[reportUnusedFunction]
     """Each test starts with an empty pending-prompt + resolution cache."""
     set_pending_prompts({})
     clear_resolved_outcomes()

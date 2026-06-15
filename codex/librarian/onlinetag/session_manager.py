@@ -702,10 +702,8 @@ class OnlineTagSessionManager:
         else:
             # The id itself didn't resolve (wrong/unknown issue). Don't re-queue
             # a fresh ambiguous prompt — the admin made an explicit choice.
-            self.log.warning(
-                f"Online tag: chosen issue {src}:{issue_id} did not resolve "
-                f"for {path_str}."
-            )
+            msg = f"chosen issue {src}:{issue_id} did not resolve for {path_str}"
+            self.log.warning(f"Online tag: {msg}.")
 
     def _handle_unresolved(
         self, prompt: dict[str, Any], path_str: str, session: OnlineSession
