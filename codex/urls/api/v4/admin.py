@@ -27,9 +27,12 @@ from codex.views.admin.library import (
 from codex.views.admin.onlinetag import (
     AdminOnlineTagAbortView,
     AdminOnlineTagActiveView,
+    AdminOnlineTagDismissView,
     AdminOnlineTagPromptResponseView,
     AdminOnlineTagPromptsView,
+    AdminOnlineTagResumeView,
     AdminOnlineTagSkipAllPromptsView,
+    AdminOnlineTagSnapshotView,
     AdminOnlineTagStartView,
 )
 from codex.views.admin.restore_user_data import (
@@ -217,6 +220,24 @@ urlpatterns = [
         "tag-sessions/start",
         AdminOnlineTagStartView.as_view(),
         name="tag_sessions_start",
+    ),
+    # Literal must precede the ``<str:session_id>`` capture below so it isn't
+    # routed to the abort view as a session id.
+    path(
+        "tag-sessions/snapshot",
+        AdminOnlineTagSnapshotView.as_view(),
+        name="tag_sessions_snapshot",
+    ),
+    # Literal paths must precede the ``<str:session_id>`` capture below.
+    path(
+        "tag-sessions/resume",
+        AdminOnlineTagResumeView.as_view(),
+        name="tag_sessions_resume",
+    ),
+    path(
+        "tag-sessions/dismiss",
+        AdminOnlineTagDismissView.as_view(),
+        name="tag_sessions_dismiss",
     ),
     path(
         "tag-sessions/<str:session_id>",

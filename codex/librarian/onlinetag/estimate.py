@@ -24,7 +24,10 @@ from types import MappingProxyType
 from typing import Final
 
 # Per-minute request budgets per source. Matches launcher-dialog SOURCE_RATES.
-_SOURCE_RATE_PER_MINUTE: Final = MappingProxyType({"metron": 20, "comicvine": 3})
+# Public because the live session snapshot reports each source's budget; the
+# leading underscore is gone but the values are still the single source of
+# truth shared with the estimate math below.
+SOURCE_RATE_PER_MINUTE: Final = MappingProxyType({"metron": 20, "comicvine": 3})
 
 # API calls per comic by match mode. Matches MATCH_MODE_CALLS_PER_COMIC.
 _MATCH_MODE_CALLS: Final = MappingProxyType({"eager": 2, "auto": 3, "careful": 5})
@@ -39,9 +42,7 @@ def _calls_per_comic(mode: str) -> int:
 
 
 def _slowest_rate_per_minute(sources: tuple[str, ...]) -> int:
-    rates = [
-        _SOURCE_RATE_PER_MINUTE[s] for s in sources if s in _SOURCE_RATE_PER_MINUTE
-    ]
+    rates = [SOURCE_RATE_PER_MINUTE[s] for s in sources if s in SOURCE_RATE_PER_MINUTE]
     return min(rates) if rates else _DEFAULT_RATE_PER_MINUTE
 
 

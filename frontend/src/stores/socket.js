@@ -251,6 +251,20 @@ export const useSocketStore = defineStore("socket", () => {
       .catch(console.error);
   }
 
+  /*
+   * Refresh the online-tag status snapshot on librarian progress. Gated to the
+   * Tagging tab — the snapshot only feeds that table, and ``task.progress``
+   * fires for every librarian job, so off-tab fetches would be wasted. The
+   * table's own onMounted load covers arriving mid-scan.
+   */
+  function onlineTagSnapshotNotified() {
+    if (!useAuthStore().isUserAdmin) return;
+    if (currentRouteName() !== "admin-tagging") return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().loadSnapshot())
+      .catch(console.error);
+  }
+
   // Message Dispatcher — routes v4 typed payloads ({type, ...}).
 
   function dispatchMessage(raw) {
@@ -286,6 +300,7 @@ export const useSocketStore = defineStore("socket", () => {
       case MESSAGE_TYPES.TASK_PROGRESS:
         adminLoadTables(["ActiveLibrarianStatus"]);
         adminLoadAllStatuses();
+        onlineTagSnapshotNotified();
         break;
       case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();

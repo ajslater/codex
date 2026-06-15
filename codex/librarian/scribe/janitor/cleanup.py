@@ -17,6 +17,13 @@ from codex.librarian.onlinetag.session_cache import (
     set_active_scan_id,
     set_pending_prompts,
 )
+from codex.librarian.onlinetag.session_snapshot import (
+    deactivate_snapshot,
+    get_resolved_outcomes,
+    get_resume_state,
+    set_resolved_outcomes,
+    set_resume_state,
+)
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
@@ -452,6 +459,8 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         try:
             self.status_controller.start(status)
             self._prune_dead_prompts()
+            self._prune_dead_resolutions()
+            self._prune_dead_resume_state()
             self._clear_stale_scan_marker()
         finally:
             self.status_controller.finish(status)
@@ -469,6 +478,39 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             dropped = len(prompts) - len(kept)
             self.log.info(f"Pruned {dropped} online tag prompt(s) for missing comics.")
 
+    def _prune_dead_resolutions(self) -> None:
+        """Drop recorded match-review outcomes whose comic no longer exists."""
+        outcomes = get_resolved_outcomes()
+        if not outcomes:
+            return
+        live = set(
+            Comic.objects.filter(pk__in=outcomes.keys()).values_list("pk", flat=True)
+        )
+        kept = {pk: status for pk, status in outcomes.items() if pk in live}
+        if len(kept) != len(outcomes):
+            set_resolved_outcomes(kept)
+            dropped = len(outcomes) - len(kept)
+            self.log.info(
+                f"Pruned {dropped} online tag resolution(s) for missing comics."
+            )
+
+    def _prune_dead_resume_state(self) -> None:
+        """Drop resume-remainder pks whose comic no longer exists."""
+        resume = get_resume_state()
+        if not resume:
+            return
+        remaining = resume.get("remaining_pks") or []
+        if not remaining:
+            return
+        live = set(Comic.objects.filter(pk__in=remaining).values_list("pk", flat=True))
+        kept = [pk for pk in remaining if pk in live]
+        if len(kept) != len(remaining):
+            set_resume_state(resume.get("params") or {}, kept)
+            dropped = len(remaining) - len(kept)
+            self.log.info(
+                f"Pruned {dropped} online tag resume comic(s) for missing comics."
+            )
+
     def _clear_stale_scan_marker(self) -> None:
         """Clear an active-scan marker with no live scan behind it."""
         scan_id = get_active_scan_id()
@@ -479,4 +521,5 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         )
         if not live:
             set_active_scan_id("")
+            deactivate_snapshot()
             self.log.info(f"Cleared stale online tag scan marker {scan_id!r}.")

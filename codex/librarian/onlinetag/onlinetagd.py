@@ -4,10 +4,12 @@ from typing import override
 
 from codex.librarian.onlinetag.session_cache import set_active_scan_id
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
+from codex.librarian.onlinetag.session_snapshot import deactivate_snapshot
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
     OnlineTagByIdTask,
+    OnlineTagDismissTask,
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
@@ -49,6 +51,10 @@ class OnlineTagThread(QueuedThread):
         super().run_start()
         try:
             set_active_scan_id("")
+            # A snapshot left "active" by a scan that the restart killed would
+            # read as still-running; flip it to inactive (keeping the last
+            # tally) rather than deleting it.
+            deactivate_snapshot()
         except Exception:
             self.log.exception("Clearing stale online tag scan marker on startup")
 
@@ -71,5 +77,7 @@ class OnlineTagThread(QueuedThread):
                 )
             case OnlineTagSkipAllPromptsTask():
                 self.session_manager.skip_all_prompts()
+            case OnlineTagDismissTask():
+                self.session_manager.dismiss_session()
             case _:
                 self.log.warning(f"Bad task sent to online tag thread: {item}")

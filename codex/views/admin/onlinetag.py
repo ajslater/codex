@@ -4,16 +4,23 @@ import contextlib
 import uuid
 
 from rest_framework.response import Response
-from rest_framework.status import HTTP_202_ACCEPTED
+from rest_framework.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
     get_active_scan_id,
     get_pending_prompts,
 )
+from codex.librarian.onlinetag.session_snapshot import (
+    get_resolved_outcomes,
+    get_resume_state,
+    get_snapshot,
+    overlay_resolutions,
+)
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
+    OnlineTagDismissTask,
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
@@ -33,6 +40,20 @@ class AdminOnlineTagActiveView(AdminAPIView):
         """Return the active scan id from the cache."""
         sid = get_active_scan_id() or None
         return Response({"session_id": sid})
+
+
+class AdminOnlineTagSnapshotView(AdminAPIView):
+    """Return the live (or last-finished) online tagging session snapshot."""
+
+    def get(self, _request):
+        """Return the session snapshot, reconciled with current resolutions."""
+        snapshot = get_snapshot()
+        if snapshot:
+            review_pks = {p.get("pk") for p in get_pending_prompts().values()}
+            snapshot = overlay_resolutions(
+                snapshot, review_pks, get_resolved_outcomes()
+            )
+        return Response({"snapshot": snapshot})
 
 
 class AdminOnlineTagStartView(FilteredComicPksView):
@@ -84,12 +105,57 @@ class AdminOnlineTagStartView(FilteredComicPksView):
 
 
 class AdminOnlineTagAbortView(AdminAPIView):
-    """Abort the in-flight online tagging scan (DELETE on the tag-session URL)."""
+    """
+    Pause the in-flight online tagging scan (DELETE on the tag-session URL).
+
+    Stops the scan between comics; comics already tagged keep their tags and the
+    rest are left resumable via the resume descriptor the daemon persists.
+    """
 
     def delete(self, _request, session_id):
-        """Enqueue an abort task for the running scan."""
+        """Enqueue an abort (pause) task for the running scan."""
         LIBRARIAN_QUEUE.put(OnlineTagAbortTask(session_id=session_id))
-        return Response({"detail": "Abort signal sent."}, status=HTTP_202_ACCEPTED)
+        return Response({"detail": "Pause signal sent."}, status=HTTP_202_ACCEPTED)
+
+
+class AdminOnlineTagResumeView(AdminAPIView):
+    """Resume a paused/interrupted scan over the comics it never reached."""
+
+    def post(self, _request):
+        """Rebuild a scan task from the stored resume descriptor and enqueue it."""
+        if get_active_scan_id():
+            return Response(
+                {"detail": "A tagging scan is already running."},
+                status=HTTP_409_CONFLICT,
+            )
+        resume = get_resume_state()
+        remaining = resume.get("remaining_pks") if resume else None
+        if not resume or not remaining:
+            return Response({"detail": "Nothing to resume."}, status=400)
+
+        params = dict(resume.get("params") or {})
+        # sources round-trips through JSON as a list; the task wants a tuple.
+        params["sources"] = tuple(params.get("sources") or ())
+        session_id = str(uuid.uuid4())
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset(remaining),
+            session_id=session_id,
+            **params,
+        )
+        LIBRARIAN_QUEUE.put(task)
+        return Response(
+            {"session_id": session_id, "comic_count": len(remaining)},
+            status=HTTP_202_ACCEPTED,
+        )
+
+
+class AdminOnlineTagDismissView(AdminAPIView):
+    """Clear the status-table snapshot and resume descriptor."""
+
+    def post(self, _request):
+        """Enqueue a dismiss task (leaves pending prompts intact)."""
+        LIBRARIAN_QUEUE.put(OnlineTagDismissTask())
+        return Response({"detail": "Dismiss signal sent."}, status=HTTP_202_ACCEPTED)
 
 
 class AdminOnlineTagPromptsView(AdminAPIView):

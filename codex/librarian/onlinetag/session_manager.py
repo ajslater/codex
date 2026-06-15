@@ -36,6 +36,18 @@ from codex.librarian.onlinetag.session_cache import (
     set_active_scan_id,
     set_pending_prompts,
 )
+from codex.librarian.onlinetag.session_snapshot import (
+    USER_MATCHED,
+    USER_SKIPPED,
+    build_snapshot,
+    clear_resolved_outcomes,
+    clear_resume_state,
+    clear_snapshot,
+    record_resolution,
+    remaining_pks,
+    set_resume_state,
+    set_snapshot,
+)
 from codex.librarian.onlinetag.session_state import (
     CodexPromptHandler,
     SessionState,
@@ -74,8 +86,16 @@ class OnlineTagSessionManager:
         self.thread_queue = thread_queue
         self.status_controller = StatusController(log, librarian_queue)
         self._active_session_id: str | None = None
+        # Throttle snapshot publishing to roughly the status-update cadence so
+        # a fast (Metron) burst doesn't rewrite the cache per comic; forced
+        # publishes (start, rate-limit, finish) bypass it.
+        self._last_publish: float = 0.0
         self._pass_runner = TagPassRunner(
-            log, librarian_queue, self.status_controller, self._drain_thread_queue
+            log,
+            librarian_queue,
+            self.status_controller,
+            self._drain_thread_queue,
+            self._publish_snapshot,
         )
 
     def _build_credentials(self) -> OnlineCredentials | None:
@@ -171,6 +191,43 @@ class OnlineTagSessionManager:
                 return None
             return self._sessions.get(self._active_session_id)
 
+    # --- live snapshot -------------------------------------------------
+
+    _PUBLISH_DELTA = 4.0
+
+    def _publish_snapshot(
+        self,
+        state: SessionState,
+        *,
+        active: bool = True,
+        force: bool = False,
+        session_id: str | None = None,
+    ) -> None:
+        """Fold scan state into the cache snapshot the admin status table reads."""
+        try:
+            elapsed = monotonic() - self._last_publish
+            if not force and elapsed < self._PUBLISH_DELTA:
+                return
+            self._last_publish = monotonic()
+            status = self._pass_runner.lookup_status
+            eta = status.eta if status else None
+            snapshot = build_snapshot(
+                state,
+                session_id=session_id or self._active_session_id or "",
+                active=active,
+                eta_epoch=eta.timestamp() if eta else None,
+                source_retry_at=dict(self._pass_runner.source_retry_at),
+                now_epoch=now().timestamp(),
+            )
+            set_snapshot(snapshot)
+            # Persist the uncapped remainder + original params so a kill or
+            # pause can resume what this scan never reached. A normal finish
+            # leaves nothing remaining, which clears the key (not resumable).
+            review_pks = {p.get("pk") for p in get_pending_prompts().values()}
+            set_resume_state(state.resume_params, remaining_pks(state, review_pks))
+        except Exception:
+            self.log.exception("Publishing online tag session snapshot")
+
     def _on_event(self, event: Event) -> None:
         """Handle comicbox online events."""
         state = self._active_state()
@@ -196,7 +253,16 @@ class OnlineTagSessionManager:
         # retry_at drives the live "retrying in M:SS" countdown in the admin
         # status item (the frontend ticks down to it). It fires once per retry
         # attempt, so each new attempt re-anchors the countdown.
-        status.retry_at = now() + timedelta(seconds=secs) if secs else None
+        if secs:
+            retry_at = now() + timedelta(seconds=secs)
+            status.retry_at = retry_at
+            # Per-source mirror for the snapshot's sources strip: the global
+            # status carries one countdown, but the table shows which source is
+            # waiting and for how long.
+            if event.source:
+                self._pass_runner.source_retry_at[event.source] = retry_at.timestamp()
+        else:
+            status.retry_at = None
         # Push the completion estimate out by the wait plus the work still
         # left, so the total countdown doesn't sail past zero while stalled.
         remaining = (
@@ -213,6 +279,8 @@ class OnlineTagSessionManager:
         status.eta = now() + timedelta(seconds=total) if total else None
         status.since_updated = 0
         self.status_controller.update(status, notify=True)
+        if state is not None:
+            self._publish_snapshot(state, force=True)
 
     # --- mid-scan queue draining ---------------------------------------
 
@@ -262,11 +330,14 @@ class OnlineTagSessionManager:
         remove_pending_prompt(fingerprint)
         state.answered_fingerprints.add(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
+        pk = prompt.get("pk")
         if item.action == "skip":
+            record_resolution(pk, USER_SKIPPED)
             self.log.info(
                 f"Online tag: skipped prompt for {prompt.get('path')!r} mid-scan."
             )
             return
+        record_resolution(pk, USER_MATCHED)
         state.deferred_applies.append(
             (prompt, item.action, item.payload, item.chosen_volume_id)
         )
@@ -277,6 +348,8 @@ class OnlineTagSessionManager:
         if not prompts:
             return
         state.answered_fingerprints.update(prompts.keys())
+        for prompt in prompts.values():
+            record_resolution(prompt.get("pk"), USER_SKIPPED)
         set_pending_prompts({})
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
@@ -395,11 +468,28 @@ class OnlineTagSessionManager:
             delete_original=task.delete_original,
             total_comics=0,
             completed_comics=0,
+            # Everything needed to rebuild a resume task over the comics this
+            # scan never reaches (comic_pks + session_id are regenerated then).
+            resume_params={
+                "sources": list(task.sources),
+                "mode": task.mode,
+                "prompts_mode": task.prompts_mode,
+                "effort": task.effort,
+                "auto_threshold": task.auto_threshold,
+                "delete_original": task.delete_original,
+                "merge_all_sources": task.merge_all_sources,
+                "dry_run": task.dry_run,
+            },
         )
         self._active_session_id = task.session_id
         with self._lock:
             self._sessions[task.session_id] = state
         set_active_scan_id(task.session_id)
+        # A fresh batch starts with a clean resolution record and resume
+        # descriptor so a prior batch's user_matched/user_skipped overlays —
+        # and any leftover paused remainder — don't bleed onto these comics.
+        clear_resolved_outcomes()
+        clear_resume_state()
 
         start = monotonic()
         try:
@@ -414,6 +504,13 @@ class OnlineTagSessionManager:
                 self._persist_prompts(state)
             self._log_summary(state, start)
         finally:
+            # Freeze the final tally in the snapshot (active=False) so the
+            # status table keeps showing how the batch resolved until the next
+            # scan starts — published before clearing the active session id so
+            # it still carries this scan's id.
+            self._publish_snapshot(
+                state, active=False, force=True, session_id=task.session_id
+            )
             with self._lock:
                 self._sessions.pop(task.session_id, None)
             self._active_session_id = None
@@ -423,15 +520,6 @@ class OnlineTagSessionManager:
             # apply builds its own fresh session, so it's independent of
             # this (possibly crashed) scan's session.
             self._apply_deferred_resolutions(state)
-
-    def _log_summary(self, state: SessionState, start: float) -> None:
-        """Log how the scan's comics resolved across sources, skips, and prompts."""
-        stats = state.stats
-        if not stats.total:
-            self.log.debug("Online tag: session finished with no comics processed.")
-            return
-        level = "SUCCESS" if stats.matched else "INFO"
-        self.log.log(level, stats.summary(elapsed=naturaldelta(monotonic() - start)))
 
     def _log_summary(self, state: SessionState, start: float) -> None:
         """Log how the scan's comics resolved across sources, skips, and prompts."""
@@ -457,6 +545,17 @@ class OnlineTagSessionManager:
         with self._lock:
             return session_id in self._sessions
 
+    def dismiss_session(self) -> None:
+        """
+        Clear the status-table snapshot and resume descriptor.
+
+        For dismissing a paused/finished session from the admin table. Pending
+        prompts and any live scan are deliberately left untouched.
+        """
+        clear_snapshot()
+        clear_resume_state()
+        self.log.info("Online tag: dismissed session snapshot.")
+
     # --- prompt resolution (decoupled from any running scan) -----------
 
     def resolve_prompt(
@@ -473,9 +572,15 @@ class OnlineTagSessionManager:
             return
         remove_pending_prompt(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
+        pk = prompt.get("pk")
         if action == "skip":
+            record_resolution(pk, USER_SKIPPED)
             self.log.info(f"Online tag: skipped prompt for {prompt.get('path')!r}.")
             return
+        # Recorded as user-matched up front; if the apply drifts it re-queues a
+        # fresh prompt, which the read-time overlay shows as needs-review again
+        # (the live prompt set wins over the recorded outcome).
+        record_resolution(pk, USER_MATCHED)
         self._apply_resolution(prompt, action, payload, chosen_volume_id)
 
     def skip_all_prompts(self) -> int:
@@ -483,6 +588,8 @@ class OnlineTagSessionManager:
         prompts = get_pending_prompts()
         count = len(prompts)
         if count:
+            for prompt in prompts.values():
+                record_resolution(prompt.get("pk"), USER_SKIPPED)
             set_pending_prompts({})
             self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {count} prompt(s).")
@@ -533,6 +640,15 @@ class OnlineTagSessionManager:
             return
 
         action, payload = self._explicit_resolution(prompt, action, payload)
+        # A concrete pick (a candidate with a known issue id) is fetched
+        # directly by id — never re-searched. A re-search replay drifts under
+        # rate limiting (a different candidate set misses the preloaded
+        # fingerprint), which would silently discard the admin's choice and
+        # re-queue a fresh, often worse, prompt. Direct id fetch is immune.
+        explicit = self._explicit_issue_id(action, payload, source)
+        if explicit is not None:
+            self._apply_explicit_id(prompt, pk, explicit, path_str, credentials)
+            return
         # defer_prompts on: the bridged selector consults the preloaded
         # resolution; without it (or a handler) an ambiguous re-search would
         # fall through to comicbox's interactive CLI prompt inside the daemon.
@@ -553,6 +669,43 @@ class OnlineTagSessionManager:
             self._handle_unresolved(prompt, path_str, session)
             return
         self._enqueue_resolved_write(prompt, pk, tags, path_str)
+
+    @staticmethod
+    def _explicit_issue_id(
+        action: str, payload: Any, default_source: str
+    ) -> tuple[str, int] | None:
+        """Parse a ``manual`` ``source:issue_id`` payload into (source, id)."""
+        if action != "manual" or not isinstance(payload, str):
+            return None
+        src, sep, id_str = payload.partition(":")
+        if not sep:
+            return None
+        try:
+            issue_id = int(id_str)
+        except (TypeError, ValueError):
+            return None
+        return (src or default_source), issue_id
+
+    def _apply_explicit_id(
+        self,
+        prompt: dict[str, Any],
+        pk: int,
+        explicit: tuple[str, int],
+        path_str: str,
+        credentials: OnlineCredentials,
+    ) -> None:
+        """Fetch the picked issue by id and enqueue its write (no re-search)."""
+        src, issue_id = explicit
+        tags = fetch_tags_by_explicit_id(Path(path_str), src, issue_id, credentials)
+        if tags:
+            self._enqueue_resolved_write(prompt, pk, tags, path_str)
+        else:
+            # The id itself didn't resolve (wrong/unknown issue). Don't re-queue
+            # a fresh ambiguous prompt — the admin made an explicit choice.
+            self.log.warning(
+                f"Online tag: chosen issue {src}:{issue_id} did not resolve "
+                f"for {path_str}."
+            )
 
     def _handle_unresolved(
         self, prompt: dict[str, Any], path_str: str, session: OnlineSession

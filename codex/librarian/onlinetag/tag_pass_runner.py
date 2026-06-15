@@ -34,14 +34,21 @@ class TagPassRunner:
         librarian_queue: Queue,
         status_controller: StatusController,
         drain_queue: Callable[[SessionState | None], None],
+        publish_snapshot: Callable[[SessionState], None],
     ) -> None:
-        """Wire the runner with its log, queue, status controller, and drain callback."""
+        """Wire the runner with its log, queue, status controller, and callbacks."""
         self.log = log
         self.librarian_queue = librarian_queue
         self.status_controller = status_controller
         self._drain_queue = drain_queue
+        self._publish_snapshot = publish_snapshot
         self.rate_limited: bool = False
         self.lookup_status: OnlineLookupStatus | None = None
+        # source -> absolute epoch seconds the source is rate-limited until.
+        # Written by the manager on RateLimited events; cleared the moment a
+        # result arrives (the wait is provably over). The session snapshot
+        # reads it to drive per-source retry countdowns.
+        self.source_retry_at: dict[str, float] = {}
 
     def _flush_batch(self, state: SessionState, batch: dict[int, dict]) -> None:
         """Write a batch of collected tags."""
@@ -91,7 +98,9 @@ class TagPassRunner:
         status.retry_at = None
         self._update_eta(state, status)
         self.rate_limited = False
+        self.source_retry_at.clear()
         self.status_controller.update(status)
+        self._publish_snapshot(state)
 
     @staticmethod
     def _store_result_tags(
@@ -151,7 +160,9 @@ class TagPassRunner:
         self._update_eta(state, status)
         self.lookup_status = status
         self.rate_limited = False
+        self.source_retry_at.clear()
         self.status_controller.start(status)
+        self._publish_snapshot(state)
 
         batch: dict[int, dict] = {}
         try:

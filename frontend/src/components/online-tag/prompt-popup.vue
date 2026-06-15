@@ -2,7 +2,7 @@
   <v-dialog v-model="promptDialogOpen" max-width="700">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>Match Review</span>
+        <span>Online Tagging Match Review</span>
         <div>
           <v-btn variant="text" size="small" @click="promptDialogOpen = false">
             Dismiss
@@ -28,15 +28,15 @@
           >
             <v-expansion-panel-title>
               <div class="promptTitle">
-                <span class="promptPath">{{
-                  promptFilename(prompt.path)
-                }}</span>
-                <v-chip size="x-small" class="ml-2">{{
-                  sourceLabel(prompt.source)
-                }}</v-chip>
-                <v-chip size="x-small" class="ml-1">
-                  {{ prompt.candidates.length }} candidates
-                </v-chip>
+                <div class="promptPath">{{ promptFilename(prompt.path) }}</div>
+                <div class="promptMeta">
+                  <v-chip size="x-small">{{
+                    sourceLabel(prompt.source)
+                  }}</v-chip>
+                  <v-chip size="x-small" class="ml-1">
+                    {{ prompt.candidates.length }} candidates
+                  </v-chip>
+                </div>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
@@ -140,15 +140,26 @@ export default {
 <style scoped lang="scss">
 .promptTitle {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
+/* Filename gets its own full-width line. The dialog grows with the name up to
+ * its max-width, after which the name scrolls horizontally so the full path is
+ * always reachable. */
 .promptPath {
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 300px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.promptMeta {
+  display: flex;
+  align-items: center;
 }
 
 .candidateRow {

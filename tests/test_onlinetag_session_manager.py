@@ -28,6 +28,10 @@ from codex.librarian.onlinetag.session_cache import (
     set_pending_prompts,
 )
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
+from codex.librarian.onlinetag.session_snapshot import (
+    USER_MATCHED,
+    get_resolved_outcomes,
+)
 from codex.librarian.onlinetag.session_state import SessionState
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -46,6 +50,9 @@ from codex.models import (
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.onlinetag.manager")  # noqa: S108
 _PATCH_TARGET: Final = "codex.librarian.onlinetag.session_manager.OnlineSession"
+_FETCH_TARGET: Final = (
+    "codex.librarian.onlinetag.session_manager.fetch_tags_by_explicit_id"
+)
 
 
 def _double(stub: object) -> Any:
@@ -269,7 +276,8 @@ class OnlineTagSessionManagerTests(TestCase):
         assert len(summaries) == 1
         assert "matched 1 (metron 1)" in summaries[0]
 
-    def test_resolve_choose_applies_via_fresh_session_and_writes(self) -> None:
+    def test_resolve_choose_fetches_chosen_issue_by_id_and_writes(self) -> None:
+        """A pick is fetched by its exact issue id, not re-searched."""
         comic = _make_comic()
         comic_path = str(comic.path)
         set_pending_prompts(
@@ -286,30 +294,29 @@ class OnlineTagSessionManagerTests(TestCase):
                 }
             }
         )
-        _FakeSession.tag_results = [
-            SimpleNamespace(
-                path=Path(comic_path), tags={"series": "X"}, error=None, matched=True
-            )
-        ]
+        captured: dict = {}
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        def _fake_fetch(path, source, issue_id, _credentials, **_kwargs):
+            captured.update(path=str(path), source=source, issue_id=issue_id)
+            return {"series": "X"}
+
+        with patch(_FETCH_TARGET, _fake_fetch):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
-        # Prompt consumed.
+        # Prompt consumed; the exact chosen issue was fetched directly by id.
         assert get_pending_prompts() == {}
-        # The replay session defers on a cache miss instead of falling
-        # through to comicbox's interactive CLI prompt in the daemon.
-        assert _FakeSession.last_kwargs["defer_prompts"] is True
-        # A chosen index is pinned to a manual issue-id resolution.
-        assert _FakeSession.preloaded == [("fp1", "manual", "metron:123", None)]
-        # A single-comic write was enqueued.
+        assert captured == {"path": comic_path, "source": "metron", "issue_id": 123}
+        # The replay session was never built — no re-search to drift.
+        assert _FakeSession.preloaded == []
+        # A single-comic write was enqueued, and the outcome recorded.
         writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
         assert len(writes) == 1
         assert writes[0].comic_pks == frozenset({comic.pk})
         assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
+        assert get_resolved_outcomes().get(comic.pk) == USER_MATCHED
 
-    def test_resolve_unmatched_result_does_not_write(self) -> None:
-        """An unmatched replay (tags = merged existing metadata) writes nothing."""
+    def test_resolve_choose_unresolved_id_does_not_write_or_requeue(self) -> None:
+        """A pick whose id doesn't resolve writes nothing and never re-prompts."""
         comic = _make_comic()
         comic_path = str(comic.path)
         set_pending_prompts(
@@ -326,22 +333,16 @@ class OnlineTagSessionManagerTests(TestCase):
                 }
             }
         )
-        _FakeSession.tag_results = [
-            SimpleNamespace(
-                path=Path(comic_path),
-                tags={"series": "Existing"},
-                error=None,
-                matched=False,
-            )
-        ]
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        with patch(_FETCH_TARGET, lambda *_a, **_k: None):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        # The explicit choice is honored: no worse fresh prompt is re-queued.
+        assert get_pending_prompts() == {}
 
     def test_resolve_drifted_prompt_requeues_fresh_prompt(self) -> None:
-        """A fingerprint miss on replay re-persists the fresh deferred prompt."""
+        """A candidate with no issue id falls back to replay, which can drift."""
         comic = _make_comic()
         comic_path = str(comic.path)
         set_pending_prompts(
@@ -351,7 +352,8 @@ class OnlineTagSessionManagerTests(TestCase):
                     "pk": comic.pk,
                     "path": comic_path,
                     "source": "metron",
-                    "candidates": [{"issue_id": 123, "source": "metron"}],
+                    # No issue_id → not an explicit pick → replay path.
+                    "candidates": [{"source": "metron"}],
                     "mode": "auto",
                     "formats": ["COMIC_INFO"],
                     "delete_original": False,
@@ -484,19 +486,13 @@ class OnlineTagSessionManagerTests(TestCase):
 
     def test_apply_deferred_resolutions_writes_then_clears(self) -> None:
         comic = _make_comic()
-        comic_path = str(comic.path)
         prompt = self._seed_prompt(comic)
         # The cache entry was already removed inline; the apply re-fetches.
         set_pending_prompts({})
-        _FakeSession.tag_results = [
-            SimpleNamespace(
-                path=Path(comic_path), tags={"series": "X"}, error=None, matched=True
-            )
-        ]
         state = SessionState(session=_double(_FakeSession()))
         state.deferred_applies.append((prompt, "choose", 0, None))
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        with patch(_FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
             self.manager._apply_deferred_resolutions(state)  # noqa: SLF001
 
         writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
@@ -589,6 +585,7 @@ class TagPassRunnerFinishTests(TestCase):
             _double(_FakeQueue()),
             _double(_FakeStatusController()),
             lambda _state: None,
+            lambda _state: None,
         )
 
         with pytest.raises(RuntimeError):
@@ -625,6 +622,7 @@ class TagPassRunnerFinishTests(TestCase):
             _double(logger),
             _double(_FakeQueue()),
             _double(_NoopStatusController()),
+            lambda _state: None,
             lambda _state: None,
         )
         runner.rate_limited = True

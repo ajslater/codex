@@ -50,6 +50,10 @@ class SessionState:
     deferred_applies: list[tuple[dict[str, Any], str, Any, int | None]] = field(
         default_factory=list
     )
+    # The originating task's kwargs, persisted with the resume descriptor so a
+    # killed/paused scan can be rebuilt into a fresh BulkOnlineTagTask over just
+    # the comics it never reached — see session_snapshot.set_resume_state.
+    resume_params: dict[str, Any] = field(default_factory=dict)
 
 
 class CodexPromptHandler:

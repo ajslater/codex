@@ -24,6 +24,10 @@ from codex.librarian.onlinetag.session_cache import (
     set_active_scan_id,
     set_pending_prompts,
 )
+from codex.librarian.onlinetag.session_snapshot import (
+    get_resume_state,
+    set_resume_state,
+)
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
@@ -146,6 +150,24 @@ class CleanupTaggingStateTests(TestCase):
         ).cleanup_tagging_state()
 
         assert get_active_scan_id() == "scan-1"
+
+    def test_prunes_dead_resume_pks_keeping_live(self) -> None:
+        comic = self._make_comic()
+        params = {"sources": ["metron"], "mode": "auto"}
+        set_resume_state(params, [comic.pk, _MISSING_PK])
+
+        _make_janitor().cleanup_tagging_state()
+
+        resume = get_resume_state()
+        assert resume is not None
+        assert resume["remaining_pks"] == [comic.pk]
+
+    def test_clears_resume_state_when_all_comics_gone(self) -> None:
+        set_resume_state({"sources": ["metron"]}, [_MISSING_PK])
+
+        _make_janitor().cleanup_tagging_state()
+
+        assert get_resume_state() is None
 
     def test_noop_when_already_clean(self) -> None:
         _make_janitor().cleanup_tagging_state()

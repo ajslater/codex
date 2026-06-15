@@ -4,6 +4,7 @@
       <v-progress-circular indeterminate />
     </div>
     <template v-else>
+      <TaggingStatusTable />
       <v-form @submit.prevent>
         <AdminSection title="Tagging Defaults">
           <template #hint>
@@ -388,6 +389,7 @@ import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
+import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import TagWriteErrorsPanel from "@/components/admin/tabs/tag-write-errors-panel.vue";
 import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
@@ -421,6 +423,7 @@ export default {
   components: {
     AdminSection,
     ConfirmDialog,
+    TaggingStatusTable,
     TagWriteErrorsPanel,
     ValidationChip,
   },

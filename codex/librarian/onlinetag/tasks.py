@@ -63,3 +63,8 @@ class OnlineTagPromptResponseTask(OnlineTagTask):
 @dataclass
 class OnlineTagSkipAllPromptsTask(OnlineTagTask):
     """Skip every pending deferred prompt in one shot."""
+
+
+@dataclass
+class OnlineTagDismissTask(OnlineTagTask):
+    """Clear the status-table snapshot and resume descriptor."""
