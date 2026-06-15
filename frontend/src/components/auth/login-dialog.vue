@@ -3,7 +3,7 @@
     v-model="showLoginDialog"
     origin="center-top"
     transition="slide-y-transition"
-    max-width="20em"
+    max-width="320"
   >
     <template #activator="{ props }">
       <CodexListItem

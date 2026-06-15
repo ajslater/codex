@@ -31,7 +31,7 @@
   <!-- Save dialog -->
   <v-dialog
     v-model="showSaveDialog"
-    min-width="20em"
+    min-width="320"
     width="auto"
     transition="fab-transition"
   >
@@ -62,7 +62,7 @@
   <!-- Overwrite confirmation dialog -->
   <v-dialog
     v-model="showOverwriteConfirm"
-    min-width="20em"
+    min-width="320"
     width="auto"
     transition="fab-transition"
   >

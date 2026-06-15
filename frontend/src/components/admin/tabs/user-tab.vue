@@ -4,7 +4,7 @@
       <AdminCreateUpdateDialog
         table="User"
         :inputs="AdminUserCreateUpdateInputs"
-        max-width="20em"
+        max-width="320"
       />
       <!--
         Anonymous-session ceiling is not stored per-user; it's the ``AA``
@@ -69,7 +69,7 @@
           table="User"
           :inputs="AdminUserCreateUpdateInputs"
           :old-row="item"
-          max-width="20em"
+          max-width="320"
           size="small"
           density="compact"
         />
