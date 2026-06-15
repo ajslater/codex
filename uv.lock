@@ -628,7 +628,6 @@ test = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
-    { name = "pytest-gitignore" },
     { name = "rnc2rng" },
 ]
 
@@ -708,7 +707,6 @@ test = [
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pytest-django", specifier = "~=4.1" },
-    { name = "pytest-gitignore", specifier = "~=1.3" },
     { name = "rnc2rng", specifier = "~=2.7" },
 ]
 
@@ -3037,18 +3035,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/13/2b/db9a193df89e5660137f5428063bcc2ced7ad790003b26974adf5c5ceb3b/pytest_django-4.12.0.tar.gz", hash = "sha256:df94ec819a83c8979c8f6de13d9cdfbe76e8c21d39473cfe2b40c9fc9be3c758", size = 91156, upload-time = "2026-02-14T18:40:49.235Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/83/a5/41d091f697c09609e7ef1d5d61925494e0454ebf51de7de05f0f0a728f1d/pytest_django-4.12.0-py3-none-any.whl", hash = "sha256:3ff300c49f8350ba2953b90297d23bf5f589db69545f56f1ec5f8cff5da83e85", size = 26123, upload-time = "2026-02-14T18:40:47.381Z" },
-]
-
-[[package]]
-name = "pytest-gitignore"
-version = "1.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/3e/4732f19116915674dbcf636c043c4d9e6585b3ee3c46f04555c4e437cd9b/pytest-gitignore-1.3.tar.gz", hash = "sha256:e62a59ad42731504926a0f7b66b0dd829b587ac9c07e304834ae050c82aca1e3", size = 2547, upload-time = "2015-07-17T14:50:17.623Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/3e/628dc065ae01b768951c332a676857ee7f8736a195158e69528ac461e9cd/pytest_gitignore-1.3-py2.py3-none-any.whl", hash = "sha256:a7ed6d47c3aa10807ecb76c5b52716dce512bc704d68717b238c65f6b59b6cb1", size = 3640, upload-time = "2015-07-17T14:50:21.295Z" },
 ]
 
 [[package]]
