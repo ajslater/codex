@@ -50,7 +50,7 @@ class TestImporterMovedFolderCreatesParents(BaseTestImporter):
         assert new_parent_folder.name == "NewParent"
         # ...and the folder actually moved under it.
         moved = Folder.objects.get(library=self.library, path=str(self.dest_dir))
-        assert moved.parent_folder_id == new_parent_folder.pk
+        assert moved.parent_folder == new_parent_folder
         # No bogus single-character folders leaked in from char-iterating paths.
         assert not Folder.objects.filter(library=self.library, path="N").exists()
         assert count
