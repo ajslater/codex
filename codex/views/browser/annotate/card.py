@@ -79,10 +79,14 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         # IS-NOT-NULL predicate keeps the SELECT projection a single byte
         # per row instead of a full nullable ``DateTimeField`` value, and
         # matches the consumer's type without an implicit truthiness coerce.
+        # ``metadata_imported_at`` is the real gate (a forced import ran);
+        # ``metadata_mtime`` is kept as a backward-compat fallback.
         if qs.model is Comic:
             qs = qs.annotate(
                 has_metadata=ExpressionWrapper(
-                    Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                    Q(metadata_imported_at__isnull=False)
+                    | Q(metadata_mtime__isnull=False),
+                    output_field=BooleanField(),
                 )
             )
         return qs

@@ -5,7 +5,7 @@
         <span>Online Tagging Match Review</span>
         <div>
           <v-btn variant="text" size="small" @click="promptDialogOpen = false">
-            Dismiss
+            {{ dismissLabel }}
           </v-btn>
           <v-btn
             variant="text"
@@ -15,13 +15,11 @@
           >
             Skip All
           </v-btn>
-          <v-btn variant="text" size="small" @click="abort">
-            Abort Session
-          </v-btn>
+          <v-btn variant="text" size="small" @click="pause"> Pause </v-btn>
         </div>
       </v-card-title>
       <v-card-text>
-        <v-expansion-panels v-if="pendingPrompts.length">
+        <v-expansion-panels v-if="pendingPrompts.length" v-model="openPanel">
           <v-expansion-panel
             v-for="prompt in pendingPrompts"
             :key="prompt.fingerprint"
@@ -103,14 +101,33 @@ const SOURCE_LABELS = Object.freeze({
 
 export default {
   name: "OnlineTagPromptPopup",
+  data() {
+    return {
+      // Open the first match panel by default so the admin can act on it
+      // immediately without an extra click. Re-opens the new top prompt as
+      // each one is resolved.
+      openPanel: 0,
+    };
+  },
   computed: {
-    ...mapState(useOnlineTagStore, ["pendingPrompts"]),
+    ...mapState(useOnlineTagStore, ["pendingPrompts", "snapshot"]),
     ...mapWritableState(useOnlineTagStore, ["promptDialogOpen"]),
+    // The session has finished only when a snapshot exists and reports the scan
+    // is neither active nor resumable (paused). Until then, closing the dialog
+    // is a "Cancel" out of an in-progress session rather than a "Dismiss".
+    sessionFinished() {
+      return Boolean(
+        this.snapshot && !this.snapshot.active && !this.snapshot.resumable,
+      );
+    },
+    dismissLabel() {
+      return this.sessionFinished ? "Dismiss" : "Cancel";
+    },
   },
   methods: {
     ...mapActions(useOnlineTagStore, [
       "resolvePrompt",
-      "abortSession",
+      "pauseSession",
       "skipAllPrompts",
     ]),
     sourceLabel(source) {
@@ -130,8 +147,10 @@ export default {
     skipAll() {
       this.skipAllPrompts();
     },
-    abort() {
-      this.abortSession();
+    pause() {
+      // Stop the in-flight scan, keeping the remainder resumable from the
+      // admin Tagging tab; lingering prompts are left intact for review.
+      this.pauseSession();
     },
   },
 };

@@ -398,6 +398,9 @@ _EXCLUDEBULK_UPDATE_COMIC_FIELDS = frozenset(
         "id",
         "library",
         "comicfts",
+        # Owned solely by the finish-time stamp in FinishImporter; the bulk
+        # create/update path must never touch it.
+        "metadata_imported_at",
     }
 )
 BULK_UPDATE_COMIC_FIELDS = tuple(

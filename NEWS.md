@@ -29,6 +29,8 @@ border-radius: 128px;
     - Folder covers respect favorites.
     - Critical ratings normalized to a consistent 0–5 scale.
     - The age-rating "As Tagged" panel hides when it has no entries.
+    - Hovering a comic's tag icon no longer re-runs the on-demand tag importer
+      forever on comics with few or no embedded tags.
     - Browser refreshes more often when comics change. container restarts.
 - Features
     - Edit the tags on one or many comics directly in the browser — credits,

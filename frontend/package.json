@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "2.0.0-a13",
+  "version": "2.0.0-a14",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -38,7 +38,7 @@
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.11",
     "@vue/typescript-plugin": "^3.3.5",
-    "happy-dom": "^20.10.3",
+    "happy-dom": "^20.10.4",
     "rollup-plugin-visualizer": "^7.0.1",
     "sass": "^1.101.0",
     "sass-loader": "^17.0.0",
@@ -49,7 +49,7 @@
     "vite-plugin-dynamic-base": "^1.4.1",
     "vite-plugin-run": "^0.9.0",
     "vite-plugin-vuetify": "^2.1.3",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.9",
     "vue-eslint-parser": "^10.4.1"
   }
 }

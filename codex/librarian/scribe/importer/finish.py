@@ -5,6 +5,7 @@ from time import time
 from types import MappingProxyType
 
 from django.core.cache import cache
+from django.db.models.functions import Now
 from humanize import intcomma, naturaldelta
 
 from codex.librarian.notifier.tasks import (
@@ -15,6 +16,7 @@ from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.statii import IMPORTER_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
+from codex.models.comic import Comic
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -83,11 +85,31 @@ class FinishImporter(InitImporter):
         self.log.success(log_txt)
         self._log_phase_times()
 
+    def _stamp_metadata_imported(self) -> None:
+        """
+        Mark every comic this forced import pass touched as import-complete.
+
+        Path-scoped so it covers SKIPPED no-metadata comics that never reach
+        the per-comic write path. Idempotent (``__isnull=True``) and gated on
+        ``force_import_metadata`` so ordinary watcher-driven imports never
+        rewrite the column.
+        """
+        if not self.task.force_import_metadata:
+            return
+        if not (paths := self.metadata_import_paths):
+            return
+        Comic.objects.filter(
+            library=self.library,
+            path__in=paths,
+            metadata_imported_at__isnull=True,
+        ).update(metadata_imported_at=Now())
+
     def finish(self) -> None:
         """Perform final tasks when the apply is done."""
         if self.abort_event.is_set():
             self.log.info("Import task aborted early.")
         self.abort_event.clear()
+        self._stamp_metadata_imported()
         self.library.end_update()
         self.status_controller.finish_many(_FINISH_STATII)
         self._log_finish()

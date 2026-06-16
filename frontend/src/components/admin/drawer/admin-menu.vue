@@ -30,6 +30,7 @@
     />
     <CodexListItem
       v-if="showPrompts"
+      v-tooltip="{ openDelay: 2000, text: 'Review online tagging matches' }"
       class="promptsLink"
       :prepend-icon="mdiTagMultiple"
       :title="promptsLabel"

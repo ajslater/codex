@@ -223,6 +223,12 @@ class Comic(WatchedPathBrowserCollection):
         db_collation="nocase",
     )
     metadata_mtime = DateTimeField(null=True)
+    # Stamped when a forced/lazy metadata import pass completes for this
+    # comic, regardless of whether any embedded metadata existed. Distinct
+    # from ``metadata_mtime`` (comicbox's embedded-metadata mtime, which
+    # stays NULL for archives with no metadata file) so the lazy-import
+    # hover gate fires exactly once per comic instead of forever.
+    metadata_imported_at = DateTimeField(null=True)
 
     # Not useful
     custom_cover: ForeignKey | None = None

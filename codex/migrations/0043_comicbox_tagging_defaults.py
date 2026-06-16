@@ -33,6 +33,8 @@ A single migration carrying the v1.12.7 -> v2 schema and data changes.
   ``comic, session``) for per-comic bookmark probes (folded in from 0044).
 * ``LibrarianStatus.eta`` / ``retry_at`` live countdown timestamps and the
   ``JFR`` status-type choice (folded in from 0045).
+* ``Comic.metadata_imported_at`` "metadata import completed" marker + backfill
+  to ``COALESCE(metadata_mtime, updated_at)`` (folded in from 0044).
 
 Operation order is load-bearing: ``move_api_key_to_admin_flag`` reads
 ``Timestamp.version`` so it runs before the rename; the custom-cover data
@@ -54,6 +56,7 @@ import django.db.models.deletion
 from comicbox.enums.maps.age_rating import to_metron_age_rating
 from django.conf import settings
 from django.db import migrations, models
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from loguru import logger
 
@@ -77,6 +80,7 @@ def seed_comicbox_tagging_defaults(apps, _schema_editor):
         defaults={
             "default_formats": ["COMIC_INFO", "METRON_INFO"],
             "default_sources": ["metron", "comicvine"],
+            "delete_original": True,
         },
     )
 
@@ -651,6 +655,23 @@ def _repair_folder_relations(apps, _schema_editor) -> None:
     fix_folder_relations(logger, apps_registry=apps)
 
 
+def _backfill_metadata_imported_at(apps, _schema_editor) -> None:
+    """
+    Mark every existing comic as already import-complete.
+
+    ``metadata_imported_at`` is the new "a forced/lazy metadata import pass ran"
+    marker, distinct from comicbox's embedded ``metadata_mtime`` (which stays
+    NULL forever for archives with no metadata file). Existing comics have all
+    been imported, so seed it from ``COALESCE(metadata_mtime, updated_at)`` —
+    otherwise they'd read as un-imported and the browser would offer a
+    lazy re-import that loops on no-metadata comics.
+    """
+    comic_model = apps.get_model("codex", "comic")
+    comic_model.objects.filter(metadata_imported_at__isnull=True).update(
+        metadata_imported_at=Coalesce("metadata_mtime", "updated_at")
+    )
+
+
 class Migration(migrations.Migration):
     """Consolidated v1.12.7 -> v2 schema and data migration."""
 
@@ -674,7 +695,7 @@ class Migration(migrations.Migration):
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("default_formats", models.JSONField(default=list)),
-                ("delete_original", models.BooleanField(default=False)),
+                ("delete_original", models.BooleanField(default=True)),
                 (
                     "default_match_mode",
                     models.CharField(
@@ -1215,4 +1236,15 @@ class Migration(migrations.Migration):
             name="retry_at",
             field=models.DateTimeField(default=None, null=True),
         ),
+        # Comic.metadata_imported_at — "a forced/lazy metadata import pass ran"
+        # marker, distinct from comicbox's embedded metadata_mtime so the
+        # tag-icon lazy-import hover gate fires once instead of forever on
+        # no-metadata comics. Backfill existing comics so none read as
+        # un-imported. Folded in from the former 0044.
+        migrations.AddField(
+            model_name="comic",
+            name="metadata_imported_at",
+            field=models.DateTimeField(null=True),
+        ),
+        migrations.RunPython(_backfill_metadata_imported_at, _noop_reverse),
     ]

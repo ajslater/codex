@@ -134,6 +134,10 @@ export default {
       const book = { ...this.currentBook };
       book.collection = "comics";
       book.childCount = 0;
+      // Browser card items carry an ``ids`` array; the reader's book only
+      // has a ``pk``. Without ``ids`` the online-tag dialog's ``idTaggable``
+      // check fails and the tag-by-id tab never appears for a single comic.
+      book.ids = book.pk == undefined ? [] : [book.pk];
       return book;
     },
   },

@@ -71,6 +71,10 @@ class ComicImporter(MovedImporter):
         saved_created = self.task.files_created
         saved_modified = self.task.files_modified
         all_paths = saved_created | saved_modified
+        # Stash before the per-chunk loop overwrites ``task.files_*`` and
+        # before extract zeros them — finish() stamps metadata_imported_at
+        # on this set.
+        self.metadata_import_paths = all_paths
 
         if not all_paths:
             # Empty path case — still call the per-comic phases once

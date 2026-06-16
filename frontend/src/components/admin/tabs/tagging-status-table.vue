@@ -67,7 +67,7 @@
       </template>
     </template>
     <template #hint>
-      Live progress of the current online tagging batch.
+      Live progress of the current online tagging session.
     </template>
 
     <!-- Batch header: state, progress, ETA, tallies -->
@@ -542,9 +542,10 @@ export default {
 
 .pathCell {
   display: inline-block;
+  // Keep the cell at its original width, but let a long comic name scroll
+  // horizontally within it instead of truncating out of reach.
   max-width: 32ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   white-space: nowrap;
   vertical-align: middle;
 }

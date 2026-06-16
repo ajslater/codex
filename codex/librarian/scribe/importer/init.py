@@ -130,6 +130,12 @@ class InitImporter(WorkerStatusBase):
         # comic still points into) and the browser's ``library.changed`` refresh
         # gate never sees the source view change. Keyed by collection model.
         self.moved_source_collections: dict[type[BrowserCollectionModel], set[int]] = {}
+        # Full set of paths this import touched, captured before the chunking
+        # loop and extract phase zero out ``task.files_*``. Consumed at finish
+        # to stamp ``Comic.metadata_imported_at`` on every comic a forced/lazy
+        # import pass processed (including the SKIPPED no-metadata comics that
+        # never reach the per-comic write path).
+        self.metadata_import_paths: frozenset[str] = frozenset()
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()

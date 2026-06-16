@@ -159,7 +159,8 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             arc_index=arc_index,
             mtime=F("updated_at"),
             has_metadata=ExpressionWrapper(
-                Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                Q(metadata_imported_at__isnull=False) | Q(metadata_mtime__isnull=False),
+                output_field=BooleanField(),
             ),
         )
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
