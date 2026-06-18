@@ -37,24 +37,36 @@ def _get_cgroups1_mem_limit() -> int | None:
     return None
 
 
+def _detect_cgroup_limit() -> int | None:
+    """Return the container memory limit in bytes, or None outside a cgroup."""
+    for func in (_get_cgroups2_mem_limit, _get_cgroups1_mem_limit):
+        with suppress(Exception):
+            if limit := func():
+                return limit
+    return None
+
+
+def read_mem_limit(divisor="b") -> float:
+    """
+    Read the memory budget (cgroup limit, else host RAM) with no side effects.
+
+    Unlike :func:`get_mem_limit`, this never mutates the process ``RLIMIT_AS``,
+    so it's safe to call from request workers (e.g. the admin backup endpoint)
+    that must not pin their own address space.
+    """
+    mem_limit = _detect_cgroup_limit() or virtual_memory().total
+    return mem_limit / DIVISORS.get(divisor, 1)
+
+
 def get_mem_limit(divisor="b"):
     """
     Get the current memlimit.
 
-    If we're in a container set the limit too.
+    If we're in a container set the process ``RLIMIT_AS`` too.
     """
-    mem_limit = None
-    api_funcs = (_get_cgroups2_mem_limit, _get_cgroups1_mem_limit)
-    for func in api_funcs:
-        with suppress(Exception):
-            mem_limit = func()
-        if mem_limit:
-            break
-    if mem_limit:
-        # Set the process memlimit.
-        resource.setrlimit(resource.RLIMIT_AS, (mem_limit, mem_limit))
-
-    if not mem_limit:
-        # get the raw host memory
-        mem_limit = virtual_memory().total
+    cgroup_limit = _detect_cgroup_limit()
+    if cgroup_limit:
+        # Pin the process memlimit to the container's.
+        resource.setrlimit(resource.RLIMIT_AS, (cgroup_limit, cgroup_limit))
+    mem_limit = cgroup_limit or virtual_memory().total
     return mem_limit / DIVISORS.get(divisor, 1)

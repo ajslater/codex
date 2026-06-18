@@ -10,7 +10,7 @@ from codex.views.opds.const import MimeType, Rel, TopRoutes
 
 DEFAULT_FACETS = MappingProxyType(
     {
-        "topGroup": "p",
+        "topCollection": "publishers",
         "orderBy": "sort_name",
         "orderReverse": "false",
     }
@@ -38,7 +38,7 @@ class TopLinks:
         {},  # TopRoutes.ROOT,
         Rel.START,
         MimeType.NAV,
-        {},  # {"topGroup": "p"},
+        {},  # {"topCollection": "p"},
         "⌂",
         "Start of catalog",
         "",
@@ -55,7 +55,7 @@ class RootTopLinks:
         Rel.FEATURED,
         MimeType.NAV,
         {
-            "topGroup": "s",
+            "topCollection": "series",
             "filters": json.dumps({"bookmark": "UNREAD"}),
             "orderBy": "bookmark_updated_at",
             "orderReverse": True,
@@ -69,7 +69,7 @@ class RootTopLinks:
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
         {
-            "topGroup": "s",
+            "topCollection": "series",
             "orderBy": "created_at",
             "orderReverse": True,
         },
@@ -82,7 +82,7 @@ class RootTopLinks:
         Rel.POPULAR,
         MimeType.NAV,
         {
-            "topGroup": "s",
+            "topCollection": "series",
             "filters": json.dumps({"bookmark": "UNREAD"}),
             "orderBy": "date",
         },
@@ -106,7 +106,7 @@ class OPDS1Link:
     facet_active: bool = False
     thr_count: int = 0
     pse_count: int = 0
-    pse_last_read: int = 0
+    pse_last_read: int | None = None
     pse_last_read_date: datetime | None = None
 
 
@@ -155,13 +155,13 @@ class RootFacetGroups:
 
     TOP_GROUP = FacetGroup(
         "",
-        "topGroup",
+        "topCollection",
         "⊙",
         (
-            Facet("p", "Publishers View"),
-            Facet("s", "Series View"),
-            Facet("f", "Folder View"),
-            Facet("a", "Story Arc View"),
+            Facet("publishers", "Publishers View"),
+            Facet("series", "Series View"),
+            Facet("folders", "Folder View"),
+            Facet("arcs", "Story Arc View"),
         ),
     )
     ALL = (TOP_GROUP,)
@@ -178,7 +178,10 @@ class OpdsNs:
 class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
-    group: str = ""
+    # Mirrors the ``nav_collection`` annotation on real browse rows (the
+    # collection this entry routes to). Named to avoid the model-field
+    # collision that blocks calling it ``collection`` (WatchedPath owns it).
+    nav_collection: str = ""
     ids: frozenset[int] = frozenset()
     name: str = ""
     summary: str = ""
@@ -190,7 +193,7 @@ class OPDS1EntryObject:
 class OPDS1EntryData:
     """Entry Data class to avoid to many args."""
 
-    acquisition_groups: frozenset
+    acquisition_collections: frozenset
     zero_pad: int
     metadata: bool
     mime_type_map: Mapping[str, str]

@@ -11,7 +11,7 @@ from codex.views.browser.metadata.const import (
     COMIC_VALUE_FIELD_NAMES,
     COMIC_VALUE_FIELDS_CONFLICTING,
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-    PATH_GROUPS,
+    PATH_COLLECTIONS,
     SUM_FIELDS,
 )
 
@@ -22,10 +22,10 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
     def _get_comic_value_fields(self) -> tuple:
         """Include the path field for staff."""
         fields = set(COMIC_VALUE_FIELD_NAMES)
-        group = self.kwargs["group"]
+        collection = self.kwargs["collection"]
         if (
             not (self.is_admin and self.admin_flags["folder_view"])
-            or group not in PATH_GROUPS
+            or collection not in PATH_COLLECTIONS
         ):
             fields -= ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return tuple(fields)
@@ -103,7 +103,7 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
         field_groups: iterable of ``(fields, annotation_prefix)`` tuples. Each
         group's fields are partitioned into SUM aggregations (direct) and
         intersection fields (distinct-count check). All intersection fields
-        across all groups are collapsed into ONE ``aggregate()`` query and ONE
+        across all collections are collapsed into ONE ``aggregate()`` query and ONE
         ``values_list()`` query, regardless of group count.
         """
         filtered_qs, qs = querysets

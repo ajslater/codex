@@ -37,7 +37,7 @@ def _is_created_recently(ts) -> bool:
 def _get_scheduled_time(ts) -> datetime | None:
     """Compute the time of week to send from the uuid."""
     start_of_week = _get_utc_start_of_week()
-    uuid = UUID(ts.version)
+    uuid = UUID(ts.value)
     uuid_int: int = int(uuid.int)
     seconds_after_week_start = uuid_int / _UUID_DIVISOR
     time_of_week = timedelta(seconds=seconds_after_week_start)

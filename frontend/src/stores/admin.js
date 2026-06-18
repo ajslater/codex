@@ -1,7 +1,7 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/admin";
+import * as API from "@/api/v4/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
@@ -28,9 +28,13 @@ const TABLE_TTL_MS = Object.freeze({
 export const TABS = Object.freeze([
   "Users",
   "Groups",
+  "Email",
   "Libraries",
-  "Flags",
+  "Tagging",
+  "Custom Covers",
+  "Settings",
   "Jobs",
+  "Restore",
   "Stats",
 ]);
 
@@ -40,12 +44,14 @@ export const useAdminStore = defineStore("admin", {
   state: () => ({
     allLibrarianStatuses: {},
     activeLibrarianStatuses: [],
-    unseenFailedImports: false,
     users: [],
     groups: [],
     ageRatingMetrons: [],
     libraries: undefined,
+    customCovers: [],
     failedImports: [],
+    failedImportsSeenAt: "",
+    tagWriteErrors: [],
     flags: [],
     folderPicker: {
       root: undefined,
@@ -53,6 +59,10 @@ export const useAdminStore = defineStore("admin", {
     },
     timestamps: {},
     stats: undefined,
+    taggingDefaults: undefined,
+    emailSettings: undefined,
+    throttleSettings: undefined,
+    apiKey: "",
     activeTab: "Libraries",
   }),
   getters: {
@@ -60,30 +70,19 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    normalLibraries() {
-      const libs = [];
-      if (this.libraries) {
-        for (const library of this.libraries) {
-          if (!library.coversOnly) {
-            libs.push(library);
-          }
-        }
-      }
-      return libs;
-    },
-    customCoverLibraries() {
-      const libs = [];
-      if (this.libraries) {
-        for (const library of this.libraries) {
-          if (library.coversOnly) {
-            libs.push(library);
-          }
-        }
-      }
-      return libs;
-    },
     doNormalComicLibrariesExist() {
-      return Object.keys(this.normalLibraries).length > 0;
+      return Boolean(this.libraries?.length);
+    },
+    // A failed-import warning is "unseen" when a failed import is newer than
+    // the server-persisted seen marker (empty marker = never cleared, so all
+    // count). Drives the hamburger dot + sidebar item; survives reloads.
+    hasUnseenFailedImports() {
+      if (!this.failedImports?.length) return false;
+      if (!this.failedImportsSeenAt) return true;
+      const seen = new Date(this.failedImportsSeenAt).getTime();
+      return this.failedImports.some(
+        (fi) => new Date(fi.createdAt).getTime() > seen,
+      );
     },
   },
   actions: {
@@ -111,14 +110,26 @@ export const useAdminStore = defineStore("admin", {
       await t
         .getAll()
         .then((response) => {
-          if (Array.isArray(response.data)) {
-            this[t.stateField] = response.data;
-            this.timestamps[table] = Date.now();
-            return true;
-          } else {
-            console.warn(t.stateField, "response not an array");
+          /*
+           * v4 admin viewsets use cursor pagination, so list responses
+           * arrive as ``{count?, next, previous, results}`` inside the
+           * envelope. Read-only enums (AgeRatingMetron) and the few
+           * non-viewset list endpoints still return a bare array — accept
+           * both shapes so callers don't need to know which is which.
+           */
+          const body = response.data;
+          const rows = Array.isArray(body)
+            ? body
+            : Array.isArray(body?.results)
+              ? body.results
+              : undefined;
+          if (rows === undefined) {
+            console.warn(t.stateField, "response shape unrecognized");
             return false;
           }
+          this[t.stateField] = rows;
+          this.timestamps[table] = Date.now();
+          return true;
         })
         .catch(warnError);
     },
@@ -175,6 +186,16 @@ export const useAdminStore = defineStore("admin", {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
       await API.changeUserPassword(pk, data)
+        .then((response) => {
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    async sendUserVerificationEmail(pk) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.sendUserVerificationEmail(pk)
         .then((response) => {
           commonStore.setSuccess(response.data.detail);
           return true;
@@ -263,13 +284,242 @@ export const useAdminStore = defineStore("admin", {
         }
       }
     },
-    async updateAPIKey() {
+    async loadAPIKey() {
       if (this._requireAdmin()) return false;
-      await API.updateAPIKey()
-        .then(() => {
+      await API.getAPIKey()
+        .then((response) => {
+          this.apiKey = response.data?.apiKey ?? "";
           return true;
         })
         .catch(console.warn);
+    },
+    async updateAPIKey() {
+      if (this._requireAdmin()) return false;
+      await API.updateAPIKey()
+        .then((response) => {
+          this.apiKey = response.data?.apiKey ?? this.apiKey;
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async loadTaggingDefaults({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.TaggingDefaults || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getTaggingDefaults()
+        .then((response) => {
+          this.taggingDefaults = response.data;
+          this.timestamps.TaggingDefaults = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateTaggingDefaults(data) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.updateTaggingDefaults(data)
+        .then((response) => {
+          this.taggingDefaults = response.data;
+          this.timestamps.TaggingDefaults = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    async validateTaggingCredentials(data) {
+      if (this._requireAdmin()) return undefined;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.validateTaggingCredentials(data);
+        commonStore.clearErrors();
+        return response.data.results;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return undefined;
+      }
+    },
+    async loadTagWriteErrors({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.TagWriteErrors || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getTagWriteErrors()
+        .then((response) => {
+          this.tagWriteErrors = Array.isArray(response.data)
+            ? response.data
+            : [];
+          this.timestamps.TagWriteErrors = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async clearTagWriteErrors() {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.clearTagWriteErrors()
+        .then(() => {
+          this.tagWriteErrors = [];
+          this.timestamps.TagWriteErrors = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    async loadFailedImportsSeen() {
+      if (this._requireAdmin()) return false;
+      await API.getFailedImportsSeen()
+        .then((response) => {
+          this.failedImportsSeenAt = response.data?.seenAt ?? "";
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async markFailedImportsSeen() {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      // Persist the "seen" marker so the hamburger dot + sidebar item stay
+      // cleared across reloads and sessions. The Libraries-tab table persists;
+      // failed imports created after this moment re-activate the warning.
+      await API.markFailedImportsSeen()
+        .then((response) => {
+          this.failedImportsSeenAt = response.data?.seenAt ?? "";
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    async loadEmailSettings({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.EmailSettings || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getEmailSettings()
+        .then((response) => {
+          this.emailSettings = response.data;
+          this.timestamps.EmailSettings = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateEmailSettings(data) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.updateEmailSettings(data)
+        .then((response) => {
+          this.emailSettings = response.data;
+          this.timestamps.EmailSettings = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    /*
+     * Trigger a one-shot SMTP send using the supplied overrides on top
+     * of the saved EmailSettings row. Returns ``{ok, error?}`` from the
+     * server; errors land on the common store too so the form can show
+     * field-level validation messages.
+     */
+    async sendEmailTest(data) {
+      if (this._requireAdmin()) return undefined;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.sendEmailTest(data);
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return undefined;
+      }
+    },
+    async loadThrottleSettings({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const ttl = DYNAMIC_TTL_MS;
+        const last = this.timestamps.ThrottleSettings || 0;
+        if (last && Date.now() - last < ttl) {
+          return true;
+        }
+      }
+      await API.getThrottleSettings()
+        .then((response) => {
+          this.throttleSettings = response.data;
+          this.timestamps.ThrottleSettings = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateThrottleSettings(data) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.updateThrottleSettings(data)
+        .then((response) => {
+          this.throttleSettings = response.data;
+          this.timestamps.ThrottleSettings = Date.now();
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    /*
+     * Snapshot the user-data sidecar from the main DB. Returns
+     * ``{ written: {table: count}, total }`` or undefined on failure.
+     */
+    async dumpUserData() {
+      if (this._requireAdmin()) return;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.postDumpUserData();
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
+    },
+    /*
+     * List the user-data sidecar backups available to restore from
+     * (newest first). Returns an array of { name, label, size, mtime }
+     * or [] on failure.
+     */
+    async listUserDataBackups() {
+      if (this._requireAdmin()) return [];
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.getUserDataBackups();
+        commonStore.clearErrors();
+        return response.data?.backups ?? [];
+      } catch (error) {
+        commonStore.setErrors(error);
+        return [];
+      }
+    },
+    /*
+     * Trigger a sidecar → main-DB restore. ``filename`` selects a specific
+     * backup (default: newest). Returns the report payload
+     * ({ written, skipped, log_path, unmatched }) or undefined on failure.
+     */
+    async restoreUserData({ dryRun = false, filename } = {}) {
+      if (this._requireAdmin()) return;
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.postRestoreUserData({ dryRun, filename });
+        commonStore.clearErrors();
+        return response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
   },
 });

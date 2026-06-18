@@ -6,19 +6,25 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
-from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
-
-from codex.choices.notifications import Notifications
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import (
-    ADMIN_USERS_CHANGED_TASK,
-    USERS_CHANGED_TASK,
-    NotifierTask,
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_202_ACCEPTED,
+    HTTP_400_BAD_REQUEST,
+    HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
 )
+from rest_registration.settings import registration_settings
+
+from codex.choices.admin import AdminFlagChoices
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import users_changed_task
+from codex.models import AdminFlag
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
-from codex.views.admin.auth import AdminGenericAPIView, AdminModelViewSet
+from codex.settings.db import email_enabled
+from codex.views.admin.auth import AdminAPIView, AdminGenericAPIView, AdminModelViewSet
 
 _BAD_CURRENT_USER_FALSE_KEYS = ("is_active", "is_staff", "is_superuser")
 
@@ -29,7 +35,7 @@ class AdminUserViewSet(AdminModelViewSet):
     queryset = (
         User.objects.prefetch_related("groups")
         .select_related("userauth__age_rating_metron")
-        .defer("first_name", "last_name", "email")
+        .defer("first_name", "last_name")
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
@@ -37,13 +43,15 @@ class AdminUserViewSet(AdminModelViewSet):
     @staticmethod
     def _on_change(uid: int) -> None:
         if uid:
-            group = f"user_{uid}"
+            # User-targeted change: send to that user's private
+            # channel plus the ADMIN channel so admin tables refresh.
             tasks = (
-                ADMIN_USERS_CHANGED_TASK,
-                NotifierTask(Notifications.USERS.value, group),
+                users_changed_task(),
+                users_changed_task(uid=uid),
             )
         else:
-            tasks = (USERS_CHANGED_TASK,)
+            # Broadcast change (e.g. bulk delete).
+            tasks = (users_changed_task(),)
         for task in tasks:
             LIBRARIAN_QUEUE.put(task)
 
@@ -88,14 +96,22 @@ class AdminUserViewSet(AdminModelViewSet):
         """Create user; ``UserAuth`` is provisioned by post_save signal."""
         validated_data = serializer.validated_data
         password = validated_data["password"]
-        validate_password(password)
+        # Django's ``validate_password`` raises a Django (not DRF)
+        # ``ValidationError`` which DRF's default exception handler does
+        # not convert to a 400 — it would propagate as a 500. Re-raise
+        # as a DRF field error so the create dialog renders the message
+        # inline next to the Password input.
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            raise DRFValidationError({"password": list(exc.messages)}) from exc
         groups = validated_data.pop("groups")
         # Pop nested userauth data before handing to create_user; the
         # post_save signal in ``codex.signals.django_signals`` provisions
         # an empty UserAuth row, which we then patch with the
         # admin-supplied ceiling if any.
         userauth_data = validated_data.pop("userauth", {})
-        validated_data["email"] = ""
+        validated_data.setdefault("email", "")
         user = User.objects.create_user(**validated_data)
         if groups:
             user.groups.set(groups)
@@ -105,6 +121,71 @@ class AdminUserViewSet(AdminModelViewSet):
             UserAuth.objects.filter(user=user).update(
                 age_rating_metron=userauth_data["age_rating_metron"],
             )
+        # ``CreateModelMixin.create`` reads ``serializer.data`` after
+        # perform_create returns to build the 201 response body. With
+        # ``serializer.instance`` unset (we bypass ``serializer.save``
+        # so we can wire ``UserAuth`` via the post_save signal),
+        # ``serializer.data`` falls back to ``validated_data`` — a dict
+        # that ``userauth.*`` source-attr fields cannot traverse,
+        # raising ``KeyError: 'userauth'``. Attach the saved User so
+        # the response serializes against the real instance.
+        serializer.instance = user
+
+
+class AdminUserSendVerificationView(AdminAPIView):
+    """
+    Resend the registration-verification email for an inactive user.
+
+    Mirrors the same ``REGISTER_VERIFICATION_EMAIL_SENDER`` callable that
+    the public register flow uses, so the link the admin triggers is
+    identical to the one rest-registration would have sent at signup
+    time. Requirements (any failure returns a structured error):
+
+    * Email backend is configured (``email_enabled`` consults the
+      EmailSettings singleton then TOML/env).
+    * The ``Verify New User Email`` admin flag (``RV``) is on — this is
+      a site policy switch, so the admin-action surface honors it
+      rather than silently overriding.
+    * The target user is inactive (``is_active=False``); already-active
+      users have nothing to verify.
+    * The user has an email address on file.
+    """
+
+    def post(self, _request, pk: int) -> Response:
+        """Send the verification email to the given user."""
+        if not email_enabled():
+            return Response(
+                {"detail": "Email is not configured."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        rv_on = AdminFlag.objects.filter(
+            key=AdminFlagChoices.REGISTER_VERIFICATION.value, on=True
+        ).exists()
+        if not rv_on:
+            return Response(
+                {"detail": "Verify New User Email is off."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=HTTP_404_NOT_FOUND)
+        if user.is_active:
+            return Response(
+                {"detail": "User is already active."},
+                status=HTTP_409_CONFLICT,
+            )
+        if not user.email:
+            return Response(
+                {"detail": "User has no email address."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        email_sender = registration_settings.REGISTER_VERIFICATION_EMAIL_SENDER
+        email_sender(self.request, user)
+        return Response(
+            {"detail": f"Verification email sent to {user.email}."},
+            status=HTTP_200_OK,
+        )
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):
@@ -135,3 +216,59 @@ class AdminUserChangePasswordView(AdminGenericAPIView):
             status=status,
             data={"detail": detail},
         )
+
+
+class AdminUserBulkView(AdminAPIView):
+    """
+    Apply a batch admin action to multiple users.
+
+    ``POST /api/v4/admin/users/bulk``.
+    Body: ``{"action": "delete", "ids": [int, ...]}``. Returns
+    ``{"deleted": [int], "skipped": [{id, reason}]}``. ``delete`` is
+    the only action today; other actions can land here later
+    (deactivate, set-staff, etc.) without changing the URL.
+    """
+
+    def post(self, request, *_args, **_kwargs) -> Response:
+        """Apply the bulk action."""
+        ids = self._parse_delete_ids(request)
+        current_user_id = getattr(request.user, "pk", None)
+        deleted, skipped = self._delete_users(ids, current_user_id)
+        if deleted:
+            LIBRARIAN_QUEUE.put(users_changed_task())
+        return Response({"deleted": deleted, "skipped": skipped})
+
+    @staticmethod
+    def _parse_delete_ids(request) -> list[int]:
+        """Validate the bulk-delete body and return the integer id list."""
+        action = request.data.get("action")
+        ids_raw = request.data.get("ids") or []
+        if action != "delete":
+            msg = f"Unsupported bulk action {action!r}; only 'delete' is allowed."
+            raise DRFValidationError({"action": msg})
+        if not isinstance(ids_raw, list) or not ids_raw:
+            raise DRFValidationError({"ids": "Provide a non-empty list of user ids."})
+        try:
+            return [int(pk) for pk in ids_raw]
+        except (TypeError, ValueError) as exc:
+            raise DRFValidationError({"ids": "All ids must be integers."}) from exc
+
+    @staticmethod
+    def _delete_users(
+        ids: list[int], current_user_id: int | None
+    ) -> tuple[list[int], list[dict]]:
+        """Delete each user, skipping self / not-found; return (deleted, skipped)."""
+        deleted: list[int] = []
+        skipped: list[dict] = []
+        for pk in ids:
+            if pk == current_user_id:
+                skipped.append({"id": pk, "reason": "self"})
+                continue
+            try:
+                user = User.objects.get(pk=pk)
+            except User.DoesNotExist:
+                skipped.append({"id": pk, "reason": "not_found"})
+                continue
+            user.delete()
+            deleted.append(pk)
+        return deleted, skipped

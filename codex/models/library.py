@@ -2,7 +2,6 @@
 
 from datetime import timedelta
 from pathlib import Path
-from types import MappingProxyType
 from typing import override
 
 from django.contrib.auth.models import Group
@@ -32,14 +31,6 @@ class Library(BaseModel):
 
     DEFAULT_POLL_EVERY_SECONDS = 60 * 60
     DEFAULT_POLL_EVERY = timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
-    CUSTOM_COVERS_DIR_DEFAULTS = MappingProxyType(
-        {
-            "covers_only": True,
-            "events": False,
-            "poll": False,
-        }
-    )
-    covers_only = BooleanField(db_index=True, default=False)
     path = CharField(
         unique=True,
         db_index=True,

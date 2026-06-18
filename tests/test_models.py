@@ -88,43 +88,61 @@ class FavoriteTestCase(TestCase):
         )
 
     def test_create_and_unique(self):
-        """Same (user, group, target_id) triple must not insert twice."""
-        Favorite.objects.create(user=self.user, group="s", target_id=self.series.pk)
+        """Same (user, collection, target_id) triple must not insert twice."""
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.series.pk
+        )
         with transaction.atomic(), pytest.raises(IntegrityError):
-            Favorite.objects.create(user=self.user, group="s", target_id=self.series.pk)
+            Favorite.objects.create(
+                user=self.user, collection="series", target_id=self.series.pk
+            )
 
     def test_distinct_users_share_target(self):
         """Two users may both favorite the same target."""
-        Favorite.objects.create(user=self.user, group="s", target_id=self.series.pk)
         Favorite.objects.create(
-            user=self.other_user, group="s", target_id=self.series.pk
+            user=self.user, collection="series", target_id=self.series.pk
+        )
+        Favorite.objects.create(
+            user=self.other_user, collection="series", target_id=self.series.pk
         )
         count = Favorite.objects.filter(target_id=self.series.pk).count()
         assert count == self.TWO_FAVORITES
 
     def test_distinct_groups_share_target_id(self):
         """target_id may collide across groups (publisher#1 and series#1)."""
-        Favorite.objects.create(user=self.user, group="p", target_id=1)
-        Favorite.objects.create(user=self.user, group="s", target_id=1)
+        Favorite.objects.create(user=self.user, collection="publishers", target_id=1)
+        Favorite.objects.create(user=self.user, collection="series", target_id=1)
         count = Favorite.objects.filter(user=self.user).count()
         assert count == self.TWO_FAVORITES
 
     def test_user_delete_cascades(self):
         """Deleting a user wipes their favorites."""
-        Favorite.objects.create(user=self.user, group="s", target_id=self.series.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.series.pk
+        )
         self.user.delete()
-        assert not Favorite.objects.filter(group="s").exists()
+        assert not Favorite.objects.filter(collection="series").exists()
 
     def test_target_delete_cascades_via_signal(self):
         """Deleting a Series wipes pointing-at-Series favorites for all users."""
         series_pk = self.series.pk
-        Favorite.objects.create(user=self.user, group="s", target_id=series_pk)
-        Favorite.objects.create(user=self.other_user, group="s", target_id=series_pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=series_pk
+        )
+        Favorite.objects.create(
+            user=self.other_user, collection="series", target_id=series_pk
+        )
         # Distractor: another user's favorite at a different group/target_id
-        # (target_id=series_pk under group="p") must NOT be touched.
-        Favorite.objects.create(user=self.user, group="p", target_id=series_pk)
+        # (target_id=series_pk under collection="publishers") must NOT be touched.
+        Favorite.objects.create(
+            user=self.user, collection="publishers", target_id=series_pk
+        )
 
         self.series.delete()
 
-        assert not Favorite.objects.filter(group="s", target_id=series_pk).exists()
-        assert Favorite.objects.filter(group="p", target_id=series_pk).exists()
+        assert not Favorite.objects.filter(
+            collection="series", target_id=series_pk
+        ).exists()
+        assert Favorite.objects.filter(
+            collection="publishers", target_id=series_pk
+        ).exists()

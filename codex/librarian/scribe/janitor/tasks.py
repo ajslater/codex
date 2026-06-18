@@ -24,6 +24,10 @@ class JanitorBackupTask(JanitorTask):
     """Backup the database."""
 
 
+class JanitorDumpUserDataTask(JanitorTask):
+    """Snapshot the user-data sidecar from the main DB."""
+
+
 class JanitorVacuumTask(JanitorTask):
     """Vacuum the database."""
 
@@ -52,8 +56,16 @@ class JanitorCleanupFavoritesTask(JanitorTask):
     """Clean favorites whose target row no longer exists."""
 
 
+class JanitorCleanupTaggingStateTask(JanitorTask):
+    """Clear orphan online tagging session and prompt state."""
+
+
 class JanitorForeignKeyCheckTask(JanitorTask):
     """Check and repair foreign keys integrity."""
+
+
+class JanitorFolderRelationsCheckTask(JanitorTask):
+    """Check and repair drifted comic↔folder relations."""
 
 
 class JanitorImportForceAllFailedTask(JanitorTask):

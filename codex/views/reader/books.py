@@ -7,6 +7,7 @@ from django.db.models.query import Q, QuerySet
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
 
+from codex.collection import Collection
 from codex.models import Comic
 from codex.models.bookmark import Bookmark
 from codex.models.settings import SettingsReader
@@ -14,10 +15,10 @@ from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
 from codex.views.const import (
-    FOLDER_GROUP,
-    GROUP_RELATION,
+    COLLECTION_RELATION,
+    FOLDER_COLLECTION,
     NONE_INTEGERFIELD,
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.reader.arcs import ReaderArcsView
@@ -105,11 +106,15 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
     ) -> tuple[dict, tuple]:
         """Get ordering for query."""
         sort_name_annotations = {}
-        if self._selected_arc_group in "sv":
-            parent_group = "i" if self._selected_arc_group == "s" else "s"
+        if self._selected_arc_collection in {Collection.SERIES, Collection.VOLUME}:
+            parent_collection = (
+                Collection.IMPRINT
+                if self._selected_arc_collection == Collection.SERIES
+                else Collection.SERIES
+            )
             show = self.get_from_settings("show", browser=True)
             sort_name_annotations = self.get_sort_name_annotations(
-                model, parent_group, self._selected_arc_ids, show
+                model, parent_collection, self._selected_arc_ids, show
             )
             if sort_name_annotations and model is Comic:
                 ordering += (*sort_name_annotations.keys(),)
@@ -117,8 +122,8 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         return sort_name_annotations, tuple(ordering)
 
     def _get_comics_list(self) -> QuerySet:
-        """Get the reader navigation group filter."""
-        rel = GROUP_RELATION[self._selected_arc_group]
+        """Get the reader navigation collection filter."""
+        rel = COLLECTION_RELATION[self._selected_arc_collection]
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
@@ -126,11 +131,11 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         prefetch_related = ()
         ordering = ()
 
-        if self._selected_arc_group == STORY_ARC_GROUP:
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
             arc_index = F("story_arc_numbers__number")
             prefetch_related = (*prefetch_related, rel)
             ordering = ("arc_index", "date", "pk")
-        elif self._selected_arc_group == FOLDER_GROUP:
+        elif self._selected_arc_collection == FOLDER_COLLECTION:
             fields = (*_COMIC_FIELDS, rel)
             select_related = (rel,)
             ordering = ("path", "pk")
@@ -143,7 +148,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         if select_related:
             qs = qs.select_related(*select_related)
         qs = qs.only(*fields)
-        qs = self.annotate_group_names(qs)
+        qs = self.annotate_collection_names(qs)
         # ``has_metadata`` is read as a ``BooleanField`` on the reader
         # serializer; selecting the IS-NOT-NULL predicate skips dragging a
         # full ``DateTimeField`` value through the result row.
@@ -154,7 +159,8 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             arc_index=arc_index,
             mtime=F("updated_at"),
             has_metadata=ExpressionWrapper(
-                Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                Q(metadata_imported_at__isnull=False) | Q(metadata_mtime__isnull=False),
+                output_field=BooleanField(),
             ),
         )
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(

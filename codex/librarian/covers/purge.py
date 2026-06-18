@@ -69,6 +69,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
             self.log.warning(exc)
         finally:
             self.status_controller.finish(status)
+        # Whole-cache purge: clients drop every cached cover.
         librarian_queue.put(COVERS_CHANGED_TASK)
 
     def _cleanup_orphan_covers(self, cover_class, cover_root: Path, name: str) -> None:

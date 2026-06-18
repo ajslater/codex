@@ -7,7 +7,19 @@
       :rules="rules.username"
       clearable
       autofocus
-      @keydown.enter="$refs.password.focus()"
+      @keydown.enter="$refs.email.focus()"
+    />
+    <v-text-field
+      ref="email"
+      v-model="row.email"
+      :rules="rules.email"
+      label="Email"
+      autocomplete="email"
+      type="email"
+      clearable
+      hint="Used for password reset links if email is configured."
+      persistent-hint
+      @keydown.enter="$refs.password && $refs.password.focus()"
     />
     <div v-if="!oldRow">
       <v-text-field
@@ -63,9 +75,11 @@ import { mapState } from "pinia";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
+import { useAuthStore } from "@/stores/auth";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
+  "email",
   "isStaff",
   "isActive",
   "groups",
@@ -73,6 +87,7 @@ const UPDATE_KEYS = Object.freeze([
 ]);
 const EMPTY_ROW = Object.freeze({
   username: "",
+  email: "",
   password: "",
   passwordConfirm: "",
   isStaff: false,
@@ -89,17 +104,26 @@ export default {
   mixins: [createUpdateInputsMixin],
   data() {
     return {
+      UNRESTRICTED_LABEL,
       rules: {
         username: [
           (v) => !!v || "Username is required",
           (v) =>
             (!!v && !this.usernames.has(v.trim())) || "Username already used",
         ],
-        password: [(v) => !!v || "Password is required"],
+        email: [
+          (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
+        ],
+        password: [
+          (v) => !!v || "Password is required",
+          (v) =>
+            !v ||
+            v.length >= this.minPasswordLength ||
+            `Password must be at least ${this.minPasswordLength} characters`,
+        ],
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
         ],
-        UNRESTRICTED_LABEL,
       },
     };
   },
@@ -108,6 +132,9 @@ export default {
       groups: (state) => state.groups,
       users: (state) => state.users,
       ageRatingMetrons: (state) => state.ageRatingMetrons,
+    }),
+    ...mapState(useAuthStore, {
+      minPasswordLength: (state) => state.MIN_PASSWORD_LENGTH,
     }),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);

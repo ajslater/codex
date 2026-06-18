@@ -6,8 +6,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from comicbox.formats.comicbox.schema import PAGE_COUNT_KEY
 from comicbox.process import ReadResult, iter_process_files
-from comicbox.schemas.comicbox import PAGE_COUNT_KEY
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.const import (
@@ -25,6 +25,10 @@ from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG, LOGLEVEL
 from codex.startup.loguru import CODEX_LOG_FORMAT
 
+# Indices into the WatchedPath.set_stat JSON list.
+_STAT_SIZE_INDEX = 6
+_STAT_MTIME_INDEX = 8
+
 
 class ExtractMetadataImporter(AggregateMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
@@ -33,9 +37,10 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
     def _filesystem_mtime_prefilter(
         all_paths: Iterable[str],
         old_mtime_map: MappingProxyType[str, datetime],
+        all_old_comic_values: MappingProxyType[str, dict[str, Any]],
     ) -> tuple[frozenset[str], frozenset[str]]:
         """
-        Drop paths whose filesystem mtime has not advanced since last import.
+        Drop paths the filesystem says are unchanged since last import.
 
         Comicbox's worker performs an embedded-metadata-mtime check too,
         but only after opening the archive — for CBR that's an unrar
@@ -43,12 +48,23 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         the common case (re-import where the archive is unchanged on
         disk).
 
-        Filesystem mtime can lag the embedded mtime (e.g. a user resaved
-        ``ComicInfo.xml`` without touching the archive's mtime), but
-        cannot lead it: any modification that updates the embedded
-        mtime also updates the archive's mtime. So this filter produces
-        only false positives (let through, then no-op'd by the worker
-        check), never false negatives.
+        Two skip signals, both from one ``stat`` call:
+
+        - The on-disk (mtime, size) still equals the stored
+          ``Comic.stat`` snapshot — the file hasn't changed at all
+          since its last import, so there's nothing to read. This is
+          what spurious watcher events and duplicate poll bursts hit.
+        - The fs mtime has not advanced past the stored *embedded*
+          metadata mtime. Filesystem mtime can lag the embedded mtime
+          (e.g. a user resaved ``ComicInfo.xml`` without touching the
+          archive's mtime), but cannot lead it: any modification that
+          updates the embedded mtime also updates the archive's mtime.
+
+        Both produce only false positives (let through, then no-op'd
+        by the worker check), never false negatives. Paths with no
+        stored embedded mtime always survive so a library imported
+        with the import-metadata flag off picks its tags up on the
+        next pass after the flag turns on.
 
         Returns ``(survivors, skipped_paths)`` so the caller can
         account for skips in the SKIPPED set.
@@ -62,12 +78,22 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                 survivors.add(path)
                 continue
             try:
-                fs_mtime = datetime.fromtimestamp(Path(path).stat().st_mtime, tz=UTC)
+                st = Path(path).stat()
             except OSError:
                 # Filesystem hiccup or vanished file — let the worker
                 # produce a FailedImport with the real error.
                 survivors.add(path)
                 continue
+            old_comic = all_old_comic_values.get(path, {})
+            stored_stat = old_comic.get("stat")
+            if (
+                stored_stat
+                and st.st_mtime == stored_stat[_STAT_MTIME_INDEX]
+                and st.st_size == stored_stat[_STAT_SIZE_INDEX]
+            ):
+                skipped.add(path)
+                continue
+            fs_mtime = datetime.fromtimestamp(st.st_mtime, tz=UTC)
             if fs_mtime > old_mtime:
                 survivors.add(path)
             else:
@@ -82,40 +108,59 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             key = AdminFlagChoices.IMPORT_METADATA.value
             import_metadata = AdminFlag.objects.only("on").get(key=key).on
         if not import_metadata:
-            self.log.warning("Admin flag set to NOT import metadata.")
+            self.log.warning("Admin flag set to NOT import tags.")
         return import_metadata
 
-    def _get_old_comic_mtime(
-        self, old_comic: MutableMapping[str, datetime | str | int]
+    @staticmethod
+    def _normalize_old_comic_mtime(
+        old_comic: MutableMapping[str, Any],
     ) -> datetime | None:
-        if not self.task.check_metadata_mtime:
-            return None
-        old_mtime: datetime = old_comic.pop("metadata_mtime")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        """Normalize the stored metadata_mtime to an aware UTC datetime."""
+        old_mtime: datetime | None = old_comic.get("metadata_mtime")
         if old_mtime and (
             old_mtime.tzinfo is None or old_mtime.tzinfo.utcoffset(old_mtime) is None
         ):
             old_mtime = old_mtime.replace(tzinfo=UTC)
+            old_comic["metadata_mtime"] = old_mtime
         return old_mtime
 
     def _get_all_old_comic_values(
         self,
         all_paths: frozenset[str],
-    ) -> tuple[
-        MappingProxyType[str, datetime], MappingProxyType[str, dict[str, str | int]]
-    ]:
+    ) -> tuple[MappingProxyType[str, datetime], MappingProxyType[str, dict[str, Any]]]:
         """Get some old comic values."""
-        values = ["path", "page_count", "file_type"]
-        if self.task.check_metadata_mtime:
-            values.append("metadata_mtime")
+        values = ("path", "page_count", "file_type", "metadata_mtime", "stat")
         old_comics = Comic.objects.filter(path__in=all_paths).values(*values)
         old_comic_values = {}
         old_comic_mtimes = {}
         for old_comic in old_comics:
             old_path_str = old_comic.pop("path")
-            if old_mtime := self._get_old_comic_mtime(old_comic):
+            old_mtime = self._normalize_old_comic_mtime(old_comic)
+            if self.task.check_metadata_mtime and old_mtime:
                 old_comic_mtimes[old_path_str] = old_mtime
             old_comic_values[old_path_str] = old_comic
         return MappingProxyType(old_comic_mtimes), MappingProxyType(old_comic_values)
+
+    @staticmethod
+    def _fs_stat_unchanged(path_str: str, old_comic: dict[str, Any]) -> bool:
+        """
+        Return whether the on-disk stat matches the stored Comic.stat.
+
+        Mirrors the poller's modified test ((mtime, size) equality, see
+        SnapshotDiff._is_stats_equal) so a skipped file is exactly one
+        the poller would not re-emit.
+        """
+        stored = old_comic.get("stat")
+        if not stored:
+            return False
+        try:
+            st = Path(path_str).stat()
+        except OSError:
+            return False
+        # Indices per WatchedPath.set_stat: [6]=st_size, [8]=st_mtime.
+        return st.st_mtime == stored[_STAT_MTIME_INDEX] and (
+            st.st_size == stored[_STAT_SIZE_INDEX]
+        )
 
     @staticmethod
     def _envelope_deltas(
@@ -123,7 +168,8 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
     ) -> dict[str, Any]:
         """Build the subset of envelope fields that actually changed vs DB."""
         delta: dict[str, Any] = {}
-        if (mtime := result.get("metadata_mtime")) is not None:
+        mtime = result.get("metadata_mtime")
+        if mtime is not None and mtime != old_comic.get("metadata_mtime"):
             delta["metadata_mtime"] = mtime
         new_page_count = result.get("page_count")
         if (
@@ -163,8 +209,14 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             # unchanged or full_metadata=False). Route any envelope
             # changes through the stat-only path so aggregate doesn't
             # see an empty-tag md and clobber the comic's existing
-            # browser-group FKs with the empty default groups.
-            if envelope_md:
+            # browser-collection FKs with the empty default collections.
+            # When the envelope AND the on-disk stat both match the DB,
+            # skip the update entirely — the row write was pure churn
+            # (every spurious watcher event rewrote the comic, purged
+            # its covers, and broadcast LIBRARY_CHANGED). A moved stat
+            # must still flow through so Comic.stat refreshes and the
+            # poller stops re-emitting the file as modified.
+            if envelope_md or not self._fs_stat_unchanged(path_str, old_comic):
                 envelope_md["path"] = path_str
                 self.metadata[EXTRACTED_STAT_ONLY][path_str] = envelope_md
             self.metadata[SKIPPED].add(path_str)
@@ -193,10 +245,11 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         self,
         all_paths: frozenset[str],
         all_old_comic_mtimes: MappingProxyType[str, datetime],
+        all_old_comic_values: MappingProxyType[str, dict[str, Any]],
         status: ImporterReadComicsStatus,
     ) -> frozenset[str]:
         """
-        Skip archive-open cost via filesystem stat mtime pre-filter.
+        Skip archive-open cost via filesystem stat pre-filter.
 
         Worker still rechecks the embedded mtime for paths that pass
         through, so a touch-without-content-change still short-circuits
@@ -205,7 +258,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         if not all_old_comic_mtimes:
             return all_paths
         paths_to_extract, prefilter_skipped = self._filesystem_mtime_prefilter(
-            all_paths, all_old_comic_mtimes
+            all_paths, all_old_comic_mtimes, all_old_comic_values
         )
         if prefilter_skipped:
             self.metadata[SKIPPED].update(prefilter_skipped)
@@ -277,7 +330,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
                 all_paths
             )
             paths_to_extract = self._apply_filesystem_prefilter(
-                all_paths, all_old_comic_mtimes, status
+                all_paths, all_old_comic_mtimes, all_old_comic_values, status
             )
             self._run_extract_loop(
                 paths_to_extract,
@@ -292,7 +345,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
             level = "INFO" if skipped_count else "DEBUG"
             self.log.log(
                 level,
-                f"Skipped {skipped_count} comics because metadata appears unchanged.",
+                f"Skipped {skipped_count} comics because tags appear unchanged.",
             )
         finally:
             self.metadata.pop(SKIPPED)

@@ -1,0 +1,11 @@
+Hi {{ user.username }},
+
+Welcome to Codex! Please verify your email address by clicking the link
+below to activate your account:
+
+{{ verification_url }}
+
+If you did not create this account, you can ignore this email.
+
+--
+Codex

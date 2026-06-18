@@ -11,9 +11,10 @@ from loguru import logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.browser import (
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     admin_default_route_for,
 )
+from codex.collection import Collection
 from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
@@ -25,13 +26,13 @@ from codex.models.settings import (
     SettingsReader,
 )
 from codex.views.auth import AuthFilterGenericAPIView
-from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
+from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
-# Fallback top-group when the BG flag row is missing, off, or holds
-# an invalid value. Mirrors ``SettingsBrowser.top_group``'s model
-# default; ``admin_default_route_for("p")`` yields the historical
-# ``/r/0/1`` redirect target.
-_FALLBACK_DEFAULT_TOP_GROUP = "p"
+# Fallback top-collection when the BG flag row is missing, off, or holds
+# an invalid value. Mirrors ``SettingsBrowser.top_collection``'s model
+# default; ``admin_default_route_for("publishers")`` yields the Root
+# redirect target.
+_FALLBACK_DEFAULT_TOP_COLLECTION = Collection.PUBLISHER
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -41,7 +42,12 @@ SETTINGS_BROWSER_SELECT_RELATED = ("show", "filters", "last_route")
 BROWSER_FILTER_ARGS = MappingProxyType({"name": ""})
 BROWSER_CREATE_ARGS = MappingProxyType({"name": ""})
 NULL_VALUES: frozenset = frozenset({"", None})
-_SHOW_KEYS = ("p", "i", "s", "v")
+_SHOW_KEYS = (
+    Collection.PUBLISHER,
+    Collection.IMPRINT,
+    Collection.SERIES,
+    Collection.VOLUME,
+)
 
 
 class SettingsBaseView(AuthFilterGenericAPIView, ABC):
@@ -64,6 +70,15 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     # override BROWSER_CLIENT.
     BROWSER_MODEL: type[SettingsBrowser] = SettingsBrowser
     BROWSER_CLIENT: ClientChoices = ClientChoices.API
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Init the per-request settings-row memo."""
+        super().__init__(*args, **kwargs)
+        # (model, client) → settings instance. Views are instantiated per
+        # request, so this caches the row for the request only — dropping
+        # the second fetch (and its uncachable django_session probe) that
+        # the load-then-save pattern used to pay on every browse GET.
+        self._settings_instances: dict = {}
 
     # ── Session / user helpers ──────────────────────────────────────
 
@@ -135,51 +150,53 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return instance
 
     @staticmethod
-    def _get_admin_default_top_group() -> str:
+    def _get_admin_default_top_collection() -> str:
         """
-        Read the admin-configured default top group.
+        Read the admin-configured default top collection.
 
-        Returns the validated ``BROWSER_DEFAULT_GROUP`` flag value,
-        falling back to ``"p"`` if the row is missing, the flag is
-        off, or the value is out of range (defense against a
-        hand-edited DB / pre-migration state). ``"p"`` mirrors the
-        ``SettingsBrowser.top_group`` model default and resolves to
-        the historical ``/r/0/1`` redirect target.
+        Returns the validated ``BROWSER_DEFAULT_COLLECTION`` flag value,
+        falling back to ``"publishers"`` if the row is missing, the
+        flag is off, or the value is out of range (defense against a
+        hand-edited DB / pre-migration state). ``"publishers"`` mirrors
+        the ``SettingsBrowser.top_collection`` model default and resolves to
+        the Root redirect target.
         """
         try:
             flag = AdminFlag.objects.only("on", "value").get(
-                key=AdminFlagChoices.BROWSER_DEFAULT_GROUP.value
+                key=AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value
             )
         except AdminFlag.DoesNotExist:
-            return _FALLBACK_DEFAULT_TOP_GROUP
-        if flag.on and flag.value in BROWSER_TOP_GROUP_CHOICES:
+            return _FALLBACK_DEFAULT_TOP_COLLECTION
+        if flag.on and flag.value in BROWSER_TOP_COLLECTION_CHOICES:
             return flag.value
-        return _FALLBACK_DEFAULT_TOP_GROUP
+        return _FALLBACK_DEFAULT_TOP_COLLECTION
 
     @classmethod
     def _get_admin_default_route(cls) -> Mapping:
-        """Translate the admin default top group into a redirect target."""
-        return admin_default_route_for(cls._get_admin_default_top_group())
+        """Translate the admin default top collection into a redirect target."""
+        return admin_default_route_for(cls._get_admin_default_top_collection())
 
     @classmethod
     def _create_browser_settings(cls, user, session_key, client, create_args):
         """
         Create a SettingsBrowser with its related show/filters/last_route.
 
-        Sets ``top_group`` from the admin-configured default unless
+        Sets ``top_collection`` from the admin-configured default unless
         the caller already supplied one. The override applies only on
         row creation; ``_get_or_create_settings`` returns existing
         rows before reaching this branch, so a returning user's
-        pinned ``top_group`` is never overwritten.
+        pinned ``top_collection`` is never overwritten.
         """
         show, _ = SettingsBrowserShow.objects.get_or_create(
-            p=True,
-            i=False,
-            s=True,
-            v=False,
+            publishers=True,
+            imprints=False,
+            series=True,
+            volumes=False,
         )
         create_kwargs = dict(create_args)
-        create_kwargs.setdefault("top_group", cls._get_admin_default_top_group())
+        create_kwargs.setdefault(
+            "top_collection", cls._get_admin_default_top_collection()
+        )
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,
@@ -209,41 +226,52 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         Handles login transitions (promoting anonymous session rows to user
         rows) and keeps the session FK current.
         """
+        memo_key = (model, client)
+        if (memoized := self._settings_instances.get(memo_key)) is not None:
+            # A full row fetched earlier this request satisfies any
+            # ``only`` subset too.
+            return memoized
+
         user = self._get_request_user()
         session_key = self._ensure_session_key()
 
         base_filter = {"client": client, **filter_args}
 
+        instance = None
         # 1. Authenticated user — look up by user first.
-        if user and (
-            instance := self._get_or_create_settings_user(
+        if user:
+            instance = self._get_or_create_settings_user(
                 model, user, session_key, base_filter, only
             )
-        ):
-            return instance
 
         # 2. Try by session.
-        if session_key and (
-            instance := self._get_or_create_settings_session(
+        if instance is None and session_key:
+            instance = self._get_or_create_settings_session(
                 model, user, session_key, base_filter, only
             )
-        ):
-            return instance
 
         # 3. Nothing found — create.
-        if model is SettingsBrowser:
-            return self._create_browser_settings(
-                user,
-                session_key,
-                client,
-                create_args,
-            )
-        return model.objects.create(
-            user=user,
-            session_id=session_key,
-            client=client,
-            **create_args,
-        )
+        if instance is None:
+            if model is SettingsBrowser:
+                instance = self._create_browser_settings(
+                    user,
+                    session_key,
+                    client,
+                    create_args,
+                )
+            else:
+                instance = model.objects.create(
+                    user=user,
+                    session_id=session_key,
+                    client=client,
+                    **create_args,
+                )
+
+        if only is None:
+            # Only memoize full rows: an ``only()``-deferred instance
+            # would lazy-load fields one query at a time if reused.
+            self._settings_instances[memo_key] = instance
+        return instance
 
     # ── Instance → dict conversion ──────────────────────────────────
 
@@ -272,7 +300,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         # Last route — from the related SettingsBrowserLastRoute row.
         route_obj = instance.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         result["last_route"] = {
-            "group": route_obj.group,
+            "collection": route_obj.collection,
             "pks": tuple(route_obj.pks) if route_obj.pks else (0,),
             "page": route_obj.page,
         }
@@ -357,10 +385,12 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             for k in SettingsBrowserFilters.FILTER_KEYS
         }
 
-        last_route_keys = ("group", "pks", "page")
+        # Route-dict key → model field name (now identity — both the
+        # route dict and the model column say ``collection``).
+        last_route_fields = {"collection": "collection", "pks": "pks", "page": "page"}
         result["last_route"] = {
-            k: cls._get_field_default(SettingsBrowserLastRoute, k)
-            for k in last_route_keys
+            key: cls._get_field_default(SettingsBrowserLastRoute, field)
+            for key, field in last_route_fields.items()
         }
 
         return result
@@ -376,13 +406,13 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     # ── Save (write) ────────────────────────────────────────────────
 
     def _get_browser_order_defaults(self) -> dict:
-        if group := self.kwargs.get("group"):
-            # order_by has a dynamic group based default
+        if collection := self.kwargs.get("collection"):
+            # order_by has a dynamic collection based default
             order_by = (
                 "filename"
-                if group == FOLDER_GROUP
+                if collection == FOLDER_COLLECTION
                 else "story_arc_number"
-                if group == STORY_ARC_GROUP
+                if collection == STORY_ARC_COLLECTION
                 else "sort_name"
             )
             order_defaults = {"order_by": order_by}
@@ -438,8 +468,11 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     ) -> None:
         """Apply last-route values from the params dict to the route row."""
         dirty = False
-        if "group" in route_data and route_obj.group != route_data["group"]:
-            route_obj.group = route_data["group"]
+        if (
+            "collection" in route_data
+            and route_obj.collection != route_data["collection"]
+        ):
+            route_obj.collection = route_data["collection"]
             dirty = True
         if "pks" in route_data:
             pks_value = route_data["pks"]
@@ -451,7 +484,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             route_obj.page = route_data["page"]
             dirty = True
         if dirty:
-            route_obj.save()
+            # Scoped update: the full-row save rewrote created_at too.
+            route_obj.save(update_fields=("collection", "pks", "page", "updated_at"))
 
     @staticmethod
     def _save_browser_settings_direct_key(key: str, data, instance):
@@ -463,17 +497,20 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     @classmethod
     def _save_browser_settings_data(cls, instance: SettingsBrowser, data: dict) -> None:
         """Persist a params dict to a SettingsBrowser and its related rows."""
-        instance_dirty = False
-        for key in instance.DIRECT_KEYS:
-            instance_dirty |= cls._save_browser_settings_direct_key(key, data, instance)
+        dirty_fields = [
+            key
+            for key in instance.DIRECT_KEYS
+            if cls._save_browser_settings_direct_key(key, data, instance)
+        ]
         if "q" in data and instance.search != data["q"]:
             instance.search = data["q"]
-            instance_dirty = True
+            dirty_fields.append("search")
         show_data = data.get("show")
         if show_data and cls._save_browser_show(instance, show_data):
-            instance_dirty = True
-        if instance_dirty:
-            instance.save()
+            dirty_fields.append("show")
+        if dirty_fields:
+            # Scoped update — the full-row save rewrote created_at.
+            instance.save(update_fields=(*dirty_fields, "updated_at"))
 
         if filters_data := data.get("filters"):
             cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -502,11 +539,24 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             # Same branch invariant as ``_load_settings_data``.
             self._save_reader_settings_data(cast("SettingsReader", instance), data)
 
-    def save_params_to_settings(self, params) -> None:  # reader session & browser final
-        """Save the session from params with defaults for missing values."""
+    def save_params_to_settings(
+        self,
+        params,
+        *,
+        defer_last_route: bool = False,
+    ) -> None:  # reader session & browser final
+        """
+        Save the session from params with defaults for missing values.
+
+        ``defer_last_route`` drops the route from the synchronous save —
+        browse GETs queue it to the librarian writer instead so the read
+        path never waits on the WAL writer lock.
+        """
         try:
             # Deepcopy this so serializing the values later for http response doesn't alter them
             data = deepcopy(dict(params))
+            if defer_last_route:
+                data.pop("last_route", None)
             self._save_settings_data(data)
         except Exception as exc:
             logger.warning(f"Saving params to session: {exc}")

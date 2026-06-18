@@ -6,27 +6,46 @@ import {
   dedupedFetch,
   isAbortError,
   useAbortable,
-} from "@/api/v3/abortable";
-import * as API from "@/api/v3/browser";
-import * as COMMON_API from "@/api/v3/common";
+} from "@/api/v4/abortable";
+import * as API from "@/api/v4/browser";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
-import { IDENTIFIER_SOURCES, TOP_GROUP } from "@/choices/browser-map.json";
+import { IDENTIFIER_SOURCES, TOP_COLLECTION } from "@/choices/browser-map.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import { getTimestamp } from "@/datetime";
 import router from "@/plugins/router";
+import {
+  collectionForRoute,
+  normalizeParentIds,
+  routeForCollection,
+} from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
-const GROUPS = Object.freeze("rpisvc");
-export const GROUPS_REVERSED = Object.freeze([...GROUPS].reverse().join(""));
+// Browse-collection hierarchy, root → deepest. The store speaks the collection
+// vocabulary end to end now; ``COLLECTIONS_REVERSED`` (deepest → root) drives the
+// ``.indexOf`` hierarchy ordering in lowestShownCollection / getTopCollection / topCollection
+// validation.
+const COLLECTIONS = Object.freeze([
+  "root",
+  "publishers",
+  "imprints",
+  "series",
+  "volumes",
+  "comics",
+]);
+export const COLLECTIONS_REVERSED = Object.freeze([...COLLECTIONS].reverse());
 const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
 const DEFAULT_BOOKMARK_VALUES = Object.freeze(
   new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
 );
-const ALWAYS_ENABLED_TOP_GROUPS = Object.freeze(new Set(["a", "c"]));
-const NO_REDIRECT_ON_SEARCH_GROUPS = Object.freeze(new Set(["a", "c", "f"]));
-const NON_BROWSE_GROUPS = Object.freeze(new Set(["a", "f"]));
+const ALWAYS_ENABLED_TOP_COLLECTIONS = Object.freeze(
+  new Set(["arcs", "comics"]),
+);
+const NO_REDIRECT_ON_SEARCH_COLLECTIONS = Object.freeze(
+  new Set(["arcs", "comics", "folders"]),
+);
+const NON_BROWSE_COLLECTIONS = Object.freeze(new Set(["arcs", "folders"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
 const DYNAMIC_COVER_KEYS = Object.freeze([
@@ -40,17 +59,17 @@ const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
 /*
  * Default-columns gating. ``imprint_name`` and ``volume_name`` lead
- * the per-top-group default column tuples (see
+ * the per-top-collection default column tuples (see
  * ``BROWSER_TABLE_DEFAULT_COLUMNS``), but a user who has the
- * matching ``show.i`` / ``show.v`` flags off — i.e., they hide
- * imprints / volumes from breadcrumb navigation — almost certainly
+ * matching ``show.imprints`` / ``show.volumes`` flags off — i.e., they
+ * hide imprints / volumes from breadcrumb navigation — almost certainly
  * doesn't want those columns leading their default column set
  * either. The backend mirrors this in ``default_columns_filtered``;
  * the two stay in sync via this constant.
  */
 const _SHOW_GATED_COLUMNS = Object.freeze({
-  imprint_name: "i",
-  volume_name: "v",
+  imprint_name: "imprints",
+  volume_name: "volumes",
 });
 
 export function filterShowGatedDefaults(cols, show) {
@@ -65,9 +84,9 @@ export function filterShowGatedDefaults(cols, show) {
 }
 
 /*
- * Per-top-group default order applied when the user hits the
+ * Per-top-collection default order applied when the user hits the
  * "Cancel" button on the loading spinner. Cover view, Folder,
- * StoryArc, Publisher and Comic top-groups all want the plain
+ * StoryArc, Publisher and Comic top-collections all want the plain
  * ``sort_name`` single sort — Comic's order pipeline already
  * expands ``sort_name`` into the full
  * ``publisher_sort_name → ... → sort_name`` ladder via
@@ -82,18 +101,18 @@ export function filterShowGatedDefaults(cols, show) {
  * :func:`add_order_by`).
  */
 const _DEFAULT_TABLE_ORDER = Object.freeze({
-  i: Object.freeze({
+  imprints: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [Object.freeze({ key: "sort_name", reverse: false })],
   }),
-  s: Object.freeze({
+  series: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [
       Object.freeze({ key: "imprint_name", reverse: false }),
       Object.freeze({ key: "sort_name", reverse: false }),
     ],
   }),
-  v: Object.freeze({
+  volumes: Object.freeze({
     orderBy: "publisher_name",
     orderExtraKeys: [
       Object.freeze({ key: "imprint_name", reverse: false }),
@@ -108,25 +127,83 @@ const _DEFAULT_SINGLE_ORDER = Object.freeze({
   orderExtraKeys: [],
 });
 
-function _defaultOrderFor(topGroup, viewMode) {
-  if (viewMode === "table" && Object.hasOwn(_DEFAULT_TABLE_ORDER, topGroup)) {
-    return _DEFAULT_TABLE_ORDER[topGroup];
+function _defaultOrderFor(topCollection, viewMode) {
+  if (
+    viewMode === "table" &&
+    Object.hasOwn(_DEFAULT_TABLE_ORDER, topCollection)
+  ) {
+    return _DEFAULT_TABLE_ORDER[topCollection];
   }
   return _DEFAULT_SINGLE_ORDER;
 }
 
-function cloneRoute(route) {
-  return {
-    ...route,
-    matched: route.matched.map(({ instances, ...rest }) => ({
-      ...rest,
-    })),
-  };
-}
+/*
+ * Read the live browser route as the internal {collection, pks, page} shape the
+ * store logic expects. collection is the collection value ("publishers",
+ * "series", …) with the synthetic "root" for the bare publishers list; pks is
+ * the raw "5,7" parent-ids segment (or "" at root — no dummy 0 sentinel); page
+ * is the ?page= query as a string (default "1") so the redirect/dequal matches.
+ */
+const liveBrowseParams = () => {
+  const route = router.currentRoute.value;
+  const parentIds = route.params.parentIds;
+  const { collection } = collectionForRoute({
+    collection: route.params.collection,
+    parentIds,
+  });
+  const pks = parentIds || "";
+  return { collection, pks, page: String(route.query.page || 1) };
+};
+
+/*
+ * Convert an internal {name, params:{collection, pks, page}} browser route into
+ * a pushable v4 collection route. Idempotent: an already-collection route passes
+ * through. A numeric page is kept in the query even when 1 (the validate logic
+ * uses a numeric page to force a breadcrumb-repopulating redirect); a string
+ * "1" is dropped for a clean root URL.
+ */
+const toBrowseRoute = (route) => {
+  const params = route?.params || {};
+  // Accept either the v4 {collection, parentIds} dialect (backend route
+  // objects: breadcrumbs, last_route, redirect.route) or the internal
+  // {collection, pks} engine shape (client-built redirects, liveBrowseParams).
+  // Both carry `collection`; disambiguate on which parent-ids key is present
+  // (engine shapes always carry `pks`, even ""; v4 routes carry `parentIds`).
+  let collection;
+  let parentIds;
+  if (params.pks === undefined) {
+    collection = params.collection;
+    parentIds = normalizeParentIds(params.parentIds);
+  } else {
+    ({ collection, parentIds } = routeForCollection({
+      collection: params.collection,
+      pks: params.pks,
+    }));
+  }
+  const out = { name: route?.name || "browser", params: { collection } };
+  if (parentIds.length) {
+    out.params.parentIds = parentIds.join(",");
+  }
+  const query = { ...(route?.query || {}) };
+  const page = params.page;
+  if (
+    page !== undefined &&
+    (typeof page === "number" || String(page) !== "1")
+  ) {
+    query.page = Number(page);
+  }
+  if (Object.keys(query).length) {
+    out.query = query;
+  }
+  if (route?.hash) {
+    out.hash = route.hash;
+  }
+  return out;
+};
 
 const redirectRoute = (route) => {
   if (route && route.params) {
-    router.push(route).catch(console.warn);
+    router.push(toBrowseRoute(route)).catch(console.warn);
   }
 };
 
@@ -139,8 +216,8 @@ export const useBrowserStore = defineStore("browser", {
     choices: {
       static: Object.freeze({
         bookmark: BROWSER_CHOICES.BOOKMARK_FILTER,
-        groupNames: TOP_GROUP,
-        settingsGroup: BROWSER_CHOICES.SETTINGS_GROUP,
+        collectionNames: TOP_COLLECTION,
+        settingsCollection: BROWSER_CHOICES.SETTINGS_COLLECTION,
         readingDirection: READING_DIRECTION,
         identifierSources: IDENTIFIER_SOURCES,
       }),
@@ -156,7 +233,7 @@ export const useBrowserStore = defineStore("browser", {
       orderExtraKeys: BROWSER_DEFAULTS.orderExtraKeys ?? [],
       search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
-      topGroup: BROWSER_DEFAULTS.topGroup,
+      topCollection: BROWSER_DEFAULTS.topCollection,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
       viewMode: BROWSER_DEFAULTS.viewMode,
       tableColumns: BROWSER_DEFAULTS.tableColumns,
@@ -169,13 +246,13 @@ export const useBrowserStore = defineStore("browser", {
         importMetadata: undefined,
       },
       title: {
-        groupName: undefined,
-        groupCount: undefined,
+        collectionName: undefined,
+        collectionCount: undefined,
       },
       librariesExist: undefined,
-      modelGroup: undefined,
+      modelCollection: undefined,
       numPages: 1,
-      groups: [],
+      collections: [],
       books: [],
       fts: undefined,
       searchError: undefined,
@@ -193,25 +270,25 @@ export const useBrowserStore = defineStore("browser", {
     savedSettingsSnackbar: [],
   }),
   getters: {
-    groupNames() {
-      const groupNames = {};
-      for (const [key, pluralName] of Object.entries(TOP_GROUP)) {
-        groupNames[key] =
+    collectionNames() {
+      const collectionNames = {};
+      for (const [key, pluralName] of Object.entries(TOP_COLLECTION)) {
+        collectionNames[key] =
           pluralName === "Series" ? pluralName : pluralName.slice(0, -1);
       }
-      return groupNames;
+      return collectionNames;
     },
-    topGroupChoices() {
+    topCollectionChoices() {
       const choices = [];
-      for (const item of BROWSER_CHOICES.TOP_GROUP) {
-        if (this._isRootGroupEnabled(item.value)) {
+      for (const item of BROWSER_CHOICES.TOP_COLLECTION) {
+        if (this._isRootCollectionEnabled(item.value)) {
           choices.push(item);
         }
       }
       return choices;
     },
-    topGroupChoicesMaxLen() {
-      return this._maxLenChoices(BROWSER_CHOICES.TOP_GROUP);
+    topCollectionChoicesMaxLen() {
+      return this._maxLenChoices(BROWSER_CHOICES.TOP_COLLECTION);
     },
     orderByChoices(state) {
       /*
@@ -228,7 +305,8 @@ export const useBrowserStore = defineStore("browser", {
         if (
           !coverKeys.has(item.value) ||
           (item.value === "path" && !state.page.adminFlags.folderView) ||
-          (item.value === "child_count" && state.page.modelGroup === "c") ||
+          (item.value === "child_count" &&
+            state.page.modelCollection === "comics") ||
           (item.value === "search_score" &&
             (!state.settings.search || !state.page.fts))
         ) {
@@ -250,11 +328,15 @@ export const useBrowserStore = defineStore("browser", {
       return useAuthStore().isAuthorized;
     },
     isDynamicFiltersSelected(state) {
+      /*
+       * "Dynamic" = anything beyond the default bookmark choice. The
+       * favorite filter is a boolean (not a list-of-pks), but counts as
+       * a non-default extra filter for the multi-filter chip indicator —
+       * otherwise toggling Favorites-only would silently drop the icon
+       * that signals "extra filters are active."
+       */
+      if (state.settings.filters.favorite) return true;
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        /*
-         * bookmark and favorite are scalar (string / boolean), not the
-         * list-of-pks shape every other filter uses.
-         */
         if (
           name !== "bookmark" &&
           name !== "favorite" &&
@@ -277,19 +359,21 @@ export const useBrowserStore = defineStore("browser", {
         this.isDynamicFiltersSelected
       );
     },
-    lowestShownGroup(state) {
-      let lowestGroup = "r";
-      const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
-      for (const [index, group] of [...GROUPS_REVERSED].entries()) {
-        const show = state.settings.show[group];
+    lowestShownCollection(state) {
+      let lowestCollection = "root";
+      const topCollectionIndex = COLLECTIONS_REVERSED.indexOf(
+        state.settings.topCollection,
+      );
+      for (const [index, collection] of [...COLLECTIONS_REVERSED].entries()) {
+        const show = state.settings.show[collection];
         if (show) {
-          if (index <= topGroupIndex) {
-            lowestGroup = group;
+          if (index <= topCollectionIndex) {
+            lowestCollection = collection;
           }
           break;
         }
       }
-      return lowestGroup;
+      return lowestCollection;
     },
     isSearchMode(state) {
       return Boolean(state.settings.search);
@@ -297,20 +381,13 @@ export const useBrowserStore = defineStore("browser", {
     lastRoute(state) {
       const params =
         state.settings?.breadcrumbs?.at(-1) || globalThis.CODEX.LAST_ROUTE;
-      const route = {};
-      if (params) {
-        route.name = "browser";
-        delete params.name;
-        route.params = params;
-      } else {
-        route.name = "home";
-      }
-      return route;
+      return params
+        ? toBrowseRoute({ name: "browser", params })
+        : { name: "home" };
     },
     coverSettings(state) {
-      const params = router.currentRoute.value.params;
-      const group = params.group;
-      if (group == "c") {
+      const { collection, pks } = liveBrowseParams();
+      if (collection == "comics") {
         return {};
       }
       let keys = COVER_KEYS;
@@ -320,10 +397,9 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       const settings = this._filterSettings(state, keys);
-      const pks = params.pks;
-      if (!dc && group !== "r" && pks) {
+      if (!dc && collection !== "root" && pks) {
         settings["parentRoute"] = {
-          group,
+          collection,
           pks,
         };
       }
@@ -336,14 +412,26 @@ export const useBrowserStore = defineStore("browser", {
       return this._filterSettings(state, METADATA_LOAD_KEYS);
     },
     routeKey() {
-      const params = router.currentRoute.value.params;
-      return `${params.group}:${params.pk}:${params.page}`;
+      const { collection, pks, page } = liveBrowseParams();
+      return `${collection}:${pks}:${page}`;
     },
   },
   actions: {
     /*
      * UTILITY
      */
+    bustCoverCache({ ids, coverCustomPk }) {
+      if (!ids?.length) return;
+      const target = new Set(ids);
+      const ts = Date.now();
+      const updateRow = (row) => {
+        if (!row?.ids?.some((pk) => target.has(pk))) return;
+        row.coverCustomPk = coverCustomPk;
+        row.mtime = ts;
+      };
+      for (const row of this.page.collections) updateRow(row);
+      for (const row of this.page.books) updateRow(row);
+    },
     _filterSettings(state, keys) {
       return Object.fromEntries(
         Object.entries(state.settings).filter(([k, v]) => {
@@ -399,13 +487,13 @@ export const useBrowserStore = defineStore("browser", {
     /*
      * VALIDATORS
      */
-    _isRootGroupEnabled(topGroup) {
-      if (ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)) {
+    _isRootCollectionEnabled(topCollection) {
+      if (ALWAYS_ENABLED_TOP_COLLECTIONS.has(topCollection)) {
         return true;
-      } else if (topGroup == "f") {
+      } else if (topCollection == "folders") {
         return this.page.adminFlags?.folderView;
       } else {
-        return this.settings.show[topGroup];
+        return this.settings.show[topCollection];
       }
     },
     _validateSearch(data) {
@@ -413,66 +501,75 @@ export const useBrowserStore = defineStore("browser", {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
           data.orderBy =
-            this.settings.topGroup === "f" ? "filename" : "sort_name";
+            this.settings.topCollection === "folders"
+              ? "filename"
+              : "sort_name";
         }
         return;
       } else if (this.settings.search) {
         // Do not redirect to first search if already in search mode.
         return;
       }
-      // If first search redirect to lowest group and change order
+      // If first search redirect to lowest collection and change order
       data.orderBy = "search_score";
       data.orderReverse = true;
-      const group = router.currentRoute.value.params?.group;
+      const collection = liveBrowseParams().collection;
       if (
-        NO_REDIRECT_ON_SEARCH_GROUPS.has(group) ||
-        group === this.lowestShownGroup
+        NO_REDIRECT_ON_SEARCH_COLLECTIONS.has(collection) ||
+        collection === this.lowestShownCollection
       ) {
         return;
       }
-      return { params: { group: this.lowestShownGroup, pks: "0", page: "1" } };
+      return {
+        params: { collection: this.lowestShownCollection, pks: "", page: "1" },
+      };
     },
-    _validateTopGroup(data, redirect) {
+    _validateTopCollection(data, redirect) {
       /*
-       * If the top group changed supergroups or we're at the root group and the new
-       * top group is above the proper nav group
+       * If the top collection changed super-collections or we're at the root
+       * collection and the new top collection is above the proper nav collection
        */
-      const currentParams = router?.currentRoute?.value?.params;
-      const currentGroup = currentParams?.group;
-      const newTopGroup = data.topGroup;
-      if (currentGroup === "r" && !NON_BROWSE_GROUPS.has(data.topGroup)) {
+      const currentParams = liveBrowseParams();
+      const currentCollection = currentParams?.collection;
+      const newTopCollection = data.topCollection;
+      if (
+        currentCollection === "root" &&
+        !NON_BROWSE_COLLECTIONS.has(data.topCollection)
+      ) {
         return redirect;
-        // r group can have any top groups?
+        // root collection can have any top collections?
       }
 
-      const oldTopGroup = this.settings.topGroup;
+      const oldTopCollection = this.settings.topCollection;
       if (
-        oldTopGroup === newTopGroup ||
-        !newTopGroup ||
-        (!oldTopGroup && newTopGroup) ||
-        newTopGroup === currentGroup
+        oldTopCollection === newTopCollection ||
+        !newTopCollection ||
+        (!oldTopCollection && newTopCollection) ||
+        newTopCollection === currentCollection
       ) {
         /*
          * First url, initializing settings.
          * or
-         * topGroup didn't change.
+         * topCollection didn't change.
          * or
-         * topGroup and group are the same, request is well formed.
+         * topCollection and collection are the same, request is well formed.
          */
         return redirect;
       }
-      const oldTopGroupIndex = GROUPS_REVERSED.indexOf(oldTopGroup);
-      const newTopGroupIndex = GROUPS_REVERSED.indexOf(newTopGroup);
-      const newTopGroupIsBrowse = newTopGroupIndex !== -1;
-      const oldAndNewBothBrowseGroups =
-        newTopGroupIsBrowse && oldTopGroupIndex !== -1;
+      const oldTopCollectionIndex =
+        COLLECTIONS_REVERSED.indexOf(oldTopCollection);
+      const newTopCollectionIndex =
+        COLLECTIONS_REVERSED.indexOf(newTopCollection);
+      const newTopCollectionIsBrowse = newTopCollectionIndex !== -1;
+      const oldAndNewBothBrowseCollections =
+        newTopCollectionIsBrowse && oldTopCollectionIndex !== -1;
 
       // Construct and return new redirect
       let params;
-      if (oldAndNewBothBrowseGroups) {
-        if (oldTopGroupIndex < newTopGroupIndex) {
+      if (oldAndNewBothBrowseCollections) {
+        if (oldTopCollectionIndex < newTopCollectionIndex) {
           /*
-           * new top group is a parent (REVERSED)
+           * new top collection is a parent (REVERSED)
            * Signal that we need new breadcrumbs. we do that by redirecting in place?
            */
           params = currentParams;
@@ -483,34 +580,39 @@ export const useBrowserStore = defineStore("browser", {
           params.page = +params.page;
         } else {
           /*
-           * New top group is a child (REVERSED)
+           * New top collection is a child (REVERSED)
            * Redirect to the new root.
            */
-          params = { group: "r", pks: "0", page: "1" };
+          params = { collection: "root", pks: "", page: "1" };
         }
       } else {
-        // redirect to the new TopGroup
-        const group = newTopGroupIsBrowse ? "r" : newTopGroup;
-        params = { group, pks: "0", page: "1" };
+        // redirect to the new TopCollection
+        const collection = newTopCollectionIsBrowse ? "root" : newTopCollection;
+        params = { collection, pks: "", page: "1" };
       }
       return { params };
     },
-    getTopGroup(group) {
+    getTopCollection(collection) {
       // Similar to browser store logic.
-      let topGroup;
-      if (this.settings.topGroup === group || NON_BROWSE_GROUPS.has(group)) {
-        topGroup = group;
+      let topCollection;
+      if (
+        this.settings.topCollection === collection ||
+        NON_BROWSE_COLLECTIONS.has(collection)
+      ) {
+        topCollection = collection;
       } else {
-        const groupIndex = GROUPS_REVERSED.indexOf(group); // + 1;
-        // Determine browse top group
-        for (const testGroup of GROUPS_REVERSED.slice(groupIndex)) {
-          if (testGroup !== "r" && this.settings.show[testGroup]) {
-            topGroup = testGroup;
+        const collectionIndex = COLLECTIONS_REVERSED.indexOf(collection); // + 1;
+        // Determine browse top collection
+        for (const testCollection of COLLECTIONS_REVERSED.slice(
+          collectionIndex,
+        )) {
+          if (testCollection !== "root" && this.settings.show[testCollection]) {
+            topCollection = testCollection;
             break;
           }
         }
       }
-      return topGroup;
+      return topCollection;
     },
     /*
      * TABLE VIEW
@@ -518,21 +620,21 @@ export const useBrowserStore = defineStore("browser", {
     _resolveTableColumns() {
       /*
        * Pick the column set for the current table-view request.
-       * Persisted overrides (``settings.tableColumns[topGroup]``) win
+       * Persisted overrides (``settings.tableColumns[topCollection]``) win
        * over the registry defaults; both fall back to an empty tuple
-       * for unknown top-groups (the backend then uses its own
+       * for unknown top-collections (the backend then uses its own
        * defaults). Defaults are filtered by the user's ``show.i``
        * and ``show.v`` flags so a user who hides imprints / volumes
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      const topGroup = this.settings.topGroup ?? "p";
-      const stored = this.settings.tableColumns?.[topGroup];
+      const topCollection = this.settings.topCollection ?? "publishers";
+      const stored = this.settings.tableColumns?.[topCollection];
       if (stored && stored.length > 0) {
         return stored;
       }
       return filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[topGroup] ?? [],
+        BROWSER_TABLE_DEFAULT_COLUMNS[topCollection] ?? [],
         this.settings.show,
       );
     },
@@ -559,8 +661,8 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateAndSaveSettings(data) {
       let redirect = this._validateSearch(data);
-      redirect = this._validateTopGroup(data, redirect);
-      if (dequal(redirect?.params, router.currentRoute.value.params)) {
+      redirect = this._validateTopCollection(data, redirect);
+      if (dequal(redirect?.params, liveBrowseParams())) {
         // not triggered if page is numeric, which is intended.
         redirect = undefined;
       }
@@ -613,18 +715,18 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await API.updateGroupBookmarks(params, this.filterOnlySettings, {
+      await API.updateCollectionBookmarks(params, this.filterOnlySettings, {
         finished,
       }).then(() => {
         this.loadBrowserPage(getTimestamp());
         return true;
       });
     },
-    async forceUpdateGroup(params) {
+    async forceUpdateCollection(params) {
       if (!this.isAuthorized) {
         return;
       }
-      await API.forceUpdateGroup(params, this.filterOnlySettings);
+      await API.forceUpdateCollection(params, this.filterOnlySettings);
     },
     clearSearchHideTimeout() {
       clearTimeout(this.searchHideTimeout);
@@ -653,10 +755,10 @@ export const useBrowserStore = defineStore("browser", {
      * ROUTE
      */
     routeToPage(page) {
-      const origRoute = router.currentRoute.value;
-      const route = cloneRoute(origRoute);
-      route.params.page = page;
-      router.push(route).catch(console.warn);
+      const params = { ...liveBrowseParams(), page };
+      router
+        .push(toBrowseRoute({ name: "browser", params }))
+        .catch(console.warn);
     },
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error?.response?.status)) {
@@ -685,8 +787,8 @@ export const useBrowserStore = defineStore("browser", {
         state.browserPageLoaded = false;
         state.choices.dynamic = undefined;
       });
-      const group = router?.currentRoute?.value.params?.group;
-      await API.getSettings({ group })
+      const collection = liveBrowseParams().collection;
+      await API.getSettings({ collection })
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
@@ -708,8 +810,8 @@ export const useBrowserStore = defineStore("browser", {
        * indeterminate spinner after a 10s grace period.
        *
        * Stays on the current route. Keeps filters, search, view-
-       * mode, top-group, columns, and every other display
-       * preference. Only resets the order to the per-top-group
+       * mode, top-collection, columns, and every other display
+       * preference. Only resets the order to the per-top-collection
        * default (see ``_defaultOrderFor``) so the next fetch lands
        * on a configuration the backend can serve quickly.
        *
@@ -724,7 +826,7 @@ export const useBrowserStore = defineStore("browser", {
       const aborted = abortKey("browser:loadBrowserPage");
       if (!aborted) return;
       const order = _defaultOrderFor(
-        this.settings.topGroup,
+        this.settings.topCollection,
         this.settings.viewMode,
       );
       await this.setSettings({
@@ -751,7 +853,7 @@ export const useBrowserStore = defineStore("browser", {
         return this.loadSettings();
       }
       /*
-       * Single-flight: a rapid group switch aborts the previous
+       * Single-flight: a rapid collection switch aborts the previous
        * fetch so its late-arriving response can't ``$patch`` stale
        * state over the current route's data.
        */
@@ -759,7 +861,7 @@ export const useBrowserStore = defineStore("browser", {
       /*
        * Table mode requests need ``columns=`` so the backend knows
        * which fields to project / annotate. The list comes from the
-       * user's persisted table_columns map (per top-group) and falls
+       * user's persisted table_columns map (per top-collection) and falls
        * back to the registry defaults; cover mode never sets it.
        */
       const requestSettings =
@@ -768,7 +870,7 @@ export const useBrowserStore = defineStore("browser", {
           : this.settings;
       try {
         const response = await API.getBrowserPage(
-          route.params,
+          liveBrowseParams(),
           requestSettings,
           mtime,
           { signal },
@@ -780,7 +882,7 @@ export const useBrowserStore = defineStore("browser", {
           if (
             (state.settings.orderBy === "search_score" && !page.fts) ||
             (state.settings.orderBy === "child_count" &&
-              page.modelGroup === "c")
+              page.modelCollection === "comics")
           ) {
             state.settings.orderBy = "sort_name";
           }
@@ -799,7 +901,7 @@ export const useBrowserStore = defineStore("browser", {
       const signal = useAbortable("browser:loadAvailableFilterChoices");
       try {
         const response = await API.getAvailableFilterChoices(
-          router.currentRoute.value.params,
+          liveBrowseParams(),
           this.filterOnlySettings,
           this.page.mtime,
           { signal },
@@ -819,7 +921,7 @@ export const useBrowserStore = defineStore("browser", {
       const signal = useAbortable(`browser:loadFilterChoices:${fieldName}`);
       try {
         const response = await API.getFilterChoices(
-          { ...router.currentRoute.value.params, fieldName },
+          { ...liveBrowseParams(), fieldName },
           this.filterOnlySettings,
           this.page.mtime,
           { signal },
@@ -831,27 +933,33 @@ export const useBrowserStore = defineStore("browser", {
         console.error(error);
       }
     },
+    /*
+     * Refresh gate for ``library.changed`` (and groups/users) events.
+     * The notification only says *something* changed, so probe the scoped
+     * ``/head`` for the current route — same querysets as the page — and
+     * reload only when its ``mtime`` (in-view content changed) or ``count``
+     * (filtered membership changed: a comic entered or left the active filter)
+     * differs from the page we last fetched. Skips a reload for views the
+     * change didn't touch instead of reloading on every broadcast.
+     */
     async loadMtimes() {
-      const params = router?.currentRoute?.value?.params;
-      const routeGroup = params?.group;
-      const group =
-        routeGroup && routeGroup != "r" ? routeGroup : this.page.modelGroup;
-      const pks = params?.pks || "0";
-      const arcs = [{ group, pks }];
+      const params = liveBrowseParams();
       /*
        * Dedup so concurrent callers (websocket fan-out across the
        * browser + reader stores, rapid notifications) share one
        * request instead of stampeding.
        */
-      const dedupKey = `browser:loadMtimes:${group}:${pks}`;
+      const dedupKey = `browser:loadMtimes:${params.collection}:${params.pks}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>
-          COMMON_API.getMtime(arcs, this.filterOnlySettings),
+          API.getBrowserHead(params, this.settings),
         );
-        const newMtime = response?.data?.maxMtime;
-        if (newMtime !== this.page.mtime) {
+        const head = response?.data;
+        const changed =
+          head?.mtime !== this.page.mtime || head?.count !== this.page.count;
+        if (changed) {
           this.choices.dynamic = undefined;
-          this.loadBrowserPage(newMtime);
+          this.loadBrowserPage(head?.mtime);
         }
         return true;
       } catch (error) {
@@ -864,7 +972,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       this._validateAndSaveSettings(settings);
       // ignore redirect
-      router.push(route).catch(console.error);
+      router.push(toBrowseRoute(route)).catch(console.error);
     },
     /*
      * SAVED SETTINGS

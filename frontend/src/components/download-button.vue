@@ -15,9 +15,9 @@
 import { mdiDownload } from "@mdi/js";
 import { mapState } from "pinia";
 
-import { getGroupDownloadURL } from "@/api/v3/browser";
-import { getDownloadIOSPWAFix } from "@/api/v3/common";
-import { getComicDownloadURL } from "@/api/v3/reader";
+import { getCollectionDownloadURL } from "@/api/v4/browser";
+import { getDownloadIOSPWAFix } from "@/api/v4/common";
+import { getComicDownloadURL } from "@/api/v4/reader";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
@@ -41,19 +41,19 @@ export default {
     return { mdiDownload };
   },
   computed: {
-    ...mapState(useBrowserStore, ["filterOnlySettings", "groupNames"]),
+    ...mapState(useBrowserStore, ["filterOnlySettings", "collectionNames"]),
     show() {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
     },
     isOneComic() {
-      return this.item?.group === "c" && this.item?.ids?.length === 1;
+      return this.item?.collection === "comics" && this.item?.ids?.length === 1;
     },
     downloadFn() {
       if (this.isOneComic) {
         return this.item.name;
       } else {
-        const groupName = this.groupNames[this.item?.group];
-        return `${groupName} - ${this.item.name} Comics.zip`;
+        const collectionName = this.collectionNames[this.item?.collection];
+        return `${collectionName} - ${this.item.name} Comics.zip`;
       }
     },
     downloadURL() {
@@ -62,11 +62,11 @@ export default {
         const pk = this.item.ids[0];
         url = getComicDownloadURL({ pk }, this.downloadFn, this.item?.mtime);
       } else {
-        const group = this.item?.group;
+        const collection = this.item?.collection;
         const pks = this.item?.ids;
         const settings = this.filterOnlySettings;
-        url = getGroupDownloadURL(
-          { group, pks },
+        url = getCollectionDownloadURL(
+          { collection, pks },
           this.downloadFn,
           settings,
           this.item?.mtime,

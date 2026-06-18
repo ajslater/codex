@@ -23,9 +23,9 @@ from django.db.models import (
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
     BROWSER_ORDER_BY_CHOICES,
-    BROWSER_ROUTE_CHOICES,
+    BROWSER_ROUTE_COLLECTION_CHOICES,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.models.base import MAX_NAME_LEN, BaseModel
@@ -166,16 +166,16 @@ class SettingsBase(BaseModel):
 
 class SettingsBrowserShow(BaseModel):
     """
-    Show-group boolean grid.
+    Show-collection boolean grid.
 
     Shared across SettingsBrowser rows — created but never deleted.
     With 4 booleans there are at most 16 distinct rows (in practice ~6).
     """
 
-    p = BooleanField(default=True)
-    i = BooleanField(default=False)
-    s = BooleanField(default=True)
-    v = BooleanField(default=False)
+    publishers = BooleanField(default=True)
+    imprints = BooleanField(default=False)
+    series = BooleanField(default=True)
+    volumes = BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
         """Browser show-flag settings."""
@@ -183,14 +183,18 @@ class SettingsBrowserShow(BaseModel):
         verbose_name_plural = "browser show settings"
         constraints = (
             UniqueConstraint(
-                fields=("p", "i", "s", "v"),
+                fields=("publishers", "imprints", "series", "volumes"),
                 name="unique_settingsbrowsershow_flags",
             ),
         )
 
     @override
     def __repr__(self) -> str:
-        return f"<SettingsBrowserShow p={self.p} i={self.i} s={self.s} v={self.v}>"
+        return (
+            f"<SettingsBrowserShow publishers={self.publishers}"
+            f" imprints={self.imprints} series={self.series}"
+            f" volumes={self.volumes}>"
+        )
 
 
 class SettingsBrowserFilters(BaseModel):
@@ -295,10 +299,10 @@ class SettingsBrowserLastRoute(BaseModel):
         related_name="last_route",
     )
 
-    group = CharField(
-        max_length=1,
-        choices=tuple(BROWSER_ROUTE_CHOICES.items()),
-        default="r",
+    collection = CharField(
+        max_length=32,
+        choices=tuple(BROWSER_ROUTE_COLLECTION_CHOICES.items()),
+        default="root",
     )
     pks = JSONField(default=list)
     page = PositiveSmallIntegerField(default=1)
@@ -312,7 +316,7 @@ class SettingsBrowserLastRoute(BaseModel):
     def __repr__(self) -> str:
         return (
             f"<SettingsBrowserLastRoute"
-            f" group={self.group} pks={self.pks} page={self.page}>"
+            f" collection={self.collection} pks={self.pks} page={self.page}>"
         )
 
 
@@ -327,10 +331,10 @@ class SettingsBrowser(SettingsBase):
     name = CharField(max_length=MAX_NAME_LEN, default="", blank=True, db_index=True)
 
     # Browse state
-    top_group = CharField(
-        max_length=1,
-        choices=tuple(BROWSER_TOP_GROUP_CHOICES.items()),
-        default="p",
+    top_collection = CharField(
+        max_length=32,
+        choices=tuple(BROWSER_TOP_COLLECTION_CHOICES.items()),
+        default="publishers",
     )
     order_by = CharField(
         max_length=32,
@@ -377,7 +381,7 @@ class SettingsBrowser(SettingsBase):
 
     DIRECT_KEYS = frozenset(
         {
-            "top_group",
+            "top_collection",
             "order_by",
             "order_reverse",
             "order_extra_keys",

@@ -5,7 +5,7 @@ from django.test import TestCase
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
 )
 from codex.views.browser.columns import (
     default_columns_filtered,
@@ -50,14 +50,18 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
                     f"{key} is m2m; sort_key should equal column key"
                 )
 
-    def test_only_favorite_is_editable(self):
+    def test_editable_columns(self):
         # ``favorite`` opted in to ``editable=True`` in Phase 5 of the
         # favorites feature — its star widget toggles via the
-        # ``/api/v3/favorites/<group>/<pk>/`` endpoint. Every other
-        # column stays read-only until a column-specific edit pipeline
+        # ``/api/v4/favorites/<collection>/<pk>`` endpoint.
+        # ``critical_rating`` opted in alongside the comicbox CBI rating
+        # normalization (canonical 0.0-5.0 scale) — the eventual
+        # inline-table edit reads ``edit_widget`` to render a stepper.
+        # Every other column stays read-only until its own edit pipeline
         # ships.
+        editable_keys = frozenset({"favorite", "critical_rating"})
         for key, entry in BROWSER_TABLE_COLUMNS.items():
-            expected = key == "favorite"
+            expected = key in editable_keys
             assert entry["editable"] is expected, (
                 f"{key} editable={entry['editable']!r}; expected {expected}"
             )
@@ -68,20 +72,20 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
 
     def test_keys_are_valid_top_groups(self):
         for key in BROWSER_TABLE_DEFAULT_COLUMNS:
-            assert key in BROWSER_TOP_GROUP_CHOICES, f"{key} not a top-group"
+            assert key in BROWSER_TOP_COLLECTION_CHOICES, f"{key} not a top-collection"
 
     def test_columns_reference_registry(self):
         valid = set(BROWSER_TABLE_COLUMNS.keys())
-        for top_group, columns in BROWSER_TABLE_DEFAULT_COLUMNS.items():
+        for top_collection, columns in BROWSER_TABLE_DEFAULT_COLUMNS.items():
             unknown = set(columns) - valid
-            assert not unknown, f"{top_group} references unknown columns {unknown}"
+            assert not unknown, f"{top_collection} references unknown columns {unknown}"
 
     def test_comic_defaults_match_plan(self):
         # Default sort for Comic is ``sort_name`` which the
         # dispatcher expands to the full ``publisher_sort_name → …
         # → sort_name`` ladder. Default columns mirror that ladder
         # (after ``cover``) so row content tracks the sort.
-        assert default_columns_for("c") == (
+        assert default_columns_for("comics") == (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -95,13 +99,13 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
         )
 
     def test_publisher_defaults_minimal(self):
-        assert default_columns_for("p") == ("cover", "name", "child_count")
+        assert default_columns_for("publishers") == ("cover", "name", "child_count")
 
     def test_imprint_defaults_lead_with_sort_columns(self):
         # Default sort is ``publisher_name → sort_name``. Default
         # columns lead with the same keys (after ``cover``) so the
         # display tracks the sort.
-        assert default_columns_for("i") == (
+        assert default_columns_for("imprints") == (
             "cover",
             "publisher_name",
             "name",
@@ -110,7 +114,7 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
 
     def test_series_defaults_lead_with_sort_columns(self):
         # Default sort is ``publisher_name → imprint_name → sort_name``.
-        assert default_columns_for("s") == (
+        assert default_columns_for("series") == (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -123,7 +127,7 @@ class BrowserTableDefaultColumnsTestCase(TestCase):
         # Default sort is ``publisher_name → imprint_name → series_name
         # → sort_name``. ``Volume.sort_name`` expands to
         # ``name, number_to`` in the dispatcher.
-        assert default_columns_for("v") == (
+        assert default_columns_for("volumes") == (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -141,10 +145,10 @@ class BrowserTableDefaultColumnsFilteredTestCase(TestCase):
     """Pin the show-flag-gated default-column filter."""
 
     def test_no_show_drops_imprint_and_volume(self):
-        # Match the model defaults: ``show.i`` and ``show.v`` are
-        # both False out of the box. ``imprint_name`` and
+        # Match the model defaults: ``show.imprints`` and ``show.volumes``
+        # are both False out of the box. ``imprint_name`` and
         # ``volume_name`` should drop from any default tuple.
-        assert default_columns_filtered("c", None) == (
+        assert default_columns_filtered("comics", None) == (
             "cover",
             "publisher_name",
             "series_name",
@@ -156,24 +160,24 @@ class BrowserTableDefaultColumnsFilteredTestCase(TestCase):
         )
 
     def test_show_imprint_keeps_imprint_column(self):
-        cols = default_columns_filtered("s", {"i": True, "v": False})
+        cols = default_columns_filtered("series", {"imprints": True, "volumes": False})
         assert "imprint_name" in cols
         assert "volume_name" not in cols
 
     def test_show_volume_keeps_volume_column(self):
-        cols = default_columns_filtered("c", {"i": False, "v": True})
+        cols = default_columns_filtered("comics", {"imprints": False, "volumes": True})
         assert "volume_name" in cols
         assert "imprint_name" not in cols
 
     def test_both_flags_pass_through_full_defaults(self):
         # When the user shows both groups, the filter is a no-op:
         # the canonical tuple from ``default_columns_for`` returns.
-        assert default_columns_filtered("v", {"i": True, "v": True}) == (
-            default_columns_for("v")
-        )
+        assert default_columns_filtered(
+            "volumes", {"imprints": True, "volumes": True}
+        ) == (default_columns_for("volumes"))
 
     def test_unknown_top_group_returns_empty(self):
-        assert default_columns_filtered("zz", {"i": True, "v": True}) == ()
+        assert default_columns_filtered("zz", {"imprints": True, "volumes": True}) == ()
 
 
 class BrowserTableHelperTestCase(TestCase):

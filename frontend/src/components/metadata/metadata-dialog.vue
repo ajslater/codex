@@ -7,14 +7,24 @@
         :toolbar="toolbar"
       />
     </template>
-    <CloseButton
-      class="closeButton"
-      title="Close Metadata (esc)"
-      @click="close"
-    />
+    <CloseButton class="closeButton" title="Close Tags (esc)" @click="close" />
     <div v-if="showContainer" id="metadataContainer" @keyup.esc="close">
-      <MetadataHeader :group="book.group" :multi-select="isMultiSelect" />
-      <MetadataBody :book="book" />
+      <MetadataHeader
+        :collection="book.collection"
+        :multi-select="isMultiSelect"
+        :book="book"
+        :editing="editing"
+        @edit-tags="editing = true"
+        @online-tag-started="close"
+      />
+      <component
+        :is="editPanelComponent"
+        v-if="editing"
+        :book="book"
+        @cancel="editing = false"
+        @saved="onSaved"
+      />
+      <MetadataBody v-else :book="book" />
     </div>
     <div v-else id="placeholderContainer">
       <div id="placeholderTitle">Tags Loading</div>
@@ -28,6 +38,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from "vue";
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
@@ -35,6 +46,7 @@ import MetadataActivator from "@/components/metadata/metadata-activator.vue";
 import MetadataBody from "@/components/metadata/metadata-body.vue";
 import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useMetadataStore } from "@/stores/metadata";
 
 /*
@@ -73,12 +85,20 @@ export default {
     return {
       dialog: false,
       progress: 0,
+      editing: false,
     };
   },
   computed: {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
+    editPanelComponent() {
+      if (!this.editing) return null;
+      return defineAsyncComponent(
+        () => import("@/components/metadata/edit-mode/edit-panel.vue"),
+      );
+    },
     showContainer() {
       return this.md?.loaded || false;
     },
@@ -112,12 +132,16 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     close() {
+      this.editing = false;
       this.dialog = false;
+    },
+    onSaved() {
+      this.close();
     },
     dialogOpened() {
       const pks = this.book.ids || [this.book.pk];
       const data = {
-        group: this.book.group,
+        collection: this.book.collection,
         pks,
       };
       this.loadMetadata(data);

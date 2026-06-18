@@ -5,11 +5,10 @@ from collections.abc import Mapping
 from itertools import chain
 
 from caseconverter import camelcase
-from django.urls import reverse
 
 from codex.settings import DEBUG
 from codex.views.opds.const import UserAgentNames
-from codex.views.util import pop_name
+from codex.views.opds.route import opds_feed_reverse
 
 
 class OPDS2HrefMixin:
@@ -52,9 +51,8 @@ class OPDS2HrefMixin:
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
-        kwargs = pop_name(kwargs)
         query = self._href_update_query_params(data)
-        href = reverse(url_name, kwargs=dict(kwargs), query=query)
+        href = opds_feed_reverse(url_name, kwargs, query)
         if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         if template := data.template:

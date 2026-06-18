@@ -8,7 +8,7 @@ from codex.librarian.scribe.importer.const import (
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models.base import BaseModel
-from codex.models.groups import Imprint, Series, Volume
+from codex.models.collections import Imprint, Series, Volume
 
 COMPLEX_MODEL_FIELD_NAMES = (
     CREDITS_FIELD_NAME,
@@ -16,16 +16,18 @@ COMPLEX_MODEL_FIELD_NAMES = (
     IDENTIFIERS_FIELD_NAME,
 )
 DEFAULT_KEY_RELS = ("name",)
-GROUP_KEY_RELS: MappingProxyType[type[BaseModel], tuple[str, ...]] = MappingProxyType(
-    {
-        Imprint: ("publisher__name", "name"),
-        Series: ("publisher__name", "imprint__name", "name"),
-        Volume: (
-            "publisher__name",
-            "imprint__name",
-            "series__name",
-            "name",
-            "number_to",
-        ),
-    }
+COLLECTION_KEY_RELS: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
+    MappingProxyType(
+        {
+            Imprint: ("publisher__name", "name"),
+            Series: ("publisher__name", "imprint__name", "name"),
+            Volume: (
+                "publisher__name",
+                "imprint__name",
+                "series__name",
+                "name",
+                "number_to",
+            ),
+        }
+    )
 )

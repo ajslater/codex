@@ -35,7 +35,7 @@ Django app served by Granian (ASGI). Key subsystems:
 - **`views/`** — DRF ViewSets organized by feature: `browser/` (comic listings),
   `reader/` (page serving), `admin/` (CRUD), `opds/` (syndication).
 - **`urls/`** — API at `/api/v3/`. Sub-routers: `/auth/`, `/c/` (reader),
-  `/<group>/` (browser), `/admin/`.
+  `/<collection>/` (browser), `/admin/`.
 - **`serializers/`** — DRF serializers for browser, reader, and admin responses.
 - **`librarian/`** — Multiprocessing background daemon with dedicated threads:
     - `CoverThread` — Generate/cache comic covers
@@ -62,7 +62,7 @@ Vue 3 + Vite + Vuetify 4 SPA.
 - **`src/components/`** — Organized by view: `browser/`, `reader/`, `admin/`,
   `metadata/`, `settings/`.
 - **`src/plugins/`** — Vue Router, Vuetify, drag-scroll.
-- **Routes:** `/` (home), `/:group/:pks/:page` (browser), `/c/:pk/:page`
+- **Routes:** `/` (home), `/:collection/:pks/:page` (browser), `/c/:pk/:page`
   (reader), `/admin` (dashboard).
 - **Build output:** Vite builds to `/codex/static_build/`, then `collectstatic`
   copies to `/codex/static/`.
@@ -104,11 +104,18 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 
 - Released as both a Python wheel (PyPI) and Docker image (GHCR).
 - Config file is TOML (`codex.toml`), not env vars.
-- Browser API groups comics by: publisher, series, folder, arc, volume — the
-  `group` URL param selects which.
+- Browser API collects comics by: publisher, series, folder, arc, volume — the
+  `collection` URL param selects which.
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.
+- **Every new librarian job needs a priority.** When adding a `ScribeTask`
+  (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
+  (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in
+  `_JANITOR_METHOD_MAP` + `_NIGHTLY_TASK_CLASSES` (`.../janitor/janitor.py`). A
+  task missing from the priority tuple makes `get_task_priority` raise
+  `ValueError: tuple.index(x): x not in tuple` when it's queued, so the job
+  never runs. `tests/test_scribe_priority.py` guards the janitor subset.
 
 ## Linting & Testing
 

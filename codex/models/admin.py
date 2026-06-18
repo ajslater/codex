@@ -1,7 +1,5 @@
 """Admin models."""
 
-import base64
-import uuid
 from typing import override
 
 from django.db.models import (
@@ -11,9 +9,11 @@ from django.db.models import (
     DateTimeField,
     ForeignKey,
     Index,
+    JSONField,
     PositiveSmallIntegerField,
     Q,
     TextChoices,
+    URLField,
 )
 from django.utils.translation import gettext_lazy as _
 
@@ -25,8 +25,16 @@ from codex.models.choices import (
     max_choices_len,
     text_choices_from_map,
 )
+from codex.models.fields import EncryptedCharField
 
-__all__ = ("AdminFlag", "LibrarianStatus", "Timestamp")
+__all__ = (
+    "AdminFlag",
+    "ComicboxTaggingDefaults",
+    "EmailSettings",
+    "LibrarianStatus",
+    "ThrottleSettings",
+    "Timestamp",
+)
 
 
 class AdminFlag(BaseModel):
@@ -43,7 +51,9 @@ class AdminFlag(BaseModel):
     next boot.
     """
 
-    FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
+    FALSE_DEFAULTS = frozenset(
+        {AdminFlagChoices.AUTO_UPDATE, AdminFlagChoices.REGISTER_VERIFICATION}
+    )
 
     key = CharField(
         db_index=True,
@@ -67,6 +77,129 @@ class AdminFlag(BaseModel):
         unique_together = ("key",)
 
 
+class ComicboxTaggingDefaults(BaseModel):
+    """Singleton model for default comicbox tagging options and credentials."""
+
+    class MatchModeChoices(TextChoices):
+        """Match mode options for online tagging (mirrors comicbox.MatchMode)."""
+
+        CAREFUL = "careful", _("Careful")
+        AUTO = "auto", _("Auto")
+        EAGER = "eager", _("Eager")
+
+    class PromptsModeChoices(TextChoices):
+        """Prompt behavior options for online tagging."""
+
+        ASK = "ask", _("Ask")
+        NEVER = "never", _("Never")
+
+    default_formats = JSONField(default=list)
+    delete_original = BooleanField(default=True)
+    default_match_mode = CharField(
+        max_length=MAX_FIELD_LEN,
+        choices=MatchModeChoices.choices,
+        default=MatchModeChoices.AUTO,
+    )
+    default_prompts_mode = CharField(
+        max_length=MAX_FIELD_LEN,
+        choices=PromptsModeChoices.choices,
+        default=PromptsModeChoices.ASK,
+    )
+    default_sources = JSONField(default=list)
+    # When True, query every enabled source per comic and merge the results
+    # (comicbox first_wins=False) instead of stopping at the first match. More
+    # complete metadata, but roughly multiplies online API calls by the number
+    # of enabled sources. Admin default; overridable per scan.
+    merge_all_sources = BooleanField(default=False)
+
+    metron_user = EncryptedCharField()
+    metron_password = EncryptedCharField()
+    metron_url = URLField(max_length=256, blank=True, default="")
+    comicvine_key = EncryptedCharField()
+    comicvine_url = URLField(max_length=256, blank=True, default="")
+
+    # Active session id + pending prompts used to live here. They are
+    # transient operational state — they only matter while a tagging
+    # job is in flight — so they moved to the Django cache. See
+    # ``codex.librarian.onlinetag.session_state``.
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "ComicboxTaggingDefaults"
+
+
+class EmailSettings(BaseModel):
+    """
+    Singleton SMTP configuration for outbound email.
+
+    Read by :class:`codex.mail.DBEmailBackend` on each send so admin
+    edits take effect on the next message without restart. When ``host``
+    or ``from_address`` is blank the backend short-circuits to a no-op
+    and feature gates (registration verification, password reset link)
+    fall back to *off* — see :func:`codex.settings.db.email_enabled`.
+
+    ``password`` is encrypted at rest via :class:`EncryptedCharField`
+    using ``FIELD_ENCRYPTION_KEY``.
+    """
+
+    host = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    port = PositiveSmallIntegerField(default=587)
+    user = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    password = EncryptedCharField()
+    use_tls = BooleanField(default=True)
+    use_ssl = BooleanField(default=False)
+    timeout = PositiveSmallIntegerField(default=10)
+    from_address = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
+    subject_prefix = CharField(max_length=MAX_FIELD_LEN, blank=True, default="[Codex] ")
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "EmailSettings"
+
+
+class ThrottleSettings(BaseModel):
+    """
+    Singleton DRF rate-limit configuration.
+
+    Each field is a positive integer rate in requests per minute (or
+    per hour for ``reset_password``). ``0`` disables the limit for that
+    scope. Read at request time by the DB-aware throttle classes in
+    :mod:`codex.throttling` — admin edits take effect on the next
+    request without a restart.
+    """
+
+    anon = PositiveSmallIntegerField(default=0)
+    user = PositiveSmallIntegerField(default=0)
+    opds = PositiveSmallIntegerField(default=0)
+    opensearch = PositiveSmallIntegerField(default=0)
+    reset_password = PositiveSmallIntegerField(default=5)
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "ThrottleSettings"
+
+
 class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
@@ -84,6 +217,12 @@ class LibrarianStatus(BaseModel):
     total = PositiveSmallIntegerField(null=True, default=None)
     preactive = DateTimeField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
+    # Absolute target timestamps the admin UI counts down to live: ``eta``
+    # is the estimated completion of the whole task; ``retry_at`` is when the
+    # next online request will be attempted while rate-limited. Both are
+    # online-tag-specific today but generic enough to reuse.
+    eta = DateTimeField(null=True, default=None)
+    retry_at = DateTimeField(null=True, default=None)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
@@ -105,34 +244,35 @@ class LibrarianStatus(BaseModel):
 
 
 class Timestamp(BaseModel):
-    """Timestamped Named Strings."""
+    """
+    Keyed singleton holding a last-known ``value`` and an auto-updated ``updated_at``.
+
+    Used by codex-version tracking, janitor last-run marker, and the
+    telemeter install UUID + last-send marker. The API key used to
+    live here too; it moved to :class:`AdminFlag` (key ``AK``) since
+    it was the one row that was admin-managed configuration rather
+    than internal operational state.
+    """
 
     class Choices(TextChoices):
         """Choices for Timestamps."""
 
-        API_KEY = "AP", _("API Key")
         CODEX_VERSION = "VR", _("Codex Version")
         JANITOR = "JA", _("Janitor")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
+        FAILED_IMPORTS_SEEN = "FI", _("Failed Imports Seen")
 
     key = CharField(
         db_index=True,
         max_length=max_choices_len(Choices),
         choices=Choices.choices,
     )
-    version = CharField(max_length=MAX_FIELD_LEN, default="")
+    value = CharField(max_length=MAX_FIELD_LEN, default="")
 
     @classmethod
     def touch(cls, choice) -> None:
         """Touch a timestamp."""
         cls.objects.get(key=choice.value).save()
-
-    def save_uuid_version(self) -> None:
-        """Create base64 uuid."""
-        uuid_bytes = uuid.uuid4().bytes
-        b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
-        self.version = b64_bytes.decode("utf-8").replace("=", "")
-        self.save()
 
     class Meta(BaseModel.Meta):
         """Constraints."""

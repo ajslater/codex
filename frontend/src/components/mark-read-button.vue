@@ -35,7 +35,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["collectionNames"]),
     verb() {
       return this.item.finished ? "Unread" : "Read";
     },
@@ -58,11 +58,11 @@ export default {
     },
     markReadText() {
       const words = ["Mark"];
-      if (this.item.group != "c") {
+      if (this.item.collection != "comics") {
         words.push("Entire");
       }
-      const groupName = this.groupNames[this.item.group];
-      words.push(groupName, this.verb);
+      const collectionName = this.collectionNames[this.item.collection];
+      words.push(collectionName, this.verb);
       return words.join(" ");
     },
     itemName() {

@@ -77,56 +77,80 @@ class FailedImport(WatchedPath):
         suffixes = (f": {self.path}", f": {self.path!r}")
         for suffix in suffixes:
             reason = reason.removesuffix(suffix)
-        reason = reason[:MAX_NAME_LEN]
-        self.name = reason.strip()
+        reason = reason[:MAX_NAME_LEN].strip()
+        if not reason:
+            # Some exceptions stringify to empty (or to just the path, stripped
+            # above). Fall back to the exception class name so a failed import
+            # always records some reason rather than a blank.
+            reason = type(exc).__name__
+        self.name = reason
 
 
 class CustomCover(WatchedPath):
     """Custom Cover Image."""
 
-    class GroupChoices(TextChoices):
-        """Reading direction choices."""
+    class CollectionChoices(TextChoices):
+        """Browse collections a custom cover may attach to (collection vocabulary)."""
 
-        P = "p"
-        I = "i"  # noqa: E741
-        S = "s"
-        # no V
-        A = "a"
-        F = "f"
+        PUBLISHERS = "publishers"
+        IMPRINTS = "imprints"
+        SERIES = "series"
+        VOLUMES = "volumes"
+        ARCS = "arcs"
+        FOLDERS = "folders"
 
     FOLDER_COVER_STEM = ".codex-cover"
-    DIR_GROUP_CHOICE_MAP = MappingProxyType(
+    # On-disk directory name (user-facing filesystem convention) → collection.
+    DIR_COLLECTION_CHOICE_MAP = MappingProxyType(
         {
-            "publishers": GroupChoices.P.value,
-            "imprints": GroupChoices.I.value,
-            "series": GroupChoices.S.value,
-            "story-arcs": GroupChoices.A.value,
+            "publishers": CollectionChoices.PUBLISHERS.value,
+            "imprints": CollectionChoices.IMPRINTS.value,
+            "series": CollectionChoices.SERIES.value,
+            "story-arcs": CollectionChoices.ARCS.value,
         }
     )
 
     parent_folder: ForeignKey | None = None
-    group = CharField(
-        max_length=max_choices_len(GroupChoices),
+    # Override base to allow null. Custom covers no longer belong to any
+    # library — every row is created via the upload endpoint with
+    # ``library=None``. Kept on the column rather than dropped to avoid
+    # a more invasive schema rewrite for the abstract ``WatchedPath``
+    # inheritance.
+    library = ForeignKey(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        Library, on_delete=CASCADE, db_index=True, null=True
+    )
+    collection = CharField(
+        max_length=max_choices_len(CollectionChoices),
         db_index=True,
-        choices=GroupChoices.choices,
+        choices=CollectionChoices.choices,
     )
     sort_name = CharField(
         max_length=MAX_NAME_LEN, db_index=True, default="", db_collation="nocase"
     )
 
-    def _set_group_and_sort_name(self) -> None:
-        """Set group and sort_name from path."""
+    def _set_collection_and_sort_name(self) -> None:
+        """Derive collection and sort_name from path (legacy filesystem-watch flow)."""
+        # New uploads set ``collection`` and ``sort_name`` explicitly before
+        # save() — no derivation needed.
+        from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
+
         path = Path(self.path)
+        try:
+            path.relative_to(CUSTOM_COVERS_UPLOADS_DIR)
+        except ValueError:
+            pass
+        else:
+            return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:
-            group = self.GroupChoices.F.value
+            collection = self.CollectionChoices.FOLDERS.value
         else:
-            group = self.DIR_GROUP_CHOICE_MAP[path.parent.name]
+            collection = self.DIR_COLLECTION_CHOICE_MAP[path.parent.name]
             self.sort_name = get_sort_name(stem)
-        self.group = group
+        self.collection = collection
 
     @override
     def presave(self) -> None:
-        """Presave group and sort_name."""
+        """Presave collection and sort_name."""
         super().presave()
-        self._set_group_and_sort_name()
+        self._set_collection_and_sort_name()

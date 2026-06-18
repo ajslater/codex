@@ -7,12 +7,7 @@ from typing import override
 
 from watchfiles import Change, watch
 
-from codex.librarian.fs.filters import (
-    is_ignored_path,
-    match_comic,
-    match_folder_cover,
-    match_group_cover_image,
-)
+from codex.librarian.fs.filters import is_ignored_path, match_comic
 from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.watcher.events import process_changes
 from codex.librarian.fs.watcher.status import FSWatcherRestartStatus
@@ -28,12 +23,11 @@ _WATCH_DEBOUNCE_MS = 60_000
 
 
 class CodexWatchFilter:
-    """Watchfiles watcher class for both types of library."""
+    """Watchfiles watcher class for comic libraries."""
 
-    def __init__(self, library_paths: set[str], covers_only_paths: set[str]):
-        """Set library and covers_only paths."""
+    def __init__(self, library_paths: set[str]):
+        """Set library paths."""
         self._library_paths = library_paths
-        self._covers_only_paths = covers_only_paths
 
     def _library_root_for(self, ppath: Path) -> str | None:
         """Return the watched library root containing ``ppath``, if any."""
@@ -49,8 +43,8 @@ class CodexWatchFilter:
         Deleted paths can't be inspected on disk, but the ignore-path
         check runs purely on the path string so events under registered
         ignore patterns are suppressed without a stat. Non-deleted
-        events also fall through to the suffix / cover predicates that
-        the poller mirrors.
+        events fall through to the suffix predicates that the poller
+        mirrors.
         """
         ppath = Path(path)
         lib_root = self._library_root_for(ppath)
@@ -60,10 +54,7 @@ class CodexWatchFilter:
         if change == Change.deleted:
             return True
 
-        covers_only = lib_root in self._covers_only_paths
-        if covers_only:
-            return match_group_cover_image(ppath)
-        return ppath.is_dir() or match_comic(ppath) or match_folder_cover(ppath)
+        return ppath.is_dir() or match_comic(ppath)
 
 
 class LibraryWatcherThread(NamedThread):
@@ -74,7 +65,6 @@ class LibraryWatcherThread(NamedThread):
         super().__init__(*args, **kwargs)
         self.daemon = True
         self._library_paths: dict[str, int] = {}  # path to library_pk
-        self._covers_only_paths: set[str] = set()
         self._restart_event = Event()
         self._shutdown_event = Event()
 
@@ -94,18 +84,11 @@ class LibraryWatcherThread(NamedThread):
     def _update_paths_from_db(self) -> None:
         """Query the database for current library paths to watch."""
         new_paths_dict: dict[str, int] = {}
-        new_covers: set[str] = set()
         try:
-            libraries = (
-                Library.objects.filter(events=True)
-                .all()
-                .only("pk", "path", "covers_only")
-            )
+            libraries = Library.objects.filter(events=True).all().only("pk", "path")
             for library in libraries:
                 try:
                     new_paths_dict[library.path] = library.pk
-                    if library.covers_only:
-                        new_covers.add(library.path)
                 except Exception:
                     self.log.exception(f"Processing library {library.pk}")
         except Exception:
@@ -115,7 +98,6 @@ class LibraryWatcherThread(NamedThread):
         self._log_update_paths_from_db(new_paths_dict)
 
         self._library_paths = new_paths_dict
-        self._covers_only_paths = new_covers
 
     #############################################
     # Public interface - called from librariand #
@@ -140,9 +122,7 @@ class LibraryWatcherThread(NamedThread):
         # Watchfiles does not expand events for added or removed directories or do move detection
         # So handle this myself.
         events_by_library: dict[int, list] = {}
-        for library_pk, event in process_changes(
-            changes, self._library_paths, self._covers_only_paths
-        ):
+        for library_pk, event in process_changes(changes, self._library_paths):
             events_by_library.setdefault(library_pk, []).append(event)
 
         for library_pk, events in events_by_library.items():
@@ -181,13 +161,11 @@ class LibraryWatcherThread(NamedThread):
                 continue
             extant_paths = self._get_extant_paths(paths)
             # Built per iteration so a ``restart()`` from
-            # ``_update_paths_from_db`` (which rebinds the path sets)
-            # immediately propagates new libraries / covers-only flags
-            # into the filter — the previous outer-scope binding froze
-            # the filter to the path sets present at process startup.
-            watch_filter = CodexWatchFilter(
-                set(self._library_paths.keys()), self._covers_only_paths
-            )
+            # ``_update_paths_from_db`` (which rebinds the path set)
+            # immediately propagates new libraries into the filter —
+            # the previous outer-scope binding froze the filter to the
+            # path set present at process startup.
+            watch_filter = CodexWatchFilter(set(self._library_paths.keys()))
             try:
                 for changes in watch(
                     *extant_paths,

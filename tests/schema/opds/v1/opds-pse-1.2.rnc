@@ -1,0 +1,38 @@
+# RELAX NG Compact grammar for an OPDS Page Streaming Extension 1.2 link.
+#
+# OPDS-PSE has no official schema; this grammar is hand-authored from the spec:
+#   https://github.com/anansi-project/opds-pse/blob/master/v1.2.md
+#
+# It validates a single OPDS-PSE page-streaming <link> element (the start
+# symbol), extracted from an OPDS 1.x Atom acquisition entry. The base OPDS
+# grammar (opds.rnc) accepts foreign pse:* attributes loosely as text; this
+# grammar adds the PSE-specific typing the spec mandates.
+
+namespace atom = "http://www.w3.org/2005/Atom"
+namespace pse = "http://vaemendis.net/opds-pse/ns"
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = pseStreamLink
+
+pseStreamLink =
+  element atom:link {
+    # MUST: identifies a page-streaming link.
+    attribute rel { "http://vaemendis.net/opds-pse/stream" },
+    # MUST: returned image type, one of these three.
+    attribute type { "image/jpeg" | "image/gif" | "image/png" },
+    # MUST: URL template containing the literal "{pageNumber}" (and an
+    # optional "{maxWidth}"). The pattern checks for the pageNumber token;
+    # the literal braces are omitted because rnc2rng's lexer can't handle
+    # "{"/"}" inside a string literal.
+    attribute href { xsd:string { pattern=".*pageNumber.*" } },
+    # MUST: total number of pages.
+    attribute pse:count { xsd:positiveInteger },
+    # MAY: last page read (1-indexed).
+    attribute pse:lastRead { xsd:positiveInteger }?,
+    # MAY: when lastRead was updated (Atom Date construct).
+    attribute pse:lastReadDate { xsd:dateTime }?,
+    # Tolerate the other standard atom:link attributes a server may add.
+    attribute title { text }?,
+    attribute hreflang { text }?,
+    attribute length { text }?
+  }

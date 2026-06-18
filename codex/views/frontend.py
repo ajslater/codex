@@ -2,10 +2,10 @@
 
 from collections.abc import Sequence
 
+from caseconverter import camelcase
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.renderers import BaseRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
-from rest_framework.utils.serializer_helpers import ReturnDict
 
 from codex.serializers.route import RouteSerializer
 from codex.views.browser.settings import BrowserSettingsBaseView
@@ -19,11 +19,17 @@ class IndexView(BrowserSettingsBaseView, UserActiveMixin):
     renderer_classes: Sequence[type[BaseRenderer]] = [TemplateHTMLRenderer]
     template_name = "index.html"
 
-    def _get_last_route(self) -> ReturnDict:
-        """Get the last route from the session."""
+    def _get_last_route(self) -> dict:
+        """
+        Get the last route from the session as a camelCased v4 route.
+
+        Injected raw into ``CODEX.LAST_ROUTE`` (``{{ last_route | safe }}``),
+        which bypasses the camelCase renderer — so camelize here to match the
+        ``{collection, parentIds, page}`` shape the frontend reads everywhere.
+        """
         last_route = self.get_last_route()
         serializer = RouteSerializer(last_route)
-        return serializer.data
+        return {camelcase(key): value for key, value in serializer.data.items()}
 
     def get(self, *_args, **_kwargs) -> Response:
         """Get the app index page."""

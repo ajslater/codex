@@ -6,6 +6,7 @@ from django.db.models import (
     CASCADE,
     BooleanField,
     ForeignKey,
+    Index,
     PositiveSmallIntegerField,
 )
 
@@ -61,3 +62,13 @@ class Bookmark(BaseModel):
         """Constraints."""
 
         unique_together = ("user", "session", "comic")
+        # Comic-leading composites for the per-comic my-bookmark probes
+        # (UNREAD/READ filter Exists, bookmark aggregates). The
+        # unique_together index leads with user, and under stale
+        # sqlite_stat1 the planner flipped a user-scoped probe onto the
+        # plain user index — a measured 17s vs 27ms plan. Comic-first
+        # dominates both access paths.
+        indexes = (
+            Index(fields=("comic", "user"), name="bookmark_comic_user"),
+            Index(fields=("comic", "session"), name="bookmark_comic_session"),
+        )

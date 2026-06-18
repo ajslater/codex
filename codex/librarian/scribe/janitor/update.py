@@ -24,7 +24,7 @@ class JanitorCodexUpdate(JanitorCleanup):
             self.log.warning("Cannot determine installed Codex version.")
             return result
         ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
-        latest_version = ts.version
+        latest_version = ts.value
         packaging_latest_version = Version(latest_version)
 
         installed_packaging_version = Version(VERSION)

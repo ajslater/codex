@@ -3,6 +3,7 @@
 from django.db.models import (
     Case,
     F,
+    Max,
     Sum,
     Value,
     When,
@@ -14,14 +15,13 @@ from django.db.models.functions.comparison import Coalesce, Greatest
 from codex.models import (
     Comic,
 )
-from codex.models.functions import JsonGroupArray
 from codex.views.browser.annotate.order import BrowserAnnotateOrderView
 
 
 class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     """Base class for views that need special metadata annotations."""
 
-    def _get_group_bookmark_page_annotation(
+    def _get_collection_bookmark_page_annotation(
         self, qs, bm_rel, bm_filter, page_rel, finished_rel
     ) -> Sum:
         """Get bookmark page subquery."""
@@ -45,7 +45,7 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         )
 
     @classmethod
-    def _get_group_bookmark_finished_annotation(
+    def _get_collection_bookmark_finished_annotation(
         cls, qs, bm_filter, finished_rel
     ) -> tuple:
         """Get finished_count subquery."""
@@ -77,10 +77,10 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             bookmark_page = Sum(page_rel, filter=bm_filter, default=0)
             finished_aggregate = Sum(finished_rel, filter=bm_filter, default=False)
         else:
-            bookmark_page = self._get_group_bookmark_page_annotation(
+            bookmark_page = self._get_collection_bookmark_page_annotation(
                 qs, bm_rel, bm_filter, page_rel, finished_rel
             )
-            qs, finished_aggregate = self._get_group_bookmark_finished_annotation(
+            qs, finished_aggregate = self._get_collection_bookmark_finished_annotation(
                 qs, bm_filter, finished_rel
             )
 
@@ -96,8 +96,17 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
         qs = qs.annotate(finished=finished_aggregate)
 
         if not self.bmua_is_max:
-            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, JsonGroupArray)
-            qs = qs.annotate(bookmark_updated_ats=mbmua)
+            # The serializer folds this into the card mtime. A Max
+            # aggregate replaces the old JSON_GROUP_ARRAY of every
+            # bookmark timestamp per row plus a per-card Python
+            # ISO-parse loop — the array was consumed solely to compute
+            # a running max. Alias is distinct from
+            # ``bookmark_updated_at``: when the primary sort is
+            # bookmark_updated_at ascending that alias already holds a
+            # Min aggregate, and the table-view collection branch
+            # annotates it independently.
+            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, Max)
+            qs = qs.annotate(bookmark_updated_at_max=mbmua)
         return qs
 
     def annotate_progress(self, qs):

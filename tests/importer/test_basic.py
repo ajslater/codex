@@ -182,7 +182,7 @@ AGGREGATED = MappingProxyType(
                 # bookmark ignore
                 # cover_date ignore?
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("10.00"),
+                "critical_rating": Decimal("5.0"),
                 "day": 1,
                 # ext ignore
                 "file_type": "CBZ",
@@ -272,7 +272,7 @@ QUERIED = MappingProxyType(
         CREATE_COMICS: {
             PATH: {
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("10.00"),
+                "critical_rating": Decimal("5.0"),
                 "day": 1,
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
@@ -426,7 +426,7 @@ CREATED_FK = MappingProxyType(
         CREATE_COMICS: {
             PATH: {
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("10.00"),
+                "critical_rating": Decimal("5.0"),
                 "day": 1,
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
@@ -859,6 +859,7 @@ class TestImporterBasic(BaseTestImporter):
         assert Identifier.objects.count() == 3  # noqa: PLR2004
 
         # Create Comics
+        self.importer.prepare_fk_link_instance_maps()
         self.importer.update_comics()
         self.importer.create_comics()
         md = MappingProxyType(self.importer.metadata)

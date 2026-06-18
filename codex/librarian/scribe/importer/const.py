@@ -1,23 +1,26 @@
 """BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel, ManyToManyField
 
+if TYPE_CHECKING:
+    from django.db.models.fields.related import ManyToManyRel
+
 from codex.models.age_rating import AgeRating, compute_metron_for_name
 from codex.models.base import BaseModel
-from codex.models.comic import Comic
-from codex.models.groups import (
-    BrowserGroupModel,
+from codex.models.collections import (
+    BrowserCollectionModel,
     Folder,
     Imprint,
     Publisher,
     Series,
     Volume,
 )
+from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.models.named import (
     Character,
@@ -120,8 +123,8 @@ FTS_FIELD_TARGETS = MappingProxyType(
 EXTRACTED = "extracted"
 # Per-path envelope-only updates from comicbox skip results
 # (metadata_mtime / page_count / file_type changed but tags weren't
-# re-extracted). Routed around aggregate so existing browser-group
-# FKs stay attached to their non-empty groups.
+# re-extracted). Routed around aggregate so existing browser-collection
+# FKs stay attached to their non-empty collections.
 EXTRACTED_STAT_ONLY = "extracted_stat_only"
 SKIPPED = "skipped"
 QUERY_MODELS = "query_models"
@@ -147,15 +150,15 @@ FTS_UPDATED_M2MS = "fts_updated_m2ms"
 #######
 # M2M #
 #######
-GROUP_MODEL_COUNT_FIELDS: MappingProxyType[type[BrowserGroupModel], str | None] = (
-    MappingProxyType(
-        {
-            Publisher: None,
-            Imprint: None,
-            Series: VOLUME_COUNT_FIELD_NAME,
-            Volume: ISSUE_COUNT_FIELD_NAME,
-        }
-    )
+COLLECTION_MODEL_COUNT_FIELDS: MappingProxyType[
+    type[BrowserCollectionModel], str | None
+] = MappingProxyType(
+    {
+        Publisher: None,
+        Imprint: None,
+        Series: VOLUME_COUNT_FIELD_NAME,
+        Volume: ISSUE_COUNT_FIELD_NAME,
+    }
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
     "tuple[ManyToManyField, ...]",
@@ -198,14 +201,14 @@ COMIC_FK_FIELDS: tuple[Field | ForeignObjectRel, ...] = tuple(
     and field.many_to_one
     and field.name != "library"
     and field.related_model
-    and not issubclass(field.related_model, BrowserGroupModel)
+    and not issubclass(field.related_model, BrowserCollectionModel)
 )
-GROUP_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
-GROUP_FIELD_NAMES_SET = frozenset(GROUP_FIELD_NAMES)
-_COMIC_GROUP_FIELDS: tuple[Field, ...] = tuple(
-    Comic._meta.get_field(field_name) for field_name in GROUP_FIELD_NAMES
+COLLECTION_FIELD_NAMES = ("publisher", "imprint", "series", "volume")
+COLLECTION_FIELD_NAMES_SET = frozenset(COLLECTION_FIELD_NAMES)
+_COMIC_COLLECTION_FIELDS: tuple[Field, ...] = tuple(
+    Comic._meta.get_field(field_name) for field_name in COLLECTION_FIELD_NAMES
 )
-ALL_COMIC_FK_FIELDS = (*_COMIC_GROUP_FIELDS, *COMIC_FK_FIELDS)
+ALL_COMIC_FK_FIELDS = (*_COMIC_COLLECTION_FIELDS, *COMIC_FK_FIELDS)
 COMIC_FK_FIELD_NAMES: tuple[str, ...] = tuple(
     field.name for field in ALL_COMIC_FK_FIELDS
 )
@@ -349,9 +352,40 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
 )
 
 
+# The most selective non-null key rel per complex/multi-key model.
+# Existing-row queries narrow with one indexed IN filter on this rel
+# instead of a per-key AND/OR chain — both the query phase
+# (query_existing_mds) and the link/create pk-map builders match exact
+# key tuples in Python afterward, so fetching a superset (the same
+# selector value under a different parent) is harmless.
+MODEL_SELECTOR_REL_MAP: MappingProxyType[type[BaseModel], str] = MappingProxyType(
+    {
+        Credit: f"{CREDIT_PERSON_FIELD_NAME}__name",
+        Folder: PATH_FIELD_NAME,
+        Identifier: IDENTIFIER_ID_KEY_FIELD_NAME,
+        Imprint: NAME_FIELD_NAME,
+        Publisher: NAME_FIELD_NAME,
+        Series: NAME_FIELD_NAME,
+        StoryArc: NAME_FIELD_NAME,
+        StoryArcNumber: f"{STORY_ARC_FIELD_NAME}__name",
+        Volume: "series__name",
+    }
+)
+
+
 def get_key_index(model: type[BaseModel]) -> int:
     """Return the key index divider for a model tuple."""
     return len(MODEL_REL_MAP[model][0])
+
+
+def get_through_model(field: ManyToManyField) -> type[BaseModel]:
+    """Get the through model for a m2m field."""
+    # ``ManyToManyField.remote_field`` is typed as the broader
+    # ``Field`` and ``.through`` only exists on ``ManyToManyRel``.
+    # Cast through ``object`` because pyright correctly observes
+    # the type-system gap.
+    remote_field = cast("ManyToManyRel", cast("object", field.remote_field))
+    return cast("type[BaseModel]", remote_field.through)
 
 
 #################
@@ -364,6 +398,9 @@ _EXCLUDEBULK_UPDATE_COMIC_FIELDS = frozenset(
         "id",
         "library",
         "comicfts",
+        # Owned solely by the finish-time stamp in FinishImporter; the bulk
+        # create/update path must never touch it.
+        "metadata_imported_at",
     }
 )
 BULK_UPDATE_COMIC_FIELDS = tuple(
@@ -377,6 +414,17 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
         and (not field.many_to_many)
         and (field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS)
     )
+)
+BULK_UPDATE_COMIC_FIELDS_SET = frozenset(BULK_UPDATE_COMIC_FIELDS)
+# Fields update_comics always rewrites: presave-derived values
+# (stat/size from disk, date/decade from year-month-day,
+# age_rating_metron_index from the age_rating FK) plus the updated_at
+# stamp. The other BULK_UPDATE_COMIC_FIELDS are only written when some
+# comic in the batch actually changed them — bulk_update's CASE-WHEN
+# SQL scales with rows x fields, and a force-reimport of unchanged
+# comics otherwise rewrites ~40 columns per row to identical values.
+ALWAYS_UPDATE_COMIC_FIELDS = frozenset(
+    {"age_rating_metron_index", "date", "decade", "size", "stat", "updated_at"}
 )
 BULK_CREATE_COMIC_FIELDS = (*BULK_UPDATE_COMIC_FIELDS, "library")
 BULK_UPDATE_FOLDER_FIELDS = (
@@ -392,13 +440,14 @@ BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 ##########
 # COVERS #
 ##########
-CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
+CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
     {
-        Publisher: CustomCover.GroupChoices.P.value,
-        Imprint: CustomCover.GroupChoices.I.value,
-        Series: CustomCover.GroupChoices.S.value,
-        StoryArc: CustomCover.GroupChoices.A.value,
-        Folder: CustomCover.GroupChoices.F.value,
+        Publisher: CustomCover.CollectionChoices.PUBLISHERS.value,
+        Imprint: CustomCover.CollectionChoices.IMPRINTS.value,
+        Series: CustomCover.CollectionChoices.SERIES.value,
+        Volume: CustomCover.CollectionChoices.VOLUMES.value,
+        StoryArc: CustomCover.CollectionChoices.ARCS.value,
+        Folder: CustomCover.CollectionChoices.FOLDERS.value,
     }
 )
 
@@ -406,13 +455,13 @@ CLASS_CUSTOM_COVER_GROUP_MAP = frozenbidict(
 # MOVED #
 #########
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
-CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "group")
+CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")
 
 ###########
 # DELETED #
 ###########
-ALL_COMIC_GROUP_FIELD_NAMES = (
-    *GROUP_FIELD_NAMES,
+ALL_COMIC_COLLECTION_FIELD_NAMES = (
+    *COLLECTION_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
 )

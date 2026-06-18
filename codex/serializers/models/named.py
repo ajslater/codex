@@ -205,6 +205,11 @@ class AgeRatingMetronSerializer(NamedModelSerializer):
         model = AgeRatingMetron
         fields = ("pk", "name", "index")
 
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "age-ratings"
+
 
 class AgeRatingSerializer(NamedModelSerializer):
     """Age Rating model."""

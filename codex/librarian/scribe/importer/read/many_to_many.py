@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, cast
 
-from comicbox.schemas.comicbox import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
+from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
 
@@ -24,8 +24,8 @@ from codex.librarian.scribe.importer.read.const import (
 from codex.librarian.scribe.importer.read.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
+from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.groups import Folder
 from codex.models.identifier import IdentifierSource
 from codex.models.named import CreditRole
 

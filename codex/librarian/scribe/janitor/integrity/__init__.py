@@ -4,12 +4,16 @@
 
 from django.db import DEFAULT_DB_ALIAS, connections
 
-from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_foreign_keys
+from codex.librarian.scribe.janitor.integrity.foreign_keys import (
+    fix_folder_relations,
+    fix_foreign_keys,
+)
 from codex.librarian.scribe.janitor.status import (
     JanitorDBFKIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorDBFTSRebuildStatus,
     JanitorDBIntegrityStatus,
+    JanitorFolderRelationsStatus,
 )
 from codex.librarian.scribe.janitor.tasks import JanitorFTSRebuildTask
 from codex.librarian.worker import WorkerStatusAbortableBase
@@ -49,9 +53,10 @@ def integrity_check(log, *, long: bool) -> None:
         )
 
 
-def fts_rebuild() -> None:
+def fts_rebuild(log) -> None:
     """FTS Rebuild."""
     _exec_sql("INSERT INTO codex_comicfts (codex_comicfts) VALUES('rebuild');")
+    log.success("Rebuilt the Full Text Search Index.")
 
 
 def fts_integrity_check(log) -> bool:
@@ -86,6 +91,16 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         finally:
             self.status_controller.finish(status)
 
+    def folder_relations_check(self) -> None:
+        """Repair drifted comic↔folder relations (FK, M2M, missing/stale folders)."""
+        status = JanitorFolderRelationsStatus()
+        try:
+            self.status_controller.start(status)
+            with self.db_write_lock:
+                fix_folder_relations(self.log)
+        finally:
+            self.status_controller.finish(status)
+
     def integrity_check(self, *, long: bool) -> None:
         """Integrity check task."""
         subtitle = "" if long else "Quick"
@@ -103,7 +118,7 @@ class JanitorIntegrity(WorkerStatusAbortableBase):
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
-                fts_rebuild()
+                fts_rebuild(self.log)
         finally:
             self.status_controller.finish(status)
 

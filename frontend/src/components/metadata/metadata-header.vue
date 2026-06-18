@@ -9,7 +9,7 @@
     />
     <MetadataBookCover
       id="metadataBookCover"
-      :group="group"
+      :collection="collection"
       :force-generic-cover="multiSelect"
     />
     <section
@@ -21,23 +21,23 @@
           id="series"
           :key="md.seriesList[0].ids"
           :value="md.seriesList[0]"
-          group="s"
-          :highlight="'s' === md.group"
+          collection="series"
+          :highlight="'series' === md.collection"
         />
         <MetadataText
           v-if="md.volumeList?.length === 1"
           id="volume"
           :key="md.volumeList[0].ids"
           :value="md.volumeList[0]"
-          group="v"
-          :highlight="'v' === md.group"
+          collection="volumes"
+          :highlight="'volumes' === md.collection"
         />
         <MetadataText :value="seriesVolumeCount" class="subdued" />
         <MetadataText
           id="issue"
           :value="formattedIssueNumber"
-          group="c"
-          :highlight="'c' === md.group"
+          collection="comics"
+          :highlight="'comics' === md.collection"
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
@@ -51,7 +51,7 @@
       class="groupTags"
       label="Series"
       :values="md.seriesList"
-      filter="s"
+      filter="series"
     />
     <div>
       <MetadataTags
@@ -60,7 +60,7 @@
         class="groupTags"
         label="Volumes"
         :values="md.volumeList"
-        filter="v"
+        filter="volumes"
       />
     </div>
     <div
@@ -71,16 +71,16 @@
       <MetadataText
         id="publisher"
         :key="md.publisherList[0].ids"
-        group="p"
-        :highlight="'p' === md.group"
+        collection="publishers"
+        :highlight="'publishers' === md.collection"
         :value="md.publisherList[0]"
       />
       <MetadataText
         v-if="md.imprintList?.length === 1"
         id="imprint"
         :key="md.imprintList[0].ids"
-        group="i"
-        :highlight="'i' === md.group"
+        collection="imprints"
+        :highlight="'imprints' === md.collection"
         :value="md.imprintList[0]"
       />
     </div>
@@ -90,7 +90,7 @@
       class="groupTags"
       label="Publishers"
       :values="md.publisherList"
-      filter="p"
+      filter="publishers"
     />
     <MetadataTags
       v-if="!multiSelect && md.imprintList?.length > 1"
@@ -98,7 +98,7 @@
       class="groupTags"
       label="Imprints"
       :values="md.imprintList"
-      filter="i"
+      filter="imprints"
     />
     <div
       v-if="pages || md.year || md.month || md.day"
@@ -109,7 +109,14 @@
       <MetadataText v-if="!multiSelect" :value="date" class="datePicker" />
     </div>
   </header>
-  <MetadataControls v-if="!multiSelect" id="controls" :group="group" />
+  <MetadataControls
+    v-if="!editing"
+    id="controls"
+    :collection="collection"
+    :book="book"
+    @edit-tags="$emit('editTags')"
+    @online-tag-started="$emit('onlineTagStarted')"
+  />
 </template>
 
 <script>
@@ -135,7 +142,7 @@ export default {
     MetadataText,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
@@ -143,7 +150,16 @@ export default {
       type: Boolean,
       default: false,
     },
+    book: {
+      type: Object,
+      default: null,
+    },
+    editing: {
+      type: Boolean,
+      default: false,
+    },
   },
+  emits: ["editTags", "onlineTagStarted"],
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
@@ -225,7 +241,8 @@ export default {
     },
     seriesVolumeCount() {
       const count = this.md.seriesVolumeCount;
-      return count ? `of ${count}` : "";
+      if (!count) return "";
+      return `of ${count}`;
     },
     volumeIssueCount() {
       const count = this.md.volumeIssueCount;

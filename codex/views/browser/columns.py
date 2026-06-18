@@ -25,7 +25,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
-from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
@@ -104,7 +104,7 @@ _M2M_AGGREGATE_FILTERS = MappingProxyType(
 # FK-name columns: their value is a single related model's ``name``.
 # All keys here also collide with a Comic FK field (``country``,
 # ``language``, ``age_rating``, etc.) or aren't already covered by
-# ``annotate_group_names``, so we annotate via a prefixed alias and
+# ``annotate_collection_names``, so we annotate via a prefixed alias and
 # read it back through ``fk_alias_for``.
 _FK_NAME_COLUMN_PATHS = MappingProxyType(
     {
@@ -121,39 +121,42 @@ _FK_NAME_COLUMN_PATHS = MappingProxyType(
 )
 
 
-def default_columns_for(top_group: str) -> tuple[str, ...]:
-    """Return the default column tuple for a top-group, or empty if unknown."""
-    return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_group, ())
+def default_columns_for(top_collection: str) -> tuple[str, ...]:
+    """Return the default column tuple for a top-collection, or empty if unknown."""
+    # The defaults map is keyed by collection name now, matching the
+    # engine's collection-valued ``top_collection`` — a direct lookup.
+    return BROWSER_TABLE_DEFAULT_COLUMNS.get(top_collection, ())
 
 
-# Default columns gated on the matching ``show.<key>`` group flag.
+# Default columns gated on the matching ``show.<key>`` collection flag.
 # A user who hides imprints / volumes from breadcrumb navigation
 # almost certainly doesn't want the corresponding column to lead
 # their default column set either; filtering the defaults keeps the
 # new-user experience tracking the user's hierarchy preferences.
 _SHOW_GATED_COLUMNS: MappingProxyType[str, str] = MappingProxyType(
     {
-        "imprint_name": "i",
-        "volume_name": "v",
+        "imprint_name": "imprints",
+        "volume_name": "volumes",
     }
 )
 
 
 def default_columns_filtered(
-    top_group: str, show: object | None = None
+    top_collection: str, show: object | None = None
 ) -> tuple[str, ...]:
     """
-    Return ``default_columns_for(top_group)`` minus show-gated columns.
+    Return ``default_columns_for(top_collection)`` minus show-gated columns.
 
-    ``show`` is the per-user group-flag dict from
-    ``BrowserSettingsShowGroupFlagsSerializer`` (keys ``p``, ``i``,
-    ``s``, ``v``). When a flag is False or missing, the matching
+    ``show`` is the per-user collection-flag dict from
+    ``BrowserSettingsShowCollectionFlagsSerializer`` (collection keys
+    ``publishers``, ``imprints``, ``series``, ``volumes``). When a flag
+    is False or missing, the matching
     column is dropped from the defaults — a user who hides imprints
     in navigation rarely wants the imprint column to lead their
     table-view defaults. Static ``default_columns_for`` stays
     unchanged for tests / migrations that need the canonical tuple.
     """
-    cols = default_columns_for(top_group)
+    cols = default_columns_for(top_collection)
     if not cols:
         return cols
     show_map: dict = show if isinstance(show, dict) else {}
@@ -288,14 +291,18 @@ def favorite_annotation_for(model, user) -> dict:
       the table-view caller passes a known model so this branch is
       rare in practice.
     """
-    group_code = FAVORITE_MODEL_GROUP_CODES.get(model)
-    if group_code is None:
+    collection_code = FAVORITE_MODEL_COLLECTIONS.get(model)
+    if collection_code is None:
         return {}
     if not user or not user.is_authenticated:
         return {"favorite": _FAVORITE_FALSE}
-    favorited_ids = Favorite.objects.filter(user=user, group=group_code).values(
-        "target_id"
-    )
+    # ``.value``: binding the Collection StrEnum member itself makes
+    # cachalot's parameter-type check raise UncachableQuery for every
+    # query this subquery lands in — silently uncaching all browse
+    # queries. The bound SQL value is identical either way.
+    favorited_ids = Favorite.objects.filter(
+        user=user, collection=collection_code.value
+    ).values("target_id")
     return {
         "favorite": Case(
             When(pk__in=favorited_ids, then=_FAVORITE_TRUE),

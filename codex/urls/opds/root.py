@@ -23,7 +23,7 @@ urlpatterns = (
     path(
         "v2.0",
         opds_cached(OPDS2StartView.as_view()),
-        {"group": "r", "pks": (0,), "page": 1},
+        {"collection": "root", "pks": (), "page": 1},
         name="start",
     ),
     path("v2.0/", include("codex.urls.opds.v2")),

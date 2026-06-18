@@ -3,11 +3,11 @@
     <div class="browserCardCoverWrapper">
       <div class="browserCardTop">
         <BookCover
-          :group="item.group"
+          :collection="item.collection"
           :pks="item.ids"
           :cover-pk="item.coverPk"
           :cover-custom-pk="item.coverCustomPk"
-          :mtime="item.mtime"
+          :mtime="item.coverMtime ?? item.mtime"
           :child-count="item.childCount"
         />
         <div
@@ -36,7 +36,7 @@
           v-if="favoritePk"
           class="cardFavoriteToggle"
           :class="{ favoriteVisible: isFavoriteCard }"
-          :group="item.group"
+          :collection="item.collection"
           :pk="favoritePk"
         />
       </div>
@@ -64,7 +64,7 @@ import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
-import { getReaderRoute } from "@/route";
+import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -112,12 +112,13 @@ export default {
     },
     isFavoriteCard() {
       return Boolean(
-        this.favoritePk && this.isFavorite(this.item.group, this.favoritePk),
+        this.favoritePk &&
+        this.isFavorite(this.item.collection, this.favoritePk),
       );
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "c" ? "Read" : "Browse to";
+      label += this.item.collection === "comics" ? "Read" : "Browse to";
       label += " " + this.item.name;
       return label;
     },
@@ -125,18 +126,20 @@ export default {
       return this.item.ids.join(",");
     },
     browserRoute() {
+      const { collection, parentIds } = routeForCollection({
+        collection: this.item.collection,
+        pks: this.ids,
+      });
       return {
         name: "browser",
-        params: {
-          group: this.item.group,
-          pks: this.ids,
-          page: 1,
-        },
+        params: parentIds.length
+          ? { collection, parentIds: parentIds.join(",") }
+          : { collection },
         query: { ts: this.item.mtime },
       };
     },
     toRoute() {
-      return this.item.group === "c"
+      return this.item.collection === "comics"
         ? getReaderRoute(this.item, this.importMetadata)
         : this.browserRoute;
     },

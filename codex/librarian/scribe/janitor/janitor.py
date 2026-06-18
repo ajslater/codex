@@ -14,6 +14,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
     JanitorCodexLatestVersionStatus,
     JanitorDBBackupStatus,
@@ -21,6 +22,8 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBFTSIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBOptimizeStatus,
+    JanitorDumpUserDataStatus,
+    JanitorFolderRelationsStatus,
 )
 from codex.librarian.scribe.janitor.tasks import (
     JanitorAdoptOrphanFoldersTask,
@@ -31,7 +34,10 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanupFavoritesTask,
     JanitorCleanupSessionsTask,
     JanitorCleanupSettingsTask,
+    JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
+    JanitorDumpUserDataTask,
+    JanitorFolderRelationsCheckTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
@@ -59,6 +65,7 @@ _JANITOR_STATII: Final = (
     JanitorAdoptOrphanFoldersStatus,
     ImporterMoveFoldersStatus,
     JanitorDBFKIntegrityStatus,
+    JanitorFolderRelationsStatus,
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorCleanupTagsStatus,
@@ -67,12 +74,14 @@ _JANITOR_STATII: Final = (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
+    JanitorCleanupTaggingStateStatus,
     SearchIndexCleanStatus,
     SearchIndexSyncUpdateStatus,
     SearchIndexSyncCreateStatus,
     SearchIndexOptimizeStatus,
     JanitorDBOptimizeStatus,
     JanitorDBBackupStatus,
+    JanitorDumpUserDataStatus,
     FindOrphanCoversStatus,
     RemoveCoversStatus,
 )
@@ -81,6 +90,7 @@ _NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
     CodexLatestVersionTask,
     JanitorAdoptOrphanFoldersTask,
     JanitorForeignKeyCheckTask,
+    JanitorFolderRelationsCheckTask,
     JanitorIntegrityCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorCleanFKsTask,
@@ -89,10 +99,12 @@ _NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
     JanitorCleanupBookmarksTask,
     JanitorCleanupSettingsTask,
     JanitorCleanupFavoritesTask,
+    JanitorCleanupTaggingStateTask,
     SearchIndexSyncTask,
     SearchIndexOptimizeTask,
     JanitorVacuumTask,
     JanitorBackupTask,
+    JanitorDumpUserDataTask,
     CoverRemoveOrphansTask,
 )
 _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
@@ -104,17 +116,32 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
         JanitorCleanupFavoritesTask: "cleanup_orphan_favorites",
         JanitorCleanupSettingsTask: "cleanup_orphan_settings",
+        JanitorCleanupTaggingStateTask: "cleanup_tagging_state",
         JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
         JanitorForeignKeyCheckTask: "foreign_key_check",
+        JanitorFolderRelationsCheckTask: "folder_relations_check",
         JanitorFTSIntegrityCheckTask: "fts_integrity_check",
         JanitorFTSRebuildTask: "fts_rebuild",
         JanitorNightlyTask: "queue_nightly_tasks",
+        JanitorDumpUserDataTask: "dump_user_data_sidecar",
     }
 )
 
 
 class Janitor(JanitorCodexUpdate):
     """Janitor inline task runner."""
+
+    def __init__(
+        self,
+        logger_,
+        librarian_queue,
+        db_write_lock,
+        event,
+        online_tag_thread=None,
+    ) -> None:
+        """Accept the OnlineTagThread back-reference for liveness checks."""
+        super().__init__(logger_, librarian_queue, db_write_lock, event)
+        self.online_tag_thread = online_tag_thread
 
     def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""
@@ -138,7 +165,7 @@ class Janitor(JanitorCodexUpdate):
             # Tasks with special parameters
             match task:
                 case JanitorBackupTask():
-                    self.backup_db(show_status=True)
+                    self.backup_db(show_status=True, prune=True)
                 case JanitorIntegrityCheckTask():
                     self.integrity_check(long=task.long)
                 case JanitorCodexUpdateTask():

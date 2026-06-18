@@ -67,6 +67,16 @@ class JanitorDBBackupStatus(JanitorStatus):
     SINGLE = True
 
 
+class JanitorDumpUserDataStatus(JanitorStatus):
+    """Janitor User-Data Sidecar Dump."""
+
+    CODE = "JDU"
+    VERB = "Snapshot"
+    _verbed = "Snapshotted"
+    ITEM_NAME = "user data sidecar"
+    SINGLE = True
+
+
 class JanitorCleanupSessionsStatus(JanitorStatus):
     """Janitor Cleanup Sessions Status."""
 
@@ -112,13 +122,23 @@ class JanitorCleanupFavoritesStatus(JanitorStatus):
     ITEM_NAME = "orphan favorites"
 
 
+class JanitorCleanupTaggingStateStatus(JanitorStatus):
+    """Janitor Cleanup Online Tagging State Status."""
+
+    CODE = "JTG"
+    VERB = "Cleanup"
+    _verbed = "Cleaned up"
+    ITEM_NAME = "stale online tagging state"
+    SINGLE = True
+
+
 class JanitorDBFKIntegrityStatus(JanitorStatus):
     """Janitor Check DB FK Integrity Status."""
 
     CODE = "JIF"
     VERB = "Check"
     _verbed = "Checked"
-    ITEM_NAME = "integrtity of database foreign keys"
+    ITEM_NAME = "integrity of database foreign keys"
     SINGLE = True
 
 
@@ -150,7 +170,16 @@ class JanitorDBFTSRebuildStatus(JanitorStatus):
     _verbed = "Rebuilt"
     ITEM_NAME = "full text search virtual table"
     SINGLE = True
-    log_success = True
+
+
+class JanitorFolderRelationsStatus(JanitorStatus):
+    """Janitor Repair Comic Folder Relations Status."""
+
+    CODE = "JFR"
+    VERB = "Repair"
+    _verbed = "Repaired"
+    ITEM_NAME = "comic folder relations"
+    SINGLE = True
 
 
 JANITOR_STATII = (
@@ -160,13 +189,16 @@ JANITOR_STATII = (
     JanitorCodexLatestVersionStatus,
     JanitorDBOptimizeStatus,
     JanitorDBBackupStatus,
+    JanitorDumpUserDataStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorDBFKIntegrityStatus,
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
     JanitorDBFTSRebuildStatus,
+    JanitorFolderRelationsStatus,
 )

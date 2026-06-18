@@ -3,10 +3,10 @@
 from types import MappingProxyType
 from typing import Any
 
-from django.urls import reverse
-
+from codex.collection import Collection
 from codex.views.opds.const import MimeType, Rel, UserAgentNames
 from codex.views.opds.feed import OPDSBrowserView
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import (
     FacetGroups,
     OPDS1EntryData,
@@ -16,7 +16,6 @@ from codex.views.opds.v1.const import (
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.template import CodexXMLTemplateMixin
-from codex.views.util import pop_name
 
 
 class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
@@ -55,8 +54,8 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def obj(self) -> MappingProxyType[str, Any]:
         """Get the browser page and serialize it for this subclass."""
         if self._obj is None:
-            group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-                self._get_group_and_books()
+            collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, _ = (
+                self._get_collection_and_books()
             )
             book_qs = book_qs.select_related("series", "volume", "language")
 
@@ -64,7 +63,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             self._obj = MappingProxyType(
                 {
                     "title": title,
-                    "groups": group_qs,
+                    "groups": collection_qs,
                     "books": book_qs,
                     "zero_pad": zero_pad,
                     "num_pages": num_pages,
@@ -75,7 +74,6 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return self._obj
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params) -> OPDS1Link:
-        kwargs = pop_name(kwargs)
         facet_active = False
         for key, val in new_query_params.items():
             if self.request.GET.get(key) == val:
@@ -84,7 +82,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         query = {}
         query.update(self.request.GET)
         query.update(new_query_params)
-        href = reverse("opds:v1:feed", kwargs=dict(kwargs), query=query)
+        href = opds_feed_reverse("opds:v1:feed", kwargs, query)
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         return OPDS1Link(
@@ -101,7 +99,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
         entry_obj = OPDS1EntryObject(
-            group=item.get("group"),
+            nav_collection=item.get("collection"),
             ids=item.get("pks"),
             name=name,
         )
@@ -109,7 +107,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         qps.update(query_params)
         zero_pad: int = self.obj["zero_pad"]
         data = OPDS1EntryData(
-            self.opds_acquisition_groups,
+            self.opds_acquisition_collections,
             zero_pad,
             metadata=False,
             mime_type_map=self.mime_type_map,
@@ -117,20 +115,22 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return OPDS1Entry(entry_obj, qps, data, title_filename_fallback=False)
 
     @staticmethod
-    def _did_special_group_change(group, facet_group) -> bool:
-        """Test if one of the special groups changed."""
-        # Special groups are folders ("f") and story arcs ("a").
+    def _did_special_collection_change(collection, facet_group) -> bool:
+        """Test if one of the special collections changed."""
+        # Special collections are folders and story arcs.
         # The change is meaningful only if exactly one side is special:
-        # XOR-style across membership in the special-group set.
-        return (group in "fa") != (facet_group in "fa")
+        # XOR-style across membership in the special-collection set.
+        special = {Collection.FOLDER, Collection.ARC}
+        return (collection in special) != (facet_group in special)
 
     def _facet_or_facet_entry(self, facet_group, facet, *, entries: bool):
         # This logic preempts facet:activeFacet but no one uses it.
-        group = self.kwargs.get("group")
-        if facet_group.query_param == "topGroup" and self._did_special_group_change(
-            group, facet.value
+        collection = self.kwargs.get("collection")
+        if (
+            facet_group.query_param == "topCollection"
+            and self._did_special_collection_change(collection, facet.value)
         ):
-            kwargs = {"group": facet.value, "pks": {}, "page": 1}
+            kwargs = {"collection": facet.value, "pks": {}, "page": 1}
         else:
             kwargs = self.kwargs
 
@@ -149,7 +149,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         folder_view_allowed = bool(self.admin_flags.get("folder_view"))
         facets = []
         for facet in facet_group.facets:
-            if facet.value == "f" and not folder_view_allowed:
+            if facet.value == Collection.FOLDER and not folder_view_allowed:
                 continue
             if facet_obj := self._facet_or_facet_entry(
                 facet_group, facet, entries=entries
@@ -163,9 +163,9 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         if self.IS_START_PAGE:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
         else:
-            group = self.kwargs.get("group")
+            collection = self.kwargs.get("collection")
             if (
-                group != "c"
+                collection != Collection.COMIC
                 and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
             ):
                 facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)

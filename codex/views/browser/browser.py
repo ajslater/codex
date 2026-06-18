@@ -13,26 +13,31 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.choices.admin import AdminFlagChoices
+from codex.collection import Collection
 from codex.models import (
     Comic,
     Folder,
     Library,
 )
-from codex.serializers.browser.page import BrowserPageSerializer
+from codex.serializers.browser.page import (
+    BrowserHeadSerializer,
+    BrowserPageSerializer,
+)
 from codex.serializers.browser.settings import BrowserPageInputSerializer
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
     default_columns_filtered,
     favorite_annotation_for,
     fk_name_annotations_for,
     m2m_annotations_for,
 )
-from codex.views.browser.intersections import compute_group_intersections
+from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
-    COMIC_GROUP,
-    FOLDER_GROUP,
-    STORY_ARC_GROUP,
+    COLLECTION_MODEL_MAP,
+    COMIC_COLLECTION,
+    FOLDER_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 
 _LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
@@ -50,7 +55,7 @@ def libraries_exist() -> bool:
     """
     value = _django_cache.get(_LIBRARIES_EXIST_CACHE_KEY)
     if value is None:
-        value = Library.objects.filter(covers_only=False).exists()
+        value = Library.objects.exists()
         _django_cache.set(
             _LIBRARIES_EXIST_CACHE_KEY, value, _LIBRARIES_EXIST_TTL_SECONDS
         )
@@ -66,7 +71,11 @@ class BrowserView(BrowserTitleView):
     """Browse comics with a variety of filters and sorts."""
 
     serializer_class: type[BaseSerializer] | None = BrowserPageSerializer
-    input_serializer_class = BrowserPageInputSerializer  # type: ignore[assignment]
+    input_serializer_class = BrowserPageInputSerializer
+
+    # Pull ``page`` off ``?page=`` since the v4 URL pattern carries
+    # only ``collection`` and the optional ``parentIds`` segment.
+    requires_page = True
 
     ADMIN_FLAGS = (
         AdminFlagChoices.FOLDER_VIEW,
@@ -80,26 +89,29 @@ class BrowserView(BrowserTitleView):
 
     @property
     @override
-    def model_group(self):
-        """Get the group of the models to browse."""
-        # the model group shown must be:
-        #   A valid nav group or 'c'
-        #   the child of the current nav group or 'c'
-        if not self._model_group:
-            group = self.kwargs["group"]
-            if group == FOLDER_GROUP:
-                self._model_group = group
-            elif group == STORY_ARC_GROUP:
+    def model_collection(self):
+        """Get the collection of the models to browse."""
+        # the model collection shown must be:
+        #   A valid nav collection or 'c'
+        #   the child of the current nav collection or 'c'
+        if not self._model_collection:
+            collection = self.kwargs["collection"]
+            if collection == FOLDER_COLLECTION:
+                self._model_collection = collection
+            elif collection == STORY_ARC_COLLECTION:
                 pks = self.kwargs.get("pks")
-                self._model_group = COMIC_GROUP if pks else group
-            elif group == self.valid_nav_groups[-1] or group == COMIC_GROUP:
-                # special case for lowest valid group
-                self._model_group = COMIC_GROUP
+                self._model_collection = COMIC_COLLECTION if pks else collection
+            elif (
+                collection == self.valid_nav_collections[-1]
+                or collection == COMIC_COLLECTION
+            ):
+                # special case for lowest valid collection
+                self._model_collection = COMIC_COLLECTION
             else:
-                self._model_group = self.valid_nav_groups[
-                    self.valid_nav_groups.index(group) + 1
+                self._model_collection = self.valid_nav_collections[
+                    self.valid_nav_collections.index(collection) + 1
                 ]
-        return self._model_group
+        return self._model_collection
 
     ################
     # MAIN QUERIES #
@@ -134,7 +146,7 @@ class BrowserView(BrowserTitleView):
         Annotate ``qs`` with ``favorite`` (Exists subquery) for table view.
 
         Runs unconditional on model — favorites apply to every
-        browsable group as well as Comic — and unconditional on
+        browsable collection as well as Comic — and unconditional on
         column selection: the per-row Exists is cheap (one indexed
         scan) and being always-on lets the user sort by ``favorite``
         from the order_by enum without separate gating.
@@ -199,12 +211,12 @@ class BrowserView(BrowserTitleView):
         return qs
 
     def _get_common_queryset(self, model) -> tuple:
-        """Create queryset common to group & books."""
+        """Create queryset common to collection & books."""
         qs = self.get_filtered_queryset(model)
         limit = self._get_limit()
         try:
-            # Group once here; `add_group_by` is a no-op for Comic so the
-            # book path is unaffected, and the group path no longer needs
+            # Collection once here; `add_group_by` is a no-op for Comic so the
+            # book path is unaffected, and the collection path no longer needs
             # a second call after ordering.
             qs = self.add_group_by(qs)
             count_qs = qs[:limit] if limit else qs
@@ -224,7 +236,7 @@ class BrowserView(BrowserTitleView):
             # targets against the queryset's known annotations at
             # ``annotate()`` call time, not at SQL compile time, so
             # an out-of-order add raises ``Cannot resolve keyword
-            # 'favorite' into field`` for the group queryset.
+            # 'favorite' into field`` for the collection queryset.
             qs = self._add_table_view_favorite_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
@@ -236,8 +248,8 @@ class BrowserView(BrowserTitleView):
 
         return qs, count
 
-    def _get_group_queryset(self) -> tuple:
-        """Create group queryset."""
+    def _get_collection_queryset(self) -> tuple:
+        """Create collection queryset."""
         if self.model is Comic:
             qs = self.model.objects.none().order_by("pk")
             count = 0
@@ -255,24 +267,47 @@ class BrowserView(BrowserTitleView):
         return qs, count
 
     @staticmethod
-    def _get_zero_pad(book_qs) -> int:
-        """Get the zero padding for the display."""
-        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
-            "issue_number__max"
-        ]
+    def _zero_pad(issue_number_max) -> int:
+        """Compute display zero padding from the max issue number."""
         zero_pad = 1
         if issue_number_max:
             zero_pad += floor(log10(issue_number_max))
         return zero_pad
 
-    def _get_page_mtime(self):
-        return self.get_group_mtime(self.model, page_mtime=True)
+    @classmethod
+    def _get_zero_pad(cls, book_qs) -> int:
+        """Get the zero padding for the display."""
+        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
+            "issue_number__max"
+        ]
+        return cls._zero_pad(issue_number_max)
 
-    def _debug_queries(self, group_count, book_count, group_qs, book_qs) -> None:
+    def _get_page_mtime(self):
+        # Compute the mtime of the *container node* being viewed (the rows at
+        # the route collection identified by the route pks), matching exactly
+        # what ``MtimeView`` probes on a ``library.changed`` event so the
+        # frontend's reload gate compares like with like.
+        #
+        # ``self.model`` is the *child* collection shown in the page, but the
+        # page-mtime filter scopes by ``pk__in=route_pks`` (the parent pks).
+        # Reading ``self.model`` there only matched child rows whose pk
+        # happened to equal a parent pk — for real data it never does, so the
+        # aggregate was empty and the page mtime collapsed to EPOCH. Reading
+        # the route collection's own model (kept fresh for the whole subtree by
+        # ``TimestampUpdater``) restores a meaningful, probe-comparable value.
+        # ``Collection.ROOT`` maps to ``None``; fall back to ``self.model``,
+        # which is the top collection there and matches the probe's
+        # model-collection request.
+        model = COLLECTION_MODEL_MAP.get(self.kwargs["collection"]) or self.model
+        return self.get_collection_mtime(model, page_mtime=True)
+
+    def _debug_queries(
+        self, collection_count, book_count, collection_qs, book_qs
+    ) -> None:
         """Log query details."""
-        if group_count:
-            logger.debug(group_qs.explain())
-            logger.debug(group_qs.query)
+        if collection_count:
+            logger.debug(collection_qs.explain())
+            logger.debug(collection_qs.query)
         if book_count:
             logger.debug(book_qs.explain())
             logger.debug(book_qs.query)
@@ -290,25 +325,27 @@ class BrowserView(BrowserTitleView):
             zero_pad = 0
         return book_qs, book_count, zero_pad
 
-    def _get_group_and_books(self) -> tuple:
+    def _get_collection_and_books(self) -> tuple:
         """Create the main queries with filters, annotation and pagination."""
-        group_qs, group_count = self._get_group_queryset()
+        collection_qs, collection_count = self._get_collection_queryset()
         book_qs, book_count = self._get_book_queryset()
+        # Full filtered membership (pre-pagination), for the refresh gate.
+        full_count = collection_count + book_count
 
         # Paginate
-        num_pages = ceil((group_count + book_count) / BROWSER_MAX_OBJ_PER_PAGE)
+        num_pages = ceil(full_count / get_browser_max_obj_per_page())
         self.check_page_in_bounds(num_pages)
-        group_qs, book_qs, page_group_count, page_book_count = self.paginate(
-            group_qs, book_qs, group_count, book_count
+        collection_qs, book_qs, page_collection_count, page_book_count = self.paginate(
+            collection_qs, book_qs, collection_count, book_count
         )
 
         # Annotate
-        if page_group_count:
-            group_qs = self.annotate_card_aggregates(group_qs)
-            group_qs = self.annotate_cover(group_qs)
-            group_qs = self.force_inner_joins(group_qs)
+        if page_collection_count:
+            collection_qs = self.annotate_card_aggregates(collection_qs)
+            collection_qs = self.annotate_cover(collection_qs)
+            collection_qs = self.force_inner_joins(collection_qs)
+            collection_qs = self.attach_cover_mtimes(collection_qs)
         if page_book_count:
-            zero_pad = self._get_zero_pad(book_qs)
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,
             # so the JsonGroupArray aggregates run only over the
@@ -316,20 +353,39 @@ class BrowserView(BrowserTitleView):
             # upstream (``_add_table_view_sort_annotations``).
             book_qs = self._add_table_view_display_annotations(book_qs)
             book_qs = self.force_inner_joins(book_qs)
+            # Materialize the final page once: this primes the queryset's
+            # result cache (the serializer iterates the same object) and
+            # lets zero-pad read the page rows instead of re-running the
+            # whole ordered/annotated book query as a MAX subquery.
+            books = list(book_qs)
+            zero_pad = self._zero_pad(
+                max(
+                    (b.issue_number for b in books if b.issue_number is not None),
+                    default=None,
+                )
+            )
         else:
             zero_pad = 1
 
-        # self._debug_queries(page_group_count, page_book_count, group_qs, book_qs) # noqa: ERA001
+        # self._debug_queries(page_collection_count, page_book_count, collection_qs, book_qs) # noqa: ERA001
 
-        total_page_count = page_group_count + page_book_count
+        total_page_count = page_collection_count + page_book_count
         mtime = self._get_page_mtime()
-        return group_qs, book_qs, num_pages, total_page_count, zero_pad, mtime
+        return (
+            collection_qs,
+            book_qs,
+            num_pages,
+            total_page_count,
+            zero_pad,
+            mtime,
+            full_count,
+        )
 
     @override
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
-        group_qs, book_qs, num_pages, total_count, zero_pad, mtime = (
-            self._get_group_and_books()
+        collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count = (
+            self._get_collection_and_books()
         )
 
         # get additional context
@@ -343,12 +399,13 @@ class BrowserView(BrowserTitleView):
             {
                 "breadcrumbs": breadcrumbs,
                 "title": title,
-                "model_group": self.model_group,
-                "groups": group_qs,
+                "model_collection": self.model_collection,
+                "collections": collection_qs,
                 "books": book_qs,
                 "zero_pad": zero_pad,
                 "num_pages": num_pages,
                 "total_count": total_count,
+                "count": count,
                 "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist_flag,
                 "mtime": mtime,
@@ -363,39 +420,71 @@ class BrowserView(BrowserTitleView):
 
         Priority: explicit ``columns=`` query param (already validated
         and stored on params), then the user's persisted
-        ``table_columns[top_group]``, then the registry defaults for
-        the current top-group.
+        ``table_columns[top_collection]``, then the registry defaults for
+        the current top-collection.
         """
         columns = self.params.get("columns") or ()
         if columns:
             return tuple(columns)
-        top_group = self.params.get("top_group") or self.kwargs.get("group") or "p"
+        top_collection = (
+            self.params.get("top_collection")
+            or self.kwargs.get("collection")
+            or Collection.PUBLISHER
+        )
         stored = self.params.get("table_columns") or {}
-        stored_for_group = stored.get(top_group) if isinstance(stored, dict) else None
-        if stored_for_group:
-            return tuple(stored_for_group)
-        return default_columns_filtered(top_group, self.params.get("show"))
+        stored_for_collection = (
+            stored.get(top_collection) if isinstance(stored, dict) else None
+        )
+        if stored_for_collection:
+            return tuple(stored_for_collection)
+        return default_columns_filtered(top_collection, self.params.get("show"))
 
     @extend_schema(parameters=[BrowserTitleView.input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
         """Return the page data — both cards and (in table mode) rows."""
         data = dict(self.get_object())
         if self.params.get("view_mode") == "table":
-            # The unified serializer projects groups+books through these
-            # columns into a parallel ``rows`` list. ``cards`` stays
-            # populated unconditionally so a mobile fallback can render
-            # the card grid without a second round-trip.
+            # The unified serializer projects collections+books through
+            # these columns into a parallel ``rows`` list and drops the
+            # card fields from the table-mode payload (they never reach
+            # the wire — see BrowserPageSerializer.to_representation).
             columns = self._resolve_table_columns()
             data["columns"] = columns
-            # Group rows in the table view show **intersections** of
+            # Collection rows in the table view show **intersections** of
             # column values across their child comics: M2M values
             # shared by every comic, scalars where every comic has
             # the same value. Computed after pagination so the work
             # is bounded to the visible page.
-            group_qs = data.get("groups")
-            if group_qs is not None:
-                data["group_intersections"] = compute_group_intersections(
-                    group_qs, columns
+            collection_qs = data.get("collections")
+            if collection_qs is not None:
+                data["collection_intersections"] = compute_collection_intersections(
+                    collection_qs, columns
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)
+
+
+class BrowserHeadView(BrowserView):
+    """
+    Lightweight ``{mtime, count}`` probe for the ``library.changed`` gate.
+
+    Reuses ``BrowserView``'s filtered querysets so both signals match the page
+    exactly, but skips pagination, card/cover annotation, and card
+    serialization. The frontend compares ``(mtime, count)`` against the values
+    from its last full page load: ``mtime`` catches in-view edits; ``count``
+    (full filtered membership) catches a comic entering or *leaving* the active
+    filter, which the per-collection ``mtime`` alone can miss.
+    """
+
+    serializer_class: type[BaseSerializer] | None = BrowserHeadSerializer
+
+    @override
+    def get(self, *_args, **_kwargs) -> Response:
+        """Return only the page mtime and the full filtered membership count."""
+        _, collection_count = self._get_collection_queryset()
+        _, book_count = self._get_book_queryset()
+        data = {
+            "mtime": self._get_page_mtime(),
+            "count": collection_count + book_count,
+        }
+        return Response(self.get_serializer(data).data)

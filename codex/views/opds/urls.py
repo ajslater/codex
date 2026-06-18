@@ -4,10 +4,8 @@ from django.urls import reverse
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.serializers.opds.urls import OPDSURLsSerializer
 from codex.views.auth import AuthGenericAPIView
-from codex.views.util import pop_name
 
 _OPDS_VERSIONS = (1, 2)
 
@@ -19,13 +17,11 @@ class OPDSURLsView(AuthGenericAPIView):
 
     def get(self, *args, **kwargs) -> Response:
         """Resolve the urls."""
-        obj = {}
-        route = DEFAULT_BROWSER_ROUTE
-        route = pop_name(route)
-        for version in _OPDS_VERSIONS:
-            key = f"v{version}"
-            name = f"opds:v{version}:start"
-            value = reverse(name, kwargs=dict(route))
-            obj[key] = value
+        # The start routes carry no path params (the catalog root); the
+        # ``?page=`` default is implicit, so reverse needs no kwargs.
+        obj = {
+            f"v{version}": reverse(f"opds:v{version}:start")
+            for version in _OPDS_VERSIONS
+        }
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

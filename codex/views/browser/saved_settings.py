@@ -171,7 +171,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
         # Copy last_route
         src_route = source.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         tgt_route = target.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        tgt_route.group = src_route.group
+        tgt_route.collection = src_route.collection
         tgt_route.pks = src_route.pks
         tgt_route.page = src_route.page
         tgt_route.save()
@@ -236,7 +236,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
             src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue]
             SettingsBrowserLastRoute.objects.create(
                 browser=new_sb,
-                group=src_route.group,
+                collection=src_route.collection,
                 pks=list(src_route.pks) if src_route.pks else [0],
                 page=src_route.page,
             )

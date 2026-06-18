@@ -86,7 +86,7 @@
     <tbody>
       <tr>
         <td><v-hotkey keys="m" /></td>
-        <td>Show comic's metadata</td>
+        <td>Show comic's tags</td>
       </tr>
       <tr>
         <td><v-hotkey keys="double-click" /></td>

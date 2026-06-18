@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/auth";
+import * as API from "@/api/v4/auth";
 import { useCommonStore } from "@/stores/common";
 import { useFavoritesStore } from "@/stores/favorites";
 
@@ -12,16 +12,28 @@ export const useAuthStore = defineStore("auth", {
   state: () => ({
     adminFlags: {
       registration: undefined,
+      registerVerification: undefined,
       nonUsers: undefined,
       bannerText: undefined,
       lazyImportMetadata: undefined,
+      emailEnabled: undefined,
+      remoteUserEnabled: undefined,
     },
     user: undefined,
+    /*
+     * Populated by the v4 ``/session`` composite alongside ``user`` +
+     * ``adminFlags``. The SPA chrome reads ``version.installed``
+     * immediately; ``latest`` / ``warning`` show up in the update-
+     * available banner.
+     */
+    version: undefined,
     token: undefined,
     MIN_PASSWORD_LENGTH: 4,
     showLoginDialog: false,
     showChangePasswordDialog: false,
+    showProfileDialog: false,
     showAuthTokenDialog: false,
+    showResetPasswordRequestDialog: false,
   }),
   getters: {
     isAuthorized() {
@@ -36,20 +48,45 @@ export const useAuthStore = defineStore("auth", {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
     },
     isAuthDialogOpen() {
-      return this.showLoginDialog || this.showChangePasswordDialog;
+      return (
+        this.showLoginDialog ||
+        this.showChangePasswordDialog ||
+        this.showProfileDialog ||
+        this.showResetPasswordRequestDialog
+      );
     },
     isBanner(state) {
       return Boolean(state.adminFlags.bannerText);
     },
   },
   actions: {
+    /*
+     * v4 composite boot: one request returns user + adminFlags +
+     * permissions + version. Use this on app start; the per-resource
+     * loaders below stay around for explicit refreshes after admin
+     * mutations (e.g. websocket fan-out of admin.flags.changed).
+     */
+    async loadSession() {
+      try {
+        const response = await API.getSession();
+        const { user, adminFlags, version } = response.data || {};
+        if (adminFlags) this.adminFlags = adminFlags;
+        this.user = user || undefined;
+        if (version) this.version = version;
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
+    },
     async loadAdminFlags() {
-      await API.getAdminFlags()
-        .then((response) => {
-          this.adminFlags = response.data;
-          return true;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.getSession();
+        const { adminFlags } = response.data || {};
+        if (adminFlags) this.adminFlags = adminFlags;
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
     },
     async loadProfile() {
       return API.getProfile()
@@ -66,7 +103,7 @@ export const useAuthStore = defineStore("auth", {
           if (clear) {
             commonStore.clearErrors();
           }
-          return this.loadProfile();
+          return this.loadSession();
         })
         .catch(commonStore.setErrors);
     },
@@ -117,6 +154,52 @@ export const useAuthStore = defineStore("auth", {
           return this.login(changedCredentials, false);
         })
         .catch(commonStore.setErrors);
+    },
+    /*
+     * Update editable user-profile fields (username, email).
+     * Only the changed fields are sent; an empty payload short-circuits.
+     * On success, refresh the local user state so the menu and any
+     * other consumers see the new value without a full reload.
+     */
+    async updateProfile(profile) {
+      if (!profile || Object.keys(profile).length === 0) {
+        return true;
+      }
+      const commonStore = useCommonStore();
+      return API.updateProfile(profile)
+        .then((response) => {
+          this.user = response.data;
+          commonStore.clearErrors();
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
+    },
+    async sendResetPasswordLink(login) {
+      const commonStore = useCommonStore();
+      return API.sendResetPasswordLink(login)
+        .then((response) => {
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
+    },
+    async resetPassword(payload) {
+      const commonStore = useCommonStore();
+      return API.resetPassword(payload)
+        .then((response) => {
+          commonStore.setSuccess(response.data.detail);
+          return true;
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return false;
+        });
     },
     async setTimezone() {
       if (this.adminFlags.nonUsers || this.user) {

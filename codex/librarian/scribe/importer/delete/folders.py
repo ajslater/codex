@@ -2,8 +2,8 @@
 
 from codex.librarian.scribe.importer.delete.comics import DeletedComicsImporter
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveFoldersStatus
+from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.groups import Folder
 
 
 class DeletedFoldersImporter(DeletedComicsImporter):

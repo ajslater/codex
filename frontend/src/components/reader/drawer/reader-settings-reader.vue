@@ -15,7 +15,7 @@
 import { mdiEye, mdiOpenInNew } from "@mdi/js";
 import { mapState } from "pinia";
 
-import { getPDFInBrowserURL } from "@/api/v3/reader";
+import { getPDFInBrowserURL } from "@/api/v4/reader";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useReaderStore } from "@/stores/reader";
 

@@ -43,7 +43,7 @@
     <AdminRelationPicker
       :model-value="row.librarySet"
       label="Libraries"
-      :objs="normalLibraries"
+      :objs="libraries"
       title-key="path"
       @update:model-value="row.librarySet = $event"
     />
@@ -84,7 +84,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,

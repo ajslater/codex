@@ -39,7 +39,9 @@ export default {
       toRoute(state) {
         if (!this.isVertical) {
           return {
-            params: { pk: state.books.current.pk, page: this.value },
+            name: "reader",
+            params: { pk: state.books.current.pk },
+            query: { page: this.value },
           };
         }
       },

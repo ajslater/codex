@@ -23,6 +23,7 @@ __pycache__
 *.py[co]
 *~
 *Dockerfile
+benchmark
 cache
 codex/static
 codex/static_build
@@ -32,7 +33,6 @@ dev*
 docker-compose*
 docker*
 MANIFEST
-mock_comics
 monkeytype.sqlite3
 NEWS
 node_modules

@@ -4,12 +4,26 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from django.contrib.sessions.models import Session
 from django.core import signing
 from django.db import transaction
 from django.db.models.functions.datetime import Now
 
+from codex.librarian.onlinetag.session_cache import (
+    get_active_scan_id,
+    get_pending_prompts,
+    set_active_scan_id,
+    set_pending_prompts,
+)
+from codex.librarian.onlinetag.session_snapshot import (
+    deactivate_snapshot,
+    get_resolved_outcomes,
+    get_resume_state,
+    set_resolved_outcomes,
+    set_resume_state,
+)
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
@@ -17,6 +31,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
 )
 from codex.models import (
@@ -48,9 +63,13 @@ from codex.models import (
     Volume,
 )
 from codex.models.bookmark import Bookmark
-from codex.models.favorite import FAVORITE_MODEL_GROUP_CODES, Favorite
+from codex.models.comic import Comic
+from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
+
+if TYPE_CHECKING:
+    from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
 
 _FK_MODELS = (
     Identifier,
@@ -124,7 +143,7 @@ _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
 # machinery). Iteration order is the model→code map's insertion
 # order; the per-iteration query is independent so order doesn't
 # matter functionally.
-_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_GROUP_CODES.items())
+_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_COLLECTIONS.items())
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
@@ -145,6 +164,12 @@ _SESSION_DELETE_BATCH_SIZE = 30000
 
 class JanitorCleanup(JanitorUpdateFailedImports):
     """Cleanup methods for Janitor."""
+
+    # Set by ``Janitor.__init__`` from the back-reference threaded
+    # through ScribeThread by LibrarianDaemon._create_threads. ``None``
+    # in tests that instantiate JanitorCleanup directly without the
+    # online-tag thread.
+    online_tag_thread: "OnlineTagThread | None" = None
 
     def _cleanup_fks_model(self, model, filter_dict, status):
         status.subtitle = model._meta.verbose_name_plural
@@ -407,8 +432,10 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.start(status)
             total = 0
             with self.db_write_lock:
-                for model, group_code in _FAVORITE_TARGETS:
-                    orphans = Favorite.objects.filter(group=group_code).exclude(
+                for model, collection_code in _FAVORITE_TARGETS:
+                    orphans = Favorite.objects.filter(
+                        collection=collection_code
+                    ).exclude(
                         target_id__in=model.objects.values("pk"),
                     )
                     count, _ = orphans.delete()
@@ -417,3 +444,82 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.log.log(level, f"Deleted {total} orphan favorites.")
         finally:
             self.status_controller.finish(status)
+
+    def cleanup_tagging_state(self) -> None:
+        """
+        Prune online tagging state that no longer has a referent.
+
+        Pending prompts deliberately linger across restarts until an admin
+        answers them, so prompts-without-a-live-scan is the normal steady
+        state, not something to clear. This nightly sweep only drops prompts
+        whose comic has since been deleted, and clears an active-scan marker
+        left behind by a crash mid-scan.
+        """
+        status = JanitorCleanupTaggingStateStatus()
+        try:
+            self.status_controller.start(status)
+            self._prune_dead_prompts()
+            self._prune_dead_resolutions()
+            self._prune_dead_resume_state()
+            self._clear_stale_scan_marker()
+        finally:
+            self.status_controller.finish(status)
+
+    def _prune_dead_prompts(self) -> None:
+        """Drop pending prompts whose comic no longer exists."""
+        prompts = get_pending_prompts()
+        if not prompts:
+            return
+        pks = {p.get("pk") for p in prompts.values() if p.get("pk") is not None}
+        live = set(Comic.objects.filter(pk__in=pks).values_list("pk", flat=True))
+        kept = {fp: p for fp, p in prompts.items() if p.get("pk") in live}
+        if len(kept) != len(prompts):
+            set_pending_prompts(kept)
+            dropped = len(prompts) - len(kept)
+            self.log.info(f"Pruned {dropped} online tag prompt(s) for missing comics.")
+
+    def _prune_dead_resolutions(self) -> None:
+        """Drop recorded match-review outcomes whose comic no longer exists."""
+        outcomes = get_resolved_outcomes()
+        if not outcomes:
+            return
+        live = set(
+            Comic.objects.filter(pk__in=outcomes.keys()).values_list("pk", flat=True)
+        )
+        kept = {pk: status for pk, status in outcomes.items() if pk in live}
+        if len(kept) != len(outcomes):
+            set_resolved_outcomes(kept)
+            dropped = len(outcomes) - len(kept)
+            self.log.info(
+                f"Pruned {dropped} online tag resolution(s) for missing comics."
+            )
+
+    def _prune_dead_resume_state(self) -> None:
+        """Drop resume-remainder pks whose comic no longer exists."""
+        resume = get_resume_state()
+        if not resume:
+            return
+        remaining = resume.get("remaining_pks") or []
+        if not remaining:
+            return
+        live = set(Comic.objects.filter(pk__in=remaining).values_list("pk", flat=True))
+        kept = [pk for pk in remaining if pk in live]
+        if len(kept) != len(remaining):
+            set_resume_state(resume.get("params") or {}, kept)
+            dropped = len(remaining) - len(kept)
+            self.log.info(
+                f"Pruned {dropped} online tag resume comic(s) for missing comics."
+            )
+
+    def _clear_stale_scan_marker(self) -> None:
+        """Clear an active-scan marker with no live scan behind it."""
+        scan_id = get_active_scan_id()
+        if not scan_id:
+            return
+        live = self.online_tag_thread is not None and (
+            self.online_tag_thread.has_active_session(scan_id)
+        )
+        if not live:
+            set_active_scan_id("")
+            deactivate_snapshot()
+            self.log.info(f"Cleared stale online tag scan marker {scan_id!r}.")

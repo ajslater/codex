@@ -217,9 +217,20 @@ class SnapshotDiff:
         return src_is_dir or data.ref.size(src) == data.snapshot.size(dest)
 
     def _find_moved_paths(self, data: _DiffData) -> None:
-        """Detect moves by matching inodes between deleted and added sets."""
+        """
+        Detect moves by matching inodes between deleted and added sets.
+
+        A move pair is only inferred when the inode uniquely identifies a
+        path on *both* sides. An inode that maps to more than one path
+        within a snapshot (a collision under ``_ignore_device`` or after
+        an inode-space rotation) is skipped on the source side and resolves
+        to ``None`` on the target side, so it degrades to delete+add —
+        safe against the wrong-folder reparenting that a bogus pair caused.
+        """
         for old_path in tuple(data.deleted):
             inode = data.ref.inode(old_path)
+            if data.ref.is_ambiguous_inode(inode):
+                continue
             new_path = data.snapshot.path(inode)
             if new_path and self._is_move_compatible(data, old_path, new_path):
                 data.deleted.remove(old_path)
@@ -227,6 +238,8 @@ class SnapshotDiff:
 
         for new_path in tuple(data.added):
             inode = data.snapshot.inode(new_path)
+            if data.snapshot.is_ambiguous_inode(inode):
+                continue
             old_path = data.ref.path(inode)
             if old_path and self._is_move_compatible(data, old_path, new_path):
                 data.added.remove(new_path)

@@ -27,7 +27,7 @@
     </template>
     <template #selection="{ props }">
       <v-icon
-        :icon="prependIcon(arc.group)"
+        :icon="prependIcon(arc.collection)"
         size="large"
         v-bind="props"
         class="arcSelectIcon"
@@ -49,17 +49,17 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { TOP_GROUP } from "@/choices/browser-map";
+import { TOP_COLLECTION } from "@/choices/browser-map";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const ARC_ICONS = {
-  a: mdiRedo,
-  f: mdiFolderOutline,
-  p: mdiChessRook,
-  i: mdiFeather,
-  s: mdiBookshelf,
-  v: mdiBookMultiple,
+  arcs: mdiRedo,
+  folders: mdiFolderOutline,
+  publishers: mdiChessRook,
+  imprints: mdiFeather,
+  series: mdiBookshelf,
+  volumes: mdiBookMultiple,
 };
 
 export default {
@@ -82,18 +82,20 @@ export default {
       if (!this.arcs) {
         return items;
       }
-      for (const [group, arcIdsInfo] of Object.entries(this.arcs)) {
+      for (const [collection, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = Reflect.get(TOP_GROUP, group);
-          if (group !== "s") {
+          let subtitle = Reflect.get(TOP_COLLECTION, collection);
+          if (collection !== "series") {
             subtitle = subtitle.slice(0, -1);
           }
-          const prependIcon = Reflect.get(ARC_ICONS, group);
+          const prependIcon = Reflect.get(ARC_ICONS, collection);
           const appendIcon =
-            group === this.arc?.group && ids == this.arc?.ids ? mdiCheck : "";
-          const value = { group, ids, prependIcon, ...arcInfo };
+            collection === this.arc?.collection && ids == this.arc?.ids
+              ? mdiCheck
+              : "";
+          const value = { collection, ids, prependIcon, ...arcInfo };
           const item = {
-            group,
+            collection,
             value,
             title: arcInfo.name,
             subtitle,
@@ -109,27 +111,27 @@ export default {
       if (!this.arcs || !this.arc) {
         return {};
       }
-      const arcIdsInfo = this.arcs[this.arc?.group];
+      const arcIdsInfo = this.arcs[this.arc?.collection];
       if (!arcIdsInfo) {
         return {};
       }
       return arcIdsInfo[this.arc?.ids];
     },
     arcIcon() {
-      return ARC_ICONS[this.arc?.group];
+      return ARC_ICONS[this.arc?.collection];
     },
   },
   methods: {
     ...mapActions(useReaderStore, ["loadBooks"]),
     onUpdate(item) {
       const arc = {
-        group: item.group,
+        collection: item.collection,
         ids: item.ids.split(",").map(Number),
       };
       this.loadBooks({ arc });
     },
-    prependIcon(group) {
-      return Reflect.get(ARC_ICONS, group);
+    prependIcon(collection) {
+      return Reflect.get(ARC_ICONS, collection);
     },
   },
 };

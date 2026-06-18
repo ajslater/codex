@@ -34,7 +34,7 @@ export default {
       routeKey: (state) => state.routeKey,
     }),
     page() {
-      return +this.$route.params.page;
+      return Number(this.$route.query.page) || 1;
     },
   },
   methods: {

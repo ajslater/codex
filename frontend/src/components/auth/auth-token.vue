@@ -6,21 +6,21 @@
     max-width="512"
   >
     <template #activator="{ props }">
-      <CodexListItem
-        :prepend-icon="mdiTicketConfirmationOutline"
+      <v-btn
+        :prepend-icon="mdiKeyOutline"
         v-bind="props"
-        title="Auth Token"
+        text="Authorization Bearer Token"
       />
     </template>
     <div id="tokenDialog">
       <h2>
-        Auth Token<br />
-        for {{ username }}
+        Authorization Bearer Token for <br />
+        {{ username }}
       </h2>
       <ClipBoard
         class="tokenContainer"
         :tooltip="TOOLTIP"
-        title="Token"
+        title="Bearer Token"
         :text="token"
       />
       <div id="bearerTokenHelp">
@@ -49,11 +49,10 @@
 </template>
 
 <script>
-import { mdiTicketConfirmationOutline } from "@mdi/js";
+import { mdiKeyOutline } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import ClipBoard from "@/components/clipboard.vue";
-import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const TOOLTIP = "Copy Auth Token to clipboard";
@@ -62,24 +61,19 @@ export default {
   name: "AuthTokenDialog",
   components: {
     ClipBoard,
-    CodexListItem,
-  },
-  props: {
-    user: { type: Object, required: true },
   },
   data() {
     return {
-      mdiTicketConfirmationOutline,
+      mdiKeyOutline,
       showTooltip: { show: false },
       TOOLTIP,
-      username: this.user.username,
     };
   },
   computed: {
-    ...mapState(useAuthStore, ["token"]),
+    ...mapState(useAuthStore, ["token", "user"]),
     ...mapWritableState(useAuthStore, ["showAuthTokenDialog"]),
-    title() {
-      return `For user: ${this.username}`;
+    username() {
+      return this?.user?.username;
     },
     tooltip() {
       return this.clipBoardEnabled ? TOOLTIP : undefined;

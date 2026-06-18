@@ -6,44 +6,52 @@ from django.db.models.query import QuerySet
 from codex.librarian.scribe.importer.const import COMIC_FK_FIELDS, COMIC_M2M_FIELDS
 from codex.models import Comic
 from codex.views.browser.metadata.annotate import MetadataAnnotateView
+from codex.views.browser.metadata.collection_list import annotate_collection_list
 from codex.views.browser.metadata.const import (
+    COLLECTION_MODELS,
     COMIC_MAIN_FIELD_NAME_BACK_REL_MAP,
     FK_QUERY_OPTIMIZERS,
-    GROUP_MODELS,
     M2M_QUERY_OPTIMIZERS,
 )
-from codex.views.browser.metadata.group_list import annotate_group_list
-from codex.views.const import METADATA_GROUP_RELATION, MODEL_REL_MAP
+from codex.views.const import METADATA_COLLECTION_RELATION, MODEL_REL_MAP
 
 
 class MetadataQueryIntersectionsView(MetadataAnnotateView):
     """Metadata query fk & m2m intersections."""
 
-    def _query_groups(self) -> dict:
-        """Query the through models to show group lists."""
-        groups = {}
+    def _query_collection_lists(self) -> dict:
+        """Query the through models to show collection lists."""
+        collection_lists = {}
         if not self.model:
-            return groups
-        group = self.kwargs["group"]
-        rel = METADATA_GROUP_RELATION.get(group)
+            return collection_lists
+        collection = self.kwargs["collection"]
+        rel = METADATA_COLLECTION_RELATION.get(collection)
         if not rel:
-            return groups
+            return collection_lists
         rel = rel + "__in"
         pks = self.kwargs["pks"]
-        group_filter = {rel: pks}
+        collection_filter = {rel: pks}
 
-        for model in GROUP_MODELS.get(group, ()):
+        for model in COLLECTION_MODELS.get(collection, ()):
             field_name = MODEL_REL_MAP[model]
-            qs = model.objects.filter(**group_filter)
-            groups[field_name] = annotate_group_list(qs)
-        return groups
+            qs = model.objects.filter(**collection_filter)
+            collection_lists[field_name] = annotate_collection_list(qs)
+        return collection_lists
 
-    def _get_comic_pks(self, filtered_qs: QuerySet) -> frozenset[int]:
+    def _get_comic_pks(self, filtered_qs: QuerySet) -> QuerySet:
+        """
+        Distinct child-comic pks as an un-evaluated single-column subquery.
+
+        Kept as a subquery rather than a materialized set: inlining the
+        pks binds one SQL variable per comic per union arm, and the m2m
+        intersection union has 12 arms — any collection over ~2,700
+        comics blows SQLite's 32,766-variable limit and 500s the
+        request. The subquery keeps the statement constant-size.
+        """
         pk_field = self.rel_prefix + "pk"
-        comic_pks = filtered_qs.distinct().values_list(pk_field, flat=True)
-        # In fts mode the join doesn't work for the query.
-        # Evaluating it now is probably faster than running the filter for every m2m anyway.
-        return frozenset(comic_pks)
+        # ``values()`` returns a QuerySet at runtime; the stubs' ValuesQuerySet
+        # isn't assignable to it.
+        return filtered_qs.distinct().values(pk_field)  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def _get_optimized_fk_query(qs):
@@ -61,7 +69,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         return qs.only(*only)
 
     def _get_fk_intersection_query(
-        self, field_name: str, comic_pks: frozenset[int], rel: str
+        self, field_name: str, comic_pks: QuerySet, rel: str, num_comics: int
     ):
         """Get intersection query for one field."""
         model = Comic._meta.get_field(field_name).related_model
@@ -69,26 +77,31 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             reason = f"No model found for comic field: {field_name}"
             raise ValueError(reason)
 
-        rel += "__in"
-        intersection_qs = model.objects.filter(**{rel: comic_pks})
-        intersection_qs = intersection_qs.alias(count=Count("comic")).filter(
-            count=len(comic_pks)
+        intersection_qs = model.objects.filter(**{rel + "__in": comic_pks})
+        # Count the SAME relation the filter traverses so Django reuses
+        # the filtered join. Counting the bare ``comic`` reverse relation
+        # is wrong for the ``main_*`` fields (their filter goes through
+        # the ``main_*_in_comics`` back-relations): it HAVING-counts the
+        # unfiltered m2m and forces a separate unindexed join — measured
+        # 2s per request on the biggest publisher.
+        intersection_qs = intersection_qs.alias(count=Count(rel)).filter(
+            count=num_comics
         )
         return self._get_optimized_fk_query(intersection_qs)
 
-    def _query_fk_intersections(self, comic_pks: frozenset[int]) -> dict:
+    def _query_fk_intersections(self, comic_pks: QuerySet, num_comics: int) -> dict:
         fk_intersections = {}
 
         for field in COMIC_FK_FIELDS:
             rel = COMIC_MAIN_FIELD_NAME_BACK_REL_MAP.get(field.name, "comic__pk")
             fk_intersections[field.name] = self._get_fk_intersection_query(
-                field.name, comic_pks, rel
+                field.name, comic_pks, rel, num_comics
             )
         return fk_intersections
 
     @staticmethod
     def _get_m2m_intersection_query(
-        field: ManyToManyField, comic_pks: frozenset[int], num_comics: int
+        field: ManyToManyField, comic_pks: QuerySet, num_comics: int
     ) -> QuerySet:
         """Build a through table queryst for a ManyToManyField."""
         through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -110,10 +123,8 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         only = optimizers.get("only", ("name", "identifier"))
         return qs.only(*only)
 
-    def _query_m2m_intersections(self, comic_pks: frozenset[int]) -> dict:
+    def _query_m2m_intersections(self, comic_pks: QuerySet, num_comics: int) -> dict:
         """Query m2m intersections with a single query."""
-        num_comics = len(comic_pks)
-
         # Build one union query across all through tables
         queries = []
         for field in COMIC_M2M_FIELDS:
@@ -145,8 +156,11 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
 
     def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict]:
         """Query complex intersections."""
-        groups = self._query_groups()
+        collection_lists = self._query_collection_lists()
         comic_pks = self._get_comic_pks(filtered_qs)
-        fk_intersections = self._query_fk_intersections(comic_pks)
-        m2m_intersections = self._query_m2m_intersections(comic_pks)
-        return groups, fk_intersections, m2m_intersections
+        # One cheap COUNT round-trip; both intersection paths need the
+        # total and must not re-evaluate the subquery in Python.
+        num_comics = comic_pks.count()
+        fk_intersections = self._query_fk_intersections(comic_pks, num_comics)
+        m2m_intersections = self._query_m2m_intersections(comic_pks, num_comics)
+        return collection_lists, fk_intersections, m2m_intersections

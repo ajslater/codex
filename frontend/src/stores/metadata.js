@@ -1,57 +1,9 @@
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
-import * as API from "@/api/v3/browser";
+import * as API from "@/api/v4/browser";
 import { useBrowserStore } from "@/stores/browser";
 
-const HEAD_ROLES = Object.freeze([
-  // writer
-  "writer",
-  "author",
-  "plotter",
-  "plot",
-  "script",
-  "scripter",
-  "story",
-  "interviewer",
-  "translator",
-  // art
-  "artist",
-  // pencil
-  "penciller",
-  "breakdowns",
-  "pencils",
-  "illustrator",
-  "layouts",
-  // ink
-  "inker",
-  "finishes",
-  "inks",
-  "embellisher",
-  "inkAssists",
-  // color
-  "colorist",
-  "colorer",
-  "colourer",
-  "colors",
-  "colours",
-  "colorDesigner",
-  "colorFlats",
-  "colorSeparations",
-  "designer",
-  "digitalArtTechnician",
-  "grayTone",
-  // letters
-  "letterer",
-  // cover
-  "cover",
-  "covers",
-  "coverArtist",
-  // producers
-  "editor",
-  "edits",
-  "editing",
-]);
 const TAGS = Object.freeze([
   "genres",
   "characters",
@@ -64,95 +16,63 @@ const TAGS = Object.freeze([
   "tags",
   "universes",
 ]);
-const MAIN_TAGS = Object.freeze(new Set(["Characters", "Teams"]));
-
-function compareByLastName(a, b) {
-  const aLast = a.name.split(" ").pop();
-  const bLast = b.name.split(" ").pop();
-  return aLast.localeCompare(bLast);
-}
 
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
     md: undefined,
   }),
   getters: {
-    _mappedCredits(state) {
-      const credits = {};
-      if (!state?.md?.credits) {
-        return credits;
-      }
-
-      // Convert credits into a role based map
-      for (const { role, person } of state.md.credits) {
-        const roleName = role?.name ? role.name : "Other";
-        if (!(roleName in credits)) {
-          credits[roleName] = [];
-        }
-        credits[roleName].push(person);
-      }
-
-      // Sort persons by last name
-      for (const [roleName, persons] of Object.entries(credits)) {
-        credits[roleName] = persons.sort(compareByLastName);
-      }
-
-      return credits;
-    },
-    _sortedRoles(state) {
-      // Sort the roles by special known order and then alphabetically.
-      const roles = Object.keys(state._mappedCredits);
-      const lowercaseRoleMap = {};
-      for (const originalRole of roles) {
-        lowercaseRoleMap[originalRole.toLowerCase()] = originalRole;
-      }
-
-      const sortedRoles = new Set();
-      for (const role of HEAD_ROLES) {
-        const originalRole = lowercaseRoleMap[role];
-        if (!originalRole) {
-          continue;
-        }
-        sortedRoles.add(originalRole);
-        delete lowercaseRoleMap[role];
-        if (!Object.keys(lowercaseRoleMap).length) {
-          break;
-        }
-      }
-      const sortedRolesList = [...sortedRoles];
-      sortedRolesList.sort();
-      return sortedRoles;
-    },
+    /*
+     * v4 ships credits already pivoted to ``{role: [{pk, name, url}]}``
+     * with roles in HEAD_ROLES precedence and persons last-name sorted
+     * (see ``codex/serializers/v4/metadata.py``). The client just
+     * needs to wrap it for the existing ``mapTag`` consumer.
+     */
     credits(state) {
-      return this.mapTag(state._mappedCredits, state._sortedRoles, "credits");
+      const grouped = state?.md?.credits;
+      if (!grouped || typeof grouped !== "object") return {};
+      const roles = Object.keys(grouped);
+      return this.mapTag(grouped, roles, "credits");
     },
+    /*
+     * v4 ships identifiers as ``[{pk, type, code, displayName, url}]``.
+     * Display label rule: show ``displayName:code`` when ``displayName``
+     * is set, else just code.
+     */
     identifiers(state) {
-      const identifiers = [];
-      if (!state.md?.identifiers) {
-        return identifiers;
+      const items = [];
+      const rows = state.md?.identifiers;
+      if (!Array.isArray(rows)) return items;
+      for (const row of rows) {
+        const label = row.displayName
+          ? `${row.displayName}:${row.code}`
+          : row.code;
+        items.push({ pk: row.pk, url: row.url, name: label });
       }
-      for (const identifier of state.md.identifiers) {
-        const parts = identifier.name.split(":");
-        const idType = parts[0];
-        const code = parts[1];
-        const finalTitle = useBrowserStore().identifierSourceTitle(idType);
-        let name = "";
-        if (finalTitle && finalTitle !== "None") {
-          name += finalTitle + ":";
-        }
-        name += code;
-
-        const item = {
-          pk: identifier.pk,
-          url: identifier.url,
-          name,
-        };
-        identifiers.push(item);
+      return items;
+    },
+    /*
+     * The protagonist is stored as mainCharacter XOR mainTeam — both
+     * filled should never happen, but display both if it does. Each
+     * chip carries its own browser filter key so the character chip
+     * filters characters and the team chip filters teams.
+     */
+    protagonists(state) {
+      const protagonists = [];
+      if (state.md?.mainCharacter) {
+        protagonists.push({ ...state.md.mainCharacter, filter: "characters" });
       }
-      return identifiers;
+      if (state.md?.mainTeam) {
+        protagonists.push({ ...state.md.mainTeam, filter: "teams" });
+      }
+      return protagonists;
     },
     tags(state) {
-      const tags = state.mapTag(state.md, TAGS);
+      const tags = {};
+      if (state.protagonists.length) {
+        tags["Protagonist"] = { filter: "", tags: state.protagonists };
+      }
+      Object.assign(tags, state.mapTag(state.md, TAGS));
 
       if (state.identifiers?.length) {
         tags["Identifiers"] = {
@@ -167,8 +87,11 @@ export const useMetadataStore = defineStore("metadata", {
     },
   },
   actions: {
-    async loadMetadata({ group, pks }) {
-      await API.getMetadata({ group, pks }, useBrowserStore().metadataSettings)
+    async loadMetadata({ collection, pks }) {
+      await API.getMetadata(
+        { collection, pks },
+        useBrowserStore().metadataSettings,
+      )
         .then((response) => {
           const md = { ...response.data };
           md.loaded = true;
@@ -192,27 +115,6 @@ export const useMetadataStore = defineStore("metadata", {
       }
       return tagName;
     },
-    /*
-     *labelUniverses(tags) {
-     *  for (const tag of tags) {
-     *    tag.name += ` (${tag.designation})`;
-     *  }
-     *},
-     */
-    markTagMain(tagName, tags) {
-      const attr = "main" + tagName.slice(0, -1);
-      const mainPk = this.md[attr]?.pk;
-      const regularTags = [];
-      var mainTags = [];
-      for (const tag of tags) {
-        if (mainPk === tag.pk) {
-          mainTags.push(tag);
-        } else {
-          regularTags.push(tag);
-        }
-      }
-      return { mainTags, regularTags };
-    },
     mapTag(tagSource, keys, filter = undefined) {
       const tagMap = {};
 
@@ -222,29 +124,12 @@ export const useMetadataStore = defineStore("metadata", {
           continue;
         }
         const tagName = this.getTagName(key);
-
-        var mainTags = [];
-        var regularTags = [];
-        /*
-         *if (tagName === "Universes") {
-         *  this.labelUniverses(tags);
-         *  regularTags = tags;
-         *} else
-         */
-        if (MAIN_TAGS.has(tagName)) {
-          ({ mainTags, regularTags } = this.markTagMain(tagName, tags));
-        } else {
-          regularTags = tags;
-        }
-
-        filter = filter ? filter : key;
-
-        tagMap[tagName] = { filter, tags: regularTags, mainTags };
+        tagMap[tagName] = { filter: filter || key, tags };
       }
       return tagMap;
     },
-    lazyImport({ group, ids }) {
-      return API.getLazyImport({ group, pks: ids });
+    lazyImport({ collection, ids }) {
+      return API.getLazyImport({ collection, pks: ids });
     },
   },
 });

@@ -4,7 +4,7 @@
       openDelay: 1000,
       text: 'Always show filenames on the browser cards',
     }"
-    class="browserGroupCheckbox"
+    class="browserCollectionCheckbox"
     density="compact"
     label="Always Show Filenames"
     hide-details="auto"
@@ -12,7 +12,7 @@
     @update:model-value="setSetting('alwaysShowFilename', $event)"
   />
   <v-checkbox
-    class="browserGroupCheckbox"
+    class="browserCollectionCheckbox"
     density="compact"
     hide-details="auto"
     :model-value="twentyFourHourTime"
@@ -50,7 +50,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.browserGroupCheckbox {
+.browserCollectionCheckbox {
   padding-right: 10px;
   padding-left: 15px;
 }

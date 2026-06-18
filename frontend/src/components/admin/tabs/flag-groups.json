@@ -1,11 +1,7 @@
 [
   {
-    "title": "Access & Privacy",
-    "keys": ["RG", "NU", "AA", "AR", "FV"]
-  },
-  {
     "title": "Browser Display",
-    "keys": ["BG", "BT"]
+    "keys": ["BG", "MP", "BT", "FV"]
   },
   {
     "title": "Tags Import",

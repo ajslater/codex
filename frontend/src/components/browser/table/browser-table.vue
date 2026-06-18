@@ -63,7 +63,7 @@
               :column="col"
               :row="row"
               :cover-size="coverSize"
-              :cover-group="coverGroupFor(row)"
+              :cover-collection="coverCollectionFor(row)"
             />
           </td>
         </tr>
@@ -81,6 +81,7 @@ import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BrowserEmptyState from "@/components/browser/empty.vue";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
+import { routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
@@ -121,15 +122,15 @@ export default {
     }),
     rows() {
       /*
-       * Backend emits ``rows`` for table mode, ``groups``/``books`` for
+       * Backend emits ``rows`` for table mode, ``collections``/``books`` for
        * cover mode. Be tolerant: mid-toggle the store may briefly hold
        * a cover-shaped page, so fall back to the concatenated list.
        */
       const page = this.pageData;
       if (Array.isArray(page?.rows)) return page.rows;
-      const groups = page?.groups ?? [];
+      const collections = page?.collections ?? [];
       const books = page?.books ?? [];
-      return [...groups, ...books];
+      return [...collections, ...books];
     },
     visibleColumns() {
       return useBrowserStore()._resolveTableColumns();
@@ -170,7 +171,7 @@ export default {
        * with the inline disable.
        */
       if (!Object.hasOwn(BROWSER_TABLE_COLUMNS, column)) return undefined;
-      // eslint-disable-next-line security/detect-object-injection
+
       return BROWSER_TABLE_COLUMNS[column];
     },
     labelFor(column) {
@@ -285,18 +286,19 @@ export default {
     },
     rowKey(row) {
       /*
-       * ``rowKey`` matches the BrowserCard's ``${item.group}${item.ids}``
+       * ``rowKey`` matches the BrowserCard's ``${item.collection}${item.ids}``
        * shape so vue's diff is stable across re-renders.
        */
-      if (row.group !== undefined) return `${row.group}${row.ids ?? ""}`;
-      return `c${row.pk}`;
+      if (row.collection !== undefined)
+        return `${row.collection}${row.ids ?? ""}`;
+      return `comics${row.pk}`;
     },
-    coverGroupFor(row) {
-      return row.group ?? "c";
+    coverCollectionFor(row) {
+      return row.collection ?? "comics";
     },
     onRowClick(row, event) {
       /*
-       * Comic rows -> reader; group rows -> drill in. Mirrors the
+       * Comic rows -> reader; collection row -> drill in. Mirrors the
        * navigation contract of <BrowserCard> so the table behaves as
        * an alternate presentation, not an alternate router. When
        * select-many is active, plain row clicks toggle the selection
@@ -307,11 +309,22 @@ export default {
         this.selectItemAt(row, { shift: Boolean(event?.shiftKey) });
         return;
       }
-      const group = row.group ?? "c";
+      const rowCollection = row.collection ?? "comics";
       const pks = row.ids ?? [row.pk];
-      const path =
-        group === "c" ? `/c/${pks[0]}/1` : `/${group}/${pks.join(",")}/1`;
-      this.$router.push(path);
+      if (rowCollection === "comics") {
+        this.$router.push({ name: "reader", params: { pk: pks[0] } });
+        return;
+      }
+      const { collection, parentIds } = routeForCollection({
+        collection: rowCollection,
+        pks: pks.join(","),
+      });
+      this.$router.push({
+        name: "browser",
+        params: parentIds.length
+          ? { collection, parentIds: parentIds.join(",") }
+          : { collection },
+      });
     },
     cellClasses(column, isHeader) {
       /*

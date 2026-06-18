@@ -8,13 +8,16 @@ from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
-from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from rest_framework.throttling import BaseThrottle
 
+from codex.collection import Collection
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v1 import OPDS1TemplateSerializer
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
+from codex.settings import FALSY
+from codex.settings.db import get_browser_max_obj_per_page
+from codex.throttling import ScopedRateThrottle
 from codex.version import VERSION
 from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE
 from codex.views.opds.metadata import (
@@ -77,6 +80,9 @@ class OPDS1FeedView(OPDS1LinksView):
     input_serializer_class: type[OPDSSettingsSerializer] = OPDSSettingsSerializer
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
+    # The collection feed URLs carry no page segment; AuthMixin pulls
+    # ``page`` from ``?page=`` (defaulting to 1) on the way in.
+    requires_page = True
 
     @property
     def version(self):
@@ -111,8 +117,8 @@ class OPDS1FeedView(OPDS1LinksView):
             pks = self.kwargs["pks"]
             if not parent_name and not pks:
                 parent_name = "All"
-            group_name = browser_title.get("group_name")
-            result = " ".join(filter(None, (parent_name, group_name))).strip()
+            collection_name = browser_title.get("collection_name")
+            result = " ".join(filter(None, (parent_name, collection_name))).strip()
         return result or BLANK_TITLE
 
     @property
@@ -127,7 +133,7 @@ class OPDS1FeedView(OPDS1LinksView):
     def items_per_page(self) -> int | None:
         """Return opensearch:itemsPerPage."""
         if self.params.get("search"):
-            return BROWSER_MAX_OBJ_PER_PAGE
+            return get_browser_max_obj_per_page()
         return None
 
     @property
@@ -162,7 +168,7 @@ class OPDS1FeedView(OPDS1LinksView):
                 )
                 category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
             data = OPDS1EntryData(
-                self.opds_acquisition_groups,
+                self.opds_acquisition_collections,
                 zero_pad,
                 metadata,
                 self.mime_type_map,
@@ -183,7 +189,9 @@ class OPDS1FeedView(OPDS1LinksView):
                     import_pks.add(obj.pk)
                 entries.append(entry)
             if import_pks:
-                task = LazyImportComicsTask(group="c", pks=frozenset(import_pks))
+                task = LazyImportComicsTask(
+                    collection=Collection.COMIC, pks=frozenset(import_pks)
+                )
                 LIBRARIAN_QUEUE.put(task)
         return entries
 

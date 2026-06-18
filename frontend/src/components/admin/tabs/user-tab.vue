@@ -1,4 +1,10 @@
 <template>
+  <!--
+    The users table spans full width (utility: show as many columns as
+    possible). The settings below it — the help prose and the flag-card
+    sections — sit in a .adminReadingColumn so the same controls read at
+    the same width as on the Settings tab. See frontend/DESIGN.md §1.
+  -->
   <div>
     <header class="tabHeader">
       <AdminCreateUpdateDialog
@@ -6,18 +12,6 @@
         :inputs="AdminUserCreateUpdateInputs"
         max-width="320"
       />
-      <!--
-        Anonymous-session ceiling is not stored per-user; it's the ``AA``
-        admin flag. Show the current value read-only here, and point at
-        the Flags tab where it's actually editable.
-      -->
-      <div class="anonAgeRating">
-        Anonymous sessions see up to:
-        <strong>{{ anonAgeRating }}</strong>
-        <span class="anonAgeRatingHint">
-          (set on the Flags tab as <em>Anonymous User Age Rating</em>.)
-        </span>
-      </div>
     </header>
     <AdminTable item-title="username" :headers="headers" :items="users">
       <template #no-data>
@@ -41,8 +35,23 @@
       <template #[`item.isStaff`]="{ item }">
         <v-checkbox-btn :model-value="item.isStaff" disabled />
       </template>
+      <!--
+        Active is overloaded — Django's ``is_active`` flag controls
+        both "can log in at all" and "has clicked the verification
+        link" (when ``Verify New User Email`` is on). Split the
+        display so inactive accounts that are *waiting* on a
+        verification email are visually distinct from accounts an
+        admin disabled manually.
+      -->
       <template #[`item.isActive`]="{ item }">
-        <v-checkbox-btn :model-value="item.isActive" disabled />
+        <v-chip
+          :color="activeStatus(item).color"
+          size="x-small"
+          variant="tonal"
+          :title="activeStatus(item).hint"
+        >
+          {{ activeStatus(item).label }}
+        </v-chip>
       </template>
       <template #[`item.groups`]="{ item }">
         <RelationChips
@@ -79,6 +88,23 @@
           size="small"
           density="compact"
         />
+        <!--
+          Resend the registration-verification email. Only shown when
+          the user is still inactive AND the site requires email
+          verification AND a working email backend is configured AND
+          the row has an address on file. Hidden otherwise — silent
+          UI rather than disabled buttons with tooltips, since each
+          missing condition has its own remediation tab.
+        -->
+        <v-btn
+          v-if="canSendVerification(item)"
+          :icon="mdiEmailArrowRightOutline"
+          variant="text"
+          size="small"
+          density="compact"
+          title="Resend verification email"
+          @click="sendVerification(item)"
+        />
         <AdminDeleteRowDialog
           v-if="me.id !== item.pk"
           table="User"
@@ -89,55 +115,85 @@
         />
       </template>
     </AdminTable>
-    <div id="ageRatingHelp">
-      <h3>Age Rating Restrictions</h3>
-      <p>
-        Age-rating restrictions set a user's age rating ceiling. Comics that
-        carry no age-rating tag are treated as if rated
-        <strong>{{ ageRatingDefault }}</strong> &mdash; the current
-        <em>Age Rating Default</em>. You may adjust the default age rating for
-        comics with no age-rating tag (<em>Age Rating Default</em>) and the
-        anonymous session ceiling (<em>Anonymous User Age Rating</em>) on the
-        <em>Flags</em> tab.
-      </p>
-
-      <p>
-        <strong>Admins are not exempt.</strong> An admin with an Age Rating
-        ceiling set cannot see comics above that ceiling.
-      </p>
+    <div class="adminReadingColumn">
+      <div class="adminProse ageRatingHelp">
+        <h3>Age Rating Restrictions</h3>
+        <p>
+          Age-rating restrictions set a user's age rating ceiling. Comics that
+          carry no age-rating tag are treated as if rated
+          <strong>{{ ageRatingDefault }}</strong> &mdash; the current
+          <em>Age Rating Default</em> set below.
+        </p>
+        <p>
+          <strong>Admins are not exempt.</strong> An admin with an Age Rating
+          ceiling set cannot see comics above that ceiling.
+        </p>
+      </div>
+      <!--
+        Account & Access controls live on the Users tab so admins can
+        change registration / verification / anonymous-access policy
+        next to the user list they affect. The Settings tab no longer
+        mirrors these.
+      -->
+      <AdminSection title="Account & Access">
+        <FlagCard
+          v-for="key in ACCESS_FLAG_KEYS"
+          :key="`f${key}`"
+          :item-key="key"
+        />
+      </AdminSection>
+      <AdminSection title="Age Ratings">
+        <FlagCard
+          v-for="key in AGE_RATING_FLAG_KEYS"
+          :key="`f${key}`"
+          :item-key="key"
+        />
+      </AdminSection>
     </div>
   </div>
 </template>
 
 <script>
+import { mdiEmailArrowRightOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
 import AdminUserCreateUpdateInputs from "@/components/admin/create-update-dialog/user-create-update-inputs.vue";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
+import FlagCard from "@/components/admin/tabs/flag-card.vue";
 import RelationChips from "@/components/admin/tabs/relation-chips.vue";
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
+const ACCESS_FLAG_KEYS = Object.freeze(["RG", "RV", "NU"]);
+const AGE_RATING_FLAG_KEYS = Object.freeze(["AA", "AR"]);
+
 export default {
   name: "AdminUsersTab",
   components: {
+    AdminSection,
     AdminTable,
     AdminDeleteRowDialog,
     ChangePasswordDialog,
     AdminCreateUpdateDialog,
     DateTimeColumn,
+    FlagCard,
     RelationChips,
   },
   data() {
     return {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
+      ACCESS_FLAG_KEYS,
+      AGE_RATING_FLAG_KEYS,
+      mdiEmailArrowRightOutline,
       headers: [
         { title: "Username", key: "username", align: "start" },
+        { title: "Email", key: "email", align: "start" },
         { title: "Staff", key: "isStaff" },
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },
@@ -158,16 +214,8 @@ export default {
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
+      adminFlags: (state) => state.adminFlags,
     }),
-    /** Resolve the ``AA`` admin flag FK to a metron name (read-only display). */
-    anonAgeRating() {
-      /*
-       * ``AA`` / ``AR`` store a typed FK (``ageRatingMetron``), not a
-       * string. Fall back to the seeded default if the flag or the
-       * metron list hasn't loaded yet.
-       */
-      return this._flagMetronName("AA", "Adult");
-    },
     ageRatingDefault() {
       return this._flagMetronName("AR", "Everyone");
     },
@@ -175,12 +223,50 @@ export default {
   mounted() {
     /*
      * AgeRatingMetron populates the per-user dropdown and the column
-     * name resolver; Flag gives us the ``AA`` value to display.
+     * name resolver; Flag drives the FlagCard sections. The admin
+     * flags from the auth store gate the "Resend verification"
+     * action button below.
      */
     this.loadTables(["Group", "User", "AgeRatingMetron", "Flag"]);
+    this.loadAdminFlags();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTables"]),
+    ...mapActions(useAdminStore, ["loadTables", "sendUserVerificationEmail"]),
+    ...mapActions(useAuthStore, ["loadAdminFlags"]),
+    canSendVerification(item) {
+      return Boolean(
+        !item.isActive &&
+        item.email &&
+        this.adminFlags.registerVerification &&
+        this.adminFlags.emailEnabled,
+      );
+    },
+    activeStatus(item) {
+      if (item.isActive) {
+        return {
+          label: "Active",
+          color: "success",
+          hint: "User can log in.",
+        };
+      }
+      if (this.adminFlags.registerVerification && item.email) {
+        return {
+          label: "Pending Verification",
+          color: "warning",
+          hint:
+            "User has not clicked the email verification link yet." +
+            " Use the email-arrow action to resend the link.",
+        };
+      }
+      return {
+        label: "Inactive",
+        color: "error",
+        hint: "User cannot log in.",
+      };
+    },
+    sendVerification(item) {
+      this.sendUserVerificationEmail(item.pk).catch(console.error);
+    },
     ageRatingName(pk) {
       if (pk == undefined) {
         return UNRESTRICTED_LABEL;
@@ -204,20 +290,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.anonAgeRating {
-  margin-top: 0.5em;
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: 0.9em;
-}
+@use "@/components/admin/tabs/admin-section.scss";
 
-.anonAgeRatingHint {
-  margin-left: 0.4em;
-  font-size: 0.85em;
-}
-
-#ageRatingHelp {
-  margin-top: 2em;
-  margin-bottom: 2em;
-  color: rgb(var(--v-theme-textSecondary));
+.ageRatingHelp {
+  margin: 2em 0;
 }
 </style>

@@ -9,9 +9,7 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
-from codex.settings import DEBUG
-from codex.views.opds.const import MimeType, UserAgentNames
-from codex.views.opds.user_agent import get_user_agent_name
+from codex.views.opds.const import MimeType
 
 _LOGO_SIZE = 180
 _BASIC_AUTH_REALM = "Codex OPDS"
@@ -57,22 +55,28 @@ class OPDSAuthentication1View(GenericAPIView):
 
     @staticmethod
     def _absolute_doc(request) -> dict:
-        """Absolutize the logo link url."""
+        """
+        Return the auth document with absolute URLs.
+
+        OPDS Authentication's ``id`` is the document's canonical location — a
+        ``format: uri`` (absolute) value — and strict clients (e.g. Stump)
+        reject a relative ``id`` (or relative link hrefs). Build a fresh copy so
+        the module-level ``_DOC`` singleton is never mutated; ``build_absolute_uri``
+        leaves already-absolute hrefs (e.g. the help link) untouched.
+        """
         doc = dict(_DOC)
-        logo_link: dict[str, str | int] = doc["links"][0]  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
-        href = logo_link["href"]
-        href = request.build_absolute_uri(href)
-        logo_link["href"] = href
+        doc["id"] = request.build_absolute_uri(str(_DOC["id"]))
+        links: list[dict[str, str | int]] = _DOC["links"]  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+        doc["links"] = [
+            {**link, "href": request.build_absolute_uri(str(link["href"]))}
+            for link in links
+        ]
         return doc
 
     @classmethod
     def static_get(cls, request, status_code=status.HTTP_200_OK) -> JsonResponse:
-        """Serialize the authentication dict."""
-        user_agent_name = get_user_agent_name(request)
-        if DEBUG or user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:
-            doc = cls._absolute_doc(request)
-        else:
-            doc = _DOC
+        """Serialize the authentication dict with absolute URLs."""
+        doc = cls._absolute_doc(request)
         serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
         response = JsonResponse(
             serializer.data,

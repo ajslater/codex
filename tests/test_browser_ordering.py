@@ -17,6 +17,7 @@ These tests confirm:
 
 import json
 import shutil
+from datetime import timedelta
 from pathlib import Path
 from typing import Final, override
 
@@ -24,10 +25,11 @@ import pytest
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
+from django.utils import timezone
 
 from codex.choices.browser import BROWSER_ORDER_BY_CHOICES, BROWSER_TABLE_COLUMNS
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.startup import init_admin_flags
 from codex.views.browser.order_by import (
@@ -59,6 +61,15 @@ _NEW_ORDER_BY_KEYS: Final = (
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 TMP_DIR = Path("/tmp/codex.tests.browser_ordering")  # noqa: S108
+_SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
 
 
 @pytest.mark.parametrize("key", _NEW_ORDER_BY_KEYS)
@@ -175,7 +186,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
     def _patch_order_by(self, key: str, *, reverse: bool = False) -> None:
         response = self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=f'{{"orderBy":"{key}","orderReverse":{str(reverse).lower()}}}',
             content_type="application/json",
         )
@@ -183,21 +194,95 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
     def _patch_settings(self, payload: dict) -> None:
         response = self.client.patch(
-            "/api/v3/r/settings",
+            _SETTINGS_URL,
             data=json.dumps(payload),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
 
+    def test_card_mtime_tracks_collection_updated_at(self) -> None:
+        """
+        The card mtime reads the collection row's own ``updated_at`` column.
+
+        Option B consolidation: the browser no longer re-aggregates
+        ``comic__updated_at`` for the card mtime — it reads the collection
+        row's own ``updated_at`` (kept fresh by ``TimestampUpdater``).
+        Bumping ``Series.updated_at`` directly must move that series card's
+        mtime; the old ``Max(comic__updated_at)`` path would have ignored it.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        self._patch_settings({"viewMode": "cover", "orderBy": "sort_name"})
+
+        def _alpha_card_mtime() -> int:
+            cache.clear()
+            response = self.client.get(url)
+            assert response.status_code == _HTTP_OK, response.content
+            cards = _v4(response).get("collections", [])
+            alpha = next(c for c in cards if c.get("name") == "Alpha")
+            return alpha["mtime"]
+
+        before = _alpha_card_mtime()
+
+        # Simulate TimestampUpdater bumping the collection row's own column.
+        # ``update()`` bypasses ``auto_now`` so the literal value sticks.
+        future = timezone.now() + timedelta(days=1)
+        Series.objects.filter(name="Alpha").update(updated_at=future)
+
+        after = _alpha_card_mtime()
+        assert after > before, (before, after)
+        assert abs(after - int(future.timestamp() * 1000)) <= 1, after
+
+    def test_cover_mtime_tracks_representative_not_siblings(self) -> None:
+        """
+        ``cover_mtime`` is the representative cover comic's own updated_at.
+
+        Stage 5 precise busting: a change to a *sibling* comic bumps the
+        group mtime but must NOT move the cover ``?ts=`` (the shown image
+        is unchanged); a change to the representative comic does.
+        """
+        publisher = Publisher.objects.get(name="ZZ Press")
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        self._patch_settings({"viewMode": "cover", "orderBy": "sort_name"})
+
+        def _alpha_cover_mtime() -> int:
+            cache.clear()
+            response = self.client.get(url)
+            assert response.status_code == _HTTP_OK, response.content
+            cards = _v4(response).get("collections", [])
+            alpha = next(c for c in cards if c.get("name") == "Alpha")
+            return alpha["coverMtime"]
+
+        before = _alpha_cover_mtime()
+
+        # Bump the sibling (issue 2). The representative is issue 1, so the
+        # cover timestamp must not move even though the group changed.
+        Comic.objects.filter(pk=self.comic_alpha_2.pk).update(
+            updated_at=timezone.now() + timedelta(days=1)
+        )
+        assert _alpha_cover_mtime() == before
+
+        # Bump the representative (issue 1). Now the cover timestamp moves.
+        future = timezone.now() + timedelta(days=2)
+        Comic.objects.filter(pk=self.comic_alpha_1.pk).update(updated_at=future)
+        after = _alpha_cover_mtime()
+        assert after != before
+        assert abs(after - int(future.timestamp() * 1000)) <= 1, after
+
     def _browse_comics(self) -> list[int]:
         # Browse the Series containing the alpha comics; with the default
         # ``show.v == False`` the response flattens to direct comic books.
+        # v4 strips ``books`` from table-mode responses and ``rows`` from
+        # cover-mode responses (tasks/api-v4.md Phase 3); read whichever
+        # the active view mode emits so callers can pick the mode that
+        # exercises the behavior under test.
         series_a = Series.objects.get(name="Alpha")
-        url = f"/api/v3/s/{series_a.pk}/1"
+        url = f"/api/v4/browse/series/{series_a.pk}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        body = response.json()
-        return [book["pk"] for book in body.get("books", [])]
+        body = _v4(response)
+        items = body.get("books") or body.get("rows") or []
+        return [item["pk"] for item in items]
 
     def test_year_ordering_smoke(self) -> None:
         """Sorting comics by year doesn't error and returns the expected pks."""
@@ -276,8 +361,8 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # Browse comics with ``genres`` in the visible column set so
         # the request matches what the table-view UI would send.
         url = (
-            f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
-            "?columns=cover,name,issue,genres"
+            f"/api/v4/browse/series/{Series.objects.get(name='Alpha').pk}"
+            "?page=1&columns=cover,name,issue,genres"
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
@@ -294,8 +379,11 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         ``asc`` and asserting the order swaps.
         """
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = f"/api/v3/p/{publisher.pk}/1"
-        # Desc extra → larger child_count first.
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        # Desc extra → larger child_count first. Extras only apply in
+        # table view (cover dropdown can't add them); v4 strips
+        # ``groups`` from table responses so the assertions read the
+        # ``name`` projection off ``rows`` (tasks/api-v4.md Phase 3).
         self._patch_settings(
             {
                 "viewMode": "table",
@@ -306,7 +394,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         assert names == ["Alpha", "Beta"], names
 
         # Asc extra → smaller child_count first.
@@ -321,7 +409,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_multi_column_sort_filename_extra(self) -> None:
@@ -337,7 +425,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # On Comic queries the extra resolves to a per-row Right(path)
         # expression, no aggregate. Smoke-test by hitting the endpoint
         # and confirming no crash + the expected row count.
-        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        url = f"/api/v4/browse/series/{Series.objects.get(name='Alpha').pk}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
 
@@ -353,7 +441,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
                 ],
             }
         )
-        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        url = f"/api/v4/browse/series/{Series.objects.get(name='Alpha').pk}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
 
@@ -379,20 +467,24 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         self.comic_beta_1.save()
 
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = f"/api/v3/p/{publisher.pk}/1"
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
+        # Cover view exercises the same ``annotate_order_value`` path
+        # for the simple-FK regression this test guards; v4 strips
+        # ``groups`` from table-mode responses (tasks/api-v4.md Phase 3)
+        # so we'd otherwise need to read from ``rows`` instead.
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "tagger", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "tagger", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Alpha", "Beta"], names
 
         cache.clear()
         self._patch_settings({"orderReverse": True})
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_by_page_count_on_group_rows(self) -> None:
@@ -402,19 +494,22 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         # (23). Cumulative scalars (page_count, size) intentionally
         # use ``Sum`` rather than intersection because the cover-view
         # card already shows the running total — table view matches.
+        # Either ``viewMode`` exercises the same Sum aggregate; use
+        # cover so the v4 response retains ``groups`` (table-mode strips
+        # them — tasks/api-v4.md Phase 3).
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = f"/api/v3/p/{publisher.pk}/1"
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "page_count", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "page_count", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_at_publishers_root(self) -> None:
         """
-        Publishers root (top_group=p, /r/0/1) sorts by aggregated child values.
+        Publishers root (top_collection=p) sorts by aggregated child values.
 
         Adds a second publisher with one comic, picks a sort key
         whose aggregate differs between the two publishers, and
@@ -462,18 +557,24 @@ class BrowserOrderByIntegrationTestCase(TestCase):
             tagger=tagger_c,
         )
 
-        # Browse the root (top_group=p so each row is a publisher).
+        # Browse the root (top_collection=p so each row is a publisher).
+        # Use cover view: the assertion below describes Min aggregate
+        # semantics (table mode would route through intersection,
+        # giving NULL for ZZ Press with mixed taggers). v4 strips
+        # ``groups`` from table responses (tasks/api-v4.md Phase 3),
+        # so cover is both the assertion-correct mode and the one
+        # that keeps ``groups`` in the payload.
         self._patch_settings(
             {
-                "viewMode": "table",
-                "topGroup": "p",
+                "viewMode": "cover",
+                "topCollection": "publishers",
                 "orderBy": "tagger",
                 "orderReverse": False,
             }
         )
-        response = self.client.get("/api/v3/r/0/1")
+        response = self.client.get("/api/v4/browse/publishers?page=1")
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         # Min(comic__tagger__name) per publisher: ZZ Press = Alice (alpha
         # children dominate) tied with Bob → Min = "Alice"; AA Press =
         # "Carol". Asc on those Mins → ZZ Press ("Alice") then AA Press
@@ -569,20 +670,22 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         _comic_in(image_sub, image_top, "image-2", 2023)
 
         # Browse top-level folders (parent_folder=NULL). Folder view
-        # uses the ``f`` group; pk=0 is the conventional "root" pk
-        # that scopes to top-level folders.
+        # uses the ``folders`` collection; omitted parent_ids means
+        # root (top-level folders). View mode stays cover so the
+        # response carries ``groups`` (v4 strips ``groups``/``books``
+        # from table-mode responses — tasks/api-v4.md Phase 3).
         self._patch_settings(
             {
-                "viewMode": "table",
-                "topGroup": "f",
+                "viewMode": "cover",
+                "topCollection": "folders",
                 "orderBy": "year",
                 "orderReverse": True,
             }
         )
-        response = self.client.get("/api/v3/f/0/1")
+        response = self.client.get("/api/v4/browse/folders?page=1")
         assert response.status_code == _HTTP_OK, response.content
-        groups = response.json().get("groups", [])
-        names = [g.get("name") for g in groups]
+        collections = _v4(response).get("collections", [])
+        names = [g.get("name") for g in collections]
         # MarvelTop (intersection 2024) sorts before ImageTop (NULL).
         # Both top folders should be present.
         assert "MarvelTop" in names, names
@@ -646,13 +749,16 @@ class BrowserOrderByIntegrationTestCase(TestCase):
                 page_count=10 + issue,
             )
 
-        url = f"/api/v3/p/{publisher.pk}/1"
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
             {"viewMode": "table", "orderBy": "year", "orderReverse": True}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        # Intersection sort is the table-mode behavior under test; v4
+        # strips ``groups`` from table responses so read the projection
+        # off ``rows`` (tasks/api-v4.md Phase 3).
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         # Beta (2021) before Alpha (2020); Mixed last because its
         # intersection-sort key is NULL.
         assert names == ["Beta", "Alpha", "Mixed"], names
@@ -661,7 +767,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """
         Cover view's group order_value is an aggregate, not an intersection.
 
-        Regression: the table-view PR routed group-row scalar sort
+        Regression: the table-view PR routed collection-row scalar sort
         through ``scalar_intersection_sort_expr`` for every view mode.
         That's correct for table view (sort matches the intersection
         cell display) but blanks the order_value caption beneath
@@ -672,7 +778,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
         Setup matches ``test_year_sort_matches_intersection_display``
         — Alpha (clean 2020), Beta (single 2021), Mixed (2018 + 2024)
-        — but the request uses ``viewMode=cover``. Every group row
+        — but the request uses ``viewMode=cover``. Every collection row
         must come back with a non-null ``orderValue`` so the card
         caption renders.
         """
@@ -705,14 +811,14 @@ class BrowserOrderByIntegrationTestCase(TestCase):
                 page_count=10 + issue,
             )
 
-        url = f"/api/v3/p/{publisher.pk}/1"
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
             {"viewMode": "cover", "orderBy": "year", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        groups = response.json().get("groups", [])
-        by_name = {g["name"]: g for g in groups}
+        collections = _v4(response).get("collections", [])
+        by_name = {g["name"]: g for g in collections}
         # Aggregate (Min year asc): Mixed=2018, Alpha=2020, Beta=2021.
         # None must be null — the user-visible regression was a null
         # caption on Mixed (children disagree). The serializer emits
@@ -727,21 +833,24 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """Min aggregate over a direct integer field (``year``) sorts correctly."""
         # Alpha has two comics, both year=2020 → Min year = 2020.
         # Beta has one comic, year=2021 → Min year = 2021.
-        # Asc → Alpha (2020) first, Beta (2021) second.
+        # Asc → Alpha (2020) first, Beta (2021) second. Both children
+        # of each group share their year, so intersection (table mode)
+        # and Min aggregate (cover mode) agree; use cover so v4 keeps
+        # ``groups`` in the response (tasks/api-v4.md Phase 3).
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = f"/api/v3/p/{publisher.pk}/1"
+        url = f"/api/v4/browse/publishers/{publisher.pk}?page=1"
         self._patch_settings(
-            {"viewMode": "table", "orderBy": "year", "orderReverse": False}
+            {"viewMode": "cover", "orderBy": "year", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Alpha", "Beta"], names
 
         cache.clear()
         self._patch_settings({"orderReverse": True})
         response = self.client.get(url)
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        names = [g.get("name") for g in _v4(response).get("collections", [])]
         assert names == ["Beta", "Alpha"], names
 
     def test_primary_sort_with_table_columns_query_params(self) -> None:
@@ -754,13 +863,19 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         refactor doesn't silently regress sort-with-visible-columns.
         """
         publisher = Publisher.objects.get(name="ZZ Press")
-        url = f"/api/v3/p/{publisher.pk}/1?columns=cover,name,year,page_count"
+        url = (
+            f"/api/v4/browse/publishers/{publisher.pk}"
+            "?page=1&columns=cover,name,year,page_count"
+        )
         self._patch_settings(
             {"viewMode": "table", "orderBy": "year", "orderReverse": False}
         )
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        names = [g.get("name") for g in response.json().get("groups", [])]
+        # Table-mode column-projection is exactly what this test
+        # exercises; v4 strips ``groups`` from table responses so read
+        # ``name`` off ``rows`` (tasks/api-v4.md Phase 3).
+        names = [r.get("name") for r in _v4(response).get("rows", [])]
         # Year intersection: Alpha=2020 (matched), Beta=2021 (single).
         # ASC → Alpha (2020) before Beta (2021).
         assert names == ["Alpha", "Beta"], names
@@ -782,7 +897,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
                 "orderExtraKeys": [{"key": "story_arc_number", "reverse": False}],
             }
         )
-        url = f"/api/v3/s/{Series.objects.get(name='Alpha').pk}/1"
+        url = f"/api/v4/browse/series/{Series.objects.get(name='Alpha').pk}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
 

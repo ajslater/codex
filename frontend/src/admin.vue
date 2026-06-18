@@ -3,6 +3,7 @@
     <AdminHeader />
     <AdminTabs />
     <AdminSettingsDrawer />
+    <OnlineTagPromptPopup />
   </v-main>
   <Unauthorized v-else />
 </template>
@@ -14,6 +15,7 @@ import { mapState } from "pinia";
 import AdminHeader from "@/components/admin/admin-header.vue";
 import AdminSettingsDrawer from "@/components/admin/drawer/admin-settings-drawer.vue";
 import AdminTabs from "@/components/admin/tabs/tabs.vue";
+import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import Unauthorized from "@/components/unauthorized.vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -23,6 +25,7 @@ export default {
     AdminHeader,
     AdminSettingsDrawer,
     AdminTabs,
+    OnlineTagPromptPopup,
     Unauthorized,
   },
   data() {

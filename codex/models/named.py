@@ -8,8 +8,8 @@ from django.db.models import (
 )
 
 from codex.models.base import MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.collections import BrowserCollectionModel
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
-from codex.models.groups import BrowserGroupModel
 from codex.models.identifier import Identifier
 
 __all__ = (
@@ -128,10 +128,10 @@ class Story(IdentifiedNamedModel):
         verbose_name_plural = "Stories"
 
 
-class StoryArc(IdentifiedNamedModel, BrowserGroupModel):
+class StoryArc(IdentifiedNamedModel, BrowserCollectionModel):
     """A story arc the comic is part of."""
 
-    class Meta(IdentifiedNamedModel.Meta, BrowserGroupModel.Meta):
+    class Meta(IdentifiedNamedModel.Meta, BrowserCollectionModel.Meta):
         """Fix Meta inheritance."""
 
 

@@ -4,6 +4,11 @@ from decimal import ROUND_DOWN, Decimal
 from html import unescape
 from typing import Any, override
 
+from cryptography.fernet import (
+    Fernet,
+    InvalidToken,
+)
+from django.conf import settings
 from django.db.models.fields import (
     CharField,
     DecimalField,
@@ -11,6 +16,40 @@ from django.db.models.fields import (
     TextField,
 )
 from nh3 import clean
+
+
+def _get_fernet():
+    """Lazy Fernet instance from the FIELD_ENCRYPTION_KEY setting."""
+    return Fernet(settings.FIELD_ENCRYPTION_KEY)
+
+
+class EncryptedCharField(CharField):
+    """CharField that stores Fernet-encrypted values in the database."""
+
+    @override
+    def __init__(self, *args, **kwargs):
+        """Default max_length to 512 to accommodate ciphertext expansion."""
+        kwargs.setdefault("max_length", 512)
+        kwargs.setdefault("blank", True)
+        kwargs.setdefault("default", "")
+        super().__init__(*args, **kwargs)
+
+    @override
+    def get_prep_value(self, value):
+        """Encrypt before writing to DB."""
+        value = super().get_prep_value(value)
+        if not value:
+            return value
+        return _get_fernet().encrypt(value.encode()).decode()
+
+    def from_db_value(self, value, _expression, _connection):
+        """Decrypt when reading from DB."""
+        if not value:
+            return value
+        try:
+            return _get_fernet().decrypt(value.encode()).decode()
+        except InvalidToken:
+            return value
 
 
 class CleaningStringFieldMixin:
@@ -63,13 +102,26 @@ class CoercingPositiveSmallIntegerField(
 
 
 class CoercingDecimalField(DecimalField):
-    """Custom DecimalField."""
+    """Custom DecimalField with quantize + optional caller-supplied max."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, coerce_max: Decimal | None = None, **kwargs) -> None:
         """Init coercing values."""
         super().__init__(*args, **kwargs)
         self._quantize_str = Decimal(f"1e-{self.decimal_places}")
-        self._decimal_max = Decimal(10 ** (self.max_digits - 2) - 1)
+        # Field-ceiling derived from the column shape (largest representable
+        # value for ``max_digits`` / ``decimal_places``).
+        self._decimal_max = Decimal(10 ** (self.max_digits - self.decimal_places) - 1)
+        # Optional caller-supplied ceiling (e.g. 5.0 for ``critical_rating``).
+        # Applied after the field-ceiling so the tighter of the two wins.
+        self._coerce_max = coerce_max
+
+    @override
+    def deconstruct(self):
+        """Preserve ``coerce_max`` across migrations."""
+        name, path, args, kwargs = super().deconstruct()
+        if self._coerce_max is not None:
+            kwargs["coerce_max"] = self._coerce_max
+        return name, path, args, kwargs
 
     @override
     def get_prep_value(self, value) -> Any:
@@ -80,4 +132,6 @@ class CoercingDecimalField(DecimalField):
                 self._quantize_str, rounding=ROUND_DOWN
             )
             prepped_value = prepped_value.min(self._decimal_max)
+            if self._coerce_max is not None:
+                prepped_value = prepped_value.min(self._coerce_max)
         return prepped_value

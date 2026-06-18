@@ -2,6 +2,7 @@
 
 from abc import ABC
 from dataclasses import dataclass
+from datetime import datetime
 from time import time
 from typing import ClassVar
 
@@ -25,6 +26,12 @@ class Status(ABC):
     subtitle: str = ""
     start_time: float | None = None
     log_success: bool = False
+    # Absolute target timestamps the admin UI counts down to. ``eta`` is the
+    # estimated completion of the whole task; ``retry_at`` is when the next
+    # online request is attempted while rate-limited. Persisted to the
+    # LibrarianStatus row so the countdowns survive a page reload.
+    eta: datetime | None = None
+    retry_at: datetime | None = None
 
     @classmethod
     def title(cls) -> str:

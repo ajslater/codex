@@ -12,7 +12,7 @@
         :title="loginLabel"
       />
     </template>
-    <v-form id="authDialog" ref="form">
+    <v-form id="authDialog" ref="form" validate-on="submit">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
@@ -48,6 +48,31 @@
           :rules="rules.passwordConfirm"
           clearable
           type="password"
+          @keydown.enter="
+            if (emailRequired) {
+              $refs.email.focus();
+            } else {
+              submit();
+            }
+          "
+        />
+      </v-expand-transition>
+      <!--
+        Email is only collected when ``Verify New User Email`` is on.
+        The backend requires an address to send the verification link
+        to; the field is hidden otherwise to keep the no-verification
+        register flow as short as possible.
+      -->
+      <v-expand-transition>
+        <v-text-field
+          v-if="emailRequired"
+          ref="email"
+          v-model="credentials.email"
+          autocomplete="email"
+          label="Email"
+          type="email"
+          :rules="rules.email"
+          clearable
           @keydown.enter="submit"
         />
       </v-expand-transition>
@@ -58,6 +83,7 @@
       >
         Register
       </v-switch>
+      <ResetPasswordRequestDialog v-if="adminFlags.emailEnabled" />
       <SubmitFooter
         :verb="registerMode ? 'Register' : 'Login'"
         table=""
@@ -74,6 +100,7 @@ import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import authFormMixin from "@/components/auth/auth-form-mixin";
+import ResetPasswordRequestDialog from "@/components/auth/reset-password-request-dialog.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -83,6 +110,7 @@ export default {
   components: {
     SubmitFooter,
     CodexListItem,
+    ResetPasswordRequestDialog,
   },
   mixins: [authFormMixin],
   data() {
@@ -103,12 +131,29 @@ export default {
         passwordConfirm: [
           (v) => v === this.credentials.password || "Passwords must match",
         ],
+        email: [
+          (v) => {
+            // Validation only fires when the field is rendered, i.e.
+            // registerMode + RV admin flag both true — see emailRequired.
+            if (!this.emailRequired) {
+              return true;
+            }
+            if (!v) {
+              return "Email is required for verification";
+            }
+            // Minimal shape check — the backend does authoritative
+            // validation. Matches the EmailField default behavior of
+            // requiring an ``@`` with non-empty local + domain parts.
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || "Email is invalid";
+          },
+        ],
       },
       formModel: {},
       credentials: {
         username: "",
         password: "",
         passwordConfirm: "",
+        email: "",
       },
       registerMode: false,
       mdiLogin,
@@ -129,6 +174,13 @@ export default {
         label += " or Register";
       }
       return label;
+    },
+    emailRequired() {
+      // The ``Verify New User Email`` admin flag (RV) drives whether
+      // the backend sends a verification link, which in turn requires
+      // an address to send to. Without RV the address is unused, so
+      // the field stays hidden.
+      return Boolean(this.registerMode && this.adminFlags.registerVerification);
     },
   },
   watch: {

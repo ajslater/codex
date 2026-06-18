@@ -5,9 +5,15 @@ from typing import Any
 
 from loguru import logger
 
-from codex.serializers.fields.reader import VALID_ARC_GROUPS
+from codex.collection import Collection
+from codex.serializers.fields.reader import VALID_ARC_COLLECTIONS
 from codex.serializers.reader import ReaderViewInputSerializer
 from codex.views.reader.settings import ReaderSettingsBaseView
+
+# Top collections with no arc of their own — they read within the series scope.
+_SERIES_COLLAPSE_TOP_COLLECTIONS = frozenset(
+    {Collection.ROOT, Collection.PUBLISHER, Collection.IMPRINT}
+)
 
 
 class ReaderParamsView(ReaderSettingsBaseView):
@@ -18,20 +24,24 @@ class ReaderParamsView(ReaderSettingsBaseView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
-        self._group_pks: dict[str, tuple[int, ...]] = {}
+        self._collection_pks: dict[str, tuple[int, ...]] = {}
         self._params: MappingProxyType[str, Any] | None = None
 
-    def _ensure_arc_group(self, params: dict[str, Any]) -> None:
+    def _ensure_arc_collection(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
-        group = arc.get("group", "")
-        if not group:
-            top_group: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
-                "top_group", browser=True
+        collection = arc.get("collection", "")
+        if not collection:
+            top_collection: str = self.get_from_settings(  # pyright: ignore[reportAssignmentType]
+                "top_collection", browser=True
             )
-            group = "s" if top_group in "rpi" else top_group
-        if group not in VALID_ARC_GROUPS:
-            group = "s"
-        params["arc"]["group"] = group
+            collection = (
+                Collection.SERIES
+                if top_collection in _SERIES_COLLAPSE_TOP_COLLECTIONS
+                else top_collection
+            )
+        if collection not in VALID_ARC_COLLECTIONS:
+            collection = Collection.SERIES
+        params["arc"]["collection"] = collection
 
     @staticmethod
     def _ensure_arc_ids(params: dict[str, Any]) -> None:
@@ -43,11 +53,11 @@ class ReaderParamsView(ReaderSettingsBaseView):
         params["arc"]["ids"] = ids
 
     def _ensure_arc(self, params: dict[str, Any]) -> None:
-        """Ensure the group is valid."""
+        """Ensure the collection is valid."""
         if "arc" not in params:
             params["arc"] = {}
 
-        self._ensure_arc_group(params)
+        self._ensure_arc_collection(params)
         self._ensure_arc_ids(params)
 
     @property

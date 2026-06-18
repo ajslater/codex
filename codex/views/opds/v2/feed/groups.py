@@ -1,12 +1,22 @@
 """OPDS v2.0 Feed Groups."""
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
+from codex.collection import Collection
+from codex.models.collections import (
+    BrowserCollectionModel,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
+from codex.models.comic import Comic
 from codex.models.favorite import Favorite
-from codex.models.groups import BrowserGroupModel
 from codex.models.named import StoryArc
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
@@ -21,6 +31,21 @@ from codex.views.opds.v2.const import (
 )
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 
+# OPDS group link-spec model → browse Collection. Replaces a fragile
+# "first letter of the class name" char lookup that mis-mapped
+# ``StoryArc`` → ``series`` (both start with "s").
+_LINK_SPEC_GROUP: MappingProxyType[type, Collection] = MappingProxyType(
+    {
+        Publisher: Collection.PUBLISHER,
+        Imprint: Collection.IMPRINT,
+        Series: Collection.SERIES,
+        Volume: Collection.VOLUME,
+        Comic: Collection.COMIC,
+        Folder: Collection.FOLDER,
+        StoryArc: Collection.ARC,
+    }
+)
+
 
 class OPDS2FeedGroupsView(OPDS2PublicationsView):
     """OPDS 2.0 Feed Groups."""
@@ -30,23 +55,23 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
     #########
 
     def _create_link_kwargs(
-        self, link_spec: Link | BrowserGroupModel
+        self, link_spec: Link | BrowserCollectionModel
     ) -> dict[str, Any] | dict:
         """Create link kwargs."""
         if isinstance(link_spec, Link):
             if link_spec.group is None:
                 # Start Link
                 return {}
-            group = link_spec.group or self.kwargs.get("group", "r")
+            group = link_spec.group or self.kwargs.get("collection", Collection.ROOT)
             pks = (0,)
         else:
-            group = link_spec.__class__.__name__[0].lower()
+            group = _LINK_SPEC_GROUP[type(link_spec)]
             pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        return {"group": group, "pks": pks, "page": 1}
+        return {"collection": group, "pks": pks, "page": 1}
 
     @staticmethod
     def _create_link_query_params(
-        link_spec: Link | BrowserGroupModel, kwargs: Mapping
+        link_spec: Link | BrowserCollectionModel, kwargs: Mapping
     ) -> Mapping | None:
         """Create link query params."""
         if not isinstance(link_spec, Link | StoryArc):
@@ -56,7 +81,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         # Special order by for story_arcs
         if (
             kwargs
-            and kwargs.get("group") == "a"
+            and kwargs.get("collection") == "arcs"
             and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):
@@ -66,7 +91,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
 
     def _create_links_from_link_spec(
         self,
-        link_spec: Link | BrowserGroupModel,
+        link_spec: Link | BrowserCollectionModel,
         link_dict: Mapping,
     ) -> None:
         if not self.is_allowed(link_spec):
@@ -118,8 +143,8 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             if paginate:
                 pagination = {
                     "current_page": current_page,
-                    "items_per_page": BROWSER_MAX_OBJ_PER_PAGE,
-                    "number_of_items": self._opds_number_of_groups,
+                    "items_per_page": get_browser_max_obj_per_page(),
+                    "number_of_items": self._opds_number_of_collections,
                 }
                 metadata.update(pagination)
             group: dict[str, Mapping | list] = {
@@ -170,13 +195,15 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Start Groups."""
         return self._create_group(START_GROUPS)
 
-    def get_groups(self, group_qs, book_qs, title: str, zero_pad: int):
+    def get_groups(self, collection_qs, book_qs, title: str, zero_pad: int):
         """Regular publication groups."""
         groups = []
 
         # Regular Groups
-        tup = (LinkGroup(title, group_qs),)
-        subtitle = group_qs.model.__name__ if group_qs.model else "UnknownGroup"
+        tup = (LinkGroup(title, collection_qs),)
+        subtitle = (
+            collection_qs.model.__name__ if collection_qs.model else "UnknownGroup"
+        )
         if subtitle != "Series":
             subtitle += "s"
         groups += self._create_group(tup, paginate=True)

@@ -50,7 +50,7 @@ class StatsConfigSerializer(Serializer):
 class StatsSessionsSerializer(Serializer):
     """Session Settings."""
 
-    top_group = CountDictField(required=False, read_only=True)
+    top_collection = CountDictField(required=False, read_only=True)
     order_by = CountDictField(required=False, read_only=True)
     dynamic_covers = CountDictField(required=False, read_only=True)
     finish_on_last_page = CountDictField(required=False, read_only=True)
@@ -58,8 +58,8 @@ class StatsSessionsSerializer(Serializer):
     reading_direction = CountDictField(required=False, read_only=True)
 
 
-class StatsGroupSerializer(Serializer):
-    """Group Counts."""
+class StatsCollectionSerializer(Serializer):
+    """Collection Counts."""
 
     publisher_count = IntegerField(required=False, read_only=True)
     imprint_count = IntegerField(required=False, read_only=True)
@@ -101,7 +101,7 @@ class StatsSerializer(Serializer):
     platform = StatsPlatformSerializer(required=False)
     config = StatsConfigSerializer(required=False)
     sessions = StatsSessionsSerializer(required=False)
-    groups = StatsGroupSerializer(required=False)
+    collections = StatsCollectionSerializer(required=False)
     file_types = CountDictField(required=False)
     metadata = StatsComicMetadataSerializer(required=False)
 
@@ -116,7 +116,9 @@ class AdminStatsRequestSerializer(Serializer):
     sessions = SerializerChoicesField(
         serializer=StatsSessionsSerializer, required=False
     )
-    groups = SerializerChoicesField(serializer=StatsGroupSerializer, required=False)
+    collections = SerializerChoicesField(
+        serializer=StatsCollectionSerializer, required=False
+    )
     file_types = StringListMultipleChoiceField(choices=FILE_TYPES_CHOICES)
     metadata = SerializerChoicesField(
         serializer=StatsComicMetadataSerializer, required=False
@@ -124,6 +126,6 @@ class AdminStatsRequestSerializer(Serializer):
 
 
 class APIKeySerializer(Serializer):
-    """API Key."""
+    """API Key — wraps the ``AK`` :class:`AdminFlag` row's ``value`` column."""
 
-    api_key = CharField(source="name", read_only=True)
+    api_key = CharField(source="value", read_only=True)

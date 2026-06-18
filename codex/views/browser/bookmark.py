@@ -1,12 +1,13 @@
 """Bookmark view."""
 
 from types import MappingProxyType
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from codex.collection import Collection
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
 from codex.models.comic import Comic
 from codex.serializers.models.bookmark import (
@@ -15,6 +16,9 @@ from codex.serializers.models.bookmark import (
 )
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.filter import BrowserFilterView
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 
 class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
@@ -31,9 +35,11 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
 
     def _parse_params(self):
         """Validate and translate the submitted data."""
-        group = self.kwargs.get("group")
+        collection = self.kwargs.get("collection")
         # If the target is recursive, strip everything but finished state data.
-        serializer_class = None if group == "c" else BookmarkFinishedSerializer
+        serializer_class = (
+            None if collection == Collection.COMIC else BookmarkFinishedSerializer
+        )
 
         data = self.request.data
         if serializer_class:
@@ -44,10 +50,12 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         return serializer.validated_data
 
     def _get_comic_query(self):
-        """Get comic pks for group."""
-        group = self.kwargs.get("group")
+        """Get comic pks for collection."""
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
-        return self.get_filtered_queryset(Comic, group=group, pks=pks).only("pk")
+        return self.get_filtered_queryset(Comic, collection=collection, pks=pks).only(
+            "pk"
+        )
 
     @extend_schema(request=serializer_class, responses=None)
     def patch(self, *_args, **_kwargs) -> Response:
@@ -68,3 +76,21 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
             params = self.load_params_from_settings()
             self._params = MappingProxyType(params)
         return self._params
+
+
+class ComicBookmarkView(BookmarkView):
+    """
+    ``PATCH /api/v4/comics/{id}/bookmark`` — single-comic bookmark.
+
+    Synthesizes ``collection=Collection.COMIC`` and ``pks=(id,)`` so the
+    :class:`BookmarkView` body can run untouched. Body is
+    ``{page, finished}``.
+    """
+
+    @override
+    def initial(self, request: "Request", *args, **kwargs):
+        """Synthesize (collection, pks) kwargs before BookmarkView dispatch."""
+        pk = self.kwargs.pop("pk", None)
+        self.kwargs["collection"] = Collection.COMIC
+        self.kwargs["pks"] = (pk,) if pk is not None else ()
+        super().initial(request, *args, **kwargs)

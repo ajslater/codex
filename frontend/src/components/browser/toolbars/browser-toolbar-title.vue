@@ -16,6 +16,7 @@ import { mdiReload } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
+import { collectionForRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -39,28 +40,35 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       browserTitle: (state) => state.page?.title,
-      groupNames: (state) => state.choices.static.groupNames,
-      modelGroup: (state) => state.page.modelGroup,
+      collectionNames: (state) => state.choices.static.collectionNames,
+      modelCollection: (state) => state.page.modelCollection,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
+    routeCollection() {
+      return collectionForRoute({
+        collection: this.$route.params.collection,
+        parentIds: this.$route.params.parentIds,
+      }).collection;
+    },
     title() {
       let title;
-      if (Number(this.$route.params.pks) === 0) {
+      if (!this.$route.params.parentIds) {
         title = "All";
       } else if (this.browserTitle) {
         let names = [];
-        const { groupName, groupNumberTo, groupCount } = this.browserTitle;
-        const group = this.$route.params.group;
-        const formattedGroupName =
-          group === "v"
-            ? formattedVolumeName(groupName, groupNumberTo)
-            : groupName;
-        if (formattedGroupName) {
-          names.push(formattedGroupName);
+        const { collectionName, collectionNumberTo, collectionCount } =
+          this.browserTitle;
+        const collection = this.routeCollection;
+        const formattedCollectionName =
+          collection === "volumes"
+            ? formattedVolumeName(collectionName, collectionNumberTo)
+            : collectionName;
+        if (formattedCollectionName) {
+          names.push(formattedCollectionName);
         }
-        if (groupCount) {
-          const formattedGroupCount = `of ${groupCount}`;
-          names.push(formattedGroupCount);
+        if (collectionCount) {
+          const formattedCollectionCount = `of ${collectionCount}`;
+          names.push(formattedCollectionCount);
         }
         title = names.join(" ");
       } else {
@@ -69,9 +77,9 @@ export default {
       return title;
     },
     subtitle() {
-      return this.$route.params.group === "f"
+      return this.routeCollection === "folders"
         ? ""
-        : this.groupNames[this.modelGroup];
+        : this.collectionNames[this.modelCollection];
     },
   },
 };

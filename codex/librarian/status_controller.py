@@ -28,7 +28,15 @@ def get_default(field):
     return LibrarianStatus._meta.get_field(field).get_default()
 
 
-DEFAULT_FIELDS = ("preactive", "complete", "total", "active", "subtitle")
+DEFAULT_FIELDS = (
+    "preactive",
+    "complete",
+    "total",
+    "active",
+    "subtitle",
+    "eta",
+    "retry_at",
+)
 STATUS_DEFAULTS = {field: get_default(field) for field in DEFAULT_FIELDS}
 
 
@@ -75,6 +83,11 @@ class StatusController:
                 "complete": status.complete,
                 "total": status.total,
                 "updated_at": Now(),
+                # Written every update (including None) so a cleared
+                # countdown — recovered from rate-limit, or estimate gone —
+                # actually clears in the row instead of lingering.
+                "eta": status.eta,
+                "retry_at": status.retry_at,
             }
             if preactive is not None:
                 updates["preactive"] = preactive

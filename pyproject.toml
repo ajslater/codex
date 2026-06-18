@@ -15,13 +15,15 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=3.0.3",
+  "comicbox[pdf]~=4.0.0",
+  "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
   "django-cors-headers~=4.0",
   "django-rest-registration~=0.9",
   "django-vite~=3.1",
   "djangorestframework-camel-case~=1.4",
+  "djangorestframework-jsonapi~=8.1",
   "djangorestframework~=3.16",
   "django~=6.0",
   "drf-spectacular~=0.28",
@@ -46,7 +48,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "1.12.8"
+version = "2.0.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -83,7 +85,7 @@ lint = [
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
-  "djlint~=1.36",
+  "djlint~=1.39",
   "icecream~=2.1",
   "mbake~=1.4.5",
   "pathspec~=1.1.0",
@@ -95,9 +97,12 @@ lint = [
 ]
 test = [
   "coverage~=7.0",
+  "jsonschema~=4.26",
+  "lxml~=6.1",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
+  "rnc2rng~=2.7",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
@@ -118,6 +123,7 @@ source-include = [
   ".shellcheckrc",
   "Makefile",
   "NEWS.md",
+  "benchmark/**",
   "bin/**",
   "bun.lock",
   "compose.yaml",
@@ -361,9 +367,10 @@ ignore-overlong-task-comments = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D101", "D102", "T201", "T203"]
+"bin/*" = ["T201"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
-"mock_comics/*" = ["S311", "T201"]
+"benchmark/*" = ["S311", "T201"]
 
 [tool.ruff.lint.pylint]
 max-args = 8

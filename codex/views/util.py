@@ -43,7 +43,7 @@ def cache_control_2xx(**kwargs):
 class Route:
     """Breadcrumb, like a route."""
 
-    group: str
+    collection: str
     pks: tuple[int, ...]
     page: int = 1
     name: str = ""
@@ -52,7 +52,7 @@ class Route:
     def __hash__(self) -> int:
         """Breadcrumb hash."""
         pk_parts = tuple(sorted(set(self.pks)))
-        parts = (self.group, pk_parts, self.page)
+        parts = (self.collection, pk_parts, self.page)
         return hash(parts)
 
     @override

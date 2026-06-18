@@ -1,26 +1,25 @@
-"""Aggregate Browser Group Trees."""
+"""Aggregate Browser Collection Trees."""
 
 from collections.abc import Mapping
 from contextlib import suppress
 
 from comicbox.enums.comicbox import IdSources
-from comicbox.fields.number_fields import PAGE_COUNT_KEY
-from comicbox.schemas.comicbox import (
-    ID_KEY_KEY,
-    ID_URL_KEY,
+from comicbox.formats.comicbox.schema import (
     IDENTIFIERS_KEY,
     NAME_KEY,
     NUMBER_KEY,
     NUMBER_TO_KEY,
+    PAGE_COUNT_KEY,
     PROTAGONIST_KEY,
 )
+from comicbox.identifiers import ID_KEY_KEY, ID_URL_KEY
 from django.db.models import Field
 from django.db.models.base import Model
 
 from codex.librarian.scribe.importer.const import (
-    GROUP_FIELD_NAMES,
-    GROUP_FIELD_NAMES_SET,
-    GROUP_MODEL_COUNT_FIELDS,
+    COLLECTION_FIELD_NAMES,
+    COLLECTION_FIELD_NAMES_SET,
+    COLLECTION_MODEL_COUNT_FIELDS,
     LINK_FKS,
     QUERY_MODELS,
 )
@@ -30,15 +29,17 @@ from codex.librarian.scribe.importer.read.const import (
     COMIC_FK_FIELD_NAMES_FIELD_MAP,
 )
 from codex.models.base import BaseModel
-from codex.models.groups import BrowserGroupModel, Volume
+from codex.models.collections import BrowserCollectionModel, Volume
 from codex.models.identifier import Identifier, IdentifierSource
 from codex.util import max_none
 
-_MINIMAL_KEYS = frozenset({"file_type", PAGE_COUNT_KEY, "path"} | GROUP_FIELD_NAMES_SET)
+_MINIMAL_KEYS = frozenset(
+    {"file_type", PAGE_COUNT_KEY, "path"} | COLLECTION_FIELD_NAMES_SET
+)
 
 
 class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
-    """Aggregate Browser Group Trees."""
+    """Aggregate Browser Collection Trees."""
 
     def add_query_model(
         self,
@@ -97,44 +98,44 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             return ()
         return (value,), None
 
-    def _set_group_tree_group(
+    def _set_collection_tree_node(
         self,
-        model: type[BrowserGroupModel],
+        model: type[BrowserCollectionModel],
         name_field: Field,
-        group: dict | None,
-        group_list: list,
+        collection: dict | None,
+        collection_list: list,
     ) -> tuple:
         name_key = NUMBER_KEY if model == Volume else NAME_KEY
-        if group is None:
-            group = {}
+        if collection is None:
+            collection = {}
 
-        group_name = group.get(name_key, model.DEFAULT_NAME)
-        clean_group_name = name_field.get_prep_value(group_name)
-        group_list.append(clean_group_name)
+        collection_name = collection.get(name_key, model.DEFAULT_NAME)
+        clean_collection_name = name_field.get_prep_value(collection_name)
+        collection_list.append(clean_collection_name)
         extra_vals = []
         if model == Volume:
-            number_to = group.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
+            number_to = collection.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
             clean_number_to = name_field.get_prep_value(number_to)
-            group_list.append(clean_number_to)
+            collection_list.append(clean_number_to)
         else:
-            identifier_tuple = self.get_identifier_tuple(model, group)
+            identifier_tuple = self.get_identifier_tuple(model, collection)
             extra_vals.append(identifier_tuple)
-        count_key = GROUP_MODEL_COUNT_FIELDS[model]
+        count_key = COLLECTION_MODEL_COUNT_FIELDS[model]
         if count_key:
-            count = group.get(count_key)
+            count = collection.get(count_key)
             with suppress(Exception):
                 old_count_val = (
-                    self.metadata[QUERY_MODELS].get(model, {}).get(group_list)
+                    self.metadata[QUERY_MODELS].get(model, {}).get(collection_list)
                 )
                 count = max_none(old_count_val, count)
             extra_vals.append(count)
-        return tuple(group_list), frozenset((tuple(extra_vals),))
+        return tuple(collection_list), frozenset((tuple(extra_vals),))
 
     def get_fk_metadata(self, md, path) -> None:
         """Aggregate Simple Foreign Keys."""
-        group_list = []
-        # prevents skipped metadata from destroying browser group links
-        field_names = tuple(GROUP_FIELD_NAMES) + tuple(
+        collection_list = []
+        # prevents skipped metadata from destroying browser collection links
+        field_names = tuple(COLLECTION_FIELD_NAMES) + tuple(
             sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
         )
         for field_name in field_names:
@@ -145,9 +146,9 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             md_key = field_name
             value = md.pop(md_key, None)
 
-            if issubclass(model, BrowserGroupModel):
-                key_values, extra_values = self._set_group_tree_group(
-                    model, related_field, value, group_list
+            if issubclass(model, BrowserCollectionModel):
+                key_values, extra_values = self._set_collection_tree_node(
+                    model, related_field, value, collection_list
                 )
             elif value is None:
                 continue

@@ -20,7 +20,7 @@
       <template #[`item.librarySet`]="{ item }">
         <RelationChips
           :pks="item.librarySet"
-          :objs="normalLibraries"
+          :objs="libraries"
           title-key="path"
         />
       </template>
@@ -42,26 +42,28 @@
         />
       </template>
     </AdminTable>
-    <div id="groupHelp">
-      <h3>Group Access Logic</h3>
-      <p>
-        A library in no groups is accessible to every user and non-users if
-        those are enabled.
-      </p>
-      <p>
-        A library with <em>any</em> Include groups is accessible
-        <em>only</em> to users who are in those groups.
-      </p>
-      <p>
-        A library with <em>any</em> Exclude groups is not accessible to Guest
-        users but is acccessable to any logged in users that are not in the
-        Exclude groups.
-      </p>
-      <p>
-        If you have libraries added and you do not see them in your browser,
-        check to see if the library and your user are in the same group.
-      </p>
-      <table id="groupTable">
+    <div class="adminReadingColumn groupHelp">
+      <div class="adminProse">
+        <h3>Group Access Logic</h3>
+        <p>
+          A library in no groups is accessible to every user and non-users if
+          those are enabled.
+        </p>
+        <p>
+          A library with <em>any</em> Include groups is accessible
+          <em>only</em> to users who are in those groups.
+        </p>
+        <p>
+          A library with <em>any</em> Exclude groups is not accessible to Guest
+          users but is acccessable to any logged in users that are not in the
+          Exclude groups.
+        </p>
+        <p>
+          If you have libraries added and you do not see them in your browser,
+          check to see if the library and your user are in the same group.
+        </p>
+      </div>
+      <table class="adminMatrix">
         <thead>
           <tr>
             <th>Library in Group Type</th>
@@ -148,7 +150,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,
@@ -169,20 +171,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#groupHelp {
-  margin-top: 2em;
-  margin-bottom: 2em;
-  color: rgb(var(--v-theme-textSecondary));
-}
+@use "@/components/admin/tabs/admin-section.scss";
 
-#groupTable {
-  border: solid thin;
-  margin-top: 1em;
-}
-
-#groupTable th,
-#groupTable td {
-  padding: 0.25em;
+// margin-block only — a `margin: 2em 0` shorthand would zero the inline
+// margins and cancel .adminReadingColumn's centering on this same element.
+.groupHelp {
+  margin-block: 2em;
 }
 
 .see {

@@ -129,7 +129,11 @@ class MovedFoldersImporter(MovedCoversImporter):
             else:
                 possible_create_folder_path = ""
             if possible_create_folder_path:
-                create_folder_paths_one_layer.add(possible_create_folder_path)
+                # bulk_folders_create expects each entry to be a key tuple
+                # (matching MODEL_REL_MAP[Folder] == (("path",), ...)), so wrap
+                # the path. A bare string would be iterated character by
+                # character, creating bogus single-letter folder paths.
+                create_folder_paths_one_layer.add((possible_create_folder_path,))
 
         return frozenset(create_folder_paths_one_layer)
 

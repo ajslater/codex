@@ -89,10 +89,14 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
         """
         if self.abort_event.is_set():
             return
-        fk_count = self.create_all_fks()
+        fk_count = self.timed_step(
+            "create_and_update.create_all_fks", self.create_all_fks
+        )
         if self.abort_event.is_set():
             return
-        fk_count += self.update_all_fks()
+        fk_count += self.timed_step(
+            "create_and_update.update_all_fks", self.update_all_fks
+        )
         self.counts.tags += fk_count
         if self.abort_event.is_set():
             return
@@ -105,10 +109,21 @@ class CreateForeignKeysImporter(CreateForeignKeysCreateUpdateImporter):
 
         if self.abort_event.is_set():
             return
-        comic_count = self.update_comics()
+        # FK rows all exist now; batch-resolve every pending FK link
+        # once so update/create_comics stitch via dict lookups instead
+        # of one objects.get() per (comic, field).
+        self.timed_step(
+            "create_and_update.resolve_fk_links", self.prepare_fk_link_instance_maps
+        )
+        comic_count = self.timed_step(
+            "create_and_update.update_comics", self.update_comics
+        )
         self._update_pending_cover_create_total()
-        comic_count += self.create_comics()
+        comic_count += self.timed_step(
+            "create_and_update.create_comics", self.create_comics
+        )
         self._update_pending_cover_create_total()
         self.counts.comic += comic_count
 
+        self.clear_fk_link_instance_maps()
         self._submit_coalesced_cover_task()

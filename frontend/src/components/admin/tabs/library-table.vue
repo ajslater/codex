@@ -36,19 +36,19 @@
       />
     </template>
     <template #[`item.actions`]="{ item }">
-      <span class="actionButtonCell">
+      <span class="adminActionCell">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
-          :title-text="`Poll for updated ${itemName}`"
+          title-text="Poll for updated comics"
           :text="item.path"
-          :confirm-text="pollConfirmText(item)"
+          confirm-text="Poll Library"
           :size="iconSize"
           density="compact"
           @confirm="poll(item)"
         />
         <ConfirmDialog
           :icon="mdiDatabaseSyncOutline"
-          :title-text="`Force update ${itemName}`"
+          title-text="Force update comics"
           :text="item.path"
           confirm-text="Force Update"
           :size="iconSize"
@@ -65,7 +65,6 @@
           density="compact"
         />
         <AdminDeleteRowDialog
-          v-if="!item.coversOnly"
           table="Library"
           :pk="item.pk"
           :name="item.path"
@@ -109,9 +108,6 @@ export default {
     ConfirmDialog,
     DateTimeColumn,
   },
-  props: {
-    coversDir: { type: Boolean, default: false },
-  },
   data() {
     return {
       lastUpdate: {
@@ -126,7 +122,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries", "customCoverLibraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       isFailedImports: (state) => Boolean(state?.failedImports?.length),
@@ -138,10 +133,9 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     headers() {
-      const comicsHeader = this.coversDir ? "Covers" : "Comics";
       const headers = [
         { title: "Path", key: "path", align: "start" },
-        { title: comicsHeader, key: "comicCount" },
+        { title: "Comics", key: "comicCount" },
       ];
       if (this.isFailedImports) {
         headers.push({ title: "Failed", key: "failedCount" });
@@ -160,22 +154,11 @@ export default {
           { title: "Last Poll", key: "lastPoll" },
         ],
       );
-      if (!this.coversDir && this.isGroups) {
+      if (this.isGroups) {
         headers.push({ title: "Groups", key: "groups" });
       }
       headers.push({ title: "Actions", key: "actions", sortable: false });
       return headers;
-    },
-    items() {
-      return globalThis.coversDir
-        ? this.customCoverLibraries
-        : this.normalLibraries;
-    },
-    updateLabel() {
-      return this.coversDir ? "Cover Dir" : "";
-    },
-    itemName() {
-      return this.coversDir ? "custom covers" : "comics";
     },
     iconSize() {
       const display = this.$vuetify.display;
@@ -217,33 +200,15 @@ export default {
         return this.formErrors;
       }
     },
-    libraryLabel(item, long = true) {
-      let label = "";
-      if (item.coversOnly) {
-        if (long) {
-          label += "Custom Group ";
-        }
-        label += "Cover Dir";
-      } else {
-        label += "Library";
-      }
-      return label;
-    },
     poll(item) {
-      const label = this.libraryLabel(item);
-      this.librarianTask("poll", `Poll ${label} ${item.pk}`, item.pk);
+      this.librarianTask("poll", `Poll Library ${item.pk}`, item.pk);
     },
     forcePoll(item) {
-      const label = this.libraryLabel(item);
       this.librarianTask(
         "poll_force",
-        `Force Poll ${label} ${item.pk}`,
+        `Force Poll Library ${item.pk}`,
         item.pk,
       );
-    },
-    pollConfirmText(item) {
-      const label = this.libraryLabel(item, false);
-      return `Poll ${label}`;
     },
     failedComicsClasses(item) {
       const classes = {};
@@ -259,16 +224,10 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+@use "@/components/admin/tabs/admin-section.scss";
+
 .disabled {
   color: rgb(var(--v-theme-textDisabled)) !important;
-}
-
-.actionButtonCell :deep(> button) {
-  opacity: 0.7;
-}
-
-.actionButtonCell :deep(> button:hover) {
-  opacity: 1;
 }
 
 .failedComics {

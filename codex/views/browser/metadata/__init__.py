@@ -1,4 +1,4 @@
-"""Aggregate Group and Comic Metadata View."""
+"""Aggregate Collection and Comic Metadata View."""
 
 from typing import Any, override
 
@@ -19,7 +19,7 @@ from codex.views.browser.metadata.copy_intersections import (
 
 
 class MetadataView(MetadataCopyIntersectionsView):
-    """Aggregate Group and Comic Metadata View."""
+    """Aggregate Collection and Comic Metadata View."""
 
     serializer_class: type[BaseSerializer] | None = MetadataSerializer
     input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -29,17 +29,17 @@ class MetadataView(MetadataCopyIntersectionsView):
     ADMIN_FLAGS = (AdminFlagChoices.FOLDER_VIEW,)
 
     @override
-    def _get_valid_browse_nav_groups(self, valid_top_groups) -> tuple:
-        """Limited allowed nav groups for metadata."""
+    def _get_valid_browse_nav_collections(self, valid_top_collections) -> tuple:
+        """Limited allowed nav collections for metadata."""
         # Overrides method in browser.validate
-        group = self.kwargs["group"]
-        return (group,)
+        collection = self.kwargs["collection"]
+        return (collection,)
 
     def _raise_not_found(self, exc=None) -> None:
         """Raise an exception if the object is not found."""
         pks = self.kwargs["pks"]
-        group = self.kwargs["group"]
-        detail = f"Filtered metadata for {group}/{pks} not found"
+        collection = self.kwargs["collection"]
+        detail = f"Filtered metadata for {collection}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
     def _get_first_object(self, qs: QuerySet):
@@ -53,10 +53,10 @@ class MetadataView(MetadataCopyIntersectionsView):
         """
         Aggregate sum fields across multiple selected items.
 
-        When multiple pks are selected for any group model, qs[0]
+        When multiple pks are selected for any collection model, qs[0]
         only returns the first item's values. This method computes
         the correct sums across all selected items using rel_prefix
-        to traverse from the group model to the Comic fields.
+        to traverse from the collection model to the Comic fields.
         """
         aggs = {}
         for field in SUM_FIELDS:
@@ -70,10 +70,12 @@ class MetadataView(MetadataCopyIntersectionsView):
 
     @override
     def get_object(self) -> Any:
-        """Create a comic-like object from the current browser group."""
-        # Comic model goes through the same code path as groups because
-        # values dicts don't copy relations to the serializer. The values
-        # dict is necessary because of the folders view union in browser.py.
+        """Create a comic-like object from the current browser collection."""
+        # ``qs[0]`` below is a LIVE model instance (Comic or a collection
+        # model), not a values dict. Relations the serializer reads are
+        # attached afterwards: real m2m fields via the prefetch cache,
+        # everything else as plain attributes
+        # (see copy_intersections_into_comic_fields).
 
         qs = self.get_filtered_queryset(self.model)
         filtered_qs = qs
@@ -98,21 +100,21 @@ class MetadataView(MetadataCopyIntersectionsView):
             obj = self._aggregate_multi_pk_sums(filtered_qs, obj)
 
         # Hacks to add to object after query
-        groups, fk_intersections, m2m_intersections = self.query_intersections(
-            filtered_qs
+        collection_lists, fk_intersections, m2m_intersections = (
+            self.query_intersections(filtered_qs)
         )
         return self.copy_intersections_into_comic_fields(
-            obj, groups, fk_intersections, m2m_intersections
+            obj, collection_lists, fk_intersections, m2m_intersections
         )
 
     @extend_schema(parameters=[input_serializer_class])
     def get(self, *_args, **_kwargs) -> Response:
-        """Get metadata for a filtered browse group."""
+        """Get metadata for a filtered browse collection."""
         # Init
         try:
             obj = self.get_object()
             serializer = self.get_serializer(obj)
             return Response(serializer.data)
         except Exception:
-            logger.exception(f"Getting metadata {self.kwargs}")
+            logger.exception(f"Getting tags {self.kwargs}")
             raise

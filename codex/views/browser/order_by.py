@@ -4,14 +4,14 @@ from types import MappingProxyType
 
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
-from codex.models.groups import Volume
+from codex.models.collections import Volume
+from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
-from codex.views.browser.group_mtime import BrowserGroupMtimeView
 
 # Order keys that don't map directly to a Comic field name need an
 # explicit ORM path. The map is consumed both by ``_add_comic_order_by``
 # (the Comic ORDER BY clause) and by ``annotate_order_value`` (the
-# ``order_value`` annotation used by serializers and group aggregates).
+# ``order_value`` annotation used by serializers and collection aggregates).
 COMIC_ORDER_FIELD_PATHS = MappingProxyType(
     {
         "country": "country__name",
@@ -39,7 +39,7 @@ def comic_order_path(order_key: str) -> str:
     return COMIC_ORDER_FIELD_PATHS.get(order_key, order_key)
 
 
-class BrowserOrderByView(BrowserGroupMtimeView):
+class BrowserOrderByView(BrowserCollectionMtimeView):
     """Base class for views that need ordering."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -97,6 +97,14 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         # Comic orders on indexed fields directly — allegedly faster
         # than using tmp b-trees (annotations) and since that's every
         # cover sort, it's worth it.
+        if order_key == "age_rating":
+            # Comic.age_rating is an FK with no inherent severity order
+            # (FK pks are insertion-ordered). Sort by the denormalized
+            # ``age_rating_metron_index`` so "G < PG < R < Adults Only"
+            # ranks correctly across both Comic and cover-subquery
+            # ORDER BYs. The display value is the rating label string
+            # (see ``_comic_order_value`` / ``annotate_order_value``).
+            return ["age_rating_metron_index"]
         head = [comic_order_path(order_key)]
         # Comic order micro optimizations.
         if order_key == "story_arc_number":
@@ -134,7 +142,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
 
     @staticmethod
     def extra_order_value_alias(idx: int) -> str:
-        """Return the queryset alias used for the n-th extra key on a group queryset."""
+        """Return the queryset alias used for the n-th extra key on a collection queryset."""
         return f"_table_extra_value_{idx}"
 
     def _comic_extra_fields(self, key: str) -> list[str]:
@@ -158,8 +166,8 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             tail.extend(prefix + field for field in self._comic_extra_fields(key))
         return tail
 
-    def _group_extra_order_by(self, extras) -> list[str]:
-        """Build the ORDER BY tail for a group-row queryset."""
+    def _collection_extra_order_by(self, extras) -> list[str]:
+        """Build the ORDER BY tail for a collection-row queryset."""
         tail: list[str] = []
         for idx, entry in enumerate(extras):
             if not entry.get("key"):
@@ -177,7 +185,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
         silently affect cover-grid order. Comic-row queries chain
         each extra through :func:`_add_comic_order_by` so M2M and
         FK-name keys resolve to their upstream-annotated aliases.
-        Group queries reference the per-extra ``order_value`` aliases
+        Collection queries reference the per-extra ``order_value`` aliases
         annotated by ``annotate_extra_order_values`` upstream.
         """
         extras = self.params.get("order_extra_keys") or ()
@@ -185,7 +193,7 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             return []
         if qs.model is Comic:
             return self._comic_extra_order_by(extras)
-        return self._group_extra_order_by(extras)
+        return self._collection_extra_order_by(extras)
 
     def add_order_by(
         self, qs, order_key="", comic_sort_names=None, *, for_cover: bool = False
@@ -197,6 +205,12 @@ class BrowserOrderByView(BrowserGroupMtimeView):
             )
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
+        elif self.order_key == "age_rating":
+            # Collection rows annotate two columns for age_rating —
+            # ``order_value`` is the metron name string (display) and
+            # ``_age_rating_sort_value`` is the metron index (sort).
+            # See ``BrowserAnnotateOrderView.annotate_order_value``.
+            order_fields_head = ["_age_rating_sort_value"]
         else:
             order_fields_head = ["order_value"]
 

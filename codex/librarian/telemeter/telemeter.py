@@ -40,8 +40,8 @@ def get_telemeter_timestamp():
     key = Timestamp.Choices.TELEMETER_SENT.value
     defaults = {"key": key}
     ts, _ = Timestamp.objects.get_or_create(defaults=defaults, key=key)
-    if not ts.version:
-        ts.version = str(uuid4())
+    if not ts.value:
+        ts.value = str(uuid4())
         ts.save()
     return ts
 
@@ -77,7 +77,7 @@ def send_telemetry(log) -> None:
     try:
         ts = get_telemeter_timestamp()
         try:
-            _send_telemetry(ts.version)
+            _send_telemetry(ts.value)
         except Exception as exc:
             log.debug(f"Failed to send anonymous stats: {exc}")
         # update updated_at, even on failure to prevent rapid rescheudling.

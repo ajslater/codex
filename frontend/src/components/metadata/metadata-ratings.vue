@@ -1,10 +1,10 @@
 <template>
   <v-table v-if="show">
     <tbody>
-      <tr v-if="md.criticalRating">
+      <tr v-if="md.criticalRating != null">
         <td class="key">Critical Rating</td>
         <td>
-          <MetadataText :value="md.criticalRating" />
+          <MetadataText :value="displayCriticalRating" />
         </td>
       </tr>
       <tr v-if="md.ageRating">
@@ -37,7 +37,17 @@ export default {
       md: (state) => state.md,
     }),
     show() {
-      return this.md?.criticRating !== undefined || this.md?.ageRating;
+      return this.md?.criticalRating != null || this.md?.ageRating;
+    },
+    displayCriticalRating() {
+      const cr = this.md.criticalRating;
+      if (cr == null) return "";
+      // Drop trailing zeros (4.0 -> "4"; 4.5 -> "4.5") then suffix scale.
+      const n = Number(cr);
+      const trimmed = Number.isFinite(n)
+        ? n.toFixed(1).replace(/\.0$/, "")
+        : String(cr);
+      return `${trimmed} / 5`;
     },
     displayAgeRating() {
       const ar = this.md.ageRating;

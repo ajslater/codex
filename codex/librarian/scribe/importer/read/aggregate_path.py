@@ -1,6 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 
-from comicbox.schemas.comicbox import (
+from comicbox.formats.comicbox.schema import (
     COVER_DATE_KEY,
     DATE_KEY,
     NUMBER_KEY,
@@ -95,7 +95,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         # results) into CREATE_COMICS without LINK_FKS entries. The
         # query phase will route them to UPDATE_COMICS via the normal
         # diff, and the link phase will leave the existing browser
-        # group FKs untouched (since LINK_FKS lookup misses).
+        # collection FKs untouched (since LINK_FKS lookup misses).
         stat_only = self.metadata.pop(EXTRACTED_STAT_ONLY, {})
         for path, envelope_md in stat_only.items():
             self.metadata[CREATE_COMICS][path] = envelope_md

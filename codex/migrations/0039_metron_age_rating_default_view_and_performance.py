@@ -190,7 +190,7 @@ _LIBRARIAN_STATUS_CHOICES = [
     ("IFD", "Clean Up Failed Imports"),
     ("IFQ", "Query Failed Imports"),
     ("IFU", "Update Failed Imports"),
-    ("IGU", "Update Timestamps For Browser Groups"),
+    ("IGU", "Update Timestamps For Browser Collections"),
     ("ILT", "Link Tags"),
     ("ILV", "Link Custom Covers"),
     ("IMC", "Move Comics"),

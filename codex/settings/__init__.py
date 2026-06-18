@@ -19,7 +19,7 @@ from typing import NamedTuple
 
 from comicbox.config import get_config
 from comicbox.config.settings import ComicboxSettings
-from comicbox.schemas.comicbox.yaml import ComicboxYamlSubSchema
+from comicbox.formats.comicbox.schema.yaml import ComicboxYamlSubSchema
 from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
     CSP,
 )
@@ -33,7 +33,7 @@ from codex.settings.config import (
     load_codex_config,
 )
 from codex.settings.logging import get_logging_settings
-from codex.settings.secret_key import get_secret_key
+from codex.settings.secret_key import get_field_encryption_key, get_secret_key
 from codex.settings.servestatic import immutable_file_test
 from codex.settings.timezone import get_time_zone
 
@@ -42,11 +42,22 @@ from codex.settings.timezone import get_time_zone
 ###########################
 
 FALSY = frozenset({None, "", "false", "0", False, "False"})
+_FALSY_EXPLICIT = frozenset({"false", "0"})
 
 
 def not_falsy_env(name):
     """Return a boolean environment envs mindful of falsy values."""
     return environ.get(name, "").lower() not in FALSY
+
+
+def truthy_env_default_on(name):
+    """
+    Return False only when the env var is *explicitly* falsy.
+
+    For flags whose natural default is on — unset and set-to-anything-
+    truthy both stay enabled; only ``CODEX_FOO=0``/``=false`` disables.
+    """
+    return environ.get(name, "").lower() not in _FALSY_EXPLICIT
 
 
 ##############
@@ -173,6 +184,39 @@ THROTTLE_ANON = get_int(CODEX_CONFIG, "throttle.anon", default=0)
 THROTTLE_USER = get_int(CODEX_CONFIG, "throttle.user", default=0)
 THROTTLE_OPDS = get_int(CODEX_CONFIG, "throttle.opds", default=0)
 THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
+THROTTLE_RESET_PASSWORD = get_int(CODEX_CONFIG, "throttle.reset_password", default=5)
+
+##############################
+# Codex Config: Email        #
+##############################
+
+EMAIL_HOST = get_str(CODEX_CONFIG, "email.host", default="")
+EMAIL_PORT = get_int(CODEX_CONFIG, "email.port", default=587)
+EMAIL_HOST_USER = get_str(CODEX_CONFIG, "email.user", default="")
+EMAIL_HOST_PASSWORD = get_str(CODEX_CONFIG, "email.password", default="")
+EMAIL_USE_TLS = get_bool(CODEX_CONFIG, "email.use_tls", default=True)
+EMAIL_USE_SSL = get_bool(CODEX_CONFIG, "email.use_ssl", default=False)
+EMAIL_TIMEOUT = get_int(CODEX_CONFIG, "email.timeout", default=10)
+# Fall back to EMAIL_HOST_USER when from_address is blank. Many providers
+# (gmail, generic SMTP) accept the auth user as sender; SES and similar
+# require an explicit verified identity - admin docs call this out.
+DEFAULT_FROM_EMAIL = (
+    get_str(CODEX_CONFIG, "email.from_address", default="") or EMAIL_HOST_USER
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[Codex] ")
+# Feature gate: password reset, register verification, and any future
+# email-dependent flows are disabled when host or sender is missing.
+# Boot-time value reflects TOML/env config only; the runtime check that
+# also consults the EmailSettings singleton lives in
+# ``codex.settings.db.email_enabled`` and is used by the request-time
+# callers (``views/register.py``, ``views/session.py``,
+# ``startup/registration.py``).
+EMAIL_ENABLED = bool(EMAIL_HOST and DEFAULT_FROM_EMAIL)
+# Always use the DB-aware backend so admin edits via the Email tab
+# take effect on the next send without a restart. The backend
+# gracefully no-ops when neither DB nor settings provide a host.
+EMAIL_BACKEND = "codex.mail.DBEmailBackend"
 
 ##############################
 # Codex Config: Importer     #
@@ -184,8 +228,10 @@ THROTTLE_OPENSEARCH = get_int(CODEX_CONFIG, "throttle.opensearch", default=0)
 IMPORTER_DELETE_MAX_CHUNK_SIZE = get_int(
     CODEX_CONFIG, "importer.delete_max_chunk_size", default=2000
 )
-# OR-chain Q()s in filters.py:32-43 and link/delete.py:37-41
-# Limit: 990, 900 for safety.
+# OR-chain Q()s in link/delete.py and the residual-key fallbacks in
+# query/filters.py and link/prepare.py. The binding constraint is
+# SQLITE_LIMIT_EXPR_DEPTH (1000) — a flat OR parses as a deep tree —
+# not the 32766 variable cap, so 900 stays correct on modern SQLite.
 IMPORTER_FILTER_BATCH_SIZE = get_int(
     CODEX_CONFIG, "importer.filter_batch_size", default=900
 )
@@ -294,6 +340,7 @@ class FeatureFlags(NamedTuple):
     django_vite: bool
     schema_graph: bool
     vite_hmr: bool
+    api_v4: bool
 
 
 FEATURES = FeatureFlags(
@@ -305,6 +352,7 @@ FEATURES = FeatureFlags(
     django_vite=not BUILD,
     schema_graph=DEBUG,
     vite_hmr=VITE_HMR,
+    api_v4=truthy_env_default_on("CODEX_API_V4"),
 )
 
 ############
@@ -313,6 +361,7 @@ FEATURES = FeatureFlags(
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
+FIELD_ENCRYPTION_KEY = get_field_encryption_key(CONFIG_PATH)
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS: bool  # DEV EXPERIMENT
@@ -704,6 +753,15 @@ ROOT_CACHE_PATH = (
 )
 DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
 DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+# Persist comicbox's online-tagging sqlite caches alongside Codex's other
+# caches (under the /config volume) instead of comicbox's default ephemeral
+# platformdirs location (e.g. ~/.cache/comicbox), which is lost when a Docker
+# container is recreated. comicbox reads COMICBOX_ONLINE_CACHE_DIR in
+# get_config(); OnlineSession picks it up per scan and on worker subprocesses.
+# setdefault leaves an explicitly-set value in place as a power-user override.
+COMICBOX_CACHE_PATH = ROOT_CACHE_PATH / "comicbox"
+COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+environ.setdefault("COMICBOX_ONLINE_CACHE_DIR", str(COMICBOX_CACHE_PATH))
 # MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
 # too small once the cache holds (a) cachalot query results — often
 # 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
@@ -713,11 +771,25 @@ DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # silently evicts just-written cover responses before the next request
 # can read them. 10k is cheap on disk (~<100 MB of tiny files) and
 # cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
+TAGGING_CACHE_PATH = ROOT_CACHE_PATH / "tagging"
+TAGGING_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+
 CACHES = {
     "default": {
         "BACKEND": "codex.cache.ResilientFileBasedCache",
         "LOCATION": str(DEFAULT_CACHE_PATH),
         "OPTIONS": {"MAX_ENTRIES": 10000},
+    },
+    # Durable tagging state: pending online-tag prompts and tag-write
+    # errors. Lives in its own cache directory because Django's
+    # file-based cache.clear() deletes every entry regardless of key
+    # prefix, and the default cache is cleared broadly — after every
+    # import that changed anything, on Library/Group CRUD, and at
+    # startup. Prompts and errors must linger until the admin acts.
+    "tagging": {
+        "BACKEND": "codex.cache.ResilientFileBasedCache",
+        "LOCATION": str(TAGGING_CACHE_PATH),
+        "OPTIONS": {"MAX_ENTRIES": 1000},
     },
 }
 
@@ -725,23 +797,26 @@ CACHES = {
 # REST Framework #
 ##################
 
-_THROTTLE_MAP = MappingProxyType(
-    {
-        "anon": ("rest_framework.throttling.AnonRateThrottle", THROTTLE_ANON),
-        "user": ("rest_framework.throttling.UserRateThrottle", THROTTLE_USER),
-        "opds": ("rest_framework.throttling.ScopedRateThrottle", THROTTLE_OPDS),
-        "opensearch": (
-            "rest_framework.throttling.ScopedRateThrottle",
-            THROTTLE_OPENSEARCH,
-        ),
-    }
+# Throttle classes live in ``codex.throttling`` and read effective
+# rates from the ThrottleSettings singleton (DB → settings → 0) at
+# request time, so admin edits in the Throttling tab take effect on
+# the next request. All scopes are wired unconditionally; a rate of
+# 0 makes ``SimpleRateThrottle`` short-circuit to "allow" and
+# effectively disables the limiter.
+_THROTTLE_CLASSES = (
+    "codex.throttling.AnonRateThrottle",
+    "codex.throttling.UserRateThrottle",
+    "codex.throttling.ScopedRateThrottle",
 )
-_THROTTLE_CLASSES = set()
-_THROTTLE_RATES = {}
-for scope, (classname, rate_value) in _THROTTLE_MAP.items():
-    if rate_value or classname == "rest_framework.throttling.ScopedRateThrottle":
-        _THROTTLE_CLASSES.add(classname)
-        _THROTTLE_RATES[scope] = f"{rate_value}/min" if rate_value else None
+_THROTTLE_RATES = {
+    "anon": f"{THROTTLE_ANON}/min" if THROTTLE_ANON else None,
+    "user": f"{THROTTLE_USER}/min" if THROTTLE_USER else None,
+    "opds": f"{THROTTLE_OPDS}/min" if THROTTLE_OPDS else None,
+    "opensearch": f"{THROTTLE_OPENSEARCH}/min" if THROTTLE_OPENSEARCH else None,
+    "reset_password": (
+        f"{THROTTLE_RESET_PASSWORD}/hour" if THROTTLE_RESET_PASSWORD else None
+    ),
+}
 
 _RENDERER_CLASSES = [
     "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
@@ -772,18 +847,76 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
-    "DEFAULT_THROTTLE_CLASSES": tuple(_THROTTLE_CLASSES),
+    "DEFAULT_THROTTLE_CLASSES": _THROTTLE_CLASSES,
     "DEFAULT_THROTTLE_RATES": _THROTTLE_RATES,
 }
+
+# JSON:API renderer config — applies to admin resource viewsets
+# (see codex/views/admin/json_api.py). ``FORMAT_FIELD_NAMES``
+# camelizes attribute keys on the wire to match the rest of the
+# Codex API's camelCase convention; without it, attributes ship
+# snake_case from the model.
+JSON_API_FORMAT_FIELD_NAMES = "camelize"
 
 #####################
 # REST Registration #
 #####################
 
 REST_REGISTRATION = {
-    "REGISTER_VERIFICATION_ENABLED": False,
+    # Both REGISTER_VERIFICATION and RESET_PASSWORD_VERIFICATION require a
+    # working email backend. They flip on/off together based on whether the
+    # [email] config is present; the ``REGISTER_VERIFICATION`` admin flag
+    # provides a runtime toggle on top (see codex/startup/registration.py).
+    "REGISTER_VERIFICATION_ENABLED": EMAIL_ENABLED,
     "REGISTER_EMAIL_VERIFICATION_ENABLED": False,
-    "RESET_PASSWORD_VERIFICATION_ENABLED": False,
+    "RESET_PASSWORD_VERIFICATION_ENABLED": EMAIL_ENABLED,
+    # Frontend route for the confirm page. Includes URL_PATH_PREFIX so
+    # reverse-proxy installs (e.g. /codex/...) get correct email links.
+    "REGISTER_VERIFICATION_URL": f"{GRANIAN_URL_PATH_PREFIX}/auth/verify-registration/",
+    "RESET_PASSWORD_VERIFICATION_URL": f"{GRANIAN_URL_PATH_PREFIX}/auth/reset-password/",
+    "RESET_PASSWORD_VERIFICATION_AUTO_LOGIN": False,
+    "RESET_PASSWORD_VERIFICATION_ONE_TIME_USE": True,
+    # Don't 404 when a non-existent username/email is submitted; the view
+    # returns a generic "if the user exists, a link was sent" response.
+    "RESET_PASSWORD_FAIL_WHEN_USER_NOT_FOUND": False,
+    # Send the reset email as multipart text + HTML. Specifying both
+    # ``text_body`` and ``html_body`` makes rest-registration use the text
+    # template verbatim as the plain-text part and attach the HTML as an
+    # alternative, so plain-text mail readers fall back gracefully while HTML
+    # clients get the styled "Reset Password" button.
+    "RESET_PASSWORD_VERIFICATION_EMAIL_TEMPLATES": {
+        "subject": "rest_registration/reset_password/subject.txt",
+        "text_body": "rest_registration/reset_password/body.txt",
+        "html_body": "rest_registration/reset_password/body.html",
+    },
+    "VERIFICATION_FROM_EMAIL": DEFAULT_FROM_EMAIL,
+    # Login is by username (the login dialog only collects a username); email
+    # rides here so the "forgot password" form can resolve a user by *either*
+    # username or email via the default reset-link finder (see
+    # test_send_reset_link_sends_email_by_email).
+    "USER_LOGIN_FIELDS": ("username", "email"),
+    # rest-registration's E010 system check insists every USER_LOGIN_FIELDS
+    # entry be DB-unique. Codex runs on the stock ``auth.User`` whose ``email``
+    # is both non-unique and ``blank=True`` — most self-hosted / admin-created
+    # accounts have no email at all, so a ``unique=True`` is impossible (it
+    # would forbid more than one empty-email user). Email lookup is therefore
+    # best-effort by design: the form never logs in by email, and the
+    # reset-link endpoint always returns a generic success (no account
+    # enumeration), so a non-unique email degrades gracefully instead of being
+    # an integrity hazard. Disable the structural check accordingly — this is
+    # the package's sanctioned escape hatch for exactly this configuration.
+    "USER_LOGIN_FIELDS_UNIQUE_CHECK_ENABLED": False,
+    # rest-registration treats email as read-only by default (it expects
+    # changes to flow through its register-email -> verify-email
+    # handshake). Codex doesn't run that flow; profile dialog edits the
+    # field directly. USER_EDITABLE_FIELDS overrides the default to make
+    # both username (subject to the AUTH_REMOTE_USER guard in the
+    # serializer) and email writable.
+    "USER_EDITABLE_FIELDS": ("username", "email"),
+    # Custom profile serializer enforces the username read-only guard
+    # when AUTH_REMOTE_USER is true (backend belt-and-braces behind the
+    # disabled UI control in the profile dialog).
+    "PROFILE_SERIALIZER_CLASS": "codex.serializers.auth.CodexProfileSerializer",
     "USER_HIDDEN_FIELDS": (
         # DEFAULT
         "last_login",
@@ -794,7 +927,8 @@ REST_REGISTRATION = {
         # SHOWN
         # "is_staff", "is_superuser",
         # HIDDEN
-        "email",
+        # email is intentionally NOT hidden - users self-service it via
+        # the profile dialog so password reset has somewhere to send to.
         "first_name",
         "last_name",
     ),
@@ -820,9 +954,9 @@ SPECTACULAR_SETTINGS = {
         "description": "Codex Docs",
     },
     "ENUM_NAME_OVERRIDES": {
-        # group
-        "BrowseGroupEnum": "codex.serializers.fields.group.BrowseGroupField.class_choices",
-        "BrowserRouteGroupEnum": "codex.serializers.fields.group.BrowserRouteGroupField.class_choices",
+        # collection
+        "BrowseCollectionEnum": "codex.serializers.fields.collection.BrowseCollectionField.class_choices",
+        "BrowserRouteCollectionEnum": "codex.serializers.fields.collection.BrowserRouteCollectionField.class_choices",
         # reading_direction
         "BookmarkReadingDirectionEnum": "codex.models.choices.ReadingDirectionChoices.choices",
         "ReaderReadingDirectionEnum": "codex.serializers.fields.reader.ReadingDirectionField.class_choices",
@@ -857,6 +991,19 @@ if FEATURES.vite_hmr:
 
 CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
 
+# cachalot.W001 fires as a false positive here. Its compatibility check
+# (cachalot/apps.py) does a string-membership test of CACHES['default']
+# ['BACKEND'] against a hardcoded set of dotted paths — it does not call
+# issubclass(). ``codex.cache.ResilientFileBasedCache`` is a thin subclass
+# of django.core.cache.backends.filebased.FileBasedCache, which *is* on
+# cachalot's supported list; the subclass only treats corrupt files as
+# misses and no-ops validate_key, neither of which affects cachalot's
+# get/set/invalidate path. Filebased is also the correct choice for our
+# multi-process layout (Granian workers + librarian daemon share one
+# on-disk cache; LocMemCache would not propagate invalidation). cachalot
+# exposes no hook to extend its cache-backend set, so silence the check.
+SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
+
 ########
 # Silk #
 ########
@@ -882,19 +1029,17 @@ if FEATURES.silk:
 
 CUSTOM_COVERS_SUBDIR = "custom-covers"
 CUSTOM_COVERS_DIR = CONFIG_PATH / CUSTOM_COVERS_SUBDIR
-CUSTOM_COVERS_GROUP_DIRS = frozenset(
+CUSTOM_COVERS_UPLOADS_DIR = CUSTOM_COVERS_DIR / "uploads"
+CUSTOM_COVERS_MAX_UPLOAD_MB = get_int(
+    CODEX_CONFIG, "custom_covers.max_upload_mb", default=10
+)
+CUSTOM_COVERS_MAX_UPLOAD_BYTES = CUSTOM_COVERS_MAX_UPLOAD_MB * 1024 * 1024
+# Legacy collection subdirs are migrated into ``uploads/`` on startup. Kept here
+# only so the migration step can read them; remove once that runs.
+CUSTOM_COVERS_COLLECTION_DIRS = frozenset(
     {"publishers", "imprints", "series", "volumes", "story-arcs"}
 )
-
-
-def create_custom_cover_group_dirs() -> None:
-    """Create custom cover group dirs."""
-    for group_dir in CUSTOM_COVERS_GROUP_DIRS:
-        custom_cover_group_dir = CUSTOM_COVERS_DIR / group_dir
-        custom_cover_group_dir.mkdir(exist_ok=True, parents=True)
-
-
-create_custom_cover_group_dirs()
+CUSTOM_COVERS_UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
 
 ############
 # Comicbox #

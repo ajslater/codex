@@ -8,15 +8,15 @@ from django.db.models.functions import Concat
 
 from codex.librarian.bookmark.tasks import UserActiveTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.models.collections import Imprint, Volume
 from codex.models.comic import Comic
-from codex.models.groups import Imprint, Volume
-from codex.views.const import GROUP_NAME_MAP
+from codex.views.const import COLLECTION_NAME_MAP, COMIC_COLLECTION
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-_SHOW_GROUPS = tuple(GROUP_NAME_MAP.keys())
-_GROUP_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
+_SHOW_COLLECTIONS = tuple(COLLECTION_NAME_MAP.keys())
+_COLLECTION_NAME_TARGETS = frozenset({"browser", "opds1", "opds2", "reader"})
 _VARIABLE_SHOW = "pi"
 
 
@@ -24,46 +24,51 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
     """Cross view annotation methods."""
 
     @staticmethod
-    def _get_order_group(
-        nav_group, show, parent_group, index, pks, order_groups
+    def _get_order_collection(
+        nav_collection, show, parent_collection, index, pks, order_collections
     ) -> tuple:
         do_break = False
         if (
-            nav_group not in _VARIABLE_SHOW or show.get(nav_group)
-        ) and nav_group == parent_group:
+            nav_collection not in _VARIABLE_SHOW or show.get(nav_collection)
+        ) and nav_collection == parent_collection:
             watermark = index
             if pks and len(pks) == 1:
                 watermark += 1
-            order_groups = _SHOW_GROUPS[watermark:]
+            order_collections = _SHOW_COLLECTIONS[watermark:]
             do_break = True
-        return order_groups, do_break
+        return order_collections, do_break
 
     @classmethod
-    def _get_order_groups(cls, parent_group, pks, show) -> tuple:
+    def _get_order_collections(cls, parent_collection, pks, show) -> tuple:
         """Annotate sort_name."""
-        order_groups = ()
-        if parent_group != "c":
-            for index, nav_group in enumerate(_SHOW_GROUPS):
-                order_groups, do_break = cls._get_order_group(
-                    nav_group, show, parent_group, index, pks, order_groups
+        order_collections = ()
+        if parent_collection != COMIC_COLLECTION:
+            for index, nav_collection in enumerate(_SHOW_COLLECTIONS):
+                order_collections, do_break = cls._get_order_collection(
+                    nav_collection,
+                    show,
+                    parent_collection,
+                    index,
+                    pks,
+                    order_collections,
                 )
                 if do_break:
                     break
             else:
-                order_groups = _SHOW_GROUPS
-        return order_groups
+                order_collections = _SHOW_COLLECTIONS
+        return order_collections
 
     @classmethod
-    def get_sort_name_annotations(cls, model, parent_group, pks, show) -> dict:
+    def get_sort_name_annotations(cls, model, parent_collection, pks, show) -> dict:
         """Annotate sort names for browser subclasses and reader."""
         sort_name_annotations = {}
         if model is Comic:
-            order_groups = cls._get_order_groups(parent_group, pks, show)
-            for order_group in order_groups:
-                group_name = GROUP_NAME_MAP[order_group]
-                ann_name = f"{group_name}_sort_name"
-                name_field = "name" if group_name == "volume" else "sort_name"
-                sort_name = F(f"{group_name}__{name_field}")
+            order_collections = cls._get_order_collections(parent_collection, pks, show)
+            for order_collection in order_collections:
+                collection_name = COLLECTION_NAME_MAP[order_collection]
+                ann_name = f"{collection_name}_sort_name"
+                name_field = "name" if collection_name == "volume" else "sort_name"
+                sort_name = F(f"{collection_name}__{name_field}")
                 sort_name_annotations[ann_name] = sort_name
         elif model is Volume:
             sort_name_annotations["sort_name"] = F("name")
@@ -86,29 +91,29 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
         )
 
     @classmethod
-    def annotate_group_names(cls, qs):
+    def annotate_collection_names(cls, qs):
         """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
         target = cls.TARGET  #  pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        if target not in _GROUP_NAME_TARGETS:
+        if target not in _COLLECTION_NAME_TARGETS:
             return qs
-        group_names = {}
+        collection_names = {}
         if qs.model in (Comic, Volume):
-            group_names["series_name"] = F("series__name")
+            collection_names["series_name"] = F("series__name")
         if qs.model is Comic:
             if target != "reader":
-                group_names["publisher_name"] = F("publisher__name")
+                collection_names["publisher_name"] = F("publisher__name")
                 if target == "opds2":
-                    group_names["imprint_name"] = F("imprint__name")
-            group_names.update(
+                    collection_names["imprint_name"] = F("imprint__name")
+            collection_names.update(
                 {
                     "volume_name": F("volume__name"),
                     "volume_number_to": F("volume__number_to"),
                 }
             )
         elif qs.model is Imprint:
-            group_names["publisher_name"] = F("publisher__name")
-        return qs.annotate(**group_names)
+            collection_names["publisher_name"] = F("publisher__name")
+        return qs.annotate(**collection_names)
 
 
 class UserActiveMixin:

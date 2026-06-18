@@ -8,7 +8,7 @@ from types import MappingProxyType
 
 from caseconverter import camelcase
 
-from codex.choices.admin import ADMIN_FLAG_CHOICES
+from codex.choices.admin import ADMIN_FLAG_CHOICES, TAGGING_CHOICES, TAGGING_DEFAULTS
 from codex.choices.browser import (
     BROWSER_CHOICES,
     BROWSER_CHOICES_MAP_KEYS,
@@ -19,13 +19,24 @@ from codex.choices.browser import (
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
 from codex.choices.jobs import ADMIN_JOBS
-from codex.choices.notifications import Notifications
+from codex.choices.notifications import WebsocketMessages
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
+from codex.choices.tagging import (
+    FORMAT_FIELD_SUPPORT,
+    FORMAT_FIELD_VALUES,
+    IDENTIFIER_SOURCES,
+    IDENTIFIER_TYPES,
+    LANGUAGES,
+)
 
 _DEFAULTS = MappingProxyType(
-    {"browser-choices.json": BROWSER_DEFAULTS, "reader-choices.json": READER_DEFAULTS}
+    {
+        "browser-choices.json": BROWSER_DEFAULTS,
+        "reader-choices.json": READER_DEFAULTS,
+        "tagging-choices.json": TAGGING_DEFAULTS,
+    }
 )
 
 # Per-file include-key filters. A filename present here emits only the
@@ -43,6 +54,7 @@ _DUMPS = MappingProxyType(
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
         "browser-choices.json": BROWSER_CHOICES,
         "reader-choices.json": READER_CHOICES,
+        "tagging-choices.json": TAGGING_CHOICES,
     }
 )
 
@@ -54,6 +66,11 @@ _MAP_DUMPS = MappingProxyType(
         "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,
         "browser-table-columns.json": BROWSER_TABLE_COLUMNS,
         "browser-table-default-columns.json": BROWSER_TABLE_DEFAULT_COLUMNS,
+        "format-field-support.json": FORMAT_FIELD_SUPPORT,
+        "format-field-values.json": FORMAT_FIELD_VALUES,
+        "identifier-sources.json": IDENTIFIER_SOURCES,
+        "identifier-types.json": IDENTIFIER_TYPES,
+        "languages.json": LANGUAGES,
         "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,
@@ -130,7 +147,7 @@ def _dump(
 
 def _make_websocket_messages() -> MappingProxyType:
     return MappingProxyType(
-        {"messages": {msg.name: msg.value for msg in Notifications}}
+        {"messages": {msg.name: msg.value for msg in WebsocketMessages}}
     )
 
 
@@ -147,13 +164,16 @@ def main() -> None:
     # The column-registry dumps must keep their snake_case keys exactly
     # (the keys are protocol identifiers — they appear in the
     # ``columns=`` query param and must round-trip through the backend's
-    # validator). search-map.json is the existing exception.
+    # validator). search-map.json is the existing exception. format-field-
+    # values.json keeps snake_case too: the frontend indexes it by raw field
+    # key (``age_ratings``, ``original_formats``, ``reading_directions``).
     skip_jsonize = frozenset(
         {
             "search-map.json",
             "browser-table-column-costs.json",
             "browser-table-columns.json",
             "browser-table-default-columns.json",
+            "format-field-values.json",
         }
     )
     for fn, data in _MAP_DUMPS.items():

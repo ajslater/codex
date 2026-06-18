@@ -4,10 +4,10 @@ from django.urls.converters import StringConverter
 from loguru import logger
 
 
-class GroupConverter(StringConverter):
-    """Only accept valid browser groups."""
+class CollectionConverter(StringConverter):
+    """Validate v4 collection segment (plural English collection name)."""
 
-    regex = r"[rpisvcfa]"
+    regex = r"publishers|imprints|series|volumes|comics|folders|arcs"
 
 
 class IntListConverter:

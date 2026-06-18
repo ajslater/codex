@@ -3,11 +3,12 @@
 from types import MappingProxyType
 from typing import Any, override
 
+from codex.collection import Collection
 from codex.views.opds.const import MimeType, Rel, TopRoutes
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.links import OPDS2LinksView
 
-_SEARCH_QUERY_PARAMS = MappingProxyType({"topGroup": "s"})
+_SEARCH_QUERY_PARAMS = MappingProxyType({"topCollection": "series"})
 
 
 class OPDS2FeedLinksView(OPDS2LinksView):
@@ -84,8 +85,12 @@ class OPDS2FeedLinksView(OPDS2LinksView):
         return static_links
 
     def _top_route(self) -> dict[str, Any]:
-        group = "f" if self.kwargs.get("group") == "f" else "r"
-        return {"group": group, "pks": (0,), "page": 1}
+        collection = (
+            Collection.FOLDER
+            if self.kwargs.get("collection") == Collection.FOLDER
+            else Collection.ROOT
+        )
+        return {"collection": collection, "pks": (), "page": 1}
 
     def _link_page(self, rel, page):
         """Links to a page of results."""
@@ -108,6 +113,8 @@ class OPDS2FeedLinksView(OPDS2LinksView):
             # no top or up links if we're already at the top
             top_href_data = HrefData(self._top_route(), inherit_query_params=True)
             top_link_data = LinkData(Rel.TOP, top_href_data)
+            # ``up_route`` is the wire-shaped ``last_route`` (keyed ``collection``);
+            # ``opds_feed_reverse`` accepts that dialect directly.
             up_href_data = HrefData(up_route, inherit_query_params=True)
             up_link_data = LinkData(Rel.UP, up_href_data)
             links_data += [

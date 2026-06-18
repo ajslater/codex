@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.const import (
-    CLASS_CUSTOM_COVER_GROUP_MAP,
+    CLASS_CUSTOM_COVER_COLLECTION_MAP,
     CUSTOM_COVER_UPDATE_FIELDS,
     LINK_COVER_PKS,
 )
@@ -42,20 +42,20 @@ class MovedCoversImporter(MovedComicsImporter):
         return moved_covers, unlink_pks
 
     def _bulk_covers_moved_unlink(self, unlink_pks) -> None:
-        """Unlink moved covers because they could have moved between group dirs."""
+        """Unlink moved covers because they could have moved between collection dirs."""
         if not unlink_pks:
             return
         self.log.debug(f"Unlinking {len(unlink_pks)} moved custom covers.")
-        for model in CLASS_CUSTOM_COVER_GROUP_MAP:
-            groups = model.objects.filter(custom_cover__in=unlink_pks)
-            unlink_groups = []
-            for group in groups:
-                group.custom_cover = None
-                unlink_groups.append(group)
-            if unlink_groups:
-                model.objects.bulk_update(unlink_groups, ["custom_cover"])
+        for model in CLASS_CUSTOM_COVER_COLLECTION_MAP:
+            collections = model.objects.filter(custom_cover__in=unlink_pks)
+            unlink_collections = []
+            for collection in collections:
+                collection.custom_cover = None
+                unlink_collections.append(collection)
+            if unlink_collections:
+                model.objects.bulk_update(unlink_collections, ["custom_cover"])
                 self.log.debug(
-                    f"Unlinked {len(unlink_groups)} {model.__name__} moved custom covers."
+                    f"Unlinked {len(unlink_collections)} {model.__name__} moved custom covers."
                 )
 
         self.remove_covers(unlink_pks, custom=True)

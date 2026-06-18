@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://readium.org/webpub-manifest/schema/altIdentifier.schema.json",
+  "title": "Alternate Identifiers",
+  "type": "array",
+  "items": {
+    "anyOf": [
+        {
+          "type": "string",
+          "format": "uri"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "scheme": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        }
+      ]
+  },
+  "minItems": 1
+}

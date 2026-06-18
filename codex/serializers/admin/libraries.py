@@ -33,17 +33,20 @@ class LibrarySerializer(BaseModelSerializer):
             "poll",
             "poll_every",
             "groups",
-            "covers_only",
             "comic_count",
             "failed_count",
         )
         read_only_fields = (
             "last_poll",
             "pk",
-            "covers_only",
             "comic_count",
             "failed_count",
         )
+
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "libraries"
 
     def validate_path(self, path):
         """Validate new library paths."""
@@ -66,12 +69,21 @@ class LibrarySerializer(BaseModelSerializer):
 class FailedImportSerializer(BaseModelSerializer):
     """Failed Import Serializer."""
 
+    # The failure reason is stored in the inherited ``name`` field
+    # (see FailedImport.set_reason); expose it under a clearer alias.
+    reason = CharField(source="name", read_only=True)
+
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = FailedImport
-        fields = ("pk", "path", "created_at")
+        fields = ("pk", "path", "created_at", "reason")
         read_only_fields = ("pk", "path", "created_at")
+
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "failed-imports"
 
 
 class AdminFolderListSerializer(Serializer):

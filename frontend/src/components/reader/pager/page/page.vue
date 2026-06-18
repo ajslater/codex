@@ -44,7 +44,7 @@
 import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
-import { getComicPageSource } from "@/api/v3/reader";
+import { getComicPageSource } from "@/api/v4/reader";
 import LoadingPage from "@/components/reader/pager/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 const PDFDoc = markRaw(

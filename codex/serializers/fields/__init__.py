@@ -1,7 +1,7 @@
 """Custom Serializer Fields."""
 
 from codex.serializers.fields.auth import TimestampField, TimezoneField
-from codex.serializers.fields.group import BrowseGroupField
+from codex.serializers.fields.collection import BrowseCollectionField
 from codex.serializers.fields.reader import FitToField, ReadingDirectionField
 from codex.serializers.fields.sanitized import SanitizedCharField
 from codex.serializers.fields.settings import SettingsKeyField
@@ -19,7 +19,7 @@ from codex.serializers.fields.vuetify import (
 )
 
 __all__ = (
-    "BrowseGroupField",
+    "BrowseCollectionField",
     "CountDictField",
     "FitToField",
     "ReadingDirectionField",

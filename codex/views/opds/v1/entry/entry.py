@@ -5,7 +5,6 @@ from contextlib import suppress
 from datetime import UTC, datetime
 
 from dateutil import parser
-from django.urls import reverse
 from loguru import logger
 
 from codex.models import Comic
@@ -18,6 +17,7 @@ from codex.views.opds.metadata import (
     get_credit_people,
     get_m2m_objects,
 )
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
 
 
@@ -36,13 +36,13 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         result = ""
         try:
             parts = []
-            group = self.obj.group
+            collection = self.obj.nav_collection
             if not self.fake:
-                if group == "i":
+                if collection == "imprints":
                     parts.append(self.obj.publisher_name)
-                elif group == "v":
+                elif collection == "volumes":
                     parts.append(self.obj.series_name)
-                elif group == "c":
+                elif collection == "comics":
                     title = Comic.get_title(
                         self.obj,
                         volume=True,
@@ -52,7 +52,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                     )
                     parts.append(title)
 
-            if group != "c" and (name := self.obj.name):
+            if collection != "comics" and (name := self.obj.name):
                 parts.append(name)
 
             result = " ".join(filter(None, parts))
@@ -67,7 +67,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     def issued(self) -> str:
         """Return the published date."""
         date = ""
-        if self.obj.group == "c":
+        if self.obj.nav_collection == "comics":
             with suppress(Exception):
                 date = self.obj.date.isoformat()
 
@@ -108,7 +108,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @property
     def summary(self):
         """Return a child count or comic summary."""
-        if self.obj.group == "c":
+        if self.obj.nav_collection == "comics":
             desc = self.obj.summary
         else:
             children = self.obj.child_count
@@ -122,9 +122,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         for obj in objs:
             filters = json.dumps({filter_key: [obj.pk]})
             query = {"filters": filters}
-            obj.url = reverse(
-                "opds:v1:feed", kwargs=dict(TopRoutes.SERIES), query=query
-            )
+            obj.url = opds_feed_reverse("opds:v1:feed", TopRoutes.SERIES, query)
             result.append(obj)
         return result
 

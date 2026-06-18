@@ -9,11 +9,14 @@ from django.urls import include, path, register_converter
 from django.views.generic.base import RedirectView
 
 from codex.settings import FEATURES
-from codex.urls.converters import GroupConverter, IntListConverter
+from codex.urls.converters import (
+    CollectionConverter,
+    IntListConverter,
+)
 from codex.views.healthcheck import health_check_view
 
-register_converter(GroupConverter, "group")
 register_converter(IntListConverter, "int_list")
+register_converter(CollectionConverter, "collection")
 
 
 urlpatterns = []

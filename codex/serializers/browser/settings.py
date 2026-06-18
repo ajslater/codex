@@ -2,6 +2,7 @@
 
 from typing import override
 
+from loguru import logger
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -17,30 +18,33 @@ from codex.choices.browser import (
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
-    BROWSER_TOP_GROUP_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
 )
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
-from codex.serializers.fields.group import BrowseGroupField, BrowserRouteGroupField
+from codex.serializers.fields.collection import (
+    BrowseCollectionField,
+    BrowserRouteCollectionField,
+)
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
 
 
-class BrowserSettingsShowGroupFlagsSerializer(Serializer):
-    """Show Group Flags."""
+class BrowserSettingsShowCollectionFlagsSerializer(Serializer):
+    """Show Collection Flags (collection vocabulary)."""
 
-    p = BooleanField()
-    i = BooleanField()
-    s = BooleanField()
-    v = BooleanField()
+    publishers = BooleanField()
+    imprints = BooleanField()
+    series = BooleanField()
+    volumes = BooleanField()
 
 
 class BrowserSettingsLastRouteSerializer(Serializer):
     """Last route for browser settings output."""
 
-    group = CharField()
+    collection = CharField()
     pks = CharField()
     page = IntegerField()
 
@@ -51,7 +55,7 @@ class BrowserSettingsLastRouteSerializer(Serializer):
             # Model instance
             pks = instance.pks
             instance = {
-                "group": instance.group,
+                "collection": instance.collection,
                 "pks": tuple(pks) if pks else (0,),
                 "page": instance.page,
             }
@@ -79,7 +83,7 @@ class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerializer):
         choices=tuple(BROWSER_ORDER_BY_CHOICES.keys()), required=False
     )
     order_reverse = BooleanField(required=False)
-    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    show = BrowserSettingsShowCollectionFlagsSerializer(required=False)
 
 
 class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
@@ -95,7 +99,7 @@ class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
 class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
     """Base Serializer for Browser & OPDS Settings."""
 
-    top_group = BrowseGroupField(required=False)
+    top_collection = BrowseCollectionField(required=False)
 
     @override
     def to_internal_value(self, data) -> dict:
@@ -152,20 +156,32 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     )
 
     def validate_table_columns(self, value):
-        """Reject unknown top-group keys and unknown column keys."""
-        invalid_top_groups = set(value) - set(BROWSER_TOP_GROUP_CHOICES.keys())
-        if invalid_top_groups:
-            reason = f"Invalid top_group keys: {sorted(invalid_top_groups)}"
-            raise ValidationError(reason)
+        """
+        Drop unknown top-collection keys and unknown column keys.
+
+        ``table_columns`` is round-tripped from stored settings, so a stale or
+        partially-migrated client must not hard-400 the entire browse page.
+        Unknown top-collection keys (e.g. legacy single-char group codes) and
+        unknown column keys are dropped with a warning rather than raising.
+        """
+        valid_top_collections = set(BROWSER_TOP_COLLECTION_CHOICES.keys())
         valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
-        for top_group, columns in value.items():
+        cleaned: dict[str, list[str]] = {}
+        for top_collection, columns in value.items():
+            if top_collection not in valid_top_collections:
+                logger.warning(
+                    f"Dropping unknown table_columns top_collection {top_collection!r}"
+                )
+                continue
             invalid_columns = set(columns) - valid_columns
             if invalid_columns:
-                reason = (
-                    f"Invalid column keys for {top_group!r}: {sorted(invalid_columns)}"
+                msg = (
+                    f"Dropping unknown table_columns columns for "
+                    f"{top_collection!r}: {sorted(invalid_columns)}"
                 )
-                raise ValidationError(reason)
-        return value
+                logger.warning(msg)
+            cleaned[top_collection] = [c for c in columns if c in valid_columns]
+        return cleaned
 
     def validate_order_extra_keys(self, value):
         """
@@ -199,7 +215,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 class BrowserSettingsInputSerializer(SettingsInputSerializer):
     """Browser Set Settings Input Serializer."""
 
-    group = BrowserRouteGroupField(required=False)
+    collection = BrowserRouteCollectionField(required=False)
 
 
 class BrowserPageInputSerializer(BrowserSettingsSerializer):

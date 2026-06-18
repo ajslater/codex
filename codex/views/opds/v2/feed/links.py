@@ -13,6 +13,7 @@ from codex.views.opds.const import BookmarkFilters, MimeType, Rel, UserAgentName
 from codex.views.opds.feed import OPDSBrowserView
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.href import OPDS2HrefMixin
+from codex.views.opds.v2.renderers import OPDS2FeedRenderer
 
 _BOOKMARK_FILTERS_NONE_STR = json.dumps(dict(BookmarkFilters.NONE))
 
@@ -21,32 +22,37 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     """Links methods for OPDS 2.0 Feed."""
 
     TARGET = "opds2"
+    # OPDS 2.0 wants the feed object at the JSON root. Override the inherited
+    # ``EnvelopeJSONRenderer`` (which wraps in ``{data, meta, errors}`` for the
+    # SPA) so feeds are valid OPDS 2.0 documents. The manifest view narrows this
+    # to the Divina media type.
+    renderer_classes = (OPDS2FeedRenderer,)
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
         self._num_pages: int | None = None
-        self._group_and_books: (
-            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None] | None
+        self._collection_and_books: (
+            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int] | None
         ) = None
         self._user_agent_name: str | None = None
 
     @property
-    def group_and_books(
+    def collection_and_books(
         self,
-    ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None]:
-        """Memoize Group And Books for num_pages."""
-        # group_qs, book_qs, num_pages, total_count, zero_pad, mtime
-        if self._group_and_books is None:
-            self._group_and_books = self._get_group_and_books()
-        return self._group_and_books
+    ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int]:
+        """Memoize Collection And Books for num_pages."""
+        # collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count
+        if self._collection_and_books is None:
+            self._collection_and_books = self._get_collection_and_books()
+        return self._collection_and_books
 
     @property
     @override
     def num_pages(self) -> int:
         """Memoize num_pages."""
         if self._num_pages is None:
-            self._num_pages = self.group_and_books[2]
+            self._num_pages = self.collection_and_books[2]
         return self._num_pages
 
     @staticmethod

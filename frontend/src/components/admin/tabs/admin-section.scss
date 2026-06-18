@@ -1,36 +1,51 @@
-// Shared chrome for the admin Flags and Jobs tabs. Both render
-// the same shape — titled sections of item cards — and use
-// these primitives so the visual language stays unified.
+// Shared chrome for the admin tabs. Every tab composes these primitives so the
+// visual language stays unified — see frontend/DESIGN.md. Tab-specific
+// decoration layers on top from each tab's own scoped styles.
 //
-// Tab-specific decoration (active-state left border, action
-// buttons, expand panels) layers on top from each tab's own
-// scoped styles.
+// `@use`d into a component's scoped <style> block, so each selector is scoped
+// to that component's own template. Tokens come from ./design.scss.
 
-.adminContainer {
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
+@use "./design.scss" as d;
+
+// --- Layout (DESIGN.md §1) -------------------------------------------------
+
+// Forms / settings / prose live here: one comfortable, centered column, the
+// same width on every tab. Data tables deliberately ignore this.
+.adminReadingColumn {
+  max-width: d.$reading-width;
+  margin-inline: auto;
 }
 
+// --- Sections --------------------------------------------------------------
+
 .adminGroup + .adminGroup {
-  margin-top: 1.5em;
+  margin-top: d.$space-6;
 }
 
 .adminGroupHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.25em;
+  margin-bottom: d.$space-1;
 }
 
 .adminGroupHeader > h3 {
   margin: 0;
+  font-size: d.$text-title;
 }
 
+.adminHint {
+  margin-top: d.$space-1;
+  font-size: d.$text-small;
+  color: rgb(var(--v-theme-textSecondary));
+}
+
+// --- Cards -----------------------------------------------------------------
+
 .adminCard {
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 5px;
+  padding: d.$space-3;
+  margin: d.$space-2 0;
+  border-radius: d.$radius;
   background-color: rgb(var(--v-theme-surface-light));
   border-left: 3px solid transparent;
   transition: border-color 0.3s ease;
@@ -44,7 +59,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: d.$space-3;
 }
 
 .adminCardInfo {
@@ -58,13 +73,160 @@
 
 .adminCardDesc {
   color: rgb(var(--v-theme-textSecondary));
-  font-size: 0.85em;
+  font-size: d.$text-small;
   padding-top: 2px;
 }
 
 .adminCardActions {
   display: flex;
-  gap: 6px;
+  gap: d.$space-2;
   flex-shrink: 0;
   align-items: center;
+}
+
+// --- Action rows -----------------------------------------------------------
+
+// The Save / Revert (or Save / cancel) row at the foot of a settings form.
+// Prefer the AdminActionBar component; this class backs it.
+.adminActionBar {
+  display: flex;
+  gap: d.$space-2;
+  align-items: center;
+  margin-top: d.$space-4;
+  margin-bottom: d.$space-4;
+}
+
+// A horizontal cluster of buttons (Save credential / Test / Clear).
+.adminInlineActions {
+  display: flex;
+  gap: d.$space-2;
+  align-items: center;
+}
+
+// A vertical stack of inputs (credential fields, test-send form).
+.adminFieldColumn {
+  display: flex;
+  flex-direction: column;
+  gap: d.$space-2;
+  padding-top: d.$space-2;
+}
+
+// The icon-button cluster in a data table's Actions column: dimmed until
+// hovered so the rows stay calm.
+.adminActionCell :deep(> button) {
+  opacity: 0.7;
+}
+
+.adminActionCell :deep(> button:hover) {
+  opacity: 1;
+}
+
+// --- Prose & help (DESIGN.md §3) -------------------------------------------
+
+// All explanatory prose: reading width, centered, small, always
+// textSecondary. (margin-inline is a no-op inside an already-centered
+// .adminReadingColumn; it centers the standalone help on the Libraries tab.)
+.adminProse {
+  max-width: d.$reading-width;
+  margin-inline: auto;
+  font-size: d.$text-small;
+  color: rgb(var(--v-theme-textSecondary));
+}
+
+.adminProse p + p {
+  margin-top: 0.75em;
+}
+
+.adminProse ul {
+  margin: 0 0 d.$space-2 d.$space-6;
+  padding: 0;
+}
+
+.adminProse li {
+  margin-bottom: d.$space-1;
+}
+
+.adminProse h3,
+.adminProse h4 {
+  margin: d.$space-4 0 d.$space-1;
+  color: rgb(var(--v-theme-textPrimary));
+}
+
+// Inline code chip.
+.adminCode {
+  background-color: rgb(var(--v-theme-surface));
+  padding: 1px 4px;
+  border-radius: d.$radius-sm;
+  font-size: d.$text-small;
+}
+
+// --- Disclosure toggle -----------------------------------------------------
+
+// The chevron + label used to expand sub-status / log panels. Prefer the
+// AdminExpandToggle component; this class backs it.
+.adminExpandToggle {
+  display: flex;
+  align-items: center;
+  gap: d.$space-1;
+  background: none;
+  border: none;
+  color: rgb(var(--v-theme-textSecondary));
+  cursor: pointer;
+  font-size: d.$text-meta;
+  padding: 2px 0;
+}
+
+.adminExpandToggle:hover {
+  color: rgb(var(--v-theme-textPrimary));
+}
+
+// --- Key/value tables (DESIGN.md §5) ---------------------------------------
+
+// One look for every label→value readout (stats, restore counts). Data/CRUD
+// tables use AdminTable instead.
+.adminKvTable {
+  width: 100%;
+  border-collapse: collapse;
+  color: rgb(var(--v-theme-textSecondary));
+  font-size: d.$text-body;
+  background-color: inherit;
+}
+
+.adminKvTable td {
+  padding: d.$space-1 0;
+}
+
+// Keep a long label (e.g. "Authorization Groups") from butting up against the
+// right-aligned value column.
+.adminKvTable td:first-child {
+  padding-right: d.$space-6;
+}
+
+.adminKvTable td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+// Alternating bands: every other row a touch brighter for readability. The
+// overlay sits on whatever's behind the table (page surface for stats, the
+// card for restore counts), so it stays subtle in both places.
+.adminKvTable tbody tr:nth-child(even) {
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
+}
+
+.adminKvTable .indent {
+  padding-left: 2em;
+}
+
+// A reference truth-table (the Groups access-logic matrix). Semantic cell
+// colours are layered on by the consumer.
+.adminMatrix {
+  margin-top: d.$space-4;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-collapse: collapse;
+}
+
+.adminMatrix th,
+.adminMatrix td {
+  padding: d.$space-1;
 }

@@ -9,13 +9,22 @@ class ScribeStatus(Status, ABC):
     """Scribe Statii."""
 
 
-class UpdateGroupTimestampsStatus(ScribeStatus):
-    """Update Group Timestamps Status."""
+class UpdateCollectionTimestampsStatus(ScribeStatus):
+    """Update Collection Timestamps Status."""
 
     CODE = "IGU"
-    ITEM_NAME = "browser groups"
+    ITEM_NAME = "browser collections"
     VERB = "Update timestamps for"
     _verbed = "Updated timestamps for"
 
 
-SCRIBE_STATII = (UpdateGroupTimestampsStatus,)
+class TagWriteStatus(ScribeStatus):
+    """Tag Write Status."""
+
+    CODE = "TWR"
+    ITEM_NAME = "comic tags"
+    VERB = "Write"
+    _verbed = "Wrote"
+
+
+SCRIBE_STATII = (UpdateCollectionTimestampsStatus, TagWriteStatus)

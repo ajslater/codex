@@ -25,7 +25,7 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
         proposed_comic_dict = self.metadata[CREATE_COMICS].pop(comic.path, None)
         if not proposed_comic_dict:
             self.log.warning(
-                f"{comic.path} can be updated, but the update metadata was not found."
+                f"{comic.path} can be updated, but the update tags were not found."
             )
             return
         update_comic_dict = {

@@ -11,9 +11,16 @@ app_name = "v1"
 
 urlpatterns = [
     #
-    # Browser
+    # Browser. Two patterns share the ``feed`` name: a collection root
+    # listing (no parent ids) and a scoped listing. ``page`` is the
+    # ``?page=`` query param (read via ``AuthMixin`` / ``requires_page``).
     path(
-        "<group:group>/<int_list:pks>/<int:page>",
+        "<collection:collection>",
+        opds_cached(OPDS1FeedView.as_view()),
+        name="feed",
+    ),
+    path(
+        "<collection:collection>/<int_list:parent_ids>",
         opds_cached(OPDS1FeedView.as_view()),
         name="feed",
     ),
@@ -22,11 +29,11 @@ urlpatterns = [
         opds_cached(OpenSearch1View.as_view()),
         name="opensearch_v1",
     ),
-    # Start
+    # Start (catalog root; resolves to the top collection, no parent ids).
     path(
         "",
         opds_cached(OPDS1StartView.as_view()),
-        {"group": "r", "pks": (0,), "page": 1},
+        {"collection": "root", "pks": (), "page": 1},
         name="start",
     ),
 ]
