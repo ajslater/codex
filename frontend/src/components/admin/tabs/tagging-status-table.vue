@@ -149,8 +149,21 @@
           {{ filename(item.path) }}
         </span>
       </template>
-      <template #[`item.wonSource`]="{ item }">
-        <span v-if="item.wonSource">{{ sourceLabel(item.wonSource) }}</span>
+      <template #[`item.wonSources`]="{ item }">
+        <span
+          v-if="item.wonSources && item.wonSources.length"
+          class="sourceCell"
+        >
+          <v-chip
+            v-for="src in item.wonSources"
+            :key="src"
+            size="x-small"
+            variant="tonal"
+            color="success"
+          >
+            {{ sourceLabel(src) }}
+          </v-chip>
+        </span>
         <span v-else class="muted">—</span>
       </template>
       <template #[`item.action`]="{ item }">
@@ -282,9 +295,19 @@ export default {
       // True from clicking Resume until the daemon reports the scan active.
       resuming: false,
       headers: [
-        { title: "Comic", key: "path", align: "start" },
+        // Comic claims all slack (width 100% + the max-width:0 cell trick) so
+        // the filename fills every spare pixel before truncating; the other
+        // columns stay shrink-to-fit around their content (or just the title).
+        {
+          title: "Comic",
+          key: "path",
+          align: "start",
+          sortable: false,
+          width: "100%",
+          cellProps: { class: "pathColumn" },
+        },
         { title: "Status", key: "status", align: "start" },
-        { title: "Source", key: "wonSource", align: "start", sortable: false },
+        { title: "Source", key: "wonSources", align: "start", sortable: false },
         { title: "", key: "action", align: "end", sortable: false },
       ],
     };
@@ -560,14 +583,25 @@ export default {
   white-space: nowrap;
 }
 
-.pathCell {
-  display: inline-block;
-  // Keep the cell at its original width, but let a long comic name scroll
-  // horizontally within it instead of truncating out of reach.
-  max-width: 32ch;
-  overflow-x: auto;
+// The Comic column carries width:100%, so this cell absorbs all the slack the
+// other (shrink-to-fit) columns leave. ``max-width: 0`` is the canonical trick
+// that lets a flexible table cell actually clip: without it the cell grows to
+// its content and never truncates. The full path stays available via title.
+.comicsTable :deep(td.pathColumn) {
+  max-width: 0;
+  overflow: hidden;
   white-space: nowrap;
-  vertical-align: middle;
+  text-overflow: ellipsis;
+}
+
+.pathCell {
+  display: inline;
+}
+
+.sourceCell {
+  display: inline-flex;
+  gap: d.$space-1;
+  white-space: nowrap;
 }
 
 .muted {

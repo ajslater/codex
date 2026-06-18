@@ -61,9 +61,14 @@ function makeSnapshot(overrides = {}) {
       },
     ],
     comics: [
-      { pk: 1, path: "/c/a.cbz", status: "matched", wonSource: "metron" },
-      { pk: 2, path: "/c/b.cbz", status: "in_flight", wonSource: null },
-      { pk: 3, path: "/c/c.cbz", status: "queued", wonSource: null },
+      {
+        pk: 1,
+        path: "/c/a.cbz",
+        status: "matched",
+        wonSources: ["metron", "comicvine"],
+      },
+      { pk: 2, path: "/c/b.cbz", status: "in_flight", wonSources: [] },
+      { pk: 3, path: "/c/c.cbz", status: "queued", wonSources: [] },
     ],
     comicCount: 10,
     shownCount: 3,
@@ -146,6 +151,17 @@ describe("AdminTaggingStatusTable", () => {
     expect(wrapper.vm.reviewCount).toBe(1);
   });
 
+  test("renders a chip per matched source and an em-dash when unattributed", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const cells = wrapper.findAll(".sourceCell");
+    // Only the matched comic (both sources, under merge) gets source chips.
+    expect(cells).toHaveLength(1);
+    const labels = cells[0].findAll(".v-chip").map((c) => c.text());
+    expect(labels).toEqual(["Metron Cloud", "Comic Vine"]);
+    // The non-matched rows fall back to the muted em-dash.
+    expect(wrapper.findAll(".muted").length).toBeGreaterThanOrEqual(2);
+  });
+
   test("Review opens the match-review popup", () => {
     const { wrapper, store } = mountTable({ snapshot: makeSnapshot() });
     wrapper.vm.openReview();
@@ -167,8 +183,8 @@ describe("AdminTaggingStatusTable", () => {
   test("keeps a server-resolved status unless the comic is still pending", () => {
     const snapshot = makeSnapshot({
       comics: [
-        { pk: 1, path: "/c/a.cbz", status: "user_matched", wonSource: null },
-        { pk: 2, path: "/c/b.cbz", status: "user_skipped", wonSource: null },
+        { pk: 1, path: "/c/a.cbz", status: "user_matched", wonSources: [] },
+        { pk: 2, path: "/c/b.cbz", status: "user_skipped", wonSources: [] },
       ],
     });
     // Comic 2 has drifted back into the live prompt queue.
