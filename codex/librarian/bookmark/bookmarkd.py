@@ -7,11 +7,13 @@ from typing import override
 
 from loguru import logger
 
+from codex.librarian.bookmark.last_route import LastRouteUpdateMixin
 from codex.librarian.bookmark.latest_version import CodexLatestVersionUpdater
 from codex.librarian.bookmark.tasks import (
     BookmarkUpdateTask,
     ClearLibrarianStatusTask,
     CodexLatestVersionTask,
+    LastRouteUpdateTask,
     UserActiveTask,
 )
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
@@ -81,10 +83,18 @@ class BookmarkKey:
         )
 
 
+@dataclass(frozen=True)
+class _LastRouteKey:
+    """Aggregation key for deferred last-route writes — one per settings row."""
+
+    settings_pk: int
+
+
 class BookmarkThread(
     AggregateMessageQueuedThread,
     BookmarkUpdateMixin,
     UserActiveMixin,
+    LastRouteUpdateMixin,
 ):
     """Aggregates Bookmark updates preventing floods updates db in batches.."""
 
@@ -154,6 +164,10 @@ class BookmarkThread(
             case BookmarkUpdateTask():
                 key = BookmarkKey(item.auth_filter, item.comic_pks)
                 self.cache.setdefault(key, {}).update(item.updates)
+            case LastRouteUpdateTask():
+                # Last write wins per settings row — rapid navigation
+                # collapses to one UPDATE per flood window.
+                self.cache[_LastRouteKey(item.settings_pk)] = dict(item.route)
             case _:
                 self._process_task_immediately(task)
 
@@ -166,7 +180,9 @@ class BookmarkThread(
         cleanup = set()
         for key, value in self.cache.items():
             try:
-                if key.user_pk:
+                if isinstance(key, _LastRouteKey):
+                    self.update_last_route(key.settings_pk, value, logger)
+                elif key.user_pk:
                     self.update_user_active(key.user_pk, logger)
                 elif key.comic_pks:
                     self.update_bookmarks(key.auth_filter, key.comic_pks, value)

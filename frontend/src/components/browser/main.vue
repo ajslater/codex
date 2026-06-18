@@ -9,7 +9,7 @@
     >
       <BrowserCard
         v-for="item in cards"
-        :key="`${item.group}${item.ids}`"
+        :key="`${item.collection}${item.ids}`"
         :item="item"
       />
     </v-pull-to-refresh>
@@ -99,7 +99,7 @@ export default {
       cards(state) {
         /*
          * Skip the spread when one of the lists is empty. The
-         * typical browser page is either all groups (publishers,
+         * typical browser page is either all collections (publishers,
          * series, volumes) or all books — never a mix — so the
          * common case is "spread an array against an empty
          * array", which still allocates a fresh wrapper per
@@ -108,11 +108,11 @@ export default {
          * we can lets Vue's diff cache shortcut to "same array,
          * same items" and the v-for stays stable across renders.
          */
-        const groups = state.page.groups;
+        const collections = state.page.collections;
         const books = state.page.books;
-        if (!groups || groups.length === 0) return books ?? [];
-        if (!books || books.length === 0) return groups;
-        return [...groups, ...books];
+        if (!collections || collections.length === 0) return books ?? [];
+        if (!books || books.length === 0) return collections;
+        return [...collections, ...books];
       },
       tableModeRequested: (state) => state.settings.viewMode === "table",
       tableRowCount: (state) =>
@@ -155,7 +155,7 @@ export default {
     },
     cancelButtonTitle() {
       /*
-       * Cancel resets only the sort to the per-top-group default —
+       * Cancel resets only the sort to the per-top-collection default —
        * columns, filters, and the rest of the user's settings stay
        * put. The tooltip text matches.
        */
@@ -173,7 +173,7 @@ export default {
       if (!this.search) {
         return res;
       }
-      const page = +this.$route.params.page;
+      const page = Number(this.$route.query.page) || 1;
       const limit = 100 * page;
       if (this.showPlaceHolder) {
         res += `Searching for ${limit} entries...`;

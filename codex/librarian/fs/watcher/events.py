@@ -12,11 +12,10 @@ from pathlib import Path
 from watchfiles import Change
 
 from codex.librarian.fs.events import FSChange, FSEvent
-from codex.librarian.fs.filters import match_folder_cover
 from codex.librarian.fs.watcher.data import ChangeBatch
 from codex.librarian.fs.watcher.dirs import expand_dir_added, expand_dir_deleted
 from codex.librarian.fs.watcher.move import detect_moves
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 
 
 def _process_change(
@@ -24,22 +23,18 @@ def _process_change(
     path: str,
     library_pk: int,
     batch: ChangeBatch,
-    *,
-    covers_only: bool,
 ) -> None:
     """Classify a single raw change and append to the batch."""
     p = Path(path)
 
-    is_cover = covers_only or match_folder_cover(Path(path))
-
     if change_enum == Change.added:
         if p.is_dir():
-            expand_dir_added(path, library_pk, batch, covers_only=is_cover)
+            expand_dir_added(path, library_pk, batch)
         else:
             batch.added.append(
                 (
                     library_pk,
-                    FSEvent(src_path=path, change=FSChange.added, is_cover=is_cover),
+                    FSEvent(src_path=path, change=FSChange.added),
                 )
             )
 
@@ -51,7 +46,7 @@ def _process_change(
             batch.deleted.append(
                 (
                     library_pk,
-                    FSEvent(src_path=path, change=FSChange.deleted, is_cover=is_cover),
+                    FSEvent(src_path=path, change=FSChange.deleted),
                 )
             )
 
@@ -64,26 +59,22 @@ def _process_change(
                     src_path=path,
                     change=FSChange.modified,
                     is_directory=is_dir,
-                    is_cover=is_cover,
                 ),
             )
         )
 
 
-def _find_library(
-    library_paths: dict[str, int], covers_only_paths: set[str], file_path: str
-) -> tuple[int, bool] | None:
+def _find_library(library_paths: dict[str, int], file_path: str) -> int | None:
     """Find which library a changed path belongs to."""
     for lib_path, pk in library_paths.items():
         if file_path.startswith(lib_path):
-            return pk, lib_path in covers_only_paths
+            return pk
     return None
 
 
 def process_changes(
     changes: set[tuple[Change, str]],
     library_paths: dict[str, int],
-    covers_only_paths: set[str],
 ) -> list[tuple[int, FSEvent]]:
     """
     Process a batch of raw watchfiles changes into (library_pk, FSEvent) pairs.
@@ -95,11 +86,10 @@ def process_changes(
 
     # Single pass: classify each raw change, calling library_lookup once each
     for change_enum, path in changes:
-        result = _find_library(library_paths, covers_only_paths, path)
-        if not result:
+        library_pk = _find_library(library_paths, path)
+        if library_pk is None:
             continue
-        library_pk, covers_only = result
-        _process_change(change_enum, path, library_pk, batch, covers_only=covers_only)
+        _process_change(change_enum, path, library_pk, batch)
 
     # Detect moves (mutates batch.added and batch.deleted in place)
     move_events = detect_moves(batch)

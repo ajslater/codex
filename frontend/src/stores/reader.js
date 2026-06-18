@@ -2,15 +2,16 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
-import { dedupedFetch, isAbortError, useAbortable } from "@/api/v3/abortable";
-import * as BROWSER_API from "@/api/v3/browser";
-import * as COMMON_API from "@/api/v3/common";
-import * as READER_API from "@/api/v3/reader";
+import { dedupedFetch, isAbortError, useAbortable } from "@/api/v4/abortable";
+import * as BROWSER_API from "@/api/v4/browser";
+import * as COMMON_API from "@/api/v4/common";
+import * as READER_API from "@/api/v4/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import READER_CHOICES from "@/choices/reader-choices.json";
 import READER_DEFAULTS from "@/choices/reader-defaults.json";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
+import { browserRouteParams } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
 const SETTINGS_NULL_VALUES = Object.freeze(new Set(["", null, undefined]));
@@ -85,7 +86,7 @@ const ROUTES_NULL = Object.freeze({
   close: undefined,
 });
 const DEFAULT_ARC = Object.freeze({
-  group: "s",
+  collection: "series",
   ids: [],
 });
 
@@ -122,7 +123,7 @@ export const useReaderStore = defineStore("reader", {
     intermediateInfo: null,
     books: structuredClone(BOOKS_NULL),
     arcs: {},
-    arc: { group: "s", ids: [] },
+    arc: { collection: "series", ids: [] },
     mtime: 0,
 
     // local reader
@@ -156,7 +157,7 @@ export const useReaderStore = defineStore("reader", {
       const book = state.books.current;
       let title;
       if (book) {
-        if (state.arc?.group != "f") {
+        if (state.arc?.collection != "folders") {
           title = getFullComicName(book);
         }
         if (!title) {
@@ -203,21 +204,29 @@ export const useReaderStore = defineStore("reader", {
       return this.page >= limit;
     },
     closeBookRoute(state) {
-      const route = { name: "browser" };
-      if (state.routes.close) {
-        route.params = state.routes.close;
-      } else {
+      // Browser breadcrumbs speak the collection vocabulary; the close
+      // target is the deepest non-comic crumb (its container listing).
+      let src = state.routes.close;
+      if (!src) {
         const breadcrumbs = useBrowserStore()?.settings?.breadcrumbs;
-        route.params = breadcrumbs?.findLast((b) => b.group !== "c");
+        src = breadcrumbs?.findLast((b) => b.collection !== "comics");
       }
-      if (route.params) {
+      // A #card hash only makes sense when we know which listing the book
+      // lived in; the generic last-route fallback below has no card context.
+      const hasContext = Boolean(src);
+      if (!src) {
+        src = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
+      }
+      // browserRouteParams coerces parentIds to a "1,2" string (or omits it).
+      // The browser route's parentIds token is not repeatable, so handing it
+      // an array — e.g. LAST_ROUTE's parentIds: [] — makes vue-router's
+      // resolve() throw and takes the whole reader render down with it.
+      const route = { name: "browser", params: browserRouteParams(src) };
+      if (hasContext) {
         const cardPk = state.books?.current?.pk;
         if (cardPk) {
           route.hash = `#card-${cardPk}`;
         }
-      } else {
-        route.params =
-          globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
       }
       return route;
     },
@@ -487,7 +496,11 @@ export const useReaderStore = defineStore("reader", {
          * document, so a page change is a v-window slide — no real
          * route change. Update the URL via pushState instead.
          */
-        const route = { params: { pk: this.books.current.pk, page } };
+        const route = {
+          name: "reader",
+          params: { pk: this.books.current.pk },
+          query: { page },
+        };
         const { href } = router.resolve(route);
         globalThis.history.pushState({}, undefined, href);
       }
@@ -510,9 +523,9 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadGlobalSettings() {
-      READER_API.getSettings(null, ["g"])
+      READER_API.getSettings(null, ["global"])
         .then((response) => {
-          const data = response.data?.scopes?.g;
+          const data = response.data?.scopes?.global;
           if (data) {
             this._applyGlobalSettings(data);
           }
@@ -590,22 +603,28 @@ export const useReaderStore = defineStore("reader", {
         this.empty = true;
       }
     },
+    /*
+     * Refresh gate for ``library.changed`` events: probe the scoped
+     * ``/api/v4/mtime`` for the comic's arcs and reload the books only
+     * when the max mtime differs from what we last fetched, so an
+     * unrelated library change doesn't reload the open book.
+     */
     async loadMtimes() {
       const arcs = [];
-      for (const [group, arcIdInfos] of Object.entries(this.arcs)) {
+      for (const [collection, arcIdInfos] of Object.entries(this.arcs)) {
         for (const pks of Object.keys(arcIdInfos)) {
-          const arc = { group, pks };
+          const arc = { collection, pks };
           arcs.push(arc);
         }
       }
       if (!arcs.length) {
         /*
          * No arcs is a 500 from the mtime api. Use the same
-         * ``{ group, pks }`` shape the loop above produces — the
+         * ``{ collection, pks }`` shape the loop above produces — the
          * earlier ``{ r: "0" }`` was a typo that itself returned
          * 500 from the API, so the fallback never actually worked.
          */
-        arcs.push({ group: "r", pks: "0" });
+        arcs.push({ collection: "root", pks: "0" });
       }
       /*
        * Dedup so concurrent callers (websocket fan-out across the
@@ -614,7 +633,7 @@ export const useReaderStore = defineStore("reader", {
        * don't collide; same-shape concurrent calls coalesce.
        */
       const dedupKey = `reader:loadMtimes:${arcs
-        .map((a) => `${a.group}/${a.pks}`)
+        .map((a) => `${a.collection}/${a.pks}`)
         .sort()
         .join(",")}`;
       try {
@@ -631,7 +650,10 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", ids: [+this.books.current.pk] };
+      const collectionParams = {
+        collection: "comics",
+        ids: [+this.books.current.pk],
+      };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       if (
@@ -640,7 +662,11 @@ export const useReaderStore = defineStore("reader", {
       ) {
         updates["finished"] = true;
       }
-      await BROWSER_API.updateGroupBookmarks(groupParams, {}, updates);
+      await BROWSER_API.updateCollectionBookmarks(
+        collectionParams,
+        {},
+        updates,
+      );
     },
     async updateComicSettings(updates) {
       const newBookSettings = {
@@ -651,7 +677,7 @@ export const useReaderStore = defineStore("reader", {
       const pk = +this.books.current.pk;
       const payload = {
         ...newBookSettings,
-        scope: "c",
+        scope: "comics",
         scopePk: pk,
       };
       await READER_API.updateSettings(payload)
@@ -670,7 +696,7 @@ export const useReaderStore = defineStore("reader", {
     async clearComicSettings() {
       const pk = +this.books?.current?.pk;
       if (!pk) return;
-      await READER_API.resetSettings({ scope: "c", scopePk: pk })
+      await READER_API.resetSettings({ scope: "comics", scopePk: pk })
         .then(() => {
           this.$patch((state) => {
             if (state.books.current) {
@@ -683,7 +709,7 @@ export const useReaderStore = defineStore("reader", {
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
-      if (this.arc?.group === "a" && this.arc?.ids?.length) {
+      if (this.arc?.collection === "arcs" && this.arc?.ids?.length) {
         return this.arc.ids[0];
       }
       return null;
@@ -692,22 +718,28 @@ export const useReaderStore = defineStore("reader", {
       if (!pk) {
         return;
       }
-      const arcGroup = this.arc?.group || "s";
+      const arcCollection = this.arc?.collection || "series";
       const storyArcPk = this._getStoryArcPk();
-      await READER_API.getSettings(pk, ["g", arcGroup, "c"], storyArcPk)
+      await READER_API.getSettings(
+        pk,
+        ["global", arcCollection, "comics"],
+        storyArcPk,
+      )
         .then((response) => {
           const data = response.data;
           const scopes = data.scopes || {};
           const scopeInfo = data.scopeInfo || {};
 
           // Determine the canonical intermediate scope key.
-          const intermediateKey = ["s", "f", "a"].find((k) => k in scopes);
+          const intermediateKey = ["series", "folders", "arcs"].find(
+            (k) => k in scopes,
+          );
 
           this.$patch((state) => {
-            if (scopes.g) {
+            if (scopes.global) {
               state.globalSettings = {
                 ...state.globalSettings,
-                ...scopes.g,
+                ...scopes.global,
               };
             }
             state.intermediateSettings =
@@ -720,8 +752,8 @@ export const useReaderStore = defineStore("reader", {
                     name: scopeInfo[intermediateKey].name,
                   }
                 : null;
-            if (scopes.c && state.books.current) {
-              state.books.current.settings = scopes.c;
+            if (scopes.comics && state.books.current) {
+              state.books.current.settings = scopes.comics;
             }
             state.bookSettings = {};
           });
@@ -766,7 +798,7 @@ export const useReaderStore = defineStore("reader", {
         .catch(console.error);
     },
     async clearGlobalSettings() {
-      await READER_API.resetSettings({ scope: "g" })
+      await READER_API.resetSettings({ scope: "global" })
         .then((response) => {
           const data = response.data;
           this._applyGlobalSettings(data);
@@ -781,7 +813,7 @@ export const useReaderStore = defineStore("reader", {
       };
       const payload = {
         ...newGlobalSettings,
-        scope: "g",
+        scope: "global",
       };
       await READER_API.updateSettings(payload)
         .then((response) => {
@@ -829,7 +861,11 @@ export const useReaderStore = defineStore("reader", {
       if (this.isPagesNotRoutes && +params.pk === this.books.current.pk) {
         this.setActivePage(+params.page, true);
       } else {
-        const route = { name: "reader", params };
+        const route = {
+          name: "reader",
+          params: { pk: params.pk },
+          query: { page: params.page },
+        };
         router.push(route).catch(console.debug);
       }
     },
@@ -871,7 +907,18 @@ export const useReaderStore = defineStore("reader", {
       this._routeTo(this.routes.books[direction], this.books[direction]);
     },
     toRoute(params) {
-      return params ? { params } : {};
+      // The reader route is /read/:pk and carries the page in the query —
+      // pager.vue reads route.query.page. Returning a bare { params: {pk,
+      // page} } stuffs page where there is no :page segment, so vue-router
+      // discards it and every flip lands back on the cover. Mirror the
+      // { name, params:{pk}, query:{page} } shape _routeTo() pushes.
+      return params
+        ? {
+            name: "reader",
+            params: { pk: params.pk },
+            query: { page: params.page },
+          }
+        : {};
     },
     // PREFETCH
     _prefetchSrc(params, direction, bookChange = false, secondPage = false) {

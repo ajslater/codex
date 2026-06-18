@@ -6,18 +6,25 @@ from django.db.models import (
     BooleanField,
     ExpressionWrapper,
     F,
+    Max,
     Q,
     Value,
 )
 from django.db.models.fields import CharField
 
+from codex.collection import Collection
+from codex.models.collections import (
+    BrowserCollectionModel,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.models.comic import Comic
-from codex.models.functions import JsonGroupArray
-from codex.models.groups import BrowserGroupModel, Imprint, Publisher, Series, Volume
 from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
-_GROUP_BY: MappingProxyType[type[BrowserGroupModel], tuple[str, ...]] = (
+_COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
     MappingProxyType(
         {
             Publisher: ("sort_name",),
@@ -36,14 +43,25 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
     def add_group_by(self, qs):
         """Get the group by for the model."""
         # this method is here because this is class is what metadata imports
-        if group_by := _GROUP_BY.get(qs.model):
+        if group_by := _COLLECTION_BY.get(qs.model):
             qs = qs.group_by(*group_by)
         return qs
 
-    def _annotate_group(self, qs):
-        """Annotate Group."""
-        value = "c" if qs.model is Comic else self.model_group
-        return qs.annotate(group=Value(value, CharField(max_length=1)))
+    def _annotate_nav_collection(self, qs):
+        """
+        Annotate the per-row collection this card routes to.
+
+        Frontend routing metadata: the table view reads it to tell a Comic
+        row from a collection node and to build the next route's collection.
+        Aliased ``nav_collection`` rather than ``collection`` because
+        ``WatchedPath`` (Folder/CustomCover) already declares a real
+        ``collection`` field — an annotation of that name would
+        ``FieldError`` on folder rows. The wire exposes it as ``collection``.
+        """
+        collection = Collection.COMIC if qs.model is Comic else self.model_collection
+        return qs.annotate(
+            nav_collection=Value(str(collection), CharField(max_length=16))
+        )
 
     def _annotate_file_name(self, qs):
         """Annotate the file name for folder view."""
@@ -61,10 +79,14 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         # IS-NOT-NULL predicate keeps the SELECT projection a single byte
         # per row instead of a full nullable ``DateTimeField`` value, and
         # matches the consumer's type without an implicit truthiness coerce.
+        # ``metadata_imported_at`` is the real gate (a forced import ran);
+        # ``metadata_mtime`` is kept as a backward-compat fallback.
         if qs.model is Comic:
             qs = qs.annotate(
                 has_metadata=ExpressionWrapper(
-                    Q(metadata_mtime__isnull=False), output_field=BooleanField()
+                    Q(metadata_imported_at__isnull=False)
+                    | Q(metadata_mtime__isnull=False),
+                    output_field=BooleanField(),
                 )
             )
         return qs
@@ -74,29 +96,26 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
         if qs.model is Comic:
             # comic adds order_value for cards late
             qs = self.annotate_order_value(qs)
-        qs = self._annotate_group(qs)
-        qs = self.annotate_group_names(qs)
+        qs = self._annotate_nav_collection(qs)
+        qs = self.annotate_collection_names(qs)
         qs = self._annotate_file_name(qs)
         qs = self.annotate_child_count(qs)
         qs = self.annotate_bookmarks(qs)
         qs = self.annotate_progress(qs)
         qs = self._annotate_has_metadata(qs)
-        # ``updated_ats`` is read only by ``BrowserAggregateSerializerMixin``
+        # ``updated_at_max`` is read only by ``BrowserAggregateSerializerMixin``
         # to compute the card mtime — and only browser + metadata responses
         # use that mixin. OPDS feeds compute their own mtime from the
         # bookmark aggregate; cover/download paths never read it. Skipping
-        # the JsonGroupArray on those targets removes one DISTINCT scalar
-        # aggregate per group row in the cold path.
+        # the aggregate on those targets removes one scalar aggregate per
+        # collection row in the cold path.
         if self.TARGET not in self.CARD_TARGETS:
             return qs
-        # For group models, traverse to Comic.updated_at via rel_prefix.
-        # The group model's own updated_at is not reliably refreshed by
-        # bulk_update / bulk_create(update_conflicts) because auto_now
-        # only fires on Model.save().
-        prefix = "" if qs.model is Comic else self.rel_prefix
-        updated_at_field = prefix + "updated_at"
-        return qs.annotate(
-            updated_ats=JsonGroupArray(
-                updated_at_field, distinct=True, order_by=updated_at_field
-            )
-        )
+        # The row's own ``updated_at`` is the card mtime source: for a
+        # collection it's the collection row (kept fresh by ``TimestampUpdater``
+        # when a child comic or custom cover changes); for a comic it's the
+        # comic itself. Reading the column instead of re-aggregating
+        # ``comic__updated_at`` drops the deep comic join and the serializer's
+        # JSON-array Python reduction, and matches how OPDS and the reader
+        # already read this timestamp.
+        return qs.annotate(updated_at_max=Max("updated_at"))

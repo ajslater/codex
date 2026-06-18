@@ -1,10 +1,13 @@
 """Notifier ChannelGroups Consumer."""
 
+import json
 from enum import StrEnum
 from typing import override
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from loguru import logger
+
+from codex.websockets.payloads import typed_payload
 
 
 class ChannelGroups(StrEnum):
@@ -19,7 +22,13 @@ class ChannelGroups(StrEnum):
 
 
 class NotifierConsumer(AsyncWebsocketConsumer):
-    """Base Notifier Consumer."""
+    """
+    Notifier Consumer.
+
+    Subscribes to the ``ALL`` / ``ADMIN`` / ``user_<uid>`` channel
+    groups and translates each ``send_text`` event into a typed JSON
+    payload (``{type}``) that clients route on.
+    """
 
     def _get_groups(self) -> list[str]:
         """Dynamic groups by user type."""
@@ -53,9 +62,10 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         await self.close(code)
 
     async def send_text(self, event) -> None:
-        """Send message to client."""
+        """Translate ``send_text`` events to a typed JSON payload."""
         text = event.get("text")
         if not text:
             logger.warning(f"No text in websockets message: {event}")
             return
-        await self.send(text)
+        payload = typed_payload(text)
+        await self.send(json.dumps(payload, separators=(",", ":")))

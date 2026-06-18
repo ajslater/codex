@@ -25,8 +25,10 @@ import zlib
 from pickle import UnpicklingError
 from typing import override
 
+from django.core.cache import caches
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.core.cache.backends.filebased import FileBasedCache
+from django.utils.connection import ConnectionProxy
 from loguru import logger
 
 _CORRUPT_CACHE_ERRORS: tuple[type[BaseException], ...] = (
@@ -64,3 +66,12 @@ class ResilientFileBasedCache(FileBasedCache):
     @override
     def validate_key(self, key):
         """No-op key validation — see module docstring."""
+
+
+# Per-thread connection to the dedicated "tagging" cache, mirroring
+# ``django.core.cache.cache``. Durable tagging state (pending online-tag
+# prompts, tag-write errors) lives here because the default cache is
+# ``cache.clear()``-ed broadly (import finish, Library/Group CRUD,
+# startup) and Django's file-based clear ignores key prefixes.
+# django-stubs omits CacheHandler's BaseConnectionHandler base.
+tagging_cache = ConnectionProxy(caches, "tagging")  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]

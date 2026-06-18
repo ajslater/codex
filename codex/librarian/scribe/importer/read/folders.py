@@ -11,7 +11,7 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.read.many_to_many import (
     AggregateManyToManyMetadataImporter,
 )
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 
 
 class AggregatePathMetadataImporter(AggregateManyToManyMetadataImporter):

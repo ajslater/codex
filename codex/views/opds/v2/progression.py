@@ -1,8 +1,7 @@
-"""OPDS 2 Progression view."""
+"""OPDS Progression 1.0 view."""
 
-# https://github.com/opds-community/drafts/discussions/67#discussioncomment-6414507
+# https://drafts.opds.io/opds-progression-1.0.html
 from http import HTTPStatus
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, override
 
 from django.db.models import QuerySet
@@ -23,35 +22,30 @@ from codex.serializers.opds.v2.progression import OPDS2ProgressionSerializer
 from codex.util import max_none
 from codex.views.auth import AuthFilterGenericAPIView
 from codex.views.bookmark import BookmarkFilterMixin, BookmarkPageMixin
-from codex.views.const import GROUP_MODEL_MAP
+from codex.views.const import COLLECTION_MODEL_MAP
 from codex.views.exceptions import NoContent
 from codex.views.opds.auth import OPDSAuthMixin
+from codex.views.opds.const import MimeType
 from codex.views.opds.v2.const import HrefData
 from codex.views.opds.v2.href import OPDS2HrefMixin
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-_EMPTY_DEVICE = MappingProxyType(
-    {
-        "id": "",
-        "name": "",
-    }
-)
-
-READIUM_PROGRESSION_MIME_TYPE = "application/vnd.readium.progression+json"
+# OPDS Progression 1.0 media type.
+PROGRESSION_MIME_TYPE = MimeType.PROGRESSION
 
 
-class ReadiumProgressionParser(JSONParser):
-    """Parses Readium Progression as JSON."""
+class OPDSProgressionParser(JSONParser):
+    """Parses an OPDS Progression Document as JSON."""
 
-    media_type = READIUM_PROGRESSION_MIME_TYPE
+    media_type = PROGRESSION_MIME_TYPE
 
 
-class ReadiumProgressionAPIRenderer(JSONRenderer):
-    """Renders Readium Progression as a JSON."""
+class OPDSProgressionRenderer(JSONRenderer):
+    """Renders an OPDS Progression Document as JSON."""
 
-    media_type = READIUM_PROGRESSION_MIME_TYPE
+    media_type = PROGRESSION_MIME_TYPE
 
 
 # This is an independent api requiring a separate get.
@@ -64,18 +58,18 @@ class OPDS2ProgressionView(
     BookmarkFilterMixin,
     AuthFilterGenericAPIView,
 ):
-    """OPDS 2 Progression view."""
+    """OPDS Progression 1.0 view."""
 
     parser_classes = (
-        ReadiumProgressionParser,
+        OPDSProgressionParser,
         *AuthFilterGenericAPIView.parser_classes,
     )
-    renderer_classes = (
-        ReadiumProgressionAPIRenderer,
+    renderer_classes = (  # pyright: ignore[reportIncompatibleUnannotatedOverride]
+        OPDSProgressionRenderer,
         *AuthFilterGenericAPIView.renderer_classes,
     )
     serializer_class = OPDS2ProgressionSerializer
-    content_type = ReadiumProgressionParser.media_type
+    content_type = OPDSProgressionParser.media_type
 
     # Annotated queryset rows carry ``bookmark_updated_at`` /
     # ``page`` / ``progress`` synthetic columns the type system
@@ -98,18 +92,24 @@ class OPDS2ProgressionView(
         return self._obj.bookmark_updated_at
 
     @property
-    def device(self):
-        """Codex doesn't record device for progression."""
-        return _EMPTY_DEVICE
+    def device(self) -> dict[str, str]:
+        """
+        Synthetic server-identity device.
+
+        OPDS Progression 1.0 requires a ``device`` (id + name); Codex doesn't
+        track per-device state, so the position is attributed to the Codex
+        server itself (its base URL is a stable, valid URI).
+        """
+        return {"id": self.request.build_absolute_uri("/"), "name": "Codex"}
 
     @property
     def title(self) -> str:
-        """The locator title is the page number."""
-        return f"Page {self._obj.page}"
+        """Human-readable position; pages are 1-indexed for display."""
+        return f"Page {self._obj.page + 1}"
 
     @property
     def _progression_href(self):
-        """Build a Progression HRef."""
+        """Build an href to the current page."""
         acq_kwargs = {
             "pk": self._obj.pk,
             "page": self._obj.page,
@@ -120,27 +120,6 @@ class OPDS2ProgressionView(
         )
         return self.href(data)
 
-    @property
-    def _locations(self) -> dict[str, Any]:
-        """Build the Locations object."""
-        # The OPDS v2 progression spec specifies position as > 0.
-        position = max(self._obj.page + 1, 0)
-        return {
-            "position": position,
-            "progression": self._obj.progress,
-            "total_progression": self._obj.progress,
-        }
-
-    @property
-    def locator(self) -> dict[str, Any]:
-        """Build the Locator object."""
-        return {
-            "title": self.title,  # See publication.py:103
-            "href": self._progression_href,
-            "type": "image/jpeg",
-            "locations": self._locations,
-        }
-
     def _get_bookmark_query(self) -> QuerySet:
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk")
@@ -149,7 +128,7 @@ class OPDS2ProgressionView(
             reason = f"Bad primary key for {group}:{pk}"
             raise ValidationError(reason, code="422")
 
-        model = GROUP_MODEL_MAP.get(group)
+        model = COLLECTION_MODEL_MAP.get(group)
         if not model:
             reason = f"No model found for group {group}"
             raise ValidationError(reason, code="422")
@@ -166,11 +145,14 @@ class OPDS2ProgressionView(
 
     @override
     def get_object(self) -> dict[str, Any]:
-        """Build the progression data object."""
+        """Build the OPDS Progression 1.0 document."""
         pk = self.kwargs.get("pk")
         qs = self._get_bookmark_query()
+        # ``progression`` is the overall position as a 0..1 fraction:
+        # page / (page_count - 1), so the first page is 0.0 and the last 1.0.
         progress = Least(
-            F("page") / Greatest(Cast(F("page_count"), FloatField()), 1.0), Value(1.0)
+            F("page") / Greatest(Cast(F("page_count") - 1, FloatField()), 1.0),
+            Value(1.0),
         )
         qs = (
             qs.annotate(
@@ -186,9 +168,11 @@ class OPDS2ProgressionView(
             raise NoContent
 
         return {
+            "title": self.title,
             "modified": self.modified,
             "device": self.device,
-            "locator": self.locator,
+            "progression": self._obj.progress,
+            "references": [self._progression_href],
         }
 
     def get(self, *args, **kwargs) -> Response:
@@ -202,40 +186,44 @@ class OPDS2ProgressionView(
         except NoContent:
             return Response(status=HTTPStatus.NO_CONTENT)
         except Exception as exc:
-            logger.error("Error in OPDS v2 progression API")
+            logger.error("Error in OPDS progression API")
             logger.exception(exc)
             raise
 
+    def _progression_to_page(self, progression: float) -> int | None:
+        """Convert a 0..1 ``progression`` fraction to a 0-indexed page."""
+        comic_pk = self.kwargs.get("pk")
+        page_count = (
+            Comic.objects.filter(pk=comic_pk)
+            .values_list("page_count", flat=True)
+            .first()
+        )
+        if page_count is None:
+            return None
+        return round(progression * max(page_count - 1, 0))
+
     def put(self, *_args, **_kwargs) -> Response:
         """
-        Update the bookmark.
+        Update the bookmark from an OPDS Progression 1.0 document.
 
-        Per the OPDS v2 progression spec, when the client echoes the
-        ``modified`` timestamp it received from the matching GET, the
-        server must reject the PUT with 409 if the DB has a fresher
-        bookmark (multi-device sync conflict). The previous
-        implementation tried to detect this via a separate
-        ``_get_bookmark_query() + qs.first()`` round-trip — but the
-        serializer declared ``modified = DateTimeField(read_only=True)``
-        so DRF silently dropped the field on input, making the conflict
-        branch unreachable. The serializer is now ``required=False``;
-        the conflict check is folded into a single atomic conditional
-        UPDATE, and falls back to the async ``update_bookmark`` path
-        when no existing bookmark matches (first-time write or no
-        ``modified`` echo). Sub-plan 06 #1.
+        Per the OPDS Progression spec, when the client echoes the ``modified``
+        timestamp it received from the matching GET, the server must reject the
+        PUT with 409 if the DB has a fresher bookmark (multi-device sync
+        conflict). The conflict check is folded into a single atomic conditional
+        UPDATE, and falls back to the async ``update_bookmark`` path when no
+        existing bookmark matches (first-time write or no ``modified`` echo).
         """
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        position: int | None = (
-            data.get("locator", {}).get("locations", {}).get("position")
-        )
-        if position is None:
+        progression: float | None = data.get("progression")
+        if progression is None:
             return Response(status=HTTPStatus.BAD_REQUEST)
-        # OPDS v2 progression spec: position > 0; clamp to a 0-indexed page.
-        page = max(position - 1, 0)
+        page = self._progression_to_page(progression)
+        if page is None:
+            return Response(status=HTTPStatus.NOT_FOUND)
         self.kwargs["page"] = page
 
         new_modified: datetime | None = data.get("modified")

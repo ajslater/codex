@@ -1,5 +1,5 @@
 import { defineConfig } from "eslint/config";
-import baseConfig from "./cfg/eslint.config.base.js";
+import baseConfig, { SHARED_RULES } from "./cfg/eslint.config.base.js";
 import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVitest from "@vitest/eslint-plugin";
 import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
@@ -35,6 +35,7 @@ export default defineConfig([
   {
     files: ["frontend/**/*.{js,vue}"],
     rules: {
+      ...SHARED_RULES,
       "no-console": [
         "warn",
         { allow: ["clear", "debug", "info", "warn", "error"] },
@@ -62,7 +63,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["eslint.config.js", "cfg/eslint.config.js"],
+    files: ["eslint.config.js", "cfg/eslint.config.base.js"],
     rules: {
       "no-secrets/no-secrets": "off",
     },

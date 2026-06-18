@@ -4,7 +4,8 @@ from typing import override
 
 from rest_framework.permissions import BasePermission, IsAdminUser
 
-from codex.models import Timestamp
+from codex.choices.admin import AdminFlagChoices
+from codex.models import AdminFlag
 
 
 class HasAPIKeyOrIsAdminUser(BasePermission):
@@ -17,6 +18,6 @@ class HasAPIKeyOrIsAdminUser(BasePermission):
         api_key = data.get("apiKey")
         if not api_key:
             return IsAdminUser().has_permission(request, view)
-        return Timestamp.objects.filter(
-            key=Timestamp.Choices.API_KEY.value, version=api_key
+        return AdminFlag.objects.filter(
+            key=AdminFlagChoices.API_KEY.value, value=api_key
         ).exists()

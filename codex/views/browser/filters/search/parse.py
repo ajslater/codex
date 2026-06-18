@@ -1,7 +1,7 @@
 """Search Filters Methods."""
 
 import re
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from types import MappingProxyType
 
 from django.db.models.query_utils import Q
@@ -10,9 +10,18 @@ from loguru import logger
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.search import FIELDMAP
 from codex.models import AdminFlag
-from codex.models.comic import ComicFTS
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.models.comic import Comic, ComicFTS
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.filters.search.fts import BrowserFTSFilter
+
+# Targets whose statements carry the search filter at most twice (the
+# main query plus the cover subquery), so a materialized pk IN-list is
+# safe under SQLite's 32,766-variable limit with the cap below.
+# choices/metadata statements repeat the filter per probe arm and must
+# keep the constant-size MATCH form.
+_FTS_PK_SWAP_TARGETS = frozenset({"browser", "mtime"})
+# Half the variable limit, allowing two list copies per statement.
+_FTS_PK_SWAP_MAX = 15_000
 
 _FTS_COLUMNS = frozenset(
     {field.name for field in ComicFTS._meta.get_fields()}
@@ -192,6 +201,9 @@ class SearchFilterView(BrowserFTSFilter):
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
+        # True when the FTS filter was swapped for the materialized
+        # pk-set; the cover subquery reads it to skip its own wrap.
+        self.fts_q_is_pk_set = False
 
     @property
     def admin_flags(self) -> MappingProxyType[str, bool]:
@@ -227,6 +239,40 @@ class SearchFilterView(BrowserFTSFilter):
             self.search_error = "Syntax error"
         return field_tokens, fts_text
 
+    @cached_property
+    def _fts_match_pks(self) -> tuple[int, ...] | None:
+        """
+        Comic pks matching the FTS query, materialized once per request.
+
+        The raw MATCH otherwise re-executes the FTS5 scan in every
+        statement that carries the filter (counts, mtime probe,
+        pagination, intersections — 5-6 scans per browse request,
+        measured ~870ms of a 1.3s search request at 17k matches). One
+        Python-side materialization makes the rest indexed IN-list
+        membership tests. Returns None (keep raw MATCH) for very large
+        match sets — the list binds one SQL variable per pk and may
+        appear twice per statement (main query + cover subquery).
+        """
+        _, fts_text = self._preparse_search_query()
+        if not fts_text:
+            return None
+        pks = tuple(
+            Comic.objects.filter(comicfts__match=fts_text).values_list("pk", flat=True)
+        )
+        if len(pks) > _FTS_PK_SWAP_MAX:
+            return None
+        return pks
+
+    @property
+    def _fts_swap_allowed(self) -> bool:
+        """True when this view's statements may swap MATCH for the pk-list."""
+        # Rank-ordered requests need MATCH active in the scored statement
+        # to resolve ComicFTSRank; choices/metadata repeat the filter per
+        # probe arm (variable-limit hazard) and keep the subquery form.
+        return self.TARGET in _FTS_PK_SWAP_TARGETS and (
+            getattr(self, "order_key", None) != "search_score"
+        )
+
     def _create_search_filters(self, model) -> tuple[list, list, Q]:
         field_tokens_dict, fts_text = self._preparse_search_query()
         field_filter_q_list = []
@@ -251,6 +297,9 @@ class SearchFilterView(BrowserFTSFilter):
         if fts_filter_dict:
             self.fts_mode = True
             fts_q = Q(**fts_filter_dict)
+            if self._fts_swap_allowed and (pks := self._fts_match_pks) is not None:
+                fts_q = Q(**{self.get_rel_prefix(model) + "pk__in": pks})
+                self.fts_q_is_pk_set = True
         else:
             fts_q = Q()
 
@@ -293,4 +342,4 @@ class SearchFilterView(BrowserFTSFilter):
         if not self.search_mode:
             return 0
         page = self.kwargs.get("page", 1)
-        return page * BROWSER_MAX_OBJ_PER_PAGE + 1
+        return page * get_browser_max_obj_per_page() + 1

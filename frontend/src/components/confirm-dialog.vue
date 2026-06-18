@@ -15,15 +15,18 @@
         :icon="icon"
         :size="size"
         :title="titleText"
+        :variant="variant || undefined"
         @click="autoConfirm"
       />
       <v-btn
         v-else-if="button"
         v-bind="props"
         :block="block"
+        :color="color || undefined"
         :density="density"
         :size="size"
         :title="titleText"
+        :variant="variant || undefined"
         @click="autoConfirm"
       >
         <v-icon v-if="prependIcon">{{ prependIcon }}</v-icon>
@@ -65,6 +68,7 @@ export default {
       type: Boolean,
       default: true,
     },
+    color: { type: String, default: "" },
     confirmText: {
       type: String,
       required: true,
@@ -87,6 +91,7 @@ export default {
       type: String,
       required: true,
     },
+    variant: { type: String, default: "" },
   },
   emits: ["cancel", "confirm"],
   data() {

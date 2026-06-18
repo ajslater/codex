@@ -12,11 +12,10 @@ from django.db.models import Count
 
 from codex.models import (
     Comic,
-    Library,
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
-from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_GROUP_MODELS
+from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_COLLECTION_MODELS
 
 # Cap on per-call session decodes for the anonymous-session estimate.
 # ``Session.get_decoded()`` runs HMAC + JSON parse per row; on installs
@@ -27,14 +26,14 @@ _SESSION_SAMPLE_LIMIT: Final = 100
 _KEY_MODELS_MAP = MappingProxyType(
     {
         "config": CONFIG_MODELS,
-        "groups": STATS_GROUP_MODELS,
+        "collections": STATS_COLLECTION_MODELS,
         "metadata": METADATA_MODELS,
     }
 )
 _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
 _USER_STATS: Final = (
-    (SettingsBrowser, ("top_group", "order_by", "dynamic_covers")),
+    (SettingsBrowser, ("top_collection", "order_by", "dynamic_covers")),
     (SettingsReader, ("finish_on_last_page", "fit_to", "reading_direction")),
 )
 
@@ -77,10 +76,7 @@ class CodexStats:
         obj = {}
         for model in models:
             name = snakecase(model.__name__) + "_count"
-            qs = model.objects
-            if model == Library:
-                qs = qs.filter(covers_only=False)
-            obj[name] = qs.count()
+            obj[name] = model.objects.count()
         return obj
 
     @staticmethod
@@ -163,13 +159,13 @@ class CodexStats:
         obj["config"] = config
         obj["sessions"] = sessions
 
-    def _add_groups(self, obj) -> None:
-        """Add dict of groups information to object."""
-        if self.params and "groups" not in self.params:
+    def _add_collections(self, obj) -> None:
+        """Add dict of collections information to object."""
+        if self.params and "collections" not in self.params:
             return
-        groups = self._get_model_counts("groups")
-        groups["issue_count"] = groups.pop("comic_count", 0)
-        obj["groups"] = groups
+        collections = self._get_model_counts("collections")
+        collections["issue_count"] = collections.pop("comic_count", 0)
+        obj["collections"] = collections
 
     def _add_file_types(self, obj) -> None:
         """Query for file types."""
@@ -200,7 +196,7 @@ class CodexStats:
         obj = {}
         self._add_platform(obj)
         self._add_config(obj)
-        self._add_groups(obj)
+        self._add_collections(obj)
         self._add_file_types(obj)
         self._add_metadata(obj)
         return obj

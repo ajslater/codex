@@ -20,8 +20,8 @@ from codex.models import (
     Folder,
     StoryArc,
 )
+from codex.models.collections import Volume
 from codex.models.functions import ComicFTSRank, JsonGroupArray
-from codex.models.groups import Volume
 from codex.views.browser.columns import m2m_alias_for, m2m_columns
 from codex.views.browser.intersections import (
     m2m_intersection_sort_expr,
@@ -32,8 +32,10 @@ from codex.views.browser.order_by import (
     comic_order_path,
 )
 from codex.views.const import (
+    COMIC_COLLECTION,
+    FOLDER_COLLECTION,
     NONE_INTEGERFIELD,
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
 
@@ -42,8 +44,10 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # ``Min`` is a sentinel for "use the directional aggregate" — see
     # ``annotate_order_value``: forward-sort uses Min, reverse uses Max.
     # ``Avg`` and ``Sum`` are kept as configured regardless of direction.
+    #
+    # ``age_rating`` is not listed here because it needs dual aggregation
+    # — see ``_collection_age_rating_annotations`` for the display + sort split.
     {
-        "age_rating": Avg,
         "child_count": Min,
         "country": Min,
         "created_at": Min,
@@ -54,7 +58,7 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
         "imprint_name": Min,
         # ``issue`` is virtual: its order_value annotation aggregates
         # the underlying ``issue_number`` field (resolved via
-        # ``comic_order_path``). Group rows therefore sort by their
+        # ``comic_order_path``). Collection rows therefore sort by their
         # min/max child issue number; the suffix secondary applies
         # only to Comic-row ORDER BY.
         "issue": Min,
@@ -104,18 +108,18 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         super().__init__(*args, **kwargs)
         self._order_agg_func: type[Min | Max] | None = None
         self._is_opds_acquisition: bool | None = None
-        self._opds_acquisition_groups: frozenset[str] | None = None
+        self._opds_acquisition_collections: frozenset[str] | None = None
         self.bmua_is_max = False
         self._child_count_annotated = False
 
     @property
-    def opds_acquisition_groups(self):
-        """Memoize the opds acquisition groups."""
-        if self._opds_acquisition_groups is None:
-            groups = {"a", "f", "c"}
-            groups |= {*self.valid_nav_groups[-2:]}
-            self._opds_acquisition_groups = frozenset(groups)
-        return self._opds_acquisition_groups
+    def opds_acquisition_collections(self):
+        """Memoize the opds acquisition collections."""
+        if self._opds_acquisition_collections is None:
+            collections = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
+            collections |= {*self.valid_nav_collections[-2:]}
+            self._opds_acquisition_collections = frozenset(collections)
+        return self._opds_acquisition_collections
 
     @property
     def is_opds_acquisition(self) -> bool:
@@ -123,9 +127,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if self._is_opds_acquisition is None:
             is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
             if is_opds_acquisition:
-                group = self.kwargs.get("group")
-                is_opds_acquisition &= group in self.opds_acquisition_groups
-                if is_opds_acquisition and group == "a":
+                collection = self.kwargs.get("collection")
+                is_opds_acquisition &= collection in self.opds_acquisition_collections
+                if is_opds_acquisition and collection == STORY_ARC_COLLECTION:
                     pks = self.kwargs["pks"]
                     is_opds_acquisition &= bool(pks and 0 not in pks)
             self._is_opds_acquisition = is_opds_acquisition
@@ -145,11 +149,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs.model is StoryArc and self.order_key == "story_arc_number"
         ):
             return qs
-        group = self.kwargs.get("group")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         show = MappingProxyType(self.params["show"])
         sort_name_annotations = self.get_sort_name_annotations(
-            qs.model, group, pks, show
+            qs.model, collection, pks, show
         )
         if sort_name_annotations:
             qs = qs.alias(**sort_name_annotations)
@@ -178,6 +182,15 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
         if qs.model is Folder:
             filename = F("name")
+        elif qs.model is Comic:
+            # A comic IS its own file — aggregating its single path only
+            # turned the alias into an aggregate, which dragged every
+            # selected column into GROUP BY inside both the listing and
+            # the cover subqueries (a filename-ordered folder browse
+            # measured in minutes). Same expression, no aggregate;
+            # ``annotate_comic_extra_specials`` already does this for
+            # the multi-sort tail.
+            filename = self.get_filename_func(qs.model)
         else:
             filename_func = self.get_filename_func(qs.model)
             filename = self.order_agg_func(filename_func)
@@ -188,9 +201,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
 
         # Get story_arc__pk
-        group = self.kwargs["group"]
+        collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if group == STORY_ARC_GROUP and pks:
+        if collection == STORY_ARC_COLLECTION and pks:
             story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())
@@ -230,10 +243,10 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Aggregate triggers:
         # - OPDS acquisition needs the per-entry "last read" timestamp.
         # - Sorting by ``bookmark_updated_at`` needs it as the order key.
-        # - Group rows in table view display it as a column; the cell
+        # - Collection rows in table view display it as a column; the cell
         #   display path (``_emit_column`` → ``getattr``) reads the
         #   annotation directly, so without this branch the column would
-        #   crash ``compute_group_intersections`` (the field can't be
+        #   crash ``compute_collection_intersections`` (the field can't be
         #   aggregated as a Comic-relative scalar without the user
         #   filter). Comic rows keep going through
         #   ``annotate_comic_extra_specials`` to avoid double-annotation.
@@ -253,9 +266,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
             # second aggregate, and by the serializer to compute mtime.
             # Only set in the primary branch — that path annotates both
-            # group and Comic querysets, so the scalar exists on every
+            # collection and Comic querysets, so the scalar exists on every
             # serialized row. The table-column branch annotates only
-            # group rows; flipping the flag here would make
+            # collection row; flipping the flag here would make
             # ``get_mtime`` reach for a missing ``bookmark_updated_at``
             # on Comic books in the same response.
             self.bmua_is_max = agg_func is Max
@@ -280,7 +293,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # Skip ``group_by("id")`` on Comic queries that don't actually fan out
         # via an m2m join — there's nothing to dedupe and the GROUP BY just
         # forces SQLite to materialize an unnecessary aggregate. Non-Comic
-        # queries traverse ``comic__`` (one-to-many) for ACL/group filters
+        # queries traverse ``comic__`` (one-to-many) for ACL/collection filters
         # and always need the dedupe.
         if qs.model is not Comic or self.comic_filter_uses_m2m:
             qs = qs.group_by("id")
@@ -308,10 +321,34 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if self.order_key in m2m_columns():
             return F(m2m_alias_for(self.order_key))
         order_key = "sort_name" if self.order_key == "child_count" else self.order_key
+        if order_key == "age_rating":
+            # Display the metron rating label string; the row's
+            # ORDER BY uses ``age_rating_metron_index`` for severity
+            # ordering (see ``_comic_indexed_head``).
+            return F("age_rating__metron__name")
         return F(comic_order_path(order_key))
 
-    def _group_m2m_order_value(self, qs):
-        """Group-row M2M order_value, falling back to ``sort_name``."""
+    def _collection_age_rating_annotations(self):
+        """
+        Annotate display name + severity-sort index for age_rating collection row.
+
+        ``order_value`` carries the metron rating label string (the
+        directional Min / Max across descendants) so the card caption
+        renders "G" / "PG" / etc. instead of an integer. The parallel
+        ``_age_rating_sort_value`` carries Min / Max of
+        ``age_rating_metron_index`` and is what ``add_order_by``
+        references when ``order_key == "age_rating"`` so the row
+        ordering is by severity rather than alphabetical name.
+        """
+        agg_func = self.order_agg_func
+        rel = self.rel_prefix
+        return {
+            "order_value": agg_func(rel + "age_rating__metron__name"),
+            "_age_rating_sort_value": agg_func(rel + "age_rating_metron_index"),
+        }
+
+    def _collection_m2m_order_value(self, qs):
+        """Collection-row M2M order_value, falling back to ``sort_name``."""
         # Intersection sort matches the table-view cell display. Cover
         # view's caption can't render M2M intersection and the rule
         # would leave most cards with a NULL sort key, so card mode
@@ -324,14 +361,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             qs = qs.alias(sort_name=F("name"))
         return qs, F("sort_name")
 
-    def _group_scalar_order_value(self, qs):
-        """Group-row scalar / FK-name order_value."""
+    def _collection_scalar_order_value(self, qs):
+        """Collection-row scalar / FK-name order_value."""
         # Table view uses intersection so the sort key matches the
         # displayed cell (blank when children disagree). Cover view's
         # card caption shows order_value directly — intersection there
-        # would blank the caption for any group with mixed children,
+        # would blank the caption for any collection with mixed children,
         # which is the regression we're avoiding. Falls back to the
-        # legacy aggregate path when the column / group model isn't
+        # legacy aggregate path when the column / collection model isn't
         # wired so adding a new registry scalar doesn't silently
         # regress its sort.
         if self.params.get("view_mode") == "table":
@@ -351,12 +388,15 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             order_value = F("name")
         elif qs.model is Comic:
             order_value = self._comic_order_value()
+        elif self.order_key == "age_rating":
+            anns = self._collection_age_rating_annotations()
+            return qs.annotate(**anns) if self.TARGET == "browser" else qs.alias(**anns)
         elif self.order_key in m2m_columns():
-            qs, order_value = self._group_m2m_order_value(qs)
+            qs, order_value = self._collection_m2m_order_value(qs)
         elif self.order_key in _ANNOTATED_ORDER_FIELDS:
             order_value = F(self.order_key)
         else:
-            order_value = self._group_scalar_order_value(qs)
+            order_value = self._collection_scalar_order_value(qs)
 
         if self.TARGET == "browser":
             qs = qs.annotate(order_value=order_value)
@@ -400,31 +440,37 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     # already on the queryset — no aggregation needed, just F() the
     # known column. ``favorite`` is added by
     # ``_add_table_view_favorite_annotation``.
-    _EXTRA_GROUP_F_KEYS = frozenset({"sort_name", "favorite"})
+    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "favorite"})
 
-    def _extra_group_special(self, qs, key: str, *, reverse: bool):
-        """Group-row extra: hand-rolled cases (returns None when not special)."""
-        if key in self._EXTRA_GROUP_F_KEYS:
+    def _extra_collection_special(self, qs, key: str, *, reverse: bool):
+        """Collection-row extra: hand-rolled cases (returns None when not special)."""
+        if key in self._EXTRA_COLLECTION_F_KEYS:
             return F(key)
         if key == "child_count":
             return Count(self.rel_prefix + "pk", distinct=True)
+        agg = Max if reverse else Min
         if key == "filename":
-            if qs.model is Folder:
-                return F("name")
-            agg = Max if reverse else Min
-            return agg(self.get_filename_func(qs.model))
+            return (
+                F("name")
+                if qs.model is Folder
+                else agg(self.get_filename_func(qs.model))
+            )
         if key == "bookmark_updated_at":
-            agg = Max if reverse else Min
             return self.get_max_bookmark_updated_at_aggregate(qs.model, agg_func=agg)
+        if key == "age_rating":
+            # Match the primary's severity-sort behavior — aggregate
+            # the metron index rather than the FK pk so shift-click
+            # extras rank rows the way the primary path does.
+            return agg(self.rel_prefix + "age_rating_metron_index")
         return None
 
-    def _extra_group_expr(self, qs, key: str, *, reverse: bool):
-        """Group-row extra: aggregate, intersection, or direct field."""
+    def _extra_collection_expr(self, qs, key: str, *, reverse: bool):
+        """Collection-row extra: aggregate, intersection, or direct field."""
         if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS:
             return None
         if key in m2m_columns():
             return m2m_intersection_sort_expr(qs.model, key)
-        special = self._extra_group_special(qs, key, reverse=reverse)
+        special = self._extra_collection_special(qs, key, reverse=reverse)
         if special is not None:
             return special
         # Match the primary's intersection-aware sort for scalars /
@@ -459,10 +505,12 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             key = entry.get("key")
             if not key:
                 continue
-            expr = self._extra_group_expr(qs, key, reverse=bool(entry.get("reverse")))
+            expr = self._extra_collection_expr(
+                qs, key, reverse=bool(entry.get("reverse"))
+            )
             if expr is None:
                 # Unsupported (e.g. M2M without an intersection
-                # expression for this group model, or an
+                # expression for this collection model, or an
                 # annotated-only key without bespoke extra wiring)
                 # — fall back to ``sort_name`` so the alias still
                 # binds and the ORDER BY emitted in
@@ -474,13 +522,13 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     def annotate_extra_order_values(self, qs):
         """
-        Annotate per-extra ``order_value`` aliases on group querysets.
+        Annotate per-extra ``order_value`` aliases on collection queryset.
 
         Comic queries don't go through this path — their multi-sort
         tail references direct Comic fields, M2M aliases annotated
         by ``_add_table_view_sort_annotations``, or
         ``bookmark_updated_at`` / ``filename`` aliases annotated by
-        ``annotate_comic_extra_specials``. Group querysets need a
+        ``annotate_comic_extra_specials``. Collection querysets need a
         parallel ``_table_extra_value_<idx>`` annotation per extra
         so the ORDER BY tail can reference an aggregated child-comic
         value. Skipped outside table-view mode so cover requests
@@ -522,4 +570,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 qs = self.annotate_extra_order_values(qs)
         elif not for_cover:
             qs = self.annotate_comic_extra_specials(qs)
+            # The ``ids`` aggregate above makes Django compute a GROUP BY
+            # over every selected column (~50 on Comic, including TEXT
+            # blobs like summary/review). Force the pk instead — every
+            # other column is functionally dependent on it, so the groups
+            # are identical and SQLite sorts a one-column key (~25-35%
+            # off the books query). Idempotent with the FTS-path
+            # ``group_by("id")`` in ``_annotate_search_scores``; must not
+            # apply to the cover path, where the forced literal column
+            # doesn't survive the nested-subquery aliasing.
+            qs = qs.group_by("id")  # pyright: ignore[reportAttributeAccessIssue]
         return qs

@@ -1,0 +1,44 @@
+"""
+Shared queryset shape for ``CollectionSerializer`` consumers.
+
+The metadata view emits ``*_list`` fields populated by
+``codex.serializers.browser.metadata.CollectionSerializer``, which expects
+each row to expose ``ids``, ``name`` (and ``number_to`` for Volume).
+Two call sites populate these lists — parent collections in
+``MetadataQueryIntersectionsView._query_collection_lists`` and the current collection
+in ``MetadataCopyIntersectionsView._highlight_current_collection`` — so the
+projection lives here to keep them from drifting.
+"""
+
+from types import MappingProxyType
+
+from django.db.models import QuerySet
+
+from codex.models import BrowserCollectionModel
+from codex.models.collections import Volume
+from codex.models.functions import JsonGroupArray
+
+# Model class names whose ``*_list`` attribute name on the metadata
+# response object doesn't match ``__name__.lower() + "_list"``.
+# ``StoryArc.__name__.lower() == "storyarc"`` but the serializer reads
+# ``story_arc_list``; without this map the populated attribute would
+# silently fall on the floor.
+_COLLECTION_LIST_FIELD_OVERRIDES = MappingProxyType({"StoryArc": "story_arc_list"})
+
+
+def collection_list_field_name(model: type[BrowserCollectionModel]) -> str:
+    """Return the metadata-obj attribute the serializer reads for ``model``."""
+    name = model.__name__
+    return _COLLECTION_LIST_FIELD_OVERRIDES.get(name, name.lower() + "_list")
+
+
+def annotate_collection_list(qs: QuerySet) -> QuerySet:
+    """Project a pre-filtered BrowserCollectionModel qs into ``CollectionSerializer`` shape."""
+    only = ["name", "number_to"] if qs.model is Volume else ["name"]
+    return (
+        qs.only(*only)
+        .distinct()
+        .group_by(*only)  # pyright: ignore[reportAttributeAccessIssue]
+        .annotate(ids=JsonGroupArray("id", distinct=True, order_by="id"))
+        .values("ids", *only)
+    )

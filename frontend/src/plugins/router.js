@@ -1,21 +1,37 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import { lastRoute } from "@/choices/browser-defaults.json";
+import { normalizeParentIds } from "@/route";
 const MainAdmin = () => import("@/admin.vue");
 const MainBrowser = () => import("@/browser.vue");
 const HttpError = () => import("@/http-error.vue");
 const MainReader = () => import("@/reader.vue");
-const AdminFlagsTab = () => import("@/components/admin/tabs/flag-tab.vue");
+const AdminSettingsTab = () =>
+  import("@/components/admin/tabs/settings-tab.vue");
 const AdminUsersTab = () => import("@/components/admin/tabs/user-tab.vue");
 const AdminGroupsTab = () => import("@/components/admin/tabs/group-tab.vue");
 const AdminLibrariesTab = () =>
   import("@/components/admin/tabs/library-tab.vue");
+const AdminCustomCoversTab = () =>
+  import("@/components/admin/tabs/custom-covers-tab.vue");
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
+const AdminRestoreTab = () => import("@/components/admin/tabs/restore-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
+const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
+const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
+const ResetPasswordConfirm = () =>
+  import("@/components/auth/reset-password-confirm.vue");
 
+// Both CODEX.LAST_ROUTE (server-injected) and the browser-defaults fallback
+// speak the v4 {collection, parentIds} route dialect now.
+const _lr = globalThis.CODEX.LAST_ROUTE || lastRoute;
+const _lrParentIds = normalizeParentIds(_lr.parentIds);
 const LAST_ROUTE = {
   name: "browser",
-  params: globalThis.CODEX.LAST_ROUTE || lastRoute,
+  params: _lrParentIds.length
+    ? { collection: _lr.collection, parentIds: _lrParentIds.join(",") }
+    : { collection: _lr.collection },
+  query: _lr.page && Number(_lr.page) !== 1 ? { page: Number(_lr.page) } : {},
 };
 
 const routes = [
@@ -26,12 +42,12 @@ const routes = [
   },
   {
     name: "reader",
-    path: "/c/:pk/:page",
+    path: "/read/:pk",
     component: MainReader,
   },
   {
     name: "browser",
-    path: "/:group/:pks/:page",
+    path: "/:collection(publishers|imprints|series|volumes|comics|folders|arcs)/:parentIds([\\d,]+)?",
     component: MainBrowser,
   },
   {
@@ -51,10 +67,27 @@ const routes = [
         path: "libraries",
         component: AdminLibrariesTab,
       },
-      { name: "admin-flags", path: "flags", component: AdminFlagsTab },
+      {
+        name: "admin-custom-covers",
+        path: "custom-covers",
+        component: AdminCustomCoversTab,
+      },
+      {
+        name: "admin-settings",
+        path: "settings",
+        component: AdminSettingsTab,
+      },
+      { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
+      { name: "admin-email", path: "email", component: AdminEmailTab },
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
+      { name: "admin-restore", path: "restore", component: AdminRestoreTab },
     ],
+  },
+  {
+    name: "reset-password",
+    path: "/auth/reset-password",
+    component: ResetPasswordConfirm,
   },
   { name: "error", path: "/error/:code", component: HttpError, props: true },
   { name: "404", path: "/:pathMatch(.*)*", redirect: "/error/404" },

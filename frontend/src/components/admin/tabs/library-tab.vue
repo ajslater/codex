@@ -7,22 +7,13 @@
       />
     </header>
     <AdminLibraryTable
-      :items="normalLibraries"
+      :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
     />
 
     <v-expand-transition>
-      <AdminFailedImportsPanel id="failedImports" />
+      <AdminFailedImportsPanel />
     </v-expand-transition>
-
-    <v-expand-transition>
-      <AdminCustomCoversPanel id="customCovers" />
-    </v-expand-transition>
-    <p id="libraryHelp">
-      Each Watched File Events box checked creates a thread to monitor the
-      Library. An large number of watching threads may exceed the limits of your
-      operating system or container.
-    </p>
   </div>
 </template>
 
@@ -32,7 +23,6 @@ import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/create-update-dialog.vue";
 import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
-import AdminCustomCoversPanel from "@/components/admin/tabs/custom-covers-panel.vue";
 import AdminFailedImportsPanel from "@/components/admin/tabs/failed-imports-panel.vue";
 import AdminLibraryTable from "@/components/admin/tabs/library-table.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -43,7 +33,6 @@ export default {
     AdminFailedImportsPanel,
     AdminLibraryTable,
     AdminCreateUpdateDialog,
-    AdminCustomCoversPanel,
   },
   data() {
     return {
@@ -51,7 +40,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, ["normalLibraries"]),
+    ...mapState(useAdminStore, ["libraries"]),
   },
   mounted() {
     this.loadTables(["Group", "Library", "FailedImport"]);
@@ -62,13 +51,5 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#customCovers {
-  margin-top: 60px;
-}
-
-#libraryHelp {
-  margin-top: 2em;
-  font-size: smaller;
-  color: rgb(var(--v-theme-textDisabled));
-}
+@use "@/components/admin/tabs/admin-section.scss";
 </style>

@@ -1,5 +1,7 @@
 """Browser Page Serializer."""
 
+from typing import override
+
 import pycountry
 from rest_framework.fields import (
     BooleanField,
@@ -15,7 +17,7 @@ from codex.serializers.browser.mixins import (
 )
 from codex.serializers.fields import TimestampField
 from codex.serializers.fields.browser import BreadcrumbsField
-from codex.serializers.fields.group import BrowseGroupField
+from codex.serializers.fields.collection import BrowseCollectionField
 from codex.views.browser.columns import (
     fk_alias_for,
     fk_name_columns,
@@ -85,7 +87,7 @@ _COLUMN_VALUE_TRANSFORMS = {
 # Routing metadata that ``_row_repr`` always emits regardless of the
 # user's column selection. Skipped during the per-column dispatch loop
 # because the values are pre-populated on the row dict.
-_ROUTING_COLUMNS = frozenset({"pk", "group", "ids"})
+_ROUTING_COLUMNS = frozenset({"pk", "collection", "ids"})
 
 
 def _apply_transform(col: str, value):
@@ -116,12 +118,13 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
     has_metadata = BooleanField(read_only=True)
-    # cover_pk and cover_custom_pk are pre-computed on group cards by
-    # BrowserAnnotateCoverView. Comic book cards lack the annotations; the
-    # method fields fall back to ``obj.pk`` so the frontend can build a
-    # uniform ``/c/<pk>/cover.webp`` URL without a per-card branch.
+    # cover_pk, cover_custom_pk and cover_mtime are pre-computed on collection
+    # cards by BrowserAnnotateCoverView. Comic book cards lack the annotations;
+    # the method fields fall back to ``obj.pk`` / the card's own updated_at so
+    # the frontend can build a uniform cover URL without a per-card branch.
     cover_pk = SerializerMethodField(read_only=True)
     cover_custom_pk = SerializerMethodField(read_only=True)
+    cover_mtime = SerializerMethodField(read_only=True)
 
     def get_cover_pk(self, obj) -> int:
         """Return pre-computed cover pk, falling back to the card's own pk."""
@@ -131,6 +134,11 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     def get_cover_custom_pk(self, obj) -> int | None:
         """Return the custom cover pk when present, else None."""
         return getattr(obj, "cover_custom_pk", None)
+
+    def get_cover_mtime(self, obj) -> int:
+        """Epoch-ms of the shown cover's own updated_at, for a precise ``?ts=``."""
+        dt = getattr(obj, "cover_mtime", None) or getattr(obj, "updated_at_max", None)
+        return int(dt.timestamp() * 1000) if dt else 0
 
 
 class BrowserAdminFlagsSerializer(Serializer):
@@ -143,9 +151,9 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    group_name = CharField(read_only=True)
-    group_number_to = CharField(read_only=True)
-    group_count = IntegerField(read_only=True, allow_null=True)
+    collection_name = CharField(read_only=True)
+    collection_number_to = CharField(read_only=True)
+    collection_count = IntegerField(read_only=True, allow_null=True)
 
 
 def _emit_cover(row, instance) -> None:
@@ -158,7 +166,7 @@ def _emit_issue(row, instance) -> None:
     """Render the compound issue column as ``{number, suffix}`` on the row."""
     # Compound from issue_number + issue_suffix on the Comic, emitted as
     # ``{number, suffix}`` so the cell can split-justify the halves.
-    # Group rows yield empty strings for both (intersection of distinct
+    # Collection rows yield empty strings for both (intersection of distinct
     # issues across child comics is rarely meaningful).
     row["issue"] = _format_issue(
         getattr(instance, "issue_number", None),
@@ -177,7 +185,7 @@ def _emit_column(
     """
     Resolve and emit a single column's value onto ``row``.
 
-    Lookup order: special-case (cover / issue) → group-row intersection
+    Lookup order: special-case (cover / issue) → collection-row intersection
     (with country / language transform) → M2M annotation alias → FK-name
     annotation alias (with transform) → direct attribute lookup. M2M and
     FK-name aliases are prefixed because the unprefixed name collides
@@ -188,7 +196,7 @@ def _emit_column(
     elif col == "issue":
         _emit_issue(row, instance)
     elif col in row_intersections:
-        # Group-row intersection takes precedence (and applies country /
+        # Collection-row intersection takes precedence (and applies country /
         # language transforms the same way the FK-alias path does).
         row[col] = _apply_transform(col, row_intersections[col])
     elif col in m2m_keys:
@@ -210,21 +218,23 @@ def _row_repr(
     Project a queryset row to the per-row dict for table view.
 
     For Comic rows, values come from the queryset annotations / direct
-    fields. For group rows (Series, Publisher, etc.), the optional
+    fields. For collection row (Series, Publisher, etc.), the optional
     ``intersections`` dict carries per-row intersections of child-comic
     values: M2M values shared by every child comic, scalars where every
     child comic has the same value. When present, intersections take
     precedence over direct attribute lookups for the columns they cover.
     """
-    # ``pk``, ``group``, and ``ids`` are always emitted regardless of
-    # the user's column selection. They're routing metadata: ``group``
-    # tells the frontend whether the row is a Comic or a group node,
-    # and ``ids`` is the list of pks the next route should target.
+    # ``pk``, ``collection``, and ``ids`` are always emitted regardless
+    # of the user's column selection. They're routing metadata:
+    # ``collection`` tells the frontend whether the row is a Comic or a
+    # collection node, and ``ids`` is the list of pks the next route
+    # should target. (The value comes from the ``nav_collection``
+    # annotation, an internal alias the OPDS entry path also reads.)
     # Without these, clicking a Publisher row would route to a comic
     # whose id matches the publisher's pk.
     row: dict = {
         "pk": instance.pk,
-        "group": getattr(instance, "group", None),
+        "collection": getattr(instance, "nav_collection", None),
         "ids": getattr(instance, "ids", None),
     }
     m2m_keys = m2m_columns()
@@ -243,12 +253,11 @@ class BrowserPageSerializer(Serializer):
     """
     The main browse list.
 
-    Always emits the cards-shape (``groups`` / ``books``). Also emits
-    a ``rows`` list projected through the requested ``columns`` when
-    the caller sets ``columns`` on the data dict (table-view mode).
-    The dual emission lets the frontend's mobile-auto-fallback render
-    the card grid on narrow viewports even when the user has table
-    view enabled — the card data is already in the response.
+    Mode-aware: table-mode responses emit ``rows`` (no ``collections``/
+    ``books``) and card-mode responses emit ``collections``/``books`` (no
+    ``rows``). The active view mode is inferred from the presence of
+    ``columns`` on the payload (``BrowserView`` only populates them
+    when ``view_mode == "table"``).
     """
 
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
@@ -256,9 +265,14 @@ class BrowserPageSerializer(Serializer):
     title = BrowserTitleSerializer(read_only=True)
     zero_pad = IntegerField(read_only=True)
     libraries_exist = BooleanField(read_only=True)
-    model_group = BrowseGroupField(read_only=True)
+    model_collection = BrowseCollectionField(read_only=True)
     num_pages = IntegerField(read_only=True)
-    groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    # Full filtered membership count (collections + books, pre-pagination). The
+    # refresh gate stores it and compares against BrowserHeadView's count so a
+    # filtered-view membership change (a comic leaving the filter) reloads even
+    # when the mtime alone wouldn't move. See BrowserHeadSerializer.
+    count = IntegerField(read_only=True)
+    collections = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     rows = SerializerMethodField()
     fts = BooleanField(read_only=True)
@@ -266,15 +280,64 @@ class BrowserPageSerializer(Serializer):
     mtime = TimestampField(read_only=True)
 
     def get_rows(self, obj) -> list:
-        """Project groups + books through ``columns`` if requested."""
+        """Project collections + books through ``columns`` if requested."""
         columns = obj.get("columns") if isinstance(obj, dict) else None
         if not columns:
             return []
         columns = tuple(columns)
-        groups = obj.get("groups", ()) or ()
+        collections = obj.get("collections", ()) or ()
         books = obj.get("books", ()) or ()
-        intersections = obj.get("group_intersections") or None
+        intersections = obj.get("collection_intersections") or None
         return [
             _row_repr(item, columns, intersections=intersections)
-            for item in (*groups, *books)
+            for item in (*collections, *books)
         ]
+
+    @override
+    def to_representation(self, instance):
+        """
+        Drop the unused mode's fields before the base projection.
+
+        Table mode: ``rows`` carries every projected column; the card
+        fields are noise and the largest part of the payload. Card
+        mode: ``rows`` is empty unless columns were requested. Popping
+        from ``self.fields`` (per-instance dict) instead of the result
+        skips serializing ~100 cards per table request just to discard
+        them — same wire output, none of the dead per-card work.
+        """
+        if self._view_mode(instance) == "table":
+            self.fields.pop("collections", None)
+            self.fields.pop("books", None)
+        else:
+            self.fields.pop("rows", None)
+        return super().to_representation(instance)
+
+    @staticmethod
+    def _view_mode(instance) -> str:
+        """
+        Resolve the active view mode from the response payload.
+
+        The instance dict carries ``columns`` only when the request
+        asked for table-mode (``BrowserView`` populates ``columns``
+        from the user settings only when ``view_mode == "table"``).
+        That gives a reliable, response-payload-local signal without
+        threading view_mode through every intermediate.
+        """
+        if not isinstance(instance, dict):
+            return "cover"
+        columns = instance.get("columns")
+        return "table" if columns else "cover"
+
+
+class BrowserHeadSerializer(Serializer):
+    """
+    Lightweight ``library.changed`` refresh-gate probe.
+
+    Returns just the page ``mtime`` and the full filtered membership ``count``
+    for a route, computed by the same ``BrowserView`` querysets as the page, so
+    the frontend can compare both against its last full page load and reload
+    when either moved — without re-fetching/serializing the whole page.
+    """
+
+    mtime = TimestampField(read_only=True)
+    count = IntegerField(read_only=True)

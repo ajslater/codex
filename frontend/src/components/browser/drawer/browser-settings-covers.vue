@@ -6,7 +6,7 @@
         openDelay,
         text: 'Choose covers by filters, search, and order',
       }"
-      class="browserGroupCheckbox"
+      class="browserCollectionCheckbox"
       density="compact"
       hide-details="auto"
       :model-value="dynamicCovers"
@@ -19,7 +19,7 @@
         openDelay,
         text: 'Overlay custom covers if the admin has set them.',
       }"
-      class="browserGroupCheckbox"
+      class="browserCollectionCheckbox"
       density="compact"
       hide-details="auto"
       :model-value="customCovers"
@@ -58,7 +58,7 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.browserGroupCheckbox {
+.browserCollectionCheckbox {
   padding-right: 10px;
   padding-left: 15px;
 }

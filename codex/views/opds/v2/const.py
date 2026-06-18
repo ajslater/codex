@@ -63,13 +63,13 @@ class LinkGroup:
 
 TOP_GROUPS = (
     LinkGroup(
-        "Top Groups",
+        "Top Collections",
         (
-            Link(Rel.SUB, "Publishers", "r", {"topGroup": "p"}),
-            Link(Rel.SUB, "Series", "r", {"topGroup": "s"}),
-            Link(Rel.SUB, "Issues", "r", {"topGroup": "c"}),
-            Link(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
-            Link(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
+            Link(Rel.SUB, "Publishers", "root", {"topCollection": "publishers"}),
+            Link(Rel.SUB, "Series", "root", {"topCollection": "series"}),
+            Link(Rel.SUB, "Issues", "root", {"topCollection": "comics"}),
+            Link(Rel.SUB, "Folders", "folders", {"topCollection": "folders"}),
+            Link(Rel.SUB, "Story Arcs", "arcs", {"topCollection": "arcs"}),
         ),
     ),
 )
@@ -128,10 +128,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.FEATURED,
                 "Keep Reading",
-                "r",
+                "root",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topCollection": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "bookmark_updated_at",
                         "orderReverse": True,
@@ -142,10 +142,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Latest Unread",
-                "r",
+                "root",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topCollection": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "created_at",
                         "orderReverse": True,
@@ -156,10 +156,10 @@ PREVIEW_GROUPS = (
             Link(
                 Rel.SORT_NEW,
                 "Oldest Unread",
-                "r",
+                "root",
                 MappingProxyType(
                     {
-                        "topGroup": "c",
+                        "topCollection": "comics",
                         **_PREVIEW_GROUP_PARAMS,
                         "orderBy": "date",
                         "orderReverse": False,
@@ -182,10 +182,10 @@ FAVORITES_PREVIEW_GROUP = LinkGroup(
         Link(
             Rel.FEATURED,
             "Favorites",
-            "r",
+            "root",
             MappingProxyType(
                 {
-                    "topGroup": "c",
+                    "topCollection": "comics",
                     "filters": FavoriteFilters.ONLY,
                     "orderBy": "sort_name",
                     "orderReverse": False,

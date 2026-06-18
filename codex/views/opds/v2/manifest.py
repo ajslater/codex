@@ -8,7 +8,7 @@ from typing import Any, override
 from django.db.models import CharField, F, Value
 
 from codex.models.base import NamedModel
-from codex.models.groups import Volume
+from codex.models.collections import Volume
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
@@ -24,6 +24,7 @@ from codex.views.opds.const import (
 )
 from codex.views.opds.v2.const import HrefData, LinkData
 from codex.views.opds.v2.feed.publications import OPDS2PublicationBaseView
+from codex.views.opds.v2.renderers import OPDS2ManifestRenderer
 
 _MD_CREDIT_MAP = MappingProxyType(
     # If OPDS2 is ever popular, make this comprehensive by using comicbox role enums
@@ -103,7 +104,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         name = obj.series_name if obj.series.name else BLANK_TITLE
         pks: list[int] = [obj.series.pk]
         kwargs: Mapping[str, str | Sequence[int] | int] = {
-            "group": "s",
+            "collection": "series",
             "pks": pks,
             "page": 1,
         }
@@ -111,7 +112,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         ts = self._obj_ts(obj)
         query_params = {
             "ts": ts,
-            "topGroup": "p",
+            "topCollection": "publishers",
         }
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
@@ -121,9 +122,9 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         if volume_name is None:
             return []
         display_name = Volume.to_str(volume_name, obj.volume_number_to) or BLANK_TITLE
-        kwargs = {"group": "v", "pks": [obj.volume_id], "page": 1}
+        kwargs = {"collection": "volumes", "pks": [obj.volume_id], "page": 1}
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "p"}
+        query_params = {"ts": ts, "topCollection": "publishers"}
         return self._publication_belongs_to_link(
             kwargs, query_params, display_name, volume_name
         )
@@ -134,10 +135,10 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         folder = obj.parent_folder
         name = folder.path
         pks = [folder.pk]
-        kwargs = {"group": "f", "pks": pks, "page": 1}
+        kwargs = {"collection": "folders", "pks": pks, "page": 1}
         number = None
         ts = self._obj_ts(obj)
-        query_params = {"ts": ts, "topGroup": "f"}
+        query_params = {"ts": ts, "topCollection": "folders"}
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
@@ -161,8 +162,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             name = story_arc.name or BLANK_TITLE
             pks = [story_arc.pk]
             number = story_arc_number.number
-            kwargs = {"group": "a", "pks": pks, "page": 1}
-            query_params = {"ts": ts, "topGroup": "a"}
+            kwargs = {"collection": "arcs", "pks": pks, "page": 1}
+            query_params = {"ts": ts, "topCollection": "arcs"}
 
             story_arc = self._publication_belongs_to_link(
                 kwargs, query_params, name, number
@@ -189,12 +190,12 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # ``name`` / ``links`` (the partitioned ``_publication_subject``
         # rows). Typing as ``Any`` lets both shapes through; the
         # function only reads ``pk`` / ``name`` and writes ``links``.
-        kwargs = {"group": "s", "pks": (), "page": 1}
+        kwargs = {"collection": "series", "pks": (), "page": 1}
         value = getattr(obj, subfield) if subfield else obj
         filters = {filter_key: [value.pk]}
         filters = json.dumps(filters)
         query_params = {
-            "topGroup": "s",
+            "topCollection": "series",
             "filters": filters,
             "title": value.name,
         }
@@ -297,8 +298,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # Special cases with transforms
         if lang := obj.language:
             md["language"] = lang.name
-        if layout := obj.reading_direction:
-            md["layout"] = "scrolled" if layout == "ttb" else layout
+        self._set_layout_and_progression(md, obj.reading_direction)
 
         # Method-based keys
         for key in _PUBLICATION_METHOD_KEYS:
@@ -314,6 +314,9 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
     """Single publication manifest view."""
 
     serializer_class = OPDS2PublicationDivinaManifestSerializer
+    # The manifest is a Divina webpub manifest, not a feed — serve it under the
+    # media type its in-feed ``self`` link advertises (still envelope-free).
+    renderer_classes = (OPDS2ManifestRenderer,)
 
     def _publication_reading_order(self, obj) -> list:
         """

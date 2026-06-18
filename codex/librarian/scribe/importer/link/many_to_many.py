@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from codex.librarian.scribe.importer.const import (
     DELETE_M2MS,
     LINK_M2MS,
+    get_through_model,
 )
 from codex.librarian.scribe.importer.link.sum import LinkSumImporter
 from codex.librarian.scribe.importer.statii.link import ImporterLinkTagsStatus
@@ -30,7 +31,7 @@ class LinkManyToManyImporter(LinkSumImporter):
         status.subtitle = field_name
         self.status_controller.update(status)
         field: ManyToManyField = Comic._meta.get_field(field_name)  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]│
-        through_model = self.get_through_model(field)
+        through_model = get_through_model(field)
         through_field_id_name = field.related_model.__name__.lower() + "_id"
 
         tms = []

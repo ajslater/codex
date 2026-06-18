@@ -2,9 +2,10 @@
 
 from types import MappingProxyType
 
-from codex.models import BrowserGroupModel, Comic
+from codex.collection import Collection
+from codex.models import BrowserCollectionModel, Comic
 from codex.models.age_rating import AgeRating
-from codex.models.groups import Folder, Imprint, Publisher, Series, Volume
+from codex.models.collections import Folder, Imprint, Publisher, Series, Volume
 from codex.models.identifier import Identifier
 from codex.models.named import (
     Character,
@@ -27,13 +28,13 @@ COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     }
 )
 COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-PATH_GROUPS = frozenset({"c", "f"})
+PATH_COLLECTIONS = frozenset({Collection.COMIC, Collection.FOLDER})
 ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
 _DISABLED_VALUE_FIELD_NAMES = frozenset(
     {"id", "pk", "sort_name", "stat"} | COMIC_VALUE_FIELDS_CONFLICTING
 )
 COMIC_VALUE_FIELD_NAMES = frozenset(
-    # contains path
+    # excludes "path" (it lives in CONFLICTING); _path_security gates it instead
     field.name
     for field in Comic._meta.get_fields()
     if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES
@@ -46,15 +47,15 @@ SUM_FIELDS = frozenset({"page_count", "size"})
 #########
 _CREDIT_ONLY = ("role", "person")
 _CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
-GROUP_MODELS: MappingProxyType[str, tuple[type[BrowserGroupModel], ...]] = (
+COLLECTION_MODELS: MappingProxyType[str, tuple[type[BrowserCollectionModel], ...]] = (
     MappingProxyType(
         {
-            "i": (Publisher,),
-            "s": (Publisher, Imprint),
-            "v": (Publisher, Imprint, Series),
-            "c": (Publisher, Imprint, Series, Volume),
-            "f": (Publisher, Imprint, Series, Volume),
-            "a": (Publisher, Imprint, Series, Volume),
+            Collection.IMPRINT: (Publisher,),
+            Collection.SERIES: (Publisher, Imprint),
+            Collection.VOLUME: (Publisher, Imprint, Series),
+            Collection.COMIC: (Publisher, Imprint, Series, Volume),
+            Collection.FOLDER: (Publisher, Imprint, Series, Volume),
+            Collection.ARC: (Publisher, Imprint, Series, Volume),
         }
     )
 )

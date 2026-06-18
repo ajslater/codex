@@ -12,11 +12,11 @@ install::
 ## @category Test
 test-frontend:: build-choices
 
-.PHONY: dev-ttabs
-## Run the vite dev frontend and dev-server in ttabs
+.PHONY: dev
+## Run Granian (backend) + Vite (frontend) together with interleaved logs
 ## @category Run Server
-dev-ttabs:
-	./bin/dev-ttabs.sh
+dev:
+	./bin/dev.sh
 
 .PHONY: dev-reverse-proxy
 ## Run an nginx reverse proxy to codex in docker

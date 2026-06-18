@@ -13,6 +13,28 @@ from codex.version import VERSION
 from codex.views.auth import AuthGenericAPIView
 
 
+def version_payload() -> dict[str, str]:
+    """
+    Build the ``{installed, latest, warning}`` version dict.
+
+    Shared by :class:`VersionView` and the composite
+    :class:`~codex.views.session.SessionView` so the two endpoints
+    can't drift. Kicks off a latest-version fetch task when the cached
+    ``Timestamp`` row is still empty.
+    """
+    ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
+    if ts.value:
+        latest_version = ts.value
+    else:
+        LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
+        latest_version = "fetching..."
+    return {
+        "installed": VERSION,
+        "latest": latest_version,
+        "warning": DOCKER_IMAGE_DEPRECATED,
+    }
+
+
 class VersionView(AuthGenericAPIView):
     """Return Codex Versions."""
 
@@ -21,17 +43,7 @@ class VersionView(AuthGenericAPIView):
     @override
     def get_object(self) -> dict[str, str]:
         """Get the versions."""
-        ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
-        if ts.version:
-            latest_version = ts.version
-        else:
-            LIBRARIAN_QUEUE.put(CodexLatestVersionTask())
-            latest_version = "fetching..."
-        return {
-            "installed": VERSION,
-            "latest": latest_version,
-            "warning": DOCKER_IMAGE_DEPRECATED,
-        }
+        return version_payload()
 
     def get(self, *args, **kwargs) -> Response:
         """Get Versions."""

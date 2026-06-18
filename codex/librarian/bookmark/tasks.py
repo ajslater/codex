@@ -21,6 +21,23 @@ class BookmarkUpdateTask(BookmarkTask):
 
 
 @dataclass
+class LastRouteUpdateTask(BookmarkTask):
+    """
+    Persist a browser's last route off the request thread.
+
+    Browse GETs fire one of these instead of writing the
+    SettingsBrowserLastRoute row synchronously — the read path must
+    never wait on the WAL writer lock (a navigation measured 1.85s vs
+    12ms under a concurrent librarian write transaction). The
+    aggregator keys on ``settings_pk`` so rapid navigation collapses
+    to one write per flood window.
+    """
+
+    settings_pk: int
+    route: Mapping[str, Any]
+
+
+@dataclass
 class UserActiveTask(BookmarkTask):
     """Update the user's last active status."""
 

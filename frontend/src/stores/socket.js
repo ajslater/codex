@@ -1,8 +1,7 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
 
-import { WS_URL } from "@/api/v3/notify";
-import { messages } from "@/choices/websocket-messages.json";
+import { MESSAGE_TYPES, WS_URL_V4, parseV4Message } from "@/api/v4/notify";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -88,7 +87,7 @@ export const useSocketStore = defineStore("socket", () => {
    * we drive reconnect ourselves from ``onDisconnected`` so we can
    * back off exponentially.
    */
-  const { status, open } = useWebSocket(WS_URL, {
+  const { status, open } = useWebSocket(WS_URL_V4, {
     immediate: true,
     autoReconnect: false,
     onConnected(ws) {
@@ -96,6 +95,7 @@ export const useSocketStore = defineStore("socket", () => {
       reconnectAttempts = 0;
       startHeartbeat(ws);
       console.debug("[socket] Connected.");
+      onlineTagSync();
     },
     onMessage(_ws, event) {
       dispatchMessage(event.data);
@@ -147,9 +147,29 @@ export const useSocketStore = defineStore("socket", () => {
     }
   }
 
+  /*
+   * Skip the ``loadMtimes`` mtime gate and pull a fresh page.
+   * ``COVERS`` events fire precisely because a cover row changed; the
+   * card data the previous response handed us is stale by definition,
+   * and the page mtime aggregate doesn't always observe the right
+   * write (e.g. a fresh ``CustomCover`` row that swaps the linked FK).
+   * Forcing a fetch with a fresh ``ts`` query sidesteps any
+   * server-side cachalot caching too.
+   */
+  function forceReloadBrowser() {
+    if (currentRouteName() !== "browser") return;
+    const store = useBrowserStore();
+    store.browserPageLoaded = true;
+    store.loadBrowserPage(Date.now());
+  }
+
   function adminFlagsNotified() {
     useAuthStore().loadAdminFlags();
-    if (currentRouteName() === "admin-flags") {
+    // ``Flag`` rows feed the Settings tab directly and the Users tab
+    // via the access / age-rating FlagCard sections. Both rely on the
+    // Pinia store list — reload whenever we're on either route.
+    const route = currentRouteName();
+    if (route === "admin-settings" || route === "admin-users") {
       adminLoadTables(["Flag"]);
     }
   }
@@ -166,6 +186,11 @@ export const useSocketStore = defineStore("socket", () => {
     }
   }
 
+  /*
+   * ``library.changed`` (and groups/users) only signal that something
+   * changed; the browser/reader stores probe the scoped ``/api/v4/mtime``
+   * and reload only if the currently-viewed collection actually moved.
+   */
   async function libraryNotified() {
     useCommonStore().setTimestamp();
     switch (currentRouteName()) {
@@ -188,45 +213,106 @@ export const useSocketStore = defineStore("socket", () => {
 
   async function failedImportsNotified() {
     const adminStore = await getAdminStore();
-    if (adminStore) adminStore.unseenFailedImports = true;
+    if (!adminStore) return;
+    // Force-skip the sticky cache so the hamburger dot, sidebar item, and the
+    // Libraries-tab panel update live app-wide. Reload the seen marker too so a
+    // clear performed in another admin session propagates here; new failed
+    // imports (created after the marker) re-activate the warning on their own.
+    adminStore.loadTables(["FailedImport"], { force: true });
+    adminStore.loadFailedImportsSeen();
   }
 
-  // Message Dispatcher
+  async function tagWriteErrorsNotified() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadTagWriteErrors({ force: true });
+  }
 
-  function dispatchMessage(message) {
-    if (!message) return;
-    console.debug("[socket] message:", message);
-    switch (message) {
-      case messages.ADMIN_FLAGS:
+  async function tagWriteErrorsNotified() {
+    const adminStore = await getAdminStore();
+    adminStore?.loadTagWriteErrors({ force: true });
+  }
+
+  async function onlineTagPromptNotified() {
+    if (!useAuthStore().isUserAdmin) return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().onPromptNotification())
+      .catch(console.error);
+  }
+
+  /*
+   * On (re)connect, resync transient online-tagging state so any prompts
+   * left pending from a previous run or restart surface without waiting for
+   * a fresh notification. Best-effort and admin-only.
+   */
+  function onlineTagSync() {
+    if (!useAuthStore().isUserAdmin) return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().refresh())
+      .catch(console.error);
+  }
+
+  /*
+   * Refresh the online-tag status snapshot on librarian progress. Gated to the
+   * Tagging tab — the snapshot only feeds that table, and ``task.progress``
+   * fires for every librarian job, so off-tab fetches would be wasted. The
+   * table's own onMounted load covers arriving mid-scan.
+   */
+  function onlineTagSnapshotNotified() {
+    if (!useAuthStore().isUserAdmin) return;
+    if (currentRouteName() !== "admin-tagging") return;
+    import("@/stores/online-tag")
+      .then((m) => m.useOnlineTagStore().loadSnapshot())
+      .catch(console.error);
+  }
+
+  // Message Dispatcher — routes v4 typed payloads ({type, ...}).
+
+  function dispatchMessage(raw) {
+    if (!raw) return;
+    const payload = parseV4Message(raw);
+    if (!payload) {
+      console.debug("[socket] unparseable message:", raw);
+      return;
+    }
+    console.debug("[socket] message:", payload);
+    switch (payload.type) {
+      case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED:
         adminFlagsNotified();
         break;
-      case messages.BOOKMARK:
+      case MESSAGE_TYPES.BOOKMARK_CHANGED:
         reloadBrowser();
         break;
-      case messages.COVERS:
+      case MESSAGE_TYPES.COVERS_CHANGED:
         useCommonStore().setTimestamp();
-        reloadBrowser();
+        forceReloadBrowser();
         break;
-      case messages.GROUPS:
+      case MESSAGE_TYPES.GROUPS_CHANGED:
         groupsNotified();
         libraryNotified();
         break;
-      case messages.USERS:
+      case MESSAGE_TYPES.USERS_CHANGED:
         usersNotified();
         libraryNotified();
         break;
-      case messages.LIBRARY:
+      case MESSAGE_TYPES.LIBRARY_CHANGED:
         libraryNotified();
         break;
-      case messages.LIBRARIAN_STATUS:
+      case MESSAGE_TYPES.TASK_PROGRESS:
         adminLoadTables(["ActiveLibrarianStatus"]);
         adminLoadAllStatuses();
+        onlineTagSnapshotNotified();
         break;
-      case messages.FAILED_IMPORTS:
+      case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();
         break;
+      case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
+        tagWriteErrorsNotified();
+        break;
+      case MESSAGE_TYPES.TAG_SESSION_PROMPT:
+        onlineTagPromptNotified();
+        break;
       default:
-        console.debug("Unhandled WebSocket message:", message);
+        console.debug("Unhandled v4 WebSocket type:", payload.type, payload);
     }
   }
 

@@ -27,12 +27,47 @@ _HTTP_BAD_REQUEST: Final = 400
 _HTTP_FORBIDDEN: Final = 403
 _HTTP_NOT_FOUND: Final = 404
 
-_LIST_URL: Final = "/api/v3/favorites/"
+_LIST_URL: Final = "/api/v4/favorites/"
 _TMP_DIR: Final = Path("/tmp/codex.tests.fav")  # noqa: S108
+
+_GROUP_TO_COLLECTION: Final = {
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "c": "comics",
+    "f": "folders",
+    "a": "arcs",
+}
+
+# v3 navigation group → v4 collection used by the transitivity tests.
+# The collection segment names the *current* nav level (matching v3's
+# single-char ``group`` kwarg); v3 ``r`` (root) is the only special
+# case — the v4 plan drops it, so root listings spell as
+# ``/api/v4/browse/publishers`` and the dispatcher fills in
+# ``group="p", pks=()`` for the v3 body to handle.
+_NAV_COLLECTION: Final = {
+    "r": "publishers",
+    "p": "publishers",
+    "i": "imprints",
+    "s": "series",
+    "v": "volumes",
+    "f": "folders",
+    "a": "arcs",
+}
 
 
 def _detail_url(group: str, target_id: int) -> str:
-    return f"{_LIST_URL}{group}/{target_id}/"
+    collection = _GROUP_TO_COLLECTION.get(group, group)
+    return f"{_LIST_URL}{collection}/{target_id}"
+
+
+def _v4(response):
+    """Unwrap the v4 ``{data, meta, errors}`` envelope and return ``data``."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body and "meta" in body:
+        return body["data"]
+    return body
 
 
 class FavoritesAPITestCase(TestCase):
@@ -86,7 +121,7 @@ class FavoritesAPITestCase(TestCase):
         assert second.status_code == _HTTP_OK
         assert (
             Favorite.objects.filter(
-                user=self.user, group="s", target_id=self.series_pk
+                user=self.user, collection="series", target_id=self.series_pk
             ).count()
             == 1
         )
@@ -104,33 +139,44 @@ class FavoritesAPITestCase(TestCase):
         bogus_pk = self.series_pk + 99999
         response = self.client.put(_detail_url("s", bogus_pk))
         assert response.status_code == _HTTP_NOT_FOUND
-        assert not Favorite.objects.filter(group="s", target_id=bogus_pk).exists()
+        assert not Favorite.objects.filter(
+            collection="series", target_id=bogus_pk
+        ).exists()
 
-    def test_put_400_for_unmapped_group(self):
-        """The URL converter accepts ``r`` but the view has no model for it."""
-        response = self.client.put(_detail_url("r", 1))
-        assert response.status_code == _HTTP_BAD_REQUEST
+    def test_put_unmapped_group_does_not_match_route(self):
+        """
+        The v4 collection converter only matches the seven collection names.
+
+        Anything else falls through to the SPA catch-all (the URL is not a
+        favorites endpoint at all), so we get the catch-all's 302 → ``/``
+        rather than a 404 from the view. Either way no Favorite is written.
+        """
+        response = self.client.put("/api/v4/favorites/unknowngroup/1")
+        assert response.status_code in {302, 404}
+        assert not Favorite.objects.filter(target_id=1).exists()
 
     def test_get_returns_favorites_grouped_by_code(self):
-        """GET groups the user's favorites by single-letter group code."""
+        """GET groups the user's favorites by collection name."""
         self.client.put(_detail_url("s", self.series_pk))
         self.client.put(_detail_url("p", self.publisher_pk))
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
-        body = response.json()
-        assert sorted(body["s"]) == [self.series_pk]
-        assert sorted(body["p"]) == [self.publisher_pk]
+        body = _v4(response)
+        assert sorted(body["series"]) == [self.series_pk]
+        assert sorted(body["publishers"]) == [self.publisher_pk]
         # Untouched groups must still be present (empty list).
-        assert body["c"] == []
-        assert body["v"] == []
+        assert body["comics"] == []
+        assert body["volumes"] == []
 
     def test_get_only_returns_requesting_user_favorites(self):
         """A second user's favorites must not leak through GET."""
         other = User.objects.create_user(username="favapi2", password=_TEST_PASSWORD)
-        Favorite.objects.create(user=other, group="s", target_id=self.series_pk)
+        Favorite.objects.create(
+            user=other, collection="series", target_id=self.series_pk
+        )
         response = self.client.get(_LIST_URL)
         assert response.status_code == _HTTP_OK
-        assert response.json()["s"] == []
+        assert _v4(response)["series"] == []
 
     def test_anonymous_forbidden(self):
         """Logged-out clients must not reach the favorites surface."""
@@ -145,12 +191,20 @@ class FavoritesAPITestCase(TestCase):
     def test_get_payload_is_json(self):
         """Sanity: GET returns a JSON object."""
         response = self.client.get(_LIST_URL)
-        body = json.loads(response.content)
+        body = _v4(response)
         assert isinstance(body, dict)
-        assert set(body) >= {"p", "i", "s", "v", "f", "a", "c"}
+        assert set(body) >= {
+            "publishers",
+            "imprints",
+            "series",
+            "volumes",
+            "folders",
+            "arcs",
+            "comics",
+        }
 
 
-_SETTINGS_URL: Final = "/api/v3/r/settings"
+_SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 
 class FavoriteFilterTestCase(TestCase):
@@ -177,7 +231,9 @@ class FavoriteFilterTestCase(TestCase):
         self.other_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="ignored", publisher=publisher, imprint=imprint
         )
-        Favorite.objects.create(user=self.user, group="s", target_id=self.fav_series.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.fav_series.pk
+        )
 
     def test_favorite_filter_round_trips_via_settings(self):
         """PATCH ``filters.favorite=true`` persists and re-emits as True."""
@@ -189,17 +245,17 @@ class FavoriteFilterTestCase(TestCase):
         assert response.status_code == _HTTP_OK, response.content
         get_resp = self.client.get(_SETTINGS_URL)
         assert get_resp.status_code == _HTTP_OK
-        assert get_resp.json()["filters"]["favorite"] is True
+        assert _v4(get_resp)["filters"]["favorite"] is True
 
     def test_favorite_filter_default_is_false(self):
         """Fresh settings expose ``filters.favorite`` as False."""
         get_resp = self.client.get(_SETTINGS_URL)
         assert get_resp.status_code == _HTTP_OK
-        assert get_resp.json()["filters"]["favorite"] is False
+        assert _v4(get_resp)["filters"]["favorite"] is False
 
     def test_favorite_subquery_narrows_to_favorited_pks(self):
         """The pk__in subquery restricts the queryset to the user's favorites."""
-        favorited = Favorite.objects.filter(user=self.user, group="s").values(
+        favorited = Favorite.objects.filter(user=self.user, collection="series").values(
             "target_id"
         )
         narrowed = Series.objects.filter(pk__in=favorited).values_list("pk", flat=True)
@@ -271,7 +327,16 @@ class FavoriteFilterTransitivityTestCase(TestCase):
     def _patch_show_all(self) -> None:
         response = self.client.patch(
             _SETTINGS_URL,
-            data=json.dumps({"show": {"p": True, "i": True, "s": True, "v": True}}),
+            data=json.dumps(
+                {
+                    "show": {
+                        "publishers": True,
+                        "imprints": True,
+                        "series": True,
+                        "volumes": True,
+                    }
+                }
+            ),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
@@ -284,66 +349,80 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         assert response.status_code == _HTTP_OK, response.content
 
-    def _group_pks(self, group: str, scope_pk: int = 0) -> list[int]:
-        url = f"/api/v3/{group}/{scope_pk}/1"
+    def _collection_pks(self, group: str, scope_pk: int = 0) -> list[int]:
+        collection = _NAV_COLLECTION[group]
+        suffix = f"/{scope_pk}" if scope_pk else ""
+        url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
         # Group rows surface in ``groups`` (each entry has ``ids`` for
         # multi-pk rollups; in this fixture every chain has one row).
         return [
-            ids[0] for g in response.json().get("groups", []) if (ids := g.get("ids"))
+            ids[0]
+            for g in _v4(response).get("collections", [])
+            if (ids := g.get("ids"))
         ]
 
     def _book_pks(self, group: str, scope_pk: int) -> list[int]:
-        url = f"/api/v3/{group}/{scope_pk}/1"
+        collection = _NAV_COLLECTION[group]
+        suffix = f"/{scope_pk}" if scope_pk else ""
+        url = f"/api/v4/browse/{collection}{suffix}?page=1"
         response = self.client.get(url)
         assert response.status_code == _HTTP_OK, response.content
-        return [b.get("pk") for b in response.json().get("books", [])]
+        return [b.get("pk") for b in _v4(response).get("books", [])]
 
     def test_favorited_publisher_lights_up_descendant_groups(self):
         """Favorite P1 → its full subtree (I1/S1/V1/C1) passes the filter."""
-        Favorite.objects.create(user=self.user, group="p", target_id=self.p1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="publishers", target_id=self.p1.pk
+        )
         self._enable_favorite_filter()
         # Publisher list: only P1.
-        assert self._group_pks("r") == [self.p1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
         # Imprint list under P1: I1.
-        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
+        assert self._collection_pks("p", self.p1.pk) == [self.i1.pk]
         # Series list under I1: S1.
-        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
+        assert self._collection_pks("i", self.i1.pk) == [self.s1.pk]
         # Volume list under S1: V1.
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         # Comic list under V1: C1.
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
     def test_favorited_comic_lights_up_ancestor_groups(self):
         """Favorite C1 → P1/I1/S1/V1 still navigable down to C1."""
-        Favorite.objects.create(user=self.user, group="c", target_id=self.c1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="comics", target_id=self.c1.pk
+        )
         self._enable_favorite_filter()
-        assert self._group_pks("r") == [self.p1.pk]
-        assert self._group_pks("p", self.p1.pk) == [self.i1.pk]
-        assert self._group_pks("i", self.i1.pk) == [self.s1.pk]
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
+        assert self._collection_pks("p", self.p1.pk) == [self.i1.pk]
+        assert self._collection_pks("i", self.i1.pk) == [self.s1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
     def test_favorited_series_isolates_unrelated_branch(self):
         """Favorite S1 → S2's subtree stays out; S1's ancestors and C1 surface."""
-        Favorite.objects.create(user=self.user, group="s", target_id=self.s1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.s1.pk
+        )
         self._enable_favorite_filter()
         # Publishers: only P1.
-        assert self._group_pks("r") == [self.p1.pk]
+        assert self._collection_pks("r") == [self.p1.pk]
         # Series under P2's imprint should be empty (filter narrows P2 out
         # at the publisher level — descending into I2 returns no rows).
-        assert self._group_pks("i", self.i2.pk) == []
+        assert self._collection_pks("i", self.i2.pk) == []
         # Volumes under S1: V1 surfaces (so the user can drill to C1).
-        assert self._group_pks("s", self.s1.pk) == [self.v1.pk]
+        assert self._collection_pks("s", self.s1.pk) == [self.v1.pk]
         # Comic under V1: C1 surfaces.
         assert self._book_pks("v", self.v1.pk) == [self.c1.pk]
 
     def test_filter_off_passes_everything_through(self):
         """Sanity: with the filter off, every chain row shows."""
-        Favorite.objects.create(user=self.user, group="p", target_id=self.p1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="publishers", target_id=self.p1.pk
+        )
         # Filter not enabled. Both P1 and P2 should appear.
-        assert sorted(self._group_pks("r")) == sorted([self.p1.pk, self.p2.pk])
+        assert sorted(self._collection_pks("r")) == sorted([self.p1.pk, self.p2.pk])
 
     def test_favorited_folder_lights_up_empty_intermediate_descendants(self):
         """Favorite a top folder → every nested sub-folder surfaces, empty mids included."""
@@ -383,16 +462,16 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # the path chain, not just the direct parent.
         deep_comic.folders.set([f1, f2, f3])
 
-        Favorite.objects.create(user=self.user, group="f", target_id=f1.pk)
+        Favorite.objects.create(user=self.user, collection="folders", target_id=f1.pk)
         self._enable_favorite_filter()
 
         # Top-level folder list: F1 surfaces (self) and any
         # descendants the filter pulls in.
-        top = self._group_pks("f")
+        top = self._collection_pks("f")
         assert f1.pk in top
         # Inside F1, the empty intermediate F2 must surface so the
         # user can keep drilling toward the deep comic.
-        children = self._group_pks("f", f1.pk)
+        children = self._collection_pks("f", f1.pk)
         assert f2.pk in children, children
 
     def test_table_view_sort_by_favorite_does_not_crash(self):
@@ -402,9 +481,11 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         # annotation rather than dispatching to ``_ORDER_AGGREGATE_FUNCS``
         # (which would KeyError because ``favorite`` is annotated, not
         # aggregated). Pin the no-crash invariant for the primary key
-        # at every group level — Comic and group querysets take
+        # at every group level — Comic and collection queryset take
         # different code paths.
-        Favorite.objects.create(user=self.user, group="s", target_id=self.s1.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.s1.pk
+        )
         response = self.client.patch(
             _SETTINGS_URL,
             data=json.dumps(
@@ -418,11 +499,11 @@ class FavoriteFilterTransitivityTestCase(TestCase):
         )
         assert response.status_code == _HTTP_OK, response.content
         for url in (
-            "/api/v3/r/0/1",
-            f"/api/v3/p/{self.p1.pk}/1",
-            f"/api/v3/i/{self.i1.pk}/1",
-            f"/api/v3/s/{self.s1.pk}/1",
-            f"/api/v3/v/{self.v1.pk}/1",
+            "/api/v4/browse/publishers?page=1",
+            f"/api/v4/browse/imprints/{self.p1.pk}?page=1",
+            f"/api/v4/browse/series/{self.i1.pk}?page=1",
+            f"/api/v4/browse/volumes/{self.s1.pk}?page=1",
+            f"/api/v4/browse/comics/{self.v1.pk}?page=1",
         ):
             r = self.client.get(url)
             assert r.status_code == _HTTP_OK, (url, r.content)
@@ -447,7 +528,9 @@ class FavoriteAnnotationTestCase(TestCase):
         self.other_series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="ignored", publisher=publisher, imprint=imprint
         )
-        Favorite.objects.create(user=self.user, group="s", target_id=self.fav_series.pk)
+        Favorite.objects.create(
+            user=self.user, collection="series", target_id=self.fav_series.pk
+        )
 
     def test_authenticated_user_gets_per_row_exists(self):
         """Annotated queryset reports True for favorited rows, False otherwise."""

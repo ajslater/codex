@@ -1,11 +1,9 @@
 """Create Custom Covers."""
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.functions.datetime import Now
 from django.db.models.query import QuerySet
 
 from codex.librarian.scribe.importer.const import (
-    CLASS_CUSTOM_COVER_GROUP_MAP,
     CREATE_COVERS,
     CUSTOM_COVER_UPDATE_FIELDS,
     LINK_COVER_PKS,
@@ -24,17 +22,9 @@ class CreateCoversImporter(CreateComicsImporter):
     """Create Custom Covers."""
 
     @staticmethod
-    def add_custom_cover_to_group(group_class, obj) -> None:
-        """If a custom cover exists for this group, add it."""
-        group = CLASS_CUSTOM_COVER_GROUP_MAP.get(group_class)
-        if not group:
-            # Normal, volume doesn't link to covers
-            return
-        try:
-            cover = CustomCover.objects.filter(group=group, sort_name=obj.sort_name)[0]
-            obj.custom_cover = cover
-        except (IndexError, ObjectDoesNotExist):
-            pass
+    def add_custom_cover_to_collection(collection_class, obj) -> None:
+        """Bind nothing — custom covers are linked explicitly via upload."""
+        del collection_class, obj
 
     def _update_custom_covers(self, update_covers_qs: QuerySet, status) -> int:
         count = 0

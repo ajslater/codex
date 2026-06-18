@@ -11,6 +11,7 @@ from loguru import logger
 
 from codex.settings import COMICBOX_CONFIG
 from codex.views.opds.const import MimeType, Rel
+from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import OPDS1EntryData, OPDS1EntryObject, OPDS1Link
 
 
@@ -29,7 +30,7 @@ class OPDS1EntryLinksMixin:
         self.obj = obj
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
-        self.acquisition_groups = data.acquisition_groups
+        self.acquisition_collections = data.acquisition_collections
         self.zero_pad = data.zero_pad
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
@@ -47,13 +48,13 @@ class OPDS1EntryLinksMixin:
                 kwargs={"pk": custom_pk},
                 query=query_params,
             )
-        # Comic entries serve their own cover; group entries use the
-        # annotated cover_pk, falling back to obj.pk (the group's own pk)
+        # Comic entries serve their own cover; collection entries use the
+        # annotated cover_pk, falling back to obj.pk (the collection's own pk)
         # so the thin endpoint can serve the missing-cover placeholder
         # for edge cases instead of reverting to a legacy fan-out.
         pk = (
             self.obj.pk
-            if self.obj.group == "c"
+            if self.obj.nav_collection == "comics"
             else getattr(self.obj, "cover_pk", None) or self.obj.pk
         )
         return reverse("opds:bin:cover", kwargs={"pk": pk}, query=query_params)
@@ -70,15 +71,15 @@ class OPDS1EntryLinksMixin:
 
     def _nav_href(self, *, metadata: bool) -> str:
         try:
-            if self.obj.group:
+            if self.obj.nav_collection:
                 pks = sorted(self.obj.ids)
-                kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
+                kwargs = {"collection": self.obj.nav_collection, "pks": pks, "page": 1}
             else:
                 kwargs = {}
             qps = {}
             qps.update(self.query_params)
             if (
-                self.obj.group == "a"
+                self.obj.nav_collection == "arcs"
                 and self.obj.ids
                 and 0 not in self.obj.ids
                 and not self.query_params.get("orderBy")
@@ -88,7 +89,7 @@ class OPDS1EntryLinksMixin:
             if metadata:
                 qps.update({"opdsMetadata": 1})
             url_name = getattr(self.obj, "url_name", "opds:v1:feed")
-            return reverse(url_name, kwargs=kwargs, query=qps)
+            return opds_feed_reverse(url_name, kwargs, qps)
         except Exception:
             msg = f"creating nav href for entry {self.obj}"
             logger.exception(msg)
@@ -97,14 +98,18 @@ class OPDS1EntryLinksMixin:
     def _nav_link(self, *, metadata: bool) -> OPDS1Link:
         href = self._nav_href(metadata=metadata)
 
-        group = self.obj.group
-        if group in self.acquisition_groups:
+        collection = self.obj.nav_collection
+        if collection in self.acquisition_collections:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
         thr_count = (
-            0 if self.fake else 1 if self.obj.group == "c" else self.obj.child_count
+            0
+            if self.fake
+            else 1
+            if self.obj.nav_collection == "comics"
+            else self.obj.child_count
         )
         rel = Rel.ALTERNATE if metadata else "subsection"
 
@@ -124,7 +129,7 @@ class OPDS1EntryLinksMixin:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
         if self.obj.page_count and self.obj.file_type:
             return False
-        with Comicbox(self.obj.path, config=COMICBOX_CONFIG, logger=logger) as cb:
+        with Comicbox(self.obj.path, config=COMICBOX_CONFIG) as cb:
             self.obj.page_count = cb.get_page_count()
             self.obj.file_type = cb.get_file_type()
         logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")
@@ -143,12 +148,19 @@ class OPDS1EntryLinksMixin:
         self.lazy_metadata()
         pse_count = self.obj.page_count
         bookmark_updated_at = self.obj.bookmark_updated_at
+        # OPDS-PSE 1.2 numbers lastRead from 1; obj.page is Codex's 0-indexed
+        # bookmark page. The page annotation is Sum(..., default=0), so an
+        # unbookmarked comic reports page 0 — indistinguishable by page alone
+        # from a real bookmark on the first page. bookmark_updated_at is None
+        # only when there is no bookmark, so use it to tell them apart: emit no
+        # lastRead for an unread comic, but lastRead="1" for a page-0 bookmark.
+        pse_last_read = page + 1 if bookmark_updated_at is not None else None
         return OPDS1Link(
             Rel.STREAM,
             href,
             MimeType.STREAM,
             pse_count=pse_count,
-            pse_last_read=page,
+            pse_last_read=pse_last_read,
             pse_last_read_date=bookmark_updated_at,
         )
 
@@ -173,7 +185,7 @@ class OPDS1EntryLinksMixin:
             if image := self._cover_link(Rel.IMAGE):
                 result += [image]
 
-            if self.obj.group == "c" and not self.fake:
+            if self.obj.nav_collection == "comics" and not self.fake:
                 result += self._links_comic()
             elif nav := self._nav_link(metadata=False):
                 result += [nav]

@@ -29,6 +29,11 @@ class GroupSerializer(BaseModelSerializer):
         )
         read_only_fields = ("pk",)
 
+    class JSONAPIMeta:
+        """JSON:API resource_name for the v4 admin renderer."""
+
+        resource_name = "groups"
+
     @staticmethod
     def _apply_groupauth(instance, groupauth_data) -> None:
         """

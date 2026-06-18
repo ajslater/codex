@@ -29,7 +29,11 @@
     </v-menu>
   </span>
   <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
-    <FavoriteToggle v-if="favoritePk" :group="favoriteGroup" :pk="favoritePk" />
+    <FavoriteToggle
+      v-if="favoritePk"
+      :collection="favoriteCollection"
+      :pk="favoritePk"
+    />
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
@@ -50,7 +54,7 @@
 import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import { getCoverSrc, getPlaceholderSrc } from "@/api/v3/browser";
+import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
@@ -130,7 +134,7 @@ export default {
       type: String,
       default: "sm",
     },
-    coverGroup: {
+    coverCollection: {
       type: String,
       default: "c",
     },
@@ -139,7 +143,7 @@ export default {
     return {
       /*
        * Once a cover URL fails (404 / network error) we swap to the
-       * group's placeholder svg so the browser never renders the
+       * collection's placeholder svg so the browser never renders the
        * broken-image icon. Reset when the row identity changes.
        */
       imgErrored: false,
@@ -155,7 +159,7 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     placeholderSrc() {
-      return getPlaceholderSrc(this.coverGroup);
+      return getPlaceholderSrc(this.coverCollection);
     },
     coverSrc() {
       const { coverPk, coverCustomPk } = this.row;
@@ -170,17 +174,17 @@ export default {
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
     },
-    favoriteGroup() {
+    favoriteCollection() {
       /*
-       * Group rows carry an explicit ``group`` letter; comic rows
-       * omit it (the table view's lone comic-only top-group) and
-       * default to ``c``.
+       * Collection rows carry an explicit ``collection``; comic rows
+       * omit it (the table view's lone comic-only top-collection) and
+       * default to ``comics``.
        */
-      return this.row?.group ?? "c";
+      return this.row?.collection ?? "comics";
     },
     favoritePk() {
       /*
-       * Comic rows expose ``pk`` directly; group rows use ``ids``
+       * Comic rows expose ``pk`` directly; collection rows use ``ids``
        * and only the single-id case can be favorited atomically.
        */
       const ids = this.row?.ids;
@@ -201,7 +205,7 @@ export default {
     rawValue() {
       const name = this.rowAttrName;
       if (!Object.hasOwn(this.row, name)) return undefined;
-      // eslint-disable-next-line security/detect-object-injection
+
       return this.row[name];
     },
     isList() {
@@ -257,7 +261,6 @@ export default {
       if (Object.hasOwn(ENUM_COLUMN_LABELS, this.column)) {
         const labels = ENUM_COLUMN_LABELS[this.column];
         if (Object.hasOwn(labels, value)) {
-          // eslint-disable-next-line security/detect-object-injection
           return labels[value];
         }
         return String(value);

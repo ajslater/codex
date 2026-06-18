@@ -6,7 +6,7 @@ from codex.models import (
     Comic,
 )
 from codex.serializers.models.base import BaseModelSerializer
-from codex.serializers.models.groups import (
+from codex.serializers.models.collections import (
     ImprintSerializer,
     PublisherSerializer,
     SeriesSerializer,
@@ -42,7 +42,7 @@ class ComicSerializer(BaseModelSerializer):
     # issue_count = IntegerField(allow_null=True) could be 1
     # volume_count = IntegerField(allow_null=True) could be 1
 
-    # Group FKs
+    # Collection FKs
     publisher = PublisherSerializer(allow_null=True)
     imprint = ImprintSerializer(allow_null=True)
     series = SeriesSerializer(allow_null=True)

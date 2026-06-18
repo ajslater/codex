@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://readium.org/webpub-manifest/schema/extensions/encryption/properties.schema.json",
+  "title": "Encryption Module - Link Properties",
+  "type": "object",
+  "properties": {
+    "encrypted": {
+      "description": "Indicates that a resource is encrypted/obfuscated and provides relevant information for decryption",
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "description": "Identifies the algorithm used to encrypt the resource",
+          "type": "string",
+          "format": "uri"
+        },
+        "compression": {
+          "description": "Compression method used on the resource",
+          "type": "string"
+        },
+        "originalLength": {
+          "description": "Original length of the resource in bytes before compression and/or encryption",
+          "type": "integer"
+        },
+        "profile": {
+          "description": "Identifies the encryption profile used to encrypt the resource",
+          "type": "string",
+          "format": "uri"
+        },
+        "scheme": {
+          "description": "Identifies the encryption scheme used to encrypt the resource",
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "algorithm"
+      ]
+    }
+  }
+}

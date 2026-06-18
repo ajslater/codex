@@ -47,33 +47,45 @@
           />
         </header>
         <!--
-          Age Rating: dual-panel UI. The "Standardized" panel (metron
-          values) is open by default; "As tagged" is collapsed. Either
-          panel header shows a primary-colored checkbox icon when its
-          filter has any selections. The shared search box at the top
-          filters items in both panels at once; if matches land only
-          in the collapsed panel, that panel auto-expands.
+          Age Rating: dual-tab UI. The "Standardized" tab (metron
+          values) is selected by default; "As tagged" holds every
+          raw tagged value, each preceded by its standardized
+          equivalent in a dim left column. When there are no tagged
+          values the tab bar is hidden and only the Standardized
+          list renders. A tab shows a primary-colored checkbox
+          icon when its filter has any selections. The shared
+          search box at the top filters both tabs' items at once;
+          if matches land only in the other tab, the view switches
+          to it.
         -->
-        <v-expansion-panels
-          v-if="isAgeRating"
-          v-model="expandedPanels"
-          multiple
-          variant="accordion"
-          flat
-          class="ageRatingPanels"
-        >
-          <v-expansion-panel
-            v-for="panel of ageRatingPanels"
-            :key="panel.key"
-            :value="panel.key"
+        <template v-if="isAgeRating">
+          <v-tabs
+            v-if="hasTaggedChoices"
+            v-model="activeTab"
+            grow
+            density="compact"
           >
-            <v-expansion-panel-title
-              class="ageRatingPanelTitle"
-              :class="{ ageRatingPanelTitleActive: panel.hasSelections }"
+            <v-tab
+              v-for="panel of ageRatingPanels"
+              :key="panel.key"
+              :value="panel.key"
             >
+              <v-icon
+                v-if="panel.hasSelections"
+                class="ageRatingTabSelectedIcon"
+                :icon="mdiCheckboxMarked"
+                size="small"
+                start
+              />
               {{ panel.label }}
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
+            </v-tab>
+          </v-tabs>
+          <v-window v-model="activeTab">
+            <v-window-item
+              v-for="panel of ageRatingPanels"
+              :key="panel.key"
+              :value="panel.key"
+            >
               <BrowserFilterChoiceList
                 :name="panel.key"
                 :choices="panel.choices"
@@ -81,9 +93,9 @@
                 :search="search"
                 @selected="(v) => onAgeRatingSelected(panel.key, v)"
               />
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+            </v-window-item>
+          </v-window>
+        </template>
         <BrowserFilterChoiceList
           v-else-if="hasAnyChoices"
           :name="name"
@@ -99,6 +111,7 @@
 
 <script>
 import {
+  mdiCheckboxMarked,
   mdiChevronLeft,
   mdiChevronRight,
   mdiChevronRightCircle,
@@ -107,18 +120,15 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
-import { toVuetifyItems } from "@/vuetify-items";
+import { NULL_PKS, toVuetifyItems } from "@/vuetify-items";
 import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 const FILTER_TITLE_OVERRIDES = {
   ageRatingMetron: "Age Rating",
 };
-/*
- * Default: only the "Standardized" panel is expanded. Identified
- * by its panel value (the filter key).
- */
-const AGE_RATING_DEFAULT_EXPANDED = Object.freeze(["ageRatingMetron"]);
+// Tab values are the filter keys; "Standardized" is the default tab.
+const AGE_RATING_DEFAULT_TAB = "ageRatingMetron";
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -132,10 +142,11 @@ export default {
   emits: ["selected"],
   data() {
     return {
+      mdiCheckboxMarked,
       mdiChevronLeft,
       mdiCloseCircleOutline,
       search: "",
-      expandedPanels: [...AGE_RATING_DEFAULT_EXPANDED],
+      activeTab: AGE_RATING_DEFAULT_TAB,
     };
   },
   computed: {
@@ -161,8 +172,18 @@ export default {
     taggedHasSelections() {
       return this.taggedFilter?.length > 0;
     },
+    /*
+     * The As-tagged tab exposes every raw tagged age-rating string.
+     * Hide the tab only when the library has no tagged values at all
+     * (just the ``None`` sentinel, which the Standardized tab already
+     * surfaces) — then the second tab would duplicate the first.
+     */
+    hasTaggedChoices() {
+      if (!Array.isArray(this.taggedChoices)) return false;
+      return this.taggedChoices.some((c) => !NULL_PKS.has(c?.pk));
+    },
     ageRatingPanels() {
-      return [
+      const panels = [
         {
           key: "ageRatingMetron",
           label: "Standardized",
@@ -170,14 +191,17 @@ export default {
           filter: this.metronFilter,
           hasSelections: this.metronHasSelections,
         },
-        {
+      ];
+      if (this.hasTaggedChoices) {
+        panels.push({
           key: "ageRatingTagged",
           label: "As tagged",
           choices: this.taggedChoices,
           filter: this.taggedFilter,
           hasSelections: this.taggedHasSelections,
-        },
-      ];
+        });
+      }
+      return panels;
     },
     title() {
       return FILTER_TITLE_OVERRIDES[this.name] || capitalCase(this.name);
@@ -212,33 +236,28 @@ export default {
   },
   watch: {
     search(val) {
-      if (!this.isAgeRating) {
+      if (!this.isAgeRating || !this.hasTaggedChoices || !val) {
         return;
       }
       /*
-       * Auto-expand panels based on where the search has matches. With
-       * an empty search we revert to the default (Standardized open,
-       * As tagged closed). With a non-empty search, expand whichever
-       * panel(s) contain matches; if matches are exclusive to one
-       * panel, only that one stays open.
+       * Switch tabs based on where the search has matches: if matches
+       * are exclusive to the other tab, jump to it so the user isn't
+       * staring at an empty list. With matches in both (or neither)
+       * tab, or when the search is cleared, stay on the current tab.
        */
-      if (!val) {
-        this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
-        return;
-      }
       const metronMatches = this._countMatches(this.metronChoices, val);
       const taggedMatches = this._countMatches(this.taggedChoices, val);
-      if (metronMatches > 0 && taggedMatches > 0) {
-        this.expandedPanels = ["ageRatingMetron", "ageRatingTagged"];
-      } else if (taggedMatches > 0) {
-        this.expandedPanels = ["ageRatingTagged"];
-      } else {
-        /*
-         * Either standardized-only matches or no matches anywhere —
-         * honor the default so the user isn't presented with an
-         * empty open panel below an empty closed one.
-         */
-        this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
+      if (taggedMatches > 0 && metronMatches === 0) {
+        this.activeTab = "ageRatingTagged";
+      } else if (metronMatches > 0 && taggedMatches === 0) {
+        this.activeTab = AGE_RATING_DEFAULT_TAB;
+      }
+    },
+    hasTaggedChoices(val) {
+      // The As-tagged tab can vanish after a clear or re-filter;
+      // don't leave the window pointed at a tab that no longer exists.
+      if (!val) {
+        this.activeTab = AGE_RATING_DEFAULT_TAB;
       }
     },
   },
@@ -252,7 +271,7 @@ export default {
     setUIFilterMode(mode) {
       this.filterMode = mode;
       this.search = "";
-      this.expandedPanels = [...AGE_RATING_DEFAULT_EXPANDED];
+      this.activeTab = AGE_RATING_DEFAULT_TAB;
       if (mode === "base") {
         return;
       }
@@ -368,51 +387,13 @@ export default {
   opacity: 1;
 }
 
-.ageRatingPanels {
-  /*
-   * v-expansion-panels defaults to a max-width and a fair bit of
-   * horizontal padding inside the menu — strip both so the panels
-   * fill the sub-menu width like the regular filter list does.
-   */
-  background: transparent;
-}
-
-.ageRatingPanelTitle {
-  min-height: 36px;
-  padding: 4px 16px;
-  font-size: 0.875rem;
-}
-
 /*
- * Indicate that a panel has selections by filling its expansion
- * caret with a solid orange disc. The chevron renders in the
- * menu's surface (dark) color so it reads cleanly against the
- * orange fill — ``--v-theme-on-surface`` would point at the
- * menu's text color (light/white in this dark codex theme), the
- * exact opposite of what we want. ``!important`` plus the broad
- * selector list overrides Vuetify's per-component icon-color
- * rules and covers both font-icons (``<i>``) and the SVG-set
- * chevron (``mdi-svg``) — the latter inherits color via
- * ``fill: currentColor``, so setting ``color`` propagates.
+ * The selections indicator must stay primary-colored even on the
+ * inactive (dimmed) tab, where Vuetify lowers the tab content's
+ * opacity.
  */
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon) {
-  background-color: rgb(var(--v-theme-primary));
-  border-radius: 50%;
-}
-
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon),
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon .v-icon),
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon i),
-.ageRatingPanelTitleActive :deep(.v-expansion-panel-title__icon svg) {
-  color: rgb(var(--v-theme-surface)) !important;
-  opacity: 1 !important;
-}
-
-.ageRatingPanels :deep(.v-expansion-panel-text__wrapper) {
-  /*
-   * Eliminate the default content padding so the inner choice
-   * list aligns flush with the rest of the sub-menu's items.
-   */
-  padding: 0;
+.ageRatingTabSelectedIcon {
+  color: rgb(var(--v-theme-primary));
+  opacity: 1;
 }
 </style>

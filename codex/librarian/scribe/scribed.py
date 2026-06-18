@@ -2,7 +2,7 @@
 
 from multiprocessing import Manager
 from queue import PriorityQueue
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 
 from codex.librarian.scribe.force_updater import ForceUpdater
 from codex.librarian.scribe.importer.importer import ComicImporter
@@ -21,16 +21,22 @@ from codex.librarian.scribe.search.tasks import (
     SearchIndexClearTask,
     SearchIndexerTask,
 )
+from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tasks import (
+    BulkTagWriteTask,
     CleanupAbortTask,
     ForceUpdateComicsTask,
     ImportAbortTask,
     LazyImportComicsTask,
     SearchIndexSyncAbortTask,
-    UpdateGroupsTask,
+    TagWriteAbortTask,
+    UpdateCollectionsTask,
 )
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import QueuedThread
+
+if TYPE_CHECKING:
+    from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
 
 _ABORT_SEARCH_UPDATE_TASKS: Final = (
     SearchIndexClearTask,
@@ -50,11 +56,17 @@ class ScribeThread(QueuedThread):
     # work that follows.
     CLOSE_DB_BETWEEN_TASKS = True
 
+    # Set by ``LibrarianDaemon._create_threads`` after both threads
+    # exist so ``Janitor.cleanup_tagging_state`` can ask the
+    # OnlineTagThread whether a persisted session is still live.
+    online_tag_thread: "OnlineTagThread | None" = None
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize abort event."""
         self.abort_import_event = Manager().Event()
         self.abort_search_update_event = Manager().Event()
         self.abort_cleanup_event = Manager().Event()
+        self.abort_tag_write_event = Manager().Event()
         super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     @override
@@ -81,11 +93,11 @@ class ScribeThread(QueuedThread):
                     self.log, self.librarian_queue, self.db_write_lock
                 )
                 worker.force_update(task)
-            case UpdateGroupsTask():
+            case UpdateCollectionsTask():
                 worker = TimestampUpdater(
                     self.log, self.librarian_queue, self.db_write_lock
                 )
-                worker.update_groups(task)
+                worker.update_collections(task)
             case JanitorAdoptOrphanFoldersTask():
                 worker = OrphanFolderAdopter(
                     self.log,
@@ -108,8 +120,17 @@ class ScribeThread(QueuedThread):
                     self.librarian_queue,
                     self.db_write_lock,
                     event=self.abort_cleanup_event,
+                    online_tag_thread=self.online_tag_thread,
                 )
                 worker.handle_task(task)
+            case BulkTagWriteTask():
+                worker = TagWriter(
+                    self.log,
+                    self.librarian_queue,
+                    self.db_write_lock,
+                    event=self.abort_tag_write_event,
+                )
+                worker.write_tags(task)
             case _:
                 self.log.warning(f"Bad task sent to scribe: {task}")
 
@@ -128,6 +149,10 @@ class ScribeThread(QueuedThread):
         elif isinstance(task, ImportAbortTask):
             self.abort_import_event.set()
             self.log.debug("Import abort signal given.")
+            return
+        elif isinstance(task, TagWriteAbortTask):
+            self.abort_tag_write_event.set()
+            self.log.debug("Tag write abort signal given.")
             return
         elif isinstance(task, CleanupAbortTask):
             self.abort_cleanup_event.set()

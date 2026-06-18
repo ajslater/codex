@@ -2,8 +2,9 @@
 
 from collections.abc import Sequence
 
-from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from rest_framework.throttling import BaseThrottle
 
+from codex.throttling import ScopedRateThrottle
 from codex.views.browser.browser import BrowserView
 from codex.views.mixins import UserActiveMixin
 from codex.views.opds.settings import OPDSBrowserSettingsMixin

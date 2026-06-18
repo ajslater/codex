@@ -2,7 +2,7 @@
 {% load static %}
 {% load tz %}
 <feed
-  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns="http://www.w3.org/2005/Atom"
   xmlns:opds="{{opds_ns}}"
   xmlns:dc="http://purl.org/dc/terms/"
   xmlns:thr="http://purl.org/syndication/thread/1.0"
@@ -73,9 +73,8 @@
   {% if entry.published %}
     <published>{{ entry.published }}</published>
   {% endif %}
-  {% if entry.updated %}
-    <updated>{{ entry.updated }}</updated>
-  {% endif %}
+  {# Atom requires <updated> on every entry; fall back to the feed's. #}
+  <updated>{{ entry.updated|default:updated }}</updated>
   {% if entry.publisher %}
     <dc:publisher>{{ entry.publisher }}</dc:publisher>
   {% endif %}
@@ -90,7 +89,7 @@
     <author>
       <name>{{ author.name }}</name>
       {% if author.url %}
-        <url>{{ author.url }}</url>
+        <uri>{{ author.url }}</uri>
       {% endif %}
     </author>
   {% endfor %}
@@ -98,7 +97,7 @@
     <contributor>
       <name>{{ cont.name }}</name>
       {% if cont.url %}
-        <url>{{ cont.url }}</url>
+        <uri>{{ cont.url }}</uri>
       {% endif %}
     </contributor>
   {% endfor %}

@@ -37,7 +37,7 @@ export default {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
     }),
     orderValue() {
       const ov = this.item.orderValue;
@@ -51,8 +51,12 @@ export default {
        */
       if (HIDE_ORDER_BYS.has(this.orderBy)) return "";
       if (HIDE_ORDER_VALUES.has(ov)) return "";
-      if (this.orderBy === "filename" && this.item.group !== "c") return "";
-      if (this.orderBy === "story_arc_number" && this.item.group === "a") {
+      if (this.orderBy === "filename" && this.item.collection !== "comics")
+        return "";
+      if (
+        this.orderBy === "story_arc_number" &&
+        this.item.collection === "arcs"
+      ) {
         return "";
       }
       try {
@@ -69,7 +73,7 @@ export default {
         } else if (this.orderBy === "size") {
           return prettyBytes(Number.parseInt(ov, 10));
         } else if (STAR_SORT_BY.has(this.orderBy)) {
-          return `★  ${ov}`;
+          return `★  ${this.formatStarRating(ov)}`;
         }
       } catch (error) {
         // Often orderBy gets updated before orderValue gets returned.
@@ -86,6 +90,17 @@ export default {
         ov = "";
       }
       return ov;
+    },
+    /*
+     * Critical-rating order_value is a DecimalField aggregate that
+     * arrives as a string like "8.5000" or "9.00". Render with at most
+     * two fractional digits and no trailing zeros so the caption shows
+     * "8.5" / "9", not "8.5000" / "9.00".
+     */
+    formatStarRating(ov) {
+      const n = Number.parseFloat(ov);
+      if (!Number.isFinite(n)) return ov;
+      return n.toFixed(2).replace(/\.?0+$/, "");
     },
   },
 };

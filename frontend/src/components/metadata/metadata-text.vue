@@ -37,6 +37,7 @@ import { mapActions, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
 import ExpandButton from "@/components/metadata/expand-button.vue";
+import { collectionForRoute } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -45,7 +46,7 @@ export default {
     ExpandButton,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       default: "",
     },
@@ -76,10 +77,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(useBrowserStore, ["groupNames"]),
+    ...mapState(useBrowserStore, ["collectionNames"]),
     ...mapState(useBrowserStore, {
       browserShow: (state) => state.settings.show,
-      browserTopGroup: (state) => state.settings.topGroup,
+      browserTopCollection: (state) => state.settings.topCollection,
       folderViewEnabled: (state) => state.page.adminFlags.folderView,
     }),
     computedValue() {
@@ -92,9 +93,9 @@ export default {
     },
     displayValue() {
       let value;
-      if (this.group === "f" && this.computedValue) {
+      if (this.collection === "folders" && this.computedValue) {
         value = this.computedValue.slice(0, Math.max(0, this.lastSlashIndex));
-      } else if (this.group === "v" && this.computedValue) {
+      } else if (this.collection === "volumes" && this.computedValue) {
         value = formattedVolumeName(this.computedValue, this.value.numberTo);
       } else {
         value = this.computedValue;
@@ -123,13 +124,18 @@ export default {
     },
     clickable() {
       const params = this.$router.currentRoute.value.params;
+      const routeCollection = collectionForRoute({
+        collection: params.collection,
+        parentIds: params.parentIds,
+      }).collection;
 
-      // Validate Group
+      // Validate collection
       if (
-        !this.group ||
-        params.group === this.group ||
-        (this.group === "f" && !this.folderViewEnabled) ||
-        (!["a", "f"].includes(this.group) && !this.browserShow[this.group])
+        !this.collection ||
+        routeCollection === this.collection ||
+        (this.collection === "folders" && !this.folderViewEnabled) ||
+        (!["arcs", "folders"].includes(this.collection) &&
+          !this.browserShow[this.collection])
       ) {
         return false;
       }
@@ -144,33 +150,33 @@ export default {
       };
     },
     toRoute() {
-      // Using router-link gets hijacked and topGroup is not submitted.
+      // Using router-link gets hijacked and topCollection is not submitted.
       if (!this.clickable) {
         return "";
       }
 
-      const group = this.group;
+      const collection = this.collection;
       const pks = this.linkPks;
-      const params = { group, pks, page: 1 };
+      const params = { collection: collection, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {
-      const topGroup = this.getTopGroup(this.group);
-      return { topGroup };
+      const topCollection = this.getTopCollection(this.collection);
+      return { topCollection };
     },
     title() {
       let label;
       if (this.label) {
         label = this.label;
-      } else if (this.group) {
-        label = this.groupNames[this.group];
+      } else if (this.collection) {
+        label = this.collectionNames[this.collection];
       } else {
         label = "";
       }
       return this.toRoute ? `Browse to ${label}` : label;
     },
     baseName() {
-      return this.group === "f"
+      return this.collection === "folders"
         ? this.computedValue.slice(Math.max(0, this.lastSlashIndex))
         : "";
     },
@@ -202,7 +208,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopGroup"]),
+    ...mapActions(useBrowserStore, ["routeWithSettings", "getTopCollection"]),
     onClick() {
       if (!this.clickable) {
         return;

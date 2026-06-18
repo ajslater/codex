@@ -15,7 +15,7 @@ _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
     for flag in (
         AdminFlagChoices.BANNER_TEXT,
-        AdminFlagChoices.BROWSER_DEFAULT_GROUP,
+        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION,
         AdminFlagChoices.FOLDER_VIEW,
         AdminFlagChoices.NON_USERS,
     )
@@ -37,7 +37,7 @@ class AdminFlagViewSet(AdminModelViewSet):
         elif key == AdminFlagChoices.SEND_TELEMETRY.value:
             LIBRARIAN_QUEUE.put(WakeCronTask())
         # Heavy handed refresh everything, but simple.
-        # Folder View could only change the group view and let the ui decide
+        # Folder View could only change the collection view and let the ui decide
         # Registration only needs to change the enable flag
         if key in _REFRESH_LIBRARY_FLAGS:
             LIBRARIAN_QUEUE.put(ADMIN_FLAGS_CHANGED_TASK)

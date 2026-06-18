@@ -8,20 +8,20 @@ from collections.abc import Mapping
 from itertools import chain
 
 from codex.librarian.scribe.importer.const import (
+    COLLECTION_MODEL_COUNT_FIELDS,
     COMPLEX_M2M_MODELS,
     CREATE_FKS,
     FTS_CREATED_M2MS,
     FTS_UPDATED_M2MS,
-    GROUP_MODEL_COUNT_FIELDS,
     MODEL_REL_MAP,
     TOTAL,
     UPDATE_FKS,
 )
 from codex.librarian.scribe.importer.create.const import (
+    COLLECTION_BASE_FIELDS,
+    COLLECTION_BASE_MODELS,
     CUSTOM_COVER_MODELS,
     DEFAULT_NON_NULL_CHARFIELD_NAMES,
-    GROUP_BASE_FIELDS,
-    GROUP_BASE_MODELS,
     MODEL_CREATE_ARGS_MAP,
     NON_NULL_CHARFIELD_NAMES,
     ORDERED_CREATE_MODELS,
@@ -35,7 +35,7 @@ from codex.librarian.scribe.importer.statii.create import (
 )
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
-from codex.models.groups import Folder
+from codex.models.collections import Folder
 from codex.models.named import Universe
 
 
@@ -93,7 +93,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             value = values_tuple[index]
             arg_map = key_args if index < num_keys else update_args
             if field_model and value is not None:
-                if field_model in GROUP_MODEL_COUNT_FIELDS and index < num_keys:
+                if field_model in COLLECTION_MODEL_COUNT_FIELDS and index < num_keys:
                     key = tuple(values_tuple[: index + 1])
                 elif isinstance(value, tuple):
                     key = value
@@ -112,7 +112,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         return key_args, update_args
 
     def _add_custom_cover(self, model, obj) -> None:
-        self.add_custom_cover_to_group(model, obj)
+        self.add_custom_cover_to_collection(model, obj)
 
     def _finish_create_update(self, model, objs, status: Status) -> None:
         count = len(objs)
@@ -130,7 +130,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
     ) -> int:
         """Bulk create a dict type m2m model."""
         count = 0
-        create_tuples = self.metadata[CREATE_FKS].pop(model, None)
+        create_tuples: list[tuple] | None = self.metadata[CREATE_FKS].pop(model, None)
         if not create_tuples:
             return count
         # ``verbose_name_plural`` is a ``gettext_lazy`` __proxy__,
@@ -151,7 +151,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 model,
                 key_args_map,
                 update_args_map,
-                values_tuple,  # ty: ignore[invalid-argument-type]
+                values_tuple,
                 parent_pk_maps,
             )
             obj = model(**key_args, **update_args)
@@ -170,8 +170,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             self.metadata[FTS_CREATED_M2MS][field_name] = created_fts_values
 
         update_fields = tuple(key_args_map.keys()) + tuple(update_args_map.keys())
-        if model in GROUP_BASE_MODELS:
-            update_fields += GROUP_BASE_FIELDS
+        if model in COLLECTION_BASE_MODELS:
+            update_fields += COLLECTION_BASE_FIELDS
 
         count = len(create_objs)
         model.objects.bulk_create(
@@ -215,7 +215,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
 
     def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
-        update_tuples = self.metadata[UPDATE_FKS].pop(model, None)
+        update_tuples: list[tuple] | None = self.metadata[UPDATE_FKS].pop(model, None)
         if not update_tuples:
             return count
         # See ``_bulk_create_models`` — same lazy-proxy coercion.
@@ -231,7 +231,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 model,
                 key_args_map,
                 update_args_map,
-                values_tuple,  # ty: ignore[invalid-argument-type]
+                values_tuple,
                 parent_pk_maps,
             )
             obj = model.objects.get(**key_args)
@@ -253,8 +253,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
 
         update_fields = tuple(update_args_map.keys())
-        if model in GROUP_BASE_MODELS:
-            update_fields += GROUP_BASE_FIELDS
+        if model in COLLECTION_BASE_MODELS:
+            update_fields += COLLECTION_BASE_FIELDS
 
         count = len(update_objs)
         model.objects.bulk_update(update_objs, fields=update_fields)

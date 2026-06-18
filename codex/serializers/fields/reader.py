@@ -1,11 +1,18 @@
 """Reader Fields."""
 
+from codex.collection import Collection
 from codex.models.choices import ReadingDirectionChoices
 from codex.models.settings import FitToChoices
 from codex.serializers.fields.base import CodexChoiceField
-from codex.views.const import FOLDER_GROUP, STORY_ARC_GROUP
 
-VALID_ARC_GROUPS = ("s", "v", FOLDER_GROUP, STORY_ARC_GROUP)
+# Browse collections a comic can be read "within". All collection-valued now;
+# p/i/root have no arc of their own (params collapses them to series).
+VALID_ARC_COLLECTIONS = (
+    Collection.SERIES,
+    Collection.VOLUME,
+    Collection.FOLDER,
+    Collection.ARC,
+)
 
 
 class FitToField(CodexChoiceField):
@@ -20,7 +27,7 @@ class ReadingDirectionField(CodexChoiceField):
     class_choices = ReadingDirectionChoices.values
 
 
-class ArcGroupField(CodexChoiceField):
-    """Arc Group Field."""
+class ArcCollectionField(CodexChoiceField):
+    """Arc Collection Field."""
 
-    class_choices = VALID_ARC_GROUPS
+    class_choices = VALID_ARC_COLLECTIONS

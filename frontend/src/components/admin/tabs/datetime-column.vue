@@ -22,15 +22,13 @@ export default {
       default: "",
     },
   },
-  data() {
-    return {
-      date: new Date(this.dttm),
-    };
-  },
   computed: {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
+    date() {
+      return new Date(this.dttm);
+    },
     formattedDate() {
       return DATE_FORMAT.format(this.date);
     },
@@ -39,10 +37,9 @@ export default {
       return timeFormat.format(this.date);
     },
     isNever() {
-      return !this.dttm || new Date(this.dttm).getUTCFullYear() < 2000;
+      return !this.dttm || this.date.getUTCFullYear() < 2000;
     },
   },
-  created() {},
 };
 </script>
 

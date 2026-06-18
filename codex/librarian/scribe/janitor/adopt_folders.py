@@ -1,6 +1,9 @@
 """Bulk import and move comics and folders."""
 
+from dataclasses import replace
 from pathlib import Path
+
+from django.utils import timezone
 
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.importer.importer import ComicImporter
@@ -85,7 +88,15 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
     def _finalize_adopt_orphan_folders(self, total_count: int) -> None:
         """Queue downstream notifications and log abort state."""
         if total_count:
-            self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+            # Cross-library fan-out — leave ``scope`` empty (any library
+            # could have had folders adopted) and mark the broadcast
+            # with the post-adoption ``now`` so probes resolve.
+            self.librarian_queue.put(
+                replace(
+                    LIBRARY_CHANGED_TASK,
+                    mtime=int(timezone.now().timestamp() * 1000),
+                )
+            )
             self.librarian_queue.put(SearchIndexSyncTask())
         if self.abort_event.is_set():
             self.log.debug("Adopt Orphan Folders aborted early.")
@@ -99,7 +110,7 @@ class OrphanFolderAdopter(WorkerStatusAbortableBase):
         total_count = 0
         try:
             self.status_controller.start_many((status, moved_status))
-            libraries = Library.objects.filter(covers_only=False).only("path")
+            libraries = Library.objects.only("path")
             for library in libraries.iterator():
                 if self.abort_event.is_set():
                     return

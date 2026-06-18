@@ -13,7 +13,7 @@ from codex.views.opds.authentication.v1 import OPDSAuthentication1View
 
 OPDS_PATH_PREFIX = "opds/v"
 _OPDS_V2_PATH_PREFIX = OPDS_PATH_PREFIX + "2"
-_RESET_TOP_GROUP_QUERY = "?topGroup=p"
+_RESET_TOP_COLLECTION_QUERY = "?topCollection=publishers"
 _OPDS_REDIRECT_TO_AUTH_CODES = frozenset(
     {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}
 )

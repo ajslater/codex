@@ -8,26 +8,19 @@
   >
     <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
     <a v-if="item.url" :href="item.url" target="_blank"
-      ><v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon
-      >{{ title }}
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-      <v-icon>{{ mdiOpenInNew }}</v-icon></a
-    ><span v-else>
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-      {{ title }}
-      <v-icon v-if="main" class="mainStar">{{ mdiStar }}</v-icon>
-    </span>
+      >{{ title }} <v-icon>{{ mdiOpenInNew }}</v-icon></a
+    ><span v-else>{{ title }}</span>
   </v-chip>
 </template>
 
 <script>
-import { mdiOpenInNew, mdiStar } from "@mdi/js";
+import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_SET = new Set(["p", "i", "s", "v"]);
+const COLLECTION_SET = new Set(["publishers", "imprints", "series", "volumes"]);
 
 export default {
   name: "MetadataTags",
@@ -40,14 +33,9 @@ export default {
       type: String,
       default: "",
     },
-    main: {
-      type: Boolean,
-      default: false,
-    },
   },
   data() {
     return {
-      mdiStar,
       mdiOpenInNew,
     };
   },
@@ -57,20 +45,20 @@ export default {
       filterValues(state) {
         return state.settings.filters[this.filter];
       },
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
     }),
     ...mapState(useMetadataStore, {
-      mdGroup: (state) => state.md.group,
+      mdCollection: (state) => state.md.collection,
       mdIds: (state) => state.md.ids,
     }),
-    groupMode() {
-      return GROUP_SET.has(this.filter);
+    collectionMode() {
+      return COLLECTION_SET.has(this.filter);
     },
     clickable() {
       return (
         this.filter &&
         this.item.value &&
-        (!this.groupMode || this.browserShow[this.filter])
+        (!this.collectionMode || this.browserShow[this.filter])
       );
     },
     classes() {
@@ -80,8 +68,8 @@ export default {
     },
     highlight() {
       return Boolean(
-        (this.groupMode &&
-          this.filter === this.mdGroup &&
+        (this.collectionMode &&
+          this.filter === this.mdCollection &&
           this.mdIds.includes(this.item.value)) ||
         this.filterValues?.includes(this.item.value),
       );
@@ -102,28 +90,30 @@ export default {
        */
       return this.highlight ? "primary-darken-1" : "";
     },
-    linkGroup() {
-      let linkGroup;
-      if (this.groupMode) {
-        linkGroup = this.filter;
+    linkCollection() {
+      let linkCollection;
+      if (this.collectionMode) {
+        linkCollection = this.filter;
       } else {
-        linkGroup = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
+        linkCollection = ["folders", "series"].includes(this.topCollection)
+          ? this.topCollection
+          : "root";
       }
-      return linkGroup;
+      return linkCollection;
     },
     linkPks() {
-      const groupMode =
-        this.groupMode ||
-        (this.linkGroup !== "a" && this.filter === "storyArcs");
-      return groupMode ? this.item.value.toString() : "0";
+      const collectionMode =
+        this.collectionMode ||
+        (this.linkCollection !== "arcs" && this.filter === "storyArcs");
+      return collectionMode ? this.item.value.toString() : "0";
     },
     toRoute() {
       if (!this.clickable) {
         return "";
       }
-      const group = this.linkGroup;
+      const collection = this.linkCollection;
       const pks = this.linkPks;
-      const params = { group, pks, page: 1 };
+      const params = { collection, pks, page: 1 };
       return { name: "browser", params };
     },
     linkSettings() {
@@ -131,8 +121,8 @@ export default {
       if (this.linkPks === "0") {
         settings = { filters: { [this.filter]: [this.item.value] } };
       } else {
-        const topGroup = this.getTopGroup(this.linkGroup);
-        settings = { topGroup };
+        const topCollection = this.getTopCollection(this.linkCollection);
+        settings = { topCollection };
       }
       return settings;
     },
@@ -146,7 +136,7 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "routeWithSettings",
-      "getTopGroup",
+      "getTopCollection",
       "identifierSourceTitle",
     ]),
     async onClick() {
@@ -173,10 +163,6 @@ export default {
 
 .clickable:hover :deep(.v-chip__content) {
   color: rgb(var(--v-theme-linkHover));
-}
-
-.mainStar {
-  vertical-align: text-bottom;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'xs')} {

@@ -5,7 +5,7 @@
     :variant="variant"
     :icon="mdiTagOutline"
     title="Tags"
-    @mouseenter="lazyImportEnabled ? onMouseEnter : null"
+    @mouseenter="onMouseEnter"
     @click.prevent
   />
 </template>
@@ -34,9 +34,9 @@ export default {
     }),
     lazyImportEnabled() {
       return (
-        this.stateLazyImportMetadata &&
+        this.stateLazyImportEnabled &&
         this.book &&
-        this.book.group === "c" &&
+        this.book.collection === "comics" &&
         !this.book.hasMetadata &&
         !this.lazyImportStarted
       );
@@ -50,7 +50,7 @@ export default {
     onMouseEnter() {
       if (this.lazyImportEnabled) {
         const ids = this.book.ids || [this.book.pk];
-        this.lazyImport({ group: this.book.group, ids }).then(() => {
+        this.lazyImport({ collection: this.book.collection, ids }).then(() => {
           this.lazyImportStarted = true;
         });
       }

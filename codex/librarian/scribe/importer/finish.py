@@ -1,9 +1,11 @@
 """The main importer class."""
 
+from operator import itemgetter
 from time import time
 from types import MappingProxyType
 
 from django.core.cache import cache
+from django.db.models.functions import Now
 from humanize import intcomma, naturaldelta
 
 from codex.librarian.notifier.tasks import (
@@ -14,6 +16,7 @@ from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.statii import IMPORTER_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
+from codex.models.comic import Comic
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -56,6 +59,21 @@ class FinishImporter(InitImporter):
 
         return log_txt
 
+    def _log_phase_times(self) -> None:
+        """Log each phase's accumulated wall time, largest share first."""
+        # Dotted "phase.step" sub-steps already count inside their
+        # parent phase, so only top-level phases sum to the total.
+        total = sum(secs for name, secs in self.phase_times.items() if "." not in name)
+        if not total:
+            return
+        parts = ", ".join(
+            f"{name} {secs:.2f}s ({secs / total:.0%})"
+            for name, secs in sorted(
+                self.phase_times.items(), key=itemgetter(1), reverse=True
+            )
+        )
+        self.log.debug(f"Import phase times: {parts}")
+
     def _log_finish(self) -> None:
         """Log Finish."""
         elapsed_time = time() - self.start_time.timestamp()
@@ -65,12 +83,33 @@ class FinishImporter(InitImporter):
         else:
             log_txt = f"No updates necessary for library {self.library.path}. Finished in {elapsed}."
         self.log.success(log_txt)
+        self._log_phase_times()
+
+    def _stamp_metadata_imported(self) -> None:
+        """
+        Mark every comic this forced import pass touched as import-complete.
+
+        Path-scoped so it covers SKIPPED no-metadata comics that never reach
+        the per-comic write path. Idempotent (``__isnull=True``) and gated on
+        ``force_import_metadata`` so ordinary watcher-driven imports never
+        rewrite the column.
+        """
+        if not self.task.force_import_metadata:
+            return
+        if not (paths := self.metadata_import_paths):
+            return
+        Comic.objects.filter(
+            library=self.library,
+            path__in=paths,
+            metadata_imported_at__isnull=True,
+        ).update(metadata_imported_at=Now())
 
     def finish(self) -> None:
         """Perform final tasks when the apply is done."""
         if self.abort_event.is_set():
             self.log.info("Import task aborted early.")
         self.abort_event.clear()
+        self._stamp_metadata_imported()
         self.library.end_update()
         self.status_controller.finish_many(_FINISH_STATII)
         self._log_finish()

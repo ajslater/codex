@@ -1,21 +1,21 @@
 import { defineStore } from "pinia";
 
-import * as API from "@/api/v3/browser";
+import * as API from "@/api/v4/browser";
 import { getTimestamp } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
 const _itemKey = (item) => {
-  return `${item.group}:${item.ids.join(",")}`;
+  return `${item.collection}:${item.ids.join(",")}`;
 };
 
 const _groupSelectedItems = (selectedItems) => {
-  // Group selected items by their group field.
+  // Group selected items by their collection field.
   const grouped = {};
   for (const item of selectedItems.values()) {
-    if (!grouped[item.group]) {
-      grouped[item.group] = [];
+    if (!grouped[item.collection]) {
+      grouped[item.collection] = [];
     }
-    grouped[item.group].push(item);
+    grouped[item.collection].push(item);
   }
   return grouped;
 };
@@ -35,7 +35,7 @@ const _visibleItems = () => {
   /*
    * Ordered list of items currently shown on the browser page.
    * Mirrors ``BrowserMain.cards`` and the table view's ``rows``:
-   * table mode wins when present, otherwise spread groups + books.
+   * table mode wins when present, otherwise spread collections + books.
    * Used by both ``selectAll`` and ``selectItemAt`` so the displayed
    * order is the single source of truth for "between" semantics.
    */
@@ -45,7 +45,7 @@ const _visibleItems = () => {
     return rows;
   }
   return [
-    ...(browserStore.page.groups ?? []),
+    ...(browserStore.page.collections ?? []),
     ...(browserStore.page.books ?? []),
   ];
 };
@@ -69,7 +69,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     selectedTotalChildCount(state) {
       let total = 0;
       for (const item of state.selectedItems.values()) {
-        total += item.childCount || (item.group === "c" ? 1 : 0);
+        total += item.childCount || (item.collection === "comics" ? 1 : 0);
       }
       return total;
     },
@@ -88,10 +88,10 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         return null;
       }
       const grouped = _groupSelectedItems(state.selectedItems);
-      const groups = Object.keys(grouped);
-      // Use the first group type found.
-      const group = groups[0];
-      const items = grouped[group];
+      const collections = Object.keys(grouped);
+      // Use the first collection type found.
+      const collection = collections[0];
+      const items = grouped[collection];
       const pks = _collectPks(items);
       const names = items.map((item) => item.name).filter(Boolean);
       const childCount = items.reduce(
@@ -99,7 +99,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         0,
       );
       return {
-        group,
+        collection,
         ids: pks,
         pks,
         name: names.length > 1 ? `${names.length} items` : names[0] || "",
@@ -198,13 +198,17 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       }
       const grouped = _groupSelectedItems(this.selectedItems);
       const promises = [];
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const params = { group, ids: pks };
+        const params = { collection: collection, ids: pks };
         promises.push(
-          API.updateGroupBookmarks(params, browserStore.filterOnlySettings, {
-            finished,
-          }),
+          API.updateCollectionBookmarks(
+            params,
+            browserStore.filterOnlySettings,
+            {
+              finished,
+            },
+          ),
         );
       }
       await Promise.all(promises);
@@ -216,13 +220,21 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
         return;
       }
       const grouped = _groupSelectedItems(this.selectedItems);
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const pks = _collectPks(items);
-        const groupName = browserStore.groupNames[group] || "Items";
-        const plural = groupName.endsWith("s") ? groupName : groupName + "s";
+        const collectionName =
+          browserStore.collectionNames[collection] || "Items";
+        const plural = collectionName.endsWith("s")
+          ? collectionName
+          : collectionName + "s";
         const fn = `Selected ${plural}.zip`;
         const settings = browserStore.filterOnlySettings;
-        const url = API.getGroupDownloadURL({ group, pks }, fn, settings, 0);
+        const url = API.getCollectionDownloadURL(
+          { collection: collection, pks },
+          fn,
+          settings,
+          0,
+        );
         const link = document.createElement("a");
         link.download = fn;
         link.href = url;
@@ -237,10 +249,13 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       }
       const grouped = _groupSelectedItems(this.selectedItems);
       const promises = [];
-      for (const [group, items] of Object.entries(grouped)) {
+      for (const [collection, items] of Object.entries(grouped)) {
         const ids = _collectPks(items);
         promises.push(
-          API.forceUpdateGroup({ group, ids }, browserStore.filterOnlySettings),
+          API.forceUpdateCollection(
+            { collection: collection, ids },
+            browserStore.filterOnlySettings,
+          ),
         );
       }
       await Promise.all(promises);

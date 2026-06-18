@@ -18,11 +18,14 @@
       {{ title }}
     </div>
     <div
-      v-if="status.subtitle || showNumbers || duration"
+      v-if="subtitle || eta || showNumbers || duration"
       class="statusItemDetails"
     >
-      <div v-if="status.subtitle" class="statusItemSubtitle">
-        {{ status.subtitle }}
+      <div v-if="subtitle" class="statusItemSubtitle">
+        {{ subtitle }}
+      </div>
+      <div v-if="eta" class="statusItemEta">
+        {{ eta }}
       </div>
       <div v-if="showNumbers || duration" class="statusItemProgress">
         <span v-if="showNumbers" class="statusItemProgressNumbers">
@@ -43,9 +46,11 @@
 
 <script>
 import {
+  etaRemaining,
   hasNumbers,
   isIndeterminate,
   nf,
+  retryRemaining,
   statusDuration,
   statusProgress,
   statusTitle,
@@ -82,6 +87,14 @@ export default {
     duration() {
       return statusDuration(this.status, this.now);
     },
+    subtitle() {
+      // The label plus the live "retrying in M:SS" countdown when waiting.
+      const retry = retryRemaining(this.status, this.now);
+      return [this.status.subtitle, retry].filter(Boolean).join(" · ");
+    },
+    eta() {
+      return etaRemaining(this.status, this.now);
+    },
   },
   methods: {
     nf,
@@ -109,6 +122,9 @@ export default {
   font-size: small;
 }
 .statusItemSubtitle {
+  overflow-x: auto;
+}
+.statusItemEta {
   overflow-x: auto;
 }
 .statusItemDuration {

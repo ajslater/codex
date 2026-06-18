@@ -47,6 +47,7 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
         fields = (
             "pk",
             "username",
+            "email",
             "password",
             "groups",
             "is_staff",
@@ -57,6 +58,14 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
             "age_rating_metron",
         )
         read_only_fields = ("pk", "last_active", "last_login", "date_joined")
+        extra_kwargs = {  # noqa: RUF012
+            "email": {"required": False, "allow_blank": True},
+        }
+
+    class JSONAPIMeta:
+        """JSON:API resource_name for the admin renderer."""
+
+        resource_name = "users"
 
     @staticmethod
     def _apply_userauth(instance, userauth_data) -> None:

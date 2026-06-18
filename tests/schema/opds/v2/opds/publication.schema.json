@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drafts.opds.io/schema/publication.schema.json",
+  "title": "OPDS Publication",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "$ref": "https://readium.org/webpub-manifest/schema/metadata.schema.json"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "$ref": "https://readium.org/webpub-manifest/schema/link.schema.json"
+      },
+      "contains": {
+        "description": "A publication must contain at least one acquisition link.",
+        "properties": {
+          "rel": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/acquisition"
+              },
+              {
+                "type": "array",
+                "contains": {
+                  "$ref": "#/$defs/acquisition"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "images": {
+      "description": "Images are meant to be displayed to the user when browsing publications",
+      "type": "array",
+      "items": {
+        "$ref": "https://readium.org/webpub-manifest/schema/link.schema.json"
+      },
+      "minItems": 1,
+      "allOf": [
+        {
+          "description": "At least one image resource must use one of the following formats: image/jpeg, image/avif, image/png or image/gif.",
+          "contains": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "image/jpeg",
+                  "image/webp",
+                  "image/avif",
+                  "image/png",
+                  "image/jxl",
+                  "image/gif"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "metadata",
+    "links"
+  ],
+  "$defs": {
+    "acquisition": {
+      "type": "string",
+      "enum": [
+        "acquisition",
+        "borrow",
+        "buy",
+        "preview",
+        "subscribe",
+        "http://opds-spec.org/acquisition",
+        "http://opds-spec.org/acquisition/buy",
+        "http://opds-spec.org/acquisition/open-access",
+        "http://opds-spec.org/acquisition/borrow",
+        "http://opds-spec.org/acquisition/sample",
+        "http://opds-spec.org/acquisition/subscribe"
+      ]
+    }
+  }
+}

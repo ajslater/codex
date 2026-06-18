@@ -6,6 +6,59 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.0 - Tag Editing & Online Tagging
+
+- Notice
+    - This is a major upgrade. A one-time database migration runs on first
+      startup; back up your `config` directory before upgrading.
+    - Editing tags writes to your comic files; the comics directory must be
+      mounted writable with write permission for tag editing to work.
+- Breaking Changes
+    - Admin settings (SMTP, rate limits, browser page size, cover upload size)
+      moved from `codex.toml` into the Admin UI and are now editable without a
+      restart. Existing values are imported automatically on upgrade; those
+      `codex.toml` sections are deprecated.
+    - Custom covers are now managed in the web UI. Legacy filesystem covers
+      (in-library `.codex-cover.*` files and the covers-only library) migrate
+      automatically on first startup.
+    - The browser and reader page URLs changed; bookmarks to specific pages may
+      need re-navigating from the home screen. OPDS apps reconnect on their own.
+    - The HTTP API moved from `/api/v3/` to `/api/v4/`.
+- Fixes
+    - OPDS 1.2, 2.0, and OpenSearch feeds are now spec-compliant.
+    - Folder covers respect favorites.
+    - Critical ratings normalized to a consistent 0–5 scale.
+    - The age-rating "As Tagged" panel hides when it has no entries.
+    - Hovering a comic's tag icon no longer re-runs the on-demand tag importer
+      forever on comics with few or no embedded tags.
+    - Browser refreshes more often when comics change. container restarts.
+- Features
+    - Edit the tags on one or many comics directly in the browser — credits,
+      story arcs, identifiers, and more — written back to your comic files.
+    - Online tagging: look up and apply metadata from online sources, with
+      interactive match prompts, rate-limit display, and per-source credentials
+      in the new Admin Tagging tab. Or tag a single comic directly by a known
+      Metron or Comic Vine issue id or URL, skipping the search.
+    - Upload, replace, and remove custom covers for any group from the web UI,
+      plus a Custom Covers admin tab.
+    - Back up and restore all user data — accounts, bookmarks, favorites,
+      settings, libraries — via a `user_data.sqlite` sidecar, the Admin Restore
+      tab, or `codex restore_user_data`. Snapshotted nightly.
+    - Optional self-service password reset, and email verification for new
+      sign-ups (both require SMTP).
+    - New user Profile dialog for self-service username, email, and API token
+      (moved here from the sidebar).
+    - Database and user-data backups are now compressed, dated, and auto-pruned.
+    - Redesigned admin panel has moves settings under relevant tabs.
+- Performance
+    - Library imports are faster: forced re-imports run over 20x faster, fresh
+      imports almost 4x, and polls that find nothing changed are now nearly
+      instant — no more rewriting every comic, regenerating every cover, and
+      refreshing every browser on a no-op poll.
+    - Browsing large libraries is faster: table, search, and sorted folder views
+      that could take minutes now load in about a second, metadata works on
+      collections of any size, and browsing stays responsive during imports.
+
 ## v1.12.8
 
 - Fixes

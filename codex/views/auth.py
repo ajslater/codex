@@ -32,9 +32,14 @@ hand; they recompute every scalar from scratch per call.
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, override
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group
 from django.contrib.sessions.models import Session
 from django.db.models.query_utils import Q
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from loguru import logger
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
@@ -45,12 +50,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
+from codex.collection import Collection  # not django.contrib.auth Group
 from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
 )
 from codex.models.auth import UserAuth
+from codex.serializers.auth import ProfileUpdateSerializer, UserSerializer
+from codex.views.envelope import EnvelopeJSONRenderer as _EnvelopeJSONRenderer
 
 if TYPE_CHECKING:
     from rest_framework.request import Request
@@ -73,11 +81,71 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
 
 
 class AuthMixin:
-    """General Auth Policy."""
+    """
+    General Auth Policy + URL kwarg translation + default renderer.
+
+    The browser URL scheme uses a plural-English ``collection``
+    segment and an optional comma-separated ``parentIds`` segment;
+    underneath, the view bodies consume engine kwargs
+    (``collection`` value + ``pks`` tuple). :meth:`initial` normalizes
+    the URL kwargs before the view body runs.
+
+    ``renderer_classes`` defaults to the camelCase envelope renderer.
+    Endpoints that ship binary (cover, page) or JSON:API (admin
+    resources) override.
+    """
+
+    # Set by views that take ``?page=N`` as a query param (browser
+    # list view). The translate step uses it to coerce ``page`` out
+    # of the GET dict when the URL pattern doesn't carry it.
+    requires_page: bool = False
 
     permission_classes: Sequence[type[BasePermission]] = (
         IsAuthenticatedOrEnabledNonUsers,
     )
+    renderer_classes = (_EnvelopeJSONRenderer,)
+
+    def initial(self, request, *args, **kwargs):
+        """
+        Translate browser-collection URL kwargs before auth dispatch.
+
+        No-op on non-collection URLs (the ``collection`` kwarg isn't
+        present). Also a no-op for the OPDS routes that supply engine
+        kwargs directly via URL-pattern defaults — those carry ``pks``
+        already, so the ``"pks" not in kwargs`` guard tells a raw browse
+        URL (``collection`` segment, no ``pks`` yet) apart from one whose
+        engine kwargs are already in place. Routes the request through
+        DRF's standard ``initial`` chain after rewriting.
+        """
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        if "collection" in kwargs and "pks" not in kwargs:
+            self._translate_browser_kwargs(request)
+        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+
+    def _translate_browser_kwargs(self, request) -> None:
+        """
+        Normalize ``{collection, parent_ids}`` URL kwargs → engine ``{collection, pks}``.
+
+        The engine speaks the collection vocabulary now, so the collection
+        segment *is* the engine collection value — no char translation.
+        ``/browse/publishers`` with no parent IDs is the synthetic ``ROOT``
+        (lists the top collection); everything else is the named collection.
+        The optional ``parent_ids`` segment becomes the engine ``pks`` tuple.
+        ``page`` is pulled out of the GET dict when :attr:`requires_page` is set.
+        """
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        collection = kwargs.pop("collection")
+        parent_ids = kwargs.pop("parent_ids", None)
+        if collection == Collection.PUBLISHER and parent_ids is None:
+            kwargs["collection"] = Collection.ROOT
+        else:
+            kwargs["collection"] = collection
+        kwargs["pks"] = tuple(parent_ids) if parent_ids else ()
+        if self.requires_page and "page" not in kwargs:
+            try:
+                kwargs["page"] = int(request.GET.get("page", 1))
+            except (TypeError, ValueError):
+                kwargs["page"] = 1
 
     def _ensure_session_key(self) -> str | None:
         """Ensure a Django session row exists in the DB and return its key."""
@@ -154,7 +222,7 @@ class RelPrefixMixin:
         Folder has its own ``library`` FK (inherited from
         :class:`~codex.models.paths.WatchedPath`), so it skips the
         ``comic__`` hop. Everything else — Comic, StoryArc, and the
-        browser group models — reaches ``library_id`` through the Comic
+        browser collection models — reaches ``library_id`` through the Comic
         FK chain built by :meth:`get_rel_prefix`.
         """
         prefix = "" if model is Folder else cls.get_rel_prefix(model)
@@ -454,4 +522,94 @@ class AuthToken(AuthGenericAPIView):
         token, _ = Token.objects.get_or_create(user=user)
         logger.info(f"Auth Token updated for user {user}")
         data = {"token": token.key}
+        return Response(data)
+
+
+@method_decorator(ensure_csrf_cookie, name="get")
+class CSRFView(AuthAPIView):
+    """
+    ``GET /api/v4/auth/csrf`` — bootstrap the CSRF cookie.
+
+    The ``ensure_csrf_cookie`` decorator forces Django to set the
+    cookie on the response; the body just confirms the token value
+    so a client can ferry it as a header on the next mutating
+    request without waiting for a second round trip.
+    """
+
+    permission_classes = ()
+
+    def get(self, request) -> Response:
+        """Return the active CSRF token; cookie is set as a side effect."""
+        return Response({"csrfToken": get_token(request)})
+
+
+def user_payload(user) -> dict | None:
+    """
+    Serialize the public user shape, or ``None`` for anonymous sessions.
+
+    Shared by :class:`ProfileView` and the composite
+    :class:`~codex.views.session.SessionView` so the
+    ``{id, username, email, is_staff, is_superuser}`` shape stays in
+    one place.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return {
+        "id": user.pk,
+        "username": user.get_username(),
+        "email": getattr(user, "email", "") or "",
+        "is_staff": bool(getattr(user, "is_staff", False)),
+        "is_superuser": bool(getattr(user, "is_superuser", False)),
+    }
+
+
+class ProfileView(AuthAPIView):
+    """``GET`` and ``PATCH /api/v4/auth/profile`` — current user."""
+
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs) -> Response:
+        """Return the authenticated user's profile."""
+        if not getattr(request.user, "is_authenticated", False):
+            raise NotAuthenticated
+        data = UserSerializer(user_payload(request.user)).data
+        return Response(data)
+
+    def patch(self, request, *args, **kwargs) -> Response:
+        """
+        Apply a partial profile update.
+
+        Accepts ``username`` (unless remote-user auth owns identity),
+        ``email`` (blank → cleared), and ``timezone`` (stored on the
+        session, same as the v3 timezone endpoint).
+        """
+        if not getattr(request.user, "is_authenticated", False):
+            raise NotAuthenticated
+        serializer = ProfileUpdateSerializer(
+            data=request.data, partial=True, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        validated = serializer.validated_data
+
+        user = request.user
+        user_model = get_user_model()
+        updated_fields: list[str] = []
+        username = validated.get("username")
+        if username and not settings.AUTH_REMOTE_USER:
+            username_field = getattr(user_model, "USERNAME_FIELD", "username")
+            setattr(user, username_field, username)
+            updated_fields.append(username_field)
+        if "email" in validated:
+            user.email = validated["email"]
+            updated_fields.append("email")
+        if updated_fields:
+            user.save(update_fields=updated_fields)
+
+        timezone = validated.get("timezone")
+        if timezone:
+            session = request.session
+            session["django_timezone"] = timezone
+            session.save()
+
+        data = UserSerializer(user_payload(user)).data
         return Response(data)

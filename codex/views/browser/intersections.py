@@ -1,8 +1,8 @@
 """
-Per-group column intersections for table view.
+Per-collection column intersections for table view.
 
-For a group row (Series, Publisher, Volume, etc.), each column's
-displayed value is the *intersection* across the group's child comics:
+For a collection row (Series, Publisher, Volume, etc.), each column's
+displayed value is the *intersection* across the collection's child comics:
 
 - M2M (genres / tags / characters / ...): values present in **every**
   child comic. Comics that don't share the value at all → empty
@@ -11,24 +11,24 @@ displayed value is the *intersection* across the group's child comics:
 - Scalar (year / country / language / file_type / monochrome / ...):
   the value if **every** child comic shares it, otherwise empty.
 
-This is what the user asked for in the group-row table experiment.
+This is what the user asked for in the collection-row table experiment.
 The helper is invoked after pagination so we only compute for the
 visible page; per visible column it issues one batched query that
-groups results by the parent group's pk.
+groups results by the parent collection's pk.
 """
 
 from collections import defaultdict
 from collections.abc import Iterable
 from types import MappingProxyType
-from typing import Any
+from typing import Any, override
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CharField, Count, F, Min, Q, Sum, Value
 from django.db.models.expressions import RawSQL
 
 from codex.models import Comic
-from codex.models.groups import (
-    BrowserGroupModel,
+from codex.models.collections import (
+    BrowserCollectionModel,
     Folder,
     Imprint,
     Publisher,
@@ -38,11 +38,11 @@ from codex.models.groups import (
 from codex.views.browser.columns import fk_name_columns, m2m_columns
 from codex.views.const import MODEL_REL_MAP
 
-# Comic FK column → group model. Used to correlate the intersection
-# sort subquery to the outer group row. ``StoryArc`` traverses
+# Comic FK column → collection model. Used to correlate the intersection
+# sort subquery to the outer collection row. ``StoryArc`` traverses
 # through ``StoryArcNumber`` so the subquery shape differs; deferred
-# from this v1 group-row M2M sort.
-_COMIC_GROUP_COL: MappingProxyType[type, str] = MappingProxyType(
+# from this v1 collection-row M2M sort.
+_COMIC_COLLECTION_COL: MappingProxyType[type, str] = MappingProxyType(
     {
         Publisher: "publisher_id",
         Imprint: "imprint_id",
@@ -51,6 +51,29 @@ _COMIC_GROUP_COL: MappingProxyType[type, str] = MappingProxyType(
         Folder: "parent_folder_id",
     }
 )
+
+
+class _IntersectionSortRawSQL(RawSQL):
+    """
+    Correlated intersection-sort subquery, kept out of GROUP BY.
+
+    ``RawSQL.get_group_by_cols`` returns ``[self]``, so annotating one of
+    these onto an aggregated queryset puts the entire correlated subquery
+    into the GROUP BY, and SQLite evaluates it once per *pre-aggregation
+    joined row* — quadratic on Folder browse, where the ancestor M2M fans
+    out to every descendant comic (a folders-root table request measured
+    in minutes). The cover_mtime Coalesce annotation had the same failure
+    mode (commit 93475e710) before it was replaced by a post-pagination
+    batch lookup.
+
+    The subquery's only outer reference is the collection table's pk,
+    which is always in the GROUP BY, so the expression is functionally
+    determined by the existing grouping and can be omitted entirely.
+    """
+
+    @override
+    def get_group_by_cols(self) -> list:
+        return []
 
 
 def _format_credit(person_name: str, role_name: str | None) -> str:
@@ -66,9 +89,9 @@ def _format_identifier(source_name: str | None, id_type: str, key: str) -> str:
 
 
 # Comic field paths for scalar / FK-name columns that participate in
-# group-row intersection. Keys mirror the column registry; values are
+# collection-row intersection. Keys mirror the column registry; values are
 # Django ORM paths from Comic. The intersection path runs only for
-# non-Comic group querysets — Comic rows show their own values via
+# non-Comic collection queryset — Comic rows show their own values via
 # the regular ``getattr`` lookup in ``_row_repr``.
 _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
     {
@@ -88,7 +111,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "updated_at": "updated_at",
         # ``bookmark_updated_at`` is intentionally absent: it's not a
         # Comic field but a per-user-filtered ``Max(bookmark__updated_at)``
-        # aggregate. The annotate pipeline attaches it directly to group
+        # aggregate. The annotate pipeline attaches it directly to collection
         # rows in table view (see ``_annotate_bookmark_updated_at``); the
         # cell display then falls through to ``getattr`` in ``_emit_column``.
         # FK-to-name columns (Comic FK → related model.name).
@@ -101,7 +124,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "main_character": "main_character__name",
         "main_team": "main_team__name",
         # Hierarchy FK-to-name columns. Series / Volume / Imprint
-        # have a direct FK on the group model itself but we aggregate
+        # have a direct FK on the collection model itself but we aggregate
         # via the children's Comic FK chain so the intersection path
         # works uniformly across all non-Comic models — including
         # Folder and StoryArc, which lack the direct FK and so would
@@ -114,11 +137,13 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
-def _intersection_relation(group_model: type[BrowserGroupModel]) -> str | None:
+def _intersection_relation(
+    collection_model: type[BrowserCollectionModel],
+) -> str | None:
     """
-    Return the ORM lookup that traverses Comic → group for intersections.
+    Return the ORM lookup that traverses Comic → collection for intersections.
 
-    Most groups (Publisher, Imprint, Series, Volume) have a direct FK
+    Most collections (Publisher, Imprint, Series, Volume) have a direct FK
     on Comic and ``MODEL_REL_MAP`` carries the right name. Folder is
     the special case: ``Comic.parent_folder`` only points at the
     direct parent, so an FK-based traversal misses comics nested in
@@ -129,20 +154,20 @@ def _intersection_relation(group_model: type[BrowserGroupModel]) -> str | None:
     is the relation the cover-pick logic already uses for the same
     reason.
     """
-    if group_model is Folder:
+    if collection_model is Folder:
         return "folders"
-    return MODEL_REL_MAP.get(group_model)
+    return MODEL_REL_MAP.get(collection_model)
 
 
-def compute_group_intersections(
-    group_qs, columns: Iterable[str]
+def compute_collection_intersections(
+    collection_qs, columns: Iterable[str]
 ) -> dict[int, dict[str, Any]]:
     """
-    Build ``{group_pk: {column_key: intersection_value}}`` for the page.
+    Build ``{collection_pk: {column_key: intersection_value}}`` for the page.
 
-    ``group_qs`` should be the already-paginated group queryset. Comic
+    ``collection_qs`` should be the already-paginated collection queryset. Comic
     querysets short-circuit to an empty dict — Comic rows show their
-    own values, not group intersections. Columns whose value source
+    own values, not collection intersections. Columns whose value source
     isn't recognized are skipped (the row's existing value path
     applies).
 
@@ -153,34 +178,41 @@ def compute_group_intersections(
     JOIN would multiply rows for sibling M2M aggregates if combined.
     """
     cols = tuple(columns)
-    if not cols or group_qs.model is Comic:
+    if not cols or collection_qs.model is Comic:
         return {}
 
-    comic_to_group = _intersection_relation(group_qs.model)
-    if not comic_to_group:
+    comic_to_collection = _intersection_relation(collection_qs.model)
+    if not comic_to_collection:
         return {}
 
-    group_pks = list(group_qs.values_list("pk", flat=True))
-    if not group_pks:
+    # Iterate the queryset itself rather than ``.values_list("pk")``:
+    # the values_list clone re-executes the entire annotated/grouped/
+    # sorted page query just to read pks, while iterating primes this
+    # queryset's result cache — the serializer consumes the same object,
+    # so the heaviest query in a table-mode request runs once, not twice.
+    collection_pks = [obj.pk for obj in collection_qs]
+    if not collection_pks:
         return {}
 
-    result: dict[int, dict[str, Any]] = {pk: {} for pk in group_pks}
+    result: dict[int, dict[str, Any]] = {pk: {} for pk in collection_pks}
 
     m2m_cols, intersect_cols, sum_cols = _bucket_intersection_columns(cols)
     counts = _compute_batched_scalars(
-        intersect_cols, sum_cols, group_pks, comic_to_group, result
+        intersect_cols, sum_cols, collection_pks, comic_to_collection, result
     )
 
     # Simple-M2M columns share one UNION-ALL query (metadata-view
     # pattern). Composite shapes (credits / identifiers / universes /
     # story_arcs) keep their per-column helpers.
     _compute_simple_m2m_intersections_batched(
-        m2m_cols, group_pks, comic_to_group, counts, result
+        m2m_cols, collection_pks, comic_to_collection, counts, result
     )
     for col in m2m_cols:
         if col in _SIMPLE_M2M_BATCH_FIELDS:
             continue
-        _compute_m2m_intersection(col, group_pks, comic_to_group, counts, result)
+        _compute_m2m_intersection(
+            col, collection_pks, comic_to_collection, counts, result
+        )
 
     return result
 
@@ -215,7 +247,7 @@ def _bucket_intersection_columns(
     return m2m_cols, intersect_cols, sum_cols
 
 
-# Scalar columns whose group-row value is the *sum* of the children's
+# Scalar columns whose collection-row value is the *sum* of the children's
 # values rather than the per-row intersection. Both ``page_count`` and
 # ``size`` are cumulative quantities — the cover-view card already
 # shows ``Sum`` for these, so the table view (display + sort) follows
@@ -259,18 +291,18 @@ def _row_intersection_value(row: dict, col: str, total: int):
 def _compute_batched_scalars(
     intersect_cols: list[tuple[str, str]],
     sum_cols: list[tuple[str, str]],
-    group_pks: list[int],
-    comic_to_group: str,
+    collection_pks: list[int],
+    comic_to_collection: str,
     result: dict[int, dict[str, Any]],
 ) -> dict[int, int]:
     """
     Aggregate every scalar / cumulative column in one grouped query.
 
-    Replaces the previous ``compute_group_intersections`` per-column
+    Replaces the previous ``compute_collection_intersections`` per-column
     loop (one query each) with a single ``Comic.filter().values(rel)
-    .annotate(...)`` that emits, per group, the comic_count plus the
+    .annotate(...)`` that emits, per collection, the comic_count plus the
     aggregates needed for each requested scalar column. Returns
-    ``{group_pk: comic_count}`` so the caller can pass it to the
+    ``{collection_pk: comic_count}`` so the caller can pass it to the
     M2M intersection helpers — those still issue per-column queries
     because each M2M traverses a distinct through-table that would
     cross-multiply if combined.
@@ -283,14 +315,14 @@ def _compute_batched_scalars(
     """
     annotations = _build_batched_annotations(intersect_cols, sum_cols)
     rows = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
-        .values(comic_to_group)
+        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        .values(comic_to_collection)
         .annotate(**annotations)
     )
 
     counts: dict[int, int] = {}
     for row in rows:
-        gpk = row[comic_to_group]
+        gpk = row[comic_to_collection]
         total = row["_isect_comic_count"] or 0
         counts[gpk] = total
         bucket = result[gpk]
@@ -299,9 +331,9 @@ def _compute_batched_scalars(
         for col, _path in sum_cols:
             bucket[col] = row[f"_isect_{col}_sum"]
 
-    # Groups whose filter matched zero comics didn't produce a row;
+    # Collections whose filter matched zero comics didn't produce a row;
     # initialize their cells so the row dict has a uniform shape.
-    for gpk in group_pks:
+    for gpk in collection_pks:
         counts.setdefault(gpk, 0)
         bucket = result[gpk]
         for col, _path in intersect_cols:
@@ -332,15 +364,15 @@ _SIMPLE_M2M_BATCH_FIELDS: frozenset[str] = frozenset(
 
 
 def _build_simple_m2m_intersection_query(
-    col: str, comic_to_group: str, group_pks: list[int]
+    col: str, comic_to_collection: str, collection_pks: list[int]
 ):
     """
-    One per-column through-table query, aggregated per (group, value).
+    One per-column through-table query, aggregated per (collection, value).
 
     Skips Comic as an anchor: queries the M2M through table directly
     and JOINs to the target's ``__name`` and (via ``comic__``) to the
-    parent group's FK column. SQL aggregation produces one row per
-    ``(group_pk, value)`` so the union output stays small. Marked
+    parent collection's FK column. SQL aggregation produces one row per
+    ``(collection_pk, value)`` so the union output stays small. Marked
     with the column key as ``field_name`` so a downstream union can
     partition results without per-query Python state.
     """
@@ -349,27 +381,27 @@ def _build_simple_m2m_intersection_query(
     rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
     return (
         through.objects.filter(
-            **{f"comic__{comic_to_group}__in": group_pks},
+            **{f"comic__{comic_to_collection}__in": collection_pks},
             **{f"{rel_name}__name__isnull": False},
         )
         .exclude(**{f"{rel_name}__name": ""})
         .values(
             value=F(f"{rel_name}__name"),
-            group_pk=F(f"comic__{comic_to_group}"),
+            collection_pk=F(f"comic__{comic_to_collection}"),
         )
         .annotate(cnt=Count("comic_id", distinct=True))
         .annotate(field_name=Value(col, output_field=CharField()))
-        .values_list("field_name", "group_pk", "value", "cnt")
+        .values_list("field_name", "collection_pk", "value", "cnt")
     )
 
 
 def _initialize_simple_m2m_buckets(
     batched_cols: list[str],
-    group_pks: list[int],
+    collection_pks: list[int],
     result: dict[int, dict[str, Any]],
 ) -> None:
-    """Pre-fill empty intersection lists so empty-result groups still get ``[]``."""
-    for gpk in group_pks:
+    """Pre-fill empty intersection lists so empty-result collections still get ``[]``."""
+    for gpk in collection_pks:
         bucket = result[gpk]
         for col in batched_cols:
             bucket.setdefault(col, [])
@@ -386,18 +418,18 @@ def _collect_simple_m2m_intersections(
     combined,
     counts: dict[int, int],
 ) -> dict[tuple[str, int], list[str]]:
-    """Group UNION rows by ``(field, group_pk)``, keeping intersection-passing values."""
+    """Group UNION rows by ``(field, collection_pk)``, keeping intersection-passing values."""
     intersection_per: dict[tuple[str, int], list[str]] = defaultdict(list)
-    for field_name, group_pk, value, cnt in combined:
-        if cnt == counts.get(group_pk, 0):
-            intersection_per[(field_name, group_pk)].append(value)
+    for field_name, collection_pk, value, cnt in combined:
+        if cnt == counts.get(collection_pk, 0):
+            intersection_per[(field_name, collection_pk)].append(value)
     return intersection_per
 
 
 def _compute_simple_m2m_intersections_batched(
     cols: list[str],
-    group_pks: list[int],
-    comic_to_group: str,
+    collection_pks: list[int],
+    comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
 ) -> None:
@@ -405,20 +437,20 @@ def _compute_simple_m2m_intersections_batched(
     Batch every simple-M2M column into one ``UNION ALL`` round-trip.
 
     Mirrors ``MetadataQueryIntersectionsView._query_m2m_intersections``
-    but adapts to multiple groups per page: each sub-query carries a
-    ``group_pk`` annotation and aggregates per ``(group_pk, value)``;
+    but adapts to multiple collections per page: each sub-query carries a
+    ``collection_pk`` annotation and aggregates per ``(collection_pk, value)``;
     the UNION combines all column shapes into one SQL transmission.
     Python-side partitioning then drops rows whose ``cnt`` doesn't
-    match the group's total comic count — that's the intersection
+    match the collection's total comic count — that's the intersection
     rule.
     """
     batched_cols = [c for c in cols if c in _SIMPLE_M2M_BATCH_FIELDS]
     # Initialize empty lists for every requested simple column up
-    # front so groups whose intersection is empty get ``[]`` rather
+    # front so collections whose intersection is empty get ``[]`` rather
     # than missing keys.
-    _initialize_simple_m2m_buckets(batched_cols, group_pks, result)
+    _initialize_simple_m2m_buckets(batched_cols, collection_pks, result)
     queries = [
-        _build_simple_m2m_intersection_query(col, comic_to_group, group_pks)
+        _build_simple_m2m_intersection_query(col, comic_to_collection, collection_pks)
         for col in batched_cols
     ]
     if not queries:
@@ -431,13 +463,13 @@ def _compute_simple_m2m_intersections_batched(
 
 def _compute_m2m_intersection(
     col: str,
-    group_pks: list[int],
-    comic_to_group: str,
+    collection_pks: list[int],
+    comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
 ) -> None:
     """
-    Set ``result[group][col]`` for one composite-M2M column.
+    Set ``result[collection][col]`` for one composite-M2M column.
 
     Simple M2M columns route through
     ``_compute_simple_m2m_intersections_batched`` instead — this
@@ -445,30 +477,36 @@ def _compute_m2m_intersection(
     universes / story_arcs).
     """
     if col == "credits":
-        _compute_credits_intersection(group_pks, comic_to_group, counts, result)
+        _compute_credits_intersection(
+            collection_pks, comic_to_collection, counts, result
+        )
         return
     if col == "identifiers":
-        _compute_identifiers_intersection(group_pks, comic_to_group, counts, result)
+        _compute_identifiers_intersection(
+            collection_pks, comic_to_collection, counts, result
+        )
         return
 
     rel = _M2M_NAME_RELATIONS.get(col)
     if rel is None:
         return
     rows = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
+        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
         .filter(**{f"{rel}__isnull": False})
-        .values(comic_to_group, rel)
+        .values(comic_to_collection, rel)
         .annotate(cnt=Count("pk", distinct=True))
     )
-    per_group: dict[int, list[tuple[Any, int]]] = defaultdict(list)
+    per_collection: dict[int, list[tuple[Any, int]]] = defaultdict(list)
     for row in rows:
-        per_group[row[comic_to_group]].append((row[rel], row["cnt"]))
-    for gpk in group_pks:
+        per_collection[row[comic_to_collection]].append((row[rel], row["cnt"]))
+    for gpk in collection_pks:
         total = counts.get(gpk, 0)
         if not total:
             result[gpk][col] = []
             continue
-        names = sorted(value for value, cnt in per_group.get(gpk, ()) if cnt == total)
+        names = sorted(
+            value for value, cnt in per_collection.get(gpk, ()) if cnt == total
+        )
         result[gpk][col] = names
 
 
@@ -481,9 +519,9 @@ _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
 
 
 # ──────────────────────────────────────────────────────────────────────
-# M2M-intersection sort key for group rows
+# M2M-intersection sort key for collection row
 #
-# The order_value annotation for a group row sorting by an M2M column
+# The order_value annotation for a collection row sorting by an M2M column
 # is the alphabetized concatenation of M2M values present in every
 # child comic. Identical intersection sets render identical strings
 # under SQLite's binary collation, so ORDER BY clusters equivalent
@@ -495,13 +533,13 @@ _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
 #      with intra-row ORDER BY is straightforward in SQL but requires
 #      ORM gymnastics (nested OuterRefs, .aggregate inside Subquery,
 #      etc.) that obscure the intent.
-#   2. Per-row execution against the outer group table is the most
+#   2. Per-row execution against the outer collection table is the most
 #      efficient shape SQLite can deliver — see the perf note below.
 #
 # Performance: the subquery executes once per row in the outer
-# queryset's ORDER BY phase. With indexes on the comic's group FK
-# (codex_comic.<group>_id) and the through table's (comic_id, target_id)
-# pair, each subquery scans only the relevant rows for that group.
+# queryset's ORDER BY phase. With indexes on the comic's collection FK
+# (codex_comic.<collection>_id) and the through table's (comic_id, target_id)
+# pair, each subquery scans only the relevant rows for that collection.
 # Profile-and-tune is the user's call; the SELECT is structurally
 # minimal — one INNER JOIN chain through the M2M, one GROUP BY, one
 # correlated COUNT for the HAVING clause.
@@ -527,17 +565,17 @@ _SIMPLE_M2M_FIELDS = MappingProxyType(
 
 
 def _build_simple_m2m_intersection_sort_sql(
-    group_model: type[BrowserGroupModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
     Return a correlated-subquery RawSQL for the intersection sort key.
 
-    Restricted to ``_SIMPLE_M2M_FIELDS`` and group models in
-    ``_COMIC_GROUP_COL`` (StoryArc, credits, identifiers — deferred).
+    Restricted to ``_SIMPLE_M2M_FIELDS`` and collection model in
+    ``_COMIC_COLLECTION_COL`` (StoryArc, credits, identifiers — deferred).
     Returns None when unsupported.
     """
     field_name = _SIMPLE_M2M_FIELDS.get(column)
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
@@ -551,21 +589,21 @@ def _build_simple_m2m_intersection_sort_sql(
     extra_join, where, total_count = correlation
 
     # Correlated subquery returning the alphabetized GROUP_CONCAT of
-    # target ``name`` values whose comic-count for the outer group
-    # matches the group's total comic count — the intersection set.
+    # target ``name`` values whose comic-count for the outer collection
+    # matches the collection's total comic count — the intersection set.
     # ```` (unit separator) is used as the join character so it
     # never collides with values in the names. NULL/empty target
     # names are filtered out so they can't fold into the sort key.
     # All identifiers spliced into ``sql`` come from Django metadata
     # (``_meta.db_table``, ``m2m_reverse_field_name()``); the column
-    # whitelist (``_SIMPLE_M2M_FIELDS``) and group whitelist
-    # (``_COMIC_GROUP_COL``) bound the inputs, so RawSQL is safe here.
+    # whitelist (``_SIMPLE_M2M_FIELDS``) and collection whitelist
+    # (``_COMIC_COLLECTION_COL``) bound the inputs, so RawSQL is safe here.
     # Three-stage shape so the per-outer-row work is bounded by the
-    # through-table's slice for the group, not the through-target
+    # through-table's slice for the collection, not the through-target
     # cross-product:
     #
     # 1. ``isect_ids`` — aggregate only on the through table,
-    #    correlated to the outer group via an IN-subselect on
+    #    correlated to the outer collection via an IN-subselect on
     #    ``th.comic_id``. The IN-subselect uses the comic FK index;
     #    the through-table aggregation uses the (target_id, comic_id)
     #    composite index. No name JOIN, no codex_comic JOIN — those
@@ -593,7 +631,7 @@ def _build_simple_m2m_intersection_sort_sql(
             ORDER BY t.name
         ) AS named
     )"""  # noqa: S608
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _wrap_intersection_sort(
@@ -630,10 +668,10 @@ def _wrap_intersection_sort(
 
 
 def _build_universes_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Universes display as ``name:designation`` (or just ``name`` when blank)."""
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if correlation is None:
         return None
     inner = """
@@ -649,14 +687,14 @@ def _build_universes_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_credits_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if correlation is None:
         return None
     # Two comics share a Credit only when they reference the same row;
@@ -677,14 +715,14 @@ def _build_credits_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_identifiers_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Render identifiers intersection as ``[source:]type:key`` per shared row."""
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if correlation is None:
         return None
     inner = """
@@ -700,14 +738,14 @@ def _build_identifiers_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_story_arcs_intersection_sort_sql(
-    group_model: type[BrowserGroupModel],
+    collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
     """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if correlation is None:
         return None
     # Comic.story_arc_numbers → StoryArcNumber → story_arc → StoryArc.
@@ -724,74 +762,74 @@ def _build_story_arcs_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _comic_correlation_sql(
-    group_model: type[BrowserGroupModel],
+    collection_model: type[BrowserCollectionModel],
 ) -> tuple[str, str, str] | None:
     """
-    Return the SQL fragments correlating Comic rows to the outer group row.
+    Return the SQL fragments correlating Comic rows to the outer collection row.
 
-    Most groups (Publisher, Imprint, Series, Volume) carry a direct
+    Most collections (Publisher, Imprint, Series, Volume) carry a direct
     FK on Comic — the JOIN is implicit and the WHERE clause is
-    ``c.<fk> = <group_table>.id``. Folder is the special case:
+    ``c.<fk> = <collection_table>.id``. Folder is the special case:
     ``Comic.parent_folder`` only points at the *direct* parent so
     the FK path returns zero comics for any folder whose content
     lives in a sub-folder. The browse query, the cover-pick query
     and the cell display all already prefer the ancestor M2M
     ``Comic.folders`` for Folder; the sort path now does too. The
-    extra JOIN clause is empty for non-Folder groups.
+    extra JOIN clause is empty for non-Folder collections.
 
     Returns ``(extra_join, where_clause, total_count_select)`` or
-    ``None`` when the group model isn't supported.
+    ``None`` when the collection model isn't supported.
     """
-    if group_model is Folder:
+    if collection_model is Folder:
         folders_field = Comic._meta.get_field("folders")
         through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
         through_table = through._meta.db_table
-        group_table = Folder._meta.db_table
+        collection_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
-        where = f"cf.folder_id = {group_table}.id"
+        where = f"cf.folder_id = {collection_table}.id"
         # ``DISTINCT c2.id`` to defend against any future change that
         # makes the M2M traversal multi-row per comic; today each
         # (comic, folder) pair is unique so the DISTINCT is a no-op.
         total_count = (
             f"SELECT COUNT(DISTINCT c2.id) FROM codex_comic c2 "  # noqa: S608
             f"INNER JOIN {through_table} cf2 ON cf2.comic_id = c2.id "
-            f"WHERE cf2.folder_id = {group_table}.id"
+            f"WHERE cf2.folder_id = {collection_table}.id"
         )
         return extra_join, where, total_count
-    comic_group_col = _COMIC_GROUP_COL.get(group_model)
-    if comic_group_col is None:
+    comic_collection_col = _COMIC_COLLECTION_COL.get(collection_model)
+    if comic_collection_col is None:
         return None
-    group_table = group_model._meta.db_table
-    where = f"c.{comic_group_col} = {group_table}.id"
+    collection_table = collection_model._meta.db_table
+    where = f"c.{comic_collection_col} = {collection_table}.id"
     total_count = (
         f"SELECT COUNT(*) FROM codex_comic "  # noqa: S608
-        f"WHERE {comic_group_col} = {group_table}.id"
+        f"WHERE {comic_collection_col} = {collection_table}.id"
     )
     return "", where, total_count
 
 
 def scalar_intersection_sort_expr(
-    group_model: type[BrowserGroupModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
-    Build a sort-key RawSQL for scalar / FK-name group-row sort.
+    Build a sort-key RawSQL for scalar / FK-name collection-row sort.
 
-    The group-row *display* uses intersection (``_compute_scalar_intersection``):
-    a value renders only when every child comic in the group shares it
+    The collection-row *display* uses intersection (``_compute_scalar_intersection``):
+    a value renders only when every child comic in the collection shares it
     (same non-NULL value, no missing children). The default
     ``Min`` / ``Avg`` / ``Sum`` aggregates used by ``annotate_order_value``
     don't agree with that — a series whose children mostly lack a year
     but one happens to be 2024 sorts as if year=2024 yet displays
     blank. Mirroring the intersection rule in SQL keeps display and
-    sort consistent: the ORDER BY value is the per-group value when
+    sort consistent: the ORDER BY value is the per-collection value when
     every child agrees, NULL otherwise. NULLs follow SQLite's default
     sort position (smallest in ASC, last in DESC).
 
-    Returns None when the column or group model isn't supported;
+    Returns None when the column or collection model isn't supported;
     callers fall back to the previous aggregate path so we don't
     silently break an existing sort if the registry adds a new field
     we haven't wired here yet. Cumulative scalars (``page_count``,
@@ -802,7 +840,7 @@ def scalar_intersection_sort_expr(
     if column in _CUMULATIVE_SCALAR_FIELDS:
         return None
     path = _SCALAR_FIELD_PATHS.get(column)
-    correlation = _comic_correlation_sql(group_model)
+    correlation = _comic_correlation_sql(collection_model)
     if path is None or correlation is None:
         return None
     extra_join, where, total_count = correlation
@@ -811,7 +849,7 @@ def scalar_intersection_sort_expr(
         # Direct Comic field — year, page_count, size, file_type, …
         # All identifiers spliced in come from caller-side whitelists
         # (column → ``_SCALAR_FIELD_PATHS``; correlation pieces from
-        # ``_comic_correlation_sql`` over a fixed group whitelist).
+        # ``_comic_correlation_sql`` over a fixed collection whitelist).
         col = f"c.{path}"
         sql = f"""(
             SELECT
@@ -825,7 +863,7 @@ def scalar_intersection_sort_expr(
             {extra_join}
             WHERE {where}
         )"""  # noqa: S608
-        return RawSQL(sql, [])  # noqa: S611
+        return _IntersectionSortRawSQL(sql, [])
 
     # FK-to-name field — tagger__name, country__name, age_rating__name, …
     fk_attr, target_field = path.split("__", 1)
@@ -852,91 +890,93 @@ def scalar_intersection_sort_expr(
         LEFT JOIN {target_table} t ON c.{fk_col} = t.id
         WHERE {where}
     )"""  # noqa: S608
-    return RawSQL(sql, [])  # noqa: S611
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def m2m_intersection_sort_expr(
-    group_model: type[BrowserGroupModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
     """
-    Build a sort-key RawSQL for the given (group_model, M2M column).
+    Build a sort-key RawSQL for the given (collection_model, M2M column).
 
     Public entry point. Returns None when the combination isn't
     supported; callers fall back to sort_name.
     """
     if column in _SIMPLE_M2M_FIELDS:
-        return _build_simple_m2m_intersection_sort_sql(group_model, column)
+        return _build_simple_m2m_intersection_sort_sql(collection_model, column)
     if column == "universes":
-        return _build_universes_intersection_sort_sql(group_model)
+        return _build_universes_intersection_sort_sql(collection_model)
     if column == "credits":
-        return _build_credits_intersection_sort_sql(group_model)
+        return _build_credits_intersection_sort_sql(collection_model)
     if column == "identifiers":
-        return _build_identifiers_intersection_sort_sql(group_model)
+        return _build_identifiers_intersection_sort_sql(collection_model)
     if column == "story_arcs":
-        return _build_story_arcs_intersection_sort_sql(group_model)
+        return _build_story_arcs_intersection_sort_sql(collection_model)
     return None
 
 
 def _compute_credits_intersection(
-    group_pks: list[int],
-    comic_to_group: str,
+    collection_pks: list[int],
+    comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
 ) -> None:
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
+        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
         .filter(credits__person__name__gt="")
         .values(
-            comic_to_group,
+            comic_to_collection,
             "credits__person__name",
             "credits__role__name",
         )
         .annotate(cnt=Count("pk", distinct=True))
     )
-    per_group: dict[int, list[tuple[str, str | None, int]]] = defaultdict(list)
+    per_collection: dict[int, list[tuple[str, str | None, int]]] = defaultdict(list)
     for row in rows:
-        per_group[row[comic_to_group]].append(
+        per_collection[row[comic_to_collection]].append(
             (
                 row["credits__person__name"],
                 row["credits__role__name"],
                 row["cnt"],
             )
         )
-    for gpk in group_pks:
+    for gpk in collection_pks:
         total = counts.get(gpk, 0)
         if not total:
             result[gpk]["credits"] = []
             continue
         names = sorted(
             _format_credit(person, role)
-            for person, role, cnt in per_group.get(gpk, ())
+            for person, role, cnt in per_collection.get(gpk, ())
             if cnt == total
         )
         result[gpk]["credits"] = names
 
 
 def _compute_identifiers_intersection(
-    group_pks: list[int],
-    comic_to_group: str,
+    collection_pks: list[int],
+    comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
 ) -> None:
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
-        Comic.objects.filter(**{f"{comic_to_group}__in": group_pks})
+        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
-            comic_to_group,
+            comic_to_collection,
             "identifiers__source__name",
             "identifiers__id_type",
             "identifiers__key",
         )
         .annotate(cnt=Count("pk", distinct=True))
     )
-    per_group: dict[int, list[tuple[str | None, str, str, int]]] = defaultdict(list)
+    per_collection: dict[int, list[tuple[str | None, str, str, int]]] = defaultdict(
+        list
+    )
     for row in rows:
-        per_group[row[comic_to_group]].append(
+        per_collection[row[comic_to_collection]].append(
             (
                 row["identifiers__source__name"],
                 row["identifiers__id_type"],
@@ -944,14 +984,14 @@ def _compute_identifiers_intersection(
                 row["cnt"],
             )
         )
-    for gpk in group_pks:
+    for gpk in collection_pks:
         total = counts.get(gpk, 0)
         if not total:
             result[gpk]["identifiers"] = []
             continue
         names = sorted(
             _format_identifier(source, id_type, key)
-            for source, id_type, key, cnt in per_group.get(gpk, ())
+            for source, id_type, key, cnt in per_collection.get(gpk, ())
             if cnt == total
         )
         result[gpk]["identifiers"] = names

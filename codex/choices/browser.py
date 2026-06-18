@@ -38,7 +38,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "locations": "Locations",
         "main_character": "Main Character",
         "main_team": "Main Team",
-        "metadata_mtime": "Metadata Updated",
+        "metadata_mtime": "Tags Updated",
         "month": "Month",
         "monochrome": "Monochrome",
         "sort_name": "Name",
@@ -61,22 +61,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "volume_name": "Volume",
         "year": "Year",
     }
-)
-_GROUP_NAMES = MappingProxyType(
-    {
-        "p": "Publishers",
-        "i": "Imprints",
-        "s": "Series",
-        "v": "Volumes",
-    }
-)
-BROWSER_TOP_GROUP_CHOICES = MappingProxyType(
-    {
-        **_GROUP_NAMES,
-        "c": "Issues",
-        "f": "Folders",
-        "a": "Story Arcs",
-    },
 )
 # Subset of order-by keys that make sense in cover view's dropdown.
 # The full enum (33 keys) is needed for the table view's header-click
@@ -120,7 +104,25 @@ BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     }
 )
 
-BROWSER_ROUTE_CHOICES = MappingProxyType({**BROWSER_TOP_GROUP_CHOICES, "r": "Root"})
+_COLLECTION_NAMES = MappingProxyType(
+    {
+        "publishers": "Publishers",
+        "imprints": "Imprints",
+        "series": "Series",
+        "volumes": "Volumes",
+    }
+)
+BROWSER_TOP_COLLECTION_CHOICES = MappingProxyType(
+    {
+        **_COLLECTION_NAMES,
+        "comics": "Issues",
+        "folders": "Folders",
+        "arcs": "Story Arcs",
+    },
+)
+BROWSER_ROUTE_COLLECTION_CHOICES = MappingProxyType(
+    {**BROWSER_TOP_COLLECTION_CHOICES, "root": "Root"}
+)
 BROWSER_VIEW_MODE_CHOICES = MappingProxyType(
     {
         "cover": "Cover",
@@ -147,11 +149,11 @@ BROWSER_CHOICES = MappingProxyType(
         "EXTRA_SORT_UNSUPPORTED_KEYS": tuple(
             sorted(BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS)
         ),
-        "TOP_GROUP": BROWSER_TOP_GROUP_CHOICES,
+        "TOP_COLLECTION": BROWSER_TOP_COLLECTION_CHOICES,
         "VIEW_MODE": BROWSER_VIEW_MODE_CHOICES,
         "TABLE_COVER_SIZE": BROWSER_TABLE_COVER_SIZE_CHOICES,
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
-        "SETTINGS_GROUP": {**_GROUP_NAMES},
+        "SETTINGS_COLLECTION": {**_COLLECTION_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
     }
 )
@@ -168,9 +170,9 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "ORDER_BY",
         "COVER_ORDER_BY_KEYS",
         "EXTRA_SORT_UNSUPPORTED_KEYS",
-        "TOP_GROUP",
+        "TOP_COLLECTION",
         "VUETIFY_NULL_CODE",
-        "SETTINGS_GROUP",
+        "SETTINGS_COLLECTION",
     }
 )
 
@@ -181,33 +183,40 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
 BROWSER_CHOICES_MAP_KEYS = frozenset(
     {
         "ORDER_BY",
-        "TOP_GROUP",
+        "TOP_COLLECTION",
         "IDENTIFIER_SOURCES",
     }
 )
 
-DEFAULT_BROWSER_ROUTE = MappingProxyType({"group": "r", "pks": (0,), "page": 1})
+# The engine's canonical default route — collection vocabulary, no dummy 0
+# (the RouteSerializer emits the ``collection`` / ``parent_ids`` dialect).
+DEFAULT_BROWSER_ROUTE = MappingProxyType({"collection": "root", "pks": (), "page": 1})
 
-# Top-group values that own a dedicated browser route. For these,
-# the URL ``group`` matches the ``top_group``. Everything else
+# Top collections that own a dedicated browser route. For these,
+# the URL ``collection`` matches the ``top_collection``. Everything else
 # (publishers / imprints / series / volumes / issues) routes through
-# the canonical ``r`` (Root) URL — the per-user ``top_group`` setting
+# the canonical Root URL — the per-user ``top_collection`` setting
 # is what selects the displayed view inside that URL.
-_FLAG_GROUP_HAS_OWN_ROUTE = frozenset({"f", "a"})
+_FLAG_COLLECTION_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 
-def admin_default_route_for(top_group: str) -> dict:
+def admin_default_route_for(top_collection: str) -> dict:
     """
-    Translate a ``BROWSER_DEFAULT_GROUP`` flag value into a route dict.
+    Translate a ``BROWSER_DEFAULT_COLLECTION`` collection into a route dict.
 
-    Used by :class:`codex.views.frontend.IndexView` to redirect the bare
-    ``/`` URL when no per-user ``last_route`` row exists.
+    Used (via ``get_last_route``) to seed the bare ``/`` redirect when no
+    per-user ``last_route`` row exists. ``top_collection`` is the collection-name
+    default; folders / arcs own their route, everything else is Root.
     """
-    group = top_group if top_group in _FLAG_GROUP_HAS_OWN_ROUTE else "r"
-    return {"group": group, "pks": (0,), "page": 1}
+    collection = (
+        top_collection if top_collection in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
+    )
+    return {"collection": collection, "pks": (), "page": 1}
 
 
-_DEFAULT_SHOW = MappingProxyType({"i": False, "p": True, "s": True, "v": False})
+_DEFAULT_SHOW = MappingProxyType(
+    {"imprints": False, "publishers": True, "series": True, "volumes": False}
+)
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
@@ -260,7 +269,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        # Group hierarchy
+        # Collection hierarchy
         "publisher_name": {
             "label": "Publisher",
             "sort_key": "publisher_name",
@@ -431,8 +440,11 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "label": "Critical Rating",
             "sort_key": "critical_rating",
             "m2m": False,
-            "editable": False,
-            "edit_widget": None,
+            "editable": True,
+            # 0.0-5.0 decimal stepper. Renderer wired up by the eventual
+            # inline-table edit UI; the dialog editor uses its own input
+            # in components/metadata/edit-mode/edit-panel.vue.
+            "edit_widget": "decimal",
         },
         # Timestamps
         "created_at": {
@@ -450,7 +462,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "edit_widget": None,
         },
         "metadata_mtime": {
-            "label": "Metadata Updated",
+            "label": "Tags Updated",
             "sort_key": "metadata_mtime",
             "m2m": False,
             "editable": False,
@@ -465,11 +477,11 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         },
         # Per-user state. ``favorite`` is the only currently-editable
         # cell — clicking the star toggles via ``PUT|DELETE
-        # /api/v3/favorites/<group>/<pk>/``. The annotation
-        # ``favorite=Exists(Favorite.objects.filter(user, group,
+        # /api/v4/favorites/<collection>/<pk>``. The annotation
+        # ``favorite=Exists(Favorite.objects.filter(user, collection,
         # target_id))`` is added in
         # ``BrowserView._add_table_view_favorite_annotation`` for both
-        # group and Comic querysets so the column is sortable and
+        # collection and Comic querysets so the column is sortable and
         # renderable across all browsable models.
         "favorite": {
             "label": "Favorite",
@@ -561,8 +573,8 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
     }
 )
 
-# Default visible columns per top-group when the user hasn't set
-# their own. Layout follows the per-top-group default sort:
+# Default visible columns per top-collection when the user hasn't set
+# their own. Layout follows the per-top-collection default sort:
 # columns referenced by the default ``order_by`` (primary + extras)
 # appear first — after ``cover``, which always anchors the row —
 # so row content visually tracks the sort order. ``sort_name``
@@ -570,17 +582,17 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 # purposes; ``publisher_name`` / ``imprint_name`` / ``series_name``
 # map to their like-named columns. The frontend's
 # ``_DEFAULT_TABLE_ORDER`` lookup must stay in sync with this map
-# — both define the per-top-group baseline the cancel button and
+# — both define the per-top-collection baseline the cancel button and
 # the initial-render path lean on.
 # Per-column relative cost rating shown next to picker rows so
 # users on huge libraries can see at a glance which columns are
 # cheap vs. expensive to display + sort. Only non-``low`` entries
 # appear here; everything not listed defaults to ``low`` (no badge
 # rendered). The rating reflects the worse of display vs. sort
-# cost for the column on group-row queries (the most expensive
+# cost for the column on collection-row queries (the most expensive
 # query shape):
 #
-# - ``low`` (default, omitted): the column reads from the group's
+# - ``low`` (default, omitted): the column reads from the collection's
 #   own field, an already-annotated alias, or batches into the
 #   single per-page scalar / FK-name aggregate query. One query
 #   regardless of how many low-cost columns are visible.
@@ -588,7 +600,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 #   ``UNION ALL`` through-table helper but whose sort still runs a
 #   per-outer-row correlated subquery (the ``_build_simple_m2m_…``
 #   shape). Display is one query for the whole page; sort scales
-#   with the filtered group count when the user clicks the header.
+#   with the filtered collection count when the user clicks the header.
 # - ``high``: composite-M2M columns (``credits`` / ``identifiers``
 #   / ``universes`` / ``story_arcs``). Display issues its own
 #   per-column query (composite display strings can't share the
@@ -621,11 +633,11 @@ BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
 BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
     {
         # Sort: sort_name. → name first.
-        "p": ("cover", "name", "child_count"),
+        "publishers": ("cover", "name", "child_count"),
         # Sort: publisher_name, sort_name. → publisher_name, name.
-        "i": ("cover", "publisher_name", "name", "child_count"),
+        "imprints": ("cover", "publisher_name", "name", "child_count"),
         # Sort: publisher_name, imprint_name, sort_name.
-        "s": (
+        "series": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -635,7 +647,7 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         ),
         # Sort: publisher_name, imprint_name, series_name, sort_name
         # (Volume.sort_name expands to ``name, number_to``).
-        "v": (
+        "volumes": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -650,7 +662,7 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         # volume_number_to → issue_number → issue_suffix →
         # collection_title → sort_name). The visible column set
         # mirrors that ladder so the row order tracks the sort.
-        "c": (
+        "comics": (
             "cover",
             "publisher_name",
             "imprint_name",
@@ -663,9 +675,9 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
             "size",
         ),
         # Sort: sort_name. Folder rows show their own name first.
-        "f": ("cover", "name", "child_count"),
+        "folders": ("cover", "name", "child_count"),
         # Sort: sort_name. Story arc rows show their own name first.
-        "a": ("cover", "name", "publisher_name", "child_count"),
+        "arcs": ("cover", "name", "publisher_name", "child_count"),
     }
 )
 
@@ -679,10 +691,14 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_extra_keys": (),
         "search": "",
         "show": _DEFAULT_SHOW,
-        "top_group": "p",
+        "top_collection": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
-        "last_route": DEFAULT_BROWSER_ROUTE,
+        # Frontend export now speaks the v4 route dialect end to end —
+        # the publishers collection (root resolves there) + no parent ids.
+        "last_route": MappingProxyType(
+            {"collection": "publishers", "parent_ids": (), "page": 1}
+        ),
         "view_mode": "cover",
         "table_columns": {},
         "table_cover_size": "sm",

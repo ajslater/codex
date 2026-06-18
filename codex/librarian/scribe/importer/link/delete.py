@@ -1,6 +1,6 @@
 """Delete stale m2ms."""
 
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from django.db.models import ManyToManyField, Q
 
@@ -8,28 +8,16 @@ from codex.librarian.scribe.importer.const import (
     DELETE_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
+    get_through_model,
 )
 from codex.librarian.scribe.importer.link.prepare import LinkComicsImporterPrepare
 from codex.models import Comic
 from codex.models.base import BaseModel
 from codex.settings import IMPORTER_FILTER_BATCH_SIZE
 
-if TYPE_CHECKING:
-    from django.db.models.fields.related import ManyToManyRel
-
 
 class LinkImporterDelete(LinkComicsImporterPrepare):
     """Delete stale m2ms."""
-
-    @staticmethod
-    def get_through_model(field: ManyToManyField) -> type[BaseModel]:
-        """Get the through model for a m2m field."""
-        # ``ManyToManyField.remote_field`` is typed as the broader
-        # ``Field`` and ``.through`` only exists on ``ManyToManyRel``.
-        # Cast through ``object`` because pyright correctly observes
-        # the type-system gap.
-        remote_field = cast("ManyToManyRel", cast("object", field.remote_field))
-        return cast("type[BaseModel]", remote_field.through)
 
     def _delete_m2m_field_batch(
         self,
@@ -77,7 +65,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         related_model = field.related_model
         table_name = related_model._meta.db_table
         column_name = table_name.removeprefix("codex_") + "_id"
-        through_model = self.get_through_model(field)
+        through_model = get_through_model(field)
         comic_ids = set()
 
         start = 0

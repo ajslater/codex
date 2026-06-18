@@ -27,8 +27,8 @@ const codexTheme = {
     textSecondary: "#A9A9A9",
     textDisabled: DISABLED,
     iconsInactive: DISABLED,
-    includeGroup: "#151",
-    excludeGroup: "#511",
+    includeGroup: "#141",
+    excludeGroup: "#411",
   },
 };
 

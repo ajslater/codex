@@ -1,4 +1,4 @@
-"""Group Mtimes."""
+"""Collection Mtimes."""
 
 from rest_framework.serializers import Serializer
 
@@ -7,17 +7,17 @@ from codex.serializers.fields import TimestampField
 from codex.serializers.route import SimpleRouteSerializer
 
 
-class GroupsMtimeSerializer(BrowserFilterChoicesInputSerializer):
-    """Groups Mtimes."""
+class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
+    """Collections Mtimes."""
 
     JSON_FIELDS = frozenset(
-        BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"groups"}
+        BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"collections"}
     )
 
-    groups = SimpleRouteSerializer(many=True, required=True)
+    collections = SimpleRouteSerializer(many=True, required=True)
 
 
 class MtimeSerializer(Serializer):
-    """Max mtime for all submitted groups."""
+    """Max mtime for all submitted collections."""
 
     max_mtime = TimestampField(read_only=True)

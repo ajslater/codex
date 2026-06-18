@@ -1,17 +1,45 @@
 """Logging Settings."""
 
 import logging
+import re
 from logging import Filter, Handler
 from typing import Final, override
 
 from loguru import logger
 
 # Paths whose routine anon-403s are noise, not abuse. The first-load
-# probe to ``/api/v3/auth/profile/`` is the obvious offender — a fresh
+# probe to ``/api/v4/auth/profile`` is the obvious offender — a fresh
 # browser hits it before any session cookie exists. Django's
 # BaseHandler.get_response logs every 4xx at WARNING; we downgrade the
 # ones we expect so the main log stays useful.
-_NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v3/auth/profile/"})
+_NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v4/auth/profile"})
+
+
+# Query-string credentials we never want in logs. httpx logs the full
+# request URL at INFO when codex bridges stdlib logging into loguru, so
+# a ComicVine call leaks the ``api_key=`` value verbatim. Mokkari
+# (Metron) uses HTTP Basic auth in headers — the Authorization regex
+# below covers that path defensively even though httpx doesn't log
+# headers today.
+_SECRET_QUERY_PARAM_RE: Final = re.compile(
+    r"(?i)\b(api[_-]?key|access[_-]?token|token|secret|password|auth)=[^&\s\"'<>]*"
+)
+_AUTHORIZATION_HEADER_RE: Final = re.compile(
+    r"(?i)(Authorization:\s*(?:Basic|Bearer))\s+\S+"
+)
+_REDACTED: Final = "<redacted>"
+
+
+def scrub_secrets(message: str) -> str:
+    """Mask credentials in a log message string."""
+    message = _SECRET_QUERY_PARAM_RE.sub(rf"\1={_REDACTED}", message)
+    return _AUTHORIZATION_HEADER_RE.sub(rf"\1 {_REDACTED}", message)
+
+
+def scrub_secrets_filter(record) -> bool:
+    """Loguru filter that scrubs credentials in the record's message in place."""
+    record["message"] = scrub_secrets(record["message"])
+    return True
 
 
 class DowngradeNoisyForbiddenFilter(Filter):
@@ -45,7 +73,7 @@ class LoguruHandler(Handler):
         logger.opt(
             depth=6,
             exception=record.exc_info,
-        ).log(level, record.getMessage())
+        ).log(level, scrub_secrets(record.getMessage()))
 
 
 def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int | dict]:

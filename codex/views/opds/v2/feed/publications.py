@@ -12,10 +12,10 @@ from django.db.models import CharField, F, Value
 
 from codex.librarian.covers.create import THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH
 from codex.models import Comic
-from codex.models.groups import BrowserGroupModel, Folder
+from codex.models.collections import BrowserCollectionModel, Folder
 from codex.models.identifier import Identifier
 from codex.models.named import Credit
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.auth import GroupACLMixin
 from codex.views.opds.const import (
     AUTHOR_ROLES,
@@ -28,7 +28,7 @@ from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
 _PUBLICATION_PREVIEW_LIMIT: Final = 5
 _PREVIEW_SHOW_PARAMS: Final[MappingProxyType[str, bool]] = MappingProxyType(
-    {"p": True, "s": True}
+    {"publishers": True, "series": True}
 )
 # Direct ``Comic`` attribute → metadata key mapping. Mirrors the
 # manifest-side map in ``codex/views/opds/v2/manifest.py``; kept
@@ -45,8 +45,8 @@ _PUBLICATION_DIRECT_FIELDS: Final[MappingProxyType[str, str]] = MappingProxyType
 # so OPDS2 clients can navigate to the publisher/imprint feed.
 _CONTRIBUTOR_GROUP_MAP: Final[MappingProxyType[str, str]] = MappingProxyType(
     {
-        "publisher": "p",
-        "imprint": "i",
+        "publisher": "publishers",
+        "imprint": "imprints",
     }
 )
 # Role-name → metadata-key partition for OPDS2 contributor fields.
@@ -77,7 +77,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         self._auth_link = None
         super().__init__(*args, **kwargs)
 
-    def is_allowed(self, link_spec: Link | BrowserGroupModel) -> bool:
+    def is_allowed(self, link_spec: Link | BrowserCollectionModel) -> bool:
         """
         Return if the link is allowed.
 
@@ -90,10 +90,10 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         if (
             isinstance(link_spec, Link)
             and (
-                link_spec.group == "f"
+                link_spec.group == "folders"
                 or (
                     link_spec.query_params
-                    and link_spec.query_params.get("topGroup") == "f"
+                    and link_spec.query_params.get("topCollection") == "folders"
                 )
             )
         ) or isinstance(link_spec, Folder):
@@ -115,7 +115,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
 
     def _publication_metadata(self, obj, zero_pad) -> dict:
         title_filename_fallback = bool(self.admin_flags.get("folder_view"))
-        if self.kwargs.get("group") == "f":
+        if self.kwargs.get("collection") == "folders":
             title = Comic.get_filename(obj)
         else:
             title = Comic.get_title(
@@ -137,6 +137,25 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             md["number_of_pages"] = page_count
         return md
 
+    @staticmethod
+    def _set_layout_and_progression(md: dict, direction: str | None) -> None:
+        """
+        Map ``Comic.reading_direction`` to schema-valid metadata.
+
+        The webpub-manifest ``readingProgression`` enum is only ``rtl``/``ltr``,
+        and ``layout`` is ``fixed``/``reflowable``/``scrolled``. Page-image
+        comics are fixed-layout; vertical directions (``ttb``/``btt``, i.e.
+        webtoons) are expressed as ``layout=scrolled`` rather than an invalid
+        ``readingProgression``.
+        """
+        if not direction:
+            return
+        if direction in {"ltr", "rtl"}:
+            md["reading_progression"] = direction
+            md["layout"] = "fixed"
+        else:  # ttb / btt -> vertical scroll
+            md["layout"] = "scrolled"
+
     def _publication_contributor(self, obj, kind: str) -> dict | None:
         """Build a Readium Contributor for publisher/imprint with a browse link."""
         name = getattr(obj, f"{kind}_name", None)
@@ -149,8 +168,8 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         group = _CONTRIBUTOR_GROUP_MAP[kind]
         ts = self._obj_ts(obj)
         href_data = HrefData(
-            {"group": group, "pks": (pk,), "page": 1},
-            {"ts": ts, "topGroup": "p"},
+            {"collection": group, "pks": (pk,), "page": 1},
+            {"ts": ts, "topCollection": "publishers"},
             url_name="opds:v2:feed",
         )
         link_data = LinkData(Rel.SUB, href_data, mime_type=MimeType.OPDS_JSON)
@@ -220,7 +239,7 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
         )
 
         # Progression Link
-        prog_kwargs = {"group": "c", "pk": obj.pk}
+        prog_kwargs = {"group": "comics", "pk": obj.pk}
         prog_link = self._publication_link(
             prog_kwargs, "opds:v2:position", Rel.PROGRESSION, MimeType.PROGRESSION
         )
@@ -431,8 +450,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # Special-case transforms (mirror manifest semantics).
         if lang := getattr(obj, "language", None):
             md["language"] = lang.name
-        if layout := getattr(obj, "reading_direction", None):
-            md["layout"] = "scrolled" if layout == "ttb" else layout
+        self._set_layout_and_progression(md, getattr(obj, "reading_direction", None))
 
         # Pre-batched per-pk credit + subject hydration (set up by
         # ``get_publications`` before the loop).
@@ -453,7 +471,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
     def _get_publications_links(self, link_spec) -> list:
         if not link_spec:
             return []
-        kwargs = {"group": link_spec.group, "pks": (0,), "page": 1}
+        kwargs = {"collection": link_spec.group, "pks": (0,), "page": 1}
         href_data = HrefData(kwargs, link_spec.query_params, inherit_query_params=True)
         # Must be rel="self" for Stump to add View All
         link_data = LinkData(Rel.SELF, href_data=href_data, title=link_spec.title)
@@ -484,11 +502,13 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         zero_pad: int,
         title: str,
         subtitle: str = "",
-        items_per_page=BROWSER_MAX_OBJ_PER_PAGE,
+        items_per_page: int | None = None,
         link_spec=None,
         number_of_items: int | None = None,
     ) -> list:
         """Get publications section."""
+        if items_per_page is None:
+            items_per_page = get_browser_max_obj_per_page()
         # Materialize once so we can pre-fetch credits + subjects for
         # the full pk slice before the per-publication loop. Without
         # this the loop's ``_publication_metadata`` would fan out into
@@ -531,12 +551,12 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
         feed_view._admin_flags = self.admin_flags  # noqa: SLF001
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
-        group = link_spec.group
-        feed_view.kwargs = {"group": group, "pks": [0], "page": 1}
+        feed_view.kwargs = {"collection": link_spec.group, "pks": [0], "page": 1}
         params = self.get_browser_default_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
-                params[snakecase(key)] = value
+                snake_key = snakecase(key)
+                params[snake_key] = value
         params["show"].update(_PREVIEW_SHOW_PARAMS)
         params["limit"] = _PUBLICATION_PREVIEW_LIMIT
 

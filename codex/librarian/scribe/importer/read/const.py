@@ -2,13 +2,11 @@
 
 from types import MappingProxyType
 
-from comicbox.schemas.comicbox import (
+from comicbox.formats.comicbox.schema import (
     ARCS_KEY,
     CHARACTERS_KEY,
     DESIGNATION_KEY,
     GENRES_KEY,
-    ID_KEY_KEY,
-    ID_URL_KEY,
     IDENTIFIERS_KEY,
     LOCATIONS_KEY,
     NUMBER_KEY,
@@ -19,6 +17,7 @@ from comicbox.schemas.comicbox import (
     TAGS_KEY,
     TEAMS_KEY,
 )
+from comicbox.identifiers import ID_KEY_KEY, ID_URL_KEY
 from django.db.models.fields import Field
 
 from codex.librarian.scribe.importer.const import (

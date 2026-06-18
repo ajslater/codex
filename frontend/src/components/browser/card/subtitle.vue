@@ -43,16 +43,17 @@ export default {
     ...mapState(useBrowserStore, {
       orderByFilename: (state) => state.settings.orderBy === "filename",
       orderByName: (state) => state.settings.orderBy === "sort_name",
-      topGroup: (state) => state.settings.topGroup,
-      showSeries: (state) => state.settings.show["s"],
-      showVolume: (state) => state.settings.show["v"],
+      topCollection: (state) => state.settings.topCollection,
+      showSeries: (state) => state.settings.show["series"],
+      showVolume: (state) => state.settings.show["volumes"],
       zeroPad: (state) => state.page.zeroPad,
       alwaysShowFilename: (state) => state.settings.alwaysShowFilename,
     }),
     seriesName() {
       if (
-        (this.topGroup === "a" || (this.orderByName && !this.showSeries)) &&
-        ["c", "v"].includes(this.item.group) &&
+        (this.topCollection === "arcs" ||
+          (this.orderByName && !this.showSeries)) &&
+        ["comics", "volumes"].includes(this.item.collection) &&
         this.item.seriesName
       ) {
         return this.item.seriesName;
@@ -61,8 +62,9 @@ export default {
     },
     volumeName() {
       if (
-        (this.topGroup === "a" || (this.orderByName && !this.showVolume)) &&
-        this.item.group === "c" &&
+        (this.topCollection === "arcs" ||
+          (this.orderByName && !this.showVolume)) &&
+        this.item.collection === "comics" &&
         this.item.volumeName
       ) {
         return formattedVolumeName(
@@ -74,16 +76,16 @@ export default {
     },
     headerName() {
       let hn;
-      switch (this.item.group) {
-        case "i":
+      switch (this.item.collection) {
+        case "imprints":
           hn = this.item.publisherName;
           break;
-        case "v":
+        case "volumes":
           hn = this.item.seriesName;
           break;
-        case "c":
+        case "comics":
           hn =
-            this.$route.params.group === "f"
+            this.$route.params.collection === "folders"
               ? getFullComicName(this.item, this.zeroPad)
               : getIssueName(this.item, this.zeroPad);
           break;
@@ -96,19 +98,19 @@ export default {
       return hn;
     },
     displayName() {
-      return this.item.group === "v"
+      return this.item.collection === "volumes"
         ? formattedVolumeName(this.item.name, this.item.numberTo)
         : this.item.name;
     },
     fileName() {
       return !this.orderByFilename &&
-        (this.alwaysShowFilename || this.topGroup === "f")
+        (this.alwaysShowFilename || this.topCollection === "folders")
         ? this.item.fileName
         : "";
     },
     linkLabel() {
       let label = "";
-      label += this.item.group === "c" ? "Read" : "Browse to";
+      label += this.item.collection === "comics" ? "Read" : "Browse to";
       label += " " + this.headerName;
       return label;
     },

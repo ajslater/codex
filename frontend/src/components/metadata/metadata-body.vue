@@ -35,7 +35,7 @@
       </div>
       <div class="lastSmallRow">
         <MetadataText
-          group="f"
+          collection="folders"
           :value="{ pk: md.parentFolderId, name: md.path }"
           label="Path"
         />
@@ -99,7 +99,7 @@ export default {
       return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;
     },
     sizeLabel() {
-      return this?.md?.group === "c" ? "Size" : "Total Size";
+      return this?.md?.collection === "comics" ? "Size" : "Total Size";
     },
     fileType() {
       return this?.md?.fileType || "Unknown";

@@ -22,7 +22,6 @@ from codex.settings import (
     FTS_INTEGRITY_CHECK,
     INTEGRITY_CHECK,
 )
-from codex.startup.custom_cover_libraries import cleanup_custom_cover_libraries
 from codex.version import VERSION
 
 _REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
@@ -58,8 +57,10 @@ def _has_unapplied_migrations() -> bool:
 
 
 def _get_backup_db_path(prefix):
-    suffix = f".{prefix}{BACKUP_DB_PATH.suffix}"
-    return BACKUP_DB_PATH.with_suffix(suffix)
+    # e.g. ``backups/codex.sqlite3.before-v1.2.3.bak``. ``backup_db`` appends
+    # ``.xz`` for the compressed before-upgrade backup; ``_rebuild_db`` renames
+    # the corrupt DB onto the uncompressed ``.bak`` path as-is.
+    return BACKUP_DB_PATH.with_name(f"{DB_PATH.name}.{prefix}.bak")
 
 
 def _backup_db_before_migration() -> None:
@@ -88,7 +89,6 @@ def _repair_db(log, *, will_migrate: bool) -> None:
         fix_foreign_keys(log)
     if INTEGRITY_CHECK or will_migrate:
         integrity_check(log, long=True)
-    cleanup_custom_cover_libraries(log)
 
 
 def _queue_post_migration_fts_tasks(log) -> None:

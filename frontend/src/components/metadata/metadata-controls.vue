@@ -13,10 +13,10 @@
       :size="size"
     />
     <FavoriteToggle
-      v-if="favoritePk"
+      v-if="favoritePks.length"
       id="favoriteButton"
-      :group="group"
-      :pk="favoritePk"
+      :collection="controlBook.collection"
+      :pks="favoritePks"
     />
     <v-btn
       v-if="isReadButtonShown"
@@ -29,6 +29,21 @@
       <v-icon>{{ readButtonIcon }}</v-icon>
       Read
     </v-btn>
+    <OnlineTagLauncherDialog
+      v-if="isUserAdmin"
+      :book="controlBook"
+      :identifiers="md?.identifiers"
+      :size="size"
+      @started="$emit('onlineTagStarted')"
+    />
+    <v-btn
+      v-if="isUserAdmin"
+      variant="tonal"
+      :size="size"
+      @click="$emit('editTags')"
+    >
+      Edit Tags
+    </v-btn>
   </section>
 </template>
 
@@ -40,17 +55,22 @@ import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
+import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import { getReaderRoute } from "@/route";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
-const GROUP_MAP = Object.freeze({
-  p: "publisher",
-  i: "imprint",
-  s: "series",
-  v: "volume",
-  f: "folder",
-  a: "storyArc",
+// Maps a collection value to its singular metadata-list prefix
+// (``md.publisherList`` etc.). Keyed by collection name now — the old
+// single-char keys never matched the collection-valued ``md.collection``.
+const COLLECTION_PREFIX_MAP = Object.freeze({
+  publishers: "publisher",
+  imprints: "imprint",
+  series: "series",
+  volumes: "volume",
+  folders: "folder",
+  arcs: "storyArc",
 });
 
 export default {
@@ -59,14 +79,21 @@ export default {
     DownloadButton,
     FavoriteToggle,
     MarkReadButton,
+    OnlineTagLauncherDialog,
   },
   props: {
-    group: {
+    collection: {
       type: String,
       required: true,
     },
+    book: {
+      type: Object,
+      default: null,
+    },
   },
+  emits: ["editTags", "onlineTagStarted"],
   computed: {
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
@@ -81,10 +108,10 @@ export default {
       } else if (md.fileName) {
         name = md.fileName;
       } else {
-        if (this.md.group === "f") {
+        if (this.md.collection === "folders") {
           return [this.firstNameFromList(md.folderList)];
         }
-        if (this.md.group === "a") {
+        if (this.md.collection === "arcs") {
           return [this.firstNameFromList(md.storyArcList)];
         }
         const names = [
@@ -101,7 +128,7 @@ export default {
     },
     downloadItem() {
       return {
-        group: this.md?.group,
+        collection: this.md?.collection,
         ids: this.md?.ids,
         childCount: this.md?.childCount,
         mtime: this.md?.mtime,
@@ -109,26 +136,33 @@ export default {
       };
     },
     isReadButtonShown() {
-      return this.group === "c" && this.$route.name != "reader";
-    },
-    favoritePk() {
       /*
-       * The metadata header only renders this control row when a
-       * single-target view is active, so ``ids`` will normally be a
-       * one-element list. The toggle drives a single backend row, so
-       * hide the star for any unexpected multi-id payload rather
-       * than guessing which target to write.
+       * The control row now renders for multi-select too. "Read" opens
+       * a single comic, so only show it when the selection resolves to
+       * exactly one comic — never the arbitrary "first of N selected".
        */
-      const ids = this.md?.ids;
-      if (!Array.isArray(ids) || ids.length !== 1) return undefined;
-      return ids[0];
+      return (
+        this.collection === "comics" &&
+        this.$route.name != "reader" &&
+        (this.md?.ids?.length ?? 0) === 1
+      );
+    },
+    favoritePks() {
+      /*
+       * Favorite the selection target itself (``controlBook`` = the
+       * card item or the multi-select composite), keyed by its own
+       * collection + ids — never ``md.ids`` (the tag aggregate). The
+       * star handles one or many; bulk-favorites the whole selection.
+       */
+      const ids = this.controlBook?.ids;
+      return Array.isArray(ids) ? ids.map(Number) : [];
     },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);
     },
     markReadItem() {
       let name = "";
-      const prefix = GROUP_MAP[this.md.group];
+      const prefix = COLLECTION_PREFIX_MAP[this.md.collection];
       if (prefix) {
         const nameList = this.md[prefix + "List"] || [];
         const names = nameList.map(({ name }) => name);
@@ -137,7 +171,7 @@ export default {
         name = this.md.name;
       }
       return {
-        group: this.md.group,
+        collection: this.md.collection,
         ids: this.md.ids,
         finished: this.md.finished,
         name,
@@ -149,6 +183,16 @@ export default {
     },
     readerRoute() {
       return this.md?.ids ? getReaderRoute(this.md, this.importMetadata) : {};
+    },
+    controlBook() {
+      return (
+        this.book || {
+          collection: this.md?.collection,
+          pk: this.md?.ids?.[0],
+          ids: this.md?.ids,
+          childCount: this.md?.childCount,
+        }
+      );
     },
     size() {
       return this.$vuetify.display.smAndDown ? "x-small" : "default";

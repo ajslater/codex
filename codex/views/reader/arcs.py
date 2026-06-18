@@ -1,25 +1,36 @@
 """Reader get Arcs methods."""
 
 from functools import cached_property
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db.models import Max
 
 from codex.choices.admin import AdminFlagChoices
+from codex.collection import Collection
 from codex.models import AdminFlag
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
 from codex.models.named import StoryArc
 from codex.util import max_none
 from codex.views.const import (
-    STORY_ARC_GROUP,
+    STORY_ARC_COLLECTION,
 )
 from codex.views.reader.params import ReaderParamsView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-_COMIC_ARC_FIELD_NAMES = ("series", "volume", "parent_folder")
+# Comic FK attribute → the browse collection it represents as a reader arc.
+# Drives both the ``show`` gate and the ``arcs`` dict key (collection-valued).
+_COMIC_ARC_FIELD_COLLECTIONS = MappingProxyType(
+    {
+        "series": Collection.SERIES,
+        "volume": Collection.VOLUME,
+        "parent_folder": Collection.FOLDER,
+    }
+)
+_COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_COLLECTIONS)
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -33,14 +44,14 @@ class ReaderArcsView(ReaderParamsView):
         show: Mapping = self.get_from_settings("show", browser=True) or {}
         folder_view_allowed: bool = self._reader_folder_view_enabled
         field_names = []
-        for field_name in _COMIC_ARC_FIELD_NAMES:
+        for field_name, collection in _COMIC_ARC_FIELD_COLLECTIONS.items():
             if field_name == "parent_folder":
                 if not folder_view_allowed:
                     continue
-            else:
-                group = field_name[0]
-                if not show.get(group):
-                    continue
+            elif not show.get(collection):
+                # ``show`` is keyed by collection name now (publishers/…);
+                # ``collection`` is the matching ``Collection`` member.
+                continue
             field_names.append(field_name)
         return tuple(field_names)
 
@@ -61,20 +72,20 @@ class ReaderArcsView(ReaderParamsView):
         )
 
     @staticmethod
-    def _get_group_arc(
+    def _get_collection_arc(
         comic: Comic,
         field_name: str,
         arcs: dict,
         max_mtime: int | None,
     ):
         """Append the series, volume, or folder arc from the comic's own FKs."""
-        group = getattr(comic, field_name)
-        arc_ids = (group.pk,)
-        mtime = group.updated_at
+        collection = getattr(comic, field_name)
+        arc_ids = (collection.pk,)
+        mtime = collection.updated_at
         max_mtime = max_none(max_mtime, mtime)
 
-        group_letter = "f" if field_name == "parent_folder" else field_name[0]
-        arcs[group_letter] = {arc_ids: {"name": group.name, "mtime": mtime}}
+        arc_collection = _COMIC_ARC_FIELD_COLLECTIONS[field_name]
+        arcs[arc_collection] = {arc_ids: {"name": collection.name, "mtime": mtime}}
         return max_mtime
 
     def _get_story_arcs(self, comic: Comic, arcs, max_mtime: int | None):
@@ -96,25 +107,25 @@ class ReaderArcsView(ReaderParamsView):
         )
         qs = qs.order_by("sort_name").only("name")
 
-        arcs[STORY_ARC_GROUP] = {}
+        arcs[STORY_ARC_COLLECTION] = {}
 
         for sa in qs:
             ids = tuple(sorted(set(sa.ids)))
             mtime = sa.mtime
-            arcs[STORY_ARC_GROUP][ids] = {"name": sa.name, "mtime": mtime}
+            arcs[STORY_ARC_COLLECTION][ids] = {"name": sa.name, "mtime": mtime}
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
     def _set_selected_arc(self, arcs) -> None:
         arc = self.params["arc"]
-        arc_group = arc["group"]
+        arc_collection = arc["collection"]
         requested_arc_ids = arc.get("ids", ())
-        arc_id_infos = arcs.get(arc_group)
+        arc_id_infos = arcs.get(arc_collection)
         all_arc_ids: frozenset[tuple[int, ...]] = (
             frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
         )
         arc_ids = ()
-        if arc_group == STORY_ARC_GROUP:
+        if arc_collection == STORY_ARC_COLLECTION:
             if requested_arc_ids in all_arc_ids:
                 arc_ids = requested_arc_ids
             else:
@@ -127,7 +138,7 @@ class ReaderArcsView(ReaderParamsView):
                         break
         if not arc_ids:
             arc_ids = next(iter(all_arc_ids))
-        self._selected_arc_group = arc_group
+        self._selected_arc_collection = arc_collection
         self._selected_arc_ids = arc_ids
 
     def get_arcs(self) -> tuple[dict, int | None]:
@@ -143,7 +154,7 @@ class ReaderArcsView(ReaderParamsView):
         arcs = {}
         max_mtime = None
         for field_name in field_names:
-            max_mtime = self._get_group_arc(comic, field_name, arcs, max_mtime)
+            max_mtime = self._get_collection_arc(comic, field_name, arcs, max_mtime)
         max_mtime = self._get_story_arcs(comic, arcs, max_mtime)
         self._set_selected_arc(arcs)
         return arcs, max_mtime

@@ -1,5 +1,5 @@
 <template>
-  <div id="jobs" class="adminContainer">
+  <div id="jobs" class="adminReadingColumn">
     <div class="adminCard">
       <div id="lastTaskLabel">Last Job Queued</div>
       <div id="lastJobResult">
@@ -10,17 +10,20 @@
         <span v-else id="noRecentTask">No recent job</span>
       </div>
     </div>
-    <div v-for="group in ADMIN_JOBS" :key="group.title" class="adminGroup">
-      <div class="adminGroupHeader">
-        <h3>{{ group.title }}</h3>
+    <AdminSection
+      v-for="group in ADMIN_JOBS"
+      :key="group.title"
+      :title="group.title"
+    >
+      <template v-if="group.abort && isGroupActive(group)" #actions>
         <v-btn
-          v-if="group.abort && isGroupActive(group)"
           size="small"
+          variant="tonal"
           color="error"
           text="Stop"
           @click="librarianTask(group.abort, 'Abort ' + group.title)"
         />
-      </div>
+      </template>
       <!-- Select-style group (Notify) -->
       <div v-if="isSelectGroup(group.title)" class="adminCard">
         <v-select
@@ -30,6 +33,7 @@
         />
         <v-btn
           block
+          variant="tonal"
           :text="'Notify ' + groupSelectAttr(group.title, 'title')"
           @click="
             librarianTask(
@@ -88,18 +92,21 @@
                 :text="activeConfirm(job)"
                 :block="false"
                 confirm-text="Confirm"
+                variant="tonal"
                 size="small"
                 @confirm="librarianTask(activeValue(job), activeTitle(job))"
               />
               <v-btn
                 v-else
                 size="small"
+                variant="tonal"
                 text="Start"
                 @click="librarianTask(activeValue(job), activeTitle(job))"
               />
               <v-btn
                 v-if="job.abort && isJobActive(job)"
                 size="small"
+                variant="tonal"
                 color="error"
                 class="abortBtn"
                 text="Stop"
@@ -109,14 +116,11 @@
           </div>
           <!-- Expandable sub-statuses -->
           <div v-if="jobStatuses(job).length > 0" class="jobStatusSection">
-            <button class="expandToggle" @click="toggleExpand(job.value)">
-              <v-icon size="small">
-                {{ isExpanded(job) ? mdiChevronUp : mdiChevronDown }}
-              </v-icon>
-              <span class="expandLabel">
-                {{ jobStatusSummary(job) }}
-              </span>
-            </button>
+            <AdminExpandToggle
+              :model-value="isExpanded(job)"
+              :label="jobStatusSummary(job)"
+              @update:model-value="toggleExpand(job.value)"
+            />
             <v-expand-transition>
               <!--
                 No click handler on the expanded panel. The previous
@@ -173,8 +177,11 @@
                     "
                     class="statusDetails"
                   >
-                    <span v-if="status.subtitle" class="statusSubtitle">
-                      {{ status.subtitle }}
+                    <span v-if="subtitleText(status)" class="statusSubtitle">
+                      {{ subtitleText(status) }}
+                    </span>
+                    <span v-if="etaText(status)" class="statusEta">
+                      {{ etaText(status) }}
                     </span>
                     <span v-if="hasNumbers(status)" class="statusNumbers">
                       <span v-if="Number.isInteger(status.complete)">
@@ -206,19 +213,22 @@
           </div>
         </div>
       </div>
-    </div>
+    </AdminSection>
   </div>
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
+import AdminSection from "@/components/admin/tabs/admin-section.vue";
+import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
 import {
+  etaRemaining,
   hasNumbers,
   isIndeterminate,
   nf,
+  retryRemaining,
   statusDuration,
   statusProgress,
   statusTitle,
@@ -236,6 +246,8 @@ Object.freeze(ADMIN_JOBS);
 export default {
   name: "AdminJobsTab",
   components: {
+    AdminExpandToggle,
+    AdminSection,
     ConfirmDialog,
   },
   setup() {
@@ -245,8 +257,6 @@ export default {
   data() {
     return {
       ADMIN_JOBS,
-      mdiChevronDown,
-      mdiChevronUp,
       // Per-variant-job selected variant value, keyed by job.value.
       variantSelections: {},
       // Per-group select value for SELECT_GROUPS (Notify).
@@ -287,7 +297,6 @@ export default {
         for (const job of group.jobs) {
           if (job.value !== NIGHTLY_JOB_VALUE) continue;
           for (const code of job.statuses || []) {
-            // eslint-disable-next-line security/detect-object-injection
             const status = this.allStatuses[code];
             if (status && status.preactive !== null) {
               preactiveCount++;
@@ -363,7 +372,6 @@ export default {
       }
       const result = [];
       for (const code of job.statuses) {
-        // eslint-disable-next-line security/detect-object-injection
         const status = this.allStatuses[code];
         if (status) {
           result.push(status);
@@ -400,10 +408,9 @@ export default {
     toggleExpand(value) {
       const current =
         value in this.manualExpanded
-          ? // eslint-disable-next-line security/detect-object-injection
-            this.manualExpanded[value]
+          ? this.manualExpanded[value]
           : this.hasActiveOrPreactiveStatuses({ value, statuses: [] });
-      // eslint-disable-next-line security/detect-object-injection
+
       this.manualExpanded[value] = !current;
     },
     jobStatusSummary(job) {
@@ -436,6 +443,13 @@ export default {
     getStatusUpdatedAgo(status) {
       return statusUpdatedAgo(status, this.now);
     },
+    subtitleText(status) {
+      const retry = retryRemaining(status, this.now);
+      return [status.subtitle, retry].filter(Boolean).join(" · ");
+    },
+    etaText(status) {
+      return etaRemaining(status, this.now);
+    },
     jobLastRun(job) {
       if (!job.statuses || job.statuses.length === 0) {
         return "";
@@ -446,7 +460,6 @@ export default {
        */
       let latest = 0;
       for (const code of job.statuses) {
-        // eslint-disable-next-line security/detect-object-injection
         const status = this.allStatuses[code];
         if (!status) continue;
         if (status.active !== null || status.preactive !== null) {
@@ -523,26 +536,6 @@ export default {
   padding-top: 6px;
 }
 
-.expandToggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: rgb(var(--v-theme-textSecondary));
-  cursor: pointer;
-  font-size: 0.8em;
-  padding: 2px 0;
-
-  &:hover {
-    color: rgb(var(--v-theme-textPrimary));
-  }
-}
-
-.expandLabel {
-  user-select: none;
-}
-
 .statusRows {
   padding-top: 4px;
 }
@@ -603,6 +596,11 @@ export default {
   overflow-x: auto;
   flex: 1;
   min-width: 0;
+}
+
+.statusEta {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .statusNumbers {

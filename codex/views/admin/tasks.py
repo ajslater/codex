@@ -40,7 +40,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanupBookmarksTask,
     JanitorCleanupFavoritesTask,
     JanitorCleanupSessionsTask,
+    JanitorCleanupSettingsTask,
+    JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
+    JanitorDumpUserDataTask,
+    JanitorFolderRelationsCheckTask,
     JanitorForeignKeyCheckTask,
     JanitorFTSIntegrityCheckTask,
     JanitorFTSRebuildTask,
@@ -59,7 +63,7 @@ from codex.librarian.scribe.tasks import (
     CleanupAbortTask,
     ImportAbortTask,
     SearchIndexSyncAbortTask,
-    UpdateGroupsTask,
+    UpdateCollectionsTask,
 )
 from codex.librarian.tasks import LibrarianTask
 from codex.models import LibrarianStatus
@@ -68,6 +72,7 @@ from codex.serializers.mixins import OKSerializer
 from codex.serializers.models.admin import LibrarianStatusSerializer
 from codex.views.admin.auth import AdminAPIView, AsyncAdminReadOnlyModelViewSet
 from codex.views.const import EPOCH_START
+from codex.views.pagination import LibrarianStatusCursorPagination
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -86,7 +91,9 @@ _TASK_MAP = MappingProxyType(
         "search_index_clear": SearchIndexClearTask(),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
+        "dump_user_data": JanitorDumpUserDataTask(),
         "db_foreign_key_check": JanitorForeignKeyCheckTask(),
+        "db_folder_relations_check": JanitorFolderRelationsCheckTask(),
         "db_integrity_check": JanitorIntegrityCheckTask(),
         "db_fts_integrity_check": JanitorFTSIntegrityCheckTask(),
         "db_fts_rebuild": JanitorFTSRebuildTask(),
@@ -106,14 +113,16 @@ _TASK_MAP = MappingProxyType(
         "cleanup_db_custom_covers": JanitorCleanCoversTask(),
         "cleanup_sessions": JanitorCleanupSessionsTask(),
         "cleanup_bookmarks": JanitorCleanupBookmarksTask(),
+        "cleanup_settings": JanitorCleanupSettingsTask(),
         "cleanup_favorites": JanitorCleanupFavoritesTask(),
+        "cleanup_tagging_state": JanitorCleanupTaggingStateTask(),
         "cleanup_covers": CoverRemoveOrphansTask(),
         "librarian_clear_status": ClearLibrarianStatusTask(),
         "force_update_all_failed_imports": JanitorImportForceAllFailedTask(),
         "poll": FSPollLibrariesTask(frozenset(), force=False),
         "poll_force": FSPollLibrariesTask(frozenset(), force=True),
         "janitor_nightly": JanitorNightlyTask(),
-        "force_update_groups": UpdateGroupsTask(start_time=EPOCH_START),
+        "force_update_collections": UpdateCollectionsTask(start_time=EPOCH_START),
         "adopt_folders": JanitorAdoptOrphanFoldersTask(),
     }
 )
@@ -133,6 +142,9 @@ class AdminLibrarianStatusViewSet(AsyncAdminReadOnlyModelViewSet):
     """
 
     serializer_class = LibrarianStatusSerializer
+    # The pagination ordering must match the get_queryset order below —
+    # CursorPagination re-orders the queryset itself.
+    pagination_class = LibrarianStatusCursorPagination
     # Set per-route at ``as_view()`` time. ``True`` for the live status
     # poller; ``False`` for the Jobs tab's full history view.
     active_only: ClassVar[bool] = False

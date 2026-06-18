@@ -12,7 +12,8 @@ from rest_framework.response import Response
 
 from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
-from codex.settings import BROWSER_MAX_OBJ_PER_PAGE, FALSY
+from codex.settings import FALSY
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.start import OPDSStartViewMixin
@@ -30,6 +31,9 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     input_serializer_class = OPDSSettingsSerializer
 
     IS_START_PAGE: bool = False
+    # The collection feed URLs carry no page segment; AuthMixin pulls
+    # ``page`` from ``?page=`` (defaulting to 1) on the way in.
+    requires_page = True
 
     def _subtitle_filters(self) -> list[str]:
         parts: list[str] = []
@@ -82,8 +86,8 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             pks = self.kwargs["pks"]
             if not parent_name and not pks:
                 parent_name = "All"
-            group_name = browser_title.get("group_name")
-            result = " ".join(filter(None, (parent_name, group_name))).strip()
+            collection_name = browser_title.get("collection_name")
+            result = " ".join(filter(None, (parent_name, collection_name))).strip()
 
         if not result:
             result = BLANK_TITLE
@@ -91,12 +95,12 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
         return result
 
     def _feed_metadata(self, title: str, mtime: datetime | None) -> MappingProxyType:
-        number_of_items = self._opds_number_of_books + self._opds_number_of_groups
+        number_of_items = self._opds_number_of_books + self._opds_number_of_collections
         current_page = self.kwargs.get("page")
         md = {
             "title": title,
             "number_of_items": number_of_items,
-            "items_per_page": BROWSER_MAX_OBJ_PER_PAGE,
+            "items_per_page": get_browser_max_obj_per_page(),
             "current_page": current_page,
         }
         if mtime:
@@ -107,7 +111,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
     def _feed_navigation_and_groups(
         self,
-        group_qs: QuerySet,
+        collection_qs: QuerySet,
         book_qs: QuerySet,
         zero_pad: int | None,
         title: str,
@@ -124,7 +128,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             # Move the first group's navigation to become the feed navigation.
             # The feed navigation is titled "Browse"" in Stump
             zero_pad = zero_pad or 0
-            regular_groups = self.get_groups(group_qs, book_qs, title, zero_pad)
+            regular_groups = self.get_groups(collection_qs, book_qs, title, zero_pad)
             first_regular_group = next(iter(regular_groups), {})
             navigation = first_regular_group.pop("navigation", [])
 
@@ -146,7 +150,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
     @override
     def get_object(self) -> MappingProxyType:
         """Get the browser page and serialize it for this subclass."""
-        group_qs, book_qs, _, _, zero_pad, mtime = self.group_and_books
+        collection_qs, book_qs, _, _, zero_pad, mtime, _ = self.collection_and_books
         # convert browser_page into opds pagej
         browser_title = self.get_browser_page_title()
         title = "Start" if self.IS_START_PAGE else self._title(browser_title)
@@ -160,7 +164,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
         # Navigation & Groups
         navigation, groups, publications = self._feed_navigation_and_groups(
-            group_qs, book_qs, zero_pad, title
+            collection_qs, book_qs, zero_pad, title
         )
         metadata = self._update_feed_modified(metadata, groups)
 

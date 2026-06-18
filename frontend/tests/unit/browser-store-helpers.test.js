@@ -6,10 +6,10 @@
  *
  * ``filterShowGatedDefaults`` mirrors the backend's
  * ``default_columns_filtered`` logic: imprint_name / volume_name lead
- * the per-top-group default column tuples, but the user's show.i /
- * show.v flags gate them. If the user hides imprints from breadcrumb
- * navigation, they almost certainly don't want imprint_name leading
- * their default column set either.
+ * the per-top-group default column tuples, but the user's show.imprints
+ * / show.volumes flags gate them. If the user hides imprints from
+ * breadcrumb navigation, they almost certainly don't want imprint_name
+ * leading their default column set either.
  */
 import { describe, expect, it } from "vitest";
 
@@ -18,25 +18,37 @@ import { filterShowGatedDefaults } from "@/stores/browser";
 describe("filterShowGatedDefaults", () => {
   it("returns the input untouched when both show flags are on", () => {
     const cols = ["imprint_name", "volume_name", "issue", "page_count"];
-    const out = filterShowGatedDefaults(cols, { i: true, v: true });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: true,
+      volumes: true,
+    });
     expect(out).toStrictEqual(cols);
   });
 
-  it("removes imprint_name when show.i is false", () => {
+  it("removes imprint_name when show.imprints is false", () => {
     const cols = ["imprint_name", "volume_name", "issue"];
-    const out = filterShowGatedDefaults(cols, { i: false, v: true });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: false,
+      volumes: true,
+    });
     expect(out).toStrictEqual(["volume_name", "issue"]);
   });
 
-  it("removes volume_name when show.v is false", () => {
+  it("removes volume_name when show.volumes is false", () => {
     const cols = ["imprint_name", "volume_name", "issue"];
-    const out = filterShowGatedDefaults(cols, { i: true, v: false });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: true,
+      volumes: false,
+    });
     expect(out).toStrictEqual(["imprint_name", "issue"]);
   });
 
   it("removes both gated columns when both flags are off", () => {
     const cols = ["imprint_name", "volume_name", "issue"];
-    const out = filterShowGatedDefaults(cols, { i: false, v: false });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: false,
+      volumes: false,
+    });
     expect(out).toStrictEqual(["issue"]);
   });
 
@@ -48,7 +60,10 @@ describe("filterShowGatedDefaults", () => {
       "volume_name",
       "issue",
     ];
-    const out = filterShowGatedDefaults(cols, { i: false, v: false });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: false,
+      volumes: false,
+    });
     expect(out).toStrictEqual(["publisher_name", "series_name", "issue"]);
   });
 
@@ -56,28 +71,33 @@ describe("filterShowGatedDefaults", () => {
     /*
      * The gate is name-based, not position-based — if a hypothetical
      * caller put imprint_name in the middle, it would still be
-     * filtered out when show.i is off. (Defaults in practice always
+     * filtered out when show.imprints is off. (Defaults in practice always
      * lead with the gated names, but the helper doesn't enforce
      * that.)
      */
     const cols = ["issue", "imprint_name", "page_count"];
-    const out = filterShowGatedDefaults(cols, { i: false, v: true });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: false,
+      volumes: true,
+    });
     expect(out).toStrictEqual(["issue", "page_count"]);
   });
 
   it("returns an empty array unchanged", () => {
-    expect(filterShowGatedDefaults([], { i: true, v: true })).toStrictEqual([]);
-    expect(filterShowGatedDefaults([], { i: false, v: false })).toStrictEqual(
-      [],
-    );
+    expect(
+      filterShowGatedDefaults([], { imprints: true, volumes: true }),
+    ).toStrictEqual([]);
+    expect(
+      filterShowGatedDefaults([], { imprints: false, volumes: false }),
+    ).toStrictEqual([]);
   });
 
   it("returns [] for null / undefined cols (defensive)", () => {
-    expect(filterShowGatedDefaults(null, { i: true, v: true })).toStrictEqual(
-      [],
-    );
     expect(
-      filterShowGatedDefaults(undefined, { i: true, v: true }),
+      filterShowGatedDefaults(null, { imprints: true, volumes: true }),
+    ).toStrictEqual([]);
+    expect(
+      filterShowGatedDefaults(undefined, { imprints: true, volumes: true }),
     ).toStrictEqual([]);
   });
 
@@ -102,7 +122,7 @@ describe("filterShowGatedDefaults", () => {
   it("does not mutate the input array", () => {
     const cols = ["imprint_name", "volume_name", "issue"];
     const snapshot = [...cols];
-    filterShowGatedDefaults(cols, { i: false, v: false });
+    filterShowGatedDefaults(cols, { imprints: false, volumes: false });
     expect(cols).toStrictEqual(snapshot);
   });
 
@@ -113,7 +133,10 @@ describe("filterShowGatedDefaults", () => {
      * flags are on, the helper hands back the same array.
      */
     const cols = ["imprint_name", "volume_name", "issue"];
-    const out = filterShowGatedDefaults(cols, { i: true, v: true });
+    const out = filterShowGatedDefaults(cols, {
+      imprints: true,
+      volumes: true,
+    });
     expect(out).toBe(cols);
   });
 });

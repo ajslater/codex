@@ -41,19 +41,23 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JAF",
     "IMF",
     "JIF",
+    "JFR",
     "JID",
     "JIS",
     "JCT",
     "JRV",
     "JRS",
     "JRB",
+    "JAS",
     "JRF",
+    "JTG",
     "SIR",
     "SSU",
     "SSC",
     "SIO",
     "JDO",
     "JDB",
+    "JDU",
     "CFO",
     "CRC",
 )
@@ -128,13 +132,61 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "statuses": ("CCC",),
                     },
                     {
-                        "value": "force_update_groups",
-                        "title": "Update Group Timestamps",
+                        "value": "force_update_collections",
+                        "title": "Update Collection Timestamps",
                         "desc": (
-                            "Force the update of group timestamps. Will bust"
+                            "Force the update of collection timestamps. Will bust"
                             " the browser cache for browser views and covers."
                         ),
                         "statuses": ("IGU",),
+                    },
+                ),
+            },
+            {
+                "title": "Database",
+                "jobs": (
+                    {
+                        "value": "db_vacuum",
+                        "title": "Optimize & Compact Database",
+                        "desc": (
+                            "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
+                        ),
+                        "statuses": ("JDO",),
+                    },
+                    {
+                        "value": "db_backup",
+                        "title": "Backup Database",
+                        "desc": "Runs nightly",
+                        "statuses": ("JDB",),
+                    },
+                    {
+                        "value": "dump_user_data",
+                        "title": "Snapshot User Data Sidecar",
+                        "desc": (
+                            "Write a dated, compressed snapshot"
+                            " (user_data.<date>.sql.xz) of every user, bookmark,"
+                            " favorite, and setting to the backups dir."
+                            " Runs nightly."
+                        ),
+                        "statuses": ("JDU",),
+                    },
+                    {
+                        "value": "db_foreign_key_check",
+                        "title": "Remove Illegal Foreign Keys",
+                        "desc": (
+                            "Check for and remove illegal foreign keys. Mark"
+                            " affected comics for update. Runs nightly."
+                        ),
+                        "statuses": ("JIF",),
+                    },
+                    {
+                        "value": "db_integrity_check",
+                        "title": "Check Database Integrity",
+                        "desc": "Check logs for results. Runs nightly.",
+                        "confirm": (
+                            "Can take a while on large databases, Are you sure?"
+                        ),
+                        "statuses": ("JID",),
                     },
                 ),
             },
@@ -203,43 +255,6 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             "Probably faster than Rebuild if the integrity check fails."
                         ),
                         "statuses": ("JSR",),
-                    },
-                ),
-            },
-            {
-                "title": "Database",
-                "jobs": (
-                    {
-                        "value": "db_vacuum",
-                        "title": "Optimize & Compact Database",
-                        "desc": (
-                            "Run the sqlite3 OPTIMIZE and VACUUM pragmas. Runs nightly"
-                        ),
-                        "statuses": ("JDO",),
-                    },
-                    {
-                        "value": "db_backup",
-                        "title": "Backup Database",
-                        "desc": "Runs nightly",
-                        "statuses": ("JDB",),
-                    },
-                    {
-                        "value": "db_foreign_key_check",
-                        "title": "Remove Illegal Foreign Keys",
-                        "desc": (
-                            "Check for and remove illegal foreign keys. Mark"
-                            " affected comics for update. Runs nightly."
-                        ),
-                        "statuses": ("JIF",),
-                    },
-                    {
-                        "value": "db_integrity_check",
-                        "title": "Check Database Integrity",
-                        "desc": "Check logs for results. Runs nightly.",
-                        "confirm": (
-                            "Can take a while on large databases, Are you sure?"
-                        ),
-                        "statuses": ("JID",),
                     },
                 ),
             },
@@ -331,6 +346,15 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "statuses": ("JRB",),
                     },
                     {
+                        "value": "cleanup_settings",
+                        "title": "Remove Orphan Settings",
+                        "desc": (
+                            "Drop browser and reader settings rows owned by no"
+                            " session or user. Runs nightly."
+                        ),
+                        "statuses": ("JAS",),
+                    },
+                    {
                         "value": "cleanup_favorites",
                         "title": "Remove Orphan Favorites",
                         "desc": (
@@ -343,10 +367,28 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "title": "Adopt Orphan Folders",
                         "desc": (
                             "Move orphaned folders from the top of the folder"
-                            " tree to under their correct parent. Runs"
-                            " nightly and at startup."
+                            " tree to under their correct parent. Runs nightly."
                         ),
                         "statuses": ("JAF",),
+                    },
+                    {
+                        "value": "db_folder_relations_check",
+                        "title": "Repair Folder Relations",
+                        "desc": (
+                            "Re-derive comic parent folders and folder"
+                            " membership from comic paths, recreate missing"
+                            " folders, and prune empty ones. Runs nightly."
+                        ),
+                        "statuses": ("JFR",),
+                    },
+                    {
+                        "value": "cleanup_tagging_state",
+                        "title": "Clear Stale Online Tagging State",
+                        "desc": (
+                            "Reset orphan online tagging session and prompt"
+                            " state. Runs nightly."
+                        ),
+                        "statuses": ("JTG",),
                     },
                     {
                         "value": "librarian_clear_status",

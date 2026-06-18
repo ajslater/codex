@@ -10,5 +10,5 @@ class ReadMetadataImporter(ExtractMetadataImporter):
 
     def read(self) -> None:
         """Extract and aggregate metadata."""
-        self.extract_metadata()
-        self.aggregate_metadata()
+        self.timed_step("read.extract", self.extract_metadata)
+        self.timed_step("read.aggregate", self.aggregate_metadata)

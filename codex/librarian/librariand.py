@@ -22,9 +22,10 @@ from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
 from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
+from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
+from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
-from codex.librarian.scribe.janitor.tasks import JanitorAdoptOrphanFoldersTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
@@ -39,6 +40,7 @@ _THREAD_CLASSES: Final[tuple[type[NamedThread], ...]] = (
     LibraryWatcherThread,
     LibraryPollerThread,
     NotifierThread,
+    OnlineTagThread,
     ScribeThread,
 )
 _THREAD_CLASS_MAP: Final[MappingProxyType[str, type[NamedThread]]] = MappingProxyType(
@@ -50,6 +52,7 @@ _THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         CoverTask: "cover_thread",
         BookmarkTask: "bookmark_thread",
         NotifierTask: "notifier_thread",
+        OnlineTagTask: "online_tag_thread",
     }
 )
 
@@ -65,10 +68,13 @@ class LibrarianDaemon(Process):
         self.queue = queue
         self.broadcast_queue = broadcast_queue
         self.status_controller = StatusController(logger_, queue)
-        startup_tasks = (
-            JanitorAdoptOrphanFoldersTask(),
-            SearchIndexSyncTask(),
-        )
+        # Startup reconciles the search index against the DB after any
+        # changes made while Codex was offline. Structural folder repair
+        # (adopt-folders, folder-relations) is intentionally *not* here:
+        # those only drift from botched imports, are idempotent no-ops
+        # when consistent, and belong after a re-poll — they run nightly
+        # and on demand instead.
+        startup_tasks = (SearchIndexSyncTask(),)
 
         for task in startup_tasks:
             self.queue.put(task)
@@ -123,6 +129,13 @@ class LibrarianDaemon(Process):
             )
             threads[name] = thread
             self.log.debug(f"Created {name} thread.")
+        # Give the scribe thread (host of the janitor) a back-reference
+        # to the online tag thread so cleanup_tagging_state can ask
+        # whether a persisted session is still in-memory.
+        scribe = threads["scribe_thread"]
+        online_tag = threads["online_tag_thread"]
+        if isinstance(scribe, ScribeThread) and isinstance(online_tag, OnlineTagThread):
+            scribe.online_tag_thread = online_tag
         self._threads = LibrarianThreads(**threads)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.log.debug("Threads created")
 

@@ -77,9 +77,9 @@ const ATTRS = Object.freeze([
 ]);
 
 const SCOPE_TYPE_TITLES = Object.freeze({
-  s: "Series Settings",
-  f: "Folder Settings",
-  a: "Story Arc Settings",
+  series: "Series Settings",
+  folders: "Folder Settings",
+  arcs: "Story Arc Settings",
 });
 
 /*
@@ -93,7 +93,6 @@ const differsFromGlobalDefaults = (settings) => {
     return false;
   }
   for (const attr of ATTRS) {
-    // eslint-disable-next-line security/detect-object-injection
     if (settings[attr] !== GLOBAL_DEFAULTS[attr]) {
       return true;
     }
@@ -142,10 +141,11 @@ export default {
     },
     intermediateTitle() {
       if (!this.intermediateInfo) {
-        return "Group Settings";
+        return "Collection Settings";
       }
       return (
-        SCOPE_TYPE_TITLES[this.intermediateInfo.scopeType] || "Group Settings"
+        SCOPE_TYPE_TITLES[this.intermediateInfo.scopeType] ||
+        "Collection Settings"
       );
     },
     intermediateName() {

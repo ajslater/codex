@@ -6,7 +6,7 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card>
-      <v-card-title> Columns for {{ topGroupLabel }} </v-card-title>
+      <v-card-title> Columns for {{ topCollectionLabel }} </v-card-title>
       <v-card-subtitle class="pickerSubtitle">
         Drag columns in the Order list to rearrange them. Toggle a column in the
         Add list to show or hide it.
@@ -96,7 +96,7 @@ import { mapActions, mapState } from "pinia";
 import BROWSER_TABLE_COLUMN_COSTS from "@/choices/browser-table-column-costs.json";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
-import { TOP_GROUP } from "@/choices/browser-map.json";
+import { TOP_COLLECTION } from "@/choices/browser-map.json";
 import { filterShowGatedDefaults, useBrowserStore } from "@/stores/browser";
 
 /*
@@ -190,8 +190,7 @@ const _CATEGORIES = Object.freeze([
 
 function _registryEntry(key) {
   return Object.hasOwn(BROWSER_TABLE_COLUMNS, key)
-    ? // eslint-disable-next-line security/detect-object-injection
-      BROWSER_TABLE_COLUMNS[key]
+    ? BROWSER_TABLE_COLUMNS[key]
     : undefined;
 }
 
@@ -235,12 +234,10 @@ function _rank(key) {
 export function smartInsertIndex(draft, key) {
   const ranks = draft.map(_rank);
   for (let i = 1; i < ranks.length; i += 1) {
-    /* eslint-disable-next-line security/detect-object-injection */
     if (ranks[i - 1] >= ranks[i]) return draft.length;
   }
   const target = _rank(key);
   for (let i = 0; i < ranks.length; i += 1) {
-    /* eslint-disable-next-line security/detect-object-injection */
     if (target < ranks[i]) return i;
   }
   return draft.length;
@@ -275,12 +272,12 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      topGroup: (state) => state.settings.topGroup,
+      topCollection: (state) => state.settings.topCollection,
       tableColumns: (state) => state.settings.tableColumns,
       show: (state) => state.settings.show,
     }),
-    topGroupLabel() {
-      return TOP_GROUP[this.topGroup] ?? this.topGroup;
+    topCollectionLabel() {
+      return TOP_COLLECTION[this.topCollection] ?? this.topCollection;
     },
     selectedSet() {
       return new Set(this.draft);
@@ -333,14 +330,10 @@ export default {
      */
     _columnRow(key, entry) {
       const cost = Object.hasOwn(BROWSER_TABLE_COLUMN_COSTS, key)
-        ? // eslint-disable-next-line security/detect-object-injection
-          BROWSER_TABLE_COLUMN_COSTS[key]
+        ? BROWSER_TABLE_COLUMN_COSTS[key]
         : null;
       const costTooltip =
-        cost && Object.hasOwn(_COST_TOOLTIPS, cost)
-          ? // eslint-disable-next-line security/detect-object-injection
-            _COST_TOOLTIPS[cost]
-          : "";
+        cost && Object.hasOwn(_COST_TOOLTIPS, cost) ? _COST_TOOLTIPS[cost] : "";
       return {
         key,
         label: entry.label,
@@ -349,12 +342,12 @@ export default {
       };
     },
     _snapshot() {
-      const stored = this.tableColumns?.[this.topGroup];
+      const stored = this.tableColumns?.[this.topCollection];
       if (Array.isArray(stored) && stored.length > 0) {
         this.draft = [...stored];
       } else {
         this.draft = filterShowGatedDefaults(
-          BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+          BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
           this.show,
         );
       }
@@ -381,7 +374,7 @@ export default {
     },
     resetToDefaults() {
       this.draft = filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[this.topGroup] ?? [],
+        BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
         this.show,
       );
     },
@@ -445,7 +438,7 @@ export default {
     onSave() {
       const next = {
         ...(this.tableColumns ?? {}),
-        [this.topGroup]: this.draft,
+        [this.topCollection]: this.draft,
       };
       this.setSettings({ tableColumns: next });
       this.$emit("update:modelValue", false);
@@ -548,7 +541,7 @@ export default {
 /*
  * Per-column cost indicator. ``medium`` columns batch their
  * display query but the sort still scales with library size on
- * group rows; ``high`` columns issue per-column display + sort
+ * collection row; ``high`` columns issue per-column display + sort
  * queries with bespoke composite SQL. Faded tint for ``medium``,
  * warning tint for ``high``. The hover ``title`` tooltip carries
  * the explanation.

@@ -40,7 +40,7 @@ _ADMIN_LIST_QUERY_CEILING: Final = 20
 
 
 class AdminListQueryCountTestCase(TestCase):
-    """Bound the per-row query count on /admin/user and /admin/group."""
+    """Bound the per-row query count on /admin/users and /admin/groups."""
 
     @override
     def setUp(self) -> None:
@@ -75,7 +75,7 @@ class AdminListQueryCountTestCase(TestCase):
 
     def test_admin_user_list_query_count(self) -> None:
         """
-        Bound /admin/user list queries — fail-loud on N+1 regressions.
+        Bound /admin/users list queries — fail-loud on N+1 regressions.
 
         A regression that drops
         ``select_related("userauth__age_rating_metron")`` would push
@@ -83,22 +83,22 @@ class AdminListQueryCountTestCase(TestCase):
         ``age_rating_metron`` SELECT), tripping the ceiling well
         before becoming visible to users.
         """
-        count = self._query_count("/api/v3/admin/user")
+        count = self._query_count("/api/v4/admin/users")
         assert count <= _ADMIN_LIST_QUERY_CEILING, (
-            f"Expected <= {_ADMIN_LIST_QUERY_CEILING} queries on /admin/user, "
+            f"Expected <= {_ADMIN_LIST_QUERY_CEILING} queries on /admin/users, "
             f"got {count}"
         )
 
     def test_admin_group_list_query_count(self) -> None:
         """
-        Bound /admin/group list queries — fail-loud on N+1 regressions.
+        Bound /admin/groups list queries — fail-loud on N+1 regressions.
 
         A regression that drops ``select_related("groupauth")`` would
         add one query per group for the ``groupauth.exclude`` access,
         tripping the ceiling.
         """
-        count = self._query_count("/api/v3/admin/group")
+        count = self._query_count("/api/v4/admin/groups")
         assert count <= _ADMIN_LIST_QUERY_CEILING, (
-            f"Expected <= {_ADMIN_LIST_QUERY_CEILING} queries on /admin/group, "
+            f"Expected <= {_ADMIN_LIST_QUERY_CEILING} queries on /admin/groups, "
             f"got {count}"
         )

@@ -12,7 +12,7 @@
       />
     </template>
     <v-form ref="form" class="cuForm">
-      <h2>{{ title }}</h2>
+      <h2 class="cuTitle">{{ title }}</h2>
       <component :is="inputs" :old-row="oldRow" @change="change" />
       <SubmitFooter
         :verb="verb"
@@ -32,7 +32,7 @@ import { mapActions } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/create-update-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
-import { deepClone } from "@/api/v3/common";
+import { deepClone } from "@/api/v4/common";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
@@ -119,7 +119,24 @@ export default {
     },
     change(event) {
       this.row = event;
-      this.submitButtonEnabled = this.validate();
+      // ``validate()`` returns a Promise<boolean>. Assigning it
+      // directly to ``submitButtonEnabled`` always evaluates truthy
+      // (Promises are objects), so the submit button stayed enabled
+      // even when the form was invalid — including too-short
+      // passwords. Await the result.
+      const result = this.validate();
+      if (typeof result?.then === "function") {
+        result
+          .then((valid) => {
+            this.submitButtonEnabled = !!valid;
+            return valid;
+          })
+          .catch(() => {
+            this.submitButtonEnabled = false;
+          });
+      } else {
+        this.submitButtonEnabled = !!result;
+      }
     },
     getRow(show) {
       if (!show || !this.oldRow) {
@@ -186,5 +203,12 @@ export default {
   padding: 20px;
   max-height: 100%;
   overflow-y: scroll;
+}
+
+// Match ConfirmDialog's .title so both admin dialogs share one header look.
+.cuTitle {
+  margin: 0 0 10px;
+  font-weight: bolder;
+  font-size: larger;
 }
 </style>

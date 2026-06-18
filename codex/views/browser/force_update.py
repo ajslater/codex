@@ -16,7 +16,7 @@ from codex.views.browser.filters.filter import BrowserFilterView
 
 
 class ForceUpdateView(BrowserFilterView):
-    """Force a metadata re-import for every comic under a group + filters."""
+    """Force a metadata re-import for every comic under a collection + filters."""
 
     permission_classes: Sequence[type[BasePermission]] = (IsAdminUser,)
     serializer_class = OKSerializer
@@ -39,12 +39,12 @@ class ForceUpdateView(BrowserFilterView):
     @extend_schema(request=None, responses=serializer_class)
     def post(self, *_args, **_kwargs) -> Response:
         """Enqueue a force-update task for every comic matching the filters."""
-        group = self.kwargs.get("group")
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         comic_pks = frozenset(
-            self.get_filtered_queryset(Comic, group=group, pks=pks).values_list(
-                "pk", flat=True
-            )
+            self.get_filtered_queryset(
+                Comic, collection=collection, pks=pks
+            ).values_list("pk", flat=True)
         )
         if comic_pks:
             task = ForceUpdateComicsTask(comic_pks=comic_pks)

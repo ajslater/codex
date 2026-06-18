@@ -1,10 +1,8 @@
 """Initialize Codex Dataabse before running."""
 
-from pathlib import Path
-
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db.models import F, Q
+from django.db.models import Q
 from django.db.models.functions import Now
 from loguru import logger
 from rest_framework.authtoken.models import Token
@@ -14,7 +12,6 @@ from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import (
     AdminFlag,
     AgeRatingMetron,
-    CustomCover,
     LibrarianStatus,
     Library,
     Timestamp,
@@ -27,15 +24,16 @@ from codex.models.age_rating import (
 )
 from codex.settings import (
     AUTH_REMOTE_USER,
+    BROWSER_MAX_OBJ_PER_PAGE,
     CODEX_CONFIG_TOML,
-    CUSTOM_COVERS_DIR,
-    CUSTOM_COVERS_SUBDIR,
+    CUSTOM_COVERS_MAX_UPLOAD_MB,
     DEBUG,
     GRANIAN_URL_PATH_PREFIX,
     RESET_ADMIN,
 )
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
+from codex.views.admin.api_key import _new_api_key
 
 
 def ensure_superuser() -> None:
@@ -86,10 +84,17 @@ def init_admin_flags() -> None:
     # default. Heals the row to a sensible state if an admin deletes
     # it; the migration that introduced the flag does the same insert.
     value_defaults = {
-        # Mirrors the ``SettingsBrowser.top_group`` model default so
-        # ``admin_default_route_for("p")`` resolves to the historical
-        # ``DEFAULT_BROWSER_ROUTE`` (``/r/0/1``) — upgrade-day no-op.
-        AdminFlagChoices.BROWSER_DEFAULT_GROUP.value: "p",
+        # Mirrors the ``SettingsBrowser.top_collection`` model default so
+        # ``admin_default_route_for("publishers")`` resolves to the root
+        # publishers listing — upgrade-day no-op.
+        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value: "publishers",
+        # Migrated from TOML at first boot of the new version;
+        # the value reflects the live settings constant so deleted
+        # rows heal back to the operator's configured value.
+        AdminFlagChoices.BROWSER_MAX_OBJ_PER_PAGE.value: str(BROWSER_MAX_OBJ_PER_PAGE),
+        AdminFlagChoices.CUSTOM_COVER_MAX_UPLOAD_MB.value: str(
+            CUSTOM_COVERS_MAX_UPLOAD_MB
+        ),
     }
     # Resolve seed FK targets in one query.
     metron_by_name = {
@@ -112,6 +117,12 @@ def init_admin_flags() -> None:
         if key in value_defaults:
             defaults["value"] = value_defaults[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
+        # The API key row holds the actual key in ``value``. Heal here
+        # so fresh installs and admin-deleted rows both come back with
+        # a usable token; the 0051 migration handles upgrades.
+        if key == AdminFlagChoices.API_KEY.value and not flag.value:
+            flag.value = _new_api_key()
+            flag.save()
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
 
@@ -145,8 +156,6 @@ def init_timestamps() -> None:
     for enum in Timestamp.Choices:
         key = enum.value
         ts, created = Timestamp.objects.get_or_create(key=key)
-        if enum == Timestamp.Choices.API_KEY and not ts.version:
-            ts.save_uuid_version()
         if created:
             label = Timestamp.Choices(ts.key).label
             logger.debug(f"Created {label} timestamp.")
@@ -194,72 +203,6 @@ def init_libraries() -> None:
         logger.debug(f"Reset {lib_count} Libraries' update_in_progress flag.")
 
 
-def init_custom_cover_dir() -> None:
-    """Initialize the Custom Cover Dir singleton row."""
-    defaults = dict(**Library.CUSTOM_COVERS_DIR_DEFAULTS, path=CUSTOM_COVERS_DIR)
-    covers_library, created = Library.objects.get_or_create(
-        defaults=defaults, covers_only=True
-    )
-    if created:
-        logger.info("Created Custom Covers Dir settings in the db.")
-
-    old_path = covers_library.path
-    if Path(old_path) != CUSTOM_COVERS_DIR:
-        Library.objects.filter(covers_only=True).update(path=str(CUSTOM_COVERS_DIR))
-        logger.info(
-            f"Updated Custom Group Covers Dir path from {old_path} to {CUSTOM_COVERS_DIR}."
-        )
-
-
-def update_custom_covers_for_config_dir() -> None:
-    """Update custom covers if the config dir changes."""
-    # This is okay, but I wouldn't need to do it if paths were constructed from
-    # parent_folder and library.path
-    # Fast lookup without relations seems better though, paths shouldn't change too much.
-
-    # Determine which covers need re-pathing
-    update_covers = []
-    delete_cover_pks = []
-    update_fields = ("path", "updated_at")
-    group_covers = (
-        CustomCover.objects.filter(library__covers_only=True)
-        .exclude(path__startswith=F("library__path"))
-        .only(*update_fields)
-    )
-    logger.debug(f"Checking that group custom covers are under {CUSTOM_COVERS_DIR}")
-    for cover in group_covers.iterator():
-        old_path = cover.path
-        parts = old_path.rsplit(f"/{CUSTOM_COVERS_SUBDIR}/")
-        if len(parts) < 2:  # noqa: PLR2004
-            delete_cover_pks.append(cover.pk)
-            continue
-        new_path = CUSTOM_COVERS_DIR / parts[1]
-        if new_path.exists():
-            cover.path = str(new_path)
-            update_covers.append(cover)
-        else:
-            delete_cover_pks.append(cover.pk)
-    update_count = len(update_covers)
-    logger.debug(
-        f"Found {update_count} custom covers to update, {len(delete_cover_pks)} to delete."
-    )
-
-    # Update covers
-    if update_count:
-        CustomCover.objects.bulk_update(update_covers, update_fields)
-        logger.info(
-            f"Updated {update_count} CustomCovers sources to point to new config dir"
-        )
-
-    # Delete covers we can't reliably update.
-    if delete_cover_pks:
-        delete_qs = CustomCover.objects.filter(pk__in=delete_cover_pks)
-        delete_count, _ = delete_qs.delete()
-        logger.warning(
-            f"Delete {delete_count} CustomCovers that could not be re-sourced after config dir change."
-        )
-
-
 def create_missing_auth_tokens() -> None:
     """Create missing auth tokens."""
     num_created = 0
@@ -279,8 +222,6 @@ def ensure_db_rows() -> None:
     init_timestamps()
     init_librarian_statuses()
     init_libraries()
-    init_custom_cover_dir()
-    update_custom_covers_for_config_dir()
     create_missing_auth_tokens()
 
 

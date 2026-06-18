@@ -5,16 +5,9 @@
     </div>
     <div>
       <MetadataChip
-        v-for="item in mainItems"
-        :key="`${filter}/${item.value}`"
-        :filter="filter"
-        :item="item"
-        :main="true"
-      />
-      <MetadataChip
         v-for="item in items"
         :key="`${filter}/${item.value}`"
-        :filter="filter"
+        :filter="item.filter || filter"
         :item="item"
       />
     </div>
@@ -42,12 +35,6 @@ export default {
         return [];
       },
     },
-    mainValues: {
-      type: Array,
-      default() {
-        return [];
-      },
-    },
     filter: {
       type: String,
       required: false,
@@ -55,9 +42,6 @@ export default {
     },
   },
   computed: {
-    mainItems() {
-      return toVuetifyItems({ items: this.mainValues, sortBy: "" });
-    },
     items() {
       let items;
       if (this.filter === "universes") {
@@ -65,7 +49,9 @@ export default {
       } else {
         items = this.values;
       }
-      return toVuetifyItems({ items, sortBy: "" });
+      // copyKeys keeps a per-item filter override (protagonist chips mix
+      // a character and a team in one row).
+      return toVuetifyItems({ items, sortBy: "", copyKeys: ["filter"] });
     },
   },
   methods: {

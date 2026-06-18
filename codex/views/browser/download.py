@@ -1,4 +1,4 @@
-"""Download a group of comics in a zipfile."""
+"""Download a collection of comics in a zipfile."""
 
 from typing import override
 
@@ -11,8 +11,8 @@ from zipstream import ZipStream
 from codex.views.browser.filters.filter import BrowserFilterView
 
 
-class GroupDownloadView(BrowserFilterView):
-    """Return a group of comic archives as a streaming zipfile."""
+class CollectionDownloadView(BrowserFilterView):
+    """Return a collection of comic archives as a streaming zipfile."""
 
     content_type = "application/zip"
     AS_ATTACHMENT = True
@@ -20,23 +20,23 @@ class GroupDownloadView(BrowserFilterView):
 
     @override
     def get_object(self) -> tuple[str, ...]:
-        """Get comic paths for a browse group."""
-        group = self.kwargs.get("group")
+        """Get comic paths for a browse collection."""
+        collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         if not self.model:
-            reason = f"Could not find model for group {group}"
+            reason = f"Could not find model for collection {collection}"
             raise Http404(reason)
 
         try:
-            qs = self.get_filtered_queryset(self.model, group=group, pks=pks)
+            qs = self.get_filtered_queryset(self.model, collection=collection, pks=pks)
             path_rel = self.rel_prefix + "path"
             paths = qs.values_list(path_rel, flat=True)
         except Exception as exc:
-            logger.warning(f"Error with download query for {group}:{pks} {exc}")
+            logger.warning(f"Error with download query for {collection}:{pks} {exc}")
             raise
 
         if not paths:
-            reason = f"Comics from {group}:{pks} not not found."
+            reason = f"Comics from {collection}:{pks} not not found."
             raise Http404(reason)
 
         return tuple(sorted(set(paths)))

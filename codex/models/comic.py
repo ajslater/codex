@@ -4,10 +4,12 @@ import calendar
 import math
 import re
 from datetime import MAXYEAR, MINYEAR, date
+from decimal import Decimal
 from pathlib import Path
 from typing import override
 
 from comicbox.enums.comicbox import ReadingDirectionEnum
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -34,19 +36,19 @@ from codex.models.choices import (
     ReadingDirectionChoices,
     max_choices_len,
 )
-from codex.models.fields import (
-    CleaningCharField,
-    CleaningTextField,
-    CoercingDecimalField,
-    CoercingPositiveSmallIntegerField,
-)
-from codex.models.groups import (
+from codex.models.collections import (
     Folder,
     Imprint,
     Publisher,
     Series,
     Volume,
-    WatchedPathBrowserGroup,
+    WatchedPathBrowserCollection,
+)
+from codex.models.fields import (
+    CleaningCharField,
+    CleaningTextField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
 )
 from codex.models.identifier import Identifier
 from codex.models.named import (
@@ -70,7 +72,7 @@ from codex.models.named import (
 __all__ = ("Comic",)
 
 
-class Comic(WatchedPathBrowserGroup):
+class Comic(WatchedPathBrowserCollection):
     """Comic metadata."""
 
     _ORDERING = (
@@ -105,7 +107,7 @@ class Comic(WatchedPathBrowserGroup):
         default="",
         db_collation="nocase",
     )
-    # Group FKs
+    # Collection FKs
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -135,7 +137,7 @@ class Comic(WatchedPathBrowserGroup):
         related_name="main_character_in_comics",
     )
     main_team = ForeignKey(
-        Character,
+        Team,
         db_index=True,
         null=True,
         on_delete=CASCADE,
@@ -156,9 +158,18 @@ class Comic(WatchedPathBrowserGroup):
     review = CleaningTextField(default="", db_collation="nocase")
     notes = CleaningTextField(default="", db_collation="nocase")
 
-    # Ratings
-    critical_rating = CoercingDecimalField(
-        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
+    # Ratings — ComicInfo 0.0-5.0 scale, one decimal place.
+    critical_rating = CoercingDecimalField(  # pyright: ignore[reportCallIssue]  # ty: ignore[no-matching-overload]
+        db_index=True,
+        decimal_places=1,
+        max_digits=2,
+        default=None,
+        null=True,
+        coerce_max=Decimal("5.0"),
+        validators=(
+            MinValueValidator(Decimal("0.0")),
+            MaxValueValidator(Decimal("5.0")),
+        ),
     )
 
     # Reader
@@ -212,11 +223,17 @@ class Comic(WatchedPathBrowserGroup):
         db_collation="nocase",
     )
     metadata_mtime = DateTimeField(null=True)
+    # Stamped when a forced/lazy metadata import pass completes for this
+    # comic, regardless of whether any embedded metadata existed. Distinct
+    # from ``metadata_mtime`` (comicbox's embedded-metadata mtime, which
+    # stays NULL for archives with no metadata file) so the lazy-import
+    # hover gate fires exactly once per comic instead of forever.
+    metadata_imported_at = DateTimeField(null=True)
 
     # Not useful
     custom_cover: ForeignKey | None = None
 
-    class Meta(WatchedPathBrowserGroup.Meta):
+    class Meta(WatchedPathBrowserCollection.Meta):
         """Constraints."""
 
         verbose_name = "Issue"
@@ -371,7 +388,7 @@ class ComicFTS(BaseModel):
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     review = TextField(db_collation="nocase")
     summary = TextField(db_collation="nocase")
-    # FK groups
+    # FK collections
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
