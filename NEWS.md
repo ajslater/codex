@@ -1284,22 +1284,22 @@ border-radius: 128px;
     - An import crash in create foreign keys.
     - Admin table dates were always in UTC so sometime off by a day.
 
-## v1.3.0 - I remember... my whole life. Everything
+## v1.3.0 - Memory Management
 
 - Features
     - Codex stable in 1GB RAM environments. Faster with more.
     - Codex uses unrar-cffi if available. Not required.
     - Browser
-    - Navigate to top button.
-    - Filter by File Type.
+        - Navigate to top button.
+        - Filter by File Type.
     - OPDS
-    - Top links display only at catalog root.
-    - Extended metadata moved to alternate links.
+        - Top links display only at catalog root.
+        - Extended metadata moved to alternate links.
     - Admin
-    - Search Indexer Remove Stale Records task much faster.
-    - Comic import speedups.
-    - Fancier sortable admin tables.
-    - Removed `max_db_ops` config variable.
+        - Search Indexer Remove Stale Records task much faster.
+        - Comic import speedups.
+        - Fancier sortable admin tables.
+        - Removed `max_db_ops` config variable.
 - Fixes
     - Reader vertical scroll lost its place in Fit To Width or Orig mode.
     - OPDS downloaded files all had the same name.
@@ -1410,7 +1410,7 @@ border-radius: 128px;
     - More explicit Poll Every hints in edit dialog.
     - Repository link didn't open a new window.
 
-## v1.2.0 - What kind of Heaven uses bounty hunters?
+## v1.2.0 - Faster PDFs & Fixed Multiprocessing
 
 - Features
     - Faster and more robust PDF support. Codex no longer depends on the poppler
