@@ -9,10 +9,10 @@ border-radius: 128px;
 ## v2.0.1
 
 - Fixes
-    - The Online Tagging Status table now shows which source matched each
-      comic, even ones re-tagged from a stored id or matched by both sources.
-    - Tidied the Online Tagging Status table: long filenames use the full
-      Comic column width before truncating.
+    - The Online Tagging Status table now shows which source matched each comic,
+      even ones re-tagged from a stored id or matched by both sources.
+    - Tidied the Online Tagging Status table: long filenames use the full Comic
+      column width before truncating.
 
 ## v2.0.0 - Tag Editing & Online Tagging
 
