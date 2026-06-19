@@ -121,7 +121,7 @@ border-radius: 128px;
     - Downgrade noisy profile forbidden WARNINGS to DEBUG. They are a normal
       part of connecting.
 
-## v1.12.0
+## v1.12.0 - Browser Table View & Favorites
 
 - Features
     - Browser Table mode shows configurable, sortable, metadata columns.
