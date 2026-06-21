@@ -13,6 +13,10 @@ border-radius: 128px;
       even ones re-tagged from a stored id or matched by both sources.
     - Tidied the Online Tagging Status table: long filenames use the full Comic
       column width before truncating.
+    - Re-tagging an already-identified comic now fetches its exact Metron or
+      Comic Vine issue directly instead of running a full search.
+    - Tagging no longer loses a comic's stored Metron or Comic Vine id when it
+      also has a web link.
     - `url_path_prefix` works again when set without a leading slash. Remember
       to uncomment the \[server] block header in codex.toml if you are setting
       server values, like \`url_path_prefix\`\`
