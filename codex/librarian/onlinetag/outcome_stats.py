@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 class OnlineTagOutcomeStats:
     """Accumulate per-comic online-tagging outcomes for an end-of-session summary."""
 
-    matched_source_by_path: dict[Path, str] = field(default_factory=dict)
+    matched_source_by_path: dict[Path, list[str]] = field(default_factory=dict)
     written_paths: set[Path] = field(default_factory=set)
     no_change_paths: set[Path] = field(default_factory=set)
     deferred_paths: set[Path] = field(default_factory=set)
@@ -50,7 +50,12 @@ class OnlineTagOutcomeStats:
         """Fold one comicbox event into the running tallies."""
         match event:
             case AutoWritten(path=path, source=source) if path and source:
-                self.matched_source_by_path[path] = source
+                # Under merge_all_sources a comic can be auto-written by more
+                # than one source, so accumulate (deduped, order preserved)
+                # rather than letting the last event clobber the first.
+                sources = self.matched_source_by_path.setdefault(path, [])
+                if source not in sources:
+                    sources.append(source)
             case FileFinished(path=path, outcome=outcome) if path:
                 bucket = (
                     self.written_paths if outcome == "written" else self.no_change_paths
@@ -96,7 +101,11 @@ class OnlineTagOutcomeStats:
 
     def _source_breakdown(self) -> str:
         """Render the per-source match tally, e.g. ``comicvine 4, metron 8``."""
-        by_source = Counter(self.matched_source_by_path.values())
+        by_source = Counter(
+            source
+            for sources in self.matched_source_by_path.values()
+            for source in sources
+        )
         bits = [f"{source} {count}" for source, count in sorted(by_source.items())]
         refreshed = self.matched - len(self.matched_source_by_path)
         if refreshed > 0:

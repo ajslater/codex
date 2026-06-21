@@ -929,15 +929,15 @@ and unfortunately isn't practical to remove yet.
 
 - [Mylar](https://mylar.nerdfirehurricane.com/) is the best comic book manager
   which also has a built in reader.
+- [Comicbox](https://comicbox.readthedocs.io/) is a powerful command line comic
+  metadata editor, multi source online tagger, and multi metadata format
+  synthesizer. It is what Codex uses under the hood to read comic metadata.
 - [Metron Tagger](https://github.com/Metron-Project/metron-tagger) is a command
   line comic metadata editor. It will tag identified comics from online database
   sources.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
   editor. It comes with a command line and desktop GUI. It will tag identified
   comics from online database sources.
-- [Comicbox](https://comicbox.readthedocs.io/) is a powerful command line comic
-  metadata editor and multi metadata format synthesizer. It is what Codex uses
-  under the hood to read comic metadata.
 
 ## 🤝 Contributing
 

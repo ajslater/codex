@@ -6,6 +6,21 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.1
+
+- Fixes
+    - The Online Tagging Status table now shows which source matched each comic,
+      even ones re-tagged from a stored id or matched by both sources.
+    - Tidied the Online Tagging Status table: long filenames use the full Comic
+      column width before truncating.
+    - Re-tagging an already-identified comic now fetches its exact Metron or
+      Comic Vine issue directly instead of running a full search.
+    - Tagging no longer loses a comic's stored Metron or Comic Vine id when it
+      also has a web link.
+    - `url_path_prefix` works again when set without a leading slash. Remember
+      to uncomment the \[server] block header in codex.toml if you are setting
+      server values, like \`url_path_prefix\`\`
+
 ## v2.0.0 - Tag Editing & Online Tagging
 
 - Notice
@@ -113,7 +128,7 @@ border-radius: 128px;
     - Downgrade noisy profile forbidden WARNINGS to DEBUG. They are a normal
       part of connecting.
 
-## v1.12.0
+## v1.12.0 - Browser Table View & Favorites
 
 - Features
     - Browser Table mode shows configurable, sortable, metadata columns.
@@ -262,7 +277,7 @@ border-radius: 128px;
 
 ## v1.10.1 - Mistaken release
 
-## v1.10.0 Rust modules & Settings Features
+## v1.10.0 - Rust modules & Settings Features
 
 - 🚨 Big Changes 🚨
     - The docker repo has changed to ghcr.io/ajslater/codex
@@ -605,7 +620,7 @@ border-radius: 128px;
 - Fixes
     - Fix minor search update exception.
 
-## v1.8.0
+## v1.8.0 - MetronInfo & CB7
 
 - Features
     - Support
@@ -778,7 +793,7 @@ border-radius: 128px;
     - Fix ignoring MacOS resource forks in archives.
     - Don't redirect to issue view on first search in Folder View
 
-## v1.7.0
+## v1.7.0 - SQLite Search
 
 - Features
     - Search
@@ -929,7 +944,7 @@ border-radius: 128px;
     - Fix filter crash.
     - Metadata was showing incorrect groups for individual comics
 
-## v1.6.0
+## v1.6.0 - Custom Covers & Breadcrumbs
 
 - Features
     - Custom Covers for Folders, Publishers, Imprints, Series and Story Arcs.
@@ -1076,7 +1091,7 @@ border-radius: 128px;
 - Fixes
     - OPDS v1 was not rendering any data.
 
-## v1.5.0
+## v1.5.0 - New Metadata Tags
 
 - **Warning**
     - The main database path has changed from `db.sqlite3` to `codex.sqlite3`
@@ -1138,7 +1153,7 @@ border-radius: 128px;
 - Fixes
     - A bug that prevented folder view from displaying under some circumstances.
 
-## v1.4.0
+## v1.4.0 - Story Arcs
 
 - Features
     - Story Arc Top Group in Web & OPDS Browsers
@@ -1276,24 +1291,22 @@ border-radius: 128px;
     - An import crash in create foreign keys.
     - Admin table dates were always in UTC so sometime off by a day.
 
-## v1.3.0
-
-### I remember... my whole life. Everything
+## v1.3.0 - Memory Management
 
 - Features
     - Codex stable in 1GB RAM environments. Faster with more.
     - Codex uses unrar-cffi if available. Not required.
     - Browser
-    - Navigate to top button.
-    - Filter by File Type.
+        - Navigate to top button.
+        - Filter by File Type.
     - OPDS
-    - Top links display only at catalog root.
-    - Extended metadata moved to alternate links.
+        - Top links display only at catalog root.
+        - Extended metadata moved to alternate links.
     - Admin
-    - Search Indexer Remove Stale Records task much faster.
-    - Comic import speedups.
-    - Fancier sortable admin tables.
-    - Removed `max_db_ops` config variable.
+        - Search Indexer Remove Stale Records task much faster.
+        - Comic import speedups.
+        - Fancier sortable admin tables.
+        - Removed `max_db_ops` config variable.
 - Fixes
     - Reader vertical scroll lost its place in Fit To Width or Orig mode.
     - OPDS downloaded files all had the same name.
@@ -1404,9 +1417,7 @@ border-radius: 128px;
     - More explicit Poll Every hints in edit dialog.
     - Repository link didn't open a new window.
 
-## v1.2.0
-
-### What kind of Heaven uses bounty hunters?
+## v1.2.0 - Faster PDFs & Fixed Multiprocessing
 
 - Features
     - Faster and more robust PDF support. Codex no longer depends on the poppler
@@ -1453,9 +1464,7 @@ border-radius: 128px;
 - Fixes
     - Fix unable to initialize database on first run
 
-## v1.1.0
-
-### Whoosh
+## v1.1.0 - Whoosh
 
 - Features
     - Switch to Whoosh Search Engine.
@@ -1497,9 +1506,7 @@ border-radius: 128px;
     - Fixed next book change drawer opening settings drawer.
     - Fixed zero padding on browser card issue numbers.
 
-## v1.0.0
-
-### Vue 3
+## v1.0.0 - Vue 3
 
 - Features
     - Removed old django admin pages.
@@ -1541,9 +1548,7 @@ border-radius: 128px;
     - Resolve ties in browser ordering with default comic ordering.
     - Always close book change drawer before reader opens.
 
-## v0.14.0
-
-### Sliding Pages
+## v0.14.0 - Sliding Pages
 
 - Features
     - Animated sliding pages on reader.
@@ -1557,9 +1562,7 @@ border-radius: 128px;
     - Login & Change Password dialogs no longer activate Reader shortcuts by
       accident.
 
-## v0.13.0
-
-### Admin Panel
+## v0.13.0 - Admin Panel
 
 - Features
     - Single Page Admin Panel.
@@ -1596,9 +1599,7 @@ border-radius: 128px;
     - Disable article ignore on name sort in folder view.
     - Fix browser navigation bug with issues top group.
 
-## v0.12.0
-
-### Syndication
+## v0.12.0 - Syndication
 
 - Features
     - OPDS v1, OPDS Streaming & OPDS Search support.
@@ -1612,9 +1613,7 @@ border-radius: 128px;
     - Use defusexml to load xml metadata for safety.
     - Removed process naming. My implementation was prone to instability.
 
-## v0.11.0
-
-### Task Monitor
+## v0.11.0 - Task Monitor
 
 - Features
     - Librarian tasks in progress appear in the settings side drawer for
@@ -1719,9 +1718,7 @@ border-radius: 128px;
 - Fixes
     - Linked old top level comics orphaned by library folders migration.
 
-## v0.10.0
-
-### Portable Document Format
+## v0.10.0 - Portable Document Format
 
 - Features
     - PDF support. Optional poppler-utils binary package needed to generate PDF
@@ -1869,9 +1866,7 @@ Yanked. Crash loading admin page.
 - Fixes
     - Fix to library group integrity checker
 
-## v0.9.0
-
-### Private Libraries
+## v0.9.0 - Private Libraries
 
 - Features
     - Libraries may have access restricted to certain user groups.
@@ -1883,9 +1878,7 @@ Yanked. Crash loading admin page.
     - Metadata dialog is faster.
     - Admin Queue Job for creating missing comic covers.
 
-## v0.8.0
-
-### Search
+## v0.8.0 - Search
 
 - Features
     - Metadata search field in browser
@@ -1939,9 +1932,7 @@ Yanked. Crash loading admin page.
 - Features
     - Added `CODEX_SKIP_INTEGRITY_CHECK` env var.
 
-## v0.7.0
-
-### Feels Snappier
+## v0.7.0 - Feels Snappier
 
 - Database Migration
     - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not
@@ -2018,9 +2009,7 @@ Yanked. Crash loading admin page.
 - Fixes
     - Fix librarian startup crash. Prevented admin actions from happening.
 
-## v0.6.0
-
-### Better Filtering and Sorting
+## v0.6.0 - Better Filtering and Sorting
 
 - Features
     - New Filters
@@ -2173,33 +2162,23 @@ Yanked. Crash loading admin page.
 
 - Minor bugfixes.
 
-## v0.5.0
-
-### First useful working version
+## v0.5.0 - First useful working version
 
 - Productionized alpha release
 
-## v0.4.0
-
-### Polished UI
+## v0.4.0 - Polished UI
 
 - Polished VueJS frontend
 
-## v0.3.0
-
-### I'm a frontend developer!
+## v0.3.0 - I'm a frontend developer!
 
 - Single Page VueJS frontend PoC without much styling
 
-## v0.2.0
-
-### It's alive
+## v0.2.0 - It's alive
 
 - Working application with all initial features
 - Django frontend
 
-## v0.1.0
-
-### Hello world
+## v0.1.0 - Hello world
 
 - Proof of concept.

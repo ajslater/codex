@@ -53,6 +53,7 @@ from codex.librarian.onlinetag.session_state import (
     SessionState,
     serialize_candidate,
 )
+from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -426,6 +427,114 @@ class OnlineTagSessionManager:
 
     # --- scan lifecycle ------------------------------------------------
 
+    def _fetch_stored_id(
+        self,
+        path: Path,
+        source_ids: dict[str, int],
+        credentials: OnlineCredentials,
+        *,
+        merge_all_sources: bool,
+    ) -> tuple[str, dict] | None:
+        """
+        Fetch one already-identified comic by its primary stored id.
+
+        Returns ``(primary_source, tags)`` on success, or ``None`` when the id
+        didn't resolve or the fetch errored — the caller leaves such a comic to
+        the search pass. Under ``merge_all_sources`` the comic's other stored
+        ids are fetched and merged onto the primary record.
+        """
+        primary_source, primary_id = next(iter(source_ids.items()))
+        extra_ids = (
+            tuple(
+                (source, issue_id)
+                for source, issue_id in source_ids.items()
+                if source != primary_source
+            )
+            if merge_all_sources
+            else ()
+        )
+        try:
+            tags = fetch_tags_by_explicit_id(
+                path, primary_source, primary_id, credentials, extra_ids=extra_ids
+            )
+        except ComicboxError as exc:
+            self.log.warning(f"Online tag stored-id prefetch failed for {path}: {exc}")
+            return None
+        return (primary_source, tags) if tags else None
+
+    def _commit_prefetch(
+        self,
+        state: SessionState,
+        comic_paths: dict[int, Path],
+        batch: dict[int, dict],
+    ) -> None:
+        """Count prefetched comics complete, drop them, and enqueue their write."""
+        # Counted as already-complete so the status row's total and progress
+        # cover them alongside the searched remainder. They stay in
+        # ``path_to_pk`` (so the status table shows them as matched and Resume
+        # skips them via ``written_paths``) but leave ``comic_paths`` so the
+        # search pass never looks them up.
+        state.total_comics += len(batch)
+        state.completed_comics += len(batch)
+        for pk in batch:
+            comic_paths.pop(pk, None)
+        write_task = BulkTagWriteTask(
+            comic_pks=frozenset(batch.keys()),
+            per_comic_patches=dict(batch),
+            mode=state.mode,
+            formats=state.formats,
+            delete_original=state.delete_original,
+        )
+        self.librarian_queue.put(write_task)
+        count = len(batch)
+        self.log.info(
+            f"Online tag: fetched {count} comics by stored id, skipping their search."
+        )
+
+    def _prefetch_stored_ids(
+        self,
+        state: SessionState,
+        comic_paths: dict[int, Path],
+        task: BulkOnlineTagTask,
+        credentials: OnlineCredentials,
+    ) -> None:
+        """
+        Resolve comics with a stored issue id by explicit id before searching.
+
+        Fetches each already-identified comic in one API call, writes the tags
+        through the same ``BulkTagWriteTask`` path the scan uses, and drops it
+        from ``comic_paths`` so the search session only handles the rest.
+        Skipped on dry runs and for sources without credentials.
+        """
+        if task.dry_run:
+            return
+        usable_sources = tuple(
+            source
+            for source in task.sources
+            if self._source_has_credentials(credentials, source)
+        )
+        id_map = build_stored_id_map(comic_paths.keys(), usable_sources)
+        if not id_map:
+            return
+
+        batch: dict[int, dict] = {}
+        for pk, source_ids in id_map.items():
+            path = comic_paths[pk]
+            result = self._fetch_stored_id(
+                path, source_ids, credentials, merge_all_sources=task.merge_all_sources
+            )
+            if result is None:
+                continue
+            primary_source, tags = result
+            batch[pk] = tags
+            state.stats.written_paths.add(path)
+            state.stats.matched_source_by_path.setdefault(path, []).append(
+                primary_source
+            )
+
+        if batch:
+            self._commit_prefetch(state, comic_paths, batch)
+
     def run_session(self, task: BulkOnlineTagTask) -> None:
         """Execute a non-blocking online tagging scan (Pass 1 only)."""
         comics = Comic.objects.filter(pk__in=task.comic_pks).only("pk", "path")
@@ -493,6 +602,10 @@ class OnlineTagSessionManager:
 
         start = monotonic()
         try:
+            # Fast path: comics codex already has an issue id for are fetched
+            # directly by that id (one API call each) and dropped from the set,
+            # so the search pass below only handles the unidentified remainder.
+            self._prefetch_stored_ids(state, comic_paths, task, credentials)
             # Pass 1: auto-match and write the confident comics. When deferring,
             # ambiguous matches become deferred prompts persisted for later,
             # independent resolution; with "never" prompts they're skipped inline

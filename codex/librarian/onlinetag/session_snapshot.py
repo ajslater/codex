@@ -256,8 +256,13 @@ def _build_comic_rows(
         if status == IN_FLIGHT:
             in_flight_taken = True
         counts[status] += 1
-        won = stats.matched_source_by_path.get(path) if status == MATCHED else None
-        rows.append({"pk": pk, "path": str(path), "status": status, "won_source": won})
+        # A matched comic carries every source that auto-wrote it (one under
+        # first-wins, possibly several under merge_all_sources); empty when the
+        # win came without a source attribution (e.g. a failed-fetch edge).
+        won = stats.matched_source_by_path.get(path, ()) if status == MATCHED else ()
+        rows.append(
+            {"pk": pk, "path": str(path), "status": status, "won_sources": list(won)}
+        )
     return rows, counts
 
 

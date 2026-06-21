@@ -115,7 +115,7 @@ def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
 
     snap = _build(state)
     statuses = {row["pk"]: row["status"] for row in snap["comics"]}
-    won = {row["pk"]: row["won_source"] for row in snap["comics"]}
+    won = {row["pk"]: row["won_sources"] for row in snap["comics"]}
 
     # Comic 5 is the next unprocessed comic → in-flight.
     assert statuses == {
@@ -125,7 +125,9 @@ def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
         4: session_snapshot.NEEDS_REVIEW,
         5: session_snapshot.IN_FLIGHT,
     }
-    assert won[1] == "metron"
+    assert won[1] == ["metron"]
+    # Non-matched rows carry no source attribution.
+    assert won[2] == won[5] == []
 
     batch = snap["batch"]
     assert {k: batch[k] for k in ("matched", "no_match", "error", "needs_review")} == {

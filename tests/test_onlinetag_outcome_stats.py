@@ -81,6 +81,23 @@ def test_match_without_autowritten_is_reported_as_refreshed() -> None:
     assert "matched 2 (metron 1, 1 refreshed from stored id)" in summary
 
 
+def test_merge_all_sources_accumulates_every_winning_source() -> None:
+    """Under merge a comic auto-written by both sources keeps both, deduped."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    stats.record(AutoWritten(path=path, source="metron"))
+    stats.record(AutoWritten(path=path, source="comicvine"))
+    # A duplicate event for the same source must not double-list it.
+    stats.record(AutoWritten(path=path, source="metron"))
+    stats.record(FileFinished(path=path, outcome="written"))
+
+    assert stats.matched_source_by_path[path] == ["metron", "comicvine"]
+    # Both sources show in the breakdown; nothing falls to the refreshed bucket.
+    summary = stats.summary(elapsed="1 second")
+    assert "matched 1 (comicvine 1, metron 1)" in summary
+    assert "refreshed from stored id" not in summary
+
+
 def test_matched_comic_with_incidental_deferred_prompt_counts_as_matched() -> None:
     """A matched comic with an incidental other-source deferral is matched."""
     # A comic won by comicvine that also deferred a metron prompt is matched,

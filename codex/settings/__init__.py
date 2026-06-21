@@ -31,6 +31,7 @@ from codex.settings.config import (
     get_int,
     get_str,
     load_codex_config,
+    normalize_url_path_prefix,
 )
 from codex.settings.logging import get_logging_settings
 from codex.settings.secret_key import get_field_encryption_key, get_secret_key
@@ -128,7 +129,9 @@ GRANIAN_PORT = get_int(CODEX_CONFIG, "server.port", default=9810)
 GRANIAN_WORKERS = get_int(CODEX_CONFIG, "server.workers", default=1)
 GRANIAN_HTTP = get_str(CODEX_CONFIG, "server.http", default="auto")
 GRANIAN_WEBSOCKETS = get_bool(CODEX_CONFIG, "server.websockets", default=True)
-GRANIAN_URL_PATH_PREFIX = get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
+GRANIAN_URL_PATH_PREFIX = normalize_url_path_prefix(
+    get_str(CODEX_CONFIG, "server.url_path_prefix", default="")
+)
 WATCH_FOR_CHANGES = DEBUG and get_bool(
     CODEX_CONFIG, "server.watch_for_changes", default=False
 )

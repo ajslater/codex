@@ -41,6 +41,8 @@ from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
     ComicboxTaggingDefaults,
+    Identifier,
+    IdentifierSource,
     Imprint,
     Library,
     Publisher,
@@ -217,6 +219,130 @@ class OnlineTagSessionManagerTests(TestCase):
             self.manager.run_session(task)
 
         assert _FakeSession.last_kwargs["sources"] == ("comicvine", "metron")
+
+    @staticmethod
+    def _add_issue_id(comic: Comic, source_name: str, key: str) -> None:
+        """Attach a stored issue-level identifier to ``comic``."""
+        source, _ = IdentifierSource.objects.get_or_create(name=source_name)
+        identifier = Identifier.objects.create(source=source, id_type="comic", key=key)
+        comic.identifiers.add(identifier)
+
+    def _capture_search_paths(self, captured: list) -> None:
+        """Make the (mocked) search pass record the comics it's handed."""
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(
+                collect_results=lambda _state, paths, **_kw: captured.extend(paths)
+            )
+        )
+
+    def test_run_session_prefetches_stored_id_and_skips_search(self) -> None:
+        """A comic with a stored issue id is fetched by id, not searched."""
+        comic = _make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        searched: list = []
+        self._capture_search_paths(searched)
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-prefetch",
+            sources=("metron",),
+            mode="auto",
+        )
+        captured_fetch: dict = {}
+
+        def _fake_fetch(path, source, issue_id, _credentials, **_kwargs):  # noqa: ARG001
+            captured_fetch.update(source=source, issue_id=issue_id)
+            return {"series": "X"}
+
+        with patch(_PATCH_TARGET, _FakeSession), patch(_FETCH_TARGET, _fake_fetch):
+            self.manager.run_session(task)
+
+        # Fetched directly by the stored id (numeric), never searched.
+        assert captured_fetch == {"source": "metron", "issue_id": 123495}
+        assert searched == []
+        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        assert len(writes) == 1
+        assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
+
+    def test_run_session_unresolved_stored_id_falls_back_to_search(self) -> None:
+        """A stored id that doesn't resolve leaves the comic for the search pass."""
+        comic = _make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        searched: list = []
+        self._capture_search_paths(searched)
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-fallback",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with (
+            patch(_PATCH_TARGET, _FakeSession),
+            patch(_FETCH_TARGET, lambda *_a, **_k: None),
+        ):
+            self.manager.run_session(task)
+
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        assert searched == [Path(comic.path)]
+
+    def test_run_session_dry_run_skips_prefetch(self) -> None:
+        """A dry run never prefetches; every comic goes to the search pass."""
+        comic = _make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        searched: list = []
+        self._capture_search_paths(searched)
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-dry",
+            sources=("metron",),
+            mode="auto",
+            dry_run=True,
+        )
+        fetch_calls: list = []
+
+        with (
+            patch(_PATCH_TARGET, _FakeSession),
+            patch(_FETCH_TARGET, lambda *a, **_k: fetch_calls.append(a)),
+        ):
+            self.manager.run_session(task)
+
+        assert fetch_calls == []
+        assert searched == [Path(comic.path)]
+
+    def test_prefetch_keeps_comic_in_status_out_of_search_and_resume(self) -> None:
+        """A prefetched comic shows as matched yet is excluded from Resume."""
+        from codex.librarian.onlinetag.session_snapshot import remaining_pks
+
+        comic = _make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        path = Path(comic.path)
+        comic_paths = {comic.pk: path}
+        state = SessionState(
+            session=_double(_FakeSession()),
+            path_to_pk={path: comic.pk},
+            sources=("metron",),
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None  # configured in setUp
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="s",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with patch(_FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
+            self.manager._prefetch_stored_ids(  # noqa: SLF001
+                state, comic_paths, task, credentials
+            )
+
+        # Dropped from the search set, kept in the status map.
+        assert comic_paths == {}
+        assert state.path_to_pk == {path: comic.pk}
+        # Counted complete + matched, and excluded from a Resume re-run.
+        assert state.completed_comics == 1
+        assert path in state.stats.written_paths
+        assert remaining_pks(state, set()) == []
 
     def test_run_session_never_prompts_skips_persistence(self) -> None:
         comic = _make_comic()
@@ -667,3 +793,42 @@ class TagPassRunnerFinishTests(TestCase):
         assert status.retry_at is None
         assert status.eta is not None
         assert runner.rate_limited is False
+
+
+class BuildStoredIdMapTests(TestCase):
+    """build_stored_id_map reads stored issue ids in source-priority order."""
+
+    @override
+    def tearDown(self) -> None:
+        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+    @staticmethod
+    def _identifier(source_name: str, id_type: str, key: str) -> Identifier:
+        source, _ = IdentifierSource.objects.get_or_create(name=source_name)
+        return Identifier.objects.create(source=source, id_type=id_type, key=key)
+
+    def test_maps_issue_ids_in_source_priority_order(self) -> None:
+        """Issue ids parse (incl. comicvine long keys) and order by priority."""
+        from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
+
+        comic = _make_comic()
+        comic.identifiers.add(
+            self._identifier("metron", "comic", "123495"),
+            self._identifier("comicvine", "comic", "4000-67890"),
+            # A non-issue (series) identifier must be ignored.
+            self._identifier("metron", "series", "9841"),
+        )
+
+        id_map = build_stored_id_map([comic.pk], ("comicvine", "metron"))
+
+        assert id_map == {comic.pk: {"comicvine": 67890, "metron": 123495}}
+        assert list(id_map[comic.pk]) == ["comicvine", "metron"]
+
+    def test_ignores_unrequested_sources_and_missing_ids(self) -> None:
+        """Only requested sources count; comics without an id are absent."""
+        from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
+
+        comic = _make_comic()
+        comic.identifiers.add(self._identifier("comicvine", "comic", "4000-67890"))
+
+        assert build_stored_id_map([comic.pk], ("metron",)) == {}

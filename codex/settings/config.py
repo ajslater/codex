@@ -135,6 +135,21 @@ def get_str(config: Mapping, keypath: str, default: str = "") -> str:
     return str(val) if val is not None else default
 
 
+def normalize_url_path_prefix(prefix: str) -> str:
+    """
+    Normalize a URL path prefix to the ASGI root_path convention.
+
+    A non-empty prefix gets exactly one leading slash and no trailing slash
+    ("codex", "/codex/" -> "/codex"); an empty prefix stays empty. Granian
+    assigns this value verbatim to the ASGI root_path, which Django strips
+    from the request path with ``removeprefix``. Without the leading slash it
+    never matches the "/codex/..." request path, so static files 500 and
+    STATIC_URL / email links come out malformed.
+    """
+    prefix = prefix.strip("/")
+    return f"/{prefix}" if prefix else ""
+
+
 def get_int(config: Mapping, keypath: str, default: int = 0) -> int:
     """Get an integer value from the config."""
     val = _deep_get(config, keypath, default)
