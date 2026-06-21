@@ -116,7 +116,7 @@ def iter_files(path_strs: Sequence[str], spec: PathSpec) -> Generator[Path]:
     for path_str in path_strs:
         path = Path(path_str)
         if not path.exists():
-            print(f"👎  Path does not exist: {path}", file=sys.stderr)  # noqa: T201
+            print(f"👎  Path does not exist: {path}", file=sys.stderr)
             sys.exit(2)
 
         root = path.resolve()
@@ -163,13 +163,13 @@ def _parse_ignore_file(args: Namespace) -> PathSpec:
     if args.ignore_file:
         ignore_path = Path(args.ignore_file)
         if not ignore_path.is_file():
-            print(f"👎  Can't read ignore file: {ignore_path}", file=sys.stderr)  # noqa: T201
+            print(f"👎  Can't read ignore file: {ignore_path}", file=sys.stderr)
             sys.exit(2)
 
     try:
         return build_ignore_spec(ignore_path)
     except OSError as exc:
-        print(f"👎  Failed to parse ignore file: {exc}", file=sys.stderr)  # noqa: T201
+        print(f"👎  Failed to parse ignore file: {exc}", file=sys.stderr)
         sys.exit(2)
 
 
@@ -188,17 +188,17 @@ def main() -> None:
             continue
 
         if not has_description_comment(line2):
-            print(f"🔪  {path}")  # noqa: T201
+            print(f"🔪  {path}")
             offenders.append(path)
 
     if offenders:
-        print(  # noqa: T201
+        print(
             f"\n{len(offenders)} script(s) missing a description comment.",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    print("👍")  # noqa: T201
+    print("👍")
 
 
 if __name__ == "__main__":
