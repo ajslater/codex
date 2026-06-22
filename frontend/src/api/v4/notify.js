@@ -14,13 +14,14 @@
  * ``{type: "unknown", raw: "<original string>"}`` so the default
  * branch can log them without crashing.
  *
- * Path is hardcoded for the same reason as the rest of the v4 client
- * (see frontend/src/api/v4/README.md): one mount point, fixed.
+ * The path derives from V4_BASE so the socket honors the URL path
+ * prefix (server.url_path_prefix) just like the rest of the v4 client.
  */
 
+import { V4_BASE } from "@/api/v4/base";
 import { messages } from "@/choices/websocket-messages.json";
 
-const WS_PATH = "/api/v4/ws";
+const WS_PATH = `${V4_BASE}ws`;
 
 export const WS_URL_V4 = (() => {
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
