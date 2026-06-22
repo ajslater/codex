@@ -1,0 +1,2 @@
+# Ephemeral nginx temp/pid dir, recreated on each run.
+tmp/
