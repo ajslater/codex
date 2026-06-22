@@ -10,8 +10,8 @@ border-radius: 128px;
 
 - Fixes
     - The web UI now works under a reverse-proxy subpath: the live-update
-      websocket, API calls, and cover images honor `url_path_prefix` instead
-      of loading from the server root.
+      websocket, API calls, and cover images honor `url_path_prefix` instead of
+      loading from the server root.
 
 ## v2.0.1
 
