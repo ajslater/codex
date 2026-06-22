@@ -92,6 +92,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { V4_BASE } from "@/api/v4/base";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
@@ -191,7 +192,7 @@ export default {
       }
     },
     thumbSrc(item) {
-      return `/api/v4/covers/custom/${item.pk}?ts=${item.mtime ?? 0}`;
+      return `${V4_BASE}covers/custom/${item.pk}?ts=${item.mtime ?? 0}`;
     },
     mtimeIso(mtime) {
       if (!mtime) return undefined;

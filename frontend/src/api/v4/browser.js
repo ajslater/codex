@@ -1,10 +1,7 @@
 import { toRaw } from "vue";
 
-import { HTTP } from "@/api/v4/base";
+import { APP_BASE, HTTP, V4_BASE } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
-
-const V4_BASE = "/api/v4/";
-const APP_BASE = (() => globalThis.CODEX?.APP_PATH || "/")();
 
 /*
  * v4 path scheme — Option A: ``/browse/{collection}[/{parentIds}]``.

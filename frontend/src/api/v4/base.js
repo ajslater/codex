@@ -1,9 +1,19 @@
 import xior, { merge } from "xior";
 
-const BASE_URL = "/api/v4/";
+/*
+ * Codex may be mounted under a URL path prefix (server.url_path_prefix),
+ * e.g. "/codex" behind a reverse proxy. window.CODEX.APP_PATH carries that
+ * prefix as an absolute path with a trailing slash ("/" at the server root),
+ * so every API request, WebSocket, cover, and download resolves under the
+ * same mount as the SPA instead of the server root. Hardcoding "/api/v4/"
+ * here sent the whole v4 client to the root, which 404s under a subpath and
+ * breaks the websocket route.
+ */
+export const APP_BASE = globalThis.CODEX?.APP_PATH || "/";
+export const V4_BASE = `${APP_BASE}api/v4/`;
 
 const CONFIG = {
-  baseURL: BASE_URL,
+  baseURL: V4_BASE,
   withCredentials: true,
 };
 

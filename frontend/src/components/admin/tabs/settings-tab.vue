@@ -47,6 +47,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { V4_BASE } from "@/api/v4/base";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import FlagCard from "@/components/admin/tabs/flag-card.vue";
 import ADMIN_FLAG_GROUPS from "@/components/admin/tabs/flag-groups.json";
@@ -74,7 +75,7 @@ export default {
   },
   data() {
     return {
-      schemaHref: "/api/v4/schema",
+      schemaHref: `${V4_BASE}schema`,
     };
   },
   computed: {

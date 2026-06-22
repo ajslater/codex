@@ -20,6 +20,9 @@ border-radius: 128px;
     - `url_path_prefix` works again when set without a leading slash. Remember
       to uncomment the \[server] block header in codex.toml if you are setting
       server values, like \`url_path_prefix\`\`
+    - The web UI now works under a reverse-proxy subpath: the live-update
+      websocket, API calls, and cover images honor `url_path_prefix` instead
+      of loading from the server root.
 
 ## v2.0.0 - Tag Editing & Online Tagging
 

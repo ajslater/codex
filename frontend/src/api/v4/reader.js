@@ -1,7 +1,5 @@
-import { HTTP } from "@/api/v4/base";
+import { HTTP, V4_BASE } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
-
-const V4_BASE = "/api/v4/";
 
 export const getSettings = (pk, scopes, storyArcPk) => {
   const queryParams = { scopes: scopes.join(",") };
@@ -47,7 +45,7 @@ export const getDownloadPageURL = ({ pk, page, mtime }) =>
   `comics/${pk}/pages/${page}?ts=${mtime}`;
 
 export const getPDFInBrowserURL = ({ pk, mtime }) =>
-  `/${V4_BASE}comics/${pk}/download/comic-${pk}.pdf?ts=${mtime}`;
+  `${V4_BASE}comics/${pk}/download/comic-${pk}.pdf?ts=${mtime}`;
 
 export const updateBookmark = (pk, body) =>
   HTTP.patch(`/comics/${pk}/bookmark`, body);
