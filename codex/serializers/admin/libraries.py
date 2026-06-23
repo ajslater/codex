@@ -31,6 +31,7 @@ class LibrarySerializer(BaseModelSerializer):
             "events",
             "last_poll",
             "poll",
+            "read_only",
             "poll_every",
             "groups",
             "comic_count",

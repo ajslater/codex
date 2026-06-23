@@ -33,6 +33,11 @@
             <strong>{{ confirmInfo.total }}</strong>
             comic{{ confirmInfo.total === 1 ? "" : "s" }}.
           </div>
+          <div v-if="confirmInfo.skipped > 0" class="readOnlyWarning">
+            {{ confirmInfo.skipped }}
+            comic{{ confirmInfo.skipped === 1 ? "" : "s" }}
+            in read-only libraries will be skipped.
+          </div>
           <div v-if="confirmInfo.needConversion > 0" class="conversionWarning">
             <div>
               {{ confirmInfo.needConversion }}
@@ -1025,7 +1030,7 @@ export default {
       tagKeys: TAG_KEYS,
       saving: false,
       confirmDialog: false,
-      confirmInfo: { total: 0, needConversion: 0 },
+      confirmInfo: { total: 0, needConversion: 0, skipped: 0 },
       confirmDeleteOriginal: false,
       addUrlDialog: false,
       identifierUrl: "",
@@ -1631,6 +1636,7 @@ export default {
         this.confirmInfo = {
           total: data.total,
           needConversion: data.needConversion,
+          skipped: data.skipped || 0,
         };
         this.confirmDeleteOriginal = data.deleteOriginal || false;
         if (data.needConversion > 0 || data.total > 10) {
@@ -1662,8 +1668,13 @@ export default {
         if (this.confirmInfo.needConversion > 0) {
           payload.deleteOriginal = this.confirmDeleteOriginal;
         }
-        await HTTP.post("/admin/tag-write", payload);
-        useCommonStore().setSuccess("Tag write queued.");
+        const response = await HTTP.post("/admin/tag-write", payload);
+        const skipped = response.data?.skipped || 0;
+        let message = "Tag write queued.";
+        if (skipped > 0) {
+          message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
+        }
+        useCommonStore().setSuccess(message);
         this.$emit("saved");
       } catch (error) {
         useCommonStore().setErrors(error);
@@ -1791,7 +1802,8 @@ td.labelChanged {
   white-space: nowrap;
 }
 
-.conversionWarning {
+.conversionWarning,
+.readOnlyWarning {
   margin-top: 12px;
   padding: 8px;
   border-radius: 4px;

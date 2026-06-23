@@ -30,14 +30,14 @@
       Read
     </v-btn>
     <OnlineTagLauncherDialog
-      v-if="isUserAdmin"
+      v-if="isEditable"
       :book="controlBook"
       :identifiers="md?.identifiers"
       :size="size"
       @started="$emit('onlineTagStarted')"
     />
     <v-btn
-      v-if="isUserAdmin"
+      v-if="isEditable"
       variant="tonal"
       :size="size"
       @click="$emit('editTags')"
@@ -100,6 +100,12 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page?.adminFlags?.importMetadata,
     }),
+    isEditable() {
+      // Tag edits write to comic archives; hide the entry points unless an
+      // admin and at least one selected comic is in a writable (non-read-only)
+      // library. The backend drops read-only comics regardless.
+      return this.isUserAdmin && Boolean(this.md?.editable);
+    },
     downloadName() {
       const md = this.md;
       let name;

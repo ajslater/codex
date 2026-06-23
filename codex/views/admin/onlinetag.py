@@ -99,7 +99,11 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(
-            {"session_id": session_id, "comic_count": len(comic_pks)},
+            {
+                "session_id": session_id,
+                "comic_count": len(comic_pks),
+                "skipped": self.skipped_read_only,
+            },
             status=HTTP_202_ACCEPTED,
         )
 

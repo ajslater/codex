@@ -186,6 +186,15 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Return the custom cover pk when present, else None."""
         return getattr(obj, "cover_custom_pk", None)
 
+    # Set by MetadataView._aggregate_editable: true when the selection holds at
+    # least one comic in a non-read-only library. Gates the Edit Tags / Tag
+    # Online buttons frontend-side.
+    editable = SerializerMethodField(read_only=True)
+
+    def get_editable(self, obj) -> bool:
+        """Whether any selected comic lives in a writable (non-read-only) library."""
+        return bool(getattr(obj, "editable", False))
+
     publisher_list = CollectionSerializer(many=True, required=False)
     imprint_list = CollectionSerializer(many=True, required=False)
     series_list = CollectionSerializer(many=True, required=False)
