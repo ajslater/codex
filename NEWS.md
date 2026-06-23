@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.3
+
+- Fixes
+    - CBR comics with high-precision file timestamps no longer fail to import
+      (comicbox 4.0.2).
+- Features
+    - Libraries can be marked read-only to protect their comic files from tag
+      changes. Read-only comics hide their Edit Tags and Online Tagging buttons,
+      and bulk edits spanning several libraries skip them.
+
 ## v2.0.2
 
 - Fixes
