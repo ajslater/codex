@@ -24,7 +24,7 @@
     "pretty-bytes": "^7.1.0",
     "text-case": "^1.2.11",
     "vue": "^3.5.38",
-    "vue-pdf-embed": "^2.1.4",
+    "vue-pdf-embed": "^2.1.5",
     "vue-router": "^5.1.0",
     "vuetify": "^4.1.2",
     "xior": "^0.8.3"

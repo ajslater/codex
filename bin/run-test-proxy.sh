@@ -38,7 +38,10 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-  --new-cert)  new_cert=1; shift ;;
+  --new-cert)
+    new_cert=1
+    shift
+    ;;
   -h | --help) usage 0 ;;
   *)
     echo "Unknown argument: $1" >&2
@@ -61,7 +64,7 @@ command -v nginx >/dev/null 2>&1 || {
 
 # Self-signed cert for the TLS / HTTP3 listeners. Committed and reused; only
 # (re)generated when absent or when --new-cert is passed.
-if [[ "$new_cert" -eq 1 || ! -f "$scaffold/cert.pem" || ! -f "$scaffold/cert.key" ]]; then
+if [[ $new_cert -eq 1 || ! -f "$scaffold/cert.pem" || ! -f "$scaffold/cert.key" ]]; then
   command -v openssl >/dev/null 2>&1 || {
     echo "openssl not found. Install it (e.g. 'brew install openssl')." >&2
     exit 1
