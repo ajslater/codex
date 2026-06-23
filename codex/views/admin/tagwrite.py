@@ -45,6 +45,9 @@ class FilteredComicPksView(BrowserFilterView):
         """Init group ACL state."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
+        #: Count of resolved comics dropped because their library is read-only.
+        #: Set by the most recent ``resolve_comic_pks`` call.
+        self.skipped_read_only: int = 0
 
     @property
     @override
@@ -55,14 +58,25 @@ class FilteredComicPksView(BrowserFilterView):
         return self._params
 
     def resolve_comic_pks(self, collection: str, pks) -> frozenset[int]:
-        """Resolve collection+pks to filtered comic pks via the browser pipeline."""
+        """
+        Resolve collection+pks to *editable* filtered comic pks.
+
+        Comics in read-only libraries are dropped here — the single funnel both
+        tag-write and online-tag flow through — so no read-only archive is ever
+        enqueued for a write, regardless of the UI. The number dropped is stashed
+        on ``self.skipped_read_only`` so callers can report it to the user.
+        """
+        self.skipped_read_only = 0
         int_pks = tuple(sorted({int(pk) for pk in pks if str(pk).isdigit()}))
         if not int_pks:
             return frozenset()
         self.kwargs["collection"] = collection
         self.kwargs["pks"] = int_pks
         qs = self.get_filtered_queryset(Comic, collection=collection, pks=int_pks)
-        return frozenset(qs.values_list("pk", flat=True))
+        rows = tuple(qs.values_list("pk", "library__read_only"))
+        editable_pks = frozenset(pk for pk, read_only in rows if not read_only)
+        self.skipped_read_only = len(rows) - len(editable_pks)
+        return editable_pks
 
 
 class AdminParseIdentifierURLView(AdminAPIView):
@@ -188,7 +202,11 @@ class AdminTagByIdView(FilteredComicPksView):
 
         comic_pks = self.resolve_comic_pks(data["collection"], [data["pk"]])
         if len(comic_pks) != 1:
-            return Response({"detail": "No comic matched."}, status=400)
+            if self.skipped_read_only:
+                detail = "Comic is in a read-only library."
+            else:
+                detail = "No comic matched."
+            return Response({"detail": detail}, status=400)
         (comic_pk,) = tuple(comic_pks)
 
         formats, delete_original = self._write_defaults(defaults)
@@ -215,7 +233,9 @@ class AdminTagWritePreflightView(FilteredComicPksView):
 
         comic_pks = self.resolve_comic_pks(data["collection"], data["pks"])
         if not comic_pks:
-            return Response({"total": 0, "need_conversion": 0})
+            return Response(
+                {"total": 0, "need_conversion": 0, "skipped": self.skipped_read_only}
+            )
 
         need_conversion = Comic.objects.filter(
             pk__in=comic_pks,
@@ -233,6 +253,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
                 "total": len(comic_pks),
                 "need_conversion": need_conversion,
                 "delete_original": delete_original,
+                "skipped": self.skipped_read_only,
             }
         )
 
@@ -269,6 +290,9 @@ class AdminTagWriteView(FilteredComicPksView):
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(
-            {"detail": f"Tag write queued for {len(comic_pks)} comics."},
+            {
+                "detail": f"Tag write queued for {len(comic_pks)} comics.",
+                "skipped": self.skipped_read_only,
+            },
             status=HTTP_202_ACCEPTED,
         )

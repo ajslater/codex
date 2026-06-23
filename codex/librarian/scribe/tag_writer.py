@@ -152,7 +152,13 @@ class TagWriter(WorkerStatusAbortableBase):
             self.log.debug("Tag write called with no comic pks.")
             return
 
-        comics = Comic.objects.filter(pk__in=task.comic_pks).only("pk", "path")
+        # Never write archives in read-only libraries, even if a task somehow
+        # carries their pks (the API funnel already drops them; this is a backstop).
+        comics = (
+            Comic.objects.filter(pk__in=task.comic_pks)
+            .exclude(library__read_only=True)
+            .only("pk", "path")
+        )
         comic_paths: dict[int, Path] = {comic.pk: Path(comic.path) for comic in comics}
 
         items = self._build_items(task, comic_paths)

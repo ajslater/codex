@@ -49,6 +49,19 @@ class MetadataView(MetadataCopyIntersectionsView):
             raise ValueError(reason)
         return obj
 
+    def _aggregate_editable(self, filtered_qs, obj):
+        """
+        Flag whether the selection contains any editable (non-read-only) comic.
+
+        Drives the visibility of the Edit Tags / Tag Online buttons: a selection
+        spanning several libraries stays editable as long as at least one comic
+        is in a writable library. Uses ``rel_prefix`` to reach the Comic's
+        ``library`` from whatever collection model is selected.
+        """
+        read_only_field = self.rel_prefix + "library__read_only"
+        obj.editable = filtered_qs.filter(**{read_only_field: False}).exists()
+        return obj
+
     def _aggregate_multi_pk_sums(self, filtered_qs, obj):
         """
         Aggregate sum fields across multiple selected items.
@@ -98,6 +111,8 @@ class MetadataView(MetadataCopyIntersectionsView):
         pks = self.kwargs.get("pks", ())
         if len(pks) > 1:
             obj = self._aggregate_multi_pk_sums(filtered_qs, obj)
+
+        obj = self._aggregate_editable(filtered_qs, obj)
 
         # Hacks to add to object after query
         collection_lists, fk_intersections, m2m_intersections = (

@@ -29,6 +29,13 @@
       label="Poll Every"
       :disabled="!row.poll"
     />
+    <v-checkbox
+      v-model="row.readOnly"
+      label="Read Only"
+      hide-details="auto"
+      hint="Never write tags into comics in this library"
+      :persistent-hint="true"
+    />
     <AdminRelationPicker
       v-model="row.groups"
       label="Groups"
@@ -48,11 +55,18 @@ import AdminServerFolderPicker from "@/components/admin/create-update-dialog/ser
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = Object.freeze(["events", "poll", "pollEvery", "groups"]);
+const UPDATE_KEYS = Object.freeze([
+  "events",
+  "poll",
+  "readOnly",
+  "pollEvery",
+  "groups",
+]);
 const EMPTY_ROW = Object.freeze({
   path: "",
   events: true,
   poll: true,
+  readOnly: false,
   pollEvery: "01:00:00",
   groups: [],
 });

@@ -523,7 +523,7 @@ export default {
       this.working = true;
       const pks = this.book.ids || [this.book.pk];
       try {
-        await this.startSession({
+        const data = await this.startSession({
           collection: this.book.collection,
           pks,
           sources: this.orderedSelectedSources,
@@ -532,7 +532,12 @@ export default {
           deleteOriginal: this.deleteOriginal,
           mergeAllSources: this.mergeAllSources && this.canMerge,
         });
-        useCommonStore().setSuccess("Online tagging started.");
+        const skipped = data?.skipped || 0;
+        let message = "Online tagging started.";
+        if (skipped > 0) {
+          message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
+        }
+        useCommonStore().setSuccess(message);
         this.dialog = false;
         this.$emit("started");
       } catch (error) {

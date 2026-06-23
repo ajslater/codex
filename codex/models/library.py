@@ -39,6 +39,7 @@ class Library(BaseModel):
     )
     events = BooleanField(db_index=True, default=True)
     poll = BooleanField(db_index=True, default=True)
+    read_only = BooleanField(db_index=True, default=False)
     poll_every = DurationField(default=DEFAULT_POLL_EVERY)
     last_poll = DateTimeField(null=True)
     update_in_progress = BooleanField(default=False)
