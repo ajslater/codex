@@ -614,24 +614,36 @@ to 2 queries per second.
 Here's an example nginx config with a subpath named '/codex'.
 
 ```nginx
-# HTTP
-proxy_set_header   Host $http_host;
-proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header   X-Forwarded-Host $server_name;
-proxy_set_header   X-Forwarded-Port $server_port;
-proxy_set_header   X-Forwarded-Proto $scheme;
-proxy_set_header   X-Real-IP $remote_addr;
-proxy_set_header   X-Scheme $scheme;
-# Websockets
-proxy_http_version 1.1;
-proxy_set_header   Upgrade $http_upgrade;
+# Only send "Connection: upgrade" for real WebSocket requests; plain HTTP
+# requests get "Connection: close". This map must live in the http {} block.
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
 
-proxy_set_header Connection "Upgrade" location /codex {
-    proxy_pass       http://codex:9810;
+# Use "^~" so this prefix wins over any regex location (e.g. a shared
+# "location ~* \.(js|css|...)$" or "/static" block common in multi-app /
+# Organizr / SWAG setups). Without "^~", such a regex hijacks requests like
+# /codex/static/assets/*.js and returns 404 even though Codex serves them
+# correctly, giving a blank page with a working favicon. See GitHub #784.
+location ^~ /codex {
+    proxy_pass         http://codex:9810;
+    # HTTP
+    proxy_set_header   Host $http_host;
+    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Host $server_name;
+    proxy_set_header   X-Forwarded-Port $server_port;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    proxy_set_header   X-Real-IP $remote_addr;
+    proxy_set_header   X-Scheme $scheme;
+    # Websockets (Codex live updates)
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade $http_upgrade;
+    proxy_set_header   Connection $connection_upgrade;
     # Codex reads http basic authentication.
     # If the nginx credentials are different than codex credentials use this line to
     #   not forward the authorization.
-    proxy_set_header Authorization "";
+    proxy_set_header   Authorization "";
 }
 ```
 
@@ -641,6 +653,11 @@ Specify a reverse proxy sub path (if you have one) in `config/codex.toml`
 [server]
 url_path_prefix = "/codex"
 ```
+
+If you put an authenticating reverse proxy (Organizr, Authelia, etc.) in front
+of the `/codex` location with `auth_request`, exempt the API the way Codex's own
+examples do (`location /codex/api { auth_request off; ... }`); the `^~` note
+above is what keeps the static assets reachable.
 
 #### Nginx Reverse Proxy 502 when container refreshes
 
