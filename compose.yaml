@@ -13,11 +13,3 @@ services:
     volumes:
       - ./test-results:/app/test-results
       - ./dist:/app/dist
-  nginx:
-    image: lscr.io/linuxserver/nginx
-    container_name: nginx
-    restart: unless-stopped
-    ports:
-      - 80:80
-    volumes:
-      - ./nginx/default.conf:/config/nginx/site-confs/default.conf:ro

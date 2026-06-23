@@ -136,7 +136,12 @@ class OnlineTagSessionManager:
         unknown id resolves to nothing; that surfaces in the admin Tagging-tab
         error panel rather than silently re-writing the comic's existing tags.
         """
-        comic = Comic.objects.filter(pk=task.comic_pk).only("pk", "path").first()
+        comic = (
+            Comic.objects.filter(pk=task.comic_pk)
+            .exclude(library__read_only=True)
+            .only("pk", "path")
+            .first()
+        )
         if not comic:
             self.log.warning(f"Online tag by id: comic {task.comic_pk} not found.")
             return
@@ -537,7 +542,12 @@ class OnlineTagSessionManager:
 
     def run_session(self, task: BulkOnlineTagTask) -> None:
         """Execute a non-blocking online tagging scan (Pass 1 only)."""
-        comics = Comic.objects.filter(pk__in=task.comic_pks).only("pk", "path")
+        # Read-only libraries are excluded at the API funnel; backstop here too.
+        comics = (
+            Comic.objects.filter(pk__in=task.comic_pks)
+            .exclude(library__read_only=True)
+            .only("pk", "path")
+        )
         comic_paths = {comic.pk: Path(comic.path) for comic in comics}
         if not comic_paths:
             self.log.debug("Online tag: no comics found.")

@@ -19,6 +19,9 @@
     <template #[`item.poll`]="{ item }">
       <v-checkbox-btn :model-value="item.poll" disabled />
     </template>
+    <template #[`item.readOnly`]="{ item }">
+      <v-checkbox-btn :model-value="item.readOnly" disabled />
+    </template>
     <template #[`item.pollEvery`]="{ item }">
       <span :class="{ disabled: !item.poll }">
         {{ removeSeconds(item.pollEvery) }}
@@ -59,7 +62,6 @@
           table="Library"
           :old-row="item"
           :inputs="AdminLibraryCreateUpdateInputs"
-          :label="updateLabel"
           max-width="352"
           :size="iconSize"
           density="compact"
@@ -150,6 +152,7 @@ export default {
             title: "Poll Files Periodically",
             key: "poll",
           },
+          { title: "Read Only", key: "readOnly" },
           { title: "Poll Every", key: "pollEvery" },
           { title: "Last Poll", key: "lastPoll" },
         ],

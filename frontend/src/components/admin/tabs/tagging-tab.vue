@@ -79,304 +79,309 @@
             />
           </div>
         </AdminSection>
-
-        <AdminSection title="Online Tagging Sources">
-          <p class="adminHint sourcesHint">
-            {{ sourcesOrderHint }}
-          </p>
-          <div class="sourcesGroup">
-            <div class="sourceRow" :style="sourceRowStyle('metron')">
-              <div
-                class="sourceEnable"
-                :title="
-                  defaults.hasMetronCredentials ? '' : sourceDisabledTooltip
-                "
-              >
-                <v-checkbox
-                  v-model="metronEnabled"
-                  :disabled="!defaults.hasMetronCredentials"
-                  aria-label="Enable Metron Cloud"
-                  hide-details
-                  density="compact"
-                />
-                <div v-if="metronEnabled" class="sourceOrderButtons">
-                  <v-btn
-                    icon
-                    variant="text"
-                    density="compact"
-                    aria-label="Raise Metron Cloud priority"
-                    :disabled="sourcePriority('metron') <= 0"
-                    @click="moveSource('metron', -1)"
-                  >
-                    <v-icon>{{ mdiChevronUp }}</v-icon>
-                  </v-btn>
-                  <v-btn
-                    icon
-                    variant="text"
-                    density="compact"
-                    aria-label="Lower Metron Cloud priority"
-                    :disabled="
-                      sourcePriority('metron') >=
-                      (draft.defaultSources || []).length - 1
-                    "
-                    @click="moveSource('metron', 1)"
-                  >
-                    <v-icon>{{ mdiChevronDown }}</v-icon>
-                  </v-btn>
-                </div>
-              </div>
-              <div class="sourcePanel">
-                <v-expansion-panels
-                  :model-value="defaults.hasMetronCredentials ? [] : [0]"
-                  variant="accordion"
-                >
-                  <v-expansion-panel>
-                    <v-expansion-panel-title>
-                      <span class="adminCardTitle">Metron Cloud</span>
-                      <span
-                        class="adminCardDesc credentialStatus"
-                        :class="{
-                          credentialSet: defaults.hasMetronCredentials,
-                        }"
-                      >
-                        {{
-                          defaults.hasMetronCredentials
-                            ? "Credentials set"
-                            : "Not configured"
-                        }}
-                      </span>
-                    </v-expansion-panel-title>
-                    <v-expansion-panel-text>
-                      <div class="adminFieldColumn">
-                        <v-text-field
-                          v-model="metronUser"
-                          label="Username"
-                          hide-details="auto"
-                          density="compact"
-                          :placeholder="
-                            defaults.metronUserSet
-                              ? 'New Username'
-                              : 'Enter username'
-                          "
-                        />
-                        <v-text-field
-                          v-model="metronPassword"
-                          label="Password"
-                          type="password"
-                          hide-details="auto"
-                          density="compact"
-                          :placeholder="
-                            defaults.metronPasswordSet
-                              ? 'New Password'
-                              : 'Enter password'
-                          "
-                        />
-                        <p class="adminHint">
-                          Get a username and password from
-                          <a
-                            href="https://metron.cloud/accounts/signup/"
-                            target="_blank"
-                            >Metron Cloud<v-icon size="small">{{
-                              mdiOpenInNew
-                            }}</v-icon></a
-                          >
-                        </p>
-                        <v-text-field
-                          v-model="metronUrlLocal"
-                          label="Custom URL (optional)"
-                          hide-details="auto"
-                          density="compact"
-                          :placeholder="defaults.metronUrl || 'Default'"
-                        />
-                        <div class="adminInlineActions">
-                          <v-btn
-                            variant="tonal"
-                            size="small"
-                            :disabled="
-                              !metronUser && !metronPassword && !metronUrlLocal
-                            "
-                            @click="saveMetronCredentials"
-                          >
-                            Save Metron Cloud Credentials
-                          </v-btn>
-                          <v-btn
-                            variant="text"
-                            size="small"
-                            :loading="validating.metron"
-                            :disabled="!canTestMetron"
-                            @click="testMetronCredentials"
-                          >
-                            Test
-                          </v-btn>
-                          <ConfirmDialog
-                            v-if="defaults.hasMetronCredentials"
-                            button-text="Clear Credentials"
-                            title-text="Clear Metron Cloud Credentials"
-                            text="Remove the saved Metron Cloud username, password, and custom URL?"
-                            confirm-text="Clear"
-                            variant="text"
-                            size="small"
-                            :block="false"
-                            @confirm="clearMetronCredentials"
-                          />
-                        </div>
-                        <ValidationChip
-                          v-if="validationResult.metron"
-                          :result="validationResult.metron"
-                        />
-                      </div>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                </v-expansion-panels>
-              </div>
-            </div>
-
-            <div class="sourceRow" :style="sourceRowStyle('comicvine')">
-              <div
-                class="sourceEnable"
-                :title="
-                  defaults.hasComicvineCredentials ? '' : sourceDisabledTooltip
-                "
-              >
-                <v-checkbox
-                  v-model="comicvineEnabled"
-                  :disabled="!defaults.hasComicvineCredentials"
-                  aria-label="Enable Comic Vine"
-                  hide-details
-                  density="compact"
-                />
-                <div v-if="comicvineEnabled" class="sourceOrderButtons">
-                  <v-btn
-                    icon
-                    variant="text"
-                    density="compact"
-                    aria-label="Raise Comic Vine priority"
-                    :disabled="sourcePriority('comicvine') <= 0"
-                    @click="moveSource('comicvine', -1)"
-                  >
-                    <v-icon>{{ mdiChevronUp }}</v-icon>
-                  </v-btn>
-                  <v-btn
-                    icon
-                    variant="text"
-                    density="compact"
-                    aria-label="Lower Comic Vine priority"
-                    :disabled="
-                      sourcePriority('comicvine') >=
-                      (draft.defaultSources || []).length - 1
-                    "
-                    @click="moveSource('comicvine', 1)"
-                  >
-                    <v-icon>{{ mdiChevronDown }}</v-icon>
-                  </v-btn>
-                </div>
-              </div>
-              <div class="sourcePanel">
-                <v-expansion-panels
-                  :model-value="defaults.hasComicvineCredentials ? [] : [0]"
-                  variant="accordion"
-                >
-                  <v-expansion-panel>
-                    <v-expansion-panel-title>
-                      <span class="adminCardTitle">Comic Vine</span>
-                      <span
-                        class="adminCardDesc credentialStatus"
-                        :class="{
-                          credentialSet: defaults.hasComicvineCredentials,
-                        }"
-                      >
-                        {{
-                          defaults.hasComicvineCredentials
-                            ? "API key set"
-                            : "Not configured"
-                        }}
-                      </span>
-                    </v-expansion-panel-title>
-                    <v-expansion-panel-text>
-                      <div class="adminFieldColumn">
-                        <v-text-field
-                          v-model="comicvineKey"
-                          label="API Key"
-                          type="password"
-                          hide-details="auto"
-                          density="compact"
-                          :placeholder="
-                            defaults.comicvineKeySet
-                              ? 'New API Key'
-                              : 'Enter API key'
-                          "
-                        />
-                        <p class="adminHint">
-                          Get an API key from the
-                          <a
-                            href="https://comicvine.gamespot.com/api/"
-                            target="_blank"
-                            >Comic Vine API<v-icon size="small">{{
-                              mdiOpenInNew
-                            }}</v-icon></a
-                          >
-                        </p>
-                        <v-text-field
-                          v-model="comicvineUrlLocal"
-                          label="Custom URL (optional)"
-                          hide-details="auto"
-                          density="compact"
-                          :placeholder="defaults.comicvineUrl || 'Default'"
-                        />
-                        <div class="adminInlineActions">
-                          <v-btn
-                            variant="tonal"
-                            size="small"
-                            :disabled="!comicvineKey && !comicvineUrlLocal"
-                            @click="saveComicvineCredentials"
-                          >
-                            Save Comic Vine Credentials
-                          </v-btn>
-                          <v-btn
-                            variant="text"
-                            size="small"
-                            :loading="validating.comicvine"
-                            :disabled="!canTestComicvine"
-                            @click="testComicvineCredentials"
-                          >
-                            Test
-                          </v-btn>
-                          <ConfirmDialog
-                            v-if="defaults.hasComicvineCredentials"
-                            button-text="Clear API Key"
-                            title-text="Clear Comic Vine API Key"
-                            text="Remove the saved Comic Vine API key and custom URL?"
-                            confirm-text="Clear"
-                            variant="text"
-                            size="small"
-                            :block="false"
-                            @confirm="clearComicvineCredentials"
-                          />
-                        </div>
-                        <ValidationChip
-                          v-if="validationResult.comicvine"
-                          :result="validationResult.comicvine"
-                        />
-                      </div>
-                    </v-expansion-panel-text>
-                  </v-expansion-panel>
-                </v-expansion-panels>
-              </div>
-            </div>
-          </div>
-          <div class="adminCard mergeAllSourcesCard">
-            <v-checkbox
-              v-model="draft.mergeAllSources"
-              label="Merge all sources"
-              :hint="mergeAllSourcesHint"
-              :disabled="!canMerge"
-              persistent-hint
-              hide-details="auto"
-              density="compact"
-            />
-          </div>
-        </AdminSection>
       </v-form>
+
+      <AdminSection title="Online Tagging Sources">
+        <p class="adminHint sourcesHint">
+          {{ sourcesOrderHint }}
+        </p>
+        <div class="sourcesGroup">
+          <div class="sourceRow" :style="sourceRowStyle('metron')">
+            <div
+              class="sourceEnable"
+              :title="
+                defaults.hasMetronCredentials ? '' : sourceDisabledTooltip
+              "
+            >
+              <v-checkbox
+                v-model="metronEnabled"
+                :disabled="!defaults.hasMetronCredentials"
+                aria-label="Enable Metron Cloud"
+                hide-details
+                density="compact"
+              />
+              <div v-if="metronEnabled" class="sourceOrderButtons">
+                <v-btn
+                  icon
+                  variant="text"
+                  density="compact"
+                  aria-label="Raise Metron Cloud priority"
+                  :disabled="sourcePriority('metron') <= 0"
+                  @click="moveSource('metron', -1)"
+                >
+                  <v-icon>{{ mdiChevronUp }}</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  variant="text"
+                  density="compact"
+                  aria-label="Lower Metron Cloud priority"
+                  :disabled="
+                    sourcePriority('metron') >=
+                    (draft.defaultSources || []).length - 1
+                  "
+                  @click="moveSource('metron', 1)"
+                >
+                  <v-icon>{{ mdiChevronDown }}</v-icon>
+                </v-btn>
+              </div>
+            </div>
+            <div class="sourcePanel">
+              <v-expansion-panels
+                :model-value="defaults.hasMetronCredentials ? [] : [0]"
+                variant="accordion"
+              >
+                <v-expansion-panel>
+                  <v-expansion-panel-title>
+                    <span class="adminCardTitle">Metron Cloud</span>
+                    <span
+                      class="adminCardDesc credentialStatus"
+                      :class="{
+                        credentialSet: defaults.hasMetronCredentials,
+                      }"
+                    >
+                      {{
+                        defaults.hasMetronCredentials
+                          ? "Credentials set"
+                          : "Not configured"
+                      }}
+                    </span>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <v-form class="adminFieldColumn" @submit.prevent>
+                      <v-text-field
+                        v-model="metronUser"
+                        label="Username"
+                        autocomplete="off"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="
+                          defaults.metronUserSet
+                            ? 'New Username'
+                            : 'Enter username'
+                        "
+                      />
+                      <v-text-field
+                        v-model="metronPassword"
+                        label="Password"
+                        type="password"
+                        autocomplete="new-password"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="
+                          defaults.metronPasswordSet
+                            ? 'New Password'
+                            : 'Enter password'
+                        "
+                      />
+                      <p class="adminHint">
+                        Get a username and password from
+                        <a
+                          href="https://metron.cloud/accounts/signup/"
+                          target="_blank"
+                          >Metron Cloud<v-icon size="small">{{
+                            mdiOpenInNew
+                          }}</v-icon></a
+                        >
+                      </p>
+                      <v-text-field
+                        v-model="metronUrlLocal"
+                        label="Custom URL (optional)"
+                        autocomplete="off"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="defaults.metronUrl || 'Default'"
+                      />
+                      <div class="adminInlineActions">
+                        <v-btn
+                          variant="tonal"
+                          size="small"
+                          :disabled="
+                            !metronUser && !metronPassword && !metronUrlLocal
+                          "
+                          @click="saveMetronCredentials"
+                        >
+                          Save Metron Cloud Credentials
+                        </v-btn>
+                        <v-btn
+                          variant="text"
+                          size="small"
+                          :loading="validating.metron"
+                          :disabled="!canTestMetron"
+                          @click="testMetronCredentials"
+                        >
+                          Test
+                        </v-btn>
+                        <ConfirmDialog
+                          v-if="defaults.hasMetronCredentials"
+                          button-text="Clear Credentials"
+                          title-text="Clear Metron Cloud Credentials"
+                          text="Remove the saved Metron Cloud username, password, and custom URL?"
+                          confirm-text="Clear"
+                          variant="text"
+                          size="small"
+                          :block="false"
+                          @confirm="clearMetronCredentials"
+                        />
+                      </div>
+                      <ValidationChip
+                        v-if="validationResult.metron"
+                        :result="validationResult.metron"
+                      />
+                    </v-form>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+          </div>
+
+          <div class="sourceRow" :style="sourceRowStyle('comicvine')">
+            <div
+              class="sourceEnable"
+              :title="
+                defaults.hasComicvineCredentials ? '' : sourceDisabledTooltip
+              "
+            >
+              <v-checkbox
+                v-model="comicvineEnabled"
+                :disabled="!defaults.hasComicvineCredentials"
+                aria-label="Enable Comic Vine"
+                hide-details
+                density="compact"
+              />
+              <div v-if="comicvineEnabled" class="sourceOrderButtons">
+                <v-btn
+                  icon
+                  variant="text"
+                  density="compact"
+                  aria-label="Raise Comic Vine priority"
+                  :disabled="sourcePriority('comicvine') <= 0"
+                  @click="moveSource('comicvine', -1)"
+                >
+                  <v-icon>{{ mdiChevronUp }}</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  variant="text"
+                  density="compact"
+                  aria-label="Lower Comic Vine priority"
+                  :disabled="
+                    sourcePriority('comicvine') >=
+                    (draft.defaultSources || []).length - 1
+                  "
+                  @click="moveSource('comicvine', 1)"
+                >
+                  <v-icon>{{ mdiChevronDown }}</v-icon>
+                </v-btn>
+              </div>
+            </div>
+            <div class="sourcePanel">
+              <v-expansion-panels
+                :model-value="defaults.hasComicvineCredentials ? [] : [0]"
+                variant="accordion"
+              >
+                <v-expansion-panel>
+                  <v-expansion-panel-title>
+                    <span class="adminCardTitle">Comic Vine</span>
+                    <span
+                      class="adminCardDesc credentialStatus"
+                      :class="{
+                        credentialSet: defaults.hasComicvineCredentials,
+                      }"
+                    >
+                      {{
+                        defaults.hasComicvineCredentials
+                          ? "API key set"
+                          : "Not configured"
+                      }}
+                    </span>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <v-form class="adminFieldColumn" @submit.prevent>
+                      <v-text-field
+                        v-model="comicvineKey"
+                        label="API Key"
+                        type="password"
+                        autocomplete="new-password"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="
+                          defaults.comicvineKeySet
+                            ? 'New API Key'
+                            : 'Enter API key'
+                        "
+                      />
+                      <p class="adminHint">
+                        Get an API key from the
+                        <a
+                          href="https://comicvine.gamespot.com/api/"
+                          target="_blank"
+                          >Comic Vine API<v-icon size="small">{{
+                            mdiOpenInNew
+                          }}</v-icon></a
+                        >
+                      </p>
+                      <v-text-field
+                        v-model="comicvineUrlLocal"
+                        label="Custom URL (optional)"
+                        autocomplete="off"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="defaults.comicvineUrl || 'Default'"
+                      />
+                      <div class="adminInlineActions">
+                        <v-btn
+                          variant="tonal"
+                          size="small"
+                          :disabled="!comicvineKey && !comicvineUrlLocal"
+                          @click="saveComicvineCredentials"
+                        >
+                          Save Comic Vine Credentials
+                        </v-btn>
+                        <v-btn
+                          variant="text"
+                          size="small"
+                          :loading="validating.comicvine"
+                          :disabled="!canTestComicvine"
+                          @click="testComicvineCredentials"
+                        >
+                          Test
+                        </v-btn>
+                        <ConfirmDialog
+                          v-if="defaults.hasComicvineCredentials"
+                          button-text="Clear API Key"
+                          title-text="Clear Comic Vine API Key"
+                          text="Remove the saved Comic Vine API key and custom URL?"
+                          confirm-text="Clear"
+                          variant="text"
+                          size="small"
+                          :block="false"
+                          @confirm="clearComicvineCredentials"
+                        />
+                      </div>
+                      <ValidationChip
+                        v-if="validationResult.comicvine"
+                        :result="validationResult.comicvine"
+                      />
+                    </v-form>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </div>
+          </div>
+        </div>
+        <div class="adminCard mergeAllSourcesCard">
+          <v-checkbox
+            v-model="draft.mergeAllSources"
+            label="Merge all sources"
+            :hint="mergeAllSourcesHint"
+            :disabled="!canMerge"
+            persistent-hint
+            hide-details="auto"
+            density="compact"
+          />
+        </div>
+      </AdminSection>
       <TagWriteErrorsPanel />
     </template>
   </div>

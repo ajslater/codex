@@ -1,0 +1,6 @@
+# Ephemeral nginx temp/pid dir, recreated on each run.
+tmp/
+
+# Self-signed localhost cert, generated on first run by bin/run-test-proxy.sh.
+cert.pem
+cert.key

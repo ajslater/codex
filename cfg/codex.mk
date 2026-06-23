@@ -19,10 +19,10 @@ dev:
 	./bin/dev.sh
 
 .PHONY: dev-reverse-proxy
-## Run an nginx reverse proxy to codex in docker
+## Run a native nginx reverse proxy to codex with a url path prefix
 ## @category Run Server
 dev-reverse-proxy:
-	./bin/dev-reverse-proxy.sh
+	./bin/run-test-proxy.sh
 
 ## Module to run
 ## @category Run Server
