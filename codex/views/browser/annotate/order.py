@@ -116,7 +116,11 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def opds_acquisition_collections(self):
         """Memoize the opds acquisition collections."""
         if self._opds_acquisition_collections is None:
-            collections = {STORY_ARC_COLLECTION, FOLDER_COLLECTION, COMIC_COLLECTION}
+            collections: set[str] = {
+                STORY_ARC_COLLECTION,
+                FOLDER_COLLECTION,
+                COMIC_COLLECTION,
+            }
             collections |= {*self.valid_nav_collections[-2:]}
             self._opds_acquisition_collections = frozenset(collections)
         return self._opds_acquisition_collections
