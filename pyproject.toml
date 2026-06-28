@@ -15,7 +15,7 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=4.0.2",
+  "comicbox[pdf]~=4.0.3",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
@@ -81,7 +81,7 @@ build = ["resvg-py~=0.3.1"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=5.1",
+  "complexipy~=6.0",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
