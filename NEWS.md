@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.4
+
+- Features
+    - Add Sweet Shop kebab case filename format. Courtesy of @bpepple.
+
+- Fixes
+    - Online cover matching now works for PDFs; the cover page is rasterized
+      before perceptual hashing instead of handing raw PDF bytes to the image
+      hasher. Courtesy of @bpepple.
+    - Security release for dependencies.
+
 ## v2.0.3
 
 - Fixes
@@ -36,7 +47,7 @@ border-radius: 128px;
       also has a web link.
     - `url_path_prefix` works again when set without a leading slash. Remember
       to uncomment the \[server] block header in codex.toml if you are setting
-      server values, like \`url_path_prefix\`\`
+      server values, like \`url\_path\_prefix\`\`
 
 ## v2.0.0 - Tag Editing & Online Tagging
 
@@ -100,7 +111,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix folder custom covers.
-    - Fix AUTH_REMOTE_USER for api endpoints.
+    - Fix AUTH\_REMOTE\_USER for api endpoints.
 
 ## v1.12.6
 
@@ -361,7 +372,7 @@ border-radius: 128px;
 
 - Fixes
     - Fix PDF date parsing bug on import.
-    - Fix comic names with null volume_to field.
+    - Fix comic names with null volume\_to field.
     - Provide volume name in comic title for OPDS v2 as there's no volume view
       available.
     - Fix OPDS v2 folder as collection naming.
@@ -616,7 +627,7 @@ border-radius: 128px;
 ## v1.8.4
 
 - Fixes
-    - Fix not importing page_count when import metadata is off, leads to
+    - Fix not importing page\_count when import metadata is off, leads to
       unreadable books.
     - Fix persistent settings.
 
@@ -1059,7 +1070,7 @@ border-radius: 128px;
 - Fixes
     - No search results was returning every comic instead of no comics.
     - issue: field searching returned no results.
-    - issue_number, community_rating, & critical rating no longer require two
+    - issue\_number, community\_rating, & critical rating no longer require two
       digits of precision.
     - Excess books included in reader arc/folder/series.
 - Features
@@ -1070,7 +1081,7 @@ border-radius: 128px;
 
 - Fixes
     - Pagination crash with more than 100 folders.
-    - Experimental fix for Synology Docker CHOWN_PYTHON_SITE_PACKAGES=1
+    - Experimental fix for Synology Docker CHOWN\_PYTHON\_SITE\_PACKAGES=1
 
 ## v1.5.6
 
@@ -1081,14 +1092,14 @@ border-radius: 128px;
 
 - Fixes
     - Attempt to fix import crash processing too much metadata at once. Allow
-      undocumented env variable to manipulate this: CODEX_FILTER_BATCH_SIZE
+      undocumented env variable to manipulate this: CODEX\_FILTER\_BATCH\_SIZE
       (default: 900)
     - Fix search engine update crash for large collections.
 
 ## v1.5.4
 
 - Fixes
-    - Django 5 broke root_path prefixing from the asgi server. Work around it.
+    - Django 5 broke root\_path prefixing from the asgi server. Work around it.
 
 ## v1.5.3
 
@@ -1550,7 +1561,7 @@ border-radius: 128px;
 ## v0.14.3
 
 - Fixes
-    - Fix root_path configuration
+    - Fix root\_path configuration
 
 ## v0.14.2
 
@@ -1773,7 +1784,7 @@ border-radius: 128px;
 ## v0.9.13
 
 - Fixes
-    - Fix root_path configuration for running codex in url sub-paths
+    - Fix root\_path configuration for running codex in url sub-paths
     - Parse new filename patterns for metadata.
     - Slightly faster comic cover generation.
 
@@ -1919,7 +1930,7 @@ Yanked. Crash loading admin page.
 ## v0.7.5
 
 - Fixes
-    - Fix integrity cleanup check for old comic_folder relations that prevented
+    - Fix integrity cleanup check for old comic\_folder relations that prevented
       migrations.
 
 ## v0.7.4
@@ -2056,7 +2067,7 @@ Yanked. Crash loading admin page.
 ## v0.5.17
 
 - Fixes
-    - Fix root_path not parsing bug
+    - Fix root\_path not parsing bug
 
 ## v0.5.16
 
@@ -2067,7 +2078,7 @@ Yanked. Crash loading admin page.
 
 - Features
     - Metadata popup is now faster.
-    - Metadata popup now shows created_at, updated_at and path (if admin).
+    - Metadata popup now shows created\_at, updated\_at and path (if admin).
     - Removed numeric and common password validators. Made the minimum length 4.
 
 ## v0.5.14
