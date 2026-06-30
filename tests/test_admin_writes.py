@@ -74,6 +74,19 @@ class AdminWriteTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.CREATED, resp.content
 
+    def test_change_user_password(self) -> None:
+        """POST /admin/users/<pk>/password sets the password (issue #790)."""
+        target = User.objects.create_user(username="pwtarget", password=_TEST_PASSWORD)
+        new_password = "new-pw-hush-S106"  # noqa: S105
+        resp = self.client.post(
+            f"/api/v4/admin/users/{target.pk}/password",
+            data=json.dumps({"password": new_password}),
+            content_type="application/json",
+        )
+        assert resp.status_code == HTTPStatus.ACCEPTED, resp.content
+        target.refresh_from_db()
+        assert target.check_password(new_password)
+
     def test_create_user_camelcase_extra_field(self) -> None:
         """Frontend sends passwordConfirm (not on the serializer) — must not 400."""
         resp = _post_jsonapi(

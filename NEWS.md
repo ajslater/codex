@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.0.5
+
+- Fixes
+    - Admin user password changes no longer fail with an unknown error.
+
 ## v2.0.4
 
 - Features

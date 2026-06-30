@@ -193,7 +193,7 @@ class AdminUserChangePasswordView(AdminGenericAPIView):
 
     serializer_class = UserChangePasswordSerializer
 
-    def put(self, request, *args, **kwargs) -> Response:
+    def post(self, request, *args, **kwargs) -> Response:
         """Validate and set the user password."""
         try:
             serializer = self.get_serializer(data=request.data)
