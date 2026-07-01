@@ -171,6 +171,7 @@ describe("OnlineTagLauncherDialog", () => {
         identifiers: ["metron:12345"],
         source: "",
         mergeAllSources: false,
+        rename: false,
       });
       expect(onlineTagStore.startSession).not.toHaveBeenCalled();
     });
@@ -270,6 +271,7 @@ describe("OnlineTagLauncherDialog", () => {
         identifiers: ["metron:12345"],
         source: "",
         mergeAllSources: false,
+        rename: false,
       });
     });
 

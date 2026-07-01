@@ -15,7 +15,7 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=4.0.3",
+  "comicbox[pdf]~=4.0.4",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-cachalot~=2.8",
@@ -48,7 +48,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.0.5"
+version = "2.1.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"

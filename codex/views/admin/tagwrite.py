@@ -2,9 +2,12 @@
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from types import MappingProxyType
 from typing import override
 
+from comicbox.box import Comicbox
+from comicbox.formats import MetadataFormats
 from rest_framework.permissions import BasePermission, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
@@ -18,12 +21,17 @@ from codex.serializers.admin.tagging import (
     TagByIdRequestSerializer,
     TagWriteRequestSerializer,
 )
+from codex.settings import COMICBOX_CONFIG
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.identifier_parse import (
     parse_identifier_input,
     parse_identifier_url,
 )
 from codex.views.browser.filters.filter import BrowserFilterView
+
+#: Cap on how many per-comic rename previews the preflight builds — each opens
+#: an archive, so a huge multi-selection can't stall the request.
+_FILENAME_PREVIEW_LIMIT = 100
 
 
 class FilteredComicPksView(BrowserFilterView):
@@ -210,12 +218,18 @@ class AdminTagByIdView(FilteredComicPksView):
         (comic_pk,) = tuple(comic_pks)
 
         formats, delete_original = self._write_defaults(defaults)
+        req_rename = data.get("rename")
+        if req_rename is not None:
+            rename = req_rename
+        else:
+            rename = bool(defaults and defaults.rename_files)
         task = OnlineTagByIdTask(
             comic_pk=comic_pk,
             source=source,
             issue_id=issue_id,
             formats=formats,
             delete_original=delete_original,
+            rename=rename,
             extra_ids=extra_ids,
         )
         LIBRARIAN_QUEUE.put(task)
@@ -224,6 +238,41 @@ class AdminTagByIdView(FilteredComicPksView):
 
 class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
+
+    @staticmethod
+    def _preview_one(old_path: Path, metadata: dict | None) -> str:
+        """
+        Return the comicbox-scheme name the given patch produces for one comic.
+
+        Overlays the pending (unsaved) patch onto the archive's metadata in
+        memory and serializes the FILENAME format — the same construction
+        ``rename_file`` uses — so the dialog can show the would-be name. Opens
+        the archive (I/O). Returns "" when no name could be built.
+        """
+        try:
+            with Comicbox(old_path, config=COMICBOX_CONFIG, metadata=metadata) as car:
+                return car.to_string(MetadataFormats.FILENAME) or ""
+        except Exception:
+            return ""
+
+    def _filename_previews(
+        self, comic_pks: frozenset[int], patch_str: str
+    ) -> list[dict[str, str]]:
+        """Preview the rename (old → new) for each selected comic, capped."""
+        patch = json.loads(patch_str or "null")
+        metadata = {"comicbox": patch} if patch else None
+        comics = (
+            Comic.objects.filter(pk__in=comic_pks)
+            .only("pk", "path")
+            .order_by("pk")[:_FILENAME_PREVIEW_LIMIT]
+        )
+        previews: list[dict[str, str]] = []
+        for comic in comics:
+            old_path = Path(comic.path)
+            previews.append(
+                {"old": old_path.name, "new": self._preview_one(old_path, metadata)}
+            )
+        return previews
 
     def post(self, request):
         """Return conversion stats for the given collection+pks."""
@@ -245,14 +294,20 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         try:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
             delete_original = defaults.delete_original
+            rename = defaults.rename_files
         except ComicboxTaggingDefaults.DoesNotExist:
             delete_original = False
+            rename = False
 
         return Response(
             {
                 "total": len(comic_pks),
                 "need_conversion": need_conversion,
                 "delete_original": delete_original,
+                "rename": rename,
+                "filename_previews": self._filename_previews(
+                    comic_pks, data.get("patch") or ""
+                ),
                 "skipped": self.skipped_read_only,
             }
         )
@@ -271,15 +326,22 @@ class AdminTagWriteView(FilteredComicPksView):
         if not comic_pks:
             return Response({"detail": "No comics matched."}, status=400)
 
+        try:
+            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        except ComicboxTaggingDefaults.DoesNotExist:
+            defaults = None
+
         req_delete = data.get("delete_original")
         if req_delete is not None:
             delete_original = req_delete
         else:
-            try:
-                defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-                delete_original = defaults.delete_original
-            except ComicboxTaggingDefaults.DoesNotExist:
-                delete_original = False
+            delete_original = bool(defaults and defaults.delete_original)
+
+        req_rename = data.get("rename")
+        if req_rename is not None:
+            rename = req_rename
+        else:
+            rename = bool(defaults and defaults.rename_files)
 
         task = BulkTagWriteTask(
             comic_pks=comic_pks,
@@ -287,6 +349,7 @@ class AdminTagWriteView(FilteredComicPksView):
             mode=data["mode"],
             formats=tuple(data["formats"]),
             delete_original=delete_original,
+            rename=rename,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

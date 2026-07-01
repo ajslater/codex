@@ -182,6 +182,7 @@ class OnlineTagSessionManager:
             mode="update",
             formats=task.formats,
             delete_original=task.delete_original,
+            rename=task.rename,
         )
         self.librarian_queue.put(write_task)
         self.log.info(
@@ -397,7 +398,12 @@ class OnlineTagSessionManager:
 
     @staticmethod
     def _serialize_prompt(
-        dp: Any, pk: int, formats: tuple[str, ...], *, delete_original: bool
+        dp: Any,
+        pk: int,
+        formats: tuple[str, ...],
+        *,
+        delete_original: bool,
+        rename: bool,
     ) -> dict[str, Any]:
         """Serialize a deferred prompt with everything needed to apply it later."""
         return {
@@ -409,6 +415,7 @@ class OnlineTagSessionManager:
             "mode": getattr(dp.mode, "value", str(dp.mode)),
             "formats": list(formats),
             "delete_original": delete_original,
+            "rename": rename,
         }
 
     def _persist_prompts(self, state: SessionState) -> None:
@@ -424,7 +431,11 @@ class OnlineTagSessionManager:
             if pk is None:
                 continue
             new[dp.fingerprint] = self._serialize_prompt(
-                dp, pk, state.formats, delete_original=state.delete_original
+                dp,
+                pk,
+                state.formats,
+                delete_original=state.delete_original,
+                rename=state.rename,
             )
         if new:
             add_pending_prompts(new)
@@ -489,6 +500,7 @@ class OnlineTagSessionManager:
             mode=state.mode,
             formats=state.formats,
             delete_original=state.delete_original,
+            rename=state.rename,
         )
         self.librarian_queue.put(write_task)
         count = len(batch)
@@ -585,6 +597,7 @@ class OnlineTagSessionManager:
             merge_all_sources=task.merge_all_sources,
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,
+            rename=task.rename,
             total_comics=0,
             completed_comics=0,
             # Everything needed to rebuild a resume task over the comics this
@@ -597,6 +610,7 @@ class OnlineTagSessionManager:
                 "auto_threshold": task.auto_threshold,
                 "delete_original": task.delete_original,
                 "merge_all_sources": task.merge_all_sources,
+                "rename": task.rename,
                 "dry_run": task.dry_run,
             },
         )
@@ -849,6 +863,7 @@ class OnlineTagSessionManager:
             mode="update",
             formats=tuple(prompt.get("formats") or ("COMIC_INFO",)),
             delete_original=bool(prompt.get("delete_original")),
+            rename=bool(prompt.get("rename")),
         )
         self.librarian_queue.put(write_task)
         self.log.info(f"Online tag: applied resolved match for {path_str}.")
@@ -871,9 +886,10 @@ class OnlineTagSessionManager:
             return False
         formats = tuple(prompt.get("formats") or ("COMIC_INFO",))
         delete_original = bool(prompt.get("delete_original"))
+        rename = bool(prompt.get("rename"))
         new = {
             dp.fingerprint: self._serialize_prompt(
-                dp, pk, formats, delete_original=delete_original
+                dp, pk, formats, delete_original=delete_original, rename=rename
             )
             for dp in session.deferred_prompts()
         }

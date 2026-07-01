@@ -507,7 +507,19 @@ export const useBrowserStore = defineStore("browser", {
         }
         return;
       } else if (this.settings.search) {
-        // Do not redirect to first search if already in search mode.
+        // A search was active. If it's being cleared, undo the redirect the
+        // first search performed: entering search sends us down to
+        // ``lowestShownCollection`` (below), so clearing from that
+        // redirected-into root must send us back to the top collection.
+        // Otherwise we'd strand the user at e.g. the series root with no
+        // parent breadcrumbs / up-arrows.
+        if (Object.hasOwn(data, "search") && !data.search) {
+          const { collection, pks } = liveBrowseParams();
+          if (!pks && collection === this.lowestShownCollection) {
+            return { params: { collection: "root", pks: "", page: "1" } };
+          }
+        }
+        // Still searching (or nothing to undo): don't redirect.
         return;
       }
       // If first search redirect to lowest collection and change order

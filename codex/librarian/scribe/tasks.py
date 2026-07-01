@@ -43,6 +43,10 @@ class BulkTagWriteTask(ScribeTask):
     delete_original: bool = False
     patch: dict[str, Any] | None = None
     per_comic_patches: dict[int, dict[str, Any]] = field(default_factory=dict)
+    # When True, rename each written archive to the comicbox (comicfn2dict)
+    # filename scheme after its tags are written. With no patch (rename-only),
+    # every resolved comic is renamed from its existing on-archive metadata.
+    rename: bool = False
 
 
 class TagWriteAbortTask(ScribeTask):

@@ -60,6 +60,7 @@ class TagPassRunner:
             mode=state.mode,
             formats=state.formats,
             delete_original=state.delete_original,
+            rename=state.rename,
         )
         self.librarian_queue.put(write_task)
         self.log.info(f"Online tag: flushed write batch of {len(batch)} comics.")
