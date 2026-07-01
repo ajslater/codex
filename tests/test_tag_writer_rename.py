@@ -84,9 +84,11 @@ class _FakeComicbox:
         return self._path
 
 
-def _make_comic(*, events: bool, name: str = "c.cbz") -> Comic:
+def _make_comic(*, events: bool, name: str = "c.cbz", read_only: bool = False) -> Comic:
     _TMP_DIR.mkdir(exist_ok=True, parents=True)
-    library = Library.objects.create(path=str(_TMP_DIR), events=events)
+    library = Library.objects.create(
+        path=str(_TMP_DIR), events=events, read_only=read_only
+    )
     publisher = Publisher.objects.create(name="P")
     imprint = Imprint.objects.create(name="I", publisher=publisher)
     series = Series.objects.create(name="S", publisher=publisher, imprint=imprint)
@@ -149,6 +151,23 @@ class TagWriterRenameTests(TestCase):
         # Rename-only: metadata unchanged, so no re-read is requested.
         assert imports[0].files_modified == frozenset()
         assert imports[0].force_import_metadata is True
+
+    def test_read_only_library_is_never_renamed(self) -> None:
+        """A read-only comic is not renamed even if a task carries its pk."""
+        comic = _make_comic(events=False, read_only=True)
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(comic_pks=frozenset({comic.pk}), rename=True)
+
+        with patch(_COMICBOX_TARGET, _FakeComicbox):
+            writer.write_tags(task)
+
+        # File untouched and nothing enqueued: the read-only exclusion drops it
+        # before the rename pass ever runs.
+        assert old_path.exists()
+        assert not (old_path.parent / _TARGET_NAME).exists()
+        assert not queue.items
 
     def test_rename_only_watched_enqueues_nothing(self) -> None:
         """A watched library's rename is left to the watcher; codex stays quiet."""
