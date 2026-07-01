@@ -6,6 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.1.0 - Renaming
+
+- Features
+    - Rename comic files to the comicbox naming scheme when editing tags or
+      tagging online.
+
+- Fixes
+    - Online tagging matches already-tagged comics more accurately by searching
+      embedded metadata instead of the filename (comicbox 4.0.4).
+    - Renaming a file no longer fails when a series or title contains a slash
+      (comicbox 4.0.4).
+
 ## v2.0.5
 
 - Fixes
