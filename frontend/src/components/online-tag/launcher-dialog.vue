@@ -59,6 +59,14 @@
                 density="compact"
                 class="mt-3"
               />
+              <v-checkbox
+                v-model="rename"
+                label="Rename files to comicbox scheme"
+                :hint="renameHint"
+                persistent-hint
+                density="compact"
+                class="mt-3"
+              />
               <div class="tagInfo">
                 <div class="comicCount">
                   {{ comicCount }} comic{{ comicCount === 1 ? "" : "s" }} to
@@ -136,6 +144,14 @@
                 label="Merge all sources"
                 :hint="mergeAllSourcesHint"
                 :disabled="!canMergeById"
+                persistent-hint
+                density="compact"
+                class="mt-3"
+              />
+              <v-checkbox
+                v-model="rename"
+                label="Rename files to comicbox scheme"
+                :hint="renameHint"
                 persistent-hint
                 density="compact"
                 class="mt-3"
@@ -247,6 +263,9 @@ export default {
         "Off: the highest-priority selected source that matches tags the comic and the rest are skipped. On: every selected source is queried and their results are merged for the most complete tags — but that roughly multiplies API calls by the number of sources, so it's slower and rate-limited sooner.",
       needConversion: 0,
       deleteOriginal: false,
+      rename: false,
+      renameHint:
+        "Rename each tagged comic file to the comicbox scheme derived from its new tags.",
       // By ID
       idInputs: [],
       sourceChoice: "auto",
@@ -499,6 +518,7 @@ export default {
         this.promptsMode =
           this.taggingDefaults.defaultPromptsMode || this.promptsMode;
         this.mergeAllSources = Boolean(this.taggingDefaults.mergeAllSources);
+        this.rename = Boolean(this.taggingDefaults.renameFiles);
       }
       const pks = this.book.ids || [this.book.pk];
       try {
@@ -531,6 +551,7 @@ export default {
           promptsMode: this.promptsMode,
           deleteOriginal: this.deleteOriginal,
           mergeAllSources: this.mergeAllSources && this.canMerge,
+          rename: this.rename,
         });
         const skipped = data?.skipped || 0;
         let message = "Online tagging started.";
@@ -559,6 +580,7 @@ export default {
           identifiers: tokens,
           source,
           mergeAllSources: this.mergeAllSources && this.canMergeById,
+          rename: this.rename,
         });
         useCommonStore().setSuccess(
           `Tagging ${data.source} #${data.id} queued.`,

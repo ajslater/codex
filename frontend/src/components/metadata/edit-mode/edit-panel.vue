@@ -12,23 +12,39 @@
         class="formatSelect"
         @update:model-value="enforceMinFormat"
       />
+      <v-checkbox
+        v-model="renameFile"
+        :label="renameCheckboxLabel"
+        :title="renameHint"
+        hide-details
+        density="compact"
+        class="renameToggle"
+      />
+      <code
+        v-if="!isMultipleComics && previewLabel"
+        class="renamePreviewInline"
+        :class="{ renamePreviewActive: renameFile }"
+        :title="previewLabel"
+      >
+        {{ previewLabel }}
+      </code>
       <v-spacer />
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
-        :color="hasChanges ? 'primary' : 'grey-darken-1'"
+        :color="canSave ? 'primary' : 'grey-darken-1'"
         variant="flat"
         :loading="saving"
-        :disabled="!hasChanges"
+        :disabled="!canSave"
         @click="preSave"
       >
-        Save Tags
+        {{ saveButtonLabel }}
       </v-btn>
     </div>
     <v-dialog v-model="confirmDialog" max-width="450">
       <v-card>
-        <v-card-title>Confirm Tag Write</v-card-title>
+        <v-card-title>{{ confirmTitle }}</v-card-title>
         <v-card-text>
-          <div>
+          <div v-if="hasChanges">
             Writing tags to
             <strong>{{ confirmInfo.total }}</strong>
             comic{{ confirmInfo.total === 1 ? "" : "s" }}.
@@ -56,12 +72,40 @@
               class="mt-2"
             />
           </div>
+          <div v-if="renameFile" class="renameInfo">
+            <div class="renameWarning">
+              Renaming rewrites files on disk and can't be undone automatically.
+            </div>
+            <div v-if="renamePreviews.length" class="renameListLabel">
+              Renaming
+              <strong>{{ confirmInfo.total }}</strong>
+              file{{ confirmInfo.total === 1 ? "" : "s" }} to the comicbox
+              scheme:
+            </div>
+            <ul v-if="renamePreviews.length" class="renamePreviewList">
+              <li
+                v-for="(preview, index) in renamePreviews"
+                :key="index"
+                class="renamePreviewItem"
+              >
+                <span class="renameOld">{{ preview.old }}</span>
+                <span class="renameArrow">→</span>
+                <code class="renamePreview">{{ preview.new || "—" }}</code>
+              </li>
+            </ul>
+            <div v-if="renamePreviewsTruncated" class="renameHelpText">
+              …and {{ confirmInfo.total - renamePreviews.length }} more.
+            </div>
+            <div v-if="!renamePreviews.length" class="renameHelpText">
+              Files will be renamed to the comicbox scheme.
+            </div>
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="confirmDialog = false">Cancel</v-btn>
           <v-btn color="primary" variant="flat" @click="doSave">
-            Write Tags
+            {{ confirmButtonLabel }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -1030,8 +1074,17 @@ export default {
       tagKeys: TAG_KEYS,
       saving: false,
       confirmDialog: false,
-      confirmInfo: { total: 0, needConversion: 0, skipped: 0 },
+      confirmInfo: {
+        total: 0,
+        needConversion: 0,
+        skipped: 0,
+      },
       confirmDeleteOriginal: false,
+      renameFile: false,
+      renameHint:
+        "Rename the comic file to the comicbox scheme derived from its tags.",
+      renamePreviews: [],
+      renamePreviewTimer: null,
       addUrlDialog: false,
       identifierUrl: "",
       urlError: "",
@@ -1189,6 +1242,74 @@ export default {
     hasChanges() {
       return this.changedFields.size > 0;
     },
+    canSave() {
+      // Renaming works on its own, so the rename toggle enables Save even
+      // when no tag fields changed (a pure "fix my filename" action).
+      return this.hasChanges || this.renameFile;
+    },
+    comicCount() {
+      // A tag edit spans either an explicit multi-selection (book.ids) or a
+      // container's children (book.childCount, e.g. a whole series/folder).
+      return Math.max(
+        this.book?.ids?.length || 0,
+        this.book?.childCount || 0,
+        1,
+      );
+    },
+    isMultipleComics() {
+      return this.comicCount > 1;
+    },
+    isRenameOnly() {
+      // Rename with no tag edits: the operation is purely a rename.
+      return !this.hasChanges && this.renameFile;
+    },
+    renameActionLabel() {
+      return this.isMultipleComics ? "Rename Files" : "Rename File";
+    },
+    renameCheckboxLabel() {
+      return this.isMultipleComics ? "Rename files" : "Rename file";
+    },
+    saveButtonLabel() {
+      // Label the button for its actual effect: a pure rename until a tag is
+      // altered, pluralized by how many comics are selected.
+      return this.isRenameOnly ? this.renameActionLabel : "Save Tags";
+    },
+    confirmButtonLabel() {
+      return this.isRenameOnly ? this.renameActionLabel : "Write Tags";
+    },
+    confirmTitle() {
+      return this.isRenameOnly ? "Confirm Rename" : "Confirm Tag Write";
+    },
+    renamePreviewsTruncated() {
+      return (
+        this.renamePreviews.length > 0 &&
+        this.confirmInfo.total > this.renamePreviews.length
+      );
+    },
+    renameSignature() {
+      // The inputs the comicbox filename preview depends on. Empty when the
+      // toggle is off so the (moderately heavy) patch build is skipped and the
+      // preview watcher clears. The pending patch is included so the preview
+      // tracks unsaved edits.
+      if (!this.renameFile) {
+        return "";
+      }
+      return `${this.enabledFormats.join(",")}|${JSON.stringify(this.buildPatch())}`;
+    },
+    currentFileName() {
+      // Basename of the opened comic's path (empty for multi-comic groups
+      // that carry no single path).
+      const path = this.md?.path || "";
+      return path ? path.split(/[/\\]/).pop() : "";
+    },
+    previewLabel() {
+      // The single-comic inline pill: the comicbox-scheme name the tags would
+      // produce (rename on) or the file's current name (rename off), reading
+      // as a before → after. Multi-comic previews live in the confirm dialog.
+      return this.renameFile
+        ? this.renamePreviews[0]?.new || ""
+        : this.currentFileName;
+    },
     changedCreditPersons() {
       void this.creditsVersion;
       if (!this.origSnapshot) return new Set();
@@ -1209,6 +1330,20 @@ export default {
     },
   },
   watch: {
+    renameSignature() {
+      // Refresh the inline single-comic preview when the toggle flips on or
+      // the pending tags change. Debounced so keystrokes don't spam the
+      // archive. Multi-comic selections skip the live fetch (it would open
+      // every archive on each edit) and are previewed in the confirm dialog.
+      if (!this.renameFile) {
+        this.renamePreviews = [];
+        return;
+      }
+      if (this.isMultipleComics) {
+        return;
+      }
+      this.scheduleRenamePreview();
+    },
     protagonistItems(newItems, oldItems) {
       // Removing the picked character/team clears the pick. A protagonist
       // seeded from the DB but absent from the entered lists survives
@@ -1224,7 +1359,13 @@ export default {
     if (this.taggingDefaults?.defaultFormats?.length) {
       this.selectedFormats = [...this.taggingDefaults.defaultFormats];
     }
+    this.renameFile = Boolean(this.taggingDefaults?.renameFiles);
     this.initFromMetadata();
+  },
+  beforeUnmount() {
+    if (this.renamePreviewTimer) {
+      clearTimeout(this.renamePreviewTimer);
+    }
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
@@ -1623,14 +1764,45 @@ export default {
 
       return cbPatch;
     },
-    async preSave() {
-      this.saving = true;
+    scheduleRenamePreview() {
+      if (this.renamePreviewTimer) {
+        clearTimeout(this.renamePreviewTimer);
+      }
+      this.renamePreviewTimer = setTimeout(this.fetchRenamePreview, 400);
+    },
+    async fetchRenamePreview() {
+      // Ask the backend for the comicbox-scheme name the current tags would
+      // produce (the scheme lives in comicbox, so it can't be built here).
+      if (!this.renameFile) {
+        this.renamePreviews = [];
+        return;
+      }
       const pks = this.book.ids || [this.book.pk];
+      const cbPatch = this.hasChanges ? this.buildPatch() : {};
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
           collection: this.book.collection,
           pks: pks.map(String),
           formats: this.enabledFormats,
+          patch: JSON.stringify(cbPatch),
+        });
+        this.renamePreviews = response.data.filenamePreviews || [];
+      } catch {
+        this.renamePreviews = [];
+      }
+    },
+    async preSave() {
+      this.saving = true;
+      const pks = this.book.ids || [this.book.pk];
+      // Rename-only (no tag edits) sends an empty patch so no tags are
+      // written; the preview then reflects the archive's current metadata.
+      const cbPatch = this.hasChanges ? this.buildPatch() : {};
+      try {
+        const response = await HTTP.post("/admin/tag-write/preflight", {
+          collection: this.book.collection,
+          pks: pks.map(String),
+          formats: this.enabledFormats,
+          patch: JSON.stringify(cbPatch),
         });
         const data = response.data;
         this.confirmInfo = {
@@ -1638,8 +1810,14 @@ export default {
           needConversion: data.needConversion,
           skipped: data.skipped || 0,
         };
+        this.renamePreviews = data.filenamePreviews || [];
         this.confirmDeleteOriginal = data.deleteOriginal || false;
-        if (data.needConversion > 0 || data.total > 10) {
+        // Renaming rewrites files on disk — higher risk than a tag write — so
+        // always confirm when it's enabled. Otherwise only prompt for archive
+        // conversions or large batches.
+        const needsConfirm =
+          this.renameFile || data.needConversion > 0 || data.total > 10;
+        if (needsConfirm) {
           this.confirmDialog = true;
           this.saving = false;
         } else {
@@ -1655,7 +1833,7 @@ export default {
       this.confirmDialog = false;
       const pks = this.book.ids || [this.book.pk];
       const formats = this.enabledFormats;
-      const cbPatch = this.buildPatch();
+      const cbPatch = this.hasChanges ? this.buildPatch() : {};
 
       try {
         const payload = {
@@ -1664,6 +1842,7 @@ export default {
           patch: JSON.stringify(cbPatch),
           mode: "update",
           formats,
+          rename: this.renameFile,
         };
         if (this.confirmInfo.needConversion > 0) {
           payload.deleteOriginal = this.confirmDeleteOriginal;
@@ -1810,10 +1989,91 @@ td.labelChanged {
   background-color: rgba(var(--v-theme-warning), 0.1);
 }
 
-.conversionHelpText {
+.conversionHelpText,
+.renameHelpText {
   font-size: 0.85em;
   color: rgb(var(--v-theme-textSecondary));
   margin-top: 4px;
+}
+
+.renameToggle {
+  flex: 0 0 auto;
+}
+
+.renamePreviewInline {
+  /* Size to the filename when it fits the free toolbar space; when it
+     doesn't, shrink to that space and scroll horizontally rather than
+     truncating. The v-spacer keeps the buttons right-aligned. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 0.85em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-textSecondary));
+  scrollbar-width: thin;
+}
+
+.renamePreviewActive {
+  /* The new name (rename on) reads as the primary action; the current name
+     (rename off) stays muted. */
+  color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.1);
+}
+
+.renameInfo {
+  margin-top: 12px;
+}
+
+.renameWarning {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(var(--v-theme-warning), 0.1);
+  color: rgb(var(--v-theme-warning));
+}
+
+.renameListLabel {
+  margin-bottom: 6px;
+}
+
+.renamePreviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.renamePreviewItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 0.85em;
+}
+
+.renamePreviewItem + .renamePreviewItem {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.renameOld {
+  color: rgb(var(--v-theme-textSecondary));
+  word-break: break-all;
+}
+
+.renameArrow {
+  color: rgb(var(--v-theme-textDisabled));
+}
+
+.renamePreview {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  word-break: break-all;
 }
 
 .readOnlyField {

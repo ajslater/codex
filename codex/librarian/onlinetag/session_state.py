@@ -34,6 +34,8 @@ class SessionState:
     merge_all_sources: bool = False
     formats: tuple[str, ...] = ("COMIC_INFO",)
     delete_original: bool = False
+    # Rename each written archive to the comicbox filename scheme.
+    rename: bool = False
     cancelled: bool = False
     total_comics: int = 0
     completed_comics: int = 0

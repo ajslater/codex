@@ -87,6 +87,12 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         else:
             merge_all_sources = bool(defaults and defaults.merge_all_sources)
 
+        req_rename = data.get("rename")
+        if req_rename is not None:
+            rename = req_rename
+        else:
+            rename = bool(defaults and defaults.rename_files)
+
         task = BulkOnlineTagTask(
             comic_pks=comic_pks,
             session_id=session_id,
@@ -96,6 +102,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             auto_threshold=float(data.get("auto_threshold", 0.85)),
             delete_original=delete_original,
             merge_all_sources=merge_all_sources,
+            rename=rename,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

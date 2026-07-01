@@ -53,6 +53,15 @@
               density="compact"
             />
           </div>
+          <div class="adminCard">
+            <v-checkbox
+              v-model="draft.renameFiles"
+              label="Rename files to the comicbox scheme"
+              :hint="renameFilesHint"
+              persistent-hint
+              density="compact"
+            />
+          </div>
         </AdminSection>
 
         <AdminSection title="Online Tagging Defaults">
@@ -408,6 +417,7 @@ const FORMAT_CHOICES = [
 const EDITABLE_FIELDS = Object.freeze([
   "defaultFormats",
   "deleteOriginal",
+  "renameFiles",
   "defaultMatchMode",
   "defaultPromptsMode",
   "defaultSources",
@@ -444,6 +454,8 @@ export default {
         "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
       deleteOriginalHint:
         "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.",
+      renameFilesHint:
+        "Rename each comic file to the comicbox scheme derived from its tags after writing. Can be overridden per operation when editing tags or tagging online.",
       matchModeHint:
         "How aggressively to accept online matches. Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       promptsModeHint:

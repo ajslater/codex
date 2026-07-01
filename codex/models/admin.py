@@ -95,6 +95,9 @@ class ComicboxTaggingDefaults(BaseModel):
 
     default_formats = JSONField(default=list)
     delete_original = BooleanField(default=True)
+    # Rename archives to the comicbox (comicfn2dict) filename scheme after a
+    # tag write. Admin default that pre-seeds the per-operation toggle.
+    rename_files = BooleanField(default=False)
     default_match_mode = CharField(
         max_length=MAX_FIELD_LEN,
         choices=MatchModeChoices.choices,

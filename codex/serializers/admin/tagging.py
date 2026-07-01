@@ -44,6 +44,8 @@ class TagWriteRequestSerializer(Serializer):
     mode = CharField(required=False, default="update")
     formats = ListField(child=CharField(), required=False, default=["COMIC_INFO"])
     delete_original = BooleanField(required=False, default=None)
+    # None falls back to the admin ComicboxTaggingDefaults default.
+    rename = BooleanField(required=False, default=None)
 
 
 class OnlineTagStartSerializer(Serializer):
@@ -62,6 +64,7 @@ class OnlineTagStartSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     merge_all_sources = BooleanField(required=False, default=None)
+    rename = BooleanField(required=False, default=None)
 
     @staticmethod
     def validate_sources(value: list) -> list:
@@ -81,6 +84,7 @@ class TagByIdRequestSerializer(Serializer):
     identifiers = ListField(child=CharField(), required=False, default=list)
     # None falls back to the admin ComicboxTaggingDefaults default.
     merge_all_sources = BooleanField(required=False, default=None)
+    rename = BooleanField(required=False, default=None)
 
 
 class OnlineTagPromptResponseSerializer(Serializer):
@@ -168,6 +172,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         fields = (
             "default_formats",
             "delete_original",
+            "rename_files",
             "default_match_mode",
             "default_prompts_mode",
             "default_sources",

@@ -26,6 +26,8 @@ class BulkOnlineTagTask(OnlineTagTask):
     # Query every source per comic and merge (comicbox first_wins=False)
     # instead of stopping at the first match.
     merge_all_sources: bool = False
+    # Rename each written archive to the comicbox filename scheme.
+    rename: bool = False
 
 
 @dataclass
@@ -44,6 +46,7 @@ class OnlineTagByIdTask(OnlineTagTask):
     issue_id: int
     formats: tuple[str, ...] = ("COMIC_INFO",)
     delete_original: bool = False
+    rename: bool = False
     # Additional (source, issue_id) pairs to fetch by explicit id and merge
     # onto the primary fetch — the Tag-by-id "merge all sources" path. Empty
     # means a single-source fetch.
