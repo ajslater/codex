@@ -224,6 +224,48 @@ describe("EditPanel — rename toggle", () => {
     expect(wrapper.vm.renameCheckboxLabel).toBe("Rename files");
     expect(wrapper.vm.saveButtonLabel).toBe("Rename Files");
   });
+
+  test("reports a no-op when the name already matches the scheme", async () => {
+    const wrapper = await mountEditPanel(true, { path: "/comics/Match.cbz" });
+    wrapper.vm.renamePreviews = [{ old: "Match.cbz", new: "Match.cbz" }];
+    await flushPromises();
+    expect(wrapper.vm.renameWillChange).toBe(false);
+    expect(wrapper.vm.renameChanges).toEqual([]);
+    expect(wrapper.vm.renameNoop).toBe(true);
+    expect(wrapper.vm.renamePreviewTitle).toBe(
+      "Already matches the comicbox scheme",
+    );
+    // The inline pill isn't styled as a pending change.
+    const pill = wrapper.find(".renamePreviewInline");
+    expect(pill.exists()).toBe(true);
+    expect(pill.classes()).not.toContain("renamePreviewActive");
+  });
+
+  test("counts only real renames and reports the unchanged", async () => {
+    const wrapper = await mountEditPanel(true, {}, [1, 2, 3]);
+    wrapper.vm.confirmInfo = { total: 3, needConversion: 0, skipped: 0 };
+    wrapper.vm.renamePreviews = [
+      { old: "a.cbz", new: "A #001.cbz" },
+      { old: "b.cbz", new: "b.cbz" },
+      { old: "c.cbz", new: "" },
+    ];
+    await flushPromises();
+    expect(wrapper.vm.renameChanges).toEqual([
+      { old: "a.cbz", new: "A #001.cbz" },
+    ]);
+    expect(wrapper.vm.renameUnchangedCount).toBe(1);
+    // One file changes, so it's not a pure no-op.
+    expect(wrapper.vm.renameNoop).toBe(false);
+  });
+
+  test("inline preview is styled active for a real rename", async () => {
+    const wrapper = await mountEditPanel(true, { path: "/comics/old.cbz" });
+    wrapper.vm.renamePreviews = [{ old: "old.cbz", new: "New #001.cbz" }];
+    await flushPromises();
+    const pill = wrapper.find(".renamePreviewInline");
+    expect(pill.text()).toContain("New #001.cbz");
+    expect(pill.classes()).toContain("renamePreviewActive");
+  });
 });
 
 const BASE_DEFAULTS = {

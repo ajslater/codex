@@ -23,8 +23,8 @@
       <code
         v-if="!isMultipleComics && previewLabel"
         class="renamePreviewInline"
-        :class="{ renamePreviewActive: renameFile }"
-        :title="previewLabel"
+        :class="{ renamePreviewActive: renameFile && renameWillChange }"
+        :title="renamePreviewTitle"
       >
         {{ previewLabel }}
       </code>
@@ -73,30 +73,42 @@
             />
           </div>
           <div v-if="renameFile" class="renameInfo">
-            <div class="renameWarning">
-              Renaming rewrites files on disk and can't be undone automatically.
+            <template v-if="renameChanges.length">
+              <div class="renameWarning">
+                Renaming rewrites files on disk and can't be undone
+                automatically.
+              </div>
+              <div class="renameListLabel">
+                Renaming
+                <strong>{{ renameChanges.length }}</strong>
+                file{{ renameChanges.length === 1 ? "" : "s" }} to the comicbox
+                scheme:
+              </div>
+              <ul class="renamePreviewList">
+                <li
+                  v-for="(preview, index) in renameChanges"
+                  :key="index"
+                  class="renamePreviewItem"
+                >
+                  <span class="renameOld">{{ preview.old }}</span>
+                  <span class="renameArrow">→</span>
+                  <code class="renamePreview">{{ preview.new }}</code>
+                </li>
+              </ul>
+              <div v-if="renameUnchangedCount" class="renameHelpText">
+                {{ renameUnchangedCount }}
+                file{{ renameUnchangedCount === 1 ? "" : "s" }} already match
+                the comicbox scheme and won't change.
+              </div>
+              <div v-if="renamePreviewsTruncated" class="renameHelpText">
+                …and {{ confirmInfo.total - renamePreviews.length }} more.
+              </div>
+            </template>
+            <div v-else-if="renamePreviews.length" class="renameHelpText">
+              All selected files already match the comicbox scheme — nothing to
+              rename.
             </div>
-            <div v-if="renamePreviews.length" class="renameListLabel">
-              Renaming
-              <strong>{{ confirmInfo.total }}</strong>
-              file{{ confirmInfo.total === 1 ? "" : "s" }} to the comicbox
-              scheme:
-            </div>
-            <ul v-if="renamePreviews.length" class="renamePreviewList">
-              <li
-                v-for="(preview, index) in renamePreviews"
-                :key="index"
-                class="renamePreviewItem"
-              >
-                <span class="renameOld">{{ preview.old }}</span>
-                <span class="renameArrow">→</span>
-                <code class="renamePreview">{{ preview.new || "—" }}</code>
-              </li>
-            </ul>
-            <div v-if="renamePreviewsTruncated" class="renameHelpText">
-              …and {{ confirmInfo.total - renamePreviews.length }} more.
-            </div>
-            <div v-if="!renamePreviews.length" class="renameHelpText">
+            <div v-else class="renameHelpText">
               Files will be renamed to the comicbox scheme.
             </div>
           </div>
@@ -104,7 +116,12 @@
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="confirmDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="doSave">
+          <v-btn
+            color="primary"
+            variant="flat"
+            :disabled="renameNoop"
+            @click="doSave"
+          >
             {{ confirmButtonLabel }}
           </v-btn>
         </v-card-actions>
@@ -1284,6 +1301,37 @@ export default {
       return (
         this.renamePreviews.length > 0 &&
         this.confirmInfo.total > this.renamePreviews.length
+      );
+    },
+    renameChanges() {
+      // Previews whose new name actually differs from the current one — the
+      // files a rename would really touch. A name equal to the current one is
+      // a no-op, not a rename.
+      return this.renamePreviews.filter((p) => p.new && p.new !== p.old);
+    },
+    renameUnchangedCount() {
+      return this.renamePreviews.filter((p) => p.new && p.new === p.old).length;
+    },
+    renameWillChange() {
+      // Single-comic inline: does the one previewed file actually get renamed?
+      const preview = this.renamePreviews[0];
+      return Boolean(preview && preview.new && preview.new !== preview.old);
+    },
+    renamePreviewTitle() {
+      if (this.renameFile && this.previewLabel && !this.renameWillChange) {
+        return "Already matches the comicbox scheme";
+      }
+      return this.previewLabel;
+    },
+    renameNoop() {
+      // Rename-only where every previewed file already matches: confirming
+      // would do nothing. (Not claimed when the preview list was capped, since
+      // files beyond the cap might still change.)
+      return (
+        this.isRenameOnly &&
+        this.renamePreviews.length > 0 &&
+        this.renameChanges.length === 0 &&
+        !this.renamePreviewsTruncated
       );
     },
     renameSignature() {
