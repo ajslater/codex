@@ -266,6 +266,37 @@ describe("EditPanel — rename toggle", () => {
     expect(pill.text()).toContain("New #001.cbz");
     expect(pill.classes()).toContain("renamePreviewActive");
   });
+
+  test("disables Save for a single-file no-op rename", async () => {
+    const wrapper = await mountEditPanel(true, { path: "/comics/Match.cbz" });
+    wrapper.vm.renamePreviews = [{ old: "Match.cbz", new: "Match.cbz" }];
+    await flushPromises();
+    expect(wrapper.vm.renameSingleNoop).toBe(true);
+    expect(wrapper.vm.canSave).toBe(false);
+  });
+
+  test("keeps Save enabled for a single-file real rename", async () => {
+    const wrapper = await mountEditPanel(true, { path: "/comics/old.cbz" });
+    wrapper.vm.renamePreviews = [{ old: "old.cbz", new: "New #001.cbz" }];
+    await flushPromises();
+    expect(wrapper.vm.canSave).toBe(true);
+  });
+
+  test("a no-op rename still saves when tags changed", async () => {
+    const wrapper = await mountEditPanel(true, { path: "/comics/Match.cbz" });
+    wrapper.vm.renamePreviews = [{ old: "Match.cbz", new: "Match.cbz" }];
+    wrapper.vm.patch.summary = "edited";
+    await flushPromises();
+    expect(wrapper.vm.hasChanges).toBe(true);
+    expect(wrapper.vm.canSave).toBe(true);
+  });
+
+  test("stays enabled while the single-file preview is still loading", async () => {
+    // No preview fetched yet: don't disable prematurely.
+    const wrapper = await mountEditPanel(true, { path: "/comics/x.cbz" });
+    expect(wrapper.vm.renamePreviews).toEqual([]);
+    expect(wrapper.vm.canSave).toBe(true);
+  });
 });
 
 const BASE_DEFAULTS = {

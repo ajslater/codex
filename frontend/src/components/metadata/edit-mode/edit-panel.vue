@@ -1260,9 +1260,13 @@ export default {
       return this.changedFields.size > 0;
     },
     canSave() {
-      // Renaming works on its own, so the rename toggle enables Save even
-      // when no tag fields changed (a pure "fix my filename" action).
-      return this.hasChanges || this.renameFile;
+      // Tag edits are always saveable. Otherwise the rename toggle enables
+      // Save on its own (a pure "fix my filename" action) — except when we
+      // already know that single-comic rename is a no-op.
+      if (this.hasChanges) {
+        return true;
+      }
+      return this.renameFile && !this.renameSingleNoop;
     },
     comicCount() {
       // A tag edit spans either an explicit multi-selection (book.ids) or a
@@ -1316,6 +1320,16 @@ export default {
       // Single-comic inline: does the one previewed file actually get renamed?
       const preview = this.renamePreviews[0];
       return Boolean(preview && preview.new && preview.new !== preview.old);
+    },
+    renameSingleNoop() {
+      // A single comic whose loaded preview shows the rename wouldn't change
+      // anything (same name, or no name could be built). Only asserted once
+      // the preview has loaded so the button isn't disabled while it fetches.
+      return (
+        !this.isMultipleComics &&
+        this.renamePreviews.length > 0 &&
+        !this.renameWillChange
+      );
     },
     renamePreviewTitle() {
       if (this.renameFile && this.previewLabel && !this.renameWillChange) {
