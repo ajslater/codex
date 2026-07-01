@@ -39,6 +39,8 @@ border-radius: 128px;
   comics directory mounted **writable** with filesystem write permission.
 - **Online tagging** looks up and applies metadata from online sources, with
   interactive match prompts and per-source credentials in the Admin Tagging tab.
+- **Rename comic files** to the comicbox naming scheme derived from their tags,
+  with a filename preview and confirmation, when editing tags or tagging online.
 
 ### 📖 Read
 
