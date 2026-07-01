@@ -17,6 +17,8 @@ border-radius: 128px;
       embedded metadata instead of the filename (comicbox 4.0.4).
     - Renaming a file no longer fails when a series or title contains a slash
       (comicbox 4.0.4).
+    - Clearing a search returns to the top collection instead of stranding you
+      at a lower level.
 
 ## v2.0.5
 
