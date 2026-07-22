@@ -49,9 +49,9 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # — see ``_collection_age_rating_annotations`` for the display + sort split.
     {
         "child_count": Min,
+        "community_rating": Avg,
         "country": Min,
         "created_at": Min,
-        "critical_rating": Avg,
         "date": Min,
         "day": Min,
         "file_type": Min,

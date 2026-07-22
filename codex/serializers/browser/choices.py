@@ -32,8 +32,8 @@ class BrowserFilterChoicesSerializer(Serializer):
     age_rating_metron = BooleanField(read_only=True)
     age_rating_tagged = BooleanField(read_only=True)
     characters = BooleanField(read_only=True)
+    community_rating = BooleanField(read_only=True)
     country = BooleanField(read_only=True)
-    critical_rating = BooleanField(read_only=True)
     credits = BooleanField(read_only=True)
     decade = BooleanField(read_only=True)
     genres = BooleanField(read_only=True)
@@ -62,11 +62,11 @@ class BrowserSettingsFilterSerializer(Serializer):
     age_rating_metron = VuetifyReadOnlyListField()
     age_rating_tagged = VuetifyReadOnlyListField()
     characters = VuetifyReadOnlyListField()
-    country = VuetifyReadOnlyListField()
-    credits = VuetifyReadOnlyListField()
-    critical_rating = VuetifyReadOnlyListField(
+    community_rating = VuetifyReadOnlyListField(
         child=VuetifyDecimalField(max_digits=5, decimal_places=2)
     )
+    country = VuetifyReadOnlyListField()
+    credits = VuetifyReadOnlyListField()
     decade = VuetifyReadOnlyListField(child=VuetifyDecadeField)
     file_type = VuetifyReadOnlyListField(child=VuetifyFileTypeChoiceField)
     genres = VuetifyReadOnlyListField()
@@ -131,7 +131,7 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
         "age_rating_tagged": BrowserChoicesAgeRatingPkSerializer,
         "bookmark": BrowserChoicesCharPkSerializer,
         "country": CountrySerializer,
-        "critical_rating": BrowserChoicesDecimalPkSerializer,
+        "community_rating": BrowserChoicesDecimalPkSerializer,
         "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
         "universe": BrowserChoicesUniversePkSerializer,

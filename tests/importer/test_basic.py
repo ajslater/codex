@@ -181,14 +181,17 @@ AGGREGATED = MappingProxyType(
             PATH: {
                 # bookmark ignore
                 # cover_date ignore?
+                "alternative_issue_number": Decimal("43.5"),
+                "alternative_issue_suffix": "AU",
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("5.0"),
+                "community_rating": Decimal("4.2"),
+                "community_rating_count": 128,
                 "day": 1,
                 # ext ignore
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -271,13 +274,16 @@ QUERIED = MappingProxyType(
     {
         CREATE_COMICS: {
             PATH: {
+                "alternative_issue_number": Decimal("43.5"),
+                "alternative_issue_suffix": "AU",
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("5.0"),
+                "community_rating": Decimal("4.2"),
+                "community_rating_count": 128,
                 "day": 1,
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",
@@ -425,13 +431,16 @@ CREATED_FK = MappingProxyType(
     {
         CREATE_COMICS: {
             PATH: {
+                "alternative_issue_number": Decimal("43.5"),
+                "alternative_issue_suffix": "AU",
                 "collection_title": "The Big Omnibus",
-                "critical_rating": Decimal("5.0"),
+                "community_rating": Decimal("4.2"),
+                "community_rating_count": 128,
                 "day": 1,
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 29, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
                 "name": "The Beginning",

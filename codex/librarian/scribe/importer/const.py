@@ -60,7 +60,10 @@ IDENTIFIERS_FIELD_NAME = "identifiers"
 NON_FTS_FIELDS = frozenset(
     {
         # Attributes
-        "critical_rating",
+        "alternative_issue_number",
+        "alternative_issue_suffix",
+        "community_rating",
+        "community_rating_count",
         "day",
         "file_type",
         "issue_number",

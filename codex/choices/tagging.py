@@ -107,7 +107,10 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
         "credits": ("credits",),
         "language": ("language",),
         "age_rating": ("age_rating",),
-        "critical_rating": ("critical_rating",),
+        # The average only; the count is MetronInfo-exclusive — see
+        # _EXTRA_FORMAT_FIELDS. (comicbox's critical_rating persists to
+        # no format since 4.4.0, so it has no editor field.)
+        "community_rating": ("community_rating",),
         "protagonist": ("protagonist",),
         "identifiers": ("identifiers",),
         "country": ("country",),
@@ -116,11 +119,12 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 )
 
 # Editor sub-fields comicbox stores only for some formats and which its
-# transform specs don't surface at the SPECS_TO top level (the sole
-# hand-maintained support datum): MetronInfo's Series carries a volume count.
+# transform specs don't surface at the SPECS_TO top level (the
+# hand-maintained support data): MetronInfo's Series carries a volume
+# count, and only MetronInfo's CommunityRating persists a rating count.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
-        "METRON_INFO": ("volume_count",),
+        "METRON_INFO": ("volume_count", "community_rating_count"),
     }
 )
 

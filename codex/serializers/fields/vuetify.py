@@ -34,33 +34,33 @@ class VuetifyNullCodeFieldMixin:
         return super().to_representation(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
 
-class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """File Type Choice Field."""
 
     class_choices = FileTypeChoices.values
 
 
-class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Reading Direction Choice Field."""
 
     class_choices = ReadingDirectionChoices.values
 
 
-class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Float Field with null code conversion."""
 
 
-class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Integer Field with null code conversion."""
 
 
-class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Char Field with null code conversion."""
 
     NULL_CODE: str = str(VUETIFY_NULL_CODE)  # pyright: ignore[reportIncompatibleVariableOverride]
 
 
-class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride]
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Boolean Field with null code conversion."""
 
 

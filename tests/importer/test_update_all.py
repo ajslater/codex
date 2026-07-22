@@ -69,12 +69,15 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
     {
         CREATE_COMICS: {
             PATH: {
+                "alternative_issue_number": Decimal(44),
+                "alternative_issue_suffix": "BU",
                 "collection_title": "The Big Omnibus Part 2",
-                "critical_rating": Decimal("5.0"),
+                "community_rating": Decimal("3.5"),
+                "community_rating_count": 200,
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -398,13 +401,15 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         },
         UPDATE_COMICS: {
             1: {
+                "alternative_issue_number": Decimal(44),
+                "alternative_issue_suffix": "BU",
                 "collection_title": "The Big Omnibus Part 2",
-                # critical_rating omitted: both before (clamped 10->5) and
-                # after (5) collapse to the same canonical 5.0, so no diff.
+                "community_rating": Decimal("3.5"),
+                "community_rating_count": 200,
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",
@@ -509,13 +514,15 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         },
         UPDATE_COMICS: {
             1: {
+                "alternative_issue_number": Decimal(44),
+                "alternative_issue_suffix": "BU",
                 "collection_title": "The Big Omnibus Part 2",
-                # critical_rating omitted: both before (clamped 10->5) and
-                # after (5) collapse to the same canonical 5.0, so no diff.
+                "community_rating": Decimal("3.5"),
+                "community_rating_count": 200,
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
-                "metadata_mtime": datetime(2025, 8, 6, 12, 37, 6, tzinfo=UTC),
+                "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
                 "name": "The Beginning; The End",

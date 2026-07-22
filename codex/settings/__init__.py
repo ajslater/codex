@@ -1101,12 +1101,13 @@ CUSTOM_COVERS_UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
 USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
     {
         "age_rating",
+        "alternative_issue",
         "arcs",
         "characters",
         "collection_title",
+        "community_rating",
         "country",
         "credits",
-        "critical_rating",
         "date",
         "file_type",  # codex-side extra
         "genres",

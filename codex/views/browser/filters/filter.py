@@ -15,7 +15,7 @@ from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
 # on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
 # minus the local-column / FK keys (year, decade, country, language,
-# critical_rating, monochrome, original_format, file_type, reading_direction,
+# community_rating, monochrome, original_format, file_type, reading_direction,
 # tagger, age_rating_metron, age_rating_tagged).
 _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
     {

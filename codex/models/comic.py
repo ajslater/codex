@@ -107,6 +107,17 @@ class Comic(WatchedPathBrowserCollection):
         default="",
         db_collation="nocase",
     )
+    # An alternate numbering for the same physical issue (e.g. a
+    # continuity-wide number). Display-only: unindexed, no name column —
+    # comicbox recomputes ``alternative_issue.name`` from the parts.
+    alternative_issue_number = CoercingDecimalField(
+        decimal_places=2, max_digits=10, null=True
+    )
+    alternative_issue_suffix = CleaningCharField(
+        max_length=MAX_ISSUE_SUFFIX_LEN,
+        default="",
+        db_collation="nocase",
+    )
     # Collection FKs
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
@@ -158,8 +169,11 @@ class Comic(WatchedPathBrowserCollection):
     review = CleaningTextField(default="", db_collation="nocase")
     notes = CleaningTextField(default="", db_collation="nocase")
 
-    # Ratings — ComicInfo 0.0-5.0 scale, one decimal place.
-    critical_rating = CoercingDecimalField(  # pyright: ignore[reportCallIssue]  # ty: ignore[no-matching-overload]
+    # Ratings — comicbox community_rating, 0.0-5.0 scale, one decimal
+    # place. Fed by ComicInfo CommunityRating / CBI rating / Metron
+    # average_rating (comicbox 4.4.0); replaced critical_rating, whose
+    # values (same sources, same scale) migrated here in 0048.
+    community_rating = CoercingDecimalField(  # pyright: ignore[reportCallIssue]  # ty: ignore[no-matching-overload]
         db_index=True,
         decimal_places=1,
         max_digits=2,
@@ -171,6 +185,10 @@ class Comic(WatchedPathBrowserCollection):
             MaxValueValidator(Decimal("5.0")),
         ),
     )
+    # Votes behind community_rating (Metron only). Unindexed — never
+    # sorted or filtered; PositiveIntegerField because aggregate vote
+    # counts can exceed SmallInteger's 32767.
+    community_rating_count = PositiveIntegerField(null=True, default=None)
 
     # Reader
     page_count = CoercingPositiveSmallIntegerField(db_index=True, default=0)

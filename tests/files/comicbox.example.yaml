@@ -4,6 +4,9 @@ comicbox:
   alternate_images:
     - alt0.jxl
     - alt1.jxl
+  alternative_issue:
+    number: 43.5
+    suffix: AU
   arcs:
     c: {}
     d:
@@ -23,6 +26,9 @@ comicbox:
         metron:
           key: 345
   collection_title: The Big Omnibus
+  community_rating:
+    average_rating: 4.2
+    rating_count: 128
   country: US
   credits:
     Joe Orlando:
