@@ -43,6 +43,9 @@ class TagWriteRequestSerializer(Serializer):
     collection = CharField()
     pks = ListField(child=CharField())
     patch = CharField(required=False, default="")
+    # Comicbox key paths to clear; separate from the patch because a merge
+    # write can only add or replace values, never remove them.
+    delete_keys = ListField(child=CharField(), required=False, default=list)
     mode = CharField(required=False, default="update")
     formats = ListField(child=CharField(), required=False, default=["COMIC_INFO"])
     delete_original = BooleanField(required=False, default=None)

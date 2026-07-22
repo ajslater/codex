@@ -9,11 +9,17 @@ border-radius: 128px;
 ## v2.2.2
 
 - Fixes
+    - Clearing a field in the tag editor now removes it from the comic's tags.
+      Cleared fields were silently left unchanged in the archive (comicbox
+      4.5.0).
     - PDF pages scanned upside down or sideways and righted by the pdf's
-      rotation attribute displayed rotated when the reader served them as
-      images (comicbox-pdffile 0.6.3).
+      rotation attribute displayed rotated when the reader served them as images
+      (comicbox-pdffile 0.6.3).
     - Reading a PDF that needs in-memory repair no longer rewrites the file on
       disk (comicbox-pdffile 0.6.3).
+    - PDFs no longer count an embedded metadata file as a page (comicbox 4.5.0).
+      Imported PDFs correct themselves on their next re-import, or use Force
+      Update Tags.
 
 ## v2.2.1
 

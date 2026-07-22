@@ -120,7 +120,10 @@ describe("EditPanel — protagonist select", () => {
     });
     expect(wrapper.vm.patch.protagonist).toBe("Spider-Man");
     wrapper.vm.patch.protagonist = "Avengers";
-    expect(wrapper.vm.buildPatch()).toEqual({ protagonist: "Avengers" });
+    expect(wrapper.vm.buildPatch()).toEqual({
+      patch: { protagonist: "Avengers" },
+      deleteKeys: [],
+    });
   });
 
   test("newly entered tags join the menu; removing the picked one clears it", async () => {

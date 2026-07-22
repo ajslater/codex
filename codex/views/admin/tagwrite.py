@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import override
@@ -240,7 +241,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
 
     @staticmethod
-    def _preview_one(old_path: Path, metadata: dict | None) -> str:
+    def _preview_one(old_path: Path, metadata: dict | None, config) -> str:
         """
         Return the comicbox-scheme name the given patch produces for one comic.
 
@@ -250,17 +251,31 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         the archive (I/O). Returns "" when no name could be built.
         """
         try:
-            with Comicbox(old_path, config=COMICBOX_CONFIG, metadata=metadata) as car:
+            with Comicbox(old_path, config=config, metadata=metadata) as car:
                 return car.to_string(MetadataFormats.FILENAME) or ""
         except Exception:
             return ""
 
     def _filename_previews(
-        self, comic_pks: frozenset[int], patch_str: str
+        self,
+        comic_pks: frozenset[int],
+        patch_str: str,
+        delete_keys: tuple[str, ...] = (),
     ) -> list[dict[str, str]]:
         """Preview the rename (old → new) for each selected comic, capped."""
         patch = json.loads(patch_str or "null")
         metadata = {"comicbox": patch} if patch else None
+        # Pending cleared fields must vanish from the previewed name exactly
+        # as the real write (BulkWriteItem.delete_keys) will clear them.
+        config = COMICBOX_CONFIG
+        if delete_keys:
+            config = replace(
+                config,
+                general=replace(
+                    config.general,
+                    delete_keys=config.general.delete_keys | frozenset(delete_keys),
+                ),
+            )
         comics = (
             Comic.objects.filter(pk__in=comic_pks)
             .only("pk", "path")
@@ -270,7 +285,10 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         for comic in comics:
             old_path = Path(comic.path)
             previews.append(
-                {"old": old_path.name, "new": self._preview_one(old_path, metadata)}
+                {
+                    "old": old_path.name,
+                    "new": self._preview_one(old_path, metadata, config),
+                }
             )
         return previews
 
@@ -306,7 +324,9 @@ class AdminTagWritePreflightView(FilteredComicPksView):
                 "delete_original": delete_original,
                 "rename": rename,
                 "filename_previews": self._filename_previews(
-                    comic_pks, data.get("patch") or ""
+                    comic_pks,
+                    data.get("patch") or "",
+                    tuple(data.get("delete_keys") or ()),
                 ),
                 "skipped": self.skipped_read_only,
             }
@@ -346,6 +366,7 @@ class AdminTagWriteView(FilteredComicPksView):
         task = BulkTagWriteTask(
             comic_pks=comic_pks,
             patch=json.loads(data.get("patch") or "null"),
+            delete_keys=tuple(data.get("delete_keys") or ()),
             mode=data["mode"],
             formats=tuple(data["formats"]),
             delete_original=delete_original,
