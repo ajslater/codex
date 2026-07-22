@@ -252,3 +252,69 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         # Still one row per key.
         assert User.objects.filter(username="alice").count() == 1
         assert AdminFlag.objects.filter(key="AU").count() == 1
+
+
+class LegacyKeyRenameTests(TestCase):
+    """
+    Sidecars from before 0048 carry critical_rating; restore remaps it.
+
+    Exercises the private helpers directly: rebuilding a whole
+    legacy-schema sidecar for one column rename buys nothing over
+    feeding the helpers legacy-shaped rows.
+    """
+
+    @staticmethod
+    def _browser_row(**overrides) -> dict:
+        row = {
+            "top_collection": "publishers",
+            "order_by": "critical_rating",
+            "order_reverse": 1,
+            "order_extra_keys": "[]",
+            "search": "",
+            "custom_covers": 1,
+            "dynamic_covers": 1,
+            "twenty_four_hour_time": 0,
+            "always_show_filename": 0,
+            "view_mode": "",
+            "table_columns": '{"critical_rating": true, "issue": true}',
+            "table_cover_size": "",
+        }
+        row.update(overrides)
+        return row
+
+    def test_browser_defaults_remap_legacy_keys(self) -> None:
+        """Legacy order_by values and table_columns keys map to community."""
+        from codex.user_data.restore import _build_browser_defaults
+
+        defaults = _build_browser_defaults(self._browser_row(), show=None)
+        assert defaults["order_by"] == "community_rating"
+        assert defaults["table_columns"] == {"community_rating": True, "issue": True}
+
+    def test_browser_defaults_pass_current_keys_through(self) -> None:
+        """Current-name rows restore unchanged."""
+        from codex.user_data.restore import _build_browser_defaults
+
+        row = self._browser_row(
+            order_by="community_rating", table_columns='{"community_rating": true}'
+        )
+        defaults = _build_browser_defaults(row, show=None)
+        assert defaults["order_by"] == "community_rating"
+        assert defaults["table_columns"] == {"community_rating": True}
+
+    def test_filter_restore_reads_legacy_column(self) -> None:
+        """A legacy critical_rating filter column lands on community_rating."""
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+        from codex.user_data.restore import RestoreReport, _restore_one_filter
+
+        user = User.objects.create_user(username="filt", password=_TEST_PASSWORD)
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(user=user, show=show)
+        # A legacy sidecar row: critical_rating column, no community_rating.
+        row = {"bookmark": "", "favorite": 0, "critical_rating": "[4.5]"}
+        _restore_one_filter(row, browser, RestoreReport())
+        filters = SettingsBrowserFilters.objects.get(browser=browser)
+        assert filters.community_rating == [4.5]

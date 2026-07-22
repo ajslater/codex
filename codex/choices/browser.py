@@ -20,9 +20,9 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "age_rating": "Age Rating",
         "characters": "Characters",
         "child_count": "Child Count",
+        "community_rating": "Community Rating",
         "country": "Country",
         "credits": "Credits",
-        "critical_rating": "Critical Rating",
         "day": "Day",
         "favorite": "Favorite",
         "filename": "Filename",
@@ -75,7 +75,7 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
         "created_at",
         "age_rating",
         "child_count",
-        "critical_rating",
+        "community_rating",
         "filename",
         "size",
         "bookmark_updated_at",
@@ -436,15 +436,15 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        "critical_rating": {
-            "label": "Critical Rating",
-            "sort_key": "critical_rating",
+        "community_rating": {
+            "label": "Community Rating",
+            "sort_key": "community_rating",
             "m2m": False,
-            "editable": True,
-            # 0.0-5.0 decimal stepper. Renderer wired up by the eventual
-            # inline-table edit UI; the dialog editor uses its own input
-            # in components/metadata/edit-mode/edit-panel.vue.
-            "edit_widget": "decimal",
+            # An aggregate of external votes — not sensibly editable
+            # inline; the dialog editor owns writes (average + count) in
+            # components/metadata/edit-mode/edit-panel.vue.
+            "editable": False,
+            "edit_widget": None,
         },
         # Timestamps
         "created_at": {

@@ -278,16 +278,25 @@ def _build_sources(
     state: SessionState, source_retry_at: dict[str, float], now_epoch: float
 ) -> list[dict[str, Any]]:
     """One ordered entry per source: rate budget + any live retry countdown."""
+    # Live per-account budget (comicbox>=4.3.0 reads it off Metron's
+    # X-RateLimit-* headers; earlier versions and cold sessions report {}).
+    # The sustained (daily) window is the one worth showing — its limit
+    # varies by Metron donor tier; the burst cap is the static
+    # rate_per_minute already displayed.
+    live = state.session.rate_limit_status() if state.session else {}
     sources = []
     for source in state.sources:
         retry_at = source_retry_at.get(source)
         rate_limited = bool(retry_at and retry_at > now_epoch)
+        sustained = (live.get(source) or {}).get("sustained") or {}
         sources.append(
             {
                 "source": source,
                 "rate_per_minute": SOURCE_RATE_PER_MINUTE.get(source),
                 "rate_limited": rate_limited,
                 "retry_at_epoch": retry_at if rate_limited else None,
+                "sustained_limit": sustained.get("limit"),
+                "sustained_remaining": sustained.get("remaining"),
             }
         )
     return sources

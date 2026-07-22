@@ -107,7 +107,7 @@ def _validate_v2(data: Any, schema_id: str) -> list[str]:
     registry = _v2_registry()
     validator = Draft7Validator(registry.contents(schema_id), registry=registry)
     return [
-        f"{error.json_path}: {error.message}"  # ty: ignore[unresolved-attribute]
+        f"{error.json_path}: {error.message}"
         for error in sorted(validator.iter_errors(data), key=str)
     ]
 

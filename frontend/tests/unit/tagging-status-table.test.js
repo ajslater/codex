@@ -15,6 +15,7 @@ import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
+import { nf } from "@/components/admin/status-helpers";
 import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import vuetify from "@/plugins/vuetify";
 import { useOnlineTagStore } from "@/stores/online-tag";
@@ -133,6 +134,22 @@ describe("AdminTaggingStatusTable", () => {
     expect(strip).toContain("3/min");
     // comicvine is rate-limited → a retry countdown is shown.
     expect(strip).toContain("retry");
+    // No live sustained budget in this snapshot → no daily figures.
+    expect(strip).not.toContain("day");
+  });
+
+  test("shows the live daily budget once Metron reports one", () => {
+    const snapshot = makeSnapshot();
+    // As delivered by the snapshot once comicbox reads Metron's
+    // X-RateLimit-* headers (limit varies by donor tier).
+    snapshot.sources[0].sustainedLimit = 25_000;
+    snapshot.sources[0].sustainedRemaining = 24_987;
+    const { wrapper } = mountTable({ snapshot });
+    const strip = wrapper.find(".sourcesStrip").text();
+    expect(strip).toContain(`${nf(24_987)}/${nf(25_000)} day`);
+    // comicvine reported nothing → its chip keeps only the static rate.
+    expect(strip).toContain("3/min");
+    expect(strip).not.toContain("3/min day");
   });
 
   test("overlays needs_review from the live pending-prompt list", () => {

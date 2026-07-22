@@ -225,9 +225,9 @@ class SettingsBrowserFilters(BaseModel):
     age_rating_metron = JSONField(default=list)
     age_rating_tagged = JSONField(default=list)
     characters = JSONField(default=list)
+    community_rating = JSONField(default=list)
     country = JSONField(default=list)
     credits = JSONField(default=list)
-    critical_rating = JSONField(default=list)
     decade = JSONField(default=list)
     file_type = JSONField(default=list)
     genres = JSONField(default=list)
@@ -253,9 +253,9 @@ class SettingsBrowserFilters(BaseModel):
             "age_rating_metron",
             "age_rating_tagged",
             "characters",
+            "community_rating",
             "country",
             "credits",
-            "critical_rating",
             "decade",
             "file_type",
             "genres",

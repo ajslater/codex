@@ -6,6 +6,28 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.1
+
+- Features
+    - Community ratings: the average and vote count comics carry in their tags
+      (and that Metron online tagging now fetches) are imported, shown in the
+      metadata panel, editable in the tag editor, and browsable — sort, table
+      column, filter, and `community_rating:` search (comicbox 4.4.0). Existing
+      critical ratings become community ratings automatically; they always came
+      from the same tags.
+    - Alternative issue numbers are imported and shown in the metadata panel
+      (comicbox 4.4.0).
+    - Testing Metron credentials in the Admin panel now shows your account's
+      live rate limits; the daily limit reflects your Metron donor tier.
+    - The online tagging status table shows Metron's live daily budget as a run
+      progresses.
+    - Metron rate limits now come from your account instead of fixed defaults;
+      donor-tier limits are picked up automatically (comicbox 4.3.0).
+
+- Fixes
+    - Online tagging backs off properly when a rate-limited response omits a
+      retry hint (comicbox 4.3.0).
+
 ## v2.2.0 - Single Sign-On
 
 - Features

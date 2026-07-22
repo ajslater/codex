@@ -105,7 +105,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "file_type": "file_type",
         "reading_direction": "reading_direction",
         "monochrome": "monochrome",
-        "critical_rating": "critical_rating",
+        "community_rating": "community_rating",
         "metadata_mtime": "metadata_mtime",
         "created_at": "created_at",
         "updated_at": "updated_at",

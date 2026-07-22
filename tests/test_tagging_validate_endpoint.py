@@ -8,7 +8,11 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
-from codex.librarian.onlinetag.credential_validator import ValidationResult
+from codex.librarian.onlinetag.credential_validator import (
+    RateLimitInfo,
+    RateLimitWindowInfo,
+    ValidationResult,
+)
 from codex.models import ComicboxTaggingDefaults
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -106,9 +110,16 @@ class TaggingValidateMergeTestCase(TestCase):
         assert mocked.call_args.args[1] == frozenset({"metron", "comicvine"})
 
     def test_response_shape(self) -> None:
+        """Locks in nested rate-limit serialization and envelope camelCasing."""
         with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
             mocked.return_value = {
-                "metron": ValidationResult(ok=True),
+                "metron": ValidationResult(
+                    ok=True,
+                    rate_limits=RateLimitInfo(
+                        burst=RateLimitWindowInfo(limit=20, remaining=19),
+                        sustained=RateLimitWindowInfo(limit=25_000, remaining=24_987),
+                    ),
+                ),
                 "comicvine": ValidationResult(ok=False, error="bad key"),
             }
             response = self.client.post(_URL, data={}, content_type="application/json")
@@ -116,7 +127,14 @@ class TaggingValidateMergeTestCase(TestCase):
         body = _v4(response)
         assert body == {
             "results": {
-                "metron": {"ok": True, "error": None},
-                "comicvine": {"ok": False, "error": "bad key"},
+                "metron": {
+                    "ok": True,
+                    "error": None,
+                    "rateLimits": {
+                        "burst": {"limit": 20, "remaining": 19},
+                        "sustained": {"limit": 25_000, "remaining": 24_987},
+                    },
+                },
+                "comicvine": {"ok": False, "error": "bad key", "rateLimits": None},
             }
         }

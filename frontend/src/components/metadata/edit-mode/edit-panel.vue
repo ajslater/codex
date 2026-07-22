@@ -531,30 +531,61 @@
           </template>
         </v-select>
       </div>
-      <div :title="isFieldDisabled('critical_rating') ? disabledTooltip : ''">
+      <div :title="isFieldDisabled('community_rating') ? disabledTooltip : ''">
         <v-text-field
-          v-model.number="patch.critical_rating"
-          label="Critical Rating"
+          v-model.number="patch.community_rating"
+          label="Community Rating"
           type="number"
           min="0"
           max="5"
           step="0.1"
-          :rules="criticalRatingRules"
+          :rules="communityRatingRules"
           hide-details="auto"
           density="compact"
-          :disabled="isFieldDisabled('critical_rating')"
+          :disabled="isFieldDisabled('community_rating')"
           :class="{
-            fieldCleared: isCleared('critical_rating'),
+            fieldCleared: isCleared('community_rating'),
             fieldChanged:
-              isFieldChanged('critical_rating') &&
-              !isCleared('critical_rating'),
+              isFieldChanged('community_rating') &&
+              !isCleared('community_rating'),
           }"
-          @update:model-value="onFieldInput('critical_rating')"
+          @update:model-value="onFieldInput('community_rating')"
         >
           <template #append-inner>
             <ClearFieldIcon
-              :cleared="isCleared('critical_rating')"
-              @toggle="toggleClear('critical_rating')"
+              :cleared="isCleared('community_rating')"
+              @toggle="toggleClear('community_rating')"
+            />
+          </template>
+        </v-text-field>
+      </div>
+      <div
+        :title="
+          isFieldDisabled('community_rating_count') ? disabledTooltip : ''
+        "
+      >
+        <v-text-field
+          v-model.number="patch.community_rating_count"
+          label="Rating Count"
+          type="number"
+          min="1"
+          step="1"
+          :rules="communityRatingCountRules"
+          hide-details="auto"
+          density="compact"
+          :disabled="isFieldDisabled('community_rating_count')"
+          :class="{
+            fieldCleared: isCleared('community_rating_count'),
+            fieldChanged:
+              isFieldChanged('community_rating_count') &&
+              !isCleared('community_rating_count'),
+          }"
+          @update:model-value="onFieldInput('community_rating_count')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('community_rating_count')"
+              @toggle="toggleClear('community_rating_count')"
             />
           </template>
         </v-text-field>
@@ -1059,7 +1090,13 @@ const ALL_ROLES = Object.freeze([
   "Editing",
 ]);
 
-const CRITICAL_RATING_RULES = Object.freeze([
+// Numeric fields that clear to null rather than "" (a cleared number is
+// absent, not an empty string).
+const NULL_CLEARED_FIELDS = Object.freeze(
+  new Set(["community_rating", "community_rating_count"]),
+);
+
+const COMMUNITY_RATING_RULES = Object.freeze([
   (v) =>
     v === null ||
     v === "" ||
@@ -1087,7 +1124,7 @@ export default {
       languageChoices: LANGUAGES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
       identifierTypeChoices: IDENTIFIER_TYPES,
-      criticalRatingRules: CRITICAL_RATING_RULES,
+      communityRatingRules: COMMUNITY_RATING_RULES,
       tagKeys: TAG_KEYS,
       saving: false,
       confirmDialog: false,
@@ -1132,7 +1169,8 @@ export default {
         monochrome: false,
         language: null,
         age_rating: null,
-        critical_rating: null,
+        community_rating: null,
+        community_rating_count: null,
         protagonist: "",
         genres: [],
         characters: [],
@@ -1150,6 +1188,23 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
     }),
+    communityRatingCountRules() {
+      // A count without an average can't persist anywhere (MetronInfo's
+      // CommunityRating requires AverageRating), so block count-only edits.
+      return [
+        (v) => {
+          if (v === null || v === "" || v === undefined) return true;
+          const n = Number(v);
+          if (!Number.isInteger(n) || n < 1)
+            return "Must be a whole number ≥ 1";
+          const average = this.patch.community_rating;
+          if (average === null || average === "") {
+            return "Requires a community rating";
+          }
+          return true;
+        },
+      ];
+    },
     readingDirectionItems() {
       return this.unionFormatValues("reading_directions");
     },
@@ -1526,7 +1581,7 @@ export default {
           this.patch[field] = [];
         } else if (typeof val === "boolean") {
           this.patch[field] = false;
-        } else if (field === "critical_rating") {
+        } else if (NULL_CLEARED_FIELDS.has(field)) {
           this.patch[field] = null;
         } else {
           this.patch[field] = "";
@@ -1663,8 +1718,14 @@ export default {
       this.patch.monochrome = Boolean(this.md.monochrome);
       this.patch.language = this.md.language?.name || null;
       this.patch.age_rating = this.md.ageRating?.name || null;
-      this.patch.critical_rating =
-        this.md.criticalRating == null ? null : Number(this.md.criticalRating);
+      this.patch.community_rating =
+        this.md.communityRating == null
+          ? null
+          : Number(this.md.communityRating);
+      this.patch.community_rating_count =
+        this.md.communityRatingCount == null
+          ? null
+          : Number(this.md.communityRatingCount);
       // Protagonist is stored as mainCharacter XOR mainTeam.
       this.patch.protagonist =
         this.md.mainCharacter?.name || this.md.mainTeam?.name || "";
@@ -1801,17 +1862,32 @@ export default {
         cbPatch.monochrome = this.patch.monochrome;
       }
 
-      // Critical Rating — clamp+round to canonical 0.0–5.0 (1 dp)
-      if (changed.has("critical_rating")) {
-        const raw = this.patch.critical_rating;
-        if (cleared.has("critical_rating") || raw === null || raw === "") {
-          cbPatch.critical_rating = null;
+      // Community Rating — average clamped+rounded to canonical 0.0–5.0
+      // (1 dp) plus an optional integer vote count. Like `issue`, update
+      // mode replaces the key wholesale, so send both current parts
+      // whenever either changed. An empty average clears the whole key —
+      // a count alone can't persist (MetronInfo requires AverageRating).
+      if (
+        changed.has("community_rating") ||
+        changed.has("community_rating_count")
+      ) {
+        const raw = cleared.has("community_rating")
+          ? null
+          : this.patch.community_rating;
+        const n = Number(raw);
+        if (raw === null || raw === "" || !Number.isFinite(n)) {
+          cbPatch.community_rating = null;
         } else {
-          const n = Number(raw);
-          if (Number.isFinite(n)) {
-            cbPatch.critical_rating =
-              Math.round(Math.max(0, Math.min(5, n)) * 10) / 10;
+          const community = {
+            average_rating: Math.round(Math.max(0, Math.min(5, n)) * 10) / 10,
+          };
+          const count = cleared.has("community_rating_count")
+            ? null
+            : Number(this.patch.community_rating_count);
+          if (Number.isInteger(count) && count >= 1) {
+            community.rating_count = count;
           }
+          cbPatch.community_rating = community;
         }
       }
 

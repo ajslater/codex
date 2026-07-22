@@ -42,7 +42,13 @@ class AdminTaggingValidateView(AdminAPIView):
     """POST: validate Metron / Comic Vine credentials."""
 
     def post(self, request):
-        """Validate one or all known sources; return per-source ok/error."""
+        """
+        Validate one or all known sources; return per-source ok/error.
+
+        Successful Metron results also carry the account's live rate
+        limits (``rate_limits``), read off the validation response's
+        ``X-RateLimit-*`` headers by mokkari.
+        """
         request_serializer = TaggingValidateRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
         data = request_serializer.validated_data

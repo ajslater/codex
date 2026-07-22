@@ -18,7 +18,7 @@ import sqlite3
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from loguru import logger
 
@@ -545,12 +545,35 @@ def _restore_settings_browser(
         )
 
 
+# Filter/sort keys renamed across codex versions; sidecar backups from
+# older versions still carry the old name (0048: critical -> community).
+_LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rating"}
+
+
+def _resolve_filter_column(row_keys, column: str) -> str | None:
+    """Sidecar column holding ``column``'s value: itself, its legacy name, or None."""
+    if column in row_keys:
+        return column
+    legacy = next(
+        (old for old, new in _LEGACY_KEY_RENAMES.items() if new == column), None
+    )
+    if legacy and legacy in row_keys:
+        return legacy
+    return None
+
+
 def _build_browser_defaults(row, show) -> dict[str, Any]:
     """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
+    order_by = row["order_by"] or ""
+    order_by = _LEGACY_KEY_RENAMES.get(order_by, order_by)
+    table_columns = json.loads(row["table_columns"] or "{}")
+    for old, new in _LEGACY_KEY_RENAMES.items():
+        if old in table_columns:
+            table_columns[new] = table_columns.pop(old)
     return {
         "show": show,
         "top_collection": row["top_collection"] or "",
-        "order_by": row["order_by"] or "",
+        "order_by": order_by,
         "order_reverse": bool(row["order_reverse"]),
         "order_extra_keys": json.loads(row["order_extra_keys"] or "[]"),
         "search": row["search"] or "",
@@ -559,7 +582,7 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
         "twenty_four_hour_time": bool(row["twenty_four_hour_time"]),
         "always_show_filename": bool(row["always_show_filename"]),
         "view_mode": row["view_mode"] or "",
-        "table_columns": json.loads(row["table_columns"] or "{}"),
+        "table_columns": table_columns,
         "table_cover_size": row["table_cover_size"] or "",
     }
 
@@ -604,37 +627,46 @@ def _restore_one_settings_browser(
         _restore_one_last_route(last_route_by_key[key], browser, report)
 
 
+def _resolve_filter_tags(column: str, raw: list, browser, report: RestoreReport):
+    """Resolve a tag-name list back to PKs, reporting unmatched names."""
+    from codex.user_data.identifiers import tag_model_for_filter
+
+    model = tag_model_for_filter(column)
+    if model is None:
+        return []
+    pks = list(model.objects.filter(name__in=raw).values_list("pk", flat=True))
+    if len(pks) != len(raw):
+        dropped = len(raw) - len(pks)
+        report.note_skipped(
+            "settings_filters",
+            f"dropped {dropped} {column} tag(s) unmatched for {browser.user.username}",
+        )
+    return pks
+
+
 def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     """Resolve tag-name lists in the sidecar back to PK lists."""
     from codex.models.settings import SettingsBrowserFilters
-    from codex.user_data.identifiers import (
-        FILTER_TAG_COLUMNS,
-        tag_model_for_filter,
-    )
+    from codex.user_data.identifiers import FILTER_TAG_COLUMNS
 
     defaults: dict[str, Any] = {
         "bookmark": row["bookmark"] or "",
         "favorite": bool(row["favorite"]),
     }
+    row_keys = row.keys()
     for column in SettingsBrowserFilters.FILTER_KEYS:
         if column in {"bookmark", "favorite"}:
             continue
-        raw = json.loads(row[column] or "[]")
-        if column in FILTER_TAG_COLUMNS:
-            model = tag_model_for_filter(column)
-            if model is None:
-                defaults[column] = []
-                continue
-            pks = list(model.objects.filter(name__in=raw).values_list("pk", flat=True))
-            if len(pks) != len(raw):
-                dropped = len(raw) - len(pks)
-                report.note_skipped(
-                    "settings_filters",
-                    f"dropped {dropped} {column} tag(s) unmatched for {browser.user.username}",
-                )
-            defaults[column] = pks
-        else:
-            defaults[column] = raw
+        read_column = _resolve_filter_column(row_keys, column)
+        if read_column is None:
+            defaults[column] = []
+            continue
+        raw = json.loads(row[read_column] or "[]")
+        defaults[column] = (
+            _resolve_filter_tags(column, raw, browser, report)
+            if column in FILTER_TAG_COLUMNS
+            else raw
+        )
     SettingsBrowserFilters.objects.update_or_create(browser=browser, defaults=defaults)
     report.note_written("settings_filters")
 

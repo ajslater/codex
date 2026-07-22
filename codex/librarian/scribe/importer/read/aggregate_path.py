@@ -1,9 +1,13 @@
 """Aggregate metadata from comics to prepare for importing."""
 
 from comicbox.formats.comicbox.schema import (
+    ALTERNATIVE_ISSUE_KEY,
+    AVERAGE_RATING_KEY,
+    COMMUNITY_RATING_KEY,
     COVER_DATE_KEY,
     DATE_KEY,
     NUMBER_KEY,
+    RATING_COUNT_KEY,
     STORE_DATE_KEY,
     SUFFIX_KEY,
     TITLE_KEY,
@@ -26,6 +30,25 @@ from codex.librarian.scribe.importer.statii.read import ImporterAggregateStatus
 from codex.settings import USED_COMICBOX_FIELDS
 
 
+def _flatten_alternative_issue(md) -> None:
+    """Flatten alternative_issue parts onto flat columns; keep number 0."""
+    if alternative_issue := md.pop(ALTERNATIVE_ISSUE_KEY, None):
+        if (number := alternative_issue.pop(NUMBER_KEY, None)) is not None:
+            md["alternative_issue_number"] = number
+        if suffix := alternative_issue.pop(SUFFIX_KEY, None):
+            md["alternative_issue_suffix"] = suffix
+
+
+def _flatten_community_rating(md) -> None:
+    """Flatten community_rating parts onto flat columns; keep average 0."""
+    if community_rating := md.pop(COMMUNITY_RATING_KEY, None):
+        average = community_rating.pop(AVERAGE_RATING_KEY, None)
+        if average is not None:
+            md["community_rating"] = average
+        if (count := community_rating.pop(RATING_COUNT_KEY, None)) is not None:
+            md["community_rating_count"] = count
+
+
 class AggregateMetadataImporter(AggregatePathMetadataImporter):
     """Aggregate metadata from comics to prepare for importing."""
 
@@ -45,6 +68,9 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
                 md["issue_number"] = number
             if suffix := issue.pop(SUFFIX_KEY, None):
                 md["issue_suffix"] = suffix
+
+        _flatten_alternative_issue(md)
+        _flatten_community_rating(md)
 
         if title := md.pop(TITLE_KEY, None):
             md["name"] = title

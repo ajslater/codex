@@ -7,6 +7,7 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DictField,
+    IntegerField,
     ListField,
     Serializer,
     ValidationError,
@@ -106,11 +107,28 @@ class TaggingValidateRequestSerializer(Serializer):
     comicvine_url = CharField(required=False, allow_blank=True)
 
 
+class TaggingRateLimitWindowSerializer(Serializer):
+    """One rate-limit window (burst or sustained) as limit/remaining counts."""
+
+    limit = IntegerField(allow_null=True, required=False, default=None)
+    remaining = IntegerField(allow_null=True, required=False, default=None)
+
+
+class TaggingRateLimitsSerializer(Serializer):
+    """A source account's live rate limits (Metron: from X-RateLimit-* headers)."""
+
+    burst = TaggingRateLimitWindowSerializer()
+    sustained = TaggingRateLimitWindowSerializer()
+
+
 class TaggingValidationResultSerializer(Serializer):
     """One source's validation outcome."""
 
     ok = BooleanField()
     error = CharField(allow_null=True, required=False, default=None)
+    rate_limits = TaggingRateLimitsSerializer(
+        allow_null=True, required=False, default=None
+    )
 
 
 class TaggingValidateResponseSerializer(Serializer):

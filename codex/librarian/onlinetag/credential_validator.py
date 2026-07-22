@@ -5,6 +5,12 @@ Used by the admin tagging settings page to give operators an immediate
 yes/no on whether a saved (or in-the-form) credential set actually
 works against Metron / Comic Vine — so they don't discover problems
 only when a real tagging run fails halfway through.
+
+A successful Metron check also reports the account's live rate limits,
+which mokkari 4 reads off the ``X-RateLimit-*`` headers of the
+validation response itself. The daily "sustained" limit varies by
+Metron OpenCollective donor tier (5,000-25,000/day), so it is only
+discoverable this way.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Collection
 
     from comicbox.online_session import OnlineCredentials
+    from mokkari.session import RateLimitStatus
 
 # comicbox owns the canonical online-tag source names (metron, comicvine); derive
 # from it so codex tracks a new source instead of hand-syncing a literal.
@@ -29,11 +36,53 @@ _COMICVINE_TIMEOUT_SECS: float = 10.0
 
 
 @dataclass(frozen=True, slots=True)
+class RateLimitWindowInfo:
+    """One rate-limit window (burst or sustained) as limit/remaining counts."""
+
+    limit: int | None = None
+    remaining: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RateLimitInfo:
+    """
+    A source account's live rate limits, mirrored from mokkari's status.
+
+    ``reset`` datetimes are deliberately dropped: the burst window resets
+    within a minute (stale before an admin reads it) and the sustained
+    reset isn't worth datetime plumbing for a one-shot validation chip.
+    """
+
+    burst: RateLimitWindowInfo = RateLimitWindowInfo()
+    sustained: RateLimitWindowInfo = RateLimitWindowInfo()
+
+
+@dataclass(frozen=True, slots=True)
 class ValidationResult:
     """Outcome of validating one source's credentials."""
 
     ok: bool
     error: str | None = None
+    rate_limits: RateLimitInfo | None = None
+
+
+def _extract_rate_limits(status: RateLimitStatus) -> RateLimitInfo | None:
+    """Codex-shaped rate limits, or None when the source reported nothing."""
+    burst = status.burst
+    sustained = status.sustained
+    if (
+        burst.limit is None
+        and burst.remaining is None
+        and sustained.limit is None
+        and sustained.remaining is None
+    ):
+        return None
+    return RateLimitInfo(
+        burst=RateLimitWindowInfo(limit=burst.limit, remaining=burst.remaining),
+        sustained=RateLimitWindowInfo(
+            limit=sustained.limit, remaining=sustained.remaining
+        ),
+    )
 
 
 def _validate_metron(creds: OnlineCredentials) -> ValidationResult:
@@ -54,7 +103,10 @@ def _validate_metron(creds: OnlineCredentials) -> ValidationResult:
         return ValidationResult(ok=False, error=str(err) or "Authentication failed.")
     except ApiError as err:
         return ValidationResult(ok=False, error=str(err) or "API error.")
-    return ValidationResult(ok=True)
+    # The successful response carried the account's X-RateLimit-* headers.
+    return ValidationResult(
+        ok=True, rate_limits=_extract_rate_limits(session.rate_limit_status)
+    )
 
 
 def _validate_comicvine(creds: OnlineCredentials) -> ValidationResult:

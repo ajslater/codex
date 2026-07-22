@@ -24,11 +24,11 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     age_rating_metron = VuetifyListField()
     age_rating_tagged = VuetifyListField()
     characters = VuetifyListField()
-    country = VuetifyListField()
-    credits = VuetifyListField()
-    critical_rating = VuetifyListField(
+    community_rating = VuetifyListField(
         child=VuetifyDecimalField(max_digits=5, decimal_places=2)
     )
+    country = VuetifyListField()
+    credits = VuetifyListField()
     decade = VuetifyListField(child=VuetifyDecadeField)
     file_type = VuetifyListField(child=VuetifyFileTypeChoiceField)
     genres = VuetifyListField()

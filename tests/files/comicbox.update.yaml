@@ -4,6 +4,9 @@ comicbox:
   alternate_images:
     - alt0.jxl
     - alt2.jxl
+  alternative_issue:
+    number: 44
+    suffix: BU
   arcs:
     c: {}
     d:
@@ -25,6 +28,9 @@ comicbox:
         metron:
           key: "123"
   collection_title: The Big Omnibus Part 2
+  community_rating:
+    average_rating: 3.5
+    rating_count: 200
   country: GB
   credits:
     Joe Orlando:

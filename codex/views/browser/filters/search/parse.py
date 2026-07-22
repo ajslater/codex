@@ -29,8 +29,9 @@ _FTS_COLUMNS = frozenset(
 )
 _NON_FTS_COLUMNS = frozenset(
     {
+        "community_rating",
+        "community_rating_count",
         "created_at",
-        "critical_rating",
         "date",
         "day",
         "decade",

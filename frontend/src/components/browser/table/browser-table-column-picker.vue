@@ -162,7 +162,7 @@ const _CATEGORIES = Object.freeze([
   },
   {
     label: "Rating",
-    columns: ["age_rating", "critical_rating"],
+    columns: ["age_rating", "community_rating"],
   },
   {
     label: "Tagging",

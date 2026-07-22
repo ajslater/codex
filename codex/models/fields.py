@@ -111,7 +111,7 @@ class CoercingDecimalField(DecimalField):
         # Field-ceiling derived from the column shape (largest representable
         # value for ``max_digits`` / ``decimal_places``).
         self._decimal_max = Decimal(10 ** (self.max_digits - self.decimal_places) - 1)
-        # Optional caller-supplied ceiling (e.g. 5.0 for ``critical_rating``).
+        # Optional caller-supplied ceiling (e.g. 5.0 for ``community_rating``).
         # Applied after the field-ceiling so the tighter of the two wins.
         self._coerce_max = coerce_max
 

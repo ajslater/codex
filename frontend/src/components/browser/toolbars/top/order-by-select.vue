@@ -19,7 +19,7 @@ const REVERSE_BY_DEFAULT = new Set([
   "bookmark_updated_at",
   "child_count",
   "created_at",
-  "critical_rating",
+  "community_rating",
   "page_count",
   "search_score",
   "size",

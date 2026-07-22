@@ -7,8 +7,9 @@ _REVERSE_TYPE_MAP = MappingProxyType(
         "Boolean": ["monochrome"],
         "Date": ["date"],
         "DateTime": ["create_at", "updated_at"],
-        "Decimal": ["critical_rating", "issue_number"],
+        "Decimal": ["community_rating", "issue_number"],
         "Integer": [
+            "community_rating_count",
             "day",
             "month",
             "year",
@@ -72,8 +73,11 @@ FIELDMAP = MappingProxyType(
             "people",
             "persons",
         ),
+        "community_rating": _get_fieldmap_values("community_rating"),
+        "community_rating_count": _get_fieldmap_values(
+            "community_rating_count", "rating_count"
+        ),
         "created_at": ("created",),
-        "critical_rating": _get_fieldmap_values("critical_rating"),
         "day": (),
         "date": (),
         "decade": (),

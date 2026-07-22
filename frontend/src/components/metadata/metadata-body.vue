@@ -49,6 +49,9 @@
     <MetadataTagsTable :tag-map="tags" class="mdSection" />
     <section class="mdSection">
       <section class="inlineRow">
+        <MetadataText :value="alternativeIssue" label="Alternative Issue" />
+      </section>
+      <section class="inlineRow">
         <MetadataText :value="md.notes" label="Notes" />
       </section>
       <section class="inlineRow">
@@ -63,6 +66,7 @@
 import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
+import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
@@ -103,6 +107,15 @@ export default {
     },
     fileType() {
       return this?.md?.fileType || "Unknown";
+    },
+    alternativeIssue() {
+      // Guard both parts: formattedIssue renders a null number as 0.
+      const number = this.md?.alternativeIssueNumber;
+      const suffix = this.md?.alternativeIssueSuffix;
+      if (number == null && !suffix) {
+        return "";
+      }
+      return "#" + formattedIssue({ issueNumber: number, issueSuffix: suffix });
     },
   },
   methods: {

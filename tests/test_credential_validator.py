@@ -9,6 +9,8 @@ from comicbox.online_session import OnlineCredentials
 
 from codex.librarian.onlinetag.credential_validator import (
     KNOWN_SOURCES,
+    RateLimitInfo,
+    RateLimitWindowInfo,
     ValidationResult,
     validate_credentials,
 )
@@ -31,13 +33,47 @@ class TestValidateCredentials:
         assert frozenset({"metron", "comicvine"}) == KNOWN_SOURCES
 
     def test_metron_success(self) -> None:
+        from mokkari.session import RateLimitStatus
+
         with patch("mokkari.session.Session") as mocked:
             instance = MagicMock()
             instance.publishers_list.return_value = []
+            # A session that saw no X-RateLimit-* headers -> rate_limits None.
+            instance.rate_limit_status = RateLimitStatus()
             mocked.return_value = instance
             results = validate_credentials(_full_creds(), {"metron"})
         assert results == {"metron": ValidationResult(ok=True)}
         instance.publishers_list.assert_called_once_with({"page": 1})
+
+    def test_metron_success_reports_rate_limits(self) -> None:
+        """The validation response's live account limits ride along, sans reset."""
+        from datetime import UTC, datetime
+
+        from mokkari.session import RateLimitStatus, RateLimitWindow
+
+        status = RateLimitStatus(
+            burst=RateLimitWindow(limit=20, remaining=19),
+            sustained=RateLimitWindow(
+                limit=25_000,
+                remaining=24_987,
+                reset=datetime(2026, 7, 19, tzinfo=UTC),
+            ),
+        )
+        with patch("mokkari.session.Session") as mocked:
+            instance = MagicMock()
+            instance.publishers_list.return_value = []
+            instance.rate_limit_status = status
+            mocked.return_value = instance
+            results = validate_credentials(_full_creds(), {"metron"})
+        assert results == {
+            "metron": ValidationResult(
+                ok=True,
+                rate_limits=RateLimitInfo(
+                    burst=RateLimitWindowInfo(limit=20, remaining=19),
+                    sustained=RateLimitWindowInfo(limit=25_000, remaining=24_987),
+                ),
+            )
+        }
 
     def test_metron_auth_failure(self) -> None:
         from mokkari.exceptions import AuthenticationError
@@ -104,11 +140,14 @@ class TestValidateCredentials:
         assert "required" in (results["comicvine"].error or "").lower()
 
     def test_default_targets_all_known_sources(self) -> None:
+        from mokkari.session import RateLimitStatus
+
         with (
             patch("mokkari.session.Session") as metron_mock,
             patch("simyan.comicvine.Comicvine") as cv_mock,
         ):
             metron_mock.return_value.publishers_list.return_value = []
+            metron_mock.return_value.rate_limit_status = RateLimitStatus()
             cv_mock.return_value.list_publishers.return_value = []
             results = validate_credentials(_full_creds())
         assert set(results) == KNOWN_SOURCES

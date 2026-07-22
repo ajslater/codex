@@ -108,6 +108,9 @@
         <span class="sourceOrder">{{ idx + 1 }}</span>
         <span class="sourceName">{{ sourceLabel(src.source) }}</span>
         <span class="sourceRate">{{ src.ratePerMinute }}/min</span>
+        <span v-if="dailyText(src)" class="sourceRate">
+          {{ dailyText(src) }}
+        </span>
         <span v-if="rateText(src)" class="sourceLimit">
           <v-icon :icon="mdiTimerSand" size="x-small" />
           {{ rateText(src) }}
@@ -472,6 +475,18 @@ export default {
       const secs = secondsUntil(src.retryAtEpoch, this.now);
       if (secs === null) return "";
       return secs <= 0 ? "retrying…" : `retry ${formatCountdown(secs)}`;
+    },
+    dailyText(src) {
+      // Live account budget from Metron's X-RateLimit-* headers; the
+      // daily limit varies by donor tier, so show it once it's known.
+      const remaining = src.sustainedRemaining;
+      const limit = src.sustainedLimit;
+      if (remaining != null && limit != null) {
+        return `${nf(remaining)}/${nf(limit)} day`;
+      }
+      if (limit != null) return `${nf(limit)}/day`;
+      if (remaining != null) return `${nf(remaining)} left today`;
+      return "";
     },
     openReview() {
       this.promptDialogOpen = true;

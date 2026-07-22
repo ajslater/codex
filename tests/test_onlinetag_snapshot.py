@@ -159,6 +159,46 @@ def test_sources_strip_reports_rate_limit_countdown() -> None:
     assert by_source["metron"]["retry_at_epoch"] is None
     # Order follows the scan's source priority.
     assert [s["source"] for s in snap["sources"]] == ["metron", "comicvine"]
+    # No session (or a cold one) → no live daily budget yet.
+    assert by_source["metron"]["sustained_limit"] is None
+    assert by_source["metron"]["sustained_remaining"] is None
+
+
+class _FakeSession:
+    """Stands in for comicbox's OnlineSession rate_limit_status surface."""
+
+    def __init__(self, statuses: dict[str, dict]) -> None:
+        self._statuses = statuses
+
+    def rate_limit_status(self) -> dict[str, dict]:
+        return self._statuses
+
+
+def test_sources_strip_reports_live_daily_budget() -> None:
+    """comicbox>=4.3.0 live sustained windows land as flat per-source fields."""
+    sustained_limit = 25_000
+    sustained_remaining = 24_987
+    state = _state([("/c/1.cbz", 1)])
+    state.session = _FakeSession(  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[invalid-assignment]
+        {
+            "metron": {
+                "burst": {"limit": 20, "remaining": 19, "reset_epoch": None},
+                "sustained": {
+                    "limit": sustained_limit,
+                    "remaining": sustained_remaining,
+                    "reset_epoch": 1100.0,
+                },
+            },
+            "comicvine": {},
+        }
+    )
+    snap = _build(state)
+    by_source = {s["source"]: s for s in snap["sources"]}
+    assert by_source["metron"]["sustained_limit"] == sustained_limit
+    assert by_source["metron"]["sustained_remaining"] == sustained_remaining
+    # comicvine reports no budget; the static rate stays the only number.
+    assert by_source["comicvine"]["sustained_limit"] is None
+    assert by_source["comicvine"]["sustained_remaining"] is None
 
 
 def test_comic_list_is_capped_with_actionable_first() -> None:

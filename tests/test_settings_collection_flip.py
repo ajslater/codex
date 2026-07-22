@@ -28,7 +28,7 @@ _TMP_DIR: Final = Path("/tmp/codex.tests.flip")  # noqa: S108
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 # Migration filenames start with digits, so importlib is the only way to reach
-# the helpers (mirrors tests/test_critical_rating.py).
+# the helpers (mirrors tests/test_community_rating.py).
 _MIGRATION = importlib.import_module("codex.migrations.0043_comicbox_tagging_defaults")
 _remap_table_columns_keys = _MIGRATION._remap_table_columns_keys  # noqa: SLF001
 _sb_migrate_browser_rows = _MIGRATION._sb_migrate_browser_rows  # noqa: SLF001
