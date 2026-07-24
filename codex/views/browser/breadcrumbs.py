@@ -67,7 +67,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         # Use 0 to indicate unmemoized because None is a valid value
-        self._collection_instance: BrowserCollectionModel | None | int = 0
+        self._collection_instance: BrowserCollectionModel | int | None = 0
 
     def _get_collection_query(self, model):
         """Get the collection query for the collection instance."""

@@ -43,6 +43,10 @@ class BulkTagWriteTask(ScribeTask):
     delete_original: bool = False
     patch: dict[str, Any] | None = None
     per_comic_patches: dict[int, dict[str, Any]] = field(default_factory=dict)
+    # Comicbox glom key paths to clear from each archive's metadata. Merging
+    # can only add or replace (empty patch values are pruned on schema load),
+    # so cleared tag-editor fields travel here, not in the patch.
+    delete_keys: tuple[str, ...] = ()
     # When True, rename each written archive to the comicbox (comicfn2dict)
     # filename scheme after its tags are written. With no patch (rename-only),
     # every resolved comic is renamed from its existing on-archive metadata.

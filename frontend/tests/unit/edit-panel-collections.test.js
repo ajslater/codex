@@ -71,7 +71,7 @@ describe("EditPanel — ambiguous (duplicate) collections", () => {
     wrapper.vm.patch.publisher = "Marvel";
     await flushPromises();
     expect(wrapper.vm.hasChanges).toBe(true);
-    expect(wrapper.vm.buildPatch().publisher).toEqual({ name: "Marvel" });
+    expect(wrapper.vm.buildPatch().patch.publisher).toEqual({ name: "Marvel" });
   });
 
   test("an untouched ambiguous field is never written", async () => {
@@ -81,7 +81,7 @@ describe("EditPanel — ambiguous (duplicate) collections", () => {
     wrapper.vm.patch.summary = "edited";
     await flushPromises();
     expect(wrapper.vm.hasChanges).toBe(true);
-    expect(wrapper.vm.buildPatch().publisher).toBeUndefined();
+    expect(wrapper.vm.buildPatch().patch.publisher).toBeUndefined();
   });
 
   test("numeric volumes are deduped and blanked when ambiguous", async () => {
@@ -130,7 +130,7 @@ describe("EditPanel — a named value mixed with the unnamed (no-collection) sta
     wrapper.vm.patch.imprint = "DC Zoom";
     await flushPromises();
     expect(wrapper.vm.hasChanges).toBe(true);
-    expect(wrapper.vm.buildPatch().imprint).toEqual({ name: "DC Zoom" });
+    expect(wrapper.vm.buildPatch().patch.imprint).toEqual({ name: "DC Zoom" });
   });
 
   test("a null name (numeric collection default) counts as the unnamed state", async () => {

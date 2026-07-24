@@ -72,13 +72,14 @@ class TagWriter(WorkerStatusAbortableBase):
         """Build BulkWriteItem list from task data."""
         formats = frozenset(task.formats) if task.formats else None
         mode = cast("Mode", task.mode)
+        delete_keys = frozenset(task.delete_keys) if task.delete_keys else None
         items = []
         for pk, path in comic_paths.items():
             if task.per_comic_patches and pk in task.per_comic_patches:
                 patch = task.per_comic_patches[pk]
-            elif task.patch:
-                patch = task.patch
             else:
+                patch = task.patch or {}
+            if not patch and not delete_keys:
                 continue
             items.append(
                 BulkWriteItem(
@@ -86,6 +87,7 @@ class TagWriter(WorkerStatusAbortableBase):
                     patch=patch,
                     mode=mode,
                     formats=formats,
+                    delete_keys=delete_keys,
                 )
             )
         return items
@@ -113,7 +115,15 @@ class TagWriter(WorkerStatusAbortableBase):
 
     @staticmethod
     def _build_base_config(task: BulkTagWriteTask):
-        """Return a config with delete_orig set, or None when not deleting."""
+        """
+        Return a config with delete_orig set, or None when not deleting.
+
+        Never pass codex's read-side ``COMICBOX_CONFIG`` here. Comicbox
+        unions a write's ``delete_keys`` with the base config's, and that
+        config carries the big parse-skip set of schema fields codex
+        doesn't consume (pages, reprints, cover_image, ...). Using it as a
+        write base would strip every one of those from the user's archive.
+        """
         if not task.delete_original:
             return None
         cfg = get_config()

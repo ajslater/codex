@@ -6,8 +6,9 @@
  *     {community_rating: {average_rating, rating_count}} whenever either
  *     part changed, clamping the average to 0.0-5.0 at one decimal.
  *   - Clearing (or blanking) the average clears the whole key — a count
- *     alone can't persist (MetronInfo requires AverageRating) — and the
- *     count rule flags count-only input as invalid.
+ *     alone can't persist (MetronInfo requires AverageRating) — via a
+ *     comicbox delete key, since a merge write can't remove values — and
+ *     the count rule flags count-only input as invalid.
  *   - Per-format enablement: the average follows COMIC_INFO/METRON_INFO;
  *     the count is METRON_INFO-only.
  */
@@ -42,7 +43,7 @@ describe("EditPanel — community rating pair", () => {
     wrapper.vm.onFieldInput("community_rating");
     wrapper.vm.onFieldInput("community_rating_count");
     await flushPromises();
-    expect(wrapper.vm.buildPatch().community_rating).toEqual({
+    expect(wrapper.vm.buildPatch().patch.community_rating).toEqual({
       average_rating: 4.5,
       rating_count: 100,
     });
@@ -53,7 +54,7 @@ describe("EditPanel — community rating pair", () => {
     wrapper.vm.patch.community_rating = 11;
     wrapper.vm.onFieldInput("community_rating");
     await flushPromises();
-    expect(wrapper.vm.buildPatch().community_rating).toEqual({
+    expect(wrapper.vm.buildPatch().patch.community_rating).toEqual({
       average_rating: 5,
     });
   });
@@ -65,7 +66,7 @@ describe("EditPanel — community rating pair", () => {
     wrapper.vm.patch.community_rating_count = 25;
     wrapper.vm.onFieldInput("community_rating_count");
     await flushPromises();
-    expect(wrapper.vm.buildPatch().community_rating).toEqual({
+    expect(wrapper.vm.buildPatch().patch.community_rating).toEqual({
       average_rating: 4,
       rating_count: 25,
     });
@@ -77,7 +78,9 @@ describe("EditPanel — community rating pair", () => {
     });
     wrapper.vm.toggleClear("community_rating");
     await flushPromises();
-    expect(wrapper.vm.buildPatch().community_rating).toBeNull();
+    const { patch, deleteKeys } = wrapper.vm.buildPatch();
+    expect(deleteKeys).toContain("community_rating");
+    expect(patch).not.toHaveProperty("community_rating");
   });
 
   test("a count without an average fails its rule", async () => {

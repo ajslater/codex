@@ -1406,8 +1406,8 @@ export default {
     renameSignature() {
       // The inputs the comicbox filename preview depends on. Empty when the
       // toggle is off so the (moderately heavy) patch build is skipped and the
-      // preview watcher clears. The pending patch is included so the preview
-      // tracks unsaved edits.
+      // preview watcher clears. The pending patch and delete keys are both
+      // included so the preview tracks unsaved edits and clears alike.
       if (!this.renameFile) {
         return "";
       }
@@ -1733,26 +1733,35 @@ export default {
       this.origSnapshot = { ...this.currentSnapshot };
     },
     buildPatch() {
+      // Returns { patch, deleteKeys }. A merge write can only add or replace
+      // values — comicbox prunes empty patch values on schema load — so
+      // cleared or emptied fields travel as comicbox delete_keys paths, the
+      // write API's explicit clear mechanism.
       const cbPatch = {};
+      const deleteKeys = [];
       const cleared = this.clearedFields;
       const changed = this.changedFields;
 
       // Simple strings — only include if changed
       for (const key of ["summary", "review", "notes", "scan_info"]) {
         if (!changed.has(key)) continue;
-        cbPatch[key] = cleared.has(key) ? "" : this.patch[key];
+        if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
+        else cbPatch[key] = this.patch[key];
       }
 
       // Tag arrays — only include if changed
       for (const key of TAG_KEYS) {
         if (!changed.has(key)) continue;
-        cbPatch[key] = cleared.has(key) ? {} : this.patch[key];
+        if (cleared.has(key) || this.patch[key].length === 0)
+          deleteKeys.push(key);
+        else cbPatch[key] = this.patch[key];
       }
 
       // Groups — only include if changed
       for (const key of ["publisher", "imprint"]) {
         if (!changed.has(key)) continue;
-        cbPatch[key] = { name: cleared.has(key) ? "" : this.patch[key] };
+        if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
+        else cbPatch[key] = { name: this.patch[key] };
       }
       if (changed.has("series") || changed.has("volume_count")) {
         const series = {};
@@ -1762,6 +1771,7 @@ export default {
           if (!isNaN(vc)) series.volume_count = vc;
         }
         if (Object.keys(series).length) cbPatch.series = series;
+        else deleteKeys.push("series");
       }
       if (changed.has("volume") || changed.has("volume_issue_count")) {
         if (this.patch.volume) {
@@ -1774,6 +1784,8 @@ export default {
             }
             cbPatch.volume = vol;
           }
+        } else {
+          deleteKeys.push("volume");
         }
       }
 
@@ -1789,13 +1801,14 @@ export default {
         if (!cleared.has("issue_suffix") && this.patch.issue_suffix) {
           issue.suffix = this.patch.issue_suffix;
         }
-        cbPatch.issue = issue;
+        if (Object.keys(issue).length) cbPatch.issue = issue;
+        else deleteKeys.push("issue");
       }
 
       // Story arcs — only include if changed
       if (changed.has("story_arcs")) {
         if (cleared.has("story_arcs") || this.storyArcNames.length === 0) {
-          cbPatch.arcs = {};
+          deleteKeys.push("arcs");
         } else {
           const arcs = {};
           for (const name of this.storyArcNames) arcs[name] = {};
@@ -1813,13 +1826,14 @@ export default {
             if (role) credits[person].roles[role] = {};
           }
         }
-        cbPatch.credits = Object.keys(credits).length > 0 ? credits : {};
+        if (Object.keys(credits).length > 0) cbPatch.credits = credits;
+        else deleteKeys.push("credits");
       }
 
       // Universes — only include if changed
       if (changed.has("universes")) {
         if (cleared.has("universes") || this.universes.length === 0) {
-          cbPatch.universes = {};
+          deleteKeys.push("universes");
         } else {
           const univs = {};
           for (const u of this.universes) {
@@ -1835,7 +1849,7 @@ export default {
       // Identifiers — only include if changed
       if (changed.has("identifiers")) {
         if (cleared.has("identifiers") || this.identifiers.length === 0) {
-          cbPatch.identifiers = {};
+          deleteKeys.push("identifiers");
         } else {
           const ids = {};
           for (const id of this.identifiers) {
@@ -1856,10 +1870,15 @@ export default {
         "age_rating",
       ]) {
         if (!changed.has(key)) continue;
-        cbPatch[key] = cleared.has(key) ? "" : this.patch[key];
+        if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
+        else cbPatch[key] = this.patch[key];
       }
+      // Monochrome is a tri-state tag: yes, no, or absent. Clearing must
+      // remove it rather than write a false, which would assert the comic
+      // is known to be color (comicbox 4.5.1 writes both booleans).
       if (changed.has("monochrome")) {
-        cbPatch.monochrome = this.patch.monochrome;
+        if (cleared.has("monochrome")) deleteKeys.push("monochrome");
+        else cbPatch.monochrome = this.patch.monochrome;
       }
 
       // Community Rating — average clamped+rounded to canonical 0.0–5.0
@@ -1876,7 +1895,7 @@ export default {
           : this.patch.community_rating;
         const n = Number(raw);
         if (raw === null || raw === "" || !Number.isFinite(n)) {
-          cbPatch.community_rating = null;
+          deleteKeys.push("community_rating");
         } else {
           const community = {
             average_rating: Math.round(Math.max(0, Math.min(5, n)) * 10) / 10,
@@ -1895,12 +1914,12 @@ export default {
       // name to main_character or main_team and nulls the other on
       // re-import.
       if (changed.has("protagonist")) {
-        cbPatch.protagonist = cleared.has("protagonist")
-          ? ""
-          : this.patch.protagonist || "";
+        if (cleared.has("protagonist") || !this.patch.protagonist)
+          deleteKeys.push("protagonist");
+        else cbPatch.protagonist = this.patch.protagonist;
       }
 
-      return cbPatch;
+      return { patch: cbPatch, deleteKeys };
     },
     scheduleRenamePreview() {
       if (this.renamePreviewTimer) {
@@ -1916,13 +1935,16 @@ export default {
         return;
       }
       const pks = this.book.ids || [this.book.pk];
-      const cbPatch = this.hasChanges ? this.buildPatch() : {};
+      const { patch, deleteKeys } = this.hasChanges
+        ? this.buildPatch()
+        : { patch: {}, deleteKeys: [] };
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
           collection: this.book.collection,
           pks: pks.map(String),
           formats: this.enabledFormats,
-          patch: JSON.stringify(cbPatch),
+          patch: JSON.stringify(patch),
+          deleteKeys,
         });
         this.renamePreviews = response.data.filenamePreviews || [];
       } catch {
@@ -1934,13 +1956,16 @@ export default {
       const pks = this.book.ids || [this.book.pk];
       // Rename-only (no tag edits) sends an empty patch so no tags are
       // written; the preview then reflects the archive's current metadata.
-      const cbPatch = this.hasChanges ? this.buildPatch() : {};
+      const { patch, deleteKeys } = this.hasChanges
+        ? this.buildPatch()
+        : { patch: {}, deleteKeys: [] };
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
           collection: this.book.collection,
           pks: pks.map(String),
           formats: this.enabledFormats,
-          patch: JSON.stringify(cbPatch),
+          patch: JSON.stringify(patch),
+          deleteKeys,
         });
         const data = response.data;
         this.confirmInfo = {
@@ -1971,13 +1996,16 @@ export default {
       this.confirmDialog = false;
       const pks = this.book.ids || [this.book.pk];
       const formats = this.enabledFormats;
-      const cbPatch = this.hasChanges ? this.buildPatch() : {};
+      const { patch, deleteKeys } = this.hasChanges
+        ? this.buildPatch()
+        : { patch: {}, deleteKeys: [] };
 
       try {
         const payload = {
           collection: this.book.collection,
           pks: pks.map(String),
-          patch: JSON.stringify(cbPatch),
+          patch: JSON.stringify(patch),
+          deleteKeys,
           mode: "update",
           formats,
           rename: this.renameFile,

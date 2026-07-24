@@ -24,7 +24,7 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
     @staticmethod
     def _fetch_latest_version():
         """Fetch Latest Remotely."""
-        response = urlopen(_REPO_URL, timeout=_REPO_TIMEOUT)  # noqa: S310
+        response = urlopen(_REPO_URL, timeout=_REPO_TIMEOUT)
         source = response.read()
         decoded_source = source.decode("utf-8")
         return json.loads(decoded_source)["info"]["version"]
