@@ -12,6 +12,8 @@ border-radius: 128px;
     - Clearing a field in the tag editor now removes it from the comic's tags.
       Cleared fields were silently left unchanged in the archive (comicbox
       4.5.0).
+    - The tag editor's Monochrome checkbox reads and writes again, and clearing
+      it removes the tag instead of marking the comic color (comicbox 4.5.1).
     - PDF pages scanned upside down or sideways and righted by the pdf's
       rotation attribute displayed rotated when the reader served them as images
       (comicbox-pdffile 0.6.3).

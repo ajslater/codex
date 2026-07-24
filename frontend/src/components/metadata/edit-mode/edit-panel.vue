@@ -1873,8 +1873,12 @@ export default {
         if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
         else cbPatch[key] = this.patch[key];
       }
+      // Monochrome is a tri-state tag: yes, no, or absent. Clearing must
+      // remove it rather than write a false, which would assert the comic
+      // is known to be color (comicbox 4.5.1 writes both booleans).
       if (changed.has("monochrome")) {
-        cbPatch.monochrome = this.patch.monochrome;
+        if (cleared.has("monochrome")) deleteKeys.push("monochrome");
+        else cbPatch.monochrome = this.patch.monochrome;
       }
 
       // Community Rating — average clamped+rounded to canonical 0.0–5.0

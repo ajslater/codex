@@ -54,6 +54,26 @@ describe("EditPanel — cleared fields become deleteKeys", () => {
     expect(patch).not.toHaveProperty("summary");
   });
 
+  test("clearing monochrome deletes it rather than writing false", async () => {
+    // Monochrome is tri-state (yes/no/absent). Writing false would assert
+    // the comic is known to be color; clearing must remove the tag.
+    const wrapper = await mountPanel({ md: { monochrome: true } });
+    wrapper.vm.clearField("monochrome");
+    await flushPromises();
+    const { patch, deleteKeys } = wrapper.vm.buildPatch();
+    expect(deleteKeys).toContain("monochrome");
+    expect(patch).not.toHaveProperty("monochrome");
+  });
+
+  test("setting monochrome false still patches the false", async () => {
+    const wrapper = await mountPanel({ md: { monochrome: true } });
+    wrapper.vm.patch.monochrome = false;
+    await flushPromises();
+    const { patch, deleteKeys } = wrapper.vm.buildPatch();
+    expect(patch.monochrome).toBe(false);
+    expect(deleteKeys).not.toContain("monochrome");
+  });
+
   test("clearing a tag array deletes its comicbox key", async () => {
     const wrapper = await mountPanel({
       md: { characters: [{ pk: 1, name: "Spider-Man" }] },
