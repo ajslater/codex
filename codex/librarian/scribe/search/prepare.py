@@ -121,8 +121,7 @@ class SearchEntryPrepare:
         """Prepare ComicFTS object from import data."""
         cls._create_comicfts_entry_m2ms(entry, existing_m2m_values)
         cls._create_comicfts_entry_fks(entry)
-        for field_name in entry:
-            value = entry[field_name]
+        for field_name, value in entry.items():
             if isinstance(value, tuple):
                 entry[field_name] = ",".join(sorted(value))
 

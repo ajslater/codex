@@ -9,7 +9,7 @@ from codex.views.opds.error import OPDS_PATH_PREFIX, codex_opds_exception_handle
 
 def codex_exception_handler(
     exc, context
-) -> JsonResponse | None | HttpResponseRedirect | Response:
+) -> JsonResponse | HttpResponseRedirect | Response | None:
     """Assume OPDS clients want redirects instead of errors."""
     response = None
     request = context.get("request")

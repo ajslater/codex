@@ -20,7 +20,7 @@ from codex.settings.db import get_email_connection_kwargs
 class DBEmailBackend(EmailBackend):
     """SMTP backend that sources connection params from the DB on init."""
 
-    def __init__(  # noqa: PLR0913 - signature mirrors SMTPBackend.__init__
+    def __init__(  # noqa: PLR0913, PLR0917 - signature mirrors SMTPBackend.__init__
         self,
         host=None,
         port=None,

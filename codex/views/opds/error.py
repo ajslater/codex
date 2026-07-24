@@ -42,7 +42,7 @@ def _get_redirect_to_start_response(request: HttpRequest) -> HttpResponseRedirec
 
 def codex_opds_exception_handler(
     exc, context
-) -> JsonResponse | None | HttpResponseRedirect | Response:
+) -> JsonResponse | HttpResponseRedirect | Response | None:
     """
     Assume OPDS clients want redirects instead of errors.
 
