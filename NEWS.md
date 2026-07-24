@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.2
+
+- Fixes
+    - PDF pages scanned upside down or sideways and righted by the pdf's
+      rotation attribute displayed rotated when the reader served them as
+      images (comicbox-pdffile 0.6.3).
+    - Reading a PDF that needs in-memory repair no longer rewrites the file on
+      disk (comicbox-pdffile 0.6.3).
+
 ## v2.2.1
 
 - Features
