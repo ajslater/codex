@@ -653,7 +653,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=4.4.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=4.5.0" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -739,7 +739,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "4.4.0"
+version = "4.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -776,9 +776,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/34/a6a962ae97c176d8b053626aba84366ed65fc828ba512cbeab8d51164a89/comicbox-4.4.0.tar.gz", hash = "sha256:29221ed3b77598eb6817eff410eb5522264cdd070be0df848b4859c7758c0007", size = 1000058, upload-time = "2026-07-22T03:31:10.324Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/9a/40b51be7494c411dc405dcdbedd78fb90d43c830a2b89a069ccd77870f30/comicbox-4.5.0.tar.gz", hash = "sha256:82386a74961398087e8b8ffe53d28b7532654a38755f0ab9b93b945a1804e2d2", size = 1008437, upload-time = "2026-07-24T17:57:07.405Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/4e/59b899f89ca787a50425768763ba9efc4133004cb2edb44f3634cd47f75c/comicbox-4.4.0-py3-none-any.whl", hash = "sha256:6ac94fd5fe9e137f99f8f915aa06b740a94f80485c0ccc8444304ae7995763ce", size = 336450, upload-time = "2026-07-22T03:31:09.146Z" },
+    { url = "https://files.pythonhosted.org/packages/2f/01/57909b87adeb62f24027c25167642281cd5e8f8f6ca82a45e4e6b7b797d3/comicbox-4.5.0-py3-none-any.whl", hash = "sha256:89251986a886db1162633335f06a6c73e49598cfcc568f41cf4b1990e8d850ba", size = 340047, upload-time = "2026-07-24T17:57:05.838Z" },
 ]
 
 [package.optional-dependencies]
@@ -4098,11 +4098,11 @@ wheels = [
 
 [[package]]
 name = "types-psycopg2"
-version = "2.9.21.20260712"
+version = "2.9.21.20260724"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/de/f2/4326b61737922d4e5b2ce18f6e9f9034fda861414bff07fc473fdc879692/types_psycopg2-2.9.21.20260712.tar.gz", hash = "sha256:18157ddfe3f2d66db5c2908c2e27fe79a6867b11bdba515434b108ac2aa377d8", size = 27581, upload-time = "2026-07-12T05:13:30.106Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/29/09ca8f0ad16105193deabcaf8256059e361e9e37ff24551efd9c739e240b/types_psycopg2-2.9.21.20260724.tar.gz", hash = "sha256:db31031c37de823a2b21c787cb84832174fdda2a99a8b1af648206f19cc32f8c", size = 27644, upload-time = "2026-07-24T04:57:36.61Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/c8/5a8e02cb0ff4e0cc2ed12a7bc30a7d6ad498d40d98c6f508774ad9cdac49/types_psycopg2-2.9.21.20260712-py3-none-any.whl", hash = "sha256:a78a615a5e828d99dc6fe46ddf16d0732ab7564de1065d1b3ad9dac3067b64cc", size = 24967, upload-time = "2026-07-12T05:13:29.188Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/90/1e77eb76030bb5feb249ecb41cd7647c6ae831ec7bd2b61a61beecac4029/types_psycopg2-2.9.21.20260724-py3-none-any.whl", hash = "sha256:4f87890dd06cea99e3bb0536330ffc2a7320e69059dc1ee0e2c884ef2718f2b4", size = 24964, upload-time = "2026-07-24T04:57:35.703Z" },
 ]
 
 [[package]]

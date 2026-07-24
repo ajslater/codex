@@ -67,7 +67,7 @@
     "@fsouza/prettierd": "^0.28.0",
     "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@vitest/eslint-plugin": "^1.6.23",
+    "@vitest/eslint-plugin": "^1.6.24",
     "eslint": "^10.7.0",
     "eslint_d": "^15.0.2",
     "eslint-config-prettier": "^10.1.8",
