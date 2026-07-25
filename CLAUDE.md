@@ -8,6 +8,14 @@ through a responsive web UI. A background librarian daemon watches the
 filesystem for changes and manages metadata import, cover generation, and search
 indexing.
 
+## Hard Rules
+
+@.claude/rules/telemetry-privacy.md — **No personally identifying information,
+comic/series/folder/imprint/publisher names, tag values, or admin-flag strings
+may ever be collected by or transmitted from `codex/librarian/telemeter/`.**
+Telemetry is counts, booleans, and closed-enum keys only. This rule is not
+negotiable and not waivable for debugging.
+
 ## Commands
 
 Commands are from @\~/.claude/rules/devenv.md
