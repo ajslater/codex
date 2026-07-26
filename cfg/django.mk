@@ -5,13 +5,13 @@ export DEVENV_DJANGO
 ## Fix django lint errors in templates
 ## @category Fix
 fix::
-	uv run --group lint djlint --reformat **/templates/**/*.html
+	bin/fix-django.sh
 
 .PHONY: lint
 ## Lint django templates
 ## @category Lint
 lint::
-	uv run --group lint djlint --lint **/templates/**/*.html
+	bin/lint-django.sh
 
 .PHONY: django-check
 ## Django check

@@ -653,7 +653,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=4.6.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=4.6.1" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -739,7 +739,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "4.6.0"
+version = "4.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -776,9 +776,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/99/df7bde0961d78e5ca8f5a5a06442cf11c44de180e839c799aa93478aa74a/comicbox-4.6.0.tar.gz", hash = "sha256:deceb8baaa382cb736dd9501aa2e6fec53024fa1c5b4a973e6d401a4e1ff65a2", size = 1013136, upload-time = "2026-07-26T00:41:14.701Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/05/1c2369de5b000c963fa119c2515d3fd1c64e55fa518eca2b691a86315c26/comicbox-4.6.1.tar.gz", hash = "sha256:4a4f50df0143c21853356a8defa767335434d870da6cdc6c56fef9a77c1f8c87", size = 1015362, upload-time = "2026-07-26T21:26:50.629Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/d8/199aa718d77f0eaaf71f7ef94c38eccfbc34cde420e1bb5a4064b507fb4b/comicbox-4.6.0-py3-none-any.whl", hash = "sha256:2298e6ff2fd39b5e814825405e80edd4ccff9f461bfcf4844f20f201f9c34c60", size = 341933, upload-time = "2026-07-26T00:41:13.182Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/24/6acdbbc6c3ef7bb9023bbeb586d442649218f72177e3013b26a0b1dadc3e/comicbox-4.6.1-py3-none-any.whl", hash = "sha256:8d4c288f775063858620679dd0e4b61291ef14180fbc24767adf5b15684208f7", size = 342787, upload-time = "2026-07-26T21:26:49.016Z" },
 ]
 
 [package.optional-dependencies]
@@ -2654,14 +2654,14 @@ wheels = [
 
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.52"
+version = "3.0.53"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "wcwidth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/96/06e01a7b38dce6fe1db213e061a4602dd6032a8a97ef6c1a862537732421/prompt_toolkit-3.0.52.tar.gz", hash = "sha256:28cde192929c8e7321de85de1ddbe736f1375148b02f2e17edd840042b1be855", size = 434198, upload-time = "2025-08-27T15:24:02.057Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/ea/39b988c938f75cb75d7045b5c69f8bfed47ee2152c8837fb403de29d6fb8/prompt_toolkit-3.0.53.tar.gz", hash = "sha256:9ec8a0ad96d5c56148b3f914aa79c1564c3fde5d2e6b876e7bc327e353cf8fa6", size = 435492, upload-time = "2026-07-26T20:56:14.758Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/03/0d3ce49e2505ae70cf43bc5bb3033955d2fc9f932163e84dc0779cc47f48/prompt_toolkit-3.0.52-py3-none-any.whl", hash = "sha256:9aac639a3bbd33284347de5ad8d68ecc044b91a762dc39b7c21095fcd6a19955", size = 391431, upload-time = "2025-08-27T15:23:59.498Z" },
+    { url = "https://files.pythonhosted.org/packages/54/6f/84908cad2d6aa5144abcf7b42709fe4fdb459bc640ec7ac5786e7693dabc/prompt_toolkit-3.0.53-py3-none-any.whl", hash = "sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2", size = 392288, upload-time = "2026-07-26T20:56:12.512Z" },
 ]
 
 [[package]]
