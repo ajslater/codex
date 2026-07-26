@@ -567,7 +567,7 @@ wheels = [
 
 [[package]]
 name = "codex"
-version = "2.2.2"
+version = "2.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "adrf" },
@@ -653,7 +653,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=4.5.1" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=4.6.0" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -739,7 +739,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "4.5.1"
+version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -776,9 +776,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d0/55/0a69c9e807b7c18b39cf4aa3da8280ef9dddb5b64377381999bca6490a1e/comicbox-4.5.1.tar.gz", hash = "sha256:e90c58dfbe9e234fe89c8ad2684ff5414f5045439eca2bcbe771e6b80e9770ff", size = 1009771, upload-time = "2026-07-24T20:15:28.57Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/99/df7bde0961d78e5ca8f5a5a06442cf11c44de180e839c799aa93478aa74a/comicbox-4.6.0.tar.gz", hash = "sha256:deceb8baaa382cb736dd9501aa2e6fec53024fa1c5b4a973e6d401a4e1ff65a2", size = 1013136, upload-time = "2026-07-26T00:41:14.701Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/d0/e14bf8b03fbc139c75855996fa9e7f28b9291beb4ed79f58bba40079e7bd/comicbox-4.5.1-py3-none-any.whl", hash = "sha256:e7d188e0520330eae76298b3f3cfa1a43fa164dd22ea9fb771e1597dd3f6503c", size = 340303, upload-time = "2026-07-24T20:15:26.84Z" },
+    { url = "https://files.pythonhosted.org/packages/43/d8/199aa718d77f0eaaf71f7ef94c38eccfbc34cde420e1bb5a4064b507fb4b/comicbox-4.6.0-py3-none-any.whl", hash = "sha256:2298e6ff2fd39b5e814825405e80edd4ccff9f461bfcf4844f20f201f9c34c60", size = 341933, upload-time = "2026-07-26T00:41:13.182Z" },
 ]
 
 [package.optional-dependencies]

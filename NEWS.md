@@ -6,6 +6,8 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.3
+
 ## v2.2.2
 
 - Fixes

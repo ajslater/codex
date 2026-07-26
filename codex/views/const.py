@@ -12,6 +12,7 @@ from django.db.models.fields import DateTimeField, PositiveSmallIntegerField
 from codex.collection import Collection
 from codex.models import (
     AgeRating,
+    Bookmark,
     BrowserCollectionModel,
     Character,
     Comic,
@@ -19,6 +20,7 @@ from codex.models import (
     Credit,
     CreditPerson,
     CreditRole,
+    Favorite,
     Folder,
     Genre,
     Identifier,
@@ -32,6 +34,7 @@ from codex.models import (
     ScanInfo,
     Series,
     SeriesGroup,
+    Story,
     StoryArc,
     StoryArcNumber,
     Tag,
@@ -167,10 +170,15 @@ METADATA_MODELS = (
     ScanInfo,
     StoryArc,
     StoryArcNumber,
+    Story,
     Team,
     Tag,
     Tagger,
     Universe,
+)
+STATS_USAGE_MODELS = (
+    Bookmark,
+    Favorite,
 )
 CONFIG_MODELS = (
     Library,
