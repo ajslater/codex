@@ -21,6 +21,15 @@ border-radius: 128px;
       other known names (comicbox 4.6.0).
 
 - Fixes
+    - Identifier links point at the right page. Hand-tagged keys with a type
+      prefix like `series:178012`, Comic Vine long codes like `4050-160294`, and
+      `source:type:key` strings made broken issue-shaped URLs for every source
+      (comicbox 4.6.1).
+    - Every identifier URN in a comic's notes is imported; only the first was
+      read before (comicbox 4.6.1).
+    - Story arcs tagged online from Metron or Comic Vine get web links (comicbox
+      4.6.1). These identifier fixes reach already-imported comics on their next
+      re-import, or use Force Update Tags.
     - User data backups no longer skip every saved filter set after an upgrade
       that adds a new filter.
 
