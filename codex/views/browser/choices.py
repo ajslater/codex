@@ -18,8 +18,9 @@ from codex.models import (
 )
 from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.identifier import IdentifierSource
-from codex.models.named import Universe
+from codex.models.named import Reprint, Universe
 from codex.serializers.browser.choices import (
+    REPRINT_LABEL_FIELDS,
     BrowserChoicesFilterSerializer,
     BrowserFilterChoicesSerializer,
 )
@@ -267,7 +268,11 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         # Choices
         qs = self.get_m2m_field_query(model, comic_qs)
         values = ["pk", "name"]
-        if qs.model == Universe:
+        if qs.model == Reprint:
+            # No ``name`` column at all — BrowserChoicesReprintPkSerializer
+            # composes the label from these.
+            values = ["pk", *REPRINT_LABEL_FIELDS]
+        elif qs.model == Universe:
             values.append("designation")
         elif qs.model == AgeRatingMetron:
             # AgeRatingMetron.Meta.ordering = ("index",), but ``.distinct()``

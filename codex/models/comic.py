@@ -59,6 +59,7 @@ from codex.models.named import (
     Language,
     Location,
     OriginalFormat,
+    Reprint,
     ScanInfo,
     SeriesGroup,
     Story,
@@ -209,6 +210,7 @@ class Comic(WatchedPathBrowserCollection):
     genres = ManyToManyField(Genre)
     identifiers = ManyToManyField(Identifier)
     locations = ManyToManyField(Location)
+    reprints = ManyToManyField(Reprint)
     series_groups = ManyToManyField(SeriesGroup)
     stories = ManyToManyField(Story)
     story_arc_numbers = ManyToManyField(StoryArcNumber)
@@ -218,13 +220,16 @@ class Comic(WatchedPathBrowserCollection):
 
     #####################
     # Comicbox Ignored:
-    # alternate_issue
-    # alternate_volumes
+    # alternate_images
+    # bookmark
     # cover_image
-    # is_version_of
-    # last_mark
+    # credit_primaries
+    # critical_rating
+    # identifier_primary_source
     # manga
-    # price
+    # pages
+    # prices
+    # remainders
     # rights
 
     # codex only
@@ -419,6 +424,7 @@ class ComicFTS(BaseModel):
     scan_info = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     tagger = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     # M2M
+    alternate_series = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     characters = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     credits = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     genres = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

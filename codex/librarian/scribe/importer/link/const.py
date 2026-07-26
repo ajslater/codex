@@ -5,6 +5,7 @@ from types import MappingProxyType
 from codex.librarian.scribe.importer.const import (
     CREDITS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
+    REPRINTS_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
 from codex.models.base import BaseModel
@@ -12,6 +13,7 @@ from codex.models.collections import Imprint, Series, Volume
 
 COMPLEX_MODEL_FIELD_NAMES = (
     CREDITS_FIELD_NAME,
+    REPRINTS_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
 )

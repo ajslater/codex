@@ -87,6 +87,20 @@ describe("BrowserTableCell — list / M2M", () => {
     });
     expect(wrapper.find(".tableListCell").text()).toBe("");
   });
+
+  it("joins the composed alternate-series labels", () => {
+    /*
+     * ``reprints`` has to be listed in ``M2M_COLUMNS`` or the array
+     * falls through to the text cell and stringifies badly.
+     */
+    const wrapper = mountCell({
+      column: "reprints",
+      row: { reprints: ["Kapitän Wissenschaft (de)", "Capitan Sciencia v1"] },
+    });
+    expect(wrapper.find(".tableListCell").text()).toBe(
+      "Kapitän Wissenschaft (de), Capitan Sciencia v1",
+    );
+  });
 });
 
 describe("BrowserTableCell — bool", () => {

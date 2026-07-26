@@ -58,6 +58,7 @@ from codex.models import (
     Location,
     OriginalFormat,
     Publisher,
+    Reprint,
     ScanInfo,
     Series,
     SeriesGroup,
@@ -81,7 +82,9 @@ COMIC_PATH = FILES_DIR / "comicbox-2-example.cbz"
 PATH = str(LIBRARY_PATH / "test.cbz")
 PATH_PARENTS = {(str(Path(PATH).parent),)}
 PATH_PARENTS_QUERY = {(str(Path(PATH).parent),): set()}
-COMPLEX_FIELD_NAMES = frozenset({"credits", "story_arc_numbers", "identifiers"})
+COMPLEX_FIELD_NAMES = frozenset(
+    {"credits", "reprints", "story_arc_numbers", "identifiers"}
+)
 AGGREGATED = MappingProxyType(
     {
         FIS: {},
@@ -118,6 +121,10 @@ AGGREGATED = MappingProxyType(
             },
             Tagger: {("comicbox dev",): set()},
             Publisher: {("Youthful Adventure Stories",): {(None,)}},
+            Reprint: {
+                ("Capitan Sciencia", 1, "", "es"): {(None,)},
+                ("Kapitän Wissenschaft", None, "", "de"): {(None,)},
+            },
             Imprint: {
                 (
                     "Youthful Adventure Stories",
@@ -254,7 +261,10 @@ AGGREGATED = MappingProxyType(
                     )
                 },
                 "locations": {("The Moon",)},
-                # reprints add
+                "reprints": {
+                    ("Capitan Sciencia", 1, "", "es"),
+                    ("Kapitän Wissenschaft", None, "", "de"),
+                },
                 "series_groups": {("science comics",)},
                 "stories": {("The Beginning",)},
                 "story_arc_numbers": {
@@ -357,6 +367,10 @@ QUERIED = MappingProxyType(
             Universe: {("Young Adult Silly Universe", None, "4242")},
             Folder: deepcopy(PATH_PARENTS),
             Publisher: {("Youthful Adventure Stories", None)},
+            Reprint: {
+                ("Capitan Sciencia", 1, "", "es", None),
+                ("Kapitän Wissenschaft", None, "", "de", None),
+            },
             Imprint: {("Youthful Adventure Stories", "TestImprint", None)},
             Series: {
                 (
@@ -377,7 +391,7 @@ QUERIED = MappingProxyType(
                     7,
                 )
             },
-            TOTAL: 41,
+            TOTAL: 43,
         },
         UPDATE_FKS: {
             TOTAL: 0,
@@ -415,6 +429,10 @@ QUERIED = MappingProxyType(
                 "genres": {("Science Fiction",)},
                 "identifiers": {("comicvine", "comic", "145269")},
                 "locations": {("The Moon",)},
+                "reprints": {
+                    ("Capitan Sciencia", 1, "", "es"),
+                    ("Kapitän Wissenschaft", None, "", "de"),
+                },
                 "series_groups": {("science comics",)},
                 "stories": {("The Beginning",)},
                 "story_arc_numbers": {("c", None), ("d", 1), ("e", 3), ("f", 5)},
@@ -491,6 +509,10 @@ CREATED_FK = MappingProxyType(
                 "genres": {("Science Fiction",)},
                 "identifiers": {("comicvine", "comic", "145269")},
                 "locations": {("The Moon",)},
+                "reprints": {
+                    ("Capitan Sciencia", 1, "", "es"),
+                    ("Kapitän Wissenschaft", None, "", "de"),
+                },
                 "series_groups": {("science comics",)},
                 "stories": {("The Beginning",)},
                 "story_arc_numbers": {("c", None), ("d", 1), ("e", 3), ("f", 5)},
@@ -516,6 +538,10 @@ CREATED_COMICS = MappingProxyType(
                 "genres": {("Science Fiction",)},
                 "identifiers": {("comicvine", "comic", "145269")},
                 "locations": {("The Moon",)},
+                "reprints": {
+                    ("Capitan Sciencia", 1, "", "es"),
+                    ("Kapitän Wissenschaft", None, "", "de"),
+                },
                 "series_groups": {("science comics",)},
                 "stories": {("The Beginning",)},
                 "story_arc_numbers": {("c", None), ("d", 1), ("e", 3), ("f", 5)},
@@ -553,6 +579,7 @@ LINKED_COMICS = MappingProxyType(
         FIS: {},
         FTS_CREATE: {
             1: {
+                "alternate_series": ("Capitan Sciencia", "Kapitän Wissenschaft"),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -593,6 +620,7 @@ FAILED_IMPORTS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
+                "alternate_series": ("Capitan Sciencia", "Kapitän Wissenschaft"),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -632,6 +660,7 @@ DELETED_COMICS = MappingProxyType(
     {
         FTS_CREATE: {
             1: {
+                "alternate_series": ("Capitan Sciencia", "Kapitän Wissenschaft"),
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
@@ -673,7 +702,7 @@ _FK_VALUE_POS = MappingProxyType(
         "volume": -2,
     }
 )
-_COMPLEX_KEYS = frozenset({"credits", "identifiers", "story_arc_numbers"})
+_COMPLEX_KEYS = frozenset({"credits", "identifiers", "reprints", "story_arc_numbers"})
 _COMICFTS_IGNORE_KEYS = ("comic_id", "updated_at", "created_at")
 
 
@@ -763,6 +792,18 @@ def _test_comic_creation_field_complex(field_name: str, value):
                 for subval in value.all()
             )
         )
+    elif field_name == "reprints":
+        value = tuple(
+            sorted(
+                (
+                    subval.series_name,
+                    subval.volume_number,
+                    subval.issue,
+                    subval.language,
+                )
+                for subval in value.all()
+            )
+        )
     return value
 
 
@@ -806,6 +847,28 @@ def export_test_fts_creation(values_const: MappingProxyType, comic: Comic):
     for key in _COMICFTS_IGNORE_KEYS:
         comicfts.pop(key)
     diff_assert(fts_values, comicfts, "COMIC_FTS")
+
+
+def run_full_import(importer) -> None:
+    """
+    Run every importer phase in order.
+
+    ``ComicImporter.apply()`` wraps the same sequence in
+    ``importer_pragmas``, whose exit-time ``PRAGMA wal_checkpoint`` raises
+    ``database table is locked`` inside a ``TestCase``'s wrapping
+    transaction. Drive the phases directly instead.
+    """
+    importer.read()
+    importer.query()
+    importer.create_all_fks()
+    importer.update_all_fks()
+    importer.prepare_fk_link_instance_maps()
+    importer.update_comics()
+    importer.create_comics()
+    importer.link()
+    importer.fail_imports()
+    importer.delete()
+    importer.full_text_search()
 
 
 class BaseTestImporter(SerializeMixin, TestCase, ABC):

@@ -18,6 +18,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
         "created_at": "Added Time",
         "age_rating": "Age Rating",
+        "reprints": "Alternate Series",
         "characters": "Characters",
         "child_count": "Child Count",
         "community_rating": "Community Rating",
@@ -528,6 +529,17 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
+        "reprints": {
+            # Alternate & localized series names (comicbox ``reprints``).
+            # "Reprints" reads as reprint editions to users, so the
+            # column, order-by entry and filter all say "Alternate
+            # Series"; only the ORM key stays ``reprints``.
+            "label": "Alternate Series",
+            "sort_key": "reprints",
+            "m2m": True,
+            "editable": False,
+            "edit_widget": None,
+        },
         "series_groups": {
             "label": "Series Groups",
             "sort_key": "series_groups",
@@ -602,7 +614,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 #   shape). Display is one query for the whole page; sort scales
 #   with the filtered collection count when the user clicks the header.
 # - ``high``: composite-M2M columns (``credits`` / ``identifiers``
-#   / ``universes`` / ``story_arcs``). Display issues its own
+#   / ``reprints`` / ``universes`` / ``story_arcs``). Display issues its own
 #   per-column query (composite display strings can't share the
 #   simple-M2M union shape); sort runs a per-outer-row correlated
 #   subquery that JOINs the bespoke composite expression. Both
@@ -624,6 +636,7 @@ BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
         # Composite M2M — display + sort both per-column / per-row.
         "credits": "high",
         "identifiers": "high",
+        "reprints": "high",
         "story_arcs": "high",
         "universes": "high",
     }

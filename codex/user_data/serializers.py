@@ -27,6 +27,7 @@ from codex.user_data.identifiers import (
     encode_identifier,
     identifier_for_browse_collection,
     tag_model_for_filter,
+    tag_name_field_for_filter,
 )
 
 
@@ -237,9 +238,9 @@ def _rewrite_filter_value(column: str, value: Any) -> Any:
     model = tag_model_for_filter(column)
     if model is None:
         return value
-    # Every tag model inherits ``NamedModel.name``; missing PKs drop
-    # silently rather than raise.
-    return list(model.objects.filter(pk__in=value).values_list("name", flat=True))
+    # Missing PKs drop silently rather than raise.
+    name_field = tag_name_field_for_filter(column)
+    return list(model.objects.filter(pk__in=value).values_list(name_field, flat=True))
 
 
 def serialize_settings_filters(

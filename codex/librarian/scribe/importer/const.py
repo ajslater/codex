@@ -32,6 +32,7 @@ from codex.models.named import (
     Language,
     Location,
     OriginalFormat,
+    Reprint,
     ScanInfo,
     SeriesGroup,
     Story,
@@ -172,12 +173,12 @@ COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
     ),
 )
 COMIC_M2M_FIELD_NAMES: tuple[str, ...] = tuple(field.name for field in COMIC_M2M_FIELDS)
-COMPLEX_M2M_MODELS = (Credit, Identifier, StoryArcNumber)
+COMPLEX_M2M_MODELS = (Credit, Identifier, Reprint, StoryArcNumber)
 
 ########################
 # COMPLEX M2M METADATA #
 ########################
-DictModelType = Credit | Identifier | StoryArcNumber
+DictModelType = Credit | Identifier | Reprint | StoryArcNumber
 CREDITS_FIELD_NAME = "credits"
 CREDIT_PERSON_FIELD_NAME = "person"
 CREDIT_ROLE_FIELD_NAME = "role"
@@ -188,6 +189,13 @@ IDENTIFIER_SOURCE_FIELD_NAME = "source"
 IDENTIFIER_TYPE_FIELD_NAME = "id_type"
 IDENTIFIER_ID_KEY_FIELD_NAME = "key"
 IDENTIFIER_URL_FIELD_NAME = "url"
+REPRINTS_FIELD_NAME = "reprints"
+REPRINT_SERIES_NAME_FIELD_NAME = "series_name"
+REPRINT_VOLUME_NUMBER_FIELD_NAME = "volume_number"
+REPRINT_ISSUE_FIELD_NAME = "issue"
+REPRINT_LANGUAGE_FIELD_NAME = "language"
+# Reprints index only their series names, under their own ComicFTS column.
+ALTERNATE_SERIES_FTS_FIELD_NAME = "alternate_series"
 UNIVERSES_FIELD_NAME = "universes"
 NAME_FIELD_NAME = "name"
 NUMBER_TO_FIELD_NAME = "number_to"
@@ -293,6 +301,15 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
             ),
             "",
         ),
+        Reprint: (
+            (
+                REPRINT_SERIES_NAME_FIELD_NAME,
+                REPRINT_VOLUME_NUMBER_FIELD_NAME,
+                REPRINT_ISSUE_FIELD_NAME,
+                REPRINT_LANGUAGE_FIELD_NAME,
+            ),
+            _IDENTIFIER_RELS,
+        ),
         StoryArcNumber: (
             (f"{STORY_ARC_FIELD_NAME}__name", NUMBER_FIELD_NAME),
             "",
@@ -311,6 +328,7 @@ MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
             Series: ("publisher", "imprint"),
             Volume: ("publisher", "imprint", "series"),
             Credit: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
+            Reprint: _IDENTIFIED_SELECT_RELATED,
             StoryArcNumber: (STORY_ARC_FIELD_NAME,),
             Universe: _IDENTIFIED_SELECT_RELATED,
         }
@@ -350,6 +368,12 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
             *_NAMED_MODEL_ATTRS,
         ),
         CREDITS_FIELD_NAME: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
+        REPRINTS_FIELD_NAME: (
+            REPRINT_SERIES_NAME_FIELD_NAME,
+            REPRINT_VOLUME_NUMBER_FIELD_NAME,
+            REPRINT_ISSUE_FIELD_NAME,
+            REPRINT_LANGUAGE_FIELD_NAME,
+        ),
         STORY_ARC_NUMBERS_FIELD_NAME: (STORY_ARC_FIELD_NAME, NUMBER_FIELD_NAME),
     }
 )
@@ -368,6 +392,7 @@ MODEL_SELECTOR_REL_MAP: MappingProxyType[type[BaseModel], str] = MappingProxyTyp
         Identifier: IDENTIFIER_ID_KEY_FIELD_NAME,
         Imprint: NAME_FIELD_NAME,
         Publisher: NAME_FIELD_NAME,
+        Reprint: REPRINT_SERIES_NAME_FIELD_NAME,
         Series: NAME_FIELD_NAME,
         StoryArc: NAME_FIELD_NAME,
         StoryArcNumber: f"{STORY_ARC_FIELD_NAME}__name",

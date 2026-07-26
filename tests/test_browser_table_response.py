@@ -632,8 +632,8 @@ class BrowserTablePageResponseTestCase(TestCase):
         metadata-view pattern (``query_intersections``'s
         ``_query_m2m_intersections``) and unions per-through-table
         sub-queries into a single SQL transmission. Composite M2M
-        columns (credits / identifiers / universes / story_arcs)
-        still issue their own queries.
+        columns (credits / identifiers / reprints / universes /
+        story_arcs) still issue their own queries.
         """
         from django.db import connection
         from django.test.utils import CaptureQueriesContext

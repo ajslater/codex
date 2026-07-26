@@ -26,7 +26,6 @@ _PARAMS: Final = {
     "sources": ["metron", "comicvine"],
     "mode": "auto",
     "prompts_mode": "ask",
-    "auto_threshold": 0.85,
     "delete_original": False,
     "merge_all_sources": False,
     "dry_run": False,
@@ -86,6 +85,19 @@ class TagResumeTestCase(TestCase):
         assert task.sources == ("metron", "comicvine")
         assert task.mode == "auto"
         assert task.prompts_mode == "ask"
+
+    def test_resume_drops_params_from_an_older_codex(self) -> None:
+        # A descriptor written before a knob was removed (auto_threshold) must
+        # still resume instead of raising TypeError on the task constructor.
+        set_resume_state({**_PARAMS, "auto_threshold": 0.85}, [11])
+
+        with patch(_QUEUE_TARGET) as mocked_queue:
+            response = self.client.post(_RESUME_URL)
+
+        assert response.status_code == HTTPStatus.ACCEPTED
+        task = mocked_queue.put.call_args.args[0]
+        assert isinstance(task, BulkOnlineTagTask)
+        assert task.comic_pks == frozenset([11])
 
     def test_resume_conflict_when_scan_active(self) -> None:
         set_resume_state(_PARAMS, [11])

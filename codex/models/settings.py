@@ -237,6 +237,7 @@ class SettingsBrowserFilters(BaseModel):
     monochrome = JSONField(default=list)
     original_format = JSONField(default=list)
     reading_direction = JSONField(default=list)
+    reprints = JSONField(default=list)
     series_groups = JSONField(default=list)
     stories = JSONField(default=list)
     story_arcs = JSONField(default=list)
@@ -265,6 +266,7 @@ class SettingsBrowserFilters(BaseModel):
             "monochrome",
             "original_format",
             "reading_direction",
+            "reprints",
             "series_groups",
             "stories",
             "story_arcs",

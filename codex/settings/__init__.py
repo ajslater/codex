@@ -1125,6 +1125,7 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
         "protagonist",
         "publisher",
         "reading_direction",
+        "reprints",
         "review",
         "scan_info",
         "series",
@@ -1141,10 +1142,10 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
 )
 
 # Tell comicbox to skip parse work for every top-level field codex
-# does not consume. Pages and reprints are short-circuited inside
-# their respective computed actions; the rest are excluded at schema
-# parse time and dropped post-merge as a backstop. Derived from the
-# live comicbox schema rather than hand-curated so a comicbox release
+# does not consume. Pages are short-circuited inside their computed
+# action; the rest are excluded at schema parse time and dropped
+# post-merge as a backstop. Derived from the live comicbox schema
+# rather than hand-curated so a comicbox release
 # that adds a new top-level field is auto-deleted (codex maintainer
 # adds it to ``USED_COMICBOX_FIELDS`` if it's needed). Closes the
 # pre-existing ``cover_image`` gap.

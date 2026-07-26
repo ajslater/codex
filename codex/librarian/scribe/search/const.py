@@ -20,6 +20,7 @@ _COMICFTS_FKS = (
     "tagger",
 )
 _COMICFTS_M2MS = (
+    "alternate_series",
     "characters",
     "credits",
     "genres",

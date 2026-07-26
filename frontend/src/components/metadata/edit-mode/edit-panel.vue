@@ -847,6 +847,93 @@
       </v-btn>
     </div>
 
+    <div class="sectionHeader">Alternate Series</div>
+    <v-table class="mdSection">
+      <tbody>
+        <tr v-for="(reprint, i) in reprints" :key="i">
+          <td :title="isFieldDisabled('reprints') ? disabledTooltip : ''">
+            <v-text-field
+              v-model="reprints[i].series_name"
+              label="Series"
+              hide-details
+              density="compact"
+              :disabled="isFieldDisabled('reprints')"
+            />
+          </td>
+          <td :title="isFieldDisabled('reprint_volume') ? disabledTooltip : ''">
+            <v-text-field
+              v-model="reprints[i].volume"
+              label="Volume"
+              type="number"
+              hide-details
+              density="compact"
+              :disabled="isFieldDisabled('reprint_volume')"
+            />
+          </td>
+          <td :title="isFieldDisabled('reprints') ? disabledTooltip : ''">
+            <v-text-field
+              v-model="reprints[i].issue"
+              label="Issue"
+              hide-details
+              density="compact"
+              :disabled="isFieldDisabled('reprints')"
+            />
+          </td>
+          <td
+            :title="isFieldDisabled('reprint_language') ? disabledTooltip : ''"
+          >
+            <v-select
+              v-model="reprints[i].language"
+              :items="languageChoices"
+              label="Language"
+              clearable
+              hide-details
+              density="compact"
+              :disabled="isFieldDisabled('reprint_language')"
+            />
+          </td>
+          <td class="removeCol">
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              @click="reprints.splice(i, 1)"
+            >
+              &times;
+            </v-btn>
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+    <div class="tableFooter">
+      <div :title="isFieldDisabled('reprints') ? disabledTooltip : ''">
+        <v-btn
+          variant="text"
+          size="small"
+          :disabled="isFieldDisabled('reprints')"
+          @click="
+            reprints.push({
+              series_name: '',
+              volume: '',
+              issue: '',
+              language: null,
+            })
+          "
+        >
+          + Add Alternate Series
+        </v-btn>
+      </div>
+      <v-spacer />
+      <v-btn
+        v-if="reprints.length"
+        variant="text"
+        size="x-small"
+        @click="clearField('reprints')"
+      >
+        Clear All
+      </v-btn>
+    </div>
+
     <div class="sectionHeader">Identifiers</div>
     <v-table class="mdSection">
       <tbody>
@@ -1150,6 +1237,7 @@ export default {
       creditsByRole: {},
       storyArcNames: [],
       universes: [],
+      reprints: [],
       identifiers: [],
       patch: {
         publisher: "",
@@ -1270,6 +1358,7 @@ export default {
         credits: this.creditsSerialized,
         storyArcs: JSON.stringify(this.storyArcNames),
         universes: JSON.stringify(this.universes),
+        reprints: JSON.stringify(this.reprints),
         identifiers: JSON.stringify(this.identifiers),
       };
     },
@@ -1302,6 +1391,12 @@ export default {
         cur.universes !== orig.universes
       ) {
         changed.add("universes");
+      }
+      if (
+        this.clearedFields.has("reprints") ||
+        cur.reprints !== orig.reprints
+      ) {
+        changed.add("reprints");
       }
       if (
         this.clearedFields.has("identifiers") ||
@@ -1593,6 +1688,8 @@ export default {
         this.storyArcNames = [];
       } else if (field === "universes") {
         this.universes = [];
+      } else if (field === "reprints") {
+        this.reprints = [];
       } else if (field === "identifiers") {
         this.identifiers = [];
       }
@@ -1703,6 +1800,18 @@ export default {
         }));
       }
 
+      // Alternate series — the panel renders the composed `name`, but the
+      // editor rebuilds comicbox's nested reprint from the flat columns.
+      if (this.md.reprints?.length) {
+        this.reprints = this.md.reprints.map((reprint) => ({
+          series_name: reprint.seriesName || "",
+          volume:
+            reprint.volumeNumber == null ? "" : String(reprint.volumeNumber),
+          issue: reprint.issue || "",
+          language: reprint.language || null,
+        }));
+      }
+
       /* Identifiers — shaped as {pk, source, type, code, displayName, url} */
       if (this.md.identifiers?.length) {
         this.identifiers = this.md.identifiers.map((id) => ({
@@ -1731,6 +1840,22 @@ export default {
         this.md.mainCharacter?.name || this.md.mainTeam?.name || "";
 
       this.origSnapshot = { ...this.currentSnapshot };
+    },
+    buildReprints() {
+      // comicbox nests a reprint's parts under series/volume; codex stores
+      // them flat. A row without a series name names nothing, so it's
+      // dropped rather than written as an empty alternate.
+      const reprints = [];
+      for (const row of this.reprints) {
+        if (!row.series_name) continue;
+        const reprint = { series: { name: row.series_name } };
+        const number = parseInt(row.volume, 10);
+        if (!isNaN(number)) reprint.volume = { number };
+        if (row.issue) reprint.issue = row.issue;
+        if (row.language) reprint.language = row.language;
+        reprints.push(reprint);
+      }
+      return reprints;
     },
     buildPatch() {
       // Returns { patch, deleteKeys }. A merge write can only add or replace
@@ -1844,6 +1969,13 @@ export default {
           }
           cbPatch.universes = univs;
         }
+      }
+
+      // Alternate series — only include if changed
+      if (changed.has("reprints")) {
+        const reprints = this.buildReprints();
+        if (reprints.length) cbPatch.reprints = reprints;
+        else deleteKeys.push("reprints");
       }
 
       // Identifiers — only include if changed

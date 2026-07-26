@@ -126,6 +126,7 @@ const _CATEGORIES = Object.freeze([
       "publisher_name",
       "imprint_name",
       "series_name",
+      "reprints",
       "volume_name",
       "issue",
       "name",

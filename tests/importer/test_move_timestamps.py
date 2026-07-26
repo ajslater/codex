@@ -32,25 +32,10 @@ from codex.models import (
     StoryArcNumber,
     Volume,
 )
-from tests.importer.test_basic import PATH, BaseTestImporter
+from tests.importer.test_basic import PATH, BaseTestImporter, run_full_import
 
 _FILE_PUBLISHER = "Youthful Adventure Stories"
 _SOURCE_PUBLISHER = "Throwaway Source Pub"
-
-
-def _run_full_import(importer) -> None:
-    """Run every importer phase in order (apply() without pragmas/finish)."""
-    importer.read()
-    importer.query()
-    importer.create_all_fks()
-    importer.update_all_fks()
-    importer.prepare_fk_link_instance_maps()
-    importer.update_comics()
-    importer.create_comics()
-    importer.link()
-    importer.fail_imports()
-    importer.delete()
-    importer.full_text_search()
 
 
 class TestImporterMoveRestampsSource(BaseTestImporter):
@@ -90,7 +75,7 @@ class TestImporterMoveRestampsSource(BaseTestImporter):
             check_metadata_mtime=False,
         )
         importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
-        _run_full_import(importer)
+        run_full_import(importer)
 
         # The comic actually moved to the file's publisher...
         comic = Comic.objects.get(path=PATH)
@@ -142,7 +127,7 @@ class TestImporterStoryArcRestampsSource(BaseTestImporter):
             check_metadata_mtime=False,
         )
         importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
-        _run_full_import(importer)
+        run_full_import(importer)
 
         # The comic moved to the file's arcs; "Removed Arc" lost it...
         comic = Comic.objects.get(path=PATH)

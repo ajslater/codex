@@ -606,7 +606,6 @@ class OnlineTagSessionManager:
                 "sources": list(task.sources),
                 "mode": task.mode,
                 "prompts_mode": task.prompts_mode,
-                "auto_threshold": task.auto_threshold,
                 "delete_original": task.delete_original,
                 "merge_all_sources": task.merge_all_sources,
                 "rename": task.rename,

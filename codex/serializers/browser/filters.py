@@ -38,6 +38,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     monochrome = VuetifyListField(child=VuetifyBooleanField)
     original_format = VuetifyListField()
     reading_direction = VuetifyListField(child=VuetifyReadingDirectionChoiceField)
+    reprints = VuetifyListField()
     series_groups = VuetifyListField()
     stories = VuetifyListField()
     story_arcs = VuetifyListField()

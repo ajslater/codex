@@ -116,6 +116,7 @@ class StatsComicMetadataSerializer(Serializer):
     language_count = IntegerField(required=False, read_only=True)
     location_count = IntegerField(required=False, read_only=True)
     original_format_count = IntegerField(required=False, read_only=True)
+    reprint_count = IntegerField(required=False, read_only=True)
     series_group_count = IntegerField(required=False, read_only=True)
     scan_info_count = IntegerField(required=False, read_only=True)
     story_arc_count = IntegerField(required=False)

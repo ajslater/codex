@@ -20,12 +20,17 @@ from codex.librarian.scribe.importer.const import (
     NUMBER_FIELD_NAME,
     NUMBER_TO_FIELD_NAME,
     PUBLISHER_FIELD_NAME,
+    REPRINT_ISSUE_FIELD_NAME,
+    REPRINT_LANGUAGE_FIELD_NAME,
+    REPRINT_SERIES_NAME_FIELD_NAME,
+    REPRINT_VOLUME_NUMBER_FIELD_NAME,
     SERIES_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
     VOLUME_COUNT_FIELD_NAME,
 )
 from codex.models import (
     Credit,
+    Reprint,
     StoryArc,
     StoryArcNumber,
     Volume,
@@ -116,6 +121,15 @@ MODEL_CREATE_ARGS_MAP: MappingProxyType[
                 CREDIT_ROLE_FIELD_NAME: CreditRole,
             },
             {},
+        ),
+        Reprint: (
+            {
+                REPRINT_SERIES_NAME_FIELD_NAME: None,
+                REPRINT_VOLUME_NUMBER_FIELD_NAME: None,
+                REPRINT_ISSUE_FIELD_NAME: None,
+                REPRINT_LANGUAGE_FIELD_NAME: None,
+            },
+            {IDENTIFIER_FIELD_NAME: Identifier},
         ),
         StoryArcNumber: ({STORY_ARC_FIELD_NAME: StoryArc, NUMBER_FIELD_NAME: None}, {}),
         Universe: (

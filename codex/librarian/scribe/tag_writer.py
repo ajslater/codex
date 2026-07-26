@@ -121,7 +121,7 @@ class TagWriter(WorkerStatusAbortableBase):
         Never pass codex's read-side ``COMICBOX_CONFIG`` here. Comicbox
         unions a write's ``delete_keys`` with the base config's, and that
         config carries the big parse-skip set of schema fields codex
-        doesn't consume (pages, reprints, cover_image, ...). Using it as a
+        doesn't consume (pages, cover_image, prices, ...). Using it as a
         write base would strip every one of those from the user's archive.
         """
         if not task.delete_original:

@@ -78,8 +78,8 @@ IDENTIFIER_TYPES = _vuetify_choices(
 # most fields; the splits/renames are codex's relational model (issue split into
 # number + suffix so issues sort numerically, comicbox "arcs" stored as
 # story_arcs, ComicInfo's "manga"/"title" surfaced as reading_direction/stories).
-# Canonical keys absent here (bookmark, date, pages, reprints, page_count,
-# prices, updated_at, ...) are not tag-editor fields and are dropped.
+# Canonical keys absent here (bookmark, date, pages, page_count, prices,
+# updated_at, ...) are not tag-editor fields and are dropped.
 _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
         "publisher": ("publisher",),
@@ -113,6 +113,9 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
         "community_rating": ("community_rating",),
         "protagonist": ("protagonist",),
         "identifiers": ("identifiers",),
+        # The series name and issue only; the volume number and language are
+        # MetronInfo-exclusive — see _EXTRA_FORMAT_FIELDS.
+        "reprints": ("reprints",),
         "country": ("country",),
         "universes": ("universes",),
     }
@@ -121,10 +124,18 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 # Editor sub-fields comicbox stores only for some formats and which its
 # transform specs don't surface at the SPECS_TO top level (the
 # hand-maintained support data): MetronInfo's Series carries a volume
-# count, and only MetronInfo's CommunityRating persists a rating count.
+# count, only MetronInfo's CommunityRating persists a rating count, and
+# only MetronInfo encodes a reprint's volume number (in Reprints) and
+# language (in Series/AlternativeNames) — ComicInfo's AlternateSeries /
+# AlternateNumber / AlternateCount carry neither.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
-        "METRON_INFO": ("volume_count", "community_rating_count"),
+        "METRON_INFO": (
+            "volume_count",
+            "community_rating_count",
+            "reprint_volume",
+            "reprint_language",
+        ),
     }
 )
 

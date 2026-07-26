@@ -35,7 +35,12 @@ from codex.models.collections import (
     Series,
     Volume,
 )
-from codex.views.browser.columns import fk_name_columns, m2m_columns
+from codex.models.named import Reprint
+from codex.views.browser.columns import (
+    VOLUME_YEAR_RANGE,
+    fk_name_columns,
+    m2m_columns,
+)
 from codex.views.const import MODEL_REL_MAP
 
 # Comic FK column → collection model. Used to correlate the intersection
@@ -86,6 +91,15 @@ def _format_identifier(source_name: str | None, id_type: str, key: str) -> str:
     if source_name:
         return f"{source_name}:{id_type}:{key}"
     return f"{id_type}:{key}"
+
+
+# Positional order matches :meth:`Reprint.compose_name`'s signature.
+_REPRINT_VALUE_RELS = (
+    "reprints__series_name",
+    "reprints__volume_number",
+    "reprints__issue",
+    "reprints__language",
+)
 
 
 # Comic field paths for scalar / FK-name columns that participate in
@@ -202,8 +216,8 @@ def compute_collection_intersections(
     )
 
     # Simple-M2M columns share one UNION-ALL query (metadata-view
-    # pattern). Composite shapes (credits / identifiers / universes /
-    # story_arcs) keep their per-column helpers.
+    # pattern). Composite shapes (credits / identifiers / reprints /
+    # universes / story_arcs) keep their per-column helpers.
     _compute_simple_m2m_intersections_batched(
         m2m_cols, collection_pks, comic_to_collection, counts, result
     )
@@ -347,9 +361,10 @@ def _compute_batched_scalars(
 # the target model's ``name`` field. Eligible for the through-table
 # batched union (see ``_compute_simple_m2m_intersections_batched``).
 # ``universes`` (composite ``name:designation``), ``credits``
-# (``Person (Role)``), ``identifiers`` (``[source:]type:key``), and
-# ``story_arcs`` (StoryArcNumber → StoryArc indirection) need bespoke
-# SQL and stay on per-column helpers.
+# (``Person (Role)``), ``identifiers`` (``[source:]type:key``),
+# ``reprints`` (no ``name`` column at all — the label composes from
+# four), and ``story_arcs`` (StoryArcNumber → StoryArc indirection)
+# need bespoke SQL and stay on per-column helpers.
 _SIMPLE_M2M_BATCH_FIELDS: frozenset[str] = frozenset(
     {
         "characters",
@@ -474,7 +489,7 @@ def _compute_m2m_intersection(
     Simple M2M columns route through
     ``_compute_simple_m2m_intersections_batched`` instead — this
     helper covers the bespoke shapes (credits / identifiers /
-    universes / story_arcs).
+    reprints / universes / story_arcs).
     """
     if col == "credits":
         _compute_credits_intersection(
@@ -483,6 +498,11 @@ def _compute_m2m_intersection(
         return
     if col == "identifiers":
         _compute_identifiers_intersection(
+            collection_pks, comic_to_collection, counts, result
+        )
+        return
+    if col == "reprints":
+        _compute_reprints_intersection(
             collection_pks, comic_to_collection, counts, result
         )
         return
@@ -741,6 +761,38 @@ def _build_identifiers_intersection_sort_sql(
     return _IntersectionSortRawSQL(sql, [])
 
 
+def _build_reprints_intersection_sort_sql(
+    collection_model: type[BrowserCollectionModel],
+) -> RawSQL | None:
+    """Reprints render the same composed label the table cell shows."""
+    correlation = _comic_correlation_sql(collection_model)
+    if correlation is None:
+        return None
+    # Mirror of ``Reprint.compose_name``: only the columns the reprint
+    # carries contribute, and a four-digit volume number is a year. The
+    # year bounds are the only bound parameters any of these
+    # intersection subqueries take.
+    inner = """
+            SELECT
+                r.id AS target_id,
+                r.series_name
+                || CASE
+                    WHEN r.volume_number IS NULL THEN ''
+                    WHEN r.volume_number BETWEEN %s AND %s
+                        THEN ' (' || r.volume_number || ')'
+                    ELSE ' v' || r.volume_number
+                   END
+                || CASE WHEN r.issue = '' THEN '' ELSE ' #' || r.issue END
+                || CASE WHEN r.language = '' THEN '' ELSE ' (' || r.language || ')' END
+                    AS display_name
+            FROM codex_reprint r
+            INNER JOIN codex_comic_reprints th ON th.reprint_id = r.id
+            INNER JOIN codex_comic c ON c.id = th.comic_id
+    """
+    sql = _wrap_intersection_sort(inner, correlation)
+    return _IntersectionSortRawSQL(sql, list(VOLUME_YEAR_RANGE))
+
+
 def _build_story_arcs_intersection_sort_sql(
     collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
@@ -893,6 +945,18 @@ def scalar_intersection_sort_expr(
     return _IntersectionSortRawSQL(sql, [])
 
 
+# Composite-M2M columns whose display string needs its own SELECT.
+_COMPOSITE_M2M_SORT_BUILDERS = MappingProxyType(
+    {
+        "credits": _build_credits_intersection_sort_sql,
+        "identifiers": _build_identifiers_intersection_sort_sql,
+        "reprints": _build_reprints_intersection_sort_sql,
+        "story_arcs": _build_story_arcs_intersection_sort_sql,
+        "universes": _build_universes_intersection_sort_sql,
+    }
+)
+
+
 def m2m_intersection_sort_expr(
     collection_model: type[BrowserCollectionModel], column: str
 ) -> RawSQL | None:
@@ -904,15 +968,8 @@ def m2m_intersection_sort_expr(
     """
     if column in _SIMPLE_M2M_FIELDS:
         return _build_simple_m2m_intersection_sort_sql(collection_model, column)
-    if column == "universes":
-        return _build_universes_intersection_sort_sql(collection_model)
-    if column == "credits":
-        return _build_credits_intersection_sort_sql(collection_model)
-    if column == "identifiers":
-        return _build_identifiers_intersection_sort_sql(collection_model)
-    if column == "story_arcs":
-        return _build_story_arcs_intersection_sort_sql(collection_model)
-    return None
+    builder = _COMPOSITE_M2M_SORT_BUILDERS.get(column)
+    return builder(collection_model) if builder else None
 
 
 def _compute_credits_intersection(
@@ -995,3 +1052,34 @@ def _compute_identifiers_intersection(
             if cnt == total
         )
         result[gpk]["identifiers"] = names
+
+
+def _compute_reprints_intersection(
+    collection_pks: list[int],
+    comic_to_collection: str,
+    counts: dict[int, int],
+    result: dict[int, dict[str, Any]],
+) -> None:
+    """Reprints have no ``name`` column; compose the label from their four."""
+    rows = (
+        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        .filter(reprints__series_name__gt="")
+        .values(comic_to_collection, *_REPRINT_VALUE_RELS)
+        .annotate(cnt=Count("pk", distinct=True))
+    )
+    per_collection: dict[int, list[tuple[tuple, int]]] = defaultdict(list)
+    for row in rows:
+        per_collection[row[comic_to_collection]].append(
+            (tuple(row[rel] for rel in _REPRINT_VALUE_RELS), row["cnt"])
+        )
+    for gpk in collection_pks:
+        total = counts.get(gpk, 0)
+        if not total:
+            result[gpk]["reprints"] = []
+            continue
+        names = sorted(
+            Reprint.compose_name(*parts)
+            for parts, cnt in per_collection.get(gpk, ())
+            if cnt == total
+        )
+        result[gpk]["reprints"] = names

@@ -36,7 +36,7 @@ class IdentifierType(TextChoices):
     ISSUE = "comic"
     LOCATION = "location"
     PUBLISHER = "publisher"
-    # REPRINT = "reprint" not yet implemented
+    REPRINT = "reprint"
     SERIES = "series"
     STORY = "story"
     TAG = "tag"

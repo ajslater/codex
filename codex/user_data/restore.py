@@ -629,13 +629,21 @@ def _restore_one_settings_browser(
 
 def _resolve_filter_tags(column: str, raw: list, browser, report: RestoreReport):
     """Resolve a tag-name list back to PKs, reporting unmatched names."""
-    from codex.user_data.identifiers import tag_model_for_filter
+    from codex.user_data.identifiers import (
+        tag_model_for_filter,
+        tag_name_field_for_filter,
+    )
 
     model = tag_model_for_filter(column)
     if model is None:
         return []
-    pks = list(model.objects.filter(name__in=raw).values_list("pk", flat=True))
-    if len(pks) != len(raw):
+    name_field = tag_name_field_for_filter(column)
+    pks = list(
+        model.objects.filter(**{f"{name_field}__in": raw}).values_list("pk", flat=True)
+    )
+    # A non-unique name field (``Reprint.series_name``) can resolve to
+    # more rows than the dump held; only a shortfall is a real drop.
+    if len(pks) < len(raw):
         dropped = len(raw) - len(pks)
         report.note_skipped(
             "settings_filters",

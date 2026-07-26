@@ -10,12 +10,19 @@ const TAGS = Object.freeze([
   // identifiers
   "teams",
   "locations",
+  "reprints",
   "seriesGroups",
   "stories",
   "storyArcNumbers",
   "tags",
   "universes",
 ]);
+
+// Rows whose display name isn't the capital-cased key.
+const TAG_NAMES = Object.freeze({
+  reprints: "Alternate Series",
+  storyArcNumbers: "Story Arcs",
+});
 
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
@@ -107,13 +114,7 @@ export const useMetadataStore = defineStore("metadata", {
       this.md = undefined;
     },
     getTagName(key) {
-      var tagName;
-      if (key === "storyArcNumbers") {
-        tagName = "Story Arcs";
-      } else {
-        tagName = capitalCase(key);
-      }
-      return tagName;
+      return TAG_NAMES[key] || capitalCase(key);
     },
     mapTag(tagSource, keys, filter = undefined) {
       const tagMap = {};

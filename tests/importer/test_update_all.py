@@ -40,6 +40,7 @@ from codex.models import (
     Location,
     OriginalFormat,
     Publisher,
+    Reprint,
     ScanInfo,
     Series,
     SeriesGroup,
@@ -130,6 +131,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("metron", "comic", "999"),
                 },
                 "locations": {("Mars",)},
+                "reprints": {
+                    ("Capitan Sciencia", 1, "", "es"),
+                    ("Kapitän Wissenschaft", None, "", "de"),
+                },
                 "series_groups": {("adult comics",)},
                 "stories": {("The Beginning",), ("The End",)},
                 "story_arc_numbers": {("c", None), ("d", 1), ("e", 3), ("g", 5)},
@@ -185,6 +190,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 ("Youthful Adventure Stories",): {
                     (("metron", "publisher", "111"),),
                 }
+            },
+            Reprint: {
+                ("Capitan Sciencia", 1, "", "es"): {(None,)},
+                ("Kapitän Wissenschaft", None, "", "de"): {(None,)},
             },
             Imprint: {
                 ("Youthful Adventure Stories", "TestImprint"): {

@@ -1,10 +1,20 @@
 """Aggregate ManyToMany Metadata."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, cast
 
-from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY, NUMBER_KEY, ROLES_KEY
+from comicbox.formats.comicbox.schema import (
+    IDENTIFIERS_KEY,
+    ISSUE_KEY,
+    LANGUAGE_KEY,
+    NAME_KEY,
+    NUMBER_KEY,
+    ROLES_KEY,
+    SERIES_KEY,
+    SERIES_SORT_NAME_KEY,
+    VOLUME_KEY,
+)
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
 
@@ -13,6 +23,11 @@ from codex.librarian.scribe.importer.const import (
     CREDITS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
+    REPRINT_ISSUE_FIELD_NAME,
+    REPRINT_LANGUAGE_FIELD_NAME,
+    REPRINT_SERIES_NAME_FIELD_NAME,
+    REPRINT_VOLUME_NUMBER_FIELD_NAME,
+    REPRINTS_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
     get_key_index,
 )
@@ -27,10 +42,15 @@ from codex.librarian.scribe.importer.read.foreign_keys import (
 from codex.models.collections import Folder
 from codex.models.comic import Comic
 from codex.models.identifier import IdentifierSource
-from codex.models.named import CreditRole
+from codex.models.named import CreditRole, Reprint
 
 if TYPE_CHECKING:
     from codex.models.base import BaseModel
+
+_REPRINT_SERIES_NAME_FIELD = Reprint._meta.get_field(REPRINT_SERIES_NAME_FIELD_NAME)
+_REPRINT_VOLUME_NUMBER_FIELD = Reprint._meta.get_field(REPRINT_VOLUME_NUMBER_FIELD_NAME)
+_REPRINT_ISSUE_FIELD = Reprint._meta.get_field(REPRINT_ISSUE_FIELD_NAME)
+_REPRINT_LANGUAGE_FIELD = Reprint._meta.get_field(REPRINT_LANGUAGE_FIELD_NAME)
 
 
 class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
@@ -222,7 +242,44 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             field, roles_or_numbers, clean_sub_key, clean_sub_values
         )
 
-    def _get_m2m_metadata_dict_model(
+    @staticmethod
+    def _clean_reprint_key(reprint: Mapping) -> tuple | None:
+        """
+        Flatten one comicbox reprint tree into a Reprint key tuple.
+
+        MetronInfo AlternativeNames supply only a series ``sort_name``,
+        so that stands in when there's no ``series.name``. A reprint
+        with neither names nothing, so it's dropped.
+        """
+        series = reprint.get(SERIES_KEY) or {}
+        series_name = _REPRINT_SERIES_NAME_FIELD.get_prep_value(
+            series.get(NAME_KEY) or series.get(SERIES_SORT_NAME_KEY)
+        )
+        if not series_name:
+            return None
+        volume = reprint.get(VOLUME_KEY) or {}
+        return (
+            series_name,
+            _REPRINT_VOLUME_NUMBER_FIELD.get_prep_value(volume.get(NUMBER_KEY)),
+            _REPRINT_ISSUE_FIELD.get_prep_value(reprint.get(ISSUE_KEY) or ""),
+            _REPRINT_LANGUAGE_FIELD.get_prep_value(reprint.get(LANGUAGE_KEY) or ""),
+        )
+
+    def _get_m2m_metadata_reprints(self, values: Iterable[Mapping]) -> dict:
+        """
+        Aggregate reprints, the only m2m keyed by a nested comicbox tree.
+
+        Every other complex m2m arrives as a mapping keyed by a name, a
+        shape that cannot express the four part reprint key.
+        """
+        clean_values_map: dict[tuple, frozenset[tuple]] = {}
+        for reprint in values:
+            if clean_key := self._clean_reprint_key(reprint):
+                identifier_tuple = self.get_identifier_tuple(Reprint, reprint)
+                clean_values_map[clean_key] = frozenset({(identifier_tuple,)})
+        return clean_values_map
+
+    def _get_m2m_metadata_named_dict_model(
         self,
         md_key: str,
         field: ManyToManyField,
@@ -248,7 +305,21 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 sub_value,
             )
             clean_values_map.update(clean_sub_map)
+        return clean_values_map
 
+    def _get_m2m_metadata_dict_model(
+        self,
+        md_key: str,
+        field: ManyToManyField,
+        values: Mapping[str, Mapping | None] | list | tuple | set | frozenset,
+    ) -> dict:
+        # ``values`` is typed as the union every m2m field can present;
+        # comicbox always hands reprints over as a list of trees.
+        clean_values_map = (
+            self._get_m2m_metadata_reprints(cast("Iterable[Mapping]", values))
+            if field.name == REPRINTS_FIELD_NAME
+            else self._get_m2m_metadata_named_dict_model(md_key, field, values)
+        )
         related_model: type[BaseModel] = field.related_model
         if related_model != Folder:
             for key, value in clean_values_map.items():

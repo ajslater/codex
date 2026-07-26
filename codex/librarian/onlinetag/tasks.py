@@ -21,7 +21,6 @@ class BulkOnlineTagTask(OnlineTagTask):
     sources: tuple[str, ...] = SOURCE_NAMES
     mode: str = "auto"
     prompts_mode: str = "ask"
-    auto_threshold: float = 0.85
     delete_original: bool = False
     dry_run: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)

@@ -38,9 +38,7 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         return count
 
     def _delete_m2m_fts_entries(self, field_name: str, comic_ids: set[int]) -> None:
-        fts_field_name = (
-            "story_arcs" if field_name == "story_arc_numbers" else field_name
-        )
+        fts_field_name, _ = self.minify_complex_link_to_fts_tuple(field_name, ())
         for comic_id in comic_ids:
             if not self.metadata.get(FTS_UPDATE, {}).get(comic_id, {}).get(
                 fts_field_name
