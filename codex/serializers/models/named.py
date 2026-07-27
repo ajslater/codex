@@ -13,6 +13,7 @@ from codex.models import (
     Genre,
     Location,
     OriginalFormat,
+    Reprint,
     ScanInfo,
     SeriesGroup,
     Story,
@@ -144,6 +145,30 @@ class LocationSerializer(URLNamedModelSerializer):
         """Configure model."""
 
         model = Location
+
+
+class ReprintSerializer(BaseModelSerializer):
+    """Reprint model."""
+
+    name = CharField(read_only=True)
+    url = URLField(read_only=True, source="identifier.url")
+
+    class Meta(BaseModelSerializer.Meta):
+        """Configure model."""
+
+        model = Reprint
+        # The columns ride along with the composed name so the tag editor
+        # can seed its rows without parsing the label back apart.
+        fields = (
+            "pk",
+            "name",
+            "series_name",
+            "volume_number",
+            "issue",
+            "language",
+            "url",
+        )
+        depth = 1
 
 
 class SeriesGroupSerializer(NamedModelSerializer):

@@ -100,7 +100,6 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             sources=tuple(data["sources"]),
             mode=data["mode"],
             prompts_mode=data["prompts_mode"],
-            auto_threshold=float(data.get("auto_threshold", 0.85)),
             delete_original=delete_original,
             merge_all_sources=merge_all_sources,
             rename=rename,
@@ -137,8 +136,8 @@ def _resume_task_params(resume: dict) -> dict:
     ``sources`` round-trips through JSON as a list; the task wants a tuple. A
     resume descriptor persists to a file-based cache, so one written by an older
     Codex may carry keys a task field no longer accepts (e.g. the removed
-    ``effort`` knob) — drop unknown keys so resuming across an upgrade rebuilds
-    the task instead of raising ``TypeError``.
+    ``auto_threshold`` knob) — drop unknown keys so resuming across an upgrade
+    rebuilds the task instead of raising ``TypeError``.
     """
     params = dict(resume.get("params") or {})
     params["sources"] = tuple(params.get("sources") or ())

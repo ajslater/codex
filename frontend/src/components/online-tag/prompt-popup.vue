@@ -60,6 +60,15 @@
                   <v-chip size="x-small" class="ml-2">
                     {{ Math.round(candidate.score * 100) }}%
                   </v-chip>
+                  <!-- Matching scores alternate series names too, so a comic
+                     filed under a localized title matches a series name that
+                     looks nothing like its filename. These are the reason. -->
+                  <div
+                    v-if="candidate.summary.altSeries?.length"
+                    class="candidateAka"
+                  >
+                    a.k.a. {{ candidate.summary.altSeries.join(", ") }}
+                  </div>
                 </div>
                 <v-btn
                   variant="tonal"
@@ -139,7 +148,15 @@ export default {
       return parts[parts.length - 1];
     },
     pick(prompt, candidateIndex) {
-      this.resolvePrompt(prompt.fingerprint, "choose", candidateIndex, null);
+      // The candidate's parent container id narrows the re-search replay to
+      // that volume. Absent for sources that don't expose one.
+      const volumeId = prompt.candidates[candidateIndex]?.volumeId ?? null;
+      this.resolvePrompt(
+        prompt.fingerprint,
+        "choose",
+        candidateIndex,
+        volumeId,
+      );
     },
     skip(prompt) {
       this.resolvePrompt(prompt.fingerprint, "skip", null, null);
@@ -195,8 +212,13 @@ export default {
 }
 
 .candidateYear,
-.candidatePublisher {
+.candidatePublisher,
+.candidateAka {
   color: rgb(var(--v-theme-textSecondary));
+}
+
+.candidateAka {
+  font-size: 0.8125rem;
 }
 
 .promptActions {

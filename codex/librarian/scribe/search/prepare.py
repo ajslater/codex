@@ -29,6 +29,7 @@ _COMIC_KEYS = (
     "fts_original_format",
     "fts_scan_info",
     "fts_tagger",
+    "fts_alternate_series",
     "fts_characters",
     "fts_credits",
     "fts_country",

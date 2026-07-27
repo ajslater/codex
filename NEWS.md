@@ -6,6 +6,33 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.3
+
+- Features
+    - Alternate series names: the localized and variant series titles comics
+      carry in MetronInfo AlternativeNames and Reprints tags (and that Metron
+      and Comic Vine online tagging now record) are imported, shown in the
+      metadata panel, editable in the tag editor, and browsable — sort, table
+      column, filter, and `alternate_series:` search (comicbox 4.6.0). Comics
+      imported or tagged online from now on pick them up automatically;
+      already-imported comics need a Force Update Tags.
+    - Online tagging matches a comic filed under a localized or variant series
+      title to the right volume, and the match prompt shows each candidate's
+      other known names (comicbox 4.6.0).
+
+- Fixes
+    - Identifier links point at the right page. Hand-tagged keys with a type
+      prefix like `series:178012`, Comic Vine long codes like `4050-160294`, and
+      `source:type:key` strings made broken issue-shaped URLs for every source
+      (comicbox 4.6.1).
+    - Every identifier URN in a comic's notes is imported; only the first was
+      read before (comicbox 4.6.1).
+    - Story arcs tagged online from Metron or Comic Vine get web links (comicbox
+      4.6.1). These identifier fixes reach already-imported comics on their next
+      re-import, or use Force Update Tags.
+    - User data backups no longer skip every saved filter set after an upgrade
+      that adds a new filter.
+
 ## v2.2.2
 
 - Fixes

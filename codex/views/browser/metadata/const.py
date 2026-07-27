@@ -10,6 +10,7 @@ from codex.models.identifier import Identifier
 from codex.models.named import (
     Character,
     Credit,
+    Reprint,
     SeriesGroup,
     StoryArcNumber,
     Team,
@@ -74,6 +75,12 @@ M2M_QUERY_OPTIMIZERS = MappingProxyType(
         Identifier: {
             "select": ("source",),
             "only": ("source", "key", "url"),
+        },
+        # Reprint.name is a property composed from all four columns; the
+        # default ``only=("name", ...)`` raises FieldDoesNotExist.
+        Reprint: {
+            "select": ("identifier",),
+            "only": ("series_name", "volume_number", "issue", "language", "identifier"),
         },
         Universe: {"only": ("name", "designation", "identifier")},
         SeriesGroup: {

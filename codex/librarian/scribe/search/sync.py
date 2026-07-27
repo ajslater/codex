@@ -69,6 +69,7 @@ _SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
 # story_arcs) ended up empty for sync-built entries.
 _M2M_FTS_REL_MAP = MappingProxyType(
     {
+        "alternate_series": "reprints__series_name",
         "characters": "characters__name",
         "credits": "credits__person__name",
         "genres": "genres__name",

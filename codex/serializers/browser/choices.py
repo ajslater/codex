@@ -10,6 +10,7 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
+from codex.models.named import Reprint
 from codex.serializers.fields import (
     VuetifyBooleanField,
     VuetifyCharField,
@@ -44,6 +45,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     locations = BooleanField(read_only=True)
     original_format = BooleanField(read_only=True)
     reading_direction = BooleanField(read_only=True)
+    reprints = BooleanField(read_only=True)
     series_groups = BooleanField(read_only=True)
     stories = BooleanField(read_only=True)
     story_arcs = BooleanField(read_only=True)
@@ -78,6 +80,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     reading_direction = VuetifyReadOnlyListField(
         child=VuetifyReadingDirectionChoiceField
     )
+    reprints = VuetifyReadOnlyListField()
     series_groups = VuetifyReadOnlyListField()
     stories = VuetifyReadOnlyListField()
     story_arcs = VuetifyReadOnlyListField()
@@ -113,6 +116,25 @@ class BrowserChoicesUniversePkSerializer(Serializer):
     designation = CharField(read_only=True)
 
 
+# ``Reprint`` columns the label composes from, in
+# :meth:`Reprint.compose_name` argument order. The choices view projects
+# exactly these instead of the ``name`` every other tag model has.
+REPRINT_LABEL_FIELDS = ("series_name", "volume_number", "issue", "language")
+
+
+class BrowserChoicesReprintPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Reprints have no ``name`` column; compose the label from their four."""
+
+    name = SerializerMethodField(read_only=True)
+
+    def get_name(self, obj) -> str:
+        """Compose the same label the metadata panel shows."""
+        # The null sentinel row the view prepends already has a name.
+        if name := obj.get("name"):
+            return name
+        return Reprint.compose_name(*(obj[field] for field in REPRINT_LABEL_FIELDS))
+
+
 class BrowserChoicesCharPkSerializer(BrowserChoicesIntegerPkSerializer):
     """Named Model Serailizer with pk = char hack for languages & countries."""
 
@@ -134,6 +156,7 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
         "community_rating": BrowserChoicesDecimalPkSerializer,
         "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
+        "reprints": BrowserChoicesReprintPkSerializer,
         "universe": BrowserChoicesUniversePkSerializer,
     }
 )

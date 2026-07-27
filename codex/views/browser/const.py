@@ -16,6 +16,7 @@ BROWSER_FILTER_KEYS = (
     "monochrome",
     "original_format",
     "reading_direction",
+    "reprints",
     "series_groups",
     "stories",
     "story_arcs",

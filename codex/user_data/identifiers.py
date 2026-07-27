@@ -56,6 +56,7 @@ _FILTER_TAG_MODEL_REFS: Final[MappingProxyType[str, str]] = MappingProxyType(
         "language": "codex.Language",
         "locations": "codex.Location",
         "original_format": "codex.OriginalFormat",
+        "reprints": "codex.Reprint",
         "series_groups": "codex.SeriesGroup",
         "stories": "codex.Story",
         "story_arcs": "codex.StoryArc",
@@ -66,6 +67,13 @@ _FILTER_TAG_MODEL_REFS: Final[MappingProxyType[str, str]] = MappingProxyType(
     }
 )
 FILTER_TAG_COLUMNS: Final[frozenset[str]] = frozenset(_FILTER_TAG_MODEL_REFS)
+# Tag models that don't inherit ``NamedModel.name``. ``Reprint`` keys on
+# ``series_name``, which is not unique on its own, so a restore may
+# resolve more PKs than the dump held when a series has several
+# alternate-name variants.
+_FILTER_TAG_NAME_FIELDS: Final[MappingProxyType[str, str]] = MappingProxyType(
+    {"reprints": "series_name"}
+)
 
 
 def tag_model_for_filter(column: str) -> type[Model] | None:
@@ -77,6 +85,11 @@ def tag_model_for_filter(column: str) -> type[Model] | None:
 
     app_label, model_name = ref.split(".", 1)
     return apps.get_model(app_label, model_name)
+
+
+def tag_name_field_for_filter(column: str) -> str:
+    """Return the name-bearing field of a filter column's tag model."""
+    return _FILTER_TAG_NAME_FIELDS.get(column, "name")
 
 
 def encode_identifier(collection: str, parts: list[Any]) -> str:

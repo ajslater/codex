@@ -24,6 +24,7 @@ _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
         "genres",
         "identifier_source",
         "locations",
+        "reprints",
         "series_groups",
         "stories",
         "story_arcs",

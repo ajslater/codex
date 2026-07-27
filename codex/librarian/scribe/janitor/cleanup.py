@@ -50,6 +50,7 @@ from codex.models import (
     Location,
     OriginalFormat,
     Publisher,
+    Reprint,
     ScanInfo,
     Series,
     SeriesGroup,
@@ -88,6 +89,7 @@ _FK_MODELS = (
     Imprint,
     OriginalFormat,
     Publisher,
+    Reprint,
     Series,
     SeriesGroup,
     ScanInfo,
@@ -222,7 +224,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         Wrapped in ``transaction.atomic`` so the multi-pass convergence
         is all-or-nothing: an exception mid-pass rolls back to pre-
         cleanup state rather than leaving a partially-cleaned graph.
-        The 25 per-model deletes also coalesce into one fsync.
+        The per-model deletes also coalesce into one fsync.
         """
         self.abort_event.clear()
         status = JanitorCleanupTagsStatus(0)

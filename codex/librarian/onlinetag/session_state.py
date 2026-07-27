@@ -79,7 +79,13 @@ def serialize_candidate(c) -> dict[str, Any]:
             "year": getattr(summary, "year", None),
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
+            # Alternative series names comicbox scored this candidate on.
+            # Empty for sources whose search results don't carry them.
+            "alt_series": list(getattr(summary, "alt_series", ())),
         },
         "score": c.score,
         "url": getattr(c, "url", ""),
+        # The candidate's parent container id (CV volume, Metron series).
+        # None for sources that don't expose it.
+        "volume_id": getattr(c, "volume_id", None),
     }

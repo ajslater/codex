@@ -114,6 +114,41 @@ class SidecarStoreTests(TestCase):
         self.store.upsert("users", ("username",), {"username": "alice"})
         assert not self.store.is_empty()
 
+    def test_schema_gains_columns_added_by_a_release(self) -> None:
+        """
+        A sidecar written before a new filter column still accepts it.
+
+        ``schema.sql`` is all ``CREATE TABLE IF NOT EXISTS``, so an
+        upgraded install re-runs it against a file that predates the
+        column and nothing happens. Simulate that by dropping the
+        column from a freshly created sidecar and reconnecting.
+        """
+        conn = self.store.connection()
+        conn.execute("ALTER TABLE settings_filters DROP COLUMN reprints")
+        columns = {
+            column["name"]
+            for column in conn.execute("PRAGMA table_info(settings_filters)")
+        }
+        assert "reprints" not in columns
+        self.store.close()
+
+        store = SidecarStore(self.sidecar_path)
+        try:
+            store.upsert(
+                "settings_filters",
+                ("username", "client", "name"),
+                {
+                    "username": "alice",
+                    "client": "web",
+                    "name": "",
+                    "reprints": '["Kapitän Wissenschaft"]',
+                },
+            )
+            rows = store.fetchall("settings_filters")
+        finally:
+            store.close()
+        assert rows[0]["reprints"] == '["Kapitän Wissenschaft"]'
+
     def test_upsert_empty_data_raises(self) -> None:
         """``upsert`` with no columns is a programming error."""
         with pytest.raises(ValueError, match="no columns"):

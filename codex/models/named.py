@@ -4,11 +4,12 @@ from typing import override
 
 from django.db.models import (
     CASCADE,
+    SET_NULL,
     ForeignKey,
 )
 
-from codex.models.base import MAX_NAME_LEN, BaseModel, NamedModel
-from codex.models.collections import BrowserCollectionModel
+from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.collections import BrowserCollectionModel, Volume
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
 from codex.models.identifier import Identifier
 
@@ -22,6 +23,7 @@ __all__ = (
     "Language",
     "Location",
     "OriginalFormat",
+    "Reprint",
     "ScanInfo",
     "SeriesGroup",
     "Story",
@@ -109,6 +111,59 @@ class Location(IdentifiedNamedModel):
 
 class OriginalFormat(NamedModel):
     """The original published format."""
+
+
+class Reprint(BaseModel):
+    """
+    An alternate or localized edition of this issue.
+
+    Denormalized on purpose: alternate series names must not become
+    Series/Volume rows or they'd appear as phantom browser collections.
+    ``series_name`` absorbs comicbox's ``series.sort_name`` when the
+    reprint carries no ``series.name`` (MetronInfo AlternativeNames do
+    this), so this is the only series string stored.
+    """
+
+    series_name = CleaningCharField(db_index=True, max_length=MAX_NAME_LEN)
+    volume_number = CoercingPositiveSmallIntegerField(null=True, default=None)
+    issue = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
+    language = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
+    identifier = ForeignKey(Identifier, on_delete=SET_NULL, null=True)
+
+    class Meta(BaseModel.Meta):
+        """Declare constraints and indexes."""
+
+        unique_together = ("series_name", "volume_number", "issue", "language")
+
+    @staticmethod
+    def compose_name(
+        series_name: str,
+        volume_number: int | None = None,
+        issue: str = "",
+        language: str = "",
+    ) -> str:
+        """
+        Compose a display name to imitate a NamedModel.
+
+        Callers that only have the columns (browser filter choices, the
+        table-view intersection) format through here so every label
+        matches the metadata panel's.
+        """
+        parts = [series_name]
+        if volume_number is not None:
+            parts.append(Volume.to_str(volume_number, None))
+        if issue:
+            parts.append(f"#{issue}")
+        if language:
+            parts.append(f"({language})")
+        return " ".join(parts)
+
+    @property
+    def name(self) -> str:
+        """Compose a display name to imitate a NamedModel."""
+        return self.compose_name(
+            self.series_name, self.volume_number, self.issue, self.language
+        )
 
 
 class ScanInfo(NamedModel):

@@ -19,12 +19,13 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields import CharField
-from django.db.models.functions import Concat
+from django.db.models.functions import Cast, Concat
 
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
+from codex.models.collections import Volume
 from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
 
@@ -71,6 +72,37 @@ _M2M_IDENTIFIER_EXPR = Case(
     output_field=CharField(),
 )
 
+# Volume numbers this wide are rendered as a year rather than a volume.
+VOLUME_YEAR_RANGE = (10 ** (Volume.YEAR_LEN - 1), 10**Volume.YEAR_LEN - 1)
+_REPRINT_VOLUME_STR = Cast("reprints__volume_number", output_field=CharField())
+_M2M_REPRINT_EXPR = Concat(
+    # Mirror of ``Reprint.name`` in SQL: only the columns the reprint
+    # carries contribute. ``volume_number`` renders through
+    # ``Volume.to_str``'s rule — four digits are a year "(1999)",
+    # anything else a volume "v3".
+    F("reprints__series_name"),
+    Case(
+        When(reprints__volume_number__isnull=True, then=Value("")),
+        When(
+            reprints__volume_number__range=VOLUME_YEAR_RANGE,
+            then=Concat(Value(" ("), _REPRINT_VOLUME_STR, Value(")")),
+        ),
+        default=Concat(Value(" v"), _REPRINT_VOLUME_STR),
+        output_field=CharField(),
+    ),
+    Case(
+        When(reprints__issue="", then=Value("")),
+        default=Concat(Value(" #"), F("reprints__issue")),
+        output_field=CharField(),
+    ),
+    Case(
+        When(reprints__language="", then=Value("")),
+        default=Concat(Value(" ("), F("reprints__language"), Value(")")),
+        output_field=CharField(),
+    ),
+    output_field=CharField(),
+)
+
 _M2M_COLUMN_PATHS = MappingProxyType(
     {
         "characters": "characters__name",
@@ -78,6 +110,7 @@ _M2M_COLUMN_PATHS = MappingProxyType(
         "genres": "genres__name",
         "identifiers": _M2M_IDENTIFIER_EXPR,
         "locations": "locations__name",
+        "reprints": _M2M_REPRINT_EXPR,
         "series_groups": "series_groups__name",
         "stories": "stories__name",
         "story_arcs": "story_arc_numbers__story_arc__name",
@@ -98,6 +131,7 @@ _M2M_AGGREGATE_FILTERS = MappingProxyType(
     {
         "credits": Q(credits__person__name__gt=""),
         "identifiers": Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""),
+        "reprints": Q(reprints__series_name__gt=""),
     }
 )
 

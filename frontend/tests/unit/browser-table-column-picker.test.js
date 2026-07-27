@@ -17,9 +17,9 @@ import { smartInsertIndex } from "@/components/browser/table/browser-table-colum
  * Canonical-rank reference for the cases below — kept here so the
  * test reads as a story rather than an opaque number puzzle:
  *   cover=0, favorite=1, publisher_name=2, imprint_name=3,
- *   series_name=4, volume_name=5, issue=6, name=7, child_count=8,
- *   file_name=9, size=10, page_count=11, file_type=12,
- *   year=13, …
+ *   series_name=4, reprints=5, volume_name=6, issue=7, name=8,
+ *   child_count=9, file_name=10, size=11, page_count=12,
+ *   file_type=13, year=14, …
  */
 
 describe("smartInsertIndex — canonical-order drafts", () => {

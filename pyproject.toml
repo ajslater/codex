@@ -15,7 +15,7 @@ dependencies = [
   "adrf~=0.1.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=4.5.1",
+  "comicbox[pdf]~=4.6.1",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -49,7 +49,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.2.2"
+version = "2.2.3"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -91,7 +91,7 @@ lint = [
   "mbake~=1.4.5",
   "pathspec~=1.1.0",
   "radon~=6.0",
-  "ruff~=0.15",
+  "ruff~=0.16",
   "types-python-dateutil~=2.9",
   "ty~=0.0.18",
   "vulture~=2.3",
@@ -297,11 +297,13 @@ extend-ignore = [
   "E501",
   "ISC001",
   "PERF203",
+  "PLC0415",
   "S101",
   "W191",
 ]
 extend-select = [
   "A",
+  "AIR",
   "ARG",
   "ASYNC",
   "B",
@@ -318,6 +320,7 @@ extend-select = [
   "EXE",
   "F",
   "FA",
+  "FAST",
   "FBT",
   "FIX",
   "FLY",
@@ -329,9 +332,12 @@ extend-select = [
   "ISC",
   "LOG",
   "N",
+  "NPY",
+  "PD",
   "PERF",
   "PGH",
   "PIE",
+  "PLC",
   "PLE",
   "PLR",
   "PLW",

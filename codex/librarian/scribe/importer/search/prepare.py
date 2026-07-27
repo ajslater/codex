@@ -1,6 +1,7 @@
 """Prepare FTS update methods used in earlier import steps."""
 
 from codex.librarian.scribe.importer.const import (
+    ALTERNATE_SERIES_FTS_FIELD_NAME,
     CREDITS_FIELD_NAME,
     FTS_CREATE,
     FTS_CREATED_M2MS,
@@ -8,6 +9,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_FIELD_TARGETS,
     FTS_UPDATE,
     NON_FTS_FIELDS,
+    REPRINTS_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
 )
@@ -26,6 +28,9 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
     ) -> tuple[str, tuple]:
         """Only store the fts relevant parts of complex links."""
         if field_name == CREDITS_FIELD_NAME:
+            values = tuple(subvalues[0] for subvalues in values)
+        elif field_name == REPRINTS_FIELD_NAME:
+            field_name = ALTERNATE_SERIES_FTS_FIELD_NAME
             values = tuple(subvalues[0] for subvalues in values)
         elif field_name == STORY_ARC_NUMBERS_FIELD_NAME:
             field_name = STORY_ARC_FIELD_NAME + "s"

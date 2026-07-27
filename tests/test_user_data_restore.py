@@ -242,6 +242,43 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert browser.show.series is False
         assert browser.show.volumes is True
 
+    def test_round_trip_restores_reprints_filter(self) -> None:
+        """
+        A reprints filter survives a rebuild that renumbers its PKs.
+
+        The sidecar stores tag filters by name, and ``Reprint`` is the
+        only tag model whose name lives on ``series_name`` rather than
+        ``name`` — a dump that reached for ``name`` would raise.
+        """
+        from codex.models.named import Reprint
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+
+        user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(user=user, show=show)
+        reprint = Reprint.objects.create(
+            series_name="Kapitän Wissenschaft", language="de"
+        )
+        SettingsBrowserFilters.objects.create(browser=browser, reprints=[reprint.pk])
+        snapshot = self._snapshot_sidecar()
+
+        # Rebuilding the library re-creates the tag row under a new PK,
+        # which is the whole reason the sidecar keys on names.
+        SettingsBrowser.objects.all().delete()
+        reprint.delete()
+        rebuilt = Reprint.objects.create(
+            series_name="Kapitän Wissenschaft", language="de"
+        )
+        assert rebuilt.pk != reprint.pk
+
+        restore(sidecar_path=snapshot)
+        filters = SettingsBrowserFilters.objects.get(browser__user=user)
+        assert filters.reprints == [rebuilt.pk]
+
     def test_restore_is_idempotent(self) -> None:
         self._seed_main_db()
         snapshot = self._snapshot_sidecar()

@@ -4,18 +4,38 @@ from multiprocessing import cpu_count
 from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType
-from typing import Final
+from typing import Any, Final
 
 from caseconverter import snakecase
 from django.contrib.sessions.models import Session
 from django.db.models import Count
 
+from codex.librarian.telemeter.admin_stats import (
+    get_admin_flag_stats,
+    get_auth_stats,
+    get_deployment_stats,
+    get_email_stats,
+    get_tagging_stats,
+    get_throttle_stats,
+)
+from codex.librarian.telemeter.count_stats import (
+    get_comic_populated_stats,
+    get_identifier_stats,
+    get_library_stats,
+    get_multi_sort_count,
+    get_usage_stats,
+)
 from codex.models import (
     Comic,
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
 from codex.version import VERSION
-from codex.views.const import CONFIG_MODELS, METADATA_MODELS, STATS_COLLECTION_MODELS
+from codex.views.const import (
+    CONFIG_MODELS,
+    METADATA_MODELS,
+    STATS_COLLECTION_MODELS,
+    STATS_USAGE_MODELS,
+)
 
 # Cap on per-call session decodes for the anonymous-session estimate.
 # ``Session.get_decoded()`` runs HMAC + JSON parse per row; on installs
@@ -28,13 +48,34 @@ _KEY_MODELS_MAP = MappingProxyType(
         "config": CONFIG_MODELS,
         "collections": STATS_COLLECTION_MODELS,
         "metadata": METADATA_MODELS,
+        "usage": STATS_USAGE_MODELS,
     }
 )
 _DOCKERENV_PATH = Path("/.dockerenv")
 _CGROUP_PATH = Path("/proc/self/cgroup")
 _USER_STATS: Final = (
-    (SettingsBrowser, ("top_collection", "order_by", "dynamic_covers")),
+    (
+        SettingsBrowser,
+        (
+            "top_collection",
+            "order_by",
+            "dynamic_covers",
+            "view_mode",
+            "table_cover_size",
+            "custom_covers",
+        ),
+    ),
     (SettingsReader, ("finish_on_last_page", "fit_to", "reading_direction")),
+)
+# Sections built by a single collector function, in payload order.
+_SIMPLE_SECTIONS: Final = (
+    ("identifiers", get_identifier_stats),
+    ("admin_flags", get_admin_flag_stats),
+    ("tagging", get_tagging_stats),
+    ("auth", get_auth_stats),
+    ("email", get_email_stats),
+    ("throttle", get_throttle_stats),
+    ("deployment", get_deployment_stats),
 )
 
 
@@ -118,12 +159,13 @@ class CodexStats:
     @classmethod
     def _get_session_stats(cls) -> tuple[dict, int]:
         """Return per-field user-settings buckets and anon session count."""
-        user_stats: dict[str, dict] = {}
+        user_stats: dict[str, Any] = {}
         for model, fields in _USER_STATS:
             for field in fields:
                 bucket = cls._aggregate_settings_field(model, field)
                 if bucket:
                     user_stats[field] = bucket
+        user_stats["multi_sort_count"] = get_multi_sort_count()
         return user_stats, cls._estimate_anon_session_count()
 
     def _add_platform(self, obj) -> None:
@@ -156,6 +198,7 @@ class CodexStats:
         # so both fields silently fell back to the default ``0``.
         config["user_registered_count"] = config.pop("user_count", 0)
         config["auth_group_count"] = config.pop("group_count", 0)
+        config.update(get_library_stats())
         obj["config"] = config
         obj["sessions"] = sessions
 
@@ -189,7 +232,21 @@ class CodexStats:
         if self.params and "metadata" not in self.params:
             return
         metadata = self._get_model_counts("metadata")
+        metadata.update(get_comic_populated_stats())
         obj["metadata"] = metadata
+
+    def _add_usage(self, obj) -> None:
+        """Add dict of reader engagement counts to object."""
+        if self.params and "usage" not in self.params:
+            return
+        obj["usage"] = get_usage_stats()
+
+    def _add_simple_sections(self, obj) -> None:
+        """Add every section that one collector builds on its own."""
+        for key, collector in _SIMPLE_SECTIONS:
+            if self.params and key not in self.params:
+                continue
+            obj[key] = collector()
 
     def get(self) -> dict:
         """Construct the stats object."""
@@ -199,4 +256,6 @@ class CodexStats:
         self._add_collections(obj)
         self._add_file_types(obj)
         self._add_metadata(obj)
+        self._add_usage(obj)
+        self._add_simple_sections(obj)
         return obj

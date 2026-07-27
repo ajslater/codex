@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.models.age_rating import AgeRating, AgeRatingMetron
-from codex.models.base import NamedModel
+from codex.models.base import BaseModel
 from codex.models.identifier import IdentifierSource
 from codex.models.named import (
     Character,
@@ -17,6 +17,7 @@ from codex.models.named import (
     Language,
     Location,
     OriginalFormat,
+    Reprint,
     SeriesGroup,
     Story,
     StoryArc,
@@ -44,7 +45,8 @@ from codex.views.settings import (
     SettingsBaseView,
 )
 
-# Map filter field names to the model whose PKs they store.
+# Map filter field names to the model whose PKs they store. Most are
+# NamedModels; ``Reprint`` is not, so the validator only leans on the pk.
 _FILTER_FK_MODEL_MAP = MappingProxyType(
     {
         "age_rating_metron": AgeRatingMetron,
@@ -57,6 +59,7 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
         "language": Language,
         "locations": Location,
         "original_format": OriginalFormat,
+        "reprints": Reprint,
         "series_groups": SeriesGroup,
         "stories": Story,
         "story_arcs": StoryArc,
@@ -69,7 +72,7 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
 
 
 def _validate_filter_field(
-    filters_data: dict, field: str, model: type[NamedModel], warnings: list[str]
+    filters_data: dict, field: str, model: type[BaseModel], warnings: list[str]
 ):
     """Validate one filter field by existing models."""
     pk_list = filters_data.get(field)

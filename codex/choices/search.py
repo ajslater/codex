@@ -62,6 +62,9 @@ FIELDMAP = MappingProxyType(
             "age", "age_rating", "age_rating_metron"
         ),
         "age_rating_tagged": (),
+        "alternate_series": _get_fieldmap_values(
+            "alternate_series", "alt_series", "reprints"
+        ),
         "characters": _get_fieldmap_values("category", "categories", "characters"),
         "collection_title": ("collection",),
         "country": (),

@@ -66,6 +66,7 @@ const M2M_COLUMNS = new Set([
   "genres",
   "identifiers",
   "locations",
+  "reprints",
   "series_groups",
   "stories",
   "story_arcs",

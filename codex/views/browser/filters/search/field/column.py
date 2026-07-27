@@ -9,6 +9,7 @@ from codex.models.comic import Comic
 
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
+        "alternate_series": "reprints__series_name",
         "role": "credits__role__name",
         "credits": "credits__person__name",
         "identifiers": "identifiers__key",

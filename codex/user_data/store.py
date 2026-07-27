@@ -42,6 +42,19 @@ _IS_EMPTY_TABLES_SQL: Final[str] = """\
 SELECT name FROM sqlite_master
 WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'schema_version'
 """
+_TABLE_NAMES_SQL: Final[str] = """\
+SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
+"""
+
+
+def _add_column_clause(column: sqlite3.Row) -> str:
+    """Render one ``PRAGMA table_info`` row as an ADD COLUMN clause."""
+    clause = f"{column['name']} {column['type']}"
+    if column["notnull"]:
+        clause += " NOT NULL"
+    if column["dflt_value"] is not None:
+        clause += f" DEFAULT {column['dflt_value']}"
+    return clause
 
 
 class SidecarStore:
@@ -93,6 +106,39 @@ class SidecarStore:
             conn.execute(pragma)
         return conn
 
+    @staticmethod
+    def _reconcile_columns(conn: sqlite3.Connection, ddl: str) -> None:
+        """
+        Add columns a release introduced to a sidecar that predates them.
+
+        ``schema.sql`` is entirely ``CREATE TABLE IF NOT EXISTS``, so
+        re-running it against an existing file adds nothing and every
+        later upsert naming a new column fails with "no such column".
+        The wanted columns are read back out of a throwaway database
+        built from the current schema so they derive from the schema
+        file instead of a hand-kept list that would rot the same way.
+        """
+        reference = sqlite3.connect(":memory:")
+        reference.row_factory = sqlite3.Row
+        try:
+            reference.executescript(ddl)
+            for table_row in reference.execute(_TABLE_NAMES_SQL).fetchall():
+                table = table_row["name"]
+                # PRAGMA takes no bind parameters; the table names come
+                # from the schema file, not from user input.
+                have = {
+                    column["name"]
+                    for column in conn.execute(f"PRAGMA table_info({table})")
+                }
+                for column in reference.execute(f"PRAGMA table_info({table})"):
+                    if column["name"] in have:
+                        continue
+                    clause = _add_column_clause(column)
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {clause}")
+                    logger.info(f"Sidecar schema: added {table}.{column['name']}")
+        finally:
+            reference.close()
+
     def _ensure_schema(self, conn: sqlite3.Connection) -> None:
         """Apply ``schema.sql`` and stamp the version row once per process."""
         if self._schema_applied:
@@ -103,6 +149,8 @@ class SidecarStore:
             ddl = _SCHEMA_PATH.read_text(encoding="utf-8")
             with conn:
                 conn.executescript(ddl)
+                if not self._is_memory:
+                    self._reconcile_columns(conn, ddl)
                 conn.execute(
                     "INSERT OR IGNORE INTO schema_version (version) VALUES (?)",
                     (SCHEMA_VERSION,),
