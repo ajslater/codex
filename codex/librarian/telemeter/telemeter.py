@@ -2,7 +2,6 @@
 
 import json
 from base64 import a85decode, b64encode
-from http import HTTPStatus
 from lzma import compress
 from os import environ
 from typing import Final
@@ -89,12 +88,12 @@ def _post_stats(data) -> None:
     request = Request(  # noqa: S310
         _POST, data=compressed_data, headers=_new_headers(), method="POST"
     )
-    # urlopen raises HTTPError on 4xx & 5xx, so reaching here is a success.
-    # http.client's response has no raise_for_status(); that was requests'.
-    with urlopen(request, timeout=_TIMEOUT) as response:  # noqa: S310
-        if response.status >= HTTPStatus.BAD_REQUEST:
-            reason = f"Stats server returned {response.status}"
-            raise ValueError(reason)
+    # urlopen raises HTTPError on any status outside 2xx, and follows 3xx, so
+    # returning from here is a success. Checking response.status ourselves
+    # would be dead code; http.client's response has no raise_for_status(),
+    # that was requests'. The server answers 202: queued, not yet stored.
+    with urlopen(request, timeout=_TIMEOUT):  # noqa: S310
+        pass
 
 
 def _send_telemetry(uuid) -> None:
@@ -118,10 +117,22 @@ def send_telemetry(log) -> None:
         try:
             _send_telemetry(ts.value)
         except Exception as exc:
-            # Not debug: a transport bug here went unnoticed for months
-            # because every failure was invisible at the default log level.
-            log.warning(f"Failed to send anonymous stats: {exc}")
-        # update updated_at, even on failure to prevent rapid rescheudling.
+            # This was briefly a warning, because a transport bug went
+            # unnoticed for months while the stats server answered 200 to
+            # everything. The server reports honest statuses now, so its
+            # operator sees failures in the access log and this install has
+            # no reason to say anything: debug is invisible at the default
+            # log level, and a stats server is never the user's problem.
+            # repr, not str: str(TimeoutError()) is empty, and an HTTPError's
+            # repr names the status code. Neither can carry a response body.
+            log.debug(f"Failed to send anonymous stats: {exc!r}")
+        # Record the attempt whether or not it succeeded: retrying a
+        # failed send would turn a stats outage into a stampede. The cron
+        # thread already claimed this week's slot before queueing the
+        # task (``mark_telemeter_attempt``) — it cannot wait for this
+        # write, which happens on a thread it never joins — so this is a
+        # backstop for any other caller, and it leaves the recorded time
+        # honest about when the send actually finished.
         ts.save()
     except Exception as exc:
         log.debug(f"Failed to get or set telemeter timestamp: {exc}")

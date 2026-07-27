@@ -49,6 +49,24 @@ def _get_scheduled_time(ts) -> datetime | None:
     return telemeter_time
 
 
+def mark_telemeter_attempt() -> None:
+    """
+    Spend this week's send slot.
+
+    :func:`_get_scheduled_time` decides whether to schedule by comparing
+    the week's slot against ``updated_at``, so ``updated_at`` has to move
+    the moment the task is *queued*. The send itself records its own
+    attempt, but it runs on a throwaway thread ``BookmarkThread`` spawns
+    and never joins, and it only gets to that write after roughly thirty
+    count queries plus up to a five second network timeout. Waiting for
+    it left the slot unspent, so every pass of the cron loop recomputed
+    the same overdue time and queued the task again.
+    """
+    ts = get_telemeter_timestamp()
+    # ``updated_at`` is ``auto_now``, so a plain save is the touch.
+    ts.save()
+
+
 def get_telemeter_time(log: Logger) -> datetime | None:
     """Get the time to send telemetry."""
     # Should we schedule telemeter at all?
