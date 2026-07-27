@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.4
+
+- Features
+    - The interactive Swagger API docs are back, at `/api/v4/`. They went away
+      in v2.0.0 with the v3 API; only the raw OpenAPI schema at `/api/v4/schema`
+      remained. Admin login required, as before.
+
 ## v2.2.3
 
 - Features
