@@ -8,7 +8,7 @@ which the dedicated loguru sink in :mod:`codex.startup.loguru` filters into a
 separate file. The main stdout / codex.log sinks apply the inverse filter
 (:func:`not_failed_login_filter`) so the IP-bearing line **only** lands in the
 dedicated log — Django's own request logger still records the bare
-``"Unauthorized: /api/v3/auth/login/"`` at WARNING so the failure is visible
+``"Unauthorized: /api/v4/auth/login/"`` at WARNING so the failure is visible
 in the main log, just without the client IP. Concentrating IPs in one place
 makes the privacy story easier to reason about (one file to chmod, one file
 to forward to a SIEM, one file to retain on a different schedule).
