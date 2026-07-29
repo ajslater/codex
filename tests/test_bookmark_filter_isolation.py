@@ -62,7 +62,11 @@ def _build_view(*, user, session_key, choice):
     """
     view = BrowserFilterBookmarkView.__new__(BrowserFilterBookmarkView)
     view.init_bookmark_filter()
-    view.request = SimpleNamespace(  # pyright: ignore[reportAttributeAccessIssue]
+    # A duck-typed stand-in for the Request the mixin declares: the filter
+    # code only ever reads ``.user`` and ``.session``. Both checkers are
+    # silenced rather than cast through ``object``, which reads worse and
+    # would still not make the stub a Request.
+    view.request = SimpleNamespace(  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[invalid-assignment]
         user=user,
         session=SimpleNamespace(session_key=session_key),
     )
