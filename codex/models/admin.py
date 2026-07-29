@@ -116,11 +116,14 @@ class ComicboxTaggingDefaults(BaseModel):
     # of enabled sources. Admin default; overridable per scan.
     merge_all_sources = BooleanField(default=False)
 
+    # metron_user & metron_password are legacy. Metron authenticates with an
+    # API token now, and the admin UI only accepts one. Existing logins keep
+    # working (metron.cloud and comicbox still accept them) until an API key
+    # is saved, which clears them. mokkari prefers the token when both exist.
+    metron_key = EncryptedCharField()
     metron_user = EncryptedCharField()
     metron_password = EncryptedCharField()
-    metron_url = URLField(max_length=256, blank=True, default="")
     comicvine_key = EncryptedCharField()
-    comicvine_url = URLField(max_length=256, blank=True, default="")
 
     # Active session id + pending prompts used to live here. They are
     # transient operational state — they only matter while a tagging

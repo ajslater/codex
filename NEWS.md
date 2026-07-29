@@ -6,6 +6,19 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.4
+
+- Features
+    - Metron Cloud online tagging uses an API key, generated on your
+      metron.cloud account page (comicbox 4.7.1). Saved usernames and passwords
+      keep working until you save a key, which replaces them.
+    - The custom URL fields for Metron Cloud and Comic Vine are removed. The
+      Metron one never did anything — mokkari hardcodes the metron.cloud
+      endpoint. Any saved URLs are discarded on upgrade.
+    - The interactive Swagger API docs are back, at `/api/v4/`. They went away
+      in v2.0.0 with the v3 API; only the raw OpenAPI schema at `/api/v4/schema`
+      remained. Admin login required, as before.
+
 ## v2.2.3
 
 - Features

@@ -90,6 +90,73 @@ class AdminSingletonSettingsTestCase(TestCase):
         assert resp.status_code == HTTPStatus.OK, resp.content
         assert resp.json()["data"]["defaultSources"] == ["comicvine", "metron"]
 
+    def test_metron_key_retires_a_legacy_login(self) -> None:
+        """Saving an API key drops the username & password it replaces."""
+        from codex.models import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_user="stored_user",
+            metron_password="stored_pw",  # noqa: S106
+        )
+        resp = _put_envelope(
+            self.client, "/api/v4/admin/tagging-defaults", {"metronKey": "token"}
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        body = resp.json()["data"]
+        assert body["metronKeySet"] is True
+        assert body["hasMetronCredentials"] is True
+        # Write-only: the key itself never comes back out.
+        assert "metronKey" not in body
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert defaults.metron_key == "token"
+        assert defaults.metron_user == ""
+        assert defaults.metron_password == ""
+
+    def test_clearing_the_metron_key_clears_a_legacy_login_too(self) -> None:
+        from codex.models import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_key="token",
+            metron_user="stored_user",
+            metron_password="stored_pw",  # noqa: S106
+        )
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"metronKey": ""},
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        assert resp.json()["data"]["hasMetronCredentials"] is False
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert defaults.metron_key == ""
+        assert defaults.metron_user == ""
+        assert defaults.metron_password == ""
+
+    def test_legacy_login_survives_a_put_that_omits_the_key(self) -> None:
+        """Any settings save that omits the key keeps a stored login."""
+        from codex.models import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_user="stored_user",
+            metron_password="stored_pw",  # noqa: S106
+        )
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"renameFiles": True},
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        body = resp.json()["data"]
+        assert body["metronKeySet"] is False
+        # A pre-API-key install still reads as configured.
+        assert body["hasMetronCredentials"] is True
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        # The save itself landed...
+        assert defaults.rename_files is True
+        # ...and the legacy login survived it.
+        assert defaults.metron_user == "stored_user"
+        assert defaults.metron_password == "stored_pw"  # noqa: S105
+
     def test_tagging_defaults_rejects_unknown_source(self) -> None:
         """An unknown source name is a 400, not a silently-stored junk value."""
         resp = _put_envelope(

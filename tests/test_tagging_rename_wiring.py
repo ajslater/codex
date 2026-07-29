@@ -272,7 +272,7 @@ class TagByIdRenamePropagationTests(TestCase):
         caches["default"].clear()
         caches["tagging"].clear()
         ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1, defaults={"metron_user": "u", "metron_password": "p"}
+            pk=1, defaults={"metron_key": "t"}
         )
         self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]

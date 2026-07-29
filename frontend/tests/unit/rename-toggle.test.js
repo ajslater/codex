@@ -309,11 +309,8 @@ const BASE_DEFAULTS = {
   defaultSources: [],
   hasMetronCredentials: false,
   hasComicvineCredentials: false,
-  metronUserSet: false,
-  metronPasswordSet: false,
-  metronUrl: "",
+  metronKeySet: false,
   comicvineKeySet: false,
-  comicvineUrl: "",
 };
 
 describe("AdminTaggingTab — rename default", () => {

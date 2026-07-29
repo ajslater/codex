@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@unhead/vue": "^3.2.3",
-    "@vueuse/core": "^14.3.0",
+    "@vueuse/core": "^14.4.0",
     "dequal": "^2.0.3",
     "eslint-import-resolver-oxc": "^0.15.0",
     "pinia": "^4.0.2",
@@ -33,7 +33,7 @@
     "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.47",
     "@pinia/testing": "^2.0.1",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@unhead/bundler": "^3.2.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",

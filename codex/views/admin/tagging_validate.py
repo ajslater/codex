@@ -18,12 +18,14 @@ from codex.serializers.admin.tagging import (
 )
 from codex.views.admin.auth import AdminAPIView
 
+# metron_user & metron_password have no request field anymore — the form only
+# offers an API key — but they stay here so a legacy login already in the
+# database is still what gets tested when no key is set.
 _CREDENTIAL_FIELDS = (
+    "metron_key",
     "metron_user",
     "metron_password",
-    "metron_url",
     "comicvine_key",
-    "comicvine_url",
 )
 
 

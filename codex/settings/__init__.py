@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from os import cpu_count, environ
 from pathlib import Path
 from types import MappingProxyType
-from typing import NamedTuple
+from typing import Final, NamedTuple
 
 from comicbox.config import get_config
 from comicbox.config.settings import ComicboxSettings
@@ -397,21 +397,22 @@ _PDFJS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
 )
 
 # drf-spectacular's Swagger UI pulls assets from jsdelivr.
-_SWAGGER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+# ``script-src-elem`` must repeat the bundles because the pdfs-dist
+# overlay declares that directive — without it pdfs-dist masks the
+# ``script-src`` fallback and every CDN <script> is blocked.
+_API_DOCS_JSDELIVR: Final = "https://cdn.jsdelivr.net/npm"
+_SWAGGER_UI_DIST: Final = f"{_API_DOCS_JSDELIVR}/swagger-ui-dist@latest"
+_API_DOCS_SCRIPTS: Final = (
+    f"{_SWAGGER_UI_DIST}/swagger-ui-bundle.js",
+    f"{_SWAGGER_UI_DIST}/swagger-ui-standalone-preset.js",
+)
+_API_DOCS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
-        "script-src": (
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-bundle.js",
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui-standalone-preset.js",
-        ),
-        "style-src": (
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css",
-        ),
-        "img-src": (
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/favicon-32x32.png",
-        ),
-        "connect-src": (
-            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css.map",
-        ),
+        "script-src": _API_DOCS_SCRIPTS,
+        "script-src-elem": _API_DOCS_SCRIPTS,
+        "style-src": (f"{_SWAGGER_UI_DIST}/swagger-ui.css",),
+        "img-src": (f"{_SWAGGER_UI_DIST}/favicon-32x32.png",),
+        "connect-src": (f"{_SWAGGER_UI_DIST}/swagger-ui.css.map",),
     }
 )
 
@@ -465,7 +466,7 @@ def _get_secure_csp(features: FeatureFlags) -> dict[str, list[str]]:
         _PDFJS_SECURE_CSP,
     ]
     if features.swagger:
-        overlays.append(_SWAGGER_SECURE_CSP)
+        overlays.append(_API_DOCS_SECURE_CSP)
     if features.vite_hmr:
         overlays.append(_VITE_HMR_SECURE_CSP)
     if features.schema_graph:

@@ -105,21 +105,27 @@ class OnlineTagSessionManager:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             return None
-        if not defaults.metron_user and not defaults.comicvine_key:
+        if (
+            not defaults.metron_key
+            and not defaults.metron_user
+            and not defaults.comicvine_key
+        ):
             return None
         return OnlineCredentials(
+            metron_key=defaults.metron_key or "",
             metron_user=defaults.metron_user or "",
             metron_password=defaults.metron_password or "",
-            metron_url=defaults.metron_url or "",
             comicvine_key=defaults.comicvine_key or "",
-            comicvine_url=defaults.comicvine_url or "",
         )
 
     @staticmethod
     def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
         """Whether ``credentials`` actually carries auth for ``source``."""
         if source == "metron":
-            return bool(credentials.metron_user and credentials.metron_password)
+            return bool(
+                credentials.metron_key
+                or (credentials.metron_user and credentials.metron_password)
+            )
         if source == "comicvine":
             return bool(credentials.comicvine_key)
         return False

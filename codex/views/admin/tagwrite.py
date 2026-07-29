@@ -124,7 +124,7 @@ class AdminTagByIdView(FilteredComicPksView):
         if not defaults:
             return frozenset()
         sources = set()
-        if defaults.metron_user and defaults.metron_password:
+        if defaults.metron_key or (defaults.metron_user and defaults.metron_password):
             sources.add("metron")
         if defaults.comicvine_key:
             sources.add("comicvine")

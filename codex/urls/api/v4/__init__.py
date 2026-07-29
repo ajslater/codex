@@ -7,8 +7,12 @@ another include block here.
 """
 
 from django.urls import include, path
-from drf_spectacular.views import SpectacularAPIView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerSplitView,
+)
 
+from codex.settings import FEATURES
 from codex.views.browser.cover import cover_dispatch_by_source
 from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
@@ -16,7 +20,21 @@ from codex.views.session import SessionView
 from codex.views.version import VersionView
 
 app_name = "v4"
-urlpatterns = [
+urlpatterns = []
+if FEATURES.swagger:
+    # Interactive docs for the schema served at ``schema`` below. The
+    # split Swagger view separates its init javascript into a second
+    # same-origin request so no inline <script> needs a nonce.
+    # ``_API_DOCS_SECURE_CSP`` in codex.settings allows the CDN assets
+    # it loads.
+    urlpatterns += [
+        path(
+            "",
+            SpectacularSwaggerSplitView.as_view(url_name="api:v4:schema"),
+            name="swagger",
+        ),
+    ]
+urlpatterns += [
     path("admin/", include("codex.urls.api.v4.admin")),
     path("auth/", include("codex.urls.api.v4.auth")),
     path("browse/", include("codex.urls.api.v4.browse")),

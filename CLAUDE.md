@@ -42,7 +42,7 @@ Django app served by Granian (ASGI). Key subsystems:
   Bookmark, Identifier. SQLite with WAL mode.
 - **`views/`** — DRF ViewSets organized by feature: `browser/` (comic listings),
   `reader/` (page serving), `admin/` (CRUD), `opds/` (syndication).
-- **`urls/`** — API at `/api/v3/`. Sub-routers: `/auth/`, `/c/` (reader),
+- **`urls/`** — API at `/api/v4/`. Sub-routers: `/auth/`, `/c/` (reader),
   `/<collection>/` (browser), `/admin/`.
 - **`serializers/`** — DRF serializers for browser, reader, and admin responses.
 - **`librarian/`** — Multiprocessing background daemon with dedicated threads:
@@ -66,7 +66,7 @@ Vue 3 + Vite + Vuetify 4 SPA.
 
 - **`src/stores/`** — Pinia stores: `browser`, `reader`, `auth`, `metadata`,
   `socket`, `admin`.
-- **`src/api/v3/`** — HTTP client (xior) with automatic CSRF token injection.
+- **`src/api/v4/`** — HTTP client (xior) with automatic CSRF token injection.
 - **`src/components/`** — Organized by view: `browser/`, `reader/`, `admin/`,
   `metadata/`, `settings/`.
 - **`src/plugins/`** — Vue Router, Vuetify, drag-scroll.

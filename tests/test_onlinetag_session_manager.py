@@ -164,7 +164,7 @@ class OnlineTagSessionManagerTests(TestCase):
         _FakeSession.last_kwargs = {}
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
-            defaults={"metron_user": "u", "metron_password": "p"},
+            defaults={"metron_key": "t"},
         )
         self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]
@@ -323,6 +323,7 @@ class OnlineTagSessionManagerTests(TestCase):
         )
         credentials = self.manager._build_credentials()  # noqa: SLF001
         assert credentials is not None  # configured in setUp
+        assert credentials.metron_key == "t"
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
             session_id="s",
@@ -803,3 +804,36 @@ class OnlineTagSessionManagerTests(TestCase):
         )
         TagPassRunner._store_result_tags(state, matched, batch, flush_writes=True)  # noqa: SLF001
         assert batch == {1: {"series": "New"}}
+
+    def test_metron_credentials_accept_a_key_or_a_legacy_login(self) -> None:
+        """Both auth styles configure Metron; comicbox raises on neither."""
+        manager = self.manager
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "", "metron_user": "u", "metron_password": "p"},
+        )
+        legacy = manager._build_credentials()  # noqa: SLF001
+        assert legacy is not None
+        assert legacy.metron_user == "u"
+        assert manager._source_has_credentials(legacy, "metron") is True  # noqa: SLF001
+
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "t", "metron_user": "", "metron_password": ""},
+        )
+        keyed = manager._build_credentials()  # noqa: SLF001
+        assert keyed is not None
+        assert keyed.metron_key == "t"
+        assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
+
+    def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "metron_key": "",
+                "metron_user": "",
+                "metron_password": "",
+                "comicvine_key": "",
+            },
+        )
+        assert self.manager._build_credentials() is None  # noqa: SLF001

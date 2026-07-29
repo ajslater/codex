@@ -63,12 +63,62 @@ class TaggingValidateMergeTestCase(TestCase):
         self.client = Client()
         self.client.force_login(self.admin)
         ComicboxTaggingDefaults.objects.filter(pk=1).update(
-            metron_user="stored_user",
-            metron_password="stored_pw",  # noqa: S106
+            metron_key="stored_token",
             comicvine_key="stored_key",
         )
 
     def test_uses_form_overrides_when_provided(self) -> None:
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {"metron": ValidationResult(ok=True)}
+            response = self.client.post(
+                _URL,
+                data={"source": "metron", "metron_key": "form_token"},
+                content_type="application/json",
+            )
+        assert response.status_code == _HTTP_OK
+        creds = mocked.call_args.args[0]
+        assert creds.metron_key == "form_token"
+        assert mocked.call_args.args[1] == {"metron"}
+
+    def test_falls_back_to_stored_when_form_blank(self) -> None:
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {"metron": ValidationResult(ok=True)}
+            response = self.client.post(
+                _URL,
+                data={"source": "metron"},
+                content_type="application/json",
+            )
+        assert response.status_code == _HTTP_OK
+        creds = mocked.call_args.args[0]
+        assert creds.metron_key == "stored_token"
+
+    def test_legacy_login_still_reaches_the_validator(self) -> None:
+        """An install with only a pre-API-key login tests those credentials."""
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_key="",
+            metron_user="stored_user",
+            metron_password="stored_pw",  # noqa: S106
+        )
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {"metron": ValidationResult(ok=True)}
+            response = self.client.post(
+                _URL,
+                data={"source": "metron"},
+                content_type="application/json",
+            )
+        assert response.status_code == _HTTP_OK
+        creds = mocked.call_args.args[0]
+        assert creds.metron_key == ""
+        assert creds.metron_user == "stored_user"
+        assert creds.metron_password == "stored_pw"  # noqa: S105
+
+    def test_legacy_credential_fields_are_not_accepted_from_the_form(self) -> None:
+        """The form has no username or password anymore; posting them is inert."""
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_key="",
+            metron_user="stored_user",
+            metron_password="stored_pw",  # noqa: S106
+        )
         with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
             mocked.return_value = {"metron": ValidationResult(ok=True)}
             response = self.client.post(
@@ -78,20 +128,6 @@ class TaggingValidateMergeTestCase(TestCase):
                     "metron_user": "form_user",
                     "metron_password": "form_pw",
                 },
-                content_type="application/json",
-            )
-        assert response.status_code == _HTTP_OK
-        creds = mocked.call_args.args[0]
-        assert creds.metron_user == "form_user"
-        assert creds.metron_password == "form_pw"  # noqa: S105
-        assert mocked.call_args.args[1] == {"metron"}
-
-    def test_falls_back_to_stored_when_form_blank(self) -> None:
-        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
-            mocked.return_value = {"metron": ValidationResult(ok=True)}
-            response = self.client.post(
-                _URL,
-                data={"source": "metron"},
                 content_type="application/json",
             )
         assert response.status_code == _HTTP_OK

@@ -355,3 +355,48 @@ class LegacyKeyRenameTests(TestCase):
         _restore_one_filter(row, browser, RestoreReport())
         filters = SettingsBrowserFilters.objects.get(browser=browser)
         assert filters.community_rating == [4.5]
+
+
+class TaggingDefaultsRestoreTests(TestCase):
+    """A sidecar predating metron_key must still restore."""
+
+    @staticmethod
+    def _row(**overrides) -> dict:
+        row = {
+            "default_match_mode": "auto",
+            "default_prompts_mode": "ask",
+            "default_formats": '["COMIC_INFO"]',
+            "default_sources": '["metron"]',
+            "delete_original": 0,
+            "metron_key": "token",
+            "metron_user": "",
+            "metron_password": "",
+            "comicvine_key": "",
+        }
+        row.update(overrides)
+        return row
+
+    def test_metron_key_round_trips(self) -> None:
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(self._row())
+        assert defaults["metron_key"] == "token"
+
+    def test_sidecar_without_metron_key_restores(self) -> None:
+        """The column is simply absent in older backups; the default stands."""
+        from codex.user_data.restore import _build_tagging_defaults
+
+        row = self._row()
+        del row["metron_key"]
+        defaults = _build_tagging_defaults(row)
+        assert "metron_key" not in defaults
+        assert defaults["default_match_mode"] == "auto"
+
+    def test_legacy_login_round_trips(self) -> None:
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(
+            self._row(metron_key="", metron_user="u", metron_password="p")  # noqa: S106
+        )
+        assert defaults["metron_user"] == "u"
+        assert defaults["metron_password"] == "p"  # noqa: S105

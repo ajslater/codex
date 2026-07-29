@@ -42,14 +42,11 @@ def _build_auth_source(
     """Map codex credentials onto comicbox's per-source auth for one source."""
     if source == "metron":
         return OnlineSourceCredentials(
+            key=credentials.metron_key,
             user=credentials.metron_user,
             password=credentials.metron_password,
-            url=credentials.metron_url,
         )
-    return OnlineSourceCredentials(
-        key=credentials.comicvine_key,
-        url=credentials.comicvine_url,
-    )
+    return OnlineSourceCredentials(key=credentials.comicvine_key)
 
 
 def build_explicit_id_config(

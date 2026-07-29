@@ -171,7 +171,7 @@ class StatsTaggingSerializer(Serializer):
     """
     Online Tagging Defaults.
 
-    Credentials and service urls report only whether they are configured.
+    Credentials report only whether they are configured.
     """
 
     default_match_mode = CharField(required=False, read_only=True)
@@ -183,8 +183,6 @@ class StatsTaggingSerializer(Serializer):
     default_format_count = IntegerField(required=False, read_only=True)
     has_metron_credentials = BooleanField(required=False, read_only=True)
     has_comicvine_credentials = BooleanField(required=False, read_only=True)
-    metron_url_set = BooleanField(required=False, read_only=True)
-    comicvine_url_set = BooleanField(required=False, read_only=True)
 
 
 class StatsAuthSerializer(Serializer):

@@ -3,6 +3,8 @@
 import os
 from logging import getLogger
 
+from django.db.models import Model
+
 from codex.librarian.fs.poller.snapshot import Snapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.models import Comic, Folder
@@ -19,7 +21,7 @@ def _stat(*, mode: int, ino: int, size: int, mtime: float = 1.0) -> os.stat_resu
 def _snapshot(
     entries: dict[str, os.stat_result],
     *,
-    models: dict[str, type] | None = None,
+    models: dict[str, type[Model]] | None = None,
 ) -> Snapshot:
     """
     Build a Snapshot from a path→stat map, bypassing disk/db.
