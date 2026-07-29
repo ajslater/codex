@@ -17,12 +17,7 @@ from codex.librarian.onlinetag.credential_validator import (
 
 
 def _full_creds() -> OnlineCredentials:
-    return OnlineCredentials(
-        metron_key="token",
-        metron_url="",
-        comicvine_key="key",
-        comicvine_url="",
-    )
+    return OnlineCredentials(metron_key="token", comicvine_key="key")
 
 
 def _legacy_creds() -> OnlineCredentials:
@@ -30,7 +25,6 @@ def _legacy_creds() -> OnlineCredentials:
     return OnlineCredentials(
         metron_user="user",
         metron_password="pw",  # noqa: S106
-        metron_url="",
     )
 
 
@@ -208,8 +202,9 @@ class TestValidateCredentials:
         assert results == {}
 
 
-# Sanity: catch accidental drift between the field set the view forwards
-# and the dataclass on the comicbox side.
+# Sanity: catch accidental drift in the comicbox dataclass. The url fields
+# are still defined there; codex no longer forwards them since the custom
+# URL overrides were removed (mokkari ignores its url entirely).
 _EXPECTED_CRED_FIELDS: Final = frozenset(
     {
         "metron_key",
@@ -223,5 +218,5 @@ _EXPECTED_CRED_FIELDS: Final = frozenset(
 
 
 def test_online_credentials_fields_stable() -> None:
-    """OnlineCredentials field names match what the view forwards into it."""
+    """OnlineCredentials field names match what comicbox defines."""
     assert frozenset(OnlineCredentials.__dataclass_fields__) == _EXPECTED_CRED_FIELDS

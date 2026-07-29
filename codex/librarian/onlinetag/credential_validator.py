@@ -137,8 +137,6 @@ def _validate_comicvine(creds: OnlineCredentials) -> ValidationResult:
             "cache_expiry": DO_NOT_CACHE,
             "ratelimit_path": tmp_path / "ratelimits.sqlite",
         }
-        if creds.comicvine_url:
-            kwargs["base_url"] = creds.comicvine_url
         cv = Comicvine(**kwargs)
         try:
             cv.list_publishers(params={"limit": "1"}, max_results=1)

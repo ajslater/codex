@@ -105,9 +105,7 @@ class TaggingValidateRequestSerializer(Serializer):
         choices=tuple(sorted(KNOWN_SOURCES)), required=False, allow_blank=True
     )
     metron_key = CharField(required=False, allow_blank=True)
-    metron_url = CharField(required=False, allow_blank=True)
     comicvine_key = CharField(required=False, allow_blank=True)
-    comicvine_url = CharField(required=False, allow_blank=True)
 
 
 class TaggingRateLimitWindowSerializer(Serializer):
@@ -208,9 +206,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "default_sources",
             "merge_all_sources",
             "metron_key",
-            "metron_url",
             "comicvine_key",
-            "comicvine_url",
             "metron_key_set",
             "comicvine_key_set",
             "has_metron_credentials",

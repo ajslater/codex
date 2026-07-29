@@ -25,9 +25,7 @@ _CREDENTIAL_FIELDS = (
     "metron_key",
     "metron_user",
     "metron_password",
-    "metron_url",
     "comicvine_key",
-    "comicvine_url",
 )
 
 

@@ -40,9 +40,7 @@ const BASE_DEFAULTS = {
   hasMetronCredentials: false,
   hasComicvineCredentials: false,
   metronKeySet: false,
-  metronUrl: "",
   comicvineKeySet: false,
-  comicvineUrl: "",
 };
 
 const SOURCE_TIP =
@@ -186,6 +184,26 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     expect(vm.metronEnabled).toBe(false);
   });
 
+  test("no custom URL field is offered for either source", async () => {
+    // mokkari hardcodes the metron.cloud endpoint, so the override never
+    // did anything; the Comic Vine twin went with it.
+    const wrapper = mountTab({
+      hasMetronCredentials: true,
+      hasComicvineCredentials: true,
+    });
+
+    // The credential fields live in collapsed expansion panels, so expand
+    // both before asserting — otherwise nothing is rendered to look at.
+    for (const title of wrapper.findAll(".v-expansion-panel-title")) {
+      await title.trigger("click");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(wrapper.text()).toContain("Save Metron Cloud Credentials");
+    expect(wrapper.text()).toContain("Save Comic Vine Credentials");
+    expect(wrapper.text()).not.toContain("Custom URL");
+  });
+
   test("saving sends only the API key, never a username or password", async () => {
     const wrapper = mountTab();
     const vm = wrapper.vm;
@@ -208,7 +226,6 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     vm.clearMetronCredentials();
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       metronKey: "",
-      metronUrl: "",
     });
   });
 

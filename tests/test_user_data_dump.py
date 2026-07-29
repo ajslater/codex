@@ -81,6 +81,29 @@ class DumpUserDataTests(TestCase):
         timestamps = {r["key"]: r for r in self.store.fetchall("timestamps")}
         assert timestamps["VR"]["value"] == "1.2.3"
 
+    def test_dump_round_trip_tagging_defaults(self) -> None:
+        """
+        Every serialized tagging column exists in the sidecar schema.
+
+        The upsert builds its INSERT column list from the serializer dict, so
+        a column the schema is missing fails the write — and ``_dump_queryset``
+        only logs that, leaving the table silently empty.
+        """
+        from codex.models.admin import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            metron_key="token",
+            comicvine_key="key",
+        )
+
+        counts = dump_user_data()
+        assert counts["tagging_defaults"] == 1
+
+        rows = self.store.fetchall("tagging_defaults")
+        assert len(rows) == 1
+        assert rows[0]["metron_key"] == "token"
+        assert rows[0]["comicvine_key"] == "key"
+
     def test_dump_settings_browser_show_flags(self) -> None:
         """show.{publishers,imprints,series,volumes} → show_{p,i,s,v} columns."""
         user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)

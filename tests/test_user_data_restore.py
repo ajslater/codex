@@ -371,9 +371,7 @@ class TaggingDefaultsRestoreTests(TestCase):
             "metron_key": "token",
             "metron_user": "",
             "metron_password": "",
-            "metron_url": "",
             "comicvine_key": "",
-            "comicvine_url": "",
         }
         row.update(overrides)
         return row

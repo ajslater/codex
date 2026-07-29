@@ -45,12 +45,8 @@ def _build_auth_source(
             key=credentials.metron_key,
             user=credentials.metron_user,
             password=credentials.metron_password,
-            url=credentials.metron_url,
         )
-    return OnlineSourceCredentials(
-        key=credentials.comicvine_key,
-        url=credentials.comicvine_url,
-    )
+    return OnlineSourceCredentials(key=credentials.comicvine_key)
 
 
 def build_explicit_id_config(

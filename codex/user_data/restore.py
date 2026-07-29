@@ -373,9 +373,7 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
         "metron_key": "",
         "metron_user": "",
         "metron_password": "",
-        "metron_url": "",
         "comicvine_key": "",
-        "comicvine_url": "",
     }
     # ``sqlite3.Row`` raises on a missing column, so skip what a sidecar
     # predating a column doesn't carry (e.g. metron_key) and let the model
@@ -387,9 +385,11 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
     defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
     defaults["delete_original"] = bool(row["delete_original"])
-    # ``active_session_id`` / ``active_prompts`` used to be on this row; they
-    # moved to the Django cache as transient state. Older sidecar backups still
-    # carry the columns — they are silently ignored on restore.
+    # ``active_session_id`` / ``active_prompts`` used to be on this row before
+    # they moved to the Django cache as transient state, and ``metron_url`` /
+    # ``comicvine_url`` before the custom URL overrides were removed. Older
+    # sidecar backups still carry those columns — since this comprehension
+    # walks ``coalesced`` rather than the row, they are silently ignored.
     return defaults
 
 

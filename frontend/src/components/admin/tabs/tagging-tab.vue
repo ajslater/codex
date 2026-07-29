@@ -181,19 +181,11 @@
                           }}</v-icon></a
                         >
                       </p>
-                      <v-text-field
-                        v-model="metronUrlLocal"
-                        label="Custom URL (optional)"
-                        autocomplete="off"
-                        hide-details="auto"
-                        density="compact"
-                        :placeholder="defaults.metronUrl || 'Default'"
-                      />
                       <div class="adminInlineActions">
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="!metronKey && !metronUrlLocal"
+                          :disabled="!metronKey"
                           @click="saveMetronCredentials"
                         >
                           Save Metron Cloud Credentials
@@ -211,7 +203,7 @@
                           v-if="defaults.hasMetronCredentials"
                           button-text="Clear Credentials"
                           title-text="Clear Metron Cloud Credentials"
-                          text="Remove the saved Metron Cloud credentials and custom URL?"
+                          text="Remove the saved Metron Cloud credentials?"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
@@ -316,19 +308,11 @@
                           }}</v-icon></a
                         >
                       </p>
-                      <v-text-field
-                        v-model="comicvineUrlLocal"
-                        label="Custom URL (optional)"
-                        autocomplete="off"
-                        hide-details="auto"
-                        density="compact"
-                        :placeholder="defaults.comicvineUrl || 'Default'"
-                      />
                       <div class="adminInlineActions">
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="!comicvineKey && !comicvineUrlLocal"
+                          :disabled="!comicvineKey"
                           @click="saveComicvineCredentials"
                         >
                           Save Comic Vine Credentials
@@ -346,7 +330,7 @@
                           v-if="defaults.hasComicvineCredentials"
                           button-text="Clear API Key"
                           title-text="Clear Comic Vine API Key"
-                          text="Remove the saved Comic Vine API key and custom URL?"
+                          text="Remove the saved Comic Vine API key?"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
@@ -456,9 +440,7 @@ export default {
       saving: false,
       pendingSave: false,
       metronKey: "",
-      metronUrlLocal: "",
       comicvineKey: "",
-      comicvineUrlLocal: "",
       validating: { metron: false, comicvine: false },
       validationResult: { metron: undefined, comicvine: undefined },
     };
@@ -599,12 +581,10 @@ export default {
     async saveMetronCredentials() {
       const data = {};
       if (this.metronKey) data.metronKey = this.metronKey;
-      if (this.metronUrlLocal) data.metronUrl = this.metronUrlLocal;
       this.validationResult.metron = undefined;
       const hadCredentials = Boolean(this.defaults?.hasMetronCredentials);
       await this.updateTaggingDefaults(data);
       this.metronKey = "";
-      this.metronUrlLocal = "";
       // Configuring a brand-new source enables it automatically; re-saving
       // credentials respects the existing checkbox state.
       if (!hadCredentials && this.defaults?.hasMetronCredentials) {
@@ -614,12 +594,10 @@ export default {
     async saveComicvineCredentials() {
       const data = {};
       if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
       this.validationResult.comicvine = undefined;
       const hadCredentials = Boolean(this.defaults?.hasComicvineCredentials);
       await this.updateTaggingDefaults(data);
       this.comicvineKey = "";
-      this.comicvineUrlLocal = "";
       if (!hadCredentials && this.defaults?.hasComicvineCredentials) {
         this.setSourceEnabled("comicvine", true);
       }
@@ -627,28 +605,20 @@ export default {
     clearMetronCredentials() {
       this.validationResult.metron = undefined;
       // A blank key also retires any legacy username & password server side.
-      this.updateTaggingDefaults({
-        metronKey: "",
-        metronUrl: "",
-      });
+      this.updateTaggingDefaults({ metronKey: "" });
     },
     clearComicvineCredentials() {
       this.validationResult.comicvine = undefined;
-      this.updateTaggingDefaults({
-        comicvineKey: "",
-        comicvineUrl: "",
-      });
+      this.updateTaggingDefaults({ comicvineKey: "" });
     },
     async testMetronCredentials() {
       const payload = { source: "metron" };
       if (this.metronKey) payload.metronKey = this.metronKey;
-      if (this.metronUrlLocal) payload.metronUrl = this.metronUrlLocal;
       await this._runValidation("metron", payload);
     },
     async testComicvineCredentials() {
       const payload = { source: "comicvine" };
       if (this.comicvineKey) payload.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) payload.comicvineUrl = this.comicvineUrlLocal;
       await this._runValidation("comicvine", payload);
     },
     async _runValidation(source, payload) {

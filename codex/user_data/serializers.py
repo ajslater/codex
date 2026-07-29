@@ -380,9 +380,7 @@ def serialize_tagging_defaults(
             "metron_key": defaults.metron_key or "",
             "metron_user": defaults.metron_user or "",
             "metron_password": defaults.metron_password or "",
-            "metron_url": defaults.metron_url or "",
             "comicvine_key": defaults.comicvine_key or "",
-            "comicvine_url": defaults.comicvine_url or "",
             "updated_at": _datetime_str(getattr(defaults, "updated_at", None)),
         },
     )
