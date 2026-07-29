@@ -25,6 +25,8 @@ function mountDialog({
   taggingDefaults = {
     hasMetronCredentials: true,
     hasComicvineCredentials: true,
+    metronKeySet: true,
+    comicvineKeySet: true,
   },
   identifiers = [],
 } = {}) {
@@ -87,6 +89,80 @@ describe("OnlineTagLauncherDialog", () => {
 
       expect(wrapper.vm.allSourcesDisabled).toBe(true);
       expect(wrapper.vm.actionDisabled).toBe(true);
+    });
+  });
+
+  describe("Metron deprecated credentials warning", () => {
+    test("warns and links to admin when only a legacy login is stored", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: true,
+          hasComicvineCredentials: true,
+          metronKeySet: false,
+        },
+      });
+      await wrapper.vm.$nextTick();
+
+      const warning = wrapper.find(".credentialWarning");
+      expect(warning.text()).toContain(
+        "Metron password authentication is deprecated",
+      );
+      expect(warning.find("router-link-stub").exists()).toBe(true);
+    });
+
+    test("stays quiet when Metron is deselected for this session", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: true,
+          hasComicvineCredentials: true,
+          metronKeySet: false,
+        },
+      });
+      wrapper.vm.sources = ["comicvine"];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.metronLegacyCredentials).toBe(false);
+      expect(wrapper.find(".credentialWarning").exists()).toBe(false);
+    });
+
+    test("tracks the By ID tab's id source", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: true,
+          hasComicvineCredentials: true,
+          metronKeySet: false,
+        },
+      });
+      wrapper.vm.activeTab = "byId";
+      wrapper.vm.idInputs = ["comicvine:4000-12345"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.metronLegacyCredentials).toBe(false);
+
+      wrapper.vm.idInputs = ["metron:12345"];
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.metronLegacyCredentials).toBe(true);
+    });
+
+    test("stays quiet once a Metron API key is set", async () => {
+      const { wrapper } = mountDialog();
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.metronLegacyCredentials).toBe(false);
+      expect(wrapper.find(".credentialWarning").exists()).toBe(false);
+    });
+
+    test("stays quiet when Metron is not configured at all", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: false,
+          hasComicvineCredentials: true,
+          comicvineKeySet: true,
+        },
+      });
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.metronLegacyCredentials).toBe(false);
+      expect(wrapper.find(".credentialWarning").exists()).toBe(false);
     });
   });
 

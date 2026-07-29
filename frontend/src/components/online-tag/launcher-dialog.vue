@@ -9,12 +9,18 @@
       <v-card-title>Online Tagging</v-card-title>
       <v-card-text>
         <div v-if="allSourcesDisabled" class="credentialWarning">
-          No online source credentials configured.
+          No online source API keys configured.
           <router-link :to="{ name: 'admin-tagging' }">
             Configure in Admin &rarr; Tagging
           </router-link>
         </div>
         <template v-else>
+          <div v-if="metronLegacyCredentials" class="credentialWarning">
+            Metron password authentication is deprecated.
+            <router-link :to="{ name: 'admin-tagging' }">
+              Add an API key in Admin &rarr; Tagging
+            </router-link>
+          </div>
           <v-tabs v-if="idTaggable" v-model="activeTab" grow>
             <v-tab value="search">Search</v-tab>
             <v-tab value="byId">By ID</v-tab>
@@ -306,6 +312,30 @@ export default {
     },
     hasComicvine() {
       return Boolean(this.taggingDefaults?.hasComicvineCredentials);
+    },
+    // Metron still authenticates with a legacy username & password, which
+    // metron.cloud is retiring in favor of API keys. Only worth saying when
+    // this session would actually query Metron.
+    metronLegacyCredentials() {
+      return (
+        this.hasMetron &&
+        !this.taggingDefaults?.metronKeySet &&
+        this.metronSessionEnabled
+      );
+    },
+    metronSessionEnabled() {
+      return this.activeTab === "byId"
+        ? this.byIdUsesMetron
+        : this.activeSources.includes("metron");
+    },
+    byIdUsesMetron() {
+      return (
+        this.sourceChoice === "metron" ||
+        this.idTokens.some((t) => this.detectSource(t) === "metron") ||
+        // An unprefixed id goes to Metron when it's the only source there is.
+        (!this.hasComicvine &&
+          this.idTokens.some((t) => this.detectSource(t) === null))
+      );
     },
     bothConfigured() {
       return this.hasMetron && this.hasComicvine;
