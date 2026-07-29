@@ -159,36 +159,24 @@
                   <v-expansion-panel-text>
                     <v-form class="adminFieldColumn" @submit.prevent>
                       <v-text-field
-                        v-model="metronUser"
-                        label="Username"
-                        autocomplete="off"
-                        hide-details="auto"
-                        density="compact"
-                        :placeholder="
-                          defaults.metronUserSet
-                            ? 'New Username'
-                            : 'Enter username'
-                        "
-                      />
-                      <v-text-field
-                        v-model="metronPassword"
-                        label="Password"
+                        v-model="metronKey"
+                        label="API Key"
                         type="password"
                         autocomplete="new-password"
                         hide-details="auto"
                         density="compact"
                         :placeholder="
-                          defaults.metronPasswordSet
-                            ? 'New Password'
-                            : 'Enter password'
+                          defaults.metronKeySet
+                            ? 'New API Key'
+                            : 'Enter API key'
                         "
                       />
                       <p class="adminHint">
-                        Get a username and password from
+                        Generate an API key at
                         <a
-                          href="https://metron.cloud/accounts/signup/"
+                          href="https://metron.cloud/accounts/tokens/"
                           target="_blank"
-                          >Metron Cloud<v-icon size="small">{{
+                          >Metron Cloud API Tokens<v-icon size="small">{{
                             mdiOpenInNew
                           }}</v-icon></a
                         >
@@ -205,9 +193,7 @@
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="
-                            !metronUser && !metronPassword && !metronUrlLocal
-                          "
+                          :disabled="!metronKey && !metronUrlLocal"
                           @click="saveMetronCredentials"
                         >
                           Save Metron Cloud Credentials
@@ -225,7 +211,7 @@
                           v-if="defaults.hasMetronCredentials"
                           button-text="Clear Credentials"
                           title-text="Clear Metron Cloud Credentials"
-                          text="Remove the saved Metron Cloud username, password, and custom URL?"
+                          text="Remove the saved Metron Cloud credentials and custom URL?"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
@@ -469,8 +455,7 @@ export default {
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
-      metronUser: "",
-      metronPassword: "",
+      metronKey: "",
       metronUrlLocal: "",
       comicvineKey: "",
       comicvineUrlLocal: "",
@@ -508,12 +493,12 @@ export default {
         this.setSourceEnabled("comicvine", value);
       },
     },
+    // Testing falls back to whatever is stored, which for an install that
+    // predates API keys is still a username & password.
     canTestMetron() {
-      const formHasUser = Boolean(this.metronUser);
-      const formHasPassword = Boolean(this.metronPassword);
-      const storedUser = Boolean(this.defaults?.metronUserSet);
-      const storedPassword = Boolean(this.defaults?.metronPasswordSet);
-      return (formHasUser || storedUser) && (formHasPassword || storedPassword);
+      return (
+        Boolean(this.metronKey) || Boolean(this.defaults?.hasMetronCredentials)
+      );
     },
     canTestComicvine() {
       return (
@@ -613,14 +598,12 @@ export default {
     },
     async saveMetronCredentials() {
       const data = {};
-      if (this.metronUser) data.metronUser = this.metronUser;
-      if (this.metronPassword) data.metronPassword = this.metronPassword;
+      if (this.metronKey) data.metronKey = this.metronKey;
       if (this.metronUrlLocal) data.metronUrl = this.metronUrlLocal;
       this.validationResult.metron = undefined;
       const hadCredentials = Boolean(this.defaults?.hasMetronCredentials);
       await this.updateTaggingDefaults(data);
-      this.metronUser = "";
-      this.metronPassword = "";
+      this.metronKey = "";
       this.metronUrlLocal = "";
       // Configuring a brand-new source enables it automatically; re-saving
       // credentials respects the existing checkbox state.
@@ -643,9 +626,9 @@ export default {
     },
     clearMetronCredentials() {
       this.validationResult.metron = undefined;
+      // A blank key also retires any legacy username & password server side.
       this.updateTaggingDefaults({
-        metronUser: "",
-        metronPassword: "",
+        metronKey: "",
         metronUrl: "",
       });
     },
@@ -658,8 +641,7 @@ export default {
     },
     async testMetronCredentials() {
       const payload = { source: "metron" };
-      if (this.metronUser) payload.metronUser = this.metronUser;
-      if (this.metronPassword) payload.metronPassword = this.metronPassword;
+      if (this.metronKey) payload.metronKey = this.metronKey;
       if (this.metronUrlLocal) payload.metronUrl = this.metronUrlLocal;
       await this._runValidation("metron", payload);
     },

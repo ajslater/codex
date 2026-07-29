@@ -135,22 +135,26 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         assert _result_has_requested_id({}, "metron", 123) is False
 
     def test_build_explicit_id_config_sets_ids(self) -> None:
-        creds = OnlineCredentials(metron_user="u", metron_password="p")  # noqa: S106
+        creds = OnlineCredentials(metron_key="t")
         settings = build_explicit_id_config("metron", 123, creds)
         assert settings.online.lookup.enabled is True
         assert dict(settings.online.lookup.ids) == {"metron": 123}
         assert settings.online.lookup.sources == ("metron",)
         assert settings.online.lookup.first_wins is True
-        assert "metron" in settings.online.auth.sources
+        assert settings.online.auth.sources["metron"].key == "t"
+
+    def test_build_explicit_id_config_passes_legacy_login(self) -> None:
+        """A pre-API-key install still authenticates by explicit id."""
+        creds = OnlineCredentials(metron_user="u", metron_password="p")  # noqa: S106
+        settings = build_explicit_id_config("metron", 123, creds)
+        auth = settings.online.auth.sources["metron"]
+        assert auth.user == "u"
+        assert auth.password == "p"  # noqa: S105
 
     def test_build_explicit_id_config_merge(self) -> None:
         # Merge: both sources pinned by explicit id (primary first), first_wins
         # off, auth for both. comicbox runs every id-pinned source and merges.
-        creds = OnlineCredentials(
-            metron_user="u",
-            metron_password="p",  # noqa: S106
-            comicvine_key="k",
-        )
+        creds = OnlineCredentials(metron_key="t", comicvine_key="k")
         settings = build_explicit_id_config(
             "metron", 123, creds, extra_ids=(("comicvine", 456),)
         )
@@ -209,7 +213,7 @@ class TagByIdSessionManagerTests(TestCase):
         caches["tagging"].clear()
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
-            defaults={"metron_user": "u", "metron_password": "p"},
+            defaults={"metron_key": "t"},
         )
         self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]
@@ -300,7 +304,7 @@ class TagByIdViewTests(TestCase):
         self.client.force_login(_make_admin())
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
-            defaults={"metron_user": "u", "metron_password": "p"},
+            defaults={"metron_key": "t"},
         )
 
     def _post(self, identifier: str, source: str | None = None):
@@ -318,10 +322,30 @@ class TagByIdViewTests(TestCase):
     def test_no_credentials_returns_400(self) -> None:
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
-            defaults={"metron_user": "", "metron_password": "", "comicvine_key": ""},
+            defaults={
+                "metron_key": "",
+                "metron_user": "",
+                "metron_password": "",
+                "comicvine_key": "",
+            },
         )
         response = self._post("metron:1")
         assert response.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_legacy_login_still_counts_as_configured(self) -> None:
+        """An install predating API keys can still tag by id."""
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "", "metron_user": "u", "metron_password": "p"},
+        )
+        with (
+            patch.object(
+                AdminTagByIdView, "resolve_comic_pks", return_value=frozenset({_PK})
+            ),
+            patch(_VIEW_QUEUE_TARGET),
+        ):
+            response = self._post(f"metron:{_ISSUE_ID}")
+        assert response.status_code == HTTPStatus.ACCEPTED
 
     def test_unparseable_identifier_returns_400(self) -> None:
         response = self._post("not-an-id")
@@ -355,8 +379,7 @@ class TagByIdViewTests(TestCase):
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
             defaults={
-                "metron_user": "u",
-                "metron_password": "p",
+                "metron_key": "t",
                 "comicvine_key": "k",
                 "default_sources": ["metron", "comicvine"],
                 "merge_all_sources": True,

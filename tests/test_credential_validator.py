@@ -18,11 +18,19 @@ from codex.librarian.onlinetag.credential_validator import (
 
 def _full_creds() -> OnlineCredentials:
     return OnlineCredentials(
-        metron_user="user",
-        metron_password="pw",  # noqa: S106
+        metron_key="token",
         metron_url="",
         comicvine_key="key",
         comicvine_url="",
+    )
+
+
+def _legacy_creds() -> OnlineCredentials:
+    """Build credentials for an install predating Metron's API keys."""
+    return OnlineCredentials(
+        metron_user="user",
+        metron_password="pw",  # noqa: S106
+        metron_url="",
     )
 
 
@@ -44,6 +52,42 @@ class TestValidateCredentials:
             results = validate_credentials(_full_creds(), {"metron"})
         assert results == {"metron": ValidationResult(ok=True)}
         instance.publishers_list.assert_called_once_with({"page": 1})
+        assert mocked.call_args.kwargs["api_token"] == "token"  # noqa: S105
+
+    def test_metron_legacy_login_still_validates(self) -> None:
+        """A stored username & password authenticates when no API key is set."""
+        from mokkari.session import RateLimitStatus
+
+        with patch("mokkari.session.Session") as mocked:
+            instance = MagicMock()
+            instance.publishers_list.return_value = []
+            instance.rate_limit_status = RateLimitStatus()
+            mocked.return_value = instance
+            results = validate_credentials(_legacy_creds(), {"metron"})
+        assert results == {"metron": ValidationResult(ok=True)}
+        kwargs = mocked.call_args.kwargs
+        # None, not "" — mokkari sends a Bearer header for any non-None token,
+        # which would shut off the username & password fallback.
+        assert kwargs["api_token"] is None
+        assert kwargs["username"] == "user"
+
+    def test_metron_key_wins_over_legacy_login(self) -> None:
+        """Both stored: the token is what mokkari gets told to prefer."""
+        from mokkari.session import RateLimitStatus
+
+        creds = OnlineCredentials(
+            metron_key="token",
+            metron_user="user",
+            metron_password="pw",  # noqa: S106
+        )
+        with patch("mokkari.session.Session") as mocked:
+            instance = MagicMock()
+            instance.publishers_list.return_value = []
+            instance.rate_limit_status = RateLimitStatus()
+            mocked.return_value = instance
+            results = validate_credentials(creds, {"metron"})
+        assert results["metron"].ok is True
+        assert mocked.call_args.kwargs["api_token"] == "token"  # noqa: S105
 
     def test_metron_success_reports_rate_limits(self) -> None:
         """The validation response's live account limits ride along, sans reset."""
@@ -97,10 +141,16 @@ class TestValidateCredentials:
         assert results["metron"] == ValidationResult(ok=False, error="boom")
 
     def test_metron_missing_creds(self) -> None:
-        creds = OnlineCredentials(metron_user="", metron_password="")
+        creds = OnlineCredentials(metron_key="", metron_user="", metron_password="")
         results = validate_credentials(creds, {"metron"})
         assert results["metron"].ok is False
-        assert "required" in (results["metron"].error or "").lower()
+        assert "api key required" in (results["metron"].error or "").lower()
+
+    def test_metron_half_a_legacy_login_is_not_enough(self) -> None:
+        creds = OnlineCredentials(metron_user="user", metron_password="")
+        results = validate_credentials(creds, {"metron"})
+        assert results["metron"].ok is False
+        assert "api key required" in (results["metron"].error or "").lower()
 
     def test_comicvine_success(self) -> None:
         with patch("simyan.comicvine.Comicvine") as mocked:
@@ -162,6 +212,7 @@ class TestValidateCredentials:
 # and the dataclass on the comicbox side.
 _EXPECTED_CRED_FIELDS: Final = frozenset(
     {
+        "metron_key",
         "metron_user",
         "metron_password",
         "metron_url",

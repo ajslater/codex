@@ -86,14 +86,18 @@ def _extract_rate_limits(status: RateLimitStatus) -> RateLimitInfo | None:
 
 
 def _validate_metron(creds: OnlineCredentials) -> ValidationResult:
-    if not (creds.metron_user and creds.metron_password):
-        return ValidationResult(ok=False, error="Username and password required.")
+    if not (creds.metron_key or (creds.metron_user and creds.metron_password)):
+        return ValidationResult(ok=False, error="API key required.")
     from mokkari.exceptions import ApiError, AuthenticationError
     from mokkari.session import Session
 
+    # ``or None`` is load bearing: mokkari sends a Bearer header whenever
+    # api_token is not None, so an empty string would defeat the legacy
+    # username & password fallback.
     session = Session(
         username=creds.metron_user,
         passwd=creds.metron_password,
+        api_token=creds.metron_key or None,
         cache=None,
         user_agent="codex-credential-check",
     )

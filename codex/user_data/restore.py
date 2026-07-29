@@ -370,14 +370,19 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     coalesced: dict[str, Any] = {
         "default_match_mode": "auto",
         "default_prompts_mode": "ask",
+        "metron_key": "",
         "metron_user": "",
         "metron_password": "",
         "metron_url": "",
         "comicvine_key": "",
         "comicvine_url": "",
     }
+    # ``sqlite3.Row`` raises on a missing column, so skip what a sidecar
+    # predating a column doesn't carry (e.g. metron_key) and let the model
+    # default stand.
+    cols = set(row.keys())
     defaults: dict[str, Any] = {
-        key: row[key] or fallback for key, fallback in coalesced.items()
+        key: row[key] or fallback for key, fallback in coalesced.items() if key in cols
     }
     defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
     defaults["default_sources"] = json.loads(row["default_sources"] or "[]")

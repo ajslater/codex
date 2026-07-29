@@ -39,8 +39,7 @@ const BASE_DEFAULTS = {
   defaultSources: [],
   hasMetronCredentials: false,
   hasComicvineCredentials: false,
-  metronUserSet: false,
-  metronPasswordSet: false,
+  metronKeySet: false,
   metronUrl: "",
   comicvineKeySet: false,
   comicvineUrl: "",
@@ -148,8 +147,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
       };
     });
 
-    vm.metronUser = "user";
-    vm.metronPassword = "pass";
+    vm.metronKey = "token";
     await vm.saveMetronCredentials();
     await vm.$nextTick();
     expect(vm.draft.defaultSources).toContain("metron");
@@ -167,8 +165,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.metronUser = "user";
-    vm.metronPassword = "pass";
+    vm.metronKey = "token";
     await vm.saveMetronCredentials();
     await vm.$nextTick();
     expect(vm.draft.defaultSources).not.toContain("metron");
@@ -181,12 +178,47 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const wrapper = mountTab();
     const vm = wrapper.vm;
 
-    vm.metronUser = "user";
-    // No password — the server would reject; defaults keep no credentials.
+    // The server rejected the key; defaults keep no credentials.
+    vm.metronKey = "bad";
     await vm.saveMetronCredentials();
     await vm.$nextTick();
     expect(vm.draft.defaultSources).not.toContain("metron");
     expect(vm.metronEnabled).toBe(false);
+  });
+
+  test("saving sends only the API key, never a username or password", async () => {
+    const wrapper = mountTab();
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.metronKey = "token";
+    await vm.saveMetronCredentials();
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
+      metronKey: "token",
+    });
+    // The field is cleared so a saved key is never left sitting in the form.
+    expect(vm.metronKey).toBe("");
+  });
+
+  test("clearing sends a blank key, which also retires a legacy login", async () => {
+    const wrapper = mountTab({ hasMetronCredentials: true });
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.clearMetronCredentials();
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
+      metronKey: "",
+      metronUrl: "",
+    });
+  });
+
+  test("an install with only a legacy login can still be tested", () => {
+    // No key typed and metronKeySet false, but credentials exist server side.
+    const vm = mountTab({ hasMetronCredentials: true, metronKeySet: false }).vm;
+    expect(vm.canTestMetron).toBe(true);
+
+    const unconfigured = mountTab({ hasMetronCredentials: false }).vm;
+    expect(unconfigured.canTestMetron).toBe(false);
   });
 
   test("toggling one source leaves the other untouched", async () => {

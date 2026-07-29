@@ -157,7 +157,7 @@ def get_tagging_stats() -> dict[str, Any]:
         "default_sources": _default_sources(defaults),
         "default_format_count": len(formats) if isinstance(formats, list) else 0,
         "has_metron_credentials": bool(
-            defaults.metron_user and defaults.metron_password
+            defaults.metron_key or (defaults.metron_user and defaults.metron_password)
         ),
         "has_comicvine_credentials": bool(defaults.comicvine_key),
         "metron_url_set": bool(defaults.metron_url),

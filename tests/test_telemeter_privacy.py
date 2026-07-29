@@ -127,6 +127,7 @@ class TelemeterPrivacyTestCase(TestCase):
         """Put a sentinel in every admin-authored string codex stores."""
         cls._set_singleton(
             ComicboxTaggingDefaults,
+            metron_key=f"{SENTINEL}-metron-key",
             metron_user=f"{SENTINEL}-metron-user",
             metron_password=f"{SENTINEL}-metron-password",
             metron_url=f"https://{SENTINEL}-metron.example.com",

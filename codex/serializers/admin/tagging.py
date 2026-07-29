@@ -1,5 +1,7 @@
 """Comicbox tagging serializers."""
 
+from typing import override
+
 from comicbox.formats.base.online import SOURCE_NAMES
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
@@ -102,8 +104,7 @@ class TaggingValidateRequestSerializer(Serializer):
     source = ChoiceField(
         choices=tuple(sorted(KNOWN_SOURCES)), required=False, allow_blank=True
     )
-    metron_user = CharField(required=False, allow_blank=True)
-    metron_password = CharField(required=False, allow_blank=True)
+    metron_key = CharField(required=False, allow_blank=True)
     metron_url = CharField(required=False, allow_blank=True)
     comicvine_key = CharField(required=False, allow_blank=True)
     comicvine_url = CharField(required=False, allow_blank=True)
@@ -142,26 +143,19 @@ class TaggingValidateResponseSerializer(Serializer):
 class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     """Serializer for ComicboxTaggingDefaults singleton."""
 
-    metron_user = CharField(write_only=True, required=False, allow_blank=True)
-    metron_password = CharField(write_only=True, required=False, allow_blank=True)
+    metron_key = CharField(write_only=True, required=False, allow_blank=True)
     comicvine_key = CharField(write_only=True, required=False, allow_blank=True)
 
-    metron_user_set = SerializerMethodField()
-    metron_password_set = SerializerMethodField()
+    metron_key_set = SerializerMethodField()
     comicvine_key_set = SerializerMethodField()
 
     has_metron_credentials = SerializerMethodField()
     has_comicvine_credentials = SerializerMethodField()
 
     @staticmethod
-    def get_metron_user_set(obj) -> bool:
-        """Whether a Metron username has been configured."""
-        return bool(obj.metron_user)
-
-    @staticmethod
-    def get_metron_password_set(obj) -> bool:
-        """Whether a Metron password has been configured."""
-        return bool(obj.metron_password)
+    def get_metron_key_set(obj) -> bool:
+        """Whether a Metron API key has been configured."""
+        return bool(obj.metron_key)
 
     @staticmethod
     def get_comicvine_key_set(obj) -> bool:
@@ -170,8 +164,12 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
 
     @staticmethod
     def get_has_metron_credentials(obj) -> bool:
-        """Whether both Metron username and password are set."""
-        return bool(obj.metron_user and obj.metron_password)
+        """
+        Whether Metron can authenticate: an API key or a legacy login.
+
+        Mirrors comicbox's ``MetronOnlineSource.is_configured``.
+        """
+        return bool(obj.metron_key or (obj.metron_user and obj.metron_password))
 
     @staticmethod
     def get_has_comicvine_credentials(obj) -> bool:
@@ -182,6 +180,20 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def validate_default_sources(value: list) -> list:
         """Require known source names; preserve the priority order."""
         return _validate_ordered_sources(value)
+
+    @override
+    def update(self, instance, validated_data):
+        """
+        Retire the legacy username & password whenever the API key is written.
+
+        The key is the only Metron credential the UI offers now, so saving one
+        (or clearing it) drops the old login rather than leaving a stale
+        fallback that mokkari would silently ignore anyway.
+        """
+        if "metron_key" in validated_data:
+            validated_data["metron_user"] = ""
+            validated_data["metron_password"] = ""
+        return super().update(instance, validated_data)
 
     class Meta(BaseModelSerializer.Meta):
         """Specify model and fields."""
@@ -195,20 +207,17 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "default_prompts_mode",
             "default_sources",
             "merge_all_sources",
-            "metron_user",
-            "metron_password",
+            "metron_key",
             "metron_url",
             "comicvine_key",
             "comicvine_url",
-            "metron_user_set",
-            "metron_password_set",
+            "metron_key_set",
             "comicvine_key_set",
             "has_metron_credentials",
             "has_comicvine_credentials",
         )
         read_only_fields = (
-            "metron_user_set",
-            "metron_password_set",
+            "metron_key_set",
             "comicvine_key_set",
             "has_metron_credentials",
             "has_comicvine_credentials",
