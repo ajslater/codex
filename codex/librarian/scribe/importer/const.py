@@ -482,7 +482,16 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
 #########
 # MOVED #
 #########
-MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "stat", "updated_at")
+# ``stat`` is deliberately absent: the stored stat means "the state of the
+# file the last time its tags were imported", not "the last time codex saw
+# the file". A pure rename changes neither inode, mtime, nor size, so the
+# preserved stat still matches disk exactly and inode move-detection keeps
+# working. When content changed too (an external tagger writes tags and
+# then renames), the preserved stat is the only evidence the read phase's
+# filesystem prefilter has that the archive needs re-reading. update_comics
+# writes a fresh stat once the new tags actually import
+# (ALWAYS_UPDATE_COMIC_FIELDS).
+MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "updated_at")
 CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")
 
 ###########

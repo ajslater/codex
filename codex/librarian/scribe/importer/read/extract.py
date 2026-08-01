@@ -194,7 +194,9 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
         result, exc = value
         path_str = str(path)
         if exc:
-            self.metadata[FIS].update({path: exc})
+            # str keys, not Path: the failed import phase matches these
+            # against path strings queried from the db.
+            self.metadata[FIS].update({path_str: exc})
             self.metadata[SKIPPED].add(path_str)
             status.increment_complete()
             self.status_controller.update(status)

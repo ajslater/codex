@@ -296,8 +296,10 @@ class TagWriter(WorkerStatusAbortableBase):
         Sync the DB for renamed comics, watcher-aware.
 
         Watched libraries: enqueue nothing — the watcher's inode move-detection
-        emits the ``files_moved`` import and the tag-write content-modify
-        refreshes metadata, so a self-enqueued move would only duplicate it.
+        emits the ``files_moved`` import, and ``build_import_task`` remaps the
+        tag-write's modify event from the pre-rename path onto the move
+        destination, so the new tags re-read from the same batch. A
+        self-enqueued move would only duplicate it.
         Unwatched libraries: enqueue one targeted move import that updates the
         path and, when tags were written, re-reads the new file's metadata
         (``move_and_modify_dirs`` runs before the per-comic ``read`` phase).

@@ -72,8 +72,12 @@ class FailedImportsCreateUpdateImporter(FailedImportsQueryImporter):
                         library=self.library, path=path, parent_folder=None
                     )
                     fi.set_reason(exc)
-                    create_objs.append(fi)
+                    # presave() stats the path, so it must succeed before
+                    # the row is queued. A file that vanished mid-import
+                    # (renamed out from under us) raises here and gets no
+                    # failed import row.
                     fi.presave()
+                    create_objs.append(fi)
                 except OSError:
                     self.log.warning(
                         f"Error preparing failed import create for {path}: {exc}"
