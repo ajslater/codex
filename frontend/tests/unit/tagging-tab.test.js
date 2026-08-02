@@ -19,6 +19,8 @@
  *     lingers in ``defaultSources``.
  *   - Saving credentials for a source that had none enables it as a default
  *     source automatically; re-saving credentials leaves the checkbox alone.
+ *   - Metron is presented as an API key source like Comic Vine; only an install
+ *     whose stored credential is still a legacy login says "Credentials".
  *   - The Online Tagging Defaults section shows help for Match Mode and Prompts.
  *   - The Metadata Formats field's hint (not a section header) links out to the
  *     ComicInfo and MetronInfo docs.
@@ -43,8 +45,7 @@ const BASE_DEFAULTS = {
   comicvineKeySet: false,
 };
 
-const SOURCE_TIP =
-  "A source can only be enabled once its credentials are saved.";
+const SOURCE_TIP = "A source can only be enabled once its API key is saved.";
 
 function mountTab(overrides = {}) {
   const taggingDefaults = { ...BASE_DEFAULTS, ...overrides };
@@ -199,9 +200,65 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     }
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(wrapper.text()).toContain("Save Metron Cloud Credentials");
-    expect(wrapper.text()).toContain("Save Comic Vine Credentials");
+    expect(wrapper.text()).toContain("Save Metron Cloud API Key");
+    expect(wrapper.text()).toContain("Save Comic Vine API Key");
     expect(wrapper.text()).not.toContain("Custom URL");
+  });
+
+  test("Metron reads as an API key source, like Comic Vine", () => {
+    const wrapper = mountTab({
+      hasMetronCredentials: true,
+      metronKeySet: true,
+    });
+    const vm = wrapper.vm;
+
+    expect(wrapper.text()).toContain("API key set");
+    expect(wrapper.text()).not.toContain("Credentials set");
+    expect(vm.metronLabels.clearButton).toBe("Clear API Key");
+    expect(vm.metronLabels.clearTitle).toBe("Clear Metron Cloud API Key");
+    expect(vm.metronLabels.clearText).toBe(
+      "Remove the saved Metron Cloud API key?",
+    );
+  });
+
+  test("a legacy login still reads as credentials, not an API key", () => {
+    // Pre-key installs keep a username & password; don't call that a key.
+    const wrapper = mountTab({
+      hasMetronCredentials: true,
+      metronKeySet: false,
+    });
+    const vm = wrapper.vm;
+
+    expect(wrapper.text()).toContain("Credentials set");
+    expect(vm.metronLabels.clearButton).toBe("Clear Credentials");
+    expect(vm.metronLabels.clearTitle).toBe("Clear Metron Cloud Credentials");
+    expect(vm.metronLabels.clearText).toBe(
+      "Remove the saved Metron Cloud credentials?",
+    );
+  });
+
+  test("a legacy login warns that password auth is deprecated", () => {
+    const wrapper = mountTab({
+      hasMetronCredentials: true,
+      metronKeySet: false,
+    });
+
+    const warning = wrapper.find(".deprecatedHint");
+    expect(warning.exists()).toBe(true);
+    expect(warning.text()).toContain("deprecated password authentication");
+    expect(warning.find("a").attributes("href")).toBe(
+      "https://metron-project.github.io/blog/token-authentication",
+    );
+    // The panel opens itself so the warning isn't buried behind a click.
+    expect(wrapper.find(".v-expansion-panel--active").exists()).toBe(true);
+  });
+
+  test("no deprecation warning once an API key is saved", () => {
+    const wrapper = mountTab({
+      hasMetronCredentials: true,
+      metronKeySet: true,
+    });
+    expect(wrapper.find(".deprecatedHint").exists()).toBe(false);
   });
 
   test("saving sends only the API key, never a username or password", async () => {

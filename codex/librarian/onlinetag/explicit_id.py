@@ -2,12 +2,18 @@
 Fetch comic metadata by a known online issue id (comicbox explicit-id tagging).
 
 Codex's online tagging normally *searches* a source by filename and ranks
-candidates. When the operator already knows the exact Metron / Comic Vine issue
-id, this module drives comicbox's explicit-id path instead
-(``online.lookup.ids``), which skips the search entirely and calls
-``source.get(issue_id)`` for that one issue. It mirrors the per-file flow of
-``comicbox.online_session.OnlineSession._run_one`` minus the selector — an
-explicit-id fetch never reaches the matcher, so it never prompts.
+candidates. When a comic's issue id is already known, this module drives
+comicbox's explicit-id path instead (``online.lookup.ids``), which skips the
+search entirely and calls ``source.get(issue_id)`` for that one issue. It
+mirrors the per-file flow of ``comicbox.online_session.OnlineSession._run_one``
+minus the selector — an explicit-id fetch never reaches the matcher, so it
+never prompts.
+
+Two callers, both outside a running session: the stored-id prepass (comics
+Codex already holds an identifier for) and prompt resolution (an admin pinned
+the issue by hand). Ids pinned in the tagging request itself go through the
+session — ``OnlineSession(ids=...)`` — so pinned sources and searched sources
+resolve in one lookup and merge.
 """
 
 from __future__ import annotations

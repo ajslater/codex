@@ -18,7 +18,15 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 
-from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models import (
+    Comic,
+    ComicboxTaggingDefaults,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.startup import init_admin_flags
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -143,6 +151,21 @@ class ReadOnlyLibraryTestCase(TestCase):
         task = queue.put.call_args.args[0]
         assert frozenset(task.comic_pks) == {self.rw_comic.pk}
         assert self._body(resp)["skipped"] == 1
+
+    def test_online_tag_by_id_rejects_read_only_comic(self) -> None:
+        """A pinned id can't rescue a comic whose library is read-only."""
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "t"}
+        )
+        payload = {
+            "collection": "comics",
+            "pks": [str(self.ro_comic.pk)],
+            "ids": {"metron": "metron:123"},
+        }
+        with patch("codex.views.admin.onlinetag.LIBRARIAN_QUEUE") as queue:
+            resp = self._post(_ONLINE_TAG_URL, payload)
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+        assert not queue.put.called
 
     def _editable(self, collection: str, pks) -> bool:
         pks_str = ",".join(str(pk) for pk in pks)

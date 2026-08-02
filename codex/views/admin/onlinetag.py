@@ -31,7 +31,20 @@ from codex.serializers.admin.tagging import (
     OnlineTagStartSerializer,
 )
 from codex.views.admin.auth import AdminAPIView
+from codex.views.admin.identifier_parse import parse_identifier_input
 from codex.views.admin.tagwrite import FilteredComicPksView
+
+
+def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
+    """Which online sources actually have credentials configured."""
+    if not defaults:
+        return frozenset()
+    sources = set()
+    if defaults.metron_key or (defaults.metron_user and defaults.metron_password):
+        sources.add("metron")
+    if defaults.comicvine_key:
+        sources.add("comicvine")
+    return frozenset(sources)
 
 
 class AdminOnlineTagActiveView(AdminAPIView):
@@ -60,21 +73,79 @@ class AdminOnlineTagSnapshotView(AdminAPIView):
 class AdminOnlineTagStartView(FilteredComicPksView):
     """Start an online tagging scan."""
 
+    @staticmethod
+    def _parse_pinned_ids(
+        raw_ids: dict, sources: list, configured: frozenset[str]
+    ) -> dict[str, int]:
+        """
+        Parse the entered per-source identifiers into ``{source: issue_id}``.
+
+        A pinned source is fetched by that issue id instead of searched, so a
+        session can mix id retrieval and search. Raises ``ValueError`` with a
+        user-facing message.
+        """
+        entered = {
+            source: raw for source, raw in raw_ids.items() if (raw or "").strip()
+        }
+        if not entered:
+            return {}
+        if not configured:
+            msg = "No online source credentials configured."
+            raise ValueError(msg)
+        if unselected := sorted(set(entered) - set(sources)):
+            msg = f"Pinned id for unselected source(s): {', '.join(unselected)}."
+            raise ValueError(msg)
+        ids: dict[str, int] = {}
+        for source, raw in entered.items():
+            if source not in configured:
+                msg = f"No {source} credentials configured."
+                raise ValueError(msg)
+            parsed_source, issue_id = parse_identifier_input(
+                raw, source_hint=source, configured_sources=configured
+            )
+            if parsed_source != source:
+                msg = (
+                    f"That id is a {parsed_source} id, but it was entered for {source}."
+                )
+                raise ValueError(msg)
+            ids[source] = issue_id
+        return ids
+
+    def _comic_pks_error(self, comic_pks: frozenset[int], *, pinned: bool) -> str:
+        """Return a user-facing message when the resolved comics are unusable."""
+        if not comic_pks:
+            if pinned and self.skipped_read_only:
+                return "Comic is in a read-only library."
+            return "No comics matched."
+        # comicbox pins an id per source for one comic; a multi-comic selection
+        # has no meaningful single issue to pin.
+        if pinned and len(comic_pks) > 1:
+            return "Tagging by id requires a single comic."
+        return ""
+
     def post(self, request):
         """Validate and enqueue a BulkOnlineTagTask."""
         serializer = OnlineTagStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        comic_pks = self.resolve_comic_pks(data["collection"], data["pks"])
-        if not comic_pks:
-            return Response({"detail": "No comics matched."}, status=400)
-
-        session_id = str(uuid.uuid4())
         try:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             defaults = None
+
+        try:
+            ids = self._parse_pinned_ids(
+                data.get("ids") or {}, data["sources"], _configured_sources(defaults)
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+
+        comic_pks = self.resolve_comic_pks(data["collection"], data["pks"])
+        if detail := self._comic_pks_error(comic_pks, pinned=bool(ids)):
+            return Response({"detail": detail}, status=400)
+
+        session_id = str(uuid.uuid4())
 
         req_delete = data.get("delete_original")
         if req_delete is not None:
@@ -103,6 +174,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             delete_original=delete_original,
             merge_all_sources=merge_all_sources,
             rename=rename,
+            ids=ids,
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(
@@ -133,14 +205,19 @@ def _resume_task_params(resume: dict) -> dict:
     """
     Sanitize a stored resume descriptor into ``BulkOnlineTagTask`` kwargs.
 
-    ``sources`` round-trips through JSON as a list; the task wants a tuple. A
-    resume descriptor persists to a file-based cache, so one written by an older
-    Codex may carry keys a task field no longer accepts (e.g. the removed
-    ``auto_threshold`` knob) — drop unknown keys so resuming across an upgrade
-    rebuilds the task instead of raising ``TypeError``.
+    ``sources`` round-trips through JSON as a list; the task wants a tuple, and
+    the pinned ``ids`` want int values. A resume descriptor persists to a
+    file-based cache, so one written by an older Codex may carry keys a task
+    field no longer accepts (e.g. the removed ``auto_threshold`` and ``dry_run``
+    knobs) — drop unknown keys so resuming across an upgrade rebuilds the task
+    instead of raising ``TypeError``.
     """
     params = dict(resume.get("params") or {})
     params["sources"] = tuple(params.get("sources") or ())
+    params["ids"] = {
+        str(source): int(issue_id)
+        for source, issue_id in (params.get("ids") or {}).items()
+    }
     valid_fields = {f.name for f in fields(BulkOnlineTagTask)}
     return {k: v for k, v in params.items() if k in valid_fields}
 

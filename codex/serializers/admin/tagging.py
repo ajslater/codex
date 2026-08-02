@@ -63,31 +63,31 @@ class OnlineTagStartSerializer(Serializer):
     sources = ListField(child=CharField(), required=False, default=list(SOURCE_NAMES))
     mode = CharField(required=False, default="auto")
     prompts_mode = CharField(required=False, default="ask")
-    dry_run = CharField(required=False, default="false")
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     merge_all_sources = BooleanField(required=False, default=None)
     rename = BooleanField(required=False, default=None)
+    # Pinned issue ids by source, as entered: an issue URL, ``source:id``,
+    # ``4000-id``, or a bare number. A pinned source is fetched by id instead
+    # of searched; single-comic sessions only.
+    ids = DictField(child=CharField(allow_blank=True), required=False, default=dict)
 
     @staticmethod
     def validate_sources(value: list) -> list:
         """Require known source names; preserve the priority order."""
         return _validate_ordered_sources(value)
 
-
-class TagByIdRequestSerializer(Serializer):
-    """Serializer for tagging one comic by a known online issue id."""
-
-    collection = CharField()
-    pk = CharField()
-    identifier = CharField()
-    source = CharField(required=False, allow_blank=True, default="")
-    # All identifiers entered (one per source) when merging by id; the primary
-    # ``identifier`` is the first. Ignored unless merging.
-    identifiers = ListField(child=CharField(), required=False, default=list)
-    # None falls back to the admin ComicboxTaggingDefaults default.
-    merge_all_sources = BooleanField(required=False, default=None)
-    rename = BooleanField(required=False, default=None)
+    @staticmethod
+    def validate_ids(value: dict) -> dict:
+        """Require known source names as the pinned-id keys."""
+        unknown = sorted(set(value) - KNOWN_SOURCES)
+        if unknown:
+            msg = (
+                f"Unknown online tagging source(s): {', '.join(unknown)}. "
+                f"Known: {', '.join(sorted(KNOWN_SOURCES))}."
+            )
+            raise ValidationError(msg)
+        return value
 
 
 class OnlineTagPromptResponseSerializer(Serializer):

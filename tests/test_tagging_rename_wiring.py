@@ -2,7 +2,7 @@
 Wiring tests for the comicbox rename toggle.
 
 Confirms ``rename`` threads through the manual tag-write view (request value or
-admin default), the preflight filename preview, the tag-by-id online path, and
+admin default), the preflight filename preview, the online tag-by-id path, and
 deferred-prompt serialization.
 """
 
@@ -17,10 +17,8 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.core.cache import caches
 from django.test import Client, SimpleTestCase, TestCase
-from loguru import logger
 
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
-from codex.librarian.onlinetag.tasks import OnlineTagByIdTask
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -31,6 +29,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.views.admin.onlinetag import AdminOnlineTagStartView
 from codex.views.admin.tagwrite import AdminTagWritePreflightView, AdminTagWriteView
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.tagrenamewiring")  # noqa: S108
@@ -38,27 +37,11 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _PK: Final = 7
 _TAG_WRITE_URL: Final = "/api/v4/admin/tag-write"
 _PREFLIGHT_URL: Final = "/api/v4/admin/tag-write/preflight"
+_START_URL: Final = "/api/v4/admin/tag-sessions/start"
 _QUEUE_TARGET: Final = "codex.views.admin.tagwrite.LIBRARIAN_QUEUE"
+_START_QUEUE_TARGET: Final = "codex.views.admin.onlinetag.LIBRARIAN_QUEUE"
 _VIEW_COMICBOX_TARGET: Final = "codex.views.admin.tagwrite.Comicbox"
-_FETCH_TARGET: Final = (
-    "codex.librarian.onlinetag.session_manager.fetch_tags_by_explicit_id"
-)
 _PREVIEW_NAME: Final = "Series v01 #001.cbz"
-
-
-def _double(stub: object) -> Any:
-    """Pass a test double through a concretely-typed seam."""
-    return stub
-
-
-class _FakeQueue:
-    """Collects everything put on it for assertions."""
-
-    def __init__(self) -> None:
-        self.items: list = []
-
-    def put(self, item) -> None:
-        self.items.append(item)
 
 
 class _PreviewComicbox:
@@ -265,7 +248,7 @@ class PreflightFilenamePreviewTests(TestCase):
 
 
 class TagByIdRenamePropagationTests(TestCase):
-    """rename on the task flows into the enqueued BulkTagWriteTask."""
+    """rename survives alongside a pinned id on the start request."""
 
     @override
     def setUp(self) -> None:
@@ -274,26 +257,32 @@ class TagByIdRenamePropagationTests(TestCase):
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1, defaults={"metron_key": "t"}
         )
-        self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]
-            _double(logger), _double(self.queue), thread_queue=None
-        )
+        self.client = Client()
+        self.client.force_login(_make_admin())
 
-    @override
-    def tearDown(self) -> None:
-        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+    def test_rename_propagates_with_a_pinned_id(self) -> None:
+        data = {
+            "collection": "comics",
+            "pks": [str(_PK)],
+            "ids": {"metron": "metron:123"},
+            "rename": True,
+        }
+        with (
+            patch.object(
+                AdminOnlineTagStartView,
+                "resolve_comic_pks",
+                return_value=frozenset({_PK}),
+            ),
+            patch(_START_QUEUE_TARGET) as mocked_queue,
+        ):
+            response = self.client.post(
+                _START_URL, data=data, content_type="application/json"
+            )
 
-    def test_rename_propagates_to_write(self) -> None:
-        comic = _make_comic()
-        tags = {"series": "X", "identifiers": {"metron": {"key": "123"}}}
-        task = OnlineTagByIdTask(
-            comic_pk=comic.pk, source="metron", issue_id=123, rename=True
-        )
-        with patch(_FETCH_TARGET, return_value=tags):
-            self.manager.tag_by_id(task)
-        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        assert len(writes) == 1
-        assert writes[0].rename is True
+        assert response.status_code == HTTPStatus.ACCEPTED, response.content
+        task = mocked_queue.put.call_args.args[0]
+        assert task.rename is True
+        assert task.ids == {"metron": 123}
 
 
 class _DeferredPrompt:

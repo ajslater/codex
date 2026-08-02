@@ -1,6 +1,6 @@
 """Online tagging tasks."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from comicbox.formats.base.online import SOURCE_NAMES
@@ -22,12 +22,15 @@ class BulkOnlineTagTask(OnlineTagTask):
     mode: str = "auto"
     prompts_mode: str = "ask"
     delete_original: bool = False
-    dry_run: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)
     # instead of stopping at the first match.
     merge_all_sources: bool = False
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False
+    # Pinned issue ids by source for a single-comic session. A pinned source
+    # fetches that issue directly; the rest of ``sources`` search as usual, so
+    # one session mixes tag-by-id and search and merges both results.
+    ids: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -35,22 +38,6 @@ class OnlineTagAbortTask(OnlineTagTask):
     """Abort an online tagging session."""
 
     session_id: str = ""
-
-
-@dataclass
-class OnlineTagByIdTask(OnlineTagTask):
-    """Tag one comic by a known online issue id (skips search)."""
-
-    comic_pk: int
-    source: str
-    issue_id: int
-    formats: tuple[str, ...] = ("COMIC_INFO",)
-    delete_original: bool = False
-    rename: bool = False
-    # Additional (source, issue_id) pairs to fetch by explicit id and merge
-    # onto the primary fetch — the Tag-by-id "merge all sources" path. Empty
-    # means a single-source fetch.
-    extra_ids: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass

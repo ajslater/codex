@@ -28,7 +28,7 @@ _PARAMS: Final = {
     "prompts_mode": "ask",
     "delete_original": False,
     "merge_all_sources": False,
-    "dry_run": False,
+    "ids": {},
 }
 
 
@@ -87,9 +87,12 @@ class TagResumeTestCase(TestCase):
         assert task.prompts_mode == "ask"
 
     def test_resume_drops_params_from_an_older_codex(self) -> None:
-        # A descriptor written before a knob was removed (auto_threshold) must
-        # still resume instead of raising TypeError on the task constructor.
-        set_resume_state({**_PARAMS, "auto_threshold": 0.85}, [11])
+        # A descriptor written before a knob was removed (auto_threshold,
+        # dry_run) must still resume instead of raising TypeError on the task
+        # constructor. An older descriptor also predates ``ids`` entirely.
+        stale = {**_PARAMS, "auto_threshold": 0.85, "dry_run": False}
+        del stale["ids"]
+        set_resume_state(stale, [11])
 
         with patch(_QUEUE_TARGET) as mocked_queue:
             response = self.client.post(_RESUME_URL)
@@ -98,6 +101,18 @@ class TagResumeTestCase(TestCase):
         task = mocked_queue.put.call_args.args[0]
         assert isinstance(task, BulkOnlineTagTask)
         assert task.comic_pks == frozenset([11])
+        assert task.ids == {}
+
+    def test_resume_keeps_pinned_ids(self) -> None:
+        """A paused pinned session resumes pinned; JSON string keys coerce back."""
+        set_resume_state({**_PARAMS, "ids": {"metron": 12345}}, [11])
+
+        with patch(_QUEUE_TARGET) as mocked_queue:
+            response = self.client.post(_RESUME_URL)
+
+        assert response.status_code == HTTPStatus.ACCEPTED
+        task = mocked_queue.put.call_args.args[0]
+        assert task.ids == {"metron": 12345}
 
     def test_resume_conflict_when_scan_active(self) -> None:
         set_resume_state(_PARAMS, [11])

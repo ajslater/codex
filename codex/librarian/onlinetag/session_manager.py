@@ -58,7 +58,6 @@ from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
-    OnlineTagByIdTask,
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
@@ -129,71 +128,6 @@ class OnlineTagSessionManager:
         if source == "comicvine":
             return bool(credentials.comicvine_key)
         return False
-
-    # --- tag by explicit id (no search) --------------------------------
-
-    def tag_by_id(self, task: OnlineTagByIdTask) -> None:
-        """
-        Tag one comic by a known online issue id, skipping search entirely.
-
-        The operator already knows the exact Metron / Comic Vine issue, so we
-        fetch that record directly and hand the tags to the same
-        ``BulkTagWriteTask`` write + re-import path the scan uses. A wrong or
-        unknown id resolves to nothing; that surfaces in the admin Tagging-tab
-        error panel rather than silently re-writing the comic's existing tags.
-        """
-        comic = (
-            Comic.objects.filter(pk=task.comic_pk)
-            .exclude(library__read_only=True)
-            .only("pk", "path")
-            .first()
-        )
-        if not comic:
-            self.log.warning(f"Online tag by id: comic {task.comic_pk} not found.")
-            return
-        path = Path(comic.path)
-        credentials = self._build_credentials()
-        if not credentials or not self._source_has_credentials(
-            credentials, task.source
-        ):
-            self.log.warning(
-                f"Online tag by id: no {task.source} credentials configured."
-            )
-            return
-
-        try:
-            tags = fetch_tags_by_explicit_id(
-                path,
-                task.source,
-                task.issue_id,
-                credentials,
-                extra_ids=task.extra_ids,
-            )
-        except (ComicboxError, OSError) as exc:
-            msg = f"Fetching {task.source} issue {task.issue_id} failed: {exc}"
-            self.log.warning(f"Online tag by id: {msg} ({path})")
-            add_tag_write_error(str(path), msg)
-            self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
-            return
-        if not tags:
-            msg = f"No {task.source} issue found for id {task.issue_id}."
-            self.log.warning(f"Online tag by id: {msg} ({path})")
-            add_tag_write_error(str(path), msg)
-            self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
-            return
-
-        write_task = BulkTagWriteTask(
-            comic_pks=frozenset({comic.pk}),
-            per_comic_patches={comic.pk: tags},
-            mode="update",
-            formats=task.formats,
-            delete_original=task.delete_original,
-            rename=task.rename,
-        )
-        self.librarian_queue.put(write_task)
-        self.log.info(
-            f"Online tag by id: applied {task.source}:{task.issue_id} to {path}."
-        )
 
     # --- events --------------------------------------------------------
 
@@ -527,10 +461,8 @@ class OnlineTagSessionManager:
         Fetches each already-identified comic in one API call, writes the tags
         through the same ``BulkTagWriteTask`` path the scan uses, and drops it
         from ``comic_paths`` so the search session only handles the rest.
-        Skipped on dry runs and for sources without credentials.
+        Skipped for sources without credentials.
         """
-        if task.dry_run:
-            return
         usable_sources = tuple(
             source
             for source in task.sources
@@ -586,6 +518,8 @@ class OnlineTagSessionManager:
         )
         session = OnlineSession(
             sources=task.sources,
+            # Pinned sources fetch their issue id directly; the rest search.
+            ids=dict(task.ids),
             credentials=credentials,
             mode=MatchMode(task.mode),
             defer_prompts=defer_prompts,
@@ -615,7 +549,7 @@ class OnlineTagSessionManager:
                 "delete_original": task.delete_original,
                 "merge_all_sources": task.merge_all_sources,
                 "rename": task.rename,
-                "dry_run": task.dry_run,
+                "ids": dict(task.ids),
             },
         )
         self._active_session_id = task.session_id
@@ -633,7 +567,12 @@ class OnlineTagSessionManager:
             # Fast path: comics codex already has an issue id for are fetched
             # directly by that id (one API call each) and dropped from the set,
             # so the search pass below only handles the unidentified remainder.
-            self._prefetch_stored_ids(state, comic_paths, task, credentials)
+            # Skipped when the request pinned ids: the prepass would drop that
+            # single comic out of the session entirely, but the pinned sources
+            # must be fetched *and* the unpinned ones searched in one lookup so
+            # merge_all_sources can merge both results.
+            if not task.ids:
+                self._prefetch_stored_ids(state, comic_paths, task, credentials)
             # Pass 1: auto-match and write the confident comics. When deferring,
             # ambiguous matches become deferred prompts persisted for later,
             # independent resolution; with "never" prompts they're skipped inline

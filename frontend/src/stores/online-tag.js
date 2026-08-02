@@ -33,7 +33,11 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       deleteOriginal,
       mergeAllSources,
       rename,
+      ids,
     }) {
+      // ``ids`` pins an issue id per source ({metron: "metron:123"}, single
+      // comic only): those sources are fetched by id and the rest are
+      // searched, in one lookup, so a mixed run still merges.
       const response = await HTTP.post("/admin/tag-sessions/start", {
         collection,
         pks: pks.map(String),
@@ -43,30 +47,9 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         deleteOriginal,
         mergeAllSources,
         rename,
+        ids: ids || {},
       });
       this.activeSessionId = response.data.sessionId;
-      return response.data;
-    },
-    async tagById({
-      collection,
-      pk,
-      identifier,
-      identifiers,
-      source,
-      mergeAllSources,
-      rename,
-    }) {
-      // Tag one comic by a known Metron / Comic Vine issue id, skipping
-      // search. Returns the resolved { source, id } the server queued.
-      const response = await HTTP.post("/admin/tag-by-id", {
-        collection,
-        pk: String(pk),
-        identifier,
-        identifiers: identifiers || [identifier],
-        source: source || "",
-        mergeAllSources,
-        rename,
-      });
       return response.data;
     },
     async discoverSession() {

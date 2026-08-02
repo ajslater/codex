@@ -65,7 +65,18 @@ def _deduplicate(kwargs: dict[str, Any]) -> None:
 
     kwargs["files_modified"] -= kwargs["files_added"]
     kwargs["files_modified"] -= kwargs["files_deleted"]
-    kwargs["files_modified"] -= files_dest_paths
+    # A modified path that takes part in a move refers to content that now
+    # lives at the destination. The watcher emits the source path (an
+    # external tagger writing tags and then renaming produces the modify
+    # before the rename), while the poller emits the destination path on
+    # purpose for a move whose stats also changed. Remap sources and keep
+    # destinations so both reach the read phase alive. A pure rename's
+    # destination costs only a stat() there, because a move preserves the
+    # stored stat (see MOVED_BULK_COMIC_UPDATE_FIELDS).
+    files_moved = kwargs["files_moved"]
+    kwargs["files_modified"] = {
+        files_moved.get(path, path) for path in kwargs["files_modified"]
+    }
 
     kwargs["covers_modified"] -= kwargs["covers_deleted"]
     kwargs["covers_modified"] -= kwargs["covers_added"]

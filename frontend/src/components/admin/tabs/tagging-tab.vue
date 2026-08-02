@@ -136,8 +136,10 @@
               </div>
             </div>
             <div class="sourcePanel">
+              <!-- Open the panel until an API key exists, so a legacy install
+                   lands on the deprecation warning instead of hiding it. -->
               <v-expansion-panels
-                :model-value="defaults.hasMetronCredentials ? [] : [0]"
+                :model-value="defaults.metronKeySet ? [] : [0]"
                 variant="accordion"
               >
                 <v-expansion-panel>
@@ -146,18 +148,37 @@
                     <span
                       class="adminCardDesc credentialStatus"
                       :class="{
-                        credentialSet: defaults.hasMetronCredentials,
+                        credentialSet: defaults.metronKeySet,
+                        credentialDeprecated: metronLegacyCredentials,
                       }"
                     >
                       {{
                         defaults.hasMetronCredentials
-                          ? "Credentials set"
+                          ? metronLabels.status
                           : "Not configured"
                       }}
                     </span>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
                     <v-form class="adminFieldColumn" @submit.prevent>
+                      <p
+                        v-if="metronLegacyCredentials"
+                        class="adminHint deprecatedHint"
+                      >
+                        <v-icon size="small">{{ mdiAlert }}</v-icon>
+                        This install still authenticates with a Metron Cloud
+                        username &amp; password. Metron has deprecated password
+                        authentication and will throttle, then remove it — save
+                        an API key below to keep online tagging working. Read
+                        <a
+                          href="https://metron-project.github.io/blog/token-authentication"
+                          target="_blank"
+                          >Metron's token authentication announcement<v-icon
+                            size="small"
+                            >{{ mdiOpenInNew }}</v-icon
+                          ></a
+                        >.
+                      </p>
                       <v-text-field
                         v-model="metronKey"
                         label="API Key"
@@ -188,7 +209,7 @@
                           :disabled="!metronKey"
                           @click="saveMetronCredentials"
                         >
-                          Save Metron Cloud Credentials
+                          Save Metron Cloud API Key
                         </v-btn>
                         <v-btn
                           variant="text"
@@ -201,9 +222,9 @@
                         </v-btn>
                         <ConfirmDialog
                           v-if="defaults.hasMetronCredentials"
-                          button-text="Clear Credentials"
-                          title-text="Clear Metron Cloud Credentials"
-                          text="Remove the saved Metron Cloud credentials?"
+                          :button-text="metronLabels.clearButton"
+                          :title-text="metronLabels.clearTitle"
+                          :text="metronLabels.clearText"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
@@ -315,7 +336,7 @@
                           :disabled="!comicvineKey"
                           @click="saveComicvineCredentials"
                         >
-                          Save Comic Vine Credentials
+                          Save Comic Vine API Key
                         </v-btn>
                         <v-btn
                           variant="text"
@@ -367,7 +388,7 @@
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp, mdiOpenInNew } from "@mdi/js";
+import { mdiAlert, mdiChevronDown, mdiChevronUp, mdiOpenInNew } from "@mdi/js";
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
@@ -383,6 +404,23 @@ const FORMAT_CHOICES = [
   { title: "MetronInfo", value: "METRON_INFO" },
   { title: "ComicInfo", value: "COMIC_INFO" },
 ];
+
+// Metron authenticates with a metron.cloud API key, exactly like Comic Vine.
+// An install that predates keys may still have a legacy username & password
+// stored, though, so name what's actually saved rather than promising a key
+// that isn't there.
+const METRON_KEY_LABELS = Object.freeze({
+  status: "API key set",
+  clearButton: "Clear API Key",
+  clearTitle: "Clear Metron Cloud API Key",
+  clearText: "Remove the saved Metron Cloud API key?",
+});
+const METRON_LEGACY_LABELS = Object.freeze({
+  status: "Credentials set",
+  clearButton: "Clear Credentials",
+  clearTitle: "Clear Metron Cloud Credentials",
+  clearText: "Remove the saved Metron Cloud credentials?",
+});
 
 const EDITABLE_FIELDS = Object.freeze([
   "defaultFormats",
@@ -414,6 +452,7 @@ export default {
   },
   data() {
     return {
+      mdiAlert,
       mdiChevronDown,
       mdiChevronUp,
       mdiOpenInNew,
@@ -431,7 +470,7 @@ export default {
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
-        "A source can only be enabled once its credentials are saved.",
+        "A source can only be enabled once its API key is saved.",
       sourcesOrderHint:
         "Enabled sources run in priority order — use the arrows to reorder. With Merge all sources off, the highest-priority source that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried for each comic and their results are merged into one record for the most complete metadata.",
       mergeAllSourcesHint:
@@ -474,6 +513,18 @@ export default {
       set(value) {
         this.setSourceEnabled("comicvine", value);
       },
+    },
+    // Metron's panel talks about API keys, except on an install whose only
+    // stored credential is the legacy username & password.
+    metronLegacyCredentials() {
+      return Boolean(
+        this.defaults?.hasMetronCredentials && !this.defaults?.metronKeySet,
+      );
+    },
+    metronLabels() {
+      return this.defaults?.metronKeySet
+        ? METRON_KEY_LABELS
+        : METRON_LEGACY_LABELS;
     },
     // Testing falls back to whatever is stored, which for an install that
     // predates API keys is still a username & password.
@@ -647,6 +698,16 @@ export default {
 
 .credentialSet {
   color: rgb(var(--v-theme-success));
+}
+
+// A legacy username & password authenticates, but on borrowed time.
+.credentialDeprecated {
+  color: rgb(var(--v-theme-warning));
+}
+
+// Same layout as .adminHint, but this one is a warning, not an aside.
+.deprecatedHint {
+  color: rgb(var(--v-theme-warning));
 }
 
 .sourcesHint {
