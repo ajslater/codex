@@ -284,18 +284,43 @@ class OnlineTagSessionManagerTests(TestCase):
         assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
         assert searched == [Path(comic.path)]
 
-    def test_run_session_dry_run_skips_prefetch(self) -> None:
-        """A dry run never prefetches; every comic goes to the search pass."""
+    def test_run_session_passes_pinned_ids_to_session(self) -> None:
+        """A pinned id per source reaches OnlineSession, which fetches it."""
+        comic = _make_comic()
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
+        )
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-pinned",
+            sources=("metron", "comicvine"),
+            mode="auto",
+            ids={"metron": 12345},
+        )
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.run_session(task)
+
+        assert _FakeSession.last_kwargs["ids"] == {"metron": 12345}
+
+    def test_run_session_pinned_ids_bypass_the_stored_id_prepass(self) -> None:
+        """
+        A pinned request keeps its comic in the session instead of prefetching.
+
+        The prepass drops what it fetches out of the search set, which would
+        leave the unpinned sources with nothing to search — the pinned and
+        searched sources have to resolve in the same lookup to merge.
+        """
         comic = _make_comic()
         self._add_issue_id(comic, "metron", "123495")
         searched: list = []
         self._capture_search_paths(searched)
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
-            session_id="scan-dry",
-            sources=("metron",),
+            session_id="scan-pinned-prepass",
+            sources=("metron", "comicvine"),
             mode="auto",
-            dry_run=True,
+            ids={"comicvine": 456},
         )
         fetch_calls: list = []
 
@@ -307,6 +332,32 @@ class OnlineTagSessionManagerTests(TestCase):
 
         assert fetch_calls == []
         assert searched == [Path(comic.path)]
+        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+
+    def test_run_session_pinned_ids_land_in_resume_params(self) -> None:
+        """A paused pinned session resumes still pinned."""
+        comic = _make_comic()
+        captured: list = []
+        self.manager._pass_runner = _double(  # noqa: SLF001
+            SimpleNamespace(
+                collect_results=lambda state, *_a, **_k: captured.append(
+                    state.resume_params
+                )
+            )
+        )
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-pinned-resume",
+            sources=("metron",),
+            mode="auto",
+            ids={"metron": 12345},
+        )
+
+        with patch(_PATCH_TARGET, _FakeSession):
+            self.manager.run_session(task)
+
+        assert captured
+        assert captured[0]["ids"] == {"metron": 12345}
 
     def test_prefetch_keeps_comic_in_status_out_of_search_and_resume(self) -> None:
         """A prefetched comic shows as matched yet is excluded from Resume."""

@@ -14,20 +14,13 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.onlinetag.tasks import OnlineTagByIdTask
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
-from codex.serializers.admin.tagging import (
-    TagByIdRequestSerializer,
-    TagWriteRequestSerializer,
-)
+from codex.serializers.admin.tagging import TagWriteRequestSerializer
 from codex.settings import COMICBOX_CONFIG
 from codex.views.admin.auth import AdminAPIView
-from codex.views.admin.identifier_parse import (
-    parse_identifier_input,
-    parse_identifier_url,
-)
+from codex.views.admin.identifier_parse import parse_identifier_url
 from codex.views.browser.filters.filter import BrowserFilterView
 
 #: Cap on how many per-comic rename previews the preflight builds — each opens
@@ -105,136 +98,6 @@ class AdminParseIdentifierURLView(AdminAPIView):
             )
         source, id_type, id_key = parsed
         return Response({"source": source, "id_type": id_type, "key": id_key})
-
-
-class AdminTagByIdView(FilteredComicPksView):
-    """Tag a single comic by a known Metron / Comic Vine issue id (no search)."""
-
-    @staticmethod
-    def _get_defaults() -> ComicboxTaggingDefaults | None:
-        """Load the tagging-defaults singleton, or None when unset."""
-        try:
-            return ComicboxTaggingDefaults.objects.get(pk=1)
-        except ComicboxTaggingDefaults.DoesNotExist:
-            return None
-
-    @staticmethod
-    def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
-        """Which online sources actually have credentials configured."""
-        if not defaults:
-            return frozenset()
-        sources = set()
-        if defaults.metron_key or (defaults.metron_user and defaults.metron_password):
-            sources.add("metron")
-        if defaults.comicvine_key:
-            sources.add("comicvine")
-        return frozenset(sources)
-
-    @staticmethod
-    def _write_defaults(
-        defaults: ComicboxTaggingDefaults | None,
-    ) -> tuple[tuple[str, ...], bool]:
-        """Resolve the write formats and delete-original flag from defaults."""
-        if not defaults:
-            return ("COMIC_INFO",), False
-        formats = tuple(defaults.default_formats) or ("COMIC_INFO",)
-        return formats, bool(defaults.delete_original)
-
-    @staticmethod
-    def _parse_extra_ids(
-        identifiers: list[str], primary_source: str, configured: frozenset[str]
-    ) -> tuple[tuple[str, int], ...]:
-        """
-        Parse the entered identifiers into extra ``(source, id)`` pairs to merge.
-
-        Keeps one id per source (the primary source excluded — it's already
-        pinned), so a Metron + Comic Vine pair yields the Comic Vine entry.
-        Raises ValueError on an unparseable or unconfigured-source identifier.
-        """
-        seen = {primary_source}
-        extras: list[tuple[str, int]] = []
-        for raw in identifiers:
-            if not (raw or "").strip():
-                continue
-            src, issue_id = parse_identifier_input(raw, configured_sources=configured)
-            if src in seen or src not in configured:
-                continue
-            seen.add(src)
-            extras.append((src, issue_id))
-        return tuple(extras)
-
-    @staticmethod
-    def _resolve_primary(data, configured: frozenset[str]) -> tuple[str, int]:
-        """Parse the primary identifier and confirm its source is configured."""
-        source, issue_id = parse_identifier_input(
-            data["identifier"],
-            source_hint=data.get("source") or None,
-            configured_sources=configured,
-        )
-        if source not in configured:
-            msg = f"No {source} credentials configured."
-            raise ValueError(msg)
-        return source, issue_id
-
-    def _resolve_extra_ids(
-        self,
-        data,
-        defaults: ComicboxTaggingDefaults | None,
-        source: str,
-        configured: frozenset[str],
-    ) -> tuple[tuple[str, int], ...]:
-        """Resolve the merge default and parse the extra ids to merge, if any."""
-        req_merge = data.get("merge_all_sources")
-        if req_merge is None:
-            req_merge = bool(defaults and defaults.merge_all_sources)
-        if not req_merge:
-            return ()
-        return self._parse_extra_ids(data.get("identifiers") or [], source, configured)
-
-    def post(self, request):
-        """Parse the identifier, resolve the comic, and enqueue an id fetch."""
-        serializer = TagByIdRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        defaults = self._get_defaults()
-        configured = self._configured_sources(defaults)
-        if not configured:
-            return Response(
-                {"detail": "No online source credentials configured."}, status=400
-            )
-        try:
-            source, issue_id = self._resolve_primary(data, configured)
-            extra_ids = self._resolve_extra_ids(data, defaults, source, configured)
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=400)
-
-        comic_pks = self.resolve_comic_pks(data["collection"], [data["pk"]])
-        if len(comic_pks) != 1:
-            if self.skipped_read_only:
-                detail = "Comic is in a read-only library."
-            else:
-                detail = "No comic matched."
-            return Response({"detail": detail}, status=400)
-        (comic_pk,) = tuple(comic_pks)
-
-        formats, delete_original = self._write_defaults(defaults)
-        req_rename = data.get("rename")
-        if req_rename is not None:
-            rename = req_rename
-        else:
-            rename = bool(defaults and defaults.rename_files)
-        task = OnlineTagByIdTask(
-            comic_pk=comic_pk,
-            source=source,
-            issue_id=issue_id,
-            formats=formats,
-            delete_original=delete_original,
-            rename=rename,
-            extra_ids=extra_ids,
-        )
-        LIBRARIAN_QUEUE.put(task)
-        return Response({"source": source, "id": issue_id}, status=HTTP_202_ACCEPTED)
 
 
 class AdminTagWritePreflightView(FilteredComicPksView):

@@ -2,7 +2,8 @@
  * Tests for the comicbox "rename files" toggle across the UI.
  *
  * Behavior locked in here:
- *   - The online-tag store forwards `rename` to the start and by-id endpoints.
+ *   - The online-tag store forwards `rename` to the start endpoint, searching
+ *     or tagging by a pinned id.
  *   - The edit panel seeds its rename toggle from the admin default and lets
  *     the toggle alone enable Save (rename-only, no tag edits).
  *   - The admin Tagging tab renders a "Rename files" default and binds it.
@@ -47,18 +48,18 @@ describe("useOnlineTagStore — rename forwarding", () => {
     );
   });
 
-  it("forwards rename to the by-id endpoint", async () => {
+  it("forwards rename alongside a pinned id", async () => {
     const store = useOnlineTagStore();
-    HTTP.post.mockResolvedValue({ data: { source: "metron", id: 1 } });
-    await store.tagById({
+    HTTP.post.mockResolvedValue({ data: { sessionId: "s1" } });
+    await store.startSession({
       collection: "comics",
-      pk: 1,
-      identifier: "metron:1",
+      pks: [1],
+      ids: { metron: "metron:1" },
       rename: true,
     });
     expect(HTTP.post).toHaveBeenCalledWith(
-      "/admin/tag-by-id",
-      expect.objectContaining({ rename: true }),
+      "/admin/tag-sessions/start",
+      expect.objectContaining({ ids: { metron: "metron:1" }, rename: true }),
     );
   });
 });

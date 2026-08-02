@@ -147,4 +147,44 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
   });
 });
 
+describe("useOnlineTagStore — startSession", () => {
+  const started = { data: { sessionId: "s1", skipped: 0 } };
+
+  it("sends the pinned per-source ids", async () => {
+    const store = useOnlineTagStore();
+    HTTP.post.mockResolvedValue(started);
+
+    await store.startSession({
+      collection: "comics",
+      pks: [7],
+      sources: ["metron", "comicvine"],
+      mode: "auto",
+      promptsMode: "ask",
+      ids: { metron: "metron:12345" },
+    });
+
+    expect(HTTP.post).toHaveBeenCalledWith(
+      "/admin/tag-sessions/start",
+      expect.objectContaining({
+        pks: ["7"],
+        sources: ["metron", "comicvine"],
+        ids: { metron: "metron:12345" },
+      }),
+    );
+    expect(store.activeSessionId).toBe("s1");
+  });
+
+  it("defaults ids to an empty mapping for a plain search", async () => {
+    const store = useOnlineTagStore();
+    HTTP.post.mockResolvedValue(started);
+
+    await store.startSession({ collection: "comics", pks: [7] });
+
+    expect(HTTP.post).toHaveBeenCalledWith(
+      "/admin/tag-sessions/start",
+      expect.objectContaining({ ids: {} }),
+    );
+  });
+});
+
 export default {};

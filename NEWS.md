@@ -8,6 +8,11 @@ border-radius: 128px;
 
 ## v2.2.5
 
+- Features
+    - Online tagging combines search and tag by id. A source given an issue id
+      fetches it directly, the rest search, and the results merge
+      (comicbox 4.8.0).
+
 - Fixes
     - Tagging a comic with renaming enabled no longer fails the import and
       discards the new tags. Comics renamed this way since v2.1.0 need a Force
