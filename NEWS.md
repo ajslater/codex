@@ -10,8 +10,8 @@ border-radius: 128px;
 
 - Features
     - Online tagging combines search and tag by id. A source given an issue id
-      fetches it directly, the rest search, and the results merge
-      (comicbox 4.8.0).
+      fetches it directly, the rest search, and the results merge (comicbox
+      4.8.0).
 
 - Fixes
     - Tagging a comic with renaming enabled no longer fails the import and
