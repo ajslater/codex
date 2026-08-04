@@ -117,7 +117,7 @@ RUN set -eux \
     && rm -f /tmp/${CODEX_WHEEL}
 
 # ---- Stage 4: final (production image) ------------------------------------
-FROM ghcr.io/ajslater/python-debian:3.14.4-slim-trixie_0 AS final
+FROM ghcr.io/ajslater/python-debian:3.14.6-slim-trixie_0 AS final
 ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.description="Codex Comic Server" \
