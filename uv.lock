@@ -666,7 +666,7 @@ requires-dist = [
     { name = "djangorestframework-camel-case", specifier = "~=1.4" },
     { name = "djangorestframework-jsonapi", specifier = "~=8.1" },
     { name = "drf-spectacular", specifier = "~=0.28" },
-    { name = "granian", specifier = "~=2.7" },
+    { name = "granian", specifier = "~=2.8" },
     { name = "humanize", specifier = "~=4.12" },
     { name = "lark", specifier = "~=1.2" },
     { name = "loguru", specifier = "~=0.7.3" },
