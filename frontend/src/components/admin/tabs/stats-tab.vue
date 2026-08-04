@@ -103,6 +103,7 @@ const TAGGING_LABELS = Object.freeze({
   defaultFormatCount: "Write Formats",
   hasMetronCredentials: "Metron Credentials",
   hasComicvineCredentials: "Comic Vine Credentials",
+  comicvineUrlSet: "Custom Comic Vine URL",
 });
 const AUTH_LABELS = Object.freeze({
   oidcEnabled: "Single Sign On",

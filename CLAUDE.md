@@ -103,7 +103,7 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 
 ### Key Libraries
 
-- **Backend:** Django 6, Channels 4.2, DRF 3.16, Granian 2.7, comicbox (comic
+- **Backend:** Django 6, Channels 4.2, DRF 3.16, Granian 2.8, comicbox (comic
   parsing), Pillow, django-cachalot, loguru
 - **Frontend:** Vue 3.5, Vite 8, Vuetify 4, Pinia 3, xior
 - **Database:** SQLite + WAL + FTS5 full-text search

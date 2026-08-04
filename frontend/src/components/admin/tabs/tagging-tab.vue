@@ -329,14 +329,22 @@
                           }}</v-icon></a
                         >
                       </p>
+                      <v-text-field
+                        v-model="comicvineUrlLocal"
+                        label="Custom URL (optional)"
+                        autocomplete="off"
+                        hide-details="auto"
+                        density="compact"
+                        :placeholder="defaults.comicvineUrl || 'Default'"
+                      />
                       <div class="adminInlineActions">
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="!comicvineKey"
+                          :disabled="!comicvineKey && !comicvineUrlLocal"
                           @click="saveComicvineCredentials"
                         >
-                          Save Comic Vine API Key
+                          Save Comic Vine Credentials
                         </v-btn>
                         <v-btn
                           variant="text"
@@ -351,7 +359,7 @@
                           v-if="defaults.hasComicvineCredentials"
                           button-text="Clear API Key"
                           title-text="Clear Comic Vine API Key"
-                          text="Remove the saved Comic Vine API key?"
+                          text="Remove the saved Comic Vine API key and custom URL?"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
@@ -480,6 +488,7 @@ export default {
       pendingSave: false,
       metronKey: "",
       comicvineKey: "",
+      comicvineUrlLocal: "",
       validating: { metron: false, comicvine: false },
       validationResult: { metron: undefined, comicvine: undefined },
     };
@@ -645,10 +654,12 @@ export default {
     async saveComicvineCredentials() {
       const data = {};
       if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
+      if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
       this.validationResult.comicvine = undefined;
       const hadCredentials = Boolean(this.defaults?.hasComicvineCredentials);
       await this.updateTaggingDefaults(data);
       this.comicvineKey = "";
+      this.comicvineUrlLocal = "";
       if (!hadCredentials && this.defaults?.hasComicvineCredentials) {
         this.setSourceEnabled("comicvine", true);
       }
@@ -660,7 +671,7 @@ export default {
     },
     clearComicvineCredentials() {
       this.validationResult.comicvine = undefined;
-      this.updateTaggingDefaults({ comicvineKey: "" });
+      this.updateTaggingDefaults({ comicvineKey: "", comicvineUrl: "" });
     },
     async testMetronCredentials() {
       const payload = { source: "metron" };
@@ -670,6 +681,7 @@ export default {
     async testComicvineCredentials() {
       const payload = { source: "comicvine" };
       if (this.comicvineKey) payload.comicvineKey = this.comicvineKey;
+      if (this.comicvineUrlLocal) payload.comicvineUrl = this.comicvineUrlLocal;
       await this._runValidation("comicvine", payload);
     },
     async _runValidation(source, payload) {

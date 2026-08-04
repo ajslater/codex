@@ -94,6 +94,7 @@ class DumpUserDataTests(TestCase):
         ComicboxTaggingDefaults.objects.filter(pk=1).update(
             metron_key="token",
             comicvine_key="key",
+            comicvine_url="https://cv.example.com/api",
         )
 
         counts = dump_user_data()
@@ -103,6 +104,7 @@ class DumpUserDataTests(TestCase):
         assert len(rows) == 1
         assert rows[0]["metron_key"] == "token"
         assert rows[0]["comicvine_key"] == "key"
+        assert rows[0]["comicvine_url"] == "https://cv.example.com/api"
 
     def test_dump_settings_browser_show_flags(self) -> None:
         """show.{publishers,imprints,series,volumes} → show_{p,i,s,v} columns."""

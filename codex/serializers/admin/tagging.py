@@ -106,6 +106,7 @@ class TaggingValidateRequestSerializer(Serializer):
     )
     metron_key = CharField(required=False, allow_blank=True)
     comicvine_key = CharField(required=False, allow_blank=True)
+    comicvine_url = CharField(required=False, allow_blank=True)
 
 
 class TaggingRateLimitWindowSerializer(Serializer):
@@ -207,6 +208,9 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "merge_all_sources",
             "metron_key",
             "comicvine_key",
+            # Not a secret, so unlike the keys this reads back: the form shows
+            # the saved url as its placeholder.
+            "comicvine_url",
             "metron_key_set",
             "comicvine_key_set",
             "has_metron_credentials",

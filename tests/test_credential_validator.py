@@ -156,6 +156,28 @@ class TestValidateCredentials:
         instance.list_publishers.assert_called_once_with(
             params={"limit": "1"}, max_results=1
         )
+        # No override means simyan's own default endpoint.
+        assert "base_url" not in mocked.call_args.kwargs
+
+    def test_comicvine_custom_url_overrides_the_endpoint(self) -> None:
+        """A saved custom URL becomes simyan's base_url."""
+        creds = OnlineCredentials(
+            comicvine_key="key", comicvine_url="https://cv.example.com/api"
+        )
+        with patch("simyan.comicvine.Comicvine") as mocked:
+            instance = MagicMock()
+            instance.list_publishers.return_value = []
+            mocked.return_value = instance
+            results = validate_credentials(creds, {"comicvine"})
+        assert results == {"comicvine": ValidationResult(ok=True)}
+        assert mocked.call_args.kwargs["base_url"] == "https://cv.example.com/api"
+
+    def test_comicvine_url_alone_is_not_credentials(self) -> None:
+        """A custom URL cannot authenticate; the key is still required."""
+        creds = OnlineCredentials(comicvine_url="https://cv.example.com/api")
+        results = validate_credentials(creds, {"comicvine"})
+        assert results["comicvine"].ok is False
+        assert "required" in (results["comicvine"].error or "").lower()
 
     def test_comicvine_auth_failure(self) -> None:
         from simyan.errors import AuthenticationError
@@ -202,9 +224,8 @@ class TestValidateCredentials:
         assert results == {}
 
 
-# Sanity: catch accidental drift in the comicbox dataclass. The url fields
-# are still defined there; codex no longer forwards them since the custom
-# URL overrides were removed (mokkari ignores its url entirely).
+# Sanity: catch accidental drift in the comicbox dataclass. Codex forwards
+# every field here except ``metron_url``, which mokkari ignores entirely.
 _EXPECTED_CRED_FIELDS: Final = frozenset(
     {
         "metron_key",

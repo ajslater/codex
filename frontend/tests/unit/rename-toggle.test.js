@@ -312,6 +312,7 @@ const BASE_DEFAULTS = {
   hasComicvineCredentials: false,
   metronKeySet: false,
   comicvineKeySet: false,
+  comicvineUrl: "",
 };
 
 describe("AdminTaggingTab — rename default", () => {

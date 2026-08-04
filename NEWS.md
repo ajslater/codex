@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.6
+
+- Features
+    - The Comic Vine custom URL is back, for tagging against a Comic Vine proxy
+      or mirror. URLs discarded by v2.2.4 must be entered again. Metron Cloud's
+      stays gone; it never did anything.
+
 ## v2.2.5
 
 - Features

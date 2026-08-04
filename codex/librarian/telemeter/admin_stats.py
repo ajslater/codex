@@ -143,7 +143,7 @@ def _default_sources(defaults: ComicboxTaggingDefaults) -> dict[str, int]:
 
 
 def get_tagging_stats() -> dict[str, Any]:
-    """Report the online tagging defaults. Never the credentials."""
+    """Report the online tagging defaults. Never the credentials or the url."""
     defaults = ComicboxTaggingDefaults.objects.first()
     if not defaults:
         return {}
@@ -160,6 +160,7 @@ def get_tagging_stats() -> dict[str, Any]:
             defaults.metron_key or (defaults.metron_user and defaults.metron_password)
         ),
         "has_comicvine_credentials": bool(defaults.comicvine_key),
+        "comicvine_url_set": bool(defaults.comicvine_url),
     }
 
 
