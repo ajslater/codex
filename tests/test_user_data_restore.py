@@ -372,6 +372,7 @@ class TaggingDefaultsRestoreTests(TestCase):
             "metron_user": "",
             "metron_password": "",
             "comicvine_key": "",
+            "comicvine_url": "",
         }
         row.update(overrides)
         return row
@@ -400,3 +401,20 @@ class TaggingDefaultsRestoreTests(TestCase):
         )
         assert defaults["metron_user"] == "u"
         assert defaults["metron_password"] == "p"  # noqa: S105
+
+    def test_comicvine_url_round_trips(self) -> None:
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(
+            self._row(comicvine_url="https://cv.example.com/api")
+        )
+        assert defaults["comicvine_url"] == "https://cv.example.com/api"
+
+    def test_a_retired_metron_url_column_is_ignored(self) -> None:
+        """Sidecars predating the removal carry a column the model dropped."""
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(
+            self._row(metron_url="https://metron.example.com")
+        )
+        assert "metron_url" not in defaults

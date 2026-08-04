@@ -888,3 +888,29 @@ class OnlineTagSessionManagerTests(TestCase):
             },
         )
         assert self.manager._build_credentials() is None  # noqa: SLF001
+
+    def test_comicvine_custom_url_reaches_comicbox(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "comicvine_key": "key",
+                "comicvine_url": "https://cv.example.com/api",
+            },
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        assert credentials.comicvine_url == "https://cv.example.com/api"
+
+    def test_a_custom_url_alone_is_not_credentials(self) -> None:
+        """A url cannot authenticate, so it must not configure the source."""
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "metron_key": "",
+                "metron_user": "",
+                "metron_password": "",
+                "comicvine_key": "",
+                "comicvine_url": "https://cv.example.com/api",
+            },
+        )
+        assert self.manager._build_credentials() is None  # noqa: SLF001

@@ -43,6 +43,7 @@ const BASE_DEFAULTS = {
   hasComicvineCredentials: false,
   metronKeySet: false,
   comicvineKeySet: false,
+  comicvineUrl: "",
 };
 
 const SOURCE_TIP = "A source can only be enabled once its API key is saved.";
@@ -185,9 +186,9 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     expect(vm.metronEnabled).toBe(false);
   });
 
-  test("no custom URL field is offered for either source", async () => {
-    // mokkari hardcodes the metron.cloud endpoint, so the override never
-    // did anything; the Comic Vine twin went with it.
+  test("only Comic Vine offers a custom URL field", async () => {
+    // simyan takes a base_url, so a Comic Vine proxy or mirror works. mokkari
+    // hardcodes the metron.cloud endpoint, so Metron has no such field.
     const wrapper = mountTab({
       hasMetronCredentials: true,
       hasComicvineCredentials: true,
@@ -201,8 +202,11 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(wrapper.text()).toContain("Save Metron Cloud API Key");
-    expect(wrapper.text()).toContain("Save Comic Vine API Key");
-    expect(wrapper.text()).not.toContain("Custom URL");
+    expect(wrapper.text()).toContain("Save Comic Vine Credentials");
+    // Metron's panel renders first, Comic Vine's second.
+    const [metronPanel, comicvinePanel] = wrapper.findAll(".sourcePanel");
+    expect(metronPanel.text()).not.toContain("Custom URL");
+    expect(comicvinePanel.text()).toContain("Custom URL");
   });
 
   test("Metron reads as an API key source, like Comic Vine", () => {
@@ -283,6 +287,45 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     vm.clearMetronCredentials();
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       metronKey: "",
+    });
+  });
+
+  test("a custom URL saves on its own, without an API key", async () => {
+    const wrapper = mountTab();
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.comicvineUrlLocal = "https://cv.example.com/api";
+    await vm.saveComicvineCredentials();
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
+      comicvineUrl: "https://cv.example.com/api",
+    });
+    expect(vm.comicvineUrlLocal).toBe("");
+    // A url is not a credential, so it must not enable the source.
+    expect(vm.draft.defaultSources).not.toContain("comicvine");
+  });
+
+  test("clearing the Comic Vine key clears the custom URL too", () => {
+    const wrapper = mountTab({ hasComicvineCredentials: true });
+    const store = useAdminStore();
+
+    wrapper.vm.clearComicvineCredentials();
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
+      comicvineKey: "",
+      comicvineUrl: "",
+    });
+  });
+
+  test("testing Comic Vine validates against the typed URL", async () => {
+    const wrapper = mountTab({ hasComicvineCredentials: true });
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+
+    vm.comicvineUrlLocal = "https://cv.example.com/api";
+    await vm.testComicvineCredentials();
+    expect(store.validateTaggingCredentials).toHaveBeenCalledWith({
+      source: "comicvine",
+      comicvineUrl: "https://cv.example.com/api",
     });
   });
 

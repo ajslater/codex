@@ -157,6 +157,54 @@ class AdminSingletonSettingsTestCase(TestCase):
         assert defaults.metron_user == "stored_user"
         assert defaults.metron_password == "stored_pw"  # noqa: S105
 
+    def test_comicvine_url_saves_alone_and_reads_back(self) -> None:
+        """The custom URL is not a secret: it saves without a key and echoes."""
+        from codex.models import ComicboxTaggingDefaults
+
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"comicvineUrl": "https://cv.example.com/api"},
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        body = resp.json()["data"]
+        # Unlike the keys, the url reads back — the form shows it as a
+        # placeholder.
+        assert body["comicvineUrl"] == "https://cv.example.com/api"
+        # A url is not a credential, so the source stays unconfigured.
+        assert body["hasComicvineCredentials"] is False
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert defaults.comicvine_url == "https://cv.example.com/api"
+        assert defaults.comicvine_key == ""
+
+    def test_clearing_comicvine_credentials_clears_the_url_too(self) -> None:
+        from codex.models import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            comicvine_key="key",
+            comicvine_url="https://cv.example.com/api",
+        )
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"comicvineKey": "", "comicvineUrl": ""},
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        body = resp.json()["data"]
+        assert body["hasComicvineCredentials"] is False
+        assert body["comicvineUrl"] == ""
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert defaults.comicvine_key == ""
+        assert defaults.comicvine_url == ""
+
+    def test_tagging_defaults_rejects_a_malformed_comicvine_url(self) -> None:
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"comicvineUrl": "not a url"},
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
     def test_tagging_defaults_rejects_unknown_source(self) -> None:
         """An unknown source name is a 400, not a silently-stored junk value."""
         resp = _put_envelope(

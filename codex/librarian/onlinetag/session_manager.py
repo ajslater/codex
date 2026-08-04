@@ -115,6 +115,7 @@ class OnlineTagSessionManager:
             metron_user=defaults.metron_user or "",
             metron_password=defaults.metron_password or "",
             comicvine_key=defaults.comicvine_key or "",
+            comicvine_url=defaults.comicvine_url or "",
         )
 
     @staticmethod

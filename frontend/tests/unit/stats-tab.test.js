@@ -86,6 +86,7 @@ const STATS = {
     defaultSources: { metron: 1, comicvine: 1 },
     hasMetronCredentials: true,
     hasComicvineCredentials: false,
+    comicvineUrlSet: false,
   },
   auth: {
     oidcEnabled: false,

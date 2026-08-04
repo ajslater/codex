@@ -136,6 +136,16 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         assert auth.user == "u"
         assert auth.password == "p"  # noqa: S105
 
+    def test_build_explicit_id_config_passes_the_comicvine_url(self) -> None:
+        """Tagging by explicit id honors the custom Comic Vine endpoint."""
+        creds = OnlineCredentials(
+            comicvine_key="k", comicvine_url="https://cv.example.com/api"
+        )
+        settings = build_explicit_id_config("comicvine", 456, creds)
+        auth = settings.online.auth.sources["comicvine"]
+        assert auth.key == "k"
+        assert auth.url == "https://cv.example.com/api"
+
     def test_build_explicit_id_config_merge(self) -> None:
         # Merge: both sources pinned by explicit id (primary first), first_wins
         # off, auth for both. comicbox runs every id-pinned source and merges.
