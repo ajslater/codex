@@ -1,223 +1,47 @@
 """
-Unit tests for the non-blocking online tagging session manager.
+Unit tests for a scan run by the online tagging session manager.
 
-A scan (``run_session``) runs Pass 1 and persists ambiguous matches as
-deferred prompts, then returns without blocking. Answering a prompt
-(``resolve_prompt``) is decoupled: it builds a fresh session, applies the
-chosen match, and enqueues a single-comic write — no live scan required.
+``run_session`` runs Pass 1 and persists ambiguous matches as deferred
+prompts, then returns without blocking. Answering those prompts is covered by
+``test_onlinetag_prompt_resolution``; credential assembly by
+``test_onlinetag_credentials``.
 """
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, ClassVar, Final, override
 from unittest.mock import patch
 
 from comicbox.events import AutoWritten, FileFinished, RateLimited
-from django.core.cache import caches
-from django.test import TestCase
 from loguru import logger
 
 from codex.librarian.onlinetag.session_cache import (
     get_active_scan_id,
     get_pending_prompts,
-    set_pending_prompts,
-)
-from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
-from codex.librarian.onlinetag.session_snapshot import (
-    USER_MATCHED,
-    get_resolved_outcomes,
 )
 from codex.librarian.onlinetag.session_state import SessionState
-from codex.librarian.onlinetag.tasks import (
-    BulkOnlineTagTask,
-    OnlineTagPromptResponseTask,
-)
-from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
-from codex.librarian.scribe.tasks import BulkTagWriteTask
-from codex.models import (
-    Comic,
-    ComicboxTaggingDefaults,
-    Identifier,
-    IdentifierSource,
-    Imprint,
-    Library,
-    Publisher,
-    Series,
-    Volume,
-)
-
-_TMP_DIR: Final = Path("/tmp/codex.tests.onlinetag.manager")  # noqa: S108
-_PATCH_TARGET: Final = "codex.librarian.onlinetag.session_manager.OnlineSession"
-_FETCH_TARGET: Final = (
-    "codex.librarian.onlinetag.session_manager.fetch_tags_by_explicit_id"
+from codex.librarian.onlinetag.tasks import BulkOnlineTagTask
+from codex.models import Comic, Identifier, IdentifierSource
+from tests.onlinetag_session_fakes import (
+    FETCH_TARGET,
+    PATCH_TARGET,
+    FakeDP,
+    FakeSession,
+    OnlineTagSessionTestCase,
+    double,
+    make_comic,
 )
 
 
-def _double(stub: object) -> Any:
-    """
-    Pass a test double through a strictly-typed seam.
+class OnlineTagScanTests(OnlineTagSessionTestCase):
+    """run_session persists prompts non-blockingly and never re-searches."""
 
-    The manager's constructor and ``_pass_runner`` attribute are annotated
-    with concrete production types (loguru ``Logger``, multiprocessing
-    ``Queue``, ``TagPassRunner``). These fakes only implement the slice the
-    tests exercise, so erase to ``Any`` at the injection point instead of
-    weakening the production annotations.
-    """
-    return stub
-
-
-class _FakeQueue:
-    """Collects everything put on it for assertions."""
-
-    def __init__(self) -> None:
-        self.items: list = []
-
-    def put(self, item) -> None:
-        self.items.append(item)
-
-
-class _FakeCandidate:
-    def __init__(self, issue_id: int, source: str) -> None:
-        self.issue_id = issue_id
-        self.source = source
-        self.score = 0.9
-        self.url = ""
-        self.summary = SimpleNamespace(
-            series="S", issue="1", year=2020, publisher="P", cover_url=""
-        )
-
-
-class _FakeDP:
-    def __init__(self, path: Path, fingerprint: str, source: str) -> None:
-        self.path = path
-        self.fingerprint = fingerprint
-        self.source = source
-        self.mode = "auto"
-        self.candidates = [_FakeCandidate(123, source)]
-
-
-class _FakeSession:
-    """Stand-in for comicbox.OnlineSession driven by class-level fixtures."""
-
-    deferred: ClassVar[list] = []
-    tag_results: ClassVar[list] = []
-    preloaded: ClassVar[list] = []
-    last_kwargs: ClassVar[dict] = {}
-
-    def __init__(self, **kwargs) -> None:
-        self.kwargs = kwargs
-        _FakeSession.last_kwargs = kwargs
-
-    def tag_many(self, paths):  # noqa: ARG002
-        return iter(_FakeSession.tag_results)
-
-    def deferred_prompts(self):
-        return list(_FakeSession.deferred)
-
-    def preload_resolution(
-        self, fingerprint, *, action, payload=None, chosen_volume_id=None
-    ) -> None:
-        _FakeSession.preloaded.append((fingerprint, action, payload, chosen_volume_id))
-
-    def cancel(self) -> None:
-        pass
-
-
-def _make_comic() -> Comic:
-    _TMP_DIR.mkdir(exist_ok=True, parents=True)
-    library = Library.objects.create(path=str(_TMP_DIR))
-    publisher = Publisher.objects.create(name="P")
-    imprint = Imprint.objects.create(name="I", publisher=publisher)
-    series = Series.objects.create(name="S", publisher=publisher, imprint=imprint)
-    volume = Volume.objects.create(
-        name="1", publisher=publisher, imprint=imprint, series=series
-    )
-    path = _TMP_DIR / "c.cbz"
-    path.touch()
-    return Comic.objects.create(
-        library=library,
-        path=path,
-        issue_number=1,
-        name="c",
-        publisher=publisher,
-        imprint=imprint,
-        series=series,
-        volume=volume,
-        size=1,
-        file_type="CBZ",
-    )
-
-
-class OnlineTagSessionManagerTests(TestCase):
-    """run_session persists prompts non-blockingly; resolve applies via fresh session."""
-
-    @override
-    def setUp(self) -> None:
-        caches["default"].clear()
-        caches["tagging"].clear()
-        _FakeSession.deferred = []
-        _FakeSession.tag_results = []
-        _FakeSession.preloaded = []
-        _FakeSession.last_kwargs = {}
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "t"},
-        )
-        self.queue = _FakeQueue()  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.manager = OnlineTagSessionManager(  # pyright: ignore[reportUninitializedInstanceVariable]
-            _double(logger),
-            _double(self.queue),
-            thread_queue=None,
-        )
-
-    @override
-    def tearDown(self) -> None:
-        shutil.rmtree(_TMP_DIR, ignore_errors=True)
-
-    def test_run_session_persists_prompts_and_returns(self) -> None:
-        comic = _make_comic()
-        comic_path = Path(comic.path)
-        _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
-        # No-op Pass 1: we only exercise the persist step here.
-        self.manager._pass_runner = _double(  # noqa: SLF001
+    def _no_op_pass(self) -> None:
+        """Stub out Pass 1: only the steps around it are under test."""
+        self.manager._pass_runner = double(  # noqa: SLF001
             SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
         )
-        task = BulkOnlineTagTask(
-            comic_pks=frozenset({comic.pk}),
-            session_id="scan-1",
-            sources=("metron",),
-            mode="auto",
-        )
-
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.run_session(task)
-
-        prompts = get_pending_prompts()
-        assert "fp1" in prompts
-        assert prompts["fp1"]["pk"] == comic.pk
-        # The scan released its marker (non-blocking; nothing lingers in-flight).
-        assert get_active_scan_id() == ""
-
-    def test_run_session_passes_source_order_to_session(self) -> None:
-        """The task's source order (run priority) reaches OnlineSession verbatim."""
-        comic = _make_comic()
-        self.manager._pass_runner = _double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
-        )
-        task = BulkOnlineTagTask(
-            comic_pks=frozenset({comic.pk}),
-            session_id="scan-order",
-            sources=("comicvine", "metron"),
-            mode="auto",
-        )
-
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.run_session(task)
-
-        assert _FakeSession.last_kwargs["sources"] == ("comicvine", "metron")
 
     @staticmethod
     def _add_issue_id(comic: Comic, source_name: str, key: str) -> None:
@@ -228,15 +52,52 @@ class OnlineTagSessionManagerTests(TestCase):
 
     def _capture_search_paths(self, captured: list) -> None:
         """Make the (mocked) search pass record the comics it's handed."""
-        self.manager._pass_runner = _double(  # noqa: SLF001
+        self.manager._pass_runner = double(  # noqa: SLF001
             SimpleNamespace(
                 collect_results=lambda _state, paths, **_kw: captured.extend(paths)
             )
         )
 
+    def test_run_session_persists_prompts_and_returns(self) -> None:
+        comic = make_comic()
+        comic_path = Path(comic.path)
+        FakeSession.deferred = [FakeDP(comic_path, "fp1", "metron")]
+        self._no_op_pass()
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-1",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        prompts = get_pending_prompts()
+        assert "fp1" in prompts
+        assert prompts["fp1"]["pk"] == comic.pk
+        # The scan released its marker (non-blocking; nothing lingers in-flight).
+        assert get_active_scan_id() == ""
+
+    def test_run_session_passes_source_order_to_session(self) -> None:
+        """The task's source order (run priority) reaches OnlineSession verbatim."""
+        comic = make_comic()
+        self._no_op_pass()
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-order",
+            sources=("comicvine", "metron"),
+            mode="auto",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        assert FakeSession.last_kwargs["sources"] == ("comicvine", "metron")
+
     def test_run_session_prefetches_stored_id_and_skips_search(self) -> None:
         """A comic with a stored issue id is fetched by id, not searched."""
-        comic = _make_comic()
+        comic = make_comic()
         self._add_issue_id(comic, "metron", "123495")
         searched: list = []
         self._capture_search_paths(searched)
@@ -252,19 +113,19 @@ class OnlineTagSessionManagerTests(TestCase):
             captured_fetch.update(source=source, issue_id=issue_id)
             return {"series": "X"}
 
-        with patch(_PATCH_TARGET, _FakeSession), patch(_FETCH_TARGET, _fake_fetch):
+        with patch(PATCH_TARGET, FakeSession), patch(FETCH_TARGET, _fake_fetch):
             self.manager.run_session(task)
 
         # Fetched directly by the stored id (numeric), never searched.
         assert captured_fetch == {"source": "metron", "issue_id": 123495}
         assert searched == []
-        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        writes = self.write_tasks()
         assert len(writes) == 1
         assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
 
     def test_run_session_unresolved_stored_id_falls_back_to_search(self) -> None:
         """A stored id that doesn't resolve leaves the comic for the search pass."""
-        comic = _make_comic()
+        comic = make_comic()
         self._add_issue_id(comic, "metron", "123495")
         searched: list = []
         self._capture_search_paths(searched)
@@ -276,20 +137,18 @@ class OnlineTagSessionManagerTests(TestCase):
         )
 
         with (
-            patch(_PATCH_TARGET, _FakeSession),
-            patch(_FETCH_TARGET, lambda *_a, **_k: None),
+            patch(PATCH_TARGET, FakeSession),
+            patch(FETCH_TARGET, lambda *_a, **_k: None),
         ):
             self.manager.run_session(task)
 
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        assert not self.write_tasks()
         assert searched == [Path(comic.path)]
 
     def test_run_session_passes_pinned_ids_to_session(self) -> None:
         """A pinned id per source reaches OnlineSession, which fetches it."""
-        comic = _make_comic()
-        self.manager._pass_runner = _double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
-        )
+        comic = make_comic()
+        self._no_op_pass()
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
             session_id="scan-pinned",
@@ -298,10 +157,10 @@ class OnlineTagSessionManagerTests(TestCase):
             ids={"metron": 12345},
         )
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        with patch(PATCH_TARGET, FakeSession):
             self.manager.run_session(task)
 
-        assert _FakeSession.last_kwargs["ids"] == {"metron": 12345}
+        assert FakeSession.last_kwargs["ids"] == {"metron": 12345}
 
     def test_run_session_pinned_ids_bypass_the_stored_id_prepass(self) -> None:
         """
@@ -311,7 +170,7 @@ class OnlineTagSessionManagerTests(TestCase):
         leave the unpinned sources with nothing to search — the pinned and
         searched sources have to resolve in the same lookup to merge.
         """
-        comic = _make_comic()
+        comic = make_comic()
         self._add_issue_id(comic, "metron", "123495")
         searched: list = []
         self._capture_search_paths(searched)
@@ -325,20 +184,20 @@ class OnlineTagSessionManagerTests(TestCase):
         fetch_calls: list = []
 
         with (
-            patch(_PATCH_TARGET, _FakeSession),
-            patch(_FETCH_TARGET, lambda *a, **_k: fetch_calls.append(a)),
+            patch(PATCH_TARGET, FakeSession),
+            patch(FETCH_TARGET, lambda *a, **_k: fetch_calls.append(a)),
         ):
             self.manager.run_session(task)
 
         assert fetch_calls == []
         assert searched == [Path(comic.path)]
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
+        assert not self.write_tasks()
 
     def test_run_session_pinned_ids_land_in_resume_params(self) -> None:
         """A paused pinned session resumes still pinned."""
-        comic = _make_comic()
+        comic = make_comic()
         captured: list = []
-        self.manager._pass_runner = _double(  # noqa: SLF001
+        self.manager._pass_runner = double(  # noqa: SLF001
             SimpleNamespace(
                 collect_results=lambda state, *_a, **_k: captured.append(
                     state.resume_params
@@ -353,7 +212,7 @@ class OnlineTagSessionManagerTests(TestCase):
             ids={"metron": 12345},
         )
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        with patch(PATCH_TARGET, FakeSession):
             self.manager.run_session(task)
 
         assert captured
@@ -363,12 +222,12 @@ class OnlineTagSessionManagerTests(TestCase):
         """A prefetched comic shows as matched yet is excluded from Resume."""
         from codex.librarian.onlinetag.session_snapshot import remaining_pks
 
-        comic = _make_comic()
+        comic = make_comic()
         self._add_issue_id(comic, "metron", "123495")
         path = Path(comic.path)
         comic_paths = {comic.pk: path}
         state = SessionState(
-            session=_double(_FakeSession()),
+            session=double(FakeSession()),
             path_to_pk={path: comic.pk},
             sources=("metron",),
         )
@@ -382,7 +241,7 @@ class OnlineTagSessionManagerTests(TestCase):
             mode="auto",
         )
 
-        with patch(_FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
+        with patch(FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
             self.manager._prefetch_stored_ids(  # noqa: SLF001
                 state, comic_paths, task, credentials
             )
@@ -396,14 +255,11 @@ class OnlineTagSessionManagerTests(TestCase):
         assert remaining_pks(state, set()) == []
 
     def test_run_session_never_prompts_skips_persistence(self) -> None:
-        comic = _make_comic()
+        comic = make_comic()
         comic_path = Path(comic.path)
         # An ambiguous match is available, but "never" must not persist it.
-        _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
-        # No-op Pass 1: we only exercise the (skipped) persist step here.
-        self.manager._pass_runner = _double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
-        )
+        FakeSession.deferred = [FakeDP(comic_path, "fp1", "metron")]
+        self._no_op_pass()
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
             session_id="scan-never",
@@ -412,17 +268,17 @@ class OnlineTagSessionManagerTests(TestCase):
             prompts_mode="never",
         )
 
-        with patch(_PATCH_TARGET, _FakeSession):
+        with patch(PATCH_TARGET, FakeSession):
             self.manager.run_session(task)
 
         # The session was built to skip inline rather than defer prompts.
-        assert _FakeSession.last_kwargs["defer_prompts"] is False
+        assert FakeSession.last_kwargs["defer_prompts"] is False
         # No ambiguous match was queued for later resolution.
         assert get_pending_prompts() == {}
         assert get_active_scan_id() == ""
 
     def test_run_session_logs_outcome_summary(self) -> None:
-        comic = _make_comic()
+        comic = make_comic()
         comic_path = Path(comic.path)
         on_event = self.manager._on_event  # noqa: SLF001
 
@@ -431,7 +287,7 @@ class OnlineTagSessionManagerTests(TestCase):
             on_event(AutoWritten(path=comic_path, source="metron"))
             on_event(FileFinished(path=comic_path, outcome="written"))
 
-        self.manager._pass_runner = _double(  # noqa: SLF001
+        self.manager._pass_runner = double(  # noqa: SLF001
             SimpleNamespace(collect_results=_drive)
         )
         task = BulkOnlineTagTask(
@@ -444,7 +300,7 @@ class OnlineTagSessionManagerTests(TestCase):
         messages: list[str] = []
         sink_id = logger.add(messages.append, level="INFO", format="{message}")
         try:
-            with patch(_PATCH_TARGET, _FakeSession):
+            with patch(PATCH_TARGET, FakeSession):
                 self.manager.run_session(task)
         finally:
             logger.remove(sink_id)
@@ -453,375 +309,13 @@ class OnlineTagSessionManagerTests(TestCase):
         assert len(summaries) == 1
         assert "matched 1 (metron 1)" in summaries[0]
 
-    def test_resolve_choose_fetches_chosen_issue_by_id_and_writes(self) -> None:
-        """A pick is fetched by its exact issue id, not re-searched."""
-        comic = _make_comic()
-        comic_path = str(comic.path)
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": comic_path,
-                    "source": "metron",
-                    "candidates": [{"issue_id": 123, "source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-        captured: dict = {}
-
-        def _fake_fetch(path, source, issue_id, _credentials, **_kwargs):
-            captured.update(path=str(path), source=source, issue_id=issue_id)
-            return {"series": "X"}
-
-        with patch(_FETCH_TARGET, _fake_fetch):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        # Prompt consumed; the exact chosen issue was fetched directly by id.
-        assert get_pending_prompts() == {}
-        assert captured == {"path": comic_path, "source": "metron", "issue_id": 123}
-        # The replay session was never built — no re-search to drift.
-        assert _FakeSession.preloaded == []
-        # A single-comic write was enqueued, and the outcome recorded.
-        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        assert len(writes) == 1
-        assert writes[0].comic_pks == frozenset({comic.pk})
-        assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
-        assert get_resolved_outcomes().get(comic.pk) == USER_MATCHED
-
-    def test_resolve_choose_unresolved_id_does_not_write_or_requeue(self) -> None:
-        """A pick whose id doesn't resolve writes nothing and never re-prompts."""
-        comic = _make_comic()
-        comic_path = str(comic.path)
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": comic_path,
-                    "source": "metron",
-                    "candidates": [{"issue_id": 123, "source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-
-        with patch(_FETCH_TARGET, lambda *_a, **_k: None):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        # The explicit choice is honored: no worse fresh prompt is re-queued.
-        assert get_pending_prompts() == {}
-        # The consumed-but-unapplied pick surfaces on the admin error panel.
-        errors = get_tag_write_errors()
-        assert len(errors) == 1
-        assert "did not resolve" in errors[0]["error"]
-
-    def test_resolve_fetches_against_current_db_path_not_prompt_snapshot(self) -> None:
-        """
-        A pick applies against the comic's current DB path, not the prompt's.
-
-        The serialized prompt path goes stale when an earlier write for the
-        same comic ran with rename enabled (e.g. the comic's other source's
-        prompt was answered first) — the DB row follows the rename.
-        """
-        comic = _make_comic()
-        stale_path = str(Path(comic.path).with_name("stale-pre-rename-name.cbz"))
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": stale_path,
-                    "source": "metron",
-                    "candidates": [{"issue_id": 123, "source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-        captured: dict = {}
-
-        def _fake_fetch(path, source, issue_id, _credentials, **_kwargs):
-            captured.update(path=str(path), source=source, issue_id=issue_id)
-            return {"series": "X"}
-
-        with patch(_FETCH_TARGET, _fake_fetch):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert captured["path"] == str(comic.path)
-        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        assert len(writes) == 1
-        assert writes[0].comic_pks == frozenset({comic.pk})
-
-    def test_resolve_fetch_failure_surfaces_error_without_crashing(self) -> None:
-        """A fetch crash (stale file, source error) reports; the pick isn't lost silently."""
-        comic = _make_comic()
-        comic_path = str(comic.path)
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": comic_path,
-                    "source": "comicvine",
-                    "candidates": [{"issue_id": 764978, "source": "comicvine"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-
-        def _boom(*_args, **_kwargs):
-            reason = f"{comic_path} does not exist."
-            raise FileNotFoundError(reason)
-
-        with patch(_FETCH_TARGET, _boom):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        assert get_pending_prompts() == {}
-        errors = get_tag_write_errors()
-        assert len(errors) == 1
-        assert "fetching chosen issue comicvine:764978 failed" in errors[0]["error"]
-
-    def test_resolve_missing_comic_row_reports_and_never_fetches(self) -> None:
-        """A prompt whose comic left the DB reports instead of fetching a dead path."""
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": 999_999,
-                    "path": "/gone/c.cbz",
-                    "source": "metron",
-                    "candidates": [{"issue_id": 123, "source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-        called: list = []
-
-        def _fake_fetch(*args, **_kwargs):
-            called.append(args)
-            return {"series": "X"}
-
-        with patch(_FETCH_TARGET, _fake_fetch):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert not called
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        errors = get_tag_write_errors()
-        assert len(errors) == 1
-        assert "no longer in the database" in errors[0]["error"]
-
-    def test_resolve_drifted_prompt_requeues_fresh_prompt(self) -> None:
-        """A candidate with no issue id falls back to replay, which can drift."""
-        comic = _make_comic()
-        comic_path = str(comic.path)
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": comic_path,
-                    "source": "metron",
-                    # No issue_id → not an explicit pick → replay path.
-                    "candidates": [{"source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-        # The re-search produced a different candidate set: the preloaded
-        # fingerprint misses and the session defers a fresh prompt instead.
-        _FakeSession.deferred = [_FakeDP(Path(comic_path), "fp2", "metron")]
-        _FakeSession.tag_results = [
-            SimpleNamespace(
-                path=Path(comic_path),
-                tags={"series": "Existing"},
-                error=None,
-                matched=False,
-            )
-        ]
-
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        prompts = get_pending_prompts()
-        assert set(prompts) == {"fp2"}
-        assert prompts["fp2"]["pk"] == comic.pk
-        assert prompts["fp2"]["formats"] == ["COMIC_INFO"]
-
-    def test_resolve_unmatched_result_does_not_write(self) -> None:
-        """An unmatched replay (tags = merged existing metadata) writes nothing."""
-        comic = _make_comic()
-        comic_path = str(comic.path)
-        set_pending_prompts(
-            {
-                "fp1": {
-                    "fingerprint": "fp1",
-                    "pk": comic.pk,
-                    "path": comic_path,
-                    "source": "metron",
-                    # No issue_id → not an explicit pick → replay path.
-                    "candidates": [{"source": "metron"}],
-                    "mode": "auto",
-                    "formats": ["COMIC_INFO"],
-                    "delete_original": False,
-                }
-            }
-        )
-        _FakeSession.tag_results = [
-            SimpleNamespace(
-                path=Path(comic_path),
-                tags={"series": "Existing"},
-                error=None,
-                matched=False,
-            )
-        ]
-
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.resolve_prompt("fp1", "choose", 0, None)
-
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-
-    def test_resolve_skip_drops_prompt_without_writing(self) -> None:
-        set_pending_prompts(
-            {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
-        )
-
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.resolve_prompt("fp1", "skip", None, None)
-
-        assert get_pending_prompts() == {}
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-
-    def test_skip_all_clears_every_prompt(self) -> None:
-        seeded = {
-            "a": {"fingerprint": "a", "pk": 1, "path": "/c/1.cbz", "source": "x"},
-            "b": {"fingerprint": "b", "pk": 2, "path": "/c/2.cbz", "source": "x"},
-        }
-        set_pending_prompts(seeded)
-
-        count = self.manager.skip_all_prompts()
-
-        assert count == len(seeded)
-        assert get_pending_prompts() == {}
-
-    def test_resolve_unknown_prompt_is_a_noop(self) -> None:
-        with patch(_PATCH_TARGET, _FakeSession):
-            self.manager.resolve_prompt("nope", "choose", 0, None)
-
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-
-    def test_pending_prompts_survive_default_cache_clear(self) -> None:
-        """Importer-finish / CRUD cache.clear() must not strand pending prompts."""
-        set_pending_prompts(
-            {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
-        )
-
-        caches["default"].clear()
-
-        assert "fp1" in get_pending_prompts()
-
-    def _seed_prompt(self, comic) -> dict:
-        prompt = {
-            "fingerprint": "fp1",
-            "pk": comic.pk,
-            "path": str(comic.path),
-            "source": "metron",
-            "candidates": [{"issue_id": 123, "source": "metron"}],
-            "mode": "auto",
-            "formats": ["COMIC_INFO"],
-            "delete_original": False,
-        }
-        set_pending_prompts({"fp1": prompt})
-        return prompt
-
-    def test_defer_prompt_response_removes_from_cache_and_defers_apply(self) -> None:
-        """A mid-scan "choose" clears the cache now but defers the write."""
-        comic = _make_comic()
-        self._seed_prompt(comic)
-        state = SessionState(
-            session=_double(_FakeSession()), path_to_pk={Path(comic.path): comic.pk}
-        )
-        task = OnlineTagPromptResponseTask(
-            prompt_fingerprint="fp1", action="choose", payload=0
-        )
-
-        self.manager._defer_prompt_response(state, task)  # noqa: SLF001
-
-        # Gone from the cache immediately, so a refresh won't resurrect it.
-        assert get_pending_prompts() == {}
-        assert "fp1" in state.answered_fingerprints
-        # The network apply is deferred, not run inline mid-scan.
-        assert len(state.deferred_applies) == 1
-        assert not [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-
-    def test_defer_prompt_response_skip_drops_without_deferring_apply(self) -> None:
-        comic = _make_comic()
-        self._seed_prompt(comic)
-        state = SessionState(
-            session=_double(_FakeSession()), path_to_pk={Path(comic.path): comic.pk}
-        )
-        task = OnlineTagPromptResponseTask(prompt_fingerprint="fp1", action="skip")
-
-        self.manager._defer_prompt_response(state, task)  # noqa: SLF001
-
-        assert get_pending_prompts() == {}
-        assert "fp1" in state.answered_fingerprints
-        assert state.deferred_applies == []
-
-    def test_persist_prompts_skips_answered_fingerprints(self) -> None:
-        """A scan must not re-persist a prompt the admin answered mid-scan."""
-        comic = _make_comic()
-        comic_path = Path(comic.path)
-        _FakeSession.deferred = [_FakeDP(comic_path, "fp1", "metron")]
-        state = SessionState(
-            session=_double(_FakeSession()),
-            path_to_pk={comic_path: comic.pk},
-            formats=("COMIC_INFO",),
-        )
-        state.answered_fingerprints.add("fp1")
-
-        self.manager._persist_prompts(state)  # noqa: SLF001
-
-        assert get_pending_prompts() == {}
-
-    def test_apply_deferred_resolutions_writes_then_clears(self) -> None:
-        comic = _make_comic()
-        prompt = self._seed_prompt(comic)
-        # The cache entry was already removed inline; the apply re-fetches.
-        set_pending_prompts({})
-        state = SessionState(session=_double(_FakeSession()))
-        state.deferred_applies.append((prompt, "choose", 0, None))
-
-        with patch(_FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
-            self.manager._apply_deferred_resolutions(state)  # noqa: SLF001
-
-        writes = [i for i in self.queue.items if isinstance(i, BulkTagWriteTask)]
-        assert len(writes) == 1
-        assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
-        assert state.deferred_applies == []
-
     def test_mark_rate_limited_sets_retry_and_eta(self) -> None:
         """A rate-limit event arms the retry countdown and pushes eta out."""
         from codex.librarian.onlinetag.status import OnlineLookupStatus
 
         status = OnlineLookupStatus()
         state = SessionState(
-            session=_double(_FakeSession()),
+            session=double(FakeSession()),
             match_mode="auto",
             sources=("comicvine",),
             total_comics=10,
@@ -842,7 +336,7 @@ class OnlineTagSessionManagerTests(TestCase):
         from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
 
         path = Path("/c/a.cbz")
-        state = _double(SimpleNamespace(path_to_pk={path: 1}, collected_tags={}))
+        state = double(SimpleNamespace(path_to_pk={path: 1}, collected_tags={}))
         batch: dict = {}
         unmatched = SimpleNamespace(
             path=path, tags={"series": "Existing"}, error=None, matched=False
@@ -855,62 +349,3 @@ class OnlineTagSessionManagerTests(TestCase):
         )
         TagPassRunner._store_result_tags(state, matched, batch, flush_writes=True)  # noqa: SLF001
         assert batch == {1: {"series": "New"}}
-
-    def test_metron_credentials_accept_a_key_or_a_legacy_login(self) -> None:
-        """Both auth styles configure Metron; comicbox raises on neither."""
-        manager = self.manager
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "", "metron_user": "u", "metron_password": "p"},
-        )
-        legacy = manager._build_credentials()  # noqa: SLF001
-        assert legacy is not None
-        assert legacy.metron_user == "u"
-        assert manager._source_has_credentials(legacy, "metron") is True  # noqa: SLF001
-
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "t", "metron_user": "", "metron_password": ""},
-        )
-        keyed = manager._build_credentials()  # noqa: SLF001
-        assert keyed is not None
-        assert keyed.metron_key == "t"
-        assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
-
-    def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={
-                "metron_key": "",
-                "metron_user": "",
-                "metron_password": "",
-                "comicvine_key": "",
-            },
-        )
-        assert self.manager._build_credentials() is None  # noqa: SLF001
-
-    def test_comicvine_custom_url_reaches_comicbox(self) -> None:
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={
-                "comicvine_key": "key",
-                "comicvine_url": "https://cv.example.com/api",
-            },
-        )
-        credentials = self.manager._build_credentials()  # noqa: SLF001
-        assert credentials is not None
-        assert credentials.comicvine_url == "https://cv.example.com/api"
-
-    def test_a_custom_url_alone_is_not_credentials(self) -> None:
-        """A url cannot authenticate, so it must not configure the source."""
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={
-                "metron_key": "",
-                "metron_user": "",
-                "metron_password": "",
-                "comicvine_key": "",
-                "comicvine_url": "https://cv.example.com/api",
-            },
-        )
-        assert self.manager._build_credentials() is None  # noqa: SLF001

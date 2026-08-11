@@ -7,7 +7,7 @@ asserts none of them reach the wire. Then walks the payload and requires every
 leaf to be a number, a boolean, or a string drawn from a closed vocabulary.
 
 If a new stat legitimately needs a new kind of string, add its vocabulary to
-``_vocabularies`` deliberately. Do not widen the walk.
+one of the ``_vocabularies`` sources deliberately. Do not widen the walk.
 """
 
 import json
@@ -59,47 +59,75 @@ _BUCKET_PATHS: Final = frozenset(
 )
 
 
-def _vocabularies() -> frozenset[str]:
-    """Every closed vocabulary a payload string may be drawn from."""
-    from codex.choices.browser import (
-        BROWSER_ORDER_BY_CHOICES,
-        BROWSER_TABLE_COVER_SIZE_CHOICES,
-        BROWSER_VIEW_MODE_CHOICES,
-    )
-    from codex.choices.reader import READER_CHOICES
-    from codex.models.age_rating import AgeRatingMetron
-    from codex.models.choices import FileTypeChoices
+# Strings the payload may carry that belong to no enum: the empty value, the
+# collapsed-unknown buckets, and serialized booleans.
+_LITERALS: Final = frozenset({"", "other", "true", "false", "unknown"})
 
-    values: set[str] = {"", "other", "true", "false", "unknown"}
-    values |= {member.value for member in Collection}
-    values |= {member.value.lower() for member in FileTypeChoices}
-    values |= {member.value for member in IdentifierType}
-    values |= set(BROWSER_ORDER_BY_CHOICES)
-    values |= set(BROWSER_VIEW_MODE_CHOICES)
-    values |= set(BROWSER_TABLE_COVER_SIZE_CHOICES)
-    for reader_choices in READER_CHOICES.values():
-        values |= {value.lower() for value in reader_choices}
-    values |= {mode.value for mode in ComicboxTaggingDefaults.MatchModeChoices}
-    values |= {mode.value for mode in ComicboxTaggingDefaults.PromptsModeChoices}
-    values |= set(AgeRatingMetron.objects.values_list("name", flat=True))
-    # Identifier buckets are "<source>:<id_type>", both closed vocabularies.
-    from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
-
-    sources = {source.value for source in ID_SOURCE_NAME_MAP} | {"other"}
-    kinds = {member.value for member in IdentifierType} | {"other"}
-    values |= {f"{source}:{kind}" for source in sources for kind in kinds}
-    # comicbox online source names, used as tagging bucket keys.
-    from comicbox.formats.base.online import SOURCE_NAMES
-
-    values |= set(SOURCE_NAMES)
-    # OIDC client authentication methods.
-    values |= {
+# OIDC client authentication methods, a closed vocabulary from the spec.
+_OIDC_AUTH_METHODS: Final = frozenset(
+    {
         "client_secret_basic",
         "client_secret_post",
         "client_secret_jwt",
         "private_key_jwt",
         "none",
     }
+)
+
+
+def _enum_values(*enums) -> set[str]:
+    """Every member value across the given enums."""
+    return {member.value for enum in enums for member in enum}
+
+
+def _choice_vocabularies() -> set[str]:
+    """Collect the enums and choice tuples codex defines in its own source."""
+    from codex.choices.browser import (
+        BROWSER_ORDER_BY_CHOICES,
+        BROWSER_TABLE_COVER_SIZE_CHOICES,
+        BROWSER_VIEW_MODE_CHOICES,
+    )
+    from codex.choices.reader import READER_CHOICES
+    from codex.models.choices import FileTypeChoices
+
+    values = _enum_values(Collection, IdentifierType)
+    values |= {value.lower() for value in _enum_values(FileTypeChoices)}
+    values |= set(BROWSER_ORDER_BY_CHOICES)
+    values |= set(BROWSER_VIEW_MODE_CHOICES)
+    values |= set(BROWSER_TABLE_COVER_SIZE_CHOICES)
+    return values | {
+        value.lower() for choices in READER_CHOICES.values() for value in choices
+    }
+
+
+def _identifier_bucket_vocabulary() -> set[str]:
+    """Cross the two closed vocabularies an "<source>:<id_type>" bucket key joins."""
+    from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
+
+    sources = {source.value for source in ID_SOURCE_NAME_MAP} | {"other"}
+    kinds = _enum_values(IdentifierType) | {"other"}
+    return {f"{source}:{kind}" for source in sources for kind in kinds}
+
+
+def _tagging_vocabularies() -> set[str]:
+    """Tagging modes, plus the comicbox source names used as bucket keys."""
+    from comicbox.formats.base.online import SOURCE_NAMES
+
+    return set(SOURCE_NAMES) | _enum_values(
+        ComicboxTaggingDefaults.MatchModeChoices,
+        ComicboxTaggingDefaults.PromptsModeChoices,
+    )
+
+
+def _vocabularies() -> frozenset[str]:
+    """Every closed vocabulary a payload string may be drawn from."""
+    from codex.models.age_rating import AgeRatingMetron
+
+    values = set(_LITERALS | _OIDC_AUTH_METHODS)
+    values |= _choice_vocabularies()
+    values |= _identifier_bucket_vocabulary()
+    values |= _tagging_vocabularies()
+    values |= set(AgeRatingMetron.objects.values_list("name", flat=True))
     return frozenset(values)
 
 

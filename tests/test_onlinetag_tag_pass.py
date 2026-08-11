@@ -1,9 +1,8 @@
 """
 Unit tests for the online-tag pass runner and stored-id prepass.
 
-Split out of ``test_onlinetag_session_manager`` (which covers the session
-manager itself) to keep each module focused. The shared test doubles and
-the comic factory live in that module and are imported here.
+One of the online tagging manager modules; the shared test doubles and the
+comic factory live in ``tests.onlinetag_session_fakes``.
 """
 
 from __future__ import annotations
@@ -19,12 +18,7 @@ from django.utils.timezone import now, timedelta
 from loguru import logger
 
 from codex.models import Identifier, IdentifierSource
-from tests.test_onlinetag_session_manager import (
-    _TMP_DIR,
-    _double,
-    _FakeQueue,
-    _make_comic,
-)
+from tests.onlinetag_session_fakes import TMP_DIR, FakeQueue, double, make_comic
 
 
 class TagPassRunnerFinishTests(TestCase):
@@ -51,7 +45,7 @@ class TagPassRunnerFinishTests(TestCase):
                 msg = "rate-limit budget exhausted"
                 raise RuntimeError(msg)
 
-        state = _double(
+        state = double(
             SimpleNamespace(
                 session=_BoomSession(),
                 cancelled=False,
@@ -66,9 +60,9 @@ class TagPassRunnerFinishTests(TestCase):
             )
         )
         runner = TagPassRunner(
-            _double(logger),
-            _double(_FakeQueue()),
-            _double(_FakeStatusController()),
+            double(logger),
+            double(FakeQueue()),
+            double(_FakeStatusController()),
             lambda _state: None,
             lambda _state: None,
         )
@@ -94,7 +88,7 @@ class TagPassRunnerFinishTests(TestCase):
         status = OnlineLookupStatus()
         status.subtitle = "rate limited by comicvine"
         status.retry_at = now() + timedelta(seconds=30)
-        state = _double(
+        state = double(
             SimpleNamespace(
                 completed_comics=0,
                 total_comics=10,
@@ -104,9 +98,9 @@ class TagPassRunnerFinishTests(TestCase):
             )
         )
         runner = TagPassRunner(
-            _double(logger),
-            _double(_FakeQueue()),
-            _double(_NoopStatusController()),
+            double(logger),
+            double(FakeQueue()),
+            double(_NoopStatusController()),
             lambda _state: None,
             lambda _state: None,
         )
@@ -126,7 +120,7 @@ class BuildStoredIdMapTests(TestCase):
 
     @override
     def tearDown(self) -> None:
-        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+        shutil.rmtree(TMP_DIR, ignore_errors=True)
 
     @staticmethod
     def _identifier(source_name: str, id_type: str, key: str) -> Identifier:
@@ -137,7 +131,7 @@ class BuildStoredIdMapTests(TestCase):
         """Issue ids parse (incl. comicvine long keys) and order by priority."""
         from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 
-        comic = _make_comic()
+        comic = make_comic()
         comic.identifiers.add(
             self._identifier("metron", "comic", "123495"),
             self._identifier("comicvine", "comic", "4000-67890"),
@@ -154,7 +148,7 @@ class BuildStoredIdMapTests(TestCase):
         """Only requested sources count; comics without an id are absent."""
         from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 
-        comic = _make_comic()
+        comic = make_comic()
         comic.identifiers.add(self._identifier("comicvine", "comic", "4000-67890"))
 
         assert build_stored_id_map([comic.pk], ("metron",)) == {}
