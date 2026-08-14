@@ -225,6 +225,11 @@ class MovedFoldersImporter(MovedCoversImporter):
 
             count += self._bulk_move_folders_and_create_parents(status)
             self.task.dirs_moved = {}
+        except Exception:
+            # Broad by intent, as in bulk_comics_moved. Converting
+            # dirs_moved to a bidict raises when two sources share a
+            # destination, which the watcher can emit.
+            self.log.exception(f"Moving {num_dirs_moved} folders")
         finally:
             self.status_controller.finish(status)
             if mark_in_progress:

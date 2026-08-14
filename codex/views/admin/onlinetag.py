@@ -3,6 +3,8 @@
 import contextlib
 import uuid
 from dataclasses import fields
+from types import MappingProxyType
+from typing import Final
 
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
@@ -33,6 +35,16 @@ from codex.serializers.admin.tagging import (
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.identifier_parse import parse_identifier_input
 from codex.views.admin.tagwrite import FilteredComicPksView
+
+# Boolean scan knobs the request may omit, mapped to the field on the stored
+# tagging defaults that supplies the fallback.
+_FLAG_DEFAULT_FIELDS: Final = MappingProxyType(
+    {
+        "delete_original": "delete_original",
+        "merge_all_sources": "merge_all_sources",
+        "rename": "rename_files",
+    }
+)
 
 
 def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
@@ -123,6 +135,16 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             return "Tagging by id requires a single comic."
         return ""
 
+    @staticmethod
+    def _resolve_flags(data: dict, defaults: ComicboxTaggingDefaults | None) -> dict:
+        """Take each boolean knob from the request, falling back to the defaults."""
+        return {
+            key: bool(requested)
+            if (requested := data.get(key)) is not None
+            else bool(defaults and getattr(defaults, default_field))
+            for key, default_field in _FLAG_DEFAULT_FIELDS.items()
+        }
+
     def post(self, request):
         """Validate and enqueue a BulkOnlineTagTask."""
         serializer = OnlineTagStartSerializer(data=request.data)
@@ -146,35 +168,14 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             return Response({"detail": detail}, status=400)
 
         session_id = str(uuid.uuid4())
-
-        req_delete = data.get("delete_original")
-        if req_delete is not None:
-            delete_original = req_delete
-        else:
-            delete_original = bool(defaults and defaults.delete_original)
-
-        req_merge = data.get("merge_all_sources")
-        if req_merge is not None:
-            merge_all_sources = req_merge
-        else:
-            merge_all_sources = bool(defaults and defaults.merge_all_sources)
-
-        req_rename = data.get("rename")
-        if req_rename is not None:
-            rename = req_rename
-        else:
-            rename = bool(defaults and defaults.rename_files)
-
         task = BulkOnlineTagTask(
             comic_pks=comic_pks,
             session_id=session_id,
             sources=tuple(data["sources"]),
             mode=data["mode"],
             prompts_mode=data["prompts_mode"],
-            delete_original=delete_original,
-            merge_all_sources=merge_all_sources,
-            rename=rename,
             ids=ids,
+            **self._resolve_flags(data, defaults),
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

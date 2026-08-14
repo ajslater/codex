@@ -13,7 +13,7 @@
 ###############################################################################
 
 # ---- Stage 1: builder (build tools + Node for compilation) -----------------
-FROM nikolaik/python-nodejs:python3.14-nodejs24 AS builder-base
+FROM nikolaik/python-nodejs:python3.14-nodejs26 AS builder-base
 # nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 
 COPY debian.sources /etc/apt/sources.list.d/
