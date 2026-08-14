@@ -62,12 +62,17 @@ class MovedCoversImporter(MovedComicsImporter):
 
     def bulk_covers_moved(self, status=None) -> int:
         """Move covers."""
+        count = 0
         num_covers_moved = len(self.task.covers_moved)
         status = ImporterMoveCoversStatus(None, num_covers_moved)
         try:
             if not num_covers_moved:
-                return 0
+                return count
             self.status_controller.start(status)
+
+            self.task.covers_moved = self._remove_file_move_collisions(
+                CustomCover, self.task.covers_moved, "custom cover"
+            )
 
             moved_covers, unlink_pks = self._bulk_covers_moved_prepare(status)
             if LINK_COVER_PKS not in self.metadata:
@@ -83,6 +88,9 @@ class MovedCoversImporter(MovedComicsImporter):
             count = len(moved_covers)
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Moved {count} custom covers.")
+        except Exception:
+            # Broad by intent, as in bulk_comics_moved.
+            self.log.exception(f"Moving {num_covers_moved} custom covers")
         finally:
             self.status_controller.finish(status)
         return count

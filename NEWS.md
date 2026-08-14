@@ -6,6 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.7
+
+- Fixes
+    - A comic moved or renamed onto a path that already belongs to another
+      comic, like a duplicate landing in a dupes folder, no longer crashes the
+      scan and no longer crashes every scan after it. The stray move is skipped
+      and the leftover record is cleaned up by a later scan.
+
 ## v2.2.6
 
 - Features

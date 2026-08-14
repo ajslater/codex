@@ -1,5 +1,6 @@
 """Bulk import and move comics."""
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -15,11 +16,77 @@ from codex.librarian.scribe.importer.read import ReadMetadataImporter
 from codex.librarian.scribe.importer.statii.create import ImporterCreateTagsStatus
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveComicsStatus
 from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTagsStatus
-from codex.models import Comic, Folder
+from codex.models import Comic, CustomCover, Folder
 
 
 class MovedComicsImporter(ReadMetadataImporter):
     """Methods for moving comics and folders."""
+
+    def _remove_file_move_collisions(
+        self,
+        model: type[Comic] | type[CustomCover],
+        moves: Mapping[str, str],
+        item_name: str,
+    ) -> dict[str, str]:
+        """
+        Remove moves whose destination path is already claimed.
+
+        The poller and the watcher both infer moves from inode matches
+        without checking that the destination is free in the database.
+        A destination that already belongs to another row would violate
+        the ``(library, path)`` unique constraint inside the upcoming
+        ``bulk_update``, and that exception aborted the entire import,
+        leaving the delete phase unreachable so the same task crashed
+        again on every subsequent scan.
+
+        Two claims are possible. An existing row may sit at the
+        destination already (a duplicate file landing on a tracked
+        path, or an overwrite-rename), or two sources in this batch may
+        resolve to the same destination, which ``files_moved`` can
+        express because it is a plain dict rather than the bidict
+        folder moves use. Drop both, keeping the lowest sorted source
+        for a duplicated destination so the choice is deterministic.
+
+        Skipping converges rather than stranding anything. The
+        destination row's stat is refreshed by the modified reimport or
+        by the poller's stale stat pass, so the next scan sees two rows
+        sharing an inode, suppresses the bogus move as ambiguous, and
+        the stale source falls through to the delete phase. Libraries
+        that only run the watcher wait for their next poll instead. A
+        source and destination that swap paths drop both moves and
+        reconcile as content changes in place, which a single
+        ``bulk_update`` could not express under SQLite anyway.
+
+        This is normal reconciliation, not a fault. Log at INFO with a
+        count and at DEBUG with the paths, matching the folder guard.
+        """
+        if not moves:
+            return {}
+        occupied_paths = frozenset(
+            model.objects.filter(
+                library=self.library, path__in=frozenset(moves.values())
+            ).values_list(PATH_FIELD_NAME, flat=True)
+        )
+        kept_moves: dict[str, str] = {}
+        claimed_paths: set[str] = set()
+        skipped_paths: list[str] = []
+        for src_path in sorted(moves):
+            dest_path = moves[src_path]
+            if dest_path in occupied_paths or dest_path in claimed_paths:
+                skipped_paths.append(src_path)
+            else:
+                kept_moves[src_path] = dest_path
+                claimed_paths.add(dest_path)
+        if skipped_paths:
+            count = len(skipped_paths)
+            plural = "s" if count != 1 else ""
+            msg = (
+                f"Resolved {count} phantom {item_name} move{plural} by skipping "
+                "the rename and leaving the destinations in place."
+            )
+            self.log.info(msg)
+            self.log.debug(f"Skipped {item_name} move sources: {skipped_paths}")
+        return kept_moves
 
     def _bulk_comics_moved_ensure_folders(self) -> None:
         """Ensure folders we're moving to exist."""
@@ -125,13 +192,20 @@ class MovedComicsImporter(ReadMetadataImporter):
         return updated_comics, folder_m2m_links, del_rows_map
 
     def bulk_comics_moved(self) -> int:
-        """Move comcis."""
+        """Move comics."""
+        count = 0
         num_files_moved = len(self.task.files_moved)
         status = ImporterMoveComicsStatus(0, num_files_moved)
         try:
             if not num_files_moved:
-                return 0
+                return count
             self.status_controller.start(status)
+
+            # Drop moves onto claimed paths before creating any folders
+            # for destinations that will not be used.
+            self.task.files_moved = self._remove_file_move_collisions(
+                Comic, self.task.files_moved, "comic"
+            )
 
             # Prepare
             self._bulk_comics_moved_ensure_folders()
@@ -148,6 +222,12 @@ class MovedComicsImporter(ReadMetadataImporter):
                 self.link_comic_m2m_field(FOLDERS_FIELD_NAME, folder_m2m_links, status)
 
             count = len(updated_comics)
+        except Exception:
+            # Broad by intent. A failed move phase must degrade to a
+            # skipped phase that the next scan reconciles, never abort
+            # the import, which left the delete phase unreachable and
+            # the same task crashing on every scan.
+            self.log.exception(f"Moving {num_files_moved} comics")
         finally:
             self.status_controller.finish(status)
         return count
