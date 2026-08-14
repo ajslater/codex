@@ -78,7 +78,7 @@ dev = [
   "toml-cli~=0.7",
   "tomlkit~=0.14",
 ]
-build = ["resvg-py~=0.3.1"]
+build = ["resvg-py~=0.4.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
