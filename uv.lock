@@ -723,7 +723,7 @@ requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=4.8.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=4.8.1" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -809,7 +809,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "4.8.0"
+version = "4.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -846,9 +846,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/2b/38f5122b1aa64f72b36d851335b5ac532ea74f8c44b7d1c094d796f3177a/comicbox-4.8.0.tar.gz", hash = "sha256:28acf608904f2353e7c48d422d29d1f62f493ef9b36e40bf983577348cebb75a", size = 1019177, upload-time = "2026-08-02T00:57:00.542Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/72/0391e8b9ee70de43d37c8f1f3e2a2a64ea1fc60e356f6c09365c7412891e/comicbox-4.8.1.tar.gz", hash = "sha256:76ff43b2caa4382920c113854bfb6443437b584c3217491a72078f8d2b01a493", size = 1032727, upload-time = "2026-08-14T22:37:00.977Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/3c/e36e02402579645f818d12602a5d0c3336fd05cff773ca3c6c994c1885bc/comicbox-4.8.0-py3-none-any.whl", hash = "sha256:7f96ee493d9fb416846a55eb8a2bec61e6ec1460625821b6bf83cdbeac623798", size = 344052, upload-time = "2026-08-02T00:56:59.356Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/23/7674c01d0e90faa135581383fc514e1cbb2c50813b4fe55e4045db9b44ca/comicbox-4.8.1-py3-none-any.whl", hash = "sha256:557473e807b3fcfe8046025c107adb8292ee205c06a55b94f3943e739aa4ef25", size = 344019, upload-time = "2026-08-14T22:36:59.109Z" },
 ]
 
 [package.optional-dependencies]
