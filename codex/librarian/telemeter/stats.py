@@ -1,7 +1,6 @@
 """Admin Flag View."""
 
 from multiprocessing import cpu_count
-from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType
 from typing import Any, Final
@@ -29,6 +28,7 @@ from codex.models import (
     Comic,
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
+from codex.util import is_docker
 from codex.version import VERSION
 from codex.views.const import (
     CONFIG_MODELS,
@@ -51,8 +51,6 @@ _KEY_MODELS_MAP = MappingProxyType(
         "usage": STATS_USAGE_MODELS,
     }
 )
-_DOCKERENV_PATH = Path("/.dockerenv")
-_CGROUP_PATH = Path("/proc/self/cgroup")
 _USER_STATS: Final = (
     (
         SettingsBrowser,
@@ -87,14 +85,6 @@ class CodexStats:
         if not params:
             params = {}
         self.params = params
-
-    @classmethod
-    def _is_docker(cls) -> bool:
-        """Test if we're in a docker container."""
-        try:
-            return _DOCKERENV_PATH.is_file() or "docker" in _CGROUP_PATH.read_text()
-        except Exception:
-            return False
 
     def _get_models(self, key) -> tuple:
         """Get models from request params."""
@@ -173,7 +163,7 @@ class CodexStats:
         if self.params and "platform" not in self.params:
             return
         platform = {
-            "docker": self._is_docker(),
+            "docker": is_docker(),
             "machine": machine(),
             "cores": cpu_count(),
             "system": {

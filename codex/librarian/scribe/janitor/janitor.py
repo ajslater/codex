@@ -86,26 +86,30 @@ _JANITOR_STATII: Final = (
     RemoveCoversStatus,
 )
 
-_NIGHTLY_TASK_CLASSES: Final[tuple[type[LibrarianTask], ...]] = (
-    CodexLatestVersionTask,
-    JanitorAdoptOrphanFoldersTask,
-    JanitorForeignKeyCheckTask,
-    JanitorFolderRelationsCheckTask,
-    JanitorIntegrityCheckTask,
-    JanitorFTSIntegrityCheckTask,
-    JanitorCleanFKsTask,
-    JanitorCleanCoversTask,
-    JanitorCleanupSessionsTask,
-    JanitorCleanupBookmarksTask,
-    JanitorCleanupSettingsTask,
-    JanitorCleanupFavoritesTask,
-    JanitorCleanupTaggingStateTask,
-    SearchIndexSyncTask,
-    SearchIndexOptimizeTask,
-    JanitorVacuumTask,
-    JanitorBackupTask,
-    JanitorDumpUserDataTask,
-    CoverRemoveOrphansTask,
+_NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
+    # Instances, not classes: the version check carries arguments. It
+    # forces a fetch (the nightly run is the daily refresh) and asks the
+    # fetcher to chain into an update task, which it does only if the
+    # Auto Update admin flag is on.
+    CodexLatestVersionTask(force=True, update=True),
+    JanitorAdoptOrphanFoldersTask(),
+    JanitorForeignKeyCheckTask(),
+    JanitorFolderRelationsCheckTask(),
+    JanitorIntegrityCheckTask(),
+    JanitorFTSIntegrityCheckTask(),
+    JanitorCleanFKsTask(),
+    JanitorCleanCoversTask(),
+    JanitorCleanupSessionsTask(),
+    JanitorCleanupBookmarksTask(),
+    JanitorCleanupSettingsTask(),
+    JanitorCleanupFavoritesTask(),
+    JanitorCleanupTaggingStateTask(),
+    SearchIndexSyncTask(),
+    SearchIndexOptimizeTask(),
+    JanitorVacuumTask(),
+    JanitorBackupTask(),
+    JanitorDumpUserDataTask(),
+    CoverRemoveOrphansTask(),
 )
 _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
     {
@@ -147,8 +151,8 @@ class Janitor(JanitorCodexUpdate):
         """Queue all the janitor tasks."""
         try:
             self.status_controller.start_many(_JANITOR_STATII)
-            for task_class in _NIGHTLY_TASK_CLASSES:
-                self.librarian_queue.put(task_class())
+            for task in _NIGHTLY_TASKS:
+                self.librarian_queue.put(task)
             Timestamp.touch(Timestamp.Choices.JANITOR)
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")

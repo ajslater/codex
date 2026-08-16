@@ -651,6 +651,9 @@ location ^~ /codex {
     # If the nginx credentials are different than codex credentials use this line to
     #   not forward the authorization.
     proxy_set_header   Authorization "";
+    # Let clients see "Server: codex/<version>" instead of "Server: nginx".
+    # nginx hides the upstream Server header by default. See below.
+    proxy_pass_header  Server;
 }
 ```
 
@@ -665,6 +668,37 @@ If you put an authenticating reverse proxy (Organizr, Authelia, etc.) in front
 of the `/codex` location with `auth_request`, exempt the API the way Codex's own
 examples do (`location /codex/api { auth_request off; ... }`); the `^~` note
 above is what keeps the static assets reachable.
+
+#### Preserving the Codex Server Header
+
+Codex identifies itself with a `Server: codex/<version>` response header, which
+is how OPDS clients, uptime monitors and support requests tell a Codex install
+apart from whatever is proxying it. nginx does **not** pass that header through:
+by default it hides `Date`, `Server`, `X-Accel-...` and `X-Pad` from the
+upstream response and substitutes its own `Server: nginx/<version>`. Add
+[`proxy_pass_header`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass_header)
+to the Codex location (as in the example above) to un-hide it:
+
+```nginx
+proxy_pass_header Server;
+```
+
+```console
+$ curl -sI https://example.com/codex/ | grep -i '^server'
+server: codex/2.2.8
+```
+
+Notes:
+
+- `server_tokens off;` is not a substitute. It only shortens nginx's own header
+  to `Server: nginx`; the Codex header is still discarded.
+- Like `proxy_set_header`, `proxy_pass_header` is inherited from the enclosing
+  `http {}` / `server {}` block **only if no `proxy_pass_header` is defined in
+  the location itself**. Keep it in the same block as the rest of the Codex
+  proxy headers.
+- Other reverse proxies have their own rules for the `Server` header; if
+  `curl -sI` shows something other than `codex/<version>`, check your proxy's
+  documentation for passing upstream response headers through.
 
 #### Nginx Reverse Proxy 502 when container refreshes
 

@@ -12,6 +12,7 @@
     </div>
     <AdminSection
       v-for="group in ADMIN_JOBS"
+      :id="groupId(group.title)"
       :key="group.title"
       :title="group.title"
     >
@@ -79,6 +80,25 @@
               <div v-else class="adminCardDesc">
                 {{ job.desc }}
               </div>
+              <!-- Which version this job would install -->
+              <template v-if="isUpdateJob(job)">
+                <div
+                  class="jobVersionNote"
+                  :class="{ jobVersionNoteOutdated: versions.outdated }"
+                >
+                  {{ updateVersionNote }}
+                </div>
+                <div v-if="versions.docker" class="jobVersionNote">
+                  Codex is running in Docker. Containers are rebuilt, not
+                  upgraded in place: pulling a new image is preferable to
+                  updating codex inside this container.
+                  <a :href="GHCR_URL" target="_blank"
+                    >ghcr.io/ajslater/codex<v-icon size="x-small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
+                  >
+                </div>
+              </template>
             </div>
             <div class="adminCardActions">
               <span v-if="jobLastRun(job)" class="jobLastRun">
@@ -218,7 +238,9 @@
 </template>
 
 <script>
+import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
+import { camelCase } from "text-case";
 
 import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
@@ -241,6 +263,10 @@ import { useCommonStore } from "@/stores/common";
 
 const SELECT_GROUPS = Object.freeze(["Notify"]);
 const NIGHTLY_JOB_VALUE = "janitor_nightly";
+const UPDATE_JOB_VALUE = "codex_update";
+const GHCR_URL = "https://github.com/ajslater/codex/pkgs/container/codex";
+// The placeholder the server sends while the version cache is cold.
+const LATEST_UNKNOWN = "fetching...";
 Object.freeze(ADMIN_JOBS);
 
 export default {
@@ -257,6 +283,8 @@ export default {
   data() {
     return {
       ADMIN_JOBS,
+      GHCR_URL,
+      mdiOpenInNew,
       // Per-variant-job selected variant value, keyed by job.value.
       variantSelections: {},
       // Per-group select value for SELECT_GROUPS (Notify).
@@ -267,6 +295,7 @@ export default {
     };
   },
   computed: {
+    ...mapState(useCommonStore, ["versions"]),
     ...mapState(useCommonStore, {
       formSuccess: (state) => state.form.success,
       formErrors: (state) => state.form.errors,
@@ -274,6 +303,18 @@ export default {
     ...mapState(useAdminStore, {
       allStatuses: (state) => state.allLibrarianStatuses,
     }),
+    updateVersionNote() {
+      const { installed, latest, outdated, docker } = this.versions;
+      if (!latest || latest === LATEST_UNKNOWN) {
+        return "The latest version is unknown. Check for it above.";
+      }
+      if (!outdated) {
+        return `Codex v${installed} is the latest version`;
+      }
+      return docker
+        ? `Codex v${latest} is available`
+        : `Will install codex v${latest}`;
+    },
     groupSelectMaps() {
       const maps = {};
       for (const group of ADMIN_JOBS) {
@@ -309,6 +350,10 @@ export default {
     },
   },
   watch: {
+    // Re-scroll if the deep link fires while already on the Jobs tab.
+    "$route.hash"() {
+      this.maybeScroll();
+    },
     allStatuses() {
       // Auto-collapse panels for jobs that are no longer active.
       for (const group of ADMIN_JOBS) {
@@ -323,9 +368,48 @@ export default {
   },
   created() {
     this.loadAllStatuses();
+    // Powers the "which version would this install" note below.
+    this.loadVersions();
+  },
+  mounted() {
+    this.maybeScroll();
   },
   methods: {
     ...mapActions(useAdminStore, ["librarianTask", "loadAllStatuses"]),
+    ...mapActions(useCommonStore, ["loadVersions"]),
+
+    // --- Codex version ---
+
+    isUpdateJob(job) {
+      return job.value === UPDATE_JOB_VALUE;
+    },
+
+    // --- Deep links ---
+
+    groupId(title) {
+      // "Codex Software" -> "codexSoftware". Anchor for deep links like
+      // the settings drawer's "upgrade to codex" link.
+      return camelCase(title);
+    },
+    maybeScroll() {
+      const hash = this.$route.hash;
+      if (!hash) return;
+      this.$nextTick(() => {
+        /*
+         * Scoped to this instance, not document.getElementById: the
+         * admin tabs render a router-view per tab inside a v-window,
+         * so a second, hidden copy of this tab can be in the DOM with
+         * the same section ids.
+         */
+        const el = this.$el.querySelector(hash);
+        /*
+         * Instant, not smooth: a smooth scroll is animated frame by
+         * frame and any competing scroll during the tab transition
+         * abandons it partway. A deep link should just arrive.
+         */
+        if (el) el.scrollIntoView({ block: "start" });
+      });
+    },
 
     // --- Variant helpers ---
 
@@ -516,6 +600,16 @@ export default {
   font-size: 0.8em;
   color: rgb(var(--v-theme-textDisabled));
   margin-left: 8px;
+}
+
+.jobVersionNote {
+  font-size: 0.9em;
+  padding-top: 2px;
+  color: rgb(var(--v-theme-textDisabled));
+}
+
+.jobVersionNoteOutdated {
+  color: rgb(var(--v-theme-primary));
 }
 
 .variantRow {

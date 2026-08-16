@@ -146,7 +146,9 @@ class BookmarkThread(
                 )
                 self._spawn_offline(
                     "latest-version",
-                    lambda: worker.update_latest_version(force=task.force),
+                    lambda: worker.update_latest_version(
+                        force=task.force, update=task.update
+                    ),
                 )
             case _:
                 self.log.warning(f"Unknown Bookmark task {task}")

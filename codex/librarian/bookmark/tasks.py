@@ -50,6 +50,15 @@ class ClearLibrarianStatusTask(BookmarkTask):
 
 @dataclass
 class CodexLatestVersionTask(BookmarkTask):
-    """Get the latest version."""
+    """
+    Get the latest version.
+
+    ``update`` requests that a successful fetch chain into a
+    ``JanitorCodexUpdateTask`` if the Auto Update admin flag is on.
+    Only the nightly janitor sets it. Chaining (rather than queueing
+    both tasks up front) keeps the update from racing ahead of the
+    fetch that tells it whether an update is even available.
+    """
 
     force: bool = False
+    update: bool = False

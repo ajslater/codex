@@ -1,13 +1,35 @@
 <template>
-  <v-footer id="version-footer" :title="versionTitle">
-    <a id="version" href="https://github.com/ajslater/codex/" target="_blank">
+  <v-footer id="version-footer">
+    <a
+      id="version"
+      href="https://github.com/ajslater/codex/"
+      target="_blank"
+      title="Codex source code"
+    >
       <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
       codex v{{ versions.installed
       }}<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a
     >
-    <div v-if="outdated" id="latest">
-      codex v{{ versions.latest }} is available
-    </div>
+    <!--
+      In a container codex can't install over itself. Send admins to the
+      image registry instead of to a job that would only fail.
+    -->
+    <a
+      v-if="outdated && versions.docker"
+      id="latest"
+      :href="GHCR_URL"
+      target="_blank"
+      title="Docker image repo"
+      >{{ upgradeText }}<v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a
+    >
+    <router-link
+      v-else-if="outdated"
+      id="latest"
+      :to="UPDATE_ROUTE"
+      title="Upgrade Codex"
+    >
+      {{ upgradeText }}
+    </router-link>
     <div v-if="versions.warning" id="warning">
       {{ versions.warning }}
     </div>
@@ -20,27 +42,37 @@ import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+
+// The Codex Software job group, where the Update Codex job lives.
+const UPDATE_ROUTE = Object.freeze({
+  name: "admin-jobs",
+  hash: "#codexSoftware",
+});
+const GHCR_URL = "https://github.com/ajslater/codex/pkgs/container/codex";
+
 export default {
   name: "VersionFooter",
   data() {
     return {
       mdiOpenInNew,
       mdiSourceRepository,
+      GHCR_URL,
+      UPDATE_ROUTE,
     };
   },
   computed: {
     ...mapState(useCommonStore, ["versions"]),
     ...mapState(useAuthStore, ["isUserAdmin"]),
     outdated: function () {
-      return (
-        this.isUserAdmin &&
-        this.semverGreaterThan(this.versions.latest > this.versions.installed)
-      );
+      /*
+       * The server compares versions. It's the only side that can read
+       * a PEP 440 version correctly, and only admins can act on the
+       * answer anyway.
+       */
+      return Boolean(this.isUserAdmin && this.versions.outdated);
     },
-    versionTitle: function () {
-      return this.outdated
-        ? `v${this.versions.latest} is available`
-        : "up to date";
+    upgradeText: function () {
+      return `upgrade to codex v${this.versions.latest}`;
     },
   },
   created() {
@@ -48,24 +80,6 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["loadVersions"]),
-    semverGreaterThan(a, b) {
-      try {
-        if (!a || !b) {
-          return false;
-        }
-        const aParts = a.split(".");
-        const bParts = b.split(".");
-
-        for (const [i, aPart] of aParts.entries()) {
-          if (+aPart > +Reflect.get(bParts, i)) {
-            return true;
-          }
-        }
-      } catch (error) {
-        console.debug("compare codex versions", a, ">", b, error);
-      }
-      return false;
-    },
   },
 };
 </script>
@@ -91,7 +105,12 @@ export default {
 }
 
 #latest {
-  color: rgb(var(--v-theme-textSecondary));
+  display: block;
+  color: rgb(var(--v-theme-primary));
+}
+
+#latest:hover {
+  color: rgb(var(--v-theme-linkHover)) !important;
 }
 
 #warning {
