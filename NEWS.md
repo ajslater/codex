@@ -11,6 +11,9 @@ border-radius: 128px;
 - Fixes
     - Codex updates itself again, automatically or on demand, and announces new
       versions.
+- Documentation
+    - Docs for passing through the Server: HTTP header so codex may be
+      identified by OPDS clients like Stump.
 
 ## v2.2.7
 
