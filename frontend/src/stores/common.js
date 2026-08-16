@@ -43,6 +43,8 @@ export const useCommonStore = defineStore("common", {
 
       installed: CODEX_PACKAGE_VERSION,
       latest: undefined,
+      // The server decides this, in /api/v4/version.
+      outdated: false,
     },
     timestamp: Date.now(),
     isSettingsDrawerOpen: false,

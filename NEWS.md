@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.8
+
+- Fixes
+    - Codex updates itself again, automatically or on demand, and announces new
+      versions.
+
 ## v2.2.7
 
 - Fixes

@@ -1,6 +1,28 @@
 """Utility functions."""
 
 from collections.abc import Mapping
+from functools import cache
+from pathlib import Path
+from typing import Final
+
+_DOCKERENV_PATH: Final = Path("/.dockerenv")
+_CGROUP_PATH: Final = Path("/proc/self/cgroup")
+
+
+@cache
+def is_docker() -> bool:
+    """
+    Is codex running inside a docker container.
+
+    Cached: a process cannot change containers, and this is consulted
+    on every version request. Containers are immutable deployments, so
+    codex updates itself by being replaced with a new image, not by
+    installing over itself.
+    """
+    try:
+        return _DOCKERENV_PATH.is_file() or "docker" in _CGROUP_PATH.read_text()
+    except Exception:
+        return False
 
 
 def max_none(*args):

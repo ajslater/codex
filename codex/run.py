@@ -42,11 +42,22 @@ def _database_checkpoint() -> None:
 
 
 def restart() -> None:
-    """Restart this process."""
-    from sys import argv
+    """
+    Restart this process.
+
+    Re-exec the running interpreter, not ``__file__``. Exec'ing this
+    module directly relied on its executable bit surviving the wheel and
+    on its ``#!/usr/bin/env python3`` shebang resolving to a python that
+    has codex installed. Under pipx, uv, homebrew, systemd or launchd
+    that first ``python3`` on PATH is frequently a different interpreter
+    entirely, and the restart died with ModuleNotFoundError instead of
+    coming back up. ``sys.executable`` is by definition the interpreter
+    codex is installed into.
+    """
+    from sys import argv, executable
 
     print("Restarting Codex. Hold on to your butts...", flush=True)  # noqa: T201
-    execv(__file__, argv)  # noqa: S606
+    execv(executable, (executable, "-m", "codex.run", *argv[1:]))  # noqa: S606
 
 
 def codex_shutdown() -> None:
