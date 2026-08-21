@@ -90,7 +90,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             href,
             MimeType.NAV,
             title=title,
-            facet_group=facet_group.query_param,
+            facet_group=facet_group.display_name,
             facet_active=facet_active,
         )
 

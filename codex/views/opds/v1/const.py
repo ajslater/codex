@@ -118,6 +118,9 @@ class FacetGroup:
     query_param: str
     glyph: str
     facets: tuple
+    # Rendered verbatim by clients as the facet group heading, so it's a
+    # display string, not the internal query param name.
+    display_name: str
 
 
 @dataclass
@@ -140,12 +143,14 @@ class FacetGroups:
             Facet("sort_name", "Name"),
             Facet("filename", "Filename"),
         ),
+        display_name="Order By",
     )
     ORDER_REVERSE = FacetGroup(
         "Order",
         "orderReverse",
         "⇕",
         (Facet("false", "Ascending"), Facet("true", "Descending")),
+        display_name="Order Direction",
     )
     ALL = (ORDER_BY, ORDER_REVERSE)
 
@@ -163,6 +168,7 @@ class RootFacetGroups:
             Facet("folders", "Folder View"),
             Facet("arcs", "Story Arc View"),
         ),
+        display_name="Views",
     )
     ALL = (TOP_GROUP,)
 

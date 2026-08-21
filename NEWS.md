@@ -15,6 +15,15 @@ border-radius: 128px;
     - OPDS v1: comic credits that are not writing credits, like artists and
       colorists, appear as contributors in metadata feeds. They had never been
       sent.
+    - OPDS: Panels (iOS 3.13 and later) is recognized as a facet capable client
+      and receives real OPDS facets, which it shows in its native filter menu,
+      instead of sort options faked as navigation folders.
+    - OPDS v1: facet capable clients like kybooks no longer also receive a dead,
+      unclickable duplicate entry for every facet alongside the real facet
+      links.
+    - OPDS v1: facet groups are labeled "Order By", "Order Direction" and
+      "Views" instead of the internal query parameter names clients displayed
+      verbatim, like "orderBy".
 
 ## v2.2.8
 
