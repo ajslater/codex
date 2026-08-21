@@ -53,7 +53,7 @@ class OPDS1TemplateEntrySerializer(Serializer):
     language = LanguageSerializer(read_only=True, required=False)
     summary = CharField(read_only=True, required=False)
     authors = OPDS1CreditSerializer(many=True, required=False, read_only=True)
-    credits = OPDS1CreditSerializer(many=True, required=False, read_only=True)
+    contributors = OPDS1CreditSerializer(many=True, required=False, read_only=True)
     category_groups = DictField(required=False, read_only=True)
 
 

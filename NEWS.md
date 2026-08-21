@@ -12,6 +12,9 @@ border-radius: 128px;
     - OPDS responses are cached per client User-Agent. Clients that support
       different features no longer receive each other's cached feeds for a
       minute.
+    - OPDS v1: comic credits that are not writing credits, like artists and
+      colorists, appear as contributors in metadata feeds. They had never been
+      sent.
     - OPDS: Panels (iOS 3.13 and later) is recognized as a facet capable client
       and receives real OPDS facets, which it shows in its native filter menu,
       instead of sort options faked as navigation folders.
