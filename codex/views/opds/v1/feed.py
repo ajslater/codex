@@ -200,14 +200,16 @@ class OPDS1FeedView(OPDS1LinksView):
     def entries(self) -> list:
         """Create all the entries."""
         entries = []
-        # if not self.use_facets:  # and self.kwargs.get("page") == 1:
-        facet_entries = not self.use_facets
         if self.IS_START_PAGE:
             entries += self.add_top_links(RootTopLinks.ALL)
         else:
             entries += self.add_start_link()
 
-        entries += self.facets(entries=facet_entries)
+        if not self.use_facets:
+            # Facet-blind clients get facets hacked in as fake nav folders.
+            # Facet-aware clients get real facet links from ``links`` instead,
+            # so adding them here too would render dead duplicate entries.
+            entries += self.facets(entries=True)
 
         if not self.IS_START_PAGE:
             entries += self._get_entries_section("groups", metadata=False)

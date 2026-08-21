@@ -109,7 +109,7 @@ class UserAgentNames:
     """Control whether to hack in facets with nav links."""
 
     CLIENT_REORDERS = frozenset({"Chunky"})
-    FACET_SUPPORT = frozenset({"yar"})  # kybooks
+    FACET_SUPPORT = frozenset({"yar", "Panels"})  # kybooks, Panels iOS 3.13+
     SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
     REQUIRE_ABSOLUTE_URL = frozenset()
 
