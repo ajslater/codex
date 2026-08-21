@@ -12,6 +12,9 @@ border-radius: 128px;
     - OPDS responses are cached per client User-Agent. Clients that support
       different features no longer receive each other's cached feeds for a
       minute.
+    - OPDS v1: comic credits that are not writing credits, like artists and
+      colorists, appear as contributors in metadata feeds. They had never been
+      sent.
 
 ## v2.2.8
 
