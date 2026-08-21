@@ -9,6 +9,9 @@ border-radius: 128px;
 ## v2.2.9
 
 - Fixes
+    - OPDS responses are cached per client User-Agent. Clients that support
+      different features no longer receive each other's cached feeds for a
+      minute.
     - OPDS: Panels (iOS 3.13 and later) is recognized as a facet capable client
       and receives real OPDS facets, which it shows in its native filter menu,
       instead of sort options faked as navigation folders.
