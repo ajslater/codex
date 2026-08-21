@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.9
+
+- Fixes
+    - OPDS responses are cached per client User-Agent. Clients that support
+      different features no longer receive each other's cached feeds for a
+      minute.
+
 ## v2.2.8
 
 - Fixes
