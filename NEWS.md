@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.9
+
+- Fixes
+    - OPDS v1: comic credits that are not writing credits, like artists and
+      colorists, appear as contributors in metadata feeds. They had never been
+      sent.
+
 ## v2.2.8
 
 - Fixes
