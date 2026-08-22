@@ -110,6 +110,9 @@ class UserAgentNames:
 
     CLIENT_REORDERS = frozenset({"Chunky"})
     FACET_SUPPORT = frozenset({"yar", "Panels"})  # kybooks, Panels iOS 3.13+
+    # Minimum build for facet support, for clients whose platforms diverge
+    # under one UA name. Panels iOS (952+) renders facets; macOS 951 doesn't.
+    FACET_SUPPORT_MIN_BUILD = MappingProxyType({"Panels": 952})
     SIMPLE_DOWNLOAD_MIME_TYPES = frozenset({"PocketBook Reader"})
     REQUIRE_ABSOLUTE_URL = frozenset()
 

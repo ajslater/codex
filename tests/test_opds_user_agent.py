@@ -23,8 +23,10 @@ from tests.test_opds_feed import (
 )
 
 # Panels sends a CFNetwork style UA; the name is the part before the
-# first slash. Panels 3.13+ (July 2026) renders OPDS facets natively.
-_PANELS_UA: Final = "Panels/950 CFNetwork/3896.100.1.2.1 Darwin/27.0.0"
+# first slash and the build number follows it. iOS builds (952+) render
+# OPDS facets natively; the macOS build (951) does not.
+_PANELS_UA: Final = "Panels/952 CFNetwork/3896.100.1.2.1 Darwin/27.0.0"
+_PANELS_MACOS_UA: Final = "Panels/951 CFNetwork/3896.100.1.2.1 Darwin/25.0.0"
 _YAR_UA: Final = "yar/1.0"  # kybooks
 _FACET_UAS: Final = (_YAR_UA, _PANELS_UA)
 
@@ -134,6 +136,22 @@ class OPDSv1UserAgentTestCase(_OPDSFixtureMixin, TestCase):
         assert _ORDER_BY_ENTRY_TITLE in titles, titles
         assert _ORDER_REVERSE_ENTRY_TITLE in titles, titles
 
+    def test_facet_blind_panels_build_gets_fake_entries(self) -> None:
+        """Panels builds below the facet floor keep the nav folder sort."""
+        response = self.client.get(_FEED, headers={"user-agent": _PANELS_MACOS_UA})
+        assert response.status_code == _HTTP_OK
+
+        assert not [
+            link
+            for link in _feed_links(response.content)
+            if link.get("rel") == _FACET_REL
+        ]
+        assert not _facet_groups(response.content)
+
+        titles = _entry_titles(response.content)
+        assert _ORDER_BY_ENTRY_TITLE in titles, titles
+        assert _ORDER_REVERSE_ENTRY_TITLE in titles, titles
+
     def test_facet_group_display_names(self) -> None:
         """Facet groups are display strings, not internal query params."""
         cache.clear()
@@ -156,27 +174,34 @@ class OPDSv1UserAgentTestCase(_OPDSFixtureMixin, TestCase):
         assert "Publishers View" not in titles, titles
 
 
-def _user_agent_name(user_agent: str | None) -> str:
+def _user_agent(user_agent: str | None) -> tuple[str, int | None]:
     """Parse a raw header value the way a request would deliver it."""
     headers = {} if user_agent is None else {"user-agent": user_agent}
     return get_user_agent_name(Request(RequestFactory().get("/", headers=headers)))
 
 
 def test_get_user_agent_name_panels() -> None:
-    """Panels' CFNetwork UA parses to its client name."""
-    assert _user_agent_name(_PANELS_UA) == "Panels"
+    """Panels' CFNetwork UA parses to its client name and build."""
+    assert _user_agent(_PANELS_UA) == ("Panels", 952)
+    assert _user_agent(_PANELS_MACOS_UA) == ("Panels", 951)
+
+
+def test_get_user_agent_name_panels_unparseable_build() -> None:
+    """A Panels UA without a numeric build parses to no build."""
+    assert _user_agent("Panels/beta CFNetwork/1.0") == ("Panels", None)
+    assert _user_agent("Panels") == ("Panels", None)
 
 
 def test_get_user_agent_name_kybooks() -> None:
-    """A simple name/version UA parses to the name."""
-    assert _user_agent_name(_YAR_UA) == "yar"
+    """Only clients with build floors get a build parse."""
+    assert _user_agent(_YAR_UA) == ("yar", None)
 
 
 def test_get_user_agent_name_missing() -> None:
     """A missing User-Agent parses to the empty name."""
-    assert _user_agent_name(None) == ""
+    assert _user_agent(None) == ("", None)
 
 
 def test_get_user_agent_name_no_version() -> None:
     """A UA without a version is its own name."""
-    assert _user_agent_name("Weird") == "Weird"
+    assert _user_agent("Weird") == ("Weird", None)

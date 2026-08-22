@@ -27,7 +27,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
-        self._user_agent_name: str | None = None
+        self._user_agent_parts: tuple[str, int | None] | None = None
         self._mime_type_map: MappingProxyType[str, str] | None = None
         self._use_facets: bool | None = None
         self._use_facets_order: bool | None = None
@@ -48,7 +48,13 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def use_facets(self) -> bool:
         """Memoize use_facets."""
         if self._use_facets is None:
-            self._use_facets = self.user_agent_name in UserAgentNames.FACET_SUPPORT
+            name = self.user_agent_name
+            # A build the client didn't send or codex couldn't parse fails
+            # the floor: fake nav folder sort works on every client.
+            min_build = UserAgentNames.FACET_SUPPORT_MIN_BUILD.get(name, 0)
+            self._use_facets = name in UserAgentNames.FACET_SUPPORT and (
+                (self.user_agent_build or 0) >= min_build
+            )
         return self._use_facets
 
     @property
