@@ -35,7 +35,7 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
         self._collection_and_books: (
             tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int] | None
         ) = None
-        self._user_agent_name: str | None = None
+        self._user_agent_parts: tuple[str, int | None] | None = None
 
     @property
     def collection_and_books(
