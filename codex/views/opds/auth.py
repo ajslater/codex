@@ -20,12 +20,22 @@ class OPDSAuthMixin(AuthMixin):
     )
     # Class-level default doubles as the unmemoized sentinel so
     # subclasses don't need to redeclare. Lazily resolved on first
-    # access via ``user_agent_name``.
-    _user_agent_name: str | None = None
+    # access via ``user_agent_name`` / ``user_agent_build``.
+    _user_agent_parts: tuple[str, int | None] | None = None
+
+    @property
+    def _user_agent(self) -> tuple[str, int | None]:
+        """Memoize the parsed user agent."""
+        if self._user_agent_parts is None:
+            self._user_agent_parts = get_user_agent_name(self.request)
+        return self._user_agent_parts
 
     @property
     def user_agent_name(self) -> str:
-        """Memoize user agent name."""
-        if self._user_agent_name is None:
-            self._user_agent_name = get_user_agent_name(self.request)
-        return self._user_agent_name
+        """User agent client name."""
+        return self._user_agent[0]
+
+    @property
+    def user_agent_build(self) -> int | None:
+        """User agent build number, for clients whose builds gate features."""
+        return self._user_agent[1]
