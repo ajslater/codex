@@ -11,4 +11,5 @@ def get_user_agent_name(request: Request) -> str:
         user_agent_name = user_agent_parts[0]
     else:
         user_agent_name = ""
+    print(f"{user_agent=} {user_agent_name=}")
     return user_agent_name
