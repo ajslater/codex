@@ -7,7 +7,7 @@ from rest_framework.request import Request
 
 # Clients whose feature support diverges by build under one UA name, so
 # the build number right after the slash gates features. Panels: iOS
-# builds (952+) render facets, the macOS build (951) does not.
+# builds render facets, the macOS build (951) does not.
 _BUILD_UA_NAMES: Final = frozenset({"Panels"})
 
 
