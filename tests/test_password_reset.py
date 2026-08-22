@@ -69,6 +69,23 @@ _EMAIL_ON_REST_REGISTRATION = {
 }
 
 
+# Capture outbound mail in memory instead of the DB-aware SMTP backend.
+_EMAIL_ON_MAILERS = {
+    "default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"},
+}
+# Mirrors EMAIL_CONNECTION_OPTIONS when [email] is configured. Whole-dict
+# because @override_settings replaces the setting, it doesn't merge keys.
+_EMAIL_ON_CONNECTION_OPTIONS = {
+    "host": "smtp.example.com",
+    "port": 587,
+    "username": "",
+    "password": "",
+    "use_tls": True,
+    "use_ssl": False,
+    "timeout": 10,
+}
+
+
 def _ensure_admin_flags() -> None:
     """
     Seed every AdminFlag row tests rely on.
@@ -142,8 +159,8 @@ class PasswordResetDisabledTests(TestCase):
 
 @override_settings(
     EMAIL_ENABLED=True,
-    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-    EMAIL_HOST="smtp.example.com",
+    MAILERS=_EMAIL_ON_MAILERS,
+    EMAIL_CONNECTION_OPTIONS=_EMAIL_ON_CONNECTION_OPTIONS,
     DEFAULT_FROM_EMAIL="codex@example.com",
     REST_REGISTRATION=_EMAIL_ON_REST_REGISTRATION,
 )
@@ -403,8 +420,8 @@ class RegisterVerificationTests(TestCase):
 
     @override_settings(
         EMAIL_ENABLED=True,
-        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-        EMAIL_HOST="smtp.example.com",
+        MAILERS=_EMAIL_ON_MAILERS,
+        EMAIL_CONNECTION_OPTIONS=_EMAIL_ON_CONNECTION_OPTIONS,
         DEFAULT_FROM_EMAIL="codex@example.com",
         REST_REGISTRATION=_EMAIL_ON_REST_REGISTRATION,
     )

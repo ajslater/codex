@@ -193,18 +193,27 @@ THROTTLE_RESET_PASSWORD = get_int(CODEX_CONFIG, "throttle.reset_password", defau
 # Codex Config: Email        #
 ##############################
 
-EMAIL_HOST = get_str(CODEX_CONFIG, "email.host", default="")
-EMAIL_PORT = get_int(CODEX_CONFIG, "email.port", default=587)
-EMAIL_HOST_USER = get_str(CODEX_CONFIG, "email.user", default="")
-EMAIL_HOST_PASSWORD = get_str(CODEX_CONFIG, "email.password", default="")
-EMAIL_USE_TLS = get_bool(CODEX_CONFIG, "email.use_tls", default=True)
-EMAIL_USE_SSL = get_bool(CODEX_CONFIG, "email.use_ssl", default=False)
-EMAIL_TIMEOUT = get_int(CODEX_CONFIG, "email.timeout", default=10)
-# Fall back to EMAIL_HOST_USER when from_address is blank. Many providers
-# (gmail, generic SMTP) accept the auth user as sender; SES and similar
-# require an explicit verified identity - admin docs call this out.
+# Django deprecated the discrete EMAIL_* connection settings in favor of
+# the MAILERS dict (RemovedInDjango70Warning), and once MAILERS is
+# defined, reading the old names raises AttributeError. The TOML/env
+# layer lives in this dict instead, keyed by EmailBackend constructor
+# kwarg; ``codex.settings.db.get_email_connection_kwargs`` coalesces the
+# EmailSettings DB row over it per field.
+EMAIL_CONNECTION_OPTIONS = {
+    "host": get_str(CODEX_CONFIG, "email.host", default=""),
+    "port": get_int(CODEX_CONFIG, "email.port", default=587),
+    "username": get_str(CODEX_CONFIG, "email.user", default=""),
+    "password": get_str(CODEX_CONFIG, "email.password", default=""),
+    "use_tls": get_bool(CODEX_CONFIG, "email.use_tls", default=True),
+    "use_ssl": get_bool(CODEX_CONFIG, "email.use_ssl", default=False),
+    "timeout": get_int(CODEX_CONFIG, "email.timeout", default=10),
+}
+# Fall back to the SMTP auth user when from_address is blank. Many
+# providers (gmail, generic SMTP) accept the auth user as sender; SES and
+# similar require an explicit verified identity - admin docs call this out.
 DEFAULT_FROM_EMAIL = (
-    get_str(CODEX_CONFIG, "email.from_address", default="") or EMAIL_HOST_USER
+    get_str(CODEX_CONFIG, "email.from_address", default="")
+    or EMAIL_CONNECTION_OPTIONS["username"]
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[Codex] ")
@@ -215,11 +224,17 @@ EMAIL_SUBJECT_PREFIX = get_str(CODEX_CONFIG, "email.subject_prefix", default="[C
 # ``codex.settings.db.email_enabled`` and is used by the request-time
 # callers (``views/register.py``, ``views/session.py``,
 # ``startup/registration.py``).
-EMAIL_ENABLED = bool(EMAIL_HOST and DEFAULT_FROM_EMAIL)
+EMAIL_ENABLED = bool(EMAIL_CONNECTION_OPTIONS["host"] and DEFAULT_FROM_EMAIL)
 # Always use the DB-aware backend so admin edits via the Email tab
 # take effect on the next send without a restart. The backend
 # gracefully no-ops when neither DB nor settings provide a host.
-EMAIL_BACKEND = "codex.mail.DBEmailBackend"
+# No OPTIONS on purpose: baking connection values in here would defeat
+# the backend's per-send DB -> EMAIL_CONNECTION_OPTIONS resolution.
+MAILERS = {
+    "default": {
+        "BACKEND": "codex.mail.DBEmailBackend",
+    },
+}
 
 ##############################
 # Codex Config: Importer     #

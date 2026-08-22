@@ -2,10 +2,11 @@
 Codex email backend.
 
 Reads SMTP connection params from the :class:`EmailSettings` singleton
-on each :func:`get_connection` call (per Django's mail API), falling
-back to :mod:`django.conf.settings` (TOML / env / default). A missing
-host short-circuits :meth:`send_messages` to a no-op so feature gates
-that fail open do not raise — they are guarded upstream by
+each time ``django.core.mail.mailers`` builds the ``MAILERS["default"]``
+connection, falling back to the ``EMAIL_CONNECTION_OPTIONS`` setting
+(TOML / env / default). A missing host short-circuits
+:meth:`send_messages` to a no-op so feature gates that fail open do not
+raise — they are guarded upstream by
 :func:`codex.settings.db.email_enabled`.
 """
 
@@ -15,6 +16,11 @@ from django.core.mail.backends.smtp import EmailBackend
 from loguru import logger
 
 from codex.settings.db import get_email_connection_kwargs
+
+# Django's mail.handler.DEFAULT_MAILER_ALIAS — the MAILERS key in
+# codex.settings. Copied because django-types ships no stub for the
+# handler module, so importing it fails typechecking.
+_DEFAULT_MAILER_ALIAS = "default"
 
 
 class DBEmailBackend(EmailBackend):
@@ -35,6 +41,11 @@ class DBEmailBackend(EmailBackend):
         **kwargs,
     ):
         """Resolve any explicit None to DB → settings before delegating to SMTP."""
+        # Without an alias the SMTP parent resolves missing params from
+        # the pre-MAILERS EMAIL_* settings, which raise AttributeError
+        # now that MAILERS is defined — so direct construction (the
+        # admin test-send view) must claim the default alias too.
+        kwargs.setdefault("alias", _DEFAULT_MAILER_ALIAS)
         resolved = get_email_connection_kwargs()
         super().__init__(
             host=resolved["host"] if host is None else host,

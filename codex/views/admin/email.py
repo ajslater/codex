@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from django.conf import settings
-from django.core.mail import EmailMessage, get_connection
+from django.core.mail import EmailMessage
 from loguru import logger
 from rest_framework.response import Response
 
+from codex.mail import DBEmailBackend
 from codex.models import EmailSettings
 from codex.serializers.admin.email import (
     EmailSettingsSerializer,
@@ -114,19 +115,20 @@ class AdminEmailTestSendView(AdminAPIView):
             return Response(response.data)
 
         subject_prefix = _resolve_subject_prefix(payload)
+        message = EmailMessage(
+            subject=f"{subject_prefix}Test message",
+            body=(
+                "This is a test message from Codex confirming that your "
+                "SMTP configuration works."
+            ),
+            from_email=from_address,
+            to=[recipient],
+        )
         try:
-            with get_connection(**conn_kwargs) as connection:
-                message = EmailMessage(
-                    subject=f"{subject_prefix}Test message",
-                    body=(
-                        "This is a test message from Codex confirming that your "
-                        "SMTP configuration works."
-                    ),
-                    from_email=from_address,
-                    to=[recipient],
-                    connection=connection,
-                )
-                sent = message.send(fail_silently=False)
+            # django-types declares __exit__ params non-optional, breaking
+            # the context-manager protocol only in the stubs.
+            with DBEmailBackend(**conn_kwargs) as connection:  # ty: ignore[invalid-context-manager]
+                sent = connection.send_messages([message])
         except Exception as exc:
             logger.warning("Codex Email test send failed: {exc}", exc=exc)
             response = EmailTestSendResponseSerializer(
