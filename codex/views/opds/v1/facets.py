@@ -49,11 +49,10 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         """Memoize use_facets."""
         if self._use_facets is None:
             name = self.user_agent_name
-            # A build the client didn't send or codex couldn't parse fails
-            # the floor: fake nav folder sort works on every client.
-            min_build = UserAgentNames.FACET_SUPPORT_MIN_BUILD.get(name, 0)
-            self._use_facets = name in UserAgentNames.FACET_SUPPORT and (
-                (self.user_agent_build or 0) >= min_build
+            blind_builds = UserAgentNames.FACET_BLIND_BUILDS.get(name, frozenset())
+            self._use_facets = (
+                name in UserAgentNames.FACET_SUPPORT
+                and self.user_agent_build not in blind_builds
             )
         return self._use_facets
 

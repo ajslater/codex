@@ -23,12 +23,16 @@ from tests.test_opds_feed import (
 )
 
 # Panels sends a CFNetwork style UA; the name is the part before the
-# first slash and the build number follows it. iOS builds (952+) render
-# OPDS facets natively; the macOS build (951) does not.
-_PANELS_UA: Final = "Panels/952 CFNetwork/3896.100.1.2.1 Darwin/27.0.0"
+# first slash and the build number follows it. Build numbers interleave
+# across platforms: iOS builds like 942 and 950 render OPDS facets
+# natively, the macOS build (951) does not, so known facet-blind builds
+# are denylisted and every other build gets facets.
+_PANELS_UA: Final = "Panels/942 CFNetwork/3896.100.1.2.1 Darwin/27.0.0"
 _PANELS_MACOS_UA: Final = "Panels/951 CFNetwork/3896.100.1.2.1 Darwin/25.0.0"
+# An unlisted build must default to facets, the pre-gate behavior.
+_PANELS_ODD_UA: Final = "Panels/beta CFNetwork/3896.100.1.2.1 Darwin/27.0.0"
 _YAR_UA: Final = "yar/1.0"  # kybooks
-_FACET_UAS: Final = (_YAR_UA, _PANELS_UA)
+_FACET_UAS: Final = (_YAR_UA, _PANELS_UA, _PANELS_ODD_UA)
 
 # A non-start feed: start pages emit the topCollection group instead of
 # the order groups.
@@ -182,7 +186,7 @@ def _user_agent(user_agent: str | None) -> tuple[str, int | None]:
 
 def test_get_user_agent_name_panels() -> None:
     """Panels' CFNetwork UA parses to its client name and build."""
-    assert _user_agent(_PANELS_UA) == ("Panels", 952)
+    assert _user_agent(_PANELS_UA) == ("Panels", 942)
     assert _user_agent(_PANELS_MACOS_UA) == ("Panels", 951)
 
 
