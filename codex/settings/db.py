@@ -135,31 +135,23 @@ def get_email_connection_kwargs() -> dict[str, Any]:
     """
     Return kwargs to pass to :class:`django.core.mail.backends.smtp.EmailBackend`.
 
-    Pulls each field from the DB row first, falling back to the
-    matching Django setting (which itself sources from TOML / env /
-    default). Boolean toggles use ``getattr`` so a missing row doesn't
-    crash callers.
+    Pulls each field from the DB row first, falling back to the matching
+    entry in the ``EMAIL_CONNECTION_OPTIONS`` setting (which itself
+    sources from TOML / env / default).
     """
+    opts = settings.EMAIL_CONNECTION_OPTIONS
     db = get_email_settings()
     if db is None:
-        return {
-            "host": settings.EMAIL_HOST,
-            "port": settings.EMAIL_PORT,
-            "username": settings.EMAIL_HOST_USER,
-            "password": settings.EMAIL_HOST_PASSWORD,
-            "use_tls": settings.EMAIL_USE_TLS,
-            "use_ssl": settings.EMAIL_USE_SSL,
-            "timeout": settings.EMAIL_TIMEOUT,
-        }
+        return dict(opts)
     return {
-        "host": _coalesce(db.host, settings.EMAIL_HOST),
-        "port": db.port or settings.EMAIL_PORT,
-        "username": _coalesce(db.user, settings.EMAIL_HOST_USER),
-        "password": _coalesce(db.password, settings.EMAIL_HOST_PASSWORD),
+        "host": _coalesce(db.host, opts["host"]),
+        "port": db.port or opts["port"],
+        "username": _coalesce(db.user, opts["username"]),
+        "password": _coalesce(db.password, opts["password"]),
         # Booleans: explicit DB value wins (False is a real choice).
         "use_tls": db.use_tls,
         "use_ssl": db.use_ssl,
-        "timeout": db.timeout or settings.EMAIL_TIMEOUT,
+        "timeout": db.timeout or opts["timeout"],
     }
 
 
@@ -169,7 +161,9 @@ def get_email_from_address() -> str:
     candidates = []
     if db is not None:
         candidates.extend((db.from_address, db.user))
-    candidates.extend((settings.DEFAULT_FROM_EMAIL, settings.EMAIL_HOST_USER))
+    candidates.extend(
+        (settings.DEFAULT_FROM_EMAIL, settings.EMAIL_CONNECTION_OPTIONS["username"])
+    )
     for value in candidates:
         if value:
             return value

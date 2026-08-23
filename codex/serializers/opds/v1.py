@@ -12,7 +12,6 @@ from rest_framework.fields import (
 )
 from rest_framework.serializers import Serializer
 
-from codex.serializers.fields.collection import BrowseCollectionField
 from codex.serializers.models.pycountry import LanguageSerializer
 
 UTC_TZ = ZoneInfo("UTC")
@@ -26,7 +25,7 @@ class OPDS1TemplateLinkSerializer(Serializer):
     mime_type = CharField(read_only=True)
     title = CharField(read_only=True, required=False)
     length = IntegerField(read_only=True, required=False)
-    facet_group = BrowseCollectionField(read_only=True, required=False)
+    facet_group = CharField(read_only=True, required=False)
     facet_active = BooleanField(read_only=True, required=False)
     thr_count = IntegerField(read_only=True, required=False)
     pse_count = IntegerField(read_only=True, required=False)
@@ -54,7 +53,7 @@ class OPDS1TemplateEntrySerializer(Serializer):
     language = LanguageSerializer(read_only=True, required=False)
     summary = CharField(read_only=True, required=False)
     authors = OPDS1CreditSerializer(many=True, required=False, read_only=True)
-    credits = OPDS1CreditSerializer(many=True, required=False, read_only=True)
+    contributors = OPDS1CreditSerializer(many=True, required=False, read_only=True)
     category_groups = DictField(required=False, read_only=True)
 
 

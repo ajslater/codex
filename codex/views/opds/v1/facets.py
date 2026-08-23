@@ -27,9 +27,10 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
-        self._user_agent_name: str | None = None
+        self._user_agent_parts: tuple[str, int | None] | None = None
         self._mime_type_map: MappingProxyType[str, str] | None = None
         self._use_facets: bool | None = None
+        self._use_facets_order: bool | None = None
         self._obj: MappingProxyType[str, Any] | None = None
 
     @property
@@ -47,8 +48,24 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def use_facets(self) -> bool:
         """Memoize use_facets."""
         if self._use_facets is None:
-            self._use_facets = self.user_agent_name in UserAgentNames.FACET_SUPPORT
+            name = self.user_agent_name
+            blind_builds = UserAgentNames.FACET_BLIND_BUILDS.get(name, frozenset())
+            self._use_facets = (
+                name in UserAgentNames.FACET_SUPPORT
+                and self.user_agent_build not in blind_builds
+            )
         return self._use_facets
+
+    @property
+    def use_facets_order(self) -> bool:
+        """Memoize use_facets_order."""
+        if self._use_facets_order is None:
+            collection = self.kwargs.get("collection")
+            self._use_facets_order = (
+                collection != Collection.COMIC
+                and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
+            )
+        return self._use_facets_order  # pyright: ignore[reportReturnType]
 
     @property
     def obj(self) -> MappingProxyType[str, Any]:
@@ -90,7 +107,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             href,
             MimeType.NAV,
             title=title,
-            facet_group=facet_group.query_param,
+            facet_group=facet_group.display_name,
             facet_active=facet_active,
         )
 
@@ -162,12 +179,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         facets = []
         if self.IS_START_PAGE:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
-        else:
-            collection = self.kwargs.get("collection")
-            if (
-                collection != Collection.COMIC
-                and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
-            ):
-                facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)
-                facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries=entries)
+        elif self.use_facets_order:
+            facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)
+            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries=entries)
         return facets

@@ -6,6 +6,27 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.9
+
+- Fixes
+    - OPDS responses are cached per client User-Agent. Clients that support
+      different features no longer receive each other's cached feeds for a
+      minute.
+    - OPDS v1: comic credits that are not writing credits, like artists and
+      colorists, appear as contributors in metadata feeds. They had never been
+      sent.
+    - OPDS: Panels on iOS (3.13 and later) is recognized as a facet capable
+      client and receives real OPDS facets, shown in the native filter menu,
+      instead of sort options faked as navigation folders. The macOS build
+      (951), which does not support facets, keeps the navigation folder sort
+      options.
+    - OPDS v1: facet capable clients like kybooks no longer also receive a dead,
+      unclickable duplicate entry for every facet alongside the real facet
+      links.
+    - OPDS v1: facet groups are labeled "Order By", "Order Direction" and
+      "Views" instead of the internal query parameter names clients displayed
+      verbatim, like "orderBy".
+
 ## v2.2.8
 
 - Fixes
