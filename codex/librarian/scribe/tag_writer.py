@@ -92,27 +92,6 @@ class TagWriter(WorkerStatusAbortableBase):
             )
         return items
 
-    def _reimport_unwatched(self, comic_paths: dict[int, Path]) -> None:
-        """Re-import comics in libraries without filesystem event watching."""
-        if not comic_paths:
-            return
-        comics = Comic.objects.filter(pk__in=comic_paths.keys()).only(
-            "pk", "path", "library_id", "library__events"
-        )
-        library_path_map: defaultdict[int, set[str]] = defaultdict(set)
-        for comic in comics:
-            if not comic.library.events:
-                library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue]
-
-        for library_id, paths in library_path_map.items():
-            import_task = ImportTask(
-                library_id=library_id,
-                files_modified=frozenset(paths),
-                force_import_metadata=True,
-                check_metadata_mtime=False,
-            )
-            self.librarian_queue.put(import_task)
-
     @staticmethod
     def _build_base_config(task: BulkTagWriteTask):
         """
@@ -129,14 +108,21 @@ class TagWriter(WorkerStatusAbortableBase):
         cfg = get_config()
         return replace(cfg, general=replace(cfg.general, delete_orig=True))
 
-    def _collect_written_pks(
+    def _collect_written_paths(
         self,
         items: list[BulkWriteItem],
         path_to_pk: dict[Path, int],
         base_config,
-    ) -> set[int]:
-        """Run bulk_write and return pks that were successfully written."""
-        written_pks: set[int] = set()
+    ) -> dict[int, Path]:
+        """
+        Run bulk_write; map successfully written pks to their on-disk paths.
+
+        The mapped path is the *final* one comicbox reports: writing an
+        unwritable archive (CBR/CBT/CB7) repacks it as a CBZ at a new path,
+        and every later step — rename, DB sync — must chase the file there,
+        not the submitted path the DB still holds.
+        """
+        written_paths: dict[int, Path] = {}
         had_errors = False
         for result in bulk_write(
             items,
@@ -153,11 +139,11 @@ class TagWriter(WorkerStatusAbortableBase):
                 continue
             pk = path_to_pk.get(result.path)
             if pk is not None:
-                written_pks.add(pk)
+                written_paths[pk] = result.final_path or result.path
         if had_errors:
             # Surface the failures to admins (red badge + Tagging-tab panel).
             self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
-        return written_pks
+        return written_paths
 
     @staticmethod
     def _resolve_comics(
@@ -186,7 +172,7 @@ class TagWriter(WorkerStatusAbortableBase):
         return comic_paths, lib_of, library_events
 
     def write_tags(self, task: BulkTagWriteTask) -> None:
-        """Execute bulk tag write, optional rename, and re-import."""
+        """Execute bulk tag write, optional rename, and DB sync."""
         if not task.comic_pks:
             self.log.debug("Tag write called with no comic pks.")
             return
@@ -197,33 +183,29 @@ class TagWriter(WorkerStatusAbortableBase):
             self.log.debug("Tag write: no patches to apply.")
             return
 
-        written_pks: set[int] = set()
+        written_paths: dict[int, Path] = {}
         if items:
             path_to_pk = {path: pk for pk, path in comic_paths.items()}
             base_config = self._build_base_config(task)
-            written_pks = self._collect_written_pks(items, path_to_pk, base_config)
+            written_paths = self._collect_written_paths(items, path_to_pk, base_config)
 
-        renamed_pks: set[int] = set()
+        renamed_paths: dict[int, Path] = {}
         if task.rename:
             # Rename-only (no patch) renames every resolved comic from its
-            # existing on-archive metadata; with a patch, only the written ones.
-            candidates = written_pks if items else set(comic_paths)
-            renamed_pks = self._rename_comics(
-                candidates,
-                comic_paths,
-                lib_of,
-                library_events,
-                tags_written=bool(items),
-            )
+            # existing on-archive metadata; with a patch, only the written
+            # ones. Renames chase the written file to its post-conversion
+            # path, not the possibly-stale DB path.
+            candidates = set(written_paths) if items else set(comic_paths)
+            current_paths = {**comic_paths, **written_paths}
+            renamed_paths = self._rename_comics(candidates, current_paths)
 
-        # Non-renamed written comics keep the existing unwatched re-import path;
-        # renamed comics are synced inside _rename_comics (their old path is gone).
-        non_renamed = {
-            pk: comic_paths[pk] for pk in written_pks if pk not in renamed_pks
-        }
-        self._reimport_unwatched(non_renamed)
+        self._sync_db(
+            task, comic_paths, written_paths, renamed_paths, lib_of, library_events
+        )
+        num_written = len(written_paths)
+        num_renamed = len(renamed_paths)
         self.log.info(
-            f"Tag write complete: {len(written_pks)} written, {len(renamed_pks)} renamed."
+            f"Tag write complete: {num_written} written, {num_renamed} renamed."
         )
 
     def _rename_one(self, old_path: Path) -> Path | None:
@@ -256,19 +238,13 @@ class TagWriter(WorkerStatusAbortableBase):
     def _rename_comics(
         self,
         candidates: set[int],
-        comic_paths: dict[int, Path],
-        lib_of: dict[int, int],
-        library_events: dict[int, bool],
-        *,
-        tags_written: bool,
-    ) -> set[int]:
-        """Rename candidate comics and sync the DB. Return the renamed pks."""
-        # library_id -> {old_path_str: new_path_str}
-        moved: defaultdict[int, dict[str, str]] = defaultdict(dict)
-        renamed_pks: set[int] = set()
+        current_paths: dict[int, Path],
+    ) -> dict[int, Path]:
+        """Rename candidate comics on disk. Return new paths by pk."""
+        renamed_paths: dict[int, Path] = {}
         had_errors = False
         for pk in candidates:
-            old_path = comic_paths[pk]
+            old_path = current_paths[pk]
             try:
                 new_path = self._rename_one(old_path)
             except Exception as exc:
@@ -278,42 +254,118 @@ class TagWriter(WorkerStatusAbortableBase):
                 continue
             if new_path is None or new_path == old_path:
                 continue
-            moved[lib_of[pk]][str(old_path)] = str(new_path)
-            renamed_pks.add(pk)
+            renamed_paths[pk] = new_path
         if had_errors:
             self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
-        self._enqueue_rename_imports(moved, library_events, tags_written=tags_written)
-        return renamed_pks
+        return renamed_paths
 
-    def _enqueue_rename_imports(
-        self,
-        moved: dict[int, dict[str, str]],
-        library_events: dict[int, bool],
+    @staticmethod
+    def _sync_ops_for_comic(
+        db_path: Path,
+        written_path: Path | None,
+        renamed_path: Path | None,
         *,
-        tags_written: bool,
+        watched: bool,
+        delete_original: bool,
+    ) -> tuple[str | None, str | None, str | None]:
+        """
+        Classify one comic's on-disk outcome into DB sync operations.
+
+        Returns (moved_dest, modified_path, created_path); each is None when
+        that operation isn't needed. See ``_sync_db`` for the rationale
+        behind each case.
+        """
+        if written_path is None and renamed_path is None:
+            return None, None, None
+        converted = written_path is not None and written_path != db_path
+        end_path = str(renamed_path or written_path or db_path)
+        if converted and not delete_original:
+            # The DB comic is the untouched original; the CBZ is a new file.
+            return None, None, None if watched else end_path
+        if converted:
+            # New inode: nothing downstream can pair this move; record it
+            # for watched libraries too.
+            return end_path, end_path, None
+        if renamed_path is not None:
+            # Codex performed this rename, so it states the move rather
+            # than leaving the watcher to re-infer it; watched too.
+            modify = end_path if written_path is not None else None
+            return end_path, modify, None
+        if watched:
+            return None, None, None
+        return None, end_path, None
+
+    def _sync_db(
+        self,
+        task: BulkTagWriteTask,
+        comic_paths: dict[int, Path],
+        written_paths: dict[int, Path],
+        renamed_paths: dict[int, Path],
+        lib_of: dict[int, int],
+        library_events: dict[int, bool],
     ) -> None:
         """
-        Sync the DB for renamed comics, watcher-aware.
+        Sync the DB to the on-disk outcome of the write + rename, watcher-aware.
 
-        Watched libraries: enqueue nothing — the watcher's inode move-detection
-        emits the ``files_moved`` import, and ``build_import_task`` remaps the
-        tag-write's modify event from the pre-rename path onto the move
-        destination, so the new tags re-read from the same batch. A
-        self-enqueued move would only duplicate it.
-        Unwatched libraries: enqueue one targeted move import that updates the
-        path and, when tags were written, re-reads the new file's metadata
-        (``move_and_modify_dirs`` runs before the per-comic ``read`` phase).
+        Three on-disk outcomes need a DB move or re-read:
+
+        Conversion (CBR/CBT/CB7 repacked as CBZ during the write, original
+        deleted): the new archive is a *new inode*, which neither the watcher
+        nor the poller can pair into a move — left alone, the row would be
+        deleted and recreated, losing bookmarks. Codex must record the move
+        itself, for watched libraries too; the watcher's later add/delete
+        events reconcile as no-ops against the already-moved row. Best-effort:
+        a write batch long enough to force a mid-batch watcher flush can land
+        the watcher's delete first, degrading to the old delete+recreate —
+        never worse. When the
+        original is kept (``delete_original`` off), the DB comic is untouched
+        and the converted CBZ is simply a new file: watched libraries see its
+        create event, unwatched ones are told here.
+
+        Pure rename (same path reported back): codex records the move
+        itself, for watched libraries too. A watcher can only recognize a
+        rename by pairing its delete and add on a matching inode, and that
+        pairing is not dependable. An in-place PDF tag write saves to a
+        temp file and ``replace()``s it over the original, so the file
+        carries a *new* inode that the row's stored one can never match;
+        even a same-inode archive goes unpaired when the delete and add
+        land in different watcher batches. An unpaired rename deletes the
+        row and recreates it, losing bookmarks and read state. Duplicating
+        a move the watcher does pair costs nothing: whichever copy lands
+        second is dropped by ``_remove_file_move_collisions`` for an
+        occupied destination, or matches no source row in
+        ``_bulk_comics_move_prepare``. The move is targeted, so
+        ``move_and_modify_dirs`` runs before the per-comic ``read`` phase,
+        and the same mid-batch-flush caveat as a conversion applies.
+
+        In-place write (no conversion, no rename): watched libraries re-read
+        via the watcher's modify event; unwatched ones are told here.
         """
-        for library_id, lib_moved in moved.items():
-            if library_events.get(library_id):
-                continue
-            files_modified = (
-                frozenset(lib_moved.values()) if tags_written else frozenset()
+        moved: defaultdict[int, dict[str, str]] = defaultdict(dict)
+        modified: defaultdict[int, set[str]] = defaultdict(set)
+        created: defaultdict[int, set[str]] = defaultdict(set)
+        for pk, db_path in comic_paths.items():
+            library_id = lib_of[pk]
+            move_to, modify, create = self._sync_ops_for_comic(
+                db_path,
+                written_paths.get(pk),
+                renamed_paths.get(pk),
+                watched=library_events.get(library_id, False),
+                delete_original=task.delete_original,
             )
+            if move_to:
+                moved[library_id][str(db_path)] = move_to
+            if modify:
+                modified[library_id].add(modify)
+            if create:
+                created[library_id].add(create)
+
+        for library_id in moved.keys() | modified.keys() | created.keys():
             import_task = ImportTask(
                 library_id=library_id,
-                files_moved=dict(lib_moved),
-                files_modified=files_modified,
+                files_moved=moved.get(library_id, {}),
+                files_modified=frozenset(modified.get(library_id, ())),
+                files_created=frozenset(created.get(library_id, ())),
                 force_import_metadata=True,
                 check_metadata_mtime=False,
             )

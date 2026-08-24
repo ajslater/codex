@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.11
+
+- Fixes
+    - Tagging a CBR (or other non-CBZ) archive converts it to CBZ; the rename
+      pass and the database now follow the file to its converted path. The
+      rename step no longer fails with "does not exist", and the comic's
+      database row — bookmarks included — moves onto the new CBZ instead of
+      being dropped and re-created as a new comic on the next scan.
+    - Renaming comics in a watched library keeps their bookmarks and read
+      progress. PDFs lost them every time, other formats occasionally.
+
 ## v2.2.10
 
 - Fixes
