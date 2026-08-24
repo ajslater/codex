@@ -286,11 +286,13 @@ class TagWriter(WorkerStatusAbortableBase):
             # New inode: nothing downstream can pair this move; record it
             # for watched libraries too.
             return end_path, end_path, None
-        if watched:
-            return None, None, None
         if renamed_path is not None:
+            # Codex performed this rename, so it states the move rather
+            # than leaving the watcher to re-infer it; watched too.
             modify = end_path if written_path is not None else None
             return end_path, modify, None
+        if watched:
+            return None, None, None
         return None, end_path, None
 
     def _sync_db(
@@ -320,14 +322,21 @@ class TagWriter(WorkerStatusAbortableBase):
         and the converted CBZ is simply a new file: watched libraries see its
         create event, unwatched ones are told here.
 
-        Pure rename (same path reported back): a watched library's watcher
-        pairs the move itself and ``build_import_task`` remaps the tag-write's
-        modify event onto the destination, so codex enqueues nothing — a
-        self-enqueued move would only duplicate it. (PDF writes replace the
-        file at the same path with a new inode, defeating that pairing — a
-        pre-existing gap this sync does not yet cover.) Unwatched libraries
-        get a targeted move (``move_and_modify_dirs`` runs before the
-        per-comic ``read`` phase).
+        Pure rename (same path reported back): codex records the move
+        itself, for watched libraries too. A watcher can only recognize a
+        rename by pairing its delete and add on a matching inode, and that
+        pairing is not dependable. An in-place PDF tag write saves to a
+        temp file and ``replace()``s it over the original, so the file
+        carries a *new* inode that the row's stored one can never match;
+        even a same-inode archive goes unpaired when the delete and add
+        land in different watcher batches. An unpaired rename deletes the
+        row and recreates it, losing bookmarks and read state. Duplicating
+        a move the watcher does pair costs nothing: whichever copy lands
+        second is dropped by ``_remove_file_move_collisions`` for an
+        occupied destination, or matches no source row in
+        ``_bulk_comics_move_prepare``. The move is targeted, so
+        ``move_and_modify_dirs`` runs before the per-comic ``read`` phase,
+        and the same mid-batch-flush caveat as a conversion applies.
 
         In-place write (no conversion, no rename): watched libraries re-read
         via the watcher's modify event; unwatched ones are told here.
