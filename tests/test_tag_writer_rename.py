@@ -234,7 +234,11 @@ class TagWriterRenameTests(TestCase):
 
         with (
             patch(_COMICBOX_TARGET, _FakeComicbox),
-            patch.object(TagWriter, "_collect_written_pks", return_value={comic.pk}),
+            patch.object(
+                TagWriter,
+                "_collect_written_paths",
+                return_value={comic.pk: old_path},
+            ),
         ):
             writer.write_tags(task)
 
@@ -244,3 +248,142 @@ class TagWriterRenameTests(TestCase):
         assert imports[0].files_moved == {str(old_path): str(new_path)}
         # Tags were written, so the new path is re-read.
         assert imports[0].files_modified == frozenset({str(new_path)})
+
+
+class TagWriterConversionTests(TestCase):
+    """
+    A tag write that converts the archive (CBR -> CBZ) syncs the DB.
+
+    Comicbox repacks unwritable archives as CBZ during a write and reports
+    the new file as the result's ``final_path``. The converted archive is a
+    new inode, which neither the watcher nor the poller can pair into a
+    move, so codex must record the move itself — for watched libraries too
+    — and the rename pass must chase the file to its converted path.
+    """
+
+    @override
+    def setUp(self) -> None:
+        caches["default"].clear()
+        caches["tagging"].clear()
+
+    @override
+    def tearDown(self) -> None:
+        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+    @staticmethod
+    def _convert(old_path: Path) -> Path:
+        """Simulate comicbox's CBR->CBZ conversion with delete_orig."""
+        new_path = old_path.with_suffix(".cbz")
+        old_path.rename(new_path)
+        return new_path
+
+    def _write_task(self, comic: Comic) -> BulkTagWriteTask:
+        return BulkTagWriteTask(
+            comic_pks=frozenset({comic.pk}),
+            patch={"series": {"name": "S"}},
+            delete_original=True,
+            rename=True,
+        )
+
+    def test_converted_write_renames_the_cbz_and_enqueues_move(self) -> None:
+        """Rename follows the conversion; one move from the DB path lands."""
+        comic = _make_comic(events=False, name="c.cbr")
+        old_path = Path(comic.path)
+        cbz_path = self._convert(old_path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = self._write_task(comic)
+
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch.object(
+                TagWriter,
+                "_collect_written_paths",
+                return_value={comic.pk: cbz_path},
+            ),
+        ):
+            writer.write_tags(task)
+
+        renamed_path = old_path.parent / _TARGET_NAME
+        assert renamed_path.exists()
+        assert not cbz_path.exists()
+        assert not old_path.exists()
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        # The move source is the DB's path (the dead .cbr), not the interim cbz.
+        assert imports[0].files_moved == {str(old_path): str(renamed_path)}
+        assert imports[0].files_modified == frozenset({str(renamed_path)})
+
+    def test_converted_write_without_rename_enqueues_move(self) -> None:
+        """Conversion alone moves the DB row onto the new cbz."""
+        comic = _make_comic(events=False, name="c.cbr")
+        old_path = Path(comic.path)
+        cbz_path = self._convert(old_path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = self._write_task(comic)
+        task.rename = False
+
+        with patch.object(
+            TagWriter,
+            "_collect_written_paths",
+            return_value={comic.pk: cbz_path},
+        ):
+            writer.write_tags(task)
+
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        assert imports[0].files_moved == {str(old_path): str(cbz_path)}
+        assert imports[0].files_modified == frozenset({str(cbz_path)})
+
+    def test_converted_write_watched_still_enqueues_move(self) -> None:
+        """Watched libraries can't inode-pair a conversion; codex enqueues it."""
+        comic = _make_comic(events=True, name="c.cbr")
+        old_path = Path(comic.path)
+        cbz_path = self._convert(old_path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = self._write_task(comic)
+
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch.object(
+                TagWriter,
+                "_collect_written_paths",
+                return_value={comic.pk: cbz_path},
+            ),
+        ):
+            writer.write_tags(task)
+
+        renamed_path = old_path.parent / _TARGET_NAME
+        assert renamed_path.exists()
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        assert imports[0].files_moved == {str(old_path): str(renamed_path)}
+
+    def test_converted_write_keeping_original_creates_not_moves(self) -> None:
+        """Without delete_original the DB comic is untouched; cbz is new."""
+        comic = _make_comic(events=False, name="c.cbr")
+        old_path = Path(comic.path)
+        # Original kept: the cbz appears alongside it.
+        cbz_path = old_path.with_suffix(".cbz")
+        shutil.copyfile(old_path, cbz_path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = self._write_task(comic)
+        task.delete_original = False
+        task.rename = False
+
+        with patch.object(
+            TagWriter,
+            "_collect_written_paths",
+            return_value={comic.pk: cbz_path},
+        ):
+            writer.write_tags(task)
+
+        assert old_path.exists()
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        assert not imports[0].files_moved
+        assert imports[0].files_created == frozenset({str(cbz_path)})
+        assert imports[0].files_modified == frozenset()
