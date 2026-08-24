@@ -10,12 +10,12 @@ border-radius: 128px;
 
 - Features
     - Edit a comic's publish date in the tag editor. Year, month and day are
-      separate, so a year-only comic stays that way.
+      separate, so a year-only comic stays that way. Editing a date rewrites the
+      whole date tag: a MetronInfo StoreDate does not survive it, and a
+      multi-comic edit overwrites parts they disagree on.
     - Country, Collection Title and Alternative Issue are editable too, having
       only ever been displayed.
-    - The Country and Language pickers show the comic's current value.
-    - Editing a date rewrites the whole date tag: a MetronInfo StoreDate does
-      not survive it, and a multi-comic edit overwrites parts they disagree on.
+    - Redesigned the Admin Tagging Status table to be more informative.
 
 - Fixes
     - Tagging a CBR (or other non-CBZ) archive converts it to CBZ; the rename
