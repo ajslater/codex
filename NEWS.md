@@ -14,6 +14,14 @@ border-radius: 128px;
       rename step no longer fails with "does not exist", and the comic's
       database row — bookmarks included — moves onto the new CBZ instead of
       being dropped and re-created as a new comic on the next scan.
+    - Renaming comics in a watched library keeps their bookmarks and read
+      progress. PDFs lost them every time, other formats occasionally.
+    - Long tag write batches keep their bookmarks too. A library scan landing
+      partway through a big conversion run no longer deletes the comics it is
+      still converting.
+    - A watched library no longer mistakes an unrelated new file for a renamed
+      comic when a bulk conversion recycles a deleted file's identity, which
+      pointed one comic's row at another comic's file.
 
 ## v2.2.10
 

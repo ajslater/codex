@@ -2,9 +2,11 @@
 Tests for ``TagWriter`` comicbox-scheme file renaming.
 
 Covers the rename pass and its watcher-aware DB sync: rename-only (no tag
-patch) and tag-write-plus-rename, the unwatched (codex enqueues a targeted
-move ``ImportTask``) vs watched (the watcher owns it, codex enqueues nothing)
-branch, and the skip-and-report collision guard.
+patch) and tag-write-plus-rename, both enqueueing a targeted move
+``ImportTask`` whether or not the library is watched, the in-place write a
+watched library is left to notice for itself, the paths a recorded move
+holds against a scan that lands mid-batch, and the skip-and-report
+collision guard.
 """
 
 from __future__ import annotations
@@ -22,6 +24,10 @@ from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
+from codex.librarian.scribe.tagwrite_moves import (
+    clear_tag_write_moves,
+    get_pending_tag_write_paths,
+)
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -126,9 +132,11 @@ class TagWriterRenameTests(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        clear_tag_write_moves()
 
     @override
     def tearDown(self) -> None:
+        clear_tag_write_moves()
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
     def test_rename_only_unwatched_enqueues_move(self) -> None:
@@ -169,8 +177,8 @@ class TagWriterRenameTests(TestCase):
         assert not (old_path.parent / _TARGET_NAME).exists()
         assert not queue.items
 
-    def test_rename_only_watched_enqueues_nothing(self) -> None:
-        """A watched library's rename is left to the watcher; codex stays quiet."""
+    def test_rename_only_watched_enqueues_move(self) -> None:
+        """A watched library's rename is recorded by codex, not left to the watcher."""
         comic = _make_comic(events=True)
         old_path = Path(comic.path)
         queue = _FakeQueue()
@@ -180,10 +188,80 @@ class TagWriterRenameTests(TestCase):
         with patch(_COMICBOX_TARGET, _FakeComicbox):
             writer.write_tags(task)
 
-        # File still renamed on disk, but no ImportTask: the watcher's
-        # move-detection will pick it up.
-        assert (old_path.parent / _TARGET_NAME).exists()
+        new_path = old_path.parent / _TARGET_NAME
+        assert new_path.exists()
+        # The watcher's inode pairing is best-effort, so codex states the
+        # move it performed. A move the watcher also pairs is deduplicated
+        # downstream by the occupied-destination guard.
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        assert imports[0].files_moved == {str(old_path): str(new_path)}
+        # Rename-only: metadata unchanged, so no re-read is requested.
+        assert imports[0].files_modified == frozenset()
+        # Both ends are held until that move is applied, so a scan landing
+        # first can't reconcile them out from under it.
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(new_path)}
+        )
+
+    def test_tag_write_and_rename_watched_enqueues_move_and_reread(self) -> None:
+        """
+        A watched write + rename records the move and re-reads the new path.
+
+        This is the PDF case: pdffile's save() writes a temp file and
+        ``replace()``s it over the original, so the renamed file carries a
+        new inode and the watcher can never pair it to the row's stored one.
+        """
+        comic = _make_comic(events=True)
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(
+            comic_pks=frozenset({comic.pk}),
+            patch={"series": {"name": "S"}},
+            rename=True,
+        )
+
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch.object(
+                TagWriter,
+                "_collect_written_paths",
+                return_value={comic.pk: old_path},
+            ),
+        ):
+            writer.write_tags(task)
+
+        new_path = old_path.parent / _TARGET_NAME
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert len(imports) == 1
+        assert imports[0].files_moved == {str(old_path): str(new_path)}
+        assert imports[0].files_modified == frozenset({str(new_path)})
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(new_path)}
+        )
+
+    def test_write_only_watched_enqueues_nothing(self) -> None:
+        """An in-place write with no rename is still left to the watcher."""
+        comic = _make_comic(events=True)
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(
+            comic_pks=frozenset({comic.pk}), patch={"series": {"name": "S"}}
+        )
+
+        with patch.object(
+            TagWriter,
+            "_collect_written_paths",
+            return_value={comic.pk: old_path},
+        ):
+            writer.write_tags(task)
+
+        # The path never changed, so there is no move to state; the
+        # watcher's modify event carries the re-read.
         assert not [i for i in queue.items if isinstance(i, ImportTask)]
+        assert not get_pending_tag_write_paths()
 
     def test_collision_skips_and_reports(self) -> None:
         """A target collision skips the rename and records a tag-write error."""
@@ -265,9 +343,11 @@ class TagWriterConversionTests(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        clear_tag_write_moves()
 
     @override
     def tearDown(self) -> None:
+        clear_tag_write_moves()
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
     @staticmethod
@@ -313,6 +393,11 @@ class TagWriterConversionTests(TestCase):
         # The move source is the DB's path (the dead .cbr), not the interim cbz.
         assert imports[0].files_moved == {str(old_path): str(renamed_path)}
         assert imports[0].files_modified == frozenset({str(renamed_path)})
+        # Every path the move passes through is held against a scan that
+        # lands before the move task does.
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(cbz_path), str(renamed_path)}
+        )
 
     def test_converted_write_without_rename_enqueues_move(self) -> None:
         """Conversion alone moves the DB row onto the new cbz."""
@@ -387,3 +472,5 @@ class TagWriterConversionTests(TestCase):
         assert not imports[0].files_moved
         assert imports[0].files_created == frozenset({str(cbz_path)})
         assert imports[0].files_modified == frozenset()
+        # Nothing moved, so nothing needs holding back from a scan.
+        assert not get_pending_tag_write_paths()
