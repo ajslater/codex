@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.10
+
+- Fixes
+    - Fix a rare crash opening RAR3 extended timestamps with CBR files.
+
 ## v2.2.9
 
 - Fixes
