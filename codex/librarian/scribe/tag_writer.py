@@ -23,6 +23,7 @@ from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.status import TagWriteStatus
 from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
+from codex.librarian.scribe.tagwrite_moves import register_tag_write_move
 from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG
@@ -295,6 +296,22 @@ class TagWriter(WorkerStatusAbortableBase):
             return None, None, None
         return None, end_path, None
 
+    @staticmethod
+    def _guard_move_paths(src: str, written_path: Path | None, move_to: str) -> None:
+        """
+        Hold every path this move passes through until the importer applies it.
+
+        A scan that lands mid-batch reports the same conversion as an
+        unrelated delete plus create and, being enqueued first, reaches
+        the importer first. Registering the DB's now-dead source, the
+        interim archive the write produced, and the final destination
+        makes that scan a no-op for them, so the move below still finds
+        its source row — and its bookmarks — in place. See
+        ``codex.librarian.scribe.tagwrite_moves``.
+        """
+        waypoints = (str(written_path),) if written_path else ()
+        register_tag_write_move(src, move_to, waypoints)
+
     def _sync_db(
         self,
         task: BulkTagWriteTask,
@@ -314,10 +331,11 @@ class TagWriter(WorkerStatusAbortableBase):
         nor the poller can pair into a move — left alone, the row would be
         deleted and recreated, losing bookmarks. Codex must record the move
         itself, for watched libraries too; the watcher's later add/delete
-        events reconcile as no-ops against the already-moved row. Best-effort:
-        a write batch long enough to force a mid-batch watcher flush can land
-        the watcher's delete first, degrading to the old delete+recreate —
-        never worse. When the
+        events reconcile as no-ops against the already-moved row. A batch
+        long enough to force a mid-batch watcher flush (or a poll that lands
+        during it) would otherwise get that scan's delete in first, so every
+        path a move passes through is registered in ``tagwrite_moves`` and
+        the importer holds it for this task. When the
         original is kept (``delete_original`` off), the DB comic is untouched
         and the converted CBZ is simply a new file: watched libraries see its
         create event, unwatched ones are told here.
@@ -336,7 +354,8 @@ class TagWriter(WorkerStatusAbortableBase):
         occupied destination, or matches no source row in
         ``_bulk_comics_move_prepare``. The move is targeted, so
         ``move_and_modify_dirs`` runs before the per-comic ``read`` phase,
-        and the same mid-batch-flush caveat as a conversion applies.
+        and its paths are held against a mid-batch scan exactly as a
+        conversion's are.
 
         In-place write (no conversion, no rename): watched libraries re-read
         via the watcher's modify event; unwatched ones are told here.
@@ -354,7 +373,9 @@ class TagWriter(WorkerStatusAbortableBase):
                 delete_original=task.delete_original,
             )
             if move_to:
-                moved[library_id][str(db_path)] = move_to
+                src = str(db_path)
+                moved[library_id][src] = move_to
+                self._guard_move_paths(src, written_paths.get(pk), move_to)
             if modify:
                 modified[library_id].add(modify)
             if create:
