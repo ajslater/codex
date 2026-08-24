@@ -4,7 +4,8 @@ Tests for ``TagWriter`` comicbox-scheme file renaming.
 Covers the rename pass and its watcher-aware DB sync: rename-only (no tag
 patch) and tag-write-plus-rename, both enqueueing a targeted move
 ``ImportTask`` whether or not the library is watched, the in-place write a
-watched library is left to notice for itself, and the skip-and-report
+watched library is left to notice for itself, the paths a recorded move
+holds against a scan that lands mid-batch, and the skip-and-report
 collision guard.
 """
 
@@ -23,6 +24,10 @@ from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
+from codex.librarian.scribe.tagwrite_moves import (
+    clear_tag_write_moves,
+    get_pending_tag_write_paths,
+)
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -127,9 +132,11 @@ class TagWriterRenameTests(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        clear_tag_write_moves()
 
     @override
     def tearDown(self) -> None:
+        clear_tag_write_moves()
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
     def test_rename_only_unwatched_enqueues_move(self) -> None:
@@ -191,6 +198,11 @@ class TagWriterRenameTests(TestCase):
         assert imports[0].files_moved == {str(old_path): str(new_path)}
         # Rename-only: metadata unchanged, so no re-read is requested.
         assert imports[0].files_modified == frozenset()
+        # Both ends are held until that move is applied, so a scan landing
+        # first can't reconcile them out from under it.
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(new_path)}
+        )
 
     def test_tag_write_and_rename_watched_enqueues_move_and_reread(self) -> None:
         """
@@ -225,6 +237,9 @@ class TagWriterRenameTests(TestCase):
         assert len(imports) == 1
         assert imports[0].files_moved == {str(old_path): str(new_path)}
         assert imports[0].files_modified == frozenset({str(new_path)})
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(new_path)}
+        )
 
     def test_write_only_watched_enqueues_nothing(self) -> None:
         """An in-place write with no rename is still left to the watcher."""
@@ -246,6 +261,7 @@ class TagWriterRenameTests(TestCase):
         # The path never changed, so there is no move to state; the
         # watcher's modify event carries the re-read.
         assert not [i for i in queue.items if isinstance(i, ImportTask)]
+        assert not get_pending_tag_write_paths()
 
     def test_collision_skips_and_reports(self) -> None:
         """A target collision skips the rename and records a tag-write error."""
@@ -327,9 +343,11 @@ class TagWriterConversionTests(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        clear_tag_write_moves()
 
     @override
     def tearDown(self) -> None:
+        clear_tag_write_moves()
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
     @staticmethod
@@ -375,6 +393,11 @@ class TagWriterConversionTests(TestCase):
         # The move source is the DB's path (the dead .cbr), not the interim cbz.
         assert imports[0].files_moved == {str(old_path): str(renamed_path)}
         assert imports[0].files_modified == frozenset({str(renamed_path)})
+        # Every path the move passes through is held against a scan that
+        # lands before the move task does.
+        assert get_pending_tag_write_paths() == frozenset(
+            {str(old_path), str(cbz_path), str(renamed_path)}
+        )
 
     def test_converted_write_without_rename_enqueues_move(self) -> None:
         """Conversion alone moves the DB row onto the new cbz."""
@@ -449,3 +472,5 @@ class TagWriterConversionTests(TestCase):
         assert not imports[0].files_moved
         assert imports[0].files_created == frozenset({str(cbz_path)})
         assert imports[0].files_modified == frozenset()
+        # Nothing moved, so nothing needs holding back from a scan.
+        assert not get_pending_tag_write_paths()
