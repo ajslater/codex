@@ -25,6 +25,7 @@ from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.choices.tagging import (
+    COUNTRIES,
     FORMAT_FIELD_SUPPORT,
     FORMAT_FIELD_VALUES,
     IDENTIFIER_SOURCES,
@@ -67,6 +68,7 @@ _MAP_DUMPS = MappingProxyType(
         "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,
         "browser-table-columns.json": BROWSER_TABLE_COLUMNS,
         "browser-table-default-columns.json": BROWSER_TABLE_DEFAULT_COLUMNS,
+        "countries.json": COUNTRIES,
         "format-field-support.json": FORMAT_FIELD_SUPPORT,
         "format-field-values.json": FORMAT_FIELD_VALUES,
         "identifier-sources.json": IDENTIFIER_SOURCES,

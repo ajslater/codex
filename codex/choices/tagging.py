@@ -58,6 +58,11 @@ LANGUAGES = _vuetify_choices(
     )
 )
 
+# ISO 3166-1 countries (title=English name, value=2-letter code), sorted by name.
+COUNTRIES = _vuetify_choices(
+    sorted((country.name, country.alpha_2) for country in pycountry.countries)
+)
+
 # comicbox identifier sources (Comic Vine, Metron, GCD, ...); title == value.
 IDENTIFIER_SOURCES = _vuetify_choices(
     (source.value, source.value) for source in IdSources
@@ -78,7 +83,7 @@ IDENTIFIER_TYPES = _vuetify_choices(
 # most fields; the splits/renames are codex's relational model (issue split into
 # number + suffix so issues sort numerically, comicbox "arcs" stored as
 # story_arcs, ComicInfo's "manga"/"title" surfaced as reading_direction/stories).
-# Canonical keys absent here (bookmark, date, pages, page_count, prices,
+# Canonical keys absent here (bookmark, pages, page_count, prices,
 # updated_at, ...) are not tag-editor fields and are dropped.
 _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
@@ -87,6 +92,17 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
         "series": ("series",),
         "volume": ("volume", "volume_issue_count"),
         "issue": ("issue_number", "issue_suffix"),
+        # An alternate numbering for the same issue, split like `issue`.
+        "alternative_issue": (
+            "alternative_issue_number",
+            "alternative_issue_suffix",
+        ),
+        "collection_title": ("collection_title",),
+        # Only the parts codex stores (Comic.year/month/day). cover_date and
+        # store_date get no editor fields: codex keeps no columns for them,
+        # and comicbox derives cover_date -- MetronInfo's CoverDate -- from a
+        # full year/month/day trio on write.
+        "date": ("year", "month", "day"),
         "summary": ("summary",),
         "review": ("review",),
         "notes": ("notes",),
@@ -103,7 +119,6 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
         "monochrome": ("monochrome",),
         "original_format": ("original_format",),
         "manga": ("reading_direction",),
-        "reading_direction": ("reading_direction",),
         "credits": ("credits",),
         "language": ("language",),
         "age_rating": ("age_rating",),

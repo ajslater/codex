@@ -337,6 +337,174 @@
           </v-text-field>
         </div>
       </div>
+      <div class="inlineRow">
+        <div
+          :title="
+            isFieldDisabled('alternative_issue_number') ? disabledTooltip : ''
+          "
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.alternative_issue_number"
+            label="Alternative Issue Number"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('alternative_issue_number')"
+            :class="{
+              fieldCleared: isCleared('alternative_issue_number'),
+              fieldChanged:
+                isFieldChanged('alternative_issue_number') &&
+                !isCleared('alternative_issue_number'),
+            }"
+            @update:model-value="onFieldInput('alternative_issue_number')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('alternative_issue_number')"
+                @toggle="toggleClear('alternative_issue_number')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="
+            isFieldDisabled('alternative_issue_suffix') ? disabledTooltip : ''
+          "
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.alternative_issue_suffix"
+            label="Alternative Issue Suffix"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('alternative_issue_suffix')"
+            :class="{
+              fieldCleared: isCleared('alternative_issue_suffix'),
+              fieldChanged:
+                isFieldChanged('alternative_issue_suffix') &&
+                !isCleared('alternative_issue_suffix'),
+            }"
+            @update:model-value="onFieldInput('alternative_issue_suffix')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('alternative_issue_suffix')"
+                @toggle="toggleClear('alternative_issue_suffix')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+      </div>
+      <div class="inlineRow">
+        <div
+          :title="isFieldDisabled('year') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model.number="patch.year"
+            label="Year"
+            type="number"
+            min="0"
+            max="9999"
+            :rules="yearRules"
+            hide-details="auto"
+            density="compact"
+            :disabled="isFieldDisabled('year')"
+            :class="{
+              fieldCleared: isCleared('year'),
+              fieldChanged: isFieldChanged('year') && !isCleared('year'),
+            }"
+            @update:model-value="onFieldInput('year')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('year')"
+                @toggle="toggleClear('year')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('month') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model.number="patch.month"
+            label="Month"
+            type="number"
+            min="1"
+            max="12"
+            :rules="monthRules"
+            hide-details="auto"
+            density="compact"
+            :disabled="isFieldDisabled('month')"
+            :class="{
+              fieldCleared: isCleared('month'),
+              fieldChanged: isFieldChanged('month') && !isCleared('month'),
+            }"
+            @update:model-value="onFieldInput('month')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('month')"
+                @toggle="toggleClear('month')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div
+          :title="isFieldDisabled('day') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model.number="patch.day"
+            label="Day"
+            type="number"
+            min="1"
+            max="31"
+            :rules="dayRules"
+            hide-details="auto"
+            density="compact"
+            :disabled="isFieldDisabled('day')"
+            :class="{
+              fieldCleared: isCleared('day'),
+              fieldChanged: isFieldChanged('day') && !isCleared('day'),
+            }"
+            @update:model-value="onFieldInput('day')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('day')"
+                @toggle="toggleClear('day')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+      </div>
+      <div :title="isFieldDisabled('collection_title') ? disabledTooltip : ''">
+        <v-text-field
+          v-model="patch.collection_title"
+          label="Collection Title"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('collection_title')"
+          :class="{
+            fieldCleared: isCleared('collection_title'),
+            fieldChanged:
+              isFieldChanged('collection_title') &&
+              !isCleared('collection_title'),
+          }"
+          @update:model-value="onFieldInput('collection_title')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('collection_title')"
+              @toggle="toggleClear('collection_title')"
+            />
+          </template>
+        </v-text-field>
+      </div>
     </section>
 
     <div class="sectionHeader">Description</div>
@@ -504,6 +672,28 @@
             <ClearFieldIcon
               :cleared="isCleared('language')"
               @toggle="toggleClear('language')"
+            />
+          </template>
+        </v-select>
+      </div>
+      <div :title="isFieldDisabled('country') ? disabledTooltip : ''">
+        <v-select
+          v-model="patch.country"
+          :items="countryChoices"
+          label="Country"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('country')"
+          :class="{
+            fieldCleared: isCleared('country'),
+            fieldChanged: isFieldChanged('country') && !isCleared('country'),
+          }"
+          @update:model-value="onFieldInput('country')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('country')"
+              @toggle="toggleClear('country')"
             />
           </template>
         </v-select>
@@ -1099,6 +1289,7 @@ import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
 import { HTTP } from "@/api/v4/base";
+import COUNTRIES from "@/choices/countries.json";
 import FORMAT_FIELD_SUPPORT from "@/choices/format-field-support.json";
 import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
@@ -1180,7 +1371,13 @@ const ALL_ROLES = Object.freeze([
 // Numeric fields that clear to null rather than "" (a cleared number is
 // absent, not an empty string).
 const NULL_CLEARED_FIELDS = Object.freeze(
-  new Set(["community_rating", "community_rating_count"]),
+  new Set([
+    "community_rating",
+    "community_rating_count",
+    "year",
+    "month",
+    "day",
+  ]),
 );
 
 const COMMUNITY_RATING_RULES = Object.freeze([
@@ -1191,6 +1388,38 @@ const COMMUNITY_RATING_RULES = Object.freeze([
     (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 5) ||
     "Must be 0.0–5.0",
 ]);
+
+// The publish date parts and their bounds. comicbox bounds month and day and
+// silently clamps them on write; year it leaves unbounded, but Comic.year is a
+// positive small int whose date derivation clamps to python's MINYEAR/MAXYEAR.
+// Bounding here keeps what the archive gets to what the field validated.
+const DATE_PART_BOUNDS = Object.freeze({
+  year: Object.freeze([1, 9999]),
+  month: Object.freeze([1, 12]),
+  day: Object.freeze([1, 31]),
+});
+const DATE_PARTS = Object.freeze(Object.keys(DATE_PART_BOUNDS));
+
+const intRangeRules = ([min, max]) =>
+  Object.freeze([
+    (v) =>
+      v === null ||
+      v === "" ||
+      v === undefined ||
+      (Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max) ||
+      `Must be ${min}–${max}`,
+  ]);
+const YEAR_RULES = intRangeRules(DATE_PART_BOUNDS.year);
+const MONTH_RULES = intRangeRules(DATE_PART_BOUNDS.month);
+const DAY_RULES = intRangeRules(DATE_PART_BOUNDS.day);
+
+const choiceValueForTitle = (choices, named) => {
+  // pycountry-backed fields arrive as their long name; fall back to the raw
+  // value for a code the serializer could not expand.
+  const title = named?.name;
+  if (!title) return null;
+  return choices.find((choice) => choice.title === title)?.value ?? title;
+};
 
 export default {
   name: "EditPanel",
@@ -1209,9 +1438,13 @@ export default {
       formatChoices: FORMAT_CHOICES,
       selectedFormats: ["COMIC_INFO"],
       languageChoices: LANGUAGES,
+      countryChoices: COUNTRIES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
       identifierTypeChoices: IDENTIFIER_TYPES,
       communityRatingRules: COMMUNITY_RATING_RULES,
+      yearRules: YEAR_RULES,
+      monthRules: MONTH_RULES,
+      dayRules: DAY_RULES,
       tagKeys: TAG_KEYS,
       saving: false,
       confirmDialog: false,
@@ -1248,6 +1481,12 @@ export default {
         volume_count: "",
         issue_number: "",
         issue_suffix: "",
+        alternative_issue_number: "",
+        alternative_issue_suffix: "",
+        collection_title: "",
+        year: null,
+        month: null,
+        day: null,
         summary: "",
         review: "",
         notes: "",
@@ -1256,6 +1495,7 @@ export default {
         original_format: null,
         monochrome: false,
         language: null,
+        country: null,
         age_rating: null,
         community_rating: null,
         community_rating_count: null,
@@ -1764,6 +2004,20 @@ export default {
           ? ""
           : String(Number(this.md.issueNumber));
       this.patch.issue_suffix = this.md.issueSuffix || "";
+      this.patch.alternative_issue_number =
+        this.md.alternativeIssueNumber == null ||
+        this.md.alternativeIssueNumber === ""
+          ? ""
+          : String(Number(this.md.alternativeIssueNumber));
+      this.patch.alternative_issue_suffix =
+        this.md.alternativeIssueSuffix || "";
+      this.patch.collection_title = this.md.collectionTitle || "";
+
+      // Publish date — three independent parts; a comic may have only a year.
+      for (const part of DATE_PARTS) {
+        const value = this.md[part];
+        this.patch[part] = value == null ? null : Number(value);
+      }
 
       // Tags
       for (const key of TAG_KEYS) {
@@ -1825,7 +2079,11 @@ export default {
       this.patch.reading_direction = this.md.readingDirection || null;
       this.patch.original_format = this.md.originalFormat?.name || null;
       this.patch.monochrome = Boolean(this.md.monochrome);
-      this.patch.language = this.md.language?.name || null;
+      // The API serializes these to their long English names; the choices are
+      // keyed by the two-letter code comicbox writes, so map back or the
+      // current value matches no item and re-picking it looks like an edit.
+      this.patch.language = choiceValueForTitle(LANGUAGES, this.md.language);
+      this.patch.country = choiceValueForTitle(COUNTRIES, this.md.country);
       this.patch.age_rating = this.md.ageRating?.name || null;
       this.patch.community_rating =
         this.md.communityRating == null
@@ -1868,7 +2126,13 @@ export default {
       const changed = this.changedFields;
 
       // Simple strings — only include if changed
-      for (const key of ["summary", "review", "notes", "scan_info"]) {
+      for (const key of [
+        "summary",
+        "review",
+        "notes",
+        "scan_info",
+        "collection_title",
+      ]) {
         if (!changed.has(key)) continue;
         if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
         else cbPatch[key] = this.patch[key];
@@ -1914,20 +2178,52 @@ export default {
         }
       }
 
-      // Issue — number + suffix combine into the comicbox `issue` object;
-      // comicbox computes `issue.name` from the parts. Update mode replaces
-      // the key wholesale, so always send both current parts together.
-      if (changed.has("issue_number") || changed.has("issue_suffix")) {
+      // Issue and its alternate — number + suffix combine into a comicbox
+      // issue object; comicbox computes the object's `name` from the parts.
+      // Update mode replaces the key wholesale, so always send both current
+      // parts together.
+      for (const key of ["issue", "alternative_issue"]) {
+        const numberField = `${key}_number`;
+        const suffixField = `${key}_suffix`;
+        if (!changed.has(numberField) && !changed.has(suffixField)) continue;
         const issue = {};
-        if (!cleared.has("issue_number") && this.patch.issue_number !== "") {
-          const num = Number(this.patch.issue_number);
+        if (!cleared.has(numberField) && this.patch[numberField] !== "") {
+          const num = Number(this.patch[numberField]);
           if (Number.isFinite(num)) issue.number = num;
         }
-        if (!cleared.has("issue_suffix") && this.patch.issue_suffix) {
-          issue.suffix = this.patch.issue_suffix;
+        if (!cleared.has(suffixField) && this.patch[suffixField]) {
+          issue.suffix = this.patch[suffixField];
         }
-        if (Object.keys(issue).length) cbPatch.issue = issue;
-        else deleteKeys.push("issue");
+        if (Object.keys(issue).length) cbPatch[key] = issue;
+        else deleteKeys.push(key);
+      }
+
+      // Publish date — the parts combine into the comicbox `date` object.
+      // Update mode replaces the key wholesale, so send every surviving part
+      // whenever any one changed; a cleared part just drops out of the
+      // replacement and only a fully empty date needs the delete key.
+      //
+      // That replacement also drops any cover_date/store_date the archive
+      // carried, and codex keeps no columns to resend them. comicbox
+      // rederives cover_date (MetronInfo's CoverDate) from a full trio, so
+      // only a partial date loses it — but store_date is never rederived and
+      // a MetronInfo StoreDate does not survive a date edit.
+      if (DATE_PARTS.some((part) => changed.has(part))) {
+        const date = {};
+        for (const part of DATE_PARTS) {
+          if (cleared.has(part)) continue;
+          const raw = this.patch[part];
+          if (raw === null || raw === "") continue;
+          const num = Math.round(Number(raw));
+          if (!Number.isFinite(num)) continue;
+          // Nothing gates Save on the field rules, so bound the value here
+          // too: comicbox silently clamps month and day but writes any year
+          // it is handed, and Comic.year is a positive small int.
+          const [min, max] = DATE_PART_BOUNDS[part];
+          date[part] = Math.min(max, Math.max(min, num));
+        }
+        if (Object.keys(date).length) cbPatch.date = date;
+        else deleteKeys.push("date");
       }
 
       // Story arcs — only include if changed
@@ -1999,6 +2295,7 @@ export default {
         "reading_direction",
         "original_format",
         "language",
+        "country",
         "age_rating",
       ]) {
         if (!changed.has(key)) continue;
