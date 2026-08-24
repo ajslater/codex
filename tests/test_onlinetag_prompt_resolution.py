@@ -19,11 +19,9 @@ from codex.librarian.onlinetag.session_cache import (
     get_pending_prompts,
     set_pending_prompts,
 )
-from codex.librarian.onlinetag.session_snapshot import (
-    USER_MATCHED,
-    get_resolved_outcomes,
-)
+from codex.librarian.onlinetag.session_snapshot import get_resolved_outcomes
 from codex.librarian.onlinetag.session_state import SessionState
+from codex.librarian.onlinetag.statuses import USER_MATCHED
 from codex.librarian.onlinetag.tasks import OnlineTagPromptResponseTask
 from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
 from tests.onlinetag_session_fakes import (
@@ -80,7 +78,12 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
         assert len(writes) == 1
         assert writes[0].comic_pks == frozenset({comic.pk})
         assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
-        assert get_resolved_outcomes().get(comic.pk) == USER_MATCHED
+        # Recorded against the source that prompted, so the status table can
+        # show the outcome in that source's column.
+        assert get_resolved_outcomes().get(comic.pk) == {
+            "status": USER_MATCHED,
+            "sources": {"metron": USER_MATCHED},
+        }
 
     def test_resolve_choose_unresolved_id_does_not_write_or_requeue(self) -> None:
         """A pick whose id doesn't resolve writes nothing and never re-prompts."""

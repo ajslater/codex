@@ -22,9 +22,14 @@ Design notes:
   review, error) and upcoming (queued) come first; finished rows fill the rest.
   ``comic_count`` always carries the true total so the UI can say "showing N
   of M".
+- **Each row also carries per-source cells** (``source_statuses``): what each
+  source did with that comic, which the status table renders as one column per
+  source. They come from the same fold; only the rate-limit "waiting" state is
+  projected here, since it lives on the scan rather than the event stream.
 - **Status string values are deliberately snake_case** and pass through the
   camelCase API renderer untouched (it only camelizes dict *keys*); the
-  frontend matches on these literals.
+  frontend matches on these literals. They are defined in
+  :mod:`~codex.librarian.onlinetag.statuses` and re-exported here.
 - Lives in ``caches["tagging"]`` like the prompts/scan-id state, with no TTL.
   The active flag flips to False when the scan finishes so the final tally
   stays visible until the next batch starts.
@@ -38,31 +43,28 @@ from codex.cache import tagging_cache as cache
 from codex.librarian.onlinetag.estimate import SOURCE_RATE_PER_MINUTE
 from codex.librarian.onlinetag.session_cache import get_pending_prompts
 
+# Re-exported so callers can keep reading the status vocabulary off the module
+# that renders it.
+from codex.librarian.onlinetag.statuses import (
+    ACTIONABLE,
+    ERROR,
+    FINISHED,
+    IN_FLIGHT,
+    LIVE_SOURCE_STATUSES,
+    MATCHED,
+    NEEDS_REVIEW,
+    NO_MATCH,
+    QUEUED,
+    USER_MATCHED,
+    WAITING,
+)
+
 if TYPE_CHECKING:
     from codex.librarian.onlinetag.session_state import SessionState
 
 _SNAPSHOT_KEY = "onlinetag:session_snapshot"
 _NO_TIMEOUT = None
 _MAX_COMIC_ROWS: Final = 500
-
-# Per-comic status values. These are emitted to the frontend verbatim (the
-# camelCase renderer rewrites keys, never values), so the frontend matches on
-# these exact strings.
-QUEUED: Final = "queued"
-IN_FLIGHT: Final = "in_flight"
-MATCHED: Final = "matched"
-NO_MATCH: Final = "no_match"
-NEEDS_REVIEW: Final = "needs_review"
-ERROR: Final = "error"
-# Outcomes of admin match-review actions. A scan never produces these; they are
-# overlaid at read time from the resolution record so a comic the admin picked
-# or skipped no longer reads as still "needs review".
-USER_MATCHED: Final = "user_matched"
-USER_SKIPPED: Final = "user_skipped"
-
-# Display ordering buckets: actionable first, then upcoming, then finished.
-_ACTIONABLE: Final = (IN_FLIGHT, NEEDS_REVIEW, ERROR)
-_FINISHED: Final = (MATCHED, NO_MATCH)
 
 _RESOLVED_KEY = "onlinetag:resolved_outcomes"
 _RESUME_KEY = "onlinetag:resume_state"
@@ -96,7 +98,8 @@ def deactivate_snapshot() -> None:
     snapshot can still carry an ``in_flight`` row — dishonest once no scan is
     running. Demote it to ``queued`` (the batch tally already counts in-flight
     as queued, so no count changes) so the comic reads as still-to-do, which
-    is also exactly what Resume will re-run.
+    is also exactly what Resume will re-run. Per-source cells claiming a live
+    lookup or a rate-limit wait go the same way.
     """
     snapshot = get_snapshot()
     if snapshot and snapshot.get("active"):
@@ -104,7 +107,32 @@ def deactivate_snapshot() -> None:
         for comic in snapshot.get("comics") or []:
             if comic.get("status") == IN_FLIGHT:
                 comic["status"] = QUEUED
+            _drop_live_source_statuses(comic)
+        _drop_rate_limits(snapshot)
         set_snapshot(snapshot)
+
+
+def _drop_live_source_statuses(comic: dict[str, Any]) -> None:
+    """Strip a row's searching/waiting cells (nothing is live any more)."""
+    cells = comic.get("source_statuses")
+    if not cells:
+        return
+    for source, status in tuple(cells.items()):
+        if status in LIVE_SOURCE_STATUSES:
+            del cells[source]
+
+
+def _drop_rate_limits(snapshot: dict[str, Any]) -> None:
+    """
+    Disarm the sources strip's retry countdowns.
+
+    A crash skips the pass runner's ``finally``, so a scan killed mid-wait can
+    freeze a retry deadline that is still in the future — leaving the strip
+    counting down, then stuck on "retrying…", for a scan that is not running.
+    """
+    for source in snapshot.get("sources") or []:
+        source["rate_limited"] = False
+        source["retry_at_epoch"] = None
 
 
 # --- resolution outcomes -----------------------------------------------------
@@ -117,12 +145,12 @@ def deactivate_snapshot() -> None:
 # when a new scan starts; pruned for vanished comics by the janitor.
 
 
-def get_resolved_outcomes() -> dict[int, str]:
-    """Return the {pk: user_matched|user_skipped} resolution record."""
+def get_resolved_outcomes() -> dict[int, Any]:
+    """Return the {pk: {status, sources}} resolution record."""
     return cache.get(_RESOLVED_KEY, {}) or {}
 
 
-def set_resolved_outcomes(outcomes: dict[int, str]) -> None:
+def set_resolved_outcomes(outcomes: dict[int, Any]) -> None:
     """Replace the resolution record, or clear it when empty."""
     if outcomes:
         cache.set(_RESOLVED_KEY, outcomes, timeout=_NO_TIMEOUT)
@@ -130,12 +158,38 @@ def set_resolved_outcomes(outcomes: dict[int, str]) -> None:
         cache.delete(_RESOLVED_KEY)
 
 
-def record_resolution(pk: int | None, status: str) -> None:
-    """Record one comic's match-review outcome (no-op without a pk)."""
+def _normalize_resolution(value: Any) -> dict[str, Any]:
+    """
+    Read one resolution record as {status, sources}.
+
+    Records written before per-source columns are bare status strings; the
+    file-backed cache outlives an upgrade, so they still have to overlay —
+    just without a source to attribute them to.
+    """
+    if isinstance(value, str):
+        return {"status": value, "sources": {}}
+    if isinstance(value, dict):
+        return {
+            "status": value.get("status") or "",
+            "sources": dict(value.get("sources") or {}),
+        }
+    return {"status": "", "sources": {}}
+
+
+def record_resolution(pk: int | None, status: str, source: str | None = None) -> None:
+    """Record one comic's match-review outcome by source (no-op without a pk)."""
     if pk is None:
         return
     outcomes = get_resolved_outcomes()
-    outcomes[pk] = status
+    record = _normalize_resolution(outcomes.get(pk))
+    if source:
+        record["sources"][source] = status
+    # Under merge_all_sources one comic can raise a prompt per source, so the
+    # file-level status is a reduction: a match from either source is the
+    # outcome that matters and outranks the other's skip.
+    seen = (*record["sources"].values(), record["status"], status)
+    record["status"] = USER_MATCHED if USER_MATCHED in seen else status
+    outcomes[pk] = record
     set_resolved_outcomes(outcomes)
 
 
@@ -146,27 +200,35 @@ def clear_resolved_outcomes() -> None:
 
 def overlay_resolutions(
     snapshot: dict[str, Any],
-    review_pks: set,
-    resolved_outcomes: dict[int, str],
+    review_sources_by_pk: dict[int, tuple[str, ...]],
+    resolved_outcomes: dict[int, Any],
 ) -> dict[str, Any]:
     """
     Reconcile a stored snapshot's per-comic statuses with current state.
 
     A comic still awaiting a prompt wins as ``needs_review`` (the live cache is
     authoritative over the frozen scan); otherwise a recorded resolution
-    replaces a stale status with ``user_matched`` / ``user_skipped``. The
-    needs-review tally is refreshed from the live prompt set. Mutates the
-    passed dict (a fresh deserialized copy from the cache) and returns it.
+    replaces a stale status with ``user_matched`` / ``user_skipped``. Both land
+    in the source column that prompted as well as on the row. The needs-review
+    tally is refreshed from the live prompt set. Mutates the passed dict (a
+    fresh deserialized copy from the cache) and returns it.
     """
     for comic in snapshot.get("comics") or []:
         pk = comic.get("pk")
-        if pk in review_pks:
+        # Snapshots cached before per-source columns have no cells to update.
+        cells = comic.setdefault("source_statuses", {})
+        if pk in review_sources_by_pk:
             comic["status"] = NEEDS_REVIEW
+            for source in review_sources_by_pk[pk]:
+                cells[source] = NEEDS_REVIEW
         elif pk in resolved_outcomes:
-            comic["status"] = resolved_outcomes[pk]
+            record = _normalize_resolution(resolved_outcomes[pk])
+            if record["status"]:
+                comic["status"] = record["status"]
+            cells.update(record["sources"])
     batch = snapshot.get("batch")
     if isinstance(batch, dict):
-        batch["needs_review"] = len(review_pks)
+        batch["needs_review"] = len(review_sources_by_pk)
     return snapshot
 
 
@@ -237,8 +299,41 @@ def _comic_status(path, pk, stats, review_pks: set, *, in_flight: bool) -> str:
     return IN_FLIGHT if in_flight else QUEUED
 
 
+def _row_source_statuses(
+    path,
+    status: str,
+    stats,
+    sources: tuple[str, ...],
+    waiting_sources: frozenset[str],
+) -> dict[str, str]:
+    """Report what each source did with one comic, as its own column cell."""
+    if status == QUEUED:
+        # Nothing has touched it yet; the row reads as queued in every column.
+        return {}
+    if status == ERROR:
+        # A worker exception is usually archive-level rather than any one
+        # source's doing, so every column reports it instead of mis-blaming.
+        return dict.fromkeys(sources, ERROR)
+    cells = dict(stats.source_status_by_path.get(path, {}))
+    if status == IN_FLIGHT:
+        # A rate-limit wait stalls the comic being looked up right now. Mark
+        # the throttled source even with no search cell of its own: id-fetch
+        # and series-cache wins emit no SearchStarted but can still hit it.
+        for source in sources:
+            if source in waiting_sources:
+                cells[source] = WAITING
+        return cells
+    # A cancelled scan never emits the FileFinished that would have cleared a
+    # source's searching cell, and a frozen row must not claim a live lookup.
+    return {
+        source: cell
+        for source, cell in cells.items()
+        if cell not in LIVE_SOURCE_STATUSES
+    }
+
+
 def _build_comic_rows(
-    state: SessionState, review_pks: set
+    state: SessionState, review_pks: set, waiting_sources: frozenset[str]
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Build per-comic rows in processing order plus a status tally."""
     stats = state.stats
@@ -256,26 +351,31 @@ def _build_comic_rows(
         if status == IN_FLIGHT:
             in_flight_taken = True
         counts[status] += 1
-        # A matched comic carries every source that auto-wrote it (one under
-        # first-wins, possibly several under merge_all_sources); empty when the
-        # win came without a source attribution (e.g. a failed-fetch edge).
-        won = stats.matched_source_by_path.get(path, ()) if status == MATCHED else ()
         rows.append(
-            {"pk": pk, "path": str(path), "status": status, "won_sources": list(won)}
+            {
+                "pk": pk,
+                "path": str(path),
+                "status": status,
+                "source_statuses": _row_source_statuses(
+                    path, status, stats, state.sources, waiting_sources
+                ),
+            }
         )
     return rows, counts
 
 
 def _order_and_cap(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Actionable rows first, then queued, then finished; capped, order kept."""
-    actionable = [r for r in rows if r["status"] in _ACTIONABLE]
+    actionable = [r for r in rows if r["status"] in ACTIONABLE]
     queued = [r for r in rows if r["status"] == QUEUED]
-    finished = [r for r in rows if r["status"] in _FINISHED]
+    finished = [r for r in rows if r["status"] in FINISHED]
     return (actionable + queued + finished)[:_MAX_COMIC_ROWS]
 
 
 def _build_sources(
-    state: SessionState, source_retry_at: dict[str, float], now_epoch: float
+    state: SessionState,
+    source_retry_at: dict[str, float],
+    waiting_sources: frozenset[str],
 ) -> list[dict[str, Any]]:
     """One ordered entry per source: rate budget + any live retry countdown."""
     # Live per-account budget (comicbox>=4.3.0 reads it off Metron's
@@ -287,7 +387,7 @@ def _build_sources(
     sources = []
     for source in state.sources:
         retry_at = source_retry_at.get(source)
-        rate_limited = bool(retry_at and retry_at > now_epoch)
+        rate_limited = source in waiting_sources
         sustained = (live.get(source) or {}).get("sustained") or {}
         sources.append(
             {
@@ -313,7 +413,14 @@ def build_snapshot(
 ) -> dict[str, Any]:
     """Fold scan state + pending prompts into a JSON-safe snapshot dict."""
     review_pks = {p.get("pk") for p in get_pending_prompts().values()}
-    rows, counts = _build_comic_rows(state, review_pks)
+    # One predicate for both the sources strip and the per-comic waiting cells,
+    # so a source can never read as limited in one and free in the other.
+    waiting_sources = frozenset(
+        source
+        for source, retry_at in source_retry_at.items()
+        if retry_at and retry_at > now_epoch
+    )
+    rows, counts = _build_comic_rows(state, review_pks, waiting_sources)
     total = state.total_comics or len(state.path_to_pk)
     batch = {
         "total": total,
@@ -337,7 +444,7 @@ def build_snapshot(
         # the frontend shows "Tagging" regardless; this matters once inactive.
         "resumable": bool(batch["queued"]),
         "batch": batch,
-        "sources": _build_sources(state, source_retry_at, now_epoch),
+        "sources": _build_sources(state, source_retry_at, waiting_sources),
         "comics": shown,
         "comic_count": len(rows),
         "shown_count": len(shown),

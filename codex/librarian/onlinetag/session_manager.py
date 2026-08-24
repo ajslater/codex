@@ -17,7 +17,15 @@ from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, cast
 
-from comicbox.events import Event, PromptDeferred, RateLimited
+from comicbox.events import (
+    AutoWritten,
+    Event,
+    NoMatch,
+    PromptDeferred,
+    RateLimited,
+    SearchCompleted,
+    Skipped,
+)
 from comicbox.exceptions import ComicboxError
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
 from django.utils.timezone import now, timedelta
@@ -37,8 +45,6 @@ from codex.librarian.onlinetag.session_cache import (
     set_pending_prompts,
 )
 from codex.librarian.onlinetag.session_snapshot import (
-    USER_MATCHED,
-    USER_SKIPPED,
     build_snapshot,
     clear_resolved_outcomes,
     clear_resume_state,
@@ -53,6 +59,7 @@ from codex.librarian.onlinetag.session_state import (
     SessionState,
     serialize_candidate,
 )
+from codex.librarian.onlinetag.statuses import USER_MATCHED, USER_SKIPPED
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
 from codex.librarian.onlinetag.tasks import (
@@ -187,6 +194,19 @@ class OnlineTagSessionManager:
                 lookup_status = self._pass_runner.lookup_status
                 if lookup_status:
                     self._mark_rate_limited(lookup_status, state, event)
+            # A source that reported an outcome just completed a request, so
+            # whatever wait it was serving is provably over. Deadlines expire
+            # on their own epoch anyway; this releases one early rather than
+            # leaving the strip counting down against a source already back at
+            # work. SearchStarted is deliberately absent — it fires *before*
+            # the request, which is exactly when a rate limit is hit.
+            case (
+                SearchCompleted(source=source)
+                | AutoWritten(source=source)
+                | NoMatch(source=source)
+                | Skipped(source=source)
+            ) if source:
+                self._pass_runner.source_retry_at.pop(source, None)
             case PromptDeferred() if state is not None:
                 self._persist_prompts(state)
             case _:
@@ -210,7 +230,12 @@ class OnlineTagSessionManager:
             if event.source:
                 self._pass_runner.source_retry_at[event.source] = retry_at.timestamp()
         else:
+            # No delay means the retry budget is spent: the source has stopped
+            # waiting and given up, so drop its countdown instead of leaving
+            # the strip claiming a retry that will never come.
             status.retry_at = None
+            if event.source:
+                self._pass_runner.source_retry_at.pop(event.source, None)
         # Push the completion estimate out by the wait plus the work still
         # left, so the total countdown doesn't sail past zero while stalled.
         remaining = (
@@ -219,7 +244,12 @@ class OnlineTagSessionManager:
             else 0
         )
         work = (
-            estimate_seconds(remaining, state.match_mode, state.sources)
+            estimate_seconds(
+                remaining,
+                state.match_mode,
+                state.sources,
+                merge_all_sources=state.merge_all_sources,
+            )
             if state is not None
             else 0.0
         )
@@ -279,13 +309,14 @@ class OnlineTagSessionManager:
         state.answered_fingerprints.add(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         pk = prompt.get("pk")
+        source = prompt.get("source")
         if item.action == "skip":
-            record_resolution(pk, USER_SKIPPED)
+            record_resolution(pk, USER_SKIPPED, source)
             self.log.info(
                 f"Online tag: skipped prompt for {prompt.get('path')!r} mid-scan."
             )
             return
-        record_resolution(pk, USER_MATCHED)
+        record_resolution(pk, USER_MATCHED, source)
         state.deferred_applies.append(
             (prompt, item.action, item.payload, item.chosen_volume_id)
         )
@@ -297,7 +328,7 @@ class OnlineTagSessionManager:
             return
         state.answered_fingerprints.update(prompts.keys())
         for prompt in prompts.values():
-            record_resolution(prompt.get("pk"), USER_SKIPPED)
+            record_resolution(prompt.get("pk"), USER_SKIPPED, prompt.get("source"))
         set_pending_prompts({})
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
@@ -483,10 +514,7 @@ class OnlineTagSessionManager:
                 continue
             primary_source, tags = result
             batch[pk] = tags
-            state.stats.written_paths.add(path)
-            state.stats.matched_source_by_path.setdefault(path, []).append(
-                primary_source
-            )
+            state.stats.record_prefetch_match(path, primary_source)
 
         if batch:
             self._commit_prefetch(state, comic_paths, batch)
@@ -654,14 +682,15 @@ class OnlineTagSessionManager:
         remove_pending_prompt(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         pk = prompt.get("pk")
+        source = prompt.get("source")
         if action == "skip":
-            record_resolution(pk, USER_SKIPPED)
+            record_resolution(pk, USER_SKIPPED, source)
             self.log.info(f"Online tag: skipped prompt for {prompt.get('path')!r}.")
             return
         # Recorded as user-matched up front; if the apply drifts it re-queues a
         # fresh prompt, which the read-time overlay shows as needs-review again
         # (the live prompt set wins over the recorded outcome).
-        record_resolution(pk, USER_MATCHED)
+        record_resolution(pk, USER_MATCHED, source)
         self._apply_resolution(prompt, action, payload, chosen_volume_id)
 
     def skip_all_prompts(self) -> int:
@@ -670,7 +699,7 @@ class OnlineTagSessionManager:
         count = len(prompts)
         if count:
             for prompt in prompts.values():
-                record_resolution(prompt.get("pk"), USER_SKIPPED)
+                record_resolution(prompt.get("pk"), USER_SKIPPED, prompt.get("source"))
             set_pending_prompts({})
             self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {count} prompt(s).")

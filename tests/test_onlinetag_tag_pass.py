@@ -67,6 +67,12 @@ class TagPassRunnerFinishTests(TestCase):
             lambda _state: None,
         )
 
+        # A wait abandoned by the raise must not outlive the pass: run_session
+        # freezes this snapshot for the admin to keep looking at.
+        runner.source_retry_at["comicvine"] = (
+            now() + timedelta(seconds=300)
+        ).timestamp()
+
         with pytest.raises(RuntimeError):
             runner.collect_results(state, [Path("/c/a.cbz")], flush_writes=True)
 
@@ -75,6 +81,56 @@ class TagPassRunnerFinishTests(TestCase):
         assert len(finished) == 1
         assert runner.lookup_status is None
         assert runner.rate_limited is False
+        assert runner.source_retry_at == {}
+
+    def test_collect_results_clears_retry_deadlines_when_cancelled(self) -> None:
+        """Pausing mid-wait must not leave the table counting down forever."""
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        class _NoopStatusController:
+            def start(self, _status, **_kwargs) -> None:
+                pass
+
+            def update(self, _status, **_kwargs) -> None:
+                pass
+
+            def finish(self, _status, **_kwargs) -> None:
+                pass
+
+        class _CancelledSession:
+            def tag_many(self, paths):
+                # comicbox aborts the retry sleep on cancel, so the deadline
+                # it was serving is abandoned with time left on it.
+                return iter([SimpleNamespace(path=p) for p in paths])
+
+        state = double(
+            SimpleNamespace(
+                session=_CancelledSession(),
+                cancelled=True,
+                pending_paths=[],
+                total_comics=0,
+                completed_comics=0,
+                path_to_pk={},
+                collected_tags={},
+                match_mode="auto",
+                sources=("metron", "comicvine"),
+                merge_all_sources=False,
+            )
+        )
+        runner = TagPassRunner(
+            double(logger),
+            double(FakeQueue()),
+            double(_NoopStatusController()),
+            lambda _state: None,
+            lambda _state: None,
+        )
+        runner.source_retry_at["comicvine"] = (
+            now() + timedelta(seconds=300)
+        ).timestamp()
+
+        runner.collect_results(state, [Path("/c/a.cbz")])
+
+        assert runner.source_retry_at == {}
 
     def test_advance_result_clears_retry_and_reestimates_eta(self) -> None:
         """A yielded result ends the wait and refreshes the time estimate."""
@@ -93,7 +149,7 @@ class TagPassRunnerFinishTests(TestCase):
                 completed_comics=0,
                 total_comics=10,
                 match_mode="auto",
-                sources=("metron",),
+                sources=("metron", "comicvine"),
                 merge_all_sources=False,
             )
         )
@@ -105,6 +161,9 @@ class TagPassRunnerFinishTests(TestCase):
             lambda _state: None,
         )
         runner.rate_limited = True
+        # comicvine is still throttled while metron finishes this comic.
+        cv_retry = (now() + timedelta(seconds=300)).timestamp()
+        runner.source_retry_at["comicvine"] = cv_retry
 
         runner._advance_result_status(state, status)  # noqa: SLF001
 
@@ -113,6 +172,9 @@ class TagPassRunnerFinishTests(TestCase):
         assert status.retry_at is None
         assert status.eta is not None
         assert runner.rate_limited is False
+        # One source finishing a comic says nothing about another's wait, so
+        # comicvine's deadline survives instead of being wiped.
+        assert runner.source_retry_at == {"comicvine": cv_retry}
 
 
 class BuildStoredIdMapTests(TestCase):

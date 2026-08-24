@@ -168,6 +168,7 @@ import { mapActions, mapState } from "pinia";
 import { HTTP } from "@/api/v4/base";
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import TAGGING_ESTIMATE from "@/choices/tagging-estimate.json";
+import { sourceLabel } from "@/components/online-tag/source-labels";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
@@ -188,14 +189,14 @@ const PROMPTS_MODE_HINTS = {
     "Skips all ambiguous matches without prompting. Unmatched comics are left unchanged.",
 };
 
-// Display names are UI copy; the per-source rates and per-comic request model
-// derive from comicbox via tagging-estimate.json (build-choices), so the client
-// estimate tracks the backend instead of hand-syncing constants.
-const SOURCE_LABELS = { metron: "Metron Cloud", comicvine: "Comic Vine" };
+// Display names are UI copy (see source-labels); the per-source rates and
+// per-comic request model derive from comicbox via tagging-estimate.json
+// (build-choices), so the client estimate tracks the backend instead of
+// hand-syncing constants.
 const SOURCE_RATES = Object.fromEntries(
   Object.entries(TAGGING_ESTIMATE.sourceRates).map(([source, rate]) => [
     source,
-    { ...rate, label: SOURCE_LABELS[source] || source },
+    { ...rate, label: sourceLabel(source) },
   ]),
 );
 
@@ -451,13 +452,13 @@ export default {
     unconfiguredIdWarning() {
       const sources = this.unconfiguredIdTokens;
       if (sources.length === 0) return "";
-      const names = sources.map((s) => SOURCE_LABELS[s] || s).join(", ");
+      const names = sources.map((s) => sourceLabel(s)).join(", ");
       return `No ${names} credentials configured.`;
     },
     duplicateIdWarning() {
       const dupes = Object.entries(this.tokensBySource)
         .filter(([, tokens]) => tokens.length > 1)
-        .map(([source]) => SOURCE_LABELS[source] || source);
+        .map(([source]) => sourceLabel(source));
       if (dupes.length === 0) return "";
       return `More than one ${dupes.join(", ")} id — only the first is used.`;
     },

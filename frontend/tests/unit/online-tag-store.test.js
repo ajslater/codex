@@ -124,19 +124,23 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
   it("optimistically overlays a resolution and prunes once the server agrees", async () => {
     const store = useOnlineTagStore();
-    store.pendingPrompts = [{ fingerprint: "a", pk: 7 }];
+    store.pendingPrompts = [{ fingerprint: "a", pk: 7, source: "metron" }];
     HTTP.post.mockResolvedValue({});
 
     await store.resolvePrompt("a", "skip", null, null);
-    // Table sees the outcome immediately, before any daemon round-trip.
-    expect(store.locallyResolved).toEqual({ 7: "user_skipped" });
+    // Table sees the outcome immediately, before any daemon round-trip, and
+    // knows which source column it belongs in.
+    const skipped = {
+      7: { status: "user_skipped", sources: { metron: "user_skipped" } },
+    };
+    expect(store.locallyResolved).toEqual(skipped);
 
     // Snapshot still lagging (comic 7 frozen as needs_review) → overlay kept.
     HTTP.get.mockResolvedValue({
       data: { snapshot: { comics: [{ pk: 7, status: "needs_review" }] } },
     });
     await store.loadSnapshot();
-    expect(store.locallyResolved).toEqual({ 7: "user_skipped" });
+    expect(store.locallyResolved).toEqual(skipped);
 
     // Daemon caught up: server now reports user_skipped → overlay pruned.
     HTTP.get.mockResolvedValue({
@@ -144,6 +148,43 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
     });
     await store.loadSnapshot();
     expect(store.locallyResolved).toEqual({});
+  });
+
+  it("keeps each source's outcome when both prompt on one comic", async () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [
+      { fingerprint: "a", pk: 7, source: "metron" },
+      { fingerprint: "b", pk: 7, source: "comicvine" },
+    ];
+    HTTP.post.mockResolvedValue({});
+
+    await store.resolvePrompt("a", "skip", null, null);
+    await store.resolvePrompt("b", "choose", 0, null);
+
+    // Resolving the second source must not blank the first source's column,
+    // and a match outranks a skip for the row-level status.
+    expect(store.locallyResolved).toEqual({
+      7: {
+        status: "user_matched",
+        sources: { metron: "user_skipped", comicvine: "user_matched" },
+      },
+    });
+  });
+
+  it("records the source of every prompt when skipping all", async () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [
+      { fingerprint: "x", pk: 1, source: "metron" },
+      { fingerprint: "y", pk: 2, source: "comicvine" },
+    ];
+    HTTP.post.mockResolvedValue({});
+
+    await store.skipAllPrompts();
+
+    expect(store.locallyResolved).toEqual({
+      1: { status: "user_skipped", sources: { metron: "user_skipped" } },
+      2: { status: "user_skipped", sources: { comicvine: "user_skipped" } },
+    });
   });
 });
 

@@ -16,8 +16,9 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     // status table: batch progress, per-source rate state, and a capped
     // per-comic list. Null until a scan has run.
     snapshot: null,
-    // Optimistic per-comic resolution overlay {pk: user_matched|user_skipped}
-    // for the status table. The daemon can't record a resolution until it
+    // Optimistic per-comic resolution overlay for the status table, shaped
+    // like the server's record: {pk: {status, sources: {source: status}}} of
+    // user_matched|user_skipped. The daemon can't record a resolution until it
     // drains the task queue (stalled during a rate-limit wait), so without
     // this the table lagged a full resolution behind. Pruned in loadSnapshot
     // once the server snapshot reflects the same outcome.
@@ -92,11 +93,23 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         this.recentlyResolved.push(fingerprint);
       }
     },
-    rememberLocalOutcome(pk, status) {
-      // Optimistic status-table overlay until the daemon records it.
-      if (pk !== undefined && pk !== null) {
-        this.locallyResolved = { ...this.locallyResolved, [pk]: status };
-      }
+    rememberLocalOutcome(pk, status, source) {
+      // Optimistic status-table overlay until the daemon records it. Merged
+      // per source rather than replaced: under merge-all-sources one comic can
+      // raise a prompt per source, and resolving the second must not blank the
+      // first source's column. A match outranks a skip, as on the server.
+      if (pk === undefined || pk === null) return;
+      const previous = this.locallyResolved[pk];
+      const sources = { ...previous?.sources };
+      if (source) sources[source] = status;
+      const seen = [...Object.values(sources), previous?.status, status];
+      this.locallyResolved = {
+        ...this.locallyResolved,
+        [pk]: {
+          status: seen.includes("user_matched") ? "user_matched" : status,
+          sources,
+        },
+      };
     },
     async resolvePrompt(fingerprint, action, payload, chosenVolumeId) {
       // Answering a prompt is decoupled from any scan: the server applies the
@@ -113,6 +126,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.rememberLocalOutcome(
         prompt?.pk,
         action === "skip" ? "user_skipped" : "user_matched",
+        prompt?.source,
       );
       this.pendingPrompts = this.pendingPrompts.filter(
         (p) => p.fingerprint !== fingerprint,
@@ -150,7 +164,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       await HTTP.post("/admin/tag-prompts/skip-all");
       for (const p of this.pendingPrompts) {
         this.rememberResolved(p.fingerprint);
-        this.rememberLocalOutcome(p.pk, "user_skipped");
+        this.rememberLocalOutcome(p.pk, "user_skipped", p.source);
       }
       this.pendingPrompts = [];
       this.promptDialogOpen = false;
@@ -176,10 +190,10 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         (this.snapshot?.comics || []).map((c) => [c.pk, c.status]),
       );
       const next = {};
-      for (const [pk, status] of Object.entries(this.locallyResolved)) {
+      for (const [pk, entry] of Object.entries(this.locallyResolved)) {
         const serverStatus = byPk.get(Number(pk));
-        if (serverStatus !== undefined && serverStatus !== status) {
-          next[pk] = status;
+        if (serverStatus !== undefined && serverStatus !== entry.status) {
+          next[pk] = entry;
         }
       }
       this.locallyResolved = next;

@@ -129,10 +129,24 @@
       height="420"
       density="compact"
     >
-      <template #[`item.status`]="{ item }">
-        <span class="statusCell" :style="{ color: statusColor(item.status) }">
+      <template #[`item.path`]="{ item }">
+        <span class="pathCell" :title="item.path">
+          {{ filename(item.path) }}
+        </span>
+      </template>
+      <template
+        v-for="source in selectedSources"
+        :key="source"
+        #[`item.${sourceKey(source)}`]="{ item }"
+      >
+        <span
+          v-if="item.cells[source]"
+          class="statusCell"
+          :style="{ color: statusColor(item.cells[source]) }"
+          :title="statusHint(item.cells[source])"
+        >
           <v-progress-circular
-            v-if="item.status === 'in_flight'"
+            v-if="item.cells[source] === 'in_flight'"
             indeterminate
             size="14"
             width="2"
@@ -140,34 +154,19 @@
           />
           <v-icon
             v-else
-            :icon="statusIcon(item.status)"
+            :icon="statusIcon(item.cells[source])"
             size="small"
             class="mr-1"
           />
-          {{ statusLabel(item.status) }}
+          {{ statusLabel(item.cells[source]) }}
         </span>
-      </template>
-      <template #[`item.path`]="{ item }">
-        <span class="pathCell" :title="item.path">
-          {{ filename(item.path) }}
-        </span>
-      </template>
-      <template #[`item.wonSources`]="{ item }">
         <span
-          v-if="item.wonSources && item.wonSources.length"
-          class="sourceCell"
+          v-else
+          class="muted"
+          title="This source did not report on this comic."
         >
-          <v-chip
-            v-for="src in item.wonSources"
-            :key="src"
-            size="x-small"
-            variant="tonal"
-            color="success"
-          >
-            {{ sourceLabel(src) }}
-          </v-chip>
+          —
         </span>
-        <span v-else class="muted">—</span>
       </template>
       <template #[`item.action`]="{ item }">
         <v-btn
@@ -203,6 +202,7 @@ import {
   mdiMagnify,
   mdiPause,
   mdiPlay,
+  mdiSkipNext,
   mdiTimerSand,
 } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
@@ -211,41 +211,76 @@ import { nf } from "@/components/admin/status-helpers";
 import { useNowTimer } from "@/components/admin/use-now-timer";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import { sourceLabel } from "@/components/online-tag/source-labels";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
-// Friendly display names for online tagging sources (mirrors prompt-popup).
-const SOURCE_LABELS = Object.freeze({
-  metron: "Metron Cloud",
-  comicvine: "Comic Vine",
-});
-
-// Per-status display: label, theme color token, and icon. ``in_flight`` renders
-// a spinner instead of an icon (handled in the template).
+// Per-status display: label, theme color token, icon, and a tooltip hint.
+// ``in_flight`` renders a spinner instead of an icon (handled in the
+// template). ``skipped`` is presentation-only — derived in cellStatus for a
+// first-wins source the scan never needed, never sent by the server.
 const STATUS_META = Object.freeze({
-  in_flight: { label: "Looking up", color: "primary", icon: mdiMagnify },
+  in_flight: {
+    label: "Looking up",
+    color: "primary",
+    icon: mdiMagnify,
+    hint: "This source is being queried right now.",
+  },
+  // This source is throttled and sitting out its retry wait. The countdown
+  // itself stays in the sources strip, where it ticks in one place.
+  waiting: {
+    label: "Waiting",
+    color: "warning",
+    icon: mdiTimerSand,
+    hint: "This source is rate limited — the lookup resumes when it allows.",
+  },
   needs_review: {
     label: "Needs review",
     color: "warning",
     icon: mdiHelpCircleOutline,
+    hint: "This source found candidates that need your pick.",
   },
-  matched: { label: "Matched", color: "success", icon: mdiCheckCircleOutline },
+  matched: {
+    label: "Matched",
+    color: "success",
+    icon: mdiCheckCircleOutline,
+    hint: "This source matched the comic and wrote its tags.",
+  },
   no_match: {
     label: "No match",
     color: "textSecondary",
     icon: mdiClockOutline,
+    hint: "This source found no confident match.",
   },
-  error: { label: "Error", color: "error", icon: mdiAlertCircleOutline },
-  queued: { label: "Queued", color: "textSecondary", icon: mdiClockOutline },
+  error: {
+    label: "Error",
+    color: "error",
+    icon: mdiAlertCircleOutline,
+    hint: "The comic errored before finishing.",
+  },
+  queued: {
+    label: "Queued",
+    color: "textSecondary",
+    icon: mdiClockOutline,
+    hint: "This source hasn't looked the comic up yet.",
+  },
+  skipped: {
+    label: "Skipped",
+    color: "textSecondary",
+    icon: mdiSkipNext,
+    hint: "Not searched — an earlier source already matched this comic.",
+  },
   // Outcomes of admin match-review actions, overlaid by the server.
   user_matched: {
     label: "User matched",
     color: "success",
     icon: mdiAccountCheck,
+    hint: "You picked this source's match.",
   },
   user_skipped: {
     label: "User skipped",
     color: "textSecondary",
     icon: mdiAccountCancel,
+    hint: "You skipped this source's prompt.",
   },
 });
 
@@ -297,22 +332,6 @@ export default {
       pausing: false,
       // True from clicking Resume until the daemon reports the scan active.
       resuming: false,
-      headers: [
-        // Comic claims all slack (width 100% + the max-width:0 cell trick) so
-        // the filename fills every spare pixel before truncating; the other
-        // columns stay shrink-to-fit around their content (or just the title).
-        {
-          title: "Comic",
-          key: "path",
-          align: "start",
-          sortable: false,
-          width: "100%",
-          cellProps: { class: "pathColumn" },
-        },
-        { title: "Status", key: "status", align: "start" },
-        { title: "Source", key: "wonSources", align: "start", sortable: false },
-        { title: "", key: "action", align: "end", sortable: false },
-      ],
     };
   },
   computed: {
@@ -324,6 +343,33 @@ export default {
     ...mapWritableState(useOnlineTagStore, ["promptDialogOpen"]),
     batch() {
       return this.snapshot?.batch || {};
+    },
+    // The sources this session actually runs, in priority order — one status
+    // column each, so a source the admin didn't select never takes up room.
+    selectedSources() {
+      return this.batch.sources || [];
+    },
+    headers() {
+      return [
+        // Comic claims all slack (width 100% + the max-width:0 cell trick) so
+        // the filename fills every spare pixel before truncating; the other
+        // columns stay shrink-to-fit around their content (or just the title).
+        {
+          title: "Comic",
+          key: "path",
+          align: "start",
+          sortable: false,
+          width: "100%",
+          cellProps: { class: "pathColumn" },
+        },
+        ...this.selectedSources.map((source) => ({
+          title: this.sourceLabel(source),
+          key: this.sourceKey(source),
+          align: "start",
+          sortable: false,
+        })),
+        { title: "", key: "action", align: "end", sortable: false },
+      ];
     },
     // A paused/interrupted session still has unprocessed comics to resume.
     resumable() {
@@ -376,12 +422,18 @@ export default {
       if (secs === null) return "";
       return secs <= 0 ? "finishing…" : `${formatRemaining(secs)} left`;
     },
-    // pk -> fingerprint for comics still awaiting review, from the live prompt
-    // list (fresher than the snapshot between refreshes).
+    // pk -> the source(s) whose prompt is still awaiting review, from the live
+    // prompt list (fresher than the snapshot between refreshes). Under
+    // merge-all-sources one comic can be waiting on a prompt from each source.
     reviewByPk() {
       const map = new Map();
       for (const prompt of this.pendingPrompts || []) {
-        if (prompt.pk != null) map.set(prompt.pk, prompt.fingerprint);
+        if (prompt.pk == null) continue;
+        const sources = map.get(prompt.pk) || [];
+        if (prompt.source && !sources.includes(prompt.source)) {
+          sources.push(prompt.source);
+        }
+        map.set(prompt.pk, sources);
       }
       return map;
     },
@@ -389,12 +441,19 @@ export default {
       // Prefer the live prompt count; fall back to the snapshot tally.
       return this.pendingPrompts?.length || this.batch.needsReview || 0;
     },
+    mergeAllSources() {
+      return Boolean(this.batch.mergeAllSources);
+    },
     rows() {
       const comics = this.snapshot?.comics || [];
-      return comics.map((c) => ({
-        ...c,
-        status: this.effectiveStatus(c),
-      }));
+      return comics.map((c) => {
+        const row = { ...c, status: this.effectiveStatus(c) };
+        // Resolve every source cell once per row instead of per template read.
+        row.cells = Object.fromEntries(
+          this.selectedSources.map((s) => [s, this.cellStatus(row, s)]),
+        );
+        return row;
+      });
     },
   },
   watch: {
@@ -450,10 +509,48 @@ export default {
       // the daemon hasn't recorded yet; otherwise the server's status (which
       // already carries user_matched/user_skipped once reconciled).
       if (this.reviewByPk.has(comic.pk)) return "needs_review";
-      return this.locallyResolved[comic.pk] ?? comic.status;
+      return this.locallyResolved[comic.pk]?.status ?? comic.status;
     },
-    sourceLabel(source) {
-      return SOURCE_LABELS[source] || source;
+    // What one source did with one comic, or null for "unknown".
+    // Mirrors effectiveStatus's precedence, one source deep.
+    cellStatus(item, source) {
+      if (this.reviewByPk.get(item.pk)?.includes(source)) return "needs_review";
+      const local = this.locallyResolved[item.pk]?.sources?.[source];
+      if (local) return local;
+      // Optional chaining keeps a snapshot cached before per-source columns
+      // (the tagging cache outlives an upgrade) rendering instead of throwing.
+      const status = item.sourceStatuses?.[source];
+      if (status) return status;
+      return this.cellFallback(item, source);
+    },
+    // A source with no recorded cell still has a describable state, derived
+    // from the row it sits on. A bare em-dash told the admin nothing.
+    cellFallback(item) {
+      // Queued comic, or a source the in-flight comic's lookup hasn't reached.
+      if (item.status === "queued" || item.status === "in_flight") {
+        return "queued";
+      }
+      // Every searched source came up empty; a cell-less one (a silently
+      // failed search, or a snapshot cached before per-source columns)
+      // reads the same as the row.
+      if (item.status === "no_match") return "no_match";
+      // Under first-wins a matched comic's remaining sources were never
+      // searched. Only when some cell exists, though — a pre-upgrade
+      // snapshot has no cells at all, and there the winner is unknowable.
+      if (
+        item.status === "matched" &&
+        !this.mergeAllSources &&
+        Object.keys(item.sourceStatuses || {}).length > 0
+      ) {
+        return "skipped";
+      }
+      return null;
+    },
+    sourceLabel,
+    // Column keys are namespaced so a source id can never collide with a row
+    // field name (path, status, action).
+    sourceKey(source) {
+      return `src_${source}`;
     },
     filename(path) {
       if (!path) return "Unknown";
@@ -463,6 +560,9 @@ export default {
     statusLabel(status) {
       return STATUS_META[status]?.label || status;
     },
+    statusHint(status) {
+      return STATUS_META[status]?.hint || "";
+    },
     statusIcon(status) {
       return STATUS_META[status]?.icon || mdiClockOutline;
     },
@@ -471,7 +571,10 @@ export default {
       return `rgb(var(--v-theme-${token}))`;
     },
     rateText(src) {
-      if (!src.rateLimited) return "";
+      // A paused or finished session is retrying nothing, so it never shows a
+      // countdown — the daemon disarms these, but a snapshot cached by an
+      // older version can still carry a live-looking deadline.
+      if (!this.snapshot?.active || !src.rateLimited) return "";
       const secs = secondsUntil(src.retryAtEpoch, this.now);
       if (secs === null) return "";
       return secs <= 0 ? "retrying…" : `retry ${formatCountdown(secs)}`;
@@ -611,12 +714,6 @@ export default {
 
 .pathCell {
   display: inline;
-}
-
-.sourceCell {
-  display: inline-flex;
-  gap: d.$space-1;
-  white-space: nowrap;
 }
 
 .muted {
