@@ -1,6 +1,7 @@
 """Priority for Scribe tasks in the PriorityQueue."""
 
 from datetime import UTC, datetime
+from itertools import count
 
 from codex.librarian.scribe.importer.tasks import (
     ImportTask,
@@ -77,9 +78,18 @@ _SCRIBE_TASK_PRIORITY = (
     JanitorDumpUserDataTask,
 )
 
+# Final element of every priority tuple. Tasks are pushed onto a heap as
+# ``(priority, task)``; when two priorities compare equal the heap falls
+# through to comparing the tasks themselves, and ScribeTask dataclasses
+# define no ordering — a ``TypeError`` in the routing thread that loses the
+# task. Timestamps tie more often than they look like they would (they are
+# truncated, and a clock can step backwards), so carry a strictly monotonic
+# counter that can never tie. ``next`` on an ``itertools.count`` is atomic.
+_TIE_BREAKER = count()
 
-def get_task_priority(task: ScribeTask) -> tuple[int, float]:
+
+def get_task_priority(task: ScribeTask) -> tuple[int, float, int]:
     """Get task priority by index."""
     now = datetime.now(tz=UTC).timestamp()
     priority = _SCRIBE_TASK_PRIORITY.index(type(task))
-    return priority, now
+    return priority, now, next(_TIE_BREAKER)
