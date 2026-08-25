@@ -62,9 +62,9 @@ class _FakeComicbox:
     """
     Stand-in for ``comicbox.box.Comicbox`` used by the rename pass.
 
-    ``to_string(FILENAME)`` returns a fixed scheme name and ``rename_file``
-    actually moves the file on disk (mirroring comicbox) so the real
-    collision check, ``samefile``, and DB sync all run against the filesystem.
+    ``to_string(FILENAME)`` returns a fixed scheme name; the move itself is
+    codex's, so the real collision check, ``samefile``, and DB sync all run
+    against the filesystem.
     """
 
     target: str = _TARGET_NAME
@@ -80,14 +80,6 @@ class _FakeComicbox:
 
     def to_string(self, _fmt) -> str:
         return self.target
-
-    def rename_file(self) -> None:
-        new_path = self._path.parent / self.target
-        self._path.rename(new_path)
-        self._path = new_path
-
-    def get_path(self) -> Path:
-        return self._path
 
 
 def _make_comic(*, events: bool, name: str = "c.cbz", read_only: bool = False) -> Comic:
@@ -283,6 +275,48 @@ class TagWriterRenameTests(TestCase):
         errors = get_tag_write_errors()
         assert errors
         assert errors[0]["path"] == str(old_path)
+
+    def test_rename_keeps_the_archives_own_extension(self) -> None:
+        """
+        A non-CBZ archive keeps its real suffix.
+
+        ``ext`` is a metadata field that codex's read config deletes, so the
+        rendered scheme name always ends in comicfn2dict's "cbz" default. The
+        file on disk is the authority: a PDF must not be renamed to a name
+        claiming it is a zip.
+        """
+        comic = _make_comic(events=False, name="c.pdf")
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(comic_pks=frozenset({comic.pk}), rename=True)
+
+        with patch(_COMICBOX_TARGET, _FakeComicbox):
+            writer.write_tags(task)
+
+        new_path = old_path.parent / f"{Path(_TARGET_NAME).stem}.pdf"
+        assert new_path.exists()
+        assert not (old_path.parent / _TARGET_NAME).exists()
+        imports = [i for i in queue.items if isinstance(i, ImportTask)]
+        assert imports[0].files_moved == {str(old_path): str(new_path)}
+
+    def test_rename_skipped_when_only_an_extension_is_rendered(self) -> None:
+        """A name with no stem would make a hidden file, so skip the rename."""
+        comic = _make_comic(events=False)
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(comic_pks=frozenset({comic.pk}), rename=True)
+
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch.object(_FakeComicbox, "target", ".cbz"),
+        ):
+            writer.write_tags(task)
+
+        assert old_path.exists()
+        assert not (old_path.parent / ".cbz").exists()
+        assert not [i for i in queue.items if isinstance(i, ImportTask)]
 
     def test_no_change_when_name_matches(self) -> None:
         """When the scheme name equals the current name, nothing happens."""

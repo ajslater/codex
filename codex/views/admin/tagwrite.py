@@ -109,15 +109,21 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         Return the comicbox-scheme name the given patch produces for one comic.
 
         Overlays the pending (unsaved) patch onto the archive's metadata in
-        memory and serializes the FILENAME format — the same construction
-        ``rename_file`` uses — so the dialog can show the would-be name. Opens
+        memory and serializes the FILENAME format — the same construction the
+        rename pass uses — so the dialog can show the would-be name. Opens
         the archive (I/O). Returns "" when no name could be built.
         """
         try:
             with Comicbox(old_path, config=config, metadata=metadata) as car:
-                return car.to_string(MetadataFormats.FILENAME) or ""
+                target = car.to_string(MetadataFormats.FILENAME) or ""
         except Exception:
             return ""
+        # Mirrors ``TagWriter._rename_one``: the rendered extension is
+        # comicfn2dict's "cbz" default rather than this archive's, so the
+        # preview must show the real suffix the rename will keep.
+        if not target or target.startswith("."):
+            return ""
+        return Path(target).with_suffix(old_path.suffix).name
 
     def _filename_previews(
         self,
