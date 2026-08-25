@@ -367,6 +367,13 @@ export default {
           key: this.sourceKey(source),
           align: "start",
           sortable: false,
+          // Keep "Metron Cloud" on one line. The Comic column claims all the
+          // slack (width 100%), which otherwise squeezes these columns down
+          // to their narrowest word and stacks the header. Comic yields the
+          // width back, truncating its filename instead. Vuetify pairs its
+          // nowrap rule with an ellipsis, so a viewport too narrow for the
+          // full name clips it rather than ever stacking it.
+          nowrap: true,
         })),
         { title: "", key: "action", align: "end", sortable: false },
       ];

@@ -201,6 +201,21 @@ describe("AdminTaggingStatusTable", () => {
     expect(titles).not.toContain("Source");
   });
 
+  test("keeps the source column headers on one line", () => {
+    // The Comic column claims all the slack, which would otherwise squeeze
+    // "Metron Cloud" onto two lines. Assert against the selector Vuetify's
+    // own stylesheet uses, so this fails if the markup ever stops matching
+    // it — a class that no rule targets would style nothing.
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const styled = wrapper.element.querySelectorAll(
+      ".v-data-table .v-table__wrapper > table > thead > tr th.v-data-table-column--nowrap",
+    );
+    expect([...styled].map((th) => th.textContent.trim())).toEqual([
+      "Metron Cloud",
+      "Comic Vine",
+    ]);
+  });
+
   test("omits the column of a source this session didn't select", () => {
     const snapshot = makeSnapshot();
     snapshot.batch.sources = ["metron"];
