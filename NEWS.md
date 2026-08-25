@@ -24,6 +24,17 @@ border-radius: 128px;
     - Comics keep their bookmarks and read progress through renames, conversions
       and long tag write batches. PDFs lost them every time, other formats
       occasionally.
+    - Deleting or renaming a watched folder no longer deletes comics from
+      sibling folders whose names begin the same way, like "Batman" and "Batman
+      Beyond".
+    - Renaming keeps each archive's own file extension. PDFs and unconverted
+      CBRs were renamed to .cbz names.
+    - Libraries with paths like /comics and /comics-kids no longer claim each
+      other's file changes.
+    - A second online tagging scan no longer re-queues comics the running scan
+      already has.
+    - The librarian shuts down cleanly with work queued, and tasks queued in the
+      same instant no longer collide and lose one.
 
 ## v2.2.10
 
