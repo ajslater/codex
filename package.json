@@ -68,7 +68,7 @@
     "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@vitest/eslint-plugin": "^1.6.27",
-    "eslint": "^10.9.0",
+    "eslint": "^10.9.1",
     "eslint_d": "^15.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-array-func": "^5.1.1",
@@ -105,6 +105,6 @@
     "remark-preset-lint-markdown-style-guide": "^6.0.1",
     "remark-preset-lint-recommended": "^7.0.1",
     "remark-preset-prettier": "^2.0.2",
-    "svgo": "^4.0.2"
+    "svgo": "^4.1.0"
   }
 }
