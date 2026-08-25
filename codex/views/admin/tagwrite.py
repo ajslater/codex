@@ -18,7 +18,7 @@ from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
 from codex.serializers.admin.tagging import TagWriteRequestSerializer
-from codex.settings import COMICBOX_CONFIG
+from codex.settings import COMICBOX_RENAME_CONFIG
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.identifier_parse import parse_identifier_url
 from codex.views.browser.filters.filter import BrowserFilterView
@@ -104,26 +104,30 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
 
     @staticmethod
-    def _preview_one(old_path: Path, metadata: dict | None, config) -> str:
+    def _preview_one(old_path: Path, patch: dict | None, config) -> str:
         """
         Return the comicbox-scheme name the given patch produces for one comic.
 
         Overlays the pending (unsaved) patch onto the archive's metadata in
-        memory and serializes the FILENAME format — the same construction the
-        rename pass uses — so the dialog can show the would-be name. Opens
+        memory and serializes the FILENAME format — the same construction
+        ``rename_file`` uses — so the dialog can show the would-be name. Opens
         the archive (I/O). Returns "" when no name could be built.
+
+        States ``ext`` from the file's real suffix exactly as
+        ``TagWriter._rename_one`` does, so the preview cannot promise a name
+        the rename won't produce.
         """
+        metadata = dict(patch) if patch else {}
+        if ext := old_path.suffix.lstrip("."):
+            metadata["ext"] = ext
         try:
-            with Comicbox(old_path, config=config, metadata=metadata) as car:
+            with Comicbox(
+                old_path, config=config, metadata={"comicbox": metadata}
+            ) as car:
                 target = car.to_string(MetadataFormats.FILENAME) or ""
         except Exception:
             return ""
-        # Mirrors ``TagWriter._rename_one``: the rendered extension is
-        # comicfn2dict's "cbz" default rather than this archive's, so the
-        # preview must show the real suffix the rename will keep.
-        if not target or target.startswith("."):
-            return ""
-        return Path(target).with_suffix(old_path.suffix).name
+        return "" if target.startswith(".") else target
 
     def _filename_previews(
         self,
@@ -133,10 +137,9 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     ) -> list[dict[str, str]]:
         """Preview the rename (old → new) for each selected comic, capped."""
         patch = json.loads(patch_str or "null")
-        metadata = {"comicbox": patch} if patch else None
         # Pending cleared fields must vanish from the previewed name exactly
         # as the real write (BulkWriteItem.delete_keys) will clear them.
-        config = COMICBOX_CONFIG
+        config = COMICBOX_RENAME_CONFIG
         if delete_keys:
             config = replace(
                 config,
@@ -156,7 +159,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
             previews.append(
                 {
                     "old": old_path.name,
-                    "new": self._preview_one(old_path, metadata, config),
+                    "new": self._preview_one(old_path, patch, config),
                 }
             )
         return previews

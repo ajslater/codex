@@ -26,7 +26,7 @@ from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tagwrite_moves import register_tag_write_move
 from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.comic import Comic
-from codex.settings import COMICBOX_CONFIG
+from codex.settings import COMICBOX_RENAME_CONFIG
 
 if TYPE_CHECKING:
     from comicbox.events import Event
@@ -215,33 +215,41 @@ class TagWriter(WorkerStatusAbortableBase):
 
         Returns the new path, or None when the name is unchanged or no name
         could be built. Raises ``FileExistsError`` on a collision with a
-        *different* file so the caller reports it without clobbering anything.
+        *different* file so the caller reports it without clobbering anything
+        (comicbox's ``rename_file`` does a bare ``Path.rename``).
 
-        Codex performs the rename itself rather than calling comicbox's
-        ``rename_file``, which derives its own destination and does a bare
-        ``Path.rename`` — there is no way to hand it a corrected target, and
-        the extension it renders is not the archive's own (see below).
+        The rendered name ends in ``ext``, which is a *metadata* field rather
+        than the file's suffix, so it is stated here from the archive on disk
+        — the authority. Left to the merge it would be missing (the read
+        config deletes it) and comicfn2dict would fall back to its "cbz"
+        default, renaming every PDF or unconverted CBR to a name claiming to
+        be a zip; or it would be whatever a third-party tagger embedded in
+        the archive. Stating it as metadata outranks both.
         """
-        with Comicbox(old_path, config=COMICBOX_CONFIG) as car:
+        ext = old_path.suffix.lstrip(".")
+        with Comicbox(
+            old_path,
+            config=COMICBOX_RENAME_CONFIG,
+            metadata={"comicbox": {"ext": ext}} if ext else None,
+        ) as car:
+            # to_string(FILENAME) is exactly what rename_file() derives the
+            # name from (schema.dumps(_to_dict(FILENAME))), so this pre-check
+            # targets the precise destination rename_file() will use.
             target = car.to_string(MetadataFormats.FILENAME)
-        # A rendered name always ends in an extension, but not necessarily
-        # this file's: ``ext`` is a *metadata* field, and codex's read config
-        # deletes it, so comicfn2dict falls back to its "cbz" default and
-        # every PDF/CBR/CBT/CB7 would be renamed to a ".cbz" name it isn't.
-        # The archive on disk is the authority, so keep its real suffix.
-        # A name that is nothing but an extension (no metadata parsed at all)
-        # would make a hidden file, so treat it as no name at all.
-        if not target or target.startswith("."):
-            self.log.warning(f"Rename skipped; no filename built for {old_path}")
-            return None
-        new_path = (old_path.parent / target).with_suffix(old_path.suffix)
-        if new_path == old_path:
-            return None
-        if new_path.exists() and not new_path.samefile(old_path):
-            reason = f"rename target already exists: {new_path}"
-            raise FileExistsError(reason)
-        old_path.rename(new_path)
-        return new_path
+            # A name that is nothing but an extension (nothing parsed at all)
+            # would make a hidden file, so treat it as no name.
+            if not target or target.startswith("."):
+                self.log.warning(f"Rename skipped; no filename built for {old_path}")
+                return None
+            new_path = old_path.parent / target
+            if new_path == old_path:
+                return None
+            if new_path.exists() and not new_path.samefile(old_path):
+                reason = f"rename target already exists: {new_path}"
+                raise FileExistsError(reason)
+            car.rename_file()
+            renamed = car.get_path()
+        return renamed or new_path
 
     def _rename_comics(
         self,
