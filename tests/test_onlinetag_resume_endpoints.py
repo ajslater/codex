@@ -11,7 +11,7 @@ from django.core.cache import caches
 from django.test import Client, TestCase
 
 from codex.librarian.onlinetag.session_cache import set_active_scan_id
-from codex.librarian.onlinetag.session_snapshot import set_resume_state
+from codex.librarian.onlinetag.session_snapshot import set_resume_state, set_snapshot
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagDismissTask,
@@ -138,3 +138,67 @@ class TagResumeTestCase(TestCase):
         assert response.status_code == HTTPStatus.ACCEPTED
         task = mocked_queue.put.call_args.args[0]
         assert isinstance(task, OnlineTagDismissTask)
+
+
+class TagSnapshotResumableTestCase(TestCase):
+    """The snapshot's resumable flag must match what resume can actually do."""
+
+    _SNAPSHOT_URL: Final = "/api/v4/admin/tag-sessions/snapshot"
+
+    @override
+    def setUp(self) -> None:
+        caches["default"].clear()
+        caches["tagging"].clear()
+        self.client = Client()
+        self.client.force_login(
+            User.objects.create_user(
+                username="tag_snapshot_admin",
+                password=_TEST_PASSWORD,
+                is_staff=True,
+                is_superuser=True,
+            )
+        )
+
+    @staticmethod
+    def _stored_snapshot() -> None:
+        """Freeze a paused-looking snapshot with unprocessed comics."""
+        set_snapshot(
+            {
+                "session_id": "sid-x",
+                "active": False,
+                "resumable": True,
+                "batch": {"total": 2, "completed": 0, "queued": 2},
+                "sources": [],
+                "comics": [
+                    {"pk": 1, "path": "/c/1.cbz", "status": "queued"},
+                    {"pk": 2, "path": "/c/2.cbz", "status": "queued"},
+                ],
+                "comic_count": 2,
+                "shown_count": 2,
+            }
+        )
+
+    def test_resumable_false_without_a_resume_descriptor(self) -> None:
+        """A daemon killed mid-scan leaves queued rows but nothing to resume."""
+        self._stored_snapshot()
+
+        response = self.client.get(self._SNAPSHOT_URL)
+
+        assert response.status_code == HTTPStatus.OK
+        # The frozen flag said True; resume would 400, so the button must not
+        # be offered.
+        assert _v4(response)["snapshot"]["resumable"] is False
+
+    def test_resumable_true_with_a_resume_descriptor(self) -> None:
+        """A genuinely paused session still offers resume."""
+        self._stored_snapshot()
+        set_resume_state(_PARAMS, [1, 2])
+
+        response = self.client.get(self._SNAPSHOT_URL)
+
+        assert _v4(response)["snapshot"]["resumable"] is True
+        # And resume really works, so the button never lies.
+        with patch(_QUEUE_TARGET) as mocked_queue:
+            resumed = self.client.post(_RESUME_URL)
+        assert resumed.status_code == HTTPStatus.ACCEPTED
+        mocked_queue.put.assert_called_once()

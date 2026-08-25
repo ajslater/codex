@@ -282,6 +282,35 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         assert get_pending_prompts() == {}
         assert get_active_scan_id() == ""
 
+    def test_run_session_records_its_remainder_before_scanning(self) -> None:
+        """A daemon killed mid-scan must still leave the batch resumable."""
+        from codex.librarian.onlinetag.session_snapshot import get_resume_state
+
+        comic = make_comic()
+        captured: list = []
+
+        def _capture(_state, _paths, **_kwargs) -> None:
+            # Stand where a killed daemon would: the scan has started but no
+            # publish has narrowed the descriptor yet.
+            captured.append(get_resume_state())
+
+        self.manager._pass_runner = double(FakePassRunner(_capture))  # noqa: SLF001
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-resume-seed",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        assert len(captured) == 1
+        resume = captured[0]
+        assert resume is not None
+        assert resume["remaining_pks"] == [comic.pk]
+        assert resume["params"]["sources"] == ["metron"]
+
     def test_run_session_logs_outcome_summary(self) -> None:
         comic = make_comic()
         comic_path = Path(comic.path)

@@ -585,11 +585,17 @@ class OnlineTagSessionManager:
         with self._lock:
             self._sessions[task.session_id] = state
         set_active_scan_id(task.session_id)
-        # A fresh batch starts with a clean resolution record and resume
-        # descriptor so a prior batch's user_matched/user_skipped overlays —
-        # and any leftover paused remainder — don't bleed onto these comics.
+        # A fresh batch starts with a clean resolution record so a prior
+        # batch's user_matched/user_skipped overlays don't bleed onto these
+        # comics.
         clear_resolved_outcomes()
-        clear_resume_state()
+        # Record this batch's remainder up front rather than merely clearing
+        # the prior one (which overwriting does anyway). Publishing narrows it
+        # as comics finish, but the first publish is throttled and a daemon
+        # killed before it would otherwise leave the batch with no descriptor
+        # at all — unresumable, while the frozen snapshot still shows every
+        # comic queued.
+        set_resume_state(state.resume_params, list(state.path_to_pk.values()))
 
         start = monotonic()
         try:

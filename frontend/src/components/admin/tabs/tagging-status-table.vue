@@ -212,6 +212,7 @@ import { useNowTimer } from "@/components/admin/use-now-timer";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
+import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
 // Per-status display: label, theme color token, icon, and a tooltip hint.
@@ -491,16 +492,21 @@ export default {
       this.pausing = true;
       try {
         await this.pauseSession();
-      } catch {
+      } catch (error) {
         this.pausing = false;
+        useCommonStore().setErrors(error);
       }
     },
     async confirmResume() {
       this.resuming = true;
       try {
         await this.resumeSession();
-      } catch {
+      } catch (error) {
+        // Say why nothing happened. A resume can be refused (another scan
+        // started first, or the remainder is gone) and silently dropping
+        // that leaves the button looking broken.
         this.resuming = false;
+        useCommonStore().setErrors(error);
       }
     },
     async confirmDismiss() {

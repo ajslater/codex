@@ -92,6 +92,12 @@ class AdminOnlineTagSnapshotView(AdminAPIView):
             snapshot = overlay_resolutions(
                 snapshot, _review_sources_by_pk(), get_resolved_outcomes()
             )
+            # The frozen snapshot's own flag only reports that comics were
+            # left unprocessed; Resume needs the descriptor that says which
+            # ones and how. They can diverge (a daemon killed mid-scan), and
+            # offering a button that 400s is worse than not offering it.
+            resume = get_resume_state()
+            snapshot["resumable"] = bool(resume and resume.get("remaining_pks"))
         return Response({"snapshot": snapshot})
 
 
