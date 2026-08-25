@@ -29,6 +29,7 @@ from codex.librarian.onlinetag.session_snapshot import (
     build_snapshot,
     clear_resolved_outcomes,
     clear_resume_state,
+    clear_snapshot,
     deactivate_snapshot,
     get_resolved_outcomes,
     get_resume_state,
@@ -54,14 +55,23 @@ from codex.librarian.onlinetag.statuses import (
 
 @pytest.fixture(autouse=True)
 def _clear_prompts():  # pyright: ignore[reportUnusedFunction]
-    """Each test starts with an empty pending-prompt + resolution cache."""
+    """
+    Each test starts and ends with an empty tagging cache.
+
+    Every key this module writes is cleared on both sides, the snapshot
+    included: the tagging cache is the running install's, not a fixture of
+    its own, so a leftover key here surfaces in the admin Tagging tab as a
+    phantom session.
+    """
     set_pending_prompts({})
     clear_resolved_outcomes()
     clear_resume_state()
+    clear_snapshot()
     yield
     set_pending_prompts({})
     clear_resolved_outcomes()
     clear_resume_state()
+    clear_snapshot()
 
 
 def _state(paths_to_pks, *, sources=("metron", "comicvine")) -> SessionState:
