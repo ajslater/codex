@@ -18,6 +18,13 @@ border-radius: 128px;
     - Redesigned the Admin Tagging Status table to be more informative.
 
 - Fixes
+    - Comics are never deleted from the database while their files are still on
+      disk, so a misread filesystem event can no longer take a comic's bookmarks
+      and read progress with it.
+    - A comic replaced in place, by a tool that removes and rewrites the file,
+      is re-read instead of deleted and re-added as a new comic.
+    - Deleting a folder refreshes the series and publishers it emptied, which
+      kept listing comics that were gone.
     - Renaming follows a comic to its new path. Tagging a CBR converts it to CBZ
       without the rename failing, and a watched library no longer mistakes an
       unrelated new file for a renamed comic.
