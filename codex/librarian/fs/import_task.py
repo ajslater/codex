@@ -48,8 +48,28 @@ def _remove_paths(kwargs: dict[str, Any], deleted_key: str, moved_key: str) -> N
             del kwargs[moved_key][src_path]
 
 
+def _replaced_paths(kwargs: dict[str, Any], added_key: str, deleted_key: str) -> set:
+    """
+    Take paths reported both deleted and added; they were replaced in place.
+
+    An external tool that swaps a file by ``rm`` + ``mv``, or a watcher
+    backend that reports an atomic replace as a delete plus an add, leaves
+    both events in one batch. The recreated file carries a new inode, so
+    move detection can never pair them — and letting the delete win would
+    destroy the row, and its bookmarks, while a file sits at that very
+    path. It is the same path with new content: a modification.
+    """
+    replaced = kwargs[added_key] & kwargs[deleted_key]
+    kwargs[added_key] -= replaced
+    kwargs[deleted_key] -= replaced
+    return replaced
+
+
 def _deduplicate(kwargs: dict[str, Any]) -> None:
     """Prune conflicting events on the same paths."""
+    replaced_files = _replaced_paths(kwargs, "files_added", "files_deleted")
+    replaced_covers = _replaced_paths(kwargs, "covers_added", "covers_deleted")
+
     # deleted wins over moved-from-this-source
     _remove_paths(kwargs, "dirs_deleted", "dirs_moved")
     _remove_paths(kwargs, "files_deleted", "files_moved")
@@ -80,6 +100,11 @@ def _deduplicate(kwargs: dict[str, Any]) -> None:
 
     kwargs["covers_modified"] -= kwargs["covers_deleted"]
     kwargs["covers_modified"] -= kwargs["covers_added"]
+
+    # Added last: a replaced path is neither created nor deleted, and the
+    # subtractions above would have stripped it back out.
+    kwargs["files_modified"] |= replaced_files
+    kwargs["covers_modified"] |= replaced_covers
 
 
 def build_import_task(
