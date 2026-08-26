@@ -7,6 +7,7 @@ Handles three capabilities that raw watchfiles doesn't provide:
 3. Move detection -> match delete+add pairs by inode within a batch
 """
 
+import os
 from pathlib import Path
 
 from watchfiles import Change
@@ -67,7 +68,14 @@ def _process_change(
 def _find_library(library_paths: dict[str, int], file_path: str) -> int | None:
     """Find which library a changed path belongs to."""
     for lib_path, pk in library_paths.items():
-        if file_path.startswith(lib_path):
+        # Terminate the root with a separator before matching. Libraries may
+        # legitimately be siblings sharing a name prefix ("/c/comics" and
+        # "/c/comics-kids" — the admin serializer only rejects nesting), and a
+        # bare prefix match would file the second library's events under the
+        # first, importing its comics at paths outside their own library.
+        if file_path == lib_path or file_path.startswith(
+            lib_path.rstrip(os.sep) + os.sep
+        ):
             return pk
     return None
 

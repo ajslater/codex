@@ -12,6 +12,9 @@ collision guard.
 from __future__ import annotations
 
 import shutil
+import tarfile
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Final, Self, override
 from unittest.mock import patch
@@ -37,10 +40,13 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.settings import COMICBOX_RENAME_CONFIG
+from codex.views.admin.tagwrite import AdminTagWritePreflightView
 
 _TMP_DIR: Final = Path("/tmp/codex.tests.tagrename")  # noqa: S108
 _COMICBOX_TARGET: Final = "codex.librarian.scribe.tag_writer.Comicbox"
 _TARGET_NAME: Final = "Renamed #001.cbz"
+_EXAMPLE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 
 
 def _double(stub: object) -> Any:
@@ -65,6 +71,8 @@ class _FakeComicbox:
     ``to_string(FILENAME)`` returns a fixed scheme name and ``rename_file``
     actually moves the file on disk (mirroring comicbox) so the real
     collision check, ``samefile``, and DB sync all run against the filesystem.
+    Whether the *rendered* name carries the right extension is comicbox's
+    job, covered against a real archive by ``TagWriterRenameExtensionTests``.
     """
 
     target: str = _TARGET_NAME
@@ -284,6 +292,24 @@ class TagWriterRenameTests(TestCase):
         assert errors
         assert errors[0]["path"] == str(old_path)
 
+    def test_rename_skipped_when_only_an_extension_is_rendered(self) -> None:
+        """A name with no stem would make a hidden file, so skip the rename."""
+        comic = _make_comic(events=False)
+        old_path = Path(comic.path)
+        queue = _FakeQueue()
+        writer = _make_writer(queue)
+        task = BulkTagWriteTask(comic_pks=frozenset({comic.pk}), rename=True)
+
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch.object(_FakeComicbox, "target", ".cbz"),
+        ):
+            writer.write_tags(task)
+
+        assert old_path.exists()
+        assert not (old_path.parent / ".cbz").exists()
+        assert not [i for i in queue.items if isinstance(i, ImportTask)]
+
     def test_no_change_when_name_matches(self) -> None:
         """When the scheme name equals the current name, nothing happens."""
         comic = _make_comic(events=False, name=_TARGET_NAME)
@@ -474,3 +500,71 @@ class TagWriterConversionTests(TestCase):
         assert imports[0].files_modified == frozenset()
         # Nothing moved, so nothing needs holding back from a scan.
         assert not get_pending_tag_write_paths()
+
+
+class TagWriterRenameExtensionTests(TestCase):
+    """
+    A rendered name carries the archive's own extension.
+
+    ``ext`` is a metadata field, not the file's suffix, so the name comicbox
+    renders is only right when codex hands it the real one. That depends on
+    the config and metadata codex passes, which a stand-in cannot exercise —
+    these run real comicbox against a real archive.
+    """
+
+    @override
+    def setUp(self) -> None:
+        _TMP_DIR.mkdir(exist_ok=True, parents=True)
+
+    @override
+    def tearDown(self) -> None:
+        shutil.rmtree(_TMP_DIR, ignore_errors=True)
+
+    @staticmethod
+    def _make_cbt(path: Path) -> None:
+        """Repack the example CBZ as a tarball: a real un-writable archive."""
+        with zipfile.ZipFile(_EXAMPLE_CBZ) as zf, tarfile.open(path, "w") as tf:
+            for name in zf.namelist():
+                data = zf.read(name)
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                tf.addfile(info, BytesIO(data))
+
+    def test_non_cbz_archive_keeps_its_extension(self) -> None:
+        """A CBT must not be renamed to a name claiming to be a zip."""
+        old_path = _TMP_DIR / "Rename Me v1999 #001 (1999).cbt"
+        self._make_cbt(old_path)
+        writer = _make_writer(_FakeQueue())
+
+        new_path = writer._rename_one(old_path)  # noqa: SLF001
+
+        assert new_path is not None
+        assert new_path.suffix == ".cbt"
+        assert new_path.exists()
+        assert not old_path.exists()
+
+    def test_cbz_archive_keeps_its_extension(self) -> None:
+        """The common case still renders .cbz."""
+        old_path = _TMP_DIR / "Rename Me v1999 #002 (1999).cbz"
+        shutil.copy(_EXAMPLE_CBZ, old_path)
+        writer = _make_writer(_FakeQueue())
+
+        new_path = writer._rename_one(old_path)  # noqa: SLF001
+
+        assert new_path is not None
+        assert new_path.suffix == ".cbz"
+        assert new_path.exists()
+
+    def test_preview_matches_what_the_rename_produces(self) -> None:
+        """The admin preview must not promise a name the rename won't make."""
+        old_path = _TMP_DIR / "Rename Me v1999 #003 (1999).cbt"
+        self._make_cbt(old_path)
+        writer = _make_writer(_FakeQueue())
+
+        preview = AdminTagWritePreflightView._preview_one(  # noqa: SLF001
+            old_path, None, COMICBOX_RENAME_CONFIG
+        )
+        new_path = writer._rename_one(old_path)  # noqa: SLF001
+
+        assert new_path is not None
+        assert preview == new_path.name

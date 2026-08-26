@@ -1188,3 +1188,22 @@ COMICBOX_CONFIG: ComicboxSettings = get_config(
         }
     }
 )
+
+# Renaming to the comicbox filename scheme needs one field the read config
+# deletes: ``ext``, which the rendered name ends in. Deleted, comicfn2dict
+# falls back to its "cbz" default and every PDF or unconverted CBR is
+# renamed to a name claiming to be a zip. Callers must still *supply* the
+# extension (the archive's real suffix) as metadata — un-deleting the key
+# alone leaves it unset — but the delete runs after the merge, so it would
+# strip a supplied value too. Read paths keep ``COMICBOX_CONFIG``: this
+# only widens what the rename pass parses.
+COMICBOX_RENAME_CONFIG: ComicboxSettings = get_config(
+    {
+        "comicbox": {
+            "general": {
+                "loglevel": LOGLEVEL,
+                "delete_keys": tuple(sorted(_COMICBOX_DELETE_KEYS - {"ext"})),
+            }
+        }
+    }
+)

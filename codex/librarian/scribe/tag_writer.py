@@ -26,7 +26,7 @@ from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tagwrite_moves import register_tag_write_move
 from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.comic import Comic
-from codex.settings import COMICBOX_CONFIG
+from codex.settings import COMICBOX_RENAME_CONFIG
 
 if TYPE_CHECKING:
     from comicbox.events import Event
@@ -217,13 +217,28 @@ class TagWriter(WorkerStatusAbortableBase):
         could be built. Raises ``FileExistsError`` on a collision with a
         *different* file so the caller reports it without clobbering anything
         (comicbox's ``rename_file`` does a bare ``Path.rename``).
+
+        The rendered name ends in ``ext``, which is a *metadata* field rather
+        than the file's suffix, so it is stated here from the archive on disk
+        — the authority. Left to the merge it would be missing (the read
+        config deletes it) and comicfn2dict would fall back to its "cbz"
+        default, renaming every PDF or unconverted CBR to a name claiming to
+        be a zip; or it would be whatever a third-party tagger embedded in
+        the archive. Stating it as metadata outranks both.
         """
-        with Comicbox(old_path, config=COMICBOX_CONFIG) as car:
+        ext = old_path.suffix.lstrip(".")
+        with Comicbox(
+            old_path,
+            config=COMICBOX_RENAME_CONFIG,
+            metadata={"comicbox": {"ext": ext}} if ext else None,
+        ) as car:
             # to_string(FILENAME) is exactly what rename_file() derives the
             # name from (schema.dumps(_to_dict(FILENAME))), so this pre-check
             # targets the precise destination rename_file() will use.
             target = car.to_string(MetadataFormats.FILENAME)
-            if not target:
+            # A name that is nothing but an extension (nothing parsed at all)
+            # would make a hidden file, so treat it as no name.
+            if not target or target.startswith("."):
                 self.log.warning(f"Rename skipped; no filename built for {old_path}")
                 return None
             new_path = old_path.parent / target

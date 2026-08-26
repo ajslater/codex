@@ -48,7 +48,13 @@ _ABORT_SEARCH_UPDATE_TASKS: Final = (
 class ScribeThread(QueuedThread):
     """A worker to handle all bulk database updates."""
 
-    SHUTDOWN_MSG = (0, QueuedThread.SHUTDOWN_MSG)
+    # Shaped like a real queue item — ``(get_task_priority(...), task)`` —
+    # because a PriorityQueue orders the shutdown message against whatever
+    # is already queued. A bare int here raises TypeError comparing int to
+    # tuple, so stopping the thread with a task pending would abort the
+    # daemon's shutdown loop. The negative index sorts it ahead of every
+    # task so a stop is honored promptly.
+    SHUTDOWN_MSG = ((-1, 0.0, -1), QueuedThread.SHUTDOWN_MSG)
     # Importer / janitor / search bursts are minutes-to-hours apart on
     # a typical install. Releasing the conn between bursts saves an
     # open file handle + ~50 KiB pinned for the entire idle gap; the

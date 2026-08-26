@@ -354,7 +354,9 @@ class OnlineTagSessionManager:
         new_paths = {}
         for comic in comics:
             path = Path(comic.path)
-            if path not in state.path_to_pk.values():
+            # ``path_to_pk`` is keyed by path; its *values* are pks, which a
+            # Path never equals, so testing them admitted every comic twice.
+            if path not in state.path_to_pk:
                 new_paths[path] = comic.pk
         if not new_paths:
             return

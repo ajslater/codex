@@ -425,14 +425,16 @@ class InitImporter(WorkerStatusBase):
         self.start_time = now()
         self._defer_pending_tag_write_moves()
         self.library.start_update()
-        too_long = self._wait_for_filesystem_ops_to_finish()
-        if too_long:
+        if self._wait_for_filesystem_ops_to_finish():
+            # The import runs anyway: abandoning the task would drop these
+            # events entirely on a watched library that isn't also polled.
+            # Files still mid-copy fail to import and are retried by a later
+            # scan, so say that rather than implying nothing was imported.
             reason = (
                 "Import apply waited for the filesystem to stop changing too long. "
-                "Try polling again once files have finished copying"
-                f" in library: {self.library.path}"
+                "Importing anyway; files still copying may fail and be retried"
+                f" on a later scan in library: {self.library.path}"
             )
             self.log.warning(reason)
-            return
         self._log_task()
         self._init_librarian_status(self.library.path)
