@@ -18,36 +18,31 @@ border-radius: 128px;
     - Redesigned the Admin Tagging Status table to be more informative.
 
 - Fixes
-    - Tag writes rename each comic before writing it, and the database follows
-      the file immediately. Bookmarks and read progress now survive a rename or
-      a CBR conversion even when a library scan lands in the middle of one.
-    - Editing a comic's tags twice in a row no longer fails the second edit with
-      a "no such file" error when renaming is on.
-    - A watched library on a network share or removable volume that goes missing
-      no longer has all its comics deleted. Polling already refused to scan in
-      that state; watching now refuses to act on it too.
-    - Comics are never deleted from the database while their files are still on
-      disk, so a misread filesystem event can no longer take a comic's bookmarks
-      and read progress with it.
-    - A comic replaced in place, by a tool that removes and rewrites the file,
-      is re-read instead of deleted and re-added as a new comic.
-    - Deleting a folder refreshes the series and publishers it emptied, which
-      kept listing comics that were gone.
-    - Renaming follows a comic to its new path. Tagging a CBR converts it to CBZ
-      without the rename failing, and a watched library no longer mistakes an
-      unrelated new file for a renamed comic.
-    - Comics keep their bookmarks and read progress through renames, conversions
-      and long tag write batches. PDFs lost them every time, other formats
-      occasionally.
-    - Deleting or renaming a watched folder no longer deletes comics from
-      sibling folders whose names begin the same way, like "Batman" and "Batman
-      Beyond".
+    - Bookmarks and read progress survive tag writes. Comics are renamed before
+      they are written and the database moves with the file, so a rename, a CBR
+      conversion, or a library scan landing mid-batch can no longer lose them.
+      PDFs lost them every time before; other formats occasionally.
+    - Comics are no longer deleted while their files are still on disk. One
+      replaced in place, by a tool that removes and rewrites it, is re-read
+      instead of deleted and re-added as a new comic.
+    - A library that has gone missing, like an unmounted share or volume, no
+      longer has all of its comics deleted.
+    - Paths that merely begin the same way are no longer confused for one
+      another: deleting the folder "Batman" leaves "Batman Beyond" alone, and
+      libraries at /comics and /comics-kids no longer claim each other's
+      changes.
     - Renaming keeps each archive's own file extension. PDFs and unconverted
       CBRs were renamed to .cbz names.
-    - Libraries with paths like /comics and /comics-kids no longer claim each
-      other's file changes.
+    - Two comics that would end up with the same filename no longer overwrite
+      each other; the second is reported instead.
+    - Editing a comic's tags twice in a row no longer fails the second time with
+      a "no such file" error.
+    - Online tagging only offers Resume when a scan can actually resume, and
+      reports a failed pause or resume instead of silently doing nothing.
     - A second online tagging scan no longer re-queues comics the running scan
       already has.
+    - Deleting a folder refreshes the series and publishers it emptied, which
+      kept listing comics that were gone.
     - The librarian shuts down cleanly with work queued, and tasks queued in the
       same instant no longer collide and lose one.
 
