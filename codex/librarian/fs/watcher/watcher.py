@@ -9,6 +9,7 @@ from watchfiles import Change, watch
 
 from codex.librarian.fs.filters import is_ignored_path, match_comic
 from codex.librarian.fs.import_task import build_import_task
+from codex.librarian.fs.mounted import unmounted_reason
 from codex.librarian.fs.watcher.events import process_changes
 from codex.librarian.fs.watcher.status import FSWatcherRestartStatus
 from codex.librarian.threads import NamedThread
@@ -127,8 +128,41 @@ class LibraryWatcherThread(NamedThread):
 
         for library_pk, events in events_by_library.items():
             task = build_import_task(library_pk, events)
-            if task is not None:
-                self.librarian_queue.put(task)
+            if task is None:
+                continue
+            if self._is_a_vanished_library(task):
+                continue
+            self.librarian_queue.put(task)
+
+    def _is_a_vanished_library(self, task) -> bool:
+        """
+        Whether this task's deletes are really an unmounted library.
+
+        A dropped share or volume presents every comic in the library as
+        deleted at once. The poller refuses to scan a library in that
+        state; the watcher already holds the events, so it has to refuse
+        to act on them. Only deletes are worth checking — an add or a
+        modify against a missing mount can't do damage.
+        """
+        if not (task.files_deleted or task.dirs_deleted or task.covers_deleted):
+            return False
+        root = self._library_root(task.library_id)
+        if root is None:
+            return False
+        reason = unmounted_reason(root)
+        if not reason:
+            return False
+        self.log.warning(
+            f"Library {root} {reason}. Ignoring the deletes it just reported."
+        )
+        return True
+
+    def _library_root(self, library_pk: int) -> Path | None:
+        """Return a watched library's root path."""
+        for path, pk in self._library_paths.items():
+            if pk == library_pk:
+                return Path(path)
+        return None
 
     def _get_extant_paths(self, paths: list[str]) -> list[str]:
         extant_paths = []
