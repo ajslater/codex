@@ -13,7 +13,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from comicbox.events import AutoWritten, FileFinished, RateLimited
+from comicbox.events import (
+    AutoWritten,
+    FileFinished,
+    RateLimited,
+    SearchCompleted,
+    SearchStarted,
+)
 from loguru import logger
 
 from codex.librarian.onlinetag.session_cache import (
@@ -27,6 +33,7 @@ from tests.onlinetag_session_fakes import (
     FETCH_TARGET,
     PATCH_TARGET,
     FakeDP,
+    FakePassRunner,
     FakeSession,
     OnlineTagSessionTestCase,
     double,
@@ -39,9 +46,7 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
 
     def _no_op_pass(self) -> None:
         """Stub out Pass 1: only the steps around it are under test."""
-        self.manager._pass_runner = double(  # noqa: SLF001
-            SimpleNamespace(collect_results=lambda *_args, **_kwargs: None)
-        )
+        self.manager._pass_runner = double(FakePassRunner())  # noqa: SLF001
 
     @staticmethod
     def _add_issue_id(comic: Comic, source_name: str, key: str) -> None:
@@ -53,9 +58,7 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
     def _capture_search_paths(self, captured: list) -> None:
         """Make the (mocked) search pass record the comics it's handed."""
         self.manager._pass_runner = double(  # noqa: SLF001
-            SimpleNamespace(
-                collect_results=lambda _state, paths, **_kw: captured.extend(paths)
-            )
+            FakePassRunner(lambda _state, paths, **_kw: captured.extend(paths))
         )
 
     def test_run_session_persists_prompts_and_returns(self) -> None:
@@ -198,10 +201,8 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         comic = make_comic()
         captured: list = []
         self.manager._pass_runner = double(  # noqa: SLF001
-            SimpleNamespace(
-                collect_results=lambda state, *_a, **_k: captured.append(
-                    state.resume_params
-                )
+            FakePassRunner(
+                lambda state, *_a, **_k: captured.append(state.resume_params)
             )
         )
         task = BulkOnlineTagTask(
@@ -252,6 +253,10 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         # Counted complete + matched, and excluded from a Resume re-run.
         assert state.completed_comics == 1
         assert path in state.stats.written_paths
+        # Attributed to the source whose stored id won it, so the status table
+        # shows Matched in that column instead of an unexplained blank row.
+        assert state.stats.matched_source_by_path[path] == ["metron"]
+        assert state.stats.source_status_by_path[path] == {"metron": "matched"}
         assert remaining_pks(state, set()) == []
 
     def test_run_session_never_prompts_skips_persistence(self) -> None:
@@ -277,6 +282,35 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         assert get_pending_prompts() == {}
         assert get_active_scan_id() == ""
 
+    def test_run_session_records_its_remainder_before_scanning(self) -> None:
+        """A daemon killed mid-scan must still leave the batch resumable."""
+        from codex.librarian.onlinetag.session_snapshot import get_resume_state
+
+        comic = make_comic()
+        captured: list = []
+
+        def _capture(_state, _paths, **_kwargs) -> None:
+            # Stand where a killed daemon would: the scan has started but no
+            # publish has narrowed the descriptor yet.
+            captured.append(get_resume_state())
+
+        self.manager._pass_runner = double(FakePassRunner(_capture))  # noqa: SLF001
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-resume-seed",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        assert len(captured) == 1
+        resume = captured[0]
+        assert resume is not None
+        assert resume["remaining_pks"] == [comic.pk]
+        assert resume["params"]["sources"] == ["metron"]
+
     def test_run_session_logs_outcome_summary(self) -> None:
         comic = make_comic()
         comic_path = Path(comic.path)
@@ -287,9 +321,7 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
             on_event(AutoWritten(path=comic_path, source="metron"))
             on_event(FileFinished(path=comic_path, outcome="written"))
 
-        self.manager._pass_runner = double(  # noqa: SLF001
-            SimpleNamespace(collect_results=_drive)
-        )
+        self.manager._pass_runner = double(FakePassRunner(_drive))  # noqa: SLF001
         task = BulkOnlineTagTask(
             comic_pks=frozenset({comic.pk}),
             session_id="scan-summary",
@@ -330,6 +362,73 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         assert status.eta is not None
         # eta = wait + remaining work, so it's strictly later than the retry.
         assert status.eta > status.retry_at
+        # The per-source mirror the status table's strip and Waiting cells read.
+        retry_at = self.manager._pass_runner.source_retry_at  # noqa: SLF001
+        assert retry_at == {"comicvine": status.retry_at.timestamp()}
+
+    def test_exhausted_retry_budget_drops_the_countdown(self) -> None:
+        """A giving-up source stops claiming a retry that will never come."""
+        from codex.librarian.onlinetag.status import OnlineLookupStatus
+
+        status = OnlineLookupStatus()
+        state = SessionState(
+            session=double(FakeSession()),
+            match_mode="auto",
+            sources=("comicvine",),
+            total_comics=10,
+            completed_comics=2,
+        )
+        self.manager._pass_runner.source_retry_at["comicvine"] = 1.0  # noqa: SLF001
+        # comicbox emits a final RateLimited with no delay once the budget's out.
+        event = RateLimited(source="comicvine", retry_after_seconds=None)
+
+        self.manager._mark_rate_limited(status, state, event)  # noqa: SLF001
+
+        assert status.retry_at is None
+        assert self.manager._pass_runner.source_retry_at == {}  # noqa: SLF001
+
+    def test_rate_limit_eta_accounts_for_merge_all_sources(self) -> None:
+        """The stalled eta uses the same pacing model as the running one."""
+        from codex.librarian.onlinetag.status import OnlineLookupStatus
+
+        state = SessionState(
+            session=double(FakeSession()),
+            match_mode="auto",
+            sources=("metron", "comicvine"),
+            total_comics=10,
+            completed_comics=2,
+            merge_all_sources=True,
+        )
+        event = RateLimited(source="comicvine", retry_after_seconds=30)
+
+        target = "codex.librarian.onlinetag.session_manager.estimate_seconds"
+        with patch(target, return_value=0.0) as mocked:
+            self.manager._mark_rate_limited(  # noqa: SLF001
+                OnlineLookupStatus(), state, event
+            )
+
+        # Merge-all runs every source per comic, so omitting the flag would
+        # under-estimate the work left and shrink the eta mid-wait.
+        assert mocked.call_args.kwargs["merge_all_sources"] is True
+
+    def test_source_outcome_event_releases_its_retry_countdown(self) -> None:
+        """A source that reported an outcome is provably back at work."""
+        self.manager._pass_runner.source_retry_at.update(  # noqa: SLF001
+            {"comicvine": 1.0, "metron": 2.0}
+        )
+
+        self.manager._on_event(SearchCompleted(source="comicvine"))  # noqa: SLF001
+
+        # Only the reporting source is released; metron's wait is its own.
+        assert self.manager._pass_runner.source_retry_at == {"metron": 2.0}  # noqa: SLF001
+
+    def test_search_started_does_not_release_a_retry_countdown(self) -> None:
+        """SearchStarted fires before the request — the wait may be ongoing."""
+        self.manager._pass_runner.source_retry_at["comicvine"] = 1.0  # noqa: SLF001
+
+        self.manager._on_event(SearchStarted(source="comicvine"))  # noqa: SLF001
+
+        assert self.manager._pass_runner.source_retry_at == {"comicvine": 1.0}  # noqa: SLF001
 
     def test_unmatched_scan_result_is_not_batched(self) -> None:
         """Pass-1 must not write a comic whose lookup applied nothing new."""

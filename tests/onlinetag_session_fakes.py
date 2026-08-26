@@ -61,6 +61,23 @@ class FakeQueue:
         self.items.append(item)
 
 
+class FakePassRunner:
+    """
+    Stand-in for TagPassRunner with Pass 1 stubbed out.
+
+    Models the whole seam the manager reaches through, not just
+    ``collect_results``: ``_on_event`` also reads the live status and releases
+    a source's retry deadline when that source reports an outcome.
+    """
+
+    def __init__(self, collect_results=None) -> None:
+        """Wire an optional pass body; default is a no-op pass."""
+        self.collect_results = collect_results or (lambda *_args, **_kwargs: None)
+        self.source_retry_at: dict[str, float] = {}
+        self.lookup_status = None
+        self.rate_limited = False
+
+
 class FakeCandidate:
     """One search hit a deferred prompt offers the admin."""
 

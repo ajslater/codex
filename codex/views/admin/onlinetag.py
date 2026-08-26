@@ -68,6 +68,20 @@ class AdminOnlineTagActiveView(AdminAPIView):
         return Response({"session_id": sid})
 
 
+def _review_sources_by_pk() -> dict[int, tuple[str, ...]]:
+    """Map each comic still awaiting review to the source(s) that prompted."""
+    by_pk: dict[int, list[str]] = {}
+    for prompt in get_pending_prompts().values():
+        pk = prompt.get("pk")
+        if pk is None:
+            continue
+        sources = by_pk.setdefault(pk, [])
+        source = prompt.get("source")
+        if source and source not in sources:
+            sources.append(source)
+    return {pk: tuple(sources) for pk, sources in by_pk.items()}
+
+
 class AdminOnlineTagSnapshotView(AdminAPIView):
     """Return the live (or last-finished) online tagging session snapshot."""
 
@@ -75,10 +89,15 @@ class AdminOnlineTagSnapshotView(AdminAPIView):
         """Return the session snapshot, reconciled with current resolutions."""
         snapshot = get_snapshot()
         if snapshot:
-            review_pks = {p.get("pk") for p in get_pending_prompts().values()}
             snapshot = overlay_resolutions(
-                snapshot, review_pks, get_resolved_outcomes()
+                snapshot, _review_sources_by_pk(), get_resolved_outcomes()
             )
+            # The frozen snapshot's own flag only reports that comics were
+            # left unprocessed; Resume needs the descriptor that says which
+            # ones and how. They can diverge (a daemon killed mid-scan), and
+            # offering a button that 400s is worse than not offering it.
+            resume = get_resume_state()
+            snapshot["resumable"] = bool(resume and resume.get("remaining_pks"))
         return Response({"snapshot": snapshot})
 
 

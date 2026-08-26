@@ -10,6 +10,7 @@ from django.utils import timezone
 from humanize import naturaldelta
 
 from codex.librarian.fs.import_task import build_import_task
+from codex.librarian.fs.mounted import unmounted_reason
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.fs.poller.status import FSPollStatus
@@ -19,7 +20,6 @@ from codex.librarian.worker import WorkerStatusMixin
 from codex.models import Library
 from codex.views.const import EPOCH_START
 
-DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 _DIR_NOT_FOUND_TIMEOUT = 15 * 60
 _LIBRARY_ONLY = (
     "path",
@@ -67,32 +67,20 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
     # Timeout computation #
     #######################
 
-    def _get_poll_timeout(self, library: Library) -> float | None:  # noqa: PLR0911
+    def _get_poll_timeout(self, library: Library) -> float | None:
         """
         Compute seconds until this library's next scheduled poll.
 
         Returns None to wait forever (manual poll only).
         """
         watch_path = Path(library.path)
-        unmounted_marker = watch_path / DOCKER_UNMOUNTED_FN
 
         if not library.poll:
             self.log.info(f"Library {library.path} waiting for manual poll.")
             return None
 
-        if not watch_path.is_dir():
-            self.log.warning(f"Library {library.path} not found. Not polling.")
-            return _DIR_NOT_FOUND_TIMEOUT
-
-        if unmounted_marker.exists():
-            warning = f"Library {library.path} looks like an unmounted docker volume. Not polling."
-            self.log.warning(warning)
-            return _DIR_NOT_FOUND_TIMEOUT
-
-        if not tuple(watch_path.iterdir()):
-            self.log.warning(
-                f"{library.path} is empty. Suspect unmounted. Not polling."
-            )
+        if reason := unmounted_reason(watch_path):
+            self.log.warning(f"Library {library.path} {reason}. Not polling.")
             return _DIR_NOT_FOUND_TIMEOUT
 
         if library.update_in_progress:

@@ -40,12 +40,17 @@ _PREFLIGHT_URL: Final = "/api/v4/admin/tag-write/preflight"
 _START_URL: Final = "/api/v4/admin/tag-sessions/start"
 _QUEUE_TARGET: Final = "codex.views.admin.tagwrite.LIBRARIAN_QUEUE"
 _START_QUEUE_TARGET: Final = "codex.views.admin.onlinetag.LIBRARIAN_QUEUE"
-_VIEW_COMICBOX_TARGET: Final = "codex.views.admin.tagwrite.Comicbox"
+_VIEW_COMICBOX_TARGET: Final = "codex.librarian.scribe.tagwrite_rename.Comicbox"
 _PREVIEW_NAME: Final = "Series v01 #001.cbz"
 
 
 class _PreviewComicbox:
-    """Minimal Comicbox stand-in for the preflight filename preview."""
+    """
+    Minimal Comicbox stand-in for the preflight filename preview.
+
+    The preview derives its name through the same planner the rename uses,
+    so the seam is comicbox's own prediction.
+    """
 
     def __init__(self, path, **_kwargs) -> None:
         self._path = Path(path)
@@ -56,7 +61,7 @@ class _PreviewComicbox:
     def __exit__(self, *_exc: object) -> bool:
         return False
 
-    def to_string(self, _fmt) -> str:
+    def predict_filename(self) -> str:
         return _PREVIEW_NAME
 
 

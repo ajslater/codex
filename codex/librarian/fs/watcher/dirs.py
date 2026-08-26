@@ -57,23 +57,27 @@ def expand_dir_deleted(dir_path: str, library_pk: int, batch: ChangeBatch) -> No
         )
     )
 
+    # Only true children. A bare prefix match also claims every sibling whose
+    # name merely starts with this one ("/c/Batman" would delete "/c/Batman
+    # Beyond" and all its comics), so terminate the prefix with a separator.
+    child_prefix = dir_path.rstrip(os.sep) + os.sep
+
     # Child folders
     child_folder_paths = Folder.objects.filter(
-        library_id=library_pk, path__startswith=dir_path
+        library_id=library_pk, path__startswith=child_prefix
     ).values_list("path", flat=True)
     for path in child_folder_paths:
-        if path != dir_path:
-            batch.dir_deleted.append(
-                (
-                    library_pk,
-                    FSEvent(src_path=path, change=FSChange.deleted, is_directory=True),
-                )
+        batch.dir_deleted.append(
+            (
+                library_pk,
+                FSEvent(src_path=path, change=FSChange.deleted, is_directory=True),
             )
+        )
 
     # Child comics and failed imports
     for model in (Comic, FailedImport):
         child_paths = model.objects.filter(
-            library_id=library_pk, path__startswith=dir_path
+            library_id=library_pk, path__startswith=child_prefix
         ).values_list("path", flat=True)
         for path in child_paths:
             batch.deleted.append(

@@ -7,7 +7,11 @@
  *     live ETA countdown.
  *   - The sources strip lists sources in priority order with their rate
  *     budget, and a rate-limited source shows a retry countdown.
- *   - Per-comic rows overlay "needs review" from the live pending-prompt list.
+ *   - There is one status column per selected source, in priority order, so
+ *     each comic reads as "which source is in which state"; a source the
+ *     session didn't select gets no column at all.
+ *   - Per-comic rows overlay "needs review" from the live pending-prompt list,
+ *     into the column of the source that prompted.
  *   - The Review button opens the match-review popup (promptDialogOpen).
  *   - A capped list reports "showing N of M".
  */
@@ -66,10 +70,15 @@ function makeSnapshot(overrides = {}) {
         pk: 1,
         path: "/c/a.cbz",
         status: "matched",
-        wonSources: ["metron", "comicvine"],
+        sourceStatuses: { metron: "matched", comicvine: "no_match" },
       },
-      { pk: 2, path: "/c/b.cbz", status: "in_flight", wonSources: [] },
-      { pk: 3, path: "/c/c.cbz", status: "queued", wonSources: [] },
+      {
+        pk: 2,
+        path: "/c/b.cbz",
+        status: "in_flight",
+        sourceStatuses: { metron: "in_flight" },
+      },
+      { pk: 3, path: "/c/c.cbz", status: "queued", sourceStatuses: {} },
     ],
     comicCount: 10,
     shownCount: 3,
@@ -138,6 +147,18 @@ describe("AdminTaggingStatusTable", () => {
     expect(strip).not.toContain("day");
   });
 
+  test("drops the retry countdown once the session is not running", () => {
+    // Pausing mid-wait used to strand a future deadline in the frozen
+    // snapshot, so the paused table counted down and stuck on "retrying…".
+    const snapshot = makeSnapshot({ active: false });
+    const { wrapper } = mountTable({ snapshot });
+    const strip = wrapper.find(".sourcesStrip");
+    expect(strip.text()).not.toContain("retry");
+    expect(strip.find(".limited").exists()).toBe(false);
+    // The static rate budgets still render.
+    expect(strip.text()).toContain("3/min");
+  });
+
   test("shows the live daily budget once Metron reports one", () => {
     const snapshot = makeSnapshot();
     // As delivered by the snapshot once comicbox reads Metron's
@@ -153,7 +174,7 @@ describe("AdminTaggingStatusTable", () => {
   });
 
   test("overlays needs_review from the live pending-prompt list", () => {
-    const pendingPrompts = [{ pk: 3, fingerprint: "fp3" }];
+    const pendingPrompts = [{ pk: 3, fingerprint: "fp3", source: "metron" }];
     const { wrapper } = mountTable({
       snapshot: makeSnapshot(),
       pendingPrompts,
@@ -168,15 +189,146 @@ describe("AdminTaggingStatusTable", () => {
     expect(wrapper.vm.reviewCount).toBe(1);
   });
 
-  test("renders a chip per matched source and an em-dash when unattributed", () => {
+  test("shows one column per selected source, in priority order", () => {
     const { wrapper } = mountTable({ snapshot: makeSnapshot() });
-    const cells = wrapper.findAll(".sourceCell");
-    // Only the matched comic (both sources, under merge) gets source chips.
-    expect(cells).toHaveLength(1);
-    const labels = cells[0].findAll(".v-chip").map((c) => c.text());
-    expect(labels).toEqual(["Metron Cloud", "Comic Vine"]);
-    // The non-matched rows fall back to the muted em-dash.
-    expect(wrapper.findAll(".muted").length).toBeGreaterThanOrEqual(2);
+    const titles = wrapper.vm.headers.map((h) => h.title);
+    expect(titles).toEqual(["Comic", "Metron Cloud", "Comic Vine", ""]);
+    const headerText = wrapper.find("thead").text();
+    expect(headerText).toContain("Metron Cloud");
+    expect(headerText).toContain("Comic Vine");
+    // The old single Status/Source pair is gone.
+    expect(titles).not.toContain("Status");
+    expect(titles).not.toContain("Source");
+  });
+
+  test("keeps the source column headers on one line", () => {
+    // The Comic column claims all the slack, which would otherwise squeeze
+    // "Metron Cloud" onto two lines. Assert against the selector Vuetify's
+    // own stylesheet uses, so this fails if the markup ever stops matching
+    // it — a class that no rule targets would style nothing.
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const styled = wrapper.element.querySelectorAll(
+      ".v-data-table .v-table__wrapper > table > thead > tr th.v-data-table-column--nowrap",
+    );
+    expect([...styled].map((th) => th.textContent.trim())).toEqual([
+      "Metron Cloud",
+      "Comic Vine",
+    ]);
+  });
+
+  test("omits the column of a source this session didn't select", () => {
+    const snapshot = makeSnapshot();
+    snapshot.batch.sources = ["metron"];
+    const { wrapper } = mountTable({ snapshot });
+    const titles = wrapper.vm.headers.map((h) => h.title);
+    expect(titles).toEqual(["Comic", "Metron Cloud", ""]);
+    expect(wrapper.find("thead").text()).not.toContain("Comic Vine");
+  });
+
+  test("reads each source's own state per comic", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const [matched, inFlight, queued] = wrapper.vm.rows;
+    // The matched comic: won by metron, nothing from comicvine.
+    expect(matched.cells).toEqual({ metron: "matched", comicvine: "no_match" });
+    // Being looked up by metron; comicvine's turn hasn't come yet.
+    expect(inFlight.cells).toEqual({
+      metron: "in_flight",
+      comicvine: "queued",
+    });
+    // Not reached yet, so every column reads as queued.
+    expect(queued.cells).toEqual({ metron: "queued", comicvine: "queued" });
+    const bodyText = wrapper.find("tbody").text();
+    expect(bodyText).toContain("Matched");
+    expect(bodyText).toContain("Looking up");
+    expect(bodyText).toContain("Queued");
+  });
+
+  test("labels a first-wins leftover source Skipped, not an em-dash", () => {
+    const snapshot = makeSnapshot({
+      comics: [
+        {
+          pk: 1,
+          path: "/c/a.cbz",
+          status: "matched",
+          sourceStatuses: { metron: "matched" },
+        },
+      ],
+    });
+    const { wrapper } = mountTable({ snapshot });
+    expect(wrapper.vm.rows[0].cells).toEqual({
+      metron: "matched",
+      comicvine: "skipped",
+    });
+    const cell = wrapper.findAll("tbody .statusCell").at(-1);
+    expect(cell.text()).toBe("Skipped");
+    expect(cell.attributes("title")).toContain("earlier source");
+  });
+
+  test("does not claim Skipped under merge-all-sources", () => {
+    // Under merge every source runs, so a missing cell is genuinely unknown.
+    const snapshot = makeSnapshot({
+      comics: [
+        {
+          pk: 1,
+          path: "/c/a.cbz",
+          status: "matched",
+          sourceStatuses: { metron: "matched" },
+        },
+      ],
+    });
+    snapshot.batch.mergeAllSources = true;
+    const { wrapper } = mountTable({ snapshot });
+    expect(wrapper.vm.rows[0].cells.comicvine).toBe(null);
+  });
+
+  test("fills a cell-less no_match row with No match in every column", () => {
+    // A silently failed search — or a pre-upgrade snapshot — leaves no cells;
+    // the row-level outcome is still the truth for each searched source.
+    const snapshot = makeSnapshot({
+      comics: [{ pk: 1, path: "/c/a.cbz", status: "no_match" }],
+    });
+    const { wrapper } = mountTable({ snapshot });
+    expect(wrapper.vm.rows[0].cells).toEqual({
+      metron: "no_match",
+      comicvine: "no_match",
+    });
+  });
+
+  test("shows Waiting for a source stalled by its rate limit", () => {
+    const snapshot = makeSnapshot();
+    snapshot.comics[1].sourceStatuses = {
+      metron: "matched",
+      comicvine: "waiting",
+    };
+    const { wrapper } = mountTable({ snapshot });
+    expect(wrapper.vm.rows[1].cells.comicvine).toBe("waiting");
+    expect(wrapper.find("tbody").text()).toContain("Waiting");
+  });
+
+  test("marks needs_review only in the column of the source that prompted", () => {
+    const pendingPrompts = [{ pk: 1, fingerprint: "fp1", source: "comicvine" }];
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot(),
+      pendingPrompts,
+    });
+    const row = wrapper.vm.rows[0];
+    expect(row.cells.comicvine).toBe("needs_review");
+    // The other source keeps reporting what it actually did.
+    expect(row.cells.metron).toBe("matched");
+  });
+
+  test("renders a matched pre-upgrade snapshot with an explained em-dash", () => {
+    // The tagging cache outlives an upgrade, so a matched row can arrive with
+    // no cells at all — there the winning source is unknowable, and the only
+    // honest cell is a dash (with a tooltip saying why).
+    const snapshot = makeSnapshot({
+      comics: [{ pk: 1, path: "/c/a.cbz", status: "matched" }],
+    });
+    const { wrapper } = mountTable({ snapshot });
+    expect(wrapper.vm.rows[0].cells).toEqual({ metron: null, comicvine: null });
+    const dash = wrapper.find("tbody .muted");
+    expect(dash.text()).toBe("—");
+    expect(dash.attributes("title")).toContain("did not report");
   });
 
   test("Review opens the match-review popup", () => {
@@ -200,12 +352,22 @@ describe("AdminTaggingStatusTable", () => {
   test("keeps a server-resolved status unless the comic is still pending", () => {
     const snapshot = makeSnapshot({
       comics: [
-        { pk: 1, path: "/c/a.cbz", status: "user_matched", wonSources: [] },
-        { pk: 2, path: "/c/b.cbz", status: "user_skipped", wonSources: [] },
+        {
+          pk: 1,
+          path: "/c/a.cbz",
+          status: "user_matched",
+          sourceStatuses: { metron: "user_matched" },
+        },
+        {
+          pk: 2,
+          path: "/c/b.cbz",
+          status: "user_skipped",
+          sourceStatuses: { metron: "user_skipped" },
+        },
       ],
     });
     // Comic 2 has drifted back into the live prompt queue.
-    const pendingPrompts = [{ pk: 2, fingerprint: "fp2" }];
+    const pendingPrompts = [{ pk: 2, fingerprint: "fp2", source: "metron" }];
     const { wrapper } = mountTable({ snapshot, pendingPrompts });
     const byPk = Object.fromEntries(
       wrapper.vm.rows.map((r) => [r.pk, r.status]),
@@ -287,18 +449,31 @@ describe("AdminTaggingStatusTable", () => {
 
   test("applies the optimistic local overlay over a lagging snapshot", () => {
     const snapshot = makeSnapshot({
-      comics: [{ pk: 3, path: "/c/c.cbz", status: "needs_review" }],
+      comics: [
+        {
+          pk: 3,
+          path: "/c/c.cbz",
+          status: "needs_review",
+          sourceStatuses: { metron: "needs_review" },
+        },
+      ],
     });
     // The daemon hasn't recorded the skip yet, but the local overlay has.
     const { wrapper } = mountTable({
       snapshot,
       pendingPrompts: [],
-      locallyResolved: { 3: "user_skipped" },
+      locallyResolved: {
+        3: { status: "user_skipped", sources: { metron: "user_skipped" } },
+      },
     });
     const byPk = Object.fromEntries(
       wrapper.vm.rows.map((r) => [r.pk, r.status]),
     );
     expect(byPk[3]).toBe("user_skipped");
+    // The overlay reaches the resolving source's column too, not just the row.
+    expect(wrapper.vm.cellStatus(wrapper.vm.rows[0], "metron")).toBe(
+      "user_skipped",
+    );
   });
 });
 

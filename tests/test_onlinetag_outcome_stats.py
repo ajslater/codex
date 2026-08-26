@@ -5,6 +5,9 @@ Unit tests for the online-tagging end-of-session outcome summary.
 per-comic tallies. ``FileFinished`` is the per-comic anchor; ``AutoWritten``
 attributes a match to its source; ``PromptDeferred`` and ``FileError`` mark
 comics queued for manual matching and comics that raised.
+
+The same fold also builds ``source_status_by_path`` — what each source did
+with each comic — which the snapshot renders as one status column per source.
 """
 
 from __future__ import annotations
@@ -16,9 +19,13 @@ from comicbox.events import (
     FileError,
     FileFinished,
     FileParsed,
+    NoMatch,
     PromptDeferred,
+    SearchStarted,
+    Skipped,
 )
 
+from codex.librarian.onlinetag import statuses
 from codex.librarian.onlinetag.outcome_stats import OnlineTagOutcomeStats
 
 
@@ -124,3 +131,77 @@ def test_singular_comic_phrasing() -> None:
     stats = OnlineTagOutcomeStats()
     _matched(stats, Path("/c/1.cbz"), "metron")
     assert "1 comic — " in stats.summary(elapsed="1 second")
+
+
+def test_source_status_tracks_each_source_through_a_lookup() -> None:
+    """A search marks a source searching; its result replaces that."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+
+    stats.record(SearchStarted(path=path, source="metron"))
+    assert stats.source_status_by_path[path] == {"metron": statuses.IN_FLIGHT}
+
+    stats.record(AutoWritten(path=path, source="metron"))
+    stats.record(SearchStarted(path=path, source="comicvine"))
+    assert stats.source_status_by_path[path] == {
+        "metron": statuses.MATCHED,
+        "comicvine": statuses.IN_FLIGHT,
+    }
+
+
+def test_source_status_records_no_match_declined_and_deferred() -> None:
+    """No-match and a declined match both read as no_match; a prompt as review."""
+    stats = OnlineTagOutcomeStats()
+    no_match_path = Path("/c/1.cbz")
+    declined_path = Path("/c/2.cbz")
+    review_path = Path("/c/3.cbz")
+
+    stats.record(NoMatch(path=no_match_path, source="metron"))
+    stats.record(
+        Skipped(path=declined_path, source="metron", reason="matcher_declined")
+    )
+    stats.record(PromptDeferred(path=review_path, source="comicvine"))
+
+    assert stats.source_status_by_path[no_match_path] == {"metron": statuses.NO_MATCH}
+    assert stats.source_status_by_path[declined_path] == {"metron": statuses.NO_MATCH}
+    assert stats.source_status_by_path[review_path] == {
+        "comicvine": statuses.NEEDS_REVIEW
+    }
+
+
+def test_finishing_a_comic_clears_a_search_that_never_reported() -> None:
+    """A search that raised leaves no event, so finishing must clear its cell."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    stats.record(AutoWritten(path=path, source="metron"))
+    # comicvine's search raised: comicbox logs it and emits nothing.
+    stats.record(SearchStarted(path=path, source="comicvine"))
+    stats.record(FileFinished(path=path, outcome="written"))
+
+    # The terminal cell survives; the phantom search does not.
+    assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
+
+
+def test_erroring_a_comic_clears_a_pending_search() -> None:
+    """A comic that raised mid-search stops reporting a live lookup."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    stats.record(SearchStarted(path=path, source="metron"))
+    stats.record(FileError(path=path, error="boom"))
+
+    assert stats.source_status_by_path[path] == {}
+
+
+def test_record_prefetch_match_seeds_every_structure() -> None:
+    """A stored-id win emits no events, so the prepass seeds them by hand."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+
+    stats.record_prefetch_match(path, "metron")
+    # A second call for the same source must not double-list it.
+    stats.record_prefetch_match(path, "metron")
+
+    assert stats.written_paths == {path}
+    assert stats.matched_source_by_path[path] == ["metron"]
+    assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
+    assert stats.matched == 1

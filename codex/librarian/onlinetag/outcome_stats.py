@@ -18,6 +18,11 @@ matched total — the remainder is reported as "refreshed from stored id".
 resolution; :class:`~comicbox.events.FileError` marks comics that raised
 before finishing.
 
+Alongside those file-level buckets, ``source_status_by_path`` folds the
+per-source events (every one carries both ``path`` and ``source``) into a
+"what did each source do with this comic" map, which the snapshot renders as
+one status table column per source.
+
 One scan runs on a single daemon thread and emits its events inline, so the
 tallies need no locking.
 """
@@ -28,7 +33,22 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from comicbox.events import AutoWritten, FileError, FileFinished, PromptDeferred
+from comicbox.events import (
+    AutoWritten,
+    FileError,
+    FileFinished,
+    NoMatch,
+    PromptDeferred,
+    SearchStarted,
+    Skipped,
+)
+
+from codex.librarian.onlinetag.statuses import (
+    IN_FLIGHT,
+    MATCHED,
+    NEEDS_REVIEW,
+    NO_MATCH,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -41,6 +61,7 @@ class OnlineTagOutcomeStats:
     """Accumulate per-comic online-tagging outcomes for an end-of-session summary."""
 
     matched_source_by_path: dict[Path, list[str]] = field(default_factory=dict)
+    source_status_by_path: dict[Path, dict[str, str]] = field(default_factory=dict)
     written_paths: set[Path] = field(default_factory=set)
     no_change_paths: set[Path] = field(default_factory=set)
     deferred_paths: set[Path] = field(default_factory=set)
@@ -48,14 +69,14 @@ class OnlineTagOutcomeStats:
 
     def record(self, event: Event) -> None:
         """Fold one comicbox event into the running tallies."""
+        self._record_outcome(event)
+        self._record_source_status(event)
+
+    def _record_outcome(self, event: Event) -> None:
+        """Fold one event into the file-level outcome buckets."""
         match event:
             case AutoWritten(path=path, source=source) if path and source:
-                # Under merge_all_sources a comic can be auto-written by more
-                # than one source, so accumulate (deduped, order preserved)
-                # rather than letting the last event clobber the first.
-                sources = self.matched_source_by_path.setdefault(path, [])
-                if source not in sources:
-                    sources.append(source)
+                self._add_matched_source(path, source)
             case FileFinished(path=path, outcome=outcome) if path:
                 bucket = (
                     self.written_paths if outcome == "written" else self.no_change_paths
@@ -67,6 +88,68 @@ class OnlineTagOutcomeStats:
                 self.errored_paths.add(path)
             case _:
                 pass
+
+    def _record_source_status(self, event: Event) -> None:
+        """Fold one event into the per-comic, per-source status map."""
+        match event:
+            case SearchStarted(path=path, source=source) if path and source:
+                self._set_source_status(path, source, IN_FLIGHT)
+            case AutoWritten(path=path, source=source) if path and source:
+                self._set_source_status(path, source, MATCHED)
+            # A source that found nothing above the confidence floor and one
+            # whose matcher declined both mean "this source did not tag it" —
+            # the same distinction the file-level pipeline already collapses.
+            case (
+                NoMatch(path=path, source=source) | Skipped(path=path, source=source)
+            ) if path and source:
+                self._set_source_status(path, source, NO_MATCH)
+            case PromptDeferred(path=path, source=source) if path and source:
+                self._set_source_status(path, source, NEEDS_REVIEW)
+            case FileFinished(path=path) | FileError(path=path) if path:
+                self._clear_searching_sources(path)
+            case _:
+                pass
+
+    def _add_matched_source(self, path: Path, source: str) -> None:
+        """
+        Attribute a match to the source that won it, deduped in win order.
+
+        Under merge_all_sources a comic can be auto-written by more than one
+        source, so accumulate rather than letting the last event clobber the
+        first.
+        """
+        sources = self.matched_source_by_path.setdefault(path, [])
+        if source not in sources:
+            sources.append(source)
+
+    def _set_source_status(self, path: Path, source: str, status: str) -> None:
+        """Record what one source is doing (or did) with one comic."""
+        self.source_status_by_path.setdefault(path, {})[source] = status
+
+    def _clear_searching_sources(self, path: Path) -> None:
+        """
+        Drop still-searching cells once a comic is done.
+
+        A source whose search raised is logged and skipped without an event,
+        so its ``in_flight`` cell would otherwise linger on a finished comic.
+        """
+        cells = self.source_status_by_path.get(path)
+        if not cells:
+            return
+        for source, status in tuple(cells.items()):
+            if status == IN_FLIGHT:
+                del cells[source]
+
+    def record_prefetch_match(self, path: Path, source: str) -> None:
+        """
+        Record a comic matched from its stored id before the search pass.
+
+        The prepass fetches by id outside the event-emitting session, so it
+        seeds by hand what an ``AutoWritten`` + ``FileFinished`` pair would.
+        """
+        self.written_paths.add(path)
+        self._add_matched_source(path, source)
+        self._set_source_status(path, source, MATCHED)
 
     @property
     def matched(self) -> int:

@@ -89,3 +89,55 @@ def test_no_work_returns_none():
     )
 
     assert task is None
+
+
+def _added(path: str) -> FSEvent:
+    return FSEvent(src_path=path, change=FSChange.added)
+
+
+def _deleted(path: str) -> FSEvent:
+    return FSEvent(src_path=path, change=FSChange.deleted)
+
+
+def test_delete_plus_add_of_one_path_is_a_modify():
+    """A file replaced in place must be re-read, not deleted."""
+    task = _build(_deleted(_OLD), _added(_OLD))
+
+    assert task
+    # Letting the delete win would destroy the row — and its bookmarks —
+    # while a file sits at that path.
+    assert task.files_deleted == set()
+    assert task.files_created == set()
+    assert task.files_modified == {_OLD}
+
+
+def test_replaced_path_survives_alongside_a_real_delete():
+    """One path's replacement doesn't rescue another path's real delete."""
+    task = _build(_deleted(_OLD), _added(_OLD), _deleted(_OTHER))
+
+    assert task
+    assert task.files_modified == {_OLD}
+    assert task.files_deleted == {_OTHER}
+
+
+def test_replaced_path_with_a_modify_event_is_not_duplicated():
+    """A batch that also reports the write leaves one modify, not two."""
+    task = _build(_deleted(_OLD), _added(_OLD), _modified(_OLD))
+
+    assert task
+    assert task.files_modified == {_OLD}
+    assert task.files_deleted == set()
+
+
+def test_replaced_cover_is_a_modify():
+    """Custom covers replaced in place are re-read too."""
+    cover = "/comics/Series/cover.jpg"
+    task = _build(
+        FSEvent(src_path=cover, change=FSChange.deleted, is_cover=True),
+        FSEvent(src_path=cover, change=FSChange.added, is_cover=True),
+    )
+
+    assert task
+    assert task.covers_deleted == set()
+    assert task.covers_created == set()
+    assert task.covers_modified == {cover}

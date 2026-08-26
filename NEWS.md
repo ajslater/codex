@@ -6,6 +6,46 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.2.11
+
+- Features
+    - Edit a comic's publish date in the tag editor. Year, month and day are
+      separate, so a year-only comic stays that way. Editing a date rewrites the
+      whole date tag: a MetronInfo StoreDate does not survive it, and a
+      multi-comic edit overwrites parts they disagree on.
+    - Country, Collection Title and Alternative Issue are editable too, having
+      only ever been displayed.
+    - Redesigned the Admin Tagging Status table to be more informative.
+
+- Fixes
+    - Bookmarks and read progress survive tag writes. Comics are renamed before
+      they are written and the database moves with the file, so a rename, a CBR
+      conversion, or a library scan landing mid-batch can no longer lose them.
+      PDFs lost them every time before; other formats occasionally.
+    - Comics are no longer deleted while their files are still on disk. One
+      replaced in place, by a tool that removes and rewrites it, is re-read
+      instead of deleted and re-added as a new comic.
+    - A library that has gone missing, like an unmounted share or volume, no
+      longer has all of its comics deleted.
+    - Paths that merely begin the same way are no longer confused for one
+      another: deleting the folder "Batman" leaves "Batman Beyond" alone, and
+      libraries at /comics and /comics-kids no longer claim each other's
+      changes.
+    - Renaming keeps each archive's own file extension. PDFs and unconverted
+      CBRs were renamed to .cbz names.
+    - Two comics that would end up with the same filename no longer overwrite
+      each other; the second is reported instead.
+    - Editing a comic's tags twice in a row no longer fails the second time with
+      a "no such file" error.
+    - Online tagging only offers Resume when a scan can actually resume, and
+      reports a failed pause or resume instead of silently doing nothing.
+    - A second online tagging scan no longer re-queues comics the running scan
+      already has.
+    - Deleting a folder refreshes the series and publishers it emptied, which
+      kept listing comics that were gone.
+    - The librarian shuts down cleanly with work queued, and tasks queued in the
+      same instant no longer collide and lose one.
+
 ## v2.2.10
 
 - Fixes

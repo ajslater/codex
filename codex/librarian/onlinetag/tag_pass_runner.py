@@ -45,9 +45,12 @@ class TagPassRunner:
         self.rate_limited: bool = False
         self.lookup_status: OnlineLookupStatus | None = None
         # source -> absolute epoch seconds the source is rate-limited until.
-        # Written by the manager on RateLimited events; cleared the moment a
-        # result arrives (the wait is provably over). The session snapshot
-        # reads it to drive per-source retry countdowns.
+        # Written by the manager on RateLimited events, which fire once per
+        # retry attempt just before the sleep — so an entry expires exactly
+        # when its wait ends, and readers filter by epoch rather than needing
+        # a clearing event. Cleared wholesale only at pass start and end, when
+        # nothing can be waiting. The session snapshot reads it to drive
+        # per-source retry countdowns.
         self.source_retry_at: dict[str, float] = {}
 
     def _flush_batch(self, state: SessionState, batch: dict[int, dict]) -> None:
@@ -93,13 +96,15 @@ class TagPassRunner:
         state.completed_comics += 1
         status.complete = state.completed_comics
         status.total = state.total_comics
-        # A yielded result means the wait (if any) is over: clear the
-        # rate-limit subtitle and the retry countdown, and re-estimate.
+        # A yielded result means the *scan* isn't stalled, so the global
+        # rate-limit subtitle and countdown clear. Per-source deadlines are
+        # deliberately left alone: they belong to a source, not to this comic,
+        # and one source finishing a comic says nothing about another's wait.
+        # They expire on their own epoch (see source_retry_at).
         status.subtitle = ""
         status.retry_at = None
         self._update_eta(state, status)
         self.rate_limited = False
-        self.source_retry_at.clear()
         self.status_controller.update(status)
         self._publish_snapshot(state)
 
@@ -186,6 +191,14 @@ class TagPassRunner:
             # frozen on its last "rate limited" subtitle — the librarian
             # thread recovers but the admin status bar would otherwise show
             # the wait forever, indistinguishable from a hang.
+            #
+            # The per-source deadlines go the same way, and for the same
+            # reason: a pause during a rate-limit wait aborts the sleep with
+            # its deadline still in the future, and run_session then freezes
+            # the snapshot the admin keeps looking at. Without this the paused
+            # table counts down and sticks on "retrying…" for a scan that is
+            # running nothing.
             self.lookup_status = None
             self.rate_limited = False
+            self.source_retry_at.clear()
             self.status_controller.finish(status)

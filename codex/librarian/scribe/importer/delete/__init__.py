@@ -11,12 +11,20 @@ class DeletedImporter(DeletedFoldersImporter):
         """Delete files and folders."""
         if self.abort_event.is_set():
             return
-        self.counts.folders_deleted += self.bulk_folders_deleted()
+        folders_deleted, comics_cascaded, folder_collections = (
+            self.bulk_folders_deleted()
+        )
+        self.counts.folders_deleted += folders_deleted
+        # Comics under a deleted folder die by cascade, not by path, so they
+        # never reach ``bulk_comics_deleted`` to be counted there.
+        self.counts.comics_deleted += comics_cascaded
         if self.abort_event.is_set():
             return
-        self.counts.comics_deleted, deleted_comic_collections = (
-            self.bulk_comics_deleted()
-        )
+        comics_deleted, deleted_comic_collections = self.bulk_comics_deleted()
+        self.counts.comics_deleted += comics_deleted
+        for model, pks in folder_collections.items():
+            if pks:
+                deleted_comic_collections.setdefault(model, set()).update(pks)
         if self.abort_event.is_set():
             return
         self.counts.covers_deleted = self.bulk_covers_deleted()

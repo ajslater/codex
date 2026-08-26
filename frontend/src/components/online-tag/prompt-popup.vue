@@ -99,14 +99,8 @@
 <script>
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import { sourceLabel } from "@/components/online-tag/source-labels";
 import { useOnlineTagStore } from "@/stores/online-tag";
-
-// Friendly display names for online tagging sources. Falls back to the raw
-// source id for anything not listed. Internal source values are unchanged.
-const SOURCE_LABELS = Object.freeze({
-  metron: "Metron Cloud",
-  comicvine: "Comic Vine",
-});
 
 export default {
   name: "OnlineTagPromptPopup",
@@ -139,9 +133,7 @@ export default {
       "pauseSession",
       "skipAllPrompts",
     ]),
-    sourceLabel(source) {
-      return SOURCE_LABELS[source] || source;
-    },
+    sourceLabel,
     promptFilename(path) {
       if (!path) return "Unknown";
       const parts = path.split("/");
