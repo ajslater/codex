@@ -2,12 +2,19 @@
 
 from codex.librarian.scribe.importer.const import ALL_COMIC_COLLECTION_FIELD_NAMES
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
+from codex.librarian.scribe.importer.delete.existence import confirm_deleted
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
 from codex.models import Comic, Folder, StoryArc
 from codex.settings import (
     IMPORTER_DELETE_MAX_CHUNK_SIZE,
     IMPORTER_LINK_FK_BATCH_SIZE,
 )
+
+# A delete this large, and this much of the library, reads like a vanished
+# mount rather than a user tidying up. The floor keeps small libraries from
+# tripping it whenever a couple of comics are removed.
+_MASS_DELETE_FLOOR = 50
+_MASS_DELETE_FRACTION = 0.5
 
 
 class DeletedComicsImporter(DeletedCoversImporter):
@@ -54,6 +61,26 @@ class DeletedComicsImporter(DeletedCoversImporter):
         ):
             cls._populate_deleted_comic_collection(deleted_comic_collections, comic)
 
+    def _warn_on_mass_delete(self, num_deleted: int) -> None:
+        """
+        Flag a delete large enough to look like the library vanished.
+
+        An unmounted volume or dropped network share makes every path read
+        as missing, which the existence backstop cannot tell from a real
+        mass deletion. Nothing is blocked here — this only leaves a
+        breadcrumb in the log for a user asking where their comics went.
+        """
+        if num_deleted < _MASS_DELETE_FLOOR:
+            return
+        total = Comic.objects.filter(library=self.library).count()
+        if total and num_deleted >= total * _MASS_DELETE_FRACTION:
+            reason = (
+                f"Deleting {num_deleted} of {total} comics in"
+                f" {self.library.path}. If that library lives on a network"
+                f" share or removable volume, check that it is still mounted."
+            )
+            self.log.warning(reason)
+
     def bulk_comics_deleted(self, **kwargs) -> tuple[int, dict]:
         """Bulk delete comics found missing from the filesystem."""
         count = 0
@@ -64,8 +91,11 @@ class DeletedComicsImporter(DeletedCoversImporter):
                 return count, deleted_comic_collections
             self.status_controller.start(status)
             # Batch path__in to stay under SQLite's variable limit.
-            paths = tuple(self.task.files_deleted)
+            paths = confirm_deleted(self.task.files_deleted, self.log, "comics")
             self.task.files_deleted = frozenset()
+            if not paths:
+                return count, deleted_comic_collections
+            self._warn_on_mass_delete(len(paths))
             delete_comic_pks: set[int] = set()
             for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
                 if self.abort_event.is_set():

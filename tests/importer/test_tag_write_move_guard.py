@@ -133,6 +133,10 @@ class TestImporterTagWriteMoveGuard(BaseTestImporter):
     def test_unregistered_paths_are_untouched(self) -> None:
         """A guard for one comic never defers another comic's delete."""
         comic = self._create_comic(_UNRELATED_PATH)
+        # Really remove it: the delete phase spares rows whose file is still
+        # on disk, so a fixture that leaves the file behind would pass for
+        # the wrong reason.
+        Path(_UNRELATED_PATH).unlink()
         self._register_conversion()
         importer = self._importer(files_deleted=frozenset({_UNRELATED_PATH}))
 
