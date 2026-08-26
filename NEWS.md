@@ -23,6 +23,9 @@ border-radius: 128px;
       a CBR conversion even when a library scan lands in the middle of one.
     - Editing a comic's tags twice in a row no longer fails the second edit with
       a "no such file" error when renaming is on.
+    - A watched library on a network share or removable volume that goes missing
+      no longer has all its comics deleted. Polling already refused to scan in
+      that state; watching now refuses to act on it too.
     - Comics are never deleted from the database while their files are still on
       disk, so a misread filesystem event can no longer take a comic's bookmarks
       and read progress with it.
