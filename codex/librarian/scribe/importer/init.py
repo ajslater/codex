@@ -50,10 +50,6 @@ from codex.librarian.scribe.importer.statii.search import (
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.search.status import SearchIndexCleanStatus
 from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
-from codex.librarian.scribe.tagwrite_moves import (
-    get_pending_tag_write_paths,
-    release_tag_write_moves,
-)
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
 from codex.settings import LOGLEVEL
@@ -161,41 +157,6 @@ class InitImporter(WorkerStatusBase):
         elapsed = perf_counter() - start
         self.phase_times[name] = self.phase_times.get(name, 0.0) + elapsed
         return result
-
-    def _defer_pending_tag_write_moves(self) -> None:
-        """
-        Leave paths a tag-write batch is still moving to that batch.
-
-        A scan that lands during a long tag write reports the conversion
-        it is watching as an unrelated delete plus create, and its task
-        outranks the tag writer's end-of-batch move by enqueue time.
-        Dropping those paths here makes the scan a no-op for them, so the
-        move still finds its source row — and its bookmarks — in place.
-
-        A task that carries a registered move reconciles it, so it both
-        releases that guard and is exempt from it — the tag writer's own
-        task keeps the re-read it asked for. The exemption is computed
-        from the task rather than from the release so a move that later
-        turns out to be unappliable can't cost the task its own paths.
-        Runs before the write wait and the status init so neither counts
-        a deferred path.
-        """
-        release_tag_write_moves(self.task.files_moved)
-        own = frozenset(self.task.files_moved) | frozenset(
-            self.task.files_moved.values()
-        )
-        pending = get_pending_tag_write_paths() - own
-        if not pending:
-            return
-        deferred = pending & (
-            self.task.files_deleted | self.task.files_created | self.task.files_modified
-        )
-        if not deferred:
-            return
-        self.task.files_deleted -= pending
-        self.task.files_created -= pending
-        self.task.files_modified -= pending
-        self.log.info(f"Deferred {len(deferred)} path(s) to an in-flight tag write.")
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
         """Watcher sends events before filesystem events finish, so wait for them."""
@@ -423,7 +384,6 @@ class InitImporter(WorkerStatusBase):
     def init_apply(self) -> None:
         """Initialize the library and status flags."""
         self.start_time = now()
-        self._defer_pending_tag_write_moves()
         self.library.start_update()
         if self._wait_for_filesystem_ops_to_finish():
             # The import runs anyway: abandoning the task would drop these

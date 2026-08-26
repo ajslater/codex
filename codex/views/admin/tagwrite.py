@@ -2,23 +2,20 @@
 
 import json
 from collections.abc import Sequence
-from dataclasses import replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import override
 
-from comicbox.box import Comicbox
-from comicbox.formats import MetadataFormats
 from rest_framework.permissions import BasePermission, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.tagwrite_rename import build_predict_config, plan_rename
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
 from codex.serializers.admin.tagging import TagWriteRequestSerializer
-from codex.settings import COMICBOX_RENAME_CONFIG
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.identifier_parse import parse_identifier_url
 from codex.views.browser.filters.filter import BrowserFilterView
@@ -104,50 +101,35 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
 
     @staticmethod
-    def _preview_one(old_path: Path, patch: dict | None, config) -> str:
+    def _preview_one(pk: int, old_path: Path, patch: dict | None, config) -> str:
         """
-        Return the comicbox-scheme name the given patch produces for one comic.
+        Return the name this comic ends up with, or "" if it can't be built.
 
-        Overlays the pending (unsaved) patch onto the archive's metadata in
-        memory and serializes the FILENAME format — the same construction
-        ``rename_file`` uses — so the dialog can show the would-be name. Opens
-        the archive (I/O). Returns "" when no name could be built.
-
-        States ``ext`` from the file's real suffix exactly as
-        ``TagWriter._rename_one`` does, so the preview cannot promise a name
-        the rename won't produce.
+        Derived through the same planner the rename itself uses, so the
+        dialog cannot promise a name the write won't produce. Shows the
+        *final* name, which for an archive the write will repack is the
+        converted CBZ rather than the interim one. Opens the archive (I/O).
         """
-        metadata = dict(patch) if patch else {}
-        if ext := old_path.suffix.lstrip("."):
-            metadata["ext"] = ext
         try:
-            with Comicbox(
-                old_path, config=config, metadata={"comicbox": metadata}
-            ) as car:
-                target = car.to_string(MetadataFormats.FILENAME) or ""
+            plan = plan_rename(pk, old_path, patch, config)
         except Exception:
             return ""
-        return "" if target.startswith(".") else target
+        return plan.final_path.name if plan else ""
 
     def _filename_previews(
         self,
         comic_pks: frozenset[int],
         patch_str: str,
         delete_keys: tuple[str, ...] = (),
+        mode: str = "additive",
     ) -> list[dict[str, str]]:
         """Preview the rename (old → new) for each selected comic, capped."""
         patch = json.loads(patch_str or "null")
         # Pending cleared fields must vanish from the previewed name exactly
-        # as the real write (BulkWriteItem.delete_keys) will clear them.
-        config = COMICBOX_RENAME_CONFIG
-        if delete_keys:
-            config = replace(
-                config,
-                general=replace(
-                    config.general,
-                    delete_keys=config.general.delete_keys | frozenset(delete_keys),
-                ),
-            )
+        # as the real write (BulkWriteItem.delete_keys) will clear them, and
+        # the write mode decides whether a patch value replaces or extends
+        # what the archive already holds.
+        config = build_predict_config(delete_keys, mode)
         comics = (
             Comic.objects.filter(pk__in=comic_pks)
             .only("pk", "path")
@@ -159,7 +141,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
             previews.append(
                 {
                     "old": old_path.name,
-                    "new": self._preview_one(old_path, patch, config),
+                    "new": self._preview_one(comic.pk, old_path, patch, config),
                 }
             )
         return previews
@@ -199,6 +181,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
                     comic_pks,
                     data.get("patch") or "",
                     tuple(data.get("delete_keys") or ()),
+                    data["mode"],
                 ),
                 "skipped": self.skipped_read_only,
             }

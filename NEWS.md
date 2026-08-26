@@ -18,6 +18,11 @@ border-radius: 128px;
     - Redesigned the Admin Tagging Status table to be more informative.
 
 - Fixes
+    - Tag writes rename each comic before writing it, and the database follows
+      the file immediately. Bookmarks and read progress now survive a rename or
+      a CBR conversion even when a library scan lands in the middle of one.
+    - Editing a comic's tags twice in a row no longer fails the second edit with
+      a "no such file" error when renaming is on.
     - Comics are never deleted from the database while their files are still on
       disk, so a misread filesystem event can no longer take a comic's bookmarks
       and read progress with it.
