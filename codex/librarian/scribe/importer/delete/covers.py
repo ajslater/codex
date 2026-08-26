@@ -1,6 +1,7 @@
 """Clean up covers from the db."""
 
 from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.scribe.importer.delete.existence import confirm_deleted
 from codex.librarian.scribe.importer.search import SearchIndexImporter
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveCoversStatus
 from codex.models.paths import CustomCover
@@ -23,10 +24,11 @@ class DeletedCoversImporter(SearchIndexImporter):
             if not self.task.covers_deleted:
                 return 0
             self.status_controller.start(status)
-            covers = CustomCover.objects.filter(
-                library=self.library, path__in=self.task.covers_deleted
-            )
+            paths = confirm_deleted(self.task.covers_deleted, self.log, "covers")
             self.task.covers_deleted = frozenset()
+            if not paths:
+                return 0
+            covers = CustomCover.objects.filter(library=self.library, path__in=paths)
             delete_cover_pks = frozenset(covers.values_list("pk", flat=True))
             count, _ = covers.delete()
 
