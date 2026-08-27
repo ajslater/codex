@@ -10,6 +10,8 @@
  *   - There is one status column per selected source, in priority order, so
  *     each comic reads as "which source is in which state"; a source the
  *     session didn't select gets no column at all.
+ *   - The comic being looked up right now carries a spinner, and the source
+ *     querying it reads "Looking up" — but only while the scan is running.
  *   - Per-comic rows overlay "needs review" from the live pending-prompt list,
  *     into the column of the source that prompted.
  *   - The Review button opens the match-review popup (promptDialogOpen).
@@ -474,6 +476,84 @@ describe("AdminTaggingStatusTable", () => {
     expect(wrapper.vm.cellStatus(wrapper.vm.rows[0], "metron")).toBe(
       "user_skipped",
     );
+  });
+
+  test("marks the comic being looked up right now", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const byPk = Object.fromEntries(wrapper.vm.rows.map((r) => [r.pk, r.live]));
+    // Exactly the in_flight row, and only it.
+    expect(byPk).toStrictEqual({ 1: false, 2: true, 3: false });
+    expect(wrapper.findAll(".liveSpinner")).toHaveLength(1);
+  });
+
+  test("names the source being queried right now", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const live = wrapper.vm.rows.find((r) => r.pk === 2);
+    expect(live.cells.metron).toBe("in_flight");
+    expect(wrapper.text()).toContain("Looking up");
+  });
+
+  test("a source the live comic's lookup hasn't reached still reads Queued", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    // comicvine has no cell on the in-flight row: it is next, not running.
+    const live = wrapper.vm.rows.find((r) => r.pk === 2);
+    expect(live.cells.comicvine).toBe("queued");
+  });
+
+  test("an in-flight row with no live cell claims nothing per source", () => {
+    // Between the marker being set and a source starting, the daemon can
+    // publish a row with no cells at all; it must not invent one.
+    const snapshot = makeSnapshot({
+      comics: [
+        { pk: 2, path: "/c/b.cbz", status: "in_flight", sourceStatuses: {} },
+      ],
+    });
+    const { wrapper } = mountTable({ snapshot });
+    const row = wrapper.vm.rows[0];
+    expect(row.cells).toStrictEqual({ metron: "queued", comicvine: "queued" });
+  });
+
+  test("a finished source sits beside a live one on the same comic", () => {
+    const snapshot = makeSnapshot({
+      comics: [
+        {
+          pk: 2,
+          path: "/c/b.cbz",
+          status: "in_flight",
+          sourceStatuses: { metron: "matched", comicvine: "in_flight" },
+        },
+      ],
+    });
+    const { wrapper } = mountTable({ snapshot });
+    const row = wrapper.vm.rows[0];
+    expect(row.cells).toStrictEqual({
+      metron: "matched",
+      comicvine: "in_flight",
+    });
+  });
+
+  test("claims no live lookup once the session is not running", () => {
+    // A hard-killed daemon freezes its last snapshot mid-lookup, and the
+    // file-backed tagging cache outlives an upgrade — so a live-looking cell
+    // can still arrive on an inactive snapshot.
+    const snapshot = makeSnapshot({ active: false });
+    const { wrapper } = mountTable({ snapshot });
+    const live = wrapper.vm.rows.find((r) => r.pk === 2);
+    expect(live.live).toBe(false);
+    expect(live.cells.metron).toBe("queued");
+    expect(wrapper.findAll(".liveSpinner")).toHaveLength(0);
+    expect(wrapper.text()).not.toContain("Looking up");
+  });
+
+  test("a pending prompt outranks a live cell", () => {
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot(),
+      pendingPrompts: [{ pk: 2, source: "metron", fingerprint: "fp2" }],
+    });
+    const row = wrapper.vm.rows.find((r) => r.pk === 2);
+    expect(row.cells.metron).toBe("needs_review");
+    // No longer in_flight, so no spinner either.
+    expect(row.live).toBe(false);
   });
 });
 

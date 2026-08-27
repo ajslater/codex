@@ -229,3 +229,45 @@ describe("useOnlineTagStore — startSession", () => {
 });
 
 export default {};
+
+describe("useOnlineTagStore — loadSnapshot", () => {
+  it("coalesces concurrent fetches into one request", async () => {
+    // A source starting a lookup pushes a notification, so these can arrive
+    // faster than the round trip; each one re-reads the prompt cache and
+    // re-walks every row server-side.
+    const store = useOnlineTagStore();
+    let resolve;
+    HTTP.get.mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+
+    const first = store.loadSnapshot();
+    const second = store.loadSnapshot();
+    resolve({ data: { snapshot: { active: true, comics: [] } } });
+
+    expect(await first).toBe(await second);
+    expect(HTTP.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches again once the previous request settled", async () => {
+    const store = useOnlineTagStore();
+    HTTP.get.mockResolvedValue({ data: { snapshot: { comics: [] } } });
+
+    await store.loadSnapshot();
+    await store.loadSnapshot();
+
+    expect(HTTP.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not wedge the coalescer when a fetch fails", async () => {
+    const store = useOnlineTagStore();
+    HTTP.get.mockRejectedValueOnce(new Error("offline"));
+    await expect(store.loadSnapshot()).rejects.toThrow("offline");
+
+    HTTP.get.mockResolvedValue({ data: { snapshot: { comics: [] } } });
+    await store.loadSnapshot();
+    expect(HTTP.get).toHaveBeenCalledTimes(2);
+  });
+});

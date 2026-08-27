@@ -11,12 +11,15 @@ reading a single key.
 
 Design notes:
 
-- **Per-comic status is derived, not tracked.** ``OnlineTagOutcomeStats``
-  already records every comic's path in ``written_paths`` / ``no_change_paths``
-  / ``errored_paths`` / ``matched_source_by_path``; "needs review" comes from
-  the pending-prompt cache (keyed by pk). The single *in-flight* comic is the
-  first not-yet-terminal, not-deferred path in processing order — the scan is
-  strictly sequential (one ``tag_many`` loop), so there is never more than one.
+- **Terminal per-comic status is derived, liveness is tracked.**
+  ``OnlineTagOutcomeStats`` already records every comic's path in
+  ``written_paths`` / ``no_change_paths`` / ``errored_paths`` /
+  ``matched_source_by_path``; "needs review" comes from the pending-prompt
+  cache (keyed by pk). The single *in-flight* comic is not guessed from list
+  order — comicbox re-sorts the batch by series fingerprint — but read from
+  ``SessionState.live``, the marker the daemon sets from the event stream. No
+  marker means nothing is in flight, which is the honest reading between
+  comics and after a cancel.
 - **The comic list is capped** (``_MAX_COMIC_ROWS``) so a batch of thousands
   doesn't bloat the cache or the wire. Actionable rows (in-flight, needs
   review, error) and upcoming (queued) come first; finished rows fill the rest.
@@ -24,8 +27,10 @@ Design notes:
   of M".
 - **Each row also carries per-source cells** (``source_statuses``): what each
   source did with that comic, which the status table renders as one column per
-  source. They come from the same fold; only the rate-limit "waiting" state is
-  projected here, since it lives on the scan rather than the event stream.
+  source. The terminal ones come from the fold; the two live states are
+  projected here onto the in-flight row alone, because both live on the scan
+  rather than in the event history — ``in_flight`` ("Looking up") from
+  ``SessionState.live``, and ``waiting`` from the per-source retry deadlines.
 - **Status string values are deliberately snake_case** and pass through the
   camelCase API renderer untouched (it only camelizes dict *keys*); the
   frontend matches on these literals. They are defined in
@@ -60,6 +65,8 @@ from codex.librarian.onlinetag.statuses import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from codex.librarian.onlinetag.session_state import SessionState
 
 _SNAPSHOT_KEY = "onlinetag:session_snapshot"
@@ -100,39 +107,60 @@ def deactivate_snapshot() -> None:
     as queued, so no count changes) so the comic reads as still-to-do, which
     is also exactly what Resume will re-run. Per-source cells claiming a live
     lookup or a rate-limit wait go the same way.
+
+    Deliberately *not* guarded on ``active``. A scan that dies by raising
+    freezes the snapshot through ``run_session``'s ``finally`` with
+    ``active`` already False but its live row intact, and a snapshot written
+    by an older Codex can carry one too — the tagging cache is file-backed
+    with no TTL, so it outlives the upgrade. Guarding on ``active`` made both
+    unrepairable forever.
     """
     snapshot = get_snapshot()
-    if snapshot and snapshot.get("active"):
-        snapshot["active"] = False
-        for comic in snapshot.get("comics") or []:
-            if comic.get("status") == IN_FLIGHT:
-                comic["status"] = QUEUED
-            _drop_live_source_statuses(comic)
-        _drop_rate_limits(snapshot)
+    if not snapshot:
+        return
+    dirty = bool(snapshot.get("active"))
+    snapshot["active"] = False
+    for comic in snapshot.get("comics") or []:
+        if comic.get("status") == IN_FLIGHT:
+            comic["status"] = QUEUED
+            dirty = True
+        dirty = _drop_live_source_statuses(comic) or dirty
+    dirty = _drop_rate_limits(snapshot) or dirty
+    if dirty:
         set_snapshot(snapshot)
 
 
-def _drop_live_source_statuses(comic: dict[str, Any]) -> None:
-    """Strip a row's searching/waiting cells (nothing is live any more)."""
+def _drop_live_source_statuses(comic: dict[str, Any]) -> bool:
+    """Strip a row's searching/waiting cells; True if any were there."""
     cells = comic.get("source_statuses")
     if not cells:
-        return
+        return False
+    dropped = False
     for source, status in tuple(cells.items()):
         if status in LIVE_SOURCE_STATUSES:
             del cells[source]
+            dropped = True
+    return dropped
 
 
-def _drop_rate_limits(snapshot: dict[str, Any]) -> None:
+def _drop_rate_limits(snapshot: dict[str, Any]) -> bool:
     """
     Disarm the sources strip's retry countdowns.
 
     A crash skips the pass runner's ``finally``, so a scan killed mid-wait can
     freeze a retry deadline that is still in the future — leaving the strip
     counting down, then stuck on "retrying…", for a scan that is not running.
+
+    Returns whether anything was actually armed, so an already-clean snapshot
+    isn't rewritten on every daemon start and janitor sweep.
     """
+    disarmed = False
     for source in snapshot.get("sources") or []:
+        if source.get("rate_limited") or source.get("retry_at_epoch") is not None:
+            disarmed = True
         source["rate_limited"] = False
         source["retry_at_epoch"] = None
+    return disarmed
 
 
 # --- resolution outcomes -----------------------------------------------------
@@ -264,26 +292,61 @@ def clear_resume_state() -> None:
     cache.delete(_RESUME_KEY)
 
 
-def remaining_pks(state: SessionState, review_pks: set) -> list[int]:
+def _is_pending(path, pk, stats, review_pks: set) -> bool:
     """
-    Uncapped pks still to process: not terminal and not awaiting review.
+    Whether a comic is still to be processed.
 
-    Mirrors the buckets ``_comic_status`` reads — a comic is done once it lands
-    in a stats bucket (written / no_change / errored) or has a pending prompt;
-    everything else (queued + the single in-flight) is what Resume re-runs.
+    A comic is done once it lands in a stats bucket (written / no_change /
+    errored) or has a pending prompt; everything else (queued + the single
+    in-flight) is what Resume re-runs. The one definition behind both
+    ``remaining_pks`` and the in-flight election, so the two cannot drift.
     """
+    return not (
+        path in stats.errored_paths
+        or path in stats.written_paths
+        or path in stats.no_change_paths
+        or pk in review_pks
+    )
+
+
+def remaining_pks(state: SessionState, review_pks: set) -> list[int]:
+    """Uncapped pks still to process: not terminal and not awaiting review."""
     stats = state.stats
-    out: list[int] = []
-    for path, pk in state.path_to_pk.items():
-        if (
-            path in stats.errored_paths
-            or path in stats.written_paths
-            or path in stats.no_change_paths
-            or pk in review_pks
-        ):
-            continue
-        out.append(pk)
-    return out
+    return [
+        pk
+        for path, pk in state.path_to_pk.items()
+        if _is_pending(path, pk, stats, review_pks)
+    ]
+
+
+def _elect_in_flight_path(
+    state: SessionState, review_pks: set, *, active: bool
+) -> Path | None:
+    """
+    Return the comic being looked up right now, or None when nothing is.
+
+    Read from ``SessionState.live`` — the marker the daemon sets off the
+    comicbox event stream and its own stored-id prepass — never guessed from
+    ``path_to_pk`` position: ``tag_many`` re-sorts the batch by series
+    fingerprint, so position is unrelated to processing order.
+
+    Returning None is a real answer, not a failure. Between comics, before the
+    first event, and after a cancel there genuinely is no live lookup, and the
+    comic then reads Queued — which is honest, and is exactly what Resume will
+    re-run. Guessing a row instead would put a "looking this up right now"
+    claim on an arbitrary comic.
+    """
+    if not active or state.cancelled:
+        return None
+    path = state.live.path
+    if path is None:
+        return None
+    pk = state.path_to_pk.get(path)
+    if pk is None:
+        # A live path from a merged batch we never recorded, or a stale
+        # marker; nothing to hang the row on.
+        return None
+    return path if _is_pending(path, pk, state.stats, review_pks) else None
 
 
 def _comic_status(path, pk, stats, review_pks: set, *, in_flight: bool) -> str:
@@ -305,10 +368,14 @@ def _row_source_statuses(
     stats,
     sources: tuple[str, ...],
     waiting_sources: frozenset[str],
+    live_source: str,
 ) -> dict[str, str]:
     """Report what each source did with one comic, as its own column cell."""
     if status == QUEUED:
         # Nothing has touched it yet; the row reads as queued in every column.
+        # Kept as an early return rather than falling through: a comic whose
+        # first source reported before the scan stopped would otherwise show
+        # that verdict beside a Queued row Resume is about to re-run in full.
         return {}
     if status == ERROR:
         # A worker exception is usually archive-level rather than any one
@@ -316,40 +383,37 @@ def _row_source_statuses(
         return dict.fromkeys(sources, ERROR)
     cells = dict(stats.source_status_by_path.get(path, {}))
     if status == IN_FLIGHT:
-        # A rate-limit wait stalls the comic being looked up right now. Mark
-        # the throttled source even with no search cell of its own: id-fetch
-        # and series-cache wins emit no SearchStarted but can still hit it.
+        # The one live "Looking up" cell, projected from the scan's marker
+        # rather than accumulated from events — an event-derived cell is
+        # cleared before any publish can sample it.
+        if live_source:
+            cells[live_source] = IN_FLIGHT
+        # A rate-limit wait stalls the comic being looked up right now, and
+        # outranks the lookup claim: the source is throttled, not working.
         for source in sources:
             if source in waiting_sources:
                 cells[source] = WAITING
-        return cells
-    # A cancelled scan never emits the FileFinished that would have cleared a
-    # source's searching cell, and a frozen row must not claim a live lookup.
-    return {
-        source: cell
-        for source, cell in cells.items()
-        if cell not in LIVE_SOURCE_STATUSES
-    }
+    return cells
 
 
 def _build_comic_rows(
-    state: SessionState, review_pks: set, waiting_sources: frozenset[str]
+    state: SessionState,
+    review_pks: set,
+    waiting_sources: frozenset[str],
+    *,
+    active: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    """Build per-comic rows in processing order plus a status tally."""
+    """Build per-comic rows in list order plus a status tally."""
     stats = state.stats
     counts: dict[str, int] = dict.fromkeys(
         (QUEUED, IN_FLIGHT, MATCHED, NO_MATCH, NEEDS_REVIEW, ERROR), 0
     )
     rows: list[dict[str, Any]] = []
-    in_flight_taken = False
-    # path_to_pk preserves insertion order, which is the pk order the scan
-    # feeds to tag_many — so the first comic not yet terminal and not deferred
-    # is the one currently being looked up.
+    in_flight_path = _elect_in_flight_path(state, review_pks, active=active)
+    live_source = state.live.source
     for path, pk in state.path_to_pk.items():
-        wants_in_flight = state.cancelled is False and not in_flight_taken
-        status = _comic_status(path, pk, stats, review_pks, in_flight=wants_in_flight)
-        if status == IN_FLIGHT:
-            in_flight_taken = True
+        is_live = in_flight_path is not None and path == in_flight_path
+        status = _comic_status(path, pk, stats, review_pks, in_flight=is_live)
         counts[status] += 1
         rows.append(
             {
@@ -357,7 +421,12 @@ def _build_comic_rows(
                 "path": str(path),
                 "status": status,
                 "source_statuses": _row_source_statuses(
-                    path, status, stats, state.sources, waiting_sources
+                    path,
+                    status,
+                    stats,
+                    state.sources,
+                    waiting_sources,
+                    live_source if is_live else "",
                 ),
             }
         )
@@ -365,8 +434,15 @@ def _build_comic_rows(
 
 
 def _order_and_cap(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Actionable rows first, then queued, then finished; capped, order kept."""
-    actionable = [r for r in rows if r["status"] in ACTIONABLE]
+    """In-flight row first, then the rest actionable, queued, finished; capped."""
+    # ACTIONABLE is a membership test, not a ranking, so needs-review and
+    # error rows sit in front of the live one purely by list position. Past
+    # _MAX_COMIC_ROWS of them the live row — the whole point of the table —
+    # would be truncated away, so it is hoisted to the head outright.
+    actionable = sorted(
+        (r for r in rows if r["status"] in ACTIONABLE),
+        key=lambda r: r["status"] != IN_FLIGHT,
+    )
     queued = [r for r in rows if r["status"] == QUEUED]
     finished = [r for r in rows if r["status"] in FINISHED]
     return (actionable + queued + finished)[:_MAX_COMIC_ROWS]
@@ -420,7 +496,7 @@ def build_snapshot(
         for source, retry_at in source_retry_at.items()
         if retry_at and retry_at > now_epoch
     )
-    rows, counts = _build_comic_rows(state, review_pks, waiting_sources)
+    rows, counts = _build_comic_rows(state, review_pks, waiting_sources, active=active)
     total = state.total_comics or len(state.path_to_pk)
     batch = {
         "total": total,

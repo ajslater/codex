@@ -34,7 +34,7 @@ class TagPassRunner:
         librarian_queue: Queue,
         status_controller: StatusController,
         drain_queue: Callable[[SessionState | None], None],
-        publish_snapshot: Callable[[SessionState], None],
+        publish_snapshot: Callable[..., None],
     ) -> None:
         """Wire the runner with its log, queue, status controller, and callbacks."""
         self.log = log
@@ -105,8 +105,11 @@ class TagPassRunner:
         status.retry_at = None
         self._update_eta(state, status)
         self.rate_limited = False
-        self.status_controller.update(status)
+        # Snapshot first, notification second: the client fetches the snapshot
+        # in response to the notification, so announcing first races it into
+        # reading the previous one.
         self._publish_snapshot(state)
+        self.status_controller.update(status)
 
     @staticmethod
     def _store_result_tags(
@@ -167,8 +170,8 @@ class TagPassRunner:
         self.lookup_status = status
         self.rate_limited = False
         self.source_retry_at.clear()
-        self.status_controller.start(status)
         self._publish_snapshot(state)
+        self.status_controller.start(status)
 
         batch: dict[int, dict] = {}
         try:

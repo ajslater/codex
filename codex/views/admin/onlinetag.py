@@ -92,6 +92,15 @@ class AdminOnlineTagSnapshotView(AdminAPIView):
             snapshot = overlay_resolutions(
                 snapshot, _review_sources_by_pk(), get_resolved_outcomes()
             )
+            # A snapshot whose scan is no longer the active one cannot be
+            # live, whatever it says. A hard-killed librarian leaves its last
+            # snapshot frozen mid-lookup, and nothing repairs that until the
+            # daemon next starts or the nightly janitor sweeps — until then
+            # the table would keep claiming a comic is being looked up.
+            if snapshot.get("active") and snapshot.get("session_id") != (
+                get_active_scan_id() or ""
+            ):
+                snapshot["active"] = False
             # The frozen snapshot's own flag only reports that comics were
             # left unprocessed; Resume needs the descriptor that says which
             # ones and how. They can diverge (a daemon killed mid-scan), and

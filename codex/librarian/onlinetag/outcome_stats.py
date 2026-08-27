@@ -21,7 +21,11 @@ before finishing.
 Alongside those file-level buckets, ``source_status_by_path`` folds the
 per-source events (every one carries both ``path`` and ``source``) into a
 "what did each source do with this comic" map, which the snapshot renders as
-one status table column per source.
+one status table column per source. It records only *outcomes* — matched,
+no-match, needs-review — never work in progress: what a source is doing right
+now lives on :class:`~codex.librarian.onlinetag.session_state.LiveLookup` and
+is projected into the snapshot at build time. Keeping liveness out of here is
+what makes a stale "still searching" cell impossible.
 
 One scan runs on a single daemon thread and emits its events inline, so the
 tallies need no locking.
@@ -39,12 +43,10 @@ from comicbox.events import (
     FileFinished,
     NoMatch,
     PromptDeferred,
-    SearchStarted,
     Skipped,
 )
 
 from codex.librarian.onlinetag.statuses import (
-    IN_FLIGHT,
     MATCHED,
     NEEDS_REVIEW,
     NO_MATCH,
@@ -92,8 +94,6 @@ class OnlineTagOutcomeStats:
     def _record_source_status(self, event: Event) -> None:
         """Fold one event into the per-comic, per-source status map."""
         match event:
-            case SearchStarted(path=path, source=source) if path and source:
-                self._set_source_status(path, source, IN_FLIGHT)
             case AutoWritten(path=path, source=source) if path and source:
                 self._set_source_status(path, source, MATCHED)
             # A source that found nothing above the confidence floor and one
@@ -105,8 +105,6 @@ class OnlineTagOutcomeStats:
                 self._set_source_status(path, source, NO_MATCH)
             case PromptDeferred(path=path, source=source) if path and source:
                 self._set_source_status(path, source, NEEDS_REVIEW)
-            case FileFinished(path=path) | FileError(path=path) if path:
-                self._clear_searching_sources(path)
             case _:
                 pass
 
@@ -125,20 +123,6 @@ class OnlineTagOutcomeStats:
     def _set_source_status(self, path: Path, source: str, status: str) -> None:
         """Record what one source is doing (or did) with one comic."""
         self.source_status_by_path.setdefault(path, {})[source] = status
-
-    def _clear_searching_sources(self, path: Path) -> None:
-        """
-        Drop still-searching cells once a comic is done.
-
-        A source whose search raised is logged and skipped without an event,
-        so its ``in_flight`` cell would otherwise linger on a finished comic.
-        """
-        cells = self.source_status_by_path.get(path)
-        if not cells:
-            return
-        for source, status in tuple(cells.items()):
-            if status == IN_FLIGHT:
-                del cells[source]
 
     def record_prefetch_match(self, path: Path, source: str) -> None:
         """

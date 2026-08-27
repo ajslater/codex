@@ -252,10 +252,13 @@ export const useSocketStore = defineStore("socket", () => {
   }
 
   /*
-   * Refresh the online-tag status snapshot on librarian progress. Gated to the
-   * Tagging tab — the snapshot only feeds that table, and ``task.progress``
-   * fires for every librarian job, so off-tab fetches would be wasted. The
-   * table's own onMounted load covers arriving mid-scan.
+   * Refresh the online-tag status snapshot. Driven by its own
+   * ``tag-session.snapshot`` message rather than ``task.progress``, which
+   * fires for every librarian job and already costs two other fetches — the
+   * daemon announces this one only when the tagging snapshot actually moved,
+   * including mid-comic when a source starts looking a comic up. Gated to the
+   * Tagging tab, the only place the snapshot is rendered; the table's own
+   * onMounted load covers arriving mid-scan.
    */
   function onlineTagSnapshotNotified() {
     if (!useAuthStore().isUserAdmin) return;
@@ -300,13 +303,15 @@ export const useSocketStore = defineStore("socket", () => {
       case MESSAGE_TYPES.TASK_PROGRESS:
         adminLoadTables(["ActiveLibrarianStatus"]);
         adminLoadAllStatuses();
-        onlineTagSnapshotNotified();
         break;
       case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();
         break;
       case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
         tagWriteErrorsNotified();
+        break;
+      case MESSAGE_TYPES.TAG_SESSION_SNAPSHOT:
+        onlineTagSnapshotNotified();
         break;
       case MESSAGE_TYPES.TAG_SESSION_PROMPT:
         onlineTagPromptNotified();

@@ -20,11 +20,15 @@ from typing import TYPE_CHECKING, Any, cast
 from comicbox.events import (
     AutoWritten,
     Event,
+    FileError,
+    FileFinished,
     NoMatch,
     PromptDeferred,
     RateLimited,
     SearchCompleted,
+    SearchStarted,
     Skipped,
+    SourceStarted,
 )
 from comicbox.exceptions import ComicboxError
 from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
@@ -33,6 +37,7 @@ from humanize import naturaldelta
 
 from codex.librarian.notifier.tasks import (
     ONLINE_TAG_PROMPT_TASK,
+    ONLINE_TAG_SNAPSHOT_TASK,
     TAG_WRITE_ERRORS_CHANGED_TASK,
 )
 from codex.librarian.onlinetag.estimate import estimate_seconds
@@ -97,6 +102,13 @@ class OnlineTagSessionManager:
         # a fast (Metron) burst doesn't rewrite the cache per comic; forced
         # publishes (start, rate-limit, finish) bypass it.
         self._last_publish: float = 0.0
+        # The live-lookup publish rides its own clock and its own dedupe so a
+        # burst of them can neither starve the result-boundary publish (which
+        # carries the terminal outcome and the resume descriptor) nor hammer
+        # the cache on a warm-HTTP-cache run, where comicbox answers a search
+        # from local disk and nothing paces the event stream.
+        self._last_live_publish: float = 0.0
+        self._last_live_key: tuple[Path | None, str] | None = None
         self._pass_runner = TagPassRunner(
             log,
             librarian_queue,
@@ -157,37 +169,95 @@ class OnlineTagSessionManager:
         active: bool = True,
         force: bool = False,
         session_id: str | None = None,
+        write_resume: bool = True,
+        touch_throttle: bool = True,
     ) -> None:
         """Fold scan state into the cache snapshot the admin status table reads."""
         try:
-            elapsed = monotonic() - self._last_publish
-            if not force and elapsed < self._PUBLISH_DELTA:
+            if not force and monotonic() - self._last_publish < self._PUBLISH_DELTA:
                 return
-            self._last_publish = monotonic()
-            status = self._pass_runner.lookup_status
-            eta = status.eta if status else None
-            snapshot = build_snapshot(
-                state,
-                session_id=session_id or self._active_session_id or "",
-                active=active,
-                eta_epoch=eta.timestamp() if eta else None,
-                source_retry_at=dict(self._pass_runner.source_retry_at),
-                now_epoch=now().timestamp(),
-            )
-            set_snapshot(snapshot)
-            # Persist the uncapped remainder + original params so a kill or
-            # pause can resume what this scan never reached. A normal finish
-            # leaves nothing remaining, which clears the key (not resumable).
-            review_pks = {p.get("pk") for p in get_pending_prompts().values()}
-            set_resume_state(state.resume_params, remaining_pks(state, review_pks))
+            if touch_throttle:
+                self._last_publish = monotonic()
+            self._store_snapshot(state, session_id, active=active)
+            if write_resume:
+                self._store_resume(state)
         except Exception:
             self.log.exception("Publishing online tag session snapshot")
+
+    def _store_snapshot(
+        self, state: SessionState, session_id: str | None, *, active: bool
+    ) -> None:
+        """Build, cache, and announce one snapshot."""
+        status = self._pass_runner.lookup_status
+        eta = status.eta if status else None
+        snapshot = build_snapshot(
+            state,
+            session_id=session_id or self._active_session_id or "",
+            active=active,
+            eta_epoch=eta.timestamp() if eta else None,
+            source_retry_at=dict(self._pass_runner.source_retry_at),
+            now_epoch=now().timestamp(),
+        )
+        set_snapshot(snapshot)
+        # Announce from the one place that writes it, so every published
+        # snapshot is followed by exactly one notification and never the
+        # reverse order — the client fetches in response to this.
+        self.librarian_queue.put(ONLINE_TAG_SNAPSHOT_TASK)
+
+    def _store_resume(self, state: SessionState) -> None:
+        """
+        Persist the uncapped remainder + original params.
+
+        So a kill or pause can resume what this scan never reached. A normal
+        finish leaves nothing remaining, which clears the key (not resumable).
+        """
+        review_pks = {p.get("pk") for p in get_pending_prompts().values()}
+        set_resume_state(state.resume_params, remaining_pks(state, review_pks))
+
+    # The live-lookup publish's own floor. comicbox serves a search from its
+    # on-disk HTTP cache (7 day TTL, persisted under /config) whenever it can,
+    # so on a re-scan the events fire at CPU speed with no network to pace
+    # them. Well under the ~6-20s of a cold lookup, so it never costs a frame
+    # that mattered.
+    _LIVE_PUBLISH_DELTA = 1.0
+
+    def _publish_live(self, state: SessionState) -> None:
+        """
+        Publish + announce the "looking up" marker the status table renders.
+
+        Guarded, like the publish it wraps: this runs inside comicbox's event
+        dispatch, which forwards to the handler with no try of its own, and
+        the emit sits *before* the lookup's own try — so an exception escaping
+        here would surface as a FileError and mark the comic errored in every
+        column. A status display must never be able to corrupt an outcome.
+        """
+        try:
+            key = (state.live.path, state.live.source)
+            if key == self._last_live_key:
+                return
+            now_mono = monotonic()
+            if now_mono - self._last_live_publish < self._LIVE_PUBLISH_DELTA:
+                return
+            self._last_live_key = key
+            self._last_live_publish = now_mono
+            # Never stamps the shared throttle: doing so would suppress the
+            # unforced result-boundary publish that carries the comic's
+            # terminal status and narrows the resume descriptor. The remainder
+            # can only shrink between here and that publish, which rewrites
+            # it, so skipping the resume write costs at most one comic of
+            # staleness and saves a second file write per lookup.
+            self._publish_snapshot(
+                state, force=True, write_resume=False, touch_throttle=False
+            )
+        except Exception:
+            self.log.exception("Publishing online tag live lookup")
 
     def _on_event(self, event: Event) -> None:
         """Handle comicbox online events."""
         state = self._active_state()
         if state is not None:
             state.stats.record(event)
+            self._track_live_lookup(state, event)
         match event:
             case RateLimited():
                 self._pass_runner.rate_limited = True
@@ -209,6 +279,26 @@ class OnlineTagSessionManager:
                 self._pass_runner.source_retry_at.pop(source, None)
             case PromptDeferred() if state is not None:
                 self._persist_prompts(state)
+            case _:
+                pass
+
+    def _track_live_lookup(self, state: SessionState, event: Event) -> None:
+        """Follow what the scan is consulting right now, and publish it."""
+        match event:
+            # SourceStarted covers every route a source can take; SearchStarted
+            # is the fallback for a comicbox too old to emit the former, and
+            # the (path, source) dedupe collapses the pair a cold search emits
+            # into one publish.
+            case (
+                SourceStarted(path=path, source=source)
+                | SearchStarted(path=path, source=source)
+            ) if path and source:
+                state.live.begin(path, source)
+                self._publish_live(state)
+            # The comic is done; nothing is live until the next source starts.
+            # No publish — the result boundary is microseconds away.
+            case FileFinished(path=path) | FileError(path=path) if path:
+                state.live.end(path)
             case _:
                 pass
 
@@ -509,9 +599,16 @@ class OnlineTagSessionManager:
         batch: dict[int, dict] = {}
         for pk, source_ids in id_map.items():
             path = comic_paths[pk]
+            # The prepass fetches outside the event-emitting session, so codex
+            # is the only thing that knows a lookup is happening at all —
+            # without this the table sits on the *previous* session's rows for
+            # the whole prepass, which on a re-tag is most of the run.
+            state.live.begin(path, next(iter(source_ids)))
+            self._publish_live(state)
             result = self._fetch_stored_id(
                 path, source_ids, credentials, merge_all_sources=task.merge_all_sources
             )
+            state.live.end(path)
             if result is None:
                 continue
             primary_source, tags = result
@@ -591,6 +688,10 @@ class OnlineTagSessionManager:
         # batch's user_matched/user_skipped overlays don't bleed onto these
         # comics.
         clear_resolved_outcomes()
+        # A Resume re-runs the same paths, so the previous scan's last live
+        # key could otherwise dedupe this one's first publish away.
+        self._last_live_key = None
+        self._last_live_publish = 0.0
         # Record this batch's remainder up front rather than merely clearing
         # the prior one (which overwriting does anyway). Publishing narrows it
         # as comics finish, but the first publish is throttled and a daemon
@@ -624,7 +725,10 @@ class OnlineTagSessionManager:
             # Freeze the final tally in the snapshot (active=False) so the
             # status table keeps showing how the batch resolved until the next
             # scan starts — published before clearing the active session id so
-            # it still carries this scan's id.
+            # it still carries this scan's id. The marker goes first: a scan
+            # that died by raising is still holding one, and a frozen snapshot
+            # must not claim a lookup is running.
+            state.live.clear()
             self._publish_snapshot(
                 state, active=False, force=True, session_id=task.session_id
             )
@@ -654,6 +758,9 @@ class OnlineTagSessionManager:
             if not state:
                 return
             state.cancelled = True
+            # A pause taken during a rate-limit sleep aborts the retry with no
+            # FileFinished behind it, so nothing else would clear the marker.
+            state.live.clear()
             state.session.cancel()
         self.log.info(f"Online tag scan {session_id} cancelled.")
 

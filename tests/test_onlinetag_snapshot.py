@@ -4,9 +4,11 @@ Unit tests for the online-tagging session snapshot builder.
 ``build_snapshot`` folds a scan's in-memory :class:`SessionState` (its
 ``OnlineTagOutcomeStats`` plus ``path_to_pk``) and the pending-prompt cache
 into the JSON-safe dict the admin Tagging-tab status table renders. The
-per-comic status is derived, not tracked: terminal outcomes come from the
-stats buckets, "needs review" from the prompt cache (by pk), and the single
-in-flight comic is the first not-yet-terminal, not-deferred path.
+terminal per-comic status is derived: outcomes come from the stats buckets and
+"needs review" from the prompt cache (by pk). Liveness is *not* derived — the
+in-flight comic and the source querying it are read from ``SessionState.live``,
+the marker the daemon sets off the comicbox event stream, so no marker means
+nothing is in flight.
 """
 
 from __future__ import annotations
@@ -19,7 +21,6 @@ from comicbox.events import (
     FileError,
     FileFinished,
     NoMatch,
-    SearchStarted,
 )
 
 from codex.librarian.onlinetag import session_snapshot
@@ -74,16 +75,24 @@ def _clear_prompts():  # pyright: ignore[reportUnusedFunction]
     clear_snapshot()
 
 
-def _state(paths_to_pks, *, sources=("metron", "comicvine")) -> SessionState:
-    """Build a SessionState with the given comics in order (session unused)."""
+def _state(paths_to_pks, *, sources=("metron", "comicvine"), live=None) -> SessionState:
+    """
+    Build a SessionState with the given comics in order (session unused).
+
+    ``live=("/c/2.cbz", "metron")`` marks that comic as the one being looked
+    up right now, standing in for the SourceStarted the daemon folds in.
+    """
     path_to_pk = {Path(p): pk for p, pk in paths_to_pks}
-    return SessionState(
+    state = SessionState(
         session=None,  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         path_to_pk=path_to_pk,
         match_mode="auto",
         sources=sources,
         total_comics=len(path_to_pk),
     )
+    if live:
+        state.live.begin(Path(live[0]), live[1])
+    return state
 
 
 def _build(state, **kwargs):
@@ -99,20 +108,83 @@ def _build(state, **kwargs):
     return build_snapshot(state, **params)  # pyright: ignore[reportArgumentType]
 
 
-def test_first_unprocessed_comic_is_in_flight() -> None:
-    """Exactly one queued comic reads as in-flight; the rest stay queued."""
+def test_the_marked_comic_is_in_flight_not_the_first_one() -> None:
+    """The live marker names the in-flight comic; list position never does."""
     comics = [("/c/1.cbz", 1), ("/c/2.cbz", 2), ("/c/3.cbz", 3)]
-    state = _state(comics)
+    # comicbox re-sorts the batch by series fingerprint, so the comic being
+    # looked up is routinely not the first pending one.
+    state = _state(comics, live=("/c/3.cbz", "metron"))
     snap = _build(state)
 
     statuses = {row["pk"]: row["status"] for row in snap["comics"]}
     assert statuses == {
-        1: IN_FLIGHT,
+        1: QUEUED,
         2: QUEUED,
-        3: QUEUED,
+        3: IN_FLIGHT,
     }
     # In-flight counts toward outstanding queued work.
     assert snap["batch"]["queued"] == len(comics)
+
+
+def test_no_live_marker_means_no_comic_is_in_flight() -> None:
+    """Between comics nothing is being looked up, and the table says so."""
+    comics = [("/c/1.cbz", 1), ("/c/2.cbz", 2)]
+    snap = _build(_state(comics))
+
+    statuses = {row["pk"]: row["status"] for row in snap["comics"]}
+    assert statuses == {1: QUEUED, 2: QUEUED}
+    # Still all outstanding, and still resumable — only the label changed.
+    assert snap["batch"]["queued"] == len(comics)
+    assert snap["resumable"] is True
+
+
+def test_an_inactive_build_never_marks_a_comic_in_flight() -> None:
+    """The finish/crash freeze cannot publish a row claiming a live lookup."""
+    state = _state([("/c/1.cbz", 1)], live=("/c/1.cbz", "metron"))
+    snap = _build(state, active=False)
+
+    assert snap["comics"][0]["status"] == QUEUED
+    assert snap["comics"][0]["source_statuses"] == {}
+
+
+def test_a_live_marker_for_a_finished_comic_is_ignored() -> None:
+    """A stale marker left on a completed comic never resurrects it."""
+    state = _state([("/c/1.cbz", 1)], live=("/c/1.cbz", "metron"))
+    stats = OnlineTagOutcomeStats()
+    stats.record(AutoWritten(path=Path("/c/1.cbz"), source="metron"))
+    stats.record(FileFinished(path=Path("/c/1.cbz"), outcome="written"))
+    state.stats = stats
+
+    snap = _build(state)
+    assert snap["comics"][0]["status"] == MATCHED
+    assert snap["comics"][0]["source_statuses"] == {"metron": MATCHED}
+
+
+def test_the_live_row_survives_the_row_cap() -> None:
+    """Past the cap the live row is still shown — it is the point of the table."""
+    cap = session_snapshot._MAX_COMIC_ROWS  # noqa: SLF001
+    pairs = [(f"/c/{i}.cbz", i) for i in range(cap + 50)]
+    # Every comic before the live one is awaiting review, so on list order
+    # alone the live row would be truncated away.
+    live_pk = cap + 40
+    state = _state(pairs, live=(f"/c/{live_pk}.cbz", "metron"))
+    set_pending_prompts(
+        {
+            f"fp{i}": {
+                "pk": i,
+                "path": f"/c/{i}.cbz",
+                "source": "metron",
+                "candidates": [],
+            }
+            for i in range(cap + 10)
+        }
+    )
+
+    snap = _build(state)
+    rows = snap["comics"]
+    assert rows[0]["pk"] == live_pk
+    assert rows[0]["status"] == IN_FLIGHT
+    assert rows[0]["source_statuses"] == {"metron": IN_FLIGHT}
 
 
 def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
@@ -133,8 +205,9 @@ def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
     stats.record(NoMatch(path=Path("/c/2.cbz"), source="comicvine"))
     stats.record(FileFinished(path=Path("/c/2.cbz"), outcome="no_change"))
     stats.record(FileError(path=Path("/c/3.cbz"), error="boom"))
-    stats.record(SearchStarted(path=Path("/c/5.cbz"), source="metron"))
     state.stats = stats
+    # Comic 5 is the one being looked up right now, by metron.
+    state.live.begin(Path("/c/5.cbz"), "metron")
     state.completed_comics = 3
     # Comic 4 is awaiting manual review.
     set_pending_prompts(
@@ -145,7 +218,7 @@ def test_terminal_and_review_statuses_derive_from_stats_and_prompts() -> None:
     statuses = {row["pk"]: row["status"] for row in snap["comics"]}
     cells = {row["pk"]: row["source_statuses"] for row in snap["comics"]}
 
-    # Comic 5 is the next unprocessed comic → in-flight.
+    # Comic 5 is the marked comic → in-flight.
     assert statuses == {
         1: MATCHED,
         2: NO_MATCH,
@@ -242,7 +315,7 @@ def test_sources_strip_reports_live_daily_budget() -> None:
 def test_rate_limited_source_reads_as_waiting_on_the_in_flight_comic() -> None:
     """A throttled source shows Waiting on the comic it's stalling, only there."""
     future_retry = 1030.0
-    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)])
+    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)], live=("/c/1.cbz", "comicvine"))
     stats = OnlineTagOutcomeStats()
     # Comic 2 already finished; comic 1 is the one being looked up.
     stats.record(AutoWritten(path=Path("/c/2.cbz"), source="metron"))
@@ -252,8 +325,8 @@ def test_rate_limited_source_reads_as_waiting_on_the_in_flight_comic() -> None:
     snap = _build(state, source_retry_at={"comicvine": future_retry})
     cells = {row["pk"]: row["source_statuses"] for row in snap["comics"]}
 
-    # No SearchStarted for comicvine yet — an id-fetch can hit the limit before
-    # any search event, so the wait is reported regardless.
+    # comicvine is the live source, but it is sitting out a retry — throttled
+    # outranks "looking up", because it is not working right now.
     assert cells[1] == {"comicvine": WAITING}
     # A finished comic isn't waiting on anything.
     assert cells[2] == {"metron": MATCHED}
@@ -266,29 +339,29 @@ def test_rate_limited_source_reads_as_waiting_on_the_in_flight_comic() -> None:
 def test_expired_retry_is_not_waiting() -> None:
     """A retry deadline already in the past leaves no waiting cell."""
     past_retry = 900.0
-    state = _state([("/c/1.cbz", 1)])
+    state = _state([("/c/1.cbz", 1)], live=("/c/1.cbz", "metron"))
 
     snap = _build(state, source_retry_at={"comicvine": past_retry})
 
-    assert snap["comics"][0]["source_statuses"] == {}
+    # metron still reads as looking it up; comicvine's lapsed deadline adds
+    # nothing. (Before, an in-flight row had no cells at all to check.)
+    assert snap["comics"][0]["source_statuses"] == {"metron": IN_FLIGHT}
     assert {s["source"]: s["rate_limited"] for s in snap["sources"]}["comicvine"] is (
         False
     )
 
 
-def test_stale_searching_cell_is_dropped_from_a_frozen_row() -> None:
-    """A cancelled scan's leftover search cell must not claim a live lookup."""
-    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)])
-    stats = OnlineTagOutcomeStats()
-    # Comic 2 was mid-search when the scan was cancelled — no FileFinished.
-    stats.record(SearchStarted(path=Path("/c/2.cbz"), source="metron"))
-    state.stats = stats
+def test_a_cancelled_scan_reports_no_live_lookup() -> None:
+    """A cancelled scan's leftover marker must not claim a live lookup."""
+    # Comic 2 was mid-lookup when the scan was cancelled — no FileFinished,
+    # so cancel_session's clear() is what normally drops this. Left set here
+    # deliberately: build_snapshot must refuse it on its own too.
+    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)], live=("/c/2.cbz", "metron"))
     state.cancelled = True
 
     snap = _build(state)
     cells = {row["pk"]: row["source_statuses"] for row in snap["comics"]}
 
-    # Cancelled → no row is in-flight, so no row may report a live search.
     assert all(row["status"] != IN_FLIGHT for row in snap["comics"])
     assert cells[2] == {}
 
@@ -429,10 +502,7 @@ def test_snapshot_resumable_reflects_unprocessed_comics() -> None:
 def test_deactivate_snapshot_demotes_in_flight_to_queued() -> None:
     """A killed scan's frozen in-flight row reads as queued, not 'Looking up'."""
     future_retry = 1030.0
-    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)])
-    stats = OnlineTagOutcomeStats()
-    stats.record(SearchStarted(path=Path("/c/1.cbz"), source="metron"))
-    state.stats = stats
+    state = _state([("/c/1.cbz", 1), ("/c/2.cbz", 2)], live=("/c/1.cbz", "metron"))
     set_snapshot(
         _build(state, active=True, source_retry_at={"comicvine": future_retry})
     )
@@ -455,6 +525,35 @@ def test_deactivate_snapshot_demotes_in_flight_to_queued() -> None:
     assert [s["retry_at_epoch"] for s in snap["sources"]] == [None, None]
     # Still resumable — the demote doesn't change the queued tally.
     assert snap["resumable"] is True
+
+
+def test_deactivate_repairs_an_already_inactive_snapshot() -> None:
+    """A scan that died by raising froze active=False with its live row intact."""
+    state = _state([("/c/1.cbz", 1)], live=("/c/1.cbz", "metron"))
+    # Hand-build the shape run_session's finally would have frozen had the
+    # scan raised before clearing its marker — the case the old `active`
+    # guard made unrepairable forever, and the shape an older Codex wrote.
+    frozen = _build(state, active=True, source_retry_at={"comicvine": 1030.0})
+    frozen["active"] = False
+    set_snapshot(frozen)
+
+    deactivate_snapshot()
+
+    snap = session_snapshot.get_snapshot()
+    assert snap is not None
+    assert snap["comics"][0]["status"] == QUEUED
+    assert snap["comics"][0]["source_statuses"] == {}
+    assert [s["rate_limited"] for s in snap["sources"]] == [False, False]
+
+
+def test_deactivate_leaves_a_clean_snapshot_alone() -> None:
+    """Nothing live to scrub → no pointless rewrite on every daemon start."""
+    set_snapshot(_build(_state([("/c/1.cbz", 1)]), active=False))
+    before = session_snapshot.get_snapshot()
+
+    deactivate_snapshot()
+
+    assert session_snapshot.get_snapshot() == before
 
 
 def test_remaining_pks_excludes_terminal_and_review() -> None:

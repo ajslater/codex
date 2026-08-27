@@ -133,20 +133,20 @@ def test_singular_comic_phrasing() -> None:
     assert "1 comic — " in stats.summary(elapsed="1 second")
 
 
-def test_source_status_tracks_each_source_through_a_lookup() -> None:
-    """A search marks a source searching; its result replaces that."""
+def test_source_status_records_outcomes_only_never_liveness() -> None:
+    """Starting a search records nothing; only what a source *did* lands here."""
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
 
+    # Work in progress is not an outcome. It lives on SessionState.live and is
+    # projected into the snapshot, because an event-derived cell is cleared
+    # before any publish can sample it.
     stats.record(SearchStarted(path=path, source="metron"))
-    assert stats.source_status_by_path[path] == {"metron": statuses.IN_FLIGHT}
+    assert path not in stats.source_status_by_path
 
     stats.record(AutoWritten(path=path, source="metron"))
     stats.record(SearchStarted(path=path, source="comicvine"))
-    assert stats.source_status_by_path[path] == {
-        "metron": statuses.MATCHED,
-        "comicvine": statuses.IN_FLIGHT,
-    }
+    assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
 
 
 def test_source_status_records_no_match_declined_and_deferred() -> None:
@@ -169,8 +169,8 @@ def test_source_status_records_no_match_declined_and_deferred() -> None:
     }
 
 
-def test_finishing_a_comic_clears_a_search_that_never_reported() -> None:
-    """A search that raised leaves no event, so finishing must clear its cell."""
+def test_a_search_that_never_reported_leaves_no_cell() -> None:
+    """A source whose search raised emits nothing, so it contributes no cell."""
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
     stats.record(AutoWritten(path=path, source="metron"))
@@ -178,18 +178,19 @@ def test_finishing_a_comic_clears_a_search_that_never_reported() -> None:
     stats.record(SearchStarted(path=path, source="comicvine"))
     stats.record(FileFinished(path=path, outcome="written"))
 
-    # The terminal cell survives; the phantom search does not.
+    # No clean-up pass needed — the phantom was never recorded.
     assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
 
 
-def test_erroring_a_comic_clears_a_pending_search() -> None:
-    """A comic that raised mid-search stops reporting a live lookup."""
+def test_erroring_a_comic_leaves_no_live_cell_behind() -> None:
+    """A comic that raised mid-search never recorded a lookup to strand."""
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
     stats.record(SearchStarted(path=path, source="metron"))
     stats.record(FileError(path=path, error="boom"))
 
-    assert stats.source_status_by_path[path] == {}
+    assert path not in stats.source_status_by_path
+    assert path in stats.errored_paths
 
 
 def test_record_prefetch_match_seeds_every_structure() -> None:
