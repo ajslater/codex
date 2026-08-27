@@ -11,16 +11,35 @@ import { dynamicBase } from "vite-plugin-dynamic-base";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
 
-import package_json from "./package.json";
+import package_json from "./package.json" with { type: "json" };
 
-let rootPath;
+/*
+ * Mirror Django's URL path prefix normalization from
+ * ``codex/settings/config.py``: a non-empty prefix gets exactly one
+ * leading slash and no trailing slash ("codex", "/codex/",
+ * "//codex//" -> "/codex"). Django normalizes the raw TOML value
+ * before it reaches ``root_path`` and ``STATIC_URL``; this config
+ * reads the same key straight out of the file, so without the same
+ * treatment ``base`` comes out as "codex/static/" (Vite warns and
+ * silently repairs it) or "/codex//static/" (Vite does *not* repair
+ * that, and the doubled slash is the marker
+ * vite-plugin-dynamic-base looks for when it rewrites asset URLs
+ * into window.CODEX.APP_PATH).
+ */
+const normalizeUrlPathPrefix = (prefix) => {
+  const trimmed = prefix.replace(/^\/+/, "").replace(/\/+$/, "");
+  return trimmed ? `/${trimmed}` : "";
+};
+
+let rawPathPrefix;
 try {
   // for dev & build
   const CODEX_CONF = toml.parse(fs.readFileSync("../config/codex.toml"));
-  rootPath = CODEX_CONF?.server?.url_path_prefix || "";
+  rawPathPrefix = CODEX_CONF?.server?.url_path_prefix || "";
 } catch {
-  rootPath = "";
+  rawPathPrefix = "";
 }
+const rootPath = normalizeUrlPathPrefix(rawPathPrefix);
 const STATIC_DIR_NAME = "static";
 const BASE_PATH = `${rootPath}/${STATIC_DIR_NAME}/`;
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
