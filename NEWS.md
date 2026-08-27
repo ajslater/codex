@@ -10,17 +10,6 @@ border-radius: 128px;
 
 - Fixes
     - The Admin Tagging Status table shows what is being looked up right now.
-      Comics jumped straight from Queued to Matched, because the table
-      redesigned in v2.2.11 could never display the lookup itself. Each comic's
-      source columns now name the source being queried at that moment, the comic
-      in hand is marked while it is worked on, and a paused, finished or
-      interrupted session no longer claims anything is in flight.
-    - Comics refreshed from a stored id, or matched against a series already
-      resolved earlier in the batch, report their lookup too. Both skip the
-      search, and on a re-tagging run they are most of the work.
-    - Static files load when the configured URL path prefix is written without a
-      leading slash, or with trailing ones, like `codex/` or `/codex/`. The
-      server already accepted those spellings; the frontend build did not.
 
 ## v2.2.11
 
