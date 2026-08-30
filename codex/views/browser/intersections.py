@@ -808,7 +808,7 @@ def _build_reprints_intersection_sort_sql(
         return None
     # One composed key per shared reprint, mirroring the field order of
     # ``codex.views.browser.columns.reprints_sort_annotations``:
-    # alternate series identity (name, volume, language) then the issue
+    # reprint series identity (name, volume, language) then the issue
     # rendered at fixed width so "#2" collates before "#10". The key
     # reads ONLY reprint columns — the envelope selects ``display_name``
     # as a bare column under ``GROUP BY target_id``, so anything read
@@ -841,7 +841,7 @@ def _build_reprints_intersection_sort_sql(
     # RawSQL in a Django ``Coalesce`` would restore the correlated
     # subquery to the GROUP BY that ``_IntersectionSortRawSQL`` exists
     # to keep it out of. An empty intersection (children share no
-    # alternate series, or disagree) sorts by the collection's own name.
+    # reprint series, or disagree) sorts by the collection's own name.
     own = _collection_own_sort_sql(collection_model)
     sql = f"COALESCE(NULLIF({envelope}, ''), {own})"
     return _IntersectionSortRawSQL(sql, [])

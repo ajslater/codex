@@ -34,7 +34,7 @@ _COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_COLLECTIONS)
 
 # Arc collections whose rows are groups rather than a single row, so the
 # requested ids may be a stale subset of the current group. Both story
-# arcs (grouped by sort_name) and alternate series (grouped by identity)
+# arcs (grouped by sort_name) and reprints (grouped by identity)
 # accept an intersecting id set as the same arc.
 _MULTI_ROW_ARC_COLLECTIONS = frozenset(
     {STORY_ARC_COLLECTION, READER_REPRINT_COLLECTION}
@@ -136,7 +136,7 @@ class ReaderArcsView(ReaderParamsView):
 
     def _get_reprint_arcs(self, comic: Comic, arcs, max_mtime: int | None):
         """Append the alternate series (ComicInfo AlternateSeries) arcs."""
-        # An alternate series is identified by everything but the issue —
+        # A reprint series is identified by everything but the issue —
         # that's ``Reprint``'s unique key minus ``issue``. Splitting on
         # volume and language keeps a v1 and a v2, or an English and a
         # Spanish edition, from merging into one reading order.
@@ -156,7 +156,7 @@ class ReaderArcsView(ReaderParamsView):
                 language=language,
             )
 
-        # Every issue of an alternate series is its own ``Reprint`` row, so
+        # Every issue of a reprint series is its own ``Reprint`` row, so
         # the arc handle has to be the whole group's pks, not just this
         # comic's. Keying on one comic's row would make the *next* book
         # report a different id set and silently drop the reading order.
@@ -183,7 +183,7 @@ class ReaderArcsView(ReaderParamsView):
     def _fallback_arc_collection(arcs) -> str:
         """Pick a collection this comic actually has an arc for."""
         # The requested collection can be valid yet absent for this comic
-        # (an alternate series the comic isn't in, a story arc it lost on
+        # (a reprint series the comic isn't in, a story arc it lost on
         # re-tag). Reading must still work, so fall back to the most
         # series-like arc available instead of raising.
         for collection in _ARC_COLLECTION_FALLBACK_ORDER:

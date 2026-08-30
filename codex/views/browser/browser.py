@@ -195,7 +195,7 @@ class BrowserView(BrowserTitleView):
         # Every key that sorts through elected-value aliases needs them
         # annotated, extras included — ``_comic_extra_fields`` resolves an
         # extra to the same aliases the primary uses. An active reprints
-        # filter names which alternate series the user is looking at, so
+        # filter names which reprint series the user is looking at, so
         # the election is narrowed to it instead of picking the
         # alphabetically first one.
         reprint_pks = self.params.get("filters", {}).get("reprints", ())

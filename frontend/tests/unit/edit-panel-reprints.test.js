@@ -1,5 +1,5 @@
 /*
- * Tests for the tag edit panel's Alternate Series section.
+ * Tests for the tag edit panel's Reprints section.
  *
  * The metadata endpoint ships each reprint's flat codex columns
  * ({pk, name, seriesName, volumeNumber, issue, language, url}) alongside the
@@ -62,7 +62,7 @@ function findButton(wrapper, label) {
   return wrapper.findAll("button").find((b) => b.text().includes(label));
 }
 
-describe("EditPanel alternate series rows", () => {
+describe("EditPanel reprints rows", () => {
   test("seeds one row per reprint from the flat columns", async () => {
     const wrapper = await mountPanel({ md: { reprints: SHAPED_REPRINTS } });
 
@@ -90,7 +90,7 @@ describe("EditPanel alternate series rows", () => {
 
   test("the add button appends a blank row", async () => {
     const wrapper = await mountPanel();
-    await findButton(wrapper, "Add Alternate Series").trigger("click");
+    await findButton(wrapper, "Add Reprint").trigger("click");
 
     expect(wrapper.vm.reprints).toStrictEqual([
       { series_name: "", volume: "", issue: "", language: null },
@@ -98,7 +98,7 @@ describe("EditPanel alternate series rows", () => {
   });
 });
 
-describe("EditPanel alternate series patch", () => {
+describe("EditPanel reprints patch", () => {
   test("re-nests the parts into comicbox reprints", async () => {
     const wrapper = await mountPanel({ md: { reprints: SHAPED_REPRINTS } });
     wrapper.vm.reprints[0].issue = "1";
@@ -193,7 +193,7 @@ describe("EditPanel alternate series patch", () => {
   });
 });
 
-describe("EditPanel alternate series format support", () => {
+describe("EditPanel reprints format support", () => {
   test("ComicInfo disables the MetronInfo-only volume and language", async () => {
     const wrapper = await mountPanel({
       formats: ["COMIC_INFO"],
@@ -217,7 +217,7 @@ describe("EditPanel alternate series format support", () => {
       formats: ["METRON_INFO"],
       md: { reprints: SHAPED_REPRINTS },
     });
-    const btn = findButton(wrapper, "Add Alternate Series");
+    const btn = findButton(wrapper, "Add Reprint");
 
     expect(btn.element.disabled).toBe(false);
     expect(wrapper.vm.isFieldDisabled("reprint_volume")).toBe(false);

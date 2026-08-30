@@ -24,7 +24,7 @@ function mountArcSelect(arcs, arc = { collection: "series", ids: "1" }) {
 }
 
 describe("reader arc select", () => {
-  test("an alternate series arc gets its own subtitle and icon", () => {
+  test("a reprint arc gets its own subtitle and icon", () => {
     const wrapper = mountArcSelect({
       series: { 1: { name: "Ser" } },
       reprints: { "2,3": { name: "Crossover" } },
@@ -32,7 +32,7 @@ describe("reader arc select", () => {
     const items = wrapper.vm.items;
     const reprint = items.find((item) => item.collection === "reprints");
     expect(reprint).toBeTruthy();
-    expect(reprint.subtitle).toBe("Alternate Series");
+    expect(reprint.subtitle).toBe("Reprints");
     expect(reprint.title).toBe("Crossover");
     expect(reprint.prependIcon).toBeTruthy();
   });
@@ -48,6 +48,6 @@ describe("reader arc select", () => {
     );
     expect(byCollection.series).toBe("Series");
     expect(byCollection.arcs).toBe("Story Arc");
-    expect(byCollection.reprints).toBe("Alternate Series");
+    expect(byCollection.reprints).toBe("Reprints");
   });
 });

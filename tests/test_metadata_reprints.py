@@ -1,5 +1,5 @@
 """
-The metadata pane serves alternate series names as ready-to-render chips.
+The metadata pane serves reprint series names as ready-to-render chips.
 
 ``Reprint.name`` is a property composed from four columns, so the
 metadata endpoint has to hydrate all of them plus the optional

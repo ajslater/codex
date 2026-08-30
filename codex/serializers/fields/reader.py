@@ -7,7 +7,7 @@ from codex.serializers.fields.base import CodexChoiceField
 
 # Collections a comic can be read "within". Mostly browse collections;
 # p/i/root have no arc of their own (params collapses them to series).
-# ``reprints`` is the one reader-only entry — an alternate series is a
+# ``reprints`` is the one reader-only entry — a reprint series is a
 # reading order without a browse route.
 VALID_ARC_COLLECTIONS = (
     Collection.SERIES,

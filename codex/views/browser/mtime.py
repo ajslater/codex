@@ -33,7 +33,7 @@ class MtimeView(BrowserCollectionMtimeView):
 
     def _get_reprint_mtime(self, pks):
         """
-        Get the mtime of an alternate series the reader is reading.
+        Get the mtime of a reprint series the reader is reading.
 
         ``Reprint`` isn't a browse collection, so it has no filtered
         queryset to aggregate — read its rows directly.

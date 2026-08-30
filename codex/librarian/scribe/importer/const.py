@@ -501,7 +501,7 @@ ALL_COMIC_COLLECTION_FIELD_NAMES = (
     *COLLECTION_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
-    # Not a browse collection, but the reader reads alternate series as a
+    # Not a browse collection, but the reader reads reprints as a
     # reading order off ``Reprint.updated_at``, so a comic leaving one must
     # re-stamp it the same way a story arc does.
     REPRINTS_FIELD_NAME,

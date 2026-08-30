@@ -107,9 +107,9 @@ _M2M_REPRINT_EXPR = Concat(
     output_field=CharField(),
 )
 
-# The Alternate Series sort: a field list like the Name sort's, with
+# The Reprints sort: a field list like the Name sort's, with
 # each part preferring the alternate value. ``reprints`` is M2M — a
-# comic can be in several alternate series — so each ORDER BY column
+# comic can be in several reprint series — so each ORDER BY column
 # must first collapse to one value per comic, and collapsing columns
 # independently would pair one reprint's series with another's issue
 # number. Instead a correlated subquery *elects* one reprint per comic
@@ -146,13 +146,13 @@ def _elected_reprint_value(value: str, reprint_pks: tuple | list = ()) -> Subque
     """Read one annotation off the outer comic's elected reprint."""
     election = Reprint.objects.filter(comic=OuterRef("pk"), series_name__gt="")
     if reprint_pks:
-        # A reprints filter names which alternate series the user is
+        # A reprints filter names which reprint series the user is
         # looking at; elect among those instead of alphabetically.
         election = election.filter(pk__in=reprint_pks)
     election = election.annotate(
         _series_key=Lower("series_name"),
         _language_key=Lower("language"),
-        # An alternate series entry with no issue at all offers nothing
+        # A reprint entry with no issue at all offers nothing
         # to sort by; null both parts so the outer Coalesce falls back
         # to the comic's own issue *jointly*, never half-and-half.
         _no_issue=Case(
@@ -175,15 +175,15 @@ def _elected_reprint_value(value: str, reprint_pks: tuple | list = ()) -> Subque
 
 def reprints_sort_annotations(reprint_pks: tuple | list = ()) -> dict:
     """
-    Build the ordered ORDER BY aliases for the Alternate Series sort.
+    Build the ordered ORDER BY aliases for the Reprints sort.
 
-    Alternate series identity (name, volume, language — ``Reprint``'s
+    Reprint series identity (name, volume, language — ``Reprint``'s
     unique key minus the issue) leads so every issue of one alternate
     series groups together, then its parsed issue number and suffix
-    order the group. A comic with no alternate series falls back to its
+    order the group. A comic with no reprints falls back to its
     own series and issue so mixed listings interleave. The fallback
     series segment is ``Lower(name)`` rather than ``sort_name`` —
-    alternate series names sort by their raw name, so the article-moved
+    reprint series names sort by their raw name, so the article-moved
     ``sort_name`` would put "The Batman" and its untagged siblings at
     opposite ends of the listing.
 
@@ -391,7 +391,7 @@ def m2m_columns() -> frozenset[str]:
 # plain display aggregate. ``reprints`` is the only one: an alternate
 # series has a series name *and* an issue number, so sorting it by the
 # display label would order "#10" before "#2", and a comic carrying no
-# alternate series would park in one undifferentiated clump. Other M2M
+# reprints would park in one undifferentiated clump. Other M2M
 # columns (genres, tags, …) have no such structure and keep the
 # aggregate sort.
 

@@ -128,7 +128,7 @@ class Reprint(BaseModel):
     """
     An alternate or localized edition of this issue.
 
-    Denormalized on purpose: alternate series names must not become
+    Denormalized on purpose: reprint series names must not become
     Series/Volume rows or they'd appear as phantom browser collections.
     ``series_name`` absorbs comicbox's ``series.sort_name`` when the
     reprint carries no ``series.name`` (MetronInfo AlternativeNames do
@@ -142,7 +142,7 @@ class Reprint(BaseModel):
     identifier = ForeignKey(Identifier, on_delete=SET_NULL, null=True)
     # ``issue`` split into its sortable parts, mirroring
     # ``Comic.issue_number`` / ``issue_suffix``. Without them the
-    # Alternate Series sort would order "#10" before "#2". Derived
+    # Reprints sort would order "#10" before "#2". Derived
     # in ``presave``, never imported directly; unindexed because they're
     # only read after an indexed join on pk or series_name.
     issue_number = CoercingDecimalField(decimal_places=2, max_digits=10, null=True)

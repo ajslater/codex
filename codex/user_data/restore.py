@@ -559,8 +559,12 @@ _LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rati
 
 # Sort keys retired into another key. Sort-only, because there was never
 # an ``alternate_number`` filter column for ``_resolve_filter_column``
-# to look for (0054: the Alternate Number sort merged into Alternate
-# Series).
+# to look for (the Alternate Number sort merged into Reprints before
+# either shipped).
+#
+# No migration pairs with this: the retired key never reached a release,
+# so only a sidecar written by a development build can still carry it —
+# and a sidecar outlives the database it came from.
 _SORT_KEY_RENAMES: Final[dict[str, str]] = {
     **_LEGACY_KEY_RENAMES,
     "alternate_number": "reprints",

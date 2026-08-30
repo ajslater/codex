@@ -1037,7 +1037,7 @@
       </v-btn>
     </div>
 
-    <div class="sectionHeader">Alternate Series</div>
+    <div class="sectionHeader">Reprints</div>
     <v-table class="mdSection">
       <tbody>
         <tr v-for="(reprint, i) in reprints" :key="i">
@@ -1110,7 +1110,7 @@
             })
           "
         >
-          + Add Alternate Series
+          + Add Reprint
         </v-btn>
       </div>
       <v-spacer />
@@ -2054,7 +2054,7 @@ export default {
         }));
       }
 
-      // Alternate series — the panel renders the composed `name`, but the
+      // Reprints — the panel renders the composed `name`, but the
       // editor rebuilds comicbox's nested reprint from the flat columns.
       if (this.md.reprints?.length) {
         this.reprints = this.md.reprints.map((reprint) => ({
@@ -2267,7 +2267,7 @@ export default {
         }
       }
 
-      // Alternate series — only include if changed
+      // Reprints — only include if changed
       if (changed.has("reprints")) {
         const reprints = this.buildReprints();
         if (reprints.length) cbPatch.reprints = reprints;

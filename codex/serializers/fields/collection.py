@@ -25,7 +25,7 @@ class MtimeCollectionField(BrowserRouteCollectionField):
     Browse routes plus the reader's alternate-series pseudo-collection.
 
     The reader probes the mtime of every arc it offers, and one of those
-    is an alternate series, which has no browse route of its own. Kept
+    is a reprint series, which has no browse route of its own. Kept
     separate from :class:`BrowserRouteCollectionField` so a reader-only
     value can't leak into an actual browse route.
     """
