@@ -15,6 +15,7 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.browser import (
+    BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS,
     BROWSER_ORDER_BY_CHOICES,
     BROWSER_TABLE_COLUMNS,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
@@ -30,6 +31,45 @@ from codex.serializers.fields.collection import (
 from codex.serializers.mixins import JSONFieldSerializer
 from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
+
+# Sorts worth remembering per top collection. ``search_score`` only means
+# anything while a search is running, so it never enters the memory.
+_MEMORABLE_ORDER_BY_KEYS = frozenset(BROWSER_ORDER_BY_CHOICES.keys()) - {"search_score"}
+# Extra (secondary) sort keys the order pipeline can resolve anywhere.
+_MEMORABLE_EXTRA_KEYS = (
+    frozenset(BROWSER_ORDER_BY_CHOICES.keys()) - BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
+)
+
+
+def _clean_remembered_extra_keys(value) -> list[dict]:
+    """Keep the well formed, sortable, non duplicate extra sort entries."""
+    cleaned: list[dict] = []
+    if not isinstance(value, list | tuple):
+        return cleaned
+    seen: set[str] = set()
+    for entry in value:
+        if not isinstance(entry, dict):
+            continue
+        key = entry.get("key")
+        if key not in _MEMORABLE_EXTRA_KEYS or key in seen:
+            continue
+        seen.add(key)  # pyright: ignore[reportArgumentType]
+        cleaned.append({"key": key, "reverse": bool(entry.get("reverse", False))})
+    return cleaned
+
+
+def _clean_remembered_order(value) -> dict | None:
+    """Coerce one remembered sort, or None when it can't be salvaged."""
+    if not isinstance(value, dict):
+        return None
+    order_by = value.get("order_by")
+    if order_by not in _MEMORABLE_ORDER_BY_KEYS:
+        return None
+    return {
+        "order_by": order_by,
+        "order_reverse": bool(value.get("order_reverse", False)),
+        "order_extra_keys": _clean_remembered_extra_keys(value.get("order_extra_keys")),
+    }
 
 
 class BrowserSettingsShowCollectionFlagsSerializer(Serializer):
@@ -127,7 +167,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
 
     JSON_FIELDS = frozenset(
         BrowserSettingsSerializerBase.JSON_FIELDS
-        | {"table_columns", "order_extra_keys"}
+        | {"table_columns", "order_extra_keys", "collection_order_memory"}
     )
 
     mtime = TimestampField(read_only=True)
@@ -150,6 +190,14 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     # ``validate_order_extra_keys`` against the order_by enum and
     # de-duped against the primary key.
     order_extra_keys = ListField(
+        child=DictField(),
+        required=False,
+        allow_empty=True,
+    )
+    # The sort each top collection was last browsed with, keyed by
+    # top_collection. Cleaned in ``validate_collection_order_memory``;
+    # see the model field for the stored shape.
+    collection_order_memory = DictField(
         child=DictField(),
         required=False,
         allow_empty=True,
@@ -181,6 +229,33 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
                 )
                 logger.warning(msg)
             cleaned[top_collection] = [c for c in columns if c in valid_columns]
+        return cleaned
+
+    def validate_collection_order_memory(self, value):
+        """
+        Drop unknown top collections and unusable remembered sorts.
+
+        Like ``table_columns`` this round-trips out of stored settings, so a
+        stale client must not hard-400 the whole browse page. An entry naming
+        a sort that no longer exists is dropped with a warning; the collection
+        then just keeps whatever sort it is browsed with next.
+        """
+        cleaned: dict[str, dict] = {}
+        for top_collection, order in value.items():
+            if top_collection not in BROWSER_TOP_COLLECTION_CHOICES:
+                logger.warning(
+                    "Dropping unknown collection_order_memory top_collection "
+                    f"{top_collection!r}"
+                )
+                continue
+            remembered_order = _clean_remembered_order(order)
+            if remembered_order is None:
+                logger.warning(
+                    "Dropping unusable collection_order_memory order for "
+                    f"{top_collection!r}"
+                )
+                continue
+            cleaned[top_collection] = remembered_order
         return cleaned
 
     def validate_order_extra_keys(self, value):
