@@ -568,6 +568,15 @@ def _resolve_filter_column(row_keys, column: str) -> str | None:
     return None
 
 
+def _row_column(row, column: str):
+    """Read a column a sidecar written by an older codex may not carry."""
+    try:
+        return row[column]
+    except (IndexError, KeyError):
+        # sqlite3.Row raises IndexError, a plain mapping raises KeyError.
+        return None
+
+
 def _build_browser_defaults(row, show) -> dict[str, Any]:
     """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
     order_by = row["order_by"] or ""
@@ -582,6 +591,9 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
         "order_by": order_by,
         "order_reverse": bool(row["order_reverse"]),
         "order_extra_keys": json.loads(row["order_extra_keys"] or "[]"),
+        "collection_order_memory": json.loads(
+            _row_column(row, "collection_order_memory") or "{}"
+        ),
         "search": row["search"] or "",
         "custom_covers": bool(row["custom_covers"]),
         "dynamic_covers": bool(row["dynamic_covers"]),
