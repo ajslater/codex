@@ -149,7 +149,10 @@ export const getSettings = (data) => {
 
 export const updateSettings = (settings) => {
   const params = serializeParams(settings, undefined, false);
-  return HTTP.patch(_collectionSettingsBase(settings?.collection), { params });
+  // The settings go in the request body, not a `params` wrapper: the
+  // endpoint validates the body's top-level keys, so a wrapped object
+  // validates as empty and saves nothing.
+  return HTTP.patch(_collectionSettingsBase(settings?.collection), params);
 };
 
 export const resetSettings = (settings) =>

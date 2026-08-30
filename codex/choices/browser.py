@@ -708,6 +708,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "order_by": "sort_name",
         "order_reverse": False,
         "order_extra_keys": (),
+        "collection_order_memory": MappingProxyType({}),
         "search": "",
         "show": _DEFAULT_SHOW,
         "top_collection": "publishers",
