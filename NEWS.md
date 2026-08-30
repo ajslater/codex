@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.2.12
+## v2.3.0
 
 - Features
     - Sort by Alternate Number, the issue number a comic carries inside its
