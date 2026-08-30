@@ -20,7 +20,6 @@ const TAGS = Object.freeze([
 
 // Rows whose display name isn't the capital-cased key.
 const TAG_NAMES = Object.freeze({
-  reprints: "Alternate Series",
   storyArcNumbers: "Story Arcs",
 });
 

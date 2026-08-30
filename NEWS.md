@@ -14,16 +14,21 @@ border-radius: 128px;
       them keeps each one's sort instead of carrying one sort everywhere. A
       collection you haven't sorted yet keeps whatever sort you arrive with.
     - Clearing a search puts back the sort the search replaced.
-    - Sort by Alternate Series (ComicInfo AlternateSeries / AlternateNumber).
-      Comics group by their alternate series and order by its issue number
-      inside that group. Filter by an alternate series first to sort by that one
-      instead of the first one alphabetically. Comics with no alternate series
-      sort by their real series and issue, so they interleave rather than
-      clumping, and an alternate series with no issue numbers keeps its comics
-      in their own issue order. Available in cover view as well as the table.
-    - Read an alternate series as a reading order: pick it in the reader's
-      reading-order menu and next/prev follow the alternate numbering. Handy for
-      using alternate series tags as durable reading lists.
+    - Sort by Reprints, the other editions an issue was published as. Comics
+      group by their reprint series and order by its issue number inside that
+      group. Filter by a reprint first to sort by that one instead of the first
+      one alphabetically. Comics with no reprints sort by their real series and
+      issue, so they interleave rather than clumping, and a reprint series with
+      no issue numbers keeps its comics in their own issue order. Available in
+      cover view as well as the table.
+    - Read a reprint series as a reading order: pick it in the reader's
+      reading-order menu and next/prev follow its numbering. Handy for using
+      reprint tags as durable reading lists.
+    - "Alternate Series" is now called "Reprints" everywhere — the sort, the
+      table column, the filter, the metadata panel and the reader's
+      reading-order menu. It covers MetronInfo Reprints and localized
+      AlternativeNames, ComicInfo AlternateSeries and CoMet isVersionOf, so it
+      is named for all of them rather than for one.
 
 - Fixes
     - Saving browser settings sent an empty request that stored nothing. The

@@ -33,7 +33,7 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _TMP_DIR: Final = Path("/tmp/codex.tests.reader")  # noqa: S108
 _ALT_TMP_DIR: Final = Path("/tmp/codex.tests.reader_alt_series")  # noqa: S108
-# The alternate series fixture holds three comics.
+# The reprint series fixture holds three comics.
 _ALT_SERIES_LEN: Final = 3
 
 
@@ -156,7 +156,7 @@ class ReaderVocabularyTestCase(TestCase):
 
 
 class ReaderAlternateSeriesArcTestCase(TestCase):
-    """Reading an alternate series (ComicInfo AlternateSeries) as a reading order."""
+    """Reading a reprint series (ComicInfo AlternateSeries) as a reading order."""
 
     @override
     def setUp(self) -> None:
@@ -236,7 +236,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
         return ids, info
 
     def test_alternate_series_is_offered_as_an_arc(self) -> None:
-        """The reader lists the alternate series among its reading orders."""
+        """The reader lists the reprint series among its reading orders."""
         data = self._reader(self.c_first)
         assert "reprints" in data["arcs"], data["arcs"]
         _, info = self._alt_arc(data)
@@ -245,7 +245,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
 
     def test_arc_ids_cover_the_whole_group(self) -> None:
         """The arc handle is every Reprint row in the series, not just this comic's."""
-        # Each issue of an alternate series is its own Reprint row, so a
+        # Each issue of a reprint series is its own Reprint row, so a
         # per-comic handle would change from book to book.
         ids, _ = self._alt_arc(self._reader(self.c_first))
         expected = sorted(
@@ -264,7 +264,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
         assert data["books"]["next"]["pk"] == self.c_last.pk, data["books"]
 
     def test_arc_selection_survives_the_next_book(self) -> None:
-        """The same ids keep selecting the alternate series on another comic."""
+        """The same ids keep selecting the reprint series on another comic."""
         ids, _ = self._alt_arc(self._reader(self.c_first))
         arc = {"collection": "reprints", "ids": [int(pk) for pk in str(ids).split(",")]}
 
@@ -275,7 +275,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
         assert data["arc"]["count"] == _ALT_SERIES_LEN, data["arc"]
 
     def test_absent_alternate_series_falls_back(self) -> None:
-        """Requesting an alternate series a comic isn't in still reads."""
+        """Requesting a reprint series a comic isn't in still reads."""
         path = _ALT_TMP_DIR / "lonely.cbz"
         path.touch()
         lonely = Comic.objects.create(
@@ -308,7 +308,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
         assert "global" in scopes, scopes
 
     def test_mtime_probe_accepts_the_alternate_series_arc(self) -> None:
-        """The reader probes every arc it offers, alternate series included."""
+        """The reader probes every arc it offers, reprint series included."""
         ids, _ = self._alt_arc(self._reader(self.c_first))
         collections = json.dumps([{"collection": "reprints", "pks": str(ids)}])
         response = self.client.get(f"/api/v4/mtime?collections={collections}")
@@ -316,7 +316,7 @@ class ReaderAlternateSeriesArcTestCase(TestCase):
         assert _v4(response)["maxMtime"], response.content
 
     def test_timestamp_updater_restamps_reprints(self) -> None:
-        """A changed comic advances its alternate series' mtime."""
+        """A changed comic advances its reprint series' mtime."""
         # Without this the reader's mtime probe never notices a re-import
         # and an open reader keeps showing stale books.
         reprint = Reprint.objects.get(comic=self.c_first)

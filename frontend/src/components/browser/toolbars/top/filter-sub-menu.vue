@@ -128,7 +128,7 @@ const FILTER_TITLE_OVERRIDES = {
   ageRatingMetron: "Age Rating",
   // "Reprints" reads as reprint editions; these are alternate and
   // localized series names.
-  reprints: "Alternate Series",
+  reprints: "Reprints",
 };
 // Tab values are the filter keys; "Standardized" is the default tab.
 const AGE_RATING_DEFAULT_TAB = "ageRatingMetron";

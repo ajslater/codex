@@ -70,7 +70,7 @@ const ARC_ICONS = {
  * slicing ``undefined`` used to throw.
  */
 const ARC_SUBTITLES = {
-  reprints: "Alternate Series",
+  reprints: "Reprints",
 };
 
 export default {

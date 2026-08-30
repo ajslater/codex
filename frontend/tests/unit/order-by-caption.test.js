@@ -25,7 +25,7 @@ function mountCaption(orderBy, item) {
 }
 
 describe("order by caption", () => {
-  test("alternate series joins the label list on a comic card", () => {
+  test("reprint series joins the label list on a comic card", () => {
     const wrapper = mountCaption("reprints", {
       orderValue: JSON.stringify(["Crossover v2", "Otra Serie (es)"]),
       collection: "comics",
@@ -33,7 +33,7 @@ describe("order by caption", () => {
     expect(wrapper.text()).toBe("Crossover v2, Otra Serie (es)");
   });
 
-  test("alternate series shows nothing on a collection card", () => {
+  test("reprint series shows nothing on a collection card", () => {
     const wrapper = mountCaption("reprints", {
       orderValue: JSON.stringify(["Crossover"]),
       collection: "series",

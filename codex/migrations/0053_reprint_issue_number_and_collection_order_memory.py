@@ -1,8 +1,8 @@
 """
 Split Reprint.issue into sortable columns & remember sorts per collection.
 
-The Alternate Series order_by key sorts comics by their ComicInfo
-``AlternateNumber`` within an alternate series. ``issue`` is a string,
+The Reprints order_by key sorts comics by their ComicInfo
+``AlternateNumber`` within a reprint series. ``issue`` is a string,
 so sorting it directly puts "#10" before "#2"; these derived columns
 mirror ``Comic.issue_number`` / ``issue_suffix``.
 
@@ -73,7 +73,6 @@ class Migration(migrations.Migration):
                 choices=[
                     ("created_at", "Added Time"),
                     ("age_rating", "Age Rating"),
-                    ("reprints", "Alternate Series"),
                     ("characters", "Characters"),
                     ("child_count", "Child Count"),
                     ("community_rating", "Community Rating"),
@@ -102,6 +101,7 @@ class Migration(migrations.Migration):
                     ("publisher_name", "Publisher"),
                     ("date", "Publish Date"),
                     ("reading_direction", "Reading Direction"),
+                    ("reprints", "Reprints"),
                     ("scan_info", "Scan Info"),
                     ("search_score", "Search Score"),
                     ("series_name", "Series"),

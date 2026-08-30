@@ -73,7 +73,7 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         only re-stamps collections a *current* comic still links into. Mirrors
         the FK move capture in ``CreateComicsImporter``; the delete phase folds
         these into the force-update map. ``Reprint`` rides along because the
-        reader reads alternate series as a reading order off its timestamp.
+        reader reads reprints as a reading order off its timestamp.
         Tag-style m2ms (genres, characters, …) are not collections and are
         ignored here.
         """

@@ -132,9 +132,9 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         if order_key in m2m_sort_columns():
             # M2M sort through elected-value aliases (``reprints``): a
             # field list like the ``sort_name`` head, each part read
-            # from the comic's elected alternate series with the
+            # from the comic's elected reprint series with the
             # comic's own series and issue as the fallback, so comics
-            # carrying no alternate series interleave by their real
+            # carrying no reprints interleave by their real
             # series instead of clumping under an empty list.
             return list(m2m_sort_order_fields(order_key))
         if order_key in m2m_columns():

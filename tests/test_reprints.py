@@ -1,5 +1,5 @@
 """
-Alternate series names, from the archive to the browser and back out.
+Reprint series names, from the archive to the browser and back out.
 
 ``tests/files/comicbox-2-example.cbz`` carries two MetronInfo alternate
 names, one of which supplies only a series ``sort_name``. Importing it

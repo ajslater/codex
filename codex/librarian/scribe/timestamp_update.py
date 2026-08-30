@@ -18,7 +18,7 @@ from codex.views.const import COLLECTION_MODELS
 
 # Rows whose ``updated_at`` gates a client-side reload. Browse collections
 # bust cover caches; ``Reprint`` is not browsable but the reader offers
-# alternate series as a reading order, and its arc mtime is read from these
+# reprints as a reading order, and its arc mtime is read from these
 # rows — without a re-stamp an open reader never notices a re-import.
 _TIMESTAMP_MODELS = (*COLLECTION_MODELS, Reprint)
 

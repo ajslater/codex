@@ -105,7 +105,7 @@ export default {
       return n.toFixed(2).replace(/\.?0+$/, "");
     },
     /*
-     * The alternate series order_value is the JSON array the table cell
+     * The reprint series order_value is the JSON array the table cell
      * renders. Collection rows sort by a fallback the caption can't
      * show, so only comics get a caption.
      */

@@ -82,7 +82,7 @@ COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
         COMIC_COLLECTION: "pk",
         FOLDER_COLLECTION: "parent_folder",
         STORY_ARC_COLLECTION: "story_arc_numbers__story_arc",
-        # Reader-only: alternate series are a reading order, not a browse
+        # Reader-only: reprints are a reading order, not a browse
         # collection. Browse callers only ever index this map with a
         # URL-regex-validated collection, so the extra key is inert there.
         READER_REPRINT_COLLECTION: "reprints",

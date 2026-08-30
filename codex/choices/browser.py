@@ -18,7 +18,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
         "created_at": "Added Time",
         "age_rating": "Age Rating",
-        "reprints": "Alternate Series",
         "characters": "Characters",
         "child_count": "Child Count",
         "community_rating": "Community Rating",
@@ -47,6 +46,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "publisher_name": "Publisher",
         "date": "Publish Date",
         "reading_direction": "Reading Direction",
+        "reprints": "Reprints",
         "scan_info": "Scan Info",
         "search_score": "Search Score",
         "series_name": "Series",
@@ -531,11 +531,13 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "edit_widget": None,
         },
         "reprints": {
-            # Alternate & localized series names (comicbox ``reprints``).
-            # "Reprints" reads as reprint editions to users, so the
-            # column, order-by entry and filter all say "Alternate
-            # Series"; only the ORM key stays ``reprints``.
-            "label": "Alternate Series",
+            # Other editions of this issue (comicbox ``reprints``):
+            # MetronInfo Reprints and localized AlternativeNames,
+            # ComicInfo AlternateSeries, CoMet isVersionOf. The UI says
+            # "Reprints" like MetronInfo, comicbox and the ORM key do —
+            # ComicInfo's "alternate series" names only one of those
+            # sources and misdescribes the localized names.
+            "label": "Reprints",
             "sort_key": "reprints",
             "m2m": True,
             "editable": False,
