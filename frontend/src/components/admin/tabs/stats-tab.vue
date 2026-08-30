@@ -16,7 +16,10 @@
       title="Settings by Session"
       :items="sessionSettingsTable"
     />
-    <AdminKeyValueTable title="Settings by User" :items="perUserSettingsTable" />
+    <AdminKeyValueTable
+      title="Settings by User"
+      :items="perUserSettingsTable"
+    />
     <AdminKeyValueTable
       title="Browser Collections"
       :items="browserCollectionsTable"
@@ -294,7 +297,9 @@ export default {
         return Reflect.get(UNSET_LABELS, lookupKey) ?? "Unset";
       }
       const lookup = Reflect.get(LOOKUPS, lookupKey);
-      const label = lookup ? Reflect.get(lookup, snakeCase(typeKey)) : undefined;
+      const label = lookup
+        ? Reflect.get(lookup, snakeCase(typeKey))
+        : undefined;
       // Fall back to the key itself rather than undefined: an unmapped value
       // is a vocabulary that drifted, and its name is more use than a hole.
       return label ?? typeKey;
@@ -309,7 +314,11 @@ export default {
         }
         const countTable = {};
         for (const [typeKey, count] of Object.entries(value)) {
-          Reflect.set(countTable, this.bucketLabel(lookupFor(key), typeKey), count);
+          Reflect.set(
+            countTable,
+            this.bucketLabel(lookupFor(key), typeKey),
+            count,
+          );
         }
         Reflect.set(table, label, countTable);
       }
