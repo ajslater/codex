@@ -14,12 +14,13 @@ border-radius: 128px;
       them keeps each one's sort instead of carrying one sort everywhere. A
       collection you haven't sorted yet keeps whatever sort you arrive with.
     - Clearing a search puts back the sort the search replaced.
-    - Sort by Alternate Number, the issue number a comic carries inside its
-      alternate series (ComicInfo AlternateSeries / AlternateNumber). Filter by
-      an alternate series first to pick which one to sort by. Comics with no
-      alternate number fall back to their own issue number.
-    - The Alternate Series sort is available in cover view, not just the table.
-      Comics with no alternate series sort by their real series name.
+    - Sort by Alternate Series (ComicInfo AlternateSeries / AlternateNumber).
+      Comics group by their alternate series and order by its issue number
+      inside that group. Filter by an alternate series first to sort by that one
+      instead of the first one alphabetically. Comics with no alternate series
+      sort by their real series and issue, so they interleave rather than
+      clumping, and an alternate series with no issue numbers keeps its comics
+      in their own issue order. Available in cover view as well as the table.
     - Read an alternate series as a reading order: pick it in the reader's
       reading-order menu and next/prev follow the alternate numbering. Handy for
       using alternate series tags as durable reading lists.

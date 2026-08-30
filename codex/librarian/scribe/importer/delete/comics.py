@@ -59,7 +59,9 @@ class DeletedComicsImporter(DeletedCoversImporter):
         """Populate changed collections for cover timestamp updater."""
         comics_deleted_qs = delete_qs.only(
             *ALL_COMIC_COLLECTION_FIELD_NAMES
-        ).prefetch_related("story_arc_numbers__story_arc", *DIRECT_M2M_COLLECTION_FIELD_NAMES)
+        ).prefetch_related(
+            "story_arc_numbers__story_arc", *DIRECT_M2M_COLLECTION_FIELD_NAMES
+        )
         for comic in comics_deleted_qs.iterator(
             chunk_size=IMPORTER_DELETE_MAX_CHUNK_SIZE
         ):

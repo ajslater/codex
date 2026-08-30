@@ -14,13 +14,15 @@ from django.db.models import (
     BooleanField,
     Case,
     F,
+    IntegerField,
+    OuterRef,
     Q,
+    Subquery,
     Value,
     When,
 )
-from django.db.models.aggregates import Min
 from django.db.models.fields import CharField
-from django.db.models.functions import Cast, Coalesce, Concat
+from django.db.models.functions import Cast, Coalesce, Concat, Lower
 
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
@@ -29,6 +31,7 @@ from codex.choices.browser import (
 from codex.models.collections import Volume
 from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
+from codex.models.named import Reprint
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
 # ``related__name`` path; ``credits`` and ``identifiers`` need composite
@@ -103,6 +106,111 @@ _M2M_REPRINT_EXPR = Concat(
     ),
     output_field=CharField(),
 )
+
+# The Alternate Series sort: a field list like the Name sort's, with
+# each part preferring the alternate value. ``reprints`` is M2M — a
+# comic can be in several alternate series — so each ORDER BY column
+# must first collapse to one value per comic, and collapsing columns
+# independently would pair one reprint's series with another's issue
+# number. Instead a correlated subquery *elects* one reprint per comic
+# by the natural tuple order, and every column reads its field from
+# that election. All five subqueries share one election ordering, so
+# any two reprint rows that tie on it carry identical values for every
+# elected field — the tuple stays atomic without a composed key.
+#
+# ``Lower`` runs inside the election rather than collating at ORDER BY
+# time: SQLite drops a column's NOCASE collation inside expressions, so
+# the election would otherwise pick its winner case-sensitively while
+# the ORDER BY compared case-insensitively.
+#
+# The election is one covering-index probe per comic (benchmarked at
+# parity with a join + aggregate at 120k comics), and reprint tags are
+# sparse in practice.
+_ELECTION_ORDER = (
+    "_series_key",
+    "volume_number",
+    "_language_key",
+    "_number_key",
+    "_suffix_key",
+)
+# Aliases live in the M2M sort namespace; the tuple order is ORDER BY
+# order, mirroring the election ordering above.
+_M2M_SORT_ANNOTATION_PREFIX = "_table_m2m_sort_"
+_REPRINTS_SORT_ALIASES = tuple(
+    _M2M_SORT_ANNOTATION_PREFIX + "reprints_" + part
+    for part in ("series", "volume", "language", "number", "suffix")
+)
+
+
+def _elected_reprint_value(value: str, reprint_pks: tuple | list = ()) -> Subquery:
+    """Read one annotation off the outer comic's elected reprint."""
+    election = Reprint.objects.filter(comic=OuterRef("pk"), series_name__gt="")
+    if reprint_pks:
+        # A reprints filter names which alternate series the user is
+        # looking at; elect among those instead of alphabetically.
+        election = election.filter(pk__in=reprint_pks)
+    election = election.annotate(
+        _series_key=Lower("series_name"),
+        _language_key=Lower("language"),
+        # An alternate series entry with no issue at all offers nothing
+        # to sort by; null both parts so the outer Coalesce falls back
+        # to the comic's own issue *jointly*, never half-and-half.
+        _no_issue=Case(
+            When(Q(issue_number__isnull=True) & Q(issue_suffix=""), then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        ),
+        _number_key=Case(
+            When(_no_issue=1, then=Value(None)),
+            default="issue_number",
+        ),
+        _suffix_key=Case(
+            When(_no_issue=1, then=Value(None)),
+            default=Lower("issue_suffix"),
+            output_field=CharField(),
+        ),
+    ).order_by(*_ELECTION_ORDER)
+    return Subquery(election.values(value)[:1])
+
+
+def reprints_sort_annotations(reprint_pks: tuple | list = ()) -> dict:
+    """
+    Build the ordered ORDER BY aliases for the Alternate Series sort.
+
+    Alternate series identity (name, volume, language — ``Reprint``'s
+    unique key minus the issue) leads so every issue of one alternate
+    series groups together, then its parsed issue number and suffix
+    order the group. A comic with no alternate series falls back to its
+    own series and issue so mixed listings interleave. The fallback
+    series segment is ``Lower(name)`` rather than ``sort_name`` —
+    alternate series names sort by their raw name, so the article-moved
+    ``sort_name`` would put "The Batman" and its untagged siblings at
+    opposite ends of the listing.
+
+    Comic querysets only; collection rows sort by the raw-SQL mirror in
+    ``intersections._build_reprints_intersection_sort_sql``.
+    """
+    expressions = (
+        Coalesce(
+            _elected_reprint_value("_series_key", reprint_pks),
+            Lower("series__name"),
+        ),
+        Coalesce(
+            _elected_reprint_value("volume_number", reprint_pks),
+            F("volume__name"),
+        ),
+        _elected_reprint_value("_language_key", reprint_pks),
+        Coalesce(
+            _elected_reprint_value("_number_key", reprint_pks),
+            F("issue_number"),
+        ),
+        Coalesce(
+            _elected_reprint_value("_suffix_key", reprint_pks),
+            Lower("issue_suffix"),
+        ),
+    )
+    return dict(zip(_REPRINTS_SORT_ALIASES, expressions, strict=True))
+
 
 _M2M_COLUMN_PATHS = MappingProxyType(
     {
@@ -279,50 +387,37 @@ def m2m_columns() -> frozenset[str]:
     return frozenset(_M2M_COLUMN_PATHS.keys())
 
 
-# M2M sort keys that have a meaningful scalar counterpart on Comic to
-# fall back to. Sorting by the JSON aggregate alone parks every comic
-# lacking the relation in one undifferentiated clump; ``reprints`` is
-# an alternate *series* name, so a comic without one sorts by its real
-# series instead and the listing stays readable. Other M2M columns
-# (genres, tags, …) have no such counterpart and keep the plain
+# M2M sort keys that sort through elected-value aliases instead of the
+# plain display aggregate. ``reprints`` is the only one: an alternate
+# series has a series name *and* an issue number, so sorting it by the
+# display label would order "#10" before "#2", and a comic carrying no
+# alternate series would park in one undifferentiated clump. Other M2M
+# columns (genres, tags, …) have no such structure and keep the
 # aggregate sort.
-_M2M_SORT_FALLBACK_PATHS = MappingProxyType({"reprints": "series__sort_name"})
-_M2M_SORT_ANNOTATION_PREFIX = "_table_m2m_sort_"
-
-
-def m2m_sort_alias_for(column_key: str) -> str:
-    """Return the ORDER BY alias for an M2M column with a scalar fallback."""
-    return _M2M_SORT_ANNOTATION_PREFIX + column_key
 
 
 def m2m_sort_columns() -> frozenset[str]:
-    """Return M2M column keys that sort through a fallback alias."""
-    return frozenset(_M2M_SORT_FALLBACK_PATHS.keys())
+    """Return M2M column keys that sort through elected-value aliases."""
+    return frozenset({"reprints"})
 
 
-def m2m_sort_annotations_for(columns: tuple[str, ...]) -> dict[str, Coalesce]:
+def m2m_sort_order_fields(column_key: str) -> tuple[str, ...]:
+    """Return the ORDER BY alias list for an elected-value M2M sort key."""
+    return _REPRINTS_SORT_ALIASES if column_key == "reprints" else ()
+
+
+def m2m_sort_annotations_for(
+    columns: tuple[str, ...], reprint_pks: tuple | list = ()
+) -> dict:
     """
-    Build ``alias -> Coalesce(Min(expr), fallback)`` sort annotations.
+    Build the elected-value sort aliases for the requested columns.
 
-    Separate from the display aggregate: the cell still renders the
-    full JSON list, while ORDER BY uses the first label so a comic
-    with no relation can fall through to its scalar counterpart.
+    Separate from the display aggregate: the cell still renders the full
+    JSON list of labels, while ORDER BY compares the elected fields.
     """
-    annotations: dict[str, Coalesce] = {}
-    for col in columns:
-        fallback = _M2M_SORT_FALLBACK_PATHS.get(col)
-        path = _M2M_COLUMN_PATHS.get(col)
-        if fallback is None or path is None:
-            continue
-        agg_filter = _M2M_AGGREGATE_FILTERS.get(col)
-        kwargs: dict = {"filter": agg_filter} if agg_filter is not None else {}
-        # The composed label and the fallback column are both text but
-        # different field classes (``CharField`` vs ``CleaningCharField``),
-        # which Django refuses to unify on its own.
-        annotations[m2m_sort_alias_for(col)] = Coalesce(
-            Min(path, **kwargs), F(fallback), output_field=CharField()
-        )
-    return annotations
+    if "reprints" not in columns:
+        return {}
+    return reprints_sort_annotations(reprint_pks)
 
 
 # FK-name annotations live in their own alias namespace so they don't
