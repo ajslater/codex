@@ -1,10 +1,10 @@
 """
 Split Reprint.issue into sortable columns & remember sorts per collection.
 
-The ``alternate_number`` order_by key sorts comics by their
-ComicInfo ``AlternateNumber`` within an alternate series. ``issue``
-is a string, so sorting it directly puts "#10" before "#2"; these
-derived columns mirror ``Comic.issue_number`` / ``issue_suffix``.
+The Alternate Series order_by key sorts comics by their ComicInfo
+``AlternateNumber`` within an alternate series. ``issue`` is a string,
+so sorting it directly puts "#10" before "#2"; these derived columns
+mirror ``Comic.issue_number`` / ``issue_suffix``.
 
 ``SettingsBrowser.collection_order_memory`` remembers the sort each top
 collection was last browsed with. Switching top collections used to drag one
@@ -73,7 +73,6 @@ class Migration(migrations.Migration):
                 choices=[
                     ("created_at", "Added Time"),
                     ("age_rating", "Age Rating"),
-                    ("alternate_number", "Alternate Number"),
                     ("reprints", "Alternate Series"),
                     ("characters", "Characters"),
                     ("child_count", "Child Count"),

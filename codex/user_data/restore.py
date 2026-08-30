@@ -553,7 +553,18 @@ def _restore_settings_browser(
 
 # Filter/sort keys renamed across codex versions; sidecar backups from
 # older versions still carry the old name (0048: critical -> community).
+# This map also resolves *filter* columns by their legacy name, so only
+# renames that applied to a filter column belong here.
 _LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rating"}
+
+# Sort keys retired into another key. Sort-only, because there was never
+# an ``alternate_number`` filter column for ``_resolve_filter_column``
+# to look for (0054: the Alternate Number sort merged into Alternate
+# Series).
+_SORT_KEY_RENAMES: Final[dict[str, str]] = {
+    **_LEGACY_KEY_RENAMES,
+    "alternate_number": "reprints",
+}
 
 
 def _resolve_filter_column(row_keys, column: str) -> str | None:
@@ -577,10 +588,49 @@ def _row_column(row, column: str):
         return None
 
 
+def _rename_sort_key(key) -> str:
+    """Rename one retired sort key. Sidecar JSON can hold anything."""
+    key = key if isinstance(key, str) else ""
+    return _SORT_KEY_RENAMES.get(key, key)
+
+
+def _rename_extra_keys(entries) -> list:
+    """Rename retired sort keys in an extras list, dropping duplicates."""
+    if not isinstance(entries, list):
+        return []
+    renamed: list = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        key = _rename_sort_key(entry.get("key"))
+        if key in seen:
+            # Both a retired key and its replacement were stored; one
+            # column can only carry one sort, so the first one wins.
+            continue
+        seen.add(key)
+        renamed.append({**entry, "key": key})
+    return renamed
+
+
+def _rename_memory_keys(memory) -> dict:
+    """Rename retired sort keys inside a collection_order_memory map."""
+    if not isinstance(memory, dict):
+        return {}
+    for remembered in memory.values():
+        if not isinstance(remembered, dict):
+            continue
+        remembered["order_by"] = _rename_sort_key(remembered.get("order_by"))
+        remembered["order_extra_keys"] = _rename_extra_keys(
+            remembered.get("order_extra_keys")
+        )
+    return memory
+
+
 def _build_browser_defaults(row, show) -> dict[str, Any]:
     """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
     order_by = row["order_by"] or ""
-    order_by = _LEGACY_KEY_RENAMES.get(order_by, order_by)
+    order_by = _SORT_KEY_RENAMES.get(order_by, order_by)
     table_columns = json.loads(row["table_columns"] or "{}")
     for old, new in _LEGACY_KEY_RENAMES.items():
         if old in table_columns:
@@ -590,9 +640,11 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
         "top_collection": row["top_collection"] or "",
         "order_by": order_by,
         "order_reverse": bool(row["order_reverse"]),
-        "order_extra_keys": json.loads(row["order_extra_keys"] or "[]"),
-        "collection_order_memory": json.loads(
-            _row_column(row, "collection_order_memory") or "{}"
+        "order_extra_keys": _rename_extra_keys(
+            json.loads(row["order_extra_keys"] or "[]")
+        ),
+        "collection_order_memory": _rename_memory_keys(
+            json.loads(_row_column(row, "collection_order_memory") or "{}")
         ),
         "search": row["search"] or "",
         "custom_covers": bool(row["custom_covers"]),

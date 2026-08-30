@@ -37,7 +37,6 @@ from codex.models.collections import (
 )
 from codex.models.named import Reprint
 from codex.views.browser.columns import (
-    VOLUME_YEAR_RANGE,
     fk_name_columns,
     m2m_columns,
 )
@@ -761,36 +760,91 @@ def _build_identifiers_intersection_sort_sql(
     return _IntersectionSortRawSQL(sql, [])
 
 
+# SQL spellings of the reprint sort key's pieces. printf renders each
+# number at a fixed width so "#2" collates before "#10" as text; widths
+# come from the fields (issue: Decimal(10,2) → 8 digits + "." + 2;
+# volume: PositiveSmallInteger → 5 digits). NULL numbers render as
+# same-width runs of spaces (0x20 < "0" → NULLs first), because
+# printf renders NULL as zero rather than propagating it. The ``%``
+# signs are doubled: Django's SQLite cursor collapses ``%%`` back to
+# ``%`` at execute time, and the DEBUG query logger runs ``sql %
+# params`` over the raw string — a bare ``%011.2f`` would consume a
+# parameter there and crash every logged query.
+_SEP_SQL = "X'1F'"
+_ISSUE_FMT_SQL = "%%011.2f"
+_NULL_ISSUE_SQL = "'" + " " * 11 + "'"
+_VOLUME_FMT_SQL = "%%05d"
+_NULL_VOLUME_SQL = "'" + " " * 5 + "'"
+
+
+def _issue_key_sql(alias: str) -> str:
+    """Render a table's issue number + suffix as one fixed-width segment."""
+    return (
+        f"CASE WHEN {alias}.issue_number IS NULL THEN {_NULL_ISSUE_SQL} "
+        f"ELSE printf('{_ISSUE_FMT_SQL}', {alias}.issue_number) END "
+        f"|| lower({alias}.issue_suffix)"
+    )
+
+
+def _collection_own_sort_sql(collection_model: type[BrowserCollectionModel]) -> str:
+    """Return the collection's own name as a sort string, for fallbacks."""
+    table = collection_model._meta.db_table
+    if collection_model is Volume:
+        # Volume has no sort_name; ``name`` is a nullable integer, so
+        # render it fixed-width like the key's own volume segment.
+        return f"""CASE
+            WHEN "{table}"."name" IS NULL THEN ''
+            ELSE printf('{_VOLUME_FMT_SQL}', "{table}"."name")
+        END"""
+    return f'lower("{table}"."sort_name")'
+
+
 def _build_reprints_intersection_sort_sql(
     collection_model: type[BrowserCollectionModel],
 ) -> RawSQL | None:
-    """Reprints render the same composed label the table cell shows."""
+    """Reprints sort by the same key ordering the Comic rows use."""
     correlation = _comic_correlation_sql(collection_model)
     if correlation is None:
         return None
-    # Mirror of ``Reprint.compose_name``: only the columns the reprint
-    # carries contribute, and a four-digit volume number is a year. The
-    # year bounds are the only bound parameters any of these
-    # intersection subqueries take.
-    inner = """
+    # One composed key per shared reprint, mirroring the field order of
+    # ``codex.views.browser.columns.reprints_sort_annotations``:
+    # alternate series identity (name, volume, language) then the issue
+    # rendered at fixed width so "#2" collates before "#10". The key
+    # reads ONLY reprint columns — the envelope selects ``display_name``
+    # as a bare column under ``GROUP BY target_id``, so anything read
+    # from the joined comic row would come back from an arbitrary child.
+    # Placeholder reprints render '' so the envelope's
+    # ``display_name != ''`` test drops them, matching the election
+    # filter on the Comic-row annotation.
+    #
+    # Everything spliced in is a module constant derived from the field
+    # definitions, never user input.
+    inner = f"""
             SELECT
                 r.id AS target_id,
-                r.series_name
-                || CASE
-                    WHEN r.volume_number IS NULL THEN ''
-                    WHEN r.volume_number BETWEEN %s AND %s
-                        THEN ' (' || r.volume_number || ')'
-                    ELSE ' v' || r.volume_number
-                   END
-                || CASE WHEN r.issue = '' THEN '' ELSE ' #' || r.issue END
-                || CASE WHEN r.language = '' THEN '' ELSE ' (' || r.language || ')' END
-                    AS display_name
+                CASE WHEN r.series_name = '' THEN '' ELSE
+                    lower(r.series_name)
+                    || {_SEP_SQL}
+                    || CASE
+                        WHEN r.volume_number IS NULL THEN {_NULL_VOLUME_SQL}
+                        ELSE printf('{_VOLUME_FMT_SQL}', r.volume_number)
+                       END
+                    || {_SEP_SQL} || lower(r.language) || {_SEP_SQL}
+                    || {_issue_key_sql("r")}
+                END AS display_name
             FROM codex_reprint r
             INNER JOIN codex_comic_reprints th ON th.reprint_id = r.id
             INNER JOIN codex_comic c ON c.id = th.comic_id
-    """
-    sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, list(VOLUME_YEAR_RANGE))
+    """  # noqa: S608
+    envelope = _wrap_intersection_sort(inner, correlation)
+    # The fallback has to be spliced into the raw string: wrapping the
+    # RawSQL in a Django ``Coalesce`` would restore the correlated
+    # subquery to the GROUP BY that ``_IntersectionSortRawSQL`` exists
+    # to keep it out of. An empty intersection (children share no
+    # alternate series, or disagree) sorts by the collection's own name.
+    own = _collection_own_sort_sql(collection_model)
+    sql = f"COALESCE(NULLIF({envelope}, ''), {own})"
+    return _IntersectionSortRawSQL(sql, [])
 
 
 def _build_story_arcs_intersection_sort_sql(

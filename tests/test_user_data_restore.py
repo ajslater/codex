@@ -354,6 +354,53 @@ class LegacyKeyRenameTests(TestCase):
         defaults = _build_browser_defaults(row, show=None)
         assert defaults["collection_order_memory"] == memory
 
+    def test_browser_defaults_remap_retired_sort_key(self) -> None:
+        """A sidecar's retired alternate_number sort restores as reprints."""
+        # It lives in three places, and settings load without
+        # re-validation, so any one left behind reaches ORDER BY.
+        from codex.user_data.restore import _build_browser_defaults
+
+        row = self._browser_row(
+            order_by="alternate_number",
+            order_extra_keys=json.dumps([{"key": "alternate_number", "reverse": True}]),
+            collection_order_memory=json.dumps(
+                {
+                    "comics": {
+                        "order_by": "alternate_number",
+                        "order_reverse": False,
+                        "order_extra_keys": [
+                            {"key": "alternate_number", "reverse": False}
+                        ],
+                    }
+                }
+            ),
+        )
+        defaults = _build_browser_defaults(row, show=None)
+        assert defaults["order_by"] == "reprints"
+        assert defaults["order_extra_keys"] == [{"key": "reprints", "reverse": True}]
+        assert defaults["collection_order_memory"] == {
+            "comics": {
+                "order_by": "reprints",
+                "order_reverse": False,
+                "order_extra_keys": [{"key": "reprints", "reverse": False}],
+            }
+        }
+
+    def test_browser_defaults_dedupe_retired_sort_key(self) -> None:
+        """A sidecar carrying both the retired key and its replacement keeps one."""
+        from codex.user_data.restore import _build_browser_defaults
+
+        row = self._browser_row(
+            order_extra_keys=json.dumps(
+                [
+                    {"key": "reprints", "reverse": False},
+                    {"key": "alternate_number", "reverse": True},
+                ]
+            )
+        )
+        defaults = _build_browser_defaults(row, show=None)
+        assert defaults["order_extra_keys"] == [{"key": "reprints", "reverse": False}]
+
     def test_browser_defaults_tolerate_missing_order_memory(self) -> None:
         """A sidecar written before the column existed restores empty."""
         from codex.user_data.restore import _build_browser_defaults

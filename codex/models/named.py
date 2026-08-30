@@ -142,7 +142,7 @@ class Reprint(BaseModel):
     identifier = ForeignKey(Identifier, on_delete=SET_NULL, null=True)
     # ``issue`` split into its sortable parts, mirroring
     # ``Comic.issue_number`` / ``issue_suffix``. Without them the
-    # ``alternate_number`` sort would order "#10" before "#2". Derived
+    # Alternate Series sort would order "#10" before "#2". Derived
     # in ``presave``, never imported directly; unindexed because they're
     # only read after an indexed join on pk or series_name.
     issue_number = CoercingDecimalField(decimal_places=2, max_digits=10, null=True)

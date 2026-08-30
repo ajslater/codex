@@ -192,16 +192,20 @@ class BrowserView(BrowserTitleView):
             return qs
         fk_anns = fk_name_annotations_for(sort_keys)
         m2m_anns = m2m_annotations_for(sort_keys)
-        # Every key that sorts through a fallback alias needs it annotated,
-        # extras included — ``_comic_extra_fields`` resolves an extra to the
-        # same alias the primary uses.
-        m2m_sort_anns = m2m_sort_annotations_for(sort_keys)
+        # Every key that sorts through elected-value aliases needs them
+        # annotated, extras included — ``_comic_extra_fields`` resolves an
+        # extra to the same aliases the primary uses. An active reprints
+        # filter names which alternate series the user is looking at, so
+        # the election is narrowed to it instead of picking the
+        # alphabetically first one.
+        reprint_pks = self.params.get("filters", {}).get("reprints", ())
+        m2m_sort_anns = m2m_sort_annotations_for(sort_keys, reprint_pks)
         if fk_anns:
             qs = qs.annotate(**fk_anns)
         if m2m_anns:
             qs = qs.annotate(**m2m_anns)
         if m2m_sort_anns:
-            qs = qs.annotate(**m2m_sort_anns)
+            qs = qs.alias(**m2m_sort_anns)
         return qs
 
     def _add_table_view_display_annotations(self, qs):

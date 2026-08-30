@@ -12,7 +12,7 @@ from django.db.models import (
 )
 from django.db.models.aggregates import Avg, Count, Max, Min, Sum
 from django.db.models.fields import CharField
-from django.db.models.functions import Coalesce, Reverse, Right, StrIndex
+from django.db.models.functions import Reverse, Right, StrIndex
 
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import (
@@ -84,7 +84,6 @@ _ORDER_AGGREGATE_FUNCS = MappingProxyType(
 _ANNOTATED_ORDER_FIELDS = frozenset(
     # These are annotated with their own functions
     {
-        "alternate_number",
         "bookmark_updated_at",
         "child_count",
         "favorite",
@@ -226,46 +225,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             story_arc_number = NONE_INTEGERFIELD
 
         return qs.alias(story_arc_number=story_arc_number)
-
-    def _alias_alternate_number(self, qs):
-        """Alias the alternate series issue number & suffix for ordering."""
-        if self.order_key != "alternate_number":
-            return qs
-
-        # Unlike ``story_arc_number`` there's no alternate series browse
-        # collection, so the ``reprints`` filter is the only thing that can
-        # say *which* alternate series' number to sort by.
-        reprint_pks = self.params.get("filters", {}).get("reprints", ())
-        # ``self.rel_prefix`` is memoized off the *view's* model, but this
-        # runs for the book queryset too — take the prefix from the
-        # queryset being annotated, as ``_alias_story_arc_number`` does.
-        rel_prefix = self.get_rel_prefix(qs.model)
-        own_number = rel_prefix + "issue_number"
-        own_suffix = rel_prefix + "issue_suffix"
-
-        if reprint_pks:
-            rel = rel_prefix + "reprints"
-            condition = Q(**{f"{rel}__pk__in": reprint_pks})
-            qs = qs.alias(selected_reprint=FilteredRelation(rel, condition=condition))
-            # Comics carrying no alternate number fall back to their own
-            # issue number so a mixed listing stays readable instead of
-            # collapsing every untagged comic to NULL. Coalescing *inside*
-            # the aggregate lets each comic contribute its own effective
-            # value; coalescing outside would compare one series' minimum
-            # alternate number against another's minimum issue number.
-            number = self.order_agg_func(
-                Coalesce("selected_reprint__issue_number", own_number)
-            )
-            suffix = self.order_agg_func(
-                Coalesce("selected_reprint__issue_suffix", own_suffix)
-            )
-        else:
-            # No alternate series selected: degrade to the plain issue sort
-            # rather than ordering everything by NULL.
-            number = self.order_agg_func(own_number)
-            suffix = self.order_agg_func(own_suffix)
-
-        return qs.alias(alternate_number=number, alternate_number_suffix=suffix)
 
     def _annotate_page_count(self, qs):
         """Hoist up total page_count of children."""
@@ -604,7 +563,6 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         qs = self._alias_sort_names(qs)
         qs = self._alias_filename(qs)
         qs = self._alias_story_arc_number(qs)
-        qs = self._alias_alternate_number(qs)
         if not for_cover:
             qs = self._annotate_page_count(qs)
         qs = self._annotate_bookmark_updated_at(qs)
