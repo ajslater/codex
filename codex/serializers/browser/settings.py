@@ -53,7 +53,7 @@ def _clean_remembered_extra_keys(value) -> list[dict]:
         key = entry.get("key")
         if key not in _MEMORABLE_EXTRA_KEYS or key in seen:
             continue
-        seen.add(key)  # pyright: ignore[reportArgumentType]
+        seen.add(key)
         cleaned.append({"key": key, "reverse": bool(entry.get("reverse", False))})
     return cleaned
 
@@ -243,17 +243,19 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
         cleaned: dict[str, dict] = {}
         for top_collection, order in value.items():
             if top_collection not in BROWSER_TOP_COLLECTION_CHOICES:
-                logger.warning(
-                    "Dropping unknown collection_order_memory top_collection "
+                msg = (
+                    f"Dropping unknown collection_order_memory top_collection "
                     f"{top_collection!r}"
                 )
+                logger.warning(msg)
                 continue
             remembered_order = _clean_remembered_order(order)
             if remembered_order is None:
-                logger.warning(
-                    "Dropping unusable collection_order_memory order for "
+                msg = (
+                    f"Dropping unusable collection_order_memory order for "
                     f"{top_collection!r}"
                 )
+                logger.warning(msg)
                 continue
             cleaned[top_collection] = remembered_order
         return cleaned

@@ -1,7 +1,7 @@
 """Tests for the per-top-collection sort memory (issue #415)."""
 
 import json
-from typing import Final, override
+from typing import Any, Final, override
 
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
@@ -114,8 +114,8 @@ class CollectionOrderMemoryHelperTestCase(TestCase):
     """The server-side stash/restore used when the server moves the top."""
 
     @staticmethod
-    def _params(**overrides):
-        params = {
+    def _params(**overrides) -> dict[str, Any]:
+        params: dict[str, Any] = {
             "top_collection": "publishers",
             "order_by": "sort_name",
             "order_reverse": False,
