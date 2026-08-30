@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
 from pathlib import Path
@@ -337,6 +338,28 @@ class LegacyKeyRenameTests(TestCase):
         defaults = _build_browser_defaults(row, show=None)
         assert defaults["order_by"] == "community_rating"
         assert defaults["table_columns"] == {"community_rating": True}
+
+    def test_browser_defaults_restore_collection_order_memory(self) -> None:
+        """The per-collection sort memory round-trips out of the sidecar."""
+        from codex.user_data.restore import _build_browser_defaults
+
+        memory = {
+            "comics": {
+                "order_by": "created_at",
+                "order_reverse": True,
+                "order_extra_keys": [],
+            }
+        }
+        row = self._browser_row(collection_order_memory=json.dumps(memory))
+        defaults = _build_browser_defaults(row, show=None)
+        assert defaults["collection_order_memory"] == memory
+
+    def test_browser_defaults_tolerate_missing_order_memory(self) -> None:
+        """A sidecar written before the column existed restores empty."""
+        from codex.user_data.restore import _build_browser_defaults
+
+        defaults = _build_browser_defaults(self._browser_row(), show=None)
+        assert defaults["collection_order_memory"] == {}
 
     def test_filter_restore_reads_legacy_column(self) -> None:
         """A legacy critical_rating filter column lands on community_rating."""
