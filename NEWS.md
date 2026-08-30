@@ -6,6 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.4.0
+
+- Features
+    - Each top collection remembers the sort it was last browsed with. Sort
+      Issues by added time and Publishers alphabetically, and switching between
+      them keeps each one's sort instead of carrying one sort everywhere. A
+      collection you haven't sorted yet keeps whatever sort you arrive with.
+    - Clearing a search puts back the sort the search replaced.
+
+- Fixes
+    - Saving browser settings sent an empty request that stored nothing. The
+      settings were persisted by the page request that followed, so nothing was
+      lost, but the save request itself did nothing.
+
 ## v2.3.0
 
 - Features
