@@ -55,6 +55,36 @@ _BUCKET_PATHS: Final = frozenset(
         "stats.sessions.finish_on_last_page",
         "stats.sessions.fit_to",
         "stats.sessions.reading_direction",
+        # per_user draws on the same closed vocabularies as sessions, counted
+        # in users instead of rows. No vocabulary widening is needed: the
+        # choices sources already cover every key, and _LITERALS covers the
+        # "" that the live/global buckets carry for "never touched".
+        "stats.per_user.browser_top_collection_users",
+        "stats.per_user.browser_chosen_top_collection_users",
+        "stats.per_user.browser_order_by_users",
+        "stats.per_user.browser_chosen_order_by_users",
+        "stats.per_user.browser_view_mode_users",
+        "stats.per_user.browser_chosen_view_mode_users",
+        "stats.per_user.browser_table_cover_size_users",
+        "stats.per_user.browser_chosen_table_cover_size_users",
+        "stats.per_user.browser_dynamic_covers_users",
+        "stats.per_user.browser_chosen_dynamic_covers_users",
+        "stats.per_user.browser_custom_covers_users",
+        "stats.per_user.browser_chosen_custom_covers_users",
+        "stats.per_user.reader_global_fit_to_users",
+        "stats.per_user.reader_chosen_fit_to_users",
+        "stats.per_user.reader_global_two_pages_users",
+        "stats.per_user.reader_chosen_two_pages_users",
+        "stats.per_user.reader_global_reading_direction_users",
+        "stats.per_user.reader_chosen_reading_direction_users",
+        "stats.per_user.reader_global_read_rtl_in_reverse_users",
+        "stats.per_user.reader_chosen_read_rtl_in_reverse_users",
+        "stats.per_user.reader_global_finish_on_last_page_users",
+        "stats.per_user.reader_chosen_finish_on_last_page_users",
+        "stats.per_user.reader_global_page_transition_users",
+        "stats.per_user.reader_chosen_page_transition_users",
+        "stats.per_user.reader_global_cache_book_users",
+        "stats.per_user.reader_chosen_cache_book_users",
     }
 )
 

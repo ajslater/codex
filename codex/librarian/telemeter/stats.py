@@ -24,6 +24,7 @@ from codex.librarian.telemeter.count_stats import (
     get_multi_sort_count,
     get_usage_stats,
 )
+from codex.librarian.telemeter.per_user_stats import get_per_user_stats
 from codex.models import (
     Comic,
 )
@@ -74,6 +75,10 @@ _SIMPLE_SECTIONS: Final = (
     ("email", get_email_stats),
     ("throttle", get_throttle_stats),
     ("deployment", get_deployment_stats),
+    # Last, so EXPECTED_SECTIONS stays append-only. Named per_user rather than
+    # user_settings: the admin stats tab already has a "User Settings" table
+    # rendering the unrelated ``sessions`` section.
+    ("per_user", get_per_user_stats),
 )
 
 

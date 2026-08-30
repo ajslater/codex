@@ -37,6 +37,7 @@ EXPECTED_SECTIONS = (
     "email",
     "throttle",
     "deployment",
+    "per_user",
 )
 
 

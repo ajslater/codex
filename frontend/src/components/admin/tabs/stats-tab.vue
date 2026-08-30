@@ -8,7 +8,15 @@
     -->
     <AdminKeyValueTable title="Config" :items="configTable" />
     <AdminKeyValueTable title="File Types" :items="fileTypesTable" />
-    <AdminKeyValueTable title="User Settings" :items="userSettingsTable" />
+    <!-- Two denominators, named apart. Sessions counts settings rows, one per
+         user and per anonymous session; per user counts people, one vote
+         each. Titling either of them "User Settings" invited reading one as
+         the other. -->
+    <AdminKeyValueTable
+      title="Settings by Session"
+      :items="sessionSettingsTable"
+    />
+    <AdminKeyValueTable title="Settings by User" :items="perUserSettingsTable" />
     <AdminKeyValueTable
       title="Browser Collections"
       :items="browserCollectionsTable"
@@ -38,6 +46,18 @@ import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
 const VIEW_MODE = Object.freeze({ cover: "Cover", table: "Table" });
 const TABLE_COVER_SIZE = Object.freeze({ sm: "Small" });
+// What "" means per setting, in the words chronicle's dashboard uses for the
+// same key, so the two surfaces do not describe one number differently.
+const UNSET_LABELS = Object.freeze({
+  fitTo: "Unset (Fit to Width)",
+  readingDirection: "Unset (Left to Right)",
+  orderBy: "Unset (Name)",
+  finishOnLastPage: "Unset (On)",
+  twoPages: "Unset (Off)",
+  readRtlInReverse: "Unset (Off)",
+  pageTransition: "Unset (On)",
+  cacheBook: "Unset (Off)",
+});
 const LOOKUPS = Object.freeze({
   topCollection: TOP_COLLECTION,
   orderBy: ORDER_BY,
@@ -179,25 +199,17 @@ export default {
     configTable() {
       return this.labeledTable(this.stats?.config, CONFIG_LABELS, ["apiKey"]);
     },
-    userSettingsTable() {
-      const table = {};
-      for (const [key, value] of Object.entries(this.stats?.sessions ?? {})) {
-        const label = this.keyToLabel(key);
-        if (typeof value !== "object") {
-          Reflect.set(table, label, this.displayValue(key, value));
-          continue;
-        }
-        const countTable = {};
-        const lookup = Reflect.get(LOOKUPS, key);
-        for (const [typeKey, count] of Object.entries(value)) {
-          const typeLabel = lookup
-            ? Reflect.get(lookup, snakeCase(typeKey))
-            : typeKey;
-          Reflect.set(countTable, typeLabel, count);
-        }
-        Reflect.set(table, label, countTable);
-      }
-      return table;
+    sessionSettingsTable() {
+      return this.settingsTable(this.stats?.sessions);
+    },
+    perUserSettingsTable() {
+      // Bucket names carry their family as a prefix and "_users" as a suffix;
+      // the vocabulary to label them by is the setting in between.
+      return this.settingsTable(this.stats?.per_user, (key) =>
+        key
+          .replace(/^(browser|reader)_(chosen_|global_)?/, "")
+          .replace(/_users$/, ""),
+      );
     },
     browserCollectionsTable() {
       const table = {};
@@ -274,6 +286,35 @@ export default {
     this.loadStats();
   },
   methods: {
+    bucketLabel(lookupKey, typeKey) {
+      // "" means nobody touched the setting, which no choices map has a name
+      // for -- and before this fallback existed it resolved to undefined and
+      // rendered as the literal string "undefined".
+      if (typeKey === "") {
+        return Reflect.get(UNSET_LABELS, lookupKey) ?? "Unset";
+      }
+      const lookup = Reflect.get(LOOKUPS, lookupKey);
+      const label = lookup ? Reflect.get(lookup, snakeCase(typeKey)) : undefined;
+      // Fall back to the key itself rather than undefined: an unmapped value
+      // is a vocabulary that drifted, and its name is more use than a hole.
+      return label ?? typeKey;
+    },
+    settingsTable(section, lookupFor = (key) => key) {
+      const table = {};
+      for (const [key, value] of Object.entries(section ?? {})) {
+        const label = this.keyToLabel(key);
+        if (typeof value !== "object") {
+          Reflect.set(table, label, this.displayValue(key, value));
+          continue;
+        }
+        const countTable = {};
+        for (const [typeKey, count] of Object.entries(value)) {
+          Reflect.set(countTable, this.bucketLabel(lookupFor(key), typeKey), count);
+        }
+        Reflect.set(table, label, countTable);
+      }
+      return table;
+    },
     ...mapActions(useAdminStore, ["loadStats"]),
     keyToLabel(key) {
       key = key.replace(/Count$/, "");
