@@ -1,10 +1,13 @@
 """Delete comics methods."""
 
-from codex.librarian.scribe.importer.const import ALL_COMIC_COLLECTION_FIELD_NAMES
+from codex.librarian.scribe.importer.const import (
+    ALL_COMIC_COLLECTION_FIELD_NAMES,
+    DIRECT_M2M_COLLECTION_FIELD_NAMES,
+)
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
 from codex.librarian.scribe.importer.delete.existence import confirm_deleted
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
-from codex.models import Comic, Folder, StoryArc
+from codex.models import Comic, StoryArc
 from codex.settings import (
     IMPORTER_DELETE_MAX_CHUNK_SIZE,
     IMPORTER_LINK_FK_BATCH_SIZE,
@@ -40,9 +43,10 @@ class DeletedComicsImporter(DeletedCoversImporter):
                     "story_arc"
                 ):
                     deleted_comic_collections[StoryArc].add(san.story_arc.pk)
-            elif field_name == "folders":
-                for folder in comic.folders.only("pk"):
-                    deleted_comic_collections[Folder].add(folder.pk)
+            elif field_name in DIRECT_M2M_COLLECTION_FIELD_NAMES:
+                related_model = comic._meta.get_field(field_name).related_model
+                for obj in getattr(comic, field_name).only("pk"):
+                    deleted_comic_collections[related_model].add(obj.pk)
             else:
                 related_model = comic._meta.get_field(field_name).related_model
                 related_id = getattr(comic, field_name).pk
@@ -55,7 +59,7 @@ class DeletedComicsImporter(DeletedCoversImporter):
         """Populate changed collections for cover timestamp updater."""
         comics_deleted_qs = delete_qs.only(
             *ALL_COMIC_COLLECTION_FIELD_NAMES
-        ).prefetch_related("story_arc_numbers__story_arc")
+        ).prefetch_related("story_arc_numbers__story_arc", *DIRECT_M2M_COLLECTION_FIELD_NAMES)
         for comic in comics_deleted_qs.iterator(
             chunk_size=IMPORTER_DELETE_MAX_CHUNK_SIZE
         ):

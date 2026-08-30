@@ -93,3 +93,12 @@ COLLECTION_LABELS: Final[MappingProxyType[Collection, str]] = MappingProxyType(
         Collection.ARC: "Story Arcs",
     }
 )
+
+# A reader-only pseudo-collection: the reader can follow an alternate
+# series (ComicInfo ``AlternateSeries``) as a reading order, ordered by
+# ``AlternateNumber``. Deliberately *not* a :class:`Collection` member —
+# alternate series aren't browsable, and every map above is exhaustive
+# over the enum, so a member without entries would break lookups that
+# assume a browse route and a cover exists.
+READER_REPRINT_COLLECTION: Final[str] = "reprints"
+READER_REPRINT_LABEL: Final[str] = "Alternate Series"

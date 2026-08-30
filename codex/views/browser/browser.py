@@ -30,6 +30,8 @@ from codex.views.browser.columns import (
     favorite_annotation_for,
     fk_name_annotations_for,
     m2m_annotations_for,
+    m2m_columns,
+    m2m_sort_annotations_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.title import BrowserTitleView
@@ -158,28 +160,48 @@ class BrowserView(BrowserTitleView):
             qs = qs.annotate(**annotations)
         return qs
 
+    def _sort_annotation_keys(self) -> tuple[str, ...]:
+        """
+        Return the keys whose ORDER BY aliases this queryset must carry.
+
+        Table view annotates the primary ``order_by`` key *and* every
+        entry in ``order_extra_keys`` so multi-column sort can reference
+        the same M2M / FK-name aliases. Every other view mode (cover
+        cards, OPDS feeds) can't add extras, but its *primary* key may
+        still be an M2M column — ``_comic_order_fields_head`` emits the
+        M2M alias for those, so without this the ORDER BY would name a
+        column that was never annotated.
+        """
+        if self.params.get("view_mode") == "table":
+            return self._table_view_sort_keys()
+        order_key = self.order_key
+        return (order_key,) if order_key in m2m_columns() else ()
+
     def _add_table_view_sort_annotations(self, qs):
         """
-        Add only the table-view annotations needed for ORDER BY.
+        Add only the annotations needed for ORDER BY.
 
-        Covers the primary ``order_by`` key *and* every entry in
-        ``order_extra_keys`` so multi-column sort can reference the
-        same M2M / FK-name aliases. Display annotations are added
-        post-pagination so the M2M aggregate runs only over the
-        visible page; ORDER BY runs over the full queryset and
-        needs every alias upstream.
+        Display annotations are added post-pagination so the M2M
+        aggregate runs only over the visible page; ORDER BY runs over
+        the full queryset and needs every alias upstream.
         """
-        if self.params.get("view_mode") != "table" or qs.model is not Comic:
+        if qs.model is not Comic:
             return qs
-        sort_keys = self._table_view_sort_keys()
+        sort_keys = self._sort_annotation_keys()
         if not sort_keys:
             return qs
         fk_anns = fk_name_annotations_for(sort_keys)
         m2m_anns = m2m_annotations_for(sort_keys)
+        # Every key that sorts through a fallback alias needs it annotated,
+        # extras included — ``_comic_extra_fields`` resolves an extra to the
+        # same alias the primary uses.
+        m2m_sort_anns = m2m_sort_annotations_for(sort_keys)
         if fk_anns:
             qs = qs.annotate(**fk_anns)
         if m2m_anns:
             qs = qs.annotate(**m2m_anns)
+        if m2m_sort_anns:
+            qs = qs.annotate(**m2m_sort_anns)
         return qs
 
     def _add_table_view_display_annotations(self, qs):

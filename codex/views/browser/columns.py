@@ -18,8 +18,9 @@ from django.db.models import (
     Value,
     When,
 )
+from django.db.models.aggregates import Min
 from django.db.models.fields import CharField
-from django.db.models.functions import Cast, Concat
+from django.db.models.functions import Cast, Coalesce, Concat
 
 from codex.choices.browser import (
     BROWSER_TABLE_COLUMNS,
@@ -276,6 +277,52 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
 def m2m_columns() -> frozenset[str]:
     """Return the set of M2M column keys whose annotation is wired."""
     return frozenset(_M2M_COLUMN_PATHS.keys())
+
+
+# M2M sort keys that have a meaningful scalar counterpart on Comic to
+# fall back to. Sorting by the JSON aggregate alone parks every comic
+# lacking the relation in one undifferentiated clump; ``reprints`` is
+# an alternate *series* name, so a comic without one sorts by its real
+# series instead and the listing stays readable. Other M2M columns
+# (genres, tags, …) have no such counterpart and keep the plain
+# aggregate sort.
+_M2M_SORT_FALLBACK_PATHS = MappingProxyType({"reprints": "series__sort_name"})
+_M2M_SORT_ANNOTATION_PREFIX = "_table_m2m_sort_"
+
+
+def m2m_sort_alias_for(column_key: str) -> str:
+    """Return the ORDER BY alias for an M2M column with a scalar fallback."""
+    return _M2M_SORT_ANNOTATION_PREFIX + column_key
+
+
+def m2m_sort_columns() -> frozenset[str]:
+    """Return M2M column keys that sort through a fallback alias."""
+    return frozenset(_M2M_SORT_FALLBACK_PATHS.keys())
+
+
+def m2m_sort_annotations_for(columns: tuple[str, ...]) -> dict[str, Coalesce]:
+    """
+    Build ``alias -> Coalesce(Min(expr), fallback)`` sort annotations.
+
+    Separate from the display aggregate: the cell still renders the
+    full JSON list, while ORDER BY uses the first label so a comic
+    with no relation can fall through to its scalar counterpart.
+    """
+    annotations: dict[str, Coalesce] = {}
+    for col in columns:
+        fallback = _M2M_SORT_FALLBACK_PATHS.get(col)
+        path = _M2M_COLUMN_PATHS.get(col)
+        if fallback is None or path is None:
+            continue
+        agg_filter = _M2M_AGGREGATE_FILTERS.get(col)
+        kwargs: dict = {"filter": agg_filter} if agg_filter is not None else {}
+        # The composed label and the fallback column are both text but
+        # different field classes (``CharField`` vs ``CleaningCharField``),
+        # which Django refuses to unify on its own.
+        annotations[m2m_sort_alias_for(col)] = Coalesce(
+            Min(path, **kwargs), F(fallback), output_field=CharField()
+        )
+    return annotations
 
 
 # FK-name annotations live in their own alias namespace so they don't

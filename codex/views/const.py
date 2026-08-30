@@ -9,7 +9,7 @@ from django.contrib.sessions.models import Session
 from django.db.models.expressions import Value
 from django.db.models.fields import DateTimeField, PositiveSmallIntegerField
 
-from codex.collection import Collection
+from codex.collection import READER_REPRINT_COLLECTION, Collection
 from codex.models import (
     AgeRating,
     Bookmark,
@@ -82,6 +82,10 @@ COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
         COMIC_COLLECTION: "pk",
         FOLDER_COLLECTION: "parent_folder",
         STORY_ARC_COLLECTION: "story_arc_numbers__story_arc",
+        # Reader-only: alternate series are a reading order, not a browse
+        # collection. Browse callers only ever index this map with a
+        # URL-regex-validated collection, so the extra key is inert there.
+        READER_REPRINT_COLLECTION: "reprints",
     }
 )
 FILTER_ONLY_COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(

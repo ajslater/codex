@@ -10,11 +10,21 @@ from django.utils import timezone
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
-from codex.models import StoryArc, Volume
+from codex.models import Reprint, StoryArc, Volume
 from codex.models.collections import BrowserCollectionModel
 from codex.models.library import Library
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 from codex.views.const import COLLECTION_MODELS
+
+# Rows whose ``updated_at`` gates a client-side reload. Browse collections
+# bust cover caches; ``Reprint`` is not browsable but the reader offers
+# alternate series as a reading order, and its arc mtime is read from these
+# rows — without a re-stamp an open reader never notices a re-import.
+_TIMESTAMP_MODELS = (*COLLECTION_MODELS, Reprint)
+
+# Volumes never carry their own custom cover, and ``Reprint`` has no
+# ``custom_cover`` column at all.
+_NO_CUSTOM_COVER_MODELS = frozenset({Volume, Reprint})
 
 
 class TimestampUpdater(WorkerStatusBase):
@@ -22,7 +32,7 @@ class TimestampUpdater(WorkerStatusBase):
 
     @staticmethod
     def _get_update_filter(
-        model: type[BrowserCollectionModel],
+        model: type[BrowserCollectionModel | Reprint],
         start_time: datetime,
         force_update_collection_map: Mapping,
         library: Library,
@@ -55,7 +65,7 @@ class TimestampUpdater(WorkerStatusBase):
         # its own has-children join test. This used to be a
         # Count-aggregate filter over the whole OR — a per-row
         # GROUP BY join explosion costing ~1.5s per import.
-        if model != Volume:
+        if model not in _NO_CUSTOM_COVER_MODELS:
             update_filter |= Q(custom_cover__updated_at__gt=start_floor) & Q(
                 **{rel + "comic__isnull": False}
             )
@@ -75,7 +85,7 @@ class TimestampUpdater(WorkerStatusBase):
     def _update_collection_model(
         cls,
         force_update_collection_map: Mapping,
-        model: type[BrowserCollectionModel],
+        model: type[BrowserCollectionModel | Reprint],
         start_time: datetime,
         library: Library,
         log_list,
@@ -113,7 +123,7 @@ class TimestampUpdater(WorkerStatusBase):
         self.status_controller.start(status)
         try:
             log_list = []
-            for model in COLLECTION_MODELS:
+            for model in _TIMESTAMP_MODELS:
                 count = self._update_collection_model(
                     force_update_collection_map, model, start_time, library, log_list
                 )

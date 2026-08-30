@@ -42,6 +42,7 @@ import {
   mdiBookshelf,
   mdiCheck,
   mdiChessRook,
+  mdiContentDuplicate,
   mdiFeather,
   mdiFilterOutline,
   mdiFolderOutline,
@@ -58,8 +59,18 @@ const ARC_ICONS = {
   folders: mdiFolderOutline,
   publishers: mdiChessRook,
   imprints: mdiFeather,
+  reprints: mdiContentDuplicate,
   series: mdiBookshelf,
   volumes: mdiBookMultiple,
+};
+/*
+ * Subtitles otherwise come from the browse TOP_COLLECTION labels,
+ * singularized. ``reprints`` is a reader-only reading order with no
+ * browse collection, so it has no label there to singularize — and
+ * slicing ``undefined`` used to throw.
+ */
+const ARC_SUBTITLES = {
+  reprints: "Alternate Series",
 };
 
 export default {
@@ -84,9 +95,12 @@ export default {
       }
       for (const [collection, arcIdsInfo] of Object.entries(this.arcs)) {
         for (const [ids, arcInfo] of Object.entries(arcIdsInfo)) {
-          let subtitle = Reflect.get(TOP_COLLECTION, collection);
-          if (collection !== "series") {
-            subtitle = subtitle.slice(0, -1);
+          let subtitle = Reflect.get(ARC_SUBTITLES, collection);
+          if (!subtitle) {
+            subtitle = Reflect.get(TOP_COLLECTION, collection);
+            if (collection !== "series") {
+              subtitle = subtitle.slice(0, -1);
+            }
           }
           const prependIcon = Reflect.get(ARC_ICONS, collection);
           const appendIcon =

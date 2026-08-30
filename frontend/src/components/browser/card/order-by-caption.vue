@@ -74,6 +74,10 @@ export default {
           return prettyBytes(Number.parseInt(ov, 10));
         } else if (STAR_SORT_BY.has(this.orderBy)) {
           return `★  ${this.formatStarRating(ov)}`;
+        } else if (this.orderBy === "alternate_number") {
+          return this.formatAlternateNumber(ov);
+        } else if (this.orderBy === "reprints") {
+          return this.formatReprints(ov);
         }
       } catch (error) {
         // Often orderBy gets updated before orderValue gets returned.
@@ -101,6 +105,25 @@ export default {
       const n = Number.parseFloat(ov);
       if (!Number.isFinite(n)) return ov;
       return n.toFixed(2).replace(/\.?0+$/, "");
+    },
+    /*
+     * The alternate issue number is a DecimalField aggregate, so it
+     * arrives as "2.00". Show "#2" the way the issue column does.
+     */
+    formatAlternateNumber(ov) {
+      const n = Number.parseFloat(ov);
+      if (!Number.isFinite(n)) return ov;
+      return `#${n.toFixed(2).replace(/\.?0+$/, "")}`;
+    },
+    /*
+     * The alternate series order_value is the JSON array the table cell
+     * renders. Collection rows sort by a fallback the caption can't
+     * show, so only comics get a caption.
+     */
+    formatReprints(ov) {
+      if (this.item.collection !== "comics") return "";
+      const labels = JSON.parse(ov);
+      return Array.isArray(labels) ? labels.join(", ") : ov;
     },
   },
 };

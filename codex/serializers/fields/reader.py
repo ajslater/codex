@@ -1,17 +1,20 @@
 """Reader Fields."""
 
-from codex.collection import Collection
+from codex.collection import READER_REPRINT_COLLECTION, Collection
 from codex.models.choices import ReadingDirectionChoices
 from codex.models.settings import FitToChoices
 from codex.serializers.fields.base import CodexChoiceField
 
-# Browse collections a comic can be read "within". All collection-valued now;
+# Collections a comic can be read "within". Mostly browse collections;
 # p/i/root have no arc of their own (params collapses them to series).
+# ``reprints`` is the one reader-only entry — an alternate series is a
+# reading order without a browse route.
 VALID_ARC_COLLECTIONS = (
     Collection.SERIES,
     Collection.VOLUME,
     Collection.FOLDER,
     Collection.ARC,
+    READER_REPRINT_COLLECTION,
 )
 
 
