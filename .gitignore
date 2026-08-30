@@ -95,10 +95,10 @@ profile_default/
 sdist/
 share/python-wheels/
 target/
+tasks/
 test-results
 TODO.md
 var/
 venv.bak/
 venv/
 wheels/
-tasks/
