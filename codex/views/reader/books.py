@@ -7,7 +7,7 @@ from django.db.models.query import Q, QuerySet
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
 
-from codex.collection import Collection
+from codex.collection import READER_REPRINT_COLLECTION, Collection
 from codex.models import Comic
 from codex.models.bookmark import Bookmark
 from codex.models.settings import SettingsReader
@@ -127,6 +127,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         fields = _COMIC_FIELDS
         arc_pk_rel = rel + "__pk"
         arc_index = NONE_INTEGERFIELD
+        arc_index_suffix = None
         select_related = ()
         prefetch_related = ()
         ordering = ()
@@ -135,6 +136,14 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             arc_index = F("story_arc_numbers__number")
             prefetch_related = (*prefetch_related, rel)
             ordering = ("arc_index", "date", "pk")
+        elif self._selected_arc_collection == READER_REPRINT_COLLECTION:
+            # ComicInfo AlternateNumber, split into its sortable parts by
+            # ``Reprint.presave`` so "#2" reads before "#10". The nav
+            # filter already joins ``reprints``, as it does for story arcs.
+            arc_index = F("reprints__issue_number")
+            arc_index_suffix = F("reprints__issue_suffix")
+            prefetch_related = (*prefetch_related, rel)
+            ordering = ("arc_index", "arc_index_suffix", "date", "pk")
         elif self._selected_arc_collection == FOLDER_COLLECTION:
             fields = (*_COMIC_FIELDS, rel)
             select_related = (rel,)
@@ -163,6 +172,10 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
                 output_field=BooleanField(),
             ),
         )
+        if arc_index_suffix is not None:
+            # Alias, not annotate: only ORDER BY reads it, so it never
+            # needs to ride along in the serialized row.
+            qs = qs.alias(arc_index_suffix=arc_index_suffix)
         sort_names_alias, ordering = self._get_comics_annotation_and_ordering(
             qs.model, ordering
         )

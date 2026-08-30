@@ -18,6 +18,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
         "created_at": "Added Time",
         "age_rating": "Age Rating",
+        "alternate_number": "Alternate Number",
         "reprints": "Alternate Series",
         "characters": "Characters",
         "child_count": "Child Count",
@@ -75,6 +76,8 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
     {
         "created_at",
         "age_rating",
+        "alternate_number",
+        "reprints",
         "child_count",
         "community_rating",
         "filename",
@@ -94,12 +97,15 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
 # They sort fine as the primary, but the per-extra annotation
 # pipeline can't safely produce a value for them on every model
 # / context: ``story_arc_number`` requires StoryArc-context ``pks``
-# to resolve which arc's number to pick, and ``search_score``'s
-# ``ComicFTSRank`` only resolves when an FTS subquery is joined.
+# to resolve which arc's number to pick, ``alternate_number`` likewise
+# needs the ``reprints`` filter to resolve which alternate series'
+# number to pick, and ``search_score``'s ``ComicFTSRank`` only
+# resolves when an FTS subquery is joined.
 # Mirrored on the frontend so the table headers can grey out the
 # affected columns and refuse the shift-click.
 BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS = frozenset(
     {
+        "alternate_number",
         "story_arc_number",
         "search_score",
     }

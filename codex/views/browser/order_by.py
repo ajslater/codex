@@ -6,7 +6,12 @@ from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.collections import Volume
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
-from codex.views.browser.columns import m2m_alias_for, m2m_columns
+from codex.views.browser.columns import (
+    m2m_alias_for,
+    m2m_columns,
+    m2m_sort_alias_for,
+    m2m_sort_columns,
+)
 
 # Order keys that don't map directly to a Comic field name need an
 # explicit ORM path. The map is consumed both by ``_add_comic_order_by``
@@ -124,6 +129,19 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             # natural multi-field sort that matches how the compound
             # ``Issue`` table column is rendered.
             return ["issue_number", "issue_suffix"]
+        if order_key == "alternate_number":
+            # The same compound expansion over the alternate series'
+            # number, whose parts are annotated aliases rather than
+            # columns (see ``_alias_alternate_number``). ``date`` breaks
+            # ties between comics sharing an alternate number, matching
+            # the ``story_arc_number`` tail.
+            return ["alternate_number", "alternate_number_suffix", "date"]
+        if order_key in m2m_sort_columns():
+            # M2M sort with a scalar counterpart (``reprints`` →
+            # ``series__sort_name``): order on the fallback alias so
+            # comics carrying no alternate series interleave by their
+            # real series instead of clumping under an empty list.
+            return [m2m_sort_alias_for(order_key)]
         if order_key in m2m_columns():
             # M2M sort: ``ORDER BY <alias>`` where the alias is the
             # JsonGroupArray annotation added by the table-view path.
@@ -211,6 +229,12 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             # ``_age_rating_sort_value`` is the metron index (sort).
             # See ``BrowserAnnotateOrderView.annotate_order_value``.
             order_fields_head = ["_age_rating_sort_value"]
+        elif self.order_key == "alternate_number":
+            # ``order_value`` carries the aggregated alternate number
+            # (and the card caption renders it); the parallel suffix
+            # alias is the secondary, mirroring the Comic-row compound
+            # expansion in ``_comic_order_fields_head``.
+            order_fields_head = ["order_value", "alternate_number_suffix"]
         else:
             order_fields_head = ["order_value"]
 

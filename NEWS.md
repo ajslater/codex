@@ -8,8 +8,21 @@ border-radius: 128px;
 
 ## v2.2.12
 
+- Features
+    - Sort by Alternate Number, the issue number a comic carries inside its
+      alternate series (ComicInfo AlternateSeries / AlternateNumber). Filter by
+      an alternate series first to pick which one to sort by. Comics with no
+      alternate number fall back to their own issue number.
+    - The Alternate Series sort is available in cover view, not just the table.
+      Comics with no alternate series sort by their real series name.
+    - Read an alternate series as a reading order: pick it in the reader's
+      reading-order menu and next/prev follow the alternate numbering. Handy for
+      using alternate series tags as durable reading lists.
+
 - Fixes
     - The Admin Tagging Status table shows what is being looked up right now.
+    - Sorting by a tag column outside the table view (cover cards, OPDS feeds)
+      no longer errors.
 
 ## v2.2.11
 

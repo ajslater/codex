@@ -501,7 +501,14 @@ ALL_COMIC_COLLECTION_FIELD_NAMES = (
     *COLLECTION_FIELD_NAMES,
     "story_arc_numbers",
     "folders",
+    # Not a browse collection, but the reader reads alternate series as a
+    # reading order off ``Reprint.updated_at``, so a comic leaving one must
+    # re-stamp it the same way a story arc does.
+    REPRINTS_FIELD_NAME,
 )
+# Comic m2m fields whose target model *is* the collection row (no
+# intermediate like ``StoryArcNumber`` to walk through).
+DIRECT_M2M_COLLECTION_FIELD_NAMES = frozenset({"folders", REPRINTS_FIELD_NAME})
 
 ##########
 # Failed #

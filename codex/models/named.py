@@ -8,10 +8,21 @@ from django.db.models import (
     ForeignKey,
 )
 
-from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.base import (
+    MAX_FIELD_LEN,
+    MAX_ISSUE_SUFFIX_LEN,
+    MAX_NAME_LEN,
+    BaseModel,
+    NamedModel,
+)
 from codex.models.collections import BrowserCollectionModel, Volume
-from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
+from codex.models.fields import (
+    CleaningCharField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
+)
 from codex.models.identifier import Identifier
+from codex.models.util import parse_issue_parts
 
 __all__ = (
     "Character",
@@ -129,6 +140,17 @@ class Reprint(BaseModel):
     issue = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
     language = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
     identifier = ForeignKey(Identifier, on_delete=SET_NULL, null=True)
+    # ``issue`` split into its sortable parts, mirroring
+    # ``Comic.issue_number`` / ``issue_suffix``. Without them the
+    # ``alternate_number`` sort would order "#10" before "#2". Derived
+    # in ``presave``, never imported directly; unindexed because they're
+    # only read after an indexed join on pk or series_name.
+    issue_number = CoercingDecimalField(decimal_places=2, max_digits=10, null=True)
+    issue_suffix = CleaningCharField(
+        max_length=MAX_ISSUE_SUFFIX_LEN,
+        default="",
+        db_collation="nocase",
+    )
 
     class Meta(BaseModel.Meta):
         """Declare constraints and indexes."""
@@ -164,6 +186,25 @@ class Reprint(BaseModel):
         return self.compose_name(
             self.series_name, self.volume_number, self.issue, self.language
         )
+
+    @override
+    def presave(self) -> None:
+        """Split ``issue`` into its sortable number and suffix."""
+        super().presave()
+        self.issue_number, self.issue_suffix = parse_issue_parts(self.issue)
+
+    @override
+    def save(self, *args, **kwargs) -> None:
+        """
+        Save computed fields.
+
+        The importer's bulk create / update paths call ``presave``
+        themselves, but direct ``save()`` callers (the tag editor, tests)
+        would otherwise persist a row whose sort columns don't match its
+        ``issue``.
+        """
+        self.presave()
+        super().save(*args, **kwargs)
 
 
 class ScanInfo(NamedModel):

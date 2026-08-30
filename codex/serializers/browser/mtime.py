@@ -4,7 +4,14 @@ from rest_framework.serializers import Serializer
 
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.serializers.fields import TimestampField
+from codex.serializers.fields.collection import MtimeCollectionField
 from codex.serializers.route import SimpleRouteSerializer
+
+
+class MtimeRouteSerializer(SimpleRouteSerializer):
+    """A route the mtime probe accepts, including reader-only arcs."""
+
+    collection = MtimeCollectionField()
 
 
 class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
@@ -14,7 +21,7 @@ class CollectionsMtimeSerializer(BrowserFilterChoicesInputSerializer):
         BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"collections"}
     )
 
-    collections = SimpleRouteSerializer(many=True, required=True)
+    collections = MtimeRouteSerializer(many=True, required=True)
 
 
 class MtimeSerializer(Serializer):

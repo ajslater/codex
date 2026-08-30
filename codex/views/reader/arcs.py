@@ -4,14 +4,14 @@ from functools import cached_property
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
-from django.db.models import Max
+from django.db.models import Max, Q
 
 from codex.choices.admin import AdminFlagChoices
-from codex.collection import Collection
+from codex.collection import READER_REPRINT_COLLECTION, Collection
 from codex.models import AdminFlag
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
-from codex.models.named import StoryArc
+from codex.models.named import Reprint, StoryArc
 from codex.util import max_none
 from codex.views.const import (
     STORY_ARC_COLLECTION,
@@ -31,6 +31,24 @@ _COMIC_ARC_FIELD_COLLECTIONS = MappingProxyType(
     }
 )
 _COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_COLLECTIONS)
+
+# Arc collections whose rows are groups rather than a single row, so the
+# requested ids may be a stale subset of the current group. Both story
+# arcs (grouped by sort_name) and alternate series (grouped by identity)
+# accept an intersecting id set as the same arc.
+_MULTI_ROW_ARC_COLLECTIONS = frozenset(
+    {STORY_ARC_COLLECTION, READER_REPRINT_COLLECTION}
+)
+
+# Preference order when the requested arc collection has no arc for this
+# comic. Series first: it's the reader's default reading order.
+_ARC_COLLECTION_FALLBACK_ORDER = (
+    Collection.SERIES,
+    Collection.VOLUME,
+    Collection.FOLDER,
+    STORY_ARC_COLLECTION,
+    READER_REPRINT_COLLECTION,
+)
 
 
 class ReaderArcsView(ReaderParamsView):
@@ -116,16 +134,75 @@ class ReaderArcsView(ReaderParamsView):
             max_mtime = max_none(max_mtime, mtime)
         return max_mtime
 
+    def _get_reprint_arcs(self, comic: Comic, arcs, max_mtime: int | None):
+        """Append the alternate series (ComicInfo AlternateSeries) arcs."""
+        # An alternate series is identified by everything but the issue —
+        # that's ``Reprint``'s unique key minus ``issue``. Splitting on
+        # volume and language keeps a v1 and a v2, or an English and a
+        # Spanish edition, from merging into one reading order.
+        identities = tuple(
+            Reprint.objects.filter(comic__pk=comic.pk)
+            .values_list("series_name", "volume_number", "language")
+            .distinct()
+        )
+        if not identities:
+            return max_mtime
+
+        identity_filter = Q()
+        for series_name, volume_number, language in identities:
+            identity_filter |= Q(
+                series_name=series_name,
+                volume_number=volume_number,
+                language=language,
+            )
+
+        # Every issue of an alternate series is its own ``Reprint`` row, so
+        # the arc handle has to be the whole group's pks, not just this
+        # comic's. Keying on one comic's row would make the *next* book
+        # report a different id set and silently drop the reading order.
+        qs = Reprint.objects.filter(identity_filter)
+        qs = qs.group_by("series_name", "volume_number", "language")  # pyright: ignore[reportAttributeAccessIssue]
+        qs = qs.annotate(
+            ids=JsonGroupArray("id", distinct=True, order_by="id"),
+            mtime=Max("updated_at"),
+        )
+        qs = qs.order_by("series_name", "volume_number", "language")
+
+        arcs[READER_REPRINT_COLLECTION] = {}
+        for reprint in qs:
+            ids = tuple(sorted(set(reprint.ids)))
+            mtime = reprint.mtime
+            name = Reprint.compose_name(
+                reprint.series_name, reprint.volume_number, "", reprint.language
+            )
+            arcs[READER_REPRINT_COLLECTION][ids] = {"name": name, "mtime": mtime}
+            max_mtime = max_none(max_mtime, mtime)
+        return max_mtime
+
+    @staticmethod
+    def _fallback_arc_collection(arcs) -> str:
+        """Pick a collection this comic actually has an arc for."""
+        # The requested collection can be valid yet absent for this comic
+        # (an alternate series the comic isn't in, a story arc it lost on
+        # re-tag). Reading must still work, so fall back to the most
+        # series-like arc available instead of raising.
+        for collection in _ARC_COLLECTION_FALLBACK_ORDER:
+            if arcs.get(collection):
+                return collection
+        return next(iter(arcs), "")
+
     def _set_selected_arc(self, arcs) -> None:
         arc = self.params["arc"]
         arc_collection = arc["collection"]
         requested_arc_ids = arc.get("ids", ())
+        if not arcs.get(arc_collection):
+            arc_collection = self._fallback_arc_collection(arcs)
         arc_id_infos = arcs.get(arc_collection)
         all_arc_ids: frozenset[tuple[int, ...]] = (
             frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
         )
         arc_ids = ()
-        if arc_collection == STORY_ARC_COLLECTION:
+        if arc_collection in _MULTI_ROW_ARC_COLLECTIONS:
             if requested_arc_ids in all_arc_ids:
                 arc_ids = requested_arc_ids
             else:
@@ -136,7 +213,7 @@ class ReaderArcsView(ReaderParamsView):
                     if requested_set.intersection(candidate):
                         arc_ids = candidate
                         break
-        if not arc_ids:
+        if not arc_ids and all_arc_ids:
             arc_ids = next(iter(all_arc_ids))
         self._selected_arc_collection = arc_collection
         self._selected_arc_ids = arc_ids
@@ -156,5 +233,6 @@ class ReaderArcsView(ReaderParamsView):
         for field_name in field_names:
             max_mtime = self._get_collection_arc(comic, field_name, arcs, max_mtime)
         max_mtime = self._get_story_arcs(comic, arcs, max_mtime)
+        max_mtime = self._get_reprint_arcs(comic, arcs, max_mtime)
         self._set_selected_arc(arcs)
         return arcs, max_mtime

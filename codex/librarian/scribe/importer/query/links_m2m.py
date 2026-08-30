@@ -9,6 +9,7 @@ from codex.librarian.scribe.importer.const import (
     FIELD_NAME_KEY_ATTRS_MAP,
     FOLDERS_FIELD_NAME,
     LINK_M2MS,
+    REPRINTS_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
     STORY_ARC_NUMBERS_FIELD_NAME,
     get_through_model,
@@ -17,7 +18,7 @@ from codex.librarian.scribe.importer.query.links_fk import QueryPruneLinksFKs
 from codex.models.base import NamedModel
 from codex.models.collections import BrowserCollectionModel, Folder
 from codex.models.comic import Comic
-from codex.models.named import StoryArc
+from codex.models.named import Reprint, StoryArc
 from codex.settings import (
     IMPORTER_LINK_FK_BATCH_SIZE,
     IMPORTER_LINK_M2M_BATCH_SIZE,
@@ -71,14 +72,19 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
         leaving one must re-stamp the SOURCE arc/folder — ``TimestampUpdater``
         only re-stamps collections a *current* comic still links into. Mirrors
         the FK move capture in ``CreateComicsImporter``; the delete phase folds
-        these into the force-update map. Tag-style m2ms (genres, characters, …)
-        are not collections and are ignored here.
+        these into the force-update map. ``Reprint`` rides along because the
+        reader reads alternate series as a reading order off its timestamp.
+        Tag-style m2ms (genres, characters, …) are not collections and are
+        ignored here.
         """
         if field_name == STORY_ARC_NUMBERS_FIELD_NAME:
-            model: type[BrowserCollectionModel] = StoryArc
+            model: type[BrowserCollectionModel | Reprint] = StoryArc
             source_pk = story_arc_pk
         elif field_name == FOLDERS_FIELD_NAME:
             model = Folder
+            source_pk = target_pk
+        elif field_name == REPRINTS_FIELD_NAME:
+            model = Reprint
             source_pk = target_pk
         else:
             return

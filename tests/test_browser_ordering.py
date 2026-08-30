@@ -38,6 +38,7 @@ from codex.views.browser.order_by import (
 )
 
 _NEW_ORDER_BY_KEYS: Final = (
+    "alternate_number",
     "country",
     "day",
     "file_type",
