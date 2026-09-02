@@ -106,7 +106,7 @@
 
     "@humanwhocodes/module-importer": ["@humanwhocodes/module-importer@1.0.1", "", {}, "sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA=="],
 
-    "@humanwhocodes/momoa": ["@humanwhocodes/momoa@3.3.12", "", {}, "sha512-xS9xl4ieqTqhSZfKV3YXj/htwJCUxbgvkTVaK1fkESgrOzvoVSOTRQeQ8tTLOZUS0Csi2xqtJQXgVTRH5OEbHQ=="],
+    "@humanwhocodes/momoa": ["@humanwhocodes/momoa@3.3.13", "", {}, "sha512-AbKq3EW41+HY6pNMJgAOrz68iyiTTf0Nr1JRHHfuG5zwniJ9Dw8J3U7oa1I2ptpqYwmEf1sXKOGK6lbdZ9eqmg=="],
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
 
