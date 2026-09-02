@@ -73,5 +73,11 @@ export default {
 <style scoped lang="scss">
 #settingsDrawerButton {
   padding-right: max(10px, calc(env(safe-area-inset-right) / 2));
+  /*
+   * Vuetify 4.2 clips .v-btn (fix(variant) #22992). The admin librarian
+   * progress ring is larger than the compact button box on xs, so without
+   * this it loses its left and bottom arcs on phones.
+   */
+  overflow: visible;
 }
 </style>
