@@ -37,6 +37,10 @@ border-radius: 128px;
     - The Admin Tagging Status table shows what is being looked up right now.
     - Sorting by a tag column outside the table view (cover cards, OPDS feeds)
       no longer errors.
+    - Reading Bottom to Top jumped to the wrong page. The page list runs
+      backwards in that direction, so opening a comic, changing pages from the
+      toolbar or following a link landed on the mirrored page — page one showed
+      the last page. Top to Bottom was never affected.
 
 ## v2.2.11
 
