@@ -7,6 +7,7 @@
     :items="bookmarkChoices"
     :menu-props="{
       contentClass: filterMenuClass,
+      contentProps: { onKeydownCapture: onMenuKeydownCapture },
       maxHeight: undefined,
       closeOnContentClick: false,
     }"
@@ -92,6 +93,14 @@ import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-m
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+
+const ARROW_STEPS = Object.freeze({ ArrowDown: 1, ArrowUp: -1 });
+/*
+ * Vuetify focuses list rows programmatically with ``tabindex="-2"`` and
+ * parks the list itself at ``-1``, so excluding only ``-1`` selects exactly
+ * the rows its own focus walk would visit.
+ */
+const FOCUSABLE_ROW = '[tabindex]:not([tabindex="-1"]):not([disabled])';
 
 export default {
   name: "BrowserFilterBySelect",
@@ -243,6 +252,39 @@ export default {
       if (to && this.dynamicChoiceNames === undefined) {
         this.loadAvailableFilterChoices();
       }
+    },
+    /*
+     * Vuetify 4.2 moved select keyboard navigation into ``useScrolling``,
+     * which wraps from the last bookmark row straight back to the first and
+     * calls ``stopImmediatePropagation()``. That pre-empts VList's own focus
+     * walk, which is what used to carry the user into the rows this menu
+     * adds through the prepend/append slots ("Clear All Filters",
+     * "Favorites Only" and the filter sub-menus), leaving them mouse-only.
+     * A capture listener on the overlay content runs before the list's, so
+     * stepping off either end of the bookmark rows lands on the adjacent
+     * slot row instead of wrapping. Everywhere else the event is left alone
+     * and Vuetify still owns the navigation.
+     */
+    onMenuKeydownCapture(event) {
+      const step = ARROW_STEPS[event.key];
+      const content = event.currentTarget;
+      const row = document.activeElement?.closest?.("[aria-posinset]");
+      if (!step || !row || !content.contains(row)) {
+        return;
+      }
+      // Only the true ends of the bookmark list wrap; mid-list rows are fine.
+      const end = step > 0 ? Number(row.getAttribute("aria-setsize")) : 1;
+      if (Number(row.getAttribute("aria-posinset")) !== end) {
+        return;
+      }
+      const rows = [...content.querySelectorAll(FOCUSABLE_ROW)];
+      const target = rows[rows.indexOf(row) + step];
+      if (!target || target.hasAttribute("aria-posinset")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      target.focus();
     },
   },
 };
