@@ -1,38 +1,11 @@
 <template>
   <div v-if="stats" id="stats">
-    <AdminKeyValueTable title="Platform" :items="platformTable" />
-    <!--
-      API Key + regenerate button moved to the Settings tab. The
-      stats payload still exposes ``stats.config.apiKey`` but the
-      Config table here drops it from the rendered keys.
-    -->
-    <AdminKeyValueTable title="Config" :items="configTable" />
-    <AdminKeyValueTable title="File Types" :items="fileTypesTable" />
-    <!-- Two denominators, named apart. Sessions counts settings rows, one per
-         user and per anonymous session; per user counts people, one vote
-         each. Titling either of them "User Settings" invited reading one as
-         the other. -->
     <AdminKeyValueTable
-      title="Settings by Session"
-      :items="sessionSettingsTable"
+      v-for="section of sections"
+      :key="section.title"
+      :title="section.title"
+      :items="section.items"
     />
-    <AdminKeyValueTable
-      title="Settings by User"
-      :items="perUserSettingsTable"
-    />
-    <AdminKeyValueTable
-      title="Browser Collections"
-      :items="browserCollectionsTable"
-    />
-    <AdminKeyValueTable title="Tags" :items="metadataTable" />
-    <AdminKeyValueTable title="Reading" :items="usageTable" />
-    <AdminKeyValueTable title="Identifiers" :items="identifiersTable" />
-    <AdminKeyValueTable title="Admin Flags" :items="adminFlagsTable" />
-    <AdminKeyValueTable title="Online Tagging" :items="taggingTable" />
-    <AdminKeyValueTable title="Authentication" :items="authTable" />
-    <AdminKeyValueTable title="Email" :items="emailTable" />
-    <AdminKeyValueTable title="Rate Limits" :items="throttleTable" />
-    <AdminKeyValueTable title="Deployment" :items="deploymentTable" />
   </div>
 </template>
 
@@ -174,6 +147,34 @@ const INDENT_KEYS = Object.freeze(
 const SET_SUFFIXES = ["Set", "Custom", "Configured", "Credentials"];
 const NONE = "None";
 
+// Every stats table, in render order: the caption it wears and the computed
+// that fills it. Exported so a test enumerates the sections from here instead
+// of keeping a second copy of the titles that goes stale when one is renamed.
+const SECTIONS = Object.freeze([
+  ["Platform", "platformTable"],
+  // The API key is deliberately absent: the payload still carries
+  // ``stats.config.apiKey``, but configTable drops it from the rendered keys.
+  // The key itself and its regenerate button live on the Settings tab.
+  ["Config", "configTable"],
+  ["File Types", "fileTypesTable"],
+  // Two denominators, named apart. Sessions counts settings rows, one per user
+  // and per anonymous session; per user counts people, one vote each. Titling
+  // either of them "User Settings" invited reading one as the other.
+  ["Settings by Session", "sessionSettingsTable"],
+  ["Settings by User", "perUserSettingsTable"],
+  ["Browser Collections", "browserCollectionsTable"],
+  ["Tags", "metadataTable"],
+  ["Reading", "usageTable"],
+  ["Identifiers", "identifiersTable"],
+  ["Admin Flags", "adminFlagsTable"],
+  ["Online Tagging", "taggingTable"],
+  ["Authentication", "authTable"],
+  ["Email", "emailTable"],
+  ["Rate Limits", "throttleTable"],
+  ["Deployment", "deploymentTable"],
+]);
+export const SECTION_TITLES = Object.freeze(SECTIONS.map(([title]) => title));
+
 export default {
   name: "AdminStatsTab",
   components: {
@@ -185,6 +186,12 @@ export default {
     };
   },
   computed: {
+    sections() {
+      return SECTIONS.map(([title, items]) => ({
+        title,
+        items: this[items],
+      }));
+    },
     ...mapState(useCommonStore, {}),
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
