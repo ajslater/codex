@@ -3,7 +3,9 @@
  *
  * The tab is what an administrator sees of the anonymous stats report, so
  * behavior locked in here:
- *   - Every section the API returns is rendered under a titled table.
+ *   - Every section the component declares is rendered under a titled
+ *     table. The titles come from the component so renaming one there
+ *     does not leave a stale copy here.
  *   - Toggle booleans read as Yes/No, and "have you configured this"
  *     booleans read as Set/Not set, so nobody mistakes one for the other.
  *   - The API key is never rendered, even though the payload carries it.
@@ -12,7 +14,9 @@ import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
-import StatsTab from "@/components/admin/tabs/stats-tab.vue";
+import StatsTab, {
+  SECTION_TITLES,
+} from "@/components/admin/tabs/stats-tab.vue";
 import vuetify from "@/plugins/vuetify";
 
 const STATS = {
@@ -104,23 +108,6 @@ const STATS = {
   },
 };
 
-const SECTION_TITLES = [
-  "Platform",
-  "Config",
-  "File Types",
-  "User Settings",
-  "Browser Collections",
-  "Tags",
-  "Reading",
-  "Identifiers",
-  "Admin Flags",
-  "Online Tagging",
-  "Authentication",
-  "Email",
-  "Rate Limits",
-  "Deployment",
-];
-
 function mountTab(stats = STATS) {
   const pinia = createTestingPinia({ initialState: { admin: { stats } } });
   return mount(StatsTab, {
@@ -130,10 +117,13 @@ function mountTab(stats = STATS) {
 
 describe("AdminStatsTab", () => {
   test("renders a table for every stats section", () => {
-    const text = mountTab().text();
-    for (const title of SECTION_TITLES) {
-      expect(text).toContain(title);
-    }
+    const captions = mountTab()
+      .findAll(".adminKvCaption")
+      .map((caption) => caption.text());
+    // The whole ordered list, not per-title containment: a section that stops
+    // rendering, one rendered twice, and an empty title all have to fail here,
+    // which a loop of toContain over titles taken from the component cannot.
+    expect(captions).toStrictEqual([...SECTION_TITLES]);
   });
 
   test("never renders the api key", () => {
