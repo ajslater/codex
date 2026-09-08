@@ -1,9 +1,6 @@
 appID: comicbox dev
 comicbox:
   age_rating: Adult
-  alternate_images:
-    - alt0.jxl
-    - alt2.jxl
   alternative_issue:
     number: 44
     suffix: BU
@@ -37,17 +34,14 @@ comicbox:
       roles:
         Writer:
           identifiers:
-            key: "890"
+            metron:
+              key: "890"
       identifiers:
         metron:
           key: "123"
     Wally Wood:
       roles:
         Penciller: {}
-  credit_primaries:
-    Joe Orlando: Writer
-    Wally Wood: Penciller
-  critical_rating: 5
   date:
     cover_date: 1951-12-20
     store_date: 1951-11-28
@@ -135,7 +129,7 @@ comicbox:
       identifiers:
         metron:
           key: "123"
-    Team Cornish Game Hen:
+    Team Cornish Game Hen: {}
   title: The Beginning; The End
   universes:
     Young Adult Silly Universe:
@@ -147,4 +141,4 @@ comicbox:
   volume:
     issue_count: 1
     number: 1950
-schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v3.0/comicbox-v3.0.schema.json"

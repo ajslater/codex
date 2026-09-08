@@ -22,8 +22,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from comicbox.box import Comicbox
-from comicbox.config import get_config
-from comicbox.config.settings import (
+from comicbox.config.online import (
     MatchMode,
     OnlineAuthSettings,
     OnlineLookupSettings,
@@ -34,6 +33,7 @@ from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY
 from comicbox.identifiers import ID_KEY_KEY
 
 from codex.librarian.onlinetag.issue_id import parse_issue_id
+from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -77,7 +77,7 @@ def build_explicit_id_config(
     that carries an explicit id, so all are fetched and merged into one record;
     the primary ``source`` is listed first and wins per-field conflicts.
     """
-    base = get_config()
+    base = COMICBOX_ONLINE_CONFIG
     # Primary source first (highest merge priority), then the extra pinned
     # sources; dedup keeps the primary's id if a source repeats.
     ids = {source: issue_id}

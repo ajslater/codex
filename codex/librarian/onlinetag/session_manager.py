@@ -78,6 +78,7 @@ from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
+from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
     from multiprocessing import Queue
@@ -655,6 +656,11 @@ class OnlineTagSessionManager:
             first_wins=not task.merge_all_sources,
             on_event=self._on_event,
             prompt_handler=CodexPromptHandler(),
+            # Codex's own online settings, chiefly the cache directory
+            # under /config. Without them the session reads its own and
+            # comicbox's sqlite caches land somewhere a container
+            # recreation throws away.
+            config=COMICBOX_ONLINE_CONFIG,
         )
         state = SessionState(
             session=session,

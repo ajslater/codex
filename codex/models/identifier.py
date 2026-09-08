@@ -2,6 +2,8 @@
 
 from typing import override
 
+from bidict import frozenbidict
+from comicbox.identifiers import DEFAULT_ID_TYPE
 from django.db.models import (
     CASCADE,
     CharField,
@@ -44,6 +46,36 @@ class IdentifierType(TextChoices):
     UNIVERSE = "universe"
     ROLE = "creditrole"
     CREATOR = "creditperson"
+
+
+#: Codex names an identifier's type after the table it points at;
+#: comicbox names it after the thing itself, so codex's ``storyarc`` is
+#: comicbox's ``arc``. The two vocabularies agree member for member, so
+#: the bridge is the enum's own member names: a type added to one side
+#: cannot go missing from the other the way a second hand-written list
+#: would. ``tests/test_identifier_types.py`` guards the agreement.
+COMICBOX_ID_TYPE_MAP: frozenbidict[str, str] = frozenbidict(
+    {id_type.value: id_type.name.lower() for id_type in IdentifierType}
+)
+
+
+def to_codex_id_type(comicbox_id_type: str | None) -> str:
+    """
+    Name the codex table a comicbox identifier type points at.
+
+    An identifier states a type only when it isn't the one its position
+    implies, so an absent type means the default: an issue.
+    """
+    if not comicbox_id_type:
+        return IdentifierType.ISSUE.value
+    return COMICBOX_ID_TYPE_MAP.inverse.get(
+        comicbox_id_type.lower(), IdentifierType.ISSUE.value
+    )
+
+
+def to_comicbox_id_type(codex_id_type: str) -> str:
+    """Name the comicbox identifier type for a codex table."""
+    return COMICBOX_ID_TYPE_MAP.get(codex_id_type, DEFAULT_ID_TYPE)
 
 
 class Identifier(BaseModel):

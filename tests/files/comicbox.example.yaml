@@ -1,9 +1,6 @@
 appID: comicbox dev
 comicbox:
   age_rating: Everyone
-  alternate_images:
-    - alt0.jxl
-    - alt1.jxl
   alternative_issue:
     number: 43.5
     suffix: AU
@@ -37,10 +34,6 @@ comicbox:
     Wally Wood:
       roles:
         Penciller: {}
-  credit_primaries:
-    Joe Orlando: Writer
-    Wally Wood: Penciller
-  critical_rating: 10
   date:
     cover_date: 1950-11-01
     store_date: 1950-11-28
@@ -54,10 +47,6 @@ comicbox:
   identifiers:
     comicvine:
       key: "145269"
-      url: https://comicvine.gamespot.com/c/4000-145269/
-  identifier_primary_source:
-    source: metron
-    url: "https://metron.cloud/"
   imprint:
     name: TestImprint
   issue:
@@ -150,4 +139,4 @@ comicbox:
   volume:
     issue_count: 7
     number: 1950
-schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v3.0/comicbox-v3.0.schema.json"

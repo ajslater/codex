@@ -9,8 +9,10 @@
  * language}), and clearing the section has to travel as the "reprints"
  * delete key — a patch can only add or replace.
  *
- * Volume and language are MetronInfo-only: ComicInfo's AlternateSeries /
- * AlternateNumber / AlternateCount carry neither.
+ * Reprints are MetronInfo-only. ComicInfo's AlternateSeries and
+ * AlternateNumber name a story arc, not another edition of the book, and
+ * comicbox 5 reads them as one, so a ComicInfo-only write has nowhere to
+ * put a reprint at all.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -194,7 +196,7 @@ describe("EditPanel reprints patch", () => {
 });
 
 describe("EditPanel reprints format support", () => {
-  test("ComicInfo disables the MetronInfo-only volume and language", async () => {
+  test("ComicInfo disables the whole section, not just its parts", async () => {
     const wrapper = await mountPanel({
       formats: ["COMIC_INFO"],
       md: { reprints: SHAPED_REPRINTS },
@@ -208,8 +210,9 @@ describe("EditPanel reprints format support", () => {
       DISABLED_TIP,
     );
     expect(wrapper.vm.isFieldDisabled("reprint_language")).toBe(true);
-    // The series name and issue do persist to ComicInfo's Alternates.
-    expect(wrapper.vm.isFieldDisabled("reprints")).toBe(false);
+    // ComicInfo has no reprint tag to write to: its AlternateSeries and
+    // AlternateNumber are a story arc.
+    expect(wrapper.vm.isFieldDisabled("reprints")).toBe(true);
   });
 
   test("MetronInfo enables every part", async () => {

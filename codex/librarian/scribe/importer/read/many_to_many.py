@@ -15,6 +15,8 @@ from comicbox.formats.comicbox.schema import (
     SERIES_SORT_NAME_KEY,
     VOLUME_KEY,
 )
+from comicbox.identifiers import ID_KEY_KEY
+from comicbox.identifiers.identifiers import get_url_from_identifier
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
 
@@ -34,14 +36,13 @@ from codex.librarian.scribe.importer.const import (
 from codex.librarian.scribe.importer.read.const import (
     COMPLEX_FIELD_AGG_MAP,
     FIELD_NAME_TO_MD_KEY_MAP,
-    ID_TYPE_KEY,
 )
 from codex.librarian.scribe.importer.read.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
 from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.identifier import IdentifierSource
+from codex.models.identifier import IdentifierSource, IdentifierType
 from codex.models.named import CreditRole, Reprint
 
 if TYPE_CHECKING:
@@ -157,11 +158,6 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         for sub_sub_md_key, sub_sub_field in dict_field_keys.items():
             # Sub_sub_md_key is identifiers or designation or roles
 
-            if sub_sub_md_key == ID_TYPE_KEY:
-                # Special injection of identifier type
-                clean_sub_values.append(sub_sub_field)
-                continue
-
             # Get one sub value tuple for the aggregate tuple
             clean_sub_sub_value = (
                 self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
@@ -178,8 +174,29 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 clean_sub_values.append(clean_sub_sub_value)
         return roles_or_numbers
 
+    @staticmethod
+    def _identifier_sub_map(
+        clean_sub_key: tuple, sub_value_obj: Mapping | None
+    ) -> dict:
+        """
+        Flatten one comic-level identifier into its key tuple and url.
+
+        A comicbox identifier holds a key, and a type only when that type
+        isn't the one its position implies — at the top level, an issue.
+        It holds no url: comicbox derives links from the key rather than
+        storing a copy that could disagree with it, and so does codex.
+        """
+        id_obj = sub_value_obj or {}
+        id_key = id_obj.get(ID_KEY_KEY)
+        if not id_key:
+            return {}
+        id_source = clean_sub_key[0]
+        id_url = get_url_from_identifier(id_source, id_obj)
+        key_tuple = (*clean_sub_key, IdentifierType.ISSUE.value, id_key)
+        return {key_tuple: frozenset({(id_url,)})}
+
     def _create_clean_sub_map(
-        self, field, roles_or_numbers, clean_sub_key, clean_sub_values
+        self, field, roles_or_numbers, clean_sub_key, clean_sub_values, sub_value_obj
     ) -> dict:
         # Create sub_map with special provisions for complex types.
         clean_sub_map = {}
@@ -199,10 +216,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 for role_values in roles_or_numbers:
                     clean_sub_map[(clean_sub_key, role_values)] = set()
         elif field.name == IDENTIFIERS_FIELD_NAME:
-            clean_sub_key += tuple(clean_sub_values[:2])
-            url_value = tuple(clean_sub_values[2:])
-            clean_sub_value = frozenset({url_value})
-            clean_sub_map = {clean_sub_key: clean_sub_value}
+            clean_sub_map = self._identifier_sub_map(clean_sub_key, sub_value_obj)
         else:
             clean_sub_value = (
                 frozenset((tuple(clean_sub_values),))
@@ -239,7 +253,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             field, dict_field_keys, clean_sub_values, sub_value_obj
         )
         return self._create_clean_sub_map(
-            field, roles_or_numbers, clean_sub_key, clean_sub_values
+            field, roles_or_numbers, clean_sub_key, clean_sub_values, sub_value_obj
         )
 
     @staticmethod

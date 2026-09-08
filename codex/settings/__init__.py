@@ -812,12 +812,11 @@ DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # Persist comicbox's online-tagging sqlite caches alongside Codex's other
 # caches (under the /config volume) instead of comicbox's default ephemeral
 # platformdirs location (e.g. ~/.cache/comicbox), which is lost when a Docker
-# container is recreated. comicbox reads COMICBOX_ONLINE_CACHE_DIR in
-# get_config(); OnlineSession picks it up per scan and on worker subprocesses.
-# setdefault leaves an explicitly-set value in place as a power-user override.
+# container is recreated. The directory rides COMICBOX_CONFIG below, which
+# every online path hands to comicbox; it is not an environment variable,
+# so nothing depends on comicbox looking one up under a name of its own.
 COMICBOX_CACHE_PATH = ROOT_CACHE_PATH / "comicbox"
 COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
-environ.setdefault("COMICBOX_ONLINE_CACHE_DIR", str(COMICBOX_CACHE_PATH))
 # MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
 # too small once the cache holds (a) cachalot query results — often
 # 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
@@ -1176,15 +1175,30 @@ _COMICBOX_DELETE_KEYS: frozenset[str] = frozenset(
 
 # ``delete_keys`` is typed as ``Sequence(str)`` in the comicbox confuse
 # template, so feed it a sorted tuple rather than the source frozenset.
-# Both keys live under the ``general`` section of the comicbox config
-# tree; an un-nested overlay is silently ignored by confuse.
+# Every key lives under a section of the comicbox config tree; an
+# un-nested overlay is silently ignored by confuse.
 COMICBOX_CONFIG: ComicboxSettings = get_config(
     {
         "comicbox": {
             "general": {
                 "loglevel": LOGLEVEL,
                 "delete_keys": tuple(sorted(_COMICBOX_DELETE_KEYS)),
-            }
+            },
+            "online": {"cache": {"dir": str(COMICBOX_CACHE_PATH)}},
+        }
+    }
+)
+
+# The online settings deliberately carry no ``delete_keys``. That set is
+# the read side's parse-skip list — the schema fields codex has no column
+# for — and online tagging is not a read: what a database returns is
+# written straight back to the archive. Skipping a field here would drop
+# whatever the source supplied for it before the write ever saw it.
+COMICBOX_ONLINE_CONFIG: ComicboxSettings = get_config(
+    {
+        "comicbox": {
+            "general": {"loglevel": LOGLEVEL},
+            "online": {"cache": {"dir": str(COMICBOX_CACHE_PATH)}},
         }
     }
 )

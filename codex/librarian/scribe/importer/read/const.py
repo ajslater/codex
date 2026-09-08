@@ -17,7 +17,7 @@ from comicbox.formats.comicbox.schema import (
     TAGS_KEY,
     TEAMS_KEY,
 )
-from comicbox.identifiers import ID_KEY_KEY, ID_URL_KEY
+from comicbox.identifiers import ID_KEY_KEY
 from django.db.models.fields import Field
 
 from codex.librarian.scribe.importer.const import (
@@ -91,7 +91,6 @@ IDENTIFIED_KEY_CLASS_MAP = MappingProxyType(
         TEAMS_KEY: Team,
     }
 )
-ID_TYPE_KEY = "id_type"
 # This map tells aggregator how to parse metadata into tuples for query & create.
 COMPLEX_FIELD_AGG_MAP: MappingProxyType[str, tuple] = MappingProxyType(
     {
@@ -111,9 +110,7 @@ COMPLEX_FIELD_AGG_MAP: MappingProxyType[str, tuple] = MappingProxyType(
             IdentifierSource.name,
             None,
             {
-                ID_TYPE_KEY: "comic",
                 ID_KEY_KEY: Identifier.key,
-                ID_URL_KEY: Identifier.url,
             },
         ),
         STORY_ARC_NUMBERS_FIELD_NAME: (

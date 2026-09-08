@@ -49,6 +49,7 @@ from codex.models import (
     StoryArcNumber,
     Tag,
     Tagger,
+    Team,
     Universe,
     Volume,
 )
@@ -140,6 +141,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "story_arc_numbers": {("c", None), ("d", 1), ("e", 3), ("g", 5)},
                 "universes": {("Young Adult Silly Universe",)},
                 "tags": {("a",), ("c",)},
+                "teams": {
+                    ("Team Cornish Game Hen",),
+                    ("Team Scientific Method",),
+                },
             }
         },
         QUERY_MODELS: {
@@ -173,8 +178,11 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 ("metron", "creditperson", "123"): {
                     ("https://metron.cloud/creator/123",),
                 },
+                ("metron", "creditrole", "890"): {
+                    ("",),
+                },
                 ("metron", "genre", "012"): {
-                    (None,),
+                    ("",),
                 },
                 ("metron", "imprint", "123"): {
                     ("https://metron.cloud/imprint/123",),
@@ -183,7 +191,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     ("https://metron.cloud/publisher/111",),
                 },
                 ("metron", "story", "555"): {
-                    (None,),
+                    ("",),
+                },
+                ("metron", "team", "123"): {
+                    ("https://metron.cloud/team/123",),
                 },
             },
             Publisher: {
@@ -240,7 +251,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     (None,),
                 },
                 ("Writer",): {
-                    (None,),
+                    (("metron", "creditrole", "890"),),
                 },
             },
             Credit: {
@@ -301,6 +312,14 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 },
             },
             Tagger: {("comicbox dev",): set()},
+            Team: {
+                ("Team Cornish Game Hen",): {
+                    (None,),
+                },
+                ("Team Scientific Method",): {
+                    (("metron", "team", "123"),),
+                },
+            },
             Universe: {
                 ("Young Adult Silly Universe",): {
                     (None, "6969"),
@@ -347,10 +366,12 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 ("metron", "character", "123", "https://metron.cloud/character/123"),
                 ("metron", "comic", "999", "https://metron.cloud/issue/999"),
                 ("metron", "creditperson", "123", "https://metron.cloud/creator/123"),
-                ("metron", "genre", "012", None),
+                ("metron", "creditrole", "890", ""),
+                ("metron", "genre", "012", ""),
                 ("metron", "imprint", "123", "https://metron.cloud/imprint/123"),
                 ("metron", "publisher", "111", "https://metron.cloud/publisher/111"),
-                ("metron", "story", "555", None),
+                ("metron", "story", "555", ""),
+                ("metron", "team", "123", "https://metron.cloud/team/123"),
             },
             Language: {("fr",)},
             AgeRating: {("Adult",)},
@@ -363,7 +384,8 @@ QUERIED_UPDATE_ALL = MappingProxyType(
             Story: {("The End", None)},
             StoryArc: {("g", None)},
             StoryArcNumber: {("g", 5)},
-            "total": 23,
+            Team: {("Team Cornish Game Hen", None)},
+            "total": 26,
         },
         DELETE_M2MS: {
             "characters": {(1, 1)},
@@ -391,6 +413,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         LINK_M2MS: {
@@ -406,6 +429,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
+                "teams": {("Team Cornish Game Hen",)},
             }
         },
         UPDATE_COMICS: {
@@ -453,12 +477,14 @@ QUERIED_UPDATE_ALL = MappingProxyType(
             },
             Character: {("Captain Science", ("metron", "character", "123"))},
             CreditPerson: {("Joe Orlando", ("metron", "creditperson", "123"))},
+            CreditRole: {("Writer", ("metron", "creditrole", "890"))},
             Genre: {("Science Fiction", ("metron", "genre", "012"))},
             Story: {("The Beginning", ("metron", "story", "555"))},
             StoryArc: {
                 ("d", ("comicvine", "storyarc", "890")),
                 ("e", ("comicvine", "storyarc", "456")),
             },
+            Team: {("Team Scientific Method", ("metron", "team", "123"))},
             Universe: {("Young Adult Silly Universe", None, "6969")},
             Volume: {
                 (
@@ -470,7 +496,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                     1,
                 )
             },
-            TOTAL: 11,
+            TOTAL: 13,
         },
     }
 )
@@ -504,6 +530,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         LINK_M2MS: {
@@ -519,6 +546,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
+                "teams": {("Team Cornish Game Hen",)},
             }
         },
         UPDATE_COMICS: {
@@ -568,6 +596,7 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         LINK_M2MS: {
@@ -583,6 +612,7 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
+                "teams": {("Team Cornish Game Hen",)},
             }
         },
         FTS_UPDATE: {
@@ -613,6 +643,7 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         FTS_UPDATE: {
@@ -632,6 +663,7 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
         },
@@ -649,6 +681,7 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         FTS_UPDATE: {
@@ -668,6 +701,7 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
         },
@@ -684,6 +718,7 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
                 "tags": ("a", "c"),
+                "teams": ("Team Scientific Method",),
             }
         },
         FTS_UPDATE: {
@@ -703,6 +738,7 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
         },
@@ -758,7 +794,7 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK_UPDATE_ALL, md, "CREATED_FK_UPDATE_ALL")
-        assert Identifier.objects.count() == 15  # noqa: PLR2004
+        assert Identifier.objects.count() == 17  # noqa: PLR2004
 
         # Create & Update Comics
         self.importer.prepare_fk_link_instance_maps()

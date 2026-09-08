@@ -8,11 +8,12 @@ from comicbox.formats.comicbox.schema import (
     IDENTIFIERS_KEY,
     NAME_KEY,
     NUMBER_KEY,
-    NUMBER_TO_KEY,
     PAGE_COUNT_KEY,
     PROTAGONIST_KEY,
+    VOLUME_NUMBER_TO_KEY,
 )
-from comicbox.identifiers import ID_KEY_KEY, ID_URL_KEY
+from comicbox.identifiers import ID_KEY_KEY, ID_TYPE_KEY
+from comicbox.identifiers.identifiers import get_identifier_url
 from django.db.models import Field
 from django.db.models.base import Model
 
@@ -30,7 +31,12 @@ from codex.librarian.scribe.importer.read.const import (
 )
 from codex.models.base import BaseModel
 from codex.models.collections import BrowserCollectionModel, Volume
-from codex.models.identifier import Identifier, IdentifierSource
+from codex.models.identifier import (
+    Identifier,
+    IdentifierSource,
+    to_codex_id_type,
+    to_comicbox_id_type,
+)
 from codex.util import max_none
 
 _MINIMAL_KEYS = frozenset(
@@ -57,6 +63,24 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         else:
             clean_extra_values = frozenset(clean_extra_values)
         self.metadata[QUERY_MODELS][model][clean_key_values] |= clean_extra_values
+
+    @staticmethod
+    def _identifier_url(id_source: str, id_type: str, id_obj: Mapping) -> str:
+        """
+        Derive the web link for one identifier.
+
+        Comicbox identifiers carry no url of their own: a synthesized
+        copy stored beside the key could disagree with it, so comicbox
+        derives links from the key on demand and codex derives its own
+        column the same way. An identifier names its type only when that
+        type isn't the one its position implies, so a character's
+        identifier with nothing stated is a character id.
+        """
+        stated_type = id_obj.get(ID_TYPE_KEY)
+        comicbox_id_type = to_codex_id_type(stated_type) if stated_type else id_type
+        return get_identifier_url(
+            id_source, to_comicbox_id_type(comicbox_id_type), id_obj.get(ID_KEY_KEY, "")
+        )
 
     def get_identifier_tuple(
         self, model: type[BaseModel], obj: Mapping
@@ -86,7 +110,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         if id_source:
             self.add_query_model(IdentifierSource, (id_source,))
         identifier_tuple_keys = (id_source, id_type, id_key)
-        id_url = id_obj.get(ID_URL_KEY)
+        id_url = self._identifier_url(id_source, id_type, id_obj)
         identifier_tuple_extra = frozenset([(id_url,)])
         self.add_query_model(Identifier, identifier_tuple_keys, identifier_tuple_extra)
 
@@ -114,7 +138,7 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         collection_list.append(clean_collection_name)
         extra_vals = []
         if model == Volume:
-            number_to = collection.get(NUMBER_TO_KEY, model.DEFAULT_NAME)
+            number_to = collection.get(VOLUME_NUMBER_TO_KEY, model.DEFAULT_NAME)
             clean_number_to = name_field.get_prep_value(number_to)
             collection_list.append(clean_number_to)
         else:
