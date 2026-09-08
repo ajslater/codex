@@ -55,6 +55,9 @@ border-radius: 128px;
     - An online scan's time estimate is keyed on Effort rather than Match Mode,
       which never changed how many requests a comic costs. It reads higher, and
       a real scan beats it.
+    - Covers are cached by the browser and revalidated instead of re-sent, so
+      revisiting a page does not download them again. They also survive a scan,
+      which used to discard every cached cover whether or not it had changed.
 
 - Dev
     - Comicbox 5.0.0, and its metadata schema v3.0.

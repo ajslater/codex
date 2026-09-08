@@ -131,9 +131,9 @@ class BrowserOrderByIntegrationTestCase(TestCase):
 
     @override
     def setUp(self) -> None:
-        # ``cache_page`` on the browser endpoint keys on URL only — without
-        # this clear, tests bleed cached responses across each other and a
-        # PATCH to settings won't be reflected in the next GET.
+        # The browser endpoint is cachalot-cached — without this clear, tests
+        # bleed cached query results across each other and a PATCH to
+        # settings won't be reflected in the next GET.
         cache.clear()
         init_admin_flags()
         TMP_DIR.mkdir(exist_ok=True, parents=True)

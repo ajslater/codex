@@ -14,12 +14,25 @@ the cover thread produces the real bytes. When a cover can't be produced
 (or doesn't exist) we respond 404 with an empty body — the web client
 falls back to its ``lazy-src`` SVG and OPDS clients use their own default
 rendering.
+
+These endpoints deliberately carry no ``cache_page``. The thumb is already
+a file on disk, so a server-side copy of the response body only duplicated
+it — once per user, because the page-cache key hashes the ``Vary`` header
+values — and it could not be invalidated for one pk, only by clearing the
+whole default cache (which import finish, tag writes, and Library / Group
+CRUD all do). Instead each response carries ``ETag`` and ``Last-Modified``
+derived from the thumb's size and mtime, so a revalidating client gets a
+304 without the bytes being read, and a regenerated cover invalidates
+itself.
 """
 
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, Final, override
 
 from django.http import HttpResponse
+from django.utils.cache import get_conditional_response
+from django.utils.http import http_date
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from loguru import logger
@@ -30,6 +43,7 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.models import Comic
+from codex.urls.const import COVER_MAX_AGE
 from codex.views.auth import AuthFilterAPIView, GroupACLMixin
 
 # source → queryset filter kwargs builder for representative-comic
@@ -68,6 +82,12 @@ class _CoverBaseView(AuthFilterAPIView):
 
     renderer_classes: Sequence[type[BaseRenderer]] = (WEBPRenderer,)
     content_type = _WEBP_CONTENT_TYPE
+    # A page of covers is dozens of sub-requests for one page view, not dozens
+    # of user actions. Until this view served conditional GETs, ``cache_page``
+    # short-circuited before DRF ever dispatched, so cover hits never reached
+    # the throttles; counting them now would let a single browse page exhaust
+    # an admin's configured ``throttle.user`` rate.
+    throttle_classes = ()
 
     @staticmethod
     def _missing_cover_response(
@@ -90,13 +110,57 @@ class _CoverBaseView(AuthFilterAPIView):
         response["Cache-Control"] = "no-store"
         return response
 
+    @staticmethod
+    def _cover_validators(cover_path: Path) -> tuple[str, int] | None:
+        """Return the (ETag, Last-Modified) pair for a present, non-empty cover."""
+        try:
+            stat = cover_path.stat()
+        except OSError:
+            # Absent, or unreadable — the byte read below decides what to do.
+            return None
+        if not stat.st_size:
+            # Zero-byte marker; nothing to validate against.
+            return None
+        # The cover thread rewrites the whole file, so size + mtime identify
+        # the bytes. Seconds resolution for Last-Modified, which is all an
+        # HTTP-date carries.
+        return f'"{stat.st_mtime_ns}-{stat.st_size}"', int(stat.st_mtime)
+
     @classmethod
-    def _get_cover_response(cls, pk: int, *, custom: bool) -> HttpResponse:
-        """Return a cached cover, enqueue one (202), or 404."""
+    def _add_cover_headers(
+        cls, response: HttpResponse, validators: tuple[str, int], *, custom: bool
+    ) -> HttpResponse:
+        """Attach the revalidation and freshness headers for a served cover."""
+        etag, last_modified = validators
+        response["ETag"] = etag
+        response["Last-Modified"] = http_date(last_modified)
+        # Comic covers are ACL-gated, so only the requesting user's own browser
+        # may store them; a shared proxy holding one would serve it to readers
+        # the ACL excludes. Custom covers are admin-provisioned collection
+        # artwork with no ACL (see CustomCoverView), so they stay public.
+        visibility = "public" if custom else "private"
+        response["Cache-Control"] = f"{visibility}, max-age={COVER_MAX_AGE}"
+        return response
+
+    @classmethod
+    def _get_cover_response(cls, request, pk: int, *, custom: bool) -> HttpResponse:
+        """Return a cover (200 or 304), enqueue one (202), or 404."""
         cover_path = CoverPathMixin.get_cover_path(pk, custom=custom)
-        # Single read — no exists()/stat() race window. The cover thread
-        # writes atomically via os.replace, so we only ever see the old state
-        # or the complete new file.
+        # stat() before the read so a revalidating client is answered with a
+        # 304 without the image bytes ever being touched. The cover thread
+        # writes atomically via os.replace, so a file swapped between the stat
+        # and the read hands back the new bytes under the previous ETag: the
+        # client stores the fresh image and revalidates against the new ETag on
+        # the next request, so the pair is self-correcting.
+        validators = cls._cover_validators(cover_path)
+        if validators:
+            etag, last_modified = validators
+            not_modified = get_conditional_response(
+                request, etag=etag, last_modified=last_modified
+            )
+            if not_modified is not None:
+                return cls._add_cover_headers(not_modified, validators, custom=custom)
+
         try:
             cover_bytes = cover_path.read_bytes()
         except FileNotFoundError:
@@ -106,7 +170,10 @@ class _CoverBaseView(AuthFilterAPIView):
             cover_bytes = None
 
         if cover_bytes:
-            return HttpResponse(cover_bytes, content_type=_WEBP_CONTENT_TYPE)
+            response = HttpResponse(cover_bytes, content_type=_WEBP_CONTENT_TYPE)
+            if validators:
+                cls._add_cover_headers(response, validators, custom=custom)
+            return response
         if cover_bytes == b"":
             # Zero-byte marker = the cover thread already tried and failed.
             return cls._missing_cover_response()
@@ -134,7 +201,7 @@ class CoverView(_CoverBaseView):
             acl_q = self.get_acl_filter(Comic, self.request.user)
             if not Comic.objects.filter(acl_q, pk=pk).exists():
                 return self._missing_cover_response()
-            return self._get_cover_response(pk, custom=False)
+            return self._get_cover_response(self.request, pk, custom=False)
         except Exception:
             logger.exception(f"Get comic cover by pk {pk}")
             return self._missing_cover_response()
@@ -154,7 +221,7 @@ class CustomCoverView(_CoverBaseView):
     def get(self, *_args, pk: int, **_kwargs) -> HttpResponse:
         """Get the custom cover for a single CustomCover pk."""
         try:
-            return self._get_cover_response(pk, custom=True)
+            return self._get_cover_response(self.request, pk, custom=True)
         except Exception:
             logger.exception(f"Get custom cover by pk {pk}")
             return self._missing_cover_response()

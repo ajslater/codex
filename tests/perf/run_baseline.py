@@ -263,9 +263,9 @@ def _capture(client: Client, url: str) -> dict[str, Any]:
     path_prefix = url.split("?", 1)[0]
     SilkRequest.objects.filter(path__startswith=path_prefix).delete()
 
-    # `cache_page` on browser URLs stores the full response in the
-    # default cache; cachalot caches QuerySet results. Wipe both so the
-    # cold pass actually hits the view and the DB.
+    # cachalot caches QuerySet results and the browse view caches its
+    # page-mtime probe. Wipe both so the cold pass actually hits the view
+    # and the DB.
     django_cache.clear()
     cachalot_invalidate()
     cold_response = client.get(url)

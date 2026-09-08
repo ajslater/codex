@@ -1,10 +1,9 @@
 """codex:api:v4:comics URL Configuration."""
 
 from django.urls import path
-from django.views.decorators.cache import cache_control, cache_page
 from django.views.decorators.vary import vary_on_cookie
 
-from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
+from codex.urls.const import PAGE_MAX_AGE
 from codex.views.browser.bookmark import ComicBookmarkView
 from codex.views.browser.cover import CoverView
 from codex.views.download import DownloadView
@@ -31,11 +30,13 @@ urlpatterns = [
     ),
     path(
         "<int:pk>/cover",
-        cache_page(COVER_MAX_AGE)(
-            cache_control(max_age=COVER_MAX_AGE, public=True)(
-                vary_on_cookie(CoverView.as_view())
-            )
-        ),
+        # No ``cache_page``: covers are already on disk as webp files, so a
+        # server-side copy of the response body duplicated them once per user
+        # (the key hashes the ``Vary`` values) and could only be invalidated by
+        # clearing the whole cache. The view serves ETag / Last-Modified
+        # instead, and sets its own ``Cache-Control``. ``Vary`` still has to be
+        # declared here so a downstream proxy keys ACL-gated covers per user.
+        vary_on_cookie(CoverView.as_view()),
         name="cover",
     ),
     path(

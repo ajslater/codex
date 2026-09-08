@@ -7,6 +7,7 @@ another include block here.
 """
 
 from django.urls import include, path
+from django.views.decorators.vary import vary_on_cookie
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerSplitView,
@@ -46,5 +47,13 @@ urlpatterns += [
     path("version", VersionView.as_view(), name="version"),
     path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
-    path("covers/<str:source>/<int:pk>", cover_dispatch_by_source, name="covers"),
+    # The route the web client uses for every cover on a browse page. It
+    # carries a ``?ts=<mtime>`` cache-buster, and the view emits its own
+    # ``Cache-Control`` / ETag / Last-Modified. ``Vary`` is declared here so a
+    # downstream proxy keys ACL-gated covers per user.
+    path(
+        "covers/<str:source>/<int:pk>",
+        vary_on_cookie(cover_dispatch_by_source),
+        name="covers",
+    ),
 ]

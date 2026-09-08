@@ -817,15 +817,19 @@ DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # so nothing depends on comicbox looking one up under a name of its own.
 COMICBOX_CACHE_PATH = ROOT_CACHE_PATH / "comicbox"
 COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
-# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
-# too small once the cache holds (a) cachalot query results — often
-# 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
-# for the browser view AND (c) one `cache_page` entry per cover pk on
-# the cover endpoint. A 100-cover page can populate 200+ entries in a
-# single pageload; the default triggers the 2/3 random cull, which
-# silently evicts just-written cover responses before the next request
-# can read them. 10k is cheap on disk (~<100 MB of tiny files) and
-# cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
+# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far too
+# small for cachalot's query results — often 100+ unique SELECTs for a
+# single browse page — which dominate this cache and would otherwise
+# trigger the 2/3 random cull mid-page. The rest is small and
+# short-lived: OPDS feed bodies (60 s), the PWA manifest and OPDS
+# authentication document (1 h), page-mtime probes (5 s), admin stats,
+# and DRF throttle counters. Covers are NOT in here — they are served
+# from disk with ETag / Last-Modified revalidation (see
+# codex.views.browser.cover), because a `cache_page` body cache keyed on
+# the Vary values held one copy per user of bytes already on disk and
+# could only be invalidated by clearing this whole cache. 10k is cheap on
+# disk (~<100 MB of tiny files) and cheap at cull time (FileBasedCache
+# walks the dir — negligible at 10k).
 TAGGING_CACHE_PATH = ROOT_CACHE_PATH / "tagging"
 TAGGING_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 
