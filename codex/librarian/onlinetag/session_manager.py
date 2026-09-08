@@ -495,7 +495,7 @@ class OnlineTagSessionManager:
             "path": str(dp.path) if dp.path else "",
             "source": dp.source,
             "candidates": [serialize_candidate(c) for c in dp.candidates],
-            "mode": getattr(dp.mode, "value", str(dp.mode)),
+            "mode": getattr(dp.match, "value", str(dp.match)),
             "formats": list(formats),
             "delete_original": delete_original,
             "rename": rename,
@@ -668,7 +668,7 @@ class OnlineTagSessionManager:
             # Pinned sources fetch their issue id directly; the rest search.
             ids=dict(task.ids),
             credentials=credentials,
-            mode=MatchMode(task.mode),
+            match=MatchMode(task.mode),
             defer_prompts=defer_prompts,
             # first_wins=False queries every source per comic and merges.
             first_wins=not task.merge_all_sources,
@@ -953,7 +953,10 @@ class OnlineTagSessionManager:
         session = OnlineSession(
             sources=(source,),
             credentials=credentials,
-            mode=MatchMode(prompt.get("mode") or "auto"),
+            # The persisted prompt's own "mode" key predates comicbox 5's
+            # rename and is codex's cache format, versioned by
+            # PROMPT_VERSION; only the comicbox kwarg moved.
+            match=MatchMode(prompt.get("mode") or "auto"),
             defer_prompts=True,
         )
         session.preload_resolution(
