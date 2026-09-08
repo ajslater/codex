@@ -29,6 +29,27 @@ border-radius: 128px;
       reading-order menu. It covers MetronInfo Reprints and localized
       AlternativeNames, ComicInfo AlternateSeries and CoMet isVersionOf, so it
       is named for all of them rather than for one.
+    - Whether a book is manga is now its own tag, separate from which way it
+      reads. ComicInfo writes the two as one value; comicbox 5 tells them apart,
+      so a right-to-left book that never said it was manga stops claiming to be
+      one. MetronInfo's Manga Volume is kept as well.
+    - A comic's web links are shown and editable. These are the links the file
+      itself carries, as distinct from the ones Codex builds for each
+      identifier, which are derived from the identifier's key.
+    - Credits mark the primary holder of each role, and list them first. The
+      flag belongs to a person's role rather than to the person, so a book's
+      primary writer is no longer also its primary inker. It is read-only:
+      neither ComicInfo nor MetronInfo has anywhere to write it back.
+    - A series' other names are listed apart from its reprints in the metadata
+      panel. Both name another edition of the same book, so they still share the
+      Reprints sort, filter and reading order.
+    - Online tagging takes an Effort setting, per scan and as an admin default.
+      Comic Vine now spends a bounded number of requests per comic by default;
+      Thorough restores the unbounded search, and Minimal trades matches for
+      speed. Metron answers in one call and ignores it.
+    - The tagging status strip shows Comic Vine's remaining hourly budget. It
+      meters per endpoint, so the number shown is whichever endpoint has the
+      least left — the one that will stop the run.
 
 - Fixes
     - Saving browser settings sent an empty request that stored nothing. The
@@ -41,6 +62,43 @@ border-radius: 128px;
       backwards in that direction, so opening a comic, changing pages from the
       toolbar or following a link landed on the mirrored page — page one showed
       the last page. Top to Bottom was never affected.
+    - Identifier links are built from the identifier's key rather than stored
+      alongside it, so a link can no longer disagree with the id it points at.
+      An id that says what it identifies is filed as that: a comic may now carry
+      an id for its series, and a reprint's id links to the issue it reprints
+      instead of nowhere.
+    - The tag editor writes identifier types the way the metadata formats spell
+      them. Adding an identifier by URL used to fill in a type its own dropdown
+      could not display.
+    - A Comic Vine key the site rejects now fails validation. It was reported as
+      valid, because a rejected key comes back as an empty result rather than as
+      an error (comicbox 5.0.0).
+    - Comicbox's online lookup caches stay under the config directory. They had
+      moved back to a temporary location that a Docker container recreation
+      throws away (comicbox 5.0.0).
+    - The estimated time for an online scan is keyed on Effort rather than on
+      Match Mode, which never changed how many requests a comic costs. The
+      estimate is higher as a result: it prices every comic as a fresh search,
+      and a real scan searches once per series and beats it.
+    - Metadata that Codex cannot read is named in a warning rather than dropped
+      in silence, which is how two long-standing errors in its own test files
+      were found (comicbox 5.0.0).
+
+- Dev
+    - Comicbox 5.0.0, which brings its metadata schema v3.0.
+    - Every comic is read again once, on the first scan after upgrading.
+      Comicbox 5 changes what unchanged files mean: ComicInfo's finer age
+      ratings collapse to MetronInfo's scale, so `Everyone 10+` becomes
+      `Everyone`; credit roles take their MetronInfo spelling, so `CoverArtist`
+      becomes `Cover`; ComicInfo's Alternate Series reads as a story arc rather
+      than as a reprint; and a title is kept as the file wrote it rather than
+      rebuilt from the story list. Libraries set to manual polling are re-read
+      whenever they are next polled.
+    - Online tagging prompts saved before the upgrade are discarded. A prompt is
+      answered by matching it against a fresh lookup, and comicbox 5 changed
+      what that match is made of, so an older prompt could never be answered.
+    - Simyan, mokkari and requests-cache are declared directly. They were used
+      through comicbox, which is free to change what it depends on.
 
 ## v2.2.11
 
