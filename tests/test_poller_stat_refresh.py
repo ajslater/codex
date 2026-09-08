@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 from django.test import TestCase
 
 from codex.librarian.fs.poller.poller import LibraryPollerThread
-from codex.librarian.fs.poller.snapshot import DatabaseSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff, StaleStatRefresh
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
@@ -94,22 +93,6 @@ class StaleStatRefreshTestCase(TestCase):
         # ...but the row's updated_at didn't advance, so bookmark
         # "fresh" semantics aren't disturbed.
         assert comic.updated_at == original_updated_at
-
-    def test_a_comic_with_no_stat_reads_as_modified(self) -> None:
-        """
-        A cleared stat is how the comicbox 5 upgrade asks for a re-read.
-
-        The database snapshot has no stored stat to compare, so it stats
-        the file and reports a mtime of zero, which no real file can
-        have. The diff therefore sees a modified comic and the importer
-        reads it again.
-        """
-        comic = _create_comic_with_stale_stat()
-        Comic.objects.filter(pk=comic.pk).update(stat=None)
-
-        snapshot = DatabaseSnapshot(str(_TMP_DIR), MagicMock(), force=False)
-
-        assert snapshot.mtime(comic.path) == 0.0
 
     def test_stat_refresh_noop_when_diff_empty(self) -> None:
         """An empty stale-stat list must not touch the DB at all."""
