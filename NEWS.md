@@ -39,10 +39,19 @@ border-radius: 128px;
       Thorough restores Comic Vine's unbounded search, Minimal trades matches
       for speed, and Metron ignores it.
     - The tagging status strip shows Comic Vine's remaining hourly budget.
+    - The Admin Stats tab and the anonymous stats report count the comicbox 5
+      tags: manga, comics carrying a manga volume or web links, primary credits,
+      and reprints that are a series' other names. They also report the tagging
+      Effort default. All of them read zero until comics are read again, and as
+      always they are counts and fixed choices, never names, links or anything a
+      file or an administrator typed.
 
 - Fixes
     - Reading Bottom to Top jumped to the wrong page: page one showed the last
       page.
+    - The Admin Stats tab left its Settings by User table empty, showed sort and
+      page-fit settings as their internal keys, and did not indent the rows that
+      detail the row above them.
     - Saving browser settings sent an empty request. The next page request saved
       them anyway, so nothing was lost.
     - Sorting by a tag column outside the table view no longer errors.

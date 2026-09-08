@@ -109,6 +109,7 @@ class StatsComicMetadataSerializer(Serializer):
     credit_count = IntegerField(required=False, read_only=True)
     credit_person_count = IntegerField(required=False, read_only=True)
     credit_role_count = IntegerField(required=False, read_only=True)
+    credit_primary_count = IntegerField(required=False, read_only=True)
     country_count = IntegerField(required=False, read_only=True)
     genre_count = IntegerField(required=False, read_only=True)
     identifier_count = IntegerField(required=False, read_only=True)
@@ -117,9 +118,10 @@ class StatsComicMetadataSerializer(Serializer):
     location_count = IntegerField(required=False, read_only=True)
     original_format_count = IntegerField(required=False, read_only=True)
     reprint_count = IntegerField(required=False, read_only=True)
+    reprint_alternative_name_count = IntegerField(required=False, read_only=True)
     series_group_count = IntegerField(required=False, read_only=True)
     scan_info_count = IntegerField(required=False, read_only=True)
-    story_arc_count = IntegerField(required=False)
+    story_arc_count = IntegerField(required=False, read_only=True)
     story_arc_number_count = IntegerField(required=False, read_only=True)
     story_count = IntegerField(required=False, read_only=True)
     tag_count = IntegerField(required=False, read_only=True)
@@ -130,6 +132,13 @@ class StatsComicMetadataSerializer(Serializer):
     comic_community_rating_vote_count = IntegerField(required=False, read_only=True)
     comic_alternative_issue_number_count = IntegerField(required=False, read_only=True)
     comic_metadata_imported_count = IntegerField(required=False, read_only=True)
+    comic_manga_volume_count = IntegerField(required=False, read_only=True)
+    comic_urls_count = IntegerField(required=False, read_only=True)
+    # Three counts rather than one bucket, so every key here is a name fixed in
+    # codex source. They partition the library, so they sum to issue_count.
+    comic_manga_yes_count = IntegerField(required=False, read_only=True)
+    comic_manga_no_count = IntegerField(required=False, read_only=True)
+    comic_manga_unknown_count = IntegerField(required=False, read_only=True)
 
 
 class StatsUsageSerializer(Serializer):
@@ -176,6 +185,7 @@ class StatsTaggingSerializer(Serializer):
 
     default_match_mode = CharField(required=False, read_only=True)
     default_prompts_mode = CharField(required=False, read_only=True)
+    default_effort = CharField(required=False, read_only=True)
     merge_all_sources = BooleanField(required=False, read_only=True)
     delete_original = BooleanField(required=False, read_only=True)
     rename_files = BooleanField(required=False, read_only=True)

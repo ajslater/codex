@@ -11,6 +11,7 @@ one of the ``_vocabularies`` sources deliberately. Do not widen the walk.
 """
 
 import json
+from pathlib import Path
 from typing import Final, override
 from uuid import uuid4
 
@@ -25,11 +26,16 @@ from codex.models.admin import (
     EmailSettings,
     OIDCSettings,
 )
+from codex.models.collections import Imprint, Publisher, Series, Volume
+from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
 
 # Anything containing this must never appear in the payload.
 SENTINEL: Final = "XXSENTINELXX"
+
+# A real directory, because Comic.presave stats the file it points at.
+_LIBRARY_DIR: Final = Path("/tmp/codex.tests.telemeter-privacy")  # noqa: S108
 
 # Keys whose values are free-form by nature and safe: version strings and the
 # platform description, which carry no user or install identity.
@@ -146,6 +152,7 @@ def _tagging_vocabularies() -> set[str]:
     return set(SOURCE_NAMES) | _enum_values(
         ComicboxTaggingDefaults.MatchModeChoices,
         ComicboxTaggingDefaults.PromptsModeChoices,
+        ComicboxTaggingDefaults.EffortChoices,
     )
 
 
@@ -170,6 +177,7 @@ class TelemeterPrivacyTestCase(TestCase):
 
         init_admin_flags()
         init_timestamps()
+        _LIBRARY_DIR.mkdir(exist_ok=True, parents=True)
         self._seed_secrets()
 
     @staticmethod
@@ -219,13 +227,53 @@ class TelemeterPrivacyTestCase(TestCase):
         AdminFlag.objects.filter(key=AdminFlagChoices.API_KEY.value).update(
             value=f"{SENTINEL}-api-key"
         )
-        Library.objects.create(path=f"/{SENTINEL}-library", read_only=True)
+        library = Library.objects.create(path=str(_LIBRARY_DIR), read_only=True)
         source = IdentifierSource.objects.create(name=f"{SENTINEL}-source")
         Identifier.objects.create(
             source=source,
             id_type=IdentifierType.ISSUE.value,
             key=f"{SENTINEL}-id",
             url=f"https://{SENTINEL}.example.com/1",
+        )
+        cls._seed_comic(library)
+
+    @staticmethod
+    def _seed_comic(library: Library) -> None:
+        """
+        Put a sentinel in the comic columns the newer counts are taken from.
+
+        Without a comic row the two columns whose signal is "how many comics
+        carry one" -- manga_volume and urls -- are never populated, so the
+        sentinel walk could not tell a count of them from a report of them.
+        The whole publisher chain is required: Comic's group FKs are not
+        nullable, and the file has to exist because presave stats it -- so the
+        sentinel goes in the filename rather than in an imaginary path.
+        """
+        publisher = Publisher.objects.create(name=f"{SENTINEL}-publisher")
+        imprint = Imprint.objects.create(
+            name=f"{SENTINEL}-imprint", publisher=publisher
+        )
+        series = Series.objects.create(
+            name=f"{SENTINEL}-series", imprint=imprint, publisher=publisher
+        )
+        volume = Volume.objects.create(
+            name="2026", series=series, imprint=imprint, publisher=publisher
+        )
+        comic_path = _LIBRARY_DIR / f"{SENTINEL}-comic.cbz"
+        comic_path.touch()
+        Comic.objects.create(
+            library=library,
+            path=str(comic_path),
+            issue_number=1,
+            name=f"{SENTINEL}-title",
+            publisher=publisher,
+            imprint=imprint,
+            series=series,
+            volume=volume,
+            size=100,
+            manga="Yes",
+            manga_volume=f"{SENTINEL}-manga-volume",
+            urls=[f"https://{SENTINEL}.example.com/comic"],
         )
 
     @staticmethod

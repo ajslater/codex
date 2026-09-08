@@ -18,9 +18,12 @@ from codex.librarian.telemeter.admin_stats import (
     get_throttle_stats,
 )
 from codex.librarian.telemeter.count_stats import (
+    get_comic_nonempty_stats,
     get_comic_populated_stats,
     get_identifier_stats,
     get_library_stats,
+    get_manga_stats,
+    get_metadata_flag_stats,
     get_multi_sort_count,
     get_usage_stats,
 )
@@ -228,6 +231,9 @@ class CodexStats:
             return
         metadata = self._get_model_counts("metadata")
         metadata.update(get_comic_populated_stats())
+        metadata.update(get_comic_nonempty_stats())
+        metadata.update(get_metadata_flag_stats())
+        metadata.update(get_manga_stats())
         obj["metadata"] = metadata
 
     def _add_usage(self, obj) -> None:
