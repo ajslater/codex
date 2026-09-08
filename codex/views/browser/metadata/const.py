@@ -46,8 +46,11 @@ SUM_FIELDS = frozenset({"page_count", "size"})
 #########
 # Query #
 #########
-_CREDIT_ONLY = ("role", "person")
-_CREDIT_PREFETCH = (*_CREDIT_ONLY, "role__identifier", "person__identifier")
+# ``primary`` is a plain column: it belongs in ``only`` but not in the
+# prefetch, which takes relations.
+_CREDIT_RELATIONS = ("role", "person")
+_CREDIT_ONLY = (*_CREDIT_RELATIONS, "primary")
+_CREDIT_PREFETCH = (*_CREDIT_RELATIONS, "role__identifier", "person__identifier")
 COLLECTION_MODELS: MappingProxyType[str, tuple[type[BrowserCollectionModel], ...]] = (
     MappingProxyType(
         {
@@ -80,7 +83,14 @@ M2M_QUERY_OPTIMIZERS = MappingProxyType(
         # default ``only=("name", ...)`` raises FieldDoesNotExist.
         Reprint: {
             "select": ("identifier",),
-            "only": ("series_name", "volume_number", "issue", "language", "identifier"),
+            "only": (
+                "series_name",
+                "volume_number",
+                "issue",
+                "language",
+                "identifier",
+                "alternative_name",
+            ),
         },
         Universe: {"only": ("name", "designation", "identifier")},
         SeriesGroup: {

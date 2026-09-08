@@ -5,6 +5,7 @@ from types import MappingProxyType
 
 from codex.librarian.scribe.importer.const import (
     CREDIT_PERSON_FIELD_NAME,
+    CREDIT_PRIMARY_FIELD_NAME,
     CREDIT_ROLE_FIELD_NAME,
     DESIGNATION_FIELD_NAME,
     IDENTIFIED_MODELS,
@@ -20,6 +21,7 @@ from codex.librarian.scribe.importer.const import (
     NUMBER_FIELD_NAME,
     NUMBER_TO_FIELD_NAME,
     PUBLISHER_FIELD_NAME,
+    REPRINT_ALTERNATIVE_NAME_FIELD_NAME,
     REPRINT_ISSUE_FIELD_NAME,
     REPRINT_LANGUAGE_FIELD_NAME,
     REPRINT_SERIES_NAME_FIELD_NAME,
@@ -119,6 +121,7 @@ MODEL_CREATE_ARGS_MAP: MappingProxyType[
             {
                 CREDIT_PERSON_FIELD_NAME: CreditPerson,
                 CREDIT_ROLE_FIELD_NAME: CreditRole,
+                CREDIT_PRIMARY_FIELD_NAME: None,
             },
             {},
         ),
@@ -129,7 +132,10 @@ MODEL_CREATE_ARGS_MAP: MappingProxyType[
                 REPRINT_ISSUE_FIELD_NAME: None,
                 REPRINT_LANGUAGE_FIELD_NAME: None,
             },
-            {IDENTIFIER_FIELD_NAME: Identifier},
+            {
+                IDENTIFIER_FIELD_NAME: Identifier,
+                REPRINT_ALTERNATIVE_NAME_FIELD_NAME: None,
+            },
         ),
         StoryArcNumber: ({STORY_ARC_FIELD_NAME: StoryArc, NUMBER_FIELD_NAME: None}, {}),
         Universe: (

@@ -32,6 +32,8 @@
           :value="Boolean(md.monochrome).toString()"
           label="Monochrome"
         />
+        <MetadataText label="Manga" :value="mangaText" />
+        <MetadataText label="Manga Volume" :value="md.mangaVolume" />
       </div>
       <div class="lastSmallRow">
         <MetadataText
@@ -98,6 +100,14 @@ export default {
         return "Unknown";
       }
       return this.readingDirectionTitles[this.md.readingDirection];
+    },
+    /*
+     * A book that says nothing about being manga reads as Unknown, which
+     * is not worth a row of its own.
+     */
+    mangaText() {
+      const manga = this.md?.manga;
+      return !manga || manga === "Unknown" ? undefined : manga;
     },
     size() {
       return this?.md?.size > 0 ? prettyBytes(this.md.size) : 0;

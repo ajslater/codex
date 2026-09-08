@@ -10,6 +10,7 @@ from comicbox.formats.comicbox.schema import (
     LANGUAGE_KEY,
     NAME_KEY,
     NUMBER_KEY,
+    PRIMARY_KEY,
     ROLES_KEY,
     SERIES_KEY,
     VOLUME_KEY,
@@ -33,6 +34,7 @@ from codex.librarian.scribe.importer.const import (
     get_key_index,
 )
 from codex.librarian.scribe.importer.read.const import (
+    ALTERNATIVE_NAME_MARKER,
     COMPLEX_FIELD_AGG_MAP,
     FIELD_NAME_TO_MD_KEY_MAP,
 )
@@ -69,6 +71,12 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
     def _get_m2m_metadata_dict_model_aggregate_sub_sub_value_roles(
         self, sub_sub_field, sub_sub_value
     ) -> frozenset:
+        """
+        Flatten one person's roles, each with its own primary flag.
+
+        Comicbox 5 marks the primary credit on the role rather than on
+        the person, so the primary writer is not also the primary inker.
+        """
         clean_sub_sub_values = set()
         for sub_sub_sub_key_name, sub_sub_sub_value_obj in sub_sub_value.items():
             clean_sub_sub_sub_key_name = sub_sub_field.get_prep_value(
@@ -77,8 +85,9 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             sub_sub_key_identifier_tuple = self.get_identifier_tuple(
                 CreditRole, sub_sub_sub_value_obj
             )
+            primary = bool((sub_sub_sub_value_obj or {}).get(PRIMARY_KEY))
             clean_sub_sub_values.add(
-                (clean_sub_sub_sub_key_name, sub_sub_key_identifier_tuple)
+                (clean_sub_sub_sub_key_name, sub_sub_key_identifier_tuple, primary)
             )
         return frozenset(clean_sub_sub_values)
 
@@ -209,11 +218,11 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             if field.name == CREDITS_FIELD_NAME:
                 # Credits
                 for role_values in roles_or_numbers:
-                    role_keys, role_extras = role_values
+                    role_keys, role_extras, primary = role_values
                     self.add_query_model(
                         CreditRole, (role_keys,), frozenset({(role_extras,)})
                     )
-                    clean_sub_map[(clean_sub_key, role_keys)] = set()
+                    clean_sub_map[(clean_sub_key, role_keys, primary)] = set()
             else:
                 # StoryArcNumbers
                 for role_values in roles_or_numbers:
@@ -290,12 +299,22 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
         Every other complex m2m arrives as a mapping keyed by a name, a
         shape that cannot express the four part reprint key.
+
+        The series' other names ride this list too, marked, having been
+        folded in upstream. A file that states the same edition in both
+        of its lists produces one row, and the marked one wins: it is the
+        list a write should put the row back into.
         """
         clean_values_map: dict[tuple, frozenset[tuple]] = {}
         for reprint in values:
             if clean_key := self._clean_reprint_key(reprint):
+                alternative_name = bool(reprint.get(ALTERNATIVE_NAME_MARKER))
+                if not alternative_name and clean_key in clean_values_map:
+                    continue
                 identifier_tuple = self.get_identifier_tuple(Reprint, reprint)
-                clean_values_map[clean_key] = frozenset({(identifier_tuple,)})
+                clean_values_map[clean_key] = frozenset(
+                    {(identifier_tuple, alternative_name)}
+                )
         return clean_values_map
 
     def _get_m2m_metadata_named_dict_model(

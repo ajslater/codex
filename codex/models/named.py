@@ -5,6 +5,7 @@ from typing import override
 from django.db.models import (
     CASCADE,
     SET_NULL,
+    BooleanField,
     ForeignKey,
 )
 
@@ -87,16 +88,24 @@ class Credit(BaseModel):
 
     person = ForeignKey(CreditPerson, on_delete=CASCADE)
     role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
+    # Whether this person is the book's primary holder of this role. The
+    # flag belongs to the pairing, not the person: comicbox 5 moved it
+    # onto each role precisely because the primary writer is not thereby
+    # also the primary inker. Credits are shared between comics, so a
+    # pairing that is primary in one book and not in another has to be
+    # two rows — hence the flag in the unique key.
+    primary = BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
 
-        unique_together = ("person", "role")
+        unique_together = ("person", "role", "primary")
 
     @override
     def __repr__(self) -> str:
         """Return the strings of parts."""
-        return str(self.person) + ":" + str(self.role)
+        parts = str(self.person) + ":" + str(self.role)
+        return parts + ":primary" if self.primary else parts
 
 
 class Country(NamedModel):
@@ -130,9 +139,9 @@ class Reprint(BaseModel):
 
     Denormalized on purpose: reprint series names must not become
     Series/Volume rows or they'd appear as phantom browser collections.
-    ``series_name`` absorbs comicbox's ``series.sort_name`` when the
-    reprint carries no ``series.name`` (MetronInfo AlternativeNames do
-    this), so this is the only series string stored.
+    ``series_name`` absorbs the name the file gave the reprint when
+    comicbox parsed no ``series.name`` out of it, so this is the only
+    series string stored.
     """
 
     series_name = CleaningCharField(db_index=True, max_length=MAX_NAME_LEN)
@@ -151,6 +160,11 @@ class Reprint(BaseModel):
         default="",
         db_collation="nocase",
     )
+    # Whether this row came from the series' other names rather than from
+    # a list of reprints. Both name another edition of the same book, so
+    # they share a table and a key; this only decides which comicbox list
+    # a write puts the row back into, and which panel row shows it.
+    alternative_name = BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
         """Declare constraints and indexes."""

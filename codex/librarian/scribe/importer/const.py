@@ -58,6 +58,8 @@ VOLUME_COUNT_FIELD_NAME = "volume_count"
 ISSUE_COUNT_FIELD_NAME = "issue_count"
 PATH_FIELD_NAME = "path"
 IDENTIFIERS_FIELD_NAME = "identifiers"
+CREDIT_PRIMARY_FIELD_NAME = "primary"
+REPRINT_ALTERNATIVE_NAME_FIELD_NAME = "alternative_name"
 NON_FTS_FIELDS = frozenset(
     {
         # Attributes
@@ -69,6 +71,8 @@ NON_FTS_FIELDS = frozenset(
         "file_type",
         "issue_number",
         "issue_suffix",
+        "manga",
+        "manga_volume",
         "metadata_mtime",
         "monochrome",
         "month",
@@ -76,6 +80,7 @@ NON_FTS_FIELDS = frozenset(
         "page_count",
         "path",
         "reading_direction",
+        "urls",
         "year",
         # FKs
         PARENT_FOLDER_FIELD_NAME,
@@ -298,6 +303,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
             (
                 f"{CREDIT_PERSON_FIELD_NAME}__name",
                 f"{CREDIT_ROLE_FIELD_NAME}__name",
+                CREDIT_PRIMARY_FIELD_NAME,
             ),
             "",
         ),
@@ -309,6 +315,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
                 REPRINT_LANGUAGE_FIELD_NAME,
             ),
             _IDENTIFIER_RELS,
+            REPRINT_ALTERNATIVE_NAME_FIELD_NAME,
         ),
         StoryArcNumber: (
             (f"{STORY_ARC_FIELD_NAME}__name", NUMBER_FIELD_NAME),
@@ -367,7 +374,11 @@ FIELD_NAME_KEY_ATTRS_MAP = MappingProxyType(
             SERIES_FIELD_NAME,
             *_NAMED_MODEL_ATTRS,
         ),
-        CREDITS_FIELD_NAME: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
+        CREDITS_FIELD_NAME: (
+            CREDIT_PERSON_FIELD_NAME,
+            CREDIT_ROLE_FIELD_NAME,
+            CREDIT_PRIMARY_FIELD_NAME,
+        ),
         REPRINTS_FIELD_NAME: (
             REPRINT_SERIES_NAME_FIELD_NAME,
             REPRINT_VOLUME_NUMBER_FIELD_NAME,

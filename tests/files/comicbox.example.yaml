@@ -30,10 +30,13 @@ comicbox:
   credits:
     Joe Orlando:
       roles:
-        Writer: {}
+        Writer:
+          primary: true
     Wally Wood:
       roles:
-        Penciller: {}
+        Penciller:
+          primary: true
+        Writer: {}
   date:
     cover_date: 1950-11-01
     store_date: 1950-11-28
@@ -60,6 +63,7 @@ comicbox:
   locations:
     The Moon: {}
   manga: No
+  manga_volume: "1"
   monochrome: false
   notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145269
   page_count: 36
@@ -115,13 +119,16 @@ comicbox:
       name: Capitan Sciencia
       volume:
         number: 1
-    - language: de
-      series:
-        name: Kapitän Wissenschaft
   review: It wasn't all bad.
   scan_info: Photocopied
   series:
     name: Captain Science
+    alternative_names:
+      - name: Kapitän Wissenschaft
+        language: de
+        identifiers:
+          metron:
+            key: "4242"
   series_groups:
     - science comics
   stories:
@@ -139,6 +146,8 @@ comicbox:
     Young Adult Silly Universe:
       designation: 4242
   updated_at: 1970-01-01T00:00:00Z
+  urls:
+    - https://comicvine.gamespot.com/captain-science-1/4000-145269/
   volume:
     issue_count: 7
     number: 1950

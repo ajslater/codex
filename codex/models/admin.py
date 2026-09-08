@@ -94,6 +94,18 @@ class ComicboxTaggingDefaults(BaseModel):
         ASK = "ask", _("Ask")
         NEVER = "never", _("Never")
 
+    class EffortChoices(TextChoices):
+        """
+        How much API budget to spend per comic (mirrors comicbox.Effort).
+
+        Only bites on sources that fan out per candidate, which today
+        means Comic Vine. Metron answers in one call and ignores it.
+        """
+
+        MINIMAL = "minimal", _("Minimal")
+        BALANCED = "balanced", _("Balanced")
+        THOROUGH = "thorough", _("Thorough")
+
     default_formats = JSONField(default=list)
     delete_original = BooleanField(default=True)
     # Rename archives to the comicbox (comicfn2dict) filename scheme after a
@@ -108,6 +120,11 @@ class ComicboxTaggingDefaults(BaseModel):
         max_length=MAX_FIELD_LEN,
         choices=PromptsModeChoices.choices,
         default=PromptsModeChoices.ASK,
+    )
+    default_effort = CharField(
+        max_length=MAX_FIELD_LEN,
+        choices=EffortChoices.choices,
+        default=EffortChoices.BALANCED,
     )
     default_sources = JSONField(default=list)
     # When True, query every enabled source per comic and merge the results

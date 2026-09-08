@@ -6,12 +6,19 @@ from comicbox.formats.comicbox.schema import (
     COMMUNITY_RATING_KEY,
     COVER_DATE_KEY,
     DATE_KEY,
+    IDENTIFIERS_KEY,
+    LANGUAGE_KEY,
+    NAME_KEY,
     NUMBER_KEY,
     RATING_COUNT_KEY,
+    REPRINTS_KEY,
+    SERIES_ALTERNATIVE_NAMES_KEY,
+    SERIES_KEY,
     STORE_DATE_KEY,
     SUFFIX_KEY,
     TITLE_KEY,
 )
+from comicbox.identifiers import ID_TYPE_KEY
 
 from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
@@ -22,6 +29,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_M2MS,
     QUERY_MODELS,
 )
+from codex.librarian.scribe.importer.read.const import ALTERNATIVE_NAME_MARKER
 from codex.librarian.scribe.importer.read.folders import AggregatePathMetadataImporter
 from codex.librarian.scribe.importer.statii.failed import (
     ImporterFailedImportsQueryStatus,
@@ -37,6 +45,44 @@ def _flatten_alternative_issue(md) -> None:
             md["alternative_issue_number"] = number
         if suffix := alternative_issue.pop(SUFFIX_KEY, None):
             md["alternative_issue_suffix"] = suffix
+
+
+def _fold_alternative_names_into_reprints(md) -> None:
+    """
+    Move the series' other names in among the reprints.
+
+    Comicbox 5 files a series' localized and variant titles under the
+    series rather than among the reprints, but they name the same thing
+    a reprint does: another edition of this book. Codex keeps one table
+    for both, so they are folded in here — before the series subtree is
+    consumed as a foreign key — and marked, so a write can put each row
+    back into the list it came from.
+
+    An identifier on one of these names a series, not an issue, and says
+    so, since where it now sits no longer implies it.
+    """
+    series = md.get(SERIES_KEY) or {}
+    alternative_names = series.pop(SERIES_ALTERNATIVE_NAMES_KEY, None)
+    if not alternative_names:
+        return
+    reprints = md.setdefault(REPRINTS_KEY, [])
+    for alternative_name in alternative_names:
+        name = (alternative_name or {}).get(NAME_KEY)
+        if not name:
+            continue
+        reprint = {
+            NAME_KEY: name,
+            SERIES_KEY: {NAME_KEY: name},
+            ALTERNATIVE_NAME_MARKER: True,
+        }
+        if language := alternative_name.get(LANGUAGE_KEY):
+            reprint[LANGUAGE_KEY] = language
+        if identifiers := alternative_name.get(IDENTIFIERS_KEY):
+            reprint[IDENTIFIERS_KEY] = {
+                id_source: {ID_TYPE_KEY: SERIES_KEY, **identifier}
+                for id_source, identifier in identifiers.items()
+            }
+        reprints.append(reprint)
 
 
 def _flatten_community_rating(md) -> None:
@@ -71,6 +117,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
 
         _flatten_alternative_issue(md)
         _flatten_community_rating(md)
+        _fold_alternative_names_into_reprints(md)
 
         if title := md.pop(TITLE_KEY, None):
             md["name"] = title

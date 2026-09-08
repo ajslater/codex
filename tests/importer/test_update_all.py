@@ -79,6 +79,8 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
+                "manga": "Yes",
+                "manga_volume": "2",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
@@ -92,6 +94,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 "reading_direction": "rtl",
                 "review": "Actually unreadable.",
                 "summary": "Captain Science's many adult adventures",
+                "urls": [
+                    "https://comicvine.gamespot.com/c/4000-145265/",
+                    "https://metron.cloud/issue/999",
+                ],
                 "year": 1951,
             }
         },
@@ -124,7 +130,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
         LINK_M2MS: {
             PATH: {
                 "characters": {("Captain Science",)},
-                "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
+                "credits": {
+                    ("Joe Orlando", "Writer", True),
+                    ("Wally Wood", "Penciller", False),
+                },
                 "folders": deepcopy(PATH_PARENTS),
                 "genres": {("Mystery",), ("Science Fiction",)},
                 "identifiers": {
@@ -133,8 +142,8 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 },
                 "locations": {("Mars",)},
                 "reprints": {
+                    ("Capitaine Science", None, "", "fr"),
                     ("Capitan Sciencia", 1, "", "es"),
-                    ("Kapitän Wissenschaft", None, "", "de"),
                 },
                 "series_groups": {("adult comics",)},
                 "stories": {("The Beginning",), ("The End",)},
@@ -203,8 +212,8 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 }
             },
             Reprint: {
-                ("Capitan Sciencia", 1, "", "es"): {(None,)},
-                ("Kapitän Wissenschaft", None, "", "de"): {(None,)},
+                ("Capitaine Science", None, "", "fr"): {(None, True)},
+                ("Capitan Sciencia", 1, "", "es"): {(None, False)},
             },
             Imprint: {
                 ("Youthful Adventure Stories", "TestImprint"): {
@@ -255,8 +264,8 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 },
             },
             Credit: {
-                ("Joe Orlando", "Writer"): set(),
-                ("Wally Wood", "Penciller"): set(),
+                ("Joe Orlando", "Writer", True): set(),
+                ("Wally Wood", "Penciller", False): set(),
             },
             Country: {("GB",): set()},
             Genre: {
@@ -376,21 +385,27 @@ QUERIED_UPDATE_ALL = MappingProxyType(
             Language: {("fr",)},
             AgeRating: {("Adult",)},
             Country: {("GB",)},
+            # Wally Wood is no longer the primary penciller, which is a
+            # different row: the flag is part of a credit's identity.
+            Credit: {("Wally Wood", "Penciller", False)},
             Genre: {("Mystery", None)},
             Location: {("Mars", ("comicvine", "location", "111"))},
             OriginalFormat: {("Hardcover",)},
+            Reprint: {("Capitaine Science", None, "", "fr", None, True)},
             ScanInfo: {("Digital",)},
             SeriesGroup: {("adult comics",)},
             Story: {("The End", None)},
             StoryArc: {("g", None)},
             StoryArcNumber: {("g", 5)},
             Team: {("Team Cornish Game Hen", None)},
-            "total": 26,
+            "total": 28,
         },
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1), (1, 3)},
+            "credits": {(1, 2), (1, 3)},
+            "identifiers": {(1, 1), (1, 4)},
             "locations": {(1, 1)},
+            "reprints": {(1, 2)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
             "tags": {(1, 2)},
@@ -408,7 +423,9 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         },
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -418,6 +435,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         },
         LINK_M2MS: {
             PATH: {
+                "credits": {("Wally Wood", "Penciller", False)},
                 "genres": {
                     ("Mystery",),
                 },
@@ -426,6 +444,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                     ("comicvine", "comic", "145265"),
                 },
                 "locations": {("Mars",)},
+                "reprints": {("Capitaine Science", None, "", "fr")},
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
@@ -442,6 +461,8 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
+                "manga": "Yes",
+                "manga_volume": "2",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
@@ -454,6 +475,10 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                 "reading_direction": "rtl",
                 "review": "Actually unreadable.",
                 "summary": "Captain Science's many adult adventures",
+                "urls": [
+                    "https://comicvine.gamespot.com/c/4000-145265/",
+                    "https://metron.cloud/issue/999",
+                ],
                 "year": 1951,
             }
         },
@@ -506,8 +531,10 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         CREATE_COMICS: {},
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1), (1, 3)},
+            "credits": {(1, 2), (1, 3)},
+            "identifiers": {(1, 1), (1, 4)},
             "locations": {(1, 1)},
+            "reprints": {(1, 2)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
             "tags": {(1, 2)},
@@ -525,7 +552,9 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         },
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -535,6 +564,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         },
         LINK_M2MS: {
             PATH: {
+                "credits": {("Wally Wood", "Penciller", False)},
                 "genres": {
                     ("Mystery",),
                 },
@@ -543,6 +573,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                     ("metron", "comic", "999"),
                 },
                 "locations": {("Mars",)},
+                "reprints": {("Capitaine Science", None, "", "fr")},
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
@@ -559,6 +590,8 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "day": 20,
                 "issue_number": Decimal("2.2"),
                 "issue_suffix": "XXX",
+                "manga": "Yes",
+                "manga_volume": "2",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 10, 0, tzinfo=UTC),
                 "monochrome": True,
                 "month": 12,
@@ -571,6 +604,10 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
                 "reading_direction": "rtl",
                 "review": "Actually unreadable.",
                 "summary": "Captain Science's many adult adventures",
+                "urls": [
+                    "https://comicvine.gamespot.com/c/4000-145265/",
+                    "https://metron.cloud/issue/999",
+                ],
                 "year": 1951,
             }
         },
@@ -582,8 +619,10 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
     {
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1), (1, 3)},
+            "credits": {(1, 2), (1, 3)},
+            "identifiers": {(1, 1), (1, 4)},
             "locations": {(1, 1)},
+            "reprints": {(1, 2)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
             "tags": {(1, 2)},
@@ -591,7 +630,9 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
         FIS: {},
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -601,6 +642,7 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         LINK_M2MS: {
             PATH: {
+                "credits": {("Wally Wood", "Penciller", False)},
                 "genres": {
                     ("Mystery",),
                 },
@@ -609,6 +651,7 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
                     ("metron", "comic", "999"),
                 },
                 "locations": {("Mars",)},
+                "reprints": {("Capitaine Science", None, "", "fr")},
                 "series_groups": {("adult comics",)},
                 "stories": {("The End",)},
                 "story_arc_numbers": {("g", 5)},
@@ -638,7 +681,9 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
         FIS: {},
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -648,8 +693,10 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
+                "alternate_series": ("Capitaine Science",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
+                "credits": ("Wally Wood",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
@@ -676,7 +723,9 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
         FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -686,8 +735,10 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
+                "alternate_series": ("Capitaine Science",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
+                "credits": ("Wally Wood",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
@@ -713,7 +764,9 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
         FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {
             1: {
+                "alternate_series": ("Capitan Sciencia",),
                 "characters": ("Captain Science",),
+                "credits": ("Joe Orlando",),
                 "genres": ("Science Fiction",),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e"),
@@ -723,8 +776,10 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
         },
         FTS_UPDATE: {
             1: {
+                "alternate_series": ("Capitaine Science",),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
+                "credits": ("Wally Wood",),
                 "genres": ("Mystery",),
                 "language": ("fr",),
                 "locations": ("Mars",),
@@ -794,7 +849,7 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK_UPDATE_ALL, md, "CREATED_FK_UPDATE_ALL")
-        assert Identifier.objects.count() == 18  # noqa: PLR2004
+        assert Identifier.objects.count() == 19  # noqa: PLR2004
 
         # Create & Update Comics
         self.importer.prepare_fk_link_instance_maps()

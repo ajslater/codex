@@ -91,6 +91,12 @@ IDENTIFIED_KEY_CLASS_MAP = MappingProxyType(
         TEAMS_KEY: Team,
     }
 )
+# Marks a reprint that came from the series' other names rather than
+# from a list of reprints. Codex stores both in one table, so the two
+# lists are merged before aggregation and this rides along to say which
+# list a row came from. Underscored so it cannot collide with a comicbox
+# key.
+ALTERNATIVE_NAME_MARKER = "_alternative_name"
 # This map tells aggregator how to parse metadata into tuples for query & create.
 COMPLEX_FIELD_AGG_MAP: MappingProxyType[str, tuple] = MappingProxyType(
     {

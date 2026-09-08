@@ -1131,6 +1131,8 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
         "issue",
         "language",
         "locations",
+        "manga",
+        "manga_volume",
         "metadata_mtime",  # codex-side extra
         "monochrome",
         "notes",
@@ -1152,6 +1154,7 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
         "teams",
         "title",
         "universes",
+        "urls",
         "volume",
     }
 )

@@ -64,6 +64,8 @@ export default {
     classes() {
       return {
         clickable: (this.clickable || this.item.url) && !this.highlight,
+        // The book's primary holder of this credit role.
+        primaryCredit: Boolean(this.item.primary),
       };
     },
     highlight() {
@@ -159,6 +161,10 @@ export default {
 
 .clickable :deep(.v-chip__content) {
   color: rgb(var(--v-theme-primary));
+}
+
+.primaryCredit :deep(.v-chip__content) {
+  font-weight: bold;
 }
 
 .clickable:hover :deep(.v-chip__content) {

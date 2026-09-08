@@ -33,6 +33,7 @@ comicbox:
     Joe Orlando:
       roles:
         Writer:
+          primary: true
           identifiers:
             metron:
               key: "890"
@@ -77,6 +78,7 @@ comicbox:
         comicvine:
           key: "111"
   manga: Yes
+  manga_volume: "2"
   monochrome: True
   notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145265
   page_count: 24
@@ -96,12 +98,12 @@ comicbox:
       name: Capitan Sciencia
       volume:
         number: 1
-    - language: de
-      series:
-        name: Kapitän Wissenschaft
   review: Actually unreadable.
   scan_info: Digital
   series:
+    alternative_names:
+      - name: Capitaine Science
+        language: fr
     name: Captain Science
     identifiers:
       comicvine:

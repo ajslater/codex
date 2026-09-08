@@ -98,12 +98,12 @@ AGGREGATED = MappingProxyType(
             Folder: deepcopy(PATH_PARENTS_QUERY),
             Country: {("US",): set()},
             Credit: {
-                ("Joe Orlando", "Writer"): set(),
-                ("Wally Wood", "Penciller"): set(),
+                ("Joe Orlando", "Writer", True): set(),
+                ("Wally Wood", "Penciller", True): set(),
+                ("Wally Wood", "Writer", False): set(),
             },
             CreditPerson: {("Joe Orlando",): {(None,)}, ("Wally Wood",): {(None,)}},
             CreditRole: {("Penciller",): {(None,)}, ("Writer",): {(None,)}},
-            # credit_primaries ignored
             Genre: {("Science Fiction",): {(None,)}},
             Language: {("en",): set()},
             Location: {("The Moon",): {(None,)}},
@@ -122,8 +122,11 @@ AGGREGATED = MappingProxyType(
             Tagger: {("comicbox dev",): set()},
             Publisher: {("Youthful Adventure Stories",): {(None,)}},
             Reprint: {
-                ("Capitan Sciencia", 1, "", "es"): {(None,)},
-                ("Kapitän Wissenschaft", None, "", "de"): {(None,)},
+                ("Capitan Sciencia", 1, "", "es"): {(None, False)},
+                # The series' other name, carrying the Metron series it is.
+                ("Kapitän Wissenschaft", None, "", "de"): {
+                    (("metron", "reprint", "4242"), True)
+                },
             },
             Imprint: {
                 (
@@ -165,6 +168,7 @@ AGGREGATED = MappingProxyType(
                     ("https://metron.cloud/character/345",)
                 },
                 # The comic states a series id among its own identifiers.
+                ("metron", "reprint", "4242"): {("https://metron.cloud/series/4242",)},
                 ("metron", "series", "178012"): {
                     ("https://metron.cloud/series/178012",)
                 },
@@ -202,6 +206,8 @@ AGGREGATED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
+                "manga": "No",
+                "manga_volume": "1",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
@@ -217,6 +223,13 @@ AGGREGATED = MappingProxyType(
                 # remainders ignore
                 "summary": "Captain Science's many scientific adventures",
                 # updated_at ignore
+                # The file's own link first, then the two codex derives
+                # from the identifiers it states.
+                "urls": [
+                    "https://comicvine.gamespot.com/captain-science-1/4000-145269/",
+                    "https://comicvine.gamespot.com/c/4000-145269/",
+                    "https://metron.cloud/series/178012",
+                ],
                 "year": 1950,
             }
         },
@@ -252,8 +265,9 @@ AGGREGATED = MappingProxyType(
                     ("Captain Science",),
                 },
                 "credits": {
-                    ("Wally Wood", "Penciller"),
-                    ("Joe Orlando", "Writer"),
+                    ("Wally Wood", "Penciller", True),
+                    ("Wally Wood", "Writer", False),
+                    ("Joe Orlando", "Writer", True),
                 },
                 "genres": {("Science Fiction",)},
                 "folders": deepcopy(PATH_PARENTS),
@@ -294,6 +308,8 @@ QUERIED = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
+                "manga": "No",
+                "manga_volume": "1",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
@@ -307,6 +323,11 @@ QUERIED = MappingProxyType(
                 "reading_direction": "ltr",
                 "review": "It wasn't all bad.",
                 "summary": "Captain Science's many scientific adventures",
+                "urls": [
+                    "https://comicvine.gamespot.com/captain-science-1/4000-145269/",
+                    "https://comicvine.gamespot.com/c/4000-145269/",
+                    "https://metron.cloud/series/178012",
+                ],
                 "year": 1950,
             }
         },
@@ -323,6 +344,7 @@ QUERIED = MappingProxyType(
                     "https://comicvine.gamespot.com/c/4000-145269/",
                 ),
                 ("metron", "character", "345", "https://metron.cloud/character/345"),
+                ("metron", "reprint", "4242", "https://metron.cloud/series/4242"),
                 ("metron", "series", "178012", "https://metron.cloud/series/178012"),
                 ("metron", "storyarc", "123", "https://metron.cloud/arc/123"),
             },
@@ -342,8 +364,9 @@ QUERIED = MappingProxyType(
             CreditPerson: {("Joe Orlando", None), ("Wally Wood", None)},
             CreditRole: {("Penciller", None), ("Writer", None)},
             Credit: {
-                ("Joe Orlando", "Writer"),
-                ("Wally Wood", "Penciller"),
+                ("Joe Orlando", "Writer", True),
+                ("Wally Wood", "Penciller", True),
+                ("Wally Wood", "Writer", False),
             },
             Genre: {("Science Fiction", None)},
             Language: {("en",)},
@@ -370,8 +393,15 @@ QUERIED = MappingProxyType(
             Folder: deepcopy(PATH_PARENTS),
             Publisher: {("Youthful Adventure Stories", None)},
             Reprint: {
-                ("Capitan Sciencia", 1, "", "es", None),
-                ("Kapitän Wissenschaft", None, "", "de", None),
+                ("Capitan Sciencia", 1, "", "es", None, False),
+                (
+                    "Kapitän Wissenschaft",
+                    None,
+                    "",
+                    "de",
+                    ("metron", "reprint", "4242"),
+                    True,
+                ),
             },
             Imprint: {("Youthful Adventure Stories", "TestImprint", None)},
             Series: {
@@ -393,7 +423,7 @@ QUERIED = MappingProxyType(
                     7,
                 )
             },
-            TOTAL: 44,
+            TOTAL: 46,
         },
         UPDATE_FKS: {
             TOTAL: 0,
@@ -426,7 +456,11 @@ QUERIED = MappingProxyType(
         LINK_M2MS: {
             PATH: {
                 "characters": {("Boy Empirical",), ("Captain Science",)},
-                "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
+                "credits": {
+                    ("Joe Orlando", "Writer", True),
+                    ("Wally Wood", "Penciller", True),
+                    ("Wally Wood", "Writer", False),
+                },
                 "folders": deepcopy(PATH_PARENTS),
                 "genres": {("Science Fiction",)},
                 "identifiers": {
@@ -463,6 +497,8 @@ CREATED_FK = MappingProxyType(
                 "file_type": "CBZ",
                 "issue_number": Decimal("1.2"),
                 "issue_suffix": "S",
+                "manga": "No",
+                "manga_volume": "1",
                 "metadata_mtime": datetime(2026, 7, 1, 12, 0, 0, tzinfo=UTC),
                 "monochrome": False,
                 "month": 11,
@@ -476,6 +512,11 @@ CREATED_FK = MappingProxyType(
                 "reading_direction": "ltr",
                 "review": "It wasn't all bad.",
                 "summary": "Captain Science's many scientific adventures",
+                "urls": [
+                    "https://comicvine.gamespot.com/captain-science-1/4000-145269/",
+                    "https://comicvine.gamespot.com/c/4000-145269/",
+                    "https://metron.cloud/series/178012",
+                ],
                 "year": 1950,
             }
         },
@@ -509,7 +550,11 @@ CREATED_FK = MappingProxyType(
         LINK_M2MS: {
             PATH: {
                 "characters": {("Boy Empirical",), ("Captain Science",)},
-                "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
+                "credits": {
+                    ("Joe Orlando", "Writer", True),
+                    ("Wally Wood", "Penciller", True),
+                    ("Wally Wood", "Writer", False),
+                },
                 "folders": deepcopy(PATH_PARENTS),
                 "genres": {("Science Fiction",)},
                 "identifiers": {
@@ -541,7 +586,11 @@ CREATED_COMICS = MappingProxyType(
         LINK_M2MS: {
             PATH: {
                 "characters": {("Boy Empirical",), ("Captain Science",)},
-                "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
+                "credits": {
+                    ("Joe Orlando", "Writer", True),
+                    ("Wally Wood", "Penciller", True),
+                    ("Wally Wood", "Writer", False),
+                },
                 "folders": PATH_PARENTS,
                 "genres": {("Science Fiction",)},
                 "identifiers": {
@@ -594,7 +643,7 @@ LINKED_COMICS = MappingProxyType(
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
-                "credits": ("Joe Orlando", "Wally Wood"),
+                "credits": ("Joe Orlando", "Wally Wood", "Wally Wood"),
                 "genres": ("Science Fiction",),
                 "imprint": ("TestImprint",),
                 "language": ("en",),
@@ -635,7 +684,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
-                "credits": ("Joe Orlando", "Wally Wood"),
+                "credits": ("Joe Orlando", "Wally Wood", "Wally Wood"),
                 "genres": ("Science Fiction",),
                 "imprint": ("TestImprint",),
                 "language": ("en",),
@@ -675,7 +724,7 @@ DELETED_COMICS = MappingProxyType(
                 "characters": ("Boy Empirical", "Captain Science"),
                 "collection_title": ("The Big Omnibus",),
                 "country": ("US",),
-                "credits": ("Joe Orlando", "Wally Wood"),
+                "credits": ("Joe Orlando", "Wally Wood", "Wally Wood"),
                 "genres": ("Science Fiction",),
                 "imprint": ("TestImprint",),
                 "language": ("en",),
@@ -790,7 +839,10 @@ def _test_comic_creation_field_protagonist(comic, field_name, test_value):
 def _test_comic_creation_field_complex(field_name: str, value):
     if field_name == "credits":
         value = tuple(
-            sorted((subval.person.name, subval.role.name) for subval in value.all())
+            sorted(
+                (subval.person.name, subval.role.name, subval.primary)
+                for subval in value.all()
+            )
         )
     elif field_name == "story_arc_numbers":
         value = tuple(
@@ -804,6 +856,10 @@ def _test_comic_creation_field_complex(field_name: str, value):
             )
         )
     elif field_name == "reprints":
+        # The natural key only: ``alternative_name`` rides the row as an
+        # extra, not as part of what identifies it, so the aggregate this
+        # is compared against does not carry it. ``tests/test_reprints.py``
+        # checks the flag reaches the row.
         value = tuple(
             sorted(
                 (
@@ -939,7 +995,7 @@ class TestImporterBasic(BaseTestImporter):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK, md, "CREATED_FK")
-        assert Identifier.objects.count() == 4  # noqa: PLR2004
+        assert Identifier.objects.count() == 5  # noqa: PLR2004
 
         # Create Comics
         self.importer.prepare_fk_link_instance_maps()

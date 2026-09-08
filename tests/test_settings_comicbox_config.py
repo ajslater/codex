@@ -55,3 +55,18 @@ def test_online_config_deletes_no_keys() -> None:
     """
     assert not COMICBOX_ONLINE_CONFIG.general.delete_keys
     assert COMICBOX_CONFIG.general.delete_keys
+
+
+def test_the_comicbox_5_fields_are_parsed() -> None:
+    """
+    New fields are opt-in: the skip list is everything codex left out.
+
+    It is derived from comicbox's own schema so a release that adds a
+    field cannot slip an unhandled one through. The flip side is that a
+    field codex does want has to be named, or it is skipped in silence.
+    """
+    keys = COMICBOX_CONFIG.general.delete_keys
+    assert not {"manga", "manga_volume", "urls"} & set(keys)
+    # Still skipped: codex has no column for either.
+    assert "primary_id_source" in keys
+    assert "pages" in keys

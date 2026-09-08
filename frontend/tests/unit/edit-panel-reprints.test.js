@@ -33,6 +33,7 @@ const SHAPED_REPRINTS = Object.freeze([
     volumeNumber: null,
     issue: "",
     language: "de",
+    alternativeName: true,
   },
   {
     pk: 8,
@@ -41,6 +42,7 @@ const SHAPED_REPRINTS = Object.freeze([
     volumeNumber: 1,
     issue: "3",
     language: "",
+    alternativeName: false,
   },
 ]);
 
@@ -74,12 +76,14 @@ describe("EditPanel reprints rows", () => {
         volume: "",
         issue: "",
         language: "de",
+        alternative_name: true,
       },
       {
         series_name: "Capitan Sciencia",
         volume: "1",
         issue: "3",
         language: null,
+        alternative_name: false,
       },
     ]);
     expect(wrapper.vm.hasChanges).toBe(false);
@@ -95,7 +99,13 @@ describe("EditPanel reprints rows", () => {
     await findButton(wrapper, "Add Reprint").trigger("click");
 
     expect(wrapper.vm.reprints).toStrictEqual([
-      { series_name: "", volume: "", issue: "", language: null },
+      {
+        series_name: "",
+        volume: "",
+        issue: "",
+        language: null,
+        alternative_name: false,
+      },
     ]);
   });
 });
@@ -107,20 +117,18 @@ describe("EditPanel reprints patch", () => {
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
-    expect(patch).toStrictEqual({
-      reprints: [
-        {
-          series: { name: "Kapitän Wissenschaft" },
-          issue: "1",
-          language: "de",
-        },
-        {
-          series: { name: "Capitan Sciencia" },
-          volume: { number: 1 },
-          issue: "3",
-        },
-      ],
-    });
+    expect(patch.reprints).toStrictEqual([
+      {
+        series: { name: "Capitan Sciencia" },
+        volume: { number: 1 },
+        issue: "3",
+      },
+    ]);
+    // The flagged row goes to the series instead: it names this same
+    // series in another language, not another edition of the book.
+    expect(patch.series.alternative_names).toStrictEqual([
+      { name: "Kapitän Wissenschaft", language: "de" },
+    ]);
     expect(deleteKeys).toStrictEqual([]);
   });
 
@@ -130,6 +138,26 @@ describe("EditPanel reprints patch", () => {
 
     expect(patch).not.toHaveProperty("reprints");
     expect(deleteKeys).not.toContain("reprints");
+    expect(deleteKeys).not.toContain("series.alternative_names");
+  });
+
+  test("a flagged row keeps the series name alongside the other names", async () => {
+    const wrapper = await mountPanel({
+      md: {
+        seriesList: [{ pk: 1, name: "Captain Science" }],
+        reprints: SHAPED_REPRINTS,
+      },
+    });
+    wrapper.vm.reprints[0].language = "fr";
+    await flushPromises();
+
+    const { patch } = wrapper.vm.buildPatch();
+    // Codex writes in update mode, which replaces a key wholesale, so a
+    // series patch that carried only the other names would drop the name.
+    expect(patch.series.name).toBe("Captain Science");
+    expect(patch.series.alternative_names).toStrictEqual([
+      { name: "Kapitän Wissenschaft", language: "fr" },
+    ]);
   });
 
   test("a newly added row travels with only the parts it carries", async () => {
@@ -139,6 +167,7 @@ describe("EditPanel reprints patch", () => {
       volume: "",
       issue: "",
       language: null,
+      alternative_name: false,
     });
     await flushPromises();
 
@@ -165,12 +194,13 @@ describe("EditPanel reprints patch", () => {
       volume: "2",
       issue: "",
       language: "fr",
+      alternative_name: false,
     });
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
     expect(patch).not.toHaveProperty("reprints");
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
   });
 
   test("clearing the section deletes the comicbox reprints key", async () => {
@@ -180,7 +210,7 @@ describe("EditPanel reprints patch", () => {
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
     expect(wrapper.vm.reprints).toStrictEqual([]);
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
     expect(patch).not.toHaveProperty("reprints");
   });
 
@@ -190,7 +220,7 @@ describe("EditPanel reprints patch", () => {
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
     expect(patch).not.toHaveProperty("reprints");
   });
 });

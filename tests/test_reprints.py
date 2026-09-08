@@ -77,6 +77,34 @@ class ReprintImportTestCase(BaseTestImporter):
         assert not Series.objects.filter(name=_NAME_ONLY).exists()
         assert not Volume.objects.filter(series__name=_NAME_ONLY).exists()
 
+    def test_the_series_other_name_is_flagged_as_one(self) -> None:
+        """
+        Both lists land in one table, and the row remembers which it came from.
+
+        Comicbox 5 files a series' localized and variant titles under the
+        series rather than among the reprints. Codex keeps one table for
+        both, so the flag is what a write consults to put each row back
+        into the list it belongs to.
+        """
+        alternative_name = Reprint.objects.get(series_name="Kapitän Wissenschaft")
+        assert alternative_name.alternative_name is True
+        reprint = Reprint.objects.get(series_name=_NAME_ONLY)
+        assert reprint.alternative_name is False
+
+    def test_an_alternative_names_identifier_is_the_series_it_names(self) -> None:
+        """
+        Where the id sits no longer implies what it identifies.
+
+        An id on one of the series' other names is a series id, so codex
+        states the type when folding the name in among the reprints and
+        the link it builds points at the series rather than nowhere.
+        """
+        alternative_name = Reprint.objects.get(series_name="Kapitän Wissenschaft")
+        identifier = alternative_name.identifier
+        assert identifier is not None
+        assert identifier.key == "4242"
+        assert identifier.url == "https://metron.cloud/series/4242"
+
     def test_metadata_endpoint_serves_imported_reprints(self) -> None:
         """Imported rows reach the panel as composed display labels."""
         user = User.objects.create_user(
