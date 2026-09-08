@@ -389,7 +389,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         },
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1)},
+            "identifiers": {(1, 1), (1, 3)},
             "locations": {(1, 1)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
@@ -506,7 +506,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         CREATE_COMICS: {},
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1)},
+            "identifiers": {(1, 1), (1, 3)},
             "locations": {(1, 1)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
@@ -582,7 +582,7 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
     {
         DELETE_M2MS: {
             "characters": {(1, 1)},
-            "identifiers": {(1, 1)},
+            "identifiers": {(1, 1), (1, 3)},
             "locations": {(1, 1)},
             "series_groups": {(1, 1)},
             "story_arc_numbers": {(1, 4)},
@@ -794,7 +794,7 @@ class TestImporterUpdateAll(BaseTestImporterUpdate):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK_UPDATE_ALL, md, "CREATED_FK_UPDATE_ALL")
-        assert Identifier.objects.count() == 17  # noqa: PLR2004
+        assert Identifier.objects.count() == 18  # noqa: PLR2004
 
         # Create & Update Comics
         self.importer.prepare_fk_link_instance_maps()

@@ -93,8 +93,7 @@ comicbox:
     - cruddo
   reprints:
     - language: es
-      series:
-        sort_name: Capitan Sciencia
+      name: Capitan Sciencia
       volume:
         number: 1
     - language: de

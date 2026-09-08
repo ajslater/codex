@@ -47,6 +47,9 @@ comicbox:
   identifiers:
     comicvine:
       key: "145269"
+    metron:
+      key: "178012"
+      id_type: series
   imprint:
     name: TestImprint
   issue:
@@ -102,14 +105,14 @@ comicbox:
   prices:
     GB: 0.05
     US: 0.1
+  primary_id_source: metron
   protagonist: Captain Science
   reading_direction: ltr
   remainders:
     - crud
   reprints:
     - language: es
-      series:
-        sort_name: Capitan Sciencia
+      name: Capitan Sciencia
       volume:
         number: 1
     - language: de

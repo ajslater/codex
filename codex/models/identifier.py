@@ -44,6 +44,7 @@ class IdentifierType(TextChoices):
     TAG = "tag"
     TEAM = "team"
     UNIVERSE = "universe"
+    VOLUME = "volume"
     ROLE = "creditrole"
     CREATOR = "creditperson"
 

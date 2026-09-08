@@ -1,9 +1,9 @@
 """
 Reprint series names, from the archive to the browser and back out.
 
-``tests/files/comicbox-2-example.cbz`` carries two MetronInfo alternate
-names, one of which supplies only a series ``sort_name``. Importing it
-is the only place the whole chain — comicbox whitelist, four-column key
+``tests/files/comicbox-2-example.cbz`` carries two reprints, one of
+which names an edition without spelling out its series. Importing it is
+the only place the whole chain — comicbox whitelist, four-column key
 flattening, m2m link, display label and the nightly orphan sweep —
 meets end to end. The search half of the chain lives in
 ``tests/test_search_alternate_series.py``.
@@ -27,12 +27,13 @@ from codex.models import Comic, Reprint, Series, Volume
 from tests.importer.test_basic import PATH, BaseTestImporter, run_full_import
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-# The fixture's two alternate names, as ``Reprint`` natural keys.
+# The fixture's two reprints, as ``Reprint`` natural keys.
 _FIXTURE_KEYS: Final = {
     ("Capitan Sciencia", 1, "", "es"),
     ("Kapitän Wissenschaft", None, "", "de"),
 }
-_SORT_NAME_ONLY: Final = "Capitan Sciencia"
+# The one the file names without spelling out a series.
+_NAME_ONLY: Final = "Capitan Sciencia"
 
 
 def _reprint_keys() -> set[tuple]:
@@ -64,17 +65,17 @@ class ReprintImportTestCase(BaseTestImporter):
         )
         assert set(linked) == _FIXTURE_KEYS
 
-    def test_sort_name_stands_in_for_a_missing_series_name(self) -> None:
+    def test_a_reprint_named_without_a_series_still_imports(self) -> None:
         """
-        One AlternativeNames entry carries no ``series.name`` at all.
+        One reprint states only the name the file gave it.
 
         It must still import, and — the reason ``Reprint`` denormalizes
         instead of reusing Series/Volume — it must not become a
         browsable collection row.
         """
-        assert Reprint.objects.filter(series_name=_SORT_NAME_ONLY).exists()
-        assert not Series.objects.filter(name=_SORT_NAME_ONLY).exists()
-        assert not Volume.objects.filter(series__name=_SORT_NAME_ONLY).exists()
+        assert Reprint.objects.filter(series_name=_NAME_ONLY).exists()
+        assert not Series.objects.filter(name=_NAME_ONLY).exists()
+        assert not Volume.objects.filter(series__name=_NAME_ONLY).exists()
 
     def test_metadata_endpoint_serves_imported_reprints(self) -> None:
         """Imported rows reach the panel as composed display labels."""
@@ -109,10 +110,21 @@ class ReprintKeyFlatteningTestCase(SimpleTestCase):
     def _clean(reprint: dict) -> tuple | None:
         return AggregateManyToManyMetadataImporter._clean_reprint_key(reprint)  # noqa: SLF001
 
-    def test_series_name_wins_over_sort_name(self) -> None:
-        """``sort_name`` only fills in for a reprint that has no name."""
-        key = self._clean({"series": {"name": "Real", "sort_name": "Sorted"}})
+    def test_series_name_wins_over_the_reprints_own_name(self) -> None:
+        """The parsed series is the better key when there is one."""
+        key = self._clean({"name": "Real (2020) #1", "series": {"name": "Real"}})
         assert key == ("Real", None, "", "")
+
+    def test_the_reprints_own_name_stands_in_for_a_missing_series(self) -> None:
+        """
+        A reprint keeps the name the file gave it.
+
+        Comicbox parses a series out of that name when it can, but a file
+        is free to name an edition without spelling one out, and that
+        still has to key a row rather than vanish.
+        """
+        key = self._clean({"name": "Capitan Sciencia"})
+        assert key == ("Capitan Sciencia", None, "", "")
 
     def test_every_part_flattens_to_its_column(self) -> None:
         """Volume number, issue and language come out of their subtrees."""
@@ -126,8 +138,9 @@ class ReprintKeyFlatteningTestCase(SimpleTestCase):
         )
         assert key == ("Kapitän Wissenschaft", 2, "3", "de")
 
-    def test_reprint_without_any_series_name_is_dropped(self) -> None:
+    def test_reprint_without_any_name_is_dropped(self) -> None:
         """A reprint naming nothing can't key a row, so it never becomes one."""
         assert self._clean({"volume": {"number": 1}, "language": "de"}) is None
         assert self._clean({"series": {}}) is None
         assert self._clean({"series": {"name": "   "}}) is None
+        assert self._clean({"name": ""}) is None

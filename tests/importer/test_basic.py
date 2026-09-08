@@ -164,6 +164,10 @@ AGGREGATED = MappingProxyType(
                 ("metron", "character", "345"): {
                     ("https://metron.cloud/character/345",)
                 },
+                # The comic states a series id among its own identifiers.
+                ("metron", "series", "178012"): {
+                    ("https://metron.cloud/series/178012",)
+                },
                 ("metron", "storyarc", "123"): {("https://metron.cloud/arc/123",)},
             },
             # prices future
@@ -254,11 +258,8 @@ AGGREGATED = MappingProxyType(
                 "genres": {("Science Fiction",)},
                 "folders": deepcopy(PATH_PARENTS),
                 "identifiers": {
-                    (
-                        "comicvine",
-                        "comic",
-                        "145269",
-                    )
+                    ("comicvine", "comic", "145269"),
+                    ("metron", "series", "178012"),
                 },
                 "locations": {("The Moon",)},
                 "reprints": {
@@ -322,6 +323,7 @@ QUERIED = MappingProxyType(
                     "https://comicvine.gamespot.com/c/4000-145269/",
                 ),
                 ("metron", "character", "345", "https://metron.cloud/character/345"),
+                ("metron", "series", "178012", "https://metron.cloud/series/178012"),
                 ("metron", "storyarc", "123", "https://metron.cloud/arc/123"),
             },
             Location: {("The Moon", None)},
@@ -391,7 +393,7 @@ QUERIED = MappingProxyType(
                     7,
                 )
             },
-            TOTAL: 43,
+            TOTAL: 44,
         },
         UPDATE_FKS: {
             TOTAL: 0,
@@ -427,7 +429,10 @@ QUERIED = MappingProxyType(
                 "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
                 "folders": deepcopy(PATH_PARENTS),
                 "genres": {("Science Fiction",)},
-                "identifiers": {("comicvine", "comic", "145269")},
+                "identifiers": {
+                    ("comicvine", "comic", "145269"),
+                    ("metron", "series", "178012"),
+                },
                 "locations": {("The Moon",)},
                 "reprints": {
                     ("Capitan Sciencia", 1, "", "es"),
@@ -507,7 +512,10 @@ CREATED_FK = MappingProxyType(
                 "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
                 "folders": deepcopy(PATH_PARENTS),
                 "genres": {("Science Fiction",)},
-                "identifiers": {("comicvine", "comic", "145269")},
+                "identifiers": {
+                    ("comicvine", "comic", "145269"),
+                    ("metron", "series", "178012"),
+                },
                 "locations": {("The Moon",)},
                 "reprints": {
                     ("Capitan Sciencia", 1, "", "es"),
@@ -536,7 +544,10 @@ CREATED_COMICS = MappingProxyType(
                 "credits": {("Joe Orlando", "Writer"), ("Wally Wood", "Penciller")},
                 "folders": PATH_PARENTS,
                 "genres": {("Science Fiction",)},
-                "identifiers": {("comicvine", "comic", "145269")},
+                "identifiers": {
+                    ("comicvine", "comic", "145269"),
+                    ("metron", "series", "178012"),
+                },
                 "locations": {("The Moon",)},
                 "reprints": {
                     ("Capitan Sciencia", 1, "", "es"),
@@ -596,7 +607,7 @@ LINKED_COMICS = MappingProxyType(
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
                 "series_groups": ("science comics",),
-                "sources": ("comicvine",),
+                "sources": ("comicvine", "metron"),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
@@ -637,7 +648,7 @@ FAILED_IMPORTS = MappingProxyType(
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
                 "series_groups": ("science comics",),
-                "sources": ("comicvine",),
+                "sources": ("comicvine", "metron"),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
@@ -677,7 +688,7 @@ DELETED_COMICS = MappingProxyType(
                 "scan_info": ("Photocopied",),
                 "series": ("Captain Science",),
                 "series_groups": ("science comics",),
-                "sources": ("comicvine",),
+                "sources": ("comicvine", "metron"),
                 "stories": ("The Beginning",),
                 "story_arcs": ("c", "d", "e", "f"),
                 "summary": ("Captain Science's many scientific adventures",),
@@ -721,7 +732,7 @@ FTS_FINAL_BASIC = MappingProxyType(
         **create_fts_strings(LINKED_COMICS, 1),
         "country": "US,United States",
         "language": "en,English",
-        "sources": "Comic Vine,comicvine",
+        "sources": "Comic Vine,Metron,comicvine,metron",
     }
 )
 
@@ -928,7 +939,7 @@ class TestImporterBasic(BaseTestImporter):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK, md, "CREATED_FK")
-        assert Identifier.objects.count() == 3  # noqa: PLR2004
+        assert Identifier.objects.count() == 4  # noqa: PLR2004
 
         # Create Comics
         self.importer.prepare_fk_link_instance_maps()

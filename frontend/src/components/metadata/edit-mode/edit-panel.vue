@@ -1176,7 +1176,7 @@
           variant="text"
           size="small"
           :disabled="isFieldDisabled('identifiers')"
-          @click="identifiers.push({ source: '', id_type: 'comic', key: '' })"
+          @click="identifiers.push({ source: '', id_type: 'issue', key: '' })"
         >
           + Add Identifier
         </v-btn>
@@ -1293,6 +1293,7 @@ import COUNTRIES from "@/choices/countries.json";
 import FORMAT_FIELD_SUPPORT from "@/choices/format-field-support.json";
 import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
+import IDENTIFIER_TYPE_BY_CODEX_NAME from "@/choices/identifier-type-by-codex-name.json";
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
 
 const FORMAT_CHOICES = [
@@ -2070,7 +2071,7 @@ export default {
       if (this.md.identifiers?.length) {
         this.identifiers = this.md.identifiers.map((id) => ({
           source: id.source || "",
-          id_type: id.type || "",
+          id_type: IDENTIFIER_TYPE_BY_CODEX_NAME[id.type] || "issue",
           key: id.code || "",
         }));
       }
@@ -2282,8 +2283,7 @@ export default {
           const ids = {};
           for (const id of this.identifiers) {
             if (id.source && id.key) {
-              const fullKey = id.id_type ? `${id.id_type}:${id.key}` : id.key;
-              ids[id.source] = { key: fullKey, url: "" };
+              ids[id.source] = { key: id.key, id_type: id.id_type || "issue" };
             }
           }
           cbPatch.identifiers = ids;

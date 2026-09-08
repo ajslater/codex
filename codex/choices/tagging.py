@@ -27,7 +27,7 @@ from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
 
 from codex.choices.reader import READER_CHOICES
-from codex.models.identifier import IdentifierType
+from codex.models.identifier import IdentifierType, to_comicbox_id_type
 
 # comicbox transform per codex write-format id.
 _TRANSFORMS = MappingProxyType(
@@ -68,10 +68,20 @@ IDENTIFIER_SOURCES = _vuetify_choices(
     (source.value, source.value) for source in IdSources
 )
 
-# codex identifier types; the TextChoices labels supply the UI titles
-# (ARC -> "Arc", ISSUE -> "Issue", ROLE -> "Role", CREATOR -> "Creator", ...).
+# Identifier types, valued by comicbox's name for each. The editor writes
+# a patch comicbox parses, and the add-by-URL endpoint reports the type it
+# read out of the URL, so both ends of the field speak the one vocabulary.
+# The TextChoices labels supply the UI titles (ARC -> "Arc", ISSUE ->
+# "Issue", ROLE -> "Role", CREATOR -> "Creator", ...).
 IDENTIFIER_TYPES = _vuetify_choices(
-    (id_type.label, id_type.value) for id_type in IdentifierType
+    (id_type.label, to_comicbox_id_type(id_type.value)) for id_type in IdentifierType
+)
+
+# What the metadata endpoint calls each type, keyed by what the editor
+# calls it: the panel serializes codex's table names and the editor seeds
+# its rows from them.
+IDENTIFIER_TYPE_BY_CODEX_NAME = MappingProxyType(
+    {id_type.value: to_comicbox_id_type(id_type.value) for id_type in IdentifierType}
 )
 
 

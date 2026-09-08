@@ -12,10 +12,9 @@ from comicbox.formats.comicbox.schema import (
     NUMBER_KEY,
     ROLES_KEY,
     SERIES_KEY,
-    SERIES_SORT_NAME_KEY,
     VOLUME_KEY,
 )
-from comicbox.identifiers import ID_KEY_KEY
+from comicbox.identifiers import ID_KEY_KEY, ID_TYPE_KEY
 from comicbox.identifiers.identifiers import get_url_from_identifier
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
@@ -42,7 +41,7 @@ from codex.librarian.scribe.importer.read.foreign_keys import (
 )
 from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.identifier import IdentifierSource, IdentifierType
+from codex.models.identifier import IdentifierSource, to_codex_id_type
 from codex.models.named import CreditRole, Reprint
 
 if TYPE_CHECKING:
@@ -183,6 +182,9 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
         A comicbox identifier holds a key, and a type only when that type
         isn't the one its position implies — at the top level, an issue.
+        A comic can therefore carry an id for its series or its volume
+        among its own, and it is filed under what it says it is.
+
         It holds no url: comicbox derives links from the key rather than
         storing a copy that could disagree with it, and so does codex.
         """
@@ -192,7 +194,8 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             return {}
         id_source = clean_sub_key[0]
         id_url = get_url_from_identifier(id_source, id_obj)
-        key_tuple = (*clean_sub_key, IdentifierType.ISSUE.value, id_key)
+        id_type = to_codex_id_type(id_obj.get(ID_TYPE_KEY))
+        key_tuple = (*clean_sub_key, id_type, id_key)
         return {key_tuple: frozenset({(id_url,)})}
 
     def _create_clean_sub_map(
@@ -261,13 +264,15 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         """
         Flatten one comicbox reprint tree into a Reprint key tuple.
 
-        MetronInfo AlternativeNames supply only a series ``sort_name``,
-        so that stands in when there's no ``series.name``. A reprint
-        with neither names nothing, so it's dropped.
+        A reprint carries the name the file gave it alongside whatever
+        comicbox parsed a series out of, so that name stands in when
+        there is no ``series.name`` — a file that names an edition
+        without spelling out its series still gets a row. A reprint with
+        neither names nothing, so it's dropped.
         """
         series = reprint.get(SERIES_KEY) or {}
         series_name = _REPRINT_SERIES_NAME_FIELD.get_prep_value(
-            series.get(NAME_KEY) or series.get(SERIES_SORT_NAME_KEY)
+            series.get(NAME_KEY) or reprint.get(NAME_KEY)
         )
         if not series_name:
             return None
