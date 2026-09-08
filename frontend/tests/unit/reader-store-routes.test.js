@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { useReaderStore } from "@/stores/reader";
 
 describe("reader store toRoute", () => {
@@ -24,5 +25,46 @@ describe("reader store toRoute", () => {
     const store = useReaderStore();
     expect(store.toRoute(false)).toEqual({});
     expect(store.toRoute(undefined)).toEqual({});
+  });
+});
+
+describe("reader store closeBookRoute", () => {
+  let codex;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    codex = globalThis.CODEX;
+  });
+
+  afterEach(() => {
+    globalThis.CODEX = codex;
+  });
+
+  it("closes to the last route the server knows about", () => {
+    globalThis.CODEX = {
+      LAST_ROUTE: { collection: "series", parentIds: [7], page: 1 },
+    };
+    const store = useReaderStore();
+
+    expect(store.closeBookRoute).toStrictEqual({
+      name: "browser",
+      params: { collection: "series", parentIds: "7" },
+    });
+  });
+
+  it("falls back to the shipped default when the server knows none", () => {
+    /*
+     * This branch used to read a key the defaults do not have, so the
+     * one path meant to keep the reader closable would instead have
+     * thrown and taken the render down with it.
+     */
+    globalThis.CODEX = {};
+    const store = useReaderStore();
+
+    expect(() => store.closeBookRoute).not.toThrow();
+    expect(store.closeBookRoute).toStrictEqual({
+      name: "browser",
+      params: { collection: BROWSER_DEFAULTS.lastRoute.collection },
+    });
   });
 });
