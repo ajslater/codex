@@ -55,6 +55,7 @@ class TagPassRunnerFinishTests(TestCase):
                 path_to_pk={},
                 collected_tags={},
                 match_mode="auto",
+                effort="balanced",
                 sources=("metron",),
                 merge_all_sources=False,
             )
@@ -113,6 +114,7 @@ class TagPassRunnerFinishTests(TestCase):
                 path_to_pk={},
                 collected_tags={},
                 match_mode="auto",
+                effort="balanced",
                 sources=("metron", "comicvine"),
                 merge_all_sources=False,
             )
@@ -149,6 +151,7 @@ class TagPassRunnerFinishTests(TestCase):
                 completed_comics=0,
                 total_comics=10,
                 match_mode="auto",
+                effort="balanced",
                 sources=("metron", "comicvine"),
                 merge_all_sources=False,
             )

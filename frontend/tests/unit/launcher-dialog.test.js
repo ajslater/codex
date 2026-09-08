@@ -560,34 +560,59 @@ describe("OnlineTagLauncherDialog", () => {
       wrapper.vm.activeTab = "search";
       wrapper.vm.sources = ["metron", "comicvine"];
       await wrapper.vm.$nextTick();
-      // First-match-wins bills the costliest source: max(metron 2, comicvine
-      // auto 3) = 3 calls/comic x 10 comics.
-      expect(wrapper.vm.totalCalls).toBe(30);
+      // First-match-wins bills the costliest source: max(metron 2,
+      // comicvine balanced 7) = 7 calls/comic x 10 comics.
+      expect(wrapper.vm.totalCalls).toBe(70);
 
       wrapper.vm.mergeAllSources = true;
       await wrapper.vm.$nextTick();
-      // Merge sums per-source calls: (metron 2 + comicvine 3) x 10 comics.
-      expect(wrapper.vm.totalCalls).toBe(50);
+      // Merge sums per-source calls: (metron 2 + comicvine 7) x 10 comics.
+      expect(wrapper.vm.totalCalls).toBe(90);
     });
   });
 
-  describe("match mode hint", () => {
+  describe("effort hint", () => {
+    /*
+     * The request count hangs off effort, not match mode: match mode
+     * decides how a verdict is applied once the calls are spent.
+     */
     test("appends the Comic Vine request count when Comic Vine is active", async () => {
       const { wrapper } = mountDialog();
 
       wrapper.vm.sources = ["metron", "comicvine"];
-      wrapper.vm.matchMode = "auto";
+      wrapper.vm.effort = "balanced";
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.vm.matchModeHint).toContain(
-        "~3 Comic Vine requests/comic.",
-      );
+      expect(wrapper.vm.effortHint).toContain("~7 Comic Vine requests/comic.");
+    });
+
+    test("more effort buys more requests", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.sources = ["comicvine"];
+      wrapper.vm.effort = "minimal";
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.effortHint).toContain("~5 Comic Vine requests/comic.");
+
+      wrapper.vm.effort = "thorough";
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.effortHint).toContain("~8 Comic Vine requests/comic.");
     });
 
     test("omits the request-count tail on a Metron-only run", async () => {
       const { wrapper } = mountDialog();
 
       wrapper.vm.sources = ["metron"];
+      wrapper.vm.effort = "thorough";
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.effortHint).not.toContain("requests/comic");
+    });
+
+    test("match mode says nothing about request counts", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.sources = ["metron", "comicvine"];
       wrapper.vm.matchMode = "careful";
       await wrapper.vm.$nextTick();
 

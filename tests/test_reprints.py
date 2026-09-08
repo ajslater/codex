@@ -105,6 +105,19 @@ class ReprintImportTestCase(BaseTestImporter):
         assert identifier.key == "4242"
         assert identifier.url == "https://metron.cloud/series/4242"
 
+    def test_a_reprints_identifier_links_to_the_issue_it_reprints(self) -> None:
+        """
+        A reprint's id names an issue, not a "reprint".
+
+        No database publishes a page for a reprint, so reading the id's
+        type off the table it hangs on built no link at all. The row is
+        another edition of this book and its id names that edition.
+        """
+        reprint = Reprint.objects.get(series_name=_NAME_ONLY)
+        identifier = reprint.identifier
+        assert identifier is not None
+        assert identifier.url == "https://metron.cloud/issue/4444"
+
     def test_metadata_endpoint_serves_imported_reprints(self) -> None:
         """Imported rows reach the panel as composed display labels."""
         user = User.objects.create_user(

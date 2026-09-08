@@ -116,16 +116,21 @@ class LiveLookupPublishTests(OnlineTagSessionTestCase):
         self.manager._publish_snapshot(self.state)  # noqa: SLF001
         assert len(self._notifications()) == 1
 
-    def test_search_started_also_drives_the_marker(self) -> None:
-        """Kept as the fallback for a comicbox too old to emit SourceStarted."""
-        self.manager._on_event(SearchStarted(path=_B, source="comicvine"))  # noqa: SLF001
-        assert (self.state.live.path, self.state.live.source) == (_B, "comicvine")
+    def test_search_started_does_not_drive_the_marker(self) -> None:
+        """
+        SourceStarted is the only event that says what is live.
 
-    def test_the_source_started_search_started_pair_publishes_once(self) -> None:
-        """A cold search emits both; the (path, source) dedupe collapses them."""
+        It fires for every route a source can take, including the fast
+        paths a search never reaches, so the SearchStarted fallback that
+        once covered older comicbox releases is gone. A cold search still
+        emits both, and only one of them publishes.
+        """
         self.manager._on_event(SourceStarted(path=_A, source="metron"))  # noqa: SLF001
         self.manager._on_event(SearchStarted(path=_A, source="metron"))  # noqa: SLF001
         assert len(self._notifications()) == 1
+
+        self.manager._on_event(SearchStarted(path=_B, source="comicvine"))  # noqa: SLF001
+        assert (self.state.live.path, self.state.live.source) == (_A, "metron")
 
     def test_file_finished_clears_the_marker(self) -> None:
         self.manager._on_event(SourceStarted(path=_A, source="metron"))  # noqa: SLF001

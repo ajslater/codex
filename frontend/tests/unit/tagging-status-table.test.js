@@ -167,12 +167,26 @@ describe("AdminTaggingStatusTable", () => {
     // X-RateLimit-* headers (limit varies by donor tier).
     snapshot.sources[0].sustainedLimit = 25_000;
     snapshot.sources[0].sustainedRemaining = 24_987;
+    snapshot.sources[0].budgetWindow = "day";
     const { wrapper } = mountTable({ snapshot });
     const strip = wrapper.find(".sourcesStrip").text();
     expect(strip).toContain(`${nf(24_987)}/${nf(25_000)} day`);
     // comicvine reported nothing → its chip keeps only the static rate.
     expect(strip).toContain("3/min");
     expect(strip).not.toContain("3/min day");
+  });
+
+  test("shows Comic Vine's tightest pool, which meters hourly", () => {
+    // Comic Vine meters per endpoint pool rather than per account, so
+    // the backend sends the pool with the least left: the one that will
+    // stop the run. Its windows are hourly, not daily.
+    const snapshot = makeSnapshot();
+    snapshot.sources[1].sustainedLimit = 200;
+    snapshot.sources[1].sustainedRemaining = 12;
+    snapshot.sources[1].budgetWindow = "hour";
+    const { wrapper } = mountTable({ snapshot });
+    const strip = wrapper.find(".sourcesStrip").text();
+    expect(strip).toContain(`${nf(12)}/${nf(200)} hour`);
   });
 
   test("overlays needs_review from the live pending-prompt list", () => {

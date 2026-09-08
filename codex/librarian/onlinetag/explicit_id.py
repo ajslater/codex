@@ -70,7 +70,9 @@ def build_explicit_id_config(
     Layered as ``replace`` over the defaults exactly like
     ``OnlineSession._build_config`` — but with ``online.lookup.ids`` set so
     comicbox skips the search and calls ``source.get(issue_id)`` directly.
-    ``prompts=NEVER`` because the explicit-id path never reaches the matcher.
+    ``prompts=NEVER`` because the explicit-id path never reaches the matcher,
+    and no effort is applied because effort bounds a per-candidate fan-out
+    during search — a fetch by id has no candidates to fan out over.
 
     When ``extra_ids`` is given (the "merge all sources" path), each
     ``(source, issue_id)`` is also pinned. comicbox always runs every source

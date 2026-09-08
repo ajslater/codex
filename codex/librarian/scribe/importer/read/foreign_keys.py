@@ -34,6 +34,7 @@ from codex.models.collections import BrowserCollectionModel, Volume
 from codex.models.identifier import (
     Identifier,
     IdentifierSource,
+    positional_id_type,
     to_codex_id_type,
     to_comicbox_id_type,
 )
@@ -72,14 +73,22 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         Comicbox identifiers carry no url of their own: a synthesized
         copy stored beside the key could disagree with it, so comicbox
         derives links from the key on demand and codex derives its own
-        column the same way. An identifier names its type only when that
-        type isn't the one its position implies, so a character's
-        identifier with nothing stated is a character id.
+        column the same way.
+
+        An identifier states its type only when that type isn't the one
+        its position implies, so a character's identifier with nothing
+        stated is a character id. What a position implies is a question
+        about the id, not about the row it hangs on, which is why this
+        does not simply reuse the codex table name.
         """
         stated_type = id_obj.get(ID_TYPE_KEY)
-        comicbox_id_type = to_codex_id_type(stated_type) if stated_type else id_type
+        comicbox_id_type = (
+            to_comicbox_id_type(to_codex_id_type(stated_type))
+            if stated_type
+            else positional_id_type(id_type)
+        )
         return get_identifier_url(
-            id_source, to_comicbox_id_type(comicbox_id_type), id_obj.get(ID_KEY_KEY, "")
+            id_source, comicbox_id_type, id_obj.get(ID_KEY_KEY, "")
         )
 
     def get_identifier_tuple(

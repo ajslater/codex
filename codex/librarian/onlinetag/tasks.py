@@ -21,6 +21,9 @@ class BulkOnlineTagTask(OnlineTagTask):
     sources: tuple[str, ...] = SOURCE_NAMES
     mode: str = "auto"
     prompts_mode: str = "ask"
+    # How much API budget a comic may spend against a source that fans
+    # out per candidate, which today means Comic Vine alone.
+    effort: str = "balanced"
     delete_original: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)
     # instead of stopping at the first match.

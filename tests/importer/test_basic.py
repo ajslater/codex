@@ -122,7 +122,9 @@ AGGREGATED = MappingProxyType(
             Tagger: {("comicbox dev",): set()},
             Publisher: {("Youthful Adventure Stories",): {(None,)}},
             Reprint: {
-                ("Capitan Sciencia", 1, "", "es"): {(None, False)},
+                ("Capitan Sciencia", 1, "", "es"): {
+                    (("metron", "reprint", "4444"), False)
+                },
                 # The series' other name, carrying the Metron series it is.
                 ("Kapitän Wissenschaft", None, "", "de"): {
                     (("metron", "reprint", "4242"), True)
@@ -167,8 +169,12 @@ AGGREGATED = MappingProxyType(
                 ("metron", "character", "345"): {
                     ("https://metron.cloud/character/345",)
                 },
-                # The comic states a series id among its own identifiers.
+                # The series' other name states the series it names.
                 ("metron", "reprint", "4242"): {("https://metron.cloud/series/4242",)},
+                # A reprint's id is the reprinted issue's id, so it
+                # links to an issue rather than to nothing.
+                ("metron", "reprint", "4444"): {("https://metron.cloud/issue/4444",)},
+                # The comic states a series id among its own identifiers.
                 ("metron", "series", "178012"): {
                     ("https://metron.cloud/series/178012",)
                 },
@@ -345,6 +351,7 @@ QUERIED = MappingProxyType(
                 ),
                 ("metron", "character", "345", "https://metron.cloud/character/345"),
                 ("metron", "reprint", "4242", "https://metron.cloud/series/4242"),
+                ("metron", "reprint", "4444", "https://metron.cloud/issue/4444"),
                 ("metron", "series", "178012", "https://metron.cloud/series/178012"),
                 ("metron", "storyarc", "123", "https://metron.cloud/arc/123"),
             },
@@ -393,7 +400,7 @@ QUERIED = MappingProxyType(
             Folder: deepcopy(PATH_PARENTS),
             Publisher: {("Youthful Adventure Stories", None)},
             Reprint: {
-                ("Capitan Sciencia", 1, "", "es", None, False),
+                ("Capitan Sciencia", 1, "", "es", ("metron", "reprint", "4444"), False),
                 (
                     "Kapitän Wissenschaft",
                     None,
@@ -423,7 +430,7 @@ QUERIED = MappingProxyType(
                     7,
                 )
             },
-            TOTAL: 46,
+            TOTAL: 47,
         },
         UPDATE_FKS: {
             TOTAL: 0,
@@ -995,7 +1002,7 @@ class TestImporterBasic(BaseTestImporter):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK, md, "CREATED_FK")
-        assert Identifier.objects.count() == 5  # noqa: PLR2004
+        assert Identifier.objects.count() == 6  # noqa: PLR2004
 
         # Create Comics
         self.importer.prepare_fk_link_instance_maps()

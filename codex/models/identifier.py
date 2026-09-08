@@ -1,5 +1,6 @@
 """Identifier Models."""
 
+from types import MappingProxyType
 from typing import override
 
 from bidict import frozenbidict
@@ -77,6 +78,29 @@ def to_codex_id_type(comicbox_id_type: str | None) -> str:
 def to_comicbox_id_type(codex_id_type: str) -> str:
     """Name the comicbox identifier type for a codex table."""
     return COMICBOX_ID_TYPE_MAP.get(codex_id_type, DEFAULT_ID_TYPE)
+
+
+#: What an identifier hanging on one of codex's tables names upstream,
+#: where that differs from what the table itself is. A reprint's id is
+#: the reprinted issue's id: the row is another edition of this book, and
+#: the id names that edition's issue. No database publishes a page for a
+#: "reprint", so reading the table name as the type built no link at all.
+_POSITIONAL_ID_TYPE_OVERRIDES = MappingProxyType(
+    {IdentifierType.REPRINT.value: DEFAULT_ID_TYPE}
+)
+
+
+def positional_id_type(codex_id_type: str) -> str:
+    """
+    Name the type an identifier on this codex table implies.
+
+    An identifier states its type only when it differs from the one its
+    position implies, so this is what to assume when none is stated. It
+    is a question about the id, not about the row it hangs on, which is
+    why it is not simply the table's own type.
+    """
+    override = _POSITIONAL_ID_TYPE_OVERRIDES.get(codex_id_type)
+    return override or to_comicbox_id_type(codex_id_type)
 
 
 class Identifier(BaseModel):

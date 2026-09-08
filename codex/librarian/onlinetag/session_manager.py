@@ -13,10 +13,12 @@ deferred-prompt fingerprint is deterministic across processes.
 from __future__ import annotations
 
 import threading
+from dataclasses import replace
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, cast
 
+from comicbox.config.online import resolve_effort
 from comicbox.events import (
     AutoWritten,
     Event,
@@ -26,12 +28,16 @@ from comicbox.events import (
     PromptDeferred,
     RateLimited,
     SearchCompleted,
-    SearchStarted,
     Skipped,
     SourceStarted,
 )
 from comicbox.exceptions import ComicboxError
-from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
+from comicbox.online_session import (
+    Effort,
+    MatchMode,
+    OnlineCredentials,
+    OnlineSession,
+)
 from django.utils.timezone import now, timedelta
 from humanize import naturaldelta
 
@@ -43,6 +49,7 @@ from codex.librarian.notifier.tasks import (
 from codex.librarian.onlinetag.estimate import estimate_seconds
 from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
 from codex.librarian.onlinetag.session_cache import (
+    PROMPT_VERSION,
     add_pending_prompts,
     get_pending_prompts,
     remove_pending_prompt,
@@ -80,10 +87,25 @@ from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
+
+def _online_config(effort: str) -> ComicboxSettings:
+    """
+    Codex's online settings with this scan's effort applied.
+
+    Effort is not an ``OnlineSession`` keyword — it lives in the settings
+    tree the session layers its own preferences over, which is what the
+    ``config`` keyword is for.
+    """
+    online = COMICBOX_ONLINE_CONFIG.online
+    tuning = replace(online.tuning, effort=Effort(effort))
+    return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
+
+
 if TYPE_CHECKING:
     from multiprocessing import Queue
     from typing import Literal
 
+    from comicbox.config.settings import ComicboxSettings
     from loguru._logger import Logger
 
 
@@ -286,14 +308,9 @@ class OnlineTagSessionManager:
     def _track_live_lookup(self, state: SessionState, event: Event) -> None:
         """Follow what the scan is consulting right now, and publish it."""
         match event:
-            # SourceStarted covers every route a source can take; SearchStarted
-            # is the fallback for a comicbox too old to emit the former, and
-            # the (path, source) dedupe collapses the pair a cold search emits
-            # into one publish.
-            case (
-                SourceStarted(path=path, source=source)
-                | SearchStarted(path=path, source=source)
-            ) if path and source:
+            # SourceStarted covers every route a source can take,
+            # including the fast paths a search never reaches.
+            case SourceStarted(path=path, source=source) if path and source:
                 state.live.begin(path, source)
                 self._publish_live(state)
             # The comic is done; nothing is live until the next source starts.
@@ -337,8 +354,8 @@ class OnlineTagSessionManager:
         work = (
             estimate_seconds(
                 remaining,
-                state.match_mode,
                 state.sources,
+                effort=state.effort,
                 merge_all_sources=state.merge_all_sources,
             )
             if state is not None
@@ -473,6 +490,7 @@ class OnlineTagSessionManager:
         """Serialize a deferred prompt with everything needed to apply it later."""
         return {
             "fingerprint": dp.fingerprint,
+            "prompt_version": PROMPT_VERSION,
             "pk": pk,
             "path": str(dp.path) if dp.path else "",
             "source": dp.source,
@@ -660,7 +678,7 @@ class OnlineTagSessionManager:
             # under /config. Without them the session reads its own and
             # comicbox's sqlite caches land somewhere a container
             # recreation throws away.
-            config=COMICBOX_ONLINE_CONFIG,
+            config=_online_config(task.effort),
         )
         state = SessionState(
             session=session,
@@ -668,6 +686,11 @@ class OnlineTagSessionManager:
             mode="update",
             match_mode=task.mode,
             sources=tuple(task.sources),
+            # The effort the estimate is priced at, read back off the
+            # settings so a per-source override reaches it.
+            effort=resolve_effort(COMICBOX_ONLINE_CONFIG.online, "comicvine").value
+            if task.effort == Effort.BALANCED.value
+            else task.effort,
             merge_all_sources=task.merge_all_sources,
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,
@@ -679,6 +702,7 @@ class OnlineTagSessionManager:
             resume_params={
                 "sources": list(task.sources),
                 "mode": task.mode,
+                "effort": task.effort,
                 "prompts_mode": task.prompts_mode,
                 "delete_original": task.delete_original,
                 "merge_all_sources": task.merge_all_sources,

@@ -62,6 +62,8 @@ class OnlineTagStartSerializer(Serializer):
     pks = ListField(child=CharField())
     sources = ListField(child=CharField(), required=False, default=list(SOURCE_NAMES))
     mode = CharField(required=False, default="auto")
+    # None falls back to the admin default, like the flags below.
+    effort = CharField(required=False, default=None, allow_null=True)
     prompts_mode = CharField(required=False, default="ask")
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
@@ -204,6 +206,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "rename_files",
             "default_match_mode",
             "default_prompts_mode",
+            "default_effort",
             "default_sources",
             "merge_all_sources",
             "metron_key",

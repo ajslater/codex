@@ -108,8 +108,8 @@
         <span class="sourceOrder">{{ idx + 1 }}</span>
         <span class="sourceName">{{ sourceLabel(src.source) }}</span>
         <span class="sourceRate">{{ src.ratePerMinute }}/min</span>
-        <span v-if="dailyText(src)" class="sourceRate">
-          {{ dailyText(src) }}
+        <span v-if="budgetText(src)" class="sourceRate">
+          {{ budgetText(src) }}
         </span>
         <span v-if="rateText(src)" class="sourceLimit">
           <v-icon :icon="mdiTimerSand" size="x-small" />
@@ -623,16 +623,23 @@ export default {
       if (secs === null) return "";
       return secs <= 0 ? "retrying…" : `retry ${formatCountdown(secs)}`;
     },
-    dailyText(src) {
-      // Live account budget from Metron's X-RateLimit-* headers; the
-      // daily limit varies by donor tier, so show it once it's known.
+    budgetText(src) {
+      /*
+       * The live account budget, whichever window the source meters in.
+       * Metron's daily limit varies by donor tier and comes off its
+       * X-RateLimit-* headers; Comic Vine meters hourly per endpoint
+       * pool and the backend sends the tightest one, since that is what
+       * will stop the run. Empty until the source has reported.
+       */
+      const window = src.budgetWindow;
+      if (!window) return "";
       const remaining = src.sustainedRemaining;
       const limit = src.sustainedLimit;
       if (remaining != null && limit != null) {
-        return `${nf(remaining)}/${nf(limit)} day`;
+        return `${nf(remaining)}/${nf(limit)} ${window}`;
       }
-      if (limit != null) return `${nf(limit)}/day`;
-      if (remaining != null) return `${nf(remaining)} left today`;
+      if (limit != null) return `${nf(limit)}/${window}`;
+      if (remaining != null) return `${nf(remaining)} left this ${window}`;
       return "";
     },
     openReview() {

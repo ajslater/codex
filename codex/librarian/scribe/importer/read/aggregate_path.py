@@ -18,7 +18,6 @@ from comicbox.formats.comicbox.schema import (
     SUFFIX_KEY,
     TITLE_KEY,
 )
-from comicbox.identifiers import ID_TYPE_KEY
 
 from codex.librarian.scribe.importer.const import (
     CREATE_COMICS,
@@ -58,8 +57,9 @@ def _fold_alternative_names_into_reprints(md) -> None:
     consumed as a foreign key — and marked, so a write can put each row
     back into the list it came from.
 
-    An identifier on one of these names a series, not an issue, and says
-    so, since where it now sits no longer implies it.
+    An identifier on one of these states that it names a series, since a
+    name is not the thing it names and so implies no type of its own.
+    Nothing to do here but carry it across.
     """
     series = md.get(SERIES_KEY) or {}
     alternative_names = series.pop(SERIES_ALTERNATIVE_NAMES_KEY, None)
@@ -78,10 +78,7 @@ def _fold_alternative_names_into_reprints(md) -> None:
         if language := alternative_name.get(LANGUAGE_KEY):
             reprint[LANGUAGE_KEY] = language
         if identifiers := alternative_name.get(IDENTIFIERS_KEY):
-            reprint[IDENTIFIERS_KEY] = {
-                id_source: {ID_TYPE_KEY: SERIES_KEY, **identifier}
-                for id_source, identifier in identifiers.items()
-            }
+            reprint[IDENTIFIERS_KEY] = identifiers
         reprints.append(reprint)
 
 

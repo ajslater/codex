@@ -40,6 +40,12 @@ from codex.cache import tagging_cache as cache
 
 _SCAN_KEY = "onlinetag:active_scan_id"
 _PROMPTS_KEY = "onlinetag:pending_prompts"
+#: The fingerprint scheme a stored prompt was built under. A prompt is
+#: replayed by handing its fingerprint back to comicbox, so a prompt
+#: fingerprinted under an older scheme can never be matched again: it
+#: would sit in the queue forever, and answering it would silently do
+#: nothing. Comicbox 5 changed the scheme, hence version 2.
+PROMPT_VERSION = 2
 # No TTL: pending prompts linger until answered/skipped/pruned; the active
 # scan id is cleared explicitly at scan end and at daemon startup.
 _NO_TIMEOUT = None
@@ -87,6 +93,29 @@ def remove_pending_prompt(fingerprint: str) -> dict[str, Any]:
     if prompts.pop(fingerprint, None) is not None:
         set_pending_prompts(prompts)
     return prompts
+
+
+def prune_stale_prompts() -> int:
+    """
+    Drop prompts fingerprinted under an older scheme; return how many.
+
+    Cheap and idempotent, so it runs at daemon start and again nightly
+    rather than as a migration: the tagging cache lives under the config
+    directory, where a test run's migrations would reach a developer's
+    live prompts.
+    """
+    prompts = get_pending_prompts()
+    if not prompts:
+        return 0
+    kept = {
+        fingerprint: prompt
+        for fingerprint, prompt in prompts.items()
+        if prompt.get("prompt_version") == PROMPT_VERSION
+    }
+    dropped = len(prompts) - len(kept)
+    if dropped:
+        set_pending_prompts(kept)
+    return dropped
 
 
 def clear_all() -> None:

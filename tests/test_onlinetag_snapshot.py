@@ -286,7 +286,7 @@ class _FakeSession:
 
 
 def test_sources_strip_reports_live_daily_budget() -> None:
-    """comicbox>=4.3.0 live sustained windows land as flat per-source fields."""
+    """Metron's live sustained window lands as flat per-source fields."""
     sustained_limit = 25_000
     sustained_remaining = 24_987
     state = _state([("/c/1.cbz", 1)])
@@ -307,9 +307,34 @@ def test_sources_strip_reports_live_daily_budget() -> None:
     by_source = {s["source"]: s for s in snap["sources"]}
     assert by_source["metron"]["sustained_limit"] == sustained_limit
     assert by_source["metron"]["sustained_remaining"] == sustained_remaining
+    assert by_source["metron"]["budget_window"] == "day"
     # comicvine reports no budget; the static rate stays the only number.
     assert by_source["comicvine"]["sustained_limit"] is None
     assert by_source["comicvine"]["sustained_remaining"] is None
+    assert by_source["comicvine"]["budget_window"] == ""
+
+
+def test_sources_strip_reports_comic_vines_tightest_pool() -> None:
+    """
+    Comic Vine meters per endpoint pool, all of them hourly.
+
+    Only one number fits the strip, and the pool with the least left is
+    the one that will stop the run, so that is the one to show.
+    """
+    state = _state([("/c/1.cbz", 1)])
+    state.session = _FakeSession(  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[invalid-assignment]
+        {
+            "metron": {},
+            "comicvine": {
+                "issues": {"limit": 200, "remaining": 197, "reset_epoch": 1100.0},
+                "search": {"limit": 200, "remaining": 12, "reset_epoch": 1200.0},
+            },
+        }
+    )
+    snap = _build(state)
+    by_source = {s["source"]: s for s in snap["sources"]}
+    assert by_source["comicvine"]["sustained_remaining"] == 12  # noqa: PLR2004
+    assert by_source["comicvine"]["budget_window"] == "hour"
 
 
 def test_rate_limited_source_reads_as_waiting_on_the_in_flight_comic() -> None:
