@@ -227,6 +227,12 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 # StoryArcNumbers
                 for role_values in roles_or_numbers:
                     clean_sub_map[(clean_sub_key, role_values)] = set()
+        elif field.name == CREDITS_FIELD_NAME:
+            # A person credited without naming a role. The row still
+            # needs every part of its key spelled out: a credit with no
+            # role has no role to be the primary holder of, and a key
+            # left short is padded with nulls, which the flag forbids.
+            clean_sub_map = {(clean_sub_key[0], None, False): set()}
         elif field.name == IDENTIFIERS_FIELD_NAME:
             clean_sub_map = self._identifier_sub_map(clean_sub_key, sub_value_obj)
         else:
