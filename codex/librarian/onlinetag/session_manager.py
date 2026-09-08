@@ -95,7 +95,15 @@ def _online_config(effort: str) -> ComicboxSettings:
     Effort is not an ``OnlineSession`` keyword — it lives in the settings
     tree the session layers its own preferences over, which is what the
     ``config`` keyword is for.
+
+    An empty effort is left empty rather than spelled out as the value it
+    resolves to. Comicbox reads any named effort as a decision and leaves
+    it alone; it is only free to drop a large unattended run to minimal,
+    and spare it hours of Comic Vine rate limiting, while nobody has
+    named one.
     """
+    if not effort:
+        return COMICBOX_ONLINE_CONFIG
     online = COMICBOX_ONLINE_CONFIG.online
     tuning = replace(online.tuning, effort=Effort(effort))
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
@@ -663,6 +671,7 @@ class OnlineTagSessionManager:
         defer_prompts = (
             task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
         )
+        online_config = _online_config(task.effort)
         session = OnlineSession(
             sources=task.sources,
             # Pinned sources fetch their issue id directly; the rest search.
@@ -678,7 +687,7 @@ class OnlineTagSessionManager:
             # under /config. Without them the session reads its own and
             # comicbox's sqlite caches land somewhere a container
             # recreation throws away.
-            config=_online_config(task.effort),
+            config=online_config,
         )
         state = SessionState(
             session=session,
@@ -686,11 +695,10 @@ class OnlineTagSessionManager:
             mode="update",
             match_mode=task.mode,
             sources=tuple(task.sources),
-            # The effort the estimate is priced at, read back off the
-            # settings so a per-source override reaches it.
-            effort=resolve_effort(COMICBOX_ONLINE_CONFIG.online, "comicvine").value
-            if task.effort == Effort.BALANCED.value
-            else task.effort,
+            # What the estimate is priced at: whatever the settings this
+            # session was handed resolve to, so an unset effort and a
+            # per-source override both reach it.
+            effort=resolve_effort(online_config.online, "comicvine").value,
             merge_all_sources=task.merge_all_sources,
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,

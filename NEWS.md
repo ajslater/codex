@@ -35,7 +35,9 @@ border-radius: 128px;
       cannot write it back: neither ComicInfo nor MetronInfo stores it.
     - Online tagging takes an Effort setting, per scan and as an admin default.
       Thorough restores Comic Vine's unbounded search, Minimal trades matches
-      for speed, and Metron ignores it.
+      for speed, and Metron ignores it. Auto, the default, drops a large
+      unattended scan to Minimal so Comic Vine's hourly limit doesn't stretch it
+      into hours.
     - The tagging status strip shows Comic Vine's remaining hourly budget.
 
 - Fixes
@@ -44,6 +46,8 @@ border-radius: 128px;
     - Saving browser settings sent an empty request. The next page request saved
       them anyway, so nothing was lost.
     - Sorting by a tag column outside the table view no longer errors.
+    - Browsing a group whose parents have gone missing shows a button back to
+      the top rather than an empty crumb trail and no way out.
     - The Admin Tagging Status table shows what is being looked up right now.
     - Identifier links are built from the id instead of stored beside it, so
       they can no longer disagree with it. A comic can carry an id for its

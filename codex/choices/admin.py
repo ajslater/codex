@@ -66,9 +66,12 @@ TAGGING_CHOICES = MappingProxyType(
             }
         ),
         # How much API budget a comic may spend against a fan-out source.
-        # Derived from comicbox's enum so the two cannot drift.
+        # Derived from comicbox's enum so the two cannot drift, plus the
+        # empty choice comicbox spells as a null effort: unset, and so
+        # still free to be dropped to minimal for a large run.
         "effort": MappingProxyType(
-            {effort.value: effort.value.capitalize() for effort in Effort}
+            {"": "Auto"}
+            | {effort.value: effort.value.capitalize() for effort in Effort}
         ),
         # Online-tag source names in priority order, derived from comicbox so
         # the frontend's source list tracks comicbox instead of hardcoding it.
@@ -80,6 +83,6 @@ TAGGING_DEFAULTS = MappingProxyType(
     {
         "matchMode": "auto",
         "promptsMode": "ask",
-        "effort": Effort.BALANCED.value,
+        "effort": "",
     }
 )

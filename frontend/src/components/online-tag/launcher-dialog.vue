@@ -193,7 +193,12 @@ const MATCH_MODE_HINTS = {
   eager:
     "Accepts the best available match with minimal verification. Fastest, but least precise.",
 };
+const EFFORT_AUTO = "";
+// What an unset effort spends on a run small enough not to be spared.
+const EFFORT_AUTO_BUDGET = "balanced";
 const EFFORT_HINTS = {
+  [EFFORT_AUTO]:
+    "Lets Codex pick. A large unattended run drops to Minimal so Comic Vine's hourly limit doesn't stretch it into hours; anything smaller is Balanced.",
   minimal:
     "Spends the fewest Comic Vine calls per comic. Fastest, and likeliest to miss a hard-to-find issue.",
   balanced: "Spends a bounded number of Comic Vine calls per comic.",
@@ -220,8 +225,11 @@ const SOURCE_RATES = Object.fromEntries(
 function callsForSource(source, effort) {
   if (source === "metron") return TAGGING_ESTIMATE.metronRequestsPerComic;
   if (source === "comicvine") {
+    // Unset is answered by comicbox once the run starts, so price it as
+    // what it spends on a run it does not spare.
+    const budget = effort === EFFORT_AUTO ? EFFORT_AUTO_BUDGET : effort;
     return (
-      TAGGING_ESTIMATE.comicvineRequestsByEffort[effort] ||
+      TAGGING_ESTIMATE.comicvineRequestsByEffort[budget] ||
       TAGGING_ESTIMATE.defaultRequestsPerComic
     );
   }
@@ -275,7 +283,8 @@ export default {
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
       sources: [...TAGGING_CHOICES.sources],
       matchMode: "auto",
-      effort: "balanced",
+      // Empty is Auto: comicbox picks, and may spare a large run.
+      effort: "",
       promptsMode: "ask",
       mergeAllSources: false,
       mergeAllSourcesBaseHint:
@@ -510,7 +519,7 @@ export default {
       if (!this.activeSources.includes("comicvine")) {
         return base;
       }
-      const requests = TAGGING_ESTIMATE.comicvineRequestsByEffort[this.effort];
+      const requests = callsForSource("comicvine", this.effort);
       return requests
         ? `${base} ~${requests} Comic Vine requests/comic.`
         : base;
@@ -649,7 +658,7 @@ export default {
         this.sources = defaults.filter((s) => this.enabledSources.has(s));
         this.matchMode =
           this.taggingDefaults.defaultMatchMode || this.matchMode;
-        this.effort = this.taggingDefaults.defaultEffort || this.effort;
+        this.effort = this.taggingDefaults.defaultEffort ?? this.effort;
         this.promptsMode =
           this.taggingDefaults.defaultPromptsMode || this.promptsMode;
         this.mergeAllSources = Boolean(this.taggingDefaults.mergeAllSources);

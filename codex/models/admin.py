@@ -100,8 +100,15 @@ class ComicboxTaggingDefaults(BaseModel):
 
         Only bites on sources that fan out per candidate, which today
         means Comic Vine. Metron answers in one call and ignores it.
+
+        Unset is not the same as Balanced. Naming any value pins it, and
+        comicbox reads a pin as a decision to leave alone; left unset it
+        spends a balanced budget on an ordinary run and drops to minimal
+        on one large enough to otherwise stretch into hours of Comic Vine
+        rate limiting.
         """
 
+        AUTO = "", _("Auto")
         MINIMAL = "minimal", _("Minimal")
         BALANCED = "balanced", _("Balanced")
         THOROUGH = "thorough", _("Thorough")
@@ -124,7 +131,8 @@ class ComicboxTaggingDefaults(BaseModel):
     default_effort = CharField(
         max_length=MAX_FIELD_LEN,
         choices=EffortChoices.choices,
-        default=EffortChoices.BALANCED,
+        default=EffortChoices.AUTO,
+        blank=True,
     )
     default_sources = JSONField(default=list)
     # When True, query every enabled source per comic and merge the results

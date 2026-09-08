@@ -180,7 +180,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             return str(requested)
         if defaults and defaults.default_effort:
             return str(defaults.default_effort)
-        return ComicboxTaggingDefaults.EffortChoices.BALANCED.value
+        return ComicboxTaggingDefaults.EffortChoices.AUTO.value
 
     def post(self, request):
         """Validate and enqueue a BulkOnlineTagTask."""

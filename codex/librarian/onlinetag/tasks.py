@@ -22,8 +22,9 @@ class BulkOnlineTagTask(OnlineTagTask):
     mode: str = "auto"
     prompts_mode: str = "ask"
     # How much API budget a comic may spend against a source that fans
-    # out per candidate, which today means Comic Vine alone.
-    effort: str = "balanced"
+    # out per candidate, which today means Comic Vine alone. Empty leaves
+    # the choice to comicbox, which is what lets it spare a large run.
+    effort: str = ""
     delete_original: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)
     # instead of stopping at the first match.

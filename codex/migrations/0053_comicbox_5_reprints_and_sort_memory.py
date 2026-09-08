@@ -30,8 +30,11 @@ sixteen and codex named fifteen, so a comicbox ``volume`` id had no
 codex table to point at.
 
 ``default_effort`` is the API budget an online scan spends per comic.
-Comicbox 5 bounds Comic Vine's per-candidate fan-out by default, and
-this is how an admin asks for the old unbounded search back.
+Comicbox 5 bounds Comic Vine's per-candidate fan-out, and this is how an
+admin widens or narrows it. It defaults to unset rather than to a named
+budget, because naming one tells comicbox to leave it alone: only while
+nobody has named a budget is comicbox free to spend less on a run large
+enough to otherwise stretch into hours of Comic Vine rate limiting.
 
 None of those columns is backfilled. A comic keeps its defaults until it
 is next read, which is deliberate: they can only be filled from the file,
@@ -194,12 +197,14 @@ class Migration(migrations.Migration):
             model_name="comicboxtaggingdefaults",
             name="default_effort",
             field=models.CharField(
+                blank=True,
                 choices=[
+                    ("", "Auto"),
                     ("minimal", "Minimal"),
                     ("balanced", "Balanced"),
                     ("thorough", "Thorough"),
                 ],
-                default="balanced",
+                default="",
                 max_length=32,
             ),
         ),
