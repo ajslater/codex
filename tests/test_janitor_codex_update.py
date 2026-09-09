@@ -2,8 +2,8 @@
 Codex self-update: gating, installer selection, failure and restart.
 
 The updater used to check the Auto Update admin flag here, which meant
-the admin's own Update Codex button did nothing while the flag was off
-(and it defaults to off). The flag now gates only the nightly path, in
+the admin's own Update Codex button did nothing while the flag was off.
+The flag now gates only the nightly path, in
 :mod:`codex.librarian.bookmark.latest_version`.
 """
 
