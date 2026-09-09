@@ -63,6 +63,7 @@ def restore(
     process store). ``dry_run`` resolves every row without writing.
     """
     resolved, cleanup = _resolve_sidecar(sidecar_path)
+    store = None
     try:
         store = SidecarStore(resolved) if resolved is not None else get_store()
         report = RestoreReport()
@@ -83,6 +84,14 @@ def restore(
         logger.info(f"{mode}: {total_written} written, {total_skipped} skipped.")
         return report
     finally:
+        if store is not None:
+            # The restore runs on an ASGI request's worker thread, which
+            # is retired when the request ends. ``SidecarStore`` caches
+            # its sqlite connection in a ``threading.local``, so leaving
+            # it open orphans it exactly the way an unclosed Django
+            # connection would (and no ASGI wrapper can reach a
+            # non-Django handle).
+            store.close()
         cleanup()
 
 

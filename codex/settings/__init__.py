@@ -660,10 +660,14 @@ if not DB_PATH.exists() and OLD_DB_PATH.exists():
 BACKUP_DB_DIR = CONFIG_PATH / "backups"
 BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
-# Per-connection PRAGMAs. ``init_command`` fires on every new connection
-# (which, with ``CONN_MAX_AGE=600``, means at most once per 10-minute
-# window per worker). The pragma list below trades durability-of-a-
-# single-unfsynced-write for throughput while staying safe under WAL:
+# Per-connection PRAGMAs. ``init_command`` fires on every new connection:
+# in the librarian process at most once per ``LIBRARIAN_CONN_MAX_AGE``
+# window per worker thread, but in the web process once per DB-touching
+# request (see ``DATABASES`` below). That is cheaper than it sounds — the
+# five statements measure ~0.01 ms of a ~0.8 ms connection open, which is
+# dominated by SQLite parsing the schema. The pragma list below trades
+# durability-of-a-single-unfsynced-write for throughput while staying
+# safe under WAL:
 #
 # * ``journal_mode=wal`` — already in place; enables concurrent readers
 #   alongside one writer, and lets ``synchronous=NORMAL`` be safe.
@@ -688,17 +692,33 @@ _SQLITE_PRAGMAS = (
     "PRAGMA cache_size=-64000;"
 )
 
+# Persistent connections are deliberately absent here, leaving Django's
+# default of ``CONN_MAX_AGE=0``. Django's docs: "When using ASGI,
+# persistent connections should be disabled." Under ASGI every request
+# runs its ORM work on a private worker thread that Django retires when
+# the request ends, and ``django.db.connections`` is thread-local, so a
+# connection held open by ``CONN_MAX_AGE`` can never be reused — only
+# orphaned with its thread, surfacing as ``ResourceWarning: unclosed
+# database``. At 0, Django's own ``close_old_connections`` receiver
+# closes it at ``request_finished``, on that same thread.
+#
+# Processes whose threads *do* persist opt back in for themselves:
+# the librarian at startup and, when it is enabled, the HTTP worker
+# pool. See ``codex.librarian.db.enable_persistent_connections``.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DB_PATH,
-        "CONN_MAX_AGE": 600,
         "OPTIONS": {
             "init_command": _SQLITE_PRAGMAS,
             "timeout": 120,
         },
     },
 }
+
+# Seconds a persistent connection is reused before it is recycled, for
+# the processes that opt in above.
+LIBRARIAN_CONN_MAX_AGE = 600
 
 if FEATURES.silk:
     # django-silk captures live in their own DB so perf traces don't
