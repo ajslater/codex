@@ -16,7 +16,7 @@
         "vue-pdf-embed": "^2.1.6",
         "vue-router": "^5.3.1",
         "vuetify": "^4.2.0",
-        "xior": "^0.8.4",
+        "xior": "^0.8.5",
       },
       "devDependencies": {
         "@mdi/font": "^7.4.47",
@@ -806,7 +806,7 @@
 
     "wsl-utils": ["wsl-utils@1.0.0", "", { "dependencies": { "is-wsl": "^3.1.0", "powershell-utils": "^0.1.0" } }, "sha512-Hl0ZOAs672vg+06kfujwRhoS6/jehvULrlFkuF2dRu6pHgA8U06h3xqNIqNNU1LTXPcedxByAR4GS6pwQK0mgA=="],
 
-    "xior": ["xior@0.8.4", "", { "dependencies": { "tiny-lru": "^11.2.11" } }, "sha512-aY2tUpDuLSKFfcgHs3HpS1cLy9Di31zBfw7CQvmsLONh4TOIfBg/B+5n3HE+xinJbhDvaCgtG5vmEgSXgz/axQ=="],
+    "xior": ["xior@0.8.5", "", { "dependencies": { "tiny-lru": "^11.2.11" } }, "sha512-oAabZs2ZakveaGam4Mq2z1MvyIQKiyXYOc++MUEW5oK/8VftZ1NaxIjhELb4K+QKz2UqdTzstAm1XZnH3pp+Vg=="],
 
     "y18n": ["y18n@5.0.8", "", {}, "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA=="],
 
