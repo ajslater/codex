@@ -1,13 +1,19 @@
 """
 HTTP ASGI application.
 
-Wraps Django's ASGI handler so every request releases its database
-connections before the thread that opened them is destroyed.
+Serves requests on pooled workers that keep a warm database connection,
+falling back to a per-request thread whose connections are released
+before it is destroyed.
 """
+
+from functools import cache
 
 from asgiref.sync import ThreadSensitiveContext, sync_to_async
 from django.core.asgi import get_asgi_application
 from django.db import connections
+from django.urls import Resolver404, resolve
+
+from codex.applications.workers import WORKER_POOL
 
 
 class ConnectionClosingApplication:
@@ -28,7 +34,12 @@ class ConnectionClosingApplication:
     ``close_old_connections`` onto the request's own worker. On those
     paths the ``finally`` below is a no-op costing one thread hop.
 
-    It exists for the exit Django has no hook on. ``send_response``
+    When the worker pool is running this process opts into persistent
+    connections, and a bypassed request is back on a throwaway thread —
+    so for those the ``finally`` closes the connection on every path,
+    not just the abnormal one.
+
+    It also covers the exit Django has no hook on. ``send_response``
     runs inside ``handle()``'s ``TaskGroup``; if it raises anything
     other than ``RequestProcessed``/``RequestAborted`` the exception
     group is re-raised before either close runs. A streaming response's
@@ -60,4 +71,73 @@ class ConnectionClosingApplication:
                 await sync_to_async(connections.close_all)()
 
 
-HTTP_APPLICATION = ConnectionClosingApplication(get_asgi_application())
+@cache
+def _bypass_views() -> tuple[frozenset, tuple[type, ...]]:
+    """
+    Return the views that must not hold a pooled worker.
+
+    Imported on first use, not at module scope: this module is imported
+    to build the ASGI application, which is what calls ``django.setup``.
+    """
+    from codex.views.browser.download import CollectionDownloadView
+    from codex.views.download import DownloadView
+    from codex.views.healthcheck import health_check_view
+
+    return frozenset({health_check_view}), (DownloadView, CollectionDownloadView)
+
+
+def _is_bypassed(scope) -> bool:
+    """
+    Decide whether a request should skip the worker pool.
+
+    A pooled request holds its worker until its response is sent, so a
+    file download would hold one for as long as the client takes to
+    receive it. The health check is exempt for the opposite reason:
+    it touches no database at all, and a container's health must not
+    depend on the pool having a free worker.
+    """
+    path = scope.get("path", "")
+    root_path = scope.get("root_path", "")
+    if root_path and path.startswith(root_path):
+        path = path[len(root_path) :]
+    if not path.startswith("/"):
+        path = "/" + path
+    try:
+        match = resolve(path)
+    except Resolver404:
+        # Django will answer this with a 404. Pool it like anything else.
+        return False
+    views, view_classes = _bypass_views()
+    if match.func in views:
+        return True
+    view_class = getattr(match.func, "view_class", None)
+    return view_class is not None and issubclass(view_class, view_classes)
+
+
+class PooledApplication:
+    """
+    Serve requests on a pooled worker when there is one to lend.
+
+    Pooled requests skip ``ConnectionClosingApplication`` deliberately:
+    their worker outlives them, so the connection it holds is meant to
+    be reused by the next request rather than closed. Django's own
+    ``close_old_connections`` still recycles it on age or error, exactly
+    as it does for a WSGI worker thread.
+    """
+
+    def __init__(self, application, pool) -> None:
+        """Wrap the Django ASGI application and bind the worker pool."""
+        self.application = application
+        self.pool = pool
+        self.unpooled = ConnectionClosingApplication(application)
+
+    async def __call__(self, scope, receive, send) -> None:
+        """Serve one request, pooled if the pool has a worker for it."""
+        if self.pool.enabled and not _is_bypassed(scope):
+            async with self.pool.acquire():
+                await self.application(scope, receive, send)
+        else:
+            await self.unpooled(scope, receive, send)
+
+
+HTTP_APPLICATION = PooledApplication(get_asgi_application(), WORKER_POOL)

@@ -13,6 +13,11 @@ classifiers = [
 ]
 dependencies = [
   "adrf~=0.1.12",
+  # Declared directly, not just inherited through Django and channels:
+  # codex.applications.workers installs its own thread-sensitive
+  # contexts into asgiref's executor registry, so a major version is a
+  # conscious upgrade rather than a transitive one.
+  "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
   "comicbox[pdf]~=5.0.0",

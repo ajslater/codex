@@ -135,6 +135,10 @@ GRANIAN_URL_PATH_PREFIX = normalize_url_path_prefix(
 WATCH_FOR_CHANGES = DEBUG and get_bool(
     CODEX_CONFIG, "server.watch_for_changes", default=False
 )
+# Worker threads that keep a warm database connection between requests.
+# See ``codex.applications.workers``. 0 serves every request on its own
+# throwaway thread, which opens and closes a connection per request.
+DB_WORKERS = get_int(CODEX_CONFIG, "server.db_workers", default=8)
 
 ##############################
 # Codex Config: Logging      #
