@@ -638,6 +638,7 @@ version = "2.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "adrf" },
+    { name = "asgiref" },
     { name = "bidict" },
     { name = "channels" },
     { name = "comicbox", extra = ["pdf"] },
@@ -722,6 +723,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "adrf", specifier = "~=0.1.12" },
+    { name = "asgiref", specifier = "~=3.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
     { name = "comicbox", extras = ["pdf"], specifier = "~=5.0.0" },

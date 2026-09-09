@@ -5,6 +5,7 @@ from contextlib import suppress
 
 from loguru import logger
 
+from codex.applications.workers import WORKER_POOL
 from codex.signals.os_signals import bind_signals_to_loop
 from codex.startup.loguru import loguru_init
 from codex.websockets.listener import BroadcastListener
@@ -38,12 +39,16 @@ class LifespanApplication:
     async def _startup(self) -> None:
         """Startup tasks."""
         bind_signals_to_loop()
+        await WORKER_POOL.start()
         self.broadcast_listener_task = asyncio.create_task(
             self.broadcast_listener.listen()
         )
 
     async def _shutdown(self) -> None:
         """Shutdown tasks."""
+        # First: in-flight requests still hold pooled workers, and the
+        # connections on them have to be closed from those threads.
+        await WORKER_POOL.stop()
         with suppress(ValueError):
             # Depending on timing this can be closed already
             self.broadcast_queue.put(None)

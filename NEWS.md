@@ -62,11 +62,19 @@ border-radius: 128px;
     - Covers are cached by the browser and revalidated instead of re-sent, so
       revisiting a page does not download them again. They also survive a scan,
       which used to discard every cached cover whether or not it had changed.
+    - Every web request leaked a database connection, and its open files, until
+      garbage collection.
+
+- Performance
+    - Web requests share a pool of database connections instead of opening one
+      each. `db_workers` under `[server]` sizes it, or turns it off with 0.
 
 - Dev
     - Comicbox 5.0.0, and its metadata schema v3.0.
     - Simyan, mokkari and requests-cache are declared directly rather than
       relied on through comicbox.
+    - Asgiref is declared directly; the connection pool uses its executor
+      registry.
 
 ## v2.2.11
 

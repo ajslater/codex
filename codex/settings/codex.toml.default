@@ -15,6 +15,12 @@
 # websockets = true
 # HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
 # url_path_prefix = ""
+# Worker threads that keep a warm database connection between requests.
+# Opening one costs a few milliseconds, mostly SQLite re-reading the
+# schema, so reusing them makes short requests noticeably cheaper. Each
+# worker can grow its own page cache (see cache_size, 64MB), so lower
+# this on a memory-constrained host. 0 opens a connection per request.
+# db_workers = 8
 
 # [logging]
 # Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
