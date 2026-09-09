@@ -23,6 +23,7 @@ from comicbox.events import (
     PromptDeferred,
     SearchStarted,
     Skipped,
+    SourceStarted,
 )
 
 from codex.librarian.onlinetag import statuses
@@ -169,17 +170,57 @@ def test_source_status_records_no_match_declined_and_deferred() -> None:
     }
 
 
-def test_a_search_that_never_reported_leaves_no_cell() -> None:
-    """A source whose search raised emits nothing, so it contributes no cell."""
+def test_a_source_that_reported_nothing_settles_as_no_match() -> None:
+    """
+    Silence from a source that ran is a miss, not an absence.
+
+    Comicbox emits a terminal event only for the resolutions its matcher
+    reaches. A search that comes back with zero candidates — the common
+    case for the smaller database of the two — ends the source's turn
+    with a log line and nothing else, and a cell-less source renders as
+    an em-dash the admin reads as "never attempted".
+    """
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
-    stats.record(AutoWritten(path=path, source="metron"))
-    # comicvine's search raised: comicbox logs it and emits nothing.
-    stats.record(SearchStarted(path=path, source="comicvine"))
+    stats.record(SourceStarted(path=path, source="metron"))
+    # metron searched and found nothing: comicbox logs it and emits nothing.
+    stats.record(SourceStarted(path=path, source="comicvine"))
+    stats.record(AutoWritten(path=path, source="comicvine"))
     stats.record(FileFinished(path=path, outcome="written"))
 
-    # No clean-up pass needed — the phantom was never recorded.
+    assert stats.source_status_by_path[path] == {
+        "metron": statuses.NO_MATCH,
+        "comicvine": statuses.MATCHED,
+    }
+
+
+def test_a_source_that_never_ran_keeps_its_empty_cell() -> None:
+    """First-wins is the case the em-dash is for; comicbox skips it silently."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    # comicbox emits SourceStarted *after* its first-wins skip, so the
+    # source that sat out never announces itself.
+    stats.record(SourceStarted(path=path, source="metron"))
+    stats.record(AutoWritten(path=path, source="metron"))
+    stats.record(FileFinished(path=path, outcome="written"))
+
     assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
+
+
+def test_closing_a_comic_never_overwrites_a_reported_outcome() -> None:
+    """A source that did report keeps what it said, deferred prompts included."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    stats.record(SourceStarted(path=path, source="metron"))
+    stats.record(PromptDeferred(path=path, source="metron"))
+    stats.record(SourceStarted(path=path, source="comicvine"))
+    stats.record(NoMatch(path=path, source="comicvine"))
+    stats.record(FileFinished(path=path, outcome="no_change"))
+
+    assert stats.source_status_by_path[path] == {
+        "metron": statuses.NEEDS_REVIEW,
+        "comicvine": statuses.NO_MATCH,
+    }
 
 
 def test_erroring_a_comic_leaves_no_live_cell_behind() -> None:
