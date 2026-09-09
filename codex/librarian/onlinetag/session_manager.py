@@ -47,7 +47,10 @@ from codex.librarian.notifier.tasks import (
     TAG_WRITE_ERRORS_CHANGED_TASK,
 )
 from codex.librarian.onlinetag.estimate import estimate_seconds
-from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
+from codex.librarian.onlinetag.explicit_id import (
+    fetch_tags_by_explicit_id,
+    resolved_id_sources,
+)
 from codex.librarian.onlinetag.session_cache import (
     PROMPT_VERSION,
     add_pending_prompts,
@@ -561,14 +564,16 @@ class OnlineTagSessionManager:
         credentials: OnlineCredentials,
         *,
         merge_all_sources: bool,
-    ) -> tuple[str, dict] | None:
+    ) -> tuple[tuple[str, ...], dict] | None:
         """
-        Fetch one already-identified comic by its primary stored id.
+        Fetch one already-identified comic by its stored ids.
 
-        Returns ``(primary_source, tags)`` on success, or ``None`` when the id
-        didn't resolve or the fetch errored — the caller leaves such a comic to
-        the search pass. Under ``merge_all_sources`` the comic's other stored
-        ids are fetched and merged onto the primary record.
+        Returns ``(resolved_sources, tags)`` on success, or ``None`` when the
+        primary id didn't resolve or the fetch errored — the caller leaves such
+        a comic to the search pass. Under ``merge_all_sources`` the comic's
+        other stored ids are fetched and merged onto the primary record, and
+        each one that lands is reported: a merged fetch is every contributing
+        source's match, not only the primary's.
         """
         primary_source, primary_id = next(iter(source_ids.items()))
         extra_ids = (
@@ -587,7 +592,13 @@ class OnlineTagSessionManager:
         except (ComicboxError, OSError) as exc:
             self.log.warning(f"Online tag stored-id prefetch failed for {path}: {exc}")
             return None
-        return (primary_source, tags) if tags else None
+        if not tags:
+            return None
+        # The primary is proven by the fetch itself, which returns nothing
+        # unless its own id came back. Each extra has to show its id in the
+        # merged record: an extra that didn't resolve contributed nothing.
+        extras = resolved_id_sources(tags, dict(extra_ids))
+        return (primary_source, *extras), tags
 
     def _commit_prefetch(
         self,
@@ -643,6 +654,11 @@ class OnlineTagSessionManager:
         if not id_map:
             return
 
+        # Opened here rather than in the search pass: on a re-tag every comic
+        # resolves in this loop, and a scan whose whole runtime is the prepass
+        # showed the admin an empty status rail. Totalled over the batch, not
+        # the id map, so the count doesn't jump when the search pass adopts it.
+        status = self._pass_runner.begin_status(len(comic_paths))
         batch: dict[int, dict] = {}
         for pk, source_ids in id_map.items():
             path = comic_paths[pk]
@@ -658,9 +674,13 @@ class OnlineTagSessionManager:
             state.live.end(path)
             if result is None:
                 continue
-            primary_source, tags = result
+            sources, tags = result
             batch[pk] = tags
-            state.stats.record_prefetch_match(path, primary_source)
+            state.stats.record_prefetch_match(path, sources)
+            # The rail's own progress: the prepass is the whole run on a
+            # re-tag, and its comics are the ones the search pass never sees.
+            status.complete = len(batch)
+            self.status_controller.update(status)
 
         if batch:
             self._commit_prefetch(state, comic_paths, batch)
@@ -787,6 +807,9 @@ class OnlineTagSessionManager:
             # that died by raising is still holding one, and a frozen snapshot
             # must not claim a lookup is running.
             state.live.clear()
+            # No-op unless the prepass raised before the search pass could
+            # adopt (and finish) the status row it opened.
+            self._pass_runner.finish_status()
             self._publish_snapshot(
                 state, active=False, force=True, session_id=task.session_id
             )
