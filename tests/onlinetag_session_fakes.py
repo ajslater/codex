@@ -19,6 +19,7 @@ from django.test import TestCase
 from loguru import logger
 
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
+from codex.librarian.onlinetag.status import OnlineLookupStatus
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -76,6 +77,18 @@ class FakePassRunner:
         self.source_retry_at: dict[str, float] = {}
         self.lookup_status = None
         self.rate_limited = False
+
+    def begin_status(self, total: int) -> OnlineLookupStatus:
+        """Open the scan's status row the way the real runner does."""
+        status = OnlineLookupStatus()
+        status.total = total
+        status.complete = 0
+        self.lookup_status = status
+        return status
+
+    def finish_status(self) -> None:
+        """Drop the row the prepass opened."""
+        self.lookup_status = None
 
 
 class FakeCandidate:

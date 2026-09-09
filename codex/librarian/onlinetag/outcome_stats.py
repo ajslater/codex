@@ -61,6 +61,7 @@ from codex.librarian.onlinetag.statuses import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
     from pathlib import Path
 
     from comicbox.events import Event
@@ -159,16 +160,20 @@ class OnlineTagOutcomeStats:
         for source in self.started_sources_by_path.get(path, ()):
             cells.setdefault(source, NO_MATCH)
 
-    def record_prefetch_match(self, path: Path, source: str) -> None:
+    def record_prefetch_match(self, path: Path, sources: Collection[str]) -> None:
         """
-        Record a comic matched from its stored id before the search pass.
+        Record a comic matched from its stored ids before the search pass.
 
         The prepass fetches by id outside the event-emitting session, so it
         seeds by hand what an ``AutoWritten`` + ``FileFinished`` pair would.
+        Every source whose id landed is credited, not just the primary: a
+        merged fetch writes all of their tags, and crediting one leaves the
+        others reading as never consulted.
         """
         self.written_paths.add(path)
-        self._add_matched_source(path, source)
-        self._set_source_status(path, source, MATCHED)
+        for source in sources:
+            self._add_matched_source(path, source)
+            self._set_source_status(path, source, MATCHED)
 
     @property
     def matched(self) -> int:

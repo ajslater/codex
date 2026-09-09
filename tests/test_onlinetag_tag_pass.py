@@ -84,6 +84,101 @@ class TagPassRunnerFinishTests(TestCase):
         assert runner.rate_limited is False
         assert runner.source_retry_at == {}
 
+    def test_collect_results_adopts_the_prepass_status(self) -> None:
+        """
+        One status row per scan, opened by whichever pass runs first.
+
+        The prepass opens it so the rail isn't blank through a re-tag; the
+        search pass must then continue that row rather than starting a
+        second one, which would reset the elapsed time and flash the rail.
+        """
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        started: list = []
+        updated: list = []
+        finished: list = []
+
+        class _RecordingStatusController:
+            def start(self, status, **_kwargs) -> None:
+                started.append(status)
+
+            def update(self, status, **_kwargs) -> None:
+                updated.append(status)
+
+            def finish(self, status, **_kwargs) -> None:
+                finished.append(status)
+
+        class _EmptySession:
+            def tag_many(self, _paths):
+                return iter([])
+
+        state = double(
+            SimpleNamespace(
+                session=_EmptySession(),
+                cancelled=False,
+                pending_paths=[],
+                # What the prepass left behind: one comic already done.
+                total_comics=1,
+                completed_comics=1,
+                path_to_pk={},
+                collected_tags={},
+                match_mode="auto",
+                effort="balanced",
+                sources=("metron",),
+                merge_all_sources=False,
+            )
+        )
+        runner = TagPassRunner(
+            double(logger),
+            double(FakeQueue()),
+            double(_RecordingStatusController()),
+            lambda _state: None,
+            lambda _state: None,
+        )
+        prepass_status = runner.begin_status(3)
+        started.clear()
+
+        runner.collect_results(state, [Path("/c/b.cbz"), Path("/c/c.cbz")])
+
+        # Adopted, not replaced: no second start, and the row carries the
+        # prepass's completed comic in a total covering the whole batch.
+        assert started == []
+        assert updated
+        assert updated[0] is prepass_status
+        assert (prepass_status.complete, prepass_status.total) == (1, 3)
+        assert finished == [prepass_status]
+        assert runner.lookup_status is None
+
+    def test_finish_status_closes_a_row_no_pass_adopted(self) -> None:
+        """A prepass that raised would otherwise strand an active row."""
+        from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
+
+        finished: list = []
+
+        class _RecordingStatusController:
+            def start(self, _status, **_kwargs) -> None:
+                pass
+
+            def finish(self, status, **_kwargs) -> None:
+                finished.append(status)
+
+        runner = TagPassRunner(
+            double(logger),
+            double(FakeQueue()),
+            double(_RecordingStatusController()),
+            lambda _state: None,
+            lambda _state: None,
+        )
+        status = runner.begin_status(2)
+
+        runner.finish_status()
+        # Idempotent: the manager calls it in a finally the search pass
+        # usually reaches first.
+        runner.finish_status()
+
+        assert finished == [status]
+        assert runner.lookup_status is None
+
     def test_collect_results_clears_retry_deadlines_when_cancelled(self) -> None:
         """Pausing mid-wait must not leave the table counting down forever."""
         from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner

@@ -239,11 +239,33 @@ def test_record_prefetch_match_seeds_every_structure() -> None:
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
 
-    stats.record_prefetch_match(path, "metron")
+    stats.record_prefetch_match(path, ("metron",))
     # A second call for the same source must not double-list it.
-    stats.record_prefetch_match(path, "metron")
+    stats.record_prefetch_match(path, ("metron",))
 
     assert stats.written_paths == {path}
     assert stats.matched_source_by_path[path] == ["metron"]
     assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
+    assert stats.matched == 1
+
+
+def test_record_prefetch_match_credits_every_source_that_landed() -> None:
+    """
+    A merged stored-id refresh is every contributing source's match.
+
+    Crediting the primary alone left the other source's column blank on a
+    comic it had just refreshed — indistinguishable from never having been
+    asked.
+    """
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+
+    stats.record_prefetch_match(path, ("comicvine", "metron"))
+
+    assert stats.matched_source_by_path[path] == ["comicvine", "metron"]
+    assert stats.source_status_by_path[path] == {
+        "comicvine": statuses.MATCHED,
+        "metron": statuses.MATCHED,
+    }
+    # One comic, however many sources fetched for it.
     assert stats.matched == 1

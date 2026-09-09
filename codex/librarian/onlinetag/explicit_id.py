@@ -36,6 +36,7 @@ from codex.librarian.onlinetag.issue_id import parse_issue_id
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
     from comicbox.config.settings import ComicboxSettings
@@ -112,6 +113,25 @@ def _result_has_requested_id(tags: dict[str, Any], source: str, issue_id: int) -
     id_obj = (tags.get(IDENTIFIERS_KEY) or {}).get(source) or {}
     parsed = parse_issue_id(id_obj.get(ID_KEY_KEY))
     return parsed is not None and parsed == issue_id
+
+
+def resolved_id_sources(
+    tags: dict[str, Any], requested_ids: Mapping[str, int]
+) -> tuple[str, ...]:
+    """
+    Which of the requested sources actually landed their fetch, in order.
+
+    A merged multi-source fetch reports one record, so the only evidence of
+    who contributed to it is whose requested id came back in the merged
+    identifiers. Callers attribute the write with this; without it a comic
+    refreshed from both sources is credited to the primary alone and the
+    status table shows the other one as never consulted.
+    """
+    return tuple(
+        source
+        for source, issue_id in requested_ids.items()
+        if _result_has_requested_id(tags, source, issue_id)
+    )
 
 
 def fetch_tags_by_explicit_id(

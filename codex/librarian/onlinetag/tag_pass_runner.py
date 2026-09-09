@@ -153,6 +153,35 @@ class TagPassRunner:
             if flush_writes and was_rate_limited and batch:
                 self._flush_batch(state, batch)
 
+    def begin_status(self, total: int) -> OnlineLookupStatus:
+        """
+        Open the scan's status row before any lookups run.
+
+        The stored-id prepass fetches outside the session, so without this
+        the rail has no row to render for what is, on a re-tag, the whole
+        run — and the live marker has no status to name its source on.
+        ``collect_results`` adopts the row and finishes it.
+        """
+        status = OnlineLookupStatus()
+        status.total = total
+        status.complete = 0
+        self.lookup_status = status
+        self.status_controller.start(status)
+        return status
+
+    def finish_status(self) -> None:
+        """
+        Close a status row no pass took ownership of.
+
+        ``collect_results`` finishes (and clears) its own in a ``finally``,
+        so this only fires when the prepass raised before it ran — the case
+        that would otherwise strand an active row in the rail forever.
+        """
+        if self.lookup_status is None:
+            return
+        self.status_controller.finish(self.lookup_status)
+        self.lookup_status = None
+
     def collect_results(
         self,
         state: SessionState,
@@ -163,7 +192,13 @@ class TagPassRunner:
         """Iterate tag_many, merging new tasks that arrive mid-run."""
         path_list = list(paths)
         state.total_comics += len(path_list)
-        status = OnlineLookupStatus()
+        # The stored-id prepass may already have opened the scan's status
+        # row. Adopt it rather than starting a second one, so the rail shows
+        # one continuous job whose elapsed time counts the prepass too.
+        status = self.lookup_status
+        fresh = status is None
+        if status is None:
+            status = OnlineLookupStatus()
         status.total = state.total_comics
         status.complete = state.completed_comics
         self._update_eta(state, status)
@@ -171,7 +206,10 @@ class TagPassRunner:
         self.rate_limited = False
         self.source_retry_at.clear()
         self._publish_snapshot(state)
-        self.status_controller.start(status)
+        if fresh:
+            self.status_controller.start(status)
+        else:
+            self.status_controller.update(status, force=True)
 
         batch: dict[int, dict] = {}
         try:
