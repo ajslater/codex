@@ -280,8 +280,26 @@ class OnlineTagSessionManager:
             self._publish_snapshot(
                 state, force=True, write_resume=False, touch_throttle=False
             )
+            self._mark_looking_up(state.live.source)
         except Exception:
             self.log.exception("Publishing online tag live lookup")
+
+    def _mark_looking_up(self, source: str) -> None:
+        """
+        Move the librarian status rail in step with the live marker.
+
+        The status table has its own notification and redraws the moment a
+        source starts on a comic. The rail renders the LibrarianStatus row,
+        which only moves when a comic *completes* — a minute of apparent
+        silence per comic while a lookup is plainly running. Naming the
+        source being consulted gives the rail the same heartbeat, paced by
+        the live publish's own floor.
+        """
+        status = self._pass_runner.lookup_status
+        if not status or not source:
+            return
+        status.subtitle = f"looking up on {source}"
+        self.status_controller.update(status, force=True)
 
     def _on_event(self, event: Event) -> None:
         """Handle comicbox online events."""
@@ -371,8 +389,10 @@ class OnlineTagSessionManager:
         )
         total = secs + work
         status.eta = now() + timedelta(seconds=total) if total else None
-        status.since_updated = 0
-        self.status_controller.update(status, notify=True)
+        # A rate limit is a state change, not a progress tick: forced past
+        # the controller's coalescing window rather than reaching in to
+        # backdate the status's own clock.
+        self.status_controller.update(status, notify=True, force=True)
         if state is not None:
             self._publish_snapshot(state, force=True)
 

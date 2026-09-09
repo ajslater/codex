@@ -28,9 +28,13 @@ from comicbox.events import (
     SourceStarted,
 )
 
-from codex.librarian.notifier.tasks import ONLINE_TAG_SNAPSHOT_TASK
+from codex.librarian.notifier.tasks import (
+    LIBRARIAN_STATUS_TASK,
+    ONLINE_TAG_SNAPSHOT_TASK,
+)
 from codex.librarian.onlinetag.session_snapshot import get_snapshot
 from codex.librarian.onlinetag.session_state import LiveLookup, SessionState
+from codex.librarian.onlinetag.status import OnlineLookupStatus
 from codex.librarian.onlinetag.statuses import IN_FLIGHT
 from tests.onlinetag_session_fakes import (
     FakePassRunner,
@@ -203,6 +207,46 @@ class LiveLookupPublishTests(OnlineTagSessionTestCase):
         self.manager._last_live_publish -= self.manager._LIVE_PUBLISH_DELTA  # noqa: SLF001
         self.manager._on_event(SourceStarted(path=_B, source="metron"))  # noqa: SLF001
         assert len(self._notifications()) == _TWO
+
+    def test_the_live_marker_moves_the_status_rail_too(self) -> None:
+        """
+        The rail renders the LibrarianStatus row, not the snapshot.
+
+        The row only moves when a comic *completes*, so during a lookup —
+        a minute of network per comic — the admin drawer sat still while
+        the tagging table plainly showed work happening.
+        """
+        status = OnlineLookupStatus(complete=0, total=_TWO)
+        self.manager._pass_runner.lookup_status = status  # noqa: SLF001
+
+        self.manager._on_event(SourceStarted(path=_A, source="metron"))  # noqa: SLF001
+
+        assert status.subtitle == "looking up on metron"
+        assert LIBRARIAN_STATUS_TASK in self.queue.items
+
+    def test_the_status_rail_is_pushed_past_the_coalescing_window(self) -> None:
+        """
+        Consecutive sources are seconds apart, the window is five.
+
+        Coalesced, every source after the first would be dropped rather
+        than deferred — the rail would name one source per comic at best.
+        """
+        status = OnlineLookupStatus(complete=0, total=_TWO)
+        self.manager._pass_runner.lookup_status = status  # noqa: SLF001
+        self.manager._on_event(SourceStarted(path=_A, source="metron"))  # noqa: SLF001
+        self.manager._last_live_publish -= self.manager._LIVE_PUBLISH_DELTA  # noqa: SLF001
+
+        self.manager._on_event(SourceStarted(path=_A, source="comicvine"))  # noqa: SLF001
+
+        assert status.subtitle == "looking up on comicvine"
+
+    def test_a_scan_with_no_running_status_is_left_alone(self) -> None:
+        """The prepass publishes the marker before the lookup status exists."""
+        self.manager._pass_runner.lookup_status = None  # noqa: SLF001
+
+        self.manager._on_event(SourceStarted(path=_A, source="metron"))  # noqa: SLF001
+
+        assert LIBRARIAN_STATUS_TASK not in self.queue.items
 
     def test_a_raising_queue_put_cannot_error_the_comic(self) -> None:
         """
