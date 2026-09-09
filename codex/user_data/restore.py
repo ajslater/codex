@@ -640,34 +640,46 @@ def _rename_memory_keys(memory) -> dict:
     return memory
 
 
-def _build_browser_defaults(row, show) -> dict[str, Any]:
-    """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
-    order_by = row["order_by"] or ""
-    order_by = _SORT_KEY_RENAMES.get(order_by, order_by)
-    table_columns = json.loads(row["table_columns"] or "{}")
+def _rename_table_columns(raw) -> dict:
+    """Rename retired keys in a table_columns JSON blob."""
+    table_columns = json.loads(raw or "{}")
     for old, new in _LEGACY_KEY_RENAMES.items():
         if old in table_columns:
             table_columns[new] = table_columns.pop(old)
-    return {
+    return table_columns
+
+
+_BROWSER_STR_COLUMNS: Final[tuple[str, ...]] = (
+    "top_collection",
+    "search",
+    "view_mode",
+    "table_cover_size",
+)
+_BROWSER_BOOL_COLUMNS: Final[tuple[str, ...]] = (
+    "order_reverse",
+    "custom_covers",
+    "dynamic_covers",
+    "twenty_four_hour_time",
+    "always_show_filename",
+)
+
+
+def _build_browser_defaults(row, show) -> dict[str, Any]:
+    """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
+    defaults: dict[str, Any] = {
         "show": show,
-        "top_collection": row["top_collection"] or "",
-        "order_by": order_by,
-        "order_reverse": bool(row["order_reverse"]),
+        "order_by": _rename_sort_key(row["order_by"]),
         "order_extra_keys": _rename_extra_keys(
             json.loads(row["order_extra_keys"] or "[]")
         ),
         "collection_order_memory": _rename_memory_keys(
             json.loads(_row_column(row, "collection_order_memory") or "{}")
         ),
-        "search": row["search"] or "",
-        "custom_covers": bool(row["custom_covers"]),
-        "dynamic_covers": bool(row["dynamic_covers"]),
-        "twenty_four_hour_time": bool(row["twenty_four_hour_time"]),
-        "always_show_filename": bool(row["always_show_filename"]),
-        "view_mode": row["view_mode"] or "",
-        "table_columns": table_columns,
-        "table_cover_size": row["table_cover_size"] or "",
+        "table_columns": _rename_table_columns(row["table_columns"]),
     }
+    defaults.update({column: row[column] or "" for column in _BROWSER_STR_COLUMNS})
+    defaults.update({column: bool(row[column]) for column in _BROWSER_BOOL_COLUMNS})
+    return defaults
 
 
 def _restore_one_settings_browser(

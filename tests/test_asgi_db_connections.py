@@ -5,7 +5,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from typing import Final
+from typing import Final, override
 
 import pytest
 from asgiref.sync import SyncToAsync, ThreadSensitiveContext, sync_to_async
@@ -304,6 +304,7 @@ class SlowOrmApplication(OrmApplication):
         self.delay = delay
         self.threads = []
 
+    @override
     def _query(self) -> None:
         """Occupy this worker long enough for another request to queue."""
         super()._query()

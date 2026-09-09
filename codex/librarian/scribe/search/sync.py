@@ -104,13 +104,13 @@ class SearchIndexerSync(SearchIndexerRemove):
         statii.append(SearchIndexSyncCreateStatus())
         self.status_controller.start_many(statii)
 
-    def _update_search_index_clean(self, rebuild) -> None:
-        """Clear or clean the search index."""
+    def _update_search_index_clean(self, rebuild) -> int:
+        """Clear or clean the search index. Return the number of records removed."""
         if rebuild:
             self.log.info("Rebuilding search index...")
             self.clear_search_index()
-        else:
-            self.remove_stale_records(log_success=False)
+            return 0
+        return self.remove_stale_records(log_success=False)
 
     @staticmethod
     def _build_fk_fts_rows(pks: list[int]) -> list[dict]:

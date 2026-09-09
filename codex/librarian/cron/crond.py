@@ -60,7 +60,7 @@ class CronThread(NamedThread):
         self._task_times = tuple(sorted(task_times.items()))
 
     def _get_timeout(self) -> int:
-        if not self._task_times or not self._task_times[0]:
+        if not self._task_times:
             self.log.warning("No scheduled jobs found. Not normal! Waiting a minute.")
             return 60
 

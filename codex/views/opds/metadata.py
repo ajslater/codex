@@ -113,7 +113,7 @@ def get_m2m_objects_by_comic(
     Returns ``{comic_pk: {model_name_lowercased: [SimpleNamespace(pk, name)]}}``
     — same shape the OPDS v1 entry template iterates over.
     """
-    if not comic_pks or not OPDS_M2M_MODELS:
+    if not comic_pks:
         return {}
     by_comic: dict[int, dict[str, list]] = {
         pk: {model.__name__.lower(): [] for model in OPDS_M2M_MODELS}

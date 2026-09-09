@@ -195,10 +195,8 @@ class LibrarianDaemon(Process):
         # the web process they reuse a connection rather than orphaning
         # it. Must precede ``_startup``, which spawns those threads.
         enable_persistent_connections()
-        self.log.debug(
-            f"{self.name} enabled persistent db connections "
-            f"({LIBRARIAN_CONN_MAX_AGE}s)."
-        )
+        conn_max_age = f"({LIBRARIAN_CONN_MAX_AGE}s)"
+        self.log.debug(f"{self.name} enabled persistent db connections {conn_max_age}.")
         self._startup()
         try:
             while self.run_loop:

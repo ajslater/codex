@@ -40,6 +40,28 @@ EXPECTED_SECTIONS = (
     "per_user",
 )
 
+# One representative key per section, plus the metadata keys whose absence
+# has silently emptied a stats tab before.
+EXPECTED_SECTION_KEYS = {
+    "deployment": ("url_path_prefix_set",),
+    "throttle": ("throttle_anon",),
+    "usage": ("bookmark_count",),
+    "config": ("library_read_only_count",),
+    "sessions": ("multi_sort_count",),
+    "tagging": ("default_effort",),
+    "metadata": (
+        "comic_community_rating_count",
+        "reprint_count",
+        "reprint_alternative_name_count",
+        "credit_primary_count",
+        "comic_manga_volume_count",
+        "comic_urls_count",
+        "comic_manga_yes_count",
+        "comic_manga_no_count",
+        "comic_manga_unknown_count",
+    ),
+}
+
 
 class _FakeResponse:
     """Stand in for http.client.HTTPResponse."""
@@ -225,24 +247,9 @@ class TelemeterStatsTestCase(TestCase):
         """The seeded singletons and flags produce real values."""
         stats = CodexStats().get()
         assert stats["admin_flags"]["send_telemetry"] in (True, False)
-        assert "url_path_prefix_set" in stats["deployment"]
-        assert "throttle_anon" in stats["throttle"]
-        assert "bookmark_count" in stats["usage"]
-        assert "library_read_only_count" in stats["config"]
-        assert "multi_sort_count" in stats["sessions"]
-        assert "comic_community_rating_count" in stats["metadata"]
-        assert "default_effort" in stats["tagging"]
-        for key in (
-            "reprint_count",
-            "reprint_alternative_name_count",
-            "credit_primary_count",
-            "comic_manga_volume_count",
-            "comic_urls_count",
-            "comic_manga_yes_count",
-            "comic_manga_no_count",
-            "comic_manga_unknown_count",
-        ):
-            assert key in stats["metadata"], key
+        for section, keys in EXPECTED_SECTION_KEYS.items():
+            for key in keys:
+                assert key in stats[section], (section, key)
 
     def test_manga_counts_cover_every_manga_value(self) -> None:
         """

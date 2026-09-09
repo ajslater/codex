@@ -125,10 +125,11 @@ class WorkerPool:
             contexts.append(context)
         self._contexts = tuple(contexts)
         if not await self._self_check():
-            logger.warning(
-                "asgiref no longer routes thread-sensitive work onto pooled"
-                " workers. Serving requests on per-request threads instead."
+            reason = (
+                "asgiref no longer routes thread-sensitive work onto pooled workers."
             )
+            reason += " Serving requests on per-request threads instead."
+            logger.warning(reason)
             await self._retire(self._contexts)
             self._reset()
             return

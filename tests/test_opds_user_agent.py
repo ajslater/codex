@@ -8,6 +8,7 @@ These pin both variants, the human-readable facet group names, and
 that the User-Agent itself parses to the client name Codex matches on.
 """
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Final
 
@@ -78,6 +79,11 @@ def _entries(content: bytes) -> list[ET.Element]:
     return [el for el in root if _local_name(el.tag) == "entry"]
 
 
+# Titles the facet-blind fallback synthesizes as nav folders. A facet-aware
+# client must not see any of them.
+_FAKE_SORT_RE: Final = re.compile("Order By|\u27a0|\u21d5")
+
+
 def _entry_titles(content: bytes) -> list[str]:
     """Collect the title text of every ``<entry>``."""
     titles = []
@@ -93,6 +99,22 @@ def _entry_titles(content: bytes) -> list[str]:
 class OPDSv1UserAgentTestCase(_OPDSFixtureMixin, TestCase):
     """Facet emission varies by client User-Agent."""
 
+    def _assert_facet_feed(self, content: bytes) -> None:
+        """Assert facet links exist and no fake sort entries or stub entries do."""
+        facet_links = [
+            link for link in _feed_links(content) if link.get("rel") == _FACET_REL
+        ]
+        assert facet_links, "no facet links for a facet-capable client"
+
+        titles = _entry_titles(content)
+        assert not [title for title in titles if _FAKE_SORT_RE.search(title)], titles
+
+        # The old duplicate facet entries serialized to nothing: an empty
+        # <id> and no <link> children. Every real entry is navigable.
+        for entry in _entries(content):
+            links = [el for el in entry if _local_name(el.tag) == "link"]
+            assert links, ET.tostring(entry)
+
     def test_facet_ua_gets_facet_links_no_fake_entries(self) -> None:
         """Facet-aware clients get real facet links and no fake folders."""
         for user_agent in _FACET_UAS:
@@ -102,27 +124,7 @@ class OPDSv1UserAgentTestCase(_OPDSFixtureMixin, TestCase):
                 cache.clear()
                 response = self.client.get(_FEED, headers={"user-agent": user_agent})
                 assert response.status_code == _HTTP_OK
-
-                facet_links = [
-                    link
-                    for link in _feed_links(response.content)
-                    if link.get("rel") == _FACET_REL
-                ]
-                assert facet_links, "no facet links for a facet-capable client"
-
-                titles = _entry_titles(response.content)
-                assert not [
-                    title
-                    for title in titles
-                    if "Order By" in title or "➠" in title or "⇕" in title
-                ], titles
-
-                # The old duplicate facet entries serialized to nothing:
-                # an empty <id> and no <link> children. Every real entry
-                # is navigable.
-                for entry in _entries(response.content):
-                    links = [el for el in entry if _local_name(el.tag) == "link"]
-                    assert links, ET.tostring(entry)
+                self._assert_facet_feed(response.content)
 
     def test_default_ua_gets_fake_sort_entries_no_facet_links(self) -> None:
         """Facet-blind clients still get sort options as nav folders."""
