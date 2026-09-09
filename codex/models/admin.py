@@ -26,6 +26,7 @@ from codex.models.choices import (
     text_choices_from_map,
 )
 from codex.models.fields import EncryptedCharField
+from codex.util import is_docker
 
 __all__ = (
     "AdminFlag",
@@ -52,9 +53,13 @@ class AdminFlag(BaseModel):
     next boot.
     """
 
-    FALSE_DEFAULTS = frozenset(
-        {AdminFlagChoices.AUTO_UPDATE, AdminFlagChoices.REGISTER_VERIFICATION}
-    )
+    FALSE_DEFAULTS = frozenset({AdminFlagChoices.REGISTER_VERIFICATION})
+    # Auto Update installs a new codex over the running one, which is what
+    # a pip, pipx or uv install wants and is why it seeds on. A container
+    # is an immutable deployment: an in-place upgrade lives until the next
+    # restart replaces it with the image again, so docker seeds it off and
+    # updates by pulling a new image instead.
+    DOCKER_FALSE_DEFAULTS = frozenset({AdminFlagChoices.AUTO_UPDATE})
 
     key = CharField(
         db_index=True,
@@ -71,6 +76,13 @@ class AdminFlag(BaseModel):
         default=None,
         on_delete=SET_NULL,
     )
+
+    @classmethod
+    def false_defaults(cls) -> frozenset[AdminFlagChoices]:
+        """Flag keys that seed off on this install."""
+        if is_docker():
+            return cls.FALSE_DEFAULTS | cls.DOCKER_FALSE_DEFAULTS
+        return cls.FALSE_DEFAULTS
 
     class Meta(BaseModel.Meta):
         """Constraints."""

@@ -88,13 +88,16 @@ class StatusController:
                 # actually clears in the row instead of lingering.
                 "eta": status.eta,
                 "retry_at": status.retry_at,
+                # Written every update (including "") for the same reason as
+                # the countdowns above: a subtitle that only ever gets set
+                # leaves the finished phase of a task describing itself with
+                # the name of the one before it.
+                "subtitle": status.subtitle,
             }
             if preactive is not None:
                 updates["preactive"] = preactive
             if active:
                 updates["active"] = active
-            if status.subtitle:
-                updates["subtitle"] = status.subtitle
             LibrarianStatus.objects.filter(status_type=status.CODE).update(**updates)
             self._enqueue_notifier_task(notify=notify)
             self._loggit("DEBUG", status)
@@ -128,9 +131,18 @@ class StatusController:
             self._update(status, notify=False, preactive=preactive)
         self._enqueue_notifier_task(notify=True)
 
-    def update(self, status: Status, *, notify: bool = True) -> None:
-        """Update a librarian status."""
-        if monotonic() - status.since_updated < self._UPDATE_DELTA:
+    def update(
+        self, status: Status, *, notify: bool = True, force: bool = False
+    ) -> None:
+        """
+        Update a librarian status, coalescing progress ticks.
+
+        ``force`` is for a state change rather than a progress tick — what
+        the task is doing now, or that it is waiting out a rate limit.
+        Those are the whole content of the update, so dropping one into
+        the coalescing window loses it rather than deferring it.
+        """
+        if not force and monotonic() - status.since_updated < self._UPDATE_DELTA:
             # noop unless time has expired.
             return
         self._update(status, notify=notify)

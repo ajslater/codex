@@ -27,6 +27,13 @@ now lives on :class:`~codex.librarian.onlinetag.session_state.LiveLookup` and
 is projected into the snapshot at build time. Keeping liveness out of here is
 what makes a stale "still searching" cell impossible.
 
+Not every source that runs reports one of those outcomes — a search with zero
+candidates, a search that raises, and a comic with nothing to search on all end
+a source's turn silently. ``FileFinished`` therefore closes the comic: every
+source that announced itself (``SourceStarted``) without reporting settles as
+no-match, so an empty cell means only what it looks like — that source never
+ran on this comic.
+
 One scan runs on a single daemon thread and emits its events inline, so the
 tallies need no locking.
 """
@@ -44,6 +51,7 @@ from comicbox.events import (
     NoMatch,
     PromptDeferred,
     Skipped,
+    SourceStarted,
 )
 
 from codex.librarian.onlinetag.statuses import (
@@ -64,6 +72,11 @@ class OnlineTagOutcomeStats:
 
     matched_source_by_path: dict[Path, list[str]] = field(default_factory=dict)
     source_status_by_path: dict[Path, dict[str, str]] = field(default_factory=dict)
+    # Sources that actually ran on a comic, so the ones that finished
+    # without saying anything can still be told from the ones that never
+    # started. Comicbox emits SourceStarted after its first-wins skip, so
+    # a source that sat out is absent here.
+    started_sources_by_path: dict[Path, list[str]] = field(default_factory=dict)
     written_paths: set[Path] = field(default_factory=set)
     no_change_paths: set[Path] = field(default_factory=set)
     deferred_paths: set[Path] = field(default_factory=set)
@@ -105,6 +118,12 @@ class OnlineTagOutcomeStats:
                 self._set_source_status(path, source, NO_MATCH)
             case PromptDeferred(path=path, source=source) if path and source:
                 self._set_source_status(path, source, NEEDS_REVIEW)
+            case SourceStarted(path=path, source=source) if path and source:
+                started = self.started_sources_by_path.setdefault(path, [])
+                if source not in started:
+                    started.append(source)
+            case FileFinished(path=path) if path:
+                self._close_source_statuses(path)
             case _:
                 pass
 
@@ -123,6 +142,22 @@ class OnlineTagOutcomeStats:
     def _set_source_status(self, path: Path, source: str, status: str) -> None:
         """Record what one source is doing (or did) with one comic."""
         self.source_status_by_path.setdefault(path, {})[source] = status
+
+    def _close_source_statuses(self, path: Path) -> None:
+        """
+        Settle every source that ran on this comic but never reported.
+
+        Comicbox has terminal events only for the resolutions its matcher
+        reaches. A search that comes back with zero candidates, one that
+        raises, and a comic with nothing to search on all end that
+        source's turn in silence — and the status table renders a cell-less
+        source as an em-dash, which reads as "never attempted", the one
+        thing that did not happen. A source that ran and did not tag the
+        comic did not match it, whichever of those it was.
+        """
+        cells = self.source_status_by_path.setdefault(path, {})
+        for source in self.started_sources_by_path.get(path, ()):
+            cells.setdefault(source, NO_MATCH)
 
     def record_prefetch_match(self, path: Path, source: str) -> None:
         """
