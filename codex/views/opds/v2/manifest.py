@@ -219,8 +219,6 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         — the surface ``_add_tag_link`` and ``OPDS2SubjectSerializer``
         actually read.
         """
-        if not OPDS_M2M_MODELS:
-            return ()
         queries = []
         for model in OPDS_M2M_MODELS:
             rel = GroupACLMixin.get_rel_prefix(model)

@@ -231,6 +231,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
       orderExtraKeys: BROWSER_DEFAULTS.orderExtraKeys ?? [],
+      collectionOrderMemory: BROWSER_DEFAULTS.collectionOrderMemory ?? {},
       search: BROWSER_DEFAULTS.search,
       show: BROWSER_DEFAULTS.show,
       topCollection: BROWSER_DEFAULTS.topCollection,
@@ -496,14 +497,94 @@ export const useBrowserStore = defineStore("browser", {
         return this.settings.show[topCollection];
       }
     },
+    /*
+     * COLLECTION ORDER MEMORY
+     *
+     * Each top collection remembers the sort it was last browsed with, so
+     * switching between them (or leaving and returning from a search)
+     * restores that sort instead of dragging one global sort everywhere.
+     * A collection with nothing filed keeps whatever sort arrives with it.
+     */
+    _stashCollectionOrder(data, topCollection) {
+      /*
+       * File the sort ``topCollection`` is being left in. ``search_score``
+       * is never filed: it only means anything while that search runs.
+       */
+      const { orderBy, orderReverse, orderExtraKeys } = this.settings;
+      if (!topCollection || !orderBy || orderBy === "search_score") {
+        return;
+      }
+      data.collectionOrderMemory = {
+        ...(data.collectionOrderMemory ?? this.settings.collectionOrderMemory),
+        [topCollection]: {
+          orderBy,
+          orderReverse,
+          orderExtraKeys: [...(orderExtraKeys ?? [])],
+        },
+      };
+    },
+    _applyOrder(data, order) {
+      /*
+       * Write a sort into a settings payload without overruling one the
+       * payload already asks for: a sort the user just picked outranks
+       * anything filed away earlier.
+       */
+      if (!Object.hasOwn(data, "orderBy")) {
+        data.orderBy = order.orderBy;
+      }
+      if (!Object.hasOwn(data, "orderReverse")) {
+        data.orderReverse = order.orderReverse;
+      }
+      if (!Object.hasOwn(data, "orderExtraKeys")) {
+        data.orderExtraKeys = [...(order.orderExtraKeys ?? [])];
+      }
+    },
+    _restoreCollectionOrder(data, topCollection) {
+      // Hand back the sort topCollection was last browsed with, if any.
+      const memory =
+        data.collectionOrderMemory ?? this.settings.collectionOrderMemory;
+      const order = memory?.[topCollection];
+      if (!order) {
+        return false;
+      }
+      this._applyOrder(data, order);
+      return true;
+    },
+    _restoreSearchOrder(data) {
+      /*
+       * Hand the sort back when a search ends: the one this collection was
+       * last browsed with, or its plain default when nothing was filed.
+       */
+      if (this._restoreCollectionOrder(data, this.settings.topCollection)) {
+        return;
+      }
+      this._applyOrder(data, {
+        orderBy:
+          this.settings.topCollection === "folders" ? "filename" : "sort_name",
+        orderReverse: false,
+        orderExtraKeys: [],
+      });
+    },
+    _applyCollectionOrderMemory(data, isCollectionSwitch) {
+      /*
+       * Swap the remembered sorts over a user's top collection change.
+       * Server-sent payloads (settings load, saved view, redirect) carry
+       * their own sort and are left alone; the backend files those.
+       */
+      if (!isCollectionSwitch) {
+        return;
+      }
+      this._stashCollectionOrder(data, this.settings.topCollection);
+      if (!this.settings.search && !data.search) {
+        // A search owns the sort until it's cleared.
+        this._restoreCollectionOrder(data, data.topCollection);
+      }
+    },
     _validateSearch(data) {
       if (!this.settings.search && !data.search) {
         // if cleared search check for bad order_by
         if (this.settings.orderBy === "search_score") {
-          data.orderBy =
-            this.settings.topCollection === "folders"
-              ? "filename"
-              : "sort_name";
+          this._restoreSearchOrder(data);
         }
         return;
       } else if (this.settings.search) {
@@ -514,6 +595,7 @@ export const useBrowserStore = defineStore("browser", {
         // Otherwise we'd strand the user at e.g. the series root with no
         // parent breadcrumbs / up-arrows.
         if (Object.hasOwn(data, "search") && !data.search) {
+          this._restoreSearchOrder(data);
           const { collection, pks } = liveBrowseParams();
           if (!pks && collection === this.lowestShownCollection) {
             return { params: { collection: "root", pks: "", page: "1" } };
@@ -522,7 +604,9 @@ export const useBrowserStore = defineStore("browser", {
         // Still searching (or nothing to undo): don't redirect.
         return;
       }
-      // If first search redirect to lowest collection and change order
+      // If first search redirect to lowest collection and change order.
+      // File the sort first so clearing the search can hand it back.
+      this._stashCollectionOrder(data, this.settings.topCollection);
       data.orderBy = "search_score";
       data.orderReverse = true;
       const collection = liveBrowseParams().collection;
@@ -672,7 +756,17 @@ export const useBrowserStore = defineStore("browser", {
       this.startSearchHideTimeout();
     },
     _validateAndSaveSettings(data) {
+      /*
+       * Decide before the validators run: they inject an ``orderBy`` of
+       * their own, which would otherwise read as a payload that already
+       * carries a sort.
+       */
+      const isCollectionSwitch =
+        Boolean(data?.topCollection) &&
+        data.topCollection !== this.settings.topCollection &&
+        !Object.hasOwn(data, "orderBy");
       let redirect = this._validateSearch(data);
+      this._applyCollectionOrderMemory(data, isCollectionSwitch);
       redirect = this._validateTopCollection(data, redirect);
       if (dequal(redirect?.params, liveBrowseParams())) {
         // not triggered if page is numeric, which is intended.
@@ -716,6 +810,10 @@ export const useBrowserStore = defineStore("browser", {
               state.settings.search = data.search;
               state.settings.orderBy = data.orderBy;
               state.settings.orderReverse = data.orderReverse;
+              // Assigned, not merged: a reset empties the memory, and
+              // ``_addSettings``' merge could never remove an entry.
+              state.settings.collectionOrderMemory =
+                data.collectionOrderMemory ?? {};
             }
             state.browserPageLoaded = true;
           });
@@ -983,6 +1081,9 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       this._validateAndSaveSettings(settings);
+      // Claim the page so the route watcher reloads with these settings
+      // instead of re-fetching the stored ones over them.
+      this.browserPageLoaded = true;
       // ignore redirect
       router.push(toBrowseRoute(route)).catch(console.error);
     },

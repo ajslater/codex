@@ -26,7 +26,6 @@ from codex.models.settings import (
     SettingsReader,
 )
 from codex.views.auth import AuthFilterGenericAPIView
-from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
 # Fallback top-collection when the BG flag row is missing, off, or holds
 # an invalid value. Mirrors ``SettingsBrowser.top_collection``'s model
@@ -404,21 +403,6 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             raise
 
     # ── Save (write) ────────────────────────────────────────────────
-
-    def _get_browser_order_defaults(self) -> dict:
-        if collection := self.kwargs.get("collection"):
-            # order_by has a dynamic collection based default
-            order_by = (
-                "filename"
-                if collection == FOLDER_COLLECTION
-                else "story_arc_number"
-                if collection == STORY_ARC_COLLECTION
-                else "sort_name"
-            )
-            order_defaults = {"order_by": order_by}
-        else:
-            order_defaults = {}
-        return order_defaults
 
     @staticmethod
     def _save_browser_show(instance: SettingsBrowser, show_data: dict) -> bool:

@@ -350,6 +350,15 @@ class SettingsBrowser(SettingsBase):
     # Empty list means single-column sort (today's behavior). The
     # frontend table view adds entries via shift-click on a header.
     order_extra_keys = JSONField(default=list)
+    # The sort each top collection was last browsed with, so switching
+    # between them restores the sort that collection was left in instead
+    # of dragging one global sort everywhere. Keyed by
+    # ``BROWSER_TOP_COLLECTION_CHOICES`` key; each value is
+    # ``{"order_by": <key>, "order_reverse": <bool>, "order_extra_keys": [...]}``.
+    # A missing key means "never customized" and the current sort carries
+    # over. ``search_score`` is never stored: it only exists while a
+    # search is active.
+    collection_order_memory = JSONField(default=dict)
     search = CharField(max_length=4095, default="", blank=True)
 
     # Display preferences
@@ -387,6 +396,7 @@ class SettingsBrowser(SettingsBase):
             "order_by",
             "order_reverse",
             "order_extra_keys",
+            "collection_order_memory",
             "search",
             "custom_covers",
             "dynamic_covers",

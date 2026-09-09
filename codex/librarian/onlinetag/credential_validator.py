@@ -120,11 +120,14 @@ def _validate_comicvine(creds: OnlineCredentials) -> ValidationResult:
     from simyan.comicvine import Comicvine
     from simyan.errors import AuthenticationError, ServiceError
 
-    # simyan 3.x replaced the cache= kwarg with sqlite cache/ratelimit
-    # files. A credential check must always hit the network — api_key is
+    # A credential check must always hit the network — api_key is
     # excluded from simyan's cache key, so a cached response would
     # validate any key — so responses are never cached (DO_NOT_CACHE)
     # and both sqlite files land in a throwaway dir.
+    #
+    # The AuthenticationError below only started firing with simyan 4:
+    # 3.x returned Comic Vine's error body verbatim, so a rejected key
+    # came back as an ordinary empty result and validated as good.
     with TemporaryDirectory(prefix="codex-credential-check-") as tmp:
         tmp_path = Path(tmp)
         # dict[str, Any] expansion because DO_NOT_CACHE is an int sentinel

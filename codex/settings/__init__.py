@@ -135,6 +135,10 @@ GRANIAN_URL_PATH_PREFIX = normalize_url_path_prefix(
 WATCH_FOR_CHANGES = DEBUG and get_bool(
     CODEX_CONFIG, "server.watch_for_changes", default=False
 )
+# Worker threads that keep a warm database connection between requests.
+# See ``codex.applications.workers``. 0 serves every request on its own
+# throwaway thread, which opens and closes a connection per request.
+DB_WORKERS = get_int(CODEX_CONFIG, "server.db_workers", default=8)
 
 ##############################
 # Codex Config: Logging      #
@@ -660,10 +664,14 @@ if not DB_PATH.exists() and OLD_DB_PATH.exists():
 BACKUP_DB_DIR = CONFIG_PATH / "backups"
 BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
-# Per-connection PRAGMAs. ``init_command`` fires on every new connection
-# (which, with ``CONN_MAX_AGE=600``, means at most once per 10-minute
-# window per worker). The pragma list below trades durability-of-a-
-# single-unfsynced-write for throughput while staying safe under WAL:
+# Per-connection PRAGMAs. ``init_command`` fires on every new connection:
+# in the librarian process at most once per ``LIBRARIAN_CONN_MAX_AGE``
+# window per worker thread, but in the web process once per DB-touching
+# request (see ``DATABASES`` below). That is cheaper than it sounds — the
+# five statements measure ~0.01 ms of a ~0.8 ms connection open, which is
+# dominated by SQLite parsing the schema. The pragma list below trades
+# durability-of-a-single-unfsynced-write for throughput while staying
+# safe under WAL:
 #
 # * ``journal_mode=wal`` — already in place; enables concurrent readers
 #   alongside one writer, and lets ``synchronous=NORMAL`` be safe.
@@ -688,17 +696,33 @@ _SQLITE_PRAGMAS = (
     "PRAGMA cache_size=-64000;"
 )
 
+# Persistent connections are deliberately absent here, leaving Django's
+# default of ``CONN_MAX_AGE=0``. Django's docs: "When using ASGI,
+# persistent connections should be disabled." Under ASGI every request
+# runs its ORM work on a private worker thread that Django retires when
+# the request ends, and ``django.db.connections`` is thread-local, so a
+# connection held open by ``CONN_MAX_AGE`` can never be reused — only
+# orphaned with its thread, surfacing as ``ResourceWarning: unclosed
+# database``. At 0, Django's own ``close_old_connections`` receiver
+# closes it at ``request_finished``, on that same thread.
+#
+# Processes whose threads *do* persist opt back in for themselves:
+# the librarian at startup and, when it is enabled, the HTTP worker
+# pool. See ``codex.librarian.db.enable_persistent_connections``.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DB_PATH,
-        "CONN_MAX_AGE": 600,
         "OPTIONS": {
             "init_command": _SQLITE_PRAGMAS,
             "timeout": 120,
         },
     },
 }
+
+# Seconds a persistent connection is reused before it is recycled, for
+# the processes that opt in above.
+LIBRARIAN_CONN_MAX_AGE = 600
 
 if FEATURES.silk:
     # django-silk captures live in their own DB so perf traces don't
@@ -812,21 +836,24 @@ DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # Persist comicbox's online-tagging sqlite caches alongside Codex's other
 # caches (under the /config volume) instead of comicbox's default ephemeral
 # platformdirs location (e.g. ~/.cache/comicbox), which is lost when a Docker
-# container is recreated. comicbox reads COMICBOX_ONLINE_CACHE_DIR in
-# get_config(); OnlineSession picks it up per scan and on worker subprocesses.
-# setdefault leaves an explicitly-set value in place as a power-user override.
+# container is recreated. The directory rides COMICBOX_CONFIG below, which
+# every online path hands to comicbox; it is not an environment variable,
+# so nothing depends on comicbox looking one up under a name of its own.
 COMICBOX_CACHE_PATH = ROOT_CACHE_PATH / "comicbox"
 COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
-environ.setdefault("COMICBOX_ONLINE_CACHE_DIR", str(COMICBOX_CACHE_PATH))
-# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far
-# too small once the cache holds (a) cachalot query results — often
-# 100+ unique SELECTs per browse page — plus (b) `cache_page` entries
-# for the browser view AND (c) one `cache_page` entry per cover pk on
-# the cover endpoint. A 100-cover page can populate 200+ entries in a
-# single pageload; the default triggers the 2/3 random cull, which
-# silently evicts just-written cover responses before the next request
-# can read them. 10k is cheap on disk (~<100 MB of tiny files) and
-# cheap at cull time (FileBasedCache walks the dir — negligible at 10k).
+# MAX_ENTRIES defaults to 300 in Django's FileBasedCache. That's far too
+# small for cachalot's query results — often 100+ unique SELECTs for a
+# single browse page — which dominate this cache and would otherwise
+# trigger the 2/3 random cull mid-page. The rest is small and
+# short-lived: OPDS feed bodies (60 s), the PWA manifest and OPDS
+# authentication document (1 h), page-mtime probes (5 s), admin stats,
+# and DRF throttle counters. Covers are NOT in here — they are served
+# from disk with ETag / Last-Modified revalidation (see
+# codex.views.browser.cover), because a `cache_page` body cache keyed on
+# the Vary values held one copy per user of bytes already on disk and
+# could only be invalidated by clearing this whole cache. 10k is cheap on
+# disk (~<100 MB of tiny files) and cheap at cull time (FileBasedCache
+# walks the dir — negligible at 10k).
 TAGGING_CACHE_PATH = ROOT_CACHE_PATH / "tagging"
 TAGGING_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 
@@ -1132,6 +1159,8 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
         "issue",
         "language",
         "locations",
+        "manga",
+        "manga_volume",
         "metadata_mtime",  # codex-side extra
         "monochrome",
         "notes",
@@ -1153,6 +1182,7 @@ USED_COMICBOX_FIELDS: frozenset[str] = frozenset(
         "teams",
         "title",
         "universes",
+        "urls",
         "volume",
     }
 )
@@ -1176,15 +1206,30 @@ _COMICBOX_DELETE_KEYS: frozenset[str] = frozenset(
 
 # ``delete_keys`` is typed as ``Sequence(str)`` in the comicbox confuse
 # template, so feed it a sorted tuple rather than the source frozenset.
-# Both keys live under the ``general`` section of the comicbox config
-# tree; an un-nested overlay is silently ignored by confuse.
+# Every key lives under a section of the comicbox config tree; an
+# un-nested overlay is silently ignored by confuse.
 COMICBOX_CONFIG: ComicboxSettings = get_config(
     {
         "comicbox": {
             "general": {
                 "loglevel": LOGLEVEL,
                 "delete_keys": tuple(sorted(_COMICBOX_DELETE_KEYS)),
-            }
+            },
+            "online": {"cache": {"dir": str(COMICBOX_CACHE_PATH)}},
+        }
+    }
+)
+
+# The online settings deliberately carry no ``delete_keys``. That set is
+# the read side's parse-skip list — the schema fields codex has no column
+# for — and online tagging is not a read: what a database returns is
+# written straight back to the archive. Skipping a field here would drop
+# whatever the source supplied for it before the write ever saw it.
+COMICBOX_ONLINE_CONFIG: ComicboxSettings = get_config(
+    {
+        "comicbox": {
+            "general": {"loglevel": LOGLEVEL},
+            "online": {"cache": {"dir": str(COMICBOX_CACHE_PATH)}},
         }
     }
 )

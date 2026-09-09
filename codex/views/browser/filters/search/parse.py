@@ -180,7 +180,7 @@ def _preparse_search_query_cached(
         try:
             _preparse_token(match, field_tokens, fts_tokens, path_allowed=path_allowed)
         except Exception as exc:
-            tok = match.group(0) if match else "<unmatched>"
+            tok = match.group(0)
             logger.debug(f"Error preparsing search query token {tok}: {exc}")
             had_error = True
     fts_text = " ".join(fts_tokens)

@@ -20,6 +20,8 @@ from comicbox.events import (
     SearchCompleted,
     SearchStarted,
 )
+from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY
+from comicbox.identifiers import ID_KEY_KEY
 from loguru import logger
 
 from codex.librarian.onlinetag.session_cache import (
@@ -28,7 +30,12 @@ from codex.librarian.onlinetag.session_cache import (
 )
 from codex.librarian.onlinetag.session_state import SessionState
 from codex.librarian.onlinetag.tasks import BulkOnlineTagTask
-from codex.models import Comic, Identifier, IdentifierSource
+from codex.models import (
+    Comic,
+    ComicboxTaggingDefaults,
+    Identifier,
+    IdentifierSource,
+)
 from tests.onlinetag_session_fakes import (
     FETCH_TARGET,
     PATCH_TARGET,
@@ -54,6 +61,11 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         source, _ = IdentifierSource.objects.get_or_create(name=source_name)
         identifier = Identifier.objects.create(source=source, id_type="comic", key=key)
         comic.identifiers.add(identifier)
+
+    @staticmethod
+    def _configure_comicvine() -> None:
+        """Give Comic Vine a key so the prepass doesn't drop it unconfigured."""
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(comicvine_key="cv")
 
     def _capture_search_paths(self, captured: list) -> None:
         """Make the (mocked) search pass record the comics it's handed."""
@@ -258,6 +270,135 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         assert state.stats.matched_source_by_path[path] == ["metron"]
         assert state.stats.source_status_by_path[path] == {"metron": "matched"}
         assert remaining_pks(state, set()) == []
+
+    def test_prefetch_credits_every_source_that_merged(self) -> None:
+        """
+        A merged stored-id refresh credits both sources, not just the primary.
+
+        Under merge-all the prepass pins every stored id and comicbox fetches
+        them all into one record. Crediting the primary alone left the other
+        source's column blank on a comic it had just refreshed — which the
+        status table renders as an em-dash, reading as "never consulted".
+        """
+        self._configure_comicvine()
+        comic = make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        self._add_issue_id(comic, "comicvine", "4000-4242")
+        path = Path(comic.path)
+        comic_paths = {comic.pk: path}
+        state = SessionState(
+            session=double(FakeSession()),
+            path_to_pk={path: comic.pk},
+            sources=("comicvine", "metron"),
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="s",
+            sources=("comicvine", "metron"),
+            mode="auto",
+            merge_all_sources=True,
+        )
+        merged = {
+            "series": "X",
+            IDENTIFIERS_KEY: {
+                "comicvine": {ID_KEY_KEY: "4000-4242"},
+                "metron": {ID_KEY_KEY: "123495"},
+            },
+        }
+
+        with patch(FETCH_TARGET, lambda *_a, **_k: merged):
+            self.manager._prefetch_stored_ids(  # noqa: SLF001
+                state, comic_paths, task, credentials
+            )
+
+        assert state.stats.source_status_by_path[path] == {
+            "comicvine": "matched",
+            "metron": "matched",
+        }
+
+    def test_prefetch_credits_only_the_ids_it_asked_for(self) -> None:
+        """
+        First-wins pins one source, so the other must stay blank.
+
+        The comic still holds a stored id for the source that sat out, and an
+        em-dash is the honest cell for a source this scan never fetched.
+        """
+        self._configure_comicvine()
+        comic = make_comic()
+        self._add_issue_id(comic, "comicvine", "4000-4242")
+        self._add_issue_id(comic, "metron", "123495")
+        path = Path(comic.path)
+        comic_paths = {comic.pk: path}
+        state = SessionState(
+            session=double(FakeSession()),
+            path_to_pk={path: comic.pk},
+            sources=("comicvine", "metron"),
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="s",
+            sources=("comicvine", "metron"),
+            mode="auto",
+        )
+        # comicbox returns the comic's whole merged record, metron id and all.
+        # Only the pinned source may be credited for this fetch.
+        record = {
+            "series": "X",
+            IDENTIFIERS_KEY: {
+                "comicvine": {ID_KEY_KEY: "4000-4242"},
+                "metron": {ID_KEY_KEY: "123495"},
+            },
+        }
+
+        with patch(FETCH_TARGET, lambda *_a, **_k: record):
+            self.manager._prefetch_stored_ids(  # noqa: SLF001
+                state, comic_paths, task, credentials
+            )
+
+        assert state.stats.source_status_by_path[path] == {"comicvine": "matched"}
+
+    def test_prefetch_opens_the_status_row_and_names_its_source(self) -> None:
+        """
+        The rail's whole view of a re-tag is the prepass.
+
+        Only the search pass used to open a status row, so a scan that
+        resolved every comic from a stored id ran to completion with nothing
+        in the rail at all — while the Tagging tab's table, published from
+        the same loop, showed each lookup as it happened.
+        """
+        comic = make_comic()
+        self._add_issue_id(comic, "metron", "123495")
+        path = Path(comic.path)
+        comic_paths = {comic.pk: path}
+        state = SessionState(
+            session=double(FakeSession()),
+            path_to_pk={path: comic.pk},
+            sources=("metron",),
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="s",
+            sources=("metron",),
+            mode="auto",
+        )
+        self.manager._pass_runner = double(FakePassRunner())  # noqa: SLF001
+
+        with patch(FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
+            self.manager._prefetch_stored_ids(  # noqa: SLF001
+                state, comic_paths, task, credentials
+            )
+
+        status = self.manager._pass_runner.lookup_status  # noqa: SLF001
+        assert status is not None
+        assert status.total == 1
+        assert status.complete == 1
+        assert status.subtitle == "looking up on metron"
 
     def test_run_session_never_prompts_skips_persistence(self) -> None:
         comic = make_comic()

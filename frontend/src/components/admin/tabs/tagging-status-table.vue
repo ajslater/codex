@@ -108,8 +108,8 @@
         <span class="sourceOrder">{{ idx + 1 }}</span>
         <span class="sourceName">{{ sourceLabel(src.source) }}</span>
         <span class="sourceRate">{{ src.ratePerMinute }}/min</span>
-        <span v-if="dailyText(src)" class="sourceRate">
-          {{ dailyText(src) }}
+        <span v-if="budgetText(src)" class="sourceRate">
+          {{ budgetText(src) }}
         </span>
         <span v-if="rateText(src)" class="sourceLimit">
           <v-icon :icon="mdiTimerSand" size="x-small" />
@@ -130,7 +130,14 @@
       density="compact"
     >
       <template #[`item.path`]="{ item }">
-        <span class="pathCell" :title="item.path">
+        <span class="pathCell" :title="pathTitle(item)">
+          <v-progress-circular
+            v-if="item.live"
+            indeterminate
+            size="12"
+            width="2"
+            class="liveSpinner mr-1"
+          />
           {{ filename(item.path) }}
         </span>
       </template>
@@ -284,6 +291,11 @@ const STATUS_META = Object.freeze({
     hint: "You skipped this source's prompt.",
   },
 });
+
+// Cell values that only make sense while a scan is running. Mirrors the
+// backend's LIVE_SOURCE_STATUSES; a snapshot cached by an older version (the
+// tagging cache is file-backed with no TTL) can still carry one.
+const LIVE_CELL_STATUSES = new Set(["in_flight", "waiting"]);
 
 /** Whole seconds from `now` (ms) until an epoch-seconds target, clamped at 0. */
 const secondsUntil = (epoch, now) => {
@@ -452,10 +464,17 @@ export default {
     mergeAllSources() {
       return Boolean(this.batch.mergeAllSources);
     },
+    // Only a running scan can be looking anything up.
+    liveScan() {
+      return Boolean(this.snapshot?.active);
+    },
     rows() {
       const comics = this.snapshot?.comics || [];
       return comics.map((c) => {
         const row = { ...c, status: this.effectiveStatus(c) };
+        // The one comic being looked up right now — the daemon marks exactly
+        // one, and only while the scan is running.
+        row.live = this.liveScan && row.status === "in_flight";
         // Resolve every source cell once per row instead of per template read.
         row.cells = Object.fromEntries(
           this.selectedSources.map((s) => [s, this.cellStatus(row, s)]),
@@ -533,7 +552,14 @@ export default {
       // Optional chaining keeps a snapshot cached before per-source columns
       // (the tagging cache outlives an upgrade) rendering instead of throwing.
       const status = item.sourceStatuses?.[source];
-      if (status) return status;
+      if (status) {
+        // A paused, finished or crashed session is querying nothing. The
+        // daemon scrubs these on the way out, but a snapshot frozen by a hard
+        // kill still carries them until it next starts — the same defense
+        // rateText applies to the retry countdowns.
+        if (!this.liveScan && LIVE_CELL_STATUSES.has(status)) return "queued";
+        return status;
+      }
       return this.cellFallback(item, source);
     },
     // A source with no recorded cell still has a describable state, derived
@@ -565,6 +591,11 @@ export default {
     sourceKey(source) {
       return `src_${source}`;
     },
+    pathTitle(item) {
+      return item.live
+        ? `${item.path} — Codex is looking this comic up right now`
+        : item.path;
+    },
     filename(path) {
       if (!path) return "Unknown";
       const parts = path.split("/");
@@ -592,16 +623,23 @@ export default {
       if (secs === null) return "";
       return secs <= 0 ? "retrying…" : `retry ${formatCountdown(secs)}`;
     },
-    dailyText(src) {
-      // Live account budget from Metron's X-RateLimit-* headers; the
-      // daily limit varies by donor tier, so show it once it's known.
+    budgetText(src) {
+      /*
+       * The live account budget, whichever window the source meters in.
+       * Metron's daily limit varies by donor tier and comes off its
+       * X-RateLimit-* headers; Comic Vine meters hourly per endpoint
+       * pool and the backend sends the tightest one, since that is what
+       * will stop the run. Empty until the source has reported.
+       */
+      const window = src.budgetWindow;
+      if (!window) return "";
       const remaining = src.sustainedRemaining;
       const limit = src.sustainedLimit;
       if (remaining != null && limit != null) {
-        return `${nf(remaining)}/${nf(limit)} day`;
+        return `${nf(remaining)}/${nf(limit)} ${window}`;
       }
-      if (limit != null) return `${nf(limit)}/day`;
-      if (remaining != null) return `${nf(remaining)} left today`;
+      if (limit != null) return `${nf(limit)}/${window}`;
+      if (remaining != null) return `${nf(remaining)} left this ${window}`;
       return "";
     },
     openReview() {
@@ -727,6 +765,13 @@ export default {
 
 .pathCell {
   display: inline;
+}
+
+/* The path cell is inline (so its ellipsis works), which drops the spinner
+   onto the text baseline; nudge it back onto the cap height. */
+.liveSpinner {
+  vertical-align: text-bottom;
+  color: rgb(var(--v-theme-primary));
 }
 
 .muted {

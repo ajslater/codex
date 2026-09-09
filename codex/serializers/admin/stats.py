@@ -109,6 +109,7 @@ class StatsComicMetadataSerializer(Serializer):
     credit_count = IntegerField(required=False, read_only=True)
     credit_person_count = IntegerField(required=False, read_only=True)
     credit_role_count = IntegerField(required=False, read_only=True)
+    credit_primary_count = IntegerField(required=False, read_only=True)
     country_count = IntegerField(required=False, read_only=True)
     genre_count = IntegerField(required=False, read_only=True)
     identifier_count = IntegerField(required=False, read_only=True)
@@ -117,9 +118,10 @@ class StatsComicMetadataSerializer(Serializer):
     location_count = IntegerField(required=False, read_only=True)
     original_format_count = IntegerField(required=False, read_only=True)
     reprint_count = IntegerField(required=False, read_only=True)
+    reprint_alternative_name_count = IntegerField(required=False, read_only=True)
     series_group_count = IntegerField(required=False, read_only=True)
     scan_info_count = IntegerField(required=False, read_only=True)
-    story_arc_count = IntegerField(required=False)
+    story_arc_count = IntegerField(required=False, read_only=True)
     story_arc_number_count = IntegerField(required=False, read_only=True)
     story_count = IntegerField(required=False, read_only=True)
     tag_count = IntegerField(required=False, read_only=True)
@@ -130,6 +132,13 @@ class StatsComicMetadataSerializer(Serializer):
     comic_community_rating_vote_count = IntegerField(required=False, read_only=True)
     comic_alternative_issue_number_count = IntegerField(required=False, read_only=True)
     comic_metadata_imported_count = IntegerField(required=False, read_only=True)
+    comic_manga_volume_count = IntegerField(required=False, read_only=True)
+    comic_urls_count = IntegerField(required=False, read_only=True)
+    # Three counts rather than one bucket, so every key here is a name fixed in
+    # codex source. They partition the library, so they sum to issue_count.
+    comic_manga_yes_count = IntegerField(required=False, read_only=True)
+    comic_manga_no_count = IntegerField(required=False, read_only=True)
+    comic_manga_unknown_count = IntegerField(required=False, read_only=True)
 
 
 class StatsUsageSerializer(Serializer):
@@ -176,6 +185,7 @@ class StatsTaggingSerializer(Serializer):
 
     default_match_mode = CharField(required=False, read_only=True)
     default_prompts_mode = CharField(required=False, read_only=True)
+    default_effort = CharField(required=False, read_only=True)
     merge_all_sources = BooleanField(required=False, read_only=True)
     delete_original = BooleanField(required=False, read_only=True)
     rename_files = BooleanField(required=False, read_only=True)
@@ -236,6 +246,47 @@ class StatsDeploymentSerializer(Serializer):
     url_path_prefix_set = BooleanField(required=False, read_only=True)
 
 
+class StatsPerUserSerializer(Serializer):
+    """
+    Settings counted in registered users.
+
+    Two families per surface. The live/global buckets partition -- one vote per
+    user, with "" meaning the user never touched the setting -- and the chosen
+    buckets count everyone who set a value anywhere, so they overlap and never
+    carry "".
+    """
+
+    browser_user_count = IntegerField(read_only=True, required=False)
+    reader_user_count = IntegerField(read_only=True, required=False)
+    reader_scoped_user_count = IntegerField(read_only=True, required=False)
+    browser_top_collection_users = CountDictField(required=False)
+    browser_order_by_users = CountDictField(required=False)
+    browser_view_mode_users = CountDictField(required=False)
+    browser_table_cover_size_users = CountDictField(required=False)
+    browser_dynamic_covers_users = CountDictField(required=False)
+    browser_custom_covers_users = CountDictField(required=False)
+    browser_chosen_top_collection_users = CountDictField(required=False)
+    browser_chosen_order_by_users = CountDictField(required=False)
+    browser_chosen_view_mode_users = CountDictField(required=False)
+    browser_chosen_table_cover_size_users = CountDictField(required=False)
+    browser_chosen_dynamic_covers_users = CountDictField(required=False)
+    browser_chosen_custom_covers_users = CountDictField(required=False)
+    reader_global_fit_to_users = CountDictField(required=False)
+    reader_global_two_pages_users = CountDictField(required=False)
+    reader_global_reading_direction_users = CountDictField(required=False)
+    reader_global_read_rtl_in_reverse_users = CountDictField(required=False)
+    reader_global_finish_on_last_page_users = CountDictField(required=False)
+    reader_global_page_transition_users = CountDictField(required=False)
+    reader_global_cache_book_users = CountDictField(required=False)
+    reader_chosen_fit_to_users = CountDictField(required=False)
+    reader_chosen_two_pages_users = CountDictField(required=False)
+    reader_chosen_reading_direction_users = CountDictField(required=False)
+    reader_chosen_read_rtl_in_reverse_users = CountDictField(required=False)
+    reader_chosen_finish_on_last_page_users = CountDictField(required=False)
+    reader_chosen_page_transition_users = CountDictField(required=False)
+    reader_chosen_cache_book_users = CountDictField(required=False)
+
+
 class StatsSerializer(Serializer):
     """Admin Stats Tab."""
 
@@ -253,6 +304,7 @@ class StatsSerializer(Serializer):
     email = StatsEmailSerializer(required=False)
     throttle = StatsThrottleSerializer(required=False)
     deployment = StatsDeploymentSerializer(required=False)
+    per_user = StatsPerUserSerializer(required=False)
 
 
 class AdminStatsRequestSerializer(Serializer):
@@ -286,6 +338,10 @@ class AdminStatsRequestSerializer(Serializer):
     deployment = SerializerChoicesField(
         serializer=StatsDeploymentSerializer, required=False
     )
+    # Both registrations are load-bearing. Without this one the section is
+    # simply absent from the admin tab, with no error anywhere to say why --
+    # the regression the identifiers section already shipped once.
+    per_user = SerializerChoicesField(serializer=StatsPerUserSerializer, required=False)
 
 
 class APIKeySerializer(Serializer):

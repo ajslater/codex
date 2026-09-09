@@ -1,5 +1,5 @@
 /*
- * Tests for the tag edit panel's Alternate Series section.
+ * Tests for the tag edit panel's Reprints section.
  *
  * The metadata endpoint ships each reprint's flat codex columns
  * ({pk, name, seriesName, volumeNumber, issue, language, url}) alongside the
@@ -9,8 +9,10 @@
  * language}), and clearing the section has to travel as the "reprints"
  * delete key — a patch can only add or replace.
  *
- * Volume and language are MetronInfo-only: ComicInfo's AlternateSeries /
- * AlternateNumber / AlternateCount carry neither.
+ * Reprints are MetronInfo-only. ComicInfo's AlternateSeries and
+ * AlternateNumber name a story arc, not another edition of the book, and
+ * comicbox 5 reads them as one, so a ComicInfo-only write has nowhere to
+ * put a reprint at all.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -31,6 +33,7 @@ const SHAPED_REPRINTS = Object.freeze([
     volumeNumber: null,
     issue: "",
     language: "de",
+    alternativeName: true,
   },
   {
     pk: 8,
@@ -39,6 +42,7 @@ const SHAPED_REPRINTS = Object.freeze([
     volumeNumber: 1,
     issue: "3",
     language: "",
+    alternativeName: false,
   },
 ]);
 
@@ -62,7 +66,7 @@ function findButton(wrapper, label) {
   return wrapper.findAll("button").find((b) => b.text().includes(label));
 }
 
-describe("EditPanel alternate series rows", () => {
+describe("EditPanel reprints rows", () => {
   test("seeds one row per reprint from the flat columns", async () => {
     const wrapper = await mountPanel({ md: { reprints: SHAPED_REPRINTS } });
 
@@ -72,12 +76,14 @@ describe("EditPanel alternate series rows", () => {
         volume: "",
         issue: "",
         language: "de",
+        alternative_name: true,
       },
       {
         series_name: "Capitan Sciencia",
         volume: "1",
         issue: "3",
         language: null,
+        alternative_name: false,
       },
     ]);
     expect(wrapper.vm.hasChanges).toBe(false);
@@ -90,35 +96,39 @@ describe("EditPanel alternate series rows", () => {
 
   test("the add button appends a blank row", async () => {
     const wrapper = await mountPanel();
-    await findButton(wrapper, "Add Alternate Series").trigger("click");
+    await findButton(wrapper, "Add Reprint").trigger("click");
 
     expect(wrapper.vm.reprints).toStrictEqual([
-      { series_name: "", volume: "", issue: "", language: null },
+      {
+        series_name: "",
+        volume: "",
+        issue: "",
+        language: null,
+        alternative_name: false,
+      },
     ]);
   });
 });
 
-describe("EditPanel alternate series patch", () => {
+describe("EditPanel reprints patch", () => {
   test("re-nests the parts into comicbox reprints", async () => {
     const wrapper = await mountPanel({ md: { reprints: SHAPED_REPRINTS } });
     wrapper.vm.reprints[0].issue = "1";
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
-    expect(patch).toStrictEqual({
-      reprints: [
-        {
-          series: { name: "Kapitän Wissenschaft" },
-          issue: "1",
-          language: "de",
-        },
-        {
-          series: { name: "Capitan Sciencia" },
-          volume: { number: 1 },
-          issue: "3",
-        },
-      ],
-    });
+    expect(patch.reprints).toStrictEqual([
+      {
+        series: { name: "Capitan Sciencia" },
+        volume: { number: 1 },
+        issue: "3",
+      },
+    ]);
+    // The flagged row goes to the series instead: it names this same
+    // series in another language, not another edition of the book.
+    expect(patch.series.alternative_names).toStrictEqual([
+      { name: "Kapitän Wissenschaft", language: "de" },
+    ]);
     expect(deleteKeys).toStrictEqual([]);
   });
 
@@ -128,6 +138,26 @@ describe("EditPanel alternate series patch", () => {
 
     expect(patch).not.toHaveProperty("reprints");
     expect(deleteKeys).not.toContain("reprints");
+    expect(deleteKeys).not.toContain("series.alternative_names");
+  });
+
+  test("a flagged row keeps the series name alongside the other names", async () => {
+    const wrapper = await mountPanel({
+      md: {
+        seriesList: [{ pk: 1, name: "Captain Science" }],
+        reprints: SHAPED_REPRINTS,
+      },
+    });
+    wrapper.vm.reprints[0].language = "fr";
+    await flushPromises();
+
+    const { patch } = wrapper.vm.buildPatch();
+    // Codex writes in update mode, which replaces a key wholesale, so a
+    // series patch that carried only the other names would drop the name.
+    expect(patch.series.name).toBe("Captain Science");
+    expect(patch.series.alternative_names).toStrictEqual([
+      { name: "Kapitän Wissenschaft", language: "fr" },
+    ]);
   });
 
   test("a newly added row travels with only the parts it carries", async () => {
@@ -137,6 +167,7 @@ describe("EditPanel alternate series patch", () => {
       volume: "",
       issue: "",
       language: null,
+      alternative_name: false,
     });
     await flushPromises();
 
@@ -163,12 +194,13 @@ describe("EditPanel alternate series patch", () => {
       volume: "2",
       issue: "",
       language: "fr",
+      alternative_name: false,
     });
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
     expect(patch).not.toHaveProperty("reprints");
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
   });
 
   test("clearing the section deletes the comicbox reprints key", async () => {
@@ -178,7 +210,7 @@ describe("EditPanel alternate series patch", () => {
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
     expect(wrapper.vm.reprints).toStrictEqual([]);
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
     expect(patch).not.toHaveProperty("reprints");
   });
 
@@ -188,13 +220,13 @@ describe("EditPanel alternate series patch", () => {
     await flushPromises();
 
     const { patch, deleteKeys } = wrapper.vm.buildPatch();
-    expect(deleteKeys).toStrictEqual(["reprints"]);
+    expect(deleteKeys).toStrictEqual(["reprints", "series.alternative_names"]);
     expect(patch).not.toHaveProperty("reprints");
   });
 });
 
-describe("EditPanel alternate series format support", () => {
-  test("ComicInfo disables the MetronInfo-only volume and language", async () => {
+describe("EditPanel reprints format support", () => {
+  test("ComicInfo disables the whole section, not just its parts", async () => {
     const wrapper = await mountPanel({
       formats: ["COMIC_INFO"],
       md: { reprints: SHAPED_REPRINTS },
@@ -208,8 +240,9 @@ describe("EditPanel alternate series format support", () => {
       DISABLED_TIP,
     );
     expect(wrapper.vm.isFieldDisabled("reprint_language")).toBe(true);
-    // The series name and issue do persist to ComicInfo's Alternates.
-    expect(wrapper.vm.isFieldDisabled("reprints")).toBe(false);
+    // ComicInfo has no reprint tag to write to: its AlternateSeries and
+    // AlternateNumber are a story arc.
+    expect(wrapper.vm.isFieldDisabled("reprints")).toBe(true);
   });
 
   test("MetronInfo enables every part", async () => {
@@ -217,7 +250,7 @@ describe("EditPanel alternate series format support", () => {
       formats: ["METRON_INFO"],
       md: { reprints: SHAPED_REPRINTS },
     });
-    const btn = findButton(wrapper, "Add Alternate Series");
+    const btn = findButton(wrapper, "Add Reprint");
 
     expect(btn.element.disabled).toBe(false);
     expect(wrapper.vm.isFieldDisabled("reprint_volume")).toBe(false);

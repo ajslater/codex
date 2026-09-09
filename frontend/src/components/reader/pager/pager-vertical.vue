@@ -150,7 +150,13 @@ export default {
       this.programmaticScroll = true;
       const vs = this.$refs.verticalScroll;
       if (vs) {
-        vs.scrollToIndex(page);
+        /*
+         * ``items`` runs backwards for bottom-to-top reading, so a page
+         * number is not its own index there: page 0 is the last item.
+         * Look the page up in ``items`` rather than repeating the
+         * reversal, so this keeps following however that list is built.
+         */
+        vs.scrollToIndex(this.items.indexOf(page));
       } else {
         console.debug("Can't find verticalScroll component.");
       }

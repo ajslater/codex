@@ -6,7 +6,6 @@ from decimal import Decimal
 from types import MappingProxyType
 from typing import Any
 
-from comicbox.formats.base.fields.fields import IssueField
 from dateparser import parse
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db.models import (
@@ -18,12 +17,12 @@ from django.db.models import (
 )
 from django.db.models.fields import DecimalField, PositiveSmallIntegerField
 
+from codex.models.util import parse_issue_parts
 from codex.settings import FALSY
 
 _QUOTES_RE = re.compile(r"[\"']")
 _OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})
 _RANGE_RE = re.compile(r"\.{2,}")
-_PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
 _LIKE_QUERY_VALUE = re.compile(r"\S\*+\S")
 _ICONTAINS_QUERY_VALUE = re.compile(r"^(\*.*\*|[^*].*[^*]|^\**$)$")
 _IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
@@ -43,14 +42,11 @@ def parse_size(s: str) -> int:
 
 def _parse_issue_value(value) -> tuple | tuple[None, None]:
     """Parse a compound issue value into number & suffix."""
-    value = IssueField.parse_issue(value)
-    if not value:
+    numeric_value, suffix_value = parse_issue_parts(value)
+    if numeric_value is None and not suffix_value:
+        # The filter distinguishes "no suffix term" (None, skip the
+        # lookup) from the empty-suffix column value the models store.
         return None, None
-    matches = _PARSE_ISSUE_MATCHER.match(value)
-    if not matches:
-        return None, None
-    numeric_value = Decimal(matches.group("issue_number"))
-    suffix_value = matches.group("issue_suffix")
     return numeric_value, suffix_value
 
 

@@ -2,6 +2,7 @@
 
 import sqlite3
 import subprocess
+from contextlib import closing
 from threading import Event, Lock
 
 from django.core.management import call_command
@@ -150,7 +151,10 @@ def _rebuild_db() -> bool:
         "PRAGMA writable_schema = off;",
         "PRAGMA writable_schema = reset;",
     )
-    with sqlite3.connect(_REBUILT_DB_PATH) as new_db_conn:
+    # ``closing()`` as well as the transaction context manager:
+    # ``with sqlite3.connect(...)`` only commits, it does not close, and
+    # the rebuilt file is renamed over the live database two lines down.
+    with closing(sqlite3.connect(_REBUILT_DB_PATH)) as new_db_conn, new_db_conn:
         new_db_conn.executescript(sql)
 
     backup_path = _get_backup_db_path("before-rebuild")

@@ -1,33 +1,17 @@
 <template>
   <div v-if="stats" id="stats">
-    <AdminKeyValueTable title="Platform" :items="platformTable" />
-    <!--
-      API Key + regenerate button moved to the Settings tab. The
-      stats payload still exposes ``stats.config.apiKey`` but the
-      Config table here drops it from the rendered keys.
-    -->
-    <AdminKeyValueTable title="Config" :items="configTable" />
-    <AdminKeyValueTable title="File Types" :items="fileTypesTable" />
-    <AdminKeyValueTable title="User Settings" :items="userSettingsTable" />
     <AdminKeyValueTable
-      title="Browser Collections"
-      :items="browserCollectionsTable"
+      v-for="section of sections"
+      :key="section.title"
+      :title="section.title"
+      :items="section.items"
     />
-    <AdminKeyValueTable title="Tags" :items="metadataTable" />
-    <AdminKeyValueTable title="Reading" :items="usageTable" />
-    <AdminKeyValueTable title="Identifiers" :items="identifiersTable" />
-    <AdminKeyValueTable title="Admin Flags" :items="adminFlagsTable" />
-    <AdminKeyValueTable title="Online Tagging" :items="taggingTable" />
-    <AdminKeyValueTable title="Authentication" :items="authTable" />
-    <AdminKeyValueTable title="Email" :items="emailTable" />
-    <AdminKeyValueTable title="Rate Limits" :items="throttleTable" />
-    <AdminKeyValueTable title="Deployment" :items="deploymentTable" />
   </div>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { capitalCase, snakeCase } from "text-case";
+import { capitalCase } from "text-case";
 
 import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -38,6 +22,22 @@ import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
 const VIEW_MODE = Object.freeze({ cover: "Cover", table: "Table" });
 const TABLE_COVER_SIZE = Object.freeze({ sm: "Small" });
+// Buckets keyed by a boolean arrive as the strings "true" and "false", which
+// are the wire's words and not a reader's. Chronicle's dashboard says on/off
+// for the same numbers, so this says the same thing.
+const BOOLEAN_BUCKET = Object.freeze({ true: "On", false: "Off" });
+// What "" means per setting, in the words chronicle's dashboard uses for the
+// same key, so the two surfaces do not describe one number differently.
+const UNSET_LABELS = Object.freeze({
+  fitTo: "Unset (Fit to Width)",
+  readingDirection: "Unset (Left to Right)",
+  orderBy: "Unset (Name)",
+  finishOnLastPage: "Unset (On)",
+  twoPages: "Unset (Off)",
+  readRtlInReverse: "Unset (Off)",
+  pageTransition: "Unset (On)",
+  cacheBook: "Unset (Off)",
+});
 const LOOKUPS = Object.freeze({
   topCollection: TOP_COLLECTION,
   orderBy: ORDER_BY,
@@ -69,6 +69,13 @@ const METADATA_LABELS = Object.freeze({
   comicCommunityRatingVoteCount: "+With Vote Counts",
   comicAlternativeIssueNumberCount: "Comics with Alternate Issue Numbers",
   comicMetadataImportedCount: "Comics with Imported Tags",
+  creditPrimaryCount: "Credit Primaries",
+  reprintAlternativeNameCount: "Reprint Alternative Names",
+  comicMangaVolumeCount: "Comics with a Manga Volume",
+  comicUrlsCount: "Comics with Web Links",
+  comicMangaYesCount: "Manga",
+  comicMangaNoCount: "Not Manga",
+  comicMangaUnknownCount: "Manga Unknown",
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
@@ -96,6 +103,7 @@ const ADMIN_FLAG_LABELS = Object.freeze({
 const TAGGING_LABELS = Object.freeze({
   defaultMatchMode: "Match Mode",
   defaultPromptsMode: "Prompts",
+  defaultEffort: "Effort",
   mergeAllSources: "Merge All Sources",
   deleteOriginal: "Delete Original",
   renameFiles: "Rename Files",
@@ -139,17 +147,50 @@ const DEPLOYMENT_LABELS = Object.freeze({
   failedLoginLogTrustForwardedFor: "+Trust Forwarded For",
   urlPathPrefixSet: "Reverse Proxy Subpath",
 });
+// Rows that read as a detail of the row above them. Singular, because that is
+// what the payload keys are: the plural spellings that used to be here matched
+// nothing, so these four rendered flat for as long as the set existed.
 const INDENT_KEYS = Object.freeze(
   new Set([
-    "creditPersonsCount",
-    "creditRolesCount",
-    "identifierSourcesCount",
-    "storyArcNumbersCount",
+    "creditPersonCount",
+    "creditRoleCount",
+    "creditPrimaryCount",
+    "identifierSourceCount",
+    "reprintAlternativeNameCount",
+    "storyArcNumberCount",
   ]),
 );
 // Booleans that answer "have you configured this", not "is this turned on".
 const SET_SUFFIXES = ["Set", "Custom", "Configured", "Credentials"];
 const NONE = "None";
+
+// Every stats table, in render order: the caption it wears and the computed
+// that fills it. Exported so a test enumerates the sections from here instead
+// of keeping a second copy of the titles that goes stale when one is renamed.
+const SECTIONS = Object.freeze([
+  ["Platform", "platformTable"],
+  // The API key is deliberately absent: the payload still carries
+  // ``stats.config.apiKey``, but configTable drops it from the rendered keys.
+  // The key itself and its regenerate button live on the Settings tab.
+  ["Config", "configTable"],
+  ["File Types", "fileTypesTable"],
+  // Two denominators, named apart. Sessions counts settings rows, one per user
+  // and per anonymous session; per user counts people, one vote each. Titling
+  // either of them "User Settings" invited reading one as the other.
+  ["Settings by Session", "sessionSettingsTable"],
+  ["Settings by User", "perUserSettingsTable"],
+  ["Browser Collections", "browserCollectionsTable"],
+  ["Tags", "metadataTable"],
+  ["Reading", "usageTable"],
+  ["Identifiers", "identifiersTable"],
+  ["Admin Flags", "adminFlagsTable"],
+  ["Online Tagging", "taggingTable"],
+  ["Authentication", "authTable"],
+  ["Email", "emailTable"],
+  ["Rate Limits", "throttleTable"],
+  ["Deployment", "deploymentTable"],
+]);
+export const SECTION_TITLES = Object.freeze(SECTIONS.map(([title]) => title));
 
 export default {
   name: "AdminStatsTab",
@@ -162,6 +203,12 @@ export default {
     };
   },
   computed: {
+    sections() {
+      return SECTIONS.map(([title, items]) => ({
+        title,
+        items: this[items],
+      }));
+    },
     ...mapState(useCommonStore, {}),
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
@@ -179,25 +226,21 @@ export default {
     configTable() {
       return this.labeledTable(this.stats?.config, CONFIG_LABELS, ["apiKey"]);
     },
-    userSettingsTable() {
-      const table = {};
-      for (const [key, value] of Object.entries(this.stats?.sessions ?? {})) {
-        const label = this.keyToLabel(key);
-        if (typeof value !== "object") {
-          Reflect.set(table, label, this.displayValue(key, value));
-          continue;
-        }
-        const countTable = {};
-        const lookup = Reflect.get(LOOKUPS, key);
-        for (const [typeKey, count] of Object.entries(value)) {
-          const typeLabel = lookup
-            ? Reflect.get(lookup, snakeCase(typeKey))
-            : typeKey;
-          Reflect.set(countTable, typeLabel, count);
-        }
-        Reflect.set(table, label, countTable);
-      }
-      return table;
+    sessionSettingsTable() {
+      return this.settingsTable(this.stats?.sessions);
+    },
+    perUserSettingsTable() {
+      // Bucket names carry their family as a prefix and "Users" as a suffix;
+      // the vocabulary to label them by is the setting in between. Both are
+      // camelCase here: the API renders the whole payload camelCased, so the
+      // snake_case spellings this once used matched neither the section nor
+      // the keys, and the table rendered empty under its caption.
+      return this.settingsTable(this.stats?.perUser, (key) => {
+        const setting = key
+          .replace(/^(browser|reader)(Chosen|Global)?/, "")
+          .replace(/Users$/, "");
+        return setting.charAt(0).toLowerCase() + setting.slice(1);
+      });
     },
     browserCollectionsTable() {
       const table = {};
@@ -274,6 +317,42 @@ export default {
     this.loadStats();
   },
   methods: {
+    bucketLabel(lookupKey, typeKey) {
+      // "" means nobody touched the setting, which no choices map has a name
+      // for -- and before this fallback existed it resolved to undefined and
+      // rendered as the literal string "undefined".
+      if (typeKey === "") {
+        return Reflect.get(UNSET_LABELS, lookupKey) ?? "Unset";
+      }
+      // No case conversion: choices_to_json emits these maps camelCased, the
+      // same as the payload keys. Snake-casing them found nothing, so Order By
+      // showed "sortName" and Fit To showed "W".
+      const lookup = Reflect.get(LOOKUPS, lookupKey) ?? BOOLEAN_BUCKET;
+      const label = Reflect.get(lookup, typeKey);
+      // Fall back to the key itself rather than undefined: an unmapped value
+      // is a vocabulary that drifted, and its name is more use than a hole.
+      return label ?? typeKey;
+    },
+    settingsTable(section, lookupFor = (key) => key) {
+      const table = {};
+      for (const [key, value] of Object.entries(section ?? {})) {
+        const label = this.keyToLabel(key);
+        if (typeof value !== "object") {
+          Reflect.set(table, label, this.displayValue(key, value));
+          continue;
+        }
+        const countTable = {};
+        for (const [typeKey, count] of Object.entries(value)) {
+          Reflect.set(
+            countTable,
+            this.bucketLabel(lookupFor(key), typeKey),
+            count,
+          );
+        }
+        Reflect.set(table, label, countTable);
+      }
+      return table;
+    },
     ...mapActions(useAdminStore, ["loadStats"]),
     keyToLabel(key) {
       key = key.replace(/Count$/, "");

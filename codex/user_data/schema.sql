@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS settings_browser (
     order_by TEXT NOT NULL DEFAULT '',
     order_reverse INTEGER NOT NULL DEFAULT 0,
     order_extra_keys TEXT NOT NULL DEFAULT '[]',
+    collection_order_memory TEXT NOT NULL DEFAULT '{}',
     search TEXT NOT NULL DEFAULT '',
     custom_covers INTEGER NOT NULL DEFAULT 1,
     dynamic_covers INTEGER NOT NULL DEFAULT 1,

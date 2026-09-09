@@ -96,7 +96,7 @@ class TagWriter(WorkerStatusAbortableBase):
                 BulkWriteItem(
                     path=path,
                     patch=patch,
-                    mode=mode,
+                    merge_mode=mode,
                     formats=formats,
                     delete_keys=delete_keys,
                 )

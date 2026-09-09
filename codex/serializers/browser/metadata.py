@@ -94,14 +94,21 @@ def _role_sort_key(role: str) -> tuple[int, str]:
     return (bucket, role.lower())
 
 
-def _person_payload(person) -> dict[str, Any]:
+def _person_payload(person, *, primary: bool = False) -> dict[str, Any]:
     if person is None:
         return {}
+    identifier = getattr(person, "identifier", None)
     return {
         "pk": person.pk,
         "name": person.name,
-        "url": getattr(person, "url", "") or "",
+        "url": getattr(identifier, "url", "") or "",
+        "primary": primary,
     }
+
+
+def _person_sort_key(person: dict[str, Any]) -> tuple[bool, str]:
+    """Primaries first, then by last name."""
+    return (not person["primary"], _last_name_key(person["name"]))
 
 
 def pivot_credits(credit_rows) -> dict[str, list[dict[str, Any]]]:
@@ -113,12 +120,14 @@ def pivot_credits(credit_rows) -> dict[str, list[dict[str, Any]]]:
         if person is None:
             continue
         role_name = role.name if role and role.name else "Other"
-        bucket.setdefault(role_name, []).append(_person_payload(person))
+        primary = bool(getattr(credit, "primary", False))
+        bucket.setdefault(role_name, []).append(
+            _person_payload(person, primary=primary)
+        )
 
     ordered: dict[str, list[dict[str, Any]]] = {}
     for role_name in sorted(bucket.keys(), key=_role_sort_key):
-        persons = sorted(bucket[role_name], key=lambda p: _last_name_key(p["name"]))
-        ordered[role_name] = persons
+        ordered[role_name] = sorted(bucket[role_name], key=_person_sort_key)
     return ordered
 
 

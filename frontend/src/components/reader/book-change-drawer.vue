@@ -7,7 +7,6 @@
     :location="drawerLocation"
     :model-value="isDrawerOpen"
     :scrim="false"
-    :class="{ drawerActivated: isDrawerOpen }"
     temporary
     touchless
   >
@@ -94,10 +93,6 @@ export default {
 .bookChangeDrawer {
   opacity: 0.75 !important;
   z-index: 15 !important;
-}
-
-.drawerActivated {
-  // Deactivated drawers with custom width don't move off the screen enough
   width: col.$change-column-width !important;
 }
 

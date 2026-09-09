@@ -5,13 +5,25 @@ from typing import override
 from django.db.models import (
     CASCADE,
     SET_NULL,
+    BooleanField,
     ForeignKey,
 )
 
-from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel, NamedModel
+from codex.models.base import (
+    MAX_FIELD_LEN,
+    MAX_ISSUE_SUFFIX_LEN,
+    MAX_NAME_LEN,
+    BaseModel,
+    NamedModel,
+)
 from codex.models.collections import BrowserCollectionModel, Volume
-from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
+from codex.models.fields import (
+    CleaningCharField,
+    CoercingDecimalField,
+    CoercingPositiveSmallIntegerField,
+)
 from codex.models.identifier import Identifier
+from codex.models.util import parse_issue_parts
 
 __all__ = (
     "Character",
@@ -76,16 +88,24 @@ class Credit(BaseModel):
 
     person = ForeignKey(CreditPerson, on_delete=CASCADE)
     role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
+    # Whether this person is the book's primary holder of this role. The
+    # flag belongs to the pairing, not the person: comicbox 5 moved it
+    # onto each role precisely because the primary writer is not thereby
+    # also the primary inker. Credits are shared between comics, so a
+    # pairing that is primary in one book and not in another has to be
+    # two rows — hence the flag in the unique key.
+    primary = BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
         """Constraints."""
 
-        unique_together = ("person", "role")
+        unique_together = ("person", "role", "primary")
 
     @override
     def __repr__(self) -> str:
         """Return the strings of parts."""
-        return str(self.person) + ":" + str(self.role)
+        parts = str(self.person) + ":" + str(self.role)
+        return parts + ":primary" if self.primary else parts
 
 
 class Country(NamedModel):
@@ -117,11 +137,11 @@ class Reprint(BaseModel):
     """
     An alternate or localized edition of this issue.
 
-    Denormalized on purpose: alternate series names must not become
+    Denormalized on purpose: reprint series names must not become
     Series/Volume rows or they'd appear as phantom browser collections.
-    ``series_name`` absorbs comicbox's ``series.sort_name`` when the
-    reprint carries no ``series.name`` (MetronInfo AlternativeNames do
-    this), so this is the only series string stored.
+    ``series_name`` absorbs the name the file gave the reprint when
+    comicbox parsed no ``series.name`` out of it, so this is the only
+    series string stored.
     """
 
     series_name = CleaningCharField(db_index=True, max_length=MAX_NAME_LEN)
@@ -129,6 +149,22 @@ class Reprint(BaseModel):
     issue = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
     language = CleaningCharField(max_length=MAX_FIELD_LEN, default="")
     identifier = ForeignKey(Identifier, on_delete=SET_NULL, null=True)
+    # ``issue`` split into its sortable parts, mirroring
+    # ``Comic.issue_number`` / ``issue_suffix``. Without them the
+    # Reprints sort would order "#10" before "#2". Derived
+    # in ``presave``, never imported directly; unindexed because they're
+    # only read after an indexed join on pk or series_name.
+    issue_number = CoercingDecimalField(decimal_places=2, max_digits=10, null=True)
+    issue_suffix = CleaningCharField(
+        max_length=MAX_ISSUE_SUFFIX_LEN,
+        default="",
+        db_collation="nocase",
+    )
+    # Whether this row came from the series' other names rather than from
+    # a list of reprints. Both name another edition of the same book, so
+    # they share a table and a key; this only decides which comicbox list
+    # a write puts the row back into, and which panel row shows it.
+    alternative_name = BooleanField(default=False)
 
     class Meta(BaseModel.Meta):
         """Declare constraints and indexes."""
@@ -164,6 +200,25 @@ class Reprint(BaseModel):
         return self.compose_name(
             self.series_name, self.volume_number, self.issue, self.language
         )
+
+    @override
+    def presave(self) -> None:
+        """Split ``issue`` into its sortable number and suffix."""
+        super().presave()
+        self.issue_number, self.issue_suffix = parse_issue_parts(self.issue)
+
+    @override
+    def save(self, *args, **kwargs) -> None:
+        """
+        Save computed fields.
+
+        The importer's bulk create / update paths call ``presave``
+        themselves, but direct ``save()`` callers (the tag editor, tests)
+        would otherwise persist a row whose sort columns don't match its
+        ``issue``.
+        """
+        self.presave()
+        super().save(*args, **kwargs)
 
 
 class ScanInfo(NamedModel):

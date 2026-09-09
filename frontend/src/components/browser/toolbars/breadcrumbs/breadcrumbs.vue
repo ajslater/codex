@@ -35,13 +35,18 @@ export default {
   name: "BrowserBreadcrumbs",
   computed: {
     ...mapState(useCommonStore, ["timestamp"]),
+    isBelowTop() {
+      // The top view names no parents; anything with them is under it.
+      return Boolean(this.$route?.params?.parentIds);
+    },
     ...mapState(useBrowserStore, {
       breadcrumbs(state) {
         const vueCrumbs = [];
-        const parentBreadcrumbs = state.settings.breadcrumbs.slice(0, -1);
-        if (!parentBreadcrumbs) {
-          return vueCrumbs;
-        }
+        // The last crumb is where we already are, so it is not a link.
+        const parentBreadcrumbs = (state.settings.breadcrumbs || []).slice(
+          0,
+          -1,
+        );
         let parentPks = "";
         for (const crumb of parentBreadcrumbs) {
           const to = this.getTo(crumb, parentPks);
@@ -63,12 +68,34 @@ export default {
           vueCrumbs.push(displayCrumb);
           parentPks = crumb.parentIds?.length ? crumb.parentIds.join(",") : "";
         }
+        if (!vueCrumbs.length && this.isBelowTop) {
+          /*
+           * Nothing to climb, and not at the top. A trail is only as
+           * good as the rows it was built from: a group whose parents
+           * have gone missing produces one crumb, which is the current
+           * view and so no link at all, stranding a deep view with
+           * nothing but the back button. The top always exists.
+           */
+          vueCrumbs.push(this.topCrumb(state.settings.topCollection));
+        }
         return vueCrumbs;
       },
       collectionNames: (state) => state.collectionNames,
     }),
   },
   methods: {
+    topCrumb(topCollection) {
+      return {
+        to: {
+          name: "browser",
+          params: { collection: topCollection },
+          query: { ts: this.timestamp },
+        },
+        text: "",
+        icon: mdiFormatVerticalAlignTop,
+        tooltip: { text: "Top", openDelay: 1500 },
+      };
+    },
     getTo(crumb, parentPks) {
       // Crumbs already speak the v4 {collection, parentIds} dialect.
       const parentIds = crumb.parentIds || [];

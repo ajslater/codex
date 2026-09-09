@@ -8,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import override
 
-from comicbox.enums.comicbox import ReadingDirectionEnum
+from comicbox.enums.comicbox import MangaEnum, ReadingDirectionEnum
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db.models import (
     CASCADE,
@@ -19,6 +19,7 @@ from django.db.models import (
     ForeignKey,
     Index,
     IntegerField,
+    JSONField,
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
@@ -33,6 +34,7 @@ from codex.models.base import (
 )
 from codex.models.choices import (
     FileTypeChoices,
+    MangaChoices,
     ReadingDirectionChoices,
     max_choices_len,
 )
@@ -200,9 +202,26 @@ class Comic(WatchedPathBrowserCollection):
         max_length=max_choices_len(ReadingDirectionChoices),
         db_collation="nocase",
     )
+    # Whether the book is manga, which ComicInfo compounds with reading
+    # direction in one YesAndRightToLeft value and comicbox keeps apart.
+    # A book that says nothing is Unknown, not No.
+    manga = CleaningCharField(
+        choices=MangaChoices.choices,
+        default=MangaEnum.UNKNOWN.value,
+        max_length=max_choices_len(MangaChoices),
+        db_collation="nocase",
+    )
+    # MetronInfo's MangaVolume, free text like "1-3", kept as written.
+    manga_volume = CleaningCharField(
+        max_length=MAX_NAME_LEN, blank=True, default="", db_collation="nocase"
+    )
 
     # Misc
     monochrome = BooleanField(db_index=True, default=False)
+    # The web links the file itself carries. Distinct from the links codex
+    # derives from identifiers: those are built from a key, these are what
+    # the tagger wrote down, and only the file can supply them.
+    urls = JSONField(default=list)
 
     # ManyToMany
     characters = ManyToManyField(Character)
@@ -220,17 +239,15 @@ class Comic(WatchedPathBrowserCollection):
 
     #####################
     # Comicbox Ignored:
-    # alternate_images
     # bookmark
     # cover_image
-    # credit_primaries
-    # critical_rating
-    # identifier_primary_source
-    # manga
+    # ext
     # pages
     # prices
+    # primary_id_source
     # remainders
     # rights
+    # updated_at
 
     # codex only
     date = DateField(db_index=True, null=True)

@@ -1,5 +1,5 @@
 """
-Alternate series names are searchable.
+Reprint series names are searchable.
 
 comicbox ``reprints`` become :class:`codex.models.named.Reprint` rows and
 are indexed into a dedicated ``ComicFTS.alternate_series`` column rather

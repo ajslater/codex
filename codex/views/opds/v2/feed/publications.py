@@ -357,7 +357,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         ``OPDS2ManifestMetadataView._publication_subject`` but indexed
         by comic pk for the feed path.
         """
-        if not comic_pks or not OPDS_M2M_MODELS:
+        if not comic_pks:
             return {}
         queries = []
         for model in OPDS_M2M_MODELS:

@@ -103,12 +103,14 @@ def init_admin_flags() -> None:
             name__in=age_rating_defaults.values()
         ).values_list("pk", "name")
     }
+    # One docker probe for the whole seed instead of one per flag.
+    false_defaults = AdminFlag.false_defaults()
     for key, title in AdminFlagChoices.choices:
         # ``defaults`` spans ``bool`` (``on``), ``str`` (``value``) and
         # the optional FK id (``age_rating_metron_id``) — annotate so
         # the conditional inserts don't narrow pyright's inferred type.
         defaults: dict[str, bool | int | str | None] = {
-            "on": key not in AdminFlag.FALSE_DEFAULTS,
+            "on": key not in false_defaults,
         }
         if key in age_rating_defaults:
             defaults["age_rating_metron_id"] = metron_by_name.get(

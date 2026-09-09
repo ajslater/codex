@@ -1,7 +1,7 @@
 /*
  * Tests for the Online Tagging match-review popup.
  *
- * Comicbox scores candidates against alternate series names, so a comic filed
+ * Comicbox scores candidates against reprint series names, so a comic filed
  * under a localized title matches a canonical series that looks nothing like
  * its filename. The popup shows those aliases so the match is explicable, and
  * a pick carries the candidate's volume id so the apply replay can narrow to
@@ -61,7 +61,7 @@ function mountPopup(candidates) {
 }
 
 describe("OnlineTagPromptPopup", () => {
-  describe("alternate series names", () => {
+  describe("reprint series names", () => {
     test("shows the aliases that explain an off-filename match", async () => {
       const { wrapper } = mountPopup([
         candidate({

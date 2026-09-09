@@ -4,7 +4,7 @@
 import asyncio
 from os import execv
 
-from django.db import connection
+from django.db import connection, connections
 from granian.constants import HTTPModes, Interfaces
 from granian.server.embed import Server
 from loguru import logger
@@ -74,10 +74,11 @@ def _raise_fd_limit() -> None:
     Raise RLIMIT_NOFILE soft limit toward the hard cap.
 
     macOS ships a 256 soft cap for RLIMIT_NOFILE which a cold burst of ~100
-    parallel cover requests can easily exhaust: each Django thread keeps a
-    sticky SQLite connection (CONN_MAX_AGE=600) and SQLite WAL mode opens
-    3 FDs per connection (main + -wal + -shm). Bumping the soft limit is a
-    non-invasive equivalent to running with ``ulimit -Sn 8192``.
+    parallel cover requests can easily exhaust: each in-flight request holds
+    a SQLite connection for its duration, the librarian's worker threads hold
+    persistent ones, and SQLite WAL mode opens 3 FDs per connection
+    (main + -wal + -shm). Bumping the soft limit is a non-invasive
+    equivalent to running with ``ulimit -Sn 8192``.
     No-op on platforms without the resource module (e.g. Windows).
     """
     try:
@@ -170,6 +171,11 @@ async def _serve(server: Server) -> None:
 def run() -> None:
     """Run Codex."""
     logger.success(f"Running Codex v{VERSION}")
+    # Release the connection ``codex_startup`` opened on this thread. The
+    # web process has no use for it until shutdown checkpoints the WAL,
+    # and it guarantees no open sqlite handle is inherited by the
+    # librarian if a deployment forces the ``fork`` start method.
+    connections.close_all()
     librarian = LibrarianDaemon(logger, LIBRARIAN_QUEUE, BROADCAST_QUEUE)
     librarian.start()
     server = _build_server()

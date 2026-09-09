@@ -60,7 +60,7 @@
                   <v-chip size="x-small" class="ml-2">
                     {{ Math.round(candidate.score * 100) }}%
                   </v-chip>
-                  <!-- Matching scores alternate series names too, so a comic
+                  <!-- Matching scores reprint series names too, so a comic
                      filed under a localized title matches a series name that
                      looks nothing like its filename. These are the reason. -->
                   <div

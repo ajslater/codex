@@ -205,6 +205,9 @@ def serialize_settings_browser(
             "order_extra_keys": json.dumps(
                 browser.order_extra_keys, separators=(",", ":")
             ),
+            "collection_order_memory": json.dumps(
+                browser.collection_order_memory, separators=(",", ":")
+            ),
             "search": browser.search,
             "custom_covers": int(browser.custom_covers),
             "dynamic_covers": int(browser.dynamic_covers),

@@ -6,7 +6,12 @@ from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.collections import Volume
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
-from codex.views.browser.columns import m2m_alias_for, m2m_columns
+from codex.views.browser.columns import (
+    m2m_alias_for,
+    m2m_columns,
+    m2m_sort_columns,
+    m2m_sort_order_fields,
+)
 
 # Order keys that don't map directly to a Comic field name need an
 # explicit ORM path. The map is consumed both by ``_add_comic_order_by``
@@ -124,6 +129,14 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             # natural multi-field sort that matches how the compound
             # ``Issue`` table column is rendered.
             return ["issue_number", "issue_suffix"]
+        if order_key in m2m_sort_columns():
+            # M2M sort through elected-value aliases (``reprints``): a
+            # field list like the ``sort_name`` head, each part read
+            # from the comic's elected reprint series with the
+            # comic's own series and issue as the fallback, so comics
+            # carrying no reprints interleave by their real
+            # series instead of clumping under an empty list.
+            return list(m2m_sort_order_fields(order_key))
         if order_key in m2m_columns():
             # M2M sort: ``ORDER BY <alias>`` where the alias is the
             # JsonGroupArray annotation added by the table-view path.

@@ -18,7 +18,7 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from comicbox.box import Comicbox
-from comicbox.config.settings import WriteMode
+from comicbox.config.settings import MergeMode
 
 from codex.settings import COMICBOX_CONFIG
 
@@ -51,12 +51,12 @@ def build_predict_config(delete_keys: Collection[str] | None, mode: str):
     """
     Return the config a write with these settings would parse under.
 
-    Mirrors comicbox's own ``_build_write_settings``: the write mode
+    Mirrors comicbox's own ``_build_write_settings``: the merge mode
     picks the merger that decides whether a patch value replaces or
     extends what the archive already holds, and cleared fields must
     vanish from the predicted name exactly as the write will clear them.
     """
-    write = replace(COMICBOX_CONFIG.write, mode=WriteMode(mode))
+    write = replace(COMICBOX_CONFIG.write, merge_mode=MergeMode(mode))
     keys = frozenset(
         key.removeprefix("comicbox.") for key in (delete_keys or ()) if key
     )

@@ -239,11 +239,9 @@ def _capture(client: Client, url: str) -> dict[str, Any]:
     path_prefix = url.split("?", 1)[0]
     SilkRequest.objects.filter(path__startswith=path_prefix).delete()
 
-    # `cache_page` on browser URLs stores the full response in the
-    # default cache; cachalot caches QuerySet results. Wipe both so the
-    # cold pass actually hits the view and the DB. (`cache_page` is a
-    # no-op on OPDS today because OPDS_TIMEOUT=0, but wiping is cheap
-    # and keeps the harness valid if we re-enable.)
+    # `cache_page` on OPDS feed URLs stores the full response in the
+    # default cache for OPDS_TIMEOUT; cachalot caches QuerySet results.
+    # Wipe both so the cold pass actually hits the view and the DB.
     django_cache.clear()
     cachalot_invalidate()
     cold_response = client.get(url)

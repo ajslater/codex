@@ -42,6 +42,12 @@ LIBRARY_CHANGED_TASK = NotifierTask(Notifications.LIBRARY.value, ChannelGroups.A
 ONLINE_TAG_PROMPT_TASK = NotifierTask(
     Notifications.ONLINE_TAG_PROMPT.value, ChannelGroups.ADMIN
 )
+# Its own message rather than riding LIBRARIAN_STATUS: the notifier dedupes by
+# text, so a dedicated one gets its own slot instead of sharing with every
+# other librarian job, and the client answers it with a single snapshot fetch.
+ONLINE_TAG_SNAPSHOT_TASK = NotifierTask(
+    Notifications.ONLINE_TAG_SNAPSHOT.value, ChannelGroups.ADMIN
+)
 TAG_WRITE_ERRORS_CHANGED_TASK = NotifierTask(
     Notifications.TAG_WRITE_ERRORS.value, ChannelGroups.ADMIN
 )

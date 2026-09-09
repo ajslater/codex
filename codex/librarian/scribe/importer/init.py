@@ -57,6 +57,7 @@ from codex.settings import LOGLEVEL
 if TYPE_CHECKING:
     from codex.models.base import BaseModel
     from codex.models.collections import BrowserCollectionModel, Folder
+    from codex.models.named import Reprint
 
 _WRITE_WAIT_EXPIRY = 60
 
@@ -129,7 +130,9 @@ class InitImporter(WorkerStatusBase):
         # move only re-stamps the destination (the one collection a current
         # comic still points into) and the browser's ``library.changed`` refresh
         # gate never sees the source view change. Keyed by collection model.
-        self.moved_source_collections: dict[type[BrowserCollectionModel], set[int]] = {}
+        self.moved_source_collections: dict[
+            type[BrowserCollectionModel | Reprint], set[int]
+        ] = {}
         # Full set of paths this import touched, captured before the chunking
         # loop and extract phase zero out ``task.files_*``. Consumed at finish
         # to stamp ``Comic.metadata_imported_at`` on every comic a forced/lazy

@@ -63,6 +63,7 @@ def restore(
     process store). ``dry_run`` resolves every row without writing.
     """
     resolved, cleanup = _resolve_sidecar(sidecar_path)
+    store = None
     try:
         store = SidecarStore(resolved) if resolved is not None else get_store()
         report = RestoreReport()
@@ -83,6 +84,14 @@ def restore(
         logger.info(f"{mode}: {total_written} written, {total_skipped} skipped.")
         return report
     finally:
+        if store is not None:
+            # The restore runs on an ASGI request's worker thread, which
+            # is retired when the request ends. ``SidecarStore`` caches
+            # its sqlite connection in a ``threading.local``, so leaving
+            # it open orphans it exactly the way an unclosed Django
+            # connection would (and no ASGI wrapper can reach a
+            # non-Django handle).
+            store.close()
         cleanup()
 
 
@@ -553,7 +562,22 @@ def _restore_settings_browser(
 
 # Filter/sort keys renamed across codex versions; sidecar backups from
 # older versions still carry the old name (0048: critical -> community).
+# This map also resolves *filter* columns by their legacy name, so only
+# renames that applied to a filter column belong here.
 _LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rating"}
+
+# Sort keys retired into another key. Sort-only, because there was never
+# an ``alternate_number`` filter column for ``_resolve_filter_column``
+# to look for (the Alternate Number sort merged into Reprints before
+# either shipped).
+#
+# No migration pairs with this: the retired key never reached a release,
+# so only a sidecar written by a development build can still carry it —
+# and a sidecar outlives the database it came from.
+_SORT_KEY_RENAMES: Final[dict[str, str]] = {
+    **_LEGACY_KEY_RENAMES,
+    "alternate_number": "reprints",
+}
 
 
 def _resolve_filter_column(row_keys, column: str) -> str | None:
@@ -568,29 +592,94 @@ def _resolve_filter_column(row_keys, column: str) -> str | None:
     return None
 
 
-def _build_browser_defaults(row, show) -> dict[str, Any]:
-    """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
-    order_by = row["order_by"] or ""
-    order_by = _LEGACY_KEY_RENAMES.get(order_by, order_by)
-    table_columns = json.loads(row["table_columns"] or "{}")
+def _row_column(row, column: str):
+    """Read a column a sidecar written by an older codex may not carry."""
+    try:
+        return row[column]
+    except (IndexError, KeyError):
+        # sqlite3.Row raises IndexError, a plain mapping raises KeyError.
+        return None
+
+
+def _rename_sort_key(key) -> str:
+    """Rename one retired sort key. Sidecar JSON can hold anything."""
+    key = key if isinstance(key, str) else ""
+    return _SORT_KEY_RENAMES.get(key, key)
+
+
+def _rename_extra_keys(entries) -> list:
+    """Rename retired sort keys in an extras list, dropping duplicates."""
+    if not isinstance(entries, list):
+        return []
+    renamed: list = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        key = _rename_sort_key(entry.get("key"))
+        if key in seen:
+            # Both a retired key and its replacement were stored; one
+            # column can only carry one sort, so the first one wins.
+            continue
+        seen.add(key)
+        renamed.append({**entry, "key": key})
+    return renamed
+
+
+def _rename_memory_keys(memory) -> dict:
+    """Rename retired sort keys inside a collection_order_memory map."""
+    if not isinstance(memory, dict):
+        return {}
+    for remembered in memory.values():
+        if not isinstance(remembered, dict):
+            continue
+        remembered["order_by"] = _rename_sort_key(remembered.get("order_by"))
+        remembered["order_extra_keys"] = _rename_extra_keys(
+            remembered.get("order_extra_keys")
+        )
+    return memory
+
+
+def _rename_table_columns(raw) -> dict:
+    """Rename retired keys in a table_columns JSON blob."""
+    table_columns = json.loads(raw or "{}")
     for old, new in _LEGACY_KEY_RENAMES.items():
         if old in table_columns:
             table_columns[new] = table_columns.pop(old)
-    return {
+    return table_columns
+
+
+_BROWSER_STR_COLUMNS: Final[tuple[str, ...]] = (
+    "top_collection",
+    "search",
+    "view_mode",
+    "table_cover_size",
+)
+_BROWSER_BOOL_COLUMNS: Final[tuple[str, ...]] = (
+    "order_reverse",
+    "custom_covers",
+    "dynamic_covers",
+    "twenty_four_hour_time",
+    "always_show_filename",
+)
+
+
+def _build_browser_defaults(row, show) -> dict[str, Any]:
+    """Map a sidecar settings_browser row to ``update_or_create`` defaults."""
+    defaults: dict[str, Any] = {
         "show": show,
-        "top_collection": row["top_collection"] or "",
-        "order_by": order_by,
-        "order_reverse": bool(row["order_reverse"]),
-        "order_extra_keys": json.loads(row["order_extra_keys"] or "[]"),
-        "search": row["search"] or "",
-        "custom_covers": bool(row["custom_covers"]),
-        "dynamic_covers": bool(row["dynamic_covers"]),
-        "twenty_four_hour_time": bool(row["twenty_four_hour_time"]),
-        "always_show_filename": bool(row["always_show_filename"]),
-        "view_mode": row["view_mode"] or "",
-        "table_columns": table_columns,
-        "table_cover_size": row["table_cover_size"] or "",
+        "order_by": _rename_sort_key(row["order_by"]),
+        "order_extra_keys": _rename_extra_keys(
+            json.loads(row["order_extra_keys"] or "[]")
+        ),
+        "collection_order_memory": _rename_memory_keys(
+            json.loads(_row_column(row, "collection_order_memory") or "{}")
+        ),
+        "table_columns": _rename_table_columns(row["table_columns"]),
     }
+    defaults.update({column: row[column] or "" for column in _BROWSER_STR_COLUMNS})
+    defaults.update({column: bool(row[column]) for column in _BROWSER_BOOL_COLUMNS})
+    return defaults
 
 
 def _restore_one_settings_browser(

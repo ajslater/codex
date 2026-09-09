@@ -60,7 +60,7 @@ class CronThread(NamedThread):
         self._task_times = tuple(sorted(task_times.items()))
 
     def _get_timeout(self) -> int:
-        if not self._task_times or not self._task_times[0]:
+        if not self._task_times:
             self.log.warning("No scheduled jobs found. Not normal! Waiting a minute.")
             return 60
 
@@ -113,7 +113,7 @@ class CronThread(NamedThread):
                     # ``cond.wait`` doesn't pin a file handle + a few
                     # tens of KiB of in-process state through that
                     # whole window. Reopen on the next query is
-                    # ~5-20 ms, invisible against the wait.
+                    # ~1 ms, invisible against the wait.
                     connections.close_all()
                     # ``Condition.wait`` returns False only when the whole
                     # timeout elapsed; True means ``end_timeout`` notified.

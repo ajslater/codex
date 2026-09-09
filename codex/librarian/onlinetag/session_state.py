@@ -16,6 +16,52 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class LiveLookup:
+    """
+    The (comic, source) codex is consulting right this instant.
+
+    The authoritative answer to "what is the scan doing now", and the only
+    input the snapshot's in-flight row and its "Looking up" cell are built
+    from. Set from the comicbox event stream (``SourceStarted``) and from
+    codex's own stored-id prepass, which runs outside the event-emitting
+    session entirely.
+
+    It replaces guessing the in-flight comic from ``path_to_pk`` position:
+    ``tag_many`` re-sorts the batch by series fingerprint
+    (comicbox ``online_session.py``, ``series_batching`` defaults on and codex
+    never overrides it), so position says nothing about processing order.
+    Unset means *nothing is live* — between comics, before the first event,
+    after a cancel — and the snapshot then marks no row in flight rather than
+    pointing confidently at an arbitrary one.
+
+    Daemon-only and never serialized; the snapshot projects it at build time.
+    A single scalar is complete and needs no lock because a scan is strictly
+    sequential — one ``tag_many`` loop, one source at a time within a comic,
+    and comicbox dispatches events inline on the calling thread.
+    """
+
+    path: Path | None = None
+    source: str = ""
+
+    def begin(self, path: Path, source: str) -> None:
+        """Record that ``source`` is being consulted for ``path``."""
+        self.path = path
+        self.source = source
+
+    def end(self, path: Path) -> None:
+        """Clear the marker, but only if ``path`` is still the live comic."""
+        # A FileFinished/FileError for some *earlier* comic (a late or
+        # replayed event) must not wipe the comic being worked on now.
+        if path == self.path:
+            self.clear()
+
+    def clear(self) -> None:
+        """Nothing is live."""
+        self.path = None
+        self.source = ""
+
+
+@dataclass
 class SessionState:
     """Tracks a single online tagging scan (Pass 1)."""
 
@@ -29,6 +75,10 @@ class SessionState:
     # from ``mode`` above, which is the tag-write mode.
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
+    # How much API budget a comic may spend against a fan-out source.
+    # Only Comic Vine fans out; it is what the time estimate turns on.
+    effort: str = "balanced"
+
     # Whether this scan queries every source per comic and merges
     # (comicbox first_wins=False) — the time estimate needs it.
     merge_all_sources: bool = False
@@ -40,6 +90,8 @@ class SessionState:
     total_comics: int = 0
     completed_comics: int = 0
     stats: OnlineTagOutcomeStats = field(default_factory=OnlineTagOutcomeStats)
+    # What the scan is consulting right now — see LiveLookup.
+    live: LiveLookup = field(default_factory=LiveLookup)
     # Prompt fingerprints the admin answered *while this scan was running*.
     # The scan keeps re-persisting ``session.deferred_prompts()`` on every
     # PromptDeferred event (and once more at the end), which would otherwise

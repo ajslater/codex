@@ -14,6 +14,7 @@ from django.db.models.functions.datetime import Now
 from codex.librarian.onlinetag.session_cache import (
     get_active_scan_id,
     get_pending_prompts,
+    prune_stale_prompts,
     set_active_scan_id,
     set_pending_prompts,
 )
@@ -460,12 +461,22 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         status = JanitorCleanupTaggingStateStatus()
         try:
             self.status_controller.start(status)
+            self._prune_stale_scheme_prompts()
             self._prune_dead_prompts()
             self._prune_dead_resolutions()
             self._prune_dead_resume_state()
             self._clear_stale_scan_marker()
         finally:
             self.status_controller.finish(status)
+
+    def _prune_stale_scheme_prompts(self) -> None:
+        """Drop prompts comicbox can no longer match by fingerprint."""
+        if dropped := prune_stale_prompts():
+            msg = (
+                f"Pruned {dropped} online tag prompt(s) from an older "
+                f"fingerprint scheme."
+            )
+            self.log.info(msg)
 
     def _prune_dead_prompts(self) -> None:
         """Drop pending prompts whose comic no longer exists."""

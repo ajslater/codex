@@ -27,6 +27,40 @@ from codex.views.settings import (
 # Collections whose nav owns a dedicated route (folders / story arcs); for these
 # the URL collection becomes the top_collection directly during validation.
 _OWN_ROUTE_COLLECTIONS = frozenset({FOLDER_COLLECTION, STORY_ARC_COLLECTION})
+_SEARCH_ORDER_BY = "search_score"
+
+
+def apply_collection_order_memory(
+    params: MutableMapping, old_top_collection: str, new_top_collection: str
+) -> None:
+    """
+    Carry the remembered sort across a top collection change.
+
+    Files the sort the old collection is leaving with, then restores the sort
+    the new collection was last browsed with. The browser store does this for
+    collection switches the user makes; this covers the ones the server makes
+    on its own when a url or a settings change forces a different top
+    collection, which would otherwise leak one collection's sort into another.
+    """
+    if old_top_collection == new_top_collection:
+        return
+    memory = dict(params.get("collection_order_memory") or {})
+    order_by = params.get("order_by")
+    if old_top_collection and order_by and order_by != _SEARCH_ORDER_BY:
+        memory[old_top_collection] = {
+            "order_by": order_by,
+            "order_reverse": bool(params.get("order_reverse")),
+            "order_extra_keys": list(params.get("order_extra_keys") or ()),
+        }
+    params["collection_order_memory"] = memory
+
+    remembered = memory.get(new_top_collection)
+    if not remembered or params.get("search"):
+        # An active search owns the sort until it's cleared.
+        return
+    params["order_by"] = remembered["order_by"]
+    params["order_reverse"] = remembered["order_reverse"]
+    params["order_extra_keys"] = list(remembered.get("order_extra_keys") or ())
 
 
 class BrowserSettingsBaseView(SettingsBaseView):
@@ -145,6 +179,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
             else Collection.ROOT
         )
         self._validate_top_collection(params, collection, top_collection)
+        apply_collection_order_memory(params, top_collection, params["top_collection"])
         self.set_order_by_default(params)
         return params
 

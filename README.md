@@ -790,7 +790,7 @@ server itself is already configured and reachable at `tinyauth:3000`:
 # In the http {} block (shared with the WebSocket map above).
 # The internal auth endpoint nginx consults for every request.
 location = /tinyauth {
-    internal                ;
+    internal;
     proxy_pass              http://tinyauth:3000/api/auth/nginx;
     proxy_set_header        Host $host;
     proxy_set_header        X-Original-URL $scheme://$http_host$request_uri;

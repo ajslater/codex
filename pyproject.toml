@@ -13,9 +13,14 @@ classifiers = [
 ]
 dependencies = [
   "adrf~=0.1.12",
+  # Declared directly, not just inherited through Django and channels:
+  # codex.applications.workers installs its own thread-sensitive
+  # contexts into asgiref's executor registry, so a major version is a
+  # conscious upgrade rather than a transitive one.
+  "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=4.8.6",
+  "comicbox[pdf]~=5.0.0",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -32,11 +37,14 @@ dependencies = [
   "humanize~=4.12",
   "lark~=1.2",
   "loguru~=0.7.3",
+  "mokkari>=4.5,<5",
   "nh3~=0.2",
   "Pillow~=12.0",
   "psutil~=7.1",
+  "requests-cache~=1.2",
   "servestatic[brotli]~=4.1",
   "setproctitle~=1.3.7",
+  "simyan>=4,<5",
   "tomli~=2.0; python_version < '3.11'",
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
@@ -49,7 +57,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.2.11"
+version = "2.3.0"
 [[project.authors]]
 name = "AJ Slater"
 email = "aj@slater.net"
@@ -82,7 +90,7 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=7.0",
+  "complexipy~=8.0.1",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
@@ -98,6 +106,7 @@ lint = [
 ]
 test = [
   "coverage~=7.0",
+  "deepdiff~=9.0",
   "jsonschema~=4.26",
   "lxml~=6.1",
   "pytest-asyncio~=1.0",

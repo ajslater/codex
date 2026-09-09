@@ -23,6 +23,9 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     // this the table lagged a full resolution behind. Pruned in loadSnapshot
     // once the server snapshot reflects the same outcome.
     locallyResolved: {},
+    // The in-flight snapshot GET, so a burst of notifications coalesces into
+    // one request instead of a pile of redundant ones. Not rendered.
+    _snapshotRequest: null,
   }),
   actions: {
     async startSession({
@@ -175,13 +178,25 @@ export const useOnlineTagStore = defineStore("onlineTag", {
        * scan to the tagging cache on each status update; this reads that single
        * key. Independent of any in-memory session, so it survives reloads and
        * keeps the final tally after a batch ends (snapshot.active === false).
+       *
+       * Coalesced: notifications can arrive faster than the round trip (a
+       * source starting a lookup pushes one), and each request re-reads the
+       * prompt cache and re-walks every row server-side. Callers awaiting
+       * during a fetch get that fetch's result rather than a second one.
        */
-      const response = await HTTP.get("/admin/tag-sessions/snapshot", {
+      if (this._snapshotRequest) return this._snapshotRequest;
+      this._snapshotRequest = HTTP.get("/admin/tag-sessions/snapshot", {
         params: { ts: Date.now() },
-      });
-      this.snapshot = response.data.snapshot || null;
-      this.pruneLocallyResolved();
-      return this.snapshot;
+      })
+        .then((response) => {
+          this.snapshot = response.data.snapshot || null;
+          this.pruneLocallyResolved();
+          return this.snapshot;
+        })
+        .finally(() => {
+          this._snapshotRequest = null;
+        });
+      return this._snapshotRequest;
     },
     pruneLocallyResolved() {
       // Forget an optimistic overlay once the authoritative snapshot agrees

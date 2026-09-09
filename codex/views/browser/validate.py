@@ -12,6 +12,7 @@ from codex.choices.browser import DEFAULT_BROWSER_ROUTE
 from codex.models.collections import BrowserCollectionModel
 from codex.util import mapping_to_dict
 from codex.views.browser.filters.search.parse import SearchFilterView
+from codex.views.browser.settings import apply_collection_order_memory
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
     COMIC_COLLECTION,
@@ -77,7 +78,12 @@ class BrowserValidateView(SearchFilterView):
             route["params"].update(route_mask)
         settings = cast("dict[str, Any]", deepcopy(mapping_to_dict(self.params)))
         if settings_mask:
+            old_top_collection = settings.get("top_collection", "")
             settings.update(settings_mask)
+            # A redirect that moves the top collection moves its sort too.
+            apply_collection_order_memory(
+                settings, old_top_collection, settings.get("top_collection", "")
+            )
         detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 

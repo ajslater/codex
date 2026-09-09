@@ -14,7 +14,7 @@ from typing import Final, override
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 
 from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
@@ -164,10 +164,12 @@ class BrowserReprintsColumnTestCase(_ReprintsFixtureTestCase):
         self.comic.reprints.add(
             Reprint.objects.create(series_name="Zulu", volume_number=2)
         )
-        # "Zzz" has no reprints, so ascending by the column puts it
-        # first — the opposite of the ``sort_name`` order the sort
-        # falls back to when the intersection SQL isn't wired.
-        self._create_comic("C2", 1, series=self._create_series("Zzz"))
+        # Each series' reprint series sorts opposite its own name, so
+        # this order can only come from the intersection SQL — falling
+        # back to ``sort_name`` would put "Aaa" first.
+        self._create_comic("C2", 1, series=self._create_series("Aaa")).reprints.add(
+            Reprint.objects.create(series_name="Zzz")
+        )
 
         self._set_view_mode_table()
         response = self.client.patch(
@@ -178,8 +180,8 @@ class BrowserReprintsColumnTestCase(_ReprintsFixtureTestCase):
         assert response.status_code == _HTTP_OK, response.content
         rows = self._browse_series_rows()["rows"]
         assert [(row["name"], row["reprints"]) for row in rows] == [
-            ("Zzz", []),
             ("Ser", ["Zulu v2"]),
+            ("Aaa", ["Zzz"]),
         ], rows
 
 
@@ -228,3 +230,304 @@ class BrowserReprintsFilterTestCase(_ReprintsFixtureTestCase):
         body = self._browse(f"/api/v4/browse/series/{self.series.pk}?page=1")
         names = [book["name"] for book in body["books"]]
         assert names == ["C1"], body
+
+
+class BrowserAlternateSeriesSortTestCase(_ReprintsFixtureTestCase):
+    """
+    The Reprints sort: reprint series identity, then its issue.
+
+    One key does both halves. It leads with the reprint series so every
+    issue of one reprint series groups together, then orders within
+    that group by the parsed ComicInfo AlternateNumber so "#2" precedes
+    "#10", and falls back to the comic's own series and issue so
+    untagged comics interleave instead of clumping.
+    """
+
+    def _tag(self, comic: Comic, issue: str, series_name: str = "Crossover") -> Reprint:
+        """Put ``comic`` in a reprint series at ``issue``."""
+        reprint = Reprint.objects.create(series_name=series_name, issue=issue)
+        comic.reprints.add(reprint)
+        return reprint
+
+    def _set_settings(self, **settings) -> None:
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps(settings),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        cache.clear()
+
+    def _book_names(self) -> list[str]:
+        body = self._browse(f"/api/v4/browse/series/{self.series.pk}?page=1")
+        return [book["name"] for book in body["books"]]
+
+    def test_sorts_numerically_not_lexically(self) -> None:
+        """#2 sorts before #10 within a reprint series."""
+        # ``self.comic`` is C1. Issue numbers are deliberately the
+        # reverse of the alternate numbers so a fallback to the regular
+        # issue sort can't accidentally produce the expected order.
+        self._tag(self.comic, "2")
+        reprints = [self._tag(self._create_comic("C2", 2), "10")]
+        reprints.append(self._tag(self._create_comic("C3", 3), "3"))
+        reprints.append(Reprint.objects.get(issue="2"))
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=False,
+            filters={"reprints": [reprint.pk for reprint in reprints]},
+        )
+        assert self._book_names() == ["C1", "C3", "C2"]
+
+    def test_reverse_sort(self) -> None:
+        """Reversing the sort reverses the books."""
+        first = self._tag(self.comic, "2")
+        second = self._tag(self._create_comic("C2", 2), "10")
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=True,
+            filters={"reprints": [first.pk, second.pk]},
+        )
+        assert self._book_names() == ["C2", "C1"]
+
+    def test_suffix_breaks_ties(self) -> None:
+        """Alternate numbers sharing a number order by their suffix."""
+        plain = self._tag(self.comic, "2")
+        suffixed = self._tag(self._create_comic("C2", 2), "2a")
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=False,
+            filters={"reprints": [plain.pk, suffixed.pk]},
+        )
+        assert self._book_names() == ["C1", "C2"]
+
+    def test_number_and_suffix_come_from_the_same_reprint(self) -> None:
+        """A comic in one reprint series twice keys on one whole issue."""
+        # C1 is in Crossover at both #10 and #2a, so its key is the
+        # lesser of those two *whole* issues, "2a" — after C2's plain
+        # "#2". Aggregating the number and the suffix separately would
+        # pair 2 with an empty suffix and fabricate a "#2" that C1
+        # doesn't have, tying it with C2 and letting the pk tiebreaker
+        # put C1 first.
+        first = self._tag(self.comic, "10")
+        second = self._tag(self.comic, "2a")
+        third = self._tag(self._create_comic("C2", 2), "2")
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=False,
+            filters={"reprints": [first.pk, second.pk, third.pk]},
+        )
+        assert self._book_names() == ["C2", "C1"]
+
+    def test_election_is_atomic_across_alternate_series(self) -> None:
+        """A comic in two reprint series keys on one whole reprint."""
+        # C1 is in "Aaa" at #10 and "Zzz" at #2. Its key must be
+        # (aaa, 10) — the elected reprint whole — never (aaa, 2), the
+        # min series paired with the min number from a different
+        # reprint. Only the fabricated pair sorts C1 ahead of C2's
+        # (aaa, 5).
+        self._tag(self.comic, "10", series_name="Aaa")
+        self._tag(self.comic, "2", series_name="Zzz")
+        self._tag(self._create_comic("C2", 2), "5", series_name="Aaa")
+
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        assert self._book_names() == ["C2", "C1"]
+
+    def test_untagged_comic_falls_back_to_its_own_series_and_issue(self) -> None:
+        """A comic with no reprints sorts by its real series and issue."""
+        # C1's reprint series "Zulu" sorts after C2's real series
+        # "Ser", so the fallback has to place C2 first — the opposite of
+        # both the issue order (C1 #1, C2 #50) and the pk order.
+        tagged = self._tag(self.comic, "2", series_name="Zulu")
+        self._create_comic("C2", 50)
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=False,
+            filters={"reprints": [tagged.pk, VUETIFY_NULL_CODE]},
+        )
+        assert self._book_names() == ["C2", "C1"]
+
+    def test_fallback_uses_raw_series_name_not_sort_name(self) -> None:
+        """The fallback series segment is the raw name, like alternate names."""
+        # Reprint series names sort raw, so the fallback compares
+        # ``lower(name)`` too. "cats" sits between "batman, the" (the
+        # article-moved sort_name) and "the batman" (the raw name):
+        # only the raw-name fallback puts the Cats comic first.
+        the_batman = self._create_series("The Batman")
+        self._create_comic("C2", 1, series=the_batman)
+        self._tag(self._create_comic("C3", 2, series=the_batman), "1", "Cats")
+
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        body = self._browse(f"/api/v4/browse/series/{the_batman.pk}?page=1")
+        names = [book["name"] for book in body["books"]]
+        assert names == ["C3", "C2"], body
+
+    def test_alternate_series_name_folds_case(self) -> None:
+        """Reprint series names compare case-insensitively."""
+        # Stored raw, "Zebra" (0x5A) would sort before "apple" (0x61)
+        # under SQLite's binary collation — which a column's NOCASE
+        # collation does not survive being composed into a sort key.
+        first = self._tag(self.comic, "1", series_name="apple")
+        second = self._tag(self._create_comic("C2", 2), "1", series_name="Zebra")
+
+        self._set_settings(
+            orderBy="reprints",
+            orderReverse=False,
+            filters={"reprints": [first.pk, second.pk]},
+        )
+        assert self._book_names() == ["C1", "C2"]
+
+    def test_groups_by_alternate_series_before_issue(self) -> None:
+        """With no filter, comics group by reprint series, then by issue."""
+        # Neither the issue order (C1, C2, C3) nor the pk order can
+        # produce this: the two Alpha issues must come out together and
+        # in numeric order, ahead of Zulu.
+        self._tag(self.comic, "1", series_name="Zulu")
+        self._tag(self._create_comic("C2", 2), "9", series_name="Alpha")
+        self._tag(self._create_comic("C3", 3), "1", series_name="Alpha")
+
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        assert self._book_names() == ["C3", "C2", "C1"]
+
+    def test_alternate_series_without_an_issue_uses_the_comics_own(self) -> None:
+        """Comics in a reprint series with no AlternateNumber keep issue order."""
+        # Both reprint series rows carry no issue at all, so the issue
+        # segment falls through to the comic's own — without that they
+        # would share one key and land in pk order.
+        first = Reprint.objects.create(series_name="Crossover")
+        self.comic.reprints.add(first)
+        early = self._create_comic("C2", 0)
+        early.reprints.add(first)
+
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        assert self._book_names() == ["C2", "C1"]
+
+    def test_collection_rows_sort_by_their_shared_alternate_issue(self) -> None:
+        """Series rows sort by the reprint series their children share."""
+        # "Ser" shares Crossover #3 and "Aaa" shares Crossover #10, so
+        # the numeric order is the reverse of both the alphabetical
+        # sort_name order and the lexical label order ("#10" < "#3").
+        self._tag(self.comic, "3")
+        other_series = self._create_series("Aaa")
+        self._tag(self._create_comic("C2", 2, series=other_series), "10")
+
+        self._set_view_mode_table()
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        rows = self._browse_series_rows()["rows"]
+        assert [row["name"] for row in rows] == ["Ser", "Aaa"], rows
+
+    def test_collection_sort_survives_the_debug_query_logger(self) -> None:
+        """The raw SQL's printf formats don't break DEBUG query logging."""
+        # ``bin/dev.sh`` runs with DEBUG=1, where every query is
+        # re-rendered through ``sql % params`` for the log. A bare
+        # ``%011.2f`` in the intersection RawSQL would swallow a bound
+        # parameter there and 500 the browse — the raw string doubles
+        # its percents so the logger renders them as literals.
+        self._tag(self.comic, "2")
+
+        self._set_view_mode_table()
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        with override_settings(DEBUG=True):
+            rows = self._browse_series_rows()["rows"]
+        assert [row["name"] for row in rows] == ["Ser"], rows
+
+    def test_collection_rows_without_a_shared_alternate_series_use_their_name(
+        self,
+    ) -> None:
+        """A collection whose children disagree sorts by its own name."""
+        # "Ser"'s two children share no reprints, so its
+        # intersection is empty and it sorts under "ser" — between
+        # "Aaa"'s reprint series "aaa" and "Zzz"'s "zzz". Without the
+        # fallback the empty key would clump it at one end.
+        self._tag(self.comic, "1", series_name="mmm")
+        self._create_comic("C2", 2)
+        self._tag(
+            self._create_comic("C3", 3, series=self._create_series("Aaa")),
+            "1",
+            series_name="zzz",
+        )
+        self._tag(
+            self._create_comic("C4", 4, series=self._create_series("Zzz")),
+            "1",
+            series_name="aaa",
+        )
+
+        self._set_view_mode_table()
+        self._set_settings(orderBy="reprints", orderReverse=False)
+        rows = self._browse_series_rows()["rows"]
+        assert [row["name"] for row in rows] == ["Zzz", "Ser", "Aaa"], rows
+
+
+class BrowserReprintsCoverSortTestCase(_ReprintsFixtureTestCase):
+    """The Reprints sort outside table view (cover cards, OPDS)."""
+
+    def test_cover_view_sorts_comics_by_label(self) -> None:
+        """Cover view can sort by the M2M label without a missing-alias error."""
+        # The ORDER BY alias for an M2M primary sort used to be annotated
+        # only in table view, so this request raised a FieldError.
+        self.comic.reprints.add(Reprint.objects.create(series_name="Zulu"))
+        sibling = self._create_comic("C2", 2)
+        sibling.reprints.add(Reprint.objects.create(series_name="Alpha"))
+
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps(
+                {"orderBy": "reprints", "orderReverse": False, "viewMode": "cover"}
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        cache.clear()
+        body = self._browse(f"/api/v4/browse/series/{self.series.pk}?page=1")
+        assert [book["name"] for book in body["books"]] == ["C2", "C1"], body
+
+    def test_untagged_comic_falls_back_to_series_name(self) -> None:
+        """A comic with no reprints sorts by its real series name."""
+        # All three live in series "Ser" (sort_name "ser"). C1 and C3
+        # carry reprint series that bracket it alphabetically, so the
+        # untagged C2 must land *between* them. Without the fallback its
+        # key would be the empty aggregate and it would clump at one end.
+        self.comic.reprints.add(Reprint.objects.create(series_name="zzz"))
+        self._create_comic("C2", 2)
+        self._create_comic("C3", 3).reprints.add(
+            Reprint.objects.create(series_name="aaa")
+        )
+
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps(
+                {"orderBy": "reprints", "orderReverse": False, "viewMode": "cover"}
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        cache.clear()
+        body = self._browse(f"/api/v4/browse/series/{self.series.pk}?page=1")
+        assert [book["name"] for book in body["books"]] == ["C3", "C2", "C1"], body
+
+    def test_alternate_series_works_as_a_multi_sort_extra(self) -> None:
+        """A secondary sort on the column resolves its ORDER BY alias."""
+        # ``reprints`` sorts through a fallback alias, which has to be
+        # annotated for extras too, not just the primary key.
+        self.comic.reprints.add(Reprint.objects.create(series_name="zzz"))
+        self._create_comic("C2", 2)
+
+        self._set_view_mode_table()
+        response = self.client.patch(
+            _SETTINGS_URL,
+            data=json.dumps(
+                {
+                    "orderBy": "sort_name",
+                    "orderExtraKeys": [{"key": "reprints", "reverse": False}],
+                }
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        cache.clear()
+        rows = self._browse_comics()["rows"]
+        assert {row["name"] for row in rows} == {"C1", "C2"}, rows

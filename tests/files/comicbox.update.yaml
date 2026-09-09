@@ -1,9 +1,6 @@
 appID: comicbox dev
 comicbox:
   age_rating: Adult
-  alternate_images:
-    - alt0.jxl
-    - alt2.jxl
   alternative_issue:
     number: 44
     suffix: BU
@@ -36,18 +33,16 @@ comicbox:
     Joe Orlando:
       roles:
         Writer:
+          primary: true
           identifiers:
-            key: "890"
+            metron:
+              key: "890"
       identifiers:
         metron:
           key: "123"
     Wally Wood:
       roles:
         Penciller: {}
-  credit_primaries:
-    Joe Orlando: Writer
-    Wally Wood: Penciller
-  critical_rating: 5
   date:
     cover_date: 1951-12-20
     store_date: 1951-11-28
@@ -83,6 +78,7 @@ comicbox:
         comicvine:
           key: "111"
   manga: Yes
+  manga_volume: "2"
   monochrome: True
   notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145265
   page_count: 24
@@ -99,16 +95,15 @@ comicbox:
     - cruddo
   reprints:
     - language: es
-      series:
-        sort_name: Capitan Sciencia
+      name: Capitan Sciencia
       volume:
         number: 1
-    - language: de
-      series:
-        name: Kapitän Wissenschaft
   review: Actually unreadable.
   scan_info: Digital
   series:
+    alternative_names:
+      - name: Capitaine Science
+        language: fr
     name: Captain Science
     identifiers:
       comicvine:
@@ -135,7 +130,7 @@ comicbox:
       identifiers:
         metron:
           key: "123"
-    Team Cornish Game Hen:
+    Team Cornish Game Hen: {}
   title: The Beginning; The End
   universes:
     Young Adult Silly Universe:
@@ -147,4 +142,4 @@ comicbox:
   volume:
     issue_count: 1
     number: 1950
-schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v3.0/comicbox-v3.0.schema.json"

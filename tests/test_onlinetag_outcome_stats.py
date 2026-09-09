@@ -23,6 +23,7 @@ from comicbox.events import (
     PromptDeferred,
     SearchStarted,
     Skipped,
+    SourceStarted,
 )
 
 from codex.librarian.onlinetag import statuses
@@ -133,20 +134,20 @@ def test_singular_comic_phrasing() -> None:
     assert "1 comic — " in stats.summary(elapsed="1 second")
 
 
-def test_source_status_tracks_each_source_through_a_lookup() -> None:
-    """A search marks a source searching; its result replaces that."""
+def test_source_status_records_outcomes_only_never_liveness() -> None:
+    """Starting a search records nothing; only what a source *did* lands here."""
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
 
+    # Work in progress is not an outcome. It lives on SessionState.live and is
+    # projected into the snapshot, because an event-derived cell is cleared
+    # before any publish can sample it.
     stats.record(SearchStarted(path=path, source="metron"))
-    assert stats.source_status_by_path[path] == {"metron": statuses.IN_FLIGHT}
+    assert path not in stats.source_status_by_path
 
     stats.record(AutoWritten(path=path, source="metron"))
     stats.record(SearchStarted(path=path, source="comicvine"))
-    assert stats.source_status_by_path[path] == {
-        "metron": statuses.MATCHED,
-        "comicvine": statuses.IN_FLIGHT,
-    }
+    assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
 
 
 def test_source_status_records_no_match_declined_and_deferred() -> None:
@@ -169,27 +170,68 @@ def test_source_status_records_no_match_declined_and_deferred() -> None:
     }
 
 
-def test_finishing_a_comic_clears_a_search_that_never_reported() -> None:
-    """A search that raised leaves no event, so finishing must clear its cell."""
+def test_a_source_that_reported_nothing_settles_as_no_match() -> None:
+    """
+    Silence from a source that ran is a miss, not an absence.
+
+    Comicbox emits a terminal event only for the resolutions its matcher
+    reaches. A search that comes back with zero candidates — the common
+    case for the smaller database of the two — ends the source's turn
+    with a log line and nothing else, and a cell-less source renders as
+    an em-dash the admin reads as "never attempted".
+    """
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
-    stats.record(AutoWritten(path=path, source="metron"))
-    # comicvine's search raised: comicbox logs it and emits nothing.
-    stats.record(SearchStarted(path=path, source="comicvine"))
+    stats.record(SourceStarted(path=path, source="metron"))
+    # metron searched and found nothing: comicbox logs it and emits nothing.
+    stats.record(SourceStarted(path=path, source="comicvine"))
+    stats.record(AutoWritten(path=path, source="comicvine"))
     stats.record(FileFinished(path=path, outcome="written"))
 
-    # The terminal cell survives; the phantom search does not.
+    assert stats.source_status_by_path[path] == {
+        "metron": statuses.NO_MATCH,
+        "comicvine": statuses.MATCHED,
+    }
+
+
+def test_a_source_that_never_ran_keeps_its_empty_cell() -> None:
+    """First-wins is the case the em-dash is for; comicbox skips it silently."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    # comicbox emits SourceStarted *after* its first-wins skip, so the
+    # source that sat out never announces itself.
+    stats.record(SourceStarted(path=path, source="metron"))
+    stats.record(AutoWritten(path=path, source="metron"))
+    stats.record(FileFinished(path=path, outcome="written"))
+
     assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
 
 
-def test_erroring_a_comic_clears_a_pending_search() -> None:
-    """A comic that raised mid-search stops reporting a live lookup."""
+def test_closing_a_comic_never_overwrites_a_reported_outcome() -> None:
+    """A source that did report keeps what it said, deferred prompts included."""
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+    stats.record(SourceStarted(path=path, source="metron"))
+    stats.record(PromptDeferred(path=path, source="metron"))
+    stats.record(SourceStarted(path=path, source="comicvine"))
+    stats.record(NoMatch(path=path, source="comicvine"))
+    stats.record(FileFinished(path=path, outcome="no_change"))
+
+    assert stats.source_status_by_path[path] == {
+        "metron": statuses.NEEDS_REVIEW,
+        "comicvine": statuses.NO_MATCH,
+    }
+
+
+def test_erroring_a_comic_leaves_no_live_cell_behind() -> None:
+    """A comic that raised mid-search never recorded a lookup to strand."""
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
     stats.record(SearchStarted(path=path, source="metron"))
     stats.record(FileError(path=path, error="boom"))
 
-    assert stats.source_status_by_path[path] == {}
+    assert path not in stats.source_status_by_path
+    assert path in stats.errored_paths
 
 
 def test_record_prefetch_match_seeds_every_structure() -> None:
@@ -197,11 +239,33 @@ def test_record_prefetch_match_seeds_every_structure() -> None:
     stats = OnlineTagOutcomeStats()
     path = Path("/c/1.cbz")
 
-    stats.record_prefetch_match(path, "metron")
+    stats.record_prefetch_match(path, ("metron",))
     # A second call for the same source must not double-list it.
-    stats.record_prefetch_match(path, "metron")
+    stats.record_prefetch_match(path, ("metron",))
 
     assert stats.written_paths == {path}
     assert stats.matched_source_by_path[path] == ["metron"]
     assert stats.source_status_by_path[path] == {"metron": statuses.MATCHED}
+    assert stats.matched == 1
+
+
+def test_record_prefetch_match_credits_every_source_that_landed() -> None:
+    """
+    A merged stored-id refresh is every contributing source's match.
+
+    Crediting the primary alone left the other source's column blank on a
+    comic it had just refreshed — indistinguishable from never having been
+    asked.
+    """
+    stats = OnlineTagOutcomeStats()
+    path = Path("/c/1.cbz")
+
+    stats.record_prefetch_match(path, ("comicvine", "metron"))
+
+    assert stats.matched_source_by_path[path] == ["comicvine", "metron"]
+    assert stats.source_status_by_path[path] == {
+        "comicvine": statuses.MATCHED,
+        "metron": statuses.MATCHED,
+    }
+    # One comic, however many sources fetched for it.
     assert stats.matched == 1

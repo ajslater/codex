@@ -49,6 +49,11 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
 
     X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
+    # Reading a book is a burst of page fetches driven by one user action, and
+    # the reader prefetches ahead of the current page. Rate-limiting them as
+    # separate user actions would stall reading well before an admin's
+    # configured ``throttle.user`` rate was meant to bite.
+    throttle_classes = ()
 
     def _update_bookmark(self) -> None:
         """Update the bookmark if the bookmark param was passed."""

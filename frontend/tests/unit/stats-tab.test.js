@@ -3,7 +3,9 @@
  *
  * The tab is what an administrator sees of the anonymous stats report, so
  * behavior locked in here:
- *   - Every section the API returns is rendered under a titled table.
+ *   - Every section the component declares is rendered under a titled
+ *     table. The titles come from the component so renaming one there
+ *     does not leave a stale copy here.
  *   - Toggle booleans read as Yes/No, and "have you configured this"
  *     booleans read as Set/Not set, so nobody mistakes one for the other.
  *   - The API key is never rendered, even though the payload carries it.
@@ -12,7 +14,9 @@ import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
-import StatsTab from "@/components/admin/tabs/stats-tab.vue";
+import StatsTab, {
+  SECTION_TITLES,
+} from "@/components/admin/tabs/stats-tab.vue";
 import vuetify from "@/plugins/vuetify";
 
 const STATS = {
@@ -42,7 +46,8 @@ const STATS = {
   },
   sessions: {
     topCollection: { publishers: 2 },
-    orderBy: { sort_name: 2 },
+    // camelCase, like the API renders it and like the choices maps are keyed.
+    orderBy: { sortName: 2 },
     dynamicCovers: { true: 2 },
     finishOnLastPage: { true: 1 },
     fitTo: { W: 1 },
@@ -62,7 +67,27 @@ const STATS = {
     storyArcCount: 23,
   },
   fileTypes: { cbz: 100, cbr: 50, cb7: 2, pdf: 3, unknown: 1 },
-  metadata: { characterCount: 609, storyCount: 151 },
+  metadata: {
+    characterCount: 609,
+    storyCount: 151,
+    creditPersonCount: 40,
+    creditPrimaryCount: 4,
+    reprintCount: 6,
+    reprintAlternativeNameCount: 2,
+    comicMangaVolumeCount: 3,
+    comicUrlsCount: 12,
+    comicMangaYesCount: 5,
+    comicMangaNoCount: 140,
+    comicMangaUnknownCount: 9,
+  },
+  perUser: {
+    browserUserCount: 2,
+    readerUserCount: 2,
+    readerScopedUserCount: 1,
+    browserOrderByUsers: { sortName: 1, "": 1 },
+    browserChosenOrderByUsers: { sortName: 1 },
+    readerGlobalFitToUsers: { W: 1, "": 1 },
+  },
   usage: {
     bookmarkCount: 1,
     favoriteCount: 4,
@@ -82,6 +107,7 @@ const STATS = {
   },
   tagging: {
     defaultMatchMode: "auto",
+    defaultEffort: "balanced",
     mergeAllSources: false,
     defaultSources: { metron: 1, comicvine: 1 },
     hasMetronCredentials: true,
@@ -104,23 +130,6 @@ const STATS = {
   },
 };
 
-const SECTION_TITLES = [
-  "Platform",
-  "Config",
-  "File Types",
-  "User Settings",
-  "Browser Collections",
-  "Tags",
-  "Reading",
-  "Identifiers",
-  "Admin Flags",
-  "Online Tagging",
-  "Authentication",
-  "Email",
-  "Rate Limits",
-  "Deployment",
-];
-
 function mountTab(stats = STATS) {
   const pinia = createTestingPinia({ initialState: { admin: { stats } } });
   return mount(StatsTab, {
@@ -130,10 +139,13 @@ function mountTab(stats = STATS) {
 
 describe("AdminStatsTab", () => {
   test("renders a table for every stats section", () => {
-    const text = mountTab().text();
-    for (const title of SECTION_TITLES) {
-      expect(text).toContain(title);
-    }
+    const captions = mountTab()
+      .findAll(".adminKvCaption")
+      .map((caption) => caption.text());
+    // The whole ordered list, not per-title containment: a section that stops
+    // rendering, one rendered twice, and an empty title all have to fail here,
+    // which a loop of toContain over titles taken from the component cannot.
+    expect(captions).toStrictEqual([...SECTION_TITLES]);
   });
 
   test("never renders the api key", () => {
@@ -167,6 +179,62 @@ describe("AdminStatsTab", () => {
 
   test("renders identifier buckets as source and type", () => {
     expect(mountTab().text()).toContain("Metron: Comic");
+  });
+
+  test("labels bucket keys instead of showing them raw", () => {
+    // The choices maps are camelCased, so case-converting a key found nothing
+    // and Order By rendered "sortName" while Fit To rendered "W".
+    const text = mountTab().text();
+    expect(text).toContain("Name");
+    expect(text).not.toContain("sortName");
+    expect(text).not.toContain("fitTo");
+  });
+
+  test("boolean buckets read as on and off", () => {
+    // They arrive as the strings "true"/"false", which is the wire's word for
+    // the value and not a reader's.
+    const text = mountTab().text();
+    expect(text).toContain("On");
+    expect(text).not.toContain("true");
+  });
+
+  test("fills the per-user table from the camelCased payload", () => {
+    // The section arrives as perUser, not per_user; reading the snake_case
+    // name rendered the caption over an empty table.
+    const text = mountTab().text();
+    expect(text).toContain("Browser User");
+    expect(text).toContain("Unset (Name)");
+  });
+
+  test("every section that has data renders rows", () => {
+    // The empty per-user table was invisible because nothing asserted that a
+    // populated section actually produces rows.
+    const wrapper = mountTab();
+    const blocks = wrapper.findAll(".adminKvBlock");
+    expect(blocks.length).toBe(SECTION_TITLES.length);
+    for (const block of blocks) {
+      expect(block.findAll("tr").length).toBeGreaterThan(0);
+    }
+  });
+
+  test("renders the 2.3.0 counts and the tagging effort", () => {
+    const text = mountTab().text();
+    expect(text).toContain("Reprints");
+    expect(text).toContain("Comics with Web Links");
+    expect(text).toContain("Manga Unknown");
+    expect(text).toContain("Effort");
+  });
+
+  test("indents rows that detail the row above them", () => {
+    // The indent set held plural spellings that matched no payload key, so
+    // these rendered flat. The leading "+" is a marker the table strips, so
+    // the class is what says whether it worked.
+    const indented = mountTab()
+      .findAll("td.indent")
+      .map((cell) => cell.text());
+    expect(indented).toContain("Persons");
+    expect(indented).toContain("Primaries");
+    expect(indented).toContain("Alternative Names");
   });
 
   test("survives a params-filtered response with sections missing", () => {

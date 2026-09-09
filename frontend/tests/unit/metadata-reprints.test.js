@@ -1,10 +1,10 @@
 /*
- * The metadata pane's alternate-series row.
+ * The metadata pane's reprints row.
  *
  * The backend composes ``Reprint.name`` from whichever of series name,
  * volume, issue and language the reprint carries, so the client just
- * renders it like any other ``{pk, name, url}`` tag row. Only the row
- * label differs from the capital-cased key: "Alternate Series".
+ * renders it like any other ``{pk, name, url}`` tag row, under the
+ * capital-cased key.
  *
  * Chips route through the ``reprints`` browser filter, the key phase E
  * registers.
@@ -24,34 +24,33 @@ const REPRINTS = Object.freeze([
   { pk: 8, name: "Capitan Sciencia v1 (es)" },
 ]);
 
-describe("metadata store alternate series row", () => {
+describe("metadata store reprints row", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
 
-  test("labels the reprints row Alternate Series", () => {
+  test("labels the reprints row Reprints", () => {
     const store = useMetadataStore();
     // Copied: the tags getter sorts the row in place.
     store.md = { reprints: [...REPRINTS] };
 
-    const row = store.tags["Alternate Series"];
+    const row = store.tags.Reprints;
     expect(row.filter).toBe("reprints");
     expect(row.tags.map((tag) => tag.name)).toStrictEqual([
       "Capitan Sciencia v1 (es)",
       "Kapitän Wissenschaft",
     ]);
-    expect(store.tags.Reprints).toBeUndefined();
   });
 
   test("omits the row when there are no reprints", () => {
     const store = useMetadataStore();
     store.md = { reprints: [] };
 
-    expect(store.tags["Alternate Series"]).toBeUndefined();
+    expect(store.tags["Reprints"]).toBeUndefined();
   });
 });
 
-describe("alternate series chips", () => {
+describe("reprint chips", () => {
   function mountTags() {
     const pinia = createTestingPinia({
       initialState: {
