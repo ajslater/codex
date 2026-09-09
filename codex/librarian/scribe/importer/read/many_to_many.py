@@ -10,11 +10,13 @@ from comicbox.formats.comicbox.schema import (
     LANGUAGE_KEY,
     NAME_KEY,
     NUMBER_KEY,
+    PRIMARY_KEY,
     ROLES_KEY,
     SERIES_KEY,
-    SERIES_SORT_NAME_KEY,
     VOLUME_KEY,
 )
+from comicbox.identifiers import ID_KEY_KEY, ID_TYPE_KEY
+from comicbox.identifiers.identifiers import get_url_from_identifier
 from django.db.models import CharField, Field
 from django.db.models.fields.related import ManyToManyField
 
@@ -32,16 +34,16 @@ from codex.librarian.scribe.importer.const import (
     get_key_index,
 )
 from codex.librarian.scribe.importer.read.const import (
+    ALTERNATIVE_NAME_MARKER,
     COMPLEX_FIELD_AGG_MAP,
     FIELD_NAME_TO_MD_KEY_MAP,
-    ID_TYPE_KEY,
 )
 from codex.librarian.scribe.importer.read.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
 )
 from codex.models.collections import Folder
 from codex.models.comic import Comic
-from codex.models.identifier import IdentifierSource
+from codex.models.identifier import IdentifierSource, to_codex_id_type
 from codex.models.named import CreditRole, Reprint
 
 if TYPE_CHECKING:
@@ -69,6 +71,12 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
     def _get_m2m_metadata_dict_model_aggregate_sub_sub_value_roles(
         self, sub_sub_field, sub_sub_value
     ) -> frozenset:
+        """
+        Flatten one person's roles, each with its own primary flag.
+
+        Comicbox 5 marks the primary credit on the role rather than on
+        the person, so the primary writer is not also the primary inker.
+        """
         clean_sub_sub_values = set()
         for sub_sub_sub_key_name, sub_sub_sub_value_obj in sub_sub_value.items():
             clean_sub_sub_sub_key_name = sub_sub_field.get_prep_value(
@@ -77,8 +85,9 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             sub_sub_key_identifier_tuple = self.get_identifier_tuple(
                 CreditRole, sub_sub_sub_value_obj
             )
+            primary = bool((sub_sub_sub_value_obj or {}).get(PRIMARY_KEY))
             clean_sub_sub_values.add(
-                (clean_sub_sub_sub_key_name, sub_sub_key_identifier_tuple)
+                (clean_sub_sub_sub_key_name, sub_sub_key_identifier_tuple, primary)
             )
         return frozenset(clean_sub_sub_values)
 
@@ -157,11 +166,6 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         for sub_sub_md_key, sub_sub_field in dict_field_keys.items():
             # Sub_sub_md_key is identifiers or designation or roles
 
-            if sub_sub_md_key == ID_TYPE_KEY:
-                # Special injection of identifier type
-                clean_sub_values.append(sub_sub_field)
-                continue
-
             # Get one sub value tuple for the aggregate tuple
             clean_sub_sub_value = (
                 self._get_m2m_metadata_dict_model_aggregate_sub_sub_value(
@@ -178,8 +182,33 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
                 clean_sub_values.append(clean_sub_sub_value)
         return roles_or_numbers
 
+    @staticmethod
+    def _identifier_sub_map(
+        clean_sub_key: tuple, sub_value_obj: Mapping | None
+    ) -> dict:
+        """
+        Flatten one comic-level identifier into its key tuple and url.
+
+        A comicbox identifier holds a key, and a type only when that type
+        isn't the one its position implies — at the top level, an issue.
+        A comic can therefore carry an id for its series or its volume
+        among its own, and it is filed under what it says it is.
+
+        It holds no url: comicbox derives links from the key rather than
+        storing a copy that could disagree with it, and so does codex.
+        """
+        id_obj = sub_value_obj or {}
+        id_key = id_obj.get(ID_KEY_KEY)
+        if not id_key:
+            return {}
+        id_source = clean_sub_key[0]
+        id_url = get_url_from_identifier(id_source, id_obj)
+        id_type = to_codex_id_type(id_obj.get(ID_TYPE_KEY))
+        key_tuple = (*clean_sub_key, id_type, id_key)
+        return {key_tuple: frozenset({(id_url,)})}
+
     def _create_clean_sub_map(
-        self, field, roles_or_numbers, clean_sub_key, clean_sub_values
+        self, field, roles_or_numbers, clean_sub_key, clean_sub_values, sub_value_obj
     ) -> dict:
         # Create sub_map with special provisions for complex types.
         clean_sub_map = {}
@@ -189,20 +218,23 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             if field.name == CREDITS_FIELD_NAME:
                 # Credits
                 for role_values in roles_or_numbers:
-                    role_keys, role_extras = role_values
+                    role_keys, role_extras, primary = role_values
                     self.add_query_model(
                         CreditRole, (role_keys,), frozenset({(role_extras,)})
                     )
-                    clean_sub_map[(clean_sub_key, role_keys)] = set()
+                    clean_sub_map[(clean_sub_key, role_keys, primary)] = set()
             else:
                 # StoryArcNumbers
                 for role_values in roles_or_numbers:
                     clean_sub_map[(clean_sub_key, role_values)] = set()
+        elif field.name == CREDITS_FIELD_NAME:
+            # A person credited without naming a role. The row still
+            # needs every part of its key spelled out: a credit with no
+            # role has no role to be the primary holder of, and a key
+            # left short is padded with nulls, which the flag forbids.
+            clean_sub_map = {(clean_sub_key[0], None, False): set()}
         elif field.name == IDENTIFIERS_FIELD_NAME:
-            clean_sub_key += tuple(clean_sub_values[:2])
-            url_value = tuple(clean_sub_values[2:])
-            clean_sub_value = frozenset({url_value})
-            clean_sub_map = {clean_sub_key: clean_sub_value}
+            clean_sub_map = self._identifier_sub_map(clean_sub_key, sub_value_obj)
         else:
             clean_sub_value = (
                 frozenset((tuple(clean_sub_values),))
@@ -239,7 +271,7 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             field, dict_field_keys, clean_sub_values, sub_value_obj
         )
         return self._create_clean_sub_map(
-            field, roles_or_numbers, clean_sub_key, clean_sub_values
+            field, roles_or_numbers, clean_sub_key, clean_sub_values, sub_value_obj
         )
 
     @staticmethod
@@ -247,13 +279,15 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
         """
         Flatten one comicbox reprint tree into a Reprint key tuple.
 
-        MetronInfo AlternativeNames supply only a series ``sort_name``,
-        so that stands in when there's no ``series.name``. A reprint
-        with neither names nothing, so it's dropped.
+        A reprint carries the name the file gave it alongside whatever
+        comicbox parsed a series out of, so that name stands in when
+        there is no ``series.name`` — a file that names an edition
+        without spelling out its series still gets a row. A reprint with
+        neither names nothing, so it's dropped.
         """
         series = reprint.get(SERIES_KEY) or {}
         series_name = _REPRINT_SERIES_NAME_FIELD.get_prep_value(
-            series.get(NAME_KEY) or series.get(SERIES_SORT_NAME_KEY)
+            series.get(NAME_KEY) or reprint.get(NAME_KEY)
         )
         if not series_name:
             return None
@@ -271,12 +305,22 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
 
         Every other complex m2m arrives as a mapping keyed by a name, a
         shape that cannot express the four part reprint key.
+
+        The series' other names ride this list too, marked, having been
+        folded in upstream. A file that states the same edition in both
+        of its lists produces one row, and the marked one wins: it is the
+        list a write should put the row back into.
         """
         clean_values_map: dict[tuple, frozenset[tuple]] = {}
         for reprint in values:
             if clean_key := self._clean_reprint_key(reprint):
+                alternative_name = bool(reprint.get(ALTERNATIVE_NAME_MARKER))
+                if not alternative_name and clean_key in clean_values_map:
+                    continue
                 identifier_tuple = self.get_identifier_tuple(Reprint, reprint)
-                clean_values_map[clean_key] = frozenset({(identifier_tuple,)})
+                clean_values_map[clean_key] = frozenset(
+                    {(identifier_tuple, alternative_name)}
+                )
         return clean_values_map
 
     def _get_m2m_metadata_named_dict_model(

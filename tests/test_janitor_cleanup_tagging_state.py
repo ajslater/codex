@@ -19,6 +19,7 @@ from loguru import logger
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
+    PROMPT_VERSION,
     get_active_scan_id,
     get_pending_prompts,
     set_active_scan_id,
@@ -56,7 +57,12 @@ def _make_janitor(online_tag_thread=None) -> Janitor:
 
 
 def _prompt(pk: int, fingerprint: str) -> dict:
-    return {"fingerprint": fingerprint, "pk": pk, "path": f"/c/{pk}.cbz"}
+    return {
+        "fingerprint": fingerprint,
+        "prompt_version": PROMPT_VERSION,
+        "pk": pk,
+        "path": f"/c/{pk}.cbz",
+    }
 
 
 class CleanupTaggingStateTests(TestCase):

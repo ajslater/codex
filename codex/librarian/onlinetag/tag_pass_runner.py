@@ -75,8 +75,8 @@ class TagPassRunner:
         remaining = max(0, state.total_comics - state.completed_comics)
         secs = estimate_seconds(
             remaining,
-            state.match_mode,
             state.sources,
+            effort=state.effort,
             merge_all_sources=state.merge_all_sources,
         )
         status.eta = now() + timedelta(seconds=secs) if secs else None

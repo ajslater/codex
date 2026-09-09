@@ -2,7 +2,10 @@
 
 from typing import override
 
-from codex.librarian.onlinetag.session_cache import set_active_scan_id
+from codex.librarian.onlinetag.session_cache import (
+    prune_stale_prompts,
+    set_active_scan_id,
+)
 from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
 from codex.librarian.onlinetag.session_snapshot import deactivate_snapshot
 from codex.librarian.onlinetag.tasks import (
@@ -45,11 +48,19 @@ class OnlineTagThread(QueuedThread):
 
         An in-flight Pass-1 scan cannot survive a process restart, so its
         cached marker is orphan. Pending prompts, by contrast, are designed
-        to linger across restarts and are deliberately left untouched.
+        to linger across restarts and are deliberately left untouched —
+        except for any fingerprinted under a scheme comicbox no longer
+        speaks, which can never be matched again however long they wait.
         """
         super().run_start()
         try:
             set_active_scan_id("")
+            if dropped := prune_stale_prompts():
+                msg = (
+                    f"Dropped {dropped} online tag prompt(s) from an "
+                    f"older fingerprint scheme."
+                )
+                self.log.info(msg)
             # A snapshot left "active" by a scan that the restart killed would
             # read as still-running; flip it to inactive (keeping the last
             # tally) rather than deleting it.

@@ -297,7 +297,9 @@ class _DeferredPrompt:
     path = Path("/x/c.cbz")
     source = "metron"
     candidates: ClassVar[list] = []
-    mode = "update"
+    # comicbox 5 named this ``match``; the serialized key stays "mode",
+    # which is codex's own cache format.
+    match = "update"
 
 
 class SerializePromptRenameTests(SimpleTestCase):

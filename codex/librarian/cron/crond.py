@@ -113,7 +113,7 @@ class CronThread(NamedThread):
                     # ``cond.wait`` doesn't pin a file handle + a few
                     # tens of KiB of in-process state through that
                     # whole window. Reopen on the next query is
-                    # ~5-20 ms, invisible against the wait.
+                    # ~1 ms, invisible against the wait.
                     connections.close_all()
                     # ``Condition.wait`` returns False only when the whole
                     # timeout elapsed; True means ``end_timeout`` notified.

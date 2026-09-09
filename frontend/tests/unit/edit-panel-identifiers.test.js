@@ -10,6 +10,11 @@
  * This mounts the real EditPanel, seeds the metadata store with shaped
  * identifiers, and asserts the edit form's local `identifiers` are populated
  * with source / id_type / key — the values the v-select / v-text-field bind to.
+ *
+ * The panel reports a type as the codex table it points at ("comic",
+ * "storyarc"); the editor works in comicbox's names ("issue", "arc"),
+ * which are what the type choices offer, what the add-by-URL endpoint
+ * returns, and what a written patch has to carry.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -71,7 +76,7 @@ describe("EditPanel identifiers", () => {
     const { wrapper } = mountPanel();
 
     expect(wrapper.vm.identifiers).toStrictEqual([
-      { source: "comicvine", id_type: "comic", key: "111" },
+      { source: "comicvine", id_type: "issue", key: "111" },
       { source: "metron", id_type: "series", key: "222" },
       { source: "grandcomicsdatabase", id_type: "publisher", key: "333" },
       { source: "marvel", id_type: "character", key: "444" },
@@ -93,6 +98,31 @@ describe("EditPanel identifiers", () => {
   test("leaves identifiers empty when the comic has none", () => {
     const { wrapper } = mountPanel([]);
     expect(wrapper.vm.identifiers).toStrictEqual([]);
+  });
+
+  test("every seeded type is one the type choices offer", () => {
+    const { wrapper } = mountPanel();
+
+    const offered = new Set(
+      wrapper.vm.identifierTypeChoices.map((choice) => choice.value),
+    );
+    for (const row of wrapper.vm.identifiers) {
+      expect(offered).toContain(row.id_type);
+    }
+  });
+
+  test("writes a key and its type, with no url and no prefixed key", () => {
+    const { wrapper } = mountPanel();
+    wrapper.vm.changedFields.add("identifiers");
+
+    const { patch } = wrapper.vm.buildPatch();
+
+    expect(patch.identifiers).toStrictEqual({
+      comicvine: { key: "111", id_type: "issue" },
+      metron: { key: "222", id_type: "series" },
+      grandcomicsdatabase: { key: "333", id_type: "publisher" },
+      marvel: { key: "444", id_type: "character" },
+    });
   });
 });
 

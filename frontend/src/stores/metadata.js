@@ -10,7 +10,7 @@ const TAGS = Object.freeze([
   // identifiers
   "teams",
   "locations",
-  "reprints",
+  // reprints, split into two rows by alternativeName
   "seriesGroups",
   "stories",
   "storyArcNumbers",
@@ -58,6 +58,42 @@ export const useMetadataStore = defineStore("metadata", {
       return items;
     },
     /*
+     * Reprints and the series' other names share one table and arrive in
+     * one list, flagged. They mean different things to a reader — another
+     * edition versus another title for this one — so they show as two
+     * rows.
+     */
+    reprintRows(state) {
+      const rows = state.md?.reprints;
+      if (!Array.isArray(rows)) return {};
+      const reprints = rows.filter((row) => !row.alternativeName);
+      const alternativeNames = rows.filter((row) => row.alternativeName);
+      const tagMap = {};
+      if (reprints.length) {
+        tagMap["Reprints"] = { filter: "reprints", tags: reprints };
+      }
+      if (alternativeNames.length) {
+        tagMap["Alternative Names"] = {
+          filter: "reprints",
+          tags: alternativeNames,
+        };
+      }
+      return tagMap;
+    },
+    /*
+     * The links the file itself carries, minus the ones already shown as
+     * identifier chips: codex derives those from a key, so showing both
+     * would list the same page twice under two names.
+     */
+    webUrls(state) {
+      const urls = state.md?.urls;
+      if (!Array.isArray(urls)) return [];
+      const shown = new Set(this.identifiers.map((item) => item.url));
+      return urls
+        .filter((url) => url && !shown.has(url))
+        .map((url) => ({ name: url, url }));
+    },
+    /*
      * The protagonist is stored as mainCharacter XOR mainTeam — both
      * filled should never happen, but display both if it does. Each
      * chip carries its own browser filter key so the character chip
@@ -86,6 +122,10 @@ export const useMetadataStore = defineStore("metadata", {
           tags: this.identifiers,
         };
       }
+      if (state.webUrls?.length) {
+        tags["Web"] = { filter: "", tags: state.webUrls };
+      }
+      Object.assign(tags, state.reprintRows);
       for (const tagObj of Object.values(tags)) {
         tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
       }

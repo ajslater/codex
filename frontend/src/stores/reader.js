@@ -215,7 +215,7 @@ export const useReaderStore = defineStore("reader", {
       // lived in; the generic last-route fallback below has no card context.
       const hasContext = Boolean(src);
       if (!src) {
-        src = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.breadcrumbs[0];
+        src = globalThis.CODEX.LAST_ROUTE || BROWSER_DEFAULTS.lastRoute;
       }
       // browserRouteParams coerces parentIds to a "1,2" string (or omits it).
       // The browser route's parentIds token is not repeatable, so handing it

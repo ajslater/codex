@@ -24,12 +24,22 @@ __all__ = ("SOURCE_RATE_PER_MINUTE", "estimate_seconds")
 
 def estimate_seconds(
     remaining_comics: int,
-    mode: str,
     sources: Sequence[str],
     *,
+    effort: str = "balanced",
     merge_all_sources: bool = False,
 ) -> float:
-    """Estimated seconds to look up ``remaining_comics`` more comics."""
+    """
+    Estimated seconds to look up ``remaining_comics`` more comics.
+
+    Effort is the axis, not match mode: match mode decides how a verdict
+    is applied and changes no request count. Every comic is priced as a
+    cold search, so a real run beats the projection — a scan batches by
+    series, and one search answers for the whole series.
+    """
     return estimate_run(
-        remaining_comics, mode, sources, merge_all_sources=merge_all_sources
+        remaining_comics,
+        sources,
+        effort=effort,
+        merge_all_sources=merge_all_sources,
     ).seconds

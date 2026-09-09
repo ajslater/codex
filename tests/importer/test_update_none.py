@@ -131,7 +131,7 @@ class TestImporterUpdateNone(BaseTestImporterUpdate):
         self.importer.update_all_fks()
         md = MappingProxyType(self.importer.metadata)
         diff_assert(CREATED_FK_UPDATE_NONE, md, "CREATED_FK_UPDATE_NONE")
-        assert Identifier.objects.count() == 3  # noqa: PLR2004
+        assert Identifier.objects.count() == 6  # noqa: PLR2004
 
         # Create & Update Comics
         self.importer.prepare_fk_link_instance_maps()

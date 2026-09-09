@@ -630,6 +630,50 @@
           </template>
         </v-select>
       </div>
+      <div :title="isFieldDisabled('manga') ? disabledTooltip : ''">
+        <v-select
+          v-model="patch.manga"
+          :items="mangaItems"
+          label="Manga"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('manga')"
+          :class="{
+            fieldCleared: isCleared('manga'),
+            fieldChanged: isFieldChanged('manga') && !isCleared('manga'),
+          }"
+          @update:model-value="onFieldInput('manga')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('manga')"
+              @toggle="toggleClear('manga')"
+            />
+          </template>
+        </v-select>
+      </div>
+      <div :title="isFieldDisabled('manga_volume') ? disabledTooltip : ''">
+        <v-text-field
+          v-model="patch.manga_volume"
+          label="Manga Volume"
+          hide-details
+          density="compact"
+          :disabled="isFieldDisabled('manga_volume')"
+          :class="{
+            fieldCleared: isCleared('manga_volume'),
+            fieldChanged:
+              isFieldChanged('manga_volume') && !isCleared('manga_volume'),
+          }"
+          @update:model-value="onFieldInput('manga_volume')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('manga_volume')"
+              @toggle="toggleClear('manga_volume')"
+            />
+          </template>
+        </v-text-field>
+      </div>
       <div :title="isFieldDisabled('original_format') ? disabledTooltip : ''">
         <v-select
           v-model="patch.original_format"
@@ -1082,6 +1126,20 @@
               :disabled="isFieldDisabled('reprint_language')"
             />
           </td>
+          <td
+            :title="
+              isFieldDisabled('reprint_alternative_name')
+                ? disabledTooltip
+                : altNameHint
+            "
+          >
+            <v-checkbox-btn
+              v-model="reprints[i].alternative_name"
+              label="Alt. Name"
+              density="compact"
+              :disabled="isFieldDisabled('reprint_alternative_name')"
+            />
+          </td>
           <td class="removeCol">
             <v-btn
               icon
@@ -1107,6 +1165,7 @@
               volume: '',
               issue: '',
               language: null,
+              alternative_name: false,
             })
           "
         >
@@ -1176,7 +1235,7 @@
           variant="text"
           size="small"
           :disabled="isFieldDisabled('identifiers')"
-          @click="identifiers.push({ source: '', id_type: 'comic', key: '' })"
+          @click="identifiers.push({ source: '', id_type: 'issue', key: '' })"
         >
           + Add Identifier
         </v-btn>
@@ -1200,6 +1259,37 @@
       >
         Clear All
       </v-btn>
+    </div>
+
+    <div class="sectionHeader">Web Links</div>
+    <div
+      class="mdSection"
+      :title="isFieldDisabled('urls') ? disabledTooltip : ''"
+    >
+      <v-combobox
+        v-model="urls"
+        label="Web Links"
+        hide-details
+        density="compact"
+        multiple
+        chips
+        closable-chips
+        :disabled="isFieldDisabled('urls')"
+        :hint="urlsHint"
+        persistent-hint
+        :class="{
+          fieldCleared: isCleared('urls'),
+          fieldChanged: isFieldChanged('urls') && !isCleared('urls'),
+        }"
+        @update:model-value="onFieldInput('urls')"
+      >
+        <template #append-inner>
+          <ClearFieldIcon
+            :cleared="isCleared('urls')"
+            @toggle="toggleClear('urls')"
+          />
+        </template>
+      </v-combobox>
     </div>
 
     <v-dialog v-model="addUrlDialog" max-width="500">
@@ -1293,6 +1383,7 @@ import COUNTRIES from "@/choices/countries.json";
 import FORMAT_FIELD_SUPPORT from "@/choices/format-field-support.json";
 import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
+import IDENTIFIER_TYPE_BY_CODEX_NAME from "@/choices/identifier-type-by-codex-name.json";
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
 
 const FORMAT_CHOICES = [
@@ -1441,6 +1532,7 @@ export default {
       countryChoices: COUNTRIES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
       identifierTypeChoices: IDENTIFIER_TYPES,
+      urls: [],
       communityRatingRules: COMMUNITY_RATING_RULES,
       yearRules: YEAR_RULES,
       monthRules: MONTH_RULES,
@@ -1457,6 +1549,12 @@ export default {
       renameFile: false,
       renameHint:
         "Rename the comic file to the comicbox scheme derived from its tags.",
+      urlsHint:
+        "Links the file carries. Links for the identifiers above are built " +
+        "from their keys and are not stored here.",
+      altNameHint:
+        "Another title for this same series, rather than another edition " +
+        "of the book.",
       renamePreviews: [],
       renamePreviewTimer: null,
       addUrlDialog: false,
@@ -1492,6 +1590,8 @@ export default {
         notes: "",
         scan_info: "",
         reading_direction: null,
+        manga: null,
+        manga_volume: "",
         original_format: null,
         monochrome: false,
         language: null,
@@ -1532,6 +1632,9 @@ export default {
           return true;
         },
       ];
+    },
+    mangaItems() {
+      return this.unionFormatValues("mangas");
     },
     readingDirectionItems() {
       return this.unionFormatValues("reading_directions");
@@ -1600,6 +1703,7 @@ export default {
         universes: JSON.stringify(this.universes),
         reprints: JSON.stringify(this.reprints),
         identifiers: JSON.stringify(this.identifiers),
+        urls: JSON.stringify(this.urls),
       };
     },
     changedFields() {
@@ -1643,6 +1747,9 @@ export default {
         cur.identifiers !== orig.identifiers
       ) {
         changed.add("identifiers");
+      }
+      if (this.clearedFields.has("urls") || cur.urls !== orig.urls) {
+        changed.add("urls");
       }
       return changed;
     },
@@ -1932,6 +2039,8 @@ export default {
         this.reprints = [];
       } else if (field === "identifiers") {
         this.identifiers = [];
+      } else if (field === "urls") {
+        this.urls = [];
       }
     },
     addRole(role) {
@@ -2063,6 +2172,7 @@ export default {
             reprint.volumeNumber == null ? "" : String(reprint.volumeNumber),
           issue: reprint.issue || "",
           language: reprint.language || null,
+          alternative_name: Boolean(reprint.alternativeName),
         }));
       }
 
@@ -2070,13 +2180,20 @@ export default {
       if (this.md.identifiers?.length) {
         this.identifiers = this.md.identifiers.map((id) => ({
           source: id.source || "",
-          id_type: id.type || "",
+          id_type: IDENTIFIER_TYPE_BY_CODEX_NAME[id.type] || "issue",
           key: id.code || "",
         }));
       }
 
+      /* Web links the file carries, edited as a plain list. */
+      if (Array.isArray(this.md.urls)) {
+        this.urls = [...this.md.urls];
+      }
+
       // Technical
       this.patch.reading_direction = this.md.readingDirection || null;
+      this.patch.manga = this.md.manga || null;
+      this.patch.manga_volume = this.md.mangaVolume || "";
       this.patch.original_format = this.md.originalFormat?.name || null;
       this.patch.monochrome = Boolean(this.md.monochrome);
       // The API serializes these to their long English names; the choices are
@@ -2100,12 +2217,26 @@ export default {
       this.origSnapshot = { ...this.currentSnapshot };
     },
     buildReprints() {
-      // comicbox nests a reprint's parts under series/volume; codex stores
-      // them flat. A row without a series name names nothing, so it's
-      // dropped rather than written as an empty alternate.
+      /*
+       * comicbox nests a reprint's parts under series/volume; codex stores
+       * them flat. A row without a series name names nothing, so it's
+       * dropped rather than written as an empty alternate.
+       *
+       * Codex keeps the series' other names in the same table, flagged,
+       * so the rows are split back into the two comicbox lists they came
+       * from. An alternative name is a name and a language; the volume
+       * and issue columns have nowhere to go in that list.
+       */
       const reprints = [];
+      const alternativeNames = [];
       for (const row of this.reprints) {
         if (!row.series_name) continue;
+        if (row.alternative_name) {
+          const alternativeName = { name: row.series_name };
+          if (row.language) alternativeName.language = row.language;
+          alternativeNames.push(alternativeName);
+          continue;
+        }
         const reprint = { series: { name: row.series_name } };
         const number = parseInt(row.volume, 10);
         if (!isNaN(number)) reprint.volume = { number };
@@ -2113,7 +2244,7 @@ export default {
         if (row.language) reprint.language = row.language;
         reprints.push(reprint);
       }
-      return reprints;
+      return { reprints, alternativeNames };
     },
     buildPatch() {
       // Returns { patch, deleteKeys }. A merge write can only add or replace
@@ -2132,6 +2263,7 @@ export default {
         "notes",
         "scan_info",
         "collection_title",
+        "manga_volume",
       ]) {
         if (!changed.has(key)) continue;
         if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
@@ -2269,9 +2401,24 @@ export default {
 
       // Reprints — only include if changed
       if (changed.has("reprints")) {
-        const reprints = this.buildReprints();
+        const { reprints, alternativeNames } = this.buildReprints();
         if (reprints.length) cbPatch.reprints = reprints;
         else deleteKeys.push("reprints");
+        /*
+         * The other names live under the series, and codex writes in
+         * update mode, which replaces a key wholesale. So the series
+         * object has to carry everything codex knows about the series,
+         * not just the names that changed.
+         */
+        if (alternativeNames.length) {
+          const series = cbPatch.series || {};
+          if (!series.name && this.patch.series)
+            series.name = this.patch.series;
+          series.alternative_names = alternativeNames;
+          cbPatch.series = series;
+        } else {
+          deleteKeys.push("series.alternative_names");
+        }
       }
 
       // Identifiers — only include if changed
@@ -2282,17 +2429,23 @@ export default {
           const ids = {};
           for (const id of this.identifiers) {
             if (id.source && id.key) {
-              const fullKey = id.id_type ? `${id.id_type}:${id.key}` : id.key;
-              ids[id.source] = { key: fullKey, url: "" };
+              ids[id.source] = { key: id.key, id_type: id.id_type || "issue" };
             }
           }
           cbPatch.identifiers = ids;
         }
       }
 
+      if (changed.has("urls")) {
+        const urls = this.urls.map((url) => String(url).trim()).filter(Boolean);
+        if (cleared.has("urls") || urls.length === 0) deleteKeys.push("urls");
+        else cbPatch.urls = urls;
+      }
+
       // Technical select fields — only include if changed
       for (const key of [
         "reading_direction",
+        "manga",
         "original_format",
         "language",
         "country",

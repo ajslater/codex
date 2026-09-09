@@ -99,6 +99,16 @@
             class="mt-3"
           />
           <v-select
+            v-model="effort"
+            :items="effortChoices"
+            label="Effort"
+            :hint="effortHint"
+            :disabled="searchControlsDisabled"
+            persistent-hint
+            density="compact"
+            class="mt-3"
+          />
+          <v-select
             v-model="promptsMode"
             :items="promptsModeChoices"
             label="Prompts"
@@ -173,15 +183,27 @@ import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
-// Base match-mode semantics, shown for any source. The per-comic request
-// count is Comic Vine-specific (Metron is a flat two-step regardless of mode),
-// so it's appended by matchModeHint only when Comic Vine is an active source.
+// Match mode decides how a verdict is applied once the calls are spent,
+// so it changes no request count. Effort is what buys calls, and only
+// against Comic Vine: Metron answers in a flat two-step whatever you ask.
 const MATCH_MODE_HINTS = {
   careful:
     "Only accepts high-confidence, unambiguous matches. Defers anything uncertain for manual review.",
   auto: "Balances accuracy and speed. Accepts confident matches automatically and defers uncertain ones.",
   eager:
     "Accepts the best available match with minimal verification. Fastest, but least precise.",
+};
+const EFFORT_AUTO = "";
+// What an unset effort spends on a run small enough not to be spared.
+const EFFORT_AUTO_BUDGET = "balanced";
+const EFFORT_HINTS = {
+  [EFFORT_AUTO]:
+    "Lets Codex pick. A large unattended run drops to Minimal so Comic Vine's hourly limit doesn't stretch it into hours; anything smaller is Balanced.",
+  minimal:
+    "Spends the fewest Comic Vine calls per comic. Fastest, and likeliest to miss a hard-to-find issue.",
+  balanced: "Spends a bounded number of Comic Vine calls per comic.",
+  thorough:
+    "Searches Comic Vine without a call budget. Finds the most, and costs the most against the hourly limit.",
 };
 const PROMPTS_MODE_HINTS = {
   ask: "Pauses on ambiguous matches and asks you to choose the correct result.",
@@ -200,11 +222,14 @@ const SOURCE_RATES = Object.fromEntries(
   ]),
 );
 
-function callsForSource(source, mode) {
+function callsForSource(source, effort) {
   if (source === "metron") return TAGGING_ESTIMATE.metronRequestsPerComic;
   if (source === "comicvine") {
+    // Unset is answered by comicbox once the run starts, so price it as
+    // what it spends on a run it does not spare.
+    const budget = effort === EFFORT_AUTO ? EFFORT_AUTO_BUDGET : effort;
     return (
-      TAGGING_ESTIMATE.comicvineRequestsByMode[mode] ||
+      TAGGING_ESTIMATE.comicvineRequestsByEffort[budget] ||
       TAGGING_ESTIMATE.defaultRequestsPerComic
     );
   }
@@ -254,9 +279,12 @@ export default {
       dialog: false,
       working: false,
       matchModeChoices: TAGGING_CHOICES.matchMode,
+      effortChoices: TAGGING_CHOICES.effort,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
       sources: [...TAGGING_CHOICES.sources],
       matchMode: "auto",
+      // Empty is Auto: comicbox picks, and may spare a large run.
+      effort: "",
       promptsMode: "ask",
       mergeAllSources: false,
       mergeAllSourcesBaseHint:
@@ -481,13 +509,17 @@ export default {
     // --- search hints / estimates ---------------------------------------
     matchModeHint() {
       if (this.searchControlsDisabled) return this.pinnedControlsHint;
-      const base = MATCH_MODE_HINTS[this.matchMode] || "";
-      // The request-count tail only applies to Comic Vine, whose calls scale
-      // with match mode; Metron's flat two-step doesn't, so skip it otherwise.
+      return MATCH_MODE_HINTS[this.matchMode] || "";
+    },
+    effortHint() {
+      if (this.searchControlsDisabled) return this.pinnedControlsHint;
+      const base = EFFORT_HINTS[this.effort] || "";
+      // The request count is Comic Vine's alone; Metron's flat two-step
+      // costs the same whatever effort asks for.
       if (!this.activeSources.includes("comicvine")) {
         return base;
       }
-      const requests = TAGGING_ESTIMATE.comicvineRequestsByMode[this.matchMode];
+      const requests = callsForSource("comicvine", this.effort);
       return requests
         ? `${base} ~${requests} Comic Vine requests/comic.`
         : base;
@@ -518,7 +550,7 @@ export default {
       // sync with estimate_seconds in codex/librarian/onlinetag/estimate.py.
       // A pinned source is one fetch, no search.
       const perSource = this.activeSources.map((s) =>
-        s in this.pinnedIds ? 1 : callsForSource(s, this.matchMode),
+        s in this.pinnedIds ? 1 : callsForSource(s, this.effort),
       );
       if (perSource.length === 0) return 0;
       const callsPerComic = this.mergeAllSources
@@ -626,6 +658,7 @@ export default {
         this.sources = defaults.filter((s) => this.enabledSources.has(s));
         this.matchMode =
           this.taggingDefaults.defaultMatchMode || this.matchMode;
+        this.effort = this.taggingDefaults.defaultEffort ?? this.effort;
         this.promptsMode =
           this.taggingDefaults.defaultPromptsMode || this.promptsMode;
         this.mergeAllSources = Boolean(this.taggingDefaults.mergeAllSources);
@@ -668,6 +701,7 @@ export default {
           pks,
           sources: this.orderedSelectedSources,
           mode: this.matchMode,
+          effort: this.effort,
           promptsMode: this.promptsMode,
           deleteOriginal: this.deleteOriginal,
           mergeAllSources: this.mergeAllSources && this.canMerge,

@@ -11,7 +11,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { capitalCase, snakeCase } from "text-case";
+import { capitalCase } from "text-case";
 
 import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -22,6 +22,10 @@ import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
 const VIEW_MODE = Object.freeze({ cover: "Cover", table: "Table" });
 const TABLE_COVER_SIZE = Object.freeze({ sm: "Small" });
+// Buckets keyed by a boolean arrive as the strings "true" and "false", which
+// are the wire's words and not a reader's. Chronicle's dashboard says on/off
+// for the same numbers, so this says the same thing.
+const BOOLEAN_BUCKET = Object.freeze({ true: "On", false: "Off" });
 // What "" means per setting, in the words chronicle's dashboard uses for the
 // same key, so the two surfaces do not describe one number differently.
 const UNSET_LABELS = Object.freeze({
@@ -65,6 +69,13 @@ const METADATA_LABELS = Object.freeze({
   comicCommunityRatingVoteCount: "+With Vote Counts",
   comicAlternativeIssueNumberCount: "Comics with Alternate Issue Numbers",
   comicMetadataImportedCount: "Comics with Imported Tags",
+  creditPrimaryCount: "Credit Primaries",
+  reprintAlternativeNameCount: "Reprint Alternative Names",
+  comicMangaVolumeCount: "Comics with a Manga Volume",
+  comicUrlsCount: "Comics with Web Links",
+  comicMangaYesCount: "Manga",
+  comicMangaNoCount: "Not Manga",
+  comicMangaUnknownCount: "Manga Unknown",
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
@@ -92,6 +103,7 @@ const ADMIN_FLAG_LABELS = Object.freeze({
 const TAGGING_LABELS = Object.freeze({
   defaultMatchMode: "Match Mode",
   defaultPromptsMode: "Prompts",
+  defaultEffort: "Effort",
   mergeAllSources: "Merge All Sources",
   deleteOriginal: "Delete Original",
   renameFiles: "Rename Files",
@@ -135,12 +147,17 @@ const DEPLOYMENT_LABELS = Object.freeze({
   failedLoginLogTrustForwardedFor: "+Trust Forwarded For",
   urlPathPrefixSet: "Reverse Proxy Subpath",
 });
+// Rows that read as a detail of the row above them. Singular, because that is
+// what the payload keys are: the plural spellings that used to be here matched
+// nothing, so these four rendered flat for as long as the set existed.
 const INDENT_KEYS = Object.freeze(
   new Set([
-    "creditPersonsCount",
-    "creditRolesCount",
-    "identifierSourcesCount",
-    "storyArcNumbersCount",
+    "creditPersonCount",
+    "creditRoleCount",
+    "creditPrimaryCount",
+    "identifierSourceCount",
+    "reprintAlternativeNameCount",
+    "storyArcNumberCount",
   ]),
 );
 // Booleans that answer "have you configured this", not "is this turned on".
@@ -213,13 +230,17 @@ export default {
       return this.settingsTable(this.stats?.sessions);
     },
     perUserSettingsTable() {
-      // Bucket names carry their family as a prefix and "_users" as a suffix;
-      // the vocabulary to label them by is the setting in between.
-      return this.settingsTable(this.stats?.per_user, (key) =>
-        key
-          .replace(/^(browser|reader)_(chosen_|global_)?/, "")
-          .replace(/_users$/, ""),
-      );
+      // Bucket names carry their family as a prefix and "Users" as a suffix;
+      // the vocabulary to label them by is the setting in between. Both are
+      // camelCase here: the API renders the whole payload camelCased, so the
+      // snake_case spellings this once used matched neither the section nor
+      // the keys, and the table rendered empty under its caption.
+      return this.settingsTable(this.stats?.perUser, (key) => {
+        const setting = key
+          .replace(/^(browser|reader)(Chosen|Global)?/, "")
+          .replace(/Users$/, "");
+        return setting.charAt(0).toLowerCase() + setting.slice(1);
+      });
     },
     browserCollectionsTable() {
       const table = {};
@@ -303,10 +324,11 @@ export default {
       if (typeKey === "") {
         return Reflect.get(UNSET_LABELS, lookupKey) ?? "Unset";
       }
-      const lookup = Reflect.get(LOOKUPS, lookupKey);
-      const label = lookup
-        ? Reflect.get(lookup, snakeCase(typeKey))
-        : undefined;
+      // No case conversion: choices_to_json emits these maps camelCased, the
+      // same as the payload keys. Snake-casing them found nothing, so Order By
+      // showed "sortName" and Fit To showed "W".
+      const lookup = Reflect.get(LOOKUPS, lookupKey) ?? BOOLEAN_BUCKET;
+      const label = Reflect.get(lookup, typeKey);
       // Fall back to the key itself rather than undefined: an unmapped value
       // is a vocabulary that drifted, and its name is more use than a hole.
       return label ?? typeKey;

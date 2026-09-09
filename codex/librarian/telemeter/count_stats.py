@@ -18,6 +18,7 @@ from codex.models.comic import Comic
 from codex.models.favorite import Favorite
 from codex.models.identifier import Identifier, IdentifierType
 from codex.models.library import Library
+from codex.models.named import Credit, Reprint
 from codex.models.paths import CustomCover, FailedImport
 from codex.models.settings import SettingsBrowser
 
@@ -36,6 +37,27 @@ _COMIC_POPULATED_FIELDS: Final = MappingProxyType(
         "comic_metadata_imported_count": "metadata_imported_at",
     }
 )
+# Comic columns that are NOT NULL and mark "nothing here" with an empty value
+# rather than with NULL, so the isnull idiom above would count every comic.
+_COMIC_EMPTY_VALUES: Final = MappingProxyType(
+    {
+        "comic_manga_volume_count": ("manga_volume", ""),
+        "comic_urls_count": ("urls", []),
+    }
+)
+# The payload key each manga value is counted under. Written out rather than
+# generated from MangaChoices so every key this module emits is fixed in codex
+# source: a new comicbox manga value then fails the serializer-registration
+# test instead of quietly inventing a payload key. The counts partition the
+# library, so they sum to issue_count.
+_MANGA_COUNT_KEYS: Final = MappingProxyType(
+    {
+        "yes": "comic_manga_yes_count",
+        "no": "comic_manga_no_count",
+        "unknown": "comic_manga_unknown_count",
+    }
+)
+_MANGA_UNKNOWN_COUNT: Final = "comic_manga_unknown_count"
 
 
 def get_library_stats() -> dict[str, int]:
@@ -63,6 +85,58 @@ def get_comic_populated_stats() -> dict[str, int]:
         name: Comic.objects.exclude(**{f"{field}__isnull": True}).count()
         for name, field in _COMIC_POPULATED_FIELDS.items()
     }
+
+
+def get_comic_nonempty_stats() -> dict[str, int]:
+    """
+    Count comics carrying a value in a column whose empty state is not NULL.
+
+    ``manga_volume`` defaults to "" and ``urls`` to [], both NOT NULL, so the
+    isnull test :func:`get_comic_populated_stats` uses would report the whole
+    library for either. Only the count of comics leaves here -- never a volume
+    string, never a url, never how many urls a comic carries.
+    """
+    return {
+        name: Comic.objects.exclude(**{field: empty}).count()
+        for name, (field, empty) in _COMIC_EMPTY_VALUES.items()
+    }
+
+
+def get_metadata_flag_stats() -> dict[str, int]:
+    """
+    Count the tag rows carrying each comicbox 5 boolean.
+
+    Rows, not comics: a credit is shared between the comics that name it. Both
+    read zero on a library imported before comicbox 5 and stay there until the
+    files are read again, which is a fact about the upgrade rather than about
+    how anyone tags. Never broken down by role, person or series -- those are
+    names, and the count is the whole signal.
+    """
+    return {
+        "credit_primary_count": Credit.objects.filter(primary=True).count(),
+        "reprint_alternative_name_count": Reprint.objects.filter(
+            alternative_name=True
+        ).count(),
+    }
+
+
+def get_manga_stats() -> dict[str, int]:
+    """
+    Count comics by whether they are manga.
+
+    Three counts rather than a bucket, so the payload's keys stay fixed in
+    codex source. A value outside the vocabulary is counted as unknown rather
+    than dropped: the three counts partition the library either way, and a
+    missing comic would be harder to notice than a mislabeled one. Every
+    comic reads unknown until it is read again under comicbox 5.
+    """
+    stats = dict.fromkeys(_MANGA_COUNT_KEYS.values(), 0)
+    rows = Comic.objects.values("manga").annotate(count=Count("pk")).order_by()
+    for row in rows:
+        # The column is nocase, so the stored spelling is not authoritative.
+        key = _MANGA_COUNT_KEYS.get(str(row["manga"]).lower(), _MANGA_UNKNOWN_COUNT)
+        stats[key] += row["count"]
+    return stats
 
 
 def get_usage_stats() -> dict[str, Any]:

@@ -78,6 +78,17 @@
           </div>
           <div class="adminCard">
             <v-select
+              v-model="draft.defaultEffort"
+              :items="effortChoices"
+              label="Effort"
+              :hint="effortHint"
+              persistent-hint
+              hide-details="auto"
+              density="compact"
+            />
+          </div>
+          <div class="adminCard">
+            <v-select
               v-model="draft.defaultPromptsMode"
               :items="promptsModeChoices"
               label="Prompts"
@@ -436,6 +447,7 @@ const EDITABLE_FIELDS = Object.freeze([
   "renameFiles",
   "defaultMatchMode",
   "defaultPromptsMode",
+  "defaultEffort",
   "defaultSources",
   "mergeAllSources",
 ]);
@@ -467,6 +479,7 @@ export default {
       formatChoices: FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
+      effortChoices: TAGGING_CHOICES.effort,
       metadataFormatsHint:
         "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
       deleteOriginalHint:
@@ -475,6 +488,8 @@ export default {
         "Rename each comic file to the comicbox scheme derived from its tags after writing. Can be overridden per operation when editing tags or tagging online.",
       matchModeHint:
         "How aggressively to accept online matches. Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
+      effortHint:
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron answers in one call and ignores this.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:

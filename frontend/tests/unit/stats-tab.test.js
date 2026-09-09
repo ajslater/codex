@@ -46,7 +46,8 @@ const STATS = {
   },
   sessions: {
     topCollection: { publishers: 2 },
-    orderBy: { sort_name: 2 },
+    // camelCase, like the API renders it and like the choices maps are keyed.
+    orderBy: { sortName: 2 },
     dynamicCovers: { true: 2 },
     finishOnLastPage: { true: 1 },
     fitTo: { W: 1 },
@@ -66,7 +67,27 @@ const STATS = {
     storyArcCount: 23,
   },
   fileTypes: { cbz: 100, cbr: 50, cb7: 2, pdf: 3, unknown: 1 },
-  metadata: { characterCount: 609, storyCount: 151 },
+  metadata: {
+    characterCount: 609,
+    storyCount: 151,
+    creditPersonCount: 40,
+    creditPrimaryCount: 4,
+    reprintCount: 6,
+    reprintAlternativeNameCount: 2,
+    comicMangaVolumeCount: 3,
+    comicUrlsCount: 12,
+    comicMangaYesCount: 5,
+    comicMangaNoCount: 140,
+    comicMangaUnknownCount: 9,
+  },
+  perUser: {
+    browserUserCount: 2,
+    readerUserCount: 2,
+    readerScopedUserCount: 1,
+    browserOrderByUsers: { sortName: 1, "": 1 },
+    browserChosenOrderByUsers: { sortName: 1 },
+    readerGlobalFitToUsers: { W: 1, "": 1 },
+  },
   usage: {
     bookmarkCount: 1,
     favoriteCount: 4,
@@ -86,6 +107,7 @@ const STATS = {
   },
   tagging: {
     defaultMatchMode: "auto",
+    defaultEffort: "balanced",
     mergeAllSources: false,
     defaultSources: { metron: 1, comicvine: 1 },
     hasMetronCredentials: true,
@@ -157,6 +179,62 @@ describe("AdminStatsTab", () => {
 
   test("renders identifier buckets as source and type", () => {
     expect(mountTab().text()).toContain("Metron: Comic");
+  });
+
+  test("labels bucket keys instead of showing them raw", () => {
+    // The choices maps are camelCased, so case-converting a key found nothing
+    // and Order By rendered "sortName" while Fit To rendered "W".
+    const text = mountTab().text();
+    expect(text).toContain("Name");
+    expect(text).not.toContain("sortName");
+    expect(text).not.toContain("fitTo");
+  });
+
+  test("boolean buckets read as on and off", () => {
+    // They arrive as the strings "true"/"false", which is the wire's word for
+    // the value and not a reader's.
+    const text = mountTab().text();
+    expect(text).toContain("On");
+    expect(text).not.toContain("true");
+  });
+
+  test("fills the per-user table from the camelCased payload", () => {
+    // The section arrives as perUser, not per_user; reading the snake_case
+    // name rendered the caption over an empty table.
+    const text = mountTab().text();
+    expect(text).toContain("Browser User");
+    expect(text).toContain("Unset (Name)");
+  });
+
+  test("every section that has data renders rows", () => {
+    // The empty per-user table was invisible because nothing asserted that a
+    // populated section actually produces rows.
+    const wrapper = mountTab();
+    const blocks = wrapper.findAll(".adminKvBlock");
+    expect(blocks.length).toBe(SECTION_TITLES.length);
+    for (const block of blocks) {
+      expect(block.findAll("tr").length).toBeGreaterThan(0);
+    }
+  });
+
+  test("renders the 2.3.0 counts and the tagging effort", () => {
+    const text = mountTab().text();
+    expect(text).toContain("Reprints");
+    expect(text).toContain("Comics with Web Links");
+    expect(text).toContain("Manga Unknown");
+    expect(text).toContain("Effort");
+  });
+
+  test("indents rows that detail the row above them", () => {
+    // The indent set held plural spellings that matched no payload key, so
+    // these rendered flat. The leading "+" is a marker the table strips, so
+    // the class is what says whether it worked.
+    const indented = mountTab()
+      .findAll("td.indent")
+      .map((cell) => cell.text());
+    expect(indented).toContain("Persons");
+    expect(indented).toContain("Primaries");
+    expect(indented).toContain("Alternative Names");
   });
 
   test("survives a params-filtered response with sections missing", () => {

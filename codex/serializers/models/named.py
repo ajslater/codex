@@ -78,7 +78,7 @@ class CreditSerializer(BaseModelSerializer):
         """Model spec."""
 
         model = Credit
-        fields = ("pk", "person", "role")
+        fields = ("pk", "person", "role", "primary")
         depth = 1
 
 
@@ -167,6 +167,7 @@ class ReprintSerializer(BaseModelSerializer):
             "issue",
             "language",
             "url",
+            "alternative_name",
         )
         depth = 1
 

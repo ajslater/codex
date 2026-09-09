@@ -19,7 +19,7 @@ from types import MappingProxyType
 from typing import cast
 
 import pycountry  # a hard dependency of comicbox
-from comicbox.enums.comicbox import IdSources
+from comicbox.enums.comicbox import IdSources, MangaEnum
 from comicbox.enums.generic import GenericFormatEnum
 from comicbox.enums.maps.age_rating import COMICINFO_AGE_RATING_MAP
 from comicbox.enums.metroninfo import MetronAgeRatingEnum, MetronFormatEnum
@@ -27,7 +27,7 @@ from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
 
 from codex.choices.reader import READER_CHOICES
-from codex.models.identifier import IdentifierType
+from codex.models.identifier import IdentifierType, to_comicbox_id_type
 
 # comicbox transform per codex write-format id.
 _TRANSFORMS = MappingProxyType(
@@ -68,10 +68,20 @@ IDENTIFIER_SOURCES = _vuetify_choices(
     (source.value, source.value) for source in IdSources
 )
 
-# codex identifier types; the TextChoices labels supply the UI titles
-# (ARC -> "Arc", ISSUE -> "Issue", ROLE -> "Role", CREATOR -> "Creator", ...).
+# Identifier types, valued by comicbox's name for each. The editor writes
+# a patch comicbox parses, and the add-by-URL endpoint reports the type it
+# read out of the URL, so both ends of the field speak the one vocabulary.
+# The TextChoices labels supply the UI titles (ARC -> "Arc", ISSUE ->
+# "Issue", ROLE -> "Role", CREATOR -> "Creator", ...).
 IDENTIFIER_TYPES = _vuetify_choices(
-    (id_type.label, id_type.value) for id_type in IdentifierType
+    (id_type.label, to_comicbox_id_type(id_type.value)) for id_type in IdentifierType
+)
+
+# What the metadata endpoint calls each type, keyed by what the editor
+# calls it: the panel serializes codex's table names and the editor seeds
+# its rows from them.
+IDENTIFIER_TYPE_BY_CODEX_NAME = MappingProxyType(
+    {id_type.value: to_comicbox_id_type(id_type.value) for id_type in IdentifierType}
 )
 
 
@@ -118,16 +128,23 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
         "arcs": ("story_arcs",),
         "monochrome": ("monochrome",),
         "original_format": ("original_format",),
-        "manga": ("reading_direction",),
+        # Two separate facts since comicbox 5. ComicInfo compounds them in
+        # one YesAndRightToLeft value and comicbox splits it, so ComicInfo
+        # supports both fields and MetronInfo only the manga one.
+        "manga": ("manga",),
+        "reading_direction": ("reading_direction",),
+        "manga_volume": ("manga_volume",),
         "credits": ("credits",),
         "language": ("language",),
         "age_rating": ("age_rating",),
         # The average only; the count is MetronInfo-exclusive — see
-        # _EXTRA_FORMAT_FIELDS. (comicbox's critical_rating persists to
-        # no format since 4.4.0, so it has no editor field.)
+        # _EXTRA_FORMAT_FIELDS.
         "community_rating": ("community_rating",),
         "protagonist": ("protagonist",),
         "identifiers": ("identifiers",),
+        # The web links the file itself carries. Codex derives its own
+        # links from identifiers and never writes those back.
+        "urls": ("urls",),
         # The series name and issue only; the volume number and language are
         # MetronInfo-exclusive — see _EXTRA_FORMAT_FIELDS.
         "reprints": ("reprints",),
@@ -141,8 +158,10 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 # hand-maintained support data): MetronInfo's Series carries a volume
 # count, only MetronInfo's CommunityRating persists a rating count, and
 # only MetronInfo encodes a reprint's volume number (in Reprints) and
-# language (in Series/AlternativeNames) — ComicInfo's AlternateSeries /
-# AlternateNumber / AlternateCount carry neither.
+# language (in Series/AlternativeNames). Whether a reprint row is one of
+# the series' other names is MetronInfo's too, and for the same reason:
+# ComicInfo has no reprint tag at all, since comicbox 5 reads its
+# AlternateSeries and AlternateNumber as a story arc.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
         "METRON_INFO": (
@@ -150,6 +169,7 @@ _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
             "community_rating_count",
             "reprint_volume",
             "reprint_language",
+            "reprint_alternative_name",
         ),
     }
 )
@@ -233,6 +253,12 @@ def _reading_directions(canonical_keys: frozenset[str]) -> tuple[MappingProxyTyp
     )
 
 
+def _mangas(canonical_keys: frozenset[str]) -> tuple[str, ...]:
+    if "manga" not in canonical_keys:
+        return ()
+    return tuple(member.value for member in MangaEnum)
+
+
 def _original_formats(fmt: str, canonical_keys: frozenset[str]) -> tuple[str, ...]:
     enum = _ORIGINAL_FORMAT_ENUMS.get(fmt)
     if enum is None or "original_format" not in canonical_keys:
@@ -247,6 +273,7 @@ def _format_field_values() -> MappingProxyType:
         values[fmt] = MappingProxyType(
             {
                 "age_ratings": _AGE_RATINGS if "age_rating" in keys else (),
+                "mangas": _mangas(keys),
                 "original_formats": _original_formats(fmt, keys),
                 "reading_directions": _reading_directions(keys),
             }

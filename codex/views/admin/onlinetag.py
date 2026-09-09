@@ -173,6 +173,15 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             for key, default_field in _FLAG_DEFAULT_FIELDS.items()
         }
 
+    @staticmethod
+    def _resolve_effort(data: dict, defaults: ComicboxTaggingDefaults | None) -> str:
+        """Take the run's effort from the request, falling back to the default."""
+        if requested := data.get("effort"):
+            return str(requested)
+        if defaults and defaults.default_effort:
+            return str(defaults.default_effort)
+        return ComicboxTaggingDefaults.EffortChoices.AUTO.value
+
     def post(self, request):
         """Validate and enqueue a BulkOnlineTagTask."""
         serializer = OnlineTagStartSerializer(data=request.data)
@@ -201,6 +210,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
             session_id=session_id,
             sources=tuple(data["sources"]),
             mode=data["mode"],
+            effort=self._resolve_effort(data, defaults),
             prompts_mode=data["prompts_mode"],
             ids=ids,
             **self._resolve_flags(data, defaults),

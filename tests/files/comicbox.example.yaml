@@ -1,9 +1,6 @@
 appID: comicbox dev
 comicbox:
   age_rating: Everyone
-  alternate_images:
-    - alt0.jxl
-    - alt1.jxl
   alternative_issue:
     number: 43.5
     suffix: AU
@@ -33,14 +30,13 @@ comicbox:
   credits:
     Joe Orlando:
       roles:
-        Writer: {}
+        Writer:
+          primary: true
     Wally Wood:
       roles:
-        Penciller: {}
-  credit_primaries:
-    Joe Orlando: Writer
-    Wally Wood: Penciller
-  critical_rating: 10
+        Penciller:
+          primary: true
+        Writer: {}
   date:
     cover_date: 1950-11-01
     store_date: 1950-11-28
@@ -54,10 +50,9 @@ comicbox:
   identifiers:
     comicvine:
       key: "145269"
-      url: https://comicvine.gamespot.com/c/4000-145269/
-  identifier_primary_source:
-    source: metron
-    url: "https://metron.cloud/"
+    metron:
+      key: "178012"
+      id_type: series
   imprint:
     name: TestImprint
   issue:
@@ -68,6 +63,7 @@ comicbox:
   locations:
     The Moon: {}
   manga: No
+  manga_volume: "1"
   monochrome: false
   notes: Tagged with comicbox dev on 1970-01-01T00:00:00 [Issue ID 145269] urn:comicvine:4000-145269
   page_count: 36
@@ -113,23 +109,30 @@ comicbox:
   prices:
     GB: 0.05
     US: 0.1
+  primary_id_source: metron
   protagonist: Captain Science
   reading_direction: ltr
   remainders:
     - crud
   reprints:
     - language: es
-      series:
-        sort_name: Capitan Sciencia
+      name: Capitan Sciencia
+      identifiers:
+        metron:
+          key: "4444"
       volume:
         number: 1
-    - language: de
-      series:
-        name: Kapitän Wissenschaft
   review: It wasn't all bad.
   scan_info: Photocopied
   series:
     name: Captain Science
+    alternative_names:
+      - name: Kapitän Wissenschaft
+        language: de
+        identifiers:
+          metron:
+            key: "4242"
+            id_type: series
   series_groups:
     - science comics
   stories:
@@ -147,7 +150,9 @@ comicbox:
     Young Adult Silly Universe:
       designation: 4242
   updated_at: 1970-01-01T00:00:00Z
+  urls:
+    - https://comicvine.gamespot.com/captain-science-1/4000-145269/
   volume:
     issue_count: 7
     number: 1950
-schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v2.0/comicbox-v2.0.schema.json"
+schema: "https://github.com/ajslater/comicbox/blob/main/schemas/v3.0/comicbox-v3.0.schema.json"

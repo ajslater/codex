@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from enum import Enum, _EnumDict
 from typing import cast
 
-from comicbox.enums.comicbox import FileTypeEnum, ReadingDirectionEnum
+from comicbox.enums.comicbox import FileTypeEnum, MangaEnum, ReadingDirectionEnum
 from django.db.models import Choices, TextChoices
 from django.db.models.enums import ChoicesType
 
@@ -51,4 +51,5 @@ def max_choices_len(choices: type[Choices]) -> int:
 
 
 FileTypeChoices = text_choices_from_enum(FileTypeEnum)
+MangaChoices = text_choices_from_enum(MangaEnum)
 ReadingDirectionChoices = text_choices_from_enum(ReadingDirectionEnum)

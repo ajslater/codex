@@ -68,8 +68,10 @@ class QueuedThread(NamedThread, ABC):
     # so the next ``queue.get()`` doesn't hold it through the wait.
     # Subclasses with long idle gaps between tasks (ScribeThread,
     # CoverCreateThread) opt in. Heavy-throughput threads where the
-    # ~5-20ms reopen cost outweighs the resource savings keep the
-    # default and rely on Django's CONN_MAX_AGE-based ``close_old_connections``.
+    # ~1ms reopen cost outweighs the resource savings keep the default
+    # and rely on ``close_old_connections`` recycling the connection
+    # every ``LIBRARIAN_CONN_MAX_AGE`` seconds — this process opts into
+    # persistent connections at startup (see ``codex.librarian.db``).
     CLOSE_DB_BETWEEN_TASKS: bool = False
 
     def __init__(self, *args, **kwargs) -> None:
@@ -105,14 +107,15 @@ class QueuedThread(NamedThread, ABC):
         Release the thread-local DB connection between tasks.
 
         ``close_old_connections`` only closes connections older than
-        ``CONN_MAX_AGE`` (10 min in codex), and only fires at the top
+        ``LIBRARIAN_CONN_MAX_AGE`` (10 min), and only fires at the top
         of a loop iteration — by which point a thread that blocked on
         ``queue.get(timeout=None)`` for hours has already held its
         connection for that whole period. ``CLOSE_DB_BETWEEN_TASKS``
         subclasses elect to close eagerly so an open file handle and
         ~50 KiB of in-process state aren't pinned through the next
-        long idle. The reopen cost on the next task (~5-20 ms incl.
-        ``init_command`` PRAGMAs) is amortized away by the wait time.
+        long idle. The reopen cost on the next task (~1 ms, nearly all
+        of it SQLite re-parsing the schema; the ``init_command``
+        PRAGMAs are ~0.01 ms) is amortized away by the wait time.
         """
         if self.CLOSE_DB_BETWEEN_TASKS:
             connections.close_all()

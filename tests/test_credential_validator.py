@@ -189,6 +189,31 @@ class TestValidateCredentials:
             results = validate_credentials(_full_creds(), {"comicvine"})
         assert results["comicvine"] == ValidationResult(ok=False, error="bad key")
 
+    def test_comicvine_rejected_key_fails_through_the_real_simyan(self) -> None:
+        """
+        A bad key must fail validation, not pass it.
+
+        Comic Vine answers a rejected key with HTTP 200 and status_code
+        100 in the body. simyan 3.x returned that body verbatim, so the
+        publisher list came back empty and the key validated as good.
+        simyan 4 maps the status code to an exception, so this patches
+        the HTTP session rather than the client, and lets simyan's own
+        code decide.
+        """
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {
+            "status_code": 100,
+            "error": "Invalid API Key",
+            "results": [],
+        }
+        with patch("simyan.comicvine.CachedLimiterSession.request") as request:
+            request.return_value = response
+            results = validate_credentials(_full_creds(), {"comicvine"})
+        assert results == {
+            "comicvine": ValidationResult(ok=False, error="Invalid API Key")
+        }
+
     def test_comicvine_service_error(self) -> None:
         from simyan.errors import ServiceError
 

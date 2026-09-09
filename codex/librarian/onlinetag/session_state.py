@@ -22,10 +22,9 @@ class LiveLookup:
 
     The authoritative answer to "what is the scan doing now", and the only
     input the snapshot's in-flight row and its "Looking up" cell are built
-    from. Set from the comicbox event stream (``SourceStarted``, and
-    ``SearchStarted`` when running against a comicbox too old to emit the
-    former) and from codex's own stored-id prepass, which runs outside the
-    event-emitting session entirely.
+    from. Set from the comicbox event stream (``SourceStarted``) and from
+    codex's own stored-id prepass, which runs outside the event-emitting
+    session entirely.
 
     It replaces guessing the in-flight comic from ``path_to_pk`` position:
     ``tag_many`` re-sorts the batch by series fingerprint
@@ -76,6 +75,10 @@ class SessionState:
     # from ``mode`` above, which is the tag-write mode.
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
+    # How much API budget a comic may spend against a fan-out source.
+    # Only Comic Vine fans out; it is what the time estimate turns on.
+    effort: str = "balanced"
+
     # Whether this scan queries every source per comic and merges
     # (comicbox first_wins=False) — the time estimate needs it.
     merge_all_sources: bool = False

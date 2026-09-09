@@ -78,6 +78,9 @@ _FLAG_AGE_RATINGS: Final = MappingProxyType(
     }
 )
 _COLLECTION_VALUES: Final = frozenset(member.value for member in Collection)
+# How much api budget a scan may spend per comic. A closed vocabulary, so an
+# unrecognized value means the column drifted and is reported as "other".
+_EFFORT_VALUES: Final = frozenset(ComicboxTaggingDefaults.EffortChoices.values)
 # The closed set of OIDC client authentication methods. Anything else is an
 # admin typo or a provider we don't know about; report it as "other".
 _TOKEN_AUTH_METHODS: Final = frozenset(
@@ -151,6 +154,9 @@ def get_tagging_stats() -> dict[str, Any]:
     return {
         "default_match_mode": defaults.default_match_mode,
         "default_prompts_mode": defaults.default_prompts_mode,
+        "default_effort": effort
+        if (effort := defaults.default_effort) in _EFFORT_VALUES
+        else _OTHER,
         "merge_all_sources": defaults.merge_all_sources,
         "delete_original": defaults.delete_original,
         "rename_files": defaults.rename_files,

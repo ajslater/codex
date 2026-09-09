@@ -13,10 +13,12 @@ deferred-prompt fingerprint is deterministic across processes.
 from __future__ import annotations
 
 import threading
+from dataclasses import replace
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, cast
 
+from comicbox.config.online import resolve_effort
 from comicbox.events import (
     AutoWritten,
     Event,
@@ -26,12 +28,16 @@ from comicbox.events import (
     PromptDeferred,
     RateLimited,
     SearchCompleted,
-    SearchStarted,
     Skipped,
     SourceStarted,
 )
 from comicbox.exceptions import ComicboxError
-from comicbox.online_session import MatchMode, OnlineCredentials, OnlineSession
+from comicbox.online_session import (
+    Effort,
+    MatchMode,
+    OnlineCredentials,
+    OnlineSession,
+)
 from django.utils.timezone import now, timedelta
 from humanize import naturaldelta
 
@@ -43,6 +49,7 @@ from codex.librarian.notifier.tasks import (
 from codex.librarian.onlinetag.estimate import estimate_seconds
 from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
 from codex.librarian.onlinetag.session_cache import (
+    PROMPT_VERSION,
     add_pending_prompts,
     get_pending_prompts,
     remove_pending_prompt,
@@ -78,11 +85,35 @@ from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
+from codex.settings import COMICBOX_ONLINE_CONFIG
+
+
+def _online_config(effort: str) -> ComicboxSettings:
+    """
+    Codex's online settings with this scan's effort applied.
+
+    Effort is not an ``OnlineSession`` keyword — it lives in the settings
+    tree the session layers its own preferences over, which is what the
+    ``config`` keyword is for.
+
+    An empty effort is left empty rather than spelled out as the value it
+    resolves to. Comicbox reads any named effort as a decision and leaves
+    it alone; it is only free to drop a large unattended run to minimal,
+    and spare it hours of Comic Vine rate limiting, while nobody has
+    named one.
+    """
+    if not effort:
+        return COMICBOX_ONLINE_CONFIG
+    online = COMICBOX_ONLINE_CONFIG.online
+    tuning = replace(online.tuning, effort=Effort(effort))
+    return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
+
 
 if TYPE_CHECKING:
     from multiprocessing import Queue
     from typing import Literal
 
+    from comicbox.config.settings import ComicboxSettings
     from loguru._logger import Logger
 
 
@@ -285,14 +316,9 @@ class OnlineTagSessionManager:
     def _track_live_lookup(self, state: SessionState, event: Event) -> None:
         """Follow what the scan is consulting right now, and publish it."""
         match event:
-            # SourceStarted covers every route a source can take; SearchStarted
-            # is the fallback for a comicbox too old to emit the former, and
-            # the (path, source) dedupe collapses the pair a cold search emits
-            # into one publish.
-            case (
-                SourceStarted(path=path, source=source)
-                | SearchStarted(path=path, source=source)
-            ) if path and source:
+            # SourceStarted covers every route a source can take,
+            # including the fast paths a search never reaches.
+            case SourceStarted(path=path, source=source) if path and source:
                 state.live.begin(path, source)
                 self._publish_live(state)
             # The comic is done; nothing is live until the next source starts.
@@ -336,8 +362,8 @@ class OnlineTagSessionManager:
         work = (
             estimate_seconds(
                 remaining,
-                state.match_mode,
                 state.sources,
+                effort=state.effort,
                 merge_all_sources=state.merge_all_sources,
             )
             if state is not None
@@ -472,11 +498,12 @@ class OnlineTagSessionManager:
         """Serialize a deferred prompt with everything needed to apply it later."""
         return {
             "fingerprint": dp.fingerprint,
+            "prompt_version": PROMPT_VERSION,
             "pk": pk,
             "path": str(dp.path) if dp.path else "",
             "source": dp.source,
             "candidates": [serialize_candidate(c) for c in dp.candidates],
-            "mode": getattr(dp.mode, "value", str(dp.mode)),
+            "mode": getattr(dp.match, "value", str(dp.match)),
             "formats": list(formats),
             "delete_original": delete_original,
             "rename": rename,
@@ -644,17 +671,23 @@ class OnlineTagSessionManager:
         defer_prompts = (
             task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
         )
+        online_config = _online_config(task.effort)
         session = OnlineSession(
             sources=task.sources,
             # Pinned sources fetch their issue id directly; the rest search.
             ids=dict(task.ids),
             credentials=credentials,
-            mode=MatchMode(task.mode),
+            match=MatchMode(task.mode),
             defer_prompts=defer_prompts,
             # first_wins=False queries every source per comic and merges.
             first_wins=not task.merge_all_sources,
             on_event=self._on_event,
             prompt_handler=CodexPromptHandler(),
+            # Codex's own online settings, chiefly the cache directory
+            # under /config. Without them the session reads its own and
+            # comicbox's sqlite caches land somewhere a container
+            # recreation throws away.
+            config=online_config,
         )
         state = SessionState(
             session=session,
@@ -662,6 +695,10 @@ class OnlineTagSessionManager:
             mode="update",
             match_mode=task.mode,
             sources=tuple(task.sources),
+            # What the estimate is priced at: whatever the settings this
+            # session was handed resolve to, so an unset effort and a
+            # per-source override both reach it.
+            effort=resolve_effort(online_config.online, "comicvine").value,
             merge_all_sources=task.merge_all_sources,
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,
@@ -673,6 +710,7 @@ class OnlineTagSessionManager:
             resume_params={
                 "sources": list(task.sources),
                 "mode": task.mode,
+                "effort": task.effort,
                 "prompts_mode": task.prompts_mode,
                 "delete_original": task.delete_original,
                 "merge_all_sources": task.merge_all_sources,
@@ -923,7 +961,10 @@ class OnlineTagSessionManager:
         session = OnlineSession(
             sources=(source,),
             credentials=credentials,
-            mode=MatchMode(prompt.get("mode") or "auto"),
+            # The persisted prompt's own "mode" key predates comicbox 5's
+            # rename and is codex's cache format, versioned by
+            # PROMPT_VERSION; only the comicbox kwarg moved.
+            match=MatchMode(prompt.get("mode") or "auto"),
             defer_prompts=True,
         )
         session.preload_resolution(

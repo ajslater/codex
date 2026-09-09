@@ -42,6 +42,7 @@ Design notes:
 
 from __future__ import annotations
 
+from math import inf
 from typing import TYPE_CHECKING, Any, Final
 
 from codex.cache import tagging_cache as cache
@@ -65,6 +66,7 @@ from codex.librarian.onlinetag.statuses import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
     from codex.librarian.onlinetag.session_state import SessionState
@@ -448,31 +450,63 @@ def _order_and_cap(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return (actionable + queued + finished)[:_MAX_COMIC_ROWS]
 
 
+def _budget_window(windows: Mapping[str, Any]) -> tuple[str, Mapping[str, Any]]:
+    """
+    Pick the one window worth showing out of a source's budget, and name it.
+
+    The two services meter differently. Metron reports a burst and a
+    sustained window; the sustained one is the interesting one, because
+    its daily limit varies by donor tier while the burst cap is the
+    static per-minute rate already on screen. Comic Vine meters per
+    endpoint pool and reports one window per pool it has used, all of
+    them hourly, so the tightest is the one that will stop the run.
+
+    Returns ``("", {})`` for a source with no data yet.
+    """
+    if not windows:
+        return "", {}
+    if sustained := windows.get("sustained"):
+        return "day", sustained
+    pools = [window for window in windows.values() if window]
+    if not pools:
+        return "", {}
+    tightest = min(
+        pools,
+        key=lambda window: (
+            window.get("remaining") if window.get("remaining") is not None else inf,
+            window.get("limit") if window.get("limit") is not None else inf,
+        ),
+    )
+    return "hour", tightest
+
+
 def _build_sources(
     state: SessionState,
     source_retry_at: dict[str, float],
     waiting_sources: frozenset[str],
 ) -> list[dict[str, Any]]:
     """One ordered entry per source: rate budget + any live retry countdown."""
-    # Live per-account budget (comicbox>=4.3.0 reads it off Metron's
-    # X-RateLimit-* headers; earlier versions and cold sessions report {}).
-    # The sustained (daily) window is the one worth showing — its limit
-    # varies by Metron donor tier; the burst cap is the static
-    # rate_per_minute already displayed.
+    # Live per-account budget. Metron's comes off X-RateLimit-* response
+    # headers, so it is empty until a request has gone out this run;
+    # Comic Vine's is read from its on-disk bucket file, so it survives
+    # across runs and is there before the first request.
     live = state.session.rate_limit_status() if state.session else {}
     sources = []
     for source in state.sources:
         retry_at = source_retry_at.get(source)
         rate_limited = source in waiting_sources
-        sustained = (live.get(source) or {}).get("sustained") or {}
+        budget_window, budget = _budget_window(live.get(source) or {})
         sources.append(
             {
                 "source": source,
                 "rate_per_minute": SOURCE_RATE_PER_MINUTE.get(source),
                 "rate_limited": rate_limited,
                 "retry_at_epoch": retry_at if rate_limited else None,
-                "sustained_limit": sustained.get("limit"),
-                "sustained_remaining": sustained.get("remaining"),
+                "sustained_limit": budget.get("limit"),
+                "sustained_remaining": budget.get("remaining"),
+                # Which window those two numbers describe, so the strip
+                # can say "per day" or "per hour" instead of guessing.
+                "budget_window": budget_window,
             }
         )
     return sources

@@ -16,6 +16,7 @@ from codex.librarian.covers.coverd import (  # codespell:ignore coverd, typos:ig
 )
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.cron.crond import CronThread
+from codex.librarian.db import enable_persistent_connections
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
 from codex.librarian.fs.watcher.tasks import FSWatcherRestartTask
@@ -32,6 +33,7 @@ from codex.librarian.scribe.tasks import ScribeTask
 from codex.librarian.status_controller import StatusController
 from codex.librarian.tasks import LibrarianShutdownTask, LibrarianTask, WakeCronTask
 from codex.librarian.threads import NamedThread
+from codex.settings import LIBRARIAN_CONN_MAX_AGE
 
 _THREAD_CLASSES: Final[tuple[type[NamedThread], ...]] = (
     BookmarkThread,
@@ -189,6 +191,14 @@ class LibrarianDaemon(Process):
         This process also runs the crond thread and the watcher Observer
         threads.
         """
+        # This process's worker threads outlive their tasks, so unlike
+        # the web process they reuse a connection rather than orphaning
+        # it. Must precede ``_startup``, which spawns those threads.
+        enable_persistent_connections()
+        self.log.debug(
+            f"{self.name} enabled persistent db connections "
+            f"({LIBRARIAN_CONN_MAX_AGE}s)."
+        )
         self._startup()
         try:
             while self.run_loop:

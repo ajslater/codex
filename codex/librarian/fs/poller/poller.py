@@ -305,7 +305,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
                 # ``poll=False`` "manual poll only" case is unbounded.
                 # Release the conn so the wait doesn't pin a file
                 # handle through the entire interval. Reopen on the
-                # next poll is ~5-20 ms, invisible against the work.
+                # next poll is ~1 ms, invisible against the work.
                 connections.close_all()
                 with self._cond:
                     self._cond.wait(timeout)

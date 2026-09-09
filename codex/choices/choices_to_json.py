@@ -29,6 +29,7 @@ from codex.choices.tagging import (
     FORMAT_FIELD_SUPPORT,
     FORMAT_FIELD_VALUES,
     IDENTIFIER_SOURCES,
+    IDENTIFIER_TYPE_BY_CODEX_NAME,
     IDENTIFIER_TYPES,
     LANGUAGES,
 )
@@ -72,6 +73,7 @@ _MAP_DUMPS = MappingProxyType(
         "format-field-support.json": FORMAT_FIELD_SUPPORT,
         "format-field-values.json": FORMAT_FIELD_VALUES,
         "identifier-sources.json": IDENTIFIER_SOURCES,
+        "identifier-type-by-codex-name.json": IDENTIFIER_TYPE_BY_CODEX_NAME,
         "identifier-types.json": IDENTIFIER_TYPES,
         "languages.json": LANGUAGES,
         "reader-defaults.json": READER_DEFAULTS,

@@ -100,7 +100,7 @@ class FakeDP:
         self.path = path
         self.fingerprint = fingerprint
         self.source = source
-        self.mode = "auto"
+        self.match = "auto"
         self.candidates = [FakeCandidate(123, source)]
 
 

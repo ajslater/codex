@@ -7,7 +7,7 @@ from types import MappingProxyType
 from typing import Any, Final
 
 from adrf.mixins import get_data
-from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -90,7 +90,10 @@ class AdminStatsView(AsyncAdminGenericAPIView):
             # ``CodexStats.get`` runs ~30 sync COUNT/GROUP BY queries.
             # Off-load it from the event loop; ``thread_sensitive=False``
             # lets concurrent stats requests run on separate workers.
-            cached = await sync_to_async(
+            # Those are the event loop's own executor threads, which no
+            # request lifecycle ever cleans up, so use channels' wrapper
+            # to close the connection on the way out.
+            cached = await database_sync_to_async(
                 CodexStats(self.params).get, thread_sensitive=False
             )()
             await cache.aset(cache_key, cached, _CACHE_TTL_SECONDS)

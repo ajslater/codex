@@ -8,39 +8,73 @@ border-radius: 128px;
 
 ## v2.3.0
 
+- Upgrading
+    - Comicbox 5.0.0 reads some tags differently and adds others. Existing
+      comics keep the tags they were imported with until they are read again:
+      select comics and Force Update Tags, or let a scan pick up files you
+      change. Until then the new fields are empty, and age ratings and credit
+      roles keep their old spellings, so a filter can list both `Everyone 10+`
+      and `Everyone`, or both `CoverArtist` and `Cover`. Age-restricted access
+      is unaffected either way.
+
 - Features
-    - Each top collection remembers the sort it was last browsed with. Sort
-      Issues by added time and Publishers alphabetically, and switching between
-      them keeps each one's sort instead of carrying one sort everywhere. A
-      collection you haven't sorted yet keeps whatever sort you arrive with.
-    - Clearing a search puts back the sort the search replaced.
-    - Sort by Reprints, the other editions an issue was published as. Comics
-      group by their reprint series and order by its issue number inside that
-      group. Filter by a reprint first to sort by that one instead of the first
-      one alphabetically. Comics with no reprints sort by their real series and
-      issue, so they interleave rather than clumping, and a reprint series with
-      no issue numbers keeps its comics in their own issue order. Available in
-      cover view as well as the table.
-    - Read a reprint series as a reading order: pick it in the reader's
-      reading-order menu and next/prev follow its numbering. Handy for using
-      reprint tags as durable reading lists.
-    - "Alternate Series" is now called "Reprints" everywhere — the sort, the
-      table column, the filter, the metadata panel and the reader's
-      reading-order menu. It covers MetronInfo Reprints and localized
-      AlternativeNames, ComicInfo AlternateSeries and CoMet isVersionOf, so it
-      is named for all of them rather than for one.
+    - Sort by Reprints, the other editions an issue was published as, in the
+      table and in cover view. Filter by a reprint first to sort by that one.
+    - Read a reprint series as a reading order from the reader's reading-order
+      menu, which makes reprint tags usable as durable reading lists.
+    - "Alternate Series" is now "Reprints" everywhere: it covers MetronInfo
+      Reprints and AlternativeNames, ComicInfo AlternateSeries and CoMet
+      isVersionOf. A series' other names are listed separately in the metadata
+      panel.
+    - Each top collection remembers the sort it was last browsed with, and
+      clearing a search puts back the sort it replaced.
+    - Manga is its own tag now, separate from reading direction, along with
+      MetronInfo's Manga Volume.
+    - A comic's own web links are shown and editable.
+    - Credits mark the primary holder of each role and list them first. Codex
+      cannot write it back: neither ComicInfo nor MetronInfo stores it.
+    - Online tagging takes an Effort setting, per scan and as an admin default.
+      Thorough restores Comic Vine's unbounded search, Minimal trades matches
+      for speed, and Metron ignores it. Auto, the default, drops a large
+      unattended scan to Minimal so Comic Vine's hourly limit doesn't stretch it
+      into hours.
+    - The tagging status strip shows Comic Vine's remaining hourly budget.
 
 - Fixes
-    - Saving browser settings sent an empty request that stored nothing. The
-      settings were persisted by the page request that followed, so nothing was
-      lost, but the save request itself did nothing.
+    - Reading Bottom to Top jumped to the wrong page: page one showed the last
+      page.
+    - Saving browser settings sent an empty request. The next page request saved
+      them anyway, so nothing was lost.
+    - Sorting by a tag column outside the table view no longer errors.
+    - Browsing a group whose parents have gone missing shows a button back to
+      the top rather than an empty crumb trail and no way out.
     - The Admin Tagging Status table shows what is being looked up right now.
-    - Sorting by a tag column outside the table view (cover cards, OPDS feeds)
-      no longer errors.
-    - Reading Bottom to Top jumped to the wrong page. The page list runs
-      backwards in that direction, so opening a comic, changing pages from the
-      toolbar or following a link landed on the mirrored page — page one showed
-      the last page. Top to Bottom was never affected.
+    - Identifier links are built from the id instead of stored beside it, so
+      they can no longer disagree with it. A comic can carry an id for its
+      series, and a reprint's id links to the issue it reprints. The tag editor
+      writes identifier types the way the formats spell them.
+    - A Comic Vine key the site rejects now fails validation instead of passing.
+    - Comicbox's online caches stay under the config directory instead of a
+      location that recreating a container discards.
+    - An online scan's time estimate is keyed on Effort rather than Match Mode,
+      which never changed how many requests a comic costs. It reads higher, and
+      a real scan beats it.
+    - Covers are cached by the browser and revalidated instead of re-sent, so
+      revisiting a page does not download them again. They also survive a scan,
+      which used to discard every cached cover whether or not it had changed.
+    - Every web request leaked a database connection, and its open files, until
+      garbage collection.
+
+- Performance
+    - Web requests share a pool of database connections instead of opening one
+      each. `db_workers` under `[server]` sizes it, or turns it off with 0.
+
+- Dev
+    - Comicbox 5.0.0, and its metadata schema v3.0.
+    - Simyan, mokkari and requests-cache are declared directly rather than
+      relied on through comicbox.
+    - Asgiref is declared directly; the connection pool uses its executor
+      registry.
 
 ## v2.2.11
 

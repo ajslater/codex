@@ -231,3 +231,38 @@ class TelemeterStatsTestCase(TestCase):
         assert "library_read_only_count" in stats["config"]
         assert "multi_sort_count" in stats["sessions"]
         assert "comic_community_rating_count" in stats["metadata"]
+        assert "default_effort" in stats["tagging"]
+        for key in (
+            "reprint_count",
+            "reprint_alternative_name_count",
+            "credit_primary_count",
+            "comic_manga_volume_count",
+            "comic_urls_count",
+            "comic_manga_yes_count",
+            "comic_manga_no_count",
+            "comic_manga_unknown_count",
+        ):
+            assert key in stats["metadata"], key
+
+    def test_manga_counts_cover_every_manga_value(self) -> None:
+        """
+        Every manga value has a payload key, and they partition the library.
+
+        The key names are written out in count_stats so the payload's shape
+        stays fixed in codex source; this is what stops that copy from
+        drifting from comicbox's enum behind it.
+        """
+        from codex.librarian.telemeter.count_stats import (
+            _MANGA_COUNT_KEYS,
+        )
+        from codex.models.choices import MangaChoices
+
+        assert set(_MANGA_COUNT_KEYS) == {
+            value.lower() for value in MangaChoices.values
+        }
+        stats = CodexStats().get()
+        metadata = stats["metadata"]
+        counted = sum(metadata[key] for key in _MANGA_COUNT_KEYS.values())
+        # issue_count lives in collections: it is the comic count under the
+        # name the browser gives it.
+        assert counted == stats["collections"]["issue_count"]
