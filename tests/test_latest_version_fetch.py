@@ -5,6 +5,10 @@ Nothing ever asked for the update half of this before: the nightly
 janitor queued a bare version check and no caller passed ``update``, so
 the Auto Update admin flag promised a daily update that could not
 happen. The nightly task now forces the fetch and asks it to chain.
+
+This daily run is also where the deprecated Docker Hub image nags the
+log, so an admin who never opens the web UI still finds out that their
+image has stopped being the real one.
 """
 
 from __future__ import annotations
@@ -27,9 +31,41 @@ from codex.librarian.scribe.janitor.janitor import _NIGHTLY_TASKS
 from codex.librarian.scribe.janitor.tasks import JanitorCodexUpdateTask
 from codex.models.admin import AdminFlag, Timestamp
 from codex.startup import init_admin_flags, init_timestamps
+from codex.util import log_docker_hub_deprecation
 
 _MODULE = "codex.librarian.bookmark.latest_version"
 _LATEST = "9999.0.0"
+
+
+class _RecordingLog:
+    """Proxy loguru, but keep the warnings where a test can read them."""
+
+    def __init__(self) -> None:
+        self.warnings: list[str] = []
+
+    def warning(self, message) -> None:
+        self.warnings.append(str(message))
+
+    def __getattr__(self, name):
+        """Everything but ``warning`` behaves like the real logger."""
+        return getattr(logger, name)
+
+
+def test_deprecation_warning_names_the_registry_to_move_to() -> None:
+    """A log line nobody can act on is worse than none."""
+    log = _RecordingLog()
+    with patch("codex.util.DOCKER_IMAGE_DEPRECATED", new=True):
+        log_docker_hub_deprecation(log)
+    assert len(log.warnings) == 1
+    assert "ghcr.io/ajslater/codex" in log.warnings[0]
+    assert "migrating-from-docker-hub" in log.warnings[0]
+
+
+def test_only_the_docker_hub_image_is_nagged() -> None:
+    """ghcr.io and native installs must not see a word of this."""
+    log = _RecordingLog()
+    log_docker_hub_deprecation(log)
+    assert not log.warnings
 
 
 class _FakeQueue:
@@ -147,6 +183,59 @@ class LatestVersionFetchTests(TestCase):
         with patch.object(CodexLatestVersionUpdater, "_fetch_latest_version") as fetch:
             self.updater.update_latest_version(force=False)
         fetch.assert_not_called()
+
+    def _recording_updater(self):
+        """Build an updater whose warnings a test can read."""
+        log = _RecordingLog()
+        return CodexLatestVersionUpdater(log, self.queue, Lock()), log  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+
+    def test_the_daily_check_nags_the_deprecated_image(self) -> None:
+        """Bundled here rather than given a janitor job of its own."""
+        updater, log = self._recording_updater()
+        with (
+            patch("codex.util.DOCKER_IMAGE_DEPRECATED", new=True),
+            patch.object(
+                CodexLatestVersionUpdater, "_fetch_latest_version", return_value=_LATEST
+            ),
+        ):
+            updater.update_latest_version(force=True)
+        assert any("ghcr.io/ajslater/codex" in w for w in log.warnings)
+
+    def test_the_daily_check_is_silent_on_every_other_install(self) -> None:
+        updater, log = self._recording_updater()
+        with patch.object(
+            CodexLatestVersionUpdater, "_fetch_latest_version", return_value=_LATEST
+        ):
+            updater.update_latest_version(force=True)
+        assert not log.warnings
+
+    def test_a_cold_cache_cannot_turn_the_nag_into_a_flood(self) -> None:
+        """
+        Nag once, not once per request.
+
+        While the cache is empty every /api/v4/version hit queues one of
+        these. Only the task that wins the fetch gate may log.
+        """
+        self._set_latest("")
+        updater, log = self._recording_updater()
+        assert _FetchGate.lock.acquire(blocking=False)
+        try:
+            with (
+                patch("codex.util.DOCKER_IMAGE_DEPRECATED", new=True),
+                patch.object(CodexLatestVersionUpdater, "_fetch_latest_version"),
+            ):
+                updater.update_latest_version(force=True)
+        finally:
+            _FetchGate.lock.release()
+        assert not log.warnings
+
+    def test_a_fresh_cache_is_not_nagged_again(self) -> None:
+        """Once a day, not once a request."""
+        self._set_latest(_LATEST)
+        updater, log = self._recording_updater()
+        with patch("codex.util.DOCKER_IMAGE_DEPRECATED", new=True):
+            updater.update_latest_version(force=False)
+        assert not log.warnings
 
     def test_locked_database_skips_everything(self) -> None:
         db_write_lock = Lock()

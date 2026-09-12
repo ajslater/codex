@@ -14,6 +14,7 @@ from codex.librarian.scribe.janitor.status import JanitorCodexLatestVersionStatu
 from codex.librarian.scribe.janitor.tasks import JanitorCodexUpdateTask
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import AdminFlag, Timestamp
+from codex.util import log_docker_hub_deprecation
 from codex.version import PACKAGE_NAME
 
 _REPO_URL: Final = f"https://pypi.python.org/pypi/{PACKAGE_NAME}/json"
@@ -72,6 +73,11 @@ class CodexLatestVersionUpdater(WorkerStatusBase):
         if not _FetchGate.lock.acquire(blocking=False):
             self.log.debug("Latest codex version fetch already in flight.")
             return
+        # Bundled with the daily version check rather than given its own
+        # janitor job. Inside the fetch gate on purpose: while the cache
+        # is empty every /api/v4/version hit queues one of these, and only
+        # the task that wins the lock should nag.
+        log_docker_hub_deprecation(self.log)
         try:
             latest_version = self._fetch_latest_version()
         except Exception:
