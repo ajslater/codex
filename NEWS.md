@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.1
+
+- Upgrading
+    - Docker Hub users: `docker.io/ajslater/codex` is published again, but it is
+      deprecated. Change your image to `ghcr.io/ajslater/codex`; nothing else
+      changes. Admins see a warning until the image is changed. Coming from
+      1.9.x, back up your `config` directory first and read the Upgrading notes
+      for every version since.
+
 ## v2.3.0
 
 - Upgrading

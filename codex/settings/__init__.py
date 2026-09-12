@@ -110,7 +110,10 @@ def _vite_dev_server_host() -> str:
 
 VITE_DEV_SERVER_HOST = _vite_dev_server_host()
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
-DOCKER_IMAGE_DEPRECATED = environ.get("DOCKER_IMAGE_DEPRECATED", "")
+# Set only by hub.Dockerfile, the deprecated docker.io mirror of the ghcr.io
+# image. Truthy means the browser tells admins to switch registries. This is
+# image identity, not admin configuration, so it is not a codex.toml key.
+DOCKER_IMAGE_DEPRECATED = not_falsy_env("DOCKER_IMAGE_DEPRECATED")
 
 ##########################
 # Codex TOML Config Load #

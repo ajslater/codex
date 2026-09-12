@@ -16,7 +16,7 @@ from codex.views.auth import AuthGenericAPIView
 
 def version_payload() -> dict[str, str | bool]:
     """
-    Build the ``{installed, latest, outdated, docker, warning}`` version dict.
+    Build the ``{installed, latest, outdated, docker, docker_hub}`` version dict.
 
     Shared by :class:`VersionView` and the composite
     :class:`~codex.views.session.SessionView` so the two endpoints
@@ -27,7 +27,9 @@ def version_payload() -> dict[str, str | bool]:
     comparison happens once, in the one place that already knows how to
     read a PEP 440 version. ``docker`` tells the browser that codex
     cannot install over itself here, so an upgrade means pulling a new
-    image rather than running the update job.
+    image rather than running the update job. ``docker_hub`` is true only
+    inside the deprecated Docker Hub image; the browser turns it into a
+    move-to-ghcr.io warning for admins.
     """
     ts = Timestamp.objects.get(key=Timestamp.Choices.CODEX_VERSION.value)
     if ts.value:
@@ -40,7 +42,7 @@ def version_payload() -> dict[str, str | bool]:
         "latest": latest_version,
         "outdated": is_outdated(VERSION, ts.value),
         "docker": is_docker(),
-        "warning": DOCKER_IMAGE_DEPRECATED,
+        "docker_hub": DOCKER_IMAGE_DEPRECATED,
     }
 
 
