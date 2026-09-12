@@ -32,6 +32,7 @@ from codex.models import (
     Comic,
 )
 from codex.models.settings import SettingsBrowser, SettingsReader
+from codex.settings import DOCKER_IMAGE_DEPRECATED
 from codex.util import is_docker
 from codex.version import VERSION
 from codex.views.const import (
@@ -172,6 +173,7 @@ class CodexStats:
             return
         platform = {
             "docker": is_docker(),
+            "docker_hub": DOCKER_IMAGE_DEPRECATED,
             "machine": machine(),
             "cores": cpu_count(),
             "system": {

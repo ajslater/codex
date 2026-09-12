@@ -24,7 +24,12 @@ const RouterLinkStub = {
   template: "<a :id='$attrs.id' :title='$attrs.title'><slot /></a>",
 };
 
-function mountFooter({ isStaff = true, outdated = true, docker = false } = {}) {
+function mountFooter({
+  isStaff = true,
+  outdated = true,
+  docker = false,
+  dockerHub = false,
+} = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: { isStaff } },
@@ -34,7 +39,7 @@ function mountFooter({ isStaff = true, outdated = true, docker = false } = {}) {
           latest: "2.0.0",
           outdated,
           docker,
-          warning: "",
+          dockerHub,
         },
       },
     },
@@ -81,6 +86,22 @@ describe("VersionFooter", () => {
     const wrapper = mountFooter({ outdated: false });
 
     expect(wrapper.find("#latest").exists()).toBe(false);
+  });
+
+  test("admins on the docker hub image get a switch link", () => {
+    const wrapper = mountFooter({ outdated: false, dockerHub: true });
+
+    const warning = wrapper.find("#warning");
+    expect(warning.attributes("href")).toBe(
+      "https://codex-comic-reader.readthedocs.io/DOCKER/#migrating-from-docker-hub",
+    );
+    expect(warning.text()).toContain("switch to ghcr.io");
+  });
+
+  test("non-admins get no docker hub link", () => {
+    const wrapper = mountFooter({ isStaff: false, dockerHub: true });
+
+    expect(wrapper.find("#warning").exists()).toBe(false);
   });
 
   test("the installed version links to the source", () => {

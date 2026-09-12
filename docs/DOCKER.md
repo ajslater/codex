@@ -9,6 +9,24 @@ Codex is a web server comic book browser and reader.
 - [Codex Source](https://github.com/ajslater/codex)
 - [Codex Issues](https://github.com/ajslater/codex/issues)
 
+## Migrating from Docker Hub
+
+The `docker.io/ajslater/codex` image is deprecated. Codex images are published
+only at `ghcr.io/ajslater/codex`. The Docker Hub image is republished from it so
+that Codex can warn you to switch. To migrate, change the image in your
+`compose.yaml` or `docker run` command from `ajslater/codex` or
+`docker.io/ajslater/codex` to `ghcr.io/ajslater/codex` and recreate the
+container:
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+The tags are the same and the images share every layer, so nothing re-downloads.
+Your `/config` and `/comics` volumes and environment variables carry over
+unchanged. If you are upgrading from Codex 1.9.x, back up your `config`
+directory first and read the Upgrading notes for the versions in between.
+
 ## Usage
 
 Here are some example snippets to help you get started creating a container from
@@ -106,7 +124,7 @@ docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}
 Image version number
 
 ```sh
-docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' ajslater/codex
+docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' ghcr.io/ajslater/codex
 ```
 
 ## Docker Image

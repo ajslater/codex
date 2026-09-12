@@ -2,12 +2,14 @@
   <v-app>
     <router-view />
     <SessionErrorSnackbar />
+    <DockerHubDeprecatedSnackbar />
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import DockerHubDeprecatedSnackbar from "@/components/docker-hub-deprecated-snackbar.vue";
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -16,6 +18,7 @@ import { useSocketStore } from "@/stores/socket";
 export default {
   name: "App",
   components: {
+    DockerHubDeprecatedSnackbar,
     SessionErrorSnackbar,
   },
   computed: {
@@ -91,9 +94,23 @@ a {
   color: rgb(var(--v-theme-primary));
 }
 
+/*
+ * Overlay content boxes are app chrome: menus, dialogs and tooltips sit
+ * on the page background instead of Vuetify's own surface colors.
+ *
+ * Snackbars are the exception. A snackbar's ``color`` prop paints this
+ * very element, via Vuetify's ``bg-*`` utility class. That class lives
+ * in a cascade layer and this rule does not, so an unlayered
+ * ``background-color`` wins here no matter how the snackbar asks.
+ * Exempting the wrapper is what makes ``color`` work on a snackbar at
+ * all. The radius still applies to every overlay.
+ */
 .v-overlay__content {
-  background-color: rgb(var(--v-theme-background)) !important;
   border-radius: 5px;
+}
+
+.v-overlay__content:not(.v-snackbar__wrapper) {
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 
 .v-tooltip > .v-overlay__content {

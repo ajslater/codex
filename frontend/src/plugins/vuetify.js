@@ -80,6 +80,15 @@ export default new createVuetify({
     VSlider: {
       color: codexTheme.colors.primary,
     },
+    /*
+     * Vuetify's own default is the Material "inverse surface", a light
+     * bar in a dark theme. Codex snackbars are page chrome, so an
+     * uncolored one matches the app background. Snackbars that pass
+     * ``color`` still win, since props beat defaults.
+     */
+    VSnackbar: {
+      color: "background",
+    },
     VTabs: {
       color: codexTheme.colors.primary,
     },

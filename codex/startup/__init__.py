@@ -33,6 +33,7 @@ from codex.settings import (
 )
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
+from codex.util import log_docker_hub_deprecation
 from codex.views.admin.api_key import _new_api_key
 
 
@@ -245,4 +246,5 @@ def codex_init() -> bool:
         logger.info(f"Will reload granian if {CODEX_CONFIG_TOML} changes")
     if AUTH_REMOTE_USER:
         logger.info("Remote User authorization enabled.")
+    log_docker_hub_deprecation(logger)
     return True

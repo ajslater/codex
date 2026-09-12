@@ -6,7 +6,7 @@ import { HTTP } from "@/api/v4/base";
  *     user: { id, username, email, isStaff, isSuperuser } | null,
  *     adminFlags: { needs Documentation },
  *     permissions: { isStaff, isSuperuser },
- *     version: { installed, latest, warning },
+ *     version: { installed, latest, outdated, docker, dockerHub },
  *   }
  */
 export const getSession = () => HTTP.get("/session");

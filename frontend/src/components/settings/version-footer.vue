@@ -30,9 +30,20 @@
     >
       {{ upgradeText }}
     </router-link>
-    <div v-if="versions.warning" id="warning">
-      {{ versions.warning }}
-    </div>
+    <!--
+      The deprecated Docker Hub image sets versions.dockerHub. The root
+      snackbar nags once a day; this link stays until the image is changed.
+    -->
+    <a
+      v-if="isUserAdmin && versions.dockerHub"
+      id="warning"
+      :href="DOCKER_DOCS_URL"
+      target="_blank"
+      title="Switch to ghcr.io"
+      >docker hub image deprecated: switch to ghcr.io<v-icon size="x-small">{{
+        mdiOpenInNew
+      }}</v-icon></a
+    >
   </v-footer>
 </template>
 
@@ -49,6 +60,8 @@ const UPDATE_ROUTE = Object.freeze({
   hash: "#codexSoftware",
 });
 const GHCR_URL = "https://github.com/ajslater/codex/pkgs/container/codex";
+const DOCKER_DOCS_URL =
+  "https://codex-comic-reader.readthedocs.io/DOCKER/#migrating-from-docker-hub";
 
 export default {
   name: "VersionFooter",
@@ -56,6 +69,7 @@ export default {
     return {
       mdiOpenInNew,
       mdiSourceRepository,
+      DOCKER_DOCS_URL,
       GHCR_URL,
       UPDATE_ROUTE,
     };
@@ -114,6 +128,7 @@ export default {
 }
 
 #warning {
+  display: block;
   color: rgb(var(--v-theme-warning));
 }
 </style>

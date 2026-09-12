@@ -11,4 +11,4 @@ class VersionsSerializer(Serializer):
     latest = CharField(read_only=True)
     outdated = BooleanField(read_only=True)
     docker = BooleanField(read_only=True)
-    warning = CharField(read_only=True)
+    docker_hub = BooleanField(read_only=True)
