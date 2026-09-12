@@ -280,11 +280,13 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    # The secrets context is not allowed in a step if; a job env is. Forks
-    # and pull requests receive no secrets and skip cleanly, and deleting
-    # the token is the switch that ends Docker Hub publishing.
+    # DOCKER_USER / DOCKER_PASS are the Docker Hub credentials the old CI
+    # and bin/docker-tag-latest.sh already use. The secrets context is not
+    # allowed in a step if; a job env is. Forks and pull requests receive no
+    # secrets and skip cleanly, and deleting DOCKER_PASS is the switch that
+    # ends Docker Hub publishing.
     env:
-      DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+      DOCKERHUB_ENABLED: ${{ secrets.DOCKER_PASS != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -308,8 +310,8 @@ jobs:
         if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
 
       - name: Build and push deprecated image
         if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
