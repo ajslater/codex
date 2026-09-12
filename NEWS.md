@@ -16,6 +16,13 @@ border-radius: 128px;
       your `config` directory first and read the Upgrading notes for every
       version since.
 
+- Performance
+    - Comic Vine tagging spends half the API budget it used to due to simyan
+      4.1.0.
+
+- Dev
+    - Require simyan >= 4.1.0.
+
 ## v2.3.0
 
 - Upgrading
