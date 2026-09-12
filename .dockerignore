@@ -36,6 +36,7 @@ MANIFEST
 monkeytype.sqlite3
 NEWS
 node_modules
+site
 test-results
 TODO.md
 update-builder-requirement.sh
