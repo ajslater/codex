@@ -22,6 +22,7 @@ border-radius: 128px;
 
 - Dev
     - Require simyan >= 4.1.0.
+    - Resume publishing images to Docker Hub to upgrade stragglers.
 
 ## v2.3.0
 
