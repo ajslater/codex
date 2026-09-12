@@ -1,7 +1,6 @@
 <template>
   <v-snackbar
     v-model="show"
-    class="dockerHubSnackbar"
     color="warning"
     timeout="-1"
     location="top"
@@ -106,20 +105,5 @@ export default {
 .dockerHubImage {
   font-family: monospace;
   user-select: all;
-}
-</style>
-<!--
-  Unscoped on purpose: the snackbar teleports into the overlay container,
-  out of reach of scoped styles. The color prop loses twice there: the
-  app's global .v-overlay__content rule paints every overlay the
-  background color with !important, and Vuetify 4.2's
-  .v-snackbar--variant-elevated rule outranks the bg-warning class.
-  Two classes plus !important is what it takes for warning to stick.
--->
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.dockerHubSnackbar .v-snackbar__wrapper {
-  background: rgb(var(--v-theme-warning)) !important;
-  color: rgb(var(--v-theme-on-warning)) !important;
 }
 </style>
