@@ -748,7 +748,7 @@ requires-dist = [
     { name = "requests-cache", specifier = "~=1.2" },
     { name = "servestatic", extras = ["brotli"], specifier = "~=4.1" },
     { name = "setproctitle", specifier = "~=1.3.7" },
-    { name = "simyan", specifier = "~=4.1.0" },
+    { name = "simyan", specifier = ">=4.1,<5" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = "~=2.0" },
     { name = "typing-extensions", specifier = "~=4.14" },
     { name = "tzlocal", specifier = "~=5.0" },
