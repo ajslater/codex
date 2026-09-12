@@ -2,12 +2,14 @@
   <v-app>
     <router-view />
     <SessionErrorSnackbar />
+    <DockerHubDeprecatedSnackbar />
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import DockerHubDeprecatedSnackbar from "@/components/docker-hub-deprecated-snackbar.vue";
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -16,6 +18,7 @@ import { useSocketStore } from "@/stores/socket";
 export default {
   name: "App",
   components: {
+    DockerHubDeprecatedSnackbar,
     SessionErrorSnackbar,
   },
   computed: {

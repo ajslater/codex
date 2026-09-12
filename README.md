@@ -10,7 +10,9 @@ border-radius: 128px;
 
 > **Note:** The Docker image has moved to
 > [ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex).
-> A final `docker.io` image was published on Docker Hub.
+> The `docker.io/ajslater/codex` image is deprecated. It is republished from
+> ghcr.io only so that Codex can warn you to switch. See
+> [Migrating from Docker Hub](https://codex-comic-reader.readthedocs.io/DOCKER/#migrating-from-docker-hub).
 
 ## ✨ Features
 

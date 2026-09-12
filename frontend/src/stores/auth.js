@@ -27,8 +27,8 @@ export const useAuthStore = defineStore("auth", {
     /*
      * Populated by the v4 ``/session`` composite alongside ``user`` +
      * ``adminFlags``. The SPA chrome reads ``version.installed``
-     * immediately; ``latest`` / ``warning`` show up in the update-
-     * available banner.
+     * immediately; ``latest`` feeds the update-available footer and
+     * ``dockerHub`` the deprecated-image snackbar.
      */
     version: undefined,
     token: undefined,

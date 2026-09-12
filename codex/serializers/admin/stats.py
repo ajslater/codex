@@ -47,6 +47,7 @@ class StatsPlatformSerializer(Serializer):
     """Platform Information."""
 
     docker = BooleanField(read_only=True)
+    docker_hub = BooleanField(read_only=True)
     machine = CharField(read_only=True)
     cores = IntegerField(read_only=True)
     system = StatsSystemSerializer(read_only=True)

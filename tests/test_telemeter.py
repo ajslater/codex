@@ -43,6 +43,7 @@ EXPECTED_SECTIONS = (
 # One representative key per section, plus the metadata keys whose absence
 # has silently emptied a stats tab before.
 EXPECTED_SECTION_KEYS = {
+    "platform": ("docker_hub",),
     "deployment": ("url_path_prefix_set",),
     "throttle": ("throttle_anon",),
     "usage": ("bookmark_count",),
