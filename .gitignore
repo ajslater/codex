@@ -12,6 +12,7 @@ __snapshots__
 .eggs/
 .env
 .env-*
+.env.cleaner
 .env.package
 .env.pushover
 .eslintcache

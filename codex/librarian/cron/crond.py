@@ -32,7 +32,9 @@ class _CronJob(NamedTuple):
 
 _CRON_JOBS: MappingProxyType[type, _CronJob] = MappingProxyType(
     {
-        # Always the next midnight, so queueing it moves the schedule.
+        # Pure clock arithmetic: the next midnight after now. The clock
+        # moves the schedule along, not the queueing, so the job must not
+        # run until the clock has actually reached the slot.
         JanitorNightlyTask: _CronJob(get_janitor_time),
         # Read out of the telemeter Timestamp, which the send writes on a
         # thread this one never joins. See ``mark_telemeter_attempt``.
@@ -48,7 +50,7 @@ class CronThread(NamedThread):
         """Initialize this thread with the worker."""
         self._stop_event = Event()
         self._cond = Condition()
-        self._task_times = ()
+        self._task_times: tuple[tuple[datetime, type], ...] = ()
         super().__init__(*args, daemon=True, **kwargs)
 
     def _create_task_times(self) -> None:
@@ -59,16 +61,21 @@ class CronThread(NamedThread):
 
         self._task_times = tuple(sorted(task_times.items()))
 
-    def _get_timeout(self) -> int:
+    def _get_timeout(self) -> float:
         if not self._task_times:
             self.log.warning("No scheduled jobs found. Not normal! Waiting a minute.")
-            return 60
+            return 60.0
 
         next_time = self._task_times[0][0]
         now = django_timezone.now()
         delta = next_time - now
         self.log.debug(f"Next scheduled job at {next_time} in {delta}.")
-        return max(0, int(delta.total_seconds()))
+        # The sub-second remainder is the whole point of this number.
+        # Truncating it to whole seconds ended every wait early, and then
+        # the wait for the leftover fraction was a wait of zero, which
+        # returns at once. ``Condition.wait`` rejects a negative timeout,
+        # so a slot already in the past clamps to no wait at all.
+        return max(0.0, delta.total_seconds())
 
     def _enqueue_job(self, task_class: type) -> None:
         """Spend the job's slot before queueing it, never after."""
@@ -77,22 +84,21 @@ class CronThread(NamedThread):
             claim()
         self.librarian_queue.put(task_class())
 
-    def _run_expired_jobs(self, *, timed_out: bool) -> None:
+    def _run_expired_jobs(self) -> None:
         """
-        Queue every job whose scheduled time has arrived.
+        Queue every job whose scheduled time has arrived, and no others.
 
-        ``timed_out`` means the wait ran its full course instead of being
-        cut short by ``end_timeout``, so the job at the head of the
-        schedule is due even if the clock reads a hair short of its time
-        — ``_get_timeout`` truncates the delta to whole seconds, so the
-        wait always ends slightly early. Missing that job cost more than
-        a late run: ``_create_task_times`` would immediately push the
-        nightly janitor out to the *following* midnight and skip a night.
-        That is what ``sleep(2)  # fix time rounding problems`` was for.
+        The clock is the only authority on that. A wait can end short of
+        the slot it waited for — it is timed on the monotonic clock while
+        the slot is wall time, and NTP slews the two apart — and running
+        the job anyway does not skip the wait, it repeats it: the jobs
+        recompute their next time off the same short clock and hand back
+        the slot just run, ``_get_timeout`` returns the remainder, and
+        the whole night's work goes on the queue again on every pass
+        until the clock catches up. Declining costs one more trip around
+        the loop, waiting out a remainder measured in milliseconds.
         """
         now = django_timezone.now()
-        if timed_out and self._task_times:
-            now = max(now, self._task_times[0][0])
         for dttm, task_class in self._task_times:
             if dttm > now:
                 # Times are always ordered so stop checking at the first future job.
@@ -115,12 +121,13 @@ class CronThread(NamedThread):
                     # whole window. Reopen on the next query is
                     # ~1 ms, invisible against the wait.
                     connections.close_all()
-                    # ``Condition.wait`` returns False only when the whole
-                    # timeout elapsed; True means ``end_timeout`` notified.
-                    timed_out = not self._cond.wait(timeout=timeout)
+                    # Whether the wait ran its course or ``end_timeout``
+                    # cut it short makes no difference to what is due;
+                    # ``_run_expired_jobs`` asks the clock either way.
+                    self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
-                    self._run_expired_jobs(timed_out=timed_out)
+                    self._run_expired_jobs()
                     # Recompute *after* queueing, so the new schedule sees
                     # the slots those jobs just claimed. Recomputing first
                     # re-read the telemeter's unchanged send time and put

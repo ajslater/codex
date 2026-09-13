@@ -55,7 +55,7 @@ from codex.librarian.onlinetag.statuses import (
 
 
 @pytest.fixture(autouse=True)
-def _clear_prompts():  # pyright: ignore[reportUnusedFunction]
+def _clear_prompts():
     """
     Each test starts and ends with an empty tagging cache.
 

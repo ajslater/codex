@@ -30,7 +30,7 @@ def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
 
 
 @pytest.fixture(autouse=True)
-def _reset_registration_settings():  # pyright: ignore[reportUnusedFunction]
+def _reset_registration_settings():
     """
     Reset rest-registration's runtime settings around every test.
 

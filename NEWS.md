@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.2
+
+- Fixes
+    - The nightly maintenance run happened dozens of times a night instead of
+      once.
+
 ## v2.3.1
 
 - Upgrading

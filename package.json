@@ -61,7 +61,7 @@
     "typescript": "~6.0.3"
   },
   "devDependencies": {
-    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.0",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.1.0",
     "@fsouza/prettierd": "^0.29.0",
