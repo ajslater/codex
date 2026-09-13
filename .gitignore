@@ -11,6 +11,7 @@ __snapshots__
 .DS_Store
 .eggs/
 .env
+.env.cleaner
 .env-*
 .env.package
 .env.pushover
