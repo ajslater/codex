@@ -10,13 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - The nightly maintenance run happened dozens of times a night instead of
-      once. Every one of them optimized the search index, vacuumed and optimized
-      the database, backed the database up, and snapshotted the user data
-      sidecar. The scheduler was waking a fraction of a second before midnight,
-      starting the night's work anyway, and starting it again on every pass
-      until the clock caught up. The weekly anonymous stats send had the same
-      window, and on the night daylight saving time ends the run would have
-      repeated for the whole hour after midnight.
+      once.
 
 ## v2.3.1
 
