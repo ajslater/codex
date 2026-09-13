@@ -11,8 +11,8 @@ __snapshots__
 .DS_Store
 .eggs/
 .env
-.env.cleaner
 .env-*
+.env.cleaner
 .env.package
 .env.pushover
 .eslintcache
