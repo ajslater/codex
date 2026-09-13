@@ -6,22 +6,33 @@ For the telemeter that schedule lives in the database and is written by
 the send itself, which ``BookmarkThread`` runs on a daemon thread nobody
 joins — so the recompute has to see a slot the scheduler spent, not one
 the send has not gotten around to writing yet.
+
+The other half is the clock: a job runs when the clock reaches its slot
+and not a moment before. Firing early left the slot in the future for
+the recompute that follows, which handed back a zero timeout and a wait
+that returned at once — the whole night's work, queued again, on every
+pass until the clock caught up.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
+import time as time_module
+from datetime import UTC, date, datetime, timedelta
+from os import environ
 from queue import SimpleQueue
 from threading import Lock
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 from uuid import UUID
 
+import pytest
 from django.test import TestCase
 from django.utils import timezone
 from loguru import logger as _loguru_logger
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.cron.crond import CronThread
+from codex.librarian.scribe.janitor.scheduled_time import get_janitor_time
 from codex.librarian.scribe.janitor.tasks import JanitorNightlyTask
 from codex.librarian.telemeter.scheduled_time import (
     get_telemeter_time,
@@ -39,6 +50,11 @@ if TYPE_CHECKING:
 # it at Monday 00:00 UTC — always in the past, so the job is always due.
 _START_OF_WEEK_UUID = str(UUID(int=0))
 _LONG_AGO = timedelta(days=30)
+# Sub-second offsets from a slot. The waits these produce are exactly
+# what whole-second truncation used to round away to nothing.
+_A_MOMENT = timedelta(milliseconds=500)
+_SHORT_OF_IT = timedelta(milliseconds=300)
+_PAST_IT = timedelta(milliseconds=50)
 # ``loguru.logger`` *is* a ``loguru._logger.Logger`` at runtime; loguru's
 # stubs declare a second, unrelated ``loguru.Logger`` for the singleton,
 # and that is not the type the librarian annotates its ``log`` params with.
@@ -74,15 +90,8 @@ def _drain(queue: SimpleQueue) -> list:
 
 
 def _cron_pass(thread: CronThread) -> None:
-    """
-    One trip around the cron loop, minus the wait.
-
-    ``timed_out=True`` is the worst case for the job at the head of the
-    schedule: it is the value the loop uses when it has waited out the
-    full timeout, so nothing about a short clock reading can excuse a
-    second enqueue.
-    """
-    thread._run_expired_jobs(timed_out=True)  # noqa: SLF001
+    """One trip around the cron loop, minus the wait."""
+    thread._run_expired_jobs()  # noqa: SLF001
     thread._create_task_times()  # noqa: SLF001
 
 
@@ -143,33 +152,126 @@ class CronScheduleTestCase(TestCase):
 
 
 class CronWakeupTestCase(TestCase):
-    """Which jobs a wakeup is allowed to run."""
+    """What a wakeup short of the next slot is allowed to do."""
 
     @staticmethod
     def _janitor_a_moment_out() -> tuple[CronThread, SimpleQueue]:
-        """Put the nightly janitor just past the clock, as truncation does."""
+        """Put the nightly janitor half a second ahead of the clock."""
         thread, queue = _new_cron_thread()
-        soon = timezone.now() + timedelta(milliseconds=500)
+        soon = timezone.now() + _A_MOMENT
         thread._task_times = ((soon, JanitorNightlyTask),)  # noqa: SLF001
         return thread, queue
 
-    def test_a_full_timeout_runs_the_job_it_waited_for(self) -> None:
-        """
-        ``_get_timeout`` truncates to whole seconds, so the wait ends early.
-
-        Declining the job then would let ``_create_task_times`` push the
-        nightly janitor out to the following midnight and skip a night.
-        """
+    def test_a_slot_still_ahead_of_the_clock_is_not_run(self) -> None:
+        """Whatever ended the wait, the clock decides what runs."""
         thread, queue = self._janitor_a_moment_out()
-        thread._run_expired_jobs(timed_out=True)  # noqa: SLF001
-        assert not queue.empty()
-        assert isinstance(queue.get_nowait(), JanitorNightlyTask)
-
-    def test_being_woken_early_runs_nothing_early(self) -> None:
-        """``end_timeout`` is a nudge to reschedule, not a licence to run."""
-        thread, queue = self._janitor_a_moment_out()
-        thread._run_expired_jobs(timed_out=False)  # noqa: SLF001
+        thread._run_expired_jobs()  # noqa: SLF001
         assert queue.empty()
+
+    def test_a_sub_second_wait_is_not_rounded_to_nothing(self) -> None:
+        """
+        The remainder is what the loop waits out, so it has to survive.
+
+        Truncating it to whole seconds made every wait end early and the
+        one that followed return at once.
+        """
+        thread, _ = self._janitor_a_moment_out()
+        timeout = thread._get_timeout()  # noqa: SLF001
+        assert 0 < timeout <= _A_MOMENT.total_seconds()
+
+
+class CronEarlyWakeTestCase(TestCase):
+    """A wakeup a hair short of the slot must not spend the slot."""
+
+    @staticmethod
+    def _only_the_janitor() -> None:
+        """Leave the nightly janitor as the one scheduled job."""
+        init_admin_flags()
+        AdminFlag.objects.filter(key=AdminFlagChoices.SEND_TELEMETRY.value).update(
+            on=False
+        )
+
+    def test_the_nightly_janitor_runs_once_across_an_early_wake(self) -> None:
+        """
+        The reported bug: dozens of nightly runs, every night.
+
+        A wait timed on the monotonic clock can end with the wall clock
+        reading a hair short of midnight. Queueing the night's work then
+        left ``_create_task_times`` recomputing the very same midnight,
+        a zero timeout, and a wait that returned at once — so the work
+        was queued again on every pass until the clock caught up.
+        """
+        self._only_the_janitor()
+        # Both this module and the janitor read ``now`` off
+        # ``django.utils.timezone`` at call time, so one patch freezes both.
+        midnight = get_janitor_time(_LOG)
+        thread, queue = _new_cron_thread()
+
+        short_of_it = midnight - _SHORT_OF_IT
+        with patch("django.utils.timezone.now", return_value=short_of_it):
+            thread._create_task_times()  # noqa: SLF001
+            assert thread._task_times == ((midnight, JanitorNightlyTask),)  # noqa: SLF001
+            for _ in range(3):
+                _cron_pass(thread)
+            assert queue.empty(), (
+                f"Queued {len(_drain(queue))} tasks before midnight; the slot "
+                "had not arrived on any of those passes."
+            )
+            # Still scheduled, and the loop has the remainder to wait out
+            # rather than a timeout of zero.
+            assert _scheduled_classes(thread) == {JanitorNightlyTask}
+            assert 0 < thread._get_timeout() <= _SHORT_OF_IT.total_seconds()  # noqa: SLF001
+
+        past_it = midnight + _PAST_IT
+        with patch("django.utils.timezone.now", return_value=past_it):
+            for _ in range(3):
+                _cron_pass(thread)
+            # The recompute moved on: tonight's slot is spent for good.
+            assert thread._task_times[0][0] > midnight  # noqa: SLF001
+
+        queued = [
+            task for task in _drain(queue) if isinstance(task, JanitorNightlyTask)
+        ]
+        assert len(queued) == 1, (
+            f"Queued {len(queued)} JanitorNightlyTasks for one midnight; each "
+            "one runs the whole night's janitor work."
+        )
+
+
+class JanitorTimeTestCase(TestCase):
+    """The nightly slot is a calendar midnight, not a day of seconds."""
+
+    # 00:30 Pacific on the night daylight saving time ends, when the
+    # local day is 25 hours long.
+    _DST_END_MORNING = datetime(2026, 11, 1, 7, 30, tzinfo=UTC)
+
+    @staticmethod
+    def _pacific() -> None:
+        """Point the local clock at a zone that changes offset that night."""
+        environ["TZ"] = "America/Los_Angeles"
+        time_module.tzset()
+
+    @pytest.mark.skipif(not hasattr(time_module, "tzset"), reason="tzset is POSIX only")
+    def test_the_next_midnight_is_the_calendar_day_after(self) -> None:
+        """
+        Adding 24 hours lands on the same date when the day is 25 hours long.
+
+        That handed back the midnight that had just fired — a slot in the
+        past, and an hour of it.
+        """
+        old_tz = environ.get("TZ")
+        try:
+            self._pacific()
+            with patch("django.utils.timezone.now", return_value=self._DST_END_MORNING):
+                dttm = get_janitor_time(_LOG)
+            assert dttm > self._DST_END_MORNING
+            assert dttm.astimezone().date() == date(2026, 11, 2)
+        finally:
+            if old_tz is None:
+                environ.pop("TZ", None)
+            else:
+                environ["TZ"] = old_tz
+            time_module.tzset()
 
 
 class TelemeterScheduleTestCase(TestCase):
