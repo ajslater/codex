@@ -106,27 +106,39 @@ class OnlineTagOutcomeStats:
                 pass
 
     def _record_source_status(self, event: Event) -> None:
-        """Fold one event into the per-comic, per-source status map."""
+        """
+        Fold one event into the per-comic, per-source status map.
+
+        The two lifecycle events bracket a source's turn — one says a source
+        is about to run, the other says the comic is done and whatever never
+        reported has to settle. Everything else that belongs in the map is a
+        verdict from one source about one comic.
+        """
+        match event:
+            case SourceStarted(path=path, source=source) if path and source:
+                self._add_started_source(path, source)
+            case FileFinished(path=path) if path:
+                self._close_source_statuses(path)
+            case _:
+                self._record_source_verdict(event)
+
+    def _record_source_verdict(self, event: Event) -> None:
+        """Record what one source concluded about one comic, if anything."""
         match event:
             case AutoWritten(path=path, source=source) if path and source:
-                self._set_source_status(path, source, MATCHED)
+                status = MATCHED
             # A source that found nothing above the confidence floor and one
             # whose matcher declined both mean "this source did not tag it" —
             # the same distinction the file-level pipeline already collapses.
             case (
                 NoMatch(path=path, source=source) | Skipped(path=path, source=source)
             ) if path and source:
-                self._set_source_status(path, source, NO_MATCH)
+                status = NO_MATCH
             case PromptDeferred(path=path, source=source) if path and source:
-                self._set_source_status(path, source, NEEDS_REVIEW)
-            case SourceStarted(path=path, source=source) if path and source:
-                started = self.started_sources_by_path.setdefault(path, [])
-                if source not in started:
-                    started.append(source)
-            case FileFinished(path=path) if path:
-                self._close_source_statuses(path)
+                status = NEEDS_REVIEW
             case _:
-                pass
+                return
+        self._set_source_status(path, source, status)
 
     def _add_matched_source(self, path: Path, source: str) -> None:
         """
@@ -139,6 +151,12 @@ class OnlineTagOutcomeStats:
         sources = self.matched_source_by_path.setdefault(path, [])
         if source not in sources:
             sources.append(source)
+
+    def _add_started_source(self, path: Path, source: str) -> None:
+        """Note that a source ran on a comic, deduped in start order."""
+        started = self.started_sources_by_path.setdefault(path, [])
+        if source not in started:
+            started.append(source)
 
     def _set_source_status(self, path: Path, source: str, status: str) -> None:
         """Record what one source is doing (or did) with one comic."""
