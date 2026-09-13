@@ -1,6 +1,7 @@
 """An ASGI request must release its database connections before its thread dies."""
 
 import asyncio
+import sqlite3
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -53,6 +54,27 @@ def _alias_settings(tmp_path, max_age):
     }
 
 
+def _create_in_wal(path) -> None:
+    """
+    Create the file already in WAL, the way the real database always is.
+
+    ``journal_mode=wal`` rides in ``init_command``, so every connection
+    asserts it. Asserting it is free once the file is in WAL, but
+    *converting* a file into WAL takes an exclusive lock, and SQLite
+    answers that with SQLITE_BUSY straight away instead of waiting out
+    the busy timeout. Two pool workers opening a brand new file at the
+    same instant therefore raced, and one of them lost with "database is
+    locked" — about a third of the time on a loaded machine. The
+    database codex serves is never in that state: startup migrates it on
+    a single connection long before a second one exists.
+    """
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("PRAGMA journal_mode=wal")
+    finally:
+        connection.close()
+
+
 @pytest.fixture
 def alias(tmp_path, django_db_blocker):
     """
@@ -61,13 +83,15 @@ def alias(tmp_path, django_db_blocker):
     It has to be a *file*: Django's sqlite backend makes ``close()`` a
     no-op for in-memory databases so the test database isn't destroyed
     mid-suite, which would make every assertion here vacuously pass.
-    It starts at ``CONN_MAX_AGE=0`` like the real default database;
-    tests that need persistence raise it themselves.
+    It starts at ``CONN_MAX_AGE=0`` like the real default database, and
+    already in WAL like it too (see :func:`_create_in_wal`); tests that
+    need persistence raise the age themselves.
 
     Only the alias needs unregistering afterwards: the connection itself
     is opened on a worker thread, and each test accounts for it there.
     """
     connections.settings[_ALIAS] = _alias_settings(tmp_path, 0)
+    _create_in_wal(connections.settings[_ALIAS]["NAME"])
     with django_db_blocker.unblock():
         yield _ALIAS
     del connections.settings[_ALIAS]
