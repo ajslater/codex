@@ -54,7 +54,7 @@ import AdminStatusList from "@/components/admin/drawer/status-list.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
-import { useOnlineTagStore } from "@/stores/online-tag";
+import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
 export default {
   name: "AdminMenu",
@@ -86,7 +86,14 @@ export default {
       return this.pendingPrompts.length > 0;
     },
     promptsLabel() {
-      const count = this.pendingPrompts.length;
+      // Comics, not questions: one question can hold a whole series, and the
+      // Tagging tab counts the rows it will mark for review. A prompt that
+      // names no comic at all still counts as one thing to look at, so a
+      // malformed cache entry can't make a visible queue read as empty.
+      const count = this.pendingPrompts.reduce(
+        (total, prompt) => total + Math.max(promptComics(prompt).length, 1),
+        0,
+      );
       return `${count} Match${count === 1 ? "" : "es"} to Review`;
     },
     showAdminPanelLink() {

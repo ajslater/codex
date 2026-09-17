@@ -56,11 +56,28 @@ describe("AdminMenu", () => {
 
   test("exactly one prompts item regardless of prompt count", () => {
     const wrapper = mountMenu({
-      pendingPrompts: [{ fingerprint: "a" }, { fingerprint: "b" }],
+      pendingPrompts: [
+        { fingerprint: "a", pk: 1 },
+        { fingerprint: "b", pk: 2 },
+      ],
     });
 
     const items = wrapper.findAll(".promptsLink");
     expect(items).toHaveLength(1);
     expect(items[0].text()).toContain("2 Matches to Review");
+  });
+
+  // One question can hold a whole series, so the count that matters is how
+  // many comics are waiting, not how many dialogs' worth of questions.
+  test("counts every comic a series-level prompt covers", () => {
+    const wrapper = mountMenu({
+      pendingPrompts: [
+        { fingerprint: "a", pk: 1, comics: [{ pk: 1 }, { pk: 2 }, { pk: 3 }] },
+      ],
+    });
+
+    expect(wrapper.findAll(".promptsLink")[0].text()).toContain(
+      "3 Matches to Review",
+    );
   });
 });

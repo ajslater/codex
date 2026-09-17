@@ -6,6 +6,25 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.3
+
+- Fixes
+    - Answering an online-tagging match prompt now tags every issue of the
+      series it was asked about, instead of one. Comicbox asks one question per
+      series on purpose, so a batch of twenty issues raises a single prompt —
+      codex kept only the last comic that raised it and silently dropped the
+      rest, which finished untagged while the Tagging tab still counted them as
+      needing review. Their rows read "no match" with no Review button to press,
+      which is the shape this was reported in.
+    - The match-review dialog closes when the queue empties, instead of sitting
+      on a spinner until the page is reloaded. Another browser tab answering the
+      last prompt, or the daemon resolving it, now clears the dialog here too.
+    - The dialog says how many comics a pick will write, names them, and can be
+      reopened: the Tagging tab grew a Review button beside Pause and Resume, so
+      closing the dialog is no longer a one-way door.
+    - A slow prompt refresh can no longer overwrite a newer one with a stale
+      list.
+
 ## v2.3.2
 
 - Fixes

@@ -2,9 +2,14 @@
   <v-dialog v-model="promptDialogOpen" max-width="700">
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>Online Tagging Match Review</span>
+        <span>{{ title }}</span>
         <div>
-          <v-btn variant="text" size="small" @click="promptDialogOpen = false">
+          <v-btn
+            variant="text"
+            size="small"
+            :title="closeHint"
+            @click="promptDialogOpen = false"
+          >
             {{ dismissLabel }}
           </v-btn>
           <v-btn
@@ -33,6 +38,16 @@
                   }}</v-chip>
                   <v-chip size="x-small" class="ml-1">
                     {{ prompt.candidates.length }} candidates
+                  </v-chip>
+                  <!-- One question is asked per series, so a pick usually
+                     writes more than the comic it names. Say how many. -->
+                  <v-chip
+                    v-if="coveredCount(prompt) > 1"
+                    size="x-small"
+                    class="ml-1"
+                    color="primary"
+                  >
+                    + {{ coveredCount(prompt) - 1 }} more of this series
                   </v-chip>
                 </div>
               </div>
@@ -79,6 +94,10 @@
                   Pick
                 </v-btn>
               </div>
+              <div v-if="coveredCount(prompt) > 1" class="promptCovers">
+                Applies to {{ coveredCount(prompt) }} comics:
+                {{ coveredNames(prompt) }}
+              </div>
               <div class="promptActions">
                 <v-btn variant="text" size="small" @click="skip(prompt)">
                   Skip
@@ -87,10 +106,7 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
-        <div v-else class="text-center pa-4">
-          <v-progress-circular indeterminate size="32" class="mr-2" />
-          Waiting for prompts...
-        </div>
+        <div v-else class="text-center pa-4">No matches need review.</div>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -100,7 +116,10 @@
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { sourceLabel } from "@/components/online-tag/source-labels";
-import { useOnlineTagStore } from "@/stores/online-tag";
+import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
+
+// How many filenames a prompt lists before it stops naming them.
+const NAMED_COMICS = 3;
 
 export default {
   name: "OnlineTagPromptPopup",
@@ -110,6 +129,8 @@ export default {
       // immediately without an extra click. Re-opens the new top prompt as
       // each one is resolved.
       openPanel: 0,
+      closeHint:
+        "Matches stay queued — reopen from the menu or the Tagging tab.",
     };
   },
   computed: {
@@ -124,7 +145,12 @@ export default {
       );
     },
     dismissLabel() {
-      return this.sessionFinished ? "Dismiss" : "Cancel";
+      return this.sessionFinished ? "Dismiss" : "Close";
+    },
+    title() {
+      const count = this.pendingPrompts.length;
+      if (!count) return "Online Tagging Match Review";
+      return `Online Tagging Match Review — ${count} pending`;
     },
   },
   methods: {
@@ -138,6 +164,17 @@ export default {
       if (!path) return "Unknown";
       const parts = path.split("/");
       return parts[parts.length - 1];
+    },
+    coveredCount(prompt) {
+      return promptComics(prompt).length;
+    },
+    coveredNames(prompt) {
+      const names = promptComics(prompt).map((comic) =>
+        this.promptFilename(comic.path),
+      );
+      const shown = names.slice(0, NAMED_COMICS).join(", ");
+      const rest = names.length - NAMED_COMICS;
+      return rest > 0 ? `${shown} and ${rest} more` : shown;
     },
     pick(prompt, candidateIndex) {
       // The candidate's parent container id narrows the re-search replay to
@@ -211,6 +248,12 @@ export default {
 
 .candidateAka {
   font-size: 0.8125rem;
+}
+
+.promptCovers {
+  padding-top: 8px;
+  color: rgb(var(--v-theme-textSecondary));
+  font-size: 0.75rem;
 }
 
 .promptActions {

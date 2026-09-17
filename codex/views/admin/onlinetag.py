@@ -13,6 +13,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
     get_active_scan_id,
     get_pending_prompts,
+    prompt_comics,
 )
 from codex.librarian.onlinetag.session_snapshot import (
     get_resolved_outcomes,
@@ -69,16 +70,21 @@ class AdminOnlineTagActiveView(AdminAPIView):
 
 
 def _review_sources_by_pk() -> dict[int, tuple[str, ...]]:
-    """Map each comic still awaiting review to the source(s) that prompted."""
+    """
+    Map each comic still awaiting review to the source(s) that prompted.
+
+    Walks every comic a prompt speaks for. Comicbox asks one series-level
+    question for a whole series, so reading only the representative left the
+    other issues marked "no match" while the batch tally still counted them
+    as needing review — a row with no Review button to press.
+    """
     by_pk: dict[int, list[str]] = {}
     for prompt in get_pending_prompts().values():
-        pk = prompt.get("pk")
-        if pk is None:
-            continue
-        sources = by_pk.setdefault(pk, [])
         source = prompt.get("source")
-        if source and source not in sources:
-            sources.append(source)
+        for comic in prompt_comics(prompt):
+            sources = by_pk.setdefault(comic["pk"], [])
+            if source and source not in sources:
+                sources.append(source)
     return {pk: tuple(sources) for pk, sources in by_pk.items()}
 
 

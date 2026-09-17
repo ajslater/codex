@@ -95,6 +95,58 @@ describe("OnlineTagPromptPopup", () => {
     });
   });
 
+  /*
+   * One prompt stands for a whole series, so the dialog has to say what a
+   * pick will actually write — a "Pick" that silently tags twelve comics is
+   * not the same promise as one that tags the file it names.
+   */
+  describe("the comics a pick covers", () => {
+    test("says how many more of the series the pick will write", async () => {
+      const { wrapper, store } = mountPopup([candidate()]);
+      store.pendingPrompts[0].comics = [
+        { pk: 7, path: "/comics/kapitan 1.cbz" },
+        { pk: 8, path: "/comics/kapitan 2.cbz" },
+        { pk: 9, path: "/comics/kapitan 3.cbz" },
+      ];
+      await wrapper.vm.$nextTick();
+
+      const text = wrapper.text();
+      expect(text).toContain("+ 2 more of this series");
+      expect(text).toContain("Applies to 3 comics");
+      expect(text).toContain("kapitan 2.cbz");
+    });
+
+    test("says nothing extra for a prompt covering one comic", async () => {
+      const { wrapper } = mountPopup([candidate()]);
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).not.toContain("more of this series");
+      expect(wrapper.text()).not.toContain("Applies to");
+    });
+
+    test("names only the first few and counts the rest", () => {
+      const { wrapper } = mountPopup([candidate()]);
+      const prompt = {
+        comics: [1, 2, 3, 4, 5].map((n) => ({ pk: n, path: `/c/${n}.cbz` })),
+      };
+
+      expect(wrapper.vm.coveredNames(prompt)).toBe(
+        "1.cbz, 2.cbz, 3.cbz and 2 more",
+      );
+    });
+  });
+
+  describe("the empty queue", () => {
+    test("says the queue is empty instead of spinning forever", async () => {
+      const { wrapper, store } = mountPopup([candidate()]);
+      store.pendingPrompts = [];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain("No matches need review.");
+      expect(wrapper.findAll(".v-progress-circular")).toHaveLength(0);
+    });
+  });
+
   describe("pick", () => {
     test("passes the chosen candidate's volume id", () => {
       const { wrapper, store } = mountPopup([

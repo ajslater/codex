@@ -25,13 +25,14 @@ from codex.librarian.onlinetag.statuses import USER_MATCHED
 from codex.librarian.onlinetag.tasks import OnlineTagPromptResponseTask
 from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
 from tests.onlinetag_session_fakes import (
-    FETCH_TARGET,
-    PATCH_TARGET,
+    APPLY_FETCH_TARGET,
+    APPLY_SESSION_TARGET,
     FakeDP,
     FakeSession,
     OnlineTagSessionTestCase,
     double,
     make_comic,
+    make_series_comics,
 )
 
 
@@ -65,7 +66,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             captured.update(path=str(path), source=source, issue_id=issue_id)
             return {"series": "X"}
 
-        with patch(FETCH_TARGET, _fake_fetch):
+        with patch(APPLY_FETCH_TARGET, _fake_fetch):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         # Prompt consumed; the exact chosen issue was fetched directly by id.
@@ -90,7 +91,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
         comic = make_comic()
         set_pending_prompts({"fp1": _prompt(comic)})
 
-        with patch(FETCH_TARGET, lambda *_a, **_k: None):
+        with patch(APPLY_FETCH_TARGET, lambda *_a, **_k: None):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not self.write_tasks()
@@ -118,7 +119,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             captured.update(path=str(path), source=source, issue_id=issue_id)
             return {"series": "X"}
 
-        with patch(FETCH_TARGET, _fake_fetch):
+        with patch(APPLY_FETCH_TARGET, _fake_fetch):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert captured["path"] == str(comic.path)
@@ -140,7 +141,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             reason = f"{comic_path} does not exist."
             raise FileNotFoundError(reason)
 
-        with patch(FETCH_TARGET, _boom):
+        with patch(APPLY_FETCH_TARGET, _boom):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not self.write_tasks()
@@ -159,7 +160,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             called.append(args)
             return {"series": "X"}
 
-        with patch(FETCH_TARGET, _fake_fetch):
+        with patch(APPLY_FETCH_TARGET, _fake_fetch):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not called
@@ -186,7 +187,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             )
         ]
 
-        with patch(PATCH_TARGET, FakeSession):
+        with patch(APPLY_SESSION_TARGET, FakeSession):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not self.write_tasks()
@@ -209,7 +210,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             )
         ]
 
-        with patch(PATCH_TARGET, FakeSession):
+        with patch(APPLY_SESSION_TARGET, FakeSession):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not self.write_tasks()
@@ -219,7 +220,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
         )
 
-        with patch(PATCH_TARGET, FakeSession):
+        with patch(APPLY_SESSION_TARGET, FakeSession):
             self.manager.resolve_prompt("fp1", "skip", None, None)
 
         assert get_pending_prompts() == {}
@@ -238,7 +239,7 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
         assert get_pending_prompts() == {}
 
     def test_resolve_unknown_prompt_is_a_noop(self) -> None:
-        with patch(PATCH_TARGET, FakeSession):
+        with patch(APPLY_SESSION_TARGET, FakeSession):
             self.manager.resolve_prompt("nope", "choose", 0, None)
 
         assert not self.write_tasks()
@@ -278,7 +279,7 @@ class OnlineTagMidScanResponseTests(OnlineTagSessionTestCase):
 
         # Gone from the cache immediately, so a refresh won't resurrect it.
         assert get_pending_prompts() == {}
-        assert "fp1" in state.answered_fingerprints
+        assert comic.pk in state.answered_pks
         # The network apply is deferred, not run inline mid-scan.
         assert len(state.deferred_applies) == 1
         assert not self.write_tasks()
@@ -294,10 +295,10 @@ class OnlineTagMidScanResponseTests(OnlineTagSessionTestCase):
         self.manager._defer_prompt_response(state, task)  # noqa: SLF001
 
         assert get_pending_prompts() == {}
-        assert "fp1" in state.answered_fingerprints
+        assert comic.pk in state.answered_pks
         assert state.deferred_applies == []
 
-    def test_persist_prompts_skips_answered_fingerprints(self) -> None:
+    def test_persist_prompts_skips_answered_comics(self) -> None:
         """A scan must not re-persist a prompt the admin answered mid-scan."""
         comic = make_comic()
         comic_path = Path(comic.path)
@@ -307,7 +308,7 @@ class OnlineTagMidScanResponseTests(OnlineTagSessionTestCase):
             path_to_pk={comic_path: comic.pk},
             formats=("COMIC_INFO",),
         )
-        state.answered_fingerprints.add("fp1")
+        state.answered_pks.add(comic.pk)
 
         self.manager._persist_prompts(state)  # noqa: SLF001
 
@@ -321,10 +322,160 @@ class OnlineTagMidScanResponseTests(OnlineTagSessionTestCase):
         state = SessionState(session=double(FakeSession()))
         state.deferred_applies.append((prompt, "choose", 0, None))
 
-        with patch(FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
+        with patch(APPLY_FETCH_TARGET, lambda *_a, **_k: {"series": "X"}):
             self.manager._apply_deferred_resolutions(state)  # noqa: SLF001
 
         writes = self.write_tasks()
         assert len(writes) == 1
         assert writes[0].per_comic_patches == {comic.pk: {"series": "X"}}
         assert state.deferred_applies == []
+
+
+def _series_prompt(comics, *, candidates: list | None = None) -> dict:
+    """Build the one series-level prompt comicbox raises for several issues."""
+    return {
+        **_prompt(comics[0], candidates=candidates),
+        "comics": [{"pk": c.pk, "path": str(c.path)} for c in comics],
+    }
+
+
+class OnlineTagSeriesPromptTests(OnlineTagSessionTestCase):
+    """
+    One answer covers every issue of the series that asked the question.
+
+    Comicbox fingerprints a deferred prompt at series level so a single pick
+    answers a whole run. Codex used to keep only the last comic to defer under
+    a fingerprint, so every other issue was silently dropped: never prompted,
+    never written, and left showing "needs review" with nothing to press.
+    """
+
+    @staticmethod
+    def _matched_result(path) -> SimpleNamespace:
+        """Build a replay result that found the picked volume's issue."""
+        return SimpleNamespace(
+            path=Path(path), tags={"series": "S"}, error=None, matched=True
+        )
+
+    def test_resolve_applies_the_pick_to_every_issue_of_the_series(self) -> None:
+        """The representative is fetched by id; the rest replay into the volume."""
+        comics = make_series_comics(3)
+        set_pending_prompts({"fp1": _series_prompt(comics)})
+        FakeSession.tag_results = [self._matched_result(comics[1].path)]
+
+        with (
+            patch(APPLY_SESSION_TARGET, FakeSession),
+            patch(APPLY_FETCH_TARGET, lambda *_a, **_k: {"series": "S"}),
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, 55)
+
+        written = set()
+        for task in self.write_tasks():
+            written.update(task.per_comic_patches)
+        assert written == {c.pk for c in comics}
+        # The followers replayed with the admin's volume preloaded, so their
+        # own issue numbers resolve inside it rather than taking issue #1.
+        assert [p[1] for p in FakeSession.preloaded] == ["choose", "choose"]
+        assert {p[3] for p in FakeSession.preloaded} == {55}
+
+    def test_resolve_records_the_outcome_for_every_issue(self) -> None:
+        """Every row of the series leaves review, not just the one shown."""
+        comics = make_series_comics(3)
+        set_pending_prompts({"fp1": _series_prompt(comics)})
+        FakeSession.tag_results = [self._matched_result(comics[1].path)]
+
+        with (
+            patch(APPLY_SESSION_TARGET, FakeSession),
+            patch(APPLY_FETCH_TARGET, lambda *_a, **_k: {"series": "S"}),
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, 55)
+
+        outcomes = get_resolved_outcomes()
+        for comic in comics:
+            assert outcomes[comic.pk]["status"] == USER_MATCHED
+
+    def test_a_pick_with_no_volume_requeues_the_rest_of_the_series(self) -> None:
+        """
+        An untransferable pick writes one comic and re-asks for the others.
+
+        Without a volume id there is nothing to narrow the other issues'
+        lookups with — the candidates were scored for one issue — so the
+        honest move is another question, not writing one issue's match onto
+        the whole series.
+        """
+        comics = make_series_comics(3)
+        set_pending_prompts({"fp1": _series_prompt(comics)})
+
+        with (
+            patch(APPLY_SESSION_TARGET, FakeSession),
+            patch(APPLY_FETCH_TARGET, lambda *_a, **_k: {"series": "S"}),
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        writes = self.write_tasks()
+        assert len(writes) == 1
+        assert set(writes[0].per_comic_patches) == {comics[0].pk}
+        requeued = get_pending_prompts()["fp1"]
+        assert [c["pk"] for c in requeued["comics"]] == [comics[1].pk, comics[2].pk]
+        # The re-queued question's representative is one of the comics still
+        # waiting, so answering it again can't re-apply to the comic just done.
+        assert requeued["pk"] == comics[1].pk
+
+    def test_skip_covers_every_issue_of_the_series(self) -> None:
+        """Skipping the question skips every comic waiting on it."""
+        comics = make_series_comics(2)
+        set_pending_prompts({"fp1": _series_prompt(comics)})
+
+        with patch(APPLY_SESSION_TARGET, FakeSession):
+            self.manager.resolve_prompt("fp1", "skip", None, None)
+
+        outcomes = get_resolved_outcomes()
+        assert {c.pk for c in comics} <= set(outcomes)
+        assert not self.write_tasks()
+
+    def test_a_mid_scan_answer_reaches_the_running_session(self) -> None:
+        """
+        The pick is preloaded so the scan resolves the rest of the series itself.
+
+        This is comicbox's half of the deferred-prompt contract: a series-level
+        fingerprint is only useful if the answer goes back in, and skipping it
+        is why later issues re-deferred a question nobody could answer.
+        """
+        comics = make_series_comics(2)
+        set_pending_prompts({"fp1": _series_prompt(comics)})
+        state = SessionState(
+            session=double(FakeSession()),
+            path_to_pk={Path(c.path): c.pk for c in comics},
+        )
+        task = OnlineTagPromptResponseTask(
+            prompt_fingerprint="fp1", action="choose", payload=0, chosen_volume_id=55
+        )
+
+        self.manager._defer_prompt_response(state, task)  # noqa: SLF001
+
+        assert FakeSession.preloaded == [("fp1", "choose", 0, 55)]
+        assert state.answered_pks == {c.pk for c in comics}
+
+    def test_a_later_issue_of_an_answered_series_still_gets_asked(self) -> None:
+        """
+        Answering issue 1 must not silence issue 5's own question.
+
+        The suppression used to key on the fingerprint, which a whole series
+        shares — so every issue that deferred after the answer was thrown away
+        instead of queued.
+        """
+        answered, later = make_series_comics(2)
+        state = SessionState(
+            session=double(FakeSession()),
+            path_to_pk={Path(answered.path): answered.pk, Path(later.path): later.pk},
+            formats=("COMIC_INFO",),
+        )
+        state.answered_pks.add(answered.pk)
+        FakeSession.deferred = [
+            FakeDP(Path(answered.path), "fp1", "metron"),
+            FakeDP(Path(later.path), "fp1", "metron"),
+        ]
+
+        self.manager._persist_prompts(state)  # noqa: SLF001
+
+        prompts = get_pending_prompts()
+        assert [c["pk"] for c in prompts["fp1"]["comics"]] == [later.pk]
