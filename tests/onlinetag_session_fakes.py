@@ -32,9 +32,16 @@ from codex.models import (
 )
 
 TMP_DIR: Final = Path("/tmp/codex.tests.onlinetag.manager")  # noqa: S108
+# The manager runs the scan; the applier writes an answered prompt. Both call
+# the same two collaborators, and a patch only takes where the caller looks
+# them up — so each has its own name here rather than one shared by habit.
 PATCH_TARGET: Final = "codex.librarian.onlinetag.session_manager.OnlineSession"
 FETCH_TARGET: Final = (
     "codex.librarian.onlinetag.session_manager.fetch_tags_by_explicit_id"
+)
+APPLY_SESSION_TARGET: Final = "codex.librarian.onlinetag.prompt_apply.OnlineSession"
+APPLY_FETCH_TARGET: Final = (
+    "codex.librarian.onlinetag.prompt_apply.fetch_tags_by_explicit_id"
 )
 
 
@@ -145,30 +152,54 @@ class FakeSession:
         pass
 
 
-def make_comic() -> Comic:
-    """Create one comic row whose path exists on disk."""
+def _make_series() -> dict[str, Any]:
+    """Create (or reuse) the one library and series every test comic sits in."""
     TMP_DIR.mkdir(exist_ok=True, parents=True)
-    library = Library.objects.create(path=str(TMP_DIR))
-    publisher = Publisher.objects.create(name="P")
-    imprint = Imprint.objects.create(name="I", publisher=publisher)
-    series = Series.objects.create(name="S", publisher=publisher, imprint=imprint)
-    volume = Volume.objects.create(
+    library, _ = Library.objects.get_or_create(path=str(TMP_DIR))
+    publisher, _ = Publisher.objects.get_or_create(name="P")
+    imprint, _ = Imprint.objects.get_or_create(name="I", publisher=publisher)
+    series, _ = Series.objects.get_or_create(
+        name="S", publisher=publisher, imprint=imprint
+    )
+    volume, _ = Volume.objects.get_or_create(
         name="1", publisher=publisher, imprint=imprint, series=series
     )
-    path = TMP_DIR / "c.cbz"
+    return {
+        "library": library,
+        "publisher": publisher,
+        "imprint": imprint,
+        "series": series,
+        "volume": volume,
+    }
+
+
+def make_comic(name: str = "c", issue_number: int = 1) -> Comic:
+    """Create one comic row whose path exists on disk."""
+    path = TMP_DIR / f"{name}.cbz"
+    groups = _make_series()
     path.touch()
     return Comic.objects.create(
-        library=library,
         path=path,
-        issue_number=1,
-        name="c",
-        publisher=publisher,
-        imprint=imprint,
-        series=series,
-        volume=volume,
+        issue_number=issue_number,
+        name=name,
         size=1,
         file_type="CBZ",
+        **groups,
     )
+
+
+def make_series_comics(count: int) -> list[Comic]:
+    """
+    Create ``count`` issues of one series, as a series-wide tag run sees them.
+
+    Comicbox raises ONE deferred prompt for a whole series, so anything about
+    answering prompts needs more than one issue of the same series to be
+    testing the real shape of the problem.
+    """
+    return [
+        make_comic(name=f"c{issue}", issue_number=issue)
+        for issue in range(1, count + 1)
+    ]
 
 
 class OnlineTagSessionTestCase(TestCase):

@@ -6,6 +6,27 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.3
+
+- Features
+    - Codex now identifies itself in the requests it makes to Metron and Comic
+      Vine.
+    - The end of a tagging session logs what it spent.
+    - The Tagging tab's per-source rate now shows the limit the server actually
+      reported, not the documented default. A Metron donor tier or a self-hosted
+      instance reads its own pace.
+
+- Fixes
+    - Answering an online-tagging match prompt now tags every issue of the
+      series it was asked about, instead of one.
+    - The match-review dialog closes when the queue empties instead of showing a
+      spinner, says how many comics a pick will write, and reopens from a Review
+      button on the Tagging tab.
+    - A tagging run that exhausts the day's Metron quota now pauses and stays
+      resumable.
+    - The vertical reader could miss the end of a book when scrolled by a fast
+      fling.
+
 ## v2.3.2
 
 - Fixes

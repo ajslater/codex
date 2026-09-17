@@ -4,10 +4,16 @@ Manage online tagging sessions and their lifecycle.
 A tagging *scan* (``run_session``) is non-blocking: it auto-matches and
 writes the confident comics in one pass, persists any ambiguous matches as
 deferred *prompts* in the cache, then finishes and releases the thread. The
-prompts linger until an admin answers them. Answering a prompt
-(``resolve_prompt``) is fully decoupled from the original scan: it builds a
-*fresh* session and applies that single comic's chosen match, because the
-deferred-prompt fingerprint is deterministic across processes.
+prompts linger until an admin answers them.
+
+Comicbox fingerprints a deferred prompt at series level, so one prompt is one
+*question* and usually stands for several comics — every issue of that series
+in the batch. ``resolve_prompt`` takes the admin's answer and hands it to
+:mod:`~codex.librarian.onlinetag.prompt_apply`, which writes it to all of
+them. That runs decoupled from the scan that asked, because the fingerprint is
+deterministic across processes; when a scan is still running, the answer is
+also preloaded into its live session so the rest of the series never has to
+ask again.
 """
 
 from __future__ import annotations
@@ -16,7 +22,7 @@ import threading
 from dataclasses import replace
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from comicbox.config.online import resolve_effort
 from comicbox.events import (
@@ -32,6 +38,7 @@ from comicbox.events import (
     SourceStarted,
 )
 from comicbox.exceptions import ComicboxError
+from comicbox.formats.base.online import outcome_stats
 from comicbox.online_session import (
     Effort,
     MatchMode,
@@ -44,17 +51,18 @@ from humanize import naturaldelta
 from codex.librarian.notifier.tasks import (
     ONLINE_TAG_PROMPT_TASK,
     ONLINE_TAG_SNAPSHOT_TASK,
-    TAG_WRITE_ERRORS_CHANGED_TASK,
 )
 from codex.librarian.onlinetag.estimate import estimate_seconds
 from codex.librarian.onlinetag.explicit_id import (
     fetch_tags_by_explicit_id,
     resolved_id_sources,
 )
+from codex.librarian.onlinetag.outcome_stats import api_cost_lines
+from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import (
-    PROMPT_VERSION,
     add_pending_prompts,
     get_pending_prompts,
+    prompt_comics,
     remove_pending_prompt,
     set_active_scan_id,
     set_pending_prompts,
@@ -70,9 +78,10 @@ from codex.librarian.onlinetag.session_snapshot import (
     set_snapshot,
 )
 from codex.librarian.onlinetag.session_state import (
+    CLIENT_NAME,
     CodexPromptHandler,
     SessionState,
-    serialize_candidate,
+    serialize_prompt,
 )
 from codex.librarian.onlinetag.statuses import USER_MATCHED, USER_SKIPPED
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
@@ -83,7 +92,6 @@ from codex.librarian.onlinetag.tasks import (
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
-from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.librarian.status_controller import StatusController
 from codex.models.admin import ComicboxTaggingDefaults
@@ -114,7 +122,6 @@ def _online_config(effort: str) -> ComicboxSettings:
 
 if TYPE_CHECKING:
     from multiprocessing import Queue
-    from typing import Literal
 
     from comicbox.config.settings import ComicboxSettings
     from loguru._logger import Logger
@@ -149,6 +156,11 @@ class OnlineTagSessionManager:
             self.status_controller,
             self._drain_thread_queue,
             self._publish_snapshot,
+        )
+        # Answering a prompt is decoupled from the scan that raised it, so
+        # the machinery that writes an answer lives in its own module.
+        self._prompt_applier = PromptApplier(
+            log, librarian_queue, self._build_credentials
         )
 
     def _build_credentials(self) -> OnlineCredentials | None:
@@ -245,7 +257,11 @@ class OnlineTagSessionManager:
         So a kill or pause can resume what this scan never reached. A normal
         finish leaves nothing remaining, which clears the key (not resumable).
         """
-        review_pks = {p.get("pk") for p in get_pending_prompts().values()}
+        review_pks = {
+            comic["pk"]
+            for prompt in get_pending_prompts().values()
+            for comic in prompt_comics(prompt)
+        }
         set_resume_state(state.resume_params, remaining_pks(state, review_pks))
 
     # The live-lookup publish's own floor. comicbox serves a search from its
@@ -436,6 +452,44 @@ class OnlineTagSessionManager:
 
     # --- mid-scan prompt answers ---------------------------------------
 
+    @staticmethod
+    def _record_prompt_outcome(
+        state: SessionState, prompt: dict[str, Any], status: str
+    ) -> int:
+        """Record one answer against every comic it speaks for; return how many."""
+        source = prompt.get("source")
+        comics = prompt_comics(prompt)
+        for comic in comics:
+            state.answered_pks.add(comic["pk"])
+            record_resolution(comic["pk"], status, source)
+        return len(comics)
+
+    def _preload_mid_scan_answer(
+        self, state: SessionState, item: OnlineTagPromptResponseTask
+    ) -> None:
+        """
+        Hand the answer to the running session so the rest of the series takes it.
+
+        This is the half of comicbox's deferred-prompt contract codex never
+        held up: the fingerprint is series-level precisely so a preloaded
+        resolution auto-applies to every later issue of that series
+        (``_lookup_cached_prompt`` re-maps the pick onto whichever candidate
+        carries the chosen volume). Without it the later issues re-deferred
+        the same question and were dropped as already-answered.
+
+        Only a ``choose`` that named a volume can transfer: the candidates
+        were scored for one issue, so an index or a bare issue id means
+        nothing to the next issue. Those comics ask again on their own.
+        """
+        if item.action != "choose" or item.chosen_volume_id is None:
+            return
+        state.session.preload_resolution(
+            item.prompt_fingerprint,
+            action="choose",
+            payload=item.payload,
+            chosen_volume_id=item.chosen_volume_id,
+        )
+
     def _defer_prompt_response(
         self, state: SessionState, item: OnlineTagPromptResponseTask
     ) -> None:
@@ -445,17 +499,16 @@ class OnlineTagSessionManager:
         if not prompt:
             return
         remove_pending_prompt(fingerprint)
-        state.answered_fingerprints.add(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
-        pk = prompt.get("pk")
-        source = prompt.get("source")
         if item.action == "skip":
-            record_resolution(pk, USER_SKIPPED, source)
+            count = self._record_prompt_outcome(state, prompt, USER_SKIPPED)
+            path = prompt.get("path")
             self.log.info(
-                f"Online tag: skipped prompt for {prompt.get('path')!r} mid-scan."
+                f"Online tag: skipped prompt for {count} comic(s) mid-scan ({path!r})."
             )
             return
-        record_resolution(pk, USER_MATCHED, source)
+        self._record_prompt_outcome(state, prompt, USER_MATCHED)
+        self._preload_mid_scan_answer(state, item)
         state.deferred_applies.append(
             (prompt, item.action, item.payload, item.chosen_volume_id)
         )
@@ -465,9 +518,8 @@ class OnlineTagSessionManager:
         prompts = get_pending_prompts()
         if not prompts:
             return
-        state.answered_fingerprints.update(prompts.keys())
         for prompt in prompts.values():
-            record_resolution(prompt.get("pk"), USER_SKIPPED, prompt.get("source"))
+            self._record_prompt_outcome(state, prompt, USER_SKIPPED)
         set_pending_prompts({})
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
@@ -480,7 +532,7 @@ class OnlineTagSessionManager:
         state.deferred_applies.clear()
         for prompt, action, payload, chosen_volume_id in applies:
             try:
-                self._apply_resolution(prompt, action, payload, chosen_volume_id)
+                self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
             except Exception:
                 path = prompt.get("path")
                 self.log.exception(
@@ -509,49 +561,43 @@ class OnlineTagSessionManager:
 
     # --- prompt persistence --------------------------------------------
 
-    @staticmethod
-    def _serialize_prompt(
-        dp: Any,
-        pk: int,
-        formats: tuple[str, ...],
-        *,
-        delete_original: bool,
-        rename: bool,
-    ) -> dict[str, Any]:
-        """Serialize a deferred prompt with everything needed to apply it later."""
-        return {
-            "fingerprint": dp.fingerprint,
-            "prompt_version": PROMPT_VERSION,
-            "pk": pk,
-            "path": str(dp.path) if dp.path else "",
-            "source": dp.source,
-            "candidates": [serialize_candidate(c) for c in dp.candidates],
-            "mode": getattr(dp.match, "value", str(dp.match)),
-            "formats": list(formats),
-            "delete_original": delete_original,
-            "rename": rename,
-        }
+    def _group_deferred_prompts(self, state: SessionState) -> dict[str, dict[str, Any]]:
+        """
+        Collect the scan's deferred prompts into one entry per question.
 
-    def _persist_prompts(self, state: SessionState) -> None:
-        """Merge the scan's current deferred prompts into the cache and notify."""
-        new: dict[str, Any] = {}
+        Every issue of a series shares a fingerprint, so the deferrals
+        collapse into a single prompt carrying every comic that raised it.
+        Serializing each deferral under its own fingerprint key — which is
+        what this used to do — kept only the last comic of the series and
+        silently lost the rest.
+        """
+        grouped: dict[str, dict[str, Any]] = {}
         for dp in state.session.deferred_prompts():
             if dp.path is None:
                 continue
-            # Don't resurrect a prompt the admin already answered mid-scan.
-            if dp.fingerprint in state.answered_fingerprints:
-                continue
             pk = state.path_to_pk.get(dp.path)
-            if pk is None:
+            # Don't resurrect a comic the admin already answered for mid-scan.
+            # Keyed by comic rather than by fingerprint: a later issue of an
+            # already-answered series is a question nobody has answered yet.
+            if pk is None or pk in state.answered_pks:
                 continue
-            new[dp.fingerprint] = self._serialize_prompt(
-                dp,
-                pk,
-                state.formats,
-                delete_original=state.delete_original,
-                rename=state.rename,
-            )
-        if new:
+            comic = {"pk": pk, "path": str(dp.path)}
+            prompt = grouped.get(dp.fingerprint)
+            if prompt is None:
+                grouped[dp.fingerprint] = serialize_prompt(
+                    dp,
+                    [comic],
+                    state.formats,
+                    delete_original=state.delete_original,
+                    rename=state.rename,
+                )
+            elif all(known["pk"] != pk for known in prompt["comics"]):
+                prompt["comics"].append(comic)
+        return grouped
+
+    def _persist_prompts(self, state: SessionState) -> None:
+        """Merge the scan's current deferred prompts into the cache and notify."""
+        if new := self._group_deferred_prompts(state):
             add_pending_prompts(new)
             self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
@@ -728,6 +774,12 @@ class OnlineTagSessionManager:
             # comicbox's sqlite caches land somewhere a container
             # recreation throws away.
             config=online_config,
+            # Names codex in the outgoing User-Agent. Metron's operators
+            # read those logs, and a bare `comicbox/5.1.1` cannot tell a
+            # server tagging a library in the background from somebody's
+            # CLI thread pool — a difference that changes the diagnosis
+            # when a token trips the burst limit (comicbox#207).
+            client_name=CLIENT_NAME,
         )
         state = SessionState(
             session=session,
@@ -778,6 +830,10 @@ class OnlineTagSessionManager:
         # comic queued.
         set_resume_state(state.resume_params, list(state.path_to_pk.values()))
 
+        # Comicbox's API counters are process-wide and only its CLI resets
+        # them, so without this a long-lived daemon would report every scan's
+        # cost as the sum of every scan since it booted.
+        outcome_stats.reset()
         start = monotonic()
         try:
             # Fast path: comics codex already has an issue id for are fetched
@@ -831,6 +887,18 @@ class OnlineTagSessionManager:
             return
         level = "SUCCESS" if stats.matched else "INFO"
         self.log.log(level, stats.summary(elapsed=naturaldelta(monotonic() - start)))
+        self._log_api_cost()
+
+    def _log_api_cost(self) -> None:
+        """
+        Log what the scan spent at each API, from comicbox's own counters.
+
+        Answers the question a rate-limited run always raises — where did the
+        budget go — with numbers that match the server's logs, since comicbox
+        counts real sends rather than its own wrapper calls.
+        """
+        for line in api_cost_lines(outcome_stats.api_snapshot()):
+            self.log.info(line)
 
     def cancel_session(self, session_id: str) -> None:
         """Cancel the in-flight scan (does not touch lingering prompts)."""
@@ -877,17 +945,22 @@ class OnlineTagSessionManager:
             return
         remove_pending_prompt(fingerprint)
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
-        pk = prompt.get("pk")
         source = prompt.get("source")
+        comics = prompt_comics(prompt)
         if action == "skip":
-            record_resolution(pk, USER_SKIPPED, source)
-            self.log.info(f"Online tag: skipped prompt for {prompt.get('path')!r}.")
+            for comic in comics:
+                record_resolution(comic["pk"], USER_SKIPPED, source)
+            path = prompt.get("path")
+            self.log.info(
+                f"Online tag: skipped prompt for {len(comics)} comic(s) ({path!r})."
+            )
             return
         # Recorded as user-matched up front; if the apply drifts it re-queues a
         # fresh prompt, which the read-time overlay shows as needs-review again
         # (the live prompt set wins over the recorded outcome).
-        record_resolution(pk, USER_MATCHED, source)
-        self._apply_resolution(prompt, action, payload, chosen_volume_id)
+        for comic in comics:
+            record_resolution(comic["pk"], USER_MATCHED, source)
+        self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
 
     def skip_all_prompts(self) -> int:
         """Drop every pending prompt. Returns the number skipped."""
@@ -895,248 +968,10 @@ class OnlineTagSessionManager:
         count = len(prompts)
         if count:
             for prompt in prompts.values():
-                record_resolution(prompt.get("pk"), USER_SKIPPED, prompt.get("source"))
+                source = prompt.get("source")
+                for comic in prompt_comics(prompt):
+                    record_resolution(comic["pk"], USER_SKIPPED, source)
             set_pending_prompts({})
             self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         self.log.info(f"Online tag: skipped {count} prompt(s).")
         return count
-
-    @staticmethod
-    def _explicit_resolution(
-        prompt: dict[str, Any], action: str, payload: Any
-    ) -> tuple[str, Any]:
-        """
-        Pin a chosen candidate to its issue id.
-
-        A fresh search may return candidates in a different order, so a bare
-        ``choose`` index could select the wrong issue. Re-map the index to the
-        candidate's stable ``issue_id`` and apply it as a ``manual`` pick,
-        which fetches that exact issue regardless of search ordering.
-        """
-        if action != "choose":
-            return action, payload
-        candidates = prompt.get("candidates") or []
-        index = payload if isinstance(payload, int) else None
-        if index is None or not (0 <= index < len(candidates)):
-            return action, payload
-        chosen = candidates[index]
-        issue_id = chosen.get("issue_id")
-        source = chosen.get("source") or prompt.get("source")
-        if issue_id and source:
-            return "manual", f"{source}:{issue_id}"
-        return action, payload
-
-    def _report_apply_failure(self, path_str: str, msg: str) -> None:
-        """Log + surface a failed prompt apply in the admin Tagging error panel."""
-        self.log.warning(f"Online tag: {msg} ({path_str})")
-        add_tag_write_error(path_str, msg)
-        self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
-
-    def _refresh_comic_path(self, pk: int, prompt_path: str) -> str:
-        """
-        Return the comic's current path, preferring the DB row over the prompt.
-
-        A prompt's serialized path goes stale between deferral and answer —
-        most commonly when an earlier write for the same comic ran with
-        rename enabled and moved the file. The DB row follows the rename
-        (via the write's move import), so it is the fresher reference. A
-        missing row means the comic was deleted (or re-imported under a new
-        pk after a rename the DB never synced); surface that instead of
-        fetching against a dead path.
-        """
-        comic = Comic.objects.filter(pk=pk).only("path").first()
-        if comic:
-            return comic.path
-        self._report_apply_failure(
-            prompt_path, "comic no longer in the database; answer not applied"
-        )
-        return ""
-
-    def _apply_resolution(
-        self,
-        prompt: dict[str, Any],
-        action: str,
-        payload: Any,
-        chosen_volume_id: int | None,
-    ) -> None:
-        """Build a fresh session, apply the chosen match, and enqueue a write."""
-        pk = prompt.get("pk")
-        prompt_path = prompt.get("path") or ""
-        source = prompt.get("source") or ""
-        if pk is None or not prompt_path or not source:
-            self.log.warning("Online tag: prompt missing comic reference; skipping.")
-            return
-        path_str = self._refresh_comic_path(pk, prompt_path)
-        if not path_str:
-            return
-        credentials = self._build_credentials()
-        if not credentials:
-            self.log.warning("Online tag: no credentials for prompt resolution.")
-            return
-
-        action, payload = self._explicit_resolution(prompt, action, payload)
-        # A concrete pick (a candidate with a known issue id) is fetched
-        # directly by id — never re-searched. A re-search replay drifts under
-        # rate limiting (a different candidate set misses the preloaded
-        # fingerprint), which would silently discard the admin's choice and
-        # re-queue a fresh, often worse, prompt. Direct id fetch is immune.
-        explicit = self._explicit_issue_id(action, payload, source)
-        if explicit is not None:
-            self._apply_explicit_id(prompt, pk, explicit, path_str, credentials)
-        else:
-            resolution = (action, payload, chosen_volume_id)
-            self._apply_replayed_search(prompt, pk, path_str, credentials, resolution)
-
-    def _apply_replayed_search(
-        self,
-        prompt: dict[str, Any],
-        pk: int,
-        path_str: str,
-        credentials: OnlineCredentials,
-        resolution: tuple[str, Any, int | None],
-    ) -> None:
-        """Re-search and apply a pick that carries no explicit issue id."""
-        action, payload, chosen_volume_id = resolution
-        source = prompt.get("source") or ""
-        # defer_prompts on: the bridged selector consults the preloaded
-        # resolution; without it (or a handler) an ambiguous re-search would
-        # fall through to comicbox's interactive CLI prompt inside the daemon.
-        session = OnlineSession(
-            sources=(source,),
-            credentials=credentials,
-            # The persisted prompt's own "mode" key predates comicbox 5's
-            # rename and is codex's cache format, versioned by
-            # PROMPT_VERSION; only the comicbox kwarg moved.
-            match=MatchMode(prompt.get("mode") or "auto"),
-            defer_prompts=True,
-        )
-        session.preload_resolution(
-            prompt["fingerprint"],
-            action=cast("Literal['choose', 'skip', 'manual']", action),
-            payload=payload,
-            chosen_volume_id=chosen_volume_id,
-        )
-        try:
-            tags = self._first_tags(session, Path(path_str))
-        except (ComicboxError, OSError) as exc:
-            self._report_apply_failure(
-                path_str, f"re-applying chosen match failed: {exc}"
-            )
-            return
-        if not tags:
-            self._handle_unresolved(prompt, path_str, session)
-            return
-        self._enqueue_resolved_write(prompt, pk, tags, path_str)
-
-    @staticmethod
-    def _explicit_issue_id(
-        action: str, payload: Any, default_source: str
-    ) -> tuple[str, int] | None:
-        """Parse a ``manual`` ``source:issue_id`` payload into (source, id)."""
-        if action != "manual" or not isinstance(payload, str):
-            return None
-        src, sep, id_str = payload.partition(":")
-        if not sep:
-            return None
-        try:
-            issue_id = int(id_str)
-        except (TypeError, ValueError):
-            return None
-        return (src or default_source), issue_id
-
-    def _apply_explicit_id(
-        self,
-        prompt: dict[str, Any],
-        pk: int,
-        explicit: tuple[str, int],
-        path_str: str,
-        credentials: OnlineCredentials,
-    ) -> None:
-        """Fetch the picked issue by id and enqueue its write (no re-search)."""
-        src, issue_id = explicit
-        try:
-            tags = fetch_tags_by_explicit_id(Path(path_str), src, issue_id, credentials)
-        except (ComicboxError, OSError) as exc:
-            # The prompt is already consumed, so a swallowed failure would
-            # silently discard the admin's pick — put it on the error panel.
-            self._report_apply_failure(
-                path_str, f"fetching chosen issue {src}:{issue_id} failed: {exc}"
-            )
-            return
-        if tags:
-            self._enqueue_resolved_write(prompt, pk, tags, path_str)
-        else:
-            # The id itself didn't resolve (wrong/unknown issue). Don't re-queue
-            # a fresh ambiguous prompt — the admin made an explicit choice.
-            self._report_apply_failure(
-                path_str, f"chosen issue {src}:{issue_id} did not resolve"
-            )
-
-    def _handle_unresolved(
-        self, prompt: dict[str, Any], path_str: str, session: OnlineSession
-    ) -> None:
-        """Log the dead resolution, re-queueing a fresh prompt if it drifted."""
-        if self._repersist_drifted_prompt(prompt, session):
-            self.log.warning(
-                f"Online tag: prompt for {path_str} drifted; queued a fresh one."
-            )
-        else:
-            self.log.warning(f"Online tag: no tags resolved for {path_str}.")
-
-    def _enqueue_resolved_write(
-        self, prompt: dict[str, Any], pk: int, tags: dict[str, Any], path_str: str
-    ) -> None:
-        """Queue the write for a successfully resolved prompt match."""
-        write_task = BulkTagWriteTask(
-            comic_pks=frozenset({pk}),
-            per_comic_patches={pk: tags},
-            mode="update",
-            formats=tuple(prompt.get("formats") or ("COMIC_INFO",)),
-            delete_original=bool(prompt.get("delete_original")),
-            rename=bool(prompt.get("rename")),
-        )
-        self.librarian_queue.put(write_task)
-        self.log.info(f"Online tag: applied resolved match for {path_str}.")
-
-    def _repersist_drifted_prompt(
-        self, prompt: dict[str, Any], session: OnlineSession
-    ) -> bool:
-        """
-        Re-queue the prompt when the replayed search no longer matches it.
-
-        The deferred-prompt fingerprint embeds the candidate-id set, so a
-        re-search returning a different candidate list (source data changed,
-        a rate-limited series dropped out) misses the preloaded resolution
-        and defers a fresh prompt instead. Persist that fresh prompt — same
-        comic, new fingerprint and candidates — so the admin can answer
-        again instead of the click dying silently.
-        """
-        pk = prompt.get("pk")
-        if pk is None:
-            return False
-        formats = tuple(prompt.get("formats") or ("COMIC_INFO",))
-        delete_original = bool(prompt.get("delete_original"))
-        rename = bool(prompt.get("rename"))
-        new = {
-            dp.fingerprint: self._serialize_prompt(
-                dp, pk, formats, delete_original=delete_original, rename=rename
-            )
-            for dp in session.deferred_prompts()
-        }
-        if not new:
-            return False
-        add_pending_prompts(new)
-        self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
-        return True
-
-    @staticmethod
-    def _first_tags(session: OnlineSession, path: Path) -> dict[str, Any] | None:
-        """Return the tags from the single re-tagged comic, or None."""
-        for result in session.tag_many([path]):
-            # Unmatched results still carry the comic's merged existing
-            # metadata; writing that would re-write the file with no new
-            # information.
-            if result.matched and result.tags and not result.error:
-                return result.tags
-            break
-        return None

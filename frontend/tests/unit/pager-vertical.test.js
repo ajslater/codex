@@ -17,6 +17,7 @@ import vuetify from "@/plugins/vuetify";
 
 const PK = 7;
 const MAX_PAGE = 9;
+const PAST_THE_THROTTLE_WINDOW_MS = 1000;
 
 let wrappers = [];
 
@@ -95,5 +96,40 @@ describe("PagerVertical — scrolling to a page", () => {
     wrapper.vm.scrollToPage(MAX_PAGE);
 
     expect(scrollToIndex).toHaveBeenCalledWith(0);
+  });
+});
+
+/*
+ * The scroll handler is throttled, and the trailing call is the one that
+ * matters: a fling that ends inside a throttle window would otherwise never
+ * read the final ``scrollTop``, so the book-change boundary check missed the
+ * very scroll that reached the end of the book. VueUse v15 made trailing the
+ * default; the component passes it explicitly so a future flip can't take it
+ * away again.
+ */
+describe("PagerVertical scroll throttling", () => {
+  test("runs on the leading edge and once more at the end of the window", async () => {
+    vi.useFakeTimers();
+    try {
+      const { wrapper } = mountPager("ttb");
+      const impl = vi
+        .spyOn(wrapper.vm, "_scrollImpl")
+        .mockImplementation(() => {});
+      // Rebuild the throttled wrapper around the spy.
+      wrapper.vm.$options.created.call(wrapper.vm);
+
+      wrapper.vm.onScroll();
+      wrapper.vm.onScroll();
+      wrapper.vm.onScroll();
+      expect(impl).toHaveBeenCalledTimes(1);
+
+      // Well past the component's window, so the assertion is about the
+      // trailing call existing at all rather than about its exact timing.
+      await vi.advanceTimersByTimeAsync(PAST_THE_THROTTLE_WINDOW_MS);
+
+      expect(impl).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

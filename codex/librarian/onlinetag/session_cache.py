@@ -7,12 +7,13 @@ Two things live in the dedicated ``tagging`` cache, namespaced under
 - **pending prompts** — a dict keyed by deferred-prompt ``fingerprint``.
   Each entry is fully self-contained so a later, independent task can apply
   the admin's choice *without* the original tagging run's in-memory session:
-  it carries the comic ``pk`` and ``path``, the ``source``, the serialized
-  ``candidates``, the match ``mode``, and the write params (``formats``,
-  ``delete_original``). Prompts persist with no TTL and deliberately survive
-  daemon restarts — they linger until answered, skipped, or pruned (when
-  their comic disappears). The deferred-prompt fingerprint is deterministic
-  across processes, so a fresh session can replay the choice.
+  it carries the ``comics`` the question speaks for, the ``source``, the
+  serialized ``candidates``, the match ``mode``, and the write params
+  (``formats``, ``delete_original``). Prompts persist with no TTL and
+  deliberately survive daemon restarts — they linger until answered,
+  skipped, or pruned (when their comic disappears). The deferred-prompt
+  fingerprint is deterministic across processes, so a fresh session can
+  replay the choice.
 
 - **active scan id** — set only while a Pass-1 lookup is running, so the
   admin UI can show live progress and abort it. Unlike prompts, this is
@@ -34,9 +35,12 @@ tasks. Not to be confused with
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from codex.cache import tagging_cache as cache
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _SCAN_KEY = "onlinetag:active_scan_id"
 _PROMPTS_KEY = "onlinetag:pending_prompts"
@@ -77,12 +81,63 @@ def set_pending_prompts(prompts: dict[str, Any]) -> None:
         cache.delete(_PROMPTS_KEY)
 
 
+def prompt_comics(prompt: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
+    """
+    Return every comic one prompt answers for, representative first.
+
+    Comicbox fingerprints a deferred prompt at *series* level on purpose:
+    every issue of a series collapses to one key so a single pick answers the
+    whole run (see ``_prompt_fingerprint`` in comicbox's ``online_session``).
+    One prompt therefore routinely stands for many comics, and the first one
+    — the comic whose candidates were scored and are rendered in the review
+    dialog — is the representative.
+
+    Prompts cached before the list existed carry only the representative's
+    ``pk`` / ``path``, which reads as a one-comic list.
+    """
+    comics = prompt.get("comics")
+    if comics:
+        return tuple(comic for comic in comics if comic.get("pk") is not None)
+    pk = prompt.get("pk")
+    if pk is None:
+        return ()
+    return ({"pk": pk, "path": prompt.get("path") or ""},)
+
+
+def _merge_prompt(
+    existing: Mapping[str, Any], incoming: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Fold an existing prompt's comics into the incoming one, newest winning.
+
+    Every field but the comic list comes from the incoming prompt, so its
+    representative and the candidates rendered for it stay describing the
+    same comic. The lists union because a fingerprint arriving twice means
+    *more* comics are waiting on that one answer, not that the earlier ones
+    stopped waiting.
+    """
+    merged = dict(incoming)
+    new_comics = prompt_comics(incoming)
+    by_pk = {comic["pk"]: comic for comic in prompt_comics(existing)}
+    for comic in new_comics:
+        by_pk[comic["pk"]] = comic
+    comics = list(by_pk.values())
+    if new_comics:
+        # Representative first, so it keeps owning the rendered candidates.
+        representative_pk = new_comics[0]["pk"]
+        comics.sort(key=lambda comic: comic["pk"] != representative_pk)
+    merged["comics"] = comics
+    return merged
+
+
 def add_pending_prompts(new_prompts: dict[str, Any]) -> dict[str, Any]:
     """Merge ``new_prompts`` into the map (keyed by fingerprint) and persist."""
     if not new_prompts:
         return get_pending_prompts()
     prompts = get_pending_prompts()
-    prompts.update(new_prompts)
+    for fingerprint, prompt in new_prompts.items():
+        existing = prompts.get(fingerprint)
+        prompts[fingerprint] = _merge_prompt(existing, prompt) if existing else prompt
     set_pending_prompts(prompts)
     return prompts
 

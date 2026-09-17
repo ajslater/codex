@@ -10,7 +10,10 @@ from django.contrib.auth.models import User
 from django.core.cache import caches
 from django.test import Client, TestCase
 
-from codex.librarian.onlinetag.session_cache import set_active_scan_id
+from codex.librarian.onlinetag.session_cache import (
+    set_active_scan_id,
+    set_pending_prompts,
+)
 from codex.librarian.onlinetag.session_snapshot import set_resume_state, set_snapshot
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
@@ -202,3 +205,69 @@ class TagSnapshotResumableTestCase(TestCase):
             resumed = self.client.post(_RESUME_URL)
         assert resumed.status_code == HTTPStatus.ACCEPTED
         mocked_queue.put.assert_called_once()
+
+
+class TagSnapshotSeriesReviewTestCase(TestCase):
+    """
+    Every comic a series-level prompt covers reads as needing review.
+
+    Comicbox raises one question per series, so a snapshot that only marked
+    the prompt's representative left the other issues showing "no match"
+    while the batch tally still counted them under "need review" — rows the
+    admin could see were stuck but had no Review button to press.
+    """
+
+    _SNAPSHOT_URL: Final = "/api/v4/admin/tag-sessions/snapshot"
+    _SERIES_COMICS: Final = 2
+
+    @override
+    def setUp(self) -> None:
+        caches["default"].clear()
+        caches["tagging"].clear()
+        self.client = Client()
+        self.client.force_login(
+            User.objects.create_user(
+                username="tag_series_review_admin",
+                password=_TEST_PASSWORD,
+                is_staff=True,
+                is_superuser=True,
+            )
+        )
+
+    def test_every_comic_of_the_prompt_reads_as_needing_review(self) -> None:
+        set_snapshot(
+            {
+                "session_id": "sid-series",
+                "active": False,
+                "batch": {"total": 2, "completed": 2, "needs_review": 0},
+                "sources": [],
+                "comics": [
+                    {"pk": 1, "path": "/c/1.cbz", "status": "no_match"},
+                    {"pk": 2, "path": "/c/2.cbz", "status": "no_match"},
+                ],
+                "comic_count": 2,
+                "shown_count": 2,
+            }
+        )
+        set_pending_prompts(
+            {
+                "fp1": {
+                    "fingerprint": "fp1",
+                    "pk": 1,
+                    "path": "/c/1.cbz",
+                    "source": "metron",
+                    "comics": [
+                        {"pk": 1, "path": "/c/1.cbz"},
+                        {"pk": 2, "path": "/c/2.cbz"},
+                    ],
+                }
+            }
+        )
+
+        snapshot = _v4(self.client.get(self._SNAPSHOT_URL))["snapshot"]
+
+        by_pk = {comic["pk"]: comic for comic in snapshot["comics"]}
+        assert by_pk[1]["status"] == "needs_review"
+        assert by_pk[2]["status"] == "needs_review"
+        assert by_pk[2]["sourceStatuses"]["metron"] == "needs_review"
+        assert snapshot["batch"]["needsReview"] == self._SERIES_COMICS

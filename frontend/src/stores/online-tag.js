@@ -2,6 +2,20 @@ import { defineStore } from "pinia";
 
 import { HTTP } from "@/api/v4/base";
 
+/*
+ * Every comic one match-review prompt answers for, representative first.
+ *
+ * Comicbox fingerprints a deferred prompt at series level on purpose, so one
+ * question stands for every issue of that series in the batch. Prompts cached
+ * before the list existed carry only the representative, which reads as a
+ * one-comic list.
+ */
+export function promptComics(prompt) {
+  const comics = prompt?.comics;
+  if (comics?.length) return comics;
+  return prompt?.pk == undefined ? [] : [{ pk: prompt.pk, path: prompt.path }];
+}
+
 export const useOnlineTagStore = defineStore("onlineTag", {
   state: () => ({
     activeSessionId: null,
@@ -26,6 +40,11 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     // The in-flight snapshot GET, so a burst of notifications coalesces into
     // one request instead of a pile of redundant ones. Not rendered.
     _snapshotRequest: null,
+    // Monotonic id of the newest prompt fetch. Notifications arrive faster
+    // than the round trip (every deferral pushes one), and responses can land
+    // out of order, so an older list must never overwrite a newer one. Not
+    // rendered.
+    _promptsRequestId: 0,
   }),
   actions: {
     async startSession({
@@ -68,9 +87,12 @@ export const useOnlineTagStore = defineStore("onlineTag", {
        * scan, so they're fetched globally — no active session required. They
        * survive daemon restarts and page reloads until answered or skipped.
        */
+      const requestId = ++this._promptsRequestId;
       const response = await HTTP.get("/admin/tag-prompts", {
         params: { ts: Date.now() },
       });
+      // A newer fetch already landed; this one is stale by definition.
+      if (requestId !== this._promptsRequestId) return;
       const raw = response.data.prompts || [];
       // Reconcile against optimistic local resolutions. Drop any
       // recently-answered fingerprint the backend still echoes (it's lagging),
@@ -83,11 +105,16 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.pendingPrompts = raw.filter(
         (p) => !this.recentlyResolved.includes(p.fingerprint),
       );
-      if (
-        autoOpen &&
-        this.pendingPrompts.length > 0 &&
-        !this.promptDialogOpen
-      ) {
+      if (this.pendingPrompts.length === 0) {
+        /*
+         * Nothing left to review: close rather than leave the dialog
+         * sitting on an empty list. The queue empties behind this tab's
+         * back all the time — another tab answered, or the daemon resolved
+         * the last one — and the dialog used to stay open showing a
+         * spinner that no notification would ever end.
+         */
+        this.promptDialogOpen = false;
+      } else if (autoOpen && !this.promptDialogOpen) {
         this.promptDialogOpen = true;
       }
     },
@@ -126,11 +153,12 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         chosenVolumeId: String(chosenVolumeId ?? ""),
       });
       this.rememberResolved(fingerprint);
-      this.rememberLocalOutcome(
-        prompt?.pk,
-        action === "skip" ? "user_skipped" : "user_matched",
-        prompt?.source,
-      );
+      // One answer covers every comic of the series that asked, so every one
+      // of their rows leaves "needs review" at once rather than one per click.
+      const status = action === "skip" ? "user_skipped" : "user_matched";
+      for (const comic of promptComics(prompt)) {
+        this.rememberLocalOutcome(comic.pk, status, prompt?.source);
+      }
       this.pendingPrompts = this.pendingPrompts.filter(
         (p) => p.fingerprint !== fingerprint,
       );
@@ -167,7 +195,9 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       await HTTP.post("/admin/tag-prompts/skip-all");
       for (const p of this.pendingPrompts) {
         this.rememberResolved(p.fingerprint);
-        this.rememberLocalOutcome(p.pk, "user_skipped", p.source);
+        for (const comic of promptComics(p)) {
+          this.rememberLocalOutcome(comic.pk, "user_skipped", p.source);
+        }
       }
       this.pendingPrompts = [];
       this.promptDialogOpen = false;
