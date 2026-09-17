@@ -46,7 +46,7 @@ from math import inf
 from typing import TYPE_CHECKING, Any, Final
 
 from codex.cache import tagging_cache as cache
-from codex.librarian.onlinetag.estimate import SOURCE_RATE_PER_MINUTE
+from codex.librarian.onlinetag.estimate import source_rate_per_minute
 from codex.librarian.onlinetag.session_cache import get_pending_prompts, prompt_comics
 
 # Re-exported so callers can keep reading the status vocabulary off the module
@@ -499,7 +499,10 @@ def _build_sources(
         sources.append(
             {
                 "source": source,
-                "rate_per_minute": SOURCE_RATE_PER_MINUTE.get(source),
+                # The live limit once the source has answered once, so a
+                # donor tier or a self-hosted Metron reads its own pace
+                # rather than the documented default.
+                "rate_per_minute": source_rate_per_minute(source),
                 "rate_limited": rate_limited,
                 "retry_at_epoch": retry_at if rate_limited else None,
                 "sustained_limit": budget.get("limit"),
@@ -560,6 +563,9 @@ def build_snapshot(
         # resume (queued already includes the in-flight one). While ``active``
         # the frontend shows "Tagging" regardless; this matters once inactive.
         "resumable": bool(batch["queued"]),
+        # Empty unless the run stopped itself. A Resume button with no
+        # explanation is the kind of thing that gets reported as a bug.
+        "pause_reason": state.pause_reason,
         "batch": batch,
         "sources": _build_sources(state, source_retry_at, waiting_sources),
         "comics": shown,

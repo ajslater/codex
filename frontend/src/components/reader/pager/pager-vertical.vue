@@ -95,16 +95,23 @@ export default {
   created() {
     /*
      * Build the throttled scroll handler once per instance.
-     * ``useThrottleFn`` returns a leading-edge-throttled wrapper
-     * — the first call within each ``SCROLL_THROTTLE_MS``
-     * window runs immediately; subsequent calls in the window
-     * are coalesced and the trailing edge runs once. This keeps
-     * the book-change boundary detection responsive while
-     * dropping the bulk of the per-pixel events.
+     * The first call within each ``SCROLL_THROTTLE_MS`` window
+     * runs immediately; the rest are coalesced into one trailing
+     * call at the end of the window. That keeps book-change
+     * boundary detection responsive while dropping the bulk of
+     * the per-pixel events.
+     *
+     * ``trailing`` is passed explicitly rather than left to the
+     * default, which VueUse flipped from false to true in v15.
+     * The trailing call is what this handler actually needs: a
+     * fling that ends mid-window would otherwise never read the
+     * final ``scrollTop``, so the boundary check missed the very
+     * scroll that reached the end of the book.
      */
     this._throttledScrollImpl = useThrottleFn(
       this._scrollImpl,
       SCROLL_THROTTLE_MS,
+      true,
     );
   },
   mounted() {

@@ -630,6 +630,39 @@ describe("AdminTaggingStatusTable", () => {
       .find((b) => b.text().startsWith("Review"));
     expect(button).toBeUndefined();
   });
+
+  /*
+   * A scan can stop without anyone pressing Pause — a spent daily API quota
+   * does it. Resume then appears on a run the admin never stopped, so the
+   * table has to say what happened.
+   */
+  test("explains a pause nobody asked for", () => {
+    const base = makeSnapshot();
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot({
+        active: false,
+        resumable: true,
+        pauseReason: "online: daily API request quota exhausted",
+        batch: { ...base.batch, queued: 6 },
+      }),
+    });
+
+    expect(wrapper.text()).toContain("daily API request quota exhausted");
+  });
+
+  test("says nothing about a pause when the run simply finished", () => {
+    const base = makeSnapshot();
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot({
+        active: false,
+        resumable: false,
+        pauseReason: "",
+        batch: { ...base.batch, queued: 0 },
+      }),
+    });
+
+    expect(wrapper.text()).not.toContain("quota");
+  });
 });
 
 export default {};

@@ -40,7 +40,7 @@ from codex.librarian.notifier.tasks import (
 )
 from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
 from codex.librarian.onlinetag.session_cache import add_pending_prompts, prompt_comics
-from codex.librarian.onlinetag.session_state import serialize_prompt
+from codex.librarian.onlinetag.session_state import CLIENT_NAME, serialize_prompt
 from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.comic import Comic
@@ -312,6 +312,7 @@ class PromptApplier:
             # PROMPT_VERSION; only the comicbox kwarg moved.
             match=MatchMode(prompt.get("mode") or "auto"),
             defer_prompts=True,
+            client_name=CLIENT_NAME,
         )
         session.preload_resolution(
             prompt["fingerprint"],

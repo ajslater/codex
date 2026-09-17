@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.online_session import PromptResponse
 
 from codex.librarian.onlinetag.outcome_stats import OnlineTagOutcomeStats
 from codex.librarian.onlinetag.session_cache import PROMPT_VERSION
+
+#: What codex calls itself in comicbox's outgoing User-Agent. Every
+#: comicbox session codex builds passes it — the scan's and the one a
+#: prompt answer replays through — so a source's operators see one name
+#: for all of codex's traffic.
+CLIENT_NAME: Final = "codex"
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -88,6 +94,12 @@ class SessionState:
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False
     cancelled: bool = False
+    # Why the scan stopped, when it was not the operator who stopped it —
+    # today, a spent daily API quota. The status row is finished the moment a
+    # pass ends, so a subtitle there would only flash; this rides the frozen
+    # snapshot instead, which is what the admin is still looking at when they
+    # come back to press Resume.
+    pause_reason: str = ""
     total_comics: int = 0
     completed_comics: int = 0
     stats: OnlineTagOutcomeStats = field(default_factory=OnlineTagOutcomeStats)

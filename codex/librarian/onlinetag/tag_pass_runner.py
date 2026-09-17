@@ -133,6 +133,31 @@ class TagPassRunner:
         else:
             state.collected_tags[pk] = result.tags
 
+    def _halt_for_comicbox(
+        self, state: SessionState, status: OnlineLookupStatus
+    ) -> None:
+        """
+        Stop the pass the way a Pause does, because comicbox stopped itself.
+
+        A cancelled result codex did not ask for means the lookup aborted —
+        in practice, the day's API quota ran out. Comicbox then drains every
+        remaining path as cancelled, so marching on would count a whole
+        library as "looked up" in seconds and freeze a finished-looking
+        snapshot over comics nobody looked at.
+
+        Setting ``cancelled`` puts the batch on the same footing as an
+        operator's Pause: the comics it never reached stay in the resume
+        descriptor, and the Resume button picks them up once the quota
+        resets.
+        """
+        state.cancelled = True
+        reason = getattr(state.session, "abort_reason", None) or (
+            "the online source stopped the run"
+        )
+        state.pause_reason = reason
+        status.subtitle = f"paused: {reason}"
+        self.log.warning(f"Online tag: pausing the scan — {reason}")
+
     def _run_pass(
         self,
         state: SessionState,
@@ -145,6 +170,10 @@ class TagPassRunner:
         """Run one tag_many pass, updating status and draining the queue."""
         for result in state.session.tag_many(paths):
             if state.cancelled:
+                break
+            if result.cancelled:
+                # Before advancing anything: this comic was not looked at.
+                self._halt_for_comicbox(state, status)
                 break
             self._drain_queue(state)
             was_rate_limited = self._detect_rate_limit_recovery(status)

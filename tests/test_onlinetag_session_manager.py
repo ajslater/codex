@@ -110,6 +110,28 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
 
         assert FakeSession.last_kwargs["sources"] == ("comicvine", "metron")
 
+    def test_run_session_identifies_codex_to_the_sources(self) -> None:
+        """
+        Metron's operators can tell codex from a CLI thread pool.
+
+        A bare ``comicbox/5.1.1`` in the User-Agent cannot, and the two pace
+        their requests differently — which is exactly the question that could
+        not be answered from the server side in comicbox#207.
+        """
+        comic = make_comic()
+        self._no_op_pass()
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-ua",
+            sources=("metron",),
+            mode="auto",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        assert FakeSession.last_kwargs["client_name"] == "codex"
+
     def test_run_session_prefetches_stored_id_and_skips_search(self) -> None:
         """A comic with a stored issue id is fetched by id, not searched."""
         comic = make_comic()

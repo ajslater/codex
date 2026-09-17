@@ -38,6 +38,7 @@ from comicbox.events import (
     SourceStarted,
 )
 from comicbox.exceptions import ComicboxError
+from comicbox.formats.base.online import outcome_stats
 from comicbox.online_session import (
     Effort,
     MatchMode,
@@ -56,6 +57,7 @@ from codex.librarian.onlinetag.explicit_id import (
     fetch_tags_by_explicit_id,
     resolved_id_sources,
 )
+from codex.librarian.onlinetag.outcome_stats import api_cost_lines
 from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import (
     add_pending_prompts,
@@ -76,6 +78,7 @@ from codex.librarian.onlinetag.session_snapshot import (
     set_snapshot,
 )
 from codex.librarian.onlinetag.session_state import (
+    CLIENT_NAME,
     CodexPromptHandler,
     SessionState,
     serialize_prompt,
@@ -771,6 +774,12 @@ class OnlineTagSessionManager:
             # comicbox's sqlite caches land somewhere a container
             # recreation throws away.
             config=online_config,
+            # Names codex in the outgoing User-Agent. Metron's operators
+            # read those logs, and a bare `comicbox/5.1.1` cannot tell a
+            # server tagging a library in the background from somebody's
+            # CLI thread pool — a difference that changes the diagnosis
+            # when a token trips the burst limit (comicbox#207).
+            client_name=CLIENT_NAME,
         )
         state = SessionState(
             session=session,
@@ -821,6 +830,10 @@ class OnlineTagSessionManager:
         # comic queued.
         set_resume_state(state.resume_params, list(state.path_to_pk.values()))
 
+        # Comicbox's API counters are process-wide and only its CLI resets
+        # them, so without this a long-lived daemon would report every scan's
+        # cost as the sum of every scan since it booted.
+        outcome_stats.reset()
         start = monotonic()
         try:
             # Fast path: comics codex already has an issue id for are fetched
@@ -874,6 +887,18 @@ class OnlineTagSessionManager:
             return
         level = "SUCCESS" if stats.matched else "INFO"
         self.log.log(level, stats.summary(elapsed=naturaldelta(monotonic() - start)))
+        self._log_api_cost()
+
+    def _log_api_cost(self) -> None:
+        """
+        Log what the scan spent at each API, from comicbox's own counters.
+
+        Answers the question a rate-limited run always raises — where did the
+        budget go — with numbers that match the server's logs, since comicbox
+        counts real sends rather than its own wrapper calls.
+        """
+        for line in api_cost_lines(outcome_stats.api_snapshot()):
+            self.log.info(line)
 
     def cancel_session(self, session_id: str) -> None:
         """Cancel the in-flight scan (does not touch lingering prompts)."""
