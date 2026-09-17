@@ -8,18 +8,25 @@ codex-facing seam over it: callers keep importing ``estimate_seconds`` /
 ``SOURCE_RATE_PER_MINUTE`` from here, and the live status countdown and the
 launcher dialog stay in agreement with comicbox because they read the same
 source of truth instead of a hand-synced copy.
+
+``SOURCE_RATE_PER_MINUTE`` holds documented starting points;
+``source_rate_per_minute`` (comicbox 5.1) prefers the burst limit the server
+actually reported, which is the only right number for a donor tier or a
+self-hosted Metron. The status strip wants the live one; the choices JSON,
+generated before anything has talked to a server, can only have the constant.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from comicbox.online_estimate import source_rate_per_minute
 from comicbox.online_session import SOURCE_RATE_PER_MINUTE, estimate_run
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-__all__ = ("SOURCE_RATE_PER_MINUTE", "estimate_seconds")
+__all__ = ("SOURCE_RATE_PER_MINUTE", "estimate_seconds", "source_rate_per_minute")
 
 
 def estimate_seconds(

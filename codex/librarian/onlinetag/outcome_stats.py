@@ -42,9 +42,10 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from comicbox.events import (
+    SKIP_QUOTA_RESERVED,
     AutoWritten,
     FileError,
     FileFinished,
@@ -61,7 +62,7 @@ from codex.librarian.onlinetag.statuses import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Collection
+    from collections.abc import Collection, Mapping
     from pathlib import Path
 
     from comicbox.events import Event
@@ -82,6 +83,12 @@ class OnlineTagOutcomeStats:
     no_change_paths: set[Path] = field(default_factory=set)
     deferred_paths: set[Path] = field(default_factory=set)
     errored_paths: set[Path] = field(default_factory=set)
+    # Comics a source declined to look up because the day's API quota was
+    # down to its reserve. Deliberately NOT an outcome: nobody looked at
+    # these, so they stay out of the terminal buckets and stay in the
+    # resume set for the next run, instead of being recorded as comics no
+    # source could find.
+    quota_reserved_paths: set[Path] = field(default_factory=set)
 
     def record(self, event: Event) -> None:
         """Fold one comicbox event into the running tallies."""
@@ -93,11 +100,19 @@ class OnlineTagOutcomeStats:
         match event:
             case AutoWritten(path=path, source=source) if path and source:
                 self._add_matched_source(path, source)
+            case Skipped(path=path, reason=reason) if (
+                path and reason == SKIP_QUOTA_RESERVED
+            ):
+                self.quota_reserved_paths.add(path)
             case FileFinished(path=path, outcome=outcome) if path:
-                bucket = (
-                    self.written_paths if outcome == "written" else self.no_change_paths
-                )
-                bucket.add(path)
+                if outcome == "written":
+                    self.written_paths.add(path)
+                elif path not in self.quota_reserved_paths:
+                    # A comic the quota reserve skipped finishes "no_change"
+                    # like any unmatched one, but it is not a miss — it was
+                    # never searched for. Leaving it out of the bucket keeps
+                    # it queued and resumable.
+                    self.no_change_paths.add(path)
             case PromptDeferred(path=path) if path:
                 self.deferred_paths.add(path)
             case FileError(path=path) if path:
@@ -127,6 +142,12 @@ class OnlineTagOutcomeStats:
         match event:
             case AutoWritten(path=path, source=source) if path and source:
                 status = MATCHED
+            # Before the general Skipped case below, which would otherwise
+            # claim it: a source that never searched reports nothing about
+            # this comic, so its cell stays empty rather than saying "no
+            # match" about a lookup that never happened.
+            case Skipped(reason=reason) if reason == SKIP_QUOTA_RESERVED:
+                return
             # A source that found nothing above the confidence floor and one
             # whose matcher declined both mean "this source did not tag it" —
             # the same distinction the file-level pipeline already collapses.
@@ -246,6 +267,8 @@ class OnlineTagOutcomeStats:
         parts = [matched, f"{self.skipped} skipped"]
         if self.deferred:
             parts.append(f"{self.deferred} deferred for manual prompts")
+        if reserved := len(self.quota_reserved_paths):
+            parts.append(f"{reserved} left for the next run (daily API quota)")
         if self.errored:
             parts.append(f"{self.errored} errored")
         comics = "comic" if self.total == 1 else "comics"
@@ -253,3 +276,55 @@ class OnlineTagOutcomeStats:
             f"Online tag session finished in {elapsed}: "
             f"{self.total} {comics} — {', '.join(parts)}."
         )
+
+
+def api_cost_lines(snapshot: Mapping[str, Any]) -> list[str]:
+    """
+    Render what a session spent at each API, one line per source.
+
+    Counts real HTTP sends, which comicbox 5.1 records at the one place a
+    request leaves the process — so these numbers line up with the server's
+    own logs, which is what makes them worth pasting into a bug report. The
+    remaining budget is what the server last reported, so a run that ends
+    near the daily floor says so in the same breath as the pause that the
+    floor caused.
+    """
+    lines = []
+    for source in sorted(snapshot):
+        api = snapshot[source]
+        requests = dict(getattr(api, "requests", {}) or {})
+        total = sum(requests.values())
+        rejections = getattr(api, "rejections", 0)
+        if not total and not rejections:
+            continue
+        breakdown = ", ".join(f"{n} {name}" for name, n in sorted(requests.items()))
+        line = f"Online tag {source} API: {total} requests ({breakdown})"
+        detail = []
+        if rejections:
+            detail.append(f"{rejections} rate-limited")
+        blocked = getattr(api, "blocked_seconds", 0.0)
+        if blocked >= 1.0:
+            detail.append(f"{blocked:.0f}s paced")
+        budget = _budget_phrase(api)
+        if budget:
+            detail.append(f"{budget} left")
+        if detail:
+            line += f" — {', '.join(detail)}"
+        lines.append(line + ".")
+    return lines
+
+
+def _budget_phrase(api: Any) -> str:
+    """Render whichever rate-limit windows the server reported."""
+    parts = []
+    burst_remaining = getattr(api, "burst_remaining", None)
+    if burst_remaining is not None:
+        burst_limit = getattr(api, "burst_limit", None)
+        limit = f"/{burst_limit}" if burst_limit is not None else ""
+        parts.append(f"{burst_remaining}{limit} this minute")
+    sustained_remaining = getattr(api, "sustained_remaining", None)
+    if sustained_remaining is not None:
+        sustained_limit = getattr(api, "sustained_limit", None)
+        limit = f"/{sustained_limit}" if sustained_limit is not None else ""
+        parts.append(f"{sustained_remaining}{limit} today")
+    return ", ".join(parts)
