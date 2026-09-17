@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.online_session import PromptResponse
 
 from codex.librarian.onlinetag.outcome_stats import OnlineTagOutcomeStats
+from codex.librarian.onlinetag.session_cache import PROMPT_VERSION
+
+#: What codex calls itself in comicbox's outgoing User-Agent. Every
+#: comicbox session codex builds passes it — the scan's and the one a
+#: prompt answer replays through — so a source's operators see one name
+#: for all of codex's traffic.
+CLIENT_NAME: Final = "codex"
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -98,11 +105,16 @@ class SessionState:
     stats: OnlineTagOutcomeStats = field(default_factory=OnlineTagOutcomeStats)
     # What the scan is consulting right now — see LiveLookup.
     live: LiveLookup = field(default_factory=LiveLookup)
-    # Prompt fingerprints the admin answered *while this scan was running*.
+    # Comics the admin answered a prompt for *while this scan was running*.
     # The scan keeps re-persisting ``session.deferred_prompts()`` on every
     # PromptDeferred event (and once more at the end), which would otherwise
     # resurrect a just-answered prompt — see _persist_prompts.
-    answered_fingerprints: set[str] = field(default_factory=set)
+    #
+    # Keyed by comic, not by prompt fingerprint: comicbox fingerprints at
+    # series level, so a fingerprint filter also swallowed the *later* issues
+    # of an answered series, which nobody had answered for. They were dropped
+    # silently and finished the scan untagged.
+    answered_pks: set[int] = field(default_factory=set)
     # (prompt, action, payload, chosen_volume_id) tuples for "choose"/"manual"
     # answers received mid-scan. The cache removal happens inline (race-free,
     # on the librarian thread) but the network re-fetch + write is deferred to
@@ -123,6 +135,39 @@ class CodexPromptHandler:
         """Skip by default — primary flow uses defer mode."""
         _ = prompt
         return PromptResponse(action="skip", payload=None)
+
+
+def serialize_prompt(
+    dp: Any,
+    comics: list[dict[str, Any]],
+    formats: tuple[str, ...],
+    *,
+    delete_original: bool,
+    rename: bool,
+) -> dict[str, Any]:
+    """
+    Serialize a deferred prompt with everything needed to apply it later.
+
+    ``comics`` is every comic this one question answers for, ``dp``'s own
+    comic first — comicbox fingerprints at series level, so one prompt
+    stands for a whole series in the batch (see ``prompt_comics``). ``pk``
+    and ``path`` repeat the representative so a prompt written by this
+    codex still reads on a rollback to one that predates the list.
+    """
+    representative = comics[0]
+    return {
+        "fingerprint": dp.fingerprint,
+        "prompt_version": PROMPT_VERSION,
+        "pk": representative["pk"],
+        "path": representative["path"],
+        "comics": comics,
+        "source": dp.source,
+        "candidates": [serialize_candidate(c) for c in dp.candidates],
+        "mode": getattr(dp.match, "value", str(dp.match)),
+        "formats": list(formats),
+        "delete_original": delete_original,
+        "rename": rename,
+    }
 
 
 def serialize_candidate(c) -> dict[str, Any]:

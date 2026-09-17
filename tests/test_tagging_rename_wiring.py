@@ -18,7 +18,7 @@ from django.contrib.auth.models import User
 from django.core.cache import caches
 from django.test import Client, SimpleTestCase, TestCase
 
-from codex.librarian.onlinetag.session_manager import OnlineTagSessionManager
+from codex.librarian.onlinetag.session_state import serialize_prompt
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import (
     Comic,
@@ -291,7 +291,7 @@ class TagByIdRenamePropagationTests(TestCase):
 
 
 class _DeferredPrompt:
-    """Minimal deferred-prompt stand-in for _serialize_prompt."""
+    """Minimal deferred-prompt stand-in for serialize_prompt."""
 
     fingerprint = "fp"
     path = Path("/x/c.cbz")
@@ -306,9 +306,9 @@ class SerializePromptRenameTests(SimpleTestCase):
     """Deferred prompts carry the rename flag so resolution honors it."""
 
     def test_rename_stored(self) -> None:
-        result = OnlineTagSessionManager._serialize_prompt(  # noqa: SLF001
+        result = serialize_prompt(
             _DeferredPrompt(),
-            1,
+            [{"pk": 1, "path": "/x/c.cbz"}],
             ("COMIC_INFO",),
             delete_original=False,
             rename=True,

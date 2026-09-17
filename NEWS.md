@@ -17,6 +17,11 @@ border-radius: 128px;
       instance reads its own pace.
 
 - Fixes
+    - Answering an online-tagging match prompt now tags every issue of the
+      series it was asked about, instead of one.
+    - The match-review dialog closes when the queue empties instead of showing a
+      spinner, says how many comics a pick will write, and reopens from a Review
+      button on the Tagging tab.
     - A tagging run that exhausts the day's Metron quota now pauses and stays
       resumable.
     - The vertical reader could miss the end of a book when scrolled by a fast

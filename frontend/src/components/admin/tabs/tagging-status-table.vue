@@ -15,6 +15,20 @@
 <template>
   <AdminSection v-if="snapshot" title="Online Tagging Status" class="tagStatus">
     <template #actions>
+      <!-- Matches waiting: reopen the review dialog. Closing it used to be a
+         one-way door from here — the per-row Review button only appears on a
+         row the snapshot itself marked, so a table that knew matches were
+         waiting could still offer nothing to click. -->
+      <v-btn
+        v-if="pendingPrompts.length"
+        size="small"
+        variant="tonal"
+        color="warning"
+        :prepend-icon="mdiHelpCircleOutline"
+        @click="openReview"
+      >
+        Review {{ nf(reviewCount) }}
+      </v-btn>
       <!-- Running: pause (keeps the remainder resumable). -->
       <v-btn
         v-if="snapshot.active && pausing"
@@ -223,7 +237,7 @@ import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { useCommonStore } from "@/stores/common";
-import { useOnlineTagStore } from "@/stores/online-tag";
+import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
 // Per-status display: label, theme color token, icon, and a tooltip hint.
 // ``in_flight`` renders a spinner instead of an icon (handled in the
@@ -339,6 +353,7 @@ export default {
   data() {
     return {
       mdiClose,
+      mdiHelpCircleOutline,
       mdiPause,
       mdiPlay,
       mdiTimerSand,
@@ -456,18 +471,22 @@ export default {
     reviewByPk() {
       const map = new Map();
       for (const prompt of this.pendingPrompts || []) {
-        if (prompt.pk == null) continue;
-        const sources = map.get(prompt.pk) || [];
-        if (prompt.source && !sources.includes(prompt.source)) {
-          sources.push(prompt.source);
+        // One question covers a whole series, so every comic it names is
+        // waiting on it — not just the one whose candidates are rendered.
+        for (const comic of promptComics(prompt)) {
+          const sources = map.get(comic.pk) || [];
+          if (prompt.source && !sources.includes(prompt.source)) {
+            sources.push(prompt.source);
+          }
+          map.set(comic.pk, sources);
         }
-        map.set(prompt.pk, sources);
       }
       return map;
     },
     reviewCount() {
-      // Prefer the live prompt count; fall back to the snapshot tally.
-      return this.pendingPrompts?.length || this.batch.needsReview || 0;
+      // Prefer the live comic count; fall back to the snapshot tally. Counts
+      // comics rather than prompts, so it agrees with the rows in the table.
+      return this.reviewByPk.size || this.batch.needsReview || 0;
     },
     mergeAllSources() {
       return Boolean(this.batch.mergeAllSources);

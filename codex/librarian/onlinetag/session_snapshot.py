@@ -47,7 +47,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from codex.cache import tagging_cache as cache
 from codex.librarian.onlinetag.estimate import source_rate_per_minute
-from codex.librarian.onlinetag.session_cache import get_pending_prompts
+from codex.librarian.onlinetag.session_cache import get_pending_prompts, prompt_comics
 
 # Re-exported so callers can keep reading the status vocabulary off the module
 # that renders it.
@@ -525,7 +525,14 @@ def build_snapshot(
     now_epoch: float,
 ) -> dict[str, Any]:
     """Fold scan state + pending prompts into a JSON-safe snapshot dict."""
-    review_pks = {p.get("pk") for p in get_pending_prompts().values()}
+    # Every comic a prompt speaks for, not just its representative: one
+    # series-level question keeps a whole series out of the resume set and
+    # marks every one of its rows for review.
+    review_pks = {
+        comic["pk"]
+        for prompt in get_pending_prompts().values()
+        for comic in prompt_comics(prompt)
+    }
     # One predicate for both the sources strip and the per-comic waiting cells,
     # so a source can never read as limited in one and free in the other.
     waiting_sources = frozenset(

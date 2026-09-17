@@ -571,6 +571,67 @@ describe("AdminTaggingStatusTable", () => {
   });
 
   /*
+   * Comicbox asks one question per series, so a prompt names every issue of
+   * it. Reading only the representative left the other issues showing "no
+   * match" while the tally still counted them as needing review — and the
+   * per-row Review button only appears on a row the table itself marked, so
+   * there was nothing to click.
+   */
+  test("marks every comic a series-level prompt covers", () => {
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot(),
+      pendingPrompts: [
+        {
+          pk: 1,
+          source: "metron",
+          fingerprint: "fp2",
+          comics: [
+            { pk: 1, path: "/c/a.cbz" },
+            { pk: 3, path: "/c/c.cbz" },
+          ],
+        },
+      ],
+    });
+
+    const byPk = new Map(wrapper.vm.rows.map((r) => [r.pk, r]));
+    expect(byPk.get(1).status).toBe("needs_review");
+    expect(byPk.get(3).status).toBe("needs_review");
+    expect(byPk.get(3).cells.metron).toBe("needs_review");
+    expect(wrapper.text()).toContain("2 need review");
+  });
+
+  test("offers a Review control whenever matches are waiting", () => {
+    const { wrapper, store } = mountTable({
+      snapshot: makeSnapshot({ active: false }),
+      pendingPrompts: [
+        {
+          pk: 1,
+          source: "metron",
+          fingerprint: "fp2",
+          comics: [{ pk: 1 }, { pk: 3 }],
+        },
+      ],
+    });
+
+    const button = wrapper
+      .findAll("button")
+      .find((b) => b.text().startsWith("Review"));
+    expect(button).toBeDefined();
+    expect(button.text()).toContain("2");
+
+    button.trigger("click");
+    expect(store.promptDialogOpen).toBe(true);
+  });
+
+  test("offers no Review control when nothing is waiting", () => {
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const button = wrapper
+      .findAll("button")
+      .find((b) => b.text().startsWith("Review"));
+    expect(button).toBeUndefined();
+  });
+
+  /*
    * A scan can stop without anyone pressing Pause — a spent daily API quota
    * does it. Resume then appears on a run the admin never stopped, so the
    * table has to say what happened.

@@ -188,6 +188,69 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
   });
 });
 
+describe("useOnlineTagStore — the review dialog's lifecycle", () => {
+  it("closes the dialog when the queue empties behind its back", async () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [{ fingerprint: "a" }];
+    store.promptDialogOpen = true;
+
+    // Another tab answered the last one, or the daemon resolved it.
+    HTTP.get.mockResolvedValue(promptsResponse());
+    await store.loadPrompts({ autoOpen: false });
+
+    expect(fps(store)).toEqual([]);
+    expect(store.promptDialogOpen).toBe(false);
+  });
+
+  it("ignores a slow response that a newer fetch already superseded", async () => {
+    const store = useOnlineTagStore();
+    let releaseFirst;
+    HTTP.get.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseFirst = () => resolve(promptsResponse("stale"));
+      }),
+    );
+    HTTP.get.mockResolvedValueOnce(promptsResponse("fresh"));
+
+    const first = store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts({ autoOpen: false });
+    releaseFirst();
+    await first;
+
+    expect(fps(store)).toEqual(["fresh"]);
+  });
+
+  it("records every comic a series-level prompt covers", async () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [
+      {
+        fingerprint: "a",
+        pk: 1,
+        source: "metron",
+        comics: [{ pk: 1 }, { pk: 2 }, { pk: 3 }],
+      },
+    ];
+    HTTP.post.mockResolvedValue({});
+
+    await store.resolvePrompt("a", "choose", 0, 55);
+
+    for (const pk of [1, 2, 3]) {
+      expect(store.locallyResolved[pk].status).toBe("user_matched");
+      expect(store.locallyResolved[pk].sources.metron).toBe("user_matched");
+    }
+  });
+
+  it("falls back to the representative for a prompt cached before the list", async () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [{ fingerprint: "a", pk: 7, source: "metron" }];
+    HTTP.post.mockResolvedValue({});
+
+    await store.resolvePrompt("a", "skip", null, null);
+
+    expect(store.locallyResolved[7].status).toBe("user_skipped");
+  });
+});
+
 describe("useOnlineTagStore — startSession", () => {
   const started = { data: { sessionId: "s1", skipped: 0 } };
 
