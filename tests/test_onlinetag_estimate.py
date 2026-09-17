@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import Final
 
-from codex.librarian.onlinetag.estimate import SOURCE_RATE_PER_MINUTE, estimate_seconds
+from codex.librarian.onlinetag.estimate import (
+    SOURCE_RATE_PER_MINUTE,
+    estimate_seconds,
+    source_rate_per_minute,
+)
 
 _METRON_SECONDS: Final = 60.0
 _METRON_RATE: Final = 20
@@ -60,3 +64,16 @@ def test_source_rate_per_minute_reexported() -> None:
     """The snapshot reads the per-source rate map through this seam."""
     assert SOURCE_RATE_PER_MINUTE["metron"] == _METRON_RATE
     assert SOURCE_RATE_PER_MINUTE["comicvine"] == _COMICVINE_RATE
+
+
+def test_source_rate_per_minute_falls_back_to_the_documented_default() -> None:
+    """
+    The live rate reads as the constant until a server has reported its own.
+
+    The status strip shows this number, and comicbox 5.1 prefers the burst
+    limit Metron actually sent — which a donor tier or a self-hosted instance
+    changes. Nothing has talked to a server in this process, so the documented
+    starting point is the honest answer here.
+    """
+    assert source_rate_per_minute("metron") == _METRON_RATE
+    assert source_rate_per_minute("comicvine") == _COMICVINE_RATE

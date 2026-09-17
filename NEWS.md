@@ -6,6 +6,32 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.3
+
+- Features
+    - Codex now identifies itself in the requests it makes to Metron and Comic
+      Vine. A tagging server running in the background and somebody's
+      command-line run used to be indistinguishable in their logs, which is the
+      difference that matters when a token trips a rate limit.
+    - The end of a tagging session logs what it spent: requests per endpoint per
+      source, how many the server refused, seconds spent pacing, and the budget
+      left for the minute and the day. The numbers are real HTTP sends, so they
+      line up with the source's own logs.
+    - The Tagging tab's per-source rate now shows the limit the server actually
+      reported, not the documented default. A Metron donor tier or a self-hosted
+      instance reads its own pace.
+
+- Fixes
+    - A tagging run that exhausts the day's Metron quota now pauses and stays
+      resumable, instead of racing through the rest of the library in seconds
+      and recording every untouched comic as "no match". Comics the quota
+      reserve declined to look up stay queued for the next run, the Tagging tab
+      says why the run stopped, and the session log says how many it left
+      behind.
+    - The vertical reader could miss the end of a book when scrolled by a fast
+      fling. The final scroll position was dropped if the fling ended inside the
+      handler's throttle window, so the next-book prompt never appeared.
+
 ## v2.3.2
 
 - Fixes

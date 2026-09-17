@@ -87,6 +87,12 @@ class SessionState:
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False
     cancelled: bool = False
+    # Why the scan stopped, when it was not the operator who stopped it —
+    # today, a spent daily API quota. The status row is finished the moment a
+    # pass ends, so a subtitle there would only flash; this rides the frozen
+    # snapshot instead, which is what the admin is still looking at when they
+    # come back to press Resume.
+    pause_reason: str = ""
     total_comics: int = 0
     completed_comics: int = 0
     stats: OnlineTagOutcomeStats = field(default_factory=OnlineTagOutcomeStats)

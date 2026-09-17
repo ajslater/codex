@@ -79,6 +79,9 @@
         <span class="progressText">{{ nf(completed) }} / {{ nf(total) }}</span>
         <span v-if="etaText" class="eta">{{ etaText }}</span>
       </div>
+      <!-- Why a scan nobody paused is paused. Without it, Resume is an
+         unexplained button on a run that stopped on its own. -->
+      <div v-if="pauseReason" class="pauseReason">{{ pauseReason }}</div>
       <v-progress-linear
         :model-value="progressPct"
         :indeterminate="indeterminate"
@@ -423,6 +426,11 @@ export default {
       if (this.snapshot?.active) return "primary";
       return this.resumable ? "warning" : undefined;
     },
+    pauseReason() {
+      // Only meaningful while the scan is stopped and picking-up-able.
+      if (this.snapshot?.active || !this.resumable) return "";
+      return this.snapshot?.pauseReason || "";
+    },
     total() {
       return this.batch.total || 0;
     },
@@ -686,6 +694,11 @@ export default {
 
 .tally.matched {
   color: rgb(var(--v-theme-success));
+}
+
+.pauseReason {
+  color: rgb(var(--v-theme-warning));
+  font-size: 0.8rem;
 }
 
 .tally.review {
