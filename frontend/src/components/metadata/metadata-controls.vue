@@ -181,7 +181,7 @@ export default {
         ids: this.md.ids,
         finished: this.md.finished,
         name,
-        children: this.md.childCount || 1,
+        childCount: this.md.childCount || 1,
       };
     },
     readButtonIcon() {
