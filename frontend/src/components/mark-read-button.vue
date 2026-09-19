@@ -40,7 +40,12 @@ export default {
       return this.item.finished ? "Unread" : "Read";
     },
     confirm() {
-      return this.item.children > CHILD_WARNING_LIMIT;
+      /*
+       * ``childCount`` is the wire key browser card items carry; the
+       * metadata panel builds its item with the same key. Comic cards
+       * carry no child key at all, so they never warn.
+       */
+      return (this.item.childCount ?? 0) > CHILD_WARNING_LIMIT;
     },
     show() {
       return this.item?.ids?.length > 0 && !this.item.ids.includes(0);
