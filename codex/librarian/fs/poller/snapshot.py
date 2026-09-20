@@ -32,7 +32,8 @@ class Snapshot:
         # unique file identity, so it must NOT drive move detection — a
         # collided inode could otherwise pair an unrelated delete/add and
         # let the importer reparent comics under the wrong folder. ``path``
-        # returns ``None`` for these so such pairs degrade to delete+add.
+        # returns ``None`` for these, so such pairs fall through to the
+        # diff's signature tier instead.
         self._ambiguous_inodes: set[tuple[int, int]] = set()
         # ``DatabaseSnapshot`` populates this with the source model for
         # each path so the poller can refresh stale stats by model.

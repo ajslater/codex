@@ -419,3 +419,142 @@ class TestWithholdUnreadable:
         assert diff.files_moved == [("/comics/Pub/a.cbz", "/comics/elsewhere.cbz")]
         assert not diff.files_deleted
         assert not diff.files_added
+
+
+class TestSignaturePairing:
+    """A move that lost its inode still keeps its row."""
+
+    _OLD = "/comics/a.cbz"
+    _NEW = "/comics/Sub/a.cbz"
+
+    def test_new_inode_move_pairs_by_signature(self) -> None:
+        """The whole point: copy+delete, cross-device mv, rotated inode space."""
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot({self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100)})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert diff.files_moved == [(self._OLD, self._NEW)]
+        assert not diff.files_deleted
+        assert not diff.files_added
+        # Same size and mtime, so it is not a modification either.
+        assert not diff.files_modified
+
+    def test_signature_needs_a_unique_source(self) -> None:
+        """Two candidates to move *from* identify neither."""
+        db = _snapshot(
+            {
+                self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100),
+                "/comics/Other/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100),
+            }
+        )
+        disk = _snapshot({self._NEW: _stat(mode=_FILE_MODE, ino=3, size=100)})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_moved
+        assert sorted(diff.files_deleted) == ["/comics/Other/a.cbz", self._OLD]
+        assert diff.files_added == [self._NEW]
+
+    def test_signature_needs_a_unique_target(self) -> None:
+        """Two candidates to move *to* identify neither."""
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot(
+            {
+                self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100),
+                "/comics/Other/a.cbz": _stat(mode=_FILE_MODE, ino=3, size=100),
+            }
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_moved
+        assert diff.files_deleted == [self._OLD]
+
+    def test_inode_pair_wins_over_signature(self) -> None:
+        """Identity beats evidence when both are available."""
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot(
+            {
+                # Same inode, different name: the real rename.
+                "/comics/b.cbz": _stat(mode=_FILE_MODE, ino=1, size=100),
+                # Same signature, different inode: a copy.
+                self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100),
+            }
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert diff.files_moved == [(self._OLD, "/comics/b.cbz")]
+        assert diff.files_added == [self._NEW]
+
+    def test_refused_inode_pair_still_pairs_by_signature(self) -> None:
+        """An inode collision refused for size can still be resolved by name."""
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=200, size=100)})
+        disk = _snapshot(
+            {
+                # Shares the inode but not the size: refused as a pair.
+                "/comics/unrelated.cbz": _stat(mode=_FILE_MODE, ino=200, size=999),
+                self._NEW: _stat(mode=_FILE_MODE, ino=201, size=100),
+            }
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert diff.files_moved == [(self._OLD, self._NEW)]
+        assert diff.files_added == ["/comics/unrelated.cbz"]
+
+    def test_mtime_drift_is_not_a_signature_match(self) -> None:
+        """Weak evidence must stay strict; a rewritten file is not a move."""
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100, mtime=1.0)})
+        disk = _snapshot(
+            {self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100, mtime=2.0)}
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_moved
+        assert diff.files_deleted == [self._OLD]
+        assert diff.files_added == [self._NEW]
+
+    def test_directories_are_not_paired_by_signature(self) -> None:
+        """Directory size is meaningless and its mtime moves with any child."""
+        db = _snapshot({"/comics/Old": _stat(mode=_DIR_MODE, ino=1, size=128)})
+        disk = _snapshot({"/comics/Sub/Old": _stat(mode=_DIR_MODE, ino=2, size=128)})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.dirs_moved
+        assert diff.dirs_deleted == ["/comics/Old"]
+
+    def test_withheld_paths_are_not_signature_sources(self) -> None:
+        """
+        An unreadable path is not evidence of anything.
+
+        An inode may still pair one, because an inode is identity. A
+        signature is only a guess, and the withheld subtree may simply
+        come back.
+        """
+        db = _snapshot({"/comics/Pub/a.cbz": _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot(
+            {"/comics/elsewhere/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100)},
+            unreadable={"/comics/Pub"},
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_moved
+        assert not diff.files_deleted
+        assert diff.files_added == ["/comics/elsewhere/a.cbz"]
+
+    def test_signature_pairs_are_logged(self) -> None:
+        """A pair made on evidence rather than identity is worth saying."""
+        log = MagicMock()
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot({self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100)}, log=log)
+
+        SnapshotDiff(db, disk)
+
+        log.info.assert_called_once()
+        assert "Paired 1 moves" in log.info.call_args[0][0]
+        log.debug.assert_called_once()
