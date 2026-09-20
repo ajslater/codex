@@ -18,6 +18,8 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 // Render the dialog body inline instead of through v-dialog's overlay/teleport
 // (which need browser APIs happy-dom lacks).
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
+// Dismiss, Skip All, Pause.
+const THREE_HEADER_BUTTONS = 3;
 
 function candidate(overrides = {}) {
   return {
@@ -30,8 +32,12 @@ function candidate(overrides = {}) {
       publisher: "Youthful",
       coverUrl: "",
       altSeries: [],
+      volume: null,
     },
     score: 0.91,
+    metadataScore: 1,
+    coverScore: 0.6,
+    coverHashAttempted: true,
     url: "",
     volumeId: null,
     ...overrides,
@@ -180,3 +186,19 @@ describe("OnlineTagPromptPopup", () => {
 });
 
 export default {};
+
+describe("OnlineTagPromptPopup header", () => {
+  test("the title yields and the buttons never shrink", () => {
+    // Vuetify's .v-card-title is nowrap + overflow:hidden, so as a flex
+    // container it clipped the tail of its last child — the Pause
+    // button, in the report (#854).
+    const { wrapper } = mountPopup([candidate()]);
+
+    const title = wrapper.find(".v-card-title span");
+    expect(title.classes()).toContain("text-truncate");
+    expect(title.classes()).toContain("flex-grow-1");
+    const actions = wrapper.find(".v-card-title .flex-shrink-0");
+    expect(actions.exists()).toBe(true);
+    expect(actions.findAll("button").length).toBe(THREE_HEADER_BUTTONS);
+  });
+});

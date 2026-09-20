@@ -102,7 +102,13 @@ def _make_comic(
     read_only: bool = False,
     library: Library | None = None,
     issue_number: int = 1,
+    file_type: str = "",
 ) -> Comic:
+    # ``file_type`` is comicbox's sniff of the archive, recorded at
+    # import, and it decides what a write converts. Default it from the
+    # name, which is what the importer stores for a well-formed file;
+    # pass it explicitly to model a mis-suffixed archive.
+    file_type = file_type or Path(name).suffix.removeprefix(".").upper()
     library = library or _make_library(events=events, read_only=read_only)
     publisher, _ = Publisher.objects.get_or_create(name="P")
     imprint, _ = Imprint.objects.get_or_create(name="I", publisher=publisher)
@@ -128,7 +134,7 @@ def _make_comic(
         series=series,
         volume=volume,
         size=1,
-        file_type="CBZ",
+        file_type=file_type,
     )
     comic.folders.add(folder)
     return comic
@@ -505,7 +511,9 @@ class TagWriterRenamePlanTests(TestCase):
         old_path = _TMP_DIR / "Rename Me v1999 #001 (1999).cbt"
         self._make_cbt(old_path)
 
-        plan = plan_rename(1, old_path, None, build_predict_config((), "additive"))
+        plan = plan_rename(
+            1, old_path, None, build_predict_config((), "additive"), converts=True
+        )
 
         assert plan is not None
         assert plan.target.suffix == ".cbt"
@@ -517,7 +525,9 @@ class TagWriterRenamePlanTests(TestCase):
         old_path = _TMP_DIR / "Rename Me v1999 #002 (1999).cbz"
         shutil.copy(_EXAMPLE_CBZ, old_path)
 
-        plan = plan_rename(1, old_path, None, build_predict_config((), "additive"))
+        plan = plan_rename(
+            1, old_path, None, build_predict_config((), "additive"), converts=False
+        )
 
         assert plan is not None
         assert plan.target == plan.final_path

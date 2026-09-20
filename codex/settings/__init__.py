@@ -418,6 +418,27 @@ _PDFJS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
     }
 )
 
+# Online-tagging match candidates draw their cover thumbnails straight
+# from the two source CDNs; codex never proxies or caches them. An
+# ``<img>`` load is exempt from CORS, so codex's own ``img-src`` was the
+# only thing blocking it — the same relaxation ``_PDFJS_SECURE_CSP``
+# makes for unpkg above.
+#
+# Path-scoped on purpose: the API hosts' other paths and every other
+# host stay blocked, which is a tighter control than a server-side
+# proxy's allowlist and costs no outbound request from inside the user's
+# network. If a CDN moves its uploads the thumbnails degrade to the
+# placeholder — widen the prefix, never to a bare host. ``https`` only,
+# so an ``http`` cover url would also fall back, which is correct.
+_ONLINE_TAG_COVER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "img-src": (
+            "https://comicvine.gamespot.com/a/uploads/",
+            "https://static.metron.cloud/media/",
+        ),
+    }
+)
+
 # drf-spectacular's Swagger UI pulls assets from jsdelivr.
 # ``script-src-elem`` must repeat the bundles because the pdfs-dist
 # overlay declares that directive — without it pdfs-dist masks the
@@ -486,6 +507,7 @@ def _get_secure_csp(features: FeatureFlags) -> dict[str, list[str]]:
     overlays: list[Mapping[str, tuple[str, ...]]] = [
         _DEFAULT_SECURE_CSP,
         _PDFJS_SECURE_CSP,
+        _ONLINE_TAG_COVER_SECURE_CSP,
     ]
     if features.swagger:
         overlays.append(_API_DOCS_SECURE_CSP)

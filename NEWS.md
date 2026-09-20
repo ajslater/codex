@@ -8,6 +8,12 @@ border-radius: 128px;
 
 ## v2.3.4
 
+- Features
+    - Online tagging match candidates show a cover, a link to the source's page,
+      and what separated their scores.
+    - The Failed Imports link stays in the admin sidebar while there are failed
+      imports.
+
 - Fixes
     - A library folder that was briefly unreadable no longer loses its comics
       and their read progress.

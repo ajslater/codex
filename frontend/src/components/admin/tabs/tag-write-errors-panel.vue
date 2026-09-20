@@ -1,7 +1,8 @@
 <!--
   Bottom-of-Tagging-tab panel listing comics that failed to have their tags
-  written (read-only mount, permission error, …). Errors live in the server's
-  filesystem cache, not the database; the admin clears them here. The
+  written (read-only mount, permission error, a damaged archive that could not
+  be read, a conversion whose destination is taken). Errors live in the
+  server's filesystem cache, not the database; the admin clears them here. The
   ``#tagging-errors`` anchor is the deep-link target from the sidebar drawer.
 -->
 <template>
@@ -26,7 +27,10 @@
       <template #hint>
         These comics failed to have their tags written — usually because the
         comics directory is mounted read-only or Codex lacks permission to write
-        to it. Fix the filesystem permissions, then edit the tags again.
+        to it. Fix the filesystem permissions, then edit the tags again. A
+        damaged archive that cannot be read during a write is listed here too;
+        Failed Imports lists archives that could not be imported at all, which
+        is a different set.
       </template>
       <v-table id="tagWriteErrorsTable" striped="odd">
         <template #default>
