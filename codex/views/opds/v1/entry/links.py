@@ -96,6 +96,13 @@ class OPDS1EntryLinksMixin:
             raise
 
     def _nav_link(self, *, metadata: bool) -> OPDS1Link:
+        # The acquisition-vs-navigation type comes from one flag per
+        # collection. Folders are acquisition on purpose (a folder feed
+        # mixes sub-folders and comics) and the arcs root is knowingly
+        # labeled the same because the flag cannot tell the root from an
+        # individual arc. Both were reviewed against Panels 957 and left
+        # alone; see ``opds_acquisition_collections`` before changing
+        # either (#855 follow-up F7).
         href = self._nav_href(metadata=metadata)
 
         collection = self.obj.nav_collection

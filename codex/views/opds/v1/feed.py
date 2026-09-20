@@ -19,7 +19,7 @@ from codex.settings import FALSY
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.throttling import ScopedRateThrottle
 from codex.version import VERSION
-from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE
+from codex.views.opds.const import AUTHOR_ROLES, BLANK_TITLE, UserAgentNames
 from codex.views.opds.metadata import (
     get_credit_people_by_comic,
     get_m2m_objects_by_comic,
@@ -205,10 +205,22 @@ class OPDS1FeedView(OPDS1LinksView):
         else:
             entries += self.add_start_link()
 
-        if not self.use_facets:
-            # Facet-blind clients get facets hacked in as fake nav folders.
-            # Facet-aware clients get real facet links from ``links`` instead,
-            # so adding them here too would render dead duplicate entries.
+        # The root view switcher is navigation, not a facet: a client
+        # that ignores facet links would otherwise have no way into the
+        # library from the start feed (#855). Start page only.
+        entries += self.nav_views()
+
+        if (
+            not self.use_facets
+            or self.user_agent_name in UserAgentNames.FACET_ALSO_ENTRIES
+        ):
+            # Facet-blind clients get sort facets hacked in as fake nav
+            # folders. Facet-aware clients get real facet links from
+            # ``links`` instead, so adding them here too would render
+            # dead duplicate entries — except for the clients codex
+            # cannot classify, which get both on purpose because one
+            # platform behind that name ignores the links entirely. See
+            # ``UserAgentNames.FACET_ALSO_ENTRIES``.
             entries += self.facets(entries=True)
 
         if not self.IS_START_PAGE:
