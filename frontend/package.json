@@ -33,7 +33,7 @@
     "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.47",
     "@pinia/testing": "^2.0.1",
-    "@types/node": "^26.6.1",
+    "@types/node": "^26.6.2",
     "@unhead/bundler": "^3.4.1",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/test-utils": "^2.5.1",
