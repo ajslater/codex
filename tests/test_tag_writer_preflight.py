@@ -46,11 +46,14 @@ _BULK_WRITE_TARGET: Final = "codex.librarian.scribe.tag_writer.bulk_write"
 _PATCH: Final = {"series": {"name": "S"}}
 
 
+def _records_for(path: Path) -> list[dict]:
+    """Every tag-write error record stored against a path."""
+    return [error for error in get_tag_write_errors() if error["path"] == str(path)]
+
+
 def _errors_for(path: Path) -> list[str]:
-    """Every tag-write error recorded against a path."""
-    return [
-        error["error"] for error in get_tag_write_errors() if error["path"] == str(path)
-    ]
+    """Every tag-write error message recorded against a path."""
+    return [error["error"] for error in _records_for(path)]
 
 
 class _PreflightTestBase(TestCase):
@@ -108,6 +111,20 @@ class TagWriterTwinRefusalTests(_PreflightTestBase):
         assert "edit that comic's tags instead" in errors[0]
         assert Comic.objects.filter(pk=twin.pk).exists()
 
+    def test_the_record_names_the_twin_row(self) -> None:
+        """The panel links to it, so the pk has to ride along."""
+        comic = _make_comic(events=False, name="Link.cbr")
+        twin = _make_comic(
+            events=False, name="Link.cbz", issue_number=2, library=comic.library
+        )
+
+        self._write(comic, delete_original=False, rename=False)
+
+        records = _records_for(Path(comic.path))
+        assert len(records) == 1, records
+        assert records[0]["twin_pk"] == twin.pk
+        assert records[0]["twin_name"] == "Link.cbz"
+
     def test_the_message_is_stable_across_runs(self) -> None:
         """
         Errors dedupe by path, so the last writer of a message wins.
@@ -132,9 +149,11 @@ class TagWriterTwinRefusalTests(_PreflightTestBase):
         items = self._write(comic, delete_original=False, rename=False)
 
         assert not items
-        errors = _errors_for(Path(comic.path))
-        assert len(errors) == 1, errors
-        assert "conversion destination already exists: Bar.cbz" in errors[0]
+        records = _records_for(Path(comic.path))
+        assert len(records) == 1, records
+        assert "conversion destination already exists: Bar.cbz" in records[0]["error"]
+        # Nothing to link to: the file has no row.
+        assert "twin_pk" not in records[0]
 
     def test_a_free_destination_is_written(self) -> None:
         """Nothing in the way, nothing refused."""

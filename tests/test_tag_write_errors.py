@@ -11,6 +11,7 @@ from django.core.cache import caches
 from django.test import Client, TestCase
 
 from codex.librarian.scribe.tagwrite_errors import (
+    _ERRORS_KEY,
     add_tag_write_error,
     clear_tag_write_errors,
     get_tag_write_errors,
@@ -20,6 +21,7 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _URL: Final = "/api/v4/admin/tag-write/errors"
 _CAP: Final = 100
 _OVER_CAP: Final = 105
+_TWIN_PK: Final = 42
 
 
 def _v4(response):
@@ -74,6 +76,48 @@ class TagWriteErrorsCacheTestCase(TestCase):
         assert get_tag_write_errors() == []
 
 
+class TagWriteErrorTwinTestCase(TestCase):
+    """A refused conversion records the comic that took its destination."""
+
+    @override
+    def setUp(self) -> None:
+        caches["default"].clear()
+        caches["tagging"].clear()
+
+    def test_the_twin_is_recorded(self) -> None:
+        add_tag_write_error(
+            "/comics/a.cbr",
+            "already converted to a.cbz",
+            twin_pk=_TWIN_PK,
+            twin_name="a.cbz",
+        )
+        error = get_tag_write_errors()[0]
+        assert error["twin_pk"] == _TWIN_PK
+        assert error["twin_name"] == "a.cbz"
+
+    def test_an_error_without_a_twin_keeps_the_old_shape(self) -> None:
+        """Every other failure must not grow two null columns."""
+        add_tag_write_error("/comics/a.cbz", "Read-only file system")
+        assert set(get_tag_write_errors()[0]) == {"path", "error", "time"}
+
+    def test_a_record_written_before_this_change_still_reads(self) -> None:
+        """The cache survives restarts, so old entries outlive the upgrade."""
+        caches["tagging"].set(
+            _ERRORS_KEY,
+            [
+                {
+                    "path": "/comics/old.cbz",
+                    "error": "err",
+                    "time": "2026-01-01T00:00:00",
+                }
+            ],
+            timeout=None,
+        )
+        error = get_tag_write_errors()[0]
+        assert error["path"] == "/comics/old.cbz"
+        assert error.get("twin_pk") is None
+
+
 def _make_admin() -> User:
     return User.objects.create_user(
         username="twe_admin",
@@ -120,6 +164,23 @@ class TagWriteErrorsEndpointTestCase(TestCase):
         errors = _v4(response)
         assert len(errors) == 1
         assert errors[0]["path"] == "/comics/a.cbz"
+
+    def test_the_twin_fields_are_camel_cased(self) -> None:
+        """The first multi-word keys in this payload; the envelope renames them."""
+        add_tag_write_error(
+            "/comics/a.cbr",
+            "already converted to a.cbz",
+            twin_pk=_TWIN_PK,
+            twin_name="a.cbz",
+        )
+        error = _v4(self.client.get(_URL))[0]
+        assert error["twinPk"] == _TWIN_PK
+        assert error["twinName"] == "a.cbz"
+
+    def test_an_error_without_a_twin_has_no_twin_keys(self) -> None:
+        add_tag_write_error("/comics/a.cbz", "Read-only file system")
+        error = _v4(self.client.get(_URL))[0]
+        assert "twinPk" not in error
 
     def test_delete_clears_errors(self) -> None:
         add_tag_write_error("/comics/a.cbz", "err")
