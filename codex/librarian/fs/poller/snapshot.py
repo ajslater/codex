@@ -8,9 +8,12 @@ from stat import S_ISDIR
 from django.db.models import Model
 
 from codex.librarian.fs.filters import is_ignored_basename, match_comic
+from codex.librarian.fs.gone import GONE_ERRORS
 from codex.models import Comic, FailedImport, Folder
 
 IGNORE_ST_DEV = 0
+#: Unreadable paths named in the one summary warning a walk emits.
+_UNREADABLE_EXAMPLES = 3
 
 
 class Snapshot:
@@ -35,6 +38,10 @@ class Snapshot:
         # each path so the poller can refresh stale stats by model.
         # ``DiskSnapshot`` leaves it empty.
         self._path_to_model: dict[str, type[Model]] = {}
+        # Paths the walk could not read. Their absence from ``paths``
+        # proves nothing, so the diff must not call them deleted.
+        # ``DatabaseSnapshot`` never populates this.
+        self._unreadable: set[str] = set()
 
     def _inode(self, st: os.stat_result) -> tuple[int, int]:
         """Build a device:inode Key."""
@@ -56,6 +63,17 @@ class Snapshot:
     def paths(self) -> frozenset[str]:
         """All known paths."""
         return frozenset(self._stat_info.keys())
+
+    @property
+    def unreadable(self) -> frozenset[str]:
+        """
+        Paths that could not be read, and the roots of subtrees that could not.
+
+        A path here is missing from ``paths`` because the filesystem
+        refused to answer, not because it is gone. ``SnapshotDiff``
+        withholds these and everything under them from ``deleted``.
+        """
+        return frozenset(self._unreadable)
 
     def inode(self, path: str) -> tuple[int, int]:
         """Return (device, inode) for a path."""
@@ -129,6 +147,26 @@ class DiskSnapshot(Snapshot):
         root_stat = Path(self._root).stat()
         self._set_lookups(self._root, root_stat)
         self._walk(self._root)
+        self._warn_unreadable()
+
+    def _warn_unreadable(self) -> None:
+        """
+        Summarize what the walk could not read, once.
+
+        Per-entry failures log at debug because a share that drops mid
+        walk fails every entry under it, and an hourly poll would print
+        thousands of warnings. One line per walk is what a user needs to
+        connect "my comics vanished" to "the mount was unreadable".
+        """
+        if not self._unreadable:
+            return
+        examples = ", ".join(sorted(self._unreadable)[:_UNREADABLE_EXAMPLES])
+        reason = (
+            f"{len(self._unreadable)} paths under {self._root} could not be"
+            f" read ({examples}...). Deletes under them are withheld until"
+            " they can be read again."
+        )
+        self.log.warning(reason)
 
     def _should_include(self, path: Path, *, is_dir: bool) -> bool:
         """Decide whether a scanned entry belongs in the snapshot."""
@@ -140,14 +178,21 @@ class DiskSnapshot(Snapshot):
         """Walk the directory tree and populate lookups."""
         try:
             scandir = os.scandir(root)
+        except GONE_ERRORS:
+            # Deleted between its parent's scan and this one. Genuinely
+            # gone, so the diff may delete its rows as usual.
+            self.log.debug(f"Skipping vanished directory {root}")
+            return
         except OSError as exc:
-            # A single unreadable directory (permission denied, or one
-            # that vanished mid-scan) must not abort the whole library
-            # poll — otherwise one locked folder crashes the poller
-            # thread and no other folder gets scanned (issue #795).
-            # Skip it and keep walking the rest of the tree, matching
-            # the ``os.walk`` default-onerror behavior the watcher relies
-            # on.
+            # A single unreadable directory (permission denied, or a
+            # share that dropped) must not abort the whole library poll
+            # — otherwise one locked folder crashes the poller thread
+            # and no other folder gets scanned (issue #795). Skip it and
+            # keep walking the rest of the tree, matching the
+            # ``os.walk`` default-onerror behavior the watcher relies
+            # on. Recording it keeps the children it did not list out of
+            # the delete set: unread is not the same as absent.
+            self._unreadable.add(root)
             self.log.warning(f"Skipping unreadable directory {root}: {exc}")
             return
         with scandir:
@@ -165,9 +210,19 @@ class DiskSnapshot(Snapshot):
                     if not self._should_include(Path(entry.path), is_dir=is_dir):
                         continue
                     st = entry.stat(follow_symlinks=self._follow_symlinks)
-                except OSError:
-                    # An entry that can't be stat'd (broken symlink,
-                    # permission denied, race) is skipped, not fatal.
+                except GONE_ERRORS:
+                    # A dangling symlink or an entry that vanished
+                    # mid-scan. Really gone; let the diff delete it.
+                    self.log.debug(f"Skipping vanished entry {entry.path}")
+                    continue
+                except OSError as exc:
+                    # The entry is listed by its parent but will not
+                    # stat. It keeps its own path, and everything below
+                    # it, out of the snapshot — which is how one failed
+                    # stat used to read as a whole publisher being
+                    # deleted. Record it so the diff withholds them.
+                    self._unreadable.add(entry.path)
+                    self.log.debug(f"Skipping unreadable entry {entry.path}: {exc}")
                     continue
                 self._set_lookups(entry.path, st)
                 if is_dir:

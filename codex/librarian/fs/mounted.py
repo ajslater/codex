@@ -7,10 +7,12 @@ error. Every comic in the library then looks deleted at once, and acting
 on that removes the rows and cascades their bookmarks away — for files
 that are perfectly fine and will be back as soon as the mount is.
 
-The delete-phase existence check cannot help here: while the mount is
-gone the files genuinely are unreachable. The only defense is to notice
-the shape of the failure and refuse to act, which is what both scanners
-do with this.
+The delete-phase existence check only half helps here. It fails closed on
+a share that errors — a permission or I/O failure keeps every row — but a
+mount replaced by an empty directory answers "no such file" for paths that
+exist, and nothing downstream can tell that from a real deletion. So the
+other defense is to notice the shape of the failure and refuse to act,
+which is what both scanners do with this.
 """
 
 from pathlib import Path

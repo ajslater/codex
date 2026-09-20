@@ -17,6 +17,7 @@ class DeletedImporter(DeletedFoldersImporter):
         self.counts.folders_deleted += folders_deleted
         # Comics under a deleted folder die by cascade, not by path, so they
         # never reach ``bulk_comics_deleted`` to be counted there.
+        # ``bulk_folders_deleted`` probes and counts them itself.
         self.counts.comics_deleted += comics_cascaded
         if self.abort_event.is_set():
             return

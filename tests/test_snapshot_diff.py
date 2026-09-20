@@ -2,6 +2,8 @@
 
 import os
 from logging import getLogger
+from types import MappingProxyType
+from unittest.mock import MagicMock
 
 from django.db.models import Model
 
@@ -11,6 +13,8 @@ from codex.models import Comic, Folder
 
 # os.stat_result tuple positions: mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime
 _DIR_MODE = 0o040755  # drwxr-xr-x
+#: Comics in ``TestWithholdUnreadable._DB`` that a healthy walk deletes.
+_DEAD_COMICS = 3
 _FILE_MODE = 0o100644  # -rw-r--r--
 
 
@@ -22,6 +26,8 @@ def _snapshot(
     entries: dict[str, os.stat_result],
     *,
     models: dict[str, type[Model]] | None = None,
+    unreadable: set[str] | None = None,
+    log=None,
 ) -> Snapshot:
     """
     Build a Snapshot from a path→stat map, bypassing disk/db.
@@ -31,12 +37,13 @@ def _snapshot(
     """
     snap = Snapshot.__new__(Snapshot)
     snap._root = "/comics"  # noqa: SLF001
-    snap.log = getLogger("test")
+    snap.log = log or getLogger("test")
     snap._ignore_device = True  # noqa: SLF001
     snap._stat_info = {}  # noqa: SLF001
     snap._device_inode_to_path = {}  # noqa: SLF001
     snap._ambiguous_inodes = set()  # noqa: SLF001
     snap._path_to_model = dict(models) if models else {}  # noqa: SLF001
+    snap._unreadable = set(unreadable) if unreadable else set()  # noqa: SLF001
     for path, st in entries.items():
         snap._set_lookups(path, st)  # noqa: SLF001
     return snap
@@ -286,3 +293,129 @@ def test_db_side_inode_collision_suppresses_move() -> None:
     assert not diff.files_moved
     assert sorted(diff.files_deleted) == ["/comics/a.cbz", "/comics/b.cbz"]
     assert diff.files_added == ["/comics/c.cbz"]
+
+
+class TestWithholdUnreadable:
+    """Deletes under a path the walk could not read are withheld."""
+
+    _DB = MappingProxyType(
+        {
+            "/comics/Pub": _stat(mode=_DIR_MODE, ino=1, size=128),
+            "/comics/Pub/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100),
+            "/comics/Pub/Sub": _stat(mode=_DIR_MODE, ino=3, size=128),
+            "/comics/Pub/Sub/b.cbz": _stat(mode=_FILE_MODE, ino=4, size=100),
+            "/comics/Pub Two/c.cbz": _stat(mode=_FILE_MODE, ino=5, size=100),
+        }
+    )
+
+    def test_unreadable_subtree_is_not_deleted(self) -> None:
+        """The reporter's incident: one unreadable publisher directory."""
+        db = _snapshot(dict(self._DB))
+        # The scandir route: the directory itself stat'd, its children
+        # never listed. Everything outside it is healthy.
+        disk = _snapshot(
+            {
+                "/comics/Pub": self._DB["/comics/Pub"],
+                "/comics/Pub Two/c.cbz": self._DB["/comics/Pub Two/c.cbz"],
+            },
+            unreadable={"/comics/Pub"},
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_deleted
+        assert not diff.dirs_deleted
+        assert diff.withheld_deleted == {
+            "/comics/Pub/a.cbz",
+            "/comics/Pub/Sub",
+            "/comics/Pub/Sub/b.cbz",
+        }
+
+    def test_a_real_delete_elsewhere_still_lands(self) -> None:
+        """Withholding is per subtree, not a poll-wide refusal."""
+        db = _snapshot(dict(self._DB))
+        disk = _snapshot(
+            {"/comics/Pub": self._DB["/comics/Pub"]},
+            unreadable={"/comics/Pub"},
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        # The comic outside the unreadable subtree really is gone.
+        assert diff.files_deleted == ["/comics/Pub Two/c.cbz"]
+
+    def test_sibling_prefix_is_not_claimed(self) -> None:
+        """``/comics/Pub`` must not withhold ``/comics/Pub Two``."""
+        db = _snapshot(dict(self._DB))
+        disk = _snapshot({}, unreadable={"/comics/Pub"})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert "/comics/Pub Two/c.cbz" not in diff.withheld_deleted
+        assert diff.files_deleted == ["/comics/Pub Two/c.cbz"]
+
+    def test_the_unreadable_path_itself_is_withheld(self) -> None:
+        """The per-entry route: the failed entry is absent from the walk too."""
+        db = _snapshot(dict(self._DB))
+        disk = _snapshot({}, unreadable={"/comics/Pub"})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert "/comics/Pub" not in diff.dirs_deleted
+        assert "/comics/Pub" in diff.withheld_deleted
+
+    def test_a_lone_unreadable_file_is_withheld(self) -> None:
+        """One comic that would not stat must not lose its bookmarks."""
+        db = _snapshot({"/comics/x.cbz": _stat(mode=_FILE_MODE, ino=9, size=1)})
+        disk = _snapshot({}, unreadable={"/comics/x.cbz"})
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.files_deleted
+        assert diff.withheld_deleted == {"/comics/x.cbz"}
+
+    def test_withholding_is_reported(self) -> None:
+        """Silent correctness is how this bug survived; say what was withheld."""
+        log = MagicMock()
+        db = _snapshot(dict(self._DB))
+        disk = _snapshot({}, unreadable={"/comics/Pub"}, log=log)
+
+        SnapshotDiff(db, disk)
+
+        log.warning.assert_called_once()
+        assert "Not deleting" in log.warning.call_args[0][0]
+
+    def test_nothing_unreadable_changes_nothing(self) -> None:
+        """A healthy walk still deletes what is really gone."""
+        log = MagicMock()
+        db = _snapshot(dict(self._DB))
+        disk = _snapshot({}, log=log)
+
+        diff = SnapshotDiff(db, disk)
+
+        assert not diff.withheld_deleted
+        assert len(diff.files_deleted) == _DEAD_COMICS
+        assert sorted(diff.dirs_deleted) == ["/comics/Pub", "/comics/Pub/Sub"]
+        log.warning.assert_not_called()
+
+    def test_a_move_out_of_an_unreadable_subtree_still_pairs(self) -> None:
+        """
+        Withholding a delete must not cost a real rename its row.
+
+        A file carried out of the unreadable directory turns up at a new
+        path with its inode intact. Pairing it moves the row, which is
+        what keeps the bookmarks; refusing the pair would mint a second
+        row and leave the first to be deleted once the directory reads
+        again — the very loss this withholding exists to prevent.
+        """
+        db = _snapshot({"/comics/Pub/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100)})
+        disk = _snapshot(
+            {"/comics/elsewhere.cbz": _stat(mode=_FILE_MODE, ino=2, size=100)},
+            unreadable={"/comics/Pub"},
+        )
+
+        diff = SnapshotDiff(db, disk)
+
+        assert diff.files_moved == [("/comics/Pub/a.cbz", "/comics/elsewhere.cbz")]
+        assert not diff.files_deleted
+        assert not diff.files_added
