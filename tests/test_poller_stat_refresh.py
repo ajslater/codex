@@ -103,3 +103,27 @@ class StaleStatRefreshTestCase(TestCase):
 
         comic.refresh_from_db()
         assert comic.stat == list(_STALE_STAT)
+
+    def test_stat_refresh_stores_a_float_mtime(self) -> None:
+        """
+        The stored mtime must stay a float, as ``set_stat`` writes it.
+
+        ``list(os.stat_result)`` is the sequence form, whose mtime is a
+        truncated int. Storing that makes the row disagree with its own
+        disk snapshot on the next poll — the diff compares mtimes
+        exactly — and the file is re-imported once for nothing.
+        """
+        comic = _create_comic_with_stale_stat()
+        fractional_mtime = 1789943520.932065
+        fresh_stat = os.stat_result(
+            (33188, 99999, 0, 0, 0, 0, 100, 0, fractional_mtime, 0)
+        )
+        diff = _diff_with_refreshes(
+            (StaleStatRefresh(path=comic.path, model=Comic, disk_stat=fresh_stat),)
+        )
+
+        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+
+        comic.refresh_from_db()
+        assert comic.stat is not None
+        assert comic.stat[8] == fractional_mtime

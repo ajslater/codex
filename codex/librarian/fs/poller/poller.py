@@ -1,5 +1,6 @@
 """Database polling for library changes."""
 
+import os
 from pathlib import Path
 from threading import Condition, Event
 from typing import override
@@ -28,6 +29,22 @@ _LIBRARY_ONLY = (
     "last_poll",
     "update_in_progress",
 )
+
+
+def _stat_payload(disk_stat: os.stat_result) -> list:
+    """
+    Render a stat for storage the way ``WatchedPath.set_stat`` does.
+
+    ``list(os.stat_result)`` takes the sequence form, whose mtime is a
+    truncated **int**, while ``set_stat`` stores the float. A row
+    refreshed from the truncated form therefore disagrees with its own
+    disk snapshot on the next poll — ``_is_stats_equal`` compares them
+    exactly — and the file is re-imported once for nothing. Every
+    signature-paired rename lands here, so the waste would compound.
+    """
+    stat = list(disk_stat)
+    stat[8] = disk_stat.st_mtime
+    return stat
 
 
 class LibraryPollerThread(NamedThread, WorkerStatusMixin):
@@ -131,13 +148,18 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         ``_find_moved_paths`` lookup keys diverged from disk reality
         and stayed that way until the next true delete/add cycle. The
         ``_is_move_compatible`` guard suppresses the corruption that
-        produced, but legitimate cross-remount renames still degrade
-        to delete+add (and the user loses the comic.pk's bookmarks).
+        produced. A cross-remount rename no longer costs the comic its
+        bookmarks either — ``_pair_by_signature`` pairs it by name, size
+        and mtime — but the row keeps its old inode until this refresh
+        reconciles it on the following poll.
 
         Refresh in-place: rewrite ``stat`` only, do not bump
         ``updated_at``. The file's content is unchanged from the
         user's perspective; the bookmark/cover-cache "freshness"
         invariants must hold.
+
+        The payload goes through ``_stat_payload`` because the stored
+        mtime has to stay a float — see that function.
 
         Skipped on ``force=True`` polls because force routes every
         path through the import pipeline (where ``presave`` already
@@ -149,7 +171,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         by_model: dict[type, list[tuple[str, list]]] = {}
         for refresh in diff.stale_stat_refreshes:
             by_model.setdefault(refresh.model, []).append(
-                (refresh.path, list(refresh.disk_stat))
+                (refresh.path, _stat_payload(refresh.disk_stat))
             )
         total = 0
         for model, payloads in by_model.items():

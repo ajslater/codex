@@ -1,12 +1,20 @@
 """
 Compute the diff between two snapshots.
 
-Supports inode-based move detection and optional device-ignoring for
-Docker/complex filesystems.
+Moves are detected in two tiers. An inode is identity, so it pairs a
+move outright. A move that lost its inode — a copy-then-delete, a
+cross-device ``mv``, a remount that rotated the inode space — falls
+through to a signature of name, size and mtime, which only pairs when it
+is unique on both sides. Whatever stays unpaired becomes a delete plus an
+add, which costs the comic its bookmarks.
+
+Also supports optional device-ignoring for Docker/complex filesystems.
 """
 
 import os
+from collections.abc import Collection
 from dataclasses import dataclass
+from pathlib import PurePath
 
 from django.db.models import Model
 
@@ -261,6 +269,10 @@ class SnapshotDiff:
           exact byte count. Directory ``st_size`` varies with entry
           count and is unreliable, so this check applies to files
           only.
+
+        A pair refused here is not lost: ``_pair_by_signature`` gets a
+        second look at it with evidence that does not depend on the
+        inode being meaningful.
         """
         src_is_dir = data.ref.is_dir(src)
         if src_is_dir != data.snapshot.is_dir(dest):
@@ -275,8 +287,12 @@ class SnapshotDiff:
         path on *both* sides. An inode that maps to more than one path
         within a snapshot (a collision under ``_ignore_device`` or after
         an inode-space rotation) is skipped on the source side and resolves
-        to ``None`` on the target side, so it degrades to delete+add —
-        safe against the wrong-folder reparenting that a bogus pair caused.
+        to ``None`` on the target side — safe against the wrong-folder
+        reparenting that a bogus pair caused.
+
+        Everything still unpaired afterwards goes to
+        ``_pair_by_signature``, which is the tier that catches a move
+        whose inode changed.
         """
         for old_path in tuple(data.deleted):
             inode = data.ref.inode(old_path)
@@ -295,6 +311,84 @@ class SnapshotDiff:
             if old_path and self._is_move_compatible(data, old_path, new_path):
                 data.added.remove(new_path)
                 data.moved.add((old_path, new_path))
+
+        self._pair_by_signature(data)
+
+    @staticmethod
+    def _signature(snap: Snapshot, path: str) -> tuple[str, int, float]:
+        """Identify a file by what survives a move that loses the inode."""
+        return (PurePath(path).name, snap.size(path), snap.mtime(path))
+
+    @classmethod
+    def _unique_file_signatures(
+        cls, snap: Snapshot, paths: Collection[str]
+    ) -> dict[tuple[str, int, float], str]:
+        """
+        Map signature to path, for files whose signature is unique here.
+
+        A signature shared by two paths on either side identifies
+        neither, so both are dropped rather than guessed at.
+        """
+        seen: dict[tuple[str, int, float], str | None] = {}
+        for path in paths:
+            if snap.is_dir(path):
+                continue
+            signature = cls._signature(snap, path)
+            seen[signature] = None if signature in seen else path
+        return {sig: path for sig, path in seen.items() if path is not None}
+
+    @classmethod
+    def _pair_by_signature(cls, data: _DiffData) -> None:
+        """
+        Pair leftover deletes and adds by name, size and mtime.
+
+        An inode is identity, so it pairs a move outright. But a move
+        does not always keep one: a copy-then-delete, a cross-device
+        ``mv``, or a remount that rotated the inode space all present as
+        a delete plus an add. Left there, the delete cascades the comic's
+        bookmarks away and the add re-imports the same file as a fresh,
+        unread comic — and the existence backstop cannot help, because
+        the old path really is gone.
+
+        Name, size and mtime together are weak evidence next to an
+        inode, so the tier only fires when the signature is unique on
+        *both* sides, which makes a wrong pair impossible by
+        construction rather than unlikely. The filename carries most of
+        that weight: a bulk copy hands many files the same size and
+        mtime, and without the name they would pair with each other.
+
+        The cost of keeping the name is that this pairs a file that
+        **moved**, not one renamed to a different name. A new-inode
+        rename has nothing left to match on and is still a delete plus
+        an add.
+
+        Files only: a directory's size is meaningless and its mtime
+        moves with any child change. Children pair one at a time, the
+        importer creates the destination folders, and the old folder row
+        deletes normally — folders hold no bookmarks.
+
+        mtime compares exactly, as ``_is_stats_equal`` does. A
+        filesystem that truncates it across a copy (FAT, some SMB) will
+        not pair, and falls back to today's delete-plus-add.
+        """
+        old_by_signature = cls._unique_file_signatures(data.ref, data.deleted)
+        if not old_by_signature:
+            return
+        new_by_signature = cls._unique_file_signatures(data.snapshot, data.added)
+        paired = 0
+        for signature, old_path in old_by_signature.items():
+            new_path = new_by_signature.get(signature)
+            if new_path is None:
+                continue
+            data.deleted.remove(old_path)
+            data.added.remove(new_path)
+            data.moved.add((old_path, new_path))
+            data.snapshot.log.debug(
+                f"Paired move by name, size and mtime: {old_path} -> {new_path}"
+            )
+            paired += 1
+        if paired:
+            data.snapshot.log.info(f"Paired {paired} moves by name, size and mtime.")
 
     def _find_modified_paths(self, data: _DiffData) -> None:
         """Find paths with changed stats (mtime/size)."""
