@@ -81,6 +81,9 @@ class OPDS1LinksView(OPDS1FacetsView):
         for top_link in TopLinks.ALL + RootTopLinks.ALL:
             if not self.is_top_link_displayed(top_link):
                 links += [self._top_link(top_link)]
+        # Sort facets only. ``facets`` returns nothing on the start page
+        # now that the Views group is emitted as navigation entries for
+        # every client; do not "restore" a Views facet group here (#855).
         if facets := self.facets(entries=False):
             links += facets
         return links

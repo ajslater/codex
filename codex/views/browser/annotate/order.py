@@ -114,7 +114,29 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     @property
     def opds_acquisition_collections(self):
-        """Memoize the opds acquisition collections."""
+        """
+        Memoize the opds acquisition collections.
+
+        These decide which OPDS entries advertise
+        ``kind=acquisition`` rather than ``kind=navigation``.
+
+        ``folders`` is here deliberately: a folder feed genuinely mixes
+        sub-folders and readable comics, including at the library root,
+        and OPDS 1.2 calls a feed whose entries carry acquisition links
+        an Acquisition Feed. Field-verified against Panels (macOS build
+        957), which browses Folder View correctly and follows both kinds
+        of link inside one feed.
+
+        ``arcs`` is here knowingly, and is the one imperfect case. The
+        arcs *root* lists story arcs and nothing else, so that feed is
+        pure navigation, but this one flag also labels every individual
+        arc entry, whose feed lists comics and for which acquisition is
+        right. Splitting them means threading an override through
+        ``_facet_group`` / ``_facet_or_facet_entry`` / ``_facet_entry``
+        for the four root View entries alone. Do not do that on spec
+        reasoning: change it only when a real client is observed
+        misreading Story Arc View (#855 follow-up F7).
+        """
         if self._opds_acquisition_collections is None:
             collections: set[str] = {
                 STORY_ARC_COLLECTION,

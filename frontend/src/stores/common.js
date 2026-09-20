@@ -50,6 +50,12 @@ export const useCommonStore = defineStore("common", {
     isSettingsDrawerOpen: false,
     opdsURLs: undefined,
     /*
+     * Why the OPDS urls failed to load, or "" when they haven't. The
+     * dialog has nothing of its own to show while they're missing, so
+     * without this a failed request leaves it spinning forever.
+     */
+    opdsURLsError: "",
+    /*
      * Global app-level error string surfaced via a v-snackbar in
      * the root component. Reserved for problems that aren't tied
      * to a specific form (where ``form.errors`` would suffice) —
@@ -103,12 +109,16 @@ export const useCommonStore = defineStore("common", {
       if (this.opdsURLs) {
         return;
       }
+      this.opdsURLsError = "";
       await API.getOPDSURLs()
         .then((response) => {
           this.opdsURLs = Object.freeze({ ...response.data });
           return this.opdsURLs;
         })
-        .catch(console.error);
+        .catch((error) => {
+          this.opdsURLsError = "Could not load the OPDS urls.";
+          console.error(error);
+        });
     },
   },
 });

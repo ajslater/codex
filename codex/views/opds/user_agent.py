@@ -1,21 +1,18 @@
 """OPDS Get User Agent."""
 
-from contextlib import suppress
-from typing import Final
-
 from rest_framework.request import Request
 
-# Clients whose feature support diverges by build under one UA name, so
-# the build number right after the slash gates features. Panels: iOS
-# builds render facets, the macOS build (951) does not.
-_BUILD_UA_NAMES: Final = frozenset({"Panels"})
 
+def get_user_agent_name(request: Request) -> str:
+    """
+    Parse the client name out of the User-Agent header.
 
-def get_user_agent_name(request: Request) -> tuple[str, int | None]:
-    """Parse User Agent name, and build number for clients that need it."""
-    build = None
-    name, _, rest = (request.headers.get("User-Agent") or "").partition("/")
-    if name in _BUILD_UA_NAMES and rest:
-        with suppress(ValueError):
-            build = int(rest.split(maxsplit=1)[0])
-    return name, build
+    The name is everything before the first slash, which is all codex
+    needs. The build number that used to follow it gated OPDS facets for
+    Panels, until real user agents showed macOS build 957 and iOS build
+    956 — one apart, interleaved, and with nothing else in the header to
+    separate the platforms. No floor, denylist or allowlist survives
+    that, so nothing reads the build any more.
+    """
+    name, _, _rest = (request.headers.get("User-Agent") or "").partition("/")
+    return name

@@ -27,7 +27,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize properties."""
         super().__init__(*args, **kwargs)
-        self._user_agent_parts: tuple[str, int | None] | None = None
+        self._user_agent_client: str | None = None
         self._mime_type_map: MappingProxyType[str, str] | None = None
         self._use_facets: bool | None = None
         self._use_facets_order: bool | None = None
@@ -48,12 +48,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     def use_facets(self) -> bool:
         """Memoize use_facets."""
         if self._use_facets is None:
-            name = self.user_agent_name
-            blind_builds = UserAgentNames.FACET_BLIND_BUILDS.get(name, frozenset())
-            self._use_facets = (
-                name in UserAgentNames.FACET_SUPPORT
-                and self.user_agent_build not in blind_builds
-            )
+            self._use_facets = self.user_agent_name in UserAgentNames.FACET_SUPPORT
         return self._use_facets
 
     @property
@@ -147,7 +142,7 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
             facet_group.query_param == "topCollection"
             and self._did_special_collection_change(collection, facet.value)
         ):
-            kwargs = {"collection": facet.value, "pks": {}, "page": 1}
+            kwargs = {"collection": facet.value, "pks": (), "page": 1}
         else:
             kwargs = self.kwargs
 
@@ -175,11 +170,32 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
         return facets
 
     def facets(self, *, entries: bool) -> list:
-        """Return facets."""
+        """
+        Return sort facets only.
+
+        The root Views group used to be returned here too. It is
+        navigation, not a facet: a facet refines the entries of the feed
+        it appears on, and the start page has none by construction, so
+        "Views" refines nothing. ``nav_views`` emits it as entries for
+        every client instead (#855).
+        """
         facets = []
         if self.IS_START_PAGE:
-            facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries=entries)
-        elif self.use_facets_order:
+            return facets
+        if self.use_facets_order:
             facets += self._facet_group(FacetGroups.ORDER_BY, entries=entries)
             facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries=entries)
         return facets
+
+    def nav_views(self) -> list:
+        """
+        Return the root view switcher as navigation entries.
+
+        Emitted for every client, facet-aware or not. Facet-blindness
+        may only cost a client its sort UI, which is cosmetic; it must
+        never cost it the only way into the library, which is fatal and
+        is exactly what #855 reported.
+        """
+        if not self.IS_START_PAGE:
+            return []
+        return self._facet_group(RootFacetGroups.TOP_GROUP, entries=True)
