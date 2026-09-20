@@ -179,6 +179,9 @@ class TestDiskSnapshotSurvivesUnreadableDir:
         # The locked directory stat'd fine so its own entry is recorded,
         # but its unreadable contents are not.
         assert "hidden.cbz" not in names
+        # And the walk admits it skipped them, so the diff can withhold
+        # the deletes they would otherwise imply.
+        assert snap.unreadable == {str(locked)}
 
 
 class TestCodexWatchFilter:

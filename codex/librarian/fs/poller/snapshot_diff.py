@@ -114,6 +114,9 @@ class SnapshotDiff:
             unchanged=frozenset(ref.paths & snapshot.paths),
         )
 
+        # Before anything reads ``deleted`` — move detection included.
+        self.withheld_deleted = self._withhold_unreadable(data, snapshot)
+
         self._find_moved_paths(data)
         self._find_modified_paths(data)
 
@@ -140,6 +143,54 @@ class SnapshotDiff:
         self.stale_stat_refreshes: tuple[StaleStatRefresh, ...] = (
             self._find_stale_stat_refreshes(data)
         )
+
+    @staticmethod
+    def _withhold_unreadable(data: _DiffData, snapshot: Snapshot) -> frozenset[str]:
+        """
+        Keep paths the walk could not read out of ``deleted``.
+
+        A path missing from a disk snapshot usually means the file is
+        gone. Under an unreadable directory it means nothing at all —
+        the walk never got to look. Deleting those rows cascades the
+        comics' bookmarks away and the next healthy poll re-imports the
+        files as fresh, unread comics, which is unrecoverable.
+
+        Both failure routes are covered. A directory whose ``scandir``
+        failed is itself still in ``paths`` (its parent stat'd it), so
+        only its descendants need withholding; an entry whose own
+        ``stat`` failed is absent too, so the path must match by
+        equality as well as by prefix. The separator guard stops
+        ``/c/Pub`` from claiming ``/c/Pub Two``.
+
+        Withholding is not deferral of a real delete: the row still
+        points at a path the scanner could not see, and the next poll
+        that can read it reconciles normally.
+
+        A withheld path can still be claimed as a *move* source by an
+        added file carrying its inode — a comic carried out of the
+        unreadable directory. That is deliberate: moving the row keeps
+        the bookmarks with the file, where refusing the pair would mint
+        a second row and leave the first to be deleted once the
+        directory reads again.
+        """
+        unreadable = snapshot.unreadable
+        if not unreadable:
+            return frozenset()
+        prefixes = tuple(path.rstrip(os.sep) + os.sep for path in unreadable)
+        withheld = frozenset(
+            path
+            for path in data.deleted
+            if path in unreadable or path.startswith(prefixes)
+        )
+        if withheld:
+            data.deleted -= withheld
+            reason = (
+                f"Not deleting {len(withheld)} paths under"
+                f" {len(unreadable)} unreadable directories. They will be"
+                " reconciled when the directories can be read again."
+            )
+            snapshot.log.warning(reason)
+        return withheld
 
     @staticmethod
     def _find_stale_stat_refreshes(data: _DiffData) -> tuple[StaleStatRefresh, ...]:

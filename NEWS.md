@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.3.4
+
+- Fixes
+    - A library folder that was briefly unreadable no longer loses its comics
+      and their read progress.
+
 ## v2.3.3
 
 - Features
