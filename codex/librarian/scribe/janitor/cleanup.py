@@ -134,12 +134,21 @@ def _create_reverse_rel_map() -> MappingProxyType:
 
 
 _MODEL_REVERSE_EMPTY_FILTER_MAP = _create_reverse_rel_map()
+# A bookmark belongs to a user or to a session. One with neither is
+# owned by nobody: invisible to every reader, and returned by no query.
+#
+# ``comic`` is deliberately absent. It is a non-nullable FK, so including
+# it made this filter match nothing at all, and the sweep had never
+# deleted a row. It is also unnecessary: ``Bookmark.comic`` cascades, so
+# a deleted comic takes its bookmarks with it and cannot orphan one.
 _BOOKMARK_FILTER = dict.fromkeys(
-    (f"{rel}__isnull" for rel in ("session", "user", "comic")), True
+    (f"{rel}__isnull" for rel in ("session", "user")), True
 )
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
+#: Orphan bookmark pks named in the log before they are deleted.
+_ORPHAN_PKS_LOGGED = 10
 # Backstop for `Favorite.post_delete` signals — the nightly sweep
 # drops favorites whose target row is gone (e.g. wiped by raw-SQL
 # migrations or other paths that bypass Django's ORM signal
@@ -400,12 +409,32 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.finish(status)
 
     def cleanup_orphan_bookmarks(self) -> None:
-        """Delete bookmarks without users or sessions."""
+        """
+        Delete bookmarks belonging to neither a user nor a session.
+
+        No ORM path creates one: the auth filter is exclusive and
+        non-null, restore forces a user, and ``cascade_if_user_null``
+        deletes session-owned rows whose user is NULL while nulling the
+        session on the rest, so an expiring session leaves nothing
+        behind. A both-NULL row therefore comes from raw SQL, a
+        migration or legacy data, which is what a backstop sweep is for.
+
+        The rows are named before they go. This filter matched nothing
+        for its whole life, so the first real run on any install is also
+        the first, and its count should be attributable.
+        """
         status = JanitorCleanupBookmarksStatus()
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
                 orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
+                pks = tuple(
+                    orphan_bms.order_by("pk").values_list("pk", flat=True)[
+                        :_ORPHAN_PKS_LOGGED
+                    ]
+                )
+                if pks:
+                    self.log.info(f"Deleting orphan bookmarks, pks {pks}...")
                 count, _ = orphan_bms.delete()
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Deleted {count} orphan bookmarks.")
