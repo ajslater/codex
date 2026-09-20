@@ -3,6 +3,7 @@
 from collections.abc import Collection, Iterable
 from datetime import datetime
 
+from django.db import IntegrityError, transaction
 from django.db.models.expressions import F
 from django.db.models.query import Q
 from django.utils import timezone as django_timezone
@@ -162,15 +163,55 @@ class BookmarkUpdateMixin(GroupACLMixin):
         count = len(create_bookmarks)
         if count:
             # ``bulk_create`` here is a plain INSERT path; no UPSERT.
-            # Schema-side, ``Bookmark.unique_together = (user, session,
-            # comic)`` has nullable user/session, and SQLite (like ANSI
-            # SQL) treats NULLs in unique indexes as distinct — so an
-            # ``ON CONFLICT DO UPDATE`` target wouldn't fire for a row
-            # whose ``session_id`` is NULL on both sides. The two-pass
-            # design (filter existing first, only insert truly missing
-            # rows) sidesteps that gotcha.
+            # ``bulk_create(update_conflicts=True)`` is not an option:
+            # the owner columns are unique only under a *partial* index
+            # (``WHERE user_id IS NOT NULL``), and Django emits a bare
+            # ``ON CONFLICT(user_id, comic_id) DO UPDATE``
+            # (``sqlite3/operations.py::on_conflict_suffix_sql``) with no
+            # predicate, which SQLite refuses to match to a partial
+            # index. The two-pass design plus the retry below is what
+            # handles a concurrent writer instead.
             Bookmark.objects.bulk_create(create_bookmarks)
         return count
+
+    @classmethod
+    def _create_bookmarks_once(
+        cls,
+        auth_filter,
+        missing_comic_pks: Collection[int],
+        updates,
+        now: datetime,
+    ) -> int:
+        """
+        Create the missing bookmarks, yielding to whoever got there first.
+
+        Phase 1 proved these comics had no bookmark for this owner, but
+        nothing holds a lock between then and the INSERT: the sync web
+        PATCH, the flood-delayed bookmark thread and OPDS progression all
+        write the same rows. Since the partial unique constraints landed,
+        the loser of that race gets an ``IntegrityError`` rather than a
+        second row — which the bookmark thread would swallow, losing the
+        page write.
+
+        The savepoint rolls the whole batch back, so the retry re-runs
+        phase 1 over the same pks (updating whatever the winner just
+        inserted) and inserts only what is still absent. One retry: a
+        second collision would need yet another writer inside the
+        microseconds between, and it is louder to raise than to loop.
+        """
+        if not missing_comic_pks:
+            return 0
+        try:
+            with transaction.atomic():
+                return cls._create_bookmarks(auth_filter, missing_comic_pks, updates)
+        except IntegrityError:
+            pass
+        update_count, covered = cls._update_bookmarks(
+            auth_filter, missing_comic_pks, updates, now
+        )
+        still_missing = set(missing_comic_pks) - covered
+        create_count = cls._create_bookmarks(auth_filter, still_missing, updates)
+        return update_count + create_count
 
     @classmethod
     def update_bookmarks(cls, auth_filter, comic_pks, updates) -> int:
@@ -186,15 +227,21 @@ class BookmarkUpdateMixin(GroupACLMixin):
         # update + create halves of the operation.
         now = django_timezone.now()
 
-        update_count, covered = cls._update_bookmarks(
-            auth_filter, comic_pks, updates, now
-        )
-        # Skip the create-path SELECT entirely when phase 1 already
-        # covered every input pk — the hot path on a sequential read
-        # (page 2..N of one comic) hits this branch every time after
-        # the first bookmark is created.
-        missing_pks = set(comic_pks) - covered
-        create_count = cls._create_bookmarks(auth_filter, missing_pks, updates)
+        # One transaction for both phases: the create path's savepoint
+        # retry needs an outer atomic block to roll back into, and a
+        # reader never sees the update half without the create half.
+        with transaction.atomic():
+            update_count, covered = cls._update_bookmarks(
+                auth_filter, comic_pks, updates, now
+            )
+            # Skip the create-path SELECT entirely when phase 1 already
+            # covered every input pk — the hot path on a sequential read
+            # (page 2..N of one comic) hits this branch every time after
+            # the first bookmark is created.
+            missing_pks = set(comic_pks) - covered
+            create_count = cls._create_bookmarks_once(
+                auth_filter, missing_pks, updates, now
+            )
 
         count = update_count + create_count
         if count:

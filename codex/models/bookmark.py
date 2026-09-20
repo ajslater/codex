@@ -8,6 +8,8 @@ from django.db.models import (
     ForeignKey,
     Index,
     PositiveSmallIntegerField,
+    Q,
+    UniqueConstraint,
 )
 
 from codex.models.base import BaseModel
@@ -61,12 +63,32 @@ class Bookmark(BaseModel):
     class Meta(BaseModel.Meta):
         """Constraints."""
 
-        unique_together = ("user", "session", "comic")
+        # One bookmark per owner per comic. ``unique_together`` on
+        # (user, session, comic) could not enforce that: user and session
+        # are nullable and SQL treats NULLs in a unique index as
+        # distinct, so two rows (user=1, session=NULL, comic=5) both
+        # satisfied it. Each constraint is conditioned on its own owner
+        # being present, which also binds a row that somehow has both.
+        # A row with neither owner falls outside both and belongs to
+        # nobody; the nightly cleanup collects those.
+        constraints = (
+            UniqueConstraint(
+                fields=("user", "comic"),
+                condition=Q(user__isnull=False),
+                name="unique_bookmark_user_comic",
+            ),
+            UniqueConstraint(
+                fields=("session", "comic"),
+                condition=Q(session__isnull=False),
+                name="unique_bookmark_session_comic",
+            ),
+        )
         # Comic-leading composites for the per-comic my-bookmark probes
-        # (UNREAD/READ filter Exists, bookmark aggregates). The
-        # unique_together index leads with user, and under stale
+        # (UNREAD/READ filter Exists, bookmark aggregates). Every other
+        # index on this table leads with the owner — the partial unique
+        # indexes above, and the two FK indexes — and under stale
         # sqlite_stat1 the planner flipped a user-scoped probe onto the
-        # plain user index — a measured 17s vs 27ms plan. Comic-first
+        # plain user index, a measured 17s vs 27ms plan. Comic-first
         # dominates both access paths.
         indexes = (
             Index(fields=("comic", "user"), name="bookmark_comic_user"),

@@ -23,6 +23,7 @@ border-radius: 128px;
     - Panels gets both its own sort menu and the sort folders, on every
       platform.
     - The OPDS urls dialog opens, and its copy buttons work over plain http.
+    - Read progress can no longer be recorded twice for the same comic.
 
 ## v2.3.3
 
