@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
 from comicbox.config import get_config
 from comicbox.events import (
@@ -44,6 +44,14 @@ if TYPE_CHECKING:
     from comicbox.write import Mode
 
     from codex.librarian.scribe.tasks import BulkTagWriteTask
+
+
+class TwinRef(NamedTuple):
+    """The comic row that already holds a conversion's destination."""
+
+    pk: int
+    name: str
+    library_path: str
 
 
 class TagWriter(WorkerStatusAbortableBase):
@@ -254,10 +262,32 @@ class TagWriter(WorkerStatusAbortableBase):
         )
         self.log.info(reason)
 
-    def _twin_refusal(self, task: BulkTagWriteTask, pk: int, path: Path, config) -> str:
+    @staticmethod
+    def _destination_refusal(pk: int, destination: Path) -> tuple[str, TwinRef | None]:
+        """Return why one conversion destination is unavailable, or ""."""
+        twin = (
+            Comic.objects.filter(path=str(destination))
+            .exclude(pk=pk)
+            .values_list("pk", "library__path")
+            .first()
+        )
+        if twin:
+            twin_pk, library_path = twin
+            reason = (
+                f"already converted to {destination.name} — edit that"
+                f" comic's tags instead, or remove one of the two files"
+            )
+            return reason, TwinRef(twin_pk, destination.name, library_path or "")
+        if destination.exists():
+            return f"conversion destination already exists: {destination.name}", None
+        return "", None
+
+    def _twin_refusal(
+        self, task: BulkTagWriteTask, pk: int, path: Path, config
+    ) -> tuple[str, TwinRef | None]:
         """Return why this comic's conversion has nowhere to go, or ""."""
         if not self._converts(pk, path):
-            return ""
+            return "", None
         destinations = [conversion_destination(path)]
         if task.rename and not task.delete_original:
             # The kept original's CBZ is renamed to its scheme name after
@@ -276,15 +306,10 @@ class TagWriter(WorkerStatusAbortableBase):
         for destination in destinations:
             if destination == path:
                 continue
-            twin = Comic.objects.filter(path=str(destination)).exclude(pk=pk)
-            if twin.exists():
-                return (
-                    f"already converted to {destination.name} — edit that"
-                    f" comic's tags instead, or remove one of the two files"
-                )
-            if destination.exists():
-                return f"conversion destination already exists: {destination.name}"
-        return ""
+            reason, twin = self._destination_refusal(pk, destination)
+            if reason:
+                return reason, twin
+        return "", None
 
     def _refuse_occupied_conversions(
         self, task: BulkTagWriteTask, current_paths: dict[int, Path]
@@ -314,9 +339,9 @@ class TagWriter(WorkerStatusAbortableBase):
         config = build_predict_config(task.delete_keys, task.mode)
         kept: dict[int, Path] = {}
         for pk, path in current_paths.items():
-            reason = self._twin_refusal(task, pk, path, config)
+            reason, twin = self._twin_refusal(task, pk, path, config)
             if reason:
-                self._report_error(path, reason)
+                self._report_error(path, reason, twin=twin)
             else:
                 kept[pk] = path
         return kept
@@ -511,10 +536,18 @@ class TagWriter(WorkerStatusAbortableBase):
             post_renamed[pk] = target
         return post_renamed
 
-    def _report_error(self, path: Path, reason: str) -> None:
+    def _report_error(
+        self, path: Path, reason: str, *, twin: TwinRef | None = None
+    ) -> None:
         """Surface a per-file failure to admins (badge + Tagging panel)."""
-        self.log.warning(f"Tag write: {reason} for {path}")
-        add_tag_write_error(str(path), reason)
+        where = f" (twin comic pk {twin.pk} in {twin.library_path})" if twin else ""
+        self.log.warning(f"Tag write: {reason} for {path}{where}")
+        add_tag_write_error(
+            str(path),
+            reason,
+            twin_pk=twin.pk if twin else None,
+            twin_name=twin.name if twin else None,
+        )
         self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
 
     def _apply_moves_inline(
