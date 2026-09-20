@@ -12,10 +12,15 @@ The check fails closed: only "no such file" means gone. A permission or
 I/O error means the filesystem could not answer, which is not the same
 thing, and a folder delete probes the comics its cascade would take as
 well as its own path.
+
+"No such file" is not proof either, once, so the delete phase takes a
+second look: it probes, waits, and re-probes whatever came back missing,
+keeping anything that answers the second time.
 """
 
 import os
 import shutil
+import threading
 from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
@@ -28,6 +33,7 @@ from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.importer.delete.existence import SECOND_LOOK_DELAY_S
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.models import (
@@ -59,6 +65,12 @@ class _DeleteTestBase(BaseTestImporter):
     @override
     def setUp(self) -> None:
         super().setUp()
+        # Every delete-bearing batch waits between its two probes. Patch
+        # the wait rather than shortening it, so the tests assert *that*
+        # it waited without any of them paying for it.
+        wait_patcher = patch.object(threading.Event, "wait")
+        self.wait_mock = wait_patcher.start()
+        self.addCleanup(wait_patcher.stop)
         self.library = Library.objects.get(pk=self.task.library_id)
         self.folder = Folder.objects.create(
             library=self.library, path=str(LIBRARY_PATH), name=LIBRARY_PATH.name
@@ -208,6 +220,21 @@ def _stat_failing_for(targets: frozenset[str], error: OSError):
     def fake_stat(self, *args, **kwargs):
         if str(self) in targets:
             raise error
+        return real_stat(self, *args, **kwargs)
+
+    return fake_stat
+
+
+def _stat_reviving(targets: frozenset[str]):
+    """Return a Path.stat that answers gone once, then tells the truth."""
+    real_stat = Path.stat
+    answered_gone: set[str] = set()
+
+    def fake_stat(self, *args, **kwargs):
+        path = str(self)
+        if path in targets and path not in answered_gone:
+            answered_gone.add(path)
+            raise FileNotFoundError(2, "No such file or directory", path)
         return real_stat(self, *args, **kwargs)
 
     return fake_stat
@@ -419,3 +446,90 @@ class TestUnreadableSubtreeEndToEnd(_DeleteTestBase):
             Bookmark.objects.filter(comic__pk__in=pks, finished=True).count()
             == _BOOKMARKED_COMICS
         )
+
+
+class TestSecondLookBeforeDeleting(_DeleteTestBase):
+    """A path that answers on a second probe was never gone."""
+
+    def _bookmark(self, comic: Comic) -> Bookmark:
+        user = User.objects.create_user(username=f"reader{comic.pk}", password="x")  # noqa: S106
+        return Bookmark.objects.create(user=user, comic=comic, finished=True)
+
+    def test_comic_that_comes_back_keeps_row_and_bookmark(self) -> None:
+        """A share that lies for a moment must not cost a comic its place."""
+        gone = self._create_comic(_GONE)
+        Path(_GONE).unlink()
+        flapping = self._create_comic(_EXTANT)
+        bookmark = self._bookmark(flapping)
+
+        with patch.object(Path, "stat", _stat_reviving(frozenset({_EXTANT}))):
+            importer = self._delete(files_deleted=frozenset({_GONE, _EXTANT}))
+
+        assert Comic.objects.filter(pk=flapping.pk).exists()
+        assert Bookmark.objects.filter(pk=bookmark.pk).exists()
+        # The one that really is gone still goes.
+        assert not Comic.objects.filter(pk=gone.pk).exists()
+        assert importer.counts.comics_deleted == 1
+        self.wait_mock.assert_called_once_with(SECOND_LOOK_DELAY_S)
+
+    def test_folder_that_comes_back_keeps_subtree(self) -> None:
+        """The cascade is what makes a flapping directory expensive."""
+        subdir_folder = self._make_subdir_folder()
+        comic = self._create_comic(str(_SUBDIR / "c.cbz"), folder=subdir_folder)
+        bookmark = self._bookmark(comic)
+
+        with patch.object(Path, "stat", _stat_reviving(frozenset({str(_SUBDIR)}))):
+            importer = self._delete(dirs_deleted=frozenset({str(_SUBDIR)}))
+
+        assert Folder.objects.filter(pk=subdir_folder.pk).exists()
+        assert Comic.objects.filter(pk=comic.pk).exists()
+        assert Bookmark.objects.filter(pk=bookmark.pk).exists()
+        assert importer.counts.folders_deleted == 0
+
+    def test_nothing_gone_means_no_wait(self) -> None:
+        """A healthy scan must not stall the scribe for five seconds."""
+        self._create_comic(_EXTANT)
+
+        self._delete(files_deleted=frozenset({_EXTANT}))
+
+        self.wait_mock.assert_not_called()
+
+    def test_empty_batch_means_no_wait(self) -> None:
+        """Neither must a batch with no deletes at all."""
+        self._delete()
+
+        self.wait_mock.assert_not_called()
+
+    def test_mixed_batch_waits_once(self) -> None:
+        """One wait per batch, however many paths it carries."""
+        subdir_folder = self._make_subdir_folder()
+        comic = self._create_comic(str(_SUBDIR / "c.cbz"), folder=subdir_folder)
+        shutil.rmtree(_SUBDIR)
+        gone = self._create_comic(_GONE)
+        Path(_GONE).unlink()
+
+        self._delete(
+            dirs_deleted=frozenset({str(_SUBDIR)}),
+            files_deleted=frozenset({_GONE}),
+        )
+
+        assert not Folder.objects.filter(pk=subdir_folder.pk).exists()
+        assert not Comic.objects.filter(pk=comic.pk).exists()
+        assert not Comic.objects.filter(pk=gone.pk).exists()
+        self.wait_mock.assert_called_once_with(SECOND_LOOK_DELAY_S)
+
+    def test_revival_is_reported(self) -> None:
+        """A flapping filesystem is worth a line in the log."""
+        self._create_comic(_EXTANT)
+        task = ImportTask(
+            library_id=self.library.pk, files_deleted=frozenset({_EXTANT})
+        )
+        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        mock_log = MagicMock()
+        importer.log = mock_log
+
+        with patch.object(Path, "stat", _stat_reviving(frozenset({_EXTANT}))):
+            importer.delete()
+
+        warnings = [call.args[0] for call in mock_log.warning.call_args_list]
+        assert any("answered" in warning for warning in warnings), warnings

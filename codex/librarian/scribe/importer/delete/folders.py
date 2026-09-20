@@ -38,7 +38,9 @@ class DeletedFoldersImporter(DeletedComicsImporter):
         ``confirm_deleted`` probes the folder paths, but the comics under
         them die by cascade without a probe of their own — one folder
         that failed to answer used to destroy every comic beneath it and
-        their bookmarks. On a coherent filesystem a folder that answers
+        their bookmarks. This runs after the delete phase's second look,
+        so it is already a late probe: a comic that revived during the
+        wait keeps its folder here. On a coherent filesystem a folder that answers
         ENOENT cannot have children that answer anything else, so this
         is a backstop for the case that motivates the whole module: a
         network share whose answers disagree with each other.

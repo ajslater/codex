@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - A library folder that was briefly unreadable no longer loses its comics
       and their read progress.
+    - A comic a scan briefly could not find is checked again before its read
+      progress is removed.
 
 ## v2.3.3
 

@@ -1,15 +1,54 @@
 """Clean up the database after moves or imports."""
 
+from codex.librarian.scribe.importer.delete.existence import (
+    SECOND_LOOK_DELAY_S,
+    revived_paths,
+)
 from codex.librarian.scribe.importer.delete.folders import DeletedFoldersImporter
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
+
+#: Revived paths named in the second look's warning.
+_REVIVED_EXAMPLES = 3
 
 
 class DeletedImporter(DeletedFoldersImporter):
     """Delete database objects methods."""
 
+    def _second_look(self) -> None:
+        """
+        Drop deletes that answer on a second probe. One wait per batch.
+
+        Both scanners infer deletes from a single observation, and a
+        share that drops for a few seconds answers exactly like one that
+        lost a file. Looking twice costs one wait per batch that carries
+        deletes, and nothing at all when a scan found none.
+
+        Covers are excluded: they never come from a scan, so there is no
+        filesystem race to lose.
+        """
+        candidates = self.task.dirs_deleted | self.task.files_deleted
+        if not candidates:
+            return
+        revived = revived_paths(candidates, self.abort_event.wait)
+        if not revived:
+            return
+        examples = ", ".join(sorted(revived)[:_REVIVED_EXAMPLES])
+        reason = (
+            f"Not deleting {len(revived)} paths a scan reported missing that"
+            f" answered {SECOND_LOOK_DELAY_S}s later; the filesystem may be"
+            f" flapping: {examples}..."
+        )
+        self.log.warning(reason)
+        self.task.dirs_deleted -= revived
+        self.task.files_deleted -= revived
+
     def delete(self) -> None:
         """Delete files and folders."""
         if self.abort_event.is_set():
+            return
+        self._second_look()
+        if self.abort_event.is_set():
+            # An abort during the wait returns from it early.
             return
         folders_deleted, comics_cascaded, folder_collections = (
             self.bulk_folders_deleted()
