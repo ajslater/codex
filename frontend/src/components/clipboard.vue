@@ -29,6 +29,11 @@ export default {
     const { copy, copied, isSupported } = useClipboard({
       source: () => props.text,
       copiedDuring: 5000,
+      // ``navigator.clipboard`` is undefined on insecure origins, which
+      // is every plain-http LAN deployment. Without the fallback
+      // ``isSupported`` is false there: the icon is hidden, the tooltip
+      // suppressed, and clicking does nothing at all.
+      legacy: true,
     });
     return { copy, copied, isSupported };
   },
