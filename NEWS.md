@@ -11,6 +11,10 @@ border-radius: 128px;
 - Fixes
     - A library folder that was briefly unreadable no longer loses its comics
       and their read progress.
+    - OPDS clients can browse the library from the catalog root again.
+    - Panels gets both its own sort menu and the sort folders, on every
+      platform.
+    - The OPDS urls dialog opens, and its copy buttons work over plain http.
 
 ## v2.3.3
 
