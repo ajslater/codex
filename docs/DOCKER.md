@@ -56,7 +56,7 @@ services:
         env_file: .env
         volumes:
             - /host/path/to/config:/config
-            - /host/path/to/comics:/comics:ro
+            - /host/path/to/comics:/comics
         ports:
             - "9810:9810"
         restart: on-failure
