@@ -128,8 +128,8 @@ export default {
             if (!v) {
               return "Password is required";
             }
-            if (this.registerMode && v.length < this.MIN_PASSWORD_LEN) {
-              return `Password must be ${this.MIN_PASSWORD_LEN} characters long`;
+            if (this.registerMode && v.length < this.MIN_PASSWORD_LENGTH) {
+              return `Password must be at least ${this.MIN_PASSWORD_LENGTH} characters`;
             }
             return true;
           },
@@ -168,7 +168,7 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       adminFlags: (state) => state.adminFlags,
-      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
+      MIN_PASSWORD_LENGTH: (state) => state.MIN_PASSWORD_LENGTH,
     }),
     ...mapWritableState(useAuthStore, ["showLoginDialog"]),
     submitButtonLabel() {

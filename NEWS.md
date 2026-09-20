@@ -30,6 +30,7 @@ border-radius: 128px;
       platform.
     - The OPDS urls dialog opens, and its copy buttons work over plain http.
     - Read progress can no longer be recorded twice for the same comic.
+    - Registration now enforces the minimum password length.
     - Writing tags to a CBR whose CBZ twin already exists now says which file to
       edit instead, and links to it.
     - The match review dialog no longer clips its Pause button.
