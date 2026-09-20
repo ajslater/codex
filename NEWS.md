@@ -19,10 +19,19 @@ border-radius: 128px;
       and their read progress.
     - A comic a scan briefly could not find is checked again before its read
       progress is removed.
+    - Comics with uppercase file extensions no longer lose their folders and
+      read progress to the nightly integrity check.
+    - Renaming or moving a comic between scans keeps its read progress even when
+      the file's inode changes.
+    - Bookmarks that belong to no user or session are now removed by the nightly
+      cleanup.
     - OPDS clients can browse the library from the catalog root again.
     - Panels gets both its own sort menu and the sort folders, on every
       platform.
     - The OPDS urls dialog opens, and its copy buttons work over plain http.
+    - Writing tags to a CBR whose CBZ twin already exists now says which file to
+      edit instead, and links to it.
+    - The match review dialog no longer clips its Pause button.
 
 ## v2.3.3
 
