@@ -23,21 +23,33 @@ leaves the path in the keep pile, because "I could not look" is not
 "it is not there". That is the case a bare ``Path.exists()`` used to get
 wrong, silently, for a whole directory at a time.
 
-What remains unhandled is an outage that answers ``ENOENT`` for files that
-exist — a mount replaced by an empty directory, or a share that lies during
-a reconnect. ``unmounted_reason`` catches the whole-library shape of that;
-a subtree-sized one still reads as a real deletion here, which is why the
-delete phase logs what it could not check and how much it is about to
-remove.
+An outage that answers ``ENOENT`` for files that exist defeats all of
+that, because "not found" is what a real deletion looks like. The short
+shape of it — a share that lies for a few seconds during a reconnect, an
+external ``rm`` + ``mv`` caught mid-swap — is covered by
+``revived_paths``: the delete phase probes once, waits, and probes the
+gone set again, keeping anything that answers the second time.
+
+A *sustained* outage still reads as a real deletion here.
+``unmounted_reason`` catches the whole-library shape; a subtree-sized one
+needs confirmation across polls, which is why the delete phase logs what
+it could not check and how much it is about to remove.
 """
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from pathlib import Path
 
 from codex.librarian.fs.gone import GONE_ERRORS
 
 #: Unreadable paths named in the delete phase's warning.
 _UNREADABLE_EXAMPLES = 3
+#: Seconds between the two probes of a delete set. Long enough for a CIFS
+#: reconnect or an ``rm`` + ``mv`` swap to settle, short enough not to
+#: stall the single scribe worker. It is spent on
+#: ``abort_event.wait``, so an admin abort cuts it short; a daemon
+#: shutdown does not set that event, so a shutdown landing inside the
+#: wait costs at most one delay. Tests patch the wait, not this.
+SECOND_LOOK_DELAY_S = 5
 
 
 def probe_paths(
@@ -88,3 +100,26 @@ def confirm_deleted(paths: Collection[str], log, kind: str) -> tuple[str, ...]:
         )
         log.warning(reason)
     return gone
+
+
+def revived_paths(
+    paths: Collection[str], wait: Callable[[float], object]
+) -> frozenset[str]:
+    """
+    Return paths that answered gone, then answered again moments later.
+
+    One observation cannot tell a deletion from a filesystem having a
+    bad second. Two can, for the short shape: probe, wait, and re-probe
+    only what came back missing. A path that reappears was never gone,
+    and deleting it would have cascaded a comic's bookmarks away for a
+    file sitting right there.
+
+    Nothing gone means nothing to re-probe, so a healthy scan never
+    waits.
+    """
+    gone, _extant = split_extant(paths)
+    if not gone:
+        return frozenset()
+    wait(SECOND_LOOK_DELAY_S)
+    _gone_again, revived = split_extant(gone)
+    return frozenset(revived)
