@@ -39,8 +39,9 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.tagrename")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.tagrename")
 _COMICBOX_TARGET: Final = "codex.librarian.scribe.tagwrite_rename.Comicbox"
 _TARGET_NAME: Final = "Renamed #001.cbz"
 _EXAMPLE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"

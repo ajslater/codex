@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Final, override
 
 import pytest
 from django.test import TestCase
 
 from codex.user_data.store import SCHEMA_VERSION, SidecarStore, reset_store_for_tests
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.sidecar")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.sidecar")
 _EXPECTED_BOOKMARK_PAGE: Final = 7
 
 

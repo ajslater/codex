@@ -14,7 +14,6 @@ import shutil
 import xml.etree.ElementTree as ET
 from collections import deque
 from collections.abc import Callable, Iterable
-from pathlib import Path
 from typing import Final
 from urllib.parse import urlsplit
 
@@ -34,12 +33,13 @@ from codex.models import (
     Volume,
 )
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_REDIRECT: Final = 300
 _HTTP_ERROR: Final = 400  # 2xx/3xx are healthy; >= 400 is a broken link
-_TMP_DIR: Final = Path("/tmp/codex.tests.opds")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.opds")
 
 _V1_START: Final = "/opds/v1.2/"
 _V2_START: Final = "/opds/v2.0/"

@@ -29,8 +29,9 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.watchermove")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.watchermove")
 _OLD_NAME: Final = "old.cbz"
 _NEW_NAME: Final = "new.cbz"
 

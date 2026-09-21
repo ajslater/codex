@@ -14,7 +14,6 @@ reader's series/volume arcs (``show.get("s")`` against a collection-keyed show).
 import json
 import shutil
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 from unittest.mock import Mock
 
@@ -28,11 +27,12 @@ from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Vol
 from codex.models.named import Reprint, StoryArc, StoryArcNumber
 from codex.models.settings import SettingsReader
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-_TMP_DIR: Final = Path("/tmp/codex.tests.reader")  # noqa: S108
-_ALT_TMP_DIR: Final = Path("/tmp/codex.tests.reader_alt_series")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.reader")
+_ALT_TMP_DIR: Final = tmp_dir("codex.tests.reader_alt_series")
 # The reprint series fixture holds three comics.
 _ALT_SERIES_LEN: Final = 3
 

@@ -222,9 +222,9 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         and its bookmarks belong to that path, and the import that
         follows overwrites the metadata anyway.
 
-        Scoped by ``library``, unlike its neighbour ``_refresh_stale_stats``
-        -- ``unique_together`` is ``(library, path)``, so an unscoped
-        path filter lets two libraries holding the same absolute path
+        Scoped by ``library``, as its neighbour ``_refresh_stale_stats``
+        also is -- ``unique_together`` is ``(library, path)``, so an
+        unscoped path filter lets two libraries whose roots overlap
         cross-write each other.
         """
         if not diff.revived:
