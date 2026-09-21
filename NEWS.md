@@ -57,6 +57,8 @@ border-radius: 128px;
       can't see.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Browsing to a collection you can't see sends you up a level instead of a
+      blank page.
 
 ## v2.3.3
 
