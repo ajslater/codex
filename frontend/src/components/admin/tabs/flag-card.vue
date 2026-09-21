@@ -104,13 +104,14 @@
       <v-text-field
         :model-value="item.value"
         type="number"
-        min="1"
-        max="65535"
+        :min="pageSizeRange[0]"
+        :max="pageSizeRange[1]"
+        :rules="pageSizeRules"
         label="Items per page"
         hide-details="auto"
         density="compact"
         :error-messages="error"
-        @update:model-value="changeCol('value', $event)"
+        @update:model-value="changeCol('value', $event, pageSizeRange)"
       />
     </div>
   </div>
@@ -122,6 +123,7 @@ import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
+import LIMITS from "@/choices/limits.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -142,6 +144,15 @@ export default {
         field: undefined,
       },
       error: undefined,
+      // Static, so they belong in data rather than computed.
+      pageSizeRange: LIMITS.browserMaxObjPerPage,
+      pageSizeRules: Object.freeze([
+        [
+          "$intRange",
+          LIMITS.browserMaxObjPerPage,
+          "Must be between {0} and {1}",
+        ],
+      ]),
     };
   },
   computed: {
@@ -190,7 +201,16 @@ export default {
         this.error = undefined;
       }
     },
-    changeCol(field, val) {
+    changeCol(field, val, range) {
+      // This control has no v-form and PATCHes on every keystroke, so
+      // rules alone display a message without stopping the write. A
+      // saved 0 here is a live 500 -- ``ceil(count / 0)`` -- so the
+      // write itself has to be gated.
+      if (range && !this.inRange(val, range)) {
+        const [low, high] = range;
+        this.error = `Must be between ${low} and ${high}`;
+        return;
+      }
       this.lastUpdate.field = field;
       const data = { [field]: val };
       this.updateRow("Flag", this.itemKey, data)
@@ -198,6 +218,10 @@ export default {
           return this.setError(field);
         })
         .catch(console.error);
+    },
+    inRange(val, [low, high]) {
+      const num = Number(val);
+      return Number.isInteger(num) && num >= low && num <= high;
     },
   },
 };

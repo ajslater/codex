@@ -9,6 +9,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.choices.limits import SMTP_PORT, SMTP_TIMEOUT_SECONDS
 from codex.models import EmailSettings
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -19,6 +20,20 @@ class EmailSettingsSerializer(BaseModelSerializer):
     # Password is write-only — clients see whether one is set, not the value.
     password = CharField(write_only=True, required=False, allow_blank=True)
     password_set = SerializerMethodField()
+    # Declared explicitly rather than left to ModelSerializer. Django
+    # derives a PositiveSmallIntegerField's bounds from the SQLite
+    # integer range and DRF lifts those into the field, so the save path
+    # accepted port 0 and port 70000 while rejecting negatives.
+    # Serializer-level, not model ``validators=[...]``: those
+    # deconstruct, so they would cost an AlterField migration.
+    # ``required=False`` mirrors what ModelSerializer inferred from the
+    # model defaults, so declaring them changes the bounds and nothing else.
+    port = IntegerField(required=False, min_value=SMTP_PORT[0], max_value=SMTP_PORT[1])
+    timeout = IntegerField(
+        required=False,
+        min_value=SMTP_TIMEOUT_SECONDS[0],
+        max_value=SMTP_TIMEOUT_SECONDS[1],
+    )
 
     @staticmethod
     def get_password_set(obj) -> bool:
@@ -56,12 +71,16 @@ class EmailTestSendRequestSerializer(Serializer):
     recipient = EmailField()
 
     host = CharField(required=False, allow_blank=True)
-    port = IntegerField(required=False, min_value=1, max_value=65_535)
+    port = IntegerField(required=False, min_value=SMTP_PORT[0], max_value=SMTP_PORT[1])
     user = CharField(required=False, allow_blank=True)
     password = CharField(required=False, allow_blank=True)
     use_tls = BooleanField(required=False)
     use_ssl = BooleanField(required=False)
-    timeout = IntegerField(required=False, min_value=1, max_value=600)
+    timeout = IntegerField(
+        required=False,
+        min_value=SMTP_TIMEOUT_SECONDS[0],
+        max_value=SMTP_TIMEOUT_SECONDS[1],
+    )
     from_address = CharField(required=False, allow_blank=True)
     subject_prefix = CharField(required=False, allow_blank=True)
 
