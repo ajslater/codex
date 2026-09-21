@@ -291,33 +291,37 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.filterBySelectXSmall {
-  padding-right: 0.4em;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .filterBySelectXSmall {
+    padding-right: 0.4em;
+  }
 
-.filterSuffix {
-  margin-left: 0.25em;
-}
+  .filterSuffix {
+    margin-left: 0.25em;
+  }
 
-.noChoices {
-  color: rgb(var(--v-theme-text-disabled));
-}
+  .noChoices {
+    color: rgb(var(--v-theme-text-disabled));
+  }
 
-.clearFilter {
-  color: black;
-  background-color: rgb(var(--v-theme-primary));
-}
+  .clearFilter {
+    color: black;
+    background-color: rgb(var(--v-theme-primary));
+  }
 
-/*
- * "Favorites Only" sits between the bookmark choices (above) and the
- * dynamic filter sub-menus (below), bracketed by ``v-divider``s on
- * each side. Title is left-justified by v-list-item default and the
- * star is appended to the right via ``append-icon``. The lit state
- * tints the icon primary so the user can see at a glance whether
- * the filter is on without reading the title.
- */
-.favoritesOnly.active :deep(.v-list-item__append .v-icon) {
-  color: rgb(var(--v-theme-primary));
-  opacity: 1;
+  /*
+   * "Favorites Only" sits between the bookmark choices (above) and the
+   * dynamic filter sub-menus (below), bracketed by ``v-divider``s on
+   * each side. Title is left-justified by v-list-item default and the
+   * star is appended to the right via ``append-icon``. The lit state
+   * tints the icon primary so the user can see at a glance whether
+   * the filter is on without reading the title.
+   */
+  .favoritesOnly.active :deep(.v-list-item__append .v-icon) {
+    color: rgb(var(--v-theme-primary));
+    opacity: 1;
+  }
 }
 </style>
