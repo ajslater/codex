@@ -21,5 +21,5 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-// settingsSubHeader defined in settings/settings-drawer.vue
+// settingsSubHeader defined in styles/global.scss
 </style>

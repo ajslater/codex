@@ -23,64 +23,61 @@ const codexTheme = {
     warning: "#E6BD0D", // amber — version-footer "update available"
     "surface-light": "#2A2A2A",
     // --- custom ---
-    linkHover: WHITE,
-    textPrimary: WHITE,
-    textHeader: "#D3D3D3",
-    textSecondary: "#A9A9A9",
-    textDisabled: DISABLED,
-    iconsInactive: DISABLED,
-    includeGroup: "#141",
-    excludeGroup: "#411",
+    "link-hover": WHITE,
+    "text-primary": WHITE,
+    "text-header": "#D3D3D3",
+    "text-secondary": "#A9A9A9",
+    "text-disabled": DISABLED,
+    "icons-inactive": DISABLED,
+    "include-group": "#141",
+    "exclude-group": "#411",
   },
 };
 
 /*
- * CSP note: this block makes Vuetify inject a runtime <style> tag
- * (id="vuetify-theme-stylesheet") with the --v-theme-* CSS variables,
- * which forces 'unsafe-inline' in the CSP style-src directive. To
- * tighten CSP, capture the generated theme CSS once into a static
- * SCSS/CSS file imported at build time and set
- * ``theme: { isDisabled: true }`` here. The ``defaults:`` block above
- * is fine — it sets component prop defaults, not CSS.
+ * CSP note: Vuetify injects a runtime <style> tag
+ * (id="vuetify-theme-stylesheet") holding the --v-theme-* variables, so
+ * the theme needs 'unsafe-inline' in style-src. Turning it off entirely
+ * (``theme: false``, and the generated CSS captured into a build-time
+ * stylesheet) would not buy anything today: Django already ships
+ * style-src 'self' 'unsafe-inline' for Vue's scoped styles. The
+ * ``defaults:`` block below sets component prop defaults, not CSS.
  */
 const themeDefaults = {
   defaultTheme: "codexTheme",
-  options: {
-    customProperties: true,
-  },
   themes: {
     codexTheme,
   },
 };
 
-const vuetify = new createVuetify({
+const vuetify = createVuetify({
   defaults: {
     global: {
       ripple: true,
     },
     VCheckbox: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VCheckboxBtn: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VCombobox: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VProgressLinear: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VProgressCircular: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VRadioGroup: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VSelect: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VSlider: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     /*
      * Vuetify's own default is the Material "inverse surface", a light
@@ -92,10 +89,10 @@ const vuetify = new createVuetify({
       color: "background",
     },
     VTabs: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VTextField: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
   },
   theme: themeDefaults,

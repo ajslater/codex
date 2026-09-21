@@ -56,15 +56,16 @@ Defined in `tabs/design.scss`. Stop hand-typing `8px` / `12px` / `2em`.
 
 **Text-colour roles are fixed — do not swap them per tab:**
 
-| Theme colour              | Role                                                             |
-| ------------------------- | ---------------------------------------------------------------- |
-| `textPrimary` (#FFF)      | titles, primary values                                           |
-| `textHeader` (#D3D3D3)    | toolbar/heading chrome                                           |
-| `textSecondary` (#A9A9A9) | **all** help/description/prose body                              |
-| `textDisabled` (#808080)  | **only** de-emphasised meta: timestamps, counts, disabled values |
+| Theme colour               | Role                                                             |
+| -------------------------- | ---------------------------------------------------------------- |
+| `text-primary` (#FFF)      | titles, primary values                                           |
+| `text-header` (#D3D3D3)    | toolbar/heading chrome                                           |
+| `text-secondary` (#A9A9A9) | **all** help/description/prose body                              |
+| `text-disabled` (#808080)  | **only** de-emphasised meta: timestamps, counts, disabled values |
 
-Before this spec, help text was `textSecondary` on some tabs and `textDisabled`
-on others. Help/explanatory prose is **always `textSecondary`**.
+Before this spec, help text was `text-secondary` on some tabs and
+`text-disabled` on others. Help/explanatory prose is **always
+`text-secondary`**.
 
 ## 4. Primitives
 
@@ -101,7 +102,7 @@ Prefer these over bespoke markup. Each enforces the language so it can't drift.
 - `.adminInlineActions` — a horizontal row of buttons. Replaces
   `.credentialActions`.
 - `.adminProse` — help/intro prose: reading width, `$text-small`,
-  `textSecondary`. Replaces `.adminIntro`, `#ageRatingHelp`, `#libraryHelp`,
+  `text-secondary`. Replaces `.adminIntro`, `#ageRatingHelp`, `#libraryHelp`,
   `#groupHelp`.
 - `.adminHint` — a one-line hint under a section header.
 - `.adminKvTable` — backing style for `AdminKeyValueTable` and any inline
@@ -118,7 +119,7 @@ Three kinds, three (and only three) treatments:
 2. **Key/value readouts** → `AdminKeyValueTable` (stats, restore counts).
 3. **Reference matrices** (the Groups access-logic truth table) → a plain
    `<table class="adminMatrix">` using shared border/padding tokens; semantic
-   cell colours (`includeGroup` / `excludeGroup`) are allowed there.
+   cell colours (`include-group` / `exclude-group`) are allowed there.
 
 No more raw hand-bordered `<table>` per tab.
 
@@ -151,6 +152,6 @@ compact rows.
 - [ ] Forms/prose in `.adminReadingColumn`; data tables full-bleed.
 - [ ] Sections via `AdminSection`; cards via `.adminCard`.
 - [ ] Save/Revert via `AdminActionBar`; disclosures via `AdminExpandToggle`.
-- [ ] Help prose via `.adminProse` (always `textSecondary`).
+- [ ] Help prose via `.adminProse` (always `text-secondary`).
 - [ ] Spacing/type from the scale; no new magic numbers.
 - [ ] Destructive actions via `ConfirmDialog`; buttons follow §6.

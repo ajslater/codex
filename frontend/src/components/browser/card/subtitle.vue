@@ -127,13 +127,13 @@ export default {
 
 .seriesCaption,
 .volumeCaption {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   text-align: center;
 }
 
 .headerName {
   padding-top: 5px;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .displayName {

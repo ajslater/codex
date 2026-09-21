@@ -110,7 +110,7 @@ h3 {
 
 #bearerTokenHelp {
   text-align: left;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   padding-bottom: 1em;
   max-width: 29em;
 }

@@ -83,6 +83,6 @@ export default {
 .adminKvGroupRow td {
   padding-top: d.$space-2;
   font-weight: bold;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

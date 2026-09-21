@@ -118,7 +118,7 @@ export default {
 <style scoped lang="scss">
 @forward "./expansion-panel-overrides";
 
-// settingsSubHeader defined in settings/settings-drawer.vue
+// settingsSubHeader defined in styles/global.scss
 :deep(.v-expansion-panel-text__wrapper) {
   padding-left: 10px;
   padding-right: 10px;
@@ -127,7 +127,7 @@ export default {
 .shortcutsTable {
   margin-top: 10px;
   background-color: inherit;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .shortcutsTable td {

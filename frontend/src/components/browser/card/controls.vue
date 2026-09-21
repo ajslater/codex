@@ -50,8 +50,8 @@ export default {
   opacity: 0; // invisible by default. hover exposes it.
 }
 
-$buttonColor: rgb(var(--v-theme-textSecondary));
-$buttonColorHover: rgb(var(--v-theme-linkHover));
+$buttonColor: rgb(var(--v-theme-text-secondary));
+$buttonColorHover: rgb(var(--v-theme-link-hover));
 
 /* EYE */
 .eye {

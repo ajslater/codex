@@ -120,7 +120,7 @@ export default {
 
 <style scoped lang="scss">
 .orderCaption {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   text-align: center;
 }
 </style>

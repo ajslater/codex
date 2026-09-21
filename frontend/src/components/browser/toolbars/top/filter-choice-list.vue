@@ -142,7 +142,7 @@ export default {
    * The standardized (metron) equivalent of a raw tagged age
    * rating, in a left column before the raw tag. Fixed width so
    * the raw tags align into their own column ("Teen Plus", the
-   * longest value, is 9ch). ``textDisabled`` is too dim against
+   * longest value, is 9ch). ``text-disabled`` is too dim against
    * the dark menu surface, so use ``on-surface`` dimmed by
    * opacity instead.
    */

@@ -1,5 +1,5 @@
-import "@mdi/font/css/materialdesignicons.css";
 import "vuetify/styles"; // Global CSS has to be imported
+import "@/styles/global.scss";
 
 import { createHead, VueHeadMixin } from "@unhead/vue/client";
 import { createApp } from "vue";

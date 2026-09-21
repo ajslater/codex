@@ -107,7 +107,7 @@ export default {
 }
 
 :deep(.v-list-item .v-icon) {
-  color: rgb(var(--v-theme-iconsInactive)) !important;
+  color: rgb(var(--v-theme-icons-inactive)) !important;
   margin-right: 0.33em;
 }
 
@@ -117,7 +117,7 @@ export default {
   padding-top: 0px;
   font-size: small;
   text-align: center;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   background-color: rgb(var(--v-theme-surface));
 }
 
@@ -127,15 +127,5 @@ export default {
 
 #bottomFooter {
   padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.settingsSubHeader {
-  padding-top: 10px;
-  padding-left: 15px;
-  padding-right: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

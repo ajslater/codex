@@ -203,7 +203,7 @@ export default {
 
 .promptCovers {
   padding-top: 8px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   font-size: 0.75rem;
 }
 

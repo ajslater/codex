@@ -31,7 +31,7 @@
       <v-spacer />
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
-        :color="canSave ? 'primary' : 'grey-darken-1'"
+        :color="canSave ? 'primary' : 'text-disabled'"
         variant="flat"
         :loading="saving"
         :disabled="!canSave"
@@ -2643,7 +2643,7 @@ export default {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .mdSection {
@@ -2709,7 +2709,7 @@ td.labelChanged {
 .fileInfoTitle {
   font-size: 0.85em;
   min-height: 36px !important;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .fileInfoGrid {
@@ -2739,7 +2739,7 @@ td.labelChanged {
 .conversionHelpText,
 .renameHelpText {
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   margin-top: 4px;
 }
 
@@ -2759,7 +2759,7 @@ td.labelChanged {
   padding: 1px 6px;
   border-radius: 3px;
   background-color: rgba(var(--v-theme-on-surface), 0.08);
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   scrollbar-width: thin;
 }
 
@@ -2808,12 +2808,12 @@ td.labelChanged {
 }
 
 .renameOld {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   word-break: break-all;
 }
 
 .renameArrow {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .renamePreview {
@@ -2824,14 +2824,14 @@ td.labelChanged {
 }
 
 .readOnlyField {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   font-size: 0.85em;
 }
 
 .readOnlyLabel {
   font-size: 12px;
   display: block;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

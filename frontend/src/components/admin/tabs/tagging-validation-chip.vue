@@ -1,7 +1,7 @@
 <template>
   <v-chip
     :color="result.ok ? 'success' : 'error'"
-    :prepend-icon="result.ok ? 'mdi-check-circle' : 'mdi-alert-circle'"
+    :prepend-icon="result.ok ? mdiCheckCircle : mdiAlertCircle"
     size="small"
     variant="tonal"
     class="validationChip"
@@ -11,6 +11,8 @@
 </template>
 
 <script>
+import { mdiAlertCircle, mdiCheckCircle } from "@mdi/js";
+
 import { NUMBER_FORMAT } from "@/datetime";
 
 export default {
@@ -20,6 +22,12 @@ export default {
       type: Object,
       required: true,
     },
+  },
+  data() {
+    return {
+      mdiAlertCircle,
+      mdiCheckCircle,
+    };
   },
   computed: {
     rateLimitText() {

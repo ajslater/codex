@@ -405,7 +405,7 @@ export default {
   text-align: left;
   font-weight: 600;
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   white-space: nowrap;
   user-select: none;
   border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
@@ -453,7 +453,7 @@ export default {
 
 .browserTableTable td {
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 /*

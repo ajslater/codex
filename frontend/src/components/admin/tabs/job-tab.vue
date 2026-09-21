@@ -592,20 +592,20 @@ export default {
 }
 
 #noRecentTask {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .jobLastRun {
   font-weight: normal;
   font-size: 0.8em;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   margin-left: 8px;
 }
 
 .jobVersionNote {
   font-size: 0.9em;
   padding-top: 2px;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .jobVersionNoteOutdated {
@@ -639,16 +639,16 @@ export default {
   margin: 2px 0;
   border-radius: 3px;
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .statusRowActive {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
   background-color: rgba(var(--v-theme-primary), 0.06);
 }
 
 .statusRowPreactive {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   background-color: rgba(var(--v-theme-on-surface), 0.03);
 }
 

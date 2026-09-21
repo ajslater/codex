@@ -370,7 +370,7 @@ export default {
 
 .filterHeaderTitle :deep(.v-list-item-title) {
   font-variant: small-caps;
-  color: rbg(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   font-weight: bold;
   font-size: 1.6rem !important;
 }

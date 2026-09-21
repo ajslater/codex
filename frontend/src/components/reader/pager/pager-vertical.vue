@@ -209,12 +209,6 @@ $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
   width: 100%;
   // viewport height - toolbars - mobile buffer.
   height: calc($pageTrackerBaseHeight * 0.95);
-  // For debugging
-  /*
-  background-color: green;
-  opacity: 0.25;
-  border: dashed 10px red;
-  */
 }
 
 .pageTrackerToolbars {

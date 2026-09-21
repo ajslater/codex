@@ -374,26 +374,3 @@ export default {
   text-align: left;
 }
 </style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/*
- * Cover popup — rendered into a v-menu's teleport target, so the
- * styles live in an unscoped block. Minimal chrome: just the image,
- * a small radius, and a soft shadow so it floats above the table
- * without a hard border. The popup grows from its activator origin
- * via Vuetify's scale-transition (set on the v-menu itself).
- */
-.coverPopup {
-  display: block;
-  cursor: zoom-out;
-}
-
-.coverPopup img {
-  display: block;
-  max-height: 70vh;
-  max-width: 60vw;
-  border-radius: 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-}
-</style>

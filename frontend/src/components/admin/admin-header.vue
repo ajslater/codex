@@ -114,6 +114,6 @@ export default {
 }
 
 :deep(.v-tab) {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

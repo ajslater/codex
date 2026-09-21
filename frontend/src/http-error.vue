@@ -85,9 +85,9 @@ export default {
 #title {
   text-align: center;
   font-size: 6vw;
-  color: rgb(var(--v-theme-textDisabled));
-  stroke: rgb(var(--v-theme-textDisabled));
-  fill: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
+  stroke: rgb(var(--v-theme-text-disabled));
+  fill: rgb(var(--v-theme-text-disabled));
   opacity: 25%;
 }
 

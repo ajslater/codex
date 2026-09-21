@@ -76,7 +76,7 @@ export default {
 }
 
 .originalAgeRating {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

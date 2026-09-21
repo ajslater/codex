@@ -44,10 +44,10 @@ export default {
 </script>
 <style scoped lang="scss">
 .include {
-  background-color: rgb(var(--v-theme-includeGroup));
+  background-color: rgb(var(--v-theme-include-group));
 }
 
 .exclude {
-  background-color: rgb(var(--v-theme-excludeGroup));
+  background-color: rgb(var(--v-theme-exclude-group));
 }
 </style>
