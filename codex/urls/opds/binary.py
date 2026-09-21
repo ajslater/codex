@@ -1,7 +1,6 @@
 """codex:opds:v1 URL Configuration."""
 
 from django.urls import path
-from django.views.decorators.cache import cache_control
 from django.views.decorators.vary import vary_on_headers
 
 from codex.urls.const import PAGE_MAX_AGE
@@ -11,6 +10,7 @@ from codex.views.opds.binary import (
     OPDSDownloadView,
     OPDSPageView,
 )
+from codex.views.util import cache_control_2xx
 
 app_name = "bin"
 
@@ -20,7 +20,7 @@ urlpatterns = [
     # Reader
     path(
         "c/<int:pk>/<int:page>/page.jpg",
-        cache_control(max_age=PAGE_MAX_AGE, public=True)(OPDSPageView.as_view()),
+        cache_control_2xx(max_age=PAGE_MAX_AGE, public=True)(OPDSPageView.as_view()),
         name="page",
     ),
     #

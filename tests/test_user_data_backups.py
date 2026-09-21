@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.test import TestCase
@@ -13,8 +12,9 @@ from codex.user_data.backups import (
     newest_sidecar_backup,
     resolve_sidecar_backup,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.backups")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.sidecar.backups")
 
 
 class SidecarBackupsTests(TestCase):

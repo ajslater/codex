@@ -6,9 +6,8 @@ import lzma
 import shutil
 import sqlite3
 from multiprocessing import Event
-from pathlib import Path
 from threading import Lock
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -17,8 +16,12 @@ from loguru import logger
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.xz import BACKUP_KEEP
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.db.backup")  # noqa: S108
+if TYPE_CHECKING:
+    from pathlib import Path
+
+_TMP_DIR: Final = tmp_dir("codex.tests.db.backup")
 _VACUUM: Final = "codex.librarian.scribe.janitor.vacuum"
 
 

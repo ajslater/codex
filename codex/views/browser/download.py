@@ -1,6 +1,7 @@
 """Download a collection of comics in a zipfile."""
 
-from typing import override
+from pathlib import Path
+from typing import Final, override
 
 from django.http.response import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
@@ -9,6 +10,10 @@ from loguru import logger
 from zipstream import ZipStream
 
 from codex.views.browser.filters.filter import BrowserFilterView
+
+#: How many comics were left out of the archive because their files
+#: could not be read. Absent when every comic made it in.
+SKIPPED_HEADER: Final[str] = "X-Codex-Skipped-Comics"
 
 
 class CollectionDownloadView(BrowserFilterView):
@@ -41,14 +46,45 @@ class CollectionDownloadView(BrowserFilterView):
 
         return tuple(sorted(set(paths)))
 
+    @staticmethod
+    def _add_path(zs: ZipStream, path: str) -> bool:
+        """
+        Queue one comic, or report that its file could not be read.
+
+        Opening and closing the file proves it is readable now.
+        ``ZipStream`` only opens each member when the generator reaches
+        it, which is long after the 200 and the headers have gone out,
+        so an unreadable file discovered then can only truncate the
+        archive under a success status. ``OSError`` only, and its text
+        names the library path, so it goes to the log and not the client.
+        """
+        try:
+            with Path(path).open("rb"):
+                zs.add_path(path)
+        except OSError as exc:
+            logger.warning(f"Skipped an unreadable comic in a collection zip: {exc!r}")
+            return False
+        return True
+
+    @classmethod
+    def _get_zip_stream(cls, paths: tuple[str, ...]) -> tuple[ZipStream, int]:
+        """Build the stream from every readable path, counting the rest."""
+        zs = ZipStream(sized=True)
+        skipped = 0
+        for path in paths:
+            if not cls._add_path(zs, path):
+                skipped += 1
+        if skipped >= len(paths):
+            reason = "No comics in this collection could be read."
+            raise Http404(reason)
+        return zs, skipped
+
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs) -> FileResponse:
         """Stream a zip archive of many comics."""
         paths = self.get_object()
 
-        zs = ZipStream(sized=True)
-        for path in paths:
-            zs.add_path(path)
+        zs, skipped = self._get_zip_stream(paths)
         download_file = zs
 
         filename = kwargs.get("filename")
@@ -57,7 +93,12 @@ class CollectionDownloadView(BrowserFilterView):
             name = self.model.__name__ if self.model else "No Model"
             filename = f"{name} {pks} Comics.zip"
 
-        headers = {"Content-Length": len(zs), "Last-Modified": zs.last_modified}
+        headers: dict[str, object] = {
+            "Content-Length": len(zs),
+            "Last-Modified": zs.last_modified,
+        }
+        if skipped:
+            headers[SKIPPED_HEADER] = str(skipped)
         return FileResponse(
             download_file,
             as_attachment=self.AS_ATTACHMENT,

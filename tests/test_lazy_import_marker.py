@@ -29,8 +29,9 @@ from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.lazy_importer import LazyImporter
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from tests.tmp_dirs import tmp_dir
 
-_LIB_PATH: Final = Path("/tmp") / Path(__file__).stem  # noqa: S108
+_LIB_PATH: Final = tmp_dir(Path(__file__).stem)
 _COMIC_PATH: Final = str(_LIB_PATH / "bare.cbz")
 
 

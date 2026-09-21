@@ -9,7 +9,6 @@ filters — e.g. a CBR-filtered publisher write leaking onto an unread CBZ.
 import json
 import shutil
 from http import HTTPStatus
-from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
@@ -20,9 +19,10 @@ from django.test import Client, TestCase
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.bookmark import Bookmark
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_TMP_DIR: Final = Path("/tmp/codex.tests.tagwrite")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.tagwrite")
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 _TAG_WRITE_URL: Final = "/api/v4/admin/tag-write"
 

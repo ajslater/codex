@@ -103,4 +103,5 @@ class QueryForeignKeysFilterImporter(QueryCustomCoversImporter):
             fk_filter = self._get_query_missing_simple_filter(
                 key_rels, key_value_tuples
             )
-        return fk_filter
+        # Folder keys on ``path``, which is only unique within a library.
+        return self.library_scope(model) & fk_filter

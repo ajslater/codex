@@ -18,11 +18,12 @@ ask again.
 
 from __future__ import annotations
 
+import sys
 import threading
 from dataclasses import replace
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.config.online import resolve_effort
 from comicbox.events import (
@@ -120,25 +121,45 @@ def _online_config(effort: str) -> ComicboxSettings:
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
 
 
-def _release_metron_connections() -> None:
+#: The online source modules that hold process-wide clients to release
+#: at the end of a task. Named, not imported: see
+#: :func:`_release_online_connections`.
+_ONLINE_SOURCE_MODULES: Final = (
+    "comicbox.formats.metron_api.online_source",
+    "comicbox.formats.comicvine_api.online_source",
+)
+
+
+def _release_online_connections() -> None:
     """
-    Close the pooled Metron HTTP connections this thread's lookups opened.
+    Release the connections and cache handles this thread's lookups opened.
 
-    Since mokkari 4.8.0 every session keeps one pooled TLS connection,
-    and comicbox 5.2.0 releases it only when asked
-    (``OnlineSession.close`` is this same call). No object in codex owns
-    all of them — the prompt applier and the explicit-id fetch each
-    build their own — so release process-wide at the end of each task.
-    Every Metron path in codex runs on the one ``OnlineTagThread``, so
-    this never interrupts another run. The next lookup reconnects on
-    demand, which is what every request cost before mokkari 4.8.0.
+    Since mokkari 4.8.0 every Metron session keeps one pooled TLS
+    connection, and comicbox 5.2.1 extends the same release to Comic
+    Vine — its pooled sockets, its response cache's sqlite handle and
+    its rate-limit buckets (``OnlineSession.close`` is these same
+    calls). No object in codex owns all of them — the prompt applier
+    and the explicit-id fetch each build their own — so release
+    process-wide at the end of each task. Nothing a run has spent is
+    forgotten: Comic Vine's hourly budget lives in the bucket file, not
+    the bucket object.
 
-    Imported lazily, exactly as comicbox's own ``close()`` does, so the
-    librarian never pays mokkari's import at startup.
+    Every online path in codex runs on the one ``OnlineTagThread``, so
+    this never interrupts another run, and both call sites sit between
+    files rather than under one. That ordering is load-bearing for Comic
+    Vine and not merely tidy: its rate-limit buckets close with the
+    session, so a lookup still holding one fails outright instead of
+    reconnecting.
+
+    Read out of ``sys.modules`` rather than imported, exactly as
+    comicbox's own runner does: a task that used one source never loaded
+    the other's package, and importing it here just to call a no-op
+    would put mokkari's or simyan's import cost on every task.
     """
-    from comicbox.formats.metron_api.online_source import close_shared_sessions
-
-    close_shared_sessions()
+    for name in _ONLINE_SOURCE_MODULES:
+        module = sys.modules.get(name)
+        if module is not None:
+            module.close_shared_sessions()
 
 
 if TYPE_CHECKING:
@@ -900,9 +921,10 @@ class OnlineTagSessionManager:
             # this (possibly crashed) scan's session.
             self._apply_deferred_resolutions(state)
             # Last: the deferred applies above open their own sessions on
-            # this thread, so releasing before them would only force a
-            # reconnect.
-            _release_metron_connections()
+            # this thread. Releasing before them would cost Metron a
+            # reconnect and could fail a Comic Vine lookup outright,
+            # whose rate-limit buckets close with the session.
+            _release_online_connections()
 
     def _log_summary(self, state: SessionState, start: float) -> None:
         """Log how the scan's comics resolved across sources, skips, and prompts."""
@@ -991,7 +1013,7 @@ class OnlineTagSessionManager:
             # The applier built its own session; nothing else will close
             # it. The skip branch above returns before this, having made
             # no request at all.
-            _release_metron_connections()
+            _release_online_connections()
 
     def skip_all_prompts(self) -> int:
         """Drop every pending prompt. Returns the number skipped."""

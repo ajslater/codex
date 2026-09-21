@@ -29,9 +29,10 @@ from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.settings import COMICBOX_CONFIG
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_TMP_DIR: Final = Path("/tmp/codex.tests.tagwritedeletekeys")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.tagwritedeletekeys")
 _TAG_WRITE_URL: Final = "/api/v4/admin/tag-write"
 _EXAMPLE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 

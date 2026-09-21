@@ -16,15 +16,18 @@ class CreateForeignKeysFolderImporter(CreateCoversImporter):
         if str(path) == self.library.path:
             return parent
         parent_path = str(path.parent)
-        try:
-            parent = Folder.objects.get(path=parent_path)
-        except Folder.DoesNotExist:
-            if path.parent != Path(self.library.path):
-                reason = (
-                    f"Can't find parent folder {parent_path} for {path} in library"
-                    f" {self.library.path}"
-                )
-                self.log.warning(reason)
+        # Scoped and ``.first()``: ``(library, path)`` is the unique key, so
+        # an unscoped ``.get()`` both adopted another library's Folder and
+        # raised an uncaught MultipleObjectsReturned when roots overlap.
+        parent = Folder.objects.filter(
+            self.library_scope(Folder), path=parent_path
+        ).first()
+        if parent is None and path.parent != Path(self.library.path):
+            reason = (
+                f"Can't find parent folder {parent_path} for {path} in library"
+                f" {self.library.path}"
+            )
+            self.log.warning(reason)
         return parent
 
     def _bulk_folders_create_add_folder(self, path: Path, create_folders) -> None:

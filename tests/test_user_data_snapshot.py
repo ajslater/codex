@@ -6,7 +6,6 @@ import lzma
 import shutil
 import sqlite3
 from contextlib import contextmanager
-from pathlib import Path
 from typing import TYPE_CHECKING, Final, override
 from unittest.mock import patch
 
@@ -17,11 +16,12 @@ from loguru import logger
 from codex.user_data.dump import snapshot_sidecar
 from codex.user_data.restore import restore
 from codex.xz import date_stamp
+from tests.tmp_dirs import tmp_dir
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.snapshot")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.sidecar.snapshot")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 
 
