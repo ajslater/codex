@@ -725,7 +725,7 @@ requires-dist = [
     { name = "asgiref", specifier = "~=3.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=5.1.1" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=5.2.0" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -814,7 +814,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "5.1.2"
+version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -849,9 +849,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/d5/783572626fd1808be563899e5caf7c3626f1a84a852cb7564adf814cf4d1/comicbox-5.1.2.tar.gz", hash = "sha256:338d9582be6fb244940b5ddebfb5cee0da40acde1c0720de7728bee3cf25859a", size = 1280371, upload-time = "2026-09-18T01:49:37.344Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/0c/30ed4361df36663418895b3fa336951d709008545bd7290a8a8740cdcc9c/comicbox-5.2.0.tar.gz", hash = "sha256:0495bbbc435d16fdc6fcc6bb2150fd652612ece97724557ab01076dcd57718fb", size = 1298441, upload-time = "2026-09-21T02:09:39.033Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/f7/5ab723f203bb7cd7ecdede77de127fe3434b632f8102ccc86e08ba48a073/comicbox-5.1.2-py3-none-any.whl", hash = "sha256:51b7f7301008f3c360d0a9ff5865f99903c609adc0d5a320673d18bd2917008b", size = 444574, upload-time = "2026-09-18T01:49:35.741Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/e5/777299114d6a150ada805a474dfd08136d99ea1cf5506f22ad7041bbc000/comicbox-5.2.0-py3-none-any.whl", hash = "sha256:d63213f441b4db006522a001f663fee10c25d23cc74b2deb3b5cfc32d0babd3f", size = 452490, upload-time = "2026-09-21T02:09:37.708Z" },
 ]
 
 [package.optional-dependencies]
@@ -2324,15 +2324,15 @@ wheels = [
 
 [[package]]
 name = "mokkari"
-version = "4.7.1"
+version = "4.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/9a/1a237892a496356105c4e7b53b164856801304b057c7057768d3267d05b4/mokkari-4.7.1.tar.gz", hash = "sha256:a722025d6b31080207f2a3a068530af4f6551f17dd12ee3a34312c4e16374756", size = 81615, upload-time = "2026-09-14T14:11:01.572Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/f7/c260a12f8b700a0e6d046401b19298d21178ded043ab8d9c26eace5cc21c/mokkari-4.8.0.tar.gz", hash = "sha256:686a682c72ca805089941d5d3ac8254373bc98543a921b47ca137ab1704af9b6", size = 98165, upload-time = "2026-09-21T00:28:11.944Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/26/1922ecc5dbc191b44c8eb424336e1c66969e2b8fe895a14c38adf01fa990/mokkari-4.7.1-py3-none-any.whl", hash = "sha256:65cab05e8c45f6666a4ee3e7c2a97f22b0568a560054a223df4b55432d2366e9", size = 60747, upload-time = "2026-09-14T14:11:00.51Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/63/839948955f67650bddb2ccf9da60b1dd1bb35c05e7ef27161155f7adec38/mokkari-4.8.0-py3-none-any.whl", hash = "sha256:e0e8ea41c472fdad53a5cf939b5eb767d4cbcf740676b1b64a0f1ef7c8afe753", size = 70087, upload-time = "2026-09-21T00:28:10.682Z" },
 ]
 
 [[package]]
