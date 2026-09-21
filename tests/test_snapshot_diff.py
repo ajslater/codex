@@ -563,3 +563,74 @@ class TestSignaturePairing:
         log.info.assert_called_once()
         assert "Paired 1 moves" in log.info.call_args[0][0]
         log.debug.assert_called_once()
+
+
+class TestForcePoll:
+    """A Force Update re-reads everything without blinding move detection."""
+
+    _OLD = "/comics/A/x.cbz"
+    _NEW = "/comics/B/x.cbz"
+
+    def test_force_still_pairs_a_signature_move(self) -> None:
+        """
+        The regression: force used to turn a move into a delete plus an add.
+
+        Force zeroed every stored mtime to provoke modified events, and
+        the move detector reads that same snapshot, so no signature
+        could ever match disk. The delete stamped the row and the
+        comic's bookmarks died at the reaper a day later.
+        """
+        db = _snapshot({self._OLD: _stat(mode=_FILE_MODE, ino=1, size=100)})
+        disk = _snapshot({self._NEW: _stat(mode=_FILE_MODE, ino=2, size=100)})
+
+        diff = SnapshotDiff(db, disk, force=True)
+
+        assert diff.files_moved == [(self._OLD, self._NEW)]
+        assert not diff.files_deleted
+        assert not diff.files_added
+        # Force still re-reads the comic, at the path it now lives on.
+        assert diff.files_modified == [self._NEW]
+
+    def test_force_reports_unchanged_paths_as_modified(self) -> None:
+        """The whole point of force: identical stats are re-imported anyway."""
+        entries = {
+            "/comics/Pub": _stat(mode=_DIR_MODE, ino=1, size=128),
+            "/comics/Pub/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100),
+        }
+        db = _snapshot(dict(entries))
+        disk = _snapshot(dict(entries))
+
+        assert SnapshotDiff(db, disk).is_empty()
+
+        diff = SnapshotDiff(db, disk, force=True)
+
+        assert diff.files_modified == ["/comics/Pub/a.cbz"]
+        assert diff.dirs_modified == ["/comics/Pub"]
+
+    def test_force_does_not_invent_deletes_or_adds(self) -> None:
+        """An unchanged library forced is all modify: no delete, no add."""
+        entries = {"/comics/a.cbz": _stat(mode=_FILE_MODE, ino=1, size=100)}
+        db = _snapshot(dict(entries))
+        disk = _snapshot(dict(entries))
+
+        diff = SnapshotDiff(db, disk, force=True)
+
+        assert not diff.files_deleted
+        assert not diff.files_added
+        assert not diff.files_moved
+
+    def test_force_leaves_stale_stat_refreshes_empty(self) -> None:
+        """
+        Everything modified means nothing is left to refresh in place.
+
+        The poller skips its stale-stat pass on a forced poll; the diff
+        agrees with it rather than depending on that gate.
+        """
+        db = _snapshot(
+            {"/comics/a.cbz": _stat(mode=_FILE_MODE, ino=1, size=100)},
+            models={"/comics/a.cbz": Comic},
+        )
+        disk = _snapshot({"/comics/a.cbz": _stat(mode=_FILE_MODE, ino=2, size=100)})
+
+        assert SnapshotDiff(db, disk).stale_stat_refreshes
+        assert not SnapshotDiff(db, disk, force=True).stale_stat_refreshes

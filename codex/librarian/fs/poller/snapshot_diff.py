@@ -118,8 +118,16 @@ class SnapshotDiff:
         self,
         ref: Snapshot,
         snapshot: Snapshot,
+        *,
+        force: bool = False,
     ) -> None:
-        """Compute the diff between ref (old/database) and snapshot (new/disk)."""
+        """
+        Compute the diff between ref (old/database) and snapshot (new/disk).
+
+        ``force`` is the admin's Force Update: report every surviving
+        path as modified so the importer re-reads it. Keyword-only
+        because the two snapshots are the argument list callers know.
+        """
         data = _DiffData(
             ref=ref,
             snapshot=snapshot,
@@ -142,7 +150,7 @@ class SnapshotDiff:
         self.withheld_deleted = self._withhold_unreadable(data, snapshot)
 
         self._find_moved_paths(data)
-        self._find_modified_paths(data)
+        self._find_modified_paths(data, force=force)
 
         self.dirs_added = []
         self.covers_added = []
@@ -440,14 +448,26 @@ class SnapshotDiff:
         if paired:
             data.snapshot.log.info(f"Paired {paired} moves by name, size and mtime.")
 
-    def _find_modified_paths(self, data: _DiffData) -> None:
-        """Find paths with changed stats (mtime/size)."""
+    def _find_modified_paths(self, data: _DiffData, *, force: bool) -> None:
+        """
+        Find paths with changed stats (mtime/size).
+
+        ``force`` skips the comparison and calls everything modified.
+        That used to be arranged upstream, by zeroing every mtime in
+        the database snapshot — but move detection reads the same
+        snapshot, and a zeroed mtime matches no signature, so a forced
+        poll could not pair an inode-losing move at all. Deciding it
+        here leaves the snapshot honest for ``_find_moved_paths``.
+
+        Moves are included: a forced poll re-reads the destination,
+        which is where the content now lives.
+        """
         for path in data.unchanged:
-            if not self._is_stats_equal(data, path, path):
+            if force or not self._is_stats_equal(data, path, path):
                 data.modified.add(path)
 
         for old_path, new_path in data.moved:
-            if not self._is_stats_equal(data, old_path, new_path):
+            if force or not self._is_stats_equal(data, old_path, new_path):
                 data.modified.add(new_path)
 
     def is_empty(self) -> bool:
