@@ -483,18 +483,21 @@ class OnlineTagSeriesPromptTests(OnlineTagSessionTestCase):
         assert [c["pk"] for c in prompts["fp1"]["comics"]] == [later.pk]
 
 
+_COMICVINE_MODULE: Final = "comicbox.formats.comicvine_api.online_source"
 _RELEASE_TARGET: Final = (
     "comicbox.formats.metron_api.online_source.close_shared_sessions"
 )
+_COMICVINE_RELEASE_TARGET: Final = f"{_COMICVINE_MODULE}.close_shared_sessions"
 
 
 class PromptResolutionConnectionReleaseTests(OnlineTagSessionTestCase):
     """
-    Answering a prompt hands back the connection it opened.
+    Answering a prompt hands back what it opened.
 
     The applier builds its own session per answer, so nothing else will
     close it. Skipping makes no request at all, so it must not pay for a
-    reconnect on the next answer.
+    reconnect on the next answer. Since comicbox 5.2.1 the release
+    covers Comic Vine as well as Metron.
     """
 
     def test_an_applied_answer_releases_once(self) -> None:
@@ -541,3 +544,37 @@ class PromptResolutionConnectionReleaseTests(OnlineTagSessionTestCase):
             self.manager.resolve_prompt("fp1", "skip", None, None)
 
         release.assert_not_called()
+
+    def test_an_applied_answer_releases_both_sources(self) -> None:
+        """A Comic Vine answer leaves no sockets or sqlite handles behind."""
+        comic = make_comic()
+        set_pending_prompts({"fp1": _prompt(comic)})
+
+        def _fake_fetch(_path, _source, _issue_id, _credentials, **_kwargs):
+            return {"series": "X"}
+
+        with (
+            patch(APPLY_FETCH_TARGET, _fake_fetch),
+            patch(_RELEASE_TARGET) as metron_release,
+            patch(_COMICVINE_RELEASE_TARGET) as comicvine_release,
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        metron_release.assert_called_once_with()
+        comicvine_release.assert_called_once_with()
+
+    def test_a_skipped_prompt_releases_neither_source(self) -> None:
+        """The skip branch returns before the release, having made no request."""
+        set_pending_prompts(
+            {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
+        )
+
+        with (
+            patch(APPLY_SESSION_TARGET, FakeSession),
+            patch(_RELEASE_TARGET) as metron_release,
+            patch(_COMICVINE_RELEASE_TARGET) as comicvine_release,
+        ):
+            self.manager.resolve_prompt("fp1", "skip", None, None)
+
+        metron_release.assert_not_called()
+        comicvine_release.assert_not_called()

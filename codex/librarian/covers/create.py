@@ -198,8 +198,8 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             pk for pk in pks if not self.get_cover_path(pk, custom=custom).is_file()
         ]
 
-    @staticmethod
-    def _resolve_db_paths(pks: Collection[int], *, custom: bool) -> dict[int, str]:
+    @classmethod
+    def _resolve_db_paths(cls, pks: Collection[int], *, custom: bool) -> dict[int, str]:
         """
         Batch-fetch ``pk -> filesystem path`` for the work items.
 
@@ -211,7 +211,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         """
         if not pks:
             return {}
-        model = CustomCover if custom else Comic
+        model = cls.get_cover_model(custom=custom)
         return dict(model.objects.filter(pk__in=pks).values_list("pk", "path"))
 
     def _build_cover_work_items(
@@ -273,7 +273,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         # already-running render.
         status.total = (status.total or 0) + len(work_items)
         self.status_controller.update(status)
-        desc = "custom" if custom else "comic"
+        desc = self.get_cover_desc(custom=custom)
         self.log.debug(f"Creating {len(work_items)} {desc} covers...")
         pool = self._get_cover_pool()
         futures = [pool.submit(_render_cover_thumb, w) for w in work_items]
@@ -310,7 +310,7 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             start_time = time()
             self.status_controller.start(status)
             self._render_covers_into_status(pks, custom=custom, status=status)
-            desc = "custom" if custom else "comic"
+            desc = self.get_cover_desc(custom=custom)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
             elapsed = naturaldelta(time() - start_time)

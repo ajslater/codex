@@ -134,7 +134,6 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             library.path,
             self.log,
             ignore_device=ignore_device,
-            force=force,
         )
         disk_snap = DiskSnapshot(library.path, self.log, ignore_device=ignore_device)
 
@@ -142,7 +141,11 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             self.log.warning(f"{library.path} dir snapshot is empty. Not polling.")
             return None
 
-        return SnapshotDiff(db_snap, disk_snap)
+        # Force belongs to the diff, not the snapshot. Faking the stored
+        # mtimes to provoke modified events also blinded the move
+        # detector's signature tier, so a Force Update reported a moved
+        # comic as a delete plus an add.
+        return SnapshotDiff(db_snap, disk_snap, force=force)
 
     def _refresh_stale_stats(self, library: Library, diff: SnapshotDiff) -> None:
         """
@@ -219,9 +222,9 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         and its bookmarks belong to that path, and the import that
         follows overwrites the metadata anyway.
 
-        Scoped by ``library``, unlike its neighbour ``_refresh_stale_stats``
-        -- ``unique_together`` is ``(library, path)``, so an unscoped
-        path filter lets two libraries holding the same absolute path
+        Scoped by ``library``, as its neighbour ``_refresh_stale_stats``
+        also is -- ``unique_together`` is ``(library, path)``, so an
+        unscoped path filter lets two libraries whose roots overlap
         cross-write each other.
         """
         if not diff.revived:

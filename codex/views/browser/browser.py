@@ -480,11 +480,13 @@ class BrowserView(BrowserTitleView):
             # column values across their child comics: M2M values
             # shared by every comic, scalars where every comic has
             # the same value. Computed after pagination so the work
-            # is bounded to the visible page.
+            # is bounded to the visible page, and over the requesting
+            # user's visible comics only -- a row must not summarize
+            # library content that user cannot browse to.
             collection_qs = data.get("collections")
             if collection_qs is not None:
                 data["collection_intersections"] = compute_collection_intersections(
-                    collection_qs, columns
+                    collection_qs, columns, self.get_comic_acl(self.request.user)
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

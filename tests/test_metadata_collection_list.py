@@ -16,7 +16,6 @@ when the current group is below them) and ``_highlight_current_group``
 """
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -26,8 +25,9 @@ from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.named import StoryArc
 from codex.startup import init_admin_flags
 from codex.views.browser.metadata.collection_list import collection_list_field_name
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.metadata_group_list")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.metadata_group_list")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _EXPECTED_PUBLISHER_ROWS: Final = 2

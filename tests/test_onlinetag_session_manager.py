@@ -9,6 +9,7 @@ prompts, then returns without blocking. Answering those prompts is covered by
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Final
@@ -615,9 +616,11 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         assert batch == {1: {"series": "New"}}
 
 
-_RELEASE_TARGET: Final = (
+_COMICVINE_MODULE: Final = "comicbox.formats.comicvine_api.online_source"
+_METRON_RELEASE_TARGET: Final = (
     "comicbox.formats.metron_api.online_source.close_shared_sessions"
 )
+_COMICVINE_RELEASE_TARGET: Final = f"{_COMICVINE_MODULE}.close_shared_sessions"
 
 
 def _raise_scan_died(*_args, **_kwargs) -> None:
@@ -626,15 +629,17 @@ def _raise_scan_died(*_args, **_kwargs) -> None:
     raise RuntimeError(msg)
 
 
-class MetronConnectionReleaseTests(OnlineTagSessionTestCase):
+class OnlineConnectionReleaseTests(OnlineTagSessionTestCase):
     """
-    A scan hands back its pooled Metron connections when it finishes.
+    A scan hands back what its lookups opened when it finishes.
 
-    Since mokkari 4.8.0 a session keeps one pooled TLS connection open,
-    and comicbox releases it only when asked. Nothing in codex owns every
+    Since mokkari 4.8.0 a Metron session keeps one pooled TLS connection
+    open, and comicbox 5.2.1 releases Comic Vine's sockets, sqlite handle
+    and rate-limit buckets the same way. Nothing in codex owns every
     session — the prompt applier and the explicit-id fetch build their
     own — so the release is process-wide, at the end of the task. The
-    patch target is the module attribute the lazy import resolves.
+    patch targets are the module attributes the ``sys.modules`` probe
+    resolves.
     """
 
     def _no_op_pass(self) -> None:
@@ -655,7 +660,7 @@ class MetronConnectionReleaseTests(OnlineTagSessionTestCase):
 
         with (
             patch(PATCH_TARGET, FakeSession),
-            patch(_RELEASE_TARGET) as release,
+            patch(_METRON_RELEASE_TARGET) as release,
         ):
             self.manager.run_session(self._task(comic))
 
@@ -680,7 +685,7 @@ class MetronConnectionReleaseTests(OnlineTagSessionTestCase):
                 "_apply_deferred_resolutions",
                 lambda *_args: order.append("apply"),
             ),
-            patch(_RELEASE_TARGET, lambda: order.append("release")),
+            patch(_METRON_RELEASE_TARGET, lambda: order.append("release")),
         ):
             self.manager.run_session(self._task(comic))
 
@@ -695,9 +700,60 @@ class MetronConnectionReleaseTests(OnlineTagSessionTestCase):
 
         with (
             patch(PATCH_TARGET, FakeSession),
-            patch(_RELEASE_TARGET) as release,
+            patch(_METRON_RELEASE_TARGET) as release,
             pytest.raises(RuntimeError, match="scan died"),
         ):
             self.manager.run_session(self._task(comic))
 
         release.assert_called_once_with()
+
+    def test_a_finished_scan_releases_both_sources(self) -> None:
+        """
+        Comic Vine is released alongside Metron.
+
+        comicbox 5.2.1 gave Comic Vine a ``close_shared_sessions`` of its
+        own; before it, only Metron's pooled connection came back and
+        simyan's sockets, response-cache sqlite handle and rate-limit
+        buckets were left to be finalized.
+        """
+        comic = make_comic()
+        self._no_op_pass()
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch(_METRON_RELEASE_TARGET) as metron_release,
+            patch(_COMICVINE_RELEASE_TARGET) as comicvine_release,
+        ):
+            self.manager.run_session(self._task(comic))
+
+        metron_release.assert_called_once_with()
+        comicvine_release.assert_called_once_with()
+
+    def test_a_source_the_task_never_loaded_is_not_released(self) -> None:
+        """
+        The ``sys.modules`` probe is the point, not an optimization.
+
+        Reaching for the module by name means a Metron-only task never
+        imports simyan just to call a no-op on an empty client cache.
+        """
+        comic = make_comic()
+        self._no_op_pass()
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch(_METRON_RELEASE_TARGET) as metron_release,
+            patch(_COMICVINE_RELEASE_TARGET) as comicvine_release,
+            patch.dict(sys.modules),
+        ):
+            # Patching imported it; a task that never touched Comic Vine
+            # would not have.
+            del sys.modules[_COMICVINE_MODULE]
+            self.manager.run_session(self._task(comic))
+            # Read inside the block: patch.dict puts the module back.
+            reimported = _COMICVINE_MODULE in sys.modules
+
+        metron_release.assert_called_once_with()
+        comicvine_release.assert_not_called()
+        # The assertion that fails a straight `import ... ; close()`
+        # rewrite: that spelling re-imports simyan to call a no-op.
+        assert not reimported

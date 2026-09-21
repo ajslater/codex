@@ -10,7 +10,6 @@ selections write only the editable comics and report how many were skipped.
 import json
 import shutil
 from http import HTTPStatus
-from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
@@ -28,9 +27,10 @@ from codex.models import (
     Volume,
 )
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_TMP_DIR: Final = Path("/tmp/codex.tests.readonly")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.readonly")
 _RW_DIR: Final = _TMP_DIR / "rw"
 _RO_DIR: Final = _TMP_DIR / "ro"
 _TAG_WRITE_URL: Final = "/api/v4/admin/tag-write"

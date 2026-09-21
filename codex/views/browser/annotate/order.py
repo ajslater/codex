@@ -380,7 +380,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # would leave most cards with a NULL sort key, so card mode
         # falls back to sort_name.
         if self.params.get("view_mode") == "table":
-            isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+            isort_expr = m2m_intersection_sort_expr(
+                qs.model, self.order_key, self.get_comic_acl(self.request.user)
+            )
             if isort_expr is not None:
                 return qs, isort_expr
         if qs.model is Volume:
@@ -398,7 +400,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # wired so adding a new registry scalar doesn't silently
         # regress its sort.
         if self.params.get("view_mode") == "table":
-            isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
+            isort_expr = scalar_intersection_sort_expr(
+                qs.model, self.order_key, self.get_comic_acl(self.request.user)
+            )
             if isort_expr is not None:
                 return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
@@ -494,15 +498,16 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         """Collection-row extra: aggregate, intersection, or direct field."""
         if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS:
             return None
+        acl = self.get_comic_acl(self.request.user)
         if key in m2m_columns():
-            return m2m_intersection_sort_expr(qs.model, key)
+            return m2m_intersection_sort_expr(qs.model, key, acl)
         special = self._extra_collection_special(qs, key, reverse=reverse)
         if special is not None:
             return special
         # Match the primary's intersection-aware sort for scalars /
         # FK-names so the shift-click extra ranks rows by the same
         # rule the cell display uses.
-        isort_expr = scalar_intersection_sort_expr(qs.model, key)
+        isort_expr = scalar_intersection_sort_expr(qs.model, key, acl)
         if isort_expr is not None:
             return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS.get(key)

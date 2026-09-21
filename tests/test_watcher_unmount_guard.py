@@ -12,7 +12,6 @@ the files really are unreachable.
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
 from typing import Any, Final, override
 
 from django.test import TestCase
@@ -22,8 +21,9 @@ from watchfiles import Change
 from codex.librarian.fs.mounted import DOCKER_UNMOUNTED_FN, unmounted_reason
 from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.scribe.importer.tasks import ImportTask
+from tests.tmp_dirs import tmp_dir
 
-_ROOT: Final = Path("/tmp/codex.tests.unmount")  # noqa: S108
+_ROOT: Final = tmp_dir("codex.tests.unmount")
 _LIBRARY_PK: Final = 1
 
 

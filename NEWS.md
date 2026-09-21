@@ -28,6 +28,8 @@ border-radius: 128px;
       the file's inode changes.
     - Bookmarks that belong to no user or session are now removed by the nightly
       cleanup.
+    - A comic whose file is missing or unreadable returns Not Found instead of a
+      server error.
     - OPDS clients can browse the library from the catalog root again.
     - Panels gets both its own sort menu and the sort folders, on every
       platform.
@@ -38,6 +40,7 @@ border-radius: 128px;
       edit instead, and links to it.
     - The match review dialog no longer clips its Pause button.
     - The metadata editor no longer saves values its own fields flag as invalid.
+    - Online tagging releases its Comic Vine connections when a scan finishes.
     - Hovering a browser card draws its highlight border.
     - The tagging connection chip shows its check or alert icon.
     - An installed Codex gets a dark app bar instead of an orange one.
@@ -59,6 +62,16 @@ border-radius: 128px;
       covers.
     - Browsing to a collection you can't see sends you up a level instead of a
       blank page.
+    - Custom cover thumbnails survive the nightly cleanup.
+    - One unreadable comic no longer empties an OPDS feed.
+    - Collection rows only summarize comics you can see.
+    - Metadata imports and reading positions respect library and age-rating
+      permissions.
+    - Deleting a library succeeds, and library and group membership changes
+      refresh the browser.
+    - Force Update no longer costs a moved comic its bookmarks.
+    - Two libraries whose paths overlap no longer destroy each other's comics
+      and bookmarks.
 
 ## v2.3.3
 
