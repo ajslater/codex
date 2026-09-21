@@ -81,7 +81,7 @@
 
 <script>
 import { mdiLockReset } from "@mdi/js";
-import { mapActions, mapWritableState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import authFormMixin from "@/components/auth/auth-form-mixin";
 import CloseButton from "@/components/close-button.vue";
@@ -121,7 +121,7 @@ export default {
               return "New Password is required";
             }
             if (v.length < this.MIN_PASSWORD_LENGTH) {
-              return `Password must be ${this.MIN_PASSWORD_LENGTH} characters long`;
+              return `Password must be at least ${this.MIN_PASSWORD_LENGTH} characters`;
             }
             if (v === this.credentials.oldPassword) {
               return "New password must be different than old password";
@@ -143,6 +143,9 @@ export default {
     };
   },
   computed: {
+    ...mapState(useAuthStore, {
+      MIN_PASSWORD_LENGTH: (state) => state.MIN_PASSWORD_LENGTH,
+    }),
     ...mapWritableState(useAuthStore, ["showChangePasswordDialog"]),
   },
   watch: {

@@ -440,6 +440,13 @@ _EXCLUDEBULK_UPDATE_COMIC_FIELDS = frozenset(
         # Owned solely by the finish-time stamp in FinishImporter; the bulk
         # create/update path must never touch it.
         "metadata_imported_at",
+        # Owned solely by the scanner's stamp and unstamp paths. Derived
+        # from Comic._meta, so without this it enrols automatically and
+        # bulk_update writes the freshly-constructed instance's None over
+        # a live stamp on any unrelated re-import. Excluding it here also
+        # keeps it out of BULK_CREATE_COMIC_FIELDS, which is built from
+        # this tuple -- the upsert must not clear a stamp either.
+        "missing_since",
     }
 )
 BULK_UPDATE_COMIC_FIELDS = tuple(
