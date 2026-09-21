@@ -1,0 +1,84 @@
+/*
+ * The app's global styles: everything that cannot be scoped to one
+ * component.
+ *
+ * These lived in four unscoped <style> blocks across app.vue,
+ * settings-drawer.vue, browser-table-cell.vue and custom-covers-tab.vue,
+ * each needing an eslint-disable and two of them holding a byte-for-byte
+ * copy of the same rules. An unscoped block in a component is a global
+ * rule filed under whichever component happened to need it first.
+ *
+ * Imported once from main.js, right after vuetify/styles.
+ */
+
+html {
+  overflow-y: auto;
+}
+
+noscript {
+  text-align: center;
+  font-family: sans-serif;
+  color: rgb(var(--v-theme-text-disabled));
+}
+
+a {
+  text-decoration: none !important;
+  color: rgb(var(--v-theme-primary));
+}
+
+/*
+ * Overlay content boxes are app chrome: menus, dialogs and tooltips sit
+ * on the page background instead of Vuetify's own surface colors.
+ *
+ * Snackbars are the exception. A snackbar's ``color`` prop paints this
+ * very element, via Vuetify's ``bg-*`` utility class. That class lives
+ * in a cascade layer and this rule does not, so an unlayered
+ * ``background-color`` wins here no matter how the snackbar asks.
+ * Exempting the wrapper is what makes ``color`` work on a snackbar at
+ * all. The radius still applies to every overlay.
+ */
+.v-overlay__content {
+  border-radius: 5px;
+}
+
+.v-overlay__content:not(.v-snackbar__wrapper) {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
+
+.v-tooltip > .v-overlay__content {
+  color: rgb(var(--v-theme-text-disabled)) !important;
+}
+
+/*
+ * Sub-header inside the settings drawers. Shared by six components
+ * across the browser and reader drawers.
+ */
+.settingsSubHeader {
+  padding-top: 10px;
+  padding-left: 15px;
+  padding-right: 10px;
+  font-weight: bolder;
+  color: rgb(var(--v-theme-text-disabled));
+}
+
+/*
+ * Cover popup — rendered into a v-menu's teleport target, so it cannot
+ * be scoped to the component that opens it. Used by the browser table's
+ * cover cell and by the admin custom-covers grid, which is why it is
+ * global rather than duplicated. Minimal chrome: just the image, a
+ * small radius, and a soft shadow so it floats above the table without
+ * a hard border. The popup grows from its activator origin via
+ * Vuetify's scale-transition (set on the v-menu itself).
+ */
+.coverPopup {
+  display: block;
+  cursor: zoom-out;
+}
+
+.coverPopup img {
+  display: block;
+  max-height: 70vh;
+  max-width: 60vw;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}

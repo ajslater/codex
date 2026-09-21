@@ -236,24 +236,3 @@ export default {
   font-style: italic;
 }
 </style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/*
- * Cover popup — rendered into the v-menu's teleport target, so the
- * styles live in an unscoped block. Mirrors the browser-table cover
- * popup so the admin custom-cover grid feels the same on hover.
- */
-.coverPopup {
-  display: block;
-  cursor: zoom-out;
-}
-
-.coverPopup img {
-  display: block;
-  max-height: 70vh;
-  max-width: 60vw;
-  border-radius: 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
-}
-</style>

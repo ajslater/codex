@@ -118,7 +118,7 @@ export default {
 <style scoped lang="scss">
 @forward "./expansion-panel-overrides";
 
-// settingsSubHeader defined in settings/settings-drawer.vue
+// settingsSubHeader defined in styles/global.scss
 :deep(.v-expansion-panel-text__wrapper) {
   padding-left: 10px;
   padding-right: 10px;

@@ -129,13 +129,3 @@ export default {
   padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
 }
 </style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.settingsSubHeader {
-  padding-top: 10px;
-  padding-left: 15px;
-  padding-right: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-text-disabled));
-}
-</style>
