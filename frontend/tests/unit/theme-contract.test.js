@@ -50,6 +50,15 @@ describe("theme contract", () => {
       excludeGroup: "#411",
     });
   });
+
+  test("component defaults pass theme tokens, never hex", () => {
+    // A resolved hex lands as an inline style on the element and stops
+    // following the theme; a token resolves to a class at render time.
+    const hexed = Object.entries(vuetify.defaults.value)
+      .filter(([, props]) => /^#/.test(props?.color ?? ""))
+      .map(([name]) => name);
+    expect(hexed).toEqual([]);
+  });
 });
 
 // Vite's own loader, the way tests/unit/rules-plugin.test.js scans source.

@@ -56,28 +56,28 @@ const vuetify = createVuetify({
       ripple: true,
     },
     VCheckbox: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VCheckboxBtn: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VCombobox: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VProgressLinear: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VProgressCircular: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VRadioGroup: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VSelect: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VSlider: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     /*
      * Vuetify's own default is the Material "inverse surface", a light
@@ -89,10 +89,10 @@ const vuetify = createVuetify({
       color: "background",
     },
     VTabs: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
     VTextField: {
-      color: codexTheme.colors.primary,
+      color: "primary",
     },
   },
   theme: themeDefaults,

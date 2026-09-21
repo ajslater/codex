@@ -31,7 +31,7 @@
       <v-spacer />
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
-        :color="canSave ? 'primary' : 'grey-darken-1'"
+        :color="canSave ? 'primary' : 'textDisabled'"
         variant="flat"
         :loading="saving"
         :disabled="!canSave"
