@@ -87,16 +87,7 @@ const SCOPES = Object.freeze([
 ]);
 const SCOPE_KEYS = SCOPES.map((s) => s.key);
 const MAX_RATE = 65_535;
-const RATE_RULES = Object.freeze([
-  (v) => {
-    if (v === "" || v === null || v === undefined) return true;
-    const n = Number(v);
-    return (
-      (Number.isInteger(n) && n >= 0 && n <= MAX_RATE) ||
-      `Must be 0–${MAX_RATE}`
-    );
-  },
-]);
+const RATE_RULES = Object.freeze([["$intRange", [0, MAX_RATE]]]);
 
 function pickFields(source) {
   const out = {};
