@@ -250,24 +250,14 @@ const HOST_RULES = Object.freeze([
   (v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname",
 ]);
 const PORT_RULES = Object.freeze([
-  (v) => {
-    if (v === "" || v === null || v === undefined) return true;
-    const n = Number(v);
-    return (
-      (Number.isInteger(n) && n >= PORT_MIN && n <= PORT_MAX) ||
-      `Port must be between ${PORT_MIN} and ${PORT_MAX}`
-    );
-  },
+  ["$intRange", [PORT_MIN, PORT_MAX], "Port must be between {0} and {1}"],
 ]);
 const TIMEOUT_RULES = Object.freeze([
-  (v) => {
-    if (v === "" || v === null || v === undefined) return true;
-    const n = Number(v);
-    return (
-      (Number.isInteger(n) && n >= TIMEOUT_MIN && n <= TIMEOUT_MAX) ||
-      `Timeout must be between ${TIMEOUT_MIN} and ${TIMEOUT_MAX} seconds`
-    );
-  },
+  [
+    "$intRange",
+    [TIMEOUT_MIN, TIMEOUT_MAX],
+    "Timeout must be between {0} and {1} seconds",
+  ],
 ]);
 const EMAIL_RULES = Object.freeze([
   (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",

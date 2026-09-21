@@ -1494,18 +1494,9 @@ const DATE_PART_BOUNDS = Object.freeze({
 const DATE_PARTS = Object.freeze(Object.keys(DATE_PART_BOUNDS));
 const EMPTY_RULES = Object.freeze([]);
 
-const intRangeRules = ([min, max]) =>
-  Object.freeze([
-    (v) =>
-      v === null ||
-      v === "" ||
-      v === undefined ||
-      (Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max) ||
-      `Must be ${min}–${max}`,
-  ]);
-const YEAR_RULES = intRangeRules(DATE_PART_BOUNDS.year);
-const MONTH_RULES = intRangeRules(DATE_PART_BOUNDS.month);
-const DAY_RULES = intRangeRules(DATE_PART_BOUNDS.day);
+const YEAR_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.year]]);
+const MONTH_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.month]]);
+const DAY_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.day]]);
 
 const choiceValueForTitle = (choices, named) => {
   // pycountry-backed fields arrive as their long name; fall back to the raw
