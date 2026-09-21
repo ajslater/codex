@@ -21,6 +21,7 @@ keeping anything that answers the second time.
 import os
 import shutil
 import threading
+from datetime import timedelta
 from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
@@ -28,6 +29,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.db.models.functions import Now
+from django.utils import timezone
 from loguru import logger
 
 from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
@@ -41,7 +43,17 @@ from codex.librarian.scribe.importer.delete.existence import SECOND_LOOK_DELAY_S
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_folder_relations
-from codex.librarian.scribe.janitor.janitor import Janitor
+from codex.librarian.scribe.janitor.janitor import (
+    _JANITOR_METHOD_MAP,
+    _NIGHTLY_TASKS,
+    Janitor,
+)
+from codex.librarian.scribe.janitor.tasks import (
+    JanitorCleanFKsTask,
+    JanitorReapPendingDeletesTask,
+)
+from codex.librarian.scribe.priority import _SCRIBE_TASK_PRIORITY, get_task_priority
+from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.models import (
     Bookmark,
     Comic,
@@ -864,3 +876,127 @@ class TestRevival(_DeleteTestBase):
         comic.refresh_from_db()
         assert comic.pk == pk
         assert comic.missing_since is None
+
+
+class TestReaper(_DeleteTestBase):
+    """
+    The nightly reaper, and the cascade it must refuse.
+
+    Until the window expires nothing here deletes anything; after it,
+    the delete is the ordinary one -- so the only interesting behaviour
+    is the boundary and the guard.
+    """
+
+    def _janitor(self) -> Janitor:
+        return Janitor(logger, LIBRARIAN_QUEUE, Lock(), Event())
+
+    def _age(self, model, pk, *, hours: int) -> None:
+        """Backdate a stamp so the window has or has not expired."""
+        when = timezone.now() - timedelta(hours=hours)
+        model.objects.filter(pk=pk).update(missing_since=when)
+
+    def test_a_fresh_stamp_is_not_reaped(self) -> None:
+        """The whole point of the delay."""
+        comic = self._create_comic(_GONE)
+        self._age(Comic, comic.pk, hours=1)
+
+        self._janitor().reap_pending_deletes()
+
+        assert Comic.objects.filter(pk=comic.pk).exists()
+
+    def test_an_expired_stamp_is_reaped(self) -> None:
+        """After the window the delete is the ordinary one."""
+        comic = self._create_comic(_GONE)
+        self._age(Comic, comic.pk, hours=25)
+
+        self._janitor().reap_pending_deletes()
+
+        assert not Comic.objects.filter(pk=comic.pk).exists()
+
+    def test_a_live_comic_is_never_reaped(self) -> None:
+        """An unstamped row is not this job's business at all."""
+        comic = self._create_comic(_EXTANT)
+
+        self._janitor().reap_pending_deletes()
+
+        assert Comic.objects.filter(pk=comic.pk).exists()
+
+    def test_a_folder_with_a_live_comic_is_not_reaped(self) -> None:
+        """
+        The cascade guard.
+
+        A folder delete cascades to its comics through
+        ``Comic.parent_folder`` and to sub-folders through
+        ``Folder.parent_folder``, so reaping a stamped ancestor would
+        take live descendants -- and their bookmarks -- with it.
+        """
+        subdir_folder = self._make_subdir_folder()
+        live = self._create_comic(str(_SUBDIR / "live.cbz"), folder=subdir_folder)
+        self._age(Folder, subdir_folder.pk, hours=25)
+
+        self._janitor().reap_pending_deletes()
+
+        assert Folder.objects.filter(pk=subdir_folder.pk).exists()
+        assert Comic.objects.filter(pk=live.pk).exists()
+
+    def test_a_folder_whose_comics_all_expired_is_reaped(self) -> None:
+        """Once nothing live remains below it, the subtree really is gone."""
+        subdir_folder = self._make_subdir_folder()
+        comic = self._create_comic(str(_SUBDIR / "gone.cbz"), folder=subdir_folder)
+        self._age(Comic, comic.pk, hours=25)
+        self._age(Folder, subdir_folder.pk, hours=25)
+
+        self._janitor().reap_pending_deletes()
+
+        assert not Comic.objects.filter(pk=comic.pk).exists()
+        assert not Folder.objects.filter(pk=subdir_folder.pk).exists()
+
+    def test_the_reap_announces_itself(self) -> None:
+        """
+        The janitor has no importer finish() to clear caches for it.
+
+        ``cleanup_fks`` notifying nothing is a gap, not a precedent.
+        """
+        comic = self._create_comic(_GONE)
+        self._age(Comic, comic.pk, hours=25)
+
+        with patch.object(LIBRARIAN_QUEUE, "put") as put_mock:
+            self._janitor().reap_pending_deletes()
+
+        queued = [call.args[0] for call in put_mock.call_args_list]
+        assert LIBRARY_CHANGED_TASK in queued, queued
+        # The stamp deliberately kept the covers so a revived row would
+        # find its own; now the row is really gone they must follow it.
+        assert any(isinstance(task, CoverRemoveTask) for task in queued), queued
+
+    def test_the_job_is_fully_registered(self) -> None:
+        """
+        A janitor job needs twelve registrations, not the three named in CLAUDE.md.
+
+        Omitting the priority tuple is the silent-failure mode:
+        ``get_task_priority`` raises ``ValueError: tuple.index(x): x not
+        in tuple`` and the job simply never runs.
+        """
+        assert JanitorReapPendingDeletesTask in _SCRIBE_TASK_PRIORITY
+        assert get_task_priority(JanitorReapPendingDeletesTask()) is not None
+        assert any(
+            isinstance(task, JanitorReapPendingDeletesTask) for task in _NIGHTLY_TASKS
+        )
+        assert _JANITOR_METHOD_MAP[JanitorReapPendingDeletesTask] == (
+            "reap_pending_deletes"
+        )
+        assert hasattr(Janitor, "reap_pending_deletes")
+
+    def test_the_reaper_runs_before_the_cleanups_that_depend_on_it(self) -> None:
+        """
+        Order matters, and it comes from the priority tuple's index.
+
+        While a stamped comic still exists its Publisher/Imprint/Series/
+        Volume are not orphaned, so an FK cleanup ahead of the reaper
+        leaves emptied groups visible until the *next* night. The search
+        sync likewise drops FTS rows whose comic is gone.
+        """
+        order = _SCRIBE_TASK_PRIORITY.index
+        assert order(JanitorReapPendingDeletesTask) < order(JanitorCleanFKsTask)
+        assert order(JanitorReapPendingDeletesTask) < order(SearchIndexSyncTask)
+        assert order(JanitorReapPendingDeletesTask) > order(ImportTask)

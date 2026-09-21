@@ -44,6 +44,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JFR",
     "JID",
     "JIS",
+    "JRP",
     "JCT",
     "JRV",
     "JRS",
@@ -303,6 +304,22 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         ),
                         "confirm": ("Launches several tasks that run nightly anyway."),
                         "statuses": _JANITOR_NIGHTLY_STATUSES,
+                    },
+                    {
+                        "value": "reap_pending_deletes",
+                        "title": "Delete Missing Comics Now",
+                        "desc": (
+                            "Comics and folders that disappeared from a"
+                            " library are kept for a day in case they come"
+                            " back, so a filesystem outage does not lose"
+                            " their read progress. This deletes the expired"
+                            " ones now. Runs nightly."
+                        ),
+                        "confirm": (
+                            "Permanently deletes comics missing for more than"
+                            " a day, and their read progress."
+                        ),
+                        "statuses": ("JRP",),
                     },
                     {
                         "value": "cleanup_fks",

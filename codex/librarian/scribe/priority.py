@@ -25,6 +25,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
     JanitorNightlyTask,
+    JanitorReapPendingDeletesTask,
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
@@ -62,6 +63,12 @@ _SCRIBE_TASK_PRIORITY = (
     ImportTask,
     LazyImportComicsTask,
     UpdateCollectionsTask,
+    # Index 17, the first slot in the contiguous cleanup band. Ahead of
+    # the FK cleanup and the search sync, which both depend on the rows
+    # really being gone; behind the tag-writing and import tasks, so a
+    # bulk DELETE under the write lock never stalls a user-initiated
+    # import behind maintenance.
+    JanitorReapPendingDeletesTask,
     JanitorCleanFKsTask,
     JanitorCleanCoversTask,
     JanitorCleanupSessionsTask,
