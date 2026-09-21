@@ -108,8 +108,8 @@ export default {
       rules: {
         username: [
           (v) => !!v || "Username is required",
-          (v) =>
-            (!!v && !this.usernames.has(v.trim())) || "Username already used",
+          // $notIn passes on blank, so the required rule must stay first.
+          ["$notIn", () => this.usernames, "Username already used"],
         ],
         email: [
           (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",

@@ -1474,12 +1474,7 @@ const NULL_CLEARED_FIELDS = Object.freeze(
 );
 
 const COMMUNITY_RATING_RULES = Object.freeze([
-  (v) =>
-    v === null ||
-    v === "" ||
-    v === undefined ||
-    (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 5) ||
-    "Must be 0.0–5.0",
+  ["$numRange", [0, 5], "Must be 0.0–5.0"],
 ]);
 
 // The publish date parts and their bounds. comicbox bounds month and day and
