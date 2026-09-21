@@ -31,8 +31,9 @@ from codex.models import (
 )
 from codex.views.admin.onlinetag import AdminOnlineTagStartView
 from codex.views.admin.tagwrite import AdminTagWritePreflightView, AdminTagWriteView
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.tagrenamewiring")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.tagrenamewiring")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _PK: Final = 7
 _TAG_WRITE_URL: Final = "/api/v4/admin/tag-write"

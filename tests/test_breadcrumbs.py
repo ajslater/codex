@@ -10,7 +10,6 @@ full chain + the collection wire shape.
 """
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -19,10 +18,11 @@ from django.test import Client, TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-_TMP_DIR: Final = Path("/tmp/codex.tests.breadcrumbs")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.breadcrumbs")
 
 
 def _v4(response):

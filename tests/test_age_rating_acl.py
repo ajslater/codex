@@ -21,7 +21,6 @@ that contract in:
 """
 
 import shutil
-from pathlib import Path
 from typing import override
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
@@ -44,8 +43,9 @@ from codex.models import (
 )
 from codex.models.auth import UserAuth
 from codex.views.auth import AgeRatingACLMixin
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.acl")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.acl")
 
 
 def _set_age_rating_flag(key: str, metron_name: str) -> None:

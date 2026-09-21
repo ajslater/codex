@@ -74,8 +74,9 @@ from codex.models import (
 from codex.models.comic import ComicFTS
 from codex.models.library import Library
 from codex.startup import codex_init
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp") / Path(__file__).stem  # noqa: S108
+TMP_DIR = tmp_dir(Path(__file__).stem)
 LIBRARY_PATH = TMP_DIR
 FILES_DIR = Path(__file__).parent.parent / "files"
 COMIC_PATH = FILES_DIR / "comicbox-2-example.cbz"

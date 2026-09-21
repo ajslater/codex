@@ -27,7 +27,6 @@ the per-tier path scrubbing — is caught immediately.
 """
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -37,8 +36,9 @@ from codex.choices.admin import AdminFlagChoices
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.models.admin import AdminFlag
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.metadata_path")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.metadata_path")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 

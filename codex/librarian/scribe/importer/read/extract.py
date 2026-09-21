@@ -130,7 +130,9 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
     ) -> tuple[MappingProxyType[str, datetime], MappingProxyType[str, dict[str, Any]]]:
         """Get some old comic values."""
         values = ("path", "page_count", "file_type", "metadata_mtime", "stat")
-        old_comics = Comic.objects.filter(path__in=all_paths).values(*values)
+        old_comics = Comic.objects.filter(
+            self.library_scope(Comic), path__in=all_paths
+        ).values(*values)
         old_comic_values = {}
         old_comic_mtimes = {}
         for old_comic in old_comics:

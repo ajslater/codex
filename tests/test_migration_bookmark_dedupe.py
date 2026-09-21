@@ -18,7 +18,6 @@ import importlib
 import shutil
 from contextlib import contextmanager
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 
 from django.apps import apps
@@ -37,11 +36,12 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
 _MIGRATION = importlib.import_module("codex.migrations.0054_bookmark_partial_unique")
 dedupe_bookmarks = _MIGRATION.dedupe_bookmarks
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.bookmark_dedupe")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.bookmark_dedupe")
 _SESSION_KEY: Final = "bookmarkdedupesessionkey"
 _OLD_PAGE: Final = 5
 _MID_PAGE: Final = 7
