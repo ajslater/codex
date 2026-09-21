@@ -133,6 +133,14 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         if not self.is_allowed(obj):
             return []
         folder = obj.parent_folder
+        # ``parent_folder`` is a nullable forward FK, so it resolves
+        # through ``_base_manager`` and no Q or manager can filter it.
+        # Guard explicitly, or a visible comic publishes a stamped
+        # folder's absolute path plus a dead browse link. The None arm
+        # is a live AttributeError today -- ``is_allowed`` is a no-op
+        # for a Comic, which is a sibling of Folder rather than a Folder.
+        if folder is None or (folder.missing_since is not None and not self.is_admin):
+            return []
         name = folder.path
         pks = [folder.pk]
         kwargs = {"collection": "folders", "pks": pks, "page": 1}

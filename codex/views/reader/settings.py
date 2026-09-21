@@ -4,7 +4,7 @@ from types import MappingProxyType
 from typing import cast
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
@@ -201,8 +201,14 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                     return getattr(related_obj, name_field, "") or ""
         if not model:
             return ""
+        # The ``?story_arc_pk=`` fallback is a third path with its own
+        # caller-supplied pk, so it needs its own gate; the comic
+        # prefetch cannot cover it.
+        acl_filter = self.get_acl_filter(model, self.request.user, include_missing=True)
         return (
-            model.objects.filter(pk=scope_pk).values_list("name", flat=True).first()
+            model.objects.filter(acl_filter, pk=scope_pk)
+            .values_list("name", flat=True)
+            .first()
             or ""
         )
 
@@ -256,10 +262,24 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 for fk in needed_comic_fks
                 if fk in _COMIC_FK_TO_RELATED
             ]
-            qs = Comic.objects.only(*needed_comic_fks)
+            # This endpoint resolved container names for any comic pk a
+            # caller supplied. ``_resolve_scope_name`` reads the folder
+            # and series names off forward FK descriptors, which resolve
+            # through ``_base_manager`` and cannot be filtered by any Q,
+            # so gating the comic fetch is what closes that path too.
+            # ``include_missing``: the reader stays open on a stamped
+            # comic (D8), and its settings must follow it.
+            acl_filter = self.get_acl_filter(
+                Comic, self.request.user, include_missing=True
+            )
+            qs = Comic.objects.filter(acl_filter).only(*needed_comic_fks)
             if select_related:
                 qs = qs.select_related(*select_related)
-            comic = qs.get(pk=comic_pk)
+            try:
+                comic = qs.get(pk=comic_pk)
+            except Comic.DoesNotExist as exc:
+                reason = f"comic {comic_pk} not found"
+                raise NotFound(detail=reason) from exc
 
         scopes_out: dict = {}
         scope_info: dict = {}

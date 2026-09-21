@@ -93,7 +93,13 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         cached = page_acl_cache.get(cache_key, now)
         if cached is not None:
             return cached
-        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        # ``include_missing``: the reader keeps serving a stamped comic
+        # (D8). If a page really cannot be read the ``FileNotFoundError``
+        # below becomes a NotFound on its own, and if the mount returns
+        # mid-read nothing was ever interrupted. This also carries the
+        # ``?bookmark=true`` side-write, which the bookmark view's own
+        # opt-out cannot reach -- it is a separate BookmarkUpdateTask.
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         qs = Comic.objects.filter(acl_filter).only("path", "file_type")
         comic = qs.get(pk=pk)
         path = comic.path
