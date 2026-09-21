@@ -144,41 +144,54 @@ class OPDS1FeedView(OPDS1LinksView):
             return self.obj.get("total_count", 0)
         return None
 
+    def _get_entry_data(self, key, objs, metadata) -> OPDS1EntryData:
+        """Build the per-section entry data shared by every entry in it."""
+        # Pre-compute the per-page M2M batches when this section is
+        # the books section AND ?opdsMetadata=1 is requested. Each
+        # OPDS1Entry's ``authors`` / ``contributors`` /
+        # ``category_groups`` properties otherwise fire 9 queries
+        # per entry (sub-plan 03 #1) — at 100+ entries the worst
+        # case is 900+ queries on a single feed page. The batched
+        # helpers UNION the M2M tables and partition in Python so
+        # the cost collapses to 3 queries total per feed page.
+        authors_by_pk = contributors_by_pk = category_groups_by_pk = None
+        if metadata and key == "books":
+            all_pks = [obj.pk for obj in objs]
+            authors_by_pk = get_credit_people_by_comic(
+                all_pks, AUTHOR_ROLES, exclude=False
+            )
+            contributors_by_pk = get_credit_people_by_comic(
+                all_pks, AUTHOR_ROLES, exclude=True
+            )
+            category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
+        zero_pad: int = self.obj["zero_pad"]
+        return OPDS1EntryData(
+            self.opds_acquisition_collections,
+            zero_pad,
+            metadata,
+            self.mime_type_map,
+            authors_by_pk=authors_by_pk,
+            contributors_by_pk=contributors_by_pk,
+            category_groups_by_pk=category_groups_by_pk,
+        )
+
     def _get_entries_section(self, key, metadata) -> list:
         """Get entries by key section."""
         entries = []
-        if objs := self.obj.get(key):
-            zero_pad: int = self.obj["zero_pad"]
-            # Pre-compute the per-page M2M batches when this section is
-            # the books section AND ?opdsMetadata=1 is requested. Each
-            # OPDS1Entry's ``authors`` / ``contributors`` /
-            # ``category_groups`` properties otherwise fire 9 queries
-            # per entry (sub-plan 03 #1) — at 100+ entries the worst
-            # case is 900+ queries on a single feed page. The batched
-            # helpers UNION the M2M tables and partition in Python so
-            # the cost collapses to 3 queries total per feed page.
-            authors_by_pk = contributors_by_pk = category_groups_by_pk = None
-            if metadata and key == "books":
-                all_pks = [obj.pk for obj in objs]
-                authors_by_pk = get_credit_people_by_comic(
-                    all_pks, AUTHOR_ROLES, exclude=False
-                )
-                contributors_by_pk = get_credit_people_by_comic(
-                    all_pks, AUTHOR_ROLES, exclude=True
-                )
-                category_groups_by_pk = get_m2m_objects_by_comic(all_pks)
-            data = OPDS1EntryData(
-                self.opds_acquisition_collections,
-                zero_pad,
-                metadata,
-                self.mime_type_map,
-                authors_by_pk=authors_by_pk,
-                contributors_by_pk=contributors_by_pk,
-                category_groups_by_pk=category_groups_by_pk,
-            )
-            fallback = bool(self.admin_flags.get("folder_view"))
-            import_pks = set()
-            for obj in objs:
+        objs = self.obj.get(key)
+        if not objs:
+            return entries
+        data = self._get_entry_data(key, objs, metadata)
+        fallback = bool(self.admin_flags.get("folder_view"))
+        import_pks = set()
+        for obj in objs:
+            # Accumulate. One row that cannot be turned into an entry
+            # loses only itself; it used to empty the whole feed, because
+            # the raise unwound past every entry already built into
+            # ``entries``' default_factory. ``lazy_metadata`` no longer
+            # raises for an unreadable archive, so that comic degrades to
+            # a DB-only entry rather than being dropped here.
+            try:
                 entry = OPDS1Entry(
                     obj,
                     self.request.GET,
@@ -187,12 +200,16 @@ class OPDS1FeedView(OPDS1LinksView):
                 )
                 if key == "books" and entry.lazy_metadata():
                     import_pks.add(obj.pk)
-                entries.append(entry)
-            if import_pks:
-                task = LazyImportComicsTask(
-                    collection=Collection.COMIC, pks=frozenset(import_pks)
-                )
-                LIBRARIAN_QUEUE.put(task)
+            except Exception:
+                pk = getattr(obj, "pk", None)
+                logger.exception(f"Creating OPDS v1 {key} entry for pk {pk}")
+                continue
+            entries.append(entry)
+        if import_pks:
+            task = LazyImportComicsTask(
+                collection=Collection.COMIC, pks=frozenset(import_pks)
+            )
+            LIBRARIAN_QUEUE.put(task)
         return entries
 
     @property
