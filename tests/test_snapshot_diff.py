@@ -27,6 +27,7 @@ def _snapshot(
     *,
     models: dict[str, type[Model]] | None = None,
     unreadable: set[str] | None = None,
+    missing: set[str] | None = None,
     log=None,
 ) -> Snapshot:
     """
@@ -34,6 +35,9 @@ def _snapshot(
 
     Drives the real ``_set_lookups`` so intra-snapshot inode collisions
     populate ``_ambiguous_inodes`` exactly as production would.
+
+    ``missing`` mirrors what ``DatabaseSnapshot`` fills from stamped
+    rows: still present in ``paths``, but not re-reported as deleted.
     """
     snap = Snapshot.__new__(Snapshot)
     snap._root = "/comics"  # noqa: SLF001
@@ -44,6 +48,7 @@ def _snapshot(
     snap._ambiguous_inodes = set()  # noqa: SLF001
     snap._path_to_model = dict(models) if models else {}  # noqa: SLF001
     snap._unreadable = set(unreadable) if unreadable else set()  # noqa: SLF001
+    snap._missing = set(missing) if missing else set()  # noqa: SLF001
     for path, st in entries.items():
         snap._set_lookups(path, st)  # noqa: SLF001
     return snap

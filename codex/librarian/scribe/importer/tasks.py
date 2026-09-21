@@ -31,6 +31,13 @@ class ImportTask(ScribeTask):
 
     force_import_metadata: bool = False
     check_metadata_mtime: bool = True
+    # Keep vanished rows instead of deleting them. Only the poller sets
+    # this: it re-observes the whole library on every pass, which is what
+    # makes retention possible, and its deletes mean "the walk did not
+    # list it" -- a claim #858 and #860 showed can be a lie. The watcher,
+    # LazyImporter, ForceUpdater, adopt_folders and TagWriter keep the
+    # default and keep deleting immediately.
+    soft_delete: bool = False
 
     def total(self) -> int:
         """Total number of operations."""

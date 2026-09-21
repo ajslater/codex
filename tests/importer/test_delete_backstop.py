@@ -27,6 +27,7 @@ from typing import Final, override
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.db.models.functions import Now
 from loguru import logger
 
 from codex.librarian.fs.import_task import build_import_task
@@ -36,6 +37,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.importer.delete.existence import SECOND_LOOK_DELAY_S
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
+from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_folder_relations
+from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.models import (
     Bookmark,
     Comic,
@@ -57,6 +60,7 @@ _EXTANT = str(LIBRARY_PATH / "still-here.cbz")
 _SUBDIR = LIBRARY_PATH / "subdir"
 _EACCES: Final = PermissionError(13, "Permission denied")
 _BOOKMARKED_COMICS: Final = 3
+_BOOKMARK_PAGE: Final = 140
 
 
 class _DeleteTestBase(BaseTestImporter):
@@ -400,7 +404,9 @@ class TestUnreadableSubtreeEndToEnd(_DeleteTestBase):
         db_snapshot = DatabaseSnapshot(self.library.path, logger)
         disk_snapshot = DiskSnapshot(self.library.path, logger)
         diff = SnapshotDiff(db_snapshot, disk_snapshot)
-        task = build_import_task(self.library.pk, diff.to_events())
+        # The poller passes ``soft_delete=True``; mirror it so this test
+        # exercises the path production takes.
+        task = build_import_task(self.library.pk, diff.to_events(), soft_delete=True)
         if task is None:
             return
         # Nothing under the unreadable directory may even be proposed.
@@ -533,3 +539,196 @@ class TestSecondLookBeforeDeleting(_DeleteTestBase):
 
         warnings = [call.args[0] for call in mock_log.warning.call_args_list]
         assert any("answered" in warning for warning in warnings), warnings
+
+
+class TestSoftDeleteStamping(_DeleteTestBase):
+    """
+    A poller-inferred delete keeps the row and records when it vanished.
+
+    The reporter's comics were missing for 41-50 minutes across two
+    incidents, far longer than the five-second second look covers, and a
+    whole publisher's read progress was destroyed each time. Retention
+    is the answer to a *sustained* outage, which the existing guards say
+    outright they do not cover.
+    """
+
+    def _soft_delete(self, **task_kwargs) -> ComicImporter:
+        """Run the delete phase the way the poller asks for it."""
+        return self._delete(soft_delete=True, **task_kwargs)
+
+    def test_a_vanished_comic_keeps_its_row_and_its_bookmark(self) -> None:
+        """The headline behaviour, and the thing being protected."""
+        comic = self._create_comic(_GONE)
+        user = User.objects.create_user(username="reader", password="x")  # noqa: S106
+        Bookmark.objects.create(user=user, comic=comic, page=140, finished=False)
+        Path(_GONE).unlink()
+
+        importer = self._soft_delete(files_deleted=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since is not None
+        assert Bookmark.objects.get(comic=comic).page == _BOOKMARK_PAGE
+        assert importer.counts.comics_missing == 1
+        assert importer.counts.comics_deleted == 0
+
+    def test_a_watcher_delete_still_deletes(self) -> None:
+        """
+        Retention is poller-only, and the default is unchanged.
+
+        A watcher ``deleted`` means the OS observed the name vanish at
+        that instant, with no "the walk could not look" failure mode.
+        The poller also re-observes on every pass, which is what makes
+        retention possible; the watcher cannot.
+        """
+        comic = self._create_comic(_GONE)
+        Path(_GONE).unlink()
+
+        importer = self._delete(files_deleted=frozenset({_GONE}))
+
+        assert not Comic.objects.filter(pk=comic.pk).exists()
+        assert importer.counts.comics_deleted == 1
+        assert importer.counts.comics_missing == 0
+
+    def test_an_unreadable_path_is_never_stamped(self) -> None:
+        """
+        The trap the design names.
+
+        A path that could not be read is not a path that is gone.
+        ``confirm_deleted`` returns only the ENOENT bucket, so a
+        permission error leaves the row completely untouched -- not
+        stamped, not deleted.
+        """
+        comic = self._create_comic(_EXTANT)
+        with patch.object(
+            Path, "stat", _stat_failing_for(frozenset({_EXTANT}), _EACCES)
+        ):
+            importer = self._soft_delete(files_deleted=frozenset({_EXTANT}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since is None
+        assert importer.counts.comics_missing == 0
+
+    def test_a_second_pass_does_not_reset_the_clock(self) -> None:
+        """
+        Without this guard the window never expires.
+
+        A stamped row stays in the poller's reference snapshot, so the
+        same vanished path is re-emitted on every poll. If each pass
+        rewrote ``missing_since`` the reaper would never see a row old
+        enough to reap, and the retention window would be infinite.
+        """
+        comic = self._create_comic(_GONE)
+        Path(_GONE).unlink()
+        self._soft_delete(files_deleted=frozenset({_GONE}))
+        comic.refresh_from_db()
+        first = comic.missing_since
+
+        importer = self._soft_delete(files_deleted=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since == first
+        assert importer.counts.comics_missing == 0
+
+    def test_a_vanished_folder_keeps_its_row(self) -> None:
+        """A stamped folder takes nothing with it until the reaper runs."""
+        subdir_folder = self._make_subdir_folder()
+        shutil.rmtree(_SUBDIR)
+
+        importer = self._soft_delete(dirs_deleted=frozenset({str(_SUBDIR)}))
+
+        subdir_folder.refresh_from_db()
+        assert subdir_folder.missing_since is not None
+        assert importer.counts.folders_missing == 1
+        assert importer.counts.folders_deleted == 0
+
+    def test_the_stamp_is_not_re_reported_by_the_next_poll(self) -> None:
+        """
+        A pending row is reported once, not on every poll.
+
+        Re-reporting would pay the second look's wait each pass, re-fire
+        the mass-delete warning, keep ``diff.is_empty()`` permanently
+        false, and make the importer's log claim a library is losing
+        comics it still has.
+        """
+        self._create_comic(_GONE)
+        Path(_GONE).unlink()
+        self._soft_delete(files_deleted=frozenset({_GONE}))
+
+        db_snapshot = DatabaseSnapshot(self.library.path, logger)
+        disk_snapshot = DiskSnapshot(self.library.path, logger)
+        diff = SnapshotDiff(db_snapshot, disk_snapshot)
+
+        assert _GONE in db_snapshot.missing
+        # Still in ``paths``: a file that comes back must keep its row
+        # rather than read as ``added`` and mint a new one.
+        assert _GONE in db_snapshot.paths
+        assert _GONE not in diff.files_deleted
+
+
+class TestJanitorSpares(_DeleteTestBase):
+    """
+    The nightly sweeps that would eat a stamped row before its window.
+
+    Each one silently voids the retention guarantee, and none of them
+    has an existence probe of its own.
+    """
+
+    def _stamp_folder(self, folder: Folder) -> None:
+        Folder.objects.filter(pk=folder.pk).update(missing_since=Now())
+
+    def test_prune_stale_folders_spares_a_stamped_folder(self) -> None:
+        """
+        Nightly, and it runs *before* the reaper.
+
+        A stamped folder holds no comics precisely because they vanished
+        with it, so it is in neither ``protected`` nor ``needed`` and
+        would be deleted hours early -- cascading its comics and their
+        bookmarks away, with no probe.
+        """
+        subdir_folder = self._make_subdir_folder()
+        self._stamp_folder(subdir_folder)
+
+        fix_folder_relations(logger)
+
+        assert Folder.objects.filter(pk=subdir_folder.pk).exists()
+
+    def test_cleanup_fks_spares_a_stamped_folder(self) -> None:
+        """Same empty stamped folder, second chance to die the same night."""
+        subdir_folder = self._make_subdir_folder()
+        self._stamp_folder(subdir_folder)
+
+        janitor = Janitor(logger, LIBRARIAN_QUEUE, Lock(), Event())
+        janitor.cleanup_fks()
+
+        assert Folder.objects.filter(pk=subdir_folder.pk).exists()
+
+    def test_a_stamped_comic_does_not_resurrect_its_folders(self) -> None:
+        """
+        ``fix_folder_relations`` re-derives folder state from comic paths.
+
+        Walking a stamped comic would recreate its reaped ancestors with
+        a fresh pk and a NULL stamp -- un-hiding the subtree -- and
+        ``Folder.objects.create`` stats the path in ``presave``, so a
+        vanished dir raises an uncaught FileNotFoundError that kills the
+        whole nightly integrity task mid-run.
+        """
+        # A stamped comic under a subdirectory that has no Folder row --
+        # the state left behind once the reaper has taken the folder.
+        # Its parent is the library root, so nothing cascades here.
+        comic = self._create_comic(str(_SUBDIR / "c.cbz"))
+        Comic.objects.filter(pk=comic.pk).update(missing_since=Now())
+        shutil.rmtree(_SUBDIR)
+
+        fix_folder_relations(logger)
+
+        assert not Folder.objects.filter(path=str(_SUBDIR)).exists()
+        assert Comic.objects.filter(pk=comic.pk).exists()
+
+    def test_a_live_comic_still_gets_its_folders_created(self) -> None:
+        """The guard above must not stop the repair it belongs to."""
+        comic = self._create_comic(str(_SUBDIR / "live.cbz"))
+
+        fix_folder_relations(logger)
+
+        assert Folder.objects.filter(path=str(_SUBDIR)).exists()
+        assert Comic.objects.filter(pk=comic.pk).exists()

@@ -32,6 +32,8 @@ _REPORT_MAP = MappingProxyType(
         "comics_deleted": "comics deleted",
         "tags_deleted": "tags deleted",
         "folders_deleted": "folders deleted",
+        "comics_missing": "comics missing",
+        "folders_missing": "folders missing",
     }
 )
 _FINISH_STATII = (*IMPORTER_STATII, *SEARCH_INDEX_STATII, *SCRIBE_STATII)

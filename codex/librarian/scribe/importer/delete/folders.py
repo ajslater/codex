@@ -103,6 +103,16 @@ class DeletedFoldersImporter(DeletedComicsImporter):
                 delete_comic_qs, deleted_comic_collections
             )
             delete_comic_pks = frozenset(delete_comic_qs.values_list("pk", flat=True))
+            if self.task.soft_delete:
+                # Stamp the folders only. Their comics are stamped by
+                # ``bulk_comics_deleted`` when the scan reports them
+                # missing in their own right; a folder that vanished
+                # takes nothing with it until the reaper runs, and the
+                # reaper refuses a folder that still has live
+                # descendants. Covers stay: the row keeps its pk.
+                missing = self._stamp_missing(Folder, paths)
+                self.counts.folders_missing += missing
+                return 0, 0, deleted_comic_collections
             # The cascade is the only destructive path that never names
             # the comics it removes. Say so before it runs, every time,
             # so a user asking where their comics went has a breadcrumb.

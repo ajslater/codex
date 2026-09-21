@@ -73,6 +73,11 @@ class Counts:
     folders: int = 0
     comics_deleted: int = 0
     folders_deleted: int = 0
+    # Kept, not deleted. Counted separately so ``changed()`` fires --
+    # which is what clears the caches and broadcasts library.changed --
+    # without the log claiming a library lost comics it still has.
+    comics_missing: int = 0
+    folders_missing: int = 0
     tags_deleted: int = 0
     covers: int = 0
     covers_deleted: int = 0
