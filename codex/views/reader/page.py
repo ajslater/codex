@@ -224,9 +224,15 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             pk = self.kwargs.get("pk")
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
-        except FileNotFoundError as exc:
+        except OSError as exc:
+            # Missing, unreadable, or on a mount that went away: the page
+            # cannot be served, which is a Not Found and not a server
+            # error. ``OSError`` only -- a broad catch would turn a real
+            # programming error into a silent 404. The error text names the
+            # library path, so it goes to the log and not to the client.
             pk = self.kwargs.get("pk")
-            detail = f"comic path for {pk} not found: {exc}."
+            logger.warning(f"Could not read a page of comic {pk}: {exc!r}")
+            detail = f"comic page for {pk} could not be read."
             raise NotFound(detail=detail) from exc
         except ComicboxError as exc:
             logger.warning(exc)

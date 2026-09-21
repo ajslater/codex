@@ -28,6 +28,8 @@ border-radius: 128px;
       the file's inode changes.
     - Bookmarks that belong to no user or session are now removed by the nightly
       cleanup.
+    - A comic whose file is missing or unreadable returns Not Found instead of a
+      server error.
     - OPDS clients can browse the library from the catalog root again.
     - Panels gets both its own sort menu and the sort folders, on every
       platform.
