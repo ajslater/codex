@@ -192,6 +192,12 @@ def serialize_candidate(c) -> dict[str, Any]:
             "year": getattr(summary, "year", None),
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
+            # The largest tier the source offers, when it offers one.
+            # Comic Vine has several; Metron sets it equal to cover_url
+            # because its one image is already full size. comicbox owns
+            # the "genuinely larger" guarantee, so the frontend gates
+            # the hover on this being truthy and never on it differing.
+            "cover_url_full": getattr(summary, "cover_url_full", None),
             # Alternative series names comicbox scored this candidate on.
             # Empty for sources whose search results don't carry them.
             "alt_series": list(getattr(summary, "alt_series", ())),
