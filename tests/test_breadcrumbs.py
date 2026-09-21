@@ -27,6 +27,7 @@ off its grandparent.
 """
 
 import shutil
+from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import Group, User
@@ -36,7 +37,6 @@ from django.utils import timezone
 
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.startup import init_admin_flags
-from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
