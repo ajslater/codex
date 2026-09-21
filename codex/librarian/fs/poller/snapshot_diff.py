@@ -6,7 +6,9 @@ move outright. A move that lost its inode — a copy-then-delete, a
 cross-device ``mv``, a remount that rotated the inode space — falls
 through to a signature of name, size and mtime, which only pairs when it
 is unique on both sides. Whatever stays unpaired becomes a delete plus an
-add, which costs the comic its bookmarks.
+add. The poller soft-deletes, so that stamps the old row rather than
+destroying it -- but nothing revives a row whose file moved away, so the
+comic still loses its bookmarks when the reaper runs.
 
 Also supports optional device-ignoring for Docker/complex filesystems.
 """
@@ -403,10 +405,11 @@ class SnapshotDiff:
         An inode is identity, so it pairs a move outright. But a move
         does not always keep one: a copy-then-delete, a cross-device
         ``mv``, or a remount that rotated the inode space all present as
-        a delete plus an add. Left there, the delete cascades the comic's
-        bookmarks away and the add re-imports the same file as a fresh,
-        unread comic — and the existence backstop cannot help, because
-        the old path really is gone.
+        a delete plus an add. Left there, the add re-imports the same
+        file as a fresh, unread comic and the delete stamps the old row,
+        whose bookmarks the reaper then cascades away a day later —
+        neither the existence backstop nor revival can help, because the
+        old path really is gone and is never coming back.
 
         Name, size and mtime together are weak evidence next to an
         inode, so the tier only fires when the signature is unique on
