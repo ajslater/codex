@@ -7,8 +7,6 @@ from pathlib import Path
 from codex.librarian.covers.create import CoverCreateThread
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.notifier.tasks import COVERS_CHANGED_TASK
-from codex.models import Comic
-from codex.models.paths import CustomCover
 
 
 class CoverPurgeThread(CoverCreateThread, ABC):
@@ -51,7 +49,7 @@ class CoverPurgeThread(CoverCreateThread, ABC):
     def purge_comic_covers(self, pks: frozenset[int], *, custom: bool) -> int:
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(pks, custom=custom)
-        cover_root = self.CUSTOM_COVERS_ROOT if custom else self.COVERS_ROOT
+        cover_root = self.get_cover_root(custom=custom)
         return self.purge_cover_paths(cover_paths, cover_root)
 
     def purge_all_comic_covers(self, librarian_queue) -> None:
@@ -72,16 +70,29 @@ class CoverPurgeThread(CoverCreateThread, ABC):
         # Whole-cache purge: clients drop every cached cover.
         librarian_queue.put(COVERS_CHANGED_TASK)
 
-    def _cleanup_orphan_covers(self, cover_class, cover_root: Path, name: str) -> None:
-        """Remove all orphan cover thumbs."""
+    def _cleanup_orphan_covers(self, *, custom: bool) -> None:
+        """
+        Remove all orphan cover thumbs for one cover namespace.
+
+        Every namespace-dependent value comes from the one ``custom``
+        flag. They were three arguments that had to agree, and the db
+        path set was built for the comic namespace no matter which root
+        was being walked -- so every custom thumb looked like an orphan.
+        """
+        cover_root = self.get_cover_root(custom=custom)
+        desc = self.get_cover_desc(custom=custom)
         status = FindOrphanCoversStatus()
         try:
-            self.log.debug(f"Removing covers from missing {name}.")
+            self.log.debug(f"Removing orphan {desc} covers.")
             self.status_controller.start(status)
+            cover_class = self.get_cover_model(custom=custom)
             pks = cover_class.objects.all().values_list("pk", flat=True)
-            db_cover_paths = self.get_cover_paths(pks, custom=False)
+            db_cover_paths = self.get_cover_paths(pks, custom=custom)
 
             orphan_cover_paths = set()
+            # No ``on_error=``: the default silently skips a directory
+            # that will not list, and skipped means not deleted. Here
+            # that silence is the fail-safe direction.
             for root, _, filenames in cover_root.walk():
                 root_path = Path(root)
                 for fn in filenames:
@@ -109,7 +120,5 @@ class CoverPurgeThread(CoverCreateThread, ABC):
     def cleanup_orphan_covers(self) -> None:
         """Cleanup both comic and custom covers."""
         self._cleanup_tmp_covers()
-        self._cleanup_orphan_covers(Comic, self.COVERS_ROOT, "comics")
-        self._cleanup_orphan_covers(
-            CustomCover, self.CUSTOM_COVERS_ROOT, "custom covers"
-        )
+        for custom in (False, True):
+            self._cleanup_orphan_covers(custom=custom)
