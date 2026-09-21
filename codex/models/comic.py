@@ -23,6 +23,7 @@ from django.db.models import (
     ManyToManyField,
     OneToOneField,
     PositiveIntegerField,
+    Q,
     TextField,
 )
 
@@ -285,10 +286,21 @@ class Comic(WatchedPathBrowserCollection):
         # column matches the existing single-column ``library`` index's
         # workload, so queries that only filter on ``library_id`` still
         # benefit.
+        # The nightly reap filters ``missing_since < cutoff``, which
+        # matches ~no rows; a partial index over the non-NULL rows
+        # serves it for a handful of entries and costs nothing on
+        # insert. Declared here and not on ``WatchedPath.Meta``: a
+        # subclass Meta's ``indexes`` REPLACES the base's rather than
+        # merging, so a base declaration would silently skip Comic.
         indexes = (
             Index(
                 fields=("library", "age_rating_metron_index"),
                 name="codex_comic_lib_ari_idx",
+            ),
+            Index(
+                fields=("missing_since",),
+                condition=Q(missing_since__isnull=False),
+                name="codex_comic_miss_idx",
             ),
         )
 
