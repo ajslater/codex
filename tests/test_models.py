@@ -2,7 +2,6 @@
 
 import datetime
 import shutil
-from pathlib import Path
 from typing import override
 
 import pytest
@@ -27,8 +26,9 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests")
 
 
 class ComicTestCase(TestCase):

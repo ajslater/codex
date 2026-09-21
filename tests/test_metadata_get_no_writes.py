@@ -13,7 +13,6 @@ the multi-select response still showing exactly the intersection.
 """
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -32,8 +31,9 @@ from codex.models import (
     Volume,
 )
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.metadata_get_no_writes")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.metadata_get_no_writes")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _WRITE_VERBS: Final = ("INSERT", "UPDATE", "DELETE")

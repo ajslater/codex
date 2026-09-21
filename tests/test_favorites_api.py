@@ -2,7 +2,6 @@
 
 import json
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -18,6 +17,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
@@ -28,7 +28,7 @@ _HTTP_FORBIDDEN: Final = 403
 _HTTP_NOT_FOUND: Final = 404
 
 _LIST_URL: Final = "/api/v4/favorites/"
-_TMP_DIR: Final = Path("/tmp/codex.tests.fav")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.fav")
 
 _GROUP_TO_COLLECTION: Final = {
     "p": "publishers",

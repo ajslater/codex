@@ -5,8 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sqlite3
-from pathlib import Path
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
@@ -25,8 +24,12 @@ from codex.models.admin import AdminFlag, Timestamp
 from codex.user_data.dump import dump_user_data
 from codex.user_data.restore import restore
 from codex.user_data.store import SidecarStore, reset_store_for_tests
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.restore")  # noqa: S108
+if TYPE_CHECKING:
+    from pathlib import Path
+
+_TMP_DIR: Final = tmp_dir("codex.tests.sidecar.restore")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _SEED_BOOKMARK_PAGE: Final = 7
 _SEED_FAVORITES_COUNT: Final = 2

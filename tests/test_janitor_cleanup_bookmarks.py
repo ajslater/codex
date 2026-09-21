@@ -14,7 +14,6 @@ rows that *do* have an owner.
 
 import shutil
 from multiprocessing import Event
-from pathlib import Path
 from threading import Lock
 from typing import Final, override
 from unittest.mock import MagicMock
@@ -36,8 +35,9 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_LIBRARY_DIR: Final = Path("/tmp/codex.tests.janitor.bookmarks")  # noqa: S108
+_LIBRARY_DIR: Final = tmp_dir("codex.tests.janitor.bookmarks")
 _LIBRARY_PATH: Final = str(_LIBRARY_DIR)
 _SESSION_KEY: Final = "sessionkeyforthetest"
 

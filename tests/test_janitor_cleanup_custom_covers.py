@@ -27,8 +27,9 @@ from loguru import logger
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.models import CustomCover
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.cleanup_custom_covers")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.cleanup_custom_covers")
 _EACCES: Final = PermissionError(13, "Permission denied")
 
 

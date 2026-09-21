@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import Group, User
@@ -13,8 +12,9 @@ from codex.models.admin import AdminFlag, Timestamp
 from codex.models.settings import SettingsBrowser, SettingsBrowserShow
 from codex.user_data.dump import dump_user_data
 from codex.user_data.store import SidecarStore, reset_store_for_tests
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.sidecar.dump")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.sidecar.dump")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 
 
