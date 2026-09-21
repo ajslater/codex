@@ -60,6 +60,7 @@ border-radius: 128px;
       can't see.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Custom cover thumbnails survive the nightly cleanup.
     - One unreadable comic no longer empties an OPDS feed.
     - Collection rows only summarize comics you can see.
     - Metadata imports and reading positions respect library and age-rating
