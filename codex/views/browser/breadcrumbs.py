@@ -86,9 +86,15 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         reviving the redirect is a separate change.
         """
         pks = self.kwargs.get("pks")
+        # The full ACL, not just the pending-delete half: the pks come
+        # straight off the route, so a hand-typed url would otherwise
+        # name a collection out of a library the user cannot see or one
+        # above their age rating. ``distinct()`` because every non-Comic
+        # model reaches ``library_id`` and the rating index through the
+        # multi-valued ``comic__`` hop.
         qs = model.objects.filter(
-            self.get_missing_acl_filter(model, self.request.user), pk__in=pks
-        )
+            self.get_acl_filter(model, self.request.user), pk__in=pks
+        ).distinct()
         if select_related := _COLLECTION_INSTANCE_SELECT_RELATED.get(model):
             qs = qs.select_related(*select_related)
         order_by = "name" if model is Volume else "sort_name"
@@ -180,14 +186,23 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             # ``PurePath.parents`` yields nearest-first; prefixes above
             # the library root match no rows and drop out, and
             # ``library_id`` keeps sibling libraries' folders excluded.
+            #
+            # The ACL is the full one, so an ancestor only names itself
+            # when it still holds a comic this user may see. An ancestor
+            # whose whole subtree is above their age rating drops out of
+            # the trail rather than leaking its name. ``distinct()``
+            # because the rating and pending-delete clauses both ride
+            # the multi-valued ``comic__`` hop.
             prefixes = [str(p) for p in PurePath(folder.path).parents]
             ancestors = {
                 ancestor.path: ancestor
                 for ancestor in FolderModel.objects.filter(
-                    self.get_missing_acl_filter(FolderModel, self.request.user),
+                    self.get_acl_filter(FolderModel, self.request.user),
                     library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
                     path__in=prefixes,
-                ).only("pk", "path", "name")
+                )
+                .only("pk", "path", "name")
+                .distinct()
             }
             crumbs.extend(
                 Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)

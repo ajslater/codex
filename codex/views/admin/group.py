@@ -19,7 +19,9 @@ class AdminGroupViewSet(AdminModelViewSet):
     )
     serializer_class = GroupSerializer
 
-    _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
+    # Serializer field names, which arrive here already un-camelized by
+    # the JSON:API parser — never the camelCase spelling the client sent.
+    _CHANGE_FIELDS = frozenset({"library_set", "user_set", "groupauth"})
 
     def _on_change(self, validated_data=None) -> None:
         """On change hook."""
@@ -45,9 +47,10 @@ class AdminGroupViewSet(AdminModelViewSet):
     @override
     def perform_create(self, serializer) -> None:
         """Perform create and run hooks."""
-        validated_data = serializer.validated_data
         super().perform_create(serializer)
-        self._on_change(validated_data)
+        # A brand new group always changes what the group lists show,
+        # even when it arrives with nothing but a name.
+        self._on_change()
 
     @override
     def perform_destroy(self, instance) -> None:

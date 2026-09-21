@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import shutil
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 
 import pytest
@@ -37,8 +36,9 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.bookmark_unique")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.bookmark_unique")
 _SESSION_KEY: Final = "bookmarkuniquesessionkey"
 _PAGE: Final = 3
 _OTHER_PAGE: Final = 9
