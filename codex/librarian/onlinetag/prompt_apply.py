@@ -298,7 +298,14 @@ class PromptApplier:
         credentials: OnlineCredentials,
         resolution: Resolution,
     ) -> None:
-        """Re-search and apply a pick that carries no explicit issue id."""
+        """
+        Re-search and apply a pick that carries no explicit issue id.
+
+        The ``OnlineSession`` this builds keeps a pooled Metron
+        connection. Closing it here would not be enough — the
+        explicit-id path builds its own — so the caller releases them
+        process-wide once the task is done.
+        """
         action, payload, chosen_volume_id = resolution
         source = prompt.get("source") or ""
         # defer_prompts on: the bridged selector consults the preloaded
