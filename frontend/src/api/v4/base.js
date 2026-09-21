@@ -54,29 +54,58 @@ export class APIError extends Error {
   }
 }
 
+export const HTTP_REDIRECT_CODES = Object.freeze(
+  new Set([301, 302, 303, 307, 308]),
+);
+
+/*
+ * Reject an enveloped error response.
+ *
+ * Two shapes arrive here, and they must not be treated alike:
+ *
+ *   - An error carries its content in ``errors`` and a null ``data``
+ *     (see codex/views/envelope.py). The first error becomes an
+ *     APIError. ``data`` is deliberately left wrapped, because
+ *     unwrapping it would hand every consumer of
+ *     ``error.response.data`` -- ``fieldErrorMap`` in stores/common.js,
+ *     the identifier-url dialog in edit-panel.vue -- a null.
+ *   - Codex's redirect is a 303 with the target route in ``data`` and
+ *     no ``Location`` header, so fetch cannot follow it and it lands
+ *     here instead. Unwrap that one the way the success interceptor
+ *     unwraps a 200, or ``handlePageError`` reads ``settings`` and
+ *     ``route`` off the envelope itself, finds neither, and leaves the
+ *     page silently stale.
+ */
+export const rejectEnvelopeError = (error) => {
+  const body = error?.response?.data;
+  if (body && typeof body === "object") {
+    const first = Array.isArray(body.errors) ? body.errors[0] : undefined;
+    if (first) {
+      return Promise.reject(new APIError(first, error.response.status));
+    }
+    if (
+      HTTP_REDIRECT_CODES.has(error.response.status) &&
+      body.data &&
+      typeof body.data === "object"
+    ) {
+      error.response.data = body.data;
+      error.response.meta = body.meta || {};
+    }
+  }
+  return Promise.reject(error);
+};
+
 /*
  * Unwrap the v4 envelope so callers can read ``response.data``
  * directly. ``meta`` is preserved as ``response.meta`` for the rare
  * caller that needs pagination cursors / mtime hints.
  */
-HTTP.interceptors.response.use(
-  (response) => {
-    const body = response.data;
-    if (body && typeof body === "object" && "data" in body) {
-      response.data = body.data;
-      response.meta = body.meta || {};
-      response.envelopeErrors = body.errors || [];
-    }
-    return response;
-  },
-  (error) => {
-    const body = error?.response?.data;
-    if (body && typeof body === "object" && Array.isArray(body.errors)) {
-      const first = body.errors[0];
-      if (first) {
-        return Promise.reject(new APIError(first, error.response.status));
-      }
-    }
-    return Promise.reject(error);
-  },
-);
+HTTP.interceptors.response.use((response) => {
+  const body = response.data;
+  if (body && typeof body === "object" && "data" in body) {
+    response.data = body.data;
+    response.meta = body.meta || {};
+    response.envelopeErrors = body.errors || [];
+  }
+  return response;
+}, rejectEnvelopeError);

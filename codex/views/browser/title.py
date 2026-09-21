@@ -20,6 +20,15 @@ class BrowserTitleView(BrowserBreadcrumbsView):
         return plural.capitalize(), 0
 
     def _get_collection_name(self) -> tuple:
+        """
+        Name the collection the route points at.
+
+        The second consumer of ``collection_instance``, and the one both
+        OPDS versions reach through ``get_browser_page_title``. Reading
+        the property is what raises the 303 when the route names a
+        collection this user cannot see, so the empty defaults below are
+        now only the root-listing case (no pks).
+        """
         collection_number_to = None
         collection_count = 0
         collection_name = ""

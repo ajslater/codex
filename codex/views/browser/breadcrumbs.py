@@ -2,9 +2,7 @@
 
 from pathlib import PurePath
 from types import MappingProxyType
-from typing import TYPE_CHECKING, cast
-
-from django.db.models import QuerySet
+from typing import TYPE_CHECKING, NoReturn, cast
 
 from codex.collection import Collection
 from codex.models import (
@@ -15,7 +13,6 @@ from codex.models import (
     Volume,
 )
 from codex.models.collections import Folder as FolderModel
-from codex.models.collections import Publisher
 from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -78,12 +75,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         title. It also feeds ``BrowserTitleView._get_collection_name``,
         reached from the browser and both OPDS versions.
 
-        A stamped row resolves to ``None`` and the breadcrumb trail
-        truncates rather than redirecting: the ``except
-        model.DoesNotExist`` in ``collection_instance`` wraps a lazy
-        queryset that cannot raise, so ``raise_redirect`` has always
-        been unreachable. Truncation is accepted deliberately here --
-        reviving the redirect is a separate change.
+        A row this user may not see -- a hidden library, an age rating
+        above theirs, or a scanner-stamped pending delete -- is simply
+        absent from this queryset, exactly like a pk that never
+        existed. ``collection_instance`` turns that emptiness into a
+        redirect.
         """
         pks = self.kwargs.get("pks")
         # The full ACL, not just the pending-delete half: the pks come
@@ -100,38 +96,38 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         order_by = "name" if model is Volume else "sort_name"
         return qs.order_by(order_by)
 
-    def _handle_collection_query_missing_model(self, model) -> QuerySet:
-        """Handle a missing model for the collection instance."""
+    def _raise_unresolved_collection_redirect(self) -> NoReturn:
+        """Send the client up a level when the route names nothing it may see."""
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
-        page = self.kwargs.get("page")
-        if not (collection == Collection.ROOT and not pks and page == 1):
-            reason = f"{collection}__in={pks} does not exist!"
-            # ``raise_redirect`` is ``NoReturn``; the type checker
-            # follows the early-return shape so the caller below
-            # is the only path that produces a queryset.
-            self.raise_redirect(reason, route_mask={"collection": collection})
-        return model.objects.none()
+        # Counts and collection values only -- never a name, since the
+        # whole point is that this user may not have the name.
+        reason = f"{collection}__in={pks} does not resolve"
+        self.raise_redirect(reason, route_mask={"collection": collection})
 
     @property
     def collection_instance(self) -> BrowserCollectionModel | None:
-        """Memoize collection instance for getting collection names & counts."""
+        """
+        Memoize collection instance for getting collection names & counts.
+
+        ``None`` means "no collection was asked for" -- the root listing
+        of a collection, which has no pks. A route that *does* name pks
+        and resolves nothing raises a 303 up to that collection's root
+        instead of rendering a page with a nameless crumb and an empty
+        body. The redirect carries the route in its body with no
+        ``Location`` header, the same shape ``BrowserValidateView``
+        already uses.
+        """
         if self._collection_instance == 0:
             collection = self.kwargs.get("collection")
             model = COLLECTION_MODEL_MAP[collection]
             pks = self.kwargs.get("pks")
+            instance = None
             if model and pks and 0 not in pks:
-                try:
-                    collection_query = self._get_collection_query(model)
-                except model.DoesNotExist:
-                    collection_query = self._handle_collection_query_missing_model(
-                        model
-                    )
-            else:
-                if not model:
-                    model = Publisher
-                collection_query = model.objects.none()
-            self._collection_instance = collection_query.first()
+                instance = self._get_collection_query(model).first()
+                if instance is None:
+                    self._raise_unresolved_collection_redirect()
+            self._collection_instance = instance
         # ``_collection_instance`` carries an ``int`` sentinel (``0``) for the
         # unmemoized state; by this point it's been resolved to a real
         # model row or ``None``.
@@ -172,8 +168,10 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         page = self.kwargs["page"]
         # In folder mode ``collection_instance`` is a Folder (or None) by
         # construction — the caller branches on ``collection == FOLDER_COLLECTION``.
+        # It is only ``None`` at the folder root, where ``pks`` is empty:
+        # an unresolvable folder pk redirects instead.
         folder = cast("Folder | None", self.collection_instance)
-        name = folder.name if folder and pks else ""
+        name = folder.name if folder else ""
 
         crumbs: list[Route] = [Route(FOLDER_COLLECTION, pks, page, name)]
 
@@ -204,11 +202,19 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 .only("pk", "path", "name")
                 .distinct()
             }
-            crumbs.extend(
-                Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)
-                for prefix in prefixes
-                if (ancestor := ancestors.get(prefix))
-            )
+            # Nearest-first, and the walk stops at the first prefix that
+            # does not resolve. Skipping it instead would hang the
+            # current folder off its grandparent and present a trail
+            # that never existed. The prefixes above the library root
+            # never match a row, so this is also what ends the walk on
+            # an ordinary browse.
+            for prefix in prefixes:
+                ancestor = ancestors.get(prefix)
+                if not ancestor:
+                    break
+                crumbs.append(
+                    Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)
+                )
 
         # Add folder root if not already there
         if crumbs[-1].pks:

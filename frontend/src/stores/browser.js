@@ -7,6 +7,7 @@ import {
   isAbortError,
   useAbortable,
 } from "@/api/v4/abortable";
+import { HTTP_REDIRECT_CODES } from "@/api/v4/base";
 import * as API from "@/api/v4/browser";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
@@ -35,7 +36,6 @@ const COLLECTIONS = Object.freeze([
   "comics",
 ]);
 export const COLLECTIONS_REVERSED = Object.freeze([...COLLECTIONS].reverse());
-const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
 const DEFAULT_BOOKMARK_VALUES = Object.freeze(
   new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
 );
@@ -873,7 +873,9 @@ export const useBrowserStore = defineStore("browser", {
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error?.response?.status)) {
         console.debug(error);
-        const data = error.response.data;
+        // The v4 interceptor has already unwrapped the envelope, so
+        // this is the redirect detail itself: {route, settings, reason}.
+        const data = error.response.data || {};
         if (data.settings) {
           this.setSettings(data.settings);
           // Prevent settings reload in loadBrowserPage() erasing the set.
