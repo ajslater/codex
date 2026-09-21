@@ -53,6 +53,7 @@
 <script>
 import { mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import GroupChip from "@/components/admin/group-chip.vue";
@@ -80,6 +81,7 @@ export default {
           (v) => !!v || "Name is required",
           // $notIn passes on blank, so the required rule must stay first.
           ["$notIn", () => this.names, "Name already used"],
+          ["$maxLength", LIMITS.groupNameMaxLength],
         ],
       },
     };

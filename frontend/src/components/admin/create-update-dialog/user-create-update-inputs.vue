@@ -111,9 +111,11 @@ export default {
           (v) => !!v || "Username is required",
           // $notIn passes on blank, so the required rule must stay first.
           ["$notIn", () => this.usernames, "Username already used"],
+          ["$maxLength", LIMITS.usernameMaxLength],
         ],
         email: [
           (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
+          ["$maxLength", LIMITS.emailMaxLength],
         ],
         password: [
           (v) => !!v || "Password is required",

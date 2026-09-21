@@ -9,7 +9,12 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.choices.limits import SMTP_PORT, SMTP_TIMEOUT_SECONDS
+from codex.choices.limits import (
+    MAX_FIELD_LEN,
+    MAX_NAME_LEN,
+    SMTP_PORT,
+    SMTP_TIMEOUT_SECONDS,
+)
 from codex.models import EmailSettings
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -34,6 +39,13 @@ class EmailSettingsSerializer(BaseModelSerializer):
         min_value=SMTP_TIMEOUT_SECONDS[0],
         max_value=SMTP_TIMEOUT_SECONDS[1],
     )
+    # The envelope sender of every outbound message, and a CharField on
+    # the model with no format check anywhere. Declared here rather than
+    # changing the column: the model type would be truthier, but an
+    # AlterField migration buys nothing the serializer cannot enforce,
+    # and ``put()`` is the only admin write path. ``max_length`` stays
+    # explicit so it tracks the column instead of EmailField's 254.
+    from_address = EmailField(required=False, allow_blank=True, max_length=MAX_NAME_LEN)
 
     @staticmethod
     def get_password_set(obj) -> bool:
@@ -70,7 +82,9 @@ class EmailTestSendRequestSerializer(Serializer):
 
     recipient = EmailField()
 
-    host = CharField(required=False, allow_blank=True)
+    # These carried no ``max_length`` at all while the save path
+    # enforces the column width.
+    host = CharField(required=False, allow_blank=True, max_length=MAX_NAME_LEN)
     port = IntegerField(required=False, min_value=SMTP_PORT[0], max_value=SMTP_PORT[1])
     user = CharField(required=False, allow_blank=True)
     password = CharField(required=False, allow_blank=True)
@@ -81,8 +95,10 @@ class EmailTestSendRequestSerializer(Serializer):
         min_value=SMTP_TIMEOUT_SECONDS[0],
         max_value=SMTP_TIMEOUT_SECONDS[1],
     )
-    from_address = CharField(required=False, allow_blank=True)
-    subject_prefix = CharField(required=False, allow_blank=True)
+    from_address = EmailField(required=False, allow_blank=True, max_length=MAX_NAME_LEN)
+    subject_prefix = CharField(
+        required=False, allow_blank=True, max_length=MAX_FIELD_LEN
+    )
 
 
 class EmailTestSendResponseSerializer(Serializer):
