@@ -137,7 +137,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// settings-drawer.vue forces every list-item icon to iconsInactive with
+// settings-drawer.vue forces every list-item icon to icons-inactive with
 // !important; override it here (more specific + !important) so these
 // notification icons carry their semantic color: red for errors/failed
 // imports, amber for online-tagging matches to review.

@@ -214,7 +214,7 @@ export default {
 }
 
 .flagSaveButton {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   flex-shrink: 0;
 }
 

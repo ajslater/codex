@@ -232,7 +232,7 @@ export default {
 }
 
 .unlinked {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   font-style: italic;
 }
 </style>

@@ -205,7 +205,7 @@ export default {
 
 .closeBook {
   padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 .readerTitle {
@@ -226,7 +226,7 @@ export default {
 
 #subtitle {
   font-size: clamp(16px, 3vw, 18px);
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   padding-bottom: 10px;
 }
 

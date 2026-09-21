@@ -14,7 +14,7 @@ export default {
 
 <style scoped lang="scss">
 .empty {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 :deep(.v-empty-state__action-btn) {

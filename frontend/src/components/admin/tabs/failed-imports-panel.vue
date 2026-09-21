@@ -177,11 +177,11 @@ export default {
 }
 
 .reasonCol {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 #failedImportsHelp {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .cli {

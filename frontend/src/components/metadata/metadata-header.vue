@@ -296,7 +296,7 @@ export default {
 }
 
 .subdued {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #pageDateRow {

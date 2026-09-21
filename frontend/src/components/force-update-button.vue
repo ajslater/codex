@@ -104,6 +104,6 @@ export default {
 
 <style scoped lang="scss">
 :deep(.v-icon) {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 </style>

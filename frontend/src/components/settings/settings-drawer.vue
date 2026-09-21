@@ -107,7 +107,7 @@ export default {
 }
 
 :deep(.v-list-item .v-icon) {
-  color: rgb(var(--v-theme-iconsInactive)) !important;
+  color: rgb(var(--v-theme-icons-inactive)) !important;
   margin-right: 0.33em;
 }
 
@@ -117,7 +117,7 @@ export default {
   padding-top: 0px;
   font-size: small;
   text-align: center;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   background-color: rgb(var(--v-theme-surface));
 }
 
@@ -136,6 +136,6 @@ export default {
   padding-left: 15px;
   padding-right: 10px;
   font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 </style>

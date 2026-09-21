@@ -33,7 +33,7 @@ export default {
 
 <style scoped lang="scss">
 .paginationNavButton {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 .narrowButton {

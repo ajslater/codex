@@ -39,7 +39,7 @@ export default {
   bottom: 0px !important;
   transform: translateX(-50%) translateY(125%) !important;
   background-color: transparent;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 :deep(.v-slider-thumb__label:before) {

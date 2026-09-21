@@ -40,14 +40,14 @@ describe("theme contract", () => {
       success: "#14dc3c",
       warning: "#E6BD0D",
       "surface-light": "#2A2A2A",
-      linkHover: WHITE,
-      textPrimary: WHITE,
-      textHeader: "#D3D3D3",
-      textSecondary: "#A9A9A9",
-      textDisabled: DISABLED,
-      iconsInactive: DISABLED,
-      includeGroup: "#141",
-      excludeGroup: "#411",
+      "link-hover": WHITE,
+      "text-primary": WHITE,
+      "text-header": "#D3D3D3",
+      "text-secondary": "#A9A9A9",
+      "text-disabled": DISABLED,
+      "icons-inactive": DISABLED,
+      "include-group": "#141",
+      "exclude-group": "#411",
     });
   });
 
@@ -81,6 +81,13 @@ describe("style contract", () => {
 
   test("no rbg( typos", () => {
     expect(filesMatching(/\brbg\(/)).toEqual([]);
+  });
+
+  test("theme variables are kebab-case", () => {
+    // The eight custom tokens were camelCase until the rename; a
+    // reintroduced one resolves to nothing and the declaration is
+    // dropped without a word.
+    expect(filesMatching(/--v-theme-[a-z]+[A-Z]/)).toEqual([]);
   });
 });
 

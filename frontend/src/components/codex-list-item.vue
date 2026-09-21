@@ -12,6 +12,6 @@ export default {
 }
 
 .codexListItem {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

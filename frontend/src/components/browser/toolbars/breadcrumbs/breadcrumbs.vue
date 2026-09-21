@@ -137,7 +137,7 @@ export default {
 #browserBreadcrumbs {
   max-width: 100vw;
   font-size: small;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   padding-top: 0px;
   padding-bottom: 0px;
   padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
@@ -149,7 +149,7 @@ export default {
 }
 
 #browserBreadcrumbs :deep(.v-breadcrumbs-item--link) {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #browserBreadcrumbs :deep(.v-breadcrumbs-divider) {

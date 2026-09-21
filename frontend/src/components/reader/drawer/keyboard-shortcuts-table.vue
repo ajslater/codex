@@ -127,7 +127,7 @@ export default {
 .shortcutsTable {
   margin-top: 10px;
   background-color: inherit;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .shortcutsTable td {

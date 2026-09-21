@@ -168,7 +168,7 @@ export default {
 }
 
 .clickable:hover :deep(.v-chip__content) {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-link-hover));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'xs')} {

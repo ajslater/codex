@@ -464,7 +464,7 @@ export default {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   margin: 8px 0 6px;
 }
 
@@ -522,7 +522,7 @@ export default {
 }
 
 .orderEmpty {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   font-size: 0.9em;
   padding: 4px 8px;
 }
@@ -535,7 +535,7 @@ export default {
   font-size: 0.85em;
   font-weight: 600;
   text-transform: uppercase;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   margin-bottom: 4px;
 }
 
@@ -558,7 +558,7 @@ export default {
 }
 
 .pickerCostIcon-medium {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   opacity: 0.75;
 }
 

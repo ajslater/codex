@@ -4,8 +4,8 @@ a > .v-icon {
 }
 a:hover,
 a:hover > .v-icon {
-  color: rgb(var(--v-theme-textPrimary)) !important;
+  color: rgb(var(--v-theme-text-primary)) !important;
 }
 a.v-btn > .v-icon {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }

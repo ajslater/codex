@@ -164,12 +164,12 @@ export default {
 }
 
 :deep(.v-select__selection) {
-  color: rgb(var(--v-theme-textSecondary)) !important;
+  color: rgb(var(--v-theme-text-secondary)) !important;
 }
 
 :deep(.v-select__selection .arcSelectIcon) {
   top: 4px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 :deep(.v-select__selection:hover) .arcSelectIcon {

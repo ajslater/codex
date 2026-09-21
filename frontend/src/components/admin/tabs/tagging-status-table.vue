@@ -272,7 +272,7 @@ const STATUS_META = Object.freeze({
   },
   no_match: {
     label: "No match",
-    color: "textSecondary",
+    color: "text-secondary",
     icon: mdiClockOutline,
     hint: "This source found no confident match.",
   },
@@ -284,13 +284,13 @@ const STATUS_META = Object.freeze({
   },
   queued: {
     label: "Queued",
-    color: "textSecondary",
+    color: "text-secondary",
     icon: mdiClockOutline,
     hint: "This source hasn't looked the comic up yet.",
   },
   skipped: {
     label: "Skipped",
-    color: "textSecondary",
+    color: "text-secondary",
     icon: mdiSkipNext,
     hint: "Not searched — an earlier source already matched this comic.",
   },
@@ -303,7 +303,7 @@ const STATUS_META = Object.freeze({
   },
   user_skipped: {
     label: "User skipped",
-    color: "textSecondary",
+    color: "text-secondary",
     icon: mdiAccountCancel,
     hint: "You skipped this source's prompt.",
   },
@@ -638,7 +638,7 @@ export default {
       return STATUS_META[status]?.icon || mdiClockOutline;
     },
     statusColor(status) {
-      const token = STATUS_META[status]?.color || "textSecondary";
+      const token = STATUS_META[status]?.color || "text-secondary";
       return `rgb(var(--v-theme-${token}))`;
     },
     rateText(src) {
@@ -701,7 +701,7 @@ export default {
 }
 
 .eta {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .tallies {
@@ -766,7 +766,7 @@ export default {
 }
 
 .sourceRate {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .sourceLimit {
@@ -807,7 +807,7 @@ export default {
 }
 
 .muted {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .capNote {

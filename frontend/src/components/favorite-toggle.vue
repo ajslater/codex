@@ -99,12 +99,12 @@ export default {
 
 <style scoped lang="scss">
 .favoriteToggle {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   opacity: 0.85;
 }
 
 .favoriteToggle:hover {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-link-hover));
   opacity: 1;
 }
 
@@ -114,6 +114,6 @@ export default {
 }
 
 .favoriteToggleOn:hover {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-link-hover));
 }
 </style>

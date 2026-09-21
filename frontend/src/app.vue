@@ -86,7 +86,7 @@ html {
 noscript {
   text-align: center;
   font-family: sans-serif;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 a {
@@ -114,6 +114,6 @@ a {
 }
 
 .v-tooltip > .v-overlay__content {
-  color: rgb(var(--v-theme-textDisabled)) !important;
+  color: rgb(var(--v-theme-text-disabled)) !important;
 }
 </style>

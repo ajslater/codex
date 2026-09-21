@@ -300,7 +300,7 @@ export default {
 }
 
 .noChoices {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .clearFilter {

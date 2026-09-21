@@ -84,7 +84,7 @@ export default {
 #opdsButton {
   display: block;
   width: 100%;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 #opdsIcon {

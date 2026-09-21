@@ -42,7 +42,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 // Nested sub-sections indent under a left rule so containment is visible
@@ -62,7 +62,7 @@
 .adminHint {
   margin-top: d.$space-1;
   font-size: d.$text-small;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 // --- Cards -----------------------------------------------------------------
@@ -97,7 +97,7 @@
 }
 
 .adminCardDesc {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   font-size: d.$text-small;
   padding-top: 2px;
 }
@@ -149,13 +149,13 @@
 // --- Prose & help (DESIGN.md §3) -------------------------------------------
 
 // All explanatory prose: reading width, centered, small, always
-// textSecondary. (margin-inline is a no-op inside an already-centered
+// text-secondary. (margin-inline is a no-op inside an already-centered
 // .adminReadingColumn; it centers the standalone help on the Libraries tab.)
 .adminProse {
   max-width: d.$reading-width;
   margin-inline: auto;
   font-size: d.$text-small;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .adminProse p + p {
@@ -174,7 +174,7 @@
 .adminProse h3,
 .adminProse h4 {
   margin: d.$space-4 0 d.$space-1;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 // Inline code chip.
@@ -195,14 +195,14 @@
   gap: d.$space-1;
   background: none;
   border: none;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   cursor: pointer;
   font-size: d.$text-meta;
   padding: 2px 0;
 }
 
 .adminExpandToggle:hover {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 // --- Key/value tables (DESIGN.md §5) ---------------------------------------
@@ -212,7 +212,7 @@
 .adminKvTable {
   width: 100%;
   border-collapse: collapse;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   font-size: d.$text-body;
   background-color: inherit;
 }

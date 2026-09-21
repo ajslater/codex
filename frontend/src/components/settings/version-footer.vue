@@ -102,16 +102,16 @@ export default {
 #version-footer {
   display: block;
   width: 100%;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #version {
   display: block;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #version:hover {
-  color: rgb(var(--v-theme-textPrimary)) !important;
+  color: rgb(var(--v-theme-text-primary)) !important;
 }
 
 #repoIcon {
@@ -124,7 +124,7 @@ export default {
 }
 
 #latest:hover {
-  color: rgb(var(--v-theme-linkHover)) !important;
+  color: rgb(var(--v-theme-link-hover)) !important;
 }
 
 #warning {

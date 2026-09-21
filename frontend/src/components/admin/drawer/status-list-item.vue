@@ -107,7 +107,7 @@ export default {
   padding-left: 0px;
   padding-right: 0px;
   padding-bottom: 10px;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .statusActiveSpinner {

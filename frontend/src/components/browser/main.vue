@@ -346,7 +346,7 @@ $banner-height: 20px;
   transform: translate(-50%, calc(-50% + 30vh));
   padding: 6px 18px;
   background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 4px;
   font-size: 14px;
@@ -364,7 +364,7 @@ $banner-height: 20px;
   padding-top: 20px;
   text-align: center;
   font-size: 14px;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

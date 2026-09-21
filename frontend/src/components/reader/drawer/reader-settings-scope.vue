@@ -270,7 +270,7 @@ export default {
   padding-left: 15px;
   padding-right: 10px;
   font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .intermediateTitleWrap {

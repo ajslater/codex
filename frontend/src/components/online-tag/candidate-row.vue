@@ -152,7 +152,7 @@ export default {
 .candidatePublisher,
 .candidateAka,
 .candidateScoreDetail {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .candidateAka,

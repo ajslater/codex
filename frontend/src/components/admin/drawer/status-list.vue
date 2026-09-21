@@ -70,12 +70,12 @@ export default {
   padding-right: 0px;
   padding-bottom: 10px;
   font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #noTasksRunning {
   margin-left: 1em;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #clearButton {

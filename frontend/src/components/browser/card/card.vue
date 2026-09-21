@@ -257,12 +257,12 @@ export default {
 }
 
 .selectManyCheckbox :deep(.v-icon) {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
 }
 
 .selectManyCheckbox:hover :deep(.v-icon) {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-link-hover));
 }
 
 .selectManyCheckbox.checked :deep(.v-icon) {
@@ -270,7 +270,7 @@ export default {
 }
 
 .selectManyCheckbox.checked:hover :deep(.v-icon) {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-link-hover));
 }
 
 /*
