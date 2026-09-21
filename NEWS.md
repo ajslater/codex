@@ -52,6 +52,8 @@ border-radius: 128px;
     - The change-password dialog enforces the minimum password length.
     - A comic that disappears from a library is kept for a day, so a filesystem
       outage no longer loses its read progress.
+    - A briefly unreadable folder no longer loses its collections' custom
+      covers.
 
 ## v2.3.3
 
