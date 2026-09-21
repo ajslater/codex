@@ -20,8 +20,9 @@
   ],
   "display": "standalone",
   "lang": "en-US",
+  {# Both are surface-light in frontend/src/plugins/vuetify.js; theme_color is the app bar, not an accent. #}
   "background_color": "#2A2A2A",
-  "theme_color": "#cc7b19",
+  "theme_color": "#2A2A2A",
   "dir": "auto",
   "orientation": "any",
   "status_bar": "default"

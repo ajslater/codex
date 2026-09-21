@@ -6,13 +6,16 @@
       type="image/webp" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Codex" />
-<meta name="apple-mobile-web-app-status-bar-style" content="#2A2A2A" />
+{# Only default | black | black-translucent are valid here; a hex is ignored. #}
+<meta name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent" />
 {# Chrome #}
 <link rel="manifest"
       href="{% url 'pwa:manifest' %}"
       crossorigin="use-credentials" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="application-name" content="Codex" />
+{# surface-light in frontend/src/plugins/vuetify.js; keep in sync with manifest.webmanifest. #}
 <meta name="theme-color" content="#2A2A2A" />
 <script async
         src="{% url 'pwa:serviceworker_register' %}"
