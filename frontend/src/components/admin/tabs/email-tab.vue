@@ -34,7 +34,6 @@
             v-model="draft.host"
             label="Host"
             placeholder="smtp.example.com"
-            :rules="hostRules"
             hide-details="auto"
             density="compact"
           />
@@ -239,16 +238,11 @@ const EDITABLE_FIELDS = Object.freeze([
   "fromAddress",
   "subjectPrefix",
 ]);
-// Simple hostname/FQDN regex: at least one ``.``, no whitespace.
-const HOST_REGEX = /^\S+\.\S+$/;
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 const PORT_MIN = 1;
 const PORT_MAX = 65_535;
 const TIMEOUT_MIN = 1;
 const TIMEOUT_MAX = 600;
-const HOST_RULES = Object.freeze([
-  (v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname",
-]);
 const PORT_RULES = Object.freeze([
   ["$intRange", [PORT_MIN, PORT_MAX], "Port must be between {0} and {1}"],
 ]);
@@ -290,7 +284,6 @@ export default {
       testing: false,
       testResult: undefined,
       saving: false,
-      hostRules: HOST_RULES,
       portRules: PORT_RULES,
       timeoutRules: TIMEOUT_RULES,
       emailRules: EMAIL_RULES,

@@ -43,6 +43,8 @@ border-radius: 128px;
       the same name now links to that comic.
     - Cover thumbnails in table mode and on the custom-covers admin tab open
       with the keyboard.
+    - The email host field accepts hostnames without a dot, such as localhost.
+    - The change-password dialog enforces the minimum password length.
 
 ## v2.3.3
 
