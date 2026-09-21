@@ -5,20 +5,18 @@ from pathlib import Path
 from threading import Condition, Event
 from typing import override
 
-from django.core.cache import cache
 from django.db import connections
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
 
-from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.mounted import unmounted_reason
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.fs.poller.status import FSPollStatus
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.pending_deletes import clear_stamps, publish_revival
 from codex.librarian.scribe.importer.delete.collect import (
     init_comic_collection_map,
     populate_comic_collection_map,
@@ -235,12 +233,13 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         revived_comic_pks: set[int] = set()
         total = 0
         for model, paths in by_model.items():
-            qs = model.objects.filter(  # ty: ignore[unresolved-attribute]
-                library=library, missing_since__isnull=False, path__in=paths
-            )
             if model is Comic:
-                revived_comic_pks.update(qs.values_list("pk", flat=True))
-            total += qs.update(missing_since=None, updated_at=Now())
+                revived_comic_pks.update(
+                    model.objects.filter(
+                        library=library, missing_since__isnull=False, path__in=paths
+                    ).values_list("pk", flat=True)
+                )
+            total += clear_stamps(model, library=library, path__in=paths)
         if not total:
             return
 
@@ -271,17 +270,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         timestamp_updater.update_library_collections(
             library, timezone.now(), collection_map
         )
-        if comic_pks:
-            # A cover that failed to render while the file was missing
-            # left a permanent zero-byte sentinel that ``_filter_pending_pks``
-            # treats as present and never retries, so the comic would
-            # come back with a permanently blank cover. Remove, then
-            # recreate.
-            pks = frozenset(comic_pks)
-            self.librarian_queue.put(CoverRemoveTask(pks, custom=False))
-            self.librarian_queue.put(CoverCreateTask(tuple(pks), custom=False))
-        cache.clear()
-        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+        publish_revival(self.librarian_queue, comic_pks)
 
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
         """Run the snapshot diff and emit a single ImportTask for the library."""

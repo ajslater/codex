@@ -222,6 +222,13 @@ export const useSocketStore = defineStore("socket", () => {
     adminStore.loadFailedImportsSeen();
   }
 
+  async function pendingDeletesNotified() {
+    const adminStore = await getAdminStore();
+    if (!adminStore) return;
+    // The panel and the per-library count move together, so reload both.
+    adminStore.loadTables(["PendingDelete", "Library"], { force: true });
+  }
+
   async function tagWriteErrorsNotified() {
     const adminStore = await getAdminStore();
     adminStore?.loadTagWriteErrors({ force: true });
@@ -301,6 +308,9 @@ export const useSocketStore = defineStore("socket", () => {
         break;
       case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
         failedImportsNotified();
+        break;
+      case MESSAGE_TYPES.PENDING_DELETES_CHANGED:
+        pendingDeletesNotified();
         break;
       case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
         tagWriteErrorsNotified();

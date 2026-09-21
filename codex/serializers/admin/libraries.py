@@ -20,6 +20,7 @@ class LibrarySerializer(BaseModelSerializer):
 
     comic_count = IntegerField(read_only=True)
     failed_count = IntegerField(read_only=True)
+    missing_count = IntegerField(read_only=True)
 
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
@@ -36,12 +37,14 @@ class LibrarySerializer(BaseModelSerializer):
             "groups",
             "comic_count",
             "failed_count",
+            "missing_count",
         )
         read_only_fields = (
             "last_poll",
             "pk",
             "comic_count",
             "failed_count",
+            "missing_count",
         )
 
     class JSONAPIMeta:

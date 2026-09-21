@@ -14,6 +14,8 @@ border-radius: 128px;
     - Hovering a match candidate's cover shows it full size.
     - The Failed Imports link stays in the admin sidebar while there are failed
       imports.
+    - Admins can see and manage comics that disappeared from a library but have
+      not been deleted yet.
 
 - Fixes
     - A library folder that was briefly unreadable no longer loses its comics

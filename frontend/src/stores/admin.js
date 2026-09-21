@@ -52,6 +52,7 @@ export const useAdminStore = defineStore("admin", {
     customCovers: [],
     failedImports: [],
     failedImportsSeenAt: "",
+    pendingDeletes: [],
     tagWriteErrors: [],
     flags: [],
     folderPicker: {
@@ -407,6 +408,20 @@ export const useAdminStore = defineStore("admin", {
           this.failedImportsSeenAt = response.data?.seenAt ?? "";
           commonStore.clearErrors();
           return true;
+        })
+        .catch(commonStore.setErrors);
+    },
+    async revivePendingDelete(collection, pk) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      await API.revivePendingDelete(collection, pk)
+        .then(() => {
+          commonStore.clearErrors();
+          // The websocket tells every other admin session; this one
+          // refreshes itself so the row leaves immediately.
+          return this.loadTables(["PendingDelete", "Library"], {
+            force: true,
+          });
         })
         .catch(commonStore.setErrors);
     },

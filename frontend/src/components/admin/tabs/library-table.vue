@@ -13,6 +13,11 @@
         {{ formatNumber(item.failedCount) }}
       </span>
     </template>
+    <template v-if="isPendingDeletes" #[`item.missingCount`]="{ item }">
+      <span :class="missingComicsClasses(item)">
+        {{ formatNumber(item.missingCount) }}
+      </span>
+    </template>
     <template #[`item.events`]="{ item }">
       <v-checkbox-btn :model-value="item.events" disabled />
     </template>
@@ -127,6 +132,7 @@ export default {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       isFailedImports: (state) => Boolean(state?.failedImports?.length),
+      isPendingDeletes: (state) => Boolean(state?.pendingDeletes?.length),
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form?.errors,
@@ -141,6 +147,9 @@ export default {
       ];
       if (this.isFailedImports) {
         headers.push({ title: "Failed", key: "failedCount" });
+      }
+      if (this.isPendingDeletes) {
+        headers.push({ title: "Missing", key: "missingCount" });
       }
       headers.push(
         ...[
@@ -220,6 +229,13 @@ export default {
       }
       return classes;
     },
+    missingComicsClasses(item) {
+      const classes = {};
+      if (item?.missingCount) {
+        classes["missingComics"] = true;
+      }
+      return classes;
+    },
     removeSeconds(duration) {
       return duration.slice(0, -3);
     },
@@ -235,5 +251,11 @@ export default {
 
 .failedComics {
   color: rgb(var(--v-theme-error));
+}
+
+// Amber, not red: a pending delete is a warning with a way out, not a
+// failure. Matches the panel's own count.
+.missingComics {
+  color: rgb(var(--v-theme-warning));
 }
 </style>
