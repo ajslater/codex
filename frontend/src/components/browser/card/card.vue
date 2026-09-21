@@ -196,124 +196,128 @@ export default {
 @use "sass:map";
 @use "../../book-cover" as bookcover;
 
-.browserCardCoverWrapper {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .browserCardCoverWrapper {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 
-.cardCoverOverlay {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  height: bookcover.$cover-height;
-  width: bookcover.$cover-width;
-  border-radius: 5px;
-  border: solid thin transparent;
-}
-
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay {
-  background-color: rgba(0, 0, 0, 0.55);
-  border: solid thin;
-  border-color: rgb(var(--v-theme-primary));
-}
-
-.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
-  background-color: transparent;
-  opacity: 1;
-}
-
-/* Select Many Overlay */
-.selectManyOverlay {
-  cursor: pointer;
-}
-
-.selectManyOverlay.selected {
-  border: solid 2px rgb(var(--v-theme-primary)) !important;
-  background-color: rgba(var(--v-theme-primary), 0.15);
-}
-
-/* Checkbox: top left, always present, shown on hover or when checked */
-.selectManyCheckbox {
-  position: absolute !important;
-  top: 2px;
-  left: 2px;
-  z-index: 2;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.selectManyCheckbox.checked {
-  opacity: 1;
-}
-
-.browserCardCoverWrapper:hover > .browserCardTop > .selectManyCheckbox {
-  opacity: 1;
-}
-
-.selectManyCheckbox :deep(.v-selection-control) {
-  min-height: auto;
-}
-
-.selectManyCheckbox :deep(.v-icon) {
-  color: rgb(var(--v-theme-text-disabled));
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
-}
-
-.selectManyCheckbox:hover :deep(.v-icon) {
-  color: rgb(var(--v-theme-link-hover));
-}
-
-.selectManyCheckbox.checked :deep(.v-icon) {
-  color: rgb(var(--v-theme-primary));
-}
-
-.selectManyCheckbox.checked:hover :deep(.v-icon) {
-  color: rgb(var(--v-theme-link-hover));
-}
-
-/*
- * Favorite star sits in the top-right of the cover, stacked just
- * below the childCount badge (also top-right) so the count circle
- * stays unobscured. Hidden by default so it doesn't compete with
- * the cover art; surfaces on card hover for discovery, and stays
- * lit (full opacity) when the row is favorited so the user can
- * scan a page for their starred items.
- *
- * Sibling of ``.cardCoverOverlay`` — outside the router-link's
- * opacity-fade subtree, so the lit state is unaffected by the
- * controls' ``opacity: 0`` baseline.
- */
-.cardFavoriteToggle {
-  position: absolute !important;
-  top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
-  right: 0px;
-  z-index: 2;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.browserCardCoverWrapper:hover > .browserCardTop > .cardFavoriteToggle {
-  opacity: 1;
-}
-
-.cardFavoriteToggle.favoriteVisible {
-  opacity: 1;
-}
-
-.bookCoverProgress {
-  margin-top: 1px;
-}
-
-.cardFooter {
-  margin-top: 10px;
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
-    height: bookcover.$small-cover-height;
-    width: bookcover.$small-cover-width;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: bookcover.$cover-height;
+    width: bookcover.$cover-width;
+    border-radius: 5px;
+    border: solid thin transparent;
+  }
+
+  .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay {
+    background-color: rgba(0, 0, 0, 0.55);
+    border: solid thin;
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
+    background-color: transparent;
+    opacity: 1;
+  }
+
+  /* Select Many Overlay */
+  .selectManyOverlay {
+    cursor: pointer;
+  }
+
+  .selectManyOverlay.selected {
+    border: solid 2px rgb(var(--v-theme-primary)) !important;
+    background-color: rgba(var(--v-theme-primary), 0.15);
+  }
+
+  /* Checkbox: top left, always present, shown on hover or when checked */
+  .selectManyCheckbox {
+    position: absolute !important;
+    top: 2px;
+    left: 2px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .selectManyCheckbox.checked {
+    opacity: 1;
+  }
+
+  .browserCardCoverWrapper:hover > .browserCardTop > .selectManyCheckbox {
+    opacity: 1;
+  }
+
+  .selectManyCheckbox :deep(.v-selection-control) {
+    min-height: auto;
+  }
+
+  .selectManyCheckbox :deep(.v-icon) {
+    color: rgb(var(--v-theme-text-disabled));
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+  }
+
+  .selectManyCheckbox:hover :deep(.v-icon) {
+    color: rgb(var(--v-theme-link-hover));
+  }
+
+  .selectManyCheckbox.checked :deep(.v-icon) {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .selectManyCheckbox.checked:hover :deep(.v-icon) {
+    color: rgb(var(--v-theme-link-hover));
+  }
+
+  /*
+   * Favorite star sits in the top-right of the cover, stacked just
+   * below the childCount badge (also top-right) so the count circle
+   * stays unobscured. Hidden by default so it doesn't compete with
+   * the cover art; surfaces on card hover for discovery, and stays
+   * lit (full opacity) when the row is favorited so the user can
+   * scan a page for their starred items.
+   *
+   * Sibling of ``.cardCoverOverlay`` — outside the router-link's
+   * opacity-fade subtree, so the lit state is unaffected by the
+   * controls' ``opacity: 0`` baseline.
+   */
+  .cardFavoriteToggle {
+    position: absolute !important;
+    top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
+    right: 0px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .browserCardCoverWrapper:hover > .browserCardTop > .cardFavoriteToggle {
+    opacity: 1;
+  }
+
+  .cardFavoriteToggle.favoriteVisible {
+    opacity: 1;
+  }
+
+  .bookCoverProgress {
+    margin-top: 1px;
+  }
+
+  .cardFooter {
+    margin-top: 10px;
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    .cardCoverOverlay {
+      height: bookcover.$small-cover-height;
+      width: bookcover.$small-cover-width;
+    }
   }
 }
 </style>

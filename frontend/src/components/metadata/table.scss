@@ -1,8 +1,14 @@
-td {
-  border-bottom: none !important;
-}
-td.key {
-  color: rgb(var(--v-theme-text-secondary));
-  width: 1%;
-  white-space: nowrap;
+// Self-layered: `@use` emits a partial's CSS at the top of the
+// consuming stylesheet, outside any @layer the consumer writes, so a
+// consumer-side wrap would leave these rules unlayered — and therefore
+// winning over everything. `@use` inside @layer is a Sass error.
+@layer codex-components {
+  td {
+    border-bottom: none !important;
+  }
+  td.key {
+    color: rgb(var(--v-theme-text-secondary));
+    width: 1%;
+    white-space: nowrap;
+  }
 }

@@ -2,9 +2,15 @@
 // ``book-change-drawer`` so the drawer's width matches the column.
 $change-column-width: 33vw;
 
-.changeColumn {
-  position: fixed;
-  top: 48px;
-  height: calc(100vh - 96px);
-  width: $change-column-width;
+// Self-layered: `@use` emits a partial's CSS at the top of the
+// consuming stylesheet, outside any @layer the consumer writes, so a
+// consumer-side wrap would leave these rules unlayered — and therefore
+// winning over everything. `@use` inside @layer is a Sass error.
+@layer codex-components {
+  .changeColumn {
+    position: fixed;
+    top: 48px;
+    height: calc(100vh - 96px);
+    width: $change-column-width;
+  }
 }

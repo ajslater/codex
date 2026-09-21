@@ -12,54 +12,57 @@
  * never global styling, only a component nobody had written yet.
  *
  * Imported once from main.js, right after vuetify/styles.
- */
-
-html {
-  overflow-y: auto;
-}
-
-noscript {
-  text-align: center;
-  font-family: sans-serif;
-  color: rgb(var(--v-theme-text-disabled));
-}
-
-a {
-  text-decoration: none !important;
-  color: rgb(var(--v-theme-primary));
-}
-
-/*
- * Overlay content boxes are app chrome: menus, dialogs and tooltips sit
- * on the page background instead of Vuetify's own surface colors.
  *
- * Snackbars are the exception. A snackbar's ``color`` prop paints this
- * very element, via Vuetify's ``bg-*`` utility class. That class lives
- * in a cascade layer and this rule does not, so an unlayered
- * ``background-color`` wins here no matter how the snackbar asks.
- * Exempting the wrapper is what makes ``color`` work on a snackbar at
- * all. The radius still applies to every overlay.
+ * Everything here is in `codex-base`, the lower of the two codex layers:
+ * after Vuetify's component CSS, so these win without !important, and
+ * before Vuetify's utilities, so a `color` prop still beats them. The
+ * order is declared in codex/templates/index.html.
  */
-.v-overlay__content {
-  border-radius: 5px;
-}
 
-.v-overlay__content:not(.v-snackbar__wrapper) {
-  background-color: rgb(var(--v-theme-background)) !important;
-}
+@layer codex-base {
+  html {
+    overflow-y: auto;
+  }
 
-.v-tooltip > .v-overlay__content {
-  color: rgb(var(--v-theme-text-disabled)) !important;
-}
+  noscript {
+    text-align: center;
+    font-family: sans-serif;
+    color: rgb(var(--v-theme-text-disabled));
+  }
 
-/*
- * Sub-header inside the settings drawers. Shared by six components
- * across the browser and reader drawers.
- */
-.settingsSubHeader {
-  padding-top: 10px;
-  padding-left: 15px;
-  padding-right: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-text-disabled));
+  a {
+    text-decoration: none;
+    color: rgb(var(--v-theme-primary));
+  }
+
+  /*
+   * Overlay content boxes are app chrome: menus, dialogs and tooltips
+   * sit on the page background instead of Vuetify's own surface colors.
+   *
+   * A snackbar used to need an explicit carve-out here. Its `color`
+   * prop paints this very element through a `bg-*` utility class, and
+   * an unlayered background-color beat that class no matter how the
+   * snackbar asked. In `codex-base` the utility wins on layer order, so
+   * the rule can address every overlay and say what it means.
+   */
+  .v-overlay__content {
+    border-radius: 5px;
+    background-color: rgb(var(--v-theme-background));
+  }
+
+  .v-tooltip > .v-overlay__content {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  /*
+   * Sub-header inside the settings drawers. Shared by six components
+   * across the browser and reader drawers.
+   */
+  .settingsSubHeader {
+    padding-top: 10px;
+    padding-left: 15px;
+    padding-right: 10px;
+    font-weight: bolder;
+    color: rgb(var(--v-theme-text-disabled));
+  }
 }

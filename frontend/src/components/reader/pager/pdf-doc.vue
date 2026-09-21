@@ -98,28 +98,32 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.pdfDoc {
-  display: inline-block;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .pdfDoc {
+    display: inline-block;
+  }
 
-/* bugfixes for vue-pdf-embed */
-:deep(.vue-pdf-embed.fitToHeightTwo > div > canvas),
-:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
-  width: inherit !important;
-}
+  /* bugfixes for vue-pdf-embed */
+  :deep(.vue-pdf-embed.fitToHeightTwo > div > canvas),
+  :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
+    width: inherit !important;
+  }
 
-:deep(.vue-pdf-embed.fitToScreen > div > canvas),
-:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas),
-:deep(.vue-pdf-embed.fitToScreenVertical > div > canvas) {
-  object-fit: contain;
-}
+  :deep(.vue-pdf-embed.fitToScreen > div > canvas),
+  :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas),
+  :deep(.vue-pdf-embed.fitToScreenVertical > div > canvas) {
+    object-fit: contain;
+  }
 
-:deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
-  height: inherit !important;
-}
+  :deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
+    height: inherit !important;
+  }
 
-:deep(.vue-pdf-embed.fitToOrigTwo > div > canvas) {
-  height: inherit !important;
-  width: inherit !important;
+  :deep(.vue-pdf-embed.fitToOrigTwo > div > canvas) {
+    height: inherit !important;
+    width: inherit !important;
+  }
 }
 </style>

@@ -111,7 +111,7 @@ export default {
 }
 
 #version:hover {
-  color: rgb(var(--v-theme-text-primary)) !important;
+  color: rgb(var(--v-theme-text-primary));
 }
 
 #repoIcon {
@@ -124,7 +124,7 @@ export default {
 }
 
 #latest:hover {
-  color: rgb(var(--v-theme-link-hover)) !important;
+  color: rgb(var(--v-theme-link-hover));
 }
 
 #warning {

@@ -59,15 +59,19 @@ export default {
 <style scoped lang="scss">
 $topMargin: calc(96px + 12px);
 
-:deep(.browserSearchHelp) {
-  top: $topMargin;
-  overflow-y: auto !important;
-  opacity: 0.95;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.browserSearchHelp) {
+    top: $topMargin;
+    overflow-y: auto !important;
+    opacity: 0.95;
+  }
 
-#searchHelp {
-  padding: 20px;
-  margin: auto;
-  margin-bottom: $topMargin;
+  #searchHelp {
+    padding: 20px;
+    margin: auto;
+    margin-bottom: $topMargin;
+  }
 }
 </style>

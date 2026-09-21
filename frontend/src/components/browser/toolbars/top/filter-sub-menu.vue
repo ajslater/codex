@@ -364,39 +364,43 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.filterHeaderTitle :deep(.v-list-item__prepend > .v-list-item__spacer) {
-  display: none;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .filterHeaderTitle :deep(.v-list-item__prepend > .v-list-item__spacer) {
+    display: none;
+  }
 
-.filterHeaderTitle :deep(.v-list-item-title) {
-  font-variant: small-caps;
-  color: rgb(var(--v-theme-text-disabled));
-  font-weight: bold;
-  font-size: 1.6rem !important;
-}
+  .filterHeaderTitle :deep(.v-list-item-title) {
+    font-variant: small-caps;
+    color: rgb(var(--v-theme-text-disabled));
+    font-weight: bold;
+    font-size: 1.6rem !important;
+  }
 
-.filterValuesProgress {
-  margin: 10px;
-  width: 88%;
-}
+  .filterValuesProgress {
+    margin: 10px;
+    width: 88%;
+  }
 
-.clearFilter {
-  color: black;
-  background-color: rgb(var(--v-theme-primary));
-  opacity: 0.7;
-}
+  .clearFilter {
+    color: black;
+    background-color: rgb(var(--v-theme-primary));
+    opacity: 0.7;
+  }
 
-.clearFilter:hover {
-  opacity: 1;
-}
+  .clearFilter:hover {
+    opacity: 1;
+  }
 
-/*
- * The selections indicator must stay primary-colored even on the
- * inactive (dimmed) tab, where Vuetify lowers the tab content's
- * opacity.
- */
-.ageRatingTabSelectedIcon {
-  color: rgb(var(--v-theme-primary));
-  opacity: 1;
+  /*
+   * The selections indicator must stay primary-colored even on the
+   * inactive (dimmed) tab, where Vuetify lowers the tab content's
+   * opacity.
+   */
+  .ageRatingTabSelectedIcon {
+    color: rgb(var(--v-theme-primary));
+    opacity: 1;
+  }
 }
 </style>

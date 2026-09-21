@@ -86,46 +86,50 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.settingsDrawerContainer {
-  position: relative !important;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: rgb(var(--v-theme-background)) !important;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .settingsDrawerContainer {
+    position: relative !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: rgb(var(--v-theme-background));
+  }
 
-#topBlock {
-  background-color: rgb(var(--v-theme-background)) !important;
-}
+  #topBlock {
+    background-color: rgb(var(--v-theme-background));
+  }
 
-.settingsHeader {
-  padding-top: 10px;
-  padding-left: 15px;
-  padding-bottom: 10px;
-  background-color: rgb(var(--v-theme-surface-light));
-  font-weight: bolder;
-}
+  .settingsHeader {
+    padding-top: 10px;
+    padding-left: 15px;
+    padding-bottom: 10px;
+    background-color: rgb(var(--v-theme-surface-light));
+    font-weight: bolder;
+  }
 
-:deep(.v-list-item .v-icon) {
-  color: rgb(var(--v-theme-icons-inactive)) !important;
-  margin-right: 0.33em;
-}
+  :deep(.v-list-item .v-icon) {
+    color: rgb(var(--v-theme-icons-inactive));
+    margin-right: 0.33em;
+  }
 
-.footer {
-  display: block;
-  margin-top: auto;
-  padding-top: 0px;
-  font-size: small;
-  text-align: center;
-  color: rgb(var(--v-theme-text-disabled));
-  background-color: rgb(var(--v-theme-surface));
-}
+  .footer {
+    display: block;
+    margin-top: auto;
+    padding-top: 0px;
+    font-size: small;
+    text-align: center;
+    color: rgb(var(--v-theme-text-disabled));
+    background-color: rgb(var(--v-theme-surface));
+  }
 
-#scrollFooter {
-  padding-bottom: 0px;
-}
+  #scrollFooter {
+    padding-bottom: 0px;
+  }
 
-#bottomFooter {
-  padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
+  #bottomFooter {
+    padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
+  }
 }
 </style>

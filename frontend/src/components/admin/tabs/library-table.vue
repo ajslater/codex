@@ -230,7 +230,7 @@ export default {
 @use "@/components/admin/tabs/admin-section.scss";
 
 .disabled {
-  color: rgb(var(--v-theme-text-disabled)) !important;
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .failedComics {

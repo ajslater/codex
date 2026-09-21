@@ -263,7 +263,7 @@ export default {
 }
 
 .highlight {
-  color: rgb(var(--v-theme-text-primary)) !important;
+  color: rgb(var(--v-theme-text-primary));
   background-color: rgb(var(--v-theme-primary-darken-1));
 }
 

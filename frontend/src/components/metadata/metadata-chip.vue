@@ -155,26 +155,30 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.v-chip {
-  margin: 4px;
-}
-
-.clickable :deep(.v-chip__content) {
-  color: rgb(var(--v-theme-primary));
-}
-
-.primaryCredit :deep(.v-chip__content) {
-  font-weight: bold;
-}
-
-.clickable:hover :deep(.v-chip__content) {
-  color: rgb(var(--v-theme-link-hover));
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
   .v-chip {
-    margin: 2px;
-    font-size: x-small !important;
+    margin: 4px;
+  }
+
+  .clickable :deep(.v-chip__content) {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .primaryCredit :deep(.v-chip__content) {
+    font-weight: bold;
+  }
+
+  .clickable:hover :deep(.v-chip__content) {
+    color: rgb(var(--v-theme-link-hover));
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+    .v-chip {
+      margin: 2px;
+      font-size: x-small !important;
+    }
   }
 }
 </style>

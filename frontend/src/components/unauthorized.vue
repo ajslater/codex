@@ -69,28 +69,32 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#unauthorized {
-  padding-top: max(20px, env(safe-area-inset-top));
-  padding-left: max(20px, env(safe-area-inset-left));
-  padding-right: max(20px, env(safe-area-inset-right));
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #unauthorized {
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
 
-#unauthorizedPlaceholder {
-  position: fixed;
-  top: 25%;
-  left: 25%;
-}
+  #unauthorizedPlaceholder {
+    position: fixed;
+    top: 25%;
+    left: 25%;
+  }
 
-.login {
-  color: rgb(var(--v-theme-primary));
-}
+  .login {
+    color: rgb(var(--v-theme-primary));
+  }
 
-.ssoButton {
-  margin-bottom: 0.75em;
-}
+  .ssoButton {
+    margin-bottom: 0.75em;
+  }
 
-.login :deep(.v-list-item__prepend) {
-  margin-right: 0.25em;
+  .login :deep(.v-list-item__prepend) {
+    margin-right: 0.25em;
+  }
 }
 </style>

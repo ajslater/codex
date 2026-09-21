@@ -103,7 +103,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-:deep(.v-icon) {
-  color: rgb(var(--v-theme-text-disabled));
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.v-icon) {
+    color: rgb(var(--v-theme-text-disabled));
+  }
 }
 </style>

@@ -134,39 +134,43 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-#browserBreadcrumbs {
-  max-width: 100vw;
-  font-size: small;
-  color: rgb(var(--v-theme-text-disabled));
-  padding-top: 0px;
-  padding-bottom: 0px;
-  padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
-  padding-right: 0px;
-}
-
-#browserBreadcrumbs :deep(.v-breadcrumbs-item) {
-  padding: 0px;
-}
-
-#browserBreadcrumbs :deep(.v-breadcrumbs-item--link) {
-  color: rgb(var(--v-theme-text-disabled));
-}
-
-#browserBreadcrumbs :deep(.v-breadcrumbs-divider) {
-  padding: 3px;
-}
-
-#browserBreadcrumbs :deep(.v-breadcrumbs-item:first-child .v-icon) {
-  font-size: xx-large !important;
-}
-
-#browserBreadcrumbs :deep(a:hover) {
-  color: white;
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
   #browserBreadcrumbs {
-    padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
+    max-width: 100vw;
+    font-size: small;
+    color: rgb(var(--v-theme-text-disabled));
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: max(18px, calc(env(safe-area-inset-left) / 2));
+    padding-right: 0px;
+  }
+
+  #browserBreadcrumbs :deep(.v-breadcrumbs-item) {
+    padding: 0px;
+  }
+
+  #browserBreadcrumbs :deep(.v-breadcrumbs-item--link) {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  #browserBreadcrumbs :deep(.v-breadcrumbs-divider) {
+    padding: 3px;
+  }
+
+  #browserBreadcrumbs :deep(.v-breadcrumbs-item:first-child .v-icon) {
+    font-size: xx-large !important;
+  }
+
+  #browserBreadcrumbs :deep(a:hover) {
+    color: white;
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+    #browserBreadcrumbs {
+      padding-left: max(10px, calc(env(safe-area-inset-left) / 2));
+    }
   }
 }
 </style>

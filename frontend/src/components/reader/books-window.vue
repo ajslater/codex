@@ -94,16 +94,21 @@ export default {
 
 <style scoped lang="scss">
 // These window controls also cacade into the pages-window
-:deep(.windowItem) {
-  /* keeps clickable area full screen when image is small */
-  min-height: 100vh;
-  text-align: center;
-}
 
-:deep(.v-window__controls) {
-  position: fixed;
-  top: 48px;
-  height: calc(100vh - 96px);
-  padding: 0;
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.windowItem) {
+    /* keeps clickable area full screen when image is small */
+    min-height: 100vh;
+    text-align: center;
+  }
+
+  :deep(.v-window__controls) {
+    position: fixed;
+    top: 48px;
+    height: calc(100vh - 96px);
+    padding: 0;
+  }
 }
 </style>

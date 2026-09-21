@@ -53,28 +53,32 @@ export default {
 </script>
 
 <style scoped lang="scss">
-:deep(.v-label.v-field-label) {
-  top: 13px;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.v-label.v-field-label) {
+    top: 13px;
+  }
 
-:deep(.v-label.v-field-label--floating) {
-  opacity: var(--v-disabled-opacity) !important;
-}
+  :deep(.v-label.v-field-label--floating) {
+    opacity: var(--v-disabled-opacity) !important;
+  }
 
-:deep(.v-field:hover .v-label.v-field-label--floating),
-:deep(.v-field--focused .v-label.v-field-label--floating) {
-  opacity: var(--v-medium-emphasis-opacity) !important;
-}
+  :deep(.v-field:hover .v-label.v-field-label--floating),
+  :deep(.v-field--focused .v-label.v-field-label--floating) {
+    opacity: var(--v-medium-emphasis-opacity) !important;
+  }
 
-:deep(.v-field__input) {
-  padding-right: 0px;
-}
+  :deep(.v-field__input) {
+    padding-right: 0px;
+  }
 
-:deep(.v-select__menu-icon) {
-  margin-left: 0px !important;
-}
+  :deep(.v-select__menu-icon) {
+    margin-left: 0px !important;
+  }
 
-:deep(.v-select__selection) {
-  font-size: small;
+  :deep(.v-select__selection) {
+    font-size: small;
+  }
 }
 </style>

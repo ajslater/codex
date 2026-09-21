@@ -384,141 +384,148 @@ export default {
  * behavior unreliable when the page already has its own scroll
  * pane.
  */
-#browserTable {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
 
-.browserTableTable {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: rgb(var(--v-theme-surface));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #browserTable {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
 
-.browserTableTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background-color: rgb(var(--v-theme-surface));
-  padding: 6px 12px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.85em;
-  color: rgb(var(--v-theme-text-secondary));
-  white-space: nowrap;
-  user-select: none;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-}
+  .browserTableTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: rgb(var(--v-theme-surface));
+  }
 
-.browserTableTable thead th.sortable {
-  cursor: pointer;
-}
+  .browserTableTable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: rgb(var(--v-theme-surface));
+    padding: 6px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: rgb(var(--v-theme-text-secondary));
+    white-space: nowrap;
+    user-select: none;
+    border-bottom: 1px solid
+      rgba(var(--v-border-color), var(--v-border-opacity));
+  }
 
-.browserTableTable thead th.sortable:hover {
-  color: rgb(var(--v-theme-primary));
-}
+  .browserTableTable thead th.sortable {
+    cursor: pointer;
+  }
 
-.browserTableTable thead th.sorted {
-  color: rgb(var(--v-theme-primary));
-}
+  .browserTableTable thead th.sortable:hover {
+    color: rgb(var(--v-theme-primary));
+  }
 
-/*
- * Multi-sort-incompatible columns: a small fraction of sort_keys
- * (story_arc_number, search_score) work as the primary but can't
- * be added to the multi-sort tail. Mute the label so the user
- * sees the column is special. The plain-click affordance still
- * works (clicking sets it as primary, which removes the muted
- * class via ``classes.sorted`` taking precedence).
- */
-.browserTableTable thead th.extraIncompatible :first-child {
-  opacity: 0.6;
-}
+  .browserTableTable thead th.sorted {
+    color: rgb(var(--v-theme-primary));
+  }
 
-/*
- * Multi-column sort experiment. Headers participating in the
- * extra-sort tail get a small superscript priority number (2, 3,
- * ...) next to their direction arrow so the user can see at a
- * glance how the columns rank. The primary stays unbadged — its
- * implicit priority is 1 and the bolded color already calls it
- * out. Tiny font + half opacity keeps the badge from competing
- * with the column label.
- */
-.browserTableTable thead th .browserTableSortPriority {
-  margin-left: 2px;
-  font-size: 0.7em;
-  line-height: 1;
-  opacity: 0.7;
-}
+  /*
+   * Multi-sort-incompatible columns: a small fraction of sort_keys
+   * (story_arc_number, search_score) work as the primary but can't
+   * be added to the multi-sort tail. Mute the label so the user
+   * sees the column is special. The plain-click affordance still
+   * works (clicking sets it as primary, which removes the muted
+   * class via ``classes.sorted`` taking precedence).
+   */
+  .browserTableTable thead th.extraIncompatible :first-child {
+    opacity: 0.6;
+  }
 
-.browserTableTable td {
-  padding: 6px 12px;
-  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-}
+  /*
+   * Multi-column sort experiment. Headers participating in the
+   * extra-sort tail get a small superscript priority number (2, 3,
+   * ...) next to their direction arrow so the user can see at a
+   * glance how the columns rank. The primary stays unbadged — its
+   * implicit priority is 1 and the bolded color already calls it
+   * out. Tiny font + half opacity keeps the badge from competing
+   * with the column label.
+   */
+  .browserTableTable thead th .browserTableSortPriority {
+    margin-left: 2px;
+    font-size: 0.7em;
+    line-height: 1;
+    opacity: 0.7;
+  }
 
-/*
- * Sticky leading columns. The checkbox stays pinned to the left edge
- * during horizontal scroll; the cover column pins immediately after
- * it. ``$checkbox-width`` matches ``width`` below so the cover's
- * ``left`` aligns visually with the column boundary. Sticky cells
- * need an explicit background-color so content under them isn't
- * visible while scrolled. thead cells get a higher z-index to keep
- * them above scrolled tbody content at both axes.
- */
-$checkbox-width: 36px;
+  .browserTableTable td {
+    padding: 6px 12px;
+    border-bottom: 1px solid
+      rgba(var(--v-border-color), var(--v-border-opacity));
+  }
 
-.browserTableCheckboxCell {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: rgb(var(--v-theme-surface));
-  width: $checkbox-width;
-  padding: 0 0 0 8px !important;
-  text-align: center;
-}
+  /*
+   * Sticky leading columns. The checkbox stays pinned to the left edge
+   * during horizontal scroll; the cover column pins immediately after
+   * it. ``$checkbox-width`` matches ``width`` below so the cover's
+   * ``left`` aligns visually with the column boundary. Sticky cells
+   * need an explicit background-color so content under them isn't
+   * visible while scrolled. thead cells get a higher z-index to keep
+   * them above scrolled tbody content at both axes.
+   */
+  $checkbox-width: 36px;
 
-.browserTableCheckboxCell :deep(.v-selection-control) {
-  min-height: auto;
-}
+  .browserTableCheckboxCell {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: rgb(var(--v-theme-surface));
+    width: $checkbox-width;
+    padding: 0 0 0 8px !important;
+    text-align: center;
+  }
 
-/*
- * The cover column shrinks to fit the cover thumbnail; ``width: 1%``
- * with ``white-space: nowrap`` is the standard idiom for "as narrow
- * as content allows" inside a ``width: 100%`` table.
- */
-.browserTableCoverColumn {
-  position: sticky;
-  left: $checkbox-width;
-  z-index: 1;
-  background-color: rgb(var(--v-theme-surface));
-  width: 1%;
-  white-space: nowrap;
-  padding-right: 4px !important;
-}
+  .browserTableCheckboxCell :deep(.v-selection-control) {
+    min-height: auto;
+  }
 
-thead .browserTableCheckboxCell,
-thead .browserTableCoverColumn {
-  z-index: 2;
-}
+  /*
+   * The cover column shrinks to fit the cover thumbnail; ``width: 1%``
+   * with ``white-space: nowrap`` is the standard idiom for "as narrow
+   * as content allows" inside a ``width: 100%`` table.
+   */
+  .browserTableCoverColumn {
+    position: sticky;
+    left: $checkbox-width;
+    z-index: 1;
+    background-color: rgb(var(--v-theme-surface));
+    width: 1%;
+    white-space: nowrap;
+    padding-right: 4px !important;
+  }
 
-.browserTableRow.selected .browserTableCheckboxCell,
-.browserTableRow.selected .browserTableCoverColumn {
-  background-color: rgb(var(--v-theme-surface-light));
-}
+  thead .browserTableCheckboxCell,
+  thead .browserTableCoverColumn {
+    z-index: 2;
+  }
 
-.browserTableRow {
-  cursor: pointer;
-}
+  .browserTableRow.selected .browserTableCheckboxCell,
+  .browserTableRow.selected .browserTableCoverColumn {
+    background-color: rgb(var(--v-theme-surface-light));
+  }
 
-.browserTableRow:hover {
-  background-color: rgba(var(--v-theme-on-surface), 0.04);
-}
+  .browserTableRow {
+    cursor: pointer;
+  }
 
-.browserTableRow.selected {
-  background-color: rgba(var(--v-theme-primary), 0.08);
-}
+  .browserTableRow:hover {
+    background-color: rgba(var(--v-theme-on-surface), 0.04);
+  }
 
-.browserTableRow.selected:hover {
-  background-color: rgba(var(--v-theme-primary), 0.12);
+  .browserTableRow.selected {
+    background-color: rgba(var(--v-theme-primary), 0.08);
+  }
+
+  .browserTableRow.selected:hover {
+    background-color: rgba(var(--v-theme-primary), 0.12);
+  }
 }
 </style>

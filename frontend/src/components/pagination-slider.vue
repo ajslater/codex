@@ -28,31 +28,36 @@ export default {
 
 <style scoped lang="scss">
 /* Custom slider with a large control. */
-:deep(.v-slider-thumb__ripple) {
-  width: calc(var(--v-slider-thumb-size) * 1.333);
-  height: calc(var(--v-slider-thumb-size) * 1.333);
-  top: -6px;
-  left: -6px;
-}
 
-:deep(.v-slider-thumb__label) {
-  bottom: 0px !important;
-  transform: translateX(-50%) translateY(125%) !important;
-  background-color: transparent;
-  color: rgb(var(--v-theme-text-primary));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.v-slider-thumb__ripple) {
+    width: calc(var(--v-slider-thumb-size) * 1.333);
+    height: calc(var(--v-slider-thumb-size) * 1.333);
+    top: -6px;
+    left: -6px;
+  }
 
-:deep(.v-slider-thumb__label:before) {
-  display: none;
-}
+  :deep(.v-slider-thumb__label) {
+    bottom: 0px !important;
+    transform: translateX(-50%) translateY(125%) !important;
+    background-color: transparent;
+    color: rgb(var(--v-theme-text-primary));
+  }
 
-:deep(.v-slider-track__tick-label) {
-  display: none;
-  bottom: 1px;
-  opacity: 0.5;
-}
+  :deep(.v-slider-thumb__label:before) {
+    display: none;
+  }
 
-:deep(.v-slider-track__tick:hover .v-slider-track__tick-label) {
-  display: block;
+  :deep(.v-slider-track__tick-label) {
+    display: none;
+    bottom: 1px;
+    opacity: 0.5;
+  }
+
+  :deep(.v-slider-track__tick:hover .v-slider-track__tick-label) {
+    display: block;
+  }
 }
 </style>
