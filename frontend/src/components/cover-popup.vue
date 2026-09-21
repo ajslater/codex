@@ -36,7 +36,7 @@
           :title="title"
           :style="thumbStyle"
           class="coverPopupThumb coverPopupZoomable"
-          loading="lazy"
+          :loading="loading"
           referrerpolicy="no-referrer"
           @error="$emit('error', $event)"
         />
@@ -59,7 +59,7 @@
       :title="title"
       :style="thumbStyle"
       class="coverPopupThumb"
-      loading="lazy"
+      :loading="loading"
       referrerpolicy="no-referrer"
       @error="$emit('error', $event)"
     />
@@ -82,6 +82,14 @@ export default {
     // multi-root child, and VMenu renders a Fragment.
     thumbWidth: { type: String, default: "" },
     thumbHeight: { type: String, default: "" },
+    /*
+     * Lazy suits a long list of remote images. It does NOT suit a
+     * thumbnail sized `width: auto`: before the image loads such an
+     * element has zero width, a zero-area element never satisfies the
+     * browser's in-viewport check, and the load never starts — the
+     * image stays 0×h forever. Pass "eager" there.
+     */
+    loading: { type: String, default: "lazy" },
     activatorProps: { type: Object, default: () => ({}) },
   },
   emits: ["error"],
@@ -133,12 +141,6 @@ export default {
   cursor: zoom-in;
 }
 
-/*
- * Named for this component rather than `.coverPopup`: the global
- * stylesheet still carries a `.coverPopup` block for the two legacy
- * popups, and until those migrate a scoped rule of the same name would
- * stack with it.
- */
 .coverPopupBody {
   display: block;
   cursor: zoom-out;
