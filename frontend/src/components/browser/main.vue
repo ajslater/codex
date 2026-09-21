@@ -126,21 +126,14 @@ export default {
       selectManyActive: (state) => state.active,
     }),
     browsePaneClasses() {
-      const classes = {
+      // Three orthogonal modifiers, each contributing one custom
+      // property that #browsePane sums; no combinatorial class names.
+      return {
         padFooter: this.numPages > 1,
+        browsePaneSelectMany: this.selectManyActive,
+        browsePaneSearch: this.isSearchOpen,
+        browsePaneBanner: this.isBanner,
       };
-      let marginClass = "browsePane";
-      if (this.selectManyActive) {
-        marginClass += "SelectMany";
-      }
-      if (this.isSearchOpen) {
-        marginClass += "Search";
-      }
-      if (this.isBanner) {
-        marginClass += "Banner";
-      }
-      Reflect.set(classes, marginClass, true);
-      return classes;
     },
     isTableMode() {
       /*
@@ -255,48 +248,33 @@ $banner-height: 20px;
   flex-direction: column;
   height: 100dvh;
   box-sizing: border-box;
-  padding-top: $browse-pane-padding-top;
+  // The three toolbars above the grid appear independently, so each
+  // contributes its own height and the ID rule sums them. Seven
+  // combinatorial modifier classes used to do this, and because a class
+  // (0,1,0) cannot beat this ID (1,0,0) every one of them needed
+  // !important.
+  //
+  // Do NOT declare the 0px defaults here: custom properties obey
+  // specificity, so an ID-level default would beat every class-level
+  // override. The var() fallback is the default.
+  padding-top: calc(
+    #{$browse-pane-padding-top} + var(--browse-extra-select-many, 0px) +
+      var(--browse-extra-search, 0px) + var(--browse-extra-banner, 0px)
+  );
   padding-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: hidden;
 }
 
 .browsePaneSelectMany {
-  padding-top: calc($browse-pane-padding-top + $select-many-height) !important;
+  --browse-extra-select-many: #{$select-many-height};
 }
 
 .browsePaneSearch {
-  padding-top: calc(
-    $browse-pane-padding-top + $search-toolbar-height
-  ) !important;
-}
-
-.browsePaneSelectManySearch {
-  padding-top: calc(
-    $browse-pane-padding-top + $select-many-height + $search-toolbar-height
-  ) !important;
+  --browse-extra-search: #{$search-toolbar-height};
 }
 
 .browsePaneBanner {
-  padding-top: calc($banner-height + $browse-pane-padding-top) !important;
-}
-
-.browsePaneSelectManyBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $select-many-height
-  ) !important;
-}
-
-.browsePaneSearchBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $search-toolbar-height
-  ) !important;
-}
-
-.browsePaneSelectManySearchBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $select-many-height +
-      $search-toolbar-height
-  ) !important;
+  --browse-extra-banner: #{$banner-height};
 }
 
 #browsePaneRefreshContainer {
