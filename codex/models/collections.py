@@ -2,7 +2,7 @@
 
 from typing import override
 
-from django.db.models import CASCADE, SET_DEFAULT, ForeignKey
+from django.db.models import CASCADE, SET_DEFAULT, ForeignKey, Index, Q
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
 from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
@@ -212,3 +212,18 @@ class WatchedPathBrowserCollection(BrowserCollectionModel, WatchedPath):
 
 class Folder(WatchedPathBrowserCollection):
     """File system folder."""
+
+    class Meta(WatchedPathBrowserCollection.Meta):
+        """Partial index for the nightly reap."""
+
+        # Folder carries its own ``missing_since`` from dirs_deleted, so
+        # it needs the same selective index Comic has. Declared on the
+        # concrete model because a subclass Meta's ``indexes`` replaces
+        # the base's rather than merging.
+        indexes = (
+            Index(
+                fields=("missing_since",),
+                condition=Q(missing_since__isnull=False),
+                name="codex_folder_miss_idx",
+            ),
+        )
