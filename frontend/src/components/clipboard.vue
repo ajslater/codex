@@ -87,6 +87,6 @@ export default {
 
 .clipboard:hover .clipboardIcon,
 .clipboard:hover .bodyText {
-  color: rgb(var(--v-theme-text-primary)) !important;
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

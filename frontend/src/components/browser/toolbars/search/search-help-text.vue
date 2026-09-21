@@ -263,7 +263,7 @@ h3 {
 code {
   width: fit-content;
   background-color: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-text-header)) !important;
+  color: rgb(var(--v-theme-text-header));
 }
 
 .searchExample td {
