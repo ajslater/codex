@@ -5,16 +5,17 @@ Writing tags to a CBR repacks it as a CBZ at a new path. With "delete
 original" off, the CBR stays in the library beside the CBZ its own first
 write produced, and every later write on that CBR collides with it.
 
-comicbox does refuse the collision — but only after opening the archive,
-merging the metadata and serializing it, and its message names a
-filename with no hint of what to do about it. Because tag-write errors
-dedupe by path, that vaguer message also replaced the clearer one the
-planner had already recorded.
+comicbox 5.2.0 refuses that collision too, before reading any metadata.
+What codex's own check adds is the database: which comic holds the twin,
+so the error can name and link it, and the scheme-name twin a rename-on
+write would mint, which no filesystem check can predict. Refusing here
+also keeps the comic out of ``bulk_write`` entirely, so there is exactly
+one message per path — they dedupe by path, and the last writer wins.
 
-Refusing in codex means the comic never reaches ``bulk_write``, so there
-is exactly one message per path and it can say what to do. Codex's check
-is the database-aware one; comicbox's remains the filesystem backstop
-for in-batch collisions codex does not model.
+comicbox's check remains the backstop for in-batch collisions codex does
+not model: two archives in one batch converting to the same name. Those
+arrive as a typed ``DestinationOccupiedError`` naming the rival, which
+codex turns into the same twin link.
 """
 
 from __future__ import annotations

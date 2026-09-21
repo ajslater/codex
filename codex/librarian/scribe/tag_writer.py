@@ -360,18 +360,19 @@ class TagWriter(WorkerStatusAbortableBase):
         """
         Drop comics whose conversion would land on a file that exists.
 
-        comicbox refuses a conversion onto an occupied path, but only
-        after opening the archive, merging the metadata and serializing
-        it — and its message names a filename with no hint of what to do.
-        Worse, a kept original is refused on *every* later write, and the
-        vaguer message replaced the clearer one because tag-write errors
-        dedupe by path.
+        comicbox 5.2.0 refuses an occupied destination before reading
+        any metadata, and ``bulk_write`` sniffs every destination before
+        the write pool starts, so this is no longer about *when* the
+        refusal happens. What codex adds is the database: which comic
+        holds the twin, so the error can link it, and the scheme-name
+        twin a rename-on write would mint, which no filesystem check can
+        predict.
 
-        Refusing here means the comic never reaches ``bulk_write``, so
-        there is only ever one message per path, and it can say what the
-        admin should actually do. Codex's check is the DB-aware one;
-        comicbox's stays the filesystem backstop that catches in-batch
-        stem collisions codex does not model.
+        Refusing here also means the comic never reaches ``bulk_write``,
+        so there is only ever one message per path — they dedupe by path,
+        and the last writer would otherwise win. comicbox's own check
+        stays the backstop for in-batch collisions codex cannot model,
+        and those now arrive typed (see ``_twin_for_refusal``).
 
         Runs on post-rename paths because that is what the write sees: a
         rename moves the stem, so ``Foo.cbz`` being taken does not block
