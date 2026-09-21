@@ -411,7 +411,40 @@ class AgeRatingACLMixin(RelPrefixMixin):
         )
 
 
-class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):
+class MissingACLFilterMixin(RelPrefixMixin):
+    """
+    Pending-delete (``missing_since``) visibility filter.
+
+    A row whose path a scan could not find is kept for a retention
+    window instead of being deleted, so its bookmarks survive a
+    filesystem outage. It is hidden from ordinary users for that window
+    and stays visible to staff, who are the only ones who can act on it.
+    """
+
+    @classmethod
+    def get_missing_acl_filter(cls, model, user) -> Q:
+        """Hide scanner-stamped rows from non-staff users."""
+        if user.is_staff:
+            # Not ``getattr(user, "is_staff", False)``: AnonymousUser
+            # defines ``is_staff = False`` as a class attribute, so the
+            # default would never be exercised and would only mislead.
+            return Q()
+        # Comic owns the column outright; the collection models reach it
+        # through the same relation prefix the group ACL uses.
+        q = Q(**{f"{cls.get_rel_prefix(model)}missing_since__isnull": True})
+        if model is Folder:
+            # ``get_rel_prefix(Folder)`` is the ancestor-inclusive
+            # ``comic__`` m2m, so the clause above means "has at least
+            # one live descendant comic". A Folder also carries its OWN
+            # stamp from dirs_deleted, so it needs the self clause too --
+            # the same asymmetry ``_library_rel`` already encodes.
+            q &= Q(missing_since__isnull=True)
+        return q
+
+
+class GroupACLMixin(
+    IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin, MissingACLFilterMixin
+):
     """
     Merged ACL mixin: library-group visibility + age-rating restriction.
 
@@ -457,21 +490,29 @@ class GroupACLMixin(IsAdminMixin, GroupACLFilterMixin, AgeRatingACLMixin):
             )
         return self._cached_default_fits
 
-    def get_acl_filter(self, model, user) -> Q:
+    def get_acl_filter(self, model, user, *, include_missing: bool = False) -> Q:
         """
-        Combine library-group and age-rating ACL filters.
+        Combine library-group, age-rating and pending-delete ACL filters.
 
         Pulls all three scalar inputs out of the per-request cache,
         then composes two dead-simple Qs against local columns:
         ``library_id__in=<pks>`` and either
         ``age_rating_metron_index__lte=<max_idx>`` or an OR'd
         null/unknown clause gated by ``default_fits``.
+
+        ``include_missing`` keeps scanner-stamped rows in the queryset.
+        Writes use it so a position recorded during an outage still
+        lands, and the reader uses it so an open book is not yanked
+        mid-read. Read-only listings must not.
         """
-        return self.get_group_acl_filter_for(
+        acl_filter = self.get_group_acl_filter_for(
             model, self.get_visible_library_pks(user)
         ) & self.get_age_rating_acl_filter_for(
             model, self.get_max_idx(user), default_fits=self.get_default_fits(user)
         )
+        if not include_missing:
+            acl_filter &= self.get_missing_acl_filter(model, user)
+        return acl_filter
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

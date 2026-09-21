@@ -70,9 +70,25 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         self._collection_instance: BrowserCollectionModel | int | None = 0
 
     def _get_collection_query(self, model):
-        """Get the collection query for the collection instance."""
+        """
+        Get the collection query for the collection instance.
+
+        ``comics`` is a valid collection segment, so ``model`` here can
+        be Comic and the name this resolves is then the comic's own
+        title. It also feeds ``BrowserTitleView._get_collection_name``,
+        reached from the browser and both OPDS versions.
+
+        A stamped row resolves to ``None`` and the breadcrumb trail
+        truncates rather than redirecting: the ``except
+        model.DoesNotExist`` in ``collection_instance`` wraps a lazy
+        queryset that cannot raise, so ``raise_redirect`` has always
+        been unreachable. Truncation is accepted deliberately here --
+        reviving the redirect is a separate change.
+        """
         pks = self.kwargs.get("pks")
-        qs = model.objects.filter(pk__in=pks)
+        qs = model.objects.filter(
+            self.get_missing_acl_filter(model, self.request.user), pk__in=pks
+        )
         if select_related := _COLLECTION_INSTANCE_SELECT_RELATED.get(model):
             qs = qs.select_related(*select_related)
         order_by = "name" if model is Volume else "sort_name"
@@ -168,6 +184,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             ancestors = {
                 ancestor.path: ancestor
                 for ancestor in FolderModel.objects.filter(
+                    self.get_missing_acl_filter(FolderModel, self.request.user),
                     library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
                     path__in=prefixes,
                 ).only("pk", "path", "name")

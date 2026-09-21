@@ -212,6 +212,13 @@ class OPDS2ProgressionView(
         conflict). The conflict check is folded into a single atomic conditional
         UPDATE, and falls back to the async ``update_bookmark`` path when no
         existing bookmark matches (first-time write or no ``modified`` echo).
+
+        This write carries no ACL of its own and is deliberately left
+        that way, which means it also lands on a scanner-stamped comic:
+        writes land, reads hide. Note the asymmetry it creates and
+        accept it -- the GET above goes through the seam and IS hidden,
+        so during a retention window a client can write a position it
+        cannot read back. That beats silently discarding the position.
         """
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)

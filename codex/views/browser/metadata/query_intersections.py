@@ -32,9 +32,15 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         pks = self.kwargs["pks"]
         collection_filter = {rel: pks}
 
+        # Unfiltered container-name reads off the raw route pks. The
+        # siblings below are safe because they derive from
+        # ``_get_comic_pks(filtered_qs)``; this one does not.
         for model in COLLECTION_MODELS.get(collection, ()):
             field_name = MODEL_REL_MAP[model]
-            qs = model.objects.filter(**collection_filter)
+            qs = model.objects.filter(
+                self.get_missing_acl_filter(model, self.request.user),
+                **collection_filter,
+            )
             collection_lists[field_name] = annotate_collection_list(qs)
         return collection_lists
 

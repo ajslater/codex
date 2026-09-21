@@ -42,6 +42,23 @@ from codex.views.browser.columns import (
 )
 from codex.views.const import MODEL_REL_MAP
 
+# Intersection cells describe what is live. A scanner-stamped comic --
+# one whose path a scan could not find and which is being kept for its
+# bookmarks -- is excluded from both the per-cell numerator and the
+# ``_isect_comic_count`` denominator. Filtering one side alone inverts
+# the failure and is easy to miss: a stamped comic left in the
+# denominator blanks a cell that every live child agrees on.
+#
+# Deliberately unconditional, with no staff exemption, unlike the ACL
+# seam. ``_comic_correlation_sql`` below generates raw SQL with no user
+# in scope, so a staff-aware policy here would make the denominator
+# include rows the numerator excludes -- blanking every table cell for
+# admins specifically. Cells describing only live comics is also the
+# more useful answer.
+_LIVE_COMIC = Q(missing_since__isnull=True)
+_LIVE_COMIC_REL = Q(comic__missing_since__isnull=True)
+_LIVE_COMIC_SQL = "c.missing_since IS NULL"
+
 # Comic FK column → collection model. Used to correlate the intersection
 # sort subquery to the outer collection row. ``StoryArc`` traverses
 # through ``StoryArcNumber`` so the subquery shape differs; deferred
@@ -328,7 +345,9 @@ def _compute_batched_scalars(
     """
     annotations = _build_batched_annotations(intersect_cols, sum_cols)
     rows = (
-        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        Comic.objects.filter(
+            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+        )
         .values(comic_to_collection)
         .annotate(**annotations)
     )
@@ -395,6 +414,7 @@ def _build_simple_m2m_intersection_query(
     rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
     return (
         through.objects.filter(
+            _LIVE_COMIC_REL,
             **{f"comic__{comic_to_collection}__in": collection_pks},
             **{f"{rel_name}__name__isnull": False},
         )
@@ -510,7 +530,9 @@ def _compute_m2m_intersection(
     if rel is None:
         return
     rows = (
-        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        Comic.objects.filter(
+            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+        )
         .filter(**{f"{rel}__isnull": False})
         .values(comic_to_collection, rel)
         .annotate(cnt=Count("pk", distinct=True))
@@ -896,24 +918,29 @@ def _comic_correlation_sql(
         through_table = through._meta.db_table
         collection_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
-        where = f"cf.folder_id = {collection_table}.id"
+        where = f"cf.folder_id = {collection_table}.id AND {_LIVE_COMIC_SQL}"
         # ``DISTINCT c2.id`` to defend against any future change that
         # makes the M2M traversal multi-row per comic; today each
         # (comic, folder) pair is unique so the DISTINCT is a no-op.
+        # The stamped-comic clause must land on the total_count too:
+        # the HAVING compares against that count, so filtering the
+        # numerator alone renders every intersection sort key empty.
         total_count = (
             f"SELECT COUNT(DISTINCT c2.id) FROM codex_comic c2 "  # noqa: S608
             f"INNER JOIN {through_table} cf2 ON cf2.comic_id = c2.id "
-            f"WHERE cf2.folder_id = {collection_table}.id"
+            f"WHERE cf2.folder_id = {collection_table}.id "
+            f"AND c2.missing_since IS NULL"
         )
         return extra_join, where, total_count
     comic_collection_col = _COMIC_COLLECTION_COL.get(collection_model)
     if comic_collection_col is None:
         return None
     collection_table = collection_model._meta.db_table
-    where = f"c.{comic_collection_col} = {collection_table}.id"
+    where = f"c.{comic_collection_col} = {collection_table}.id AND {_LIVE_COMIC_SQL}"
     total_count = (
         f"SELECT COUNT(*) FROM codex_comic "  # noqa: S608
-        f"WHERE {comic_collection_col} = {collection_table}.id"
+        f"WHERE {comic_collection_col} = {collection_table}.id "
+        f"AND missing_since IS NULL"
     )
     return "", where, total_count
 
@@ -1034,7 +1061,9 @@ def _compute_credits_intersection(
 ) -> None:
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
-        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        Comic.objects.filter(
+            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+        )
         .filter(credits__person__name__gt="")
         .values(
             comic_to_collection,
@@ -1073,7 +1102,9 @@ def _compute_identifiers_intersection(
 ) -> None:
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
-        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        Comic.objects.filter(
+            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+        )
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
             comic_to_collection,
@@ -1116,7 +1147,9 @@ def _compute_reprints_intersection(
 ) -> None:
     """Reprints have no ``name`` column; compose the label from their four."""
     rows = (
-        Comic.objects.filter(**{f"{comic_to_collection}__in": collection_pks})
+        Comic.objects.filter(
+            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+        )
         .filter(reprints__series_name__gt="")
         .values(comic_to_collection, *_REPRINT_VALUE_RELS)
         .annotate(cnt=Count("pk", distinct=True))

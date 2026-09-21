@@ -257,8 +257,15 @@ class SearchFilterView(BrowserFTSFilter):
         _, fts_text = self._preparse_search_query()
         if not fts_text:
             return None
+        # Not a leak -- this pk list is intersected with the ACL'd Q
+        # downstream. But scanner-stamped comics would consume the
+        # _FTS_PK_SWAP_MAX budget and can flip a search off the fast
+        # path for no benefit, so drop them here.
         pks = tuple(
-            Comic.objects.filter(comicfts__match=fts_text).values_list("pk", flat=True)
+            Comic.objects.filter(
+                self.get_missing_acl_filter(Comic, self.request.user),
+                comicfts__match=fts_text,
+            ).values_list("pk", flat=True)
         )
         if len(pks) > _FTS_PK_SWAP_MAX:
             return None
