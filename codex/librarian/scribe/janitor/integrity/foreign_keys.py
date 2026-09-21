@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 
 from comicbox.enums.comicbox import FileTypeEnum
 from django.apps import apps
+from django.core.exceptions import FieldDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
@@ -91,6 +92,23 @@ def _collect_comic_ids_for_table(cursor, table_name: str, rowids: set) -> set:
     return {row[0] for row in cursor.fetchall() if row[0] is not None}
 
 
+def _live_only(model) -> dict:
+    """
+    Keyword filter excluding rows kept for their retention window.
+
+    Empty for a historical model from a ``RunPython`` migration: these
+    functions also run at migration time against a registry whose Comic
+    and Folder predate ``missing_since``, and filtering on a column that
+    does not exist yet raises ``FieldError``. Nothing is stamped at
+    migration time either, so an empty filter is also correct.
+    """
+    try:
+        model._meta.get_field("missing_since")
+    except FieldDoesNotExist:
+        return {}
+    return {"missing_since__isnull": True}
+
+
 def _mark_comics_for_update(fix_comic_pks, log, apps_registry=None) -> None:
     """
     Mark comics with altered foreign keys for update.
@@ -103,8 +121,11 @@ def _mark_comics_for_update(fix_comic_pks, log, apps_registry=None) -> None:
         return
     registry = apps_registry if apps_registry is not None else apps
     comic_model: type[Comic] = registry.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+    # A comic kept for its retention window must not have its mtime
+    # faked or its ``updated_at`` bumped: both lie to the poller about a
+    # row whose file is not on disk to be re-read.
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
-        pk__in=fix_comic_pks
+        pk__in=fix_comic_pks, **_live_only(comic_model)
     ).only("stat", "updated_at")
     if not outdated_comics:
         return
@@ -431,8 +452,16 @@ def _compute_desired_folder_state(
     """Derive (needed (library_id, path) dirs, comic_id→ancestor-key set) from paths."""
     needed: set[tuple[int, str]] = set()
     desired_links: dict[int, set[tuple[int, str]]] = {}
-    rows = comic_model.objects.values_list("id", "path", "library_id").iterator(
-        chunk_size=2000
+    # A comic kept for its retention window contributes no desired
+    # folder state. Including it would re-create its ancestors with a
+    # fresh pk and a NULL stamp -- un-hiding the subtree -- and
+    # ``Folder.objects.create`` stats the path in ``presave``, which
+    # raises FileNotFoundError for a vanished dir and kills the whole
+    # nightly integrity task mid-run.
+    rows = (
+        comic_model.objects.filter(**_live_only(comic_model))
+        .values_list("id", "path", "library_id")
+        .iterator(chunk_size=2000)
     )
     for comic_id, comic_path, library_id in rows:
         if not _is_comic_path(comic_path):
@@ -541,11 +570,16 @@ def _prune_stale_folders(
     protected = set(
         comic_model.objects.values_list("parent_folder_id", flat=True).distinct()
     )
+    # A folder being kept for its retention window is not stale, it is
+    # pending. It holds no comics precisely because they vanished with
+    # it, so it lands in neither ``protected`` nor ``needed`` -- and this
+    # runs hours before the reaper, with the stamp still fresh. The
+    # reaper owns that row.
     stale = [
         (folder_id, path)
-        for folder_id, library_id, path in folder_model.objects.values_list(
-            "id", "library_id", "path"
-        )
+        for folder_id, library_id, path in folder_model.objects.filter(
+            **_live_only(folder_model)
+        ).values_list("id", "library_id", "path")
         if (library_id, path) not in needed and folder_id not in protected
     ]
     if not stale:

@@ -43,6 +43,12 @@ class Snapshot:
         # proves nothing, so the diff must not call them deleted.
         # ``DatabaseSnapshot`` never populates this.
         self._unreadable: set[str] = set()
+        # Rows already stamped as missing. They stay in ``paths`` -- a
+        # file that comes back must not read as ``added`` or it would
+        # mint a new row and lose the bookmarks -- but the diff must not
+        # re-report them as deleted on every poll. ``DiskSnapshot``
+        # never populates this.
+        self._missing: set[str] = set()
 
     def _inode(self, st: os.stat_result) -> tuple[int, int]:
         """Build a device:inode Key."""
@@ -75,6 +81,18 @@ class Snapshot:
         withholds these and everything under them from ``deleted``.
         """
         return frozenset(self._unreadable)
+
+    @property
+    def missing(self) -> frozenset[str]:
+        """
+        Paths whose rows are already stamped as missing.
+
+        Still present in ``paths``, so a returning file is neither added
+        nor deleted and keeps its row. ``SnapshotDiff`` subtracts these
+        from ``deleted`` so a pending row is reported once, not on every
+        poll for the whole retention window.
+        """
+        return frozenset(self._missing)
 
     def inode(self, path: str) -> tuple[int, int]:
         """Return (device, inode) for a path."""
@@ -263,6 +281,8 @@ class DatabaseSnapshot(Snapshot):
         for model, wp in self._walk(self._root, self._MODELS):
             st = self._create_stat(wp, force=self._force)
             self._set_lookups(wp["path"], st)
+            if wp["missing_since"] is not None:
+                self._missing.add(wp["path"])
             # Track which model owns each path so the poller's stale-
             # stat refresh can bulk-update by model. Model order in
             # ``_MODELS`` puts ``Comic`` after ``Folder``, so on the
@@ -272,12 +292,12 @@ class DatabaseSnapshot(Snapshot):
 
     @staticmethod
     def _walk(root: str, models: tuple) -> Iterator[tuple[type[Model], dict]]:
-        """Yield (model, {path, stat} dict) for every row across all models."""
+        """Yield (model, {path, stat, missing_since}) for every row."""
         for model in models:
             qs = (
                 model.objects.filter(library__path=root)
                 .order_by("path")
-                .values("path", "stat")
+                .values("path", "stat", "missing_since")
             )
             for wp in qs:
                 yield model, wp

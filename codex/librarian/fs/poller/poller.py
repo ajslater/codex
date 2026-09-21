@@ -220,7 +220,10 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         self.log.debug(debug_log)
 
         task = build_import_task(
-            library.pk, diff.to_events(), check_metadata_mtime=not force
+            library.pk,
+            diff.to_events(),
+            check_metadata_mtime=not force,
+            soft_delete=True,
         )
         if task is not None:
             self.librarian_queue.put(task)

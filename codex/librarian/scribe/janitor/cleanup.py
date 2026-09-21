@@ -186,6 +186,15 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     def _cleanup_fks_model(self, model, filter_dict, status):
         status.subtitle = model._meta.verbose_name_plural
         self.status_controller.update(status)
+        if model is Folder:
+            # Folder is the only ``_FK_MODELS`` entry that can be kept
+            # for a retention window, and this delete has no disk probe
+            # of its own. A stamped folder holds no comics precisely
+            # because they vanished with it, so it reads as orphaned
+            # here and would die in the same nightly band as the reaper
+            # that owns it. StoryArc is safe: a stamped comic keeps its
+            # StoryArcNumber rows.
+            filter_dict = {**filter_dict, "missing_since__isnull": True}
         qs = model.objects.filter(**filter_dict).distinct()
         count, _ = qs.delete()
         status.complete += count

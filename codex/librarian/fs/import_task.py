@@ -112,6 +112,7 @@ def build_import_task(
     events: Iterable[FSEvent],
     *,
     check_metadata_mtime: bool = True,
+    soft_delete: bool = False,
 ) -> ImportTask | None:
     """
     Build a deduplicated ImportTask from a batch of FSEvents.
@@ -125,6 +126,7 @@ def build_import_task(
     kwargs["files_created"] = kwargs.pop("files_added")
     kwargs["covers_created"] = kwargs.pop("covers_added")
     kwargs["check_metadata_mtime"] = check_metadata_mtime
+    kwargs["soft_delete"] = soft_delete
     task = ImportTask(**kwargs)
     if not task.total():
         return None

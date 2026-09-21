@@ -122,6 +122,14 @@ class SnapshotDiff:
             unchanged=frozenset(ref.paths & snapshot.paths),
         )
 
+        # A row already stamped as missing has been reported once. It
+        # stays in ``ref.paths`` so a returning file keeps its row, but
+        # re-reporting it every poll would pay the second look's wait
+        # each time, re-fire the mass-delete warning, keep the diff
+        # permanently non-empty, and make the importer's log claim a
+        # library is losing comics it still has.
+        data.deleted -= ref.missing
+
         # Before anything reads ``deleted`` — move detection included.
         self.withheld_deleted = self._withhold_unreadable(data, snapshot)
 
