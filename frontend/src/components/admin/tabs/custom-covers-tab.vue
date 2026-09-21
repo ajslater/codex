@@ -83,6 +83,7 @@
 import { mapActions, mapState } from "pinia";
 
 import { V4_BASE } from "@/api/v4/base";
+import LIMITS from "@/choices/limits.json";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
@@ -93,8 +94,8 @@ import { useAdminStore } from "@/stores/admin";
 
 const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
 const MAX_UPLOAD_FLAG_KEY = "CM";
-const MAX_UPLOAD_MIN = 1;
-const MAX_UPLOAD_MAX = 2048;
+// Generated from the same constant the serializer bounds against.
+const [MAX_UPLOAD_MIN, MAX_UPLOAD_MAX] = LIMITS.customCoverMaxUploadMb;
 // What .customCoverThumb used to say. Inline because CoverPopup's menu
 // branch is a fragment and a scoped class would never land on the image.
 const THUMB_STYLE = Object.freeze({
