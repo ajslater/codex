@@ -8,9 +8,10 @@ inconsistently. This document is the single source of truth for the admin visual
 language. New admin UI **composes the primitives below** rather than re-styling
 from scratch.
 
-Scope: `frontend/src/components/admin/`. The tokens and rules here are admin-
-first but intentionally compatible with the rest of the app's theme
-(`src/plugins/vuetify.js`).
+Scope: `frontend/src/components/admin/` for layout, spacing, radius and type.
+**§9 (Colour) and §10 (Cascade layers) apply to the whole frontend** — they
+record how the app as a whole uses the theme, not an admin-only convention. The
+tokens themselves live in `src/plugins/vuetify.js`.
 
 ---
 
@@ -155,3 +156,103 @@ compact rows.
 - [ ] Help prose via `.adminProse` (always `text-secondary`).
 - [ ] Spacing/type from the scale; no new magic numbers.
 - [ ] Destructive actions via `ConfirmDialog`; buttons follow §6.
+- [ ] Colour via §9; scoped styles layered per §10.
+
+---
+
+## 9. Colour (whole frontend)
+
+Every colour in the app comes from the theme in `src/plugins/vuetify.js`. There
+are exactly two ways to reach one, and a short list of things not to do.
+
+**In SCSS**, read the CSS variable:
+
+```scss
+color: rgb(var(--v-theme-text-secondary));
+background-color: rgba(var(--v-theme-primary), 0.15);
+```
+
+The eight custom tokens are kebab-case, like Vuetify's own (`surface-light`,
+`primary-darken-1`). `tests/unit/theme-contract.test.js` fails on a camelCase
+`--v-theme-` variable: the old spelling resolves to nothing and the declaration
+is dropped in silence.
+
+**In a template**, pass the token's _name_ to a `color` prop, never a hex:
+
+```vue
+<v-btn color="primary" />
+```
+
+Same for component defaults in `plugins/vuetify.js` — `color: "primary"`, not
+`codexTheme.colors.primary`. A resolved hex lands as an inline style on the
+element and stops following the theme; the contract test fails on one.
+
+**Do not:**
+
+- Write a hex literal anywhere outside `plugins/vuetify.js` and
+  `book-cover.scss`. (The reader's `$stack-shadow-*` values and the
+  `rgba(0, 0, 0, ·)` scrims are deliberate exceptions: they are dark-theme
+  constants, not theme colours.)
+- Read `$vuetify.theme.current.colors` in JS to resolve a hex.
+  `metadata-chip.vue` used to, per chip per render, and now returns the token
+  name for the `:color` prop instead. Where JS really must produce a colour
+  string, build the CSS variable from a token name — `tagging-status-table.vue`
+  keeps token names in `STATUS_META` and emits `rgb(var(--v-theme-<token>))`.
+- Hardcode a value Vuetify already publishes. Prefer
+  `rgba(var(--v-border-color), var(--v-border-opacity))` over a literal `0.12`.
+
+Text-colour roles are in §3 and apply everywhere, not only in admin.
+
+---
+
+## 10. Cascade layers (whole frontend)
+
+The order is declared once, inline, in `codex/templates/index.html`:
+
+```css
+@layer vuetify-core, vuetify-components, vuetify-overrides,
+       codex-base, codex-components,
+       vuetify-utilities, vuetify-final, codex-trumps;
+```
+
+It lives there and nowhere else. A browser fixes a layer's position the first
+time it sees the name, and django-vite links imported chunks' CSS — Vuetify
+component chunks open with `@layer vuetify-components` — before the entry's own.
+A declaration shipped through `main.js` would arrive second. Inline in the
+template cannot be out of order and cannot 404.
+
+**Where each kind of stylesheet goes:**
+
+| Stylesheet                                                      | Layer                                               |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| `src/styles/global.scss`                                        | `codex-base`                                        |
+| A shared SCSS partial that emits CSS                            | `codex-components`, declared **inside the partial** |
+| A component's scoped `<style>` that overrides Vuetify internals | `codex-components`                                  |
+| A rule that must beat a Vuetify utility class                   | `codex-trumps`, with a comment saying why           |
+
+**What the order buys.** `codex-*` after `vuetify-components` means a codex rule
+beats Vuetify's component CSS without `!important`. `codex-*` before
+`vuetify-utilities` means a `color` prop still wins — which is why a snackbar
+with `color="error"` paints red without the carve-out it used to need.
+`codex-components` after `codex-base` lets a component's own rule beat the
+global `a` rule. Never override `vuetify-final`: it holds `forced-colors`
+accessibility fixes.
+
+**Two Sass rules, both load-bearing:**
+
+1. A partial that emits CSS **wraps its own rules** in `@layer`. `@use` emits a
+   partial's CSS at the top of the consuming stylesheet, _outside_ any `@layer`
+   the consumer writes, so a consumer-side wrap silently leaves the shared rules
+   unlayered — and unlayered CSS beats all layered CSS.
+2. `@use` inside `@layer { }` is a Sass error. Keep `@use`, `@forward` and
+   `$variables` above the block.
+
+Vue's scoping and `:deep()` both survive the wrap: the `[data-v-*]` attribute
+lands inside the layer block.
+
+**`!important` is no longer the tool for beating Vuetify.** If a rule needs to
+win, the answer is a layer, not a flag. 76 declarations carried it when the
+theme work began; the colour ones are gone.
+
+**A new unscoped `<style>` block is not allowed.** A shared global class goes in
+`src/styles/global.scss`; anything else is scoped, or a component.
