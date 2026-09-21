@@ -11,7 +11,6 @@ derive from it: ``Comic.age_rating_metron_index`` and the FTS watermark
 
 import importlib
 import shutil
-from pathlib import Path
 from typing import override
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
@@ -29,11 +28,12 @@ from codex.models import (
     Volume,
 )
 from codex.models.age_rating import UNRANKED_METRON_INDEX
+from tests.tmp_dirs import tmp_dir
 
 _MIGRATION = importlib.import_module("codex.migrations.0043_comicbox_tagging_defaults")
 relink_age_rating_metron = _MIGRATION.relink_age_rating_metron
 
-TMP_DIR = Path("/tmp/codex.tests.age-rating-relink")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.age-rating-relink")
 
 
 class AgeRatingRelinkMigrationTestCase(TestCase):

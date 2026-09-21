@@ -16,8 +16,7 @@ import os
 import shutil
 from base64 import b64encode
 from http import HTTPStatus
-from pathlib import Path
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 from unittest.mock import patch
 
 from django.contrib.auth.models import Group, User
@@ -30,9 +29,13 @@ from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.auth import GroupAuth
 from codex.startup import init_admin_flags
 from codex.urls.const import COVER_MAX_AGE
+from tests.tmp_dirs import tmp_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_TMP_DIR: Final = Path("/tmp/codex.tests.covers")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.covers")
 _OPEN_DIR: Final = _TMP_DIR / "open"
 _PRIVATE_DIR: Final = _TMP_DIR / "private"
 _COVERS_ROOT: Final = _TMP_DIR / "covers"
