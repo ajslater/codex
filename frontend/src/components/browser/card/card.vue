@@ -216,7 +216,7 @@ export default {
 .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.55);
   border: solid thin;
-  border-color: rbg(var(--v-theme-primary));
+  border-color: rgb(var(--v-theme-primary));
 }
 
 .browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
