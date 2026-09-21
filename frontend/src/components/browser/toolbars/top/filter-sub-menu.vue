@@ -384,7 +384,7 @@ export default {
   }
 
   .clearFilter {
-    color: black;
+    color: rgb(var(--v-theme-on-primary));
     background-color: rgb(var(--v-theme-primary));
     opacity: 0.7;
   }

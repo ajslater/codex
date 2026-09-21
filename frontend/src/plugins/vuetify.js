@@ -11,6 +11,12 @@ const codexTheme = {
   colors: {
     // -- built in ---
     primary: "#CC7B19", // codex orange // '#1976D2' - light blue
+    /*
+     * Declared so the sites that paint the orange themselves and the
+     * `bg-primary` class Vuetify generates agree on one foreground.
+     * Left underived, `genOnColors` picks white for this orange.
+     */
+    "on-primary": "#000000",
     "primary-darken-1": "#965B13",
     /*
      * secondary: "#03DAC5", // blue
