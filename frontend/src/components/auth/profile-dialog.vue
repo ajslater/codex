@@ -269,7 +269,7 @@ export default {
   // re-validates the *whole* form on every keystroke — that flashed "required"
   // errors on fields the user hadn't touched yet. Each field still validates
   // itself inline as you type, and `canSubmit`/`isValid` gate the Save button
-  // synchronously. (The mixin is still used for keyup blocking + form state.)
+  // synchronously. (The mixin is still used for form state.)
   methods: {
     ...mapActions(useAuthStore, [
       "updateProfile",

@@ -2,7 +2,6 @@
  * Mixin for auth form dialogs: login, change-password.
  *
  * Provides:
- *   - setup(): blocks keyup propagation while dialog is open (via useEventListener)
  *   - data.submitButtonEnabled
  *   - Deep watcher on `credentials` that auto-validates via $refs.form
  *   - Computed: formErrors, formSuccess from commonStore
@@ -13,20 +12,10 @@
  *   - A <v-form ref="form"> in their template
  */
 import { mapState } from "pinia";
-import { useEventListener } from "@vueuse/core";
 
 import { useCommonStore } from "@/stores/common";
 
 export default {
-  setup() {
-    /*
-     * Prevent keystrokes from leaking through dialogs to underlying views
-     * (e.g. reader keyboard shortcuts).
-     */
-    useEventListener(globalThis, "keyup", (event) => {
-      event.stopImmediatePropagation();
-    });
-  },
   data() {
     return {
       submitButtonEnabled: false,
