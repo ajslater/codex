@@ -3,25 +3,25 @@
  *
  *   - The password minimum applies in register mode only; login accepts any
  *     non-empty password (the server decides).
- *   - The minimum comes from the auth store — the store is seeded with a
- *     value that differs from its default, so a misspelled store key or a
- *     hardcoded 4 can never silently pass again.
+ *   - The minimum comes from the generated ``limits.json``, which the
+ *     server derives from the same constant it enforces, so a hardcoded
+ *     4 in the component can never drift from it again (#867).
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
+import LIMITS from "@/choices/limits.json";
 import vuetify from "@/plugins/vuetify";
 
-const MIN = 6; // deliberately not the store default of 4
+const MIN = LIMITS.passwordMinLength;
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 
 function mountDialog() {
   const pinia = createTestingPinia({
     initialState: {
       auth: {
-        MIN_PASSWORD_LENGTH: MIN,
         showLoginDialog: true,
         adminFlags: {
           registration: true,

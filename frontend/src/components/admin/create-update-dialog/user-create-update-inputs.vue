@@ -72,6 +72,7 @@
 <script>
 import { mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
@@ -118,8 +119,8 @@ export default {
           (v) => !!v || "Password is required",
           (v) =>
             !v ||
-            v.length >= this.minPasswordLength ||
-            `Password must be at least ${this.minPasswordLength} characters`,
+            v.length >= LIMITS.passwordMinLength ||
+            `Password must be at least ${LIMITS.passwordMinLength} characters`,
         ],
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
@@ -133,9 +134,7 @@ export default {
       users: (state) => state.users,
       ageRatingMetrons: (state) => state.ageRatingMetrons,
     }),
-    ...mapState(useAuthStore, {
-      minPasswordLength: (state) => state.MIN_PASSWORD_LENGTH,
-    }),
+    ...mapState(useAuthStore, {}),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },
