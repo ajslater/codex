@@ -86,7 +86,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
 
     @staticmethod
     def _build_pk_map_single_key(
-        model: type["BaseModel"], rel: str, key_tuples: set[tuple]
+        model: type["BaseModel"], rel: str, key_tuples: set[tuple], scope: Q
     ) -> dict[tuple, int]:
         """Resolve key tuples for a single-column model via batched IN."""
         pk_map: dict[tuple, int] = {}
@@ -94,7 +94,9 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         values = sorted({tup[0] for tup in key_tuples if tup})
         for start in range(0, len(values), IMPORTER_LINK_FK_BATCH_SIZE):
             batch = values[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
-            rows = model.objects.filter(**{f"{rel}__in": batch}).values_list("pk", rel)
+            rows = model.objects.filter(scope, **{f"{rel}__in": batch}).values_list(
+                "pk", rel
+            )
             for pk, key in rows:
                 pk_map[(key,)] = pk
         return pk_map
@@ -109,7 +111,11 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
 
     @classmethod
     def _build_pk_map_multi_key(
-        cls, model: type["BaseModel"], rels: tuple[str, ...], key_tuples: set[tuple]
+        cls,
+        model: type["BaseModel"],
+        rels: tuple[str, ...],
+        key_tuples: set[tuple],
+        scope: Q,
     ) -> dict[tuple, int]:
         """
         Resolve key tuples for a multi-column model.
@@ -133,7 +139,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
             for start in range(0, len(selector_values), IMPORTER_LINK_FK_BATCH_SIZE):
                 batch = selector_values[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
                 or_q = Q(**{f"{selector_rel}__in": batch})
-                pk_map.update(cls._build_pk_map_rows(model, rels, or_q))
+                pk_map.update(cls._build_pk_map_rows(model, rels, scope & or_q))
         # Q-OR chain batched at a planner-friendly cap.
         tuples = sorted(residual_tuples, key=_none_safe_key)
         for start in range(0, len(tuples), _M2M_OR_CHAIN_CAP):
@@ -141,7 +147,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
             or_q = Q()
             for tup in batch:
                 or_q |= Q(**dict(zip(rels, tup, strict=False)))
-            pk_map.update(cls._build_pk_map_rows(model, rels, or_q))
+            pk_map.update(cls._build_pk_map_rows(model, rels, scope & or_q))
         return pk_map
 
     def _build_field_pk_map(
@@ -160,9 +166,11 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         field = Comic._meta.get_field(field_name)
         model: type[BaseModel] = field.related_model  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
         rels = FIELD_NAME_KEYS_REL_MAP[field_name]
+        # ``folders`` keys on ``path``, which is only unique within a library.
+        scope = self.library_scope(model)
         if len(rels) == 1:
-            return self._build_pk_map_single_key(model, rels[0], key_tuples)
-        return self._build_pk_map_multi_key(model, rels, key_tuples)
+            return self._build_pk_map_single_key(model, rels[0], key_tuples, scope)
+        return self._build_pk_map_multi_key(model, rels, key_tuples, scope)
 
     def _build_m2m_pk_maps(
         self, per_field: Mapping[str, set[tuple]]
@@ -224,7 +232,9 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
 
         # Phase 3: per-comic stitch — pure dict lookups, no SQL.
         comic_paths = tuple(link_m2ms.keys())
-        comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
+        comics = Comic.objects.filter(
+            self.library_scope(Comic), path__in=comic_paths
+        ).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = link_m2ms.get(comic_path, {})
             for field_name, value_tuples in md.items():

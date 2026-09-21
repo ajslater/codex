@@ -15,6 +15,7 @@ from codex.models import (
     Bookmark,
     Comic,
     Favorite,
+    Folder,
     Imprint,
     Library,
     Publisher,
@@ -290,6 +291,91 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         # Still one row per key.
         assert User.objects.filter(username="alice").count() == 1
         assert AdminFlag.objects.filter(key="AU").count() == 1
+
+
+class OverlappingLibraryRestoreTests(_SidecarRestoreCase):
+    """
+    The sidecar keys user data on a path, which two libraries can share.
+
+    ``WatchedPath`` is unique on ``(library, path)``, so nested library
+    roots hold one file under two Comic rows. The sidecar records no
+    library, so a restore that resolved the path to an arbitrary single
+    row dropped the user's reading position in whichever library they
+    actually browse.
+    """
+
+    def _seed_overlapping_libraries(self) -> dict:
+        """One file on disk, tracked by an outer and an inner library."""
+        user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)
+        inner_dir = _TMP_DIR / "comics" / "inner"
+        inner_dir.mkdir(parents=True, exist_ok=True)
+        comic_path = inner_dir / "x.cbz"
+        comic_path.touch()
+        outer = Library.objects.create(path=str(_TMP_DIR / "comics"))
+        inner = Library.objects.create(path=str(inner_dir))
+
+        publisher = Publisher.objects.create(name="Pub")
+        imprint = Imprint.objects.create(name="Imp", publisher=publisher)
+        series = Series.objects.create(name="Ser", publisher=publisher, imprint=imprint)
+        volume = Volume.objects.create(
+            name="1", publisher=publisher, imprint=imprint, series=series
+        )
+        comics = [
+            Comic.objects.create(
+                library=library,
+                path=str(comic_path),
+                issue_number=1,
+                name="x",
+                publisher=publisher,
+                imprint=imprint,
+                series=series,
+                volume=volume,
+                size=1,
+            )
+            for library in (outer, inner)
+        ]
+        folders = [
+            Folder.objects.create(
+                library=library, path=str(inner_dir), name=inner_dir.name
+            )
+            for library in (outer, inner)
+        ]
+        return {"user": user, "comics": comics, "folders": folders}
+
+    def test_bookmark_restores_into_every_overlapping_library(self) -> None:
+        seed = self._seed_overlapping_libraries()
+        Bookmark.objects.create(
+            user=seed["user"],
+            comic=seed["comics"][0],
+            page=_SEED_BOOKMARK_PAGE,
+            finished=True,
+        )
+        snapshot = self._snapshot_sidecar()
+        Bookmark.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("bookmarks", 0) >= 1
+        for comic in seed["comics"]:
+            bookmark = Bookmark.objects.get(user=seed["user"], comic=comic)
+            assert bookmark.page == _SEED_BOOKMARK_PAGE
+            assert bookmark.finished is True
+
+    def test_folder_favorite_restores_into_every_overlapping_library(self) -> None:
+        seed = self._seed_overlapping_libraries()
+        Favorite.objects.create(
+            user=seed["user"], collection="folders", target_id=seed["folders"][0].pk
+        )
+        snapshot = self._snapshot_sidecar()
+        Favorite.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("favorites", 0) >= 1
+        for folder in seed["folders"]:
+            assert Favorite.objects.filter(
+                user=seed["user"], collection="folders", target_id=folder.pk
+            ).exists()
 
 
 class LegacyKeyRenameTests(TestCase):
