@@ -260,11 +260,9 @@ class DatabaseSnapshot(Snapshot):
         logger_,
         *,
         ignore_device: bool = True,
-        force: bool = False,
     ) -> None:
         """Build snapshot from database records for the given library root."""
         super().__init__(root, logger_, ignore_device=ignore_device)
-        self._force = force
         self._init_walk()
 
     def _init_walk(self):
@@ -279,7 +277,7 @@ class DatabaseSnapshot(Snapshot):
         self._set_lookups(self._root, root_stat)
 
         for model, wp in self._walk(self._root, self._MODELS):
-            st = self._create_stat(wp, force=self._force)
+            st = self._create_stat(wp)
             self._set_lookups(wp["path"], st)
             if wp["missing_since"] is not None:
                 self._missing.add(wp["path"])
@@ -302,8 +300,20 @@ class DatabaseSnapshot(Snapshot):
             for wp in qs:
                 yield model, wp
 
-    def _create_stat(self, wp: dict, *, force: bool) -> os.stat_result:
-        """Turn a database JSON stat array into an os.stat_result."""
+    def _create_stat(self, wp: dict) -> os.stat_result:
+        """
+        Turn a database JSON stat array into an os.stat_result.
+
+        The stat this returns is not only the modified-or-not test: it
+        is the move detector's evidence base, and
+        ``SnapshotDiff._signature`` pairs an inode-losing move on
+        (name, size, mtime). A Force Update used to zero every mtime
+        here to make everything read as modified, which also made every
+        signature unmatchable — so force turned a move into a delete
+        plus an add and stamped the comic's row, bookmarks and all.
+        Force is a property of the diff, not of what the database
+        knows; ``SnapshotDiff(force=True)`` carries it now.
+        """
         stat = wp["stat"]
         if not stat or len(stat) != self._STAT_LEN:
             path = Path(wp["path"])
@@ -316,9 +326,5 @@ class DatabaseSnapshot(Snapshot):
                     f"Force delete missing path with missing db stat: {path}"
                 )
                 stat = list(Comic.ZERO_STAT)
-
-        if force:
-            stat = list(stat)
-            stat[8] = 0.0  # Fake mtime triggers modified event
 
         return os.stat_result(tuple(stat))

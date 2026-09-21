@@ -55,6 +55,7 @@ border-radius: 128px;
       outage no longer loses its read progress.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Force Update no longer costs a moved comic its bookmarks.
     - Two libraries whose paths overlap no longer destroy each other's comics
       and bookmarks.
 
