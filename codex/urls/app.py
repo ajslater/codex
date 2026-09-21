@@ -3,11 +3,11 @@
 from typing import Final
 
 from django.urls import path, re_path
-from django.views.decorators.cache import cache_control
 from django.views.generic import RedirectView
 
 from codex.views.download import FileView
 from codex.views.frontend import IndexView
+from codex.views.util import cache_control_2xx
 
 app_name = "app"
 
@@ -27,12 +27,12 @@ urlpatterns = [
     path("read/<int:pk>", IndexView.as_view(), name="reader"),
     path(
         "read/<int:pk>/book.pdf",
-        cache_control(max_age=BOOK_AGE)(FileView.as_view()),
+        cache_control_2xx(max_age=BOOK_AGE)(FileView.as_view()),
         name="reader_pdf",
     ),
     path(
         "c/<int:pk>/book.pdf",
-        cache_control(max_age=BOOK_AGE)(FileView.as_view()),
+        cache_control_2xx(max_age=BOOK_AGE)(FileView.as_view()),
         name="pdf",
     ),
     path("admin/<str:tab>", IndexView.as_view(), name="admin"),
