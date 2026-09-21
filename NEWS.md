@@ -41,6 +41,8 @@ border-radius: 128px;
     - An installed Codex gets a dark app bar instead of an orange one.
     - A tag write refused because another archive in the same batch converts to
       the same name now links to that comic.
+    - Cover thumbnails in table mode and on the custom-covers admin tab open
+      with the keyboard.
 
 ## v2.3.3
 

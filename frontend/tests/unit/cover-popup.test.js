@@ -38,10 +38,11 @@ beforeAll(() => {
 
 let wrappers = [];
 
-function mountPopup(props = {}) {
+function mountPopup(props = {}, attrs = {}) {
   const wrapper = mount(CoverPopup, {
     attachTo: document.body,
     props: { thumbSrc: THUMB, fullSrc: FULL, ...props },
+    attrs,
     global: { plugins: [vuetify] },
   });
   wrappers.push(wrapper);
@@ -124,6 +125,28 @@ describe("CoverPopup", () => {
     const wrapper = mountPopup();
     await wrapper.find("img").trigger("error");
     expect(wrapper.emitted("error")).toHaveLength(1);
+  });
+
+  test("a parent's style object merges with the size props", () => {
+    // The two migrated popups carry their crop and radius this way: a
+    // scoped parent class cannot reach a VMenu fragment.
+    const img = mountPopup(
+      { thumbWidth: "60px", thumbHeight: "90px" },
+      { style: { objectFit: "cover", borderRadius: "4px" } },
+    ).find("img");
+    const style = img.attributes("style");
+
+    expect(style).toContain("object-fit: cover");
+    expect(style).toContain("border-radius: 4px");
+    expect(style).toContain("width: 60px");
+    expect(style).toContain("height: 90px");
+  });
+
+  test("the thumb and the popup can show different images", () => {
+    // The match dialog's case: a small thumbnail, a large popup. The
+    // legacy popups pass the same url for both, which still works.
+    const wrapper = mountPopup({ thumbSrc: THUMB, fullSrc: FULL });
+    expect(wrapper.find("img").attributes("src")).toBe(THUMB);
   });
 });
 

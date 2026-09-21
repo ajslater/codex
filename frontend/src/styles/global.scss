@@ -2,11 +2,14 @@
  * The app's global styles: everything that cannot be scoped to one
  * component.
  *
- * These lived in four unscoped <style> blocks across app.vue,
- * settings-drawer.vue, browser-table-cell.vue and custom-covers-tab.vue,
- * each needing an eslint-disable and two of them holding a byte-for-byte
- * copy of the same rules. An unscoped block in a component is a global
- * rule filed under whichever component happened to need it first.
+ * These lived in unscoped <style> blocks across app.vue and
+ * settings-drawer.vue, each needing an eslint-disable. An unscoped block
+ * in a component is a global rule filed under whichever component
+ * happened to need it first.
+ *
+ * The cover popup used to live here too, in two byte-identical copies.
+ * It is a component now — components/cover-popup.vue — because it was
+ * never global styling, only a component nobody had written yet.
  *
  * Imported once from main.js, right after vuetify/styles.
  */
@@ -59,26 +62,4 @@ a {
   padding-right: 10px;
   font-weight: bolder;
   color: rgb(var(--v-theme-text-disabled));
-}
-
-/*
- * Cover popup — rendered into a v-menu's teleport target, so it cannot
- * be scoped to the component that opens it. Used by the browser table's
- * cover cell and by the admin custom-covers grid, which is why it is
- * global rather than duplicated. Minimal chrome: just the image, a
- * small radius, and a soft shadow so it floats above the table without
- * a hard border. The popup grows from its activator origin via
- * Vuetify's scale-transition (set on the v-menu itself).
- */
-.coverPopup {
-  display: block;
-  cursor: zoom-out;
-}
-
-.coverPopup img {
-  display: block;
-  max-height: 70vh;
-  max-width: 60vw;
-  border-radius: 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
