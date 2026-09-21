@@ -323,6 +323,7 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import { APP_BASE } from "@/api/v4/base";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
@@ -351,6 +352,7 @@ const EDITABLE_FIELDS = Object.freeze([
 const URL_REGEX = /^https?:\/\/\S+$/;
 const URL_RULES = Object.freeze([
   (v) => !v || URL_REGEX.test(v) || "Enter a valid https URL",
+  ["$maxLength", LIMITS.oidcUrlMaxLength],
 ]);
 // Registration, Verify New User Email, Non-Users (anonymous browsing).
 const ACCESS_FLAG_KEYS = Object.freeze(["RG", "RV", "NU"]);

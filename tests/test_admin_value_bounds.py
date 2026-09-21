@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.limits import MAX_NAME_LEN
 from codex.models import AdminFlag, EmailSettings
 from codex.settings.db import (
     get_browser_max_obj_per_page,
@@ -174,5 +175,66 @@ class EmailSettingsBoundsTestCase(TestCase):
     def test_an_over_long_timeout_is_rejected(self) -> None:
         """Ten minutes is already generous for an SMTP handshake."""
         response = self._put({"timeout": 6000})
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.content
+
+
+class EmailAddressTypeTestCase(TestCase):
+    """``from_address`` is the envelope sender of every outbound message."""
+
+    @override
+    def setUp(self) -> None:
+        """Log in an admin client and ensure the settings singleton."""
+        init_admin_flags()
+        EmailSettings.objects.get_or_create(pk=1)
+        admin = User.objects.create_user(
+            username="admin", password=_TEST_PASSWORD, is_staff=True
+        )
+        self.client = Client()
+        self.client.force_login(admin)
+
+    def _put(self, data: dict):
+        return self.client.put(
+            "/api/v4/admin/email-settings",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+    def test_a_real_address_is_accepted(self) -> None:
+        """Sanity."""
+        response = self._put({"from_address": "codex@example.com"})
+
+        assert response.status_code == HTTPStatus.OK, response.content
+        assert EmailSettings.objects.get(pk=1).from_address == "codex@example.com"
+
+    def test_blank_stays_allowed(self) -> None:
+        """Blank is the documented "fall back to the SMTP username" state."""
+        response = self._put({"from_address": ""})
+
+        assert response.status_code == HTTPStatus.OK, response.content
+
+    def test_a_non_address_is_rejected(self) -> None:
+        """
+        It was a CharField with client-only validation.
+
+        So anything at all could be saved as the envelope sender, and a
+        malformed one fails at send time instead of at save time.
+        """
+        before = EmailSettings.objects.get(pk=1).from_address
+
+        response = self._put({"from_address": "not an address"})
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.content
+        assert EmailSettings.objects.get(pk=1).from_address == before
+
+    def test_an_over_long_host_is_rejected(self) -> None:
+        """The test-send serializer carried no max_length at all."""
+        response = self.client.post(
+            "/api/v4/admin/email-settings/test",
+            data=json.dumps(
+                {"recipient": "to@example.com", "host": "h" * (MAX_NAME_LEN + 1)}
+            ),
+            content_type="application/json",
+        )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response.content

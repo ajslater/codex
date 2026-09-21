@@ -34,6 +34,7 @@
             v-model="draft.host"
             label="Host"
             placeholder="smtp.example.com"
+            :rules="hostRules"
             hide-details="auto"
             density="compact"
           />
@@ -223,6 +224,7 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
@@ -239,6 +241,10 @@ const EDITABLE_FIELDS = Object.freeze([
   "subjectPrefix",
 ]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+// Length only. The removed hostname regex refused ``localhost`` and every
+// Compose service name; the column width is the one thing the server
+// actually enforces on this field.
+const HOST_RULES = Object.freeze([["$maxLength", LIMITS.maxNameLen]]);
 const PORT_MIN = 1;
 const PORT_MAX = 65_535;
 const TIMEOUT_MIN = 1;
@@ -287,6 +293,7 @@ export default {
       portRules: PORT_RULES,
       timeoutRules: TIMEOUT_RULES,
       emailRules: EMAIL_RULES,
+      hostRules: HOST_RULES,
       recipientRules: RECIPIENT_RULES,
     };
   },
