@@ -21,16 +21,15 @@ export default {
   }
 
   :deep(.v-empty-state__action-btn .v-btn__content) {
-    color: black;
+    color: rgb(var(--v-theme-on-primary));
   }
 }
 
 /* VEmptyState hands its action button `color: surface-variant`, which
  * arrives as a bg-* utility class — and utilities deliberately outrank
  * codex-components. Beating a utility is what codex-trumps is for.
- * Passing `color="primary"` instead would make Vuetify derive
- * `on-primary` as white and flip the black label above, which is a
- * separate look-at-it decision. */
+ * Passing `color="primary"` instead would also hand `props.color` to
+ * the icon (VEmptyState.js), turning every empty-state icon orange. */
 @layer codex-trumps {
   :deep(.v-empty-state__action-btn) {
     background-color: rgb(var(--v-theme-primary));

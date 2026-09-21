@@ -35,6 +35,7 @@ describe("theme contract", () => {
   test("declares exactly these colours", () => {
     expect(theme.colors).toEqual({
       primary: "#CC7B19",
+      "on-primary": "#000000",
       "primary-darken-1": "#965B13",
       error: "#DC143C",
       success: "#14dc3c",

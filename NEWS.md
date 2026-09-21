@@ -43,6 +43,7 @@ border-radius: 128px;
       the same name now links to that comic.
     - Cover thumbnails in table mode and on the custom-covers admin tab open
       with the keyboard.
+    - Buttons on the orange accent use dark text.
 
 ## v2.3.3
 
