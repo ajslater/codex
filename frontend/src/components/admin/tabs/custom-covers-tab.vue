@@ -104,6 +104,15 @@ const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
 const MAX_UPLOAD_FLAG_KEY = "CM";
 const MAX_UPLOAD_MIN = 1;
 const MAX_UPLOAD_MAX = 2048;
+const MAX_UPLOAD_RULES = Object.freeze([
+  (v) => {
+    const n = Number(v);
+    return (
+      (Number.isInteger(n) && n >= MAX_UPLOAD_MIN && n <= MAX_UPLOAD_MAX) ||
+      `Must be ${MAX_UPLOAD_MIN}–${MAX_UPLOAD_MAX}`
+    );
+  },
+]);
 
 export default {
   name: "AdminCustomCoversTab",
@@ -118,6 +127,7 @@ export default {
     return {
       maxUploadDraft: "",
       saving: false,
+      maxUploadRules: MAX_UPLOAD_RULES,
     };
   },
   computed: {
@@ -135,19 +145,6 @@ export default {
     },
     maxUploadChanged() {
       return String(this.maxUploadDraft) !== String(this.maxUploadMb);
-    },
-    maxUploadRules() {
-      return [
-        (v) => {
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) &&
-              n >= MAX_UPLOAD_MIN &&
-              n <= MAX_UPLOAD_MAX) ||
-            `Must be ${MAX_UPLOAD_MIN}–${MAX_UPLOAD_MAX}`
-          );
-        },
-      ];
     },
     headers() {
       return [

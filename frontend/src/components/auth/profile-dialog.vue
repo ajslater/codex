@@ -112,6 +112,13 @@ import AuthTokenDialog from "@/components/auth/auth-token.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
+const PROFILE_RULES = Object.freeze({
+  username: Object.freeze([(v) => Boolean(v) || "Username is required"]),
+  email: Object.freeze([
+    (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
+  ]),
+});
+
 export default {
   name: "ProfileDialog",
   components: {
@@ -133,6 +140,7 @@ export default {
       passwordPanel: null,
       emailPanel: null,
       mdiAccountCog,
+      rules: PROFILE_RULES,
     };
   },
   computed: {
@@ -154,14 +162,6 @@ export default {
     },
     passwordSectionActive() {
       return this.passwordPanel === "password";
-    },
-    rules() {
-      return {
-        username: [(v) => Boolean(v) || "Username is required"],
-        email: [
-          (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
-        ],
-      };
     },
     passwordRules() {
       // Only enforce password validators when the section is open; with it

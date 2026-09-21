@@ -246,6 +246,36 @@ const PORT_MIN = 1;
 const PORT_MAX = 65_535;
 const TIMEOUT_MIN = 1;
 const TIMEOUT_MAX = 600;
+const HOST_RULES = Object.freeze([
+  (v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname",
+]);
+const PORT_RULES = Object.freeze([
+  (v) => {
+    if (v === "" || v === null || v === undefined) return true;
+    const n = Number(v);
+    return (
+      (Number.isInteger(n) && n >= PORT_MIN && n <= PORT_MAX) ||
+      `Port must be between ${PORT_MIN} and ${PORT_MAX}`
+    );
+  },
+]);
+const TIMEOUT_RULES = Object.freeze([
+  (v) => {
+    if (v === "" || v === null || v === undefined) return true;
+    const n = Number(v);
+    return (
+      (Number.isInteger(n) && n >= TIMEOUT_MIN && n <= TIMEOUT_MAX) ||
+      `Timeout must be between ${TIMEOUT_MIN} and ${TIMEOUT_MAX} seconds`
+    );
+  },
+]);
+const EMAIL_RULES = Object.freeze([
+  (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",
+]);
+const RECIPIENT_RULES = Object.freeze([
+  (v) => !!v || "Recipient is required",
+  (v) => EMAIL_REGEX.test(v) || "Enter a valid email address",
+]);
 
 function pickFields(source) {
   const out = {};
@@ -270,6 +300,11 @@ export default {
       testing: false,
       testResult: undefined,
       saving: false,
+      hostRules: HOST_RULES,
+      portRules: PORT_RULES,
+      timeoutRules: TIMEOUT_RULES,
+      emailRules: EMAIL_RULES,
+      recipientRules: RECIPIENT_RULES,
     };
   },
   computed: {
@@ -288,44 +323,6 @@ export default {
         return "Will be saved with the rest of the SMTP settings.";
       }
       return this.settings.passwordSet ? "Credential set" : "Not configured";
-    },
-    hostRules() {
-      return [(v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname"];
-    },
-    portRules() {
-      return [
-        (v) => {
-          if (v === "" || v === null || v === undefined) return true;
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) && n >= PORT_MIN && n <= PORT_MAX) ||
-            `Port must be between ${PORT_MIN} and ${PORT_MAX}`
-          );
-        },
-      ];
-    },
-    timeoutRules() {
-      return [
-        (v) => {
-          if (v === "" || v === null || v === undefined) return true;
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) && n >= TIMEOUT_MIN && n <= TIMEOUT_MAX) ||
-            `Timeout must be between ${TIMEOUT_MIN} and ${TIMEOUT_MAX} seconds`
-          );
-        },
-      ];
-    },
-    emailRules() {
-      return [
-        (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",
-      ];
-    },
-    recipientRules() {
-      return [
-        (v) => !!v || "Recipient is required",
-        (v) => EMAIL_REGEX.test(v) || "Enter a valid email address",
-      ];
     },
   },
   watch: {
