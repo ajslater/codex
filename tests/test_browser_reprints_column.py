@@ -9,7 +9,6 @@ tests pin all of them to :meth:`Reprint.compose_name`'s output.
 
 import json
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -20,10 +19,11 @@ from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.named import Reprint
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-TMP_DIR = Path("/tmp/codex.tests.browser_reprints_column")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.browser_reprints_column")
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 

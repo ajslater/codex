@@ -2,7 +2,6 @@
 
 import importlib
 from decimal import Decimal
-from pathlib import Path
 from typing import override
 
 from django.apps import apps
@@ -11,6 +10,7 @@ from django.test import TestCase
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.fields import CoercingDecimalField
 from codex.models.settings import SettingsBrowser, SettingsBrowserShow
+from tests.tmp_dirs import tmp_dir
 
 # Migration filenames start with digits, which Python's import syntax can't
 # express. Use importlib so the tests exercise the actual migration helpers.
@@ -23,7 +23,7 @@ _MIGRATION_0048 = importlib.import_module(
 )
 _remap = _MIGRATION_0048._remap  # noqa: SLF001
 
-TMP_DIR = Path("/tmp/codex.tests.community_rating")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.community_rating")
 
 
 class CommunityRatingClampTestCase(TestCase):

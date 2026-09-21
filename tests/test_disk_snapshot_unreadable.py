@@ -27,8 +27,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from codex.librarian.fs.poller.snapshot import DiskSnapshot
+from tests.tmp_dirs import tmp_dir
 
-_TEST_LIB_ROOT: Final = Path("/tmp/codex.tests.snapshot_unreadable")  # noqa: S108
+_TEST_LIB_ROOT: Final = tmp_dir("codex.tests.snapshot_unreadable")
 _EACCES: Final = PermissionError(13, "Permission denied")
 _ENOENT: Final = FileNotFoundError(2, "No such file or directory")
 #: The publisher directory each test makes unreadable.

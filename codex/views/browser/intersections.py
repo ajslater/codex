@@ -19,8 +19,9 @@ groups results by the parent collection's pk.
 
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CharField, Count, F, Min, Q, Sum, Value
@@ -42,6 +43,9 @@ from codex.views.browser.columns import (
 )
 from codex.views.const import MODEL_REL_MAP
 
+if TYPE_CHECKING:
+    from codex.views.auth import ComicACL
+
 # Intersection cells describe what is live. A scanner-stamped comic --
 # one whose path a scan could not find and which is being kept for its
 # bookmarks -- is excluded from both the per-cell numerator and the
@@ -50,11 +54,15 @@ from codex.views.const import MODEL_REL_MAP
 # denominator blanks a cell that every live child agrees on.
 #
 # Deliberately unconditional, with no staff exemption, unlike the ACL
-# seam. ``_comic_correlation_sql`` below generates raw SQL with no user
-# in scope, so a staff-aware policy here would make the denominator
-# include rows the numerator excludes -- blanking every table cell for
-# admins specifically. Cells describing only live comics is also the
-# more useful answer.
+# seam: a staff-aware policy here would make the denominator include
+# rows the numerator excludes -- blanking every table cell for admins
+# specifically. Cells describing only live comics is also the more
+# useful answer.
+#
+# The ACL itself is uniform for staff and non-staff alike, so it rides
+# alongside these clauses instead: every builder and aggregate below
+# takes a ``ComicACL`` and applies it to the numerator and the
+# ``total_count`` denominator together, for the same reason.
 _LIVE_COMIC = Q(missing_since__isnull=True)
 _LIVE_COMIC_REL = Q(comic__missing_since__isnull=True)
 _LIVE_COMIC_SQL = "c.missing_since IS NULL"
@@ -95,6 +103,39 @@ class _IntersectionSortRawSQL(RawSQL):
     @override
     def get_group_by_cols(self) -> list:
         return []
+
+
+@dataclass(frozen=True, slots=True)
+class _Correlation:
+    """
+    The SQL fragments correlating child comics to the outer collection row.
+
+    ``where`` restricts the per-cell *numerator* and ``total_count``
+    selects the *denominator* the intersection HAVING compares against.
+    Both carry the visibility rules -- live-only and the caller's ACL --
+    and both must carry the same ones: filtering one side alone empties
+    every cell rather than narrowing it.
+
+    The ACL contributes ``%s`` placeholders, so each fragment travels
+    with the values to bind to it. Builders splice the two fragments in
+    whatever order their own template needs and concatenate the matching
+    parameter tuples in that same order, because ``RawSQL`` binds
+    positionally.
+    """
+
+    extra_join: str
+    where: str
+    where_params: tuple[int, ...]
+    total_count: str
+    total_params: tuple[int, ...]
+
+    def sort_params(self) -> list[int]:
+        """Parameters for a template that spells the WHERE before the count."""
+        return [*self.where_params, *self.total_params]
+
+    def count_first_params(self) -> list[int]:
+        """Parameters for a template that spells the count before the WHERE."""
+        return [*self.total_params, *self.where_params]
 
 
 def _format_credit(person_name: str, role_name: str | None) -> str:
@@ -190,7 +231,7 @@ def _intersection_relation(
 
 
 def compute_collection_intersections(
-    collection_qs, columns: Iterable[str]
+    collection_qs, columns: Iterable[str], acl: "ComicACL"
 ) -> dict[int, dict[str, Any]]:
     """
     Build ``{collection_pk: {column_key: intersection_value}}`` for the page.
@@ -200,6 +241,11 @@ def compute_collection_intersections(
     own values, not collection intersections. Columns whose value source
     isn't recognized are skipped (the row's existing value path
     applies).
+
+    Every aggregate below is restricted to the comics ``acl`` admits, so
+    a row summarizes only what the requesting user can see. The comic
+    count each intersection rule divides by comes from the same filtered
+    query, which is what keeps numerator and denominator in step.
 
     Scalar / FK-name / cumulative columns are batched into a single
     grouped aggregate query — one round-trip regardless of how many
@@ -228,20 +274,20 @@ def compute_collection_intersections(
 
     m2m_cols, intersect_cols, sum_cols = _bucket_intersection_columns(cols)
     counts = _compute_batched_scalars(
-        intersect_cols, sum_cols, collection_pks, comic_to_collection, result
+        intersect_cols, sum_cols, collection_pks, comic_to_collection, result, acl
     )
 
     # Simple-M2M columns share one UNION-ALL query (metadata-view
     # pattern). Composite shapes (credits / identifiers / reprints /
     # universes / story_arcs) keep their per-column helpers.
     _compute_simple_m2m_intersections_batched(
-        m2m_cols, collection_pks, comic_to_collection, counts, result
+        m2m_cols, collection_pks, comic_to_collection, counts, result, acl
     )
     for col in m2m_cols:
         if col in _SIMPLE_M2M_BATCH_FIELDS:
             continue
         _compute_m2m_intersection(
-            col, collection_pks, comic_to_collection, counts, result
+            col, collection_pks, comic_to_collection, counts, result, acl
         )
 
     return result
@@ -324,6 +370,7 @@ def _compute_batched_scalars(
     collection_pks: list[int],
     comic_to_collection: str,
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> dict[int, int]:
     """
     Aggregate every scalar / cumulative column in one grouped query.
@@ -344,9 +391,12 @@ def _compute_batched_scalars(
     values that happen to match contribute fully.
     """
     annotations = _build_batched_annotations(intersect_cols, sum_cols)
+    # ``_isect_comic_count`` — the denominator every intersection rule
+    # divides by — is annotated onto this very queryset, so the ACL
+    # applied here narrows numerator and denominator in one move.
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .values(comic_to_collection)
         .annotate(**annotations)
@@ -397,7 +447,7 @@ _SIMPLE_M2M_BATCH_FIELDS: frozenset[str] = frozenset(
 
 
 def _build_simple_m2m_intersection_query(
-    col: str, comic_to_collection: str, collection_pks: list[int]
+    col: str, comic_to_collection: str, collection_pks: list[int], acl: "ComicACL"
 ):
     """
     One per-column through-table query, aggregated per (collection, value).
@@ -408,6 +458,10 @@ def _build_simple_m2m_intersection_query(
     ``(collection_pk, value)`` so the union output stays small. Marked
     with the column key as ``field_name`` so a downstream union can
     partition results without per-query Python state.
+
+    ``acl.q(through)`` resolves through the same ``comic__`` prefix the
+    live-comic clause uses, so this counts exactly the comics
+    ``_compute_batched_scalars`` counted for the denominator.
     """
     field = Comic._meta.get_field(col)
     through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
@@ -415,6 +469,7 @@ def _build_simple_m2m_intersection_query(
     return (
         through.objects.filter(
             _LIVE_COMIC_REL,
+            acl.q(through),
             **{f"comic__{comic_to_collection}__in": collection_pks},
             **{f"{rel_name}__name__isnull": False},
         )
@@ -466,6 +521,7 @@ def _compute_simple_m2m_intersections_batched(
     comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> None:
     """
     Batch every simple-M2M column into one ``UNION ALL`` round-trip.
@@ -484,7 +540,9 @@ def _compute_simple_m2m_intersections_batched(
     # than missing keys.
     _initialize_simple_m2m_buckets(batched_cols, collection_pks, result)
     queries = [
-        _build_simple_m2m_intersection_query(col, comic_to_collection, collection_pks)
+        _build_simple_m2m_intersection_query(
+            col, comic_to_collection, collection_pks, acl
+        )
         for col in batched_cols
     ]
     if not queries:
@@ -501,6 +559,7 @@ def _compute_m2m_intersection(
     comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> None:
     """
     Set ``result[collection][col]`` for one composite-M2M column.
@@ -512,17 +571,17 @@ def _compute_m2m_intersection(
     """
     if col == "credits":
         _compute_credits_intersection(
-            collection_pks, comic_to_collection, counts, result
+            collection_pks, comic_to_collection, counts, result, acl
         )
         return
     if col == "identifiers":
         _compute_identifiers_intersection(
-            collection_pks, comic_to_collection, counts, result
+            collection_pks, comic_to_collection, counts, result, acl
         )
         return
     if col == "reprints":
         _compute_reprints_intersection(
-            collection_pks, comic_to_collection, counts, result
+            collection_pks, comic_to_collection, counts, result, acl
         )
         return
 
@@ -531,7 +590,7 @@ def _compute_m2m_intersection(
         return
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(**{f"{rel}__isnull": False})
         .values(comic_to_collection, rel)
@@ -606,7 +665,7 @@ _SIMPLE_M2M_FIELDS = MappingProxyType(
 
 
 def _build_simple_m2m_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str, acl: "ComicACL"
 ) -> RawSQL | None:
     """
     Return a correlated-subquery RawSQL for the intersection sort key.
@@ -616,7 +675,7 @@ def _build_simple_m2m_intersection_sort_sql(
     Returns None when unsupported.
     """
     field_name = _SIMPLE_M2M_FIELDS.get(column)
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
@@ -627,7 +686,9 @@ def _build_simple_m2m_intersection_sort_sql(
     if related_model is None:
         return None
     target_table = related_model._meta.db_table
-    extra_join, where, total_count = correlation
+    extra_join = correlation.extra_join
+    where = correlation.where
+    total_count = correlation.total_count
 
     # Correlated subquery returning the alphabetized GROUP_CONCAT of
     # target ``name`` values whose comic-count for the outer collection
@@ -672,47 +733,49 @@ def _build_simple_m2m_intersection_sort_sql(
             ORDER BY t.name
         ) AS named
     )"""  # noqa: S608
-    return _IntersectionSortRawSQL(sql, [])
+    # ``where`` is spliced ahead of ``total_count``, so the ACL values
+    # bind in that order.
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
-def _wrap_intersection_sort(
-    inner_select: str, correlation: tuple[str, str, str]
-) -> str:
+def _wrap_intersection_sort(inner_select: str, correlation: _Correlation) -> str:
     """
     Wrap a per-row display-string SELECT with the standard intersection envelope.
 
     ``inner_select`` is the SELECT body that produces a ``display_name``
-    column for each (target, comic) row. ``correlation`` is the
-    ``(extra_join, where, total_count)`` tuple from
-    ``_comic_correlation_sql``. The envelope splices the join + where
-    pieces into the inner select, groups by the target's identity,
-    applies the intersection HAVING, and concatenates per-group with
-    the same X'1F' separator the simple variant uses.
+    column for each (target, comic) row. ``correlation`` carries the
+    join / where / count fragments from ``_comic_correlation_sql``. The
+    envelope splices the join + where pieces into the inner select,
+    groups by the target's identity, applies the intersection HAVING,
+    and concatenates per-group with the same X'1F' separator the simple
+    variant uses.
+
+    The WHERE lands ahead of the count, so callers bind
+    ``correlation.sort_params()``.
 
     All identifiers spliced in come from caller-side whitelists, not
     user input — caller-level S608 noqa applies.
     """
-    extra_join, where, total_count = correlation
     return f"""(
         SELECT COALESCE(GROUP_CONCAT(display_name, X'1F'), '')
         FROM (
             {inner_select}
-            {extra_join}
-            WHERE {where}
+            {correlation.extra_join}
+            WHERE {correlation.where}
               AND display_name IS NOT NULL
               AND display_name != ''
             GROUP BY target_id
-            HAVING COUNT(DISTINCT c.id) = ({total_count})
+            HAVING COUNT(DISTINCT c.id) = ({correlation.total_count})
             ORDER BY display_name
         ) AS isect
     )"""  # noqa: S608
 
 
 def _build_universes_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel],
+    collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
     """Universes display as ``name:designation`` (or just ``name`` when blank)."""
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
     inner = """
@@ -728,14 +791,14 @@ def _build_universes_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, [])
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
 def _build_credits_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel],
+    collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
     """Credits display as ``Person (Role)`` (or ``Person`` when role is null)."""
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
     # Two comics share a Credit only when they reference the same row;
@@ -756,14 +819,14 @@ def _build_credits_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, [])
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
 def _build_identifiers_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel],
+    collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
     """Render identifiers intersection as ``[source:]type:key`` per shared row."""
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
     inner = """
@@ -779,7 +842,7 @@ def _build_identifiers_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, [])
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
 # SQL spellings of the reprint sort key's pieces. printf renders each
@@ -822,10 +885,10 @@ def _collection_own_sort_sql(collection_model: type[BrowserCollectionModel]) -> 
 
 
 def _build_reprints_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel],
+    collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
     """Reprints sort by the same key ordering the Comic rows use."""
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
     # One composed key per shared reprint, mirroring the field order of
@@ -866,14 +929,16 @@ def _build_reprints_intersection_sort_sql(
     # reprint series, or disagree) sorts by the collection's own name.
     own = _collection_own_sort_sql(collection_model)
     sql = f"COALESCE(NULLIF({envelope}, ''), {own})"
-    return _IntersectionSortRawSQL(sql, [])
+    # ``own`` contributes no parameters and the envelope comes first, so
+    # the envelope's own binding order carries through unchanged.
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
 def _build_story_arcs_intersection_sort_sql(
-    collection_model: type[BrowserCollectionModel],
+    collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
     """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
     # Comic.story_arc_numbers → StoryArcNumber → story_arc → StoryArc.
@@ -890,12 +955,13 @@ def _build_story_arcs_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = th.comic_id
     """
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, [])
+    return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
 def _comic_correlation_sql(
     collection_model: type[BrowserCollectionModel],
-) -> tuple[str, str, str] | None:
+    acl: "ComicACL",
+) -> _Correlation | None:
     """
     Return the SQL fragments correlating Comic rows to the outer collection row.
 
@@ -909,44 +975,61 @@ def _comic_correlation_sql(
     ``Comic.folders`` for Folder; the sort path now does too. The
     extra JOIN clause is empty for non-Folder collections.
 
-    Returns ``(extra_join, where_clause, total_count_select)`` or
-    ``None`` when the collection model isn't supported.
+    ``acl`` supplies the caller's library-group and age-rating
+    visibility in both places — a row must summarize only the comics
+    that caller may see, and the denominator must count exactly the
+    comics the numerator can draw from.
+
+    Returns a :class:`_Correlation` or ``None`` when the collection
+    model isn't supported.
     """
+    # Two spellings of one predicate, for the numerator's ``c`` and the
+    # denominator's ``c2``. Both come from the same value object, so
+    # they cannot disagree about who may see what.
+    acl_sql, acl_params = acl.sql("c")
+    total_acl_sql, total_acl_params = acl.sql("c2")
     if collection_model is Folder:
         folders_field = Comic._meta.get_field("folders")
         through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
         through_table = through._meta.db_table
         collection_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
-        where = f"cf.folder_id = {collection_table}.id AND {_LIVE_COMIC_SQL}"
+        where = (
+            f"cf.folder_id = {collection_table}.id AND {_LIVE_COMIC_SQL} AND {acl_sql}"
+        )
         # ``DISTINCT c2.id`` to defend against any future change that
         # makes the M2M traversal multi-row per comic; today each
         # (comic, folder) pair is unique so the DISTINCT is a no-op.
-        # The stamped-comic clause must land on the total_count too:
-        # the HAVING compares against that count, so filtering the
+        # The stamped-comic and ACL clauses must land on the total_count
+        # too: the HAVING compares against that count, so filtering the
         # numerator alone renders every intersection sort key empty.
         total_count = (
             f"SELECT COUNT(DISTINCT c2.id) FROM codex_comic c2 "  # noqa: S608
             f"INNER JOIN {through_table} cf2 ON cf2.comic_id = c2.id "
             f"WHERE cf2.folder_id = {collection_table}.id "
-            f"AND c2.missing_since IS NULL"
+            f"AND c2.missing_since IS NULL AND {total_acl_sql}"
         )
-        return extra_join, where, total_count
+        return _Correlation(
+            extra_join, where, acl_params, total_count, total_acl_params
+        )
     comic_collection_col = _COMIC_COLLECTION_COL.get(collection_model)
     if comic_collection_col is None:
         return None
     collection_table = collection_model._meta.db_table
-    where = f"c.{comic_collection_col} = {collection_table}.id AND {_LIVE_COMIC_SQL}"
-    total_count = (
-        f"SELECT COUNT(*) FROM codex_comic "  # noqa: S608
-        f"WHERE {comic_collection_col} = {collection_table}.id "
-        f"AND missing_since IS NULL"
+    where = (
+        f"c.{comic_collection_col} = {collection_table}.id "
+        f"AND {_LIVE_COMIC_SQL} AND {acl_sql}"
     )
-    return "", where, total_count
+    total_count = (
+        f"SELECT COUNT(*) FROM codex_comic c2 "  # noqa: S608
+        f"WHERE c2.{comic_collection_col} = {collection_table}.id "
+        f"AND c2.missing_since IS NULL AND {total_acl_sql}"
+    )
+    return _Correlation("", where, acl_params, total_count, total_acl_params)
 
 
 def scalar_intersection_sort_expr(
-    collection_model: type[BrowserCollectionModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str, acl: "ComicACL"
 ) -> RawSQL | None:
     """
     Build a sort-key RawSQL for scalar / FK-name collection-row sort.
@@ -973,10 +1056,15 @@ def scalar_intersection_sort_expr(
     if column in _CUMULATIVE_SCALAR_FIELDS:
         return None
     path = _SCALAR_FIELD_PATHS.get(column)
-    correlation = _comic_correlation_sql(collection_model)
+    correlation = _comic_correlation_sql(collection_model, acl)
     if path is None or correlation is None:
         return None
-    extra_join, where, total_count = correlation
+    extra_join = correlation.extra_join
+    where = correlation.where
+    total_count = correlation.total_count
+    # Both templates below spell the count *before* the WHERE, the
+    # reverse of the M2M envelope's order.
+    params = correlation.count_first_params()
 
     if "__" not in path:
         # Direct Comic field — year, page_count, size, file_type, …
@@ -996,7 +1084,7 @@ def scalar_intersection_sort_expr(
             {extra_join}
             WHERE {where}
         )"""  # noqa: S608
-        return _IntersectionSortRawSQL(sql, [])
+        return _IntersectionSortRawSQL(sql, params)
 
     # FK-to-name field — tagger__name, country__name, age_rating__name, …
     fk_attr, target_field = path.split("__", 1)
@@ -1023,7 +1111,7 @@ def scalar_intersection_sort_expr(
         LEFT JOIN {target_table} t ON c.{fk_col} = t.id
         WHERE {where}
     )"""  # noqa: S608
-    return _IntersectionSortRawSQL(sql, [])
+    return _IntersectionSortRawSQL(sql, params)
 
 
 # Composite-M2M columns whose display string needs its own SELECT.
@@ -1039,7 +1127,7 @@ _COMPOSITE_M2M_SORT_BUILDERS = MappingProxyType(
 
 
 def m2m_intersection_sort_expr(
-    collection_model: type[BrowserCollectionModel], column: str
+    collection_model: type[BrowserCollectionModel], column: str, acl: "ComicACL"
 ) -> RawSQL | None:
     """
     Build a sort-key RawSQL for the given (collection_model, M2M column).
@@ -1048,9 +1136,9 @@ def m2m_intersection_sort_expr(
     supported; callers fall back to sort_name.
     """
     if column in _SIMPLE_M2M_FIELDS:
-        return _build_simple_m2m_intersection_sort_sql(collection_model, column)
+        return _build_simple_m2m_intersection_sort_sql(collection_model, column, acl)
     builder = _COMPOSITE_M2M_SORT_BUILDERS.get(column)
-    return builder(collection_model) if builder else None
+    return builder(collection_model, acl) if builder else None
 
 
 def _compute_credits_intersection(
@@ -1058,11 +1146,12 @@ def _compute_credits_intersection(
     comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> None:
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(credits__person__name__gt="")
         .values(
@@ -1099,11 +1188,12 @@ def _compute_identifiers_intersection(
     comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> None:
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
@@ -1144,11 +1234,12 @@ def _compute_reprints_intersection(
     comic_to_collection: str,
     counts: dict[int, int],
     result: dict[int, dict[str, Any]],
+    acl: "ComicACL",
 ) -> None:
     """Reprints have no ``name`` column; compose the label from their four."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, **{f"{comic_to_collection}__in": collection_pks}
+            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(reprints__series_name__gt="")
         .values(comic_to_collection, *_REPRINT_VALUE_RELS)
