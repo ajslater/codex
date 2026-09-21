@@ -87,5 +87,9 @@ class JanitorFTSRebuildTask(JanitorTask):
     """Rebuild fts table in place."""
 
 
+class JanitorReapPendingDeletesTask(JanitorTask):
+    """Really delete rows whose retention window has expired."""
+
+
 class JanitorNightlyTask(JanitorTask):
     """Submit all janitor nightly tasks to the queue."""

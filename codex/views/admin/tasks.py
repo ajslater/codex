@@ -51,6 +51,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
     JanitorNightlyTask,
+    JanitorReapPendingDeletesTask,
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
@@ -109,6 +110,7 @@ _TASK_MAP = MappingProxyType(
         "notify_library_changed": LIBRARY_CHANGED_TASK,
         "notify_librarian_status": LIBRARIAN_STATUS_TASK,
         "notify_users_changed": USERS_CHANGED_TASK,
+        "reap_pending_deletes": JanitorReapPendingDeletesTask(),
         "cleanup_fks": JanitorCleanFKsTask(),
         "cleanup_db_custom_covers": JanitorCleanCoversTask(),
         "cleanup_sessions": JanitorCleanupSessionsTask(),

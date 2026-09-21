@@ -8,7 +8,7 @@ from shutil import which
 from typing import Final
 
 from codex.librarian.restarter.tasks import CodexRestartTask
-from codex.librarian.scribe.janitor.cleanup import JanitorCleanup
+from codex.librarian.scribe.janitor.reap import JanitorReap
 from codex.librarian.scribe.janitor.status import JanitorCodexUpdateStatus
 from codex.models.admin import Timestamp
 from codex.util import is_docker
@@ -21,7 +21,7 @@ _INSTALL_TIMEOUT: Final = 600
 _STDERR_TAIL: Final = 20
 
 
-class JanitorCodexUpdate(JanitorCleanup):
+class JanitorCodexUpdate(JanitorReap):
     """Auto Update codex methods for janitor."""
 
     def _is_outdated(self) -> bool:

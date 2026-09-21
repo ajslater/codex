@@ -182,8 +182,18 @@ class JanitorFolderRelationsStatus(JanitorStatus):
     SINGLE = True
 
 
+class JanitorReapPendingDeletesStatus(JanitorStatus):
+    """Janitor Reap Pending Deletes Status."""
+
+    CODE = "JRP"
+    VERB = "Reap"
+    _verbed = "Reaped"
+    ITEM_NAME = "expired missing comics and folders"
+
+
 JANITOR_STATII = (
     JanitorAdoptOrphanFoldersStatus,
+    JanitorReapPendingDeletesStatus,
     JanitorCleanupTagsStatus,
     JanitorCodexUpdateStatus,
     JanitorCodexLatestVersionStatus,
