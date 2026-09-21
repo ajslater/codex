@@ -57,6 +57,11 @@ border-radius: 128px;
       can't see.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Deleting a library succeeds, and library and group membership changes
+      refresh the browser.
+    - Force Update no longer costs a moved comic its bookmarks.
+    - Two libraries whose paths overlap no longer destroy each other's comics
+      and bookmarks.
 
 ## v2.3.3
 

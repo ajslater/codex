@@ -10,7 +10,6 @@ see the state the feature creates.
 
 import shutil
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -28,8 +27,9 @@ from codex.models import (
     Volume,
 )
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.pending_deletes_admin")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.pending_deletes_admin")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_FORBIDDEN: Final = 403

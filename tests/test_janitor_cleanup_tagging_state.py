@@ -9,7 +9,6 @@ clears an active-scan marker with no live scan behind it.
 
 import shutil
 from multiprocessing import Event
-from pathlib import Path
 from threading import Lock
 from typing import Final, override
 
@@ -31,8 +30,9 @@ from codex.librarian.onlinetag.session_snapshot import (
 )
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.janitor.tagging")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.janitor.tagging")
 _MISSING_PK: Final = 999_999
 
 

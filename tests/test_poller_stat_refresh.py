@@ -2,7 +2,6 @@
 
 import os
 import shutil
-from pathlib import Path
 from typing import override
 from unittest.mock import MagicMock
 
@@ -11,8 +10,9 @@ from django.test import TestCase
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff, StaleStatRefresh
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR = Path("/tmp/codex.tests.poller_stat_refresh")  # noqa: S108
+_TMP_DIR = tmp_dir("codex.tests.poller_stat_refresh")
 _STALE_STAT: tuple = (33188, 12345, 0, 0, 0, 0, 100, 0, 1.0, 0)
 
 

@@ -20,7 +20,6 @@ Pinning both here first is what makes the frontend change safe.
 
 import json
 from http import HTTPStatus
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import Group, User
@@ -28,9 +27,10 @@ from django.test import Client, TestCase
 
 from codex.models import Library
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-TMP_DIR = Path("/tmp/codex.tests.error_shapes")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.error_shapes")
 
 
 class AdminErrorShapeTestCase(TestCase):

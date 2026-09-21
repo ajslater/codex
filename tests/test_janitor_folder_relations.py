@@ -33,8 +33,9 @@ from codex.models import (
     Volume,
 )
 from codex.models.util import get_sort_name
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.folder_relations")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.folder_relations")
 
 
 class FixFolderRelationsTests(TestCase):

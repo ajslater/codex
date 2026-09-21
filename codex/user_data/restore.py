@@ -422,6 +422,23 @@ def _restore_tagging_defaults(
     report.note_written("tagging_defaults")
 
 
+def _watched_path_pks(model, path: str) -> tuple[int, ...]:
+    """
+    Return every ``WatchedPath`` row at ``path``, lowest pk first.
+
+    ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
+    nested or overlapping library roots hold the same file under two
+    libraries. The sidecar keys bookmarks and comic/folder favorites on
+    the path alone -- one file on disk -- and cannot say which library a
+    row came from, so taking the arbitrary first match dropped the user's
+    data in whichever library they actually browse. Restore into all of
+    them instead.
+    """
+    return tuple(
+        model.objects.filter(path=path).order_by("pk").values_list("pk", flat=True)
+    )
+
+
 def _restore_bookmarks(
     store: SidecarStore, report: RestoreReport, *, dry_run: bool
 ) -> None:
@@ -440,16 +457,17 @@ def _restore_bookmarks(
         if user is None:
             report.note_skipped("bookmarks", f"missing user {row['username']!r}")
             continue
-        comic = Comic.objects.filter(path=row["comic_path"]).first()
-        if comic is None:
+        comic_pks = _watched_path_pks(Comic, row["comic_path"])
+        if not comic_pks:
             report.note_skipped("bookmarks", f"missing comic {row['comic_path']!r}")
             continue
-        Bookmark.objects.update_or_create(
-            user=user,
-            session=None,
-            comic=comic,
-            defaults={"page": row["page"], "finished": bool(row["finished"])},
-        )
+        for comic_pk in comic_pks:
+            Bookmark.objects.update_or_create(
+                user=user,
+                session=None,
+                comic_id=comic_pk,
+                defaults={"page": row["page"], "finished": bool(row["finished"])},
+            )
         report.note_written("bookmarks")
 
 
@@ -481,27 +499,29 @@ def _restore_favorites(
         decoded = json.loads(row["identifier_json"])
         # decoded == [collection, ...parts]
         parts = decoded[1:]
-        target_pk = _resolve_browse_collection_pk(collection, parts, target_model)
-        if target_pk is None:
+        target_pks = _resolve_browse_collection_pks(collection, parts, target_model)
+        if not target_pks:
             username = row["username"]
             report.note_skipped(
                 "favorites",
                 f"unresolvable {collection!r} target {parts!r} for user {username!r}",
             )
             continue
-        Favorite.objects.update_or_create(
-            user=user, collection=collection, target_id=target_pk
-        )
+        for target_pk in target_pks:
+            Favorite.objects.update_or_create(
+                user=user, collection=collection, target_id=target_pk
+            )
         report.note_written("favorites")
 
 
-def _resolve_browse_collection_pk(
+def _resolve_browse_collection_pks(
     collection: str, parts: list[Any], model
-) -> int | None:
-    """Resolve a name-chain identifier back to a main-DB PK."""
+) -> tuple[int, ...]:
+    """Resolve a name-chain identifier back to main-DB PKs."""
     match collection:
         case Collection.COMIC | Collection.FOLDER:
-            obj = model.objects.filter(path=parts[0]).first()
+            # Path is only unique within a library -- see _watched_path_pks.
+            return _watched_path_pks(model, parts[0])
         case Collection.PUBLISHER | Collection.ARC:
             obj = model.objects.filter(name=parts[0]).first()
         case Collection.IMPRINT:
@@ -521,8 +541,8 @@ def _resolve_browse_collection_pk(
                 number_to=parts[4],
             ).first()
         case _:
-            return None
-    return None if obj is None else obj.pk
+            return ()
+    return () if obj is None else (obj.pk,)
 
 
 # ── Browser settings ─────────────────────────────────────────────────
@@ -790,14 +810,16 @@ def _resolve_last_route_pks(
         return []
     pks: list[int] = []
     for parts in decoded:
-        pk = _resolve_browse_collection_pk(collection, parts, target_model)
-        if pk is None:
+        resolved = _resolve_browse_collection_pks(collection, parts, target_model)
+        if not resolved:
             report.note_skipped(
                 "settings_last_route",
                 f"unresolvable last-route {collection!r} target {parts!r}",
             )
             continue
-        pks.append(pk)
+        # One route pk per saved identifier: overlapping libraries must not
+        # widen a remembered single-collection route into a multi-pk one.
+        pks.append(resolved[0])
     return pks
 
 

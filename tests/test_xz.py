@@ -5,7 +5,6 @@ from __future__ import annotations
 import lzma
 import re
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.test import TestCase
@@ -18,8 +17,9 @@ from codex.xz import (
     write_xz_bytes,
     xz_preset,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.compression")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.compression")
 _GiB: Final = 1024**3
 _FULL_PRESET: Final = 9
 _MIN_MIDRANGE_PRESET: Final = 5

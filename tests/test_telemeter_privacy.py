@@ -11,7 +11,6 @@ one of the ``_vocabularies`` sources deliberately. Do not widen the walk.
 """
 
 import json
-from pathlib import Path
 from typing import Final, override
 from uuid import uuid4
 
@@ -30,12 +29,13 @@ from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
+from tests.tmp_dirs import tmp_dir
 
 # Anything containing this must never appear in the payload.
 SENTINEL: Final = "XXSENTINELXX"
 
 # A real directory, because Comic.presave stats the file it points at.
-_LIBRARY_DIR: Final = Path("/tmp/codex.tests.telemeter-privacy")  # noqa: S108
+_LIBRARY_DIR: Final = tmp_dir("codex.tests.telemeter-privacy")
 
 # Keys whose values are free-form by nature and safe: version strings and the
 # platform description, which carry no user or install identity.
