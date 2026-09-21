@@ -27,7 +27,6 @@ rediscovered:
 
 import json
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import AnonymousUser, User
@@ -49,8 +48,9 @@ from codex.models.comic import ComicFTS
 from codex.startup import init_admin_flags
 from codex.views.auth import MissingACLFilterMixin
 from codex.views.reader._archive_cache import page_acl_cache
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.missing_acl")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.missing_acl")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 

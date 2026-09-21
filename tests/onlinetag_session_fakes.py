@@ -10,9 +10,8 @@ module can stay about one behavior of the manager.
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, ClassVar, Final, override
+from typing import TYPE_CHECKING, Any, ClassVar, Final, override
 
 from django.core.cache import caches
 from django.test import TestCase
@@ -30,8 +29,12 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR: Final = Path("/tmp/codex.tests.onlinetag.manager")  # noqa: S108
+if TYPE_CHECKING:
+    from pathlib import Path
+
+TMP_DIR: Final = tmp_dir("codex.tests.onlinetag.manager")
 # The manager runs the scan; the applier writes an answered prompt. Both call
 # the same two collaborators, and a patch only takes where the caller looks
 # them up — so each has its own name here rather than one shared by habit.

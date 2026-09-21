@@ -10,7 +10,6 @@ IntegrityError rather than losing one row.
 
 import shutil
 from multiprocessing import Event
-from pathlib import Path
 from threading import Lock
 from typing import override
 
@@ -27,8 +26,9 @@ from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.models import Library
 from codex.models.named import Credit
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.credits")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.credits")
 _PATH = TMP_DIR / "c.cbz"
 
 

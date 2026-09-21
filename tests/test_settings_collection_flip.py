@@ -10,7 +10,6 @@ underlying row values — proving the value-flip + the 0043 migration.
 import importlib
 import json
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from django.apps import apps as django_apps
@@ -21,10 +20,11 @@ from django.test import Client, TestCase
 from codex.models.admin import AdminFlag
 from codex.models.settings import SettingsBrowser
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-_TMP_DIR: Final = Path("/tmp/codex.tests.flip")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.flip")
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 # Migration filenames start with digits, so importlib is the only way to reach

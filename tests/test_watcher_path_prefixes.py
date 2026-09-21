@@ -11,8 +11,7 @@ while the files are still on disk.
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 
 from django.test import TestCase
 
@@ -29,8 +28,12 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_ROOT: Final = Path("/tmp/codex.tests.watcherprefix")  # noqa: S108
+if TYPE_CHECKING:
+    from pathlib import Path
+
+_ROOT: Final = tmp_dir("codex.tests.watcherprefix")
 _MAIN_PK: Final = 1
 _KIDS_PK: Final = 2
 

@@ -6,7 +6,9 @@ move outright. A move that lost its inode — a copy-then-delete, a
 cross-device ``mv``, a remount that rotated the inode space — falls
 through to a signature of name, size and mtime, which only pairs when it
 is unique on both sides. Whatever stays unpaired becomes a delete plus an
-add, which costs the comic its bookmarks.
+add. The poller soft-deletes, so that stamps the old row rather than
+destroying it -- but nothing revives a row whose file moved away, so the
+comic still loses its bookmarks when the reaper runs.
 
 Also supports optional device-ignoring for Docker/complex filesystems.
 """
@@ -118,8 +120,16 @@ class SnapshotDiff:
         self,
         ref: Snapshot,
         snapshot: Snapshot,
+        *,
+        force: bool = False,
     ) -> None:
-        """Compute the diff between ref (old/database) and snapshot (new/disk)."""
+        """
+        Compute the diff between ref (old/database) and snapshot (new/disk).
+
+        ``force`` is the admin's Force Update: report every surviving
+        path as modified so the importer re-reads it. Keyword-only
+        because the two snapshots are the argument list callers know.
+        """
         data = _DiffData(
             ref=ref,
             snapshot=snapshot,
@@ -142,7 +152,7 @@ class SnapshotDiff:
         self.withheld_deleted = self._withhold_unreadable(data, snapshot)
 
         self._find_moved_paths(data)
-        self._find_modified_paths(data)
+        self._find_modified_paths(data, force=force)
 
         self.dirs_added = []
         self.covers_added = []
@@ -395,10 +405,11 @@ class SnapshotDiff:
         An inode is identity, so it pairs a move outright. But a move
         does not always keep one: a copy-then-delete, a cross-device
         ``mv``, or a remount that rotated the inode space all present as
-        a delete plus an add. Left there, the delete cascades the comic's
-        bookmarks away and the add re-imports the same file as a fresh,
-        unread comic — and the existence backstop cannot help, because
-        the old path really is gone.
+        a delete plus an add. Left there, the add re-imports the same
+        file as a fresh, unread comic and the delete stamps the old row,
+        whose bookmarks the reaper then cascades away a day later —
+        neither the existence backstop nor revival can help, because the
+        old path really is gone and is never coming back.
 
         Name, size and mtime together are weak evidence next to an
         inode, so the tier only fires when the signature is unique on
@@ -440,14 +451,26 @@ class SnapshotDiff:
         if paired:
             data.snapshot.log.info(f"Paired {paired} moves by name, size and mtime.")
 
-    def _find_modified_paths(self, data: _DiffData) -> None:
-        """Find paths with changed stats (mtime/size)."""
+    def _find_modified_paths(self, data: _DiffData, *, force: bool) -> None:
+        """
+        Find paths with changed stats (mtime/size).
+
+        ``force`` skips the comparison and calls everything modified.
+        That used to be arranged upstream, by zeroing every mtime in
+        the database snapshot — but move detection reads the same
+        snapshot, and a zeroed mtime matches no signature, so a forced
+        poll could not pair an inode-losing move at all. Deciding it
+        here leaves the snapshot honest for ``_find_moved_paths``.
+
+        Moves are included: a forced poll re-reads the destination,
+        which is where the content now lives.
+        """
         for path in data.unchanged:
-            if not self._is_stats_equal(data, path, path):
+            if force or not self._is_stats_equal(data, path, path):
                 data.modified.add(path)
 
         for old_path, new_path in data.moved:
-            if not self._is_stats_equal(data, old_path, new_path):
+            if force or not self._is_stats_equal(data, old_path, new_path):
                 data.modified.add(new_path)
 
     def is_empty(self) -> bool:

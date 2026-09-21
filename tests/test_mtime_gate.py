@@ -26,7 +26,6 @@ import json
 import shutil
 import threading
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -40,10 +39,11 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-TMP_DIR = Path("/tmp/codex.tests.mtime_gate")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.mtime_gate")
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 

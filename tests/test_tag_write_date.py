@@ -32,8 +32,9 @@ from codex.choices.tagging import FORMAT_FIELD_SUPPORT
 from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.tagwritedate")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.tagwritedate")
 _EXAMPLE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 _DATE: Final = MappingProxyType({"year": 1998, "month": 5, "day": 7})
 _LATER_YEAR: Final = 1999
