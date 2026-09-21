@@ -34,6 +34,7 @@ border-radius: 128px;
     - Writing tags to a CBR whose CBZ twin already exists now says which file to
       edit instead, and links to it.
     - The match review dialog no longer clips its Pause button.
+    - The metadata editor no longer saves values its own fields flag as invalid.
 
 ## v2.3.3
 

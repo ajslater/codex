@@ -1,5 +1,5 @@
 <template>
-  <div id="editPanel">
+  <v-form id="editPanel" ref="form" @submit.prevent>
     <div id="editToolbar">
       <v-select
         v-model="selectedFormats"
@@ -407,7 +407,7 @@
             type="number"
             min="0"
             max="9999"
-            :rules="yearRules"
+            :rules="activeRules('year', yearRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('year')"
@@ -435,7 +435,7 @@
             type="number"
             min="1"
             max="12"
-            :rules="monthRules"
+            :rules="activeRules('month', monthRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('month')"
@@ -463,7 +463,7 @@
             type="number"
             min="1"
             max="31"
-            :rules="dayRules"
+            :rules="activeRules('day', dayRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('day')"
@@ -773,7 +773,7 @@
           min="0"
           max="5"
           step="0.1"
-          :rules="communityRatingRules"
+          :rules="activeRules('community_rating', communityRatingRules)"
           hide-details="auto"
           density="compact"
           :disabled="isFieldDisabled('community_rating')"
@@ -804,7 +804,9 @@
           type="number"
           min="1"
           step="1"
-          :rules="communityRatingCountRules"
+          :rules="
+            activeRules('community_rating_count', communityRatingCountRules)
+          "
           hide-details="auto"
           density="compact"
           :disabled="isFieldDisabled('community_rating_count')"
@@ -1368,7 +1370,7 @@
         </v-text-field>
       </div>
     </section>
-  </div>
+  </v-form>
 </template>
 
 <script>
@@ -1490,6 +1492,7 @@ const DATE_PART_BOUNDS = Object.freeze({
   day: Object.freeze([1, 31]),
 });
 const DATE_PARTS = Object.freeze(Object.keys(DATE_PART_BOUNDS));
+const EMPTY_RULES = Object.freeze([]);
 
 const intRangeRules = ([min, max]) =>
   Object.freeze([
@@ -1930,6 +1933,11 @@ export default {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
     isFieldDisabled(field) {
       return !this.supportedFields.has(field);
+    },
+    activeRules(field, rules) {
+      // VForm.validate() runs disabled inputs too. A stale value in a field
+      // the selected formats can't write must not block an unrelated save.
+      return this.isFieldDisabled(field) ? EMPTY_RULES : rules;
     },
     tagLabel(key) {
       if (key === "series_groups") return "Series Groups";
@@ -2534,6 +2542,11 @@ export default {
       }
     },
     async preSave() {
+      const form = this.$refs.form;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
+      }
       this.saving = true;
       const pks = this.book.ids || [this.book.pk];
       // Rename-only (no tag edits) sends an empty patch so no tags are
