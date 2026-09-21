@@ -5,20 +5,28 @@ from pathlib import Path
 from threading import Condition, Event
 from typing import override
 
+from django.core.cache import cache
 from django.db import connections
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import naturaldelta
 
+from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.fs.import_task import build_import_task
 from codex.librarian.fs.mounted import unmounted_reason
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.fs.poller.status import FSPollStatus
 from codex.librarian.fs.poller.tasks import FSPollLibrariesTask
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.scribe.importer.delete.collect import (
+    init_comic_collection_map,
+    populate_comic_collection_map,
+)
+from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.threads import NamedThread
 from codex.librarian.worker import WorkerStatusMixin
-from codex.models import Library
+from codex.models import Comic, Library
 from codex.views.const import EPOCH_START
 
 _DIR_NOT_FOUND_TIMEOUT = 15 * 60
@@ -138,7 +146,7 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
 
         return SnapshotDiff(db_snap, disk_snap)
 
-    def _refresh_stale_stats(self, diff: SnapshotDiff) -> None:
+    def _refresh_stale_stats(self, library: Library, diff: SnapshotDiff) -> None:
         """
         Sync DB stat to current disk stat for unchanged-content / rotated-inode paths.
 
@@ -177,8 +185,13 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         for model, payloads in by_model.items():
             paths = [p for p, _ in payloads]
             stat_by_path = dict(payloads)
+            # Scoped by library: ``unique_together`` is (library, path),
+            # so an unscoped path filter lets two libraries holding the
+            # same absolute path cross-write each other's stats.
             rows = tuple(
-                model.objects.filter(path__in=paths).only("pk", "path", "stat")  # ty: ignore[unresolved-attribute]
+                model.objects.filter(  # ty: ignore[unresolved-attribute]
+                    library=library, path__in=paths
+                ).only("pk", "path", "stat")
             )
             for row in rows:
                 row.stat = stat_by_path[row.path]
@@ -192,6 +205,84 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             )
             self.log.debug(msg)
 
+    def _unstamp_revived(self, library: Library, diff: SnapshotDiff) -> None:
+        """
+        Clear the pending-delete stamp from rows whose files came back.
+
+        This is the pass that makes retention worth anything. A revival
+        generates no import event of its own -- see
+        ``SnapshotDiff._find_revived`` -- so there is nothing to hook in
+        the importer, and one query per model here catches every shape:
+        unchanged stat, changed stat, and (harmlessly, twice) a path that
+        also appears in ``files_modified``.
+
+        A genuinely *new* file written to a stamped path lands here too,
+        and clearing the stamp is the right answer for it as well: the pk
+        and its bookmarks belong to that path, and the import that
+        follows overwrites the metadata anyway.
+
+        Scoped by ``library``, unlike its neighbour ``_refresh_stale_stats``
+        -- ``unique_together`` is ``(library, path)``, so an unscoped
+        path filter lets two libraries holding the same absolute path
+        cross-write each other.
+        """
+        if not diff.revived:
+            return
+        by_model: dict[type, list[str]] = {}
+        for revival in diff.revived:
+            by_model.setdefault(revival.model, []).append(revival.path)
+
+        revived_comic_pks: set[int] = set()
+        total = 0
+        for model, paths in by_model.items():
+            qs = model.objects.filter(  # ty: ignore[unresolved-attribute]
+                library=library, missing_since__isnull=False, path__in=paths
+            )
+            if model is Comic:
+                revived_comic_pks.update(qs.values_list("pk", flat=True))
+            total += qs.update(missing_since=None, updated_at=Now())
+        if not total:
+            return
+
+        self.log.info(f"{total} missing paths in {library.path} came back.")
+        self._publish_revival(library, revived_comic_pks)
+
+    def _publish_revival(self, library: Library, comic_pks: set[int]) -> None:
+        """
+        Make a revival visible.
+
+        The unstamp is a bare ``.update()`` outside any import, so
+        nothing clears the caches or tells a client. Without this the
+        comic comes back in the database and stays invisible in the
+        browser until some unrelated import happens to run.
+
+        The parent collections are re-stamped for the same reason the
+        delete path re-stamps them: the browser's mtime probe reads the
+        *route collection's* own ``updated_at``, not its comics'.
+        """
+        timestamp_updater = TimestampUpdater(
+            self.log, self.librarian_queue, self.db_write_lock
+        )
+        collection_map = init_comic_collection_map()
+        if comic_pks:
+            populate_comic_collection_map(
+                Comic.objects.filter(pk__in=comic_pks), collection_map
+            )
+        timestamp_updater.update_library_collections(
+            library, timezone.now(), collection_map
+        )
+        if comic_pks:
+            # A cover that failed to render while the file was missing
+            # left a permanent zero-byte sentinel that ``_filter_pending_pks``
+            # treats as present and never retries, so the comic would
+            # come back with a permanently blank cover. Remove, then
+            # recreate.
+            pks = frozenset(comic_pks)
+            self.librarian_queue.put(CoverRemoveTask(pks, custom=False))
+            self.librarian_queue.put(CoverCreateTask(tuple(pks), custom=False))
+        cache.clear()
+        self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+
     def _queue_poll_events(self, library: Library, *, force: bool) -> None:
         """Run the snapshot diff and emit a single ImportTask for the library."""
         diff = self._get_diff(library, force=force)
@@ -202,7 +293,12 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
         # inode rotated (Docker remount, in-place file replacement).
         # Force polls already rewrite stats through the import path.
         if not force:
-            self._refresh_stale_stats(diff)
+            self._refresh_stale_stats(library, diff)
+
+        # Before the empty check: a revival with an unchanged stat makes
+        # no diff entry, so the poll would return "Nothing changed" and
+        # the row would stay hidden until the reaper destroyed it.
+        self._unstamp_revived(library, diff)
 
         if diff.is_empty():
             self.log.debug(f"Nothing changed for {library.path}")

@@ -2,18 +2,15 @@
 
 from django.db.models.functions import Now
 
-from codex.librarian.scribe.importer.const import (
-    ALL_COMIC_COLLECTION_FIELD_NAMES,
-    DIRECT_M2M_COLLECTION_FIELD_NAMES,
+from codex.librarian.scribe.importer.delete.collect import (
+    init_comic_collection_map,
+    populate_comic_collection_map,
 )
 from codex.librarian.scribe.importer.delete.covers import DeletedCoversImporter
 from codex.librarian.scribe.importer.delete.existence import confirm_deleted
 from codex.librarian.scribe.importer.statii.delete import ImporterRemoveComicsStatus
-from codex.models import Comic, StoryArc
-from codex.settings import (
-    IMPORTER_DELETE_MAX_CHUNK_SIZE,
-    IMPORTER_LINK_FK_BATCH_SIZE,
-)
+from codex.models import Comic
+from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
 # A delete this large, and this much of the library, reads like a vanished
 # mount rather than a user tidying up. The floor keeps small libraries from
@@ -25,49 +22,8 @@ _MASS_DELETE_FRACTION = 0.5
 class DeletedComicsImporter(DeletedCoversImporter):
     """Delete comics methods."""
 
-    @staticmethod
-    def _init_deleted_comic_collections() -> dict:
-        """Init deleted_comic_collections, used later even if no deletes."""
-        deleted_comic_collections = {}
-        for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
-            if field_name == "story_arc_numbers":
-                related_model = StoryArc
-            else:
-                related_model = Comic._meta.get_field(field_name).related_model
-            deleted_comic_collections[related_model] = set()
-        return deleted_comic_collections
-
-    @staticmethod
-    def _populate_deleted_comic_collection(deleted_comic_collections, comic) -> None:
-        for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
-            if field_name == "story_arc_numbers":
-                for san in comic.story_arc_numbers.select_related("story_arc").only(
-                    "story_arc"
-                ):
-                    deleted_comic_collections[StoryArc].add(san.story_arc.pk)
-            elif field_name in DIRECT_M2M_COLLECTION_FIELD_NAMES:
-                related_model = comic._meta.get_field(field_name).related_model
-                for obj in getattr(comic, field_name).only("pk"):
-                    deleted_comic_collections[related_model].add(obj.pk)
-            else:
-                related_model = comic._meta.get_field(field_name).related_model
-                related_id = getattr(comic, field_name).pk
-                deleted_comic_collections[related_model].add(related_id)
-
-    @classmethod
-    def _populate_deleted_comic_collections(
-        cls, delete_qs, deleted_comic_collections
-    ) -> None:
-        """Populate changed collections for cover timestamp updater."""
-        comics_deleted_qs = delete_qs.only(
-            *ALL_COMIC_COLLECTION_FIELD_NAMES
-        ).prefetch_related(
-            "story_arc_numbers__story_arc", *DIRECT_M2M_COLLECTION_FIELD_NAMES
-        )
-        for comic in comics_deleted_qs.iterator(
-            chunk_size=IMPORTER_DELETE_MAX_CHUNK_SIZE
-        ):
-            cls._populate_deleted_comic_collection(deleted_comic_collections, comic)
+    _init_deleted_comic_collections = staticmethod(init_comic_collection_map)
+    _populate_deleted_comic_collections = staticmethod(populate_comic_collection_map)
 
     def _warn_on_mass_delete(self, num_deleted: int) -> None:
         """
