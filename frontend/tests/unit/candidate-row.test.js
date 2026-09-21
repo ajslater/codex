@@ -10,15 +10,35 @@
  * raw cover url, loaded straight from the CDN under codex's img-src
  * allowance. No proxy route, no encoding, and no crossorigin attribute —
  * that would switch the load to CORS mode, which neither CDN supports.
+ *
+ * The hover-to-enlarge affordance appears only when the source offers a
+ * larger tier. Metron sets coverUrlFull equal to coverUrl on purpose, so
+ * the gate is truthiness, not difference.
  */
 import { mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 
 import CandidateRow from "@/components/online-tag/candidate-row.vue";
 import vuetify from "@/plugins/vuetify";
 
 const COVER_URL =
   "https://comicvine.gamespot.com/a/uploads/scale_avatar/12/1234/5678-9.jpg";
+const COVER_URL_FULL =
+  "https://comicvine.gamespot.com/a/uploads/original/12/1234/5678-9.jpg";
+
+beforeAll(() => {
+  // VOverlay's location strategy reads the bare global; happy-dom has
+  // no visual viewport. Same shim as filter-by-select.test.js.
+  globalThis.visualViewport ??= {
+    width: 1024,
+    height: 768,
+    offsetLeft: 0,
+    offsetTop: 0,
+    scale: 1,
+    addEventListener() {},
+    removeEventListener() {},
+  };
+});
 
 function candidate(overrides = {}) {
   const { summary, ...rest } = overrides;
@@ -47,6 +67,7 @@ function candidate(overrides = {}) {
 
 function mountRow(overrides = {}) {
   return mount(CandidateRow, {
+    attachTo: document.body,
     props: { candidate: candidate(overrides) },
     global: { plugins: [vuetify] },
   });
@@ -54,7 +75,7 @@ function mountRow(overrides = {}) {
 
 describe("CandidateRow cover", () => {
   test("loads the raw cover url straight from the CDN", () => {
-    const img = mountRow().find("img.candidateCover");
+    const img = mountRow().find("img");
 
     expect(img.exists()).toBe(true);
     expect(img.attributes("src")).toBe(COVER_URL);
@@ -64,7 +85,7 @@ describe("CandidateRow cover", () => {
   });
 
   test("sets the attributes the direct load needs", () => {
-    const img = mountRow().find("img.candidateCover");
+    const img = mountRow().find("img");
 
     expect(img.attributes("loading")).toBe("lazy");
     expect(img.attributes("referrerpolicy")).toBe("no-referrer");
@@ -75,26 +96,59 @@ describe("CandidateRow cover", () => {
   test("renders a placeholder instead when there is no cover", () => {
     const wrapper = mountRow({ summary: { coverUrl: "" } });
 
-    expect(wrapper.find("img.candidateCover").exists()).toBe(false);
+    expect(wrapper.find("img").exists()).toBe(false);
     expect(wrapper.find(".candidateCoverPlaceholder").exists()).toBe(true);
   });
 
   test("falls back to the placeholder when the image fails", async () => {
     const wrapper = mountRow();
 
-    await wrapper.find("img.candidateCover").trigger("error");
+    await wrapper.find("img").trigger("error");
 
-    expect(wrapper.find("img.candidateCover").exists()).toBe(false);
+    expect(wrapper.find("img").exists()).toBe(false);
     expect(wrapper.find(".candidateCoverPlaceholder").exists()).toBe(true);
   });
 
-  test("has no hover affordance yet", () => {
-    // The full-size popup waits on a comicbox release that exposes a
-    // genuinely larger url; enlarging a 96px thumbnail helps nobody.
+  test("the thumbnail is sized by props, not by a scoped class", () => {
+    // CoverPopup's popup branch is a VMenu fragment, which a parent's
+    // scoped class cannot reach.
+    const img = mountRow({ summary: { coverUrlFull: COVER_URL_FULL } }).find(
+      "img",
+    );
+
+    expect(img.attributes("style")).toContain("width: 48px");
+    expect(img.attributes("style")).toContain("height: 72px");
+  });
+});
+
+describe("CandidateRow hover affordance", () => {
+  test("a larger tier makes the cover openable", () => {
+    const wrapper = mountRow({ summary: { coverUrlFull: COVER_URL_FULL } });
+    const img = wrapper.find("img");
+
+    expect(img.attributes("role")).toBe("button");
+    expect(img.attributes("tabindex")).toBe("0");
+    expect(img.attributes("aria-label")).toBe("Show full-size cover");
+    // The thumbnail is still the thumbnail; only the popup is larger.
+    expect(img.attributes("src")).toBe(COVER_URL);
+  });
+
+  test("without a larger tier there is no affordance", () => {
+    // A prompt cached before the field existed looks exactly like this.
     const wrapper = mountRow();
 
-    expect(wrapper.find(".v-menu").exists()).toBe(false);
     expect(wrapper.find('[role="button"]').exists()).toBe(false);
+    expect(wrapper.findComponent({ name: "VMenu" }).exists()).toBe(false);
+  });
+
+  test("the popup never falls back to the thumbnail url", async () => {
+    const wrapper = mountRow({ summary: { coverUrlFull: COVER_URL_FULL } });
+
+    await wrapper.find("img").trigger("click");
+
+    const full = document.querySelector(".v-overlay__content img");
+    expect(full.getAttribute("src")).toBe(COVER_URL_FULL);
+    wrapper.unmount();
   });
 });
 

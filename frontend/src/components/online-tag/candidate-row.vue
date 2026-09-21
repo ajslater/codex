@@ -11,19 +11,28 @@
   _ONLINE_TAG_COVER_SECURE_CSP), so there is nothing to proxy. A blocked
   or dead image falls back to the placeholder box, which keeps the rows
   aligned.
+
+  Hovering enlarges the cover only when the source offers a larger tier.
+  Comic Vine does; Metron sets coverUrlFull equal to coverUrl because its
+  one image is already full size. The gate is "coverUrlFull is truthy",
+  never "it differs from coverUrl" — comicbox owns that judgement. A
+  prompt cached before the field existed simply has no affordance.
 -->
 <template>
   <div class="candidateRow">
-    <img
+    <!-- Size goes in as props, not as a class: CoverPopup's popup branch
+         is a VMenu fragment, and a scoped parent class cannot reach a
+         multi-root child. -->
+    <CoverPopup
       v-if="candidate.summary.coverUrl && !coverFailed"
-      class="candidateCover"
-      :src="candidate.summary.coverUrl"
-      loading="lazy"
-      referrerpolicy="no-referrer"
+      :thumb-src="candidate.summary.coverUrl"
+      :full-src="candidate.summary.coverUrlFull || ''"
+      :thumb-width="COVER_WIDTH"
+      :thumb-height="COVER_HEIGHT"
       alt=""
       @error="coverFailed = true"
     />
-    <div v-else class="candidateCover candidateCoverPlaceholder" />
+    <div v-else class="candidateCoverPlaceholder" />
     <div class="candidateInfo">
       <strong>{{ candidate.summary.series }}</strong>
       <span v-if="candidate.summary.volume" class="candidateVolume">
@@ -68,12 +77,18 @@
 <script>
 import { mdiOpenInNew } from "@mdi/js";
 
+import CoverPopup from "@/components/cover-popup.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 
 const PERCENT = 100;
+const COVER_WIDTH = "48px";
+const COVER_HEIGHT = "72px";
 
 export default {
   name: "OnlineTagCandidateRow",
+  components: {
+    CoverPopup,
+  },
   props: {
     candidate: { type: Object, required: true },
   },
@@ -81,6 +96,8 @@ export default {
   data() {
     return {
       mdiOpenInNew,
+      COVER_WIDTH,
+      COVER_HEIGHT,
       coverFailed: false,
       blendedTitle: "Blended: 80% metadata and 20% cover comparison.",
       uncomparedTitle:
@@ -130,14 +147,12 @@ export default {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
-.candidateCover {
+// The placeholder only. The real thumbnail is CoverPopup's own <img>,
+// sized by the props above.
+.candidateCoverPlaceholder {
   flex: 0 0 auto;
   width: 48px;
   height: 72px;
-  object-fit: contain;
-}
-
-.candidateCoverPlaceholder {
   background-color: rgba(var(--v-theme-on-surface), 0.06);
   border-radius: 2px;
 }

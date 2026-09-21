@@ -11,6 +11,7 @@ border-radius: 128px;
 - Features
     - Online tagging match candidates show a cover, a link to the source's page,
       and what separated their scores.
+    - Hovering a match candidate's cover shows it full size.
     - The Failed Imports link stays in the admin sidebar while there are failed
       imports.
 

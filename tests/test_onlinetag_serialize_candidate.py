@@ -21,13 +21,17 @@ from codex.librarian.onlinetag.session_state import serialize_candidate
 
 _PROMPT_VERSION_AT_WRITING: Final = 2
 _COVER_URL: Final = "https://static.metron.cloud/media/issue/x.jpg"
+_COVER_URL_FULL: Final = "https://comicvine.gamespot.com/a/uploads/original/1/2/3.jpg"
 _METADATA_SCORE: Final = 1.0
 _COVER_SCORE: Final = 0.6
 _VOLUME: Final = 2
 
 
 def _summary(
-    *, cover_url: str = _COVER_URL, volume: int | None = None
+    *,
+    cover_url: str = _COVER_URL,
+    volume: int | None = None,
+    cover_url_full: str | None = None,
 ) -> CandidateSummary:
     return CandidateSummary(
         series="Fight Club 3",
@@ -38,6 +42,7 @@ def _summary(
         cover_url=cover_url,
         variant_label=None,
         volume=volume,
+        cover_url_full=cover_url_full,
     )
 
 
@@ -105,6 +110,24 @@ class SerializeCandidateTests(SimpleTestCase):
 
         assert data["summary"]["cover_url"] == url
 
+    def test_the_full_size_cover_is_carried(self) -> None:
+        """The hover has nothing to show without it."""
+        data = serialize_candidate(_candidate(_summary(cover_url_full=_COVER_URL_FULL)))
+
+        assert data["summary"]["cover_url_full"] == _COVER_URL_FULL
+
+    def test_a_source_with_no_larger_tier_carries_none(self) -> None:
+        """
+        Absent is the whole gate for the hover affordance.
+
+        comicbox owns the "genuinely larger" guarantee, so codex must
+        pass the field through untouched rather than falling back to
+        ``cover_url``.
+        """
+        data = serialize_candidate(_candidate(_summary()))
+
+        assert data["summary"]["cover_url_full"] is None
+
     def test_missing_attributes_do_not_raise(self) -> None:
         """An older comicbox must degrade to blank fields, not an exception."""
 
@@ -117,6 +140,7 @@ class SerializeCandidateTests(SimpleTestCase):
         data = serialize_candidate(_Bare())
 
         assert data["summary"]["series"] == ""
+        assert data["summary"]["cover_url_full"] is None
         assert data["metadata_score"] is None
         assert data["cover_score"] is None
         assert data["cover_hash_attempted"] is False

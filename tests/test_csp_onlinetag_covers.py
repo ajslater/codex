@@ -20,6 +20,14 @@ from codex.settings import SECURE_CSP
 
 _COMICVINE_UPLOADS: Final = "https://comicvine.gamespot.com/a/uploads/"
 _METRON_MEDIA: Final = "https://static.metron.cloud/media/"
+# The tiers comicbox reports as ``cover_url_full``. They differ from the
+# thumbnail only in the tier segment, so the existing prefix already
+# covers them and the hover needs no policy change.
+_FULL_SIZE_TIERS: Final = (
+    "https://comicvine.gamespot.com/a/uploads/original/12/1234/5678-9.jpg",
+    "https://comicvine.gamespot.com/a/uploads/scale_large/12/1234/5678-9.jpg",
+    "https://static.metron.cloud/media/issue/2019/01/01/fc3-1.jpg",
+)
 _TOO_BROAD: Final = (
     "https://comicvine.gamespot.com",
     "https://static.metron.cloud",
@@ -36,6 +44,18 @@ class OnlineTagCoverCSPTests(TestCase):
         sources = SECURE_CSP["img-src"]
         assert _COMICVINE_UPLOADS in sources, sources
         assert _METRON_MEDIA in sources, sources
+
+    def test_the_full_size_tiers_need_no_policy_change(self) -> None:
+        """
+        The hover loads a larger tier of the same image.
+
+        CSP matches on prefix, and every tier sits under the upload path
+        the thumbnail already uses, so allowing the hover is a frontend
+        change only.
+        """
+        prefixes = tuple(str(source) for source in SECURE_CSP["img-src"])
+        for url in _FULL_SIZE_TIERS:
+            assert url.startswith(prefixes), url
 
     def test_no_bare_host_or_wildcard(self) -> None:
         """A prefix is the control; widening it to a host gives it away."""
