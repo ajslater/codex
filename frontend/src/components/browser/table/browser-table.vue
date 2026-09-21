@@ -453,7 +453,7 @@ export default {
 
 .browserTableTable td {
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 /*
