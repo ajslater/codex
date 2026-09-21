@@ -38,6 +38,7 @@ border-radius: 128px;
       edit instead, and links to it.
     - The match review dialog no longer clips its Pause button.
     - The metadata editor no longer saves values its own fields flag as invalid.
+    - Online tagging releases its Comic Vine connections when a scan finishes.
     - Hovering a browser card draws its highlight border.
     - The tagging connection chip shows its check or alert icon.
     - An installed Codex gets a dark app bar instead of an orange one.
