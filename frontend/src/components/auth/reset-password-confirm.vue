@@ -51,6 +51,7 @@
 <script>
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -67,9 +68,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
-      MIN_PASSWORD_LENGTH: (state) => state.MIN_PASSWORD_LENGTH,
-    }),
+    ...mapState(useAuthStore, {}),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
@@ -95,8 +94,8 @@ export default {
             if (!v) {
               return "Password is required";
             }
-            if (v.length < this.MIN_PASSWORD_LENGTH) {
-              return `Password must be at least ${this.MIN_PASSWORD_LENGTH} characters`;
+            if (v.length < LIMITS.passwordMinLength) {
+              return `Password must be at least ${LIMITS.passwordMinLength} characters`;
             }
             return true;
           },

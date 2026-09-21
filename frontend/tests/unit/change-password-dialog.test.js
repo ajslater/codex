@@ -1,11 +1,11 @@
 /*
  * Tests for the change-password dialog's client-side validation.
  *
- *   - The minimum comes from the auth store — the store is seeded with a
- *     value that differs from its default, so a missing store mapping, a
- *     misspelled store key or a hardcoded 4 can never silently pass again.
- *     The rule read the constant off the component with nothing mapping it
- *     there, so it compared against ``undefined`` and never fired.
+ *   - The minimum comes from the generated ``limits.json``, which the
+ *     server derives from the same constant it enforces. The rule used
+ *     to read a store key nothing mapped, so it compared against
+ *     ``undefined`` and never fired -- a typo in the generated key
+ *     reintroduces exactly that, which the guard below catches.
  *   - The wording matches the other four password rules in the app.
  */
 import { createTestingPinia } from "@pinia/testing";
@@ -13,9 +13,10 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
 import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
+import LIMITS from "@/choices/limits.json";
 import vuetify from "@/plugins/vuetify";
 
-const MIN = 6; // deliberately not the store default of 4
+const MIN = LIMITS.passwordMinLength;
 const OLD_PASSWORD = "oldpassword";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 
@@ -23,7 +24,6 @@ function mountDialog() {
   const pinia = createTestingPinia({
     initialState: {
       auth: {
-        MIN_PASSWORD_LENGTH: MIN,
         showChangePasswordDialog: true,
       },
       common: { form: { errors: [], success: "" } },
@@ -53,6 +53,13 @@ async function validateWith(wrapper, password) {
 }
 
 describe("ChangePasswordDialog password minimum", () => {
+  test("the generated minimum is a real number", () => {
+    // A misspelled key yields undefined, and ``v.length < undefined``
+    // is always false -- which is how this rule silently never fired.
+    expect(typeof MIN).toBe("number");
+    expect(MIN).toBeGreaterThan(0);
+  });
+
   test("rejects a password shorter than the store minimum", async () => {
     const { valid, messages } = await validateWith(
       mountDialog(),

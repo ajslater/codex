@@ -18,6 +18,7 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.limits import OIDC_URL_MAX_LENGTH
 from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.models.age_rating import AgeRatingMetron
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
@@ -242,7 +243,7 @@ class OIDCSettings(BaseModel):
     enabled = BooleanField(default=False)
     provider_name = CharField(max_length=MAX_NAME_LEN, blank=True, default="SSO")
     # Issuer URLs run long (e.g. Authentik's /application/o/<slug>/).
-    server_url = URLField(max_length=512, blank=True, default="")
+    server_url = URLField(max_length=OIDC_URL_MAX_LENGTH, blank=True, default="")
     client_id = CharField(max_length=MAX_NAME_LEN, blank=True, default="")
     client_secret = EncryptedCharField()
     scope = CharField(

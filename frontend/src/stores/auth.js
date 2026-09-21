@@ -32,7 +32,6 @@ export const useAuthStore = defineStore("auth", {
      */
     version: undefined,
     token: undefined,
-    MIN_PASSWORD_LENGTH: 4,
     showLoginDialog: false,
     showChangePasswordDialog: false,
     showProfileDialog: false,

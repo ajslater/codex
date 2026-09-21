@@ -19,6 +19,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
 from codex.choices.jobs import ADMIN_JOBS
+from codex.choices.limits import LIMITS
 from codex.choices.notifications import WebsocketMessages
 from codex.choices.onlinetag import TAGGING_ESTIMATE
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
@@ -76,6 +77,7 @@ _MAP_DUMPS = MappingProxyType(
         "identifier-type-by-codex-name.json": IDENTIFIER_TYPE_BY_CODEX_NAME,
         "identifier-types.json": IDENTIFIER_TYPES,
         "languages.json": LANGUAGES,
+        "limits.json": LIMITS,
         "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,

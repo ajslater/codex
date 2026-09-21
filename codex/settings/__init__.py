@@ -25,6 +25,7 @@ from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: i
 )
 from loguru import logger
 
+from codex.choices.limits import PASSWORD_MIN_LENGTH
 from codex.settings.config import (
     get_bool,
     get_float,
@@ -815,7 +816,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 4},
+        "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH},
     },
 ]
 
