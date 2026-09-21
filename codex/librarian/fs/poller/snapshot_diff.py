@@ -34,6 +34,14 @@ class StaleStatRefresh:
     disk_stat: os.stat_result
 
 
+@dataclass(frozen=True, slots=True)
+class RevivedPath:
+    """A stamped row whose file is back on disk."""
+
+    path: str
+    model: type[Model]
+
+
 _DIFF_FIELD_EVENT_MAP: tuple[tuple[str, FSChange, bool, bool], ...] = (
     # diff_attr, change_type, is_directory, is_cover
     ("files_deleted", FSChange.deleted, False, False),
@@ -159,6 +167,40 @@ class SnapshotDiff:
         self.stale_stat_refreshes: tuple[StaleStatRefresh, ...] = (
             self._find_stale_stat_refreshes(data)
         )
+        self.revived: tuple[RevivedPath, ...] = self._find_revived(ref, snapshot)
+
+    @staticmethod
+    def _find_revived(ref: Snapshot, snapshot: Snapshot) -> tuple[RevivedPath, ...]:
+        """
+        Stamped rows whose paths are back on disk.
+
+        This set exists because a revival generates no event of its own.
+        The stamped path is in ``ref.paths`` (the row was kept) and in
+        ``snapshot.paths`` (the file is back), so it is neither added nor
+        deleted; it falls through to ``_find_modified_paths``, which
+        compares stats. **A revival whose stat is unchanged -- a
+        remount, a share that reconnected, an unmount/mount cycle, which
+        is the exact scenario retention exists for -- produces no diff
+        entry at all**, and the poll returns "Nothing changed".
+
+        A second layer would block it even if an event did arrive: the
+        importer's read phase skips a path whose on-disk stat equals the
+        stored one, so it never enters CREATE_COMICS or UPDATE_COMICS.
+        Hooking revival into the import path is therefore not sufficient
+        either, which is why this is a poller-side pass.
+
+        Without it the row stays hidden until the reaper hard-deletes
+        it, and the *next* poll sees the path as ``added`` and imports it
+        as a fresh comic with no bookmarks -- the original bug, delayed
+        by a day and now silent.
+        """
+        revived = []
+        for path in sorted(ref.missing & snapshot.paths):
+            model = ref.model_for_path(path)
+            if model is None:
+                continue
+            revived.append(RevivedPath(path=path, model=model))
+        return tuple(revived)
 
     @staticmethod
     def _withhold_unreadable(data: _DiffData, snapshot: Snapshot) -> frozenset[str]:

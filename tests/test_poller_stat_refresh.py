@@ -84,7 +84,7 @@ class StaleStatRefreshTestCase(TestCase):
             (StaleStatRefresh(path=comic.path, model=Comic, disk_stat=fresh_stat),)
         )
 
-        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
 
         comic.refresh_from_db()
         # The stored stat now reflects disk's fresh inode...
@@ -99,7 +99,7 @@ class StaleStatRefreshTestCase(TestCase):
         comic = _create_comic_with_stale_stat()
         diff = _diff_with_refreshes(())
 
-        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
 
         comic.refresh_from_db()
         assert comic.stat == list(_STALE_STAT)
@@ -122,7 +122,7 @@ class StaleStatRefreshTestCase(TestCase):
             (StaleStatRefresh(path=comic.path, model=Comic, disk_stat=fresh_stat),)
         )
 
-        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
 
         comic.refresh_from_db()
         assert comic.stat is not None

@@ -48,6 +48,8 @@ border-radius: 128px;
     - Buttons on the orange accent use dark text.
     - The email host field accepts hostnames without a dot, such as localhost.
     - The change-password dialog enforces the minimum password length.
+    - A comic that disappears from a library is kept for a day, so a filesystem
+      outage no longer loses its read progress.
 
 ## v2.3.3
 

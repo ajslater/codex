@@ -30,10 +30,13 @@ from django.contrib.auth.models import User
 from django.db.models.functions import Now
 from loguru import logger
 
+from codex.librarian.covers.tasks import CoverCreateTask, CoverRemoveTask
 from codex.librarian.fs.import_task import build_import_task
+from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.importer.delete.existence import SECOND_LOOK_DELAY_S
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
@@ -732,3 +735,132 @@ class TestJanitorSpares(_DeleteTestBase):
 
         assert Folder.objects.filter(path=str(_SUBDIR)).exists()
         assert Comic.objects.filter(pk=comic.pk).exists()
+
+
+class TestRevival(_DeleteTestBase):
+    """
+    A file that comes back reuses its row, and its bookmarks with it.
+
+    Without this the feature is net-negative: the row stays hidden until
+    the reaper hard-deletes it, and the *next* poll sees the path as
+    ``added`` and imports it as a fresh comic with no bookmarks -- the
+    original bug, delayed by a day and now silent, because the
+    intervening day of invisibility looks like the feature working.
+    """
+
+    def _poller(self) -> LibraryPollerThread:
+        """Build a poller without starting the threading machinery."""
+        thread = LibraryPollerThread.__new__(LibraryPollerThread)
+        # The loguru re-export the poller annotates against is a
+        # different type than the module-level ``logger`` here.
+        thread.log = MagicMock(wraps=logger)
+        thread.librarian_queue = LIBRARIAN_QUEUE
+        thread.db_write_lock = Lock()
+        return thread
+
+    def _unstamp(self) -> None:
+        """Run the poller's revival pass, as a poll does."""
+        db_snapshot = DatabaseSnapshot(self.library.path, logger)
+        disk_snapshot = DiskSnapshot(self.library.path, logger)
+        diff = SnapshotDiff(db_snapshot, disk_snapshot)
+        self._poller()._unstamp_revived(self.library, diff)  # noqa: SLF001
+
+    def _vanish(self, comic: Comic) -> None:
+        """Take the file away and let a poll-style delete stamp the row."""
+        Path(comic.path).unlink()
+        self._delete(soft_delete=True, files_deleted=frozenset({comic.path}))
+        comic.refresh_from_db()
+        assert comic.missing_since is not None
+
+    def test_revival_with_an_unchanged_stat(self) -> None:
+        """
+        The case the whole feature turns on, and the one that fails today.
+
+        A remount, a share that reconnected, an unmount/mount cycle: the
+        file is back with the same mtime and size, so the diff produces
+        no entry at all -- neither added nor deleted nor modified -- and
+        the poll would otherwise report "Nothing changed" forever.
+        """
+        comic = self._create_comic(_GONE)
+        user = User.objects.create_user(username="reader", password="x")  # noqa: S106
+        Bookmark.objects.create(user=user, comic=comic, page=_BOOKMARK_PAGE)
+        pk = comic.pk
+        stat = Path(_GONE).stat()
+
+        self._vanish(comic)
+        # Restore byte-identically, mtime included.
+        shutil.copy(COMIC_PATH, _GONE)
+        os.utime(_GONE, (stat.st_atime, stat.st_mtime))
+
+        self._unstamp()
+
+        comic.refresh_from_db()
+        assert comic.pk == pk
+        assert comic.missing_since is None
+        assert Bookmark.objects.get(comic=comic).page == _BOOKMARK_PAGE
+
+    def test_revival_with_a_changed_stat(self) -> None:
+        """A file rewritten while it was away still reuses its row."""
+        comic = self._create_comic(_GONE)
+        pk = comic.pk
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+        os.utime(_GONE, (0, 0))
+
+        self._unstamp()
+
+        comic.refresh_from_db()
+        assert comic.pk == pk
+        assert comic.missing_since is None
+
+    def test_a_still_missing_comic_keeps_its_stamp(self) -> None:
+        """The pass must only clear what actually came back."""
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        stamped_at = comic.missing_since
+
+        self._unstamp()
+
+        comic.refresh_from_db()
+        assert comic.missing_since == stamped_at
+
+    def test_revival_announces_itself(self) -> None:
+        """
+        The unstamp is a bare update outside any import.
+
+        Nothing else clears the caches or tells a client, so without
+        this the comic comes back in the database and stays invisible in
+        the browser until some unrelated import happens to run.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+
+        with patch.object(LIBRARIAN_QUEUE, "put") as put_mock:
+            self._unstamp()
+
+        queued = [call.args[0] for call in put_mock.call_args_list]
+        assert LIBRARY_CHANGED_TASK in queued, queued
+        assert any(isinstance(task, CoverRemoveTask) for task in queued), queued
+        assert any(isinstance(task, CoverCreateTask) for task in queued), queued
+
+    def test_a_new_file_at_a_stamped_path_revives_the_row(self) -> None:
+        """
+        ``unique_together`` still holds for a stamped row.
+
+        A genuinely new file cannot be inserted at that path during the
+        window, so the stamp has to clear and the row be reused. That is
+        also the better answer: the pk and its bookmarks belong to the
+        path, and the import that follows overwrites the metadata.
+        """
+        comic = self._create_comic(_GONE)
+        pk = comic.pk
+        self._vanish(comic)
+        # Different content at the same path.
+        Path(_GONE).write_bytes(b"not the same file at all")
+
+        self._unstamp()
+
+        comic.refresh_from_db()
+        assert comic.pk == pk
+        assert comic.missing_since is None
