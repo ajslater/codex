@@ -55,6 +55,8 @@ border-radius: 128px;
       outage no longer loses its read progress.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Deleting a library succeeds, and library and group membership changes
+      refresh the browser.
 
 ## v2.3.3
 
