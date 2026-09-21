@@ -54,28 +54,32 @@ $task-width: 256px;
 $header-top: 92px;
 $header-top-margin: calc($header-top + 24px);
 
-.tabItems {
-  margin-top: $header-top-margin;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .tabItems {
+    margin-top: $header-top-margin;
+  }
 
-.tabItemsBanner {
-  margin-top: calc(20px + $header-top-margin);
-}
+  .tabItemsBanner {
+    margin-top: calc(20px + $header-top-margin);
+  }
 
-.tabItemContainer {
-  width: 100%;
-  padding-left: max(10px, env(safe-area-inset-left));
-  padding-right: max(10px, env(safe-area-inset-right));
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
-}
+  .tabItemContainer {
+    width: 100%;
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
 
-#noLibraries {
-  text-align: center;
-  padding: 1em;
-}
+  #noLibraries {
+    text-align: center;
+    padding: 1em;
+  }
 
-:deep(.tabHeader) {
-  // In each tab not here.
-  margin-bottom: 20px;
+  :deep(.tabHeader) {
+    // In each tab not here.
+    margin-bottom: 20px;
+  }
 }
 </style>

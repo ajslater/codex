@@ -137,18 +137,24 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// settings-drawer.vue forces every list-item icon to icons-inactive with
-// !important; override it here (more specific + !important) so these
-// notification icons carry their semantic color: red for errors/failed
-// imports, amber for online-tagging matches to review.
+// settings-drawer.vue tints every list-item icon icons-inactive; these
+// override it so the notification icons carry their semantic color: red
+// for errors/failed imports, amber for online-tagging matches to
+// review. Both rules are in the same layer now, so the extra class here
+// wins on specificity alone — no !important on either side.
 // The failed-imports link now outlives the warning, so only the unseen
 // state is colored; once cleared it reads as ordinary navigation.
-.tagWriteErrorsLink :deep(.v-list-item__prepend .v-icon),
-.failedImportsUnseen :deep(.v-list-item__prepend .v-icon) {
-  color: rgb(var(--v-theme-error)) !important;
-}
 
-.promptsLink :deep(.v-list-item__prepend .v-icon) {
-  color: rgb(var(--v-theme-warning)) !important;
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .tagWriteErrorsLink :deep(.v-list-item__prepend .v-icon),
+  .failedImportsUnseen :deep(.v-list-item__prepend .v-icon) {
+    color: rgb(var(--v-theme-error));
+  }
+
+  .promptsLink :deep(.v-list-item__prepend .v-icon) {
+    color: rgb(var(--v-theme-warning));
+  }
 }
 </style>

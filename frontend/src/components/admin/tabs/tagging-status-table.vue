@@ -679,138 +679,142 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/design.scss" as d;
 
-.tagStatus {
-  margin-bottom: d.$space-4;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .tagStatus {
+    margin-bottom: d.$space-4;
+  }
 
-.batchHeader {
-  display: flex;
-  flex-direction: column;
-  gap: d.$space-2;
-}
+  .batchHeader {
+    display: flex;
+    flex-direction: column;
+    gap: d.$space-2;
+  }
 
-.batchLine {
-  display: flex;
-  align-items: center;
-  gap: d.$space-3;
-}
+  .batchLine {
+    display: flex;
+    align-items: center;
+    gap: d.$space-3;
+  }
 
-.progressText {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
+  .progressText {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
 
-.eta {
-  color: rgb(var(--v-theme-text-secondary));
-}
+  .eta {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-.tallies {
-  display: flex;
-  flex-wrap: wrap;
-  gap: d.$space-3;
-  font-size: 0.85rem;
-}
+  .tallies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: d.$space-3;
+    font-size: 0.85rem;
+  }
 
-.tally.matched {
-  color: rgb(var(--v-theme-success));
-}
+  .tally.matched {
+    color: rgb(var(--v-theme-success));
+  }
 
-.pauseReason {
-  color: rgb(var(--v-theme-warning));
-  font-size: 0.8rem;
-}
+  .pauseReason {
+    color: rgb(var(--v-theme-warning));
+    font-size: 0.8rem;
+  }
 
-.tally.review {
-  color: rgb(var(--v-theme-warning));
-}
+  .tally.review {
+    color: rgb(var(--v-theme-warning));
+  }
 
-.tally.error {
-  color: rgb(var(--v-theme-error));
-}
+  .tally.error {
+    color: rgb(var(--v-theme-error));
+  }
 
-.sourcesStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: d.$space-2;
-  margin: d.$space-3 0;
-}
+  .sourcesStrip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: d.$space-2;
+    margin: d.$space-3 0;
+  }
 
-.sourceChip {
-  display: flex;
-  align-items: center;
-  gap: d.$space-2;
-  padding: d.$space-1 d.$space-3;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
-  border-radius: 999px;
-  font-size: 0.85rem;
-}
+  .sourceChip {
+    display: flex;
+    align-items: center;
+    gap: d.$space-2;
+    padding: d.$space-1 d.$space-3;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+    border-radius: 999px;
+    font-size: 0.85rem;
+  }
 
-.sourceChip.limited {
-  border-color: rgb(var(--v-theme-warning));
-}
+  .sourceChip.limited {
+    border-color: rgb(var(--v-theme-warning));
+  }
 
-.sourceOrder {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.4em;
-  height: 1.4em;
-  border-radius: 50%;
-  background-color: rgba(var(--v-theme-on-surface), 0.12);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
+  .sourceOrder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background-color: rgba(var(--v-theme-on-surface), 0.12);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
 
-.sourceName {
-  font-weight: 500;
-}
+  .sourceName {
+    font-weight: 500;
+  }
 
-.sourceRate {
-  color: rgb(var(--v-theme-text-secondary));
-}
+  .sourceRate {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-.sourceLimit {
-  color: rgb(var(--v-theme-warning));
-  font-variant-numeric: tabular-nums;
-}
+  .sourceLimit {
+    color: rgb(var(--v-theme-warning));
+    font-variant-numeric: tabular-nums;
+  }
 
-.comicsTable {
-  background-color: inherit;
-}
+  .comicsTable {
+    background-color: inherit;
+  }
 
-.statusCell {
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-}
+  .statusCell {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
 
-// The Comic column carries width:100%, so this cell absorbs all the slack the
-// other (shrink-to-fit) columns leave. ``max-width: 0`` is the canonical trick
-// that lets a flexible table cell actually clip: without it the cell grows to
-// its content and never truncates. The full path stays available via title.
-.comicsTable :deep(td.pathColumn) {
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+  // The Comic column carries width:100%, so this cell absorbs all the slack the
+  // other (shrink-to-fit) columns leave. ``max-width: 0`` is the canonical trick
+  // that lets a flexible table cell actually clip: without it the cell grows to
+  // its content and never truncates. The full path stays available via title.
+  .comicsTable :deep(td.pathColumn) {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 
-.pathCell {
-  display: inline;
-}
+  .pathCell {
+    display: inline;
+  }
 
-/* The path cell is inline (so its ellipsis works), which drops the spinner
-   onto the text baseline; nudge it back onto the cap height. */
-.liveSpinner {
-  vertical-align: text-bottom;
-  color: rgb(var(--v-theme-primary));
-}
+  /* The path cell is inline (so its ellipsis works), which drops the spinner
+     onto the text baseline; nudge it back onto the cap height. */
+  .liveSpinner {
+    vertical-align: text-bottom;
+    color: rgb(var(--v-theme-primary));
+  }
 
-.muted {
-  color: rgb(var(--v-theme-text-secondary));
-}
+  .muted {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-.capNote {
-  margin-top: d.$space-2;
+  .capNote {
+    margin-top: d.$space-2;
+  }
 }
 </style>

@@ -71,49 +71,53 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#adminHeader {
-  position: fixed;
-  top: 0px;
-  padding-top: env(safe-area-inset-top);
-  z-index: 10;
-  display: block;
-  width: 100%;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #adminHeader {
+    position: fixed;
+    top: 0px;
+    padding-top: env(safe-area-inset-top);
+    z-index: 10;
+    display: block;
+    width: 100%;
+  }
 
-.drawerMargin {
-  width: calc(100% - 256px) !important;
-}
+  .drawerMargin {
+    width: calc(100% - 256px) !important;
+  }
 
-.invisible {
-  visibility: hidden;
-}
+  .invisible {
+    visibility: hidden;
+  }
 
-#buttonSpacer {
-  width: 48px;
-}
+  #buttonSpacer {
+    width: 48px;
+  }
 
-#titleBar {
-  padding-left: env(safe-area-inset-left);
-  padding-right: 0px; // given to settings button.
-}
+  #titleBar {
+    padding-left: env(safe-area-inset-left);
+    padding-right: 0px; // given to settings button.
+  }
 
-#adminTitle {
-  text-align: center;
-}
+  #adminTitle {
+    text-align: center;
+  }
 
-.adminSettingsButton {
-  margin: 0px !important;
-}
+  .adminSettingsButton {
+    margin: 0px !important;
+  }
 
-.adminTabs {
-  background-color: rgb(var(--v-theme-surface));
-}
+  .adminTabs {
+    background-color: rgb(var(--v-theme-surface));
+  }
 
-:deep(.tabHeader) {
-  padding: 10px;
-}
+  :deep(.tabHeader) {
+    padding: 10px;
+  }
 
-:deep(.v-tab) {
-  color: rgb(var(--v-theme-text-primary));
+  :deep(.v-tab) {
+    color: rgb(var(--v-theme-text-primary));
+  }
 }
 </style>

@@ -136,12 +136,16 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#folderPicker {
-  border-radius: 5px;
-  background-color: rgb(var(--v-theme-surface));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #folderPicker {
+    border-radius: 5px;
+    background-color: rgb(var(--v-theme-surface));
+  }
 
-.showHidden :deep(.v-label) {
-  color: rgb(var(--v-theme-text-secondary));
+  .showHidden :deep(.v-label) {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 }
 </style>
