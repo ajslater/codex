@@ -11,8 +11,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Final
 from unittest.mock import patch
 
+import pytest
 from comicbox.events import (
     AutoWritten,
     FileFinished,
@@ -611,3 +613,91 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
         )
         TagPassRunner._store_result_tags(state, matched, batch, flush_writes=True)  # noqa: SLF001
         assert batch == {1: {"series": "New"}}
+
+
+_RELEASE_TARGET: Final = (
+    "comicbox.formats.metron_api.online_source.close_shared_sessions"
+)
+
+
+def _raise_scan_died(*_args, **_kwargs) -> None:
+    """Stand in for a pass that dies mid-scan."""
+    msg = "scan died"
+    raise RuntimeError(msg)
+
+
+class MetronConnectionReleaseTests(OnlineTagSessionTestCase):
+    """
+    A scan hands back its pooled Metron connections when it finishes.
+
+    Since mokkari 4.8.0 a session keeps one pooled TLS connection open,
+    and comicbox releases it only when asked. Nothing in codex owns every
+    session — the prompt applier and the explicit-id fetch build their
+    own — so the release is process-wide, at the end of the task. The
+    patch target is the module attribute the lazy import resolves.
+    """
+
+    def _no_op_pass(self) -> None:
+        """Stub out Pass 1: only the release around it is under test."""
+        self.manager._pass_runner = double(FakePassRunner())  # noqa: SLF001
+
+    def _task(self, comic: Comic) -> BulkOnlineTagTask:
+        return BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-release",
+            sources=("metron",),
+            mode="auto",
+        )
+
+    def test_a_finished_scan_releases_once(self) -> None:
+        comic = make_comic()
+        self._no_op_pass()
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch(_RELEASE_TARGET) as release,
+        ):
+            self.manager.run_session(self._task(comic))
+
+        release.assert_called_once_with()
+
+    def test_the_release_comes_after_the_deferred_applies(self) -> None:
+        """
+        Order matters.
+
+        The deferred applies run on this same thread inside the scan's
+        ``finally`` and open their own sessions; releasing before them
+        would only force a reconnect.
+        """
+        comic = make_comic()
+        self._no_op_pass()
+        order: list[str] = []
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch.object(
+                type(self.manager),
+                "_apply_deferred_resolutions",
+                lambda *_args: order.append("apply"),
+            ),
+            patch(_RELEASE_TARGET, lambda: order.append("release")),
+        ):
+            self.manager.run_session(self._task(comic))
+
+        assert order == ["apply", "release"]
+
+    def test_a_scan_that_raises_still_releases(self) -> None:
+        """The connections belong to the process, not to the scan."""
+        comic = make_comic()
+        runner = double(FakePassRunner())
+        runner.collect_results = _raise_scan_died
+        self.manager._pass_runner = runner  # noqa: SLF001
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch(_RELEASE_TARGET) as release,
+            pytest.raises(RuntimeError, match="scan died"),
+        ):
+            self.manager.run_session(self._task(comic))
+
+        release.assert_called_once_with()

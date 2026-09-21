@@ -47,6 +47,9 @@ class TestValidateCredentials:
         assert results == {"metron": ValidationResult(ok=True)}
         instance.publishers_list.assert_called_once_with({"page": 1})
         assert mocked.call_args.kwargs["api_token"] == "token"  # noqa: S105
+        # Since mokkari 4.8.0 the session holds a pooled TLS connection
+        # until closed, and this one is used once in the web process.
+        instance.close.assert_called_once_with()
 
     def test_metron_legacy_login_still_validates(self) -> None:
         """A stored username & password authenticates when no API key is set."""
@@ -123,6 +126,8 @@ class TestValidateCredentials:
             results = validate_credentials(_full_creds(), {"metron"})
         assert results["metron"].ok is False
         assert "authoriz" in (results["metron"].error or "").lower()
+        # A rejected key leaves a connection open just the same.
+        instance.close.assert_called_once_with()
 
     def test_metron_api_error(self) -> None:
         from mokkari.exceptions import ApiError

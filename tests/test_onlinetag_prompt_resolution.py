@@ -11,8 +11,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Final
 from unittest.mock import patch
 
+import pytest
 from django.core.cache import caches
 
 from codex.librarian.onlinetag.session_cache import (
@@ -479,3 +481,63 @@ class OnlineTagSeriesPromptTests(OnlineTagSessionTestCase):
 
         prompts = get_pending_prompts()
         assert [c["pk"] for c in prompts["fp1"]["comics"]] == [later.pk]
+
+
+_RELEASE_TARGET: Final = (
+    "comicbox.formats.metron_api.online_source.close_shared_sessions"
+)
+
+
+class PromptResolutionConnectionReleaseTests(OnlineTagSessionTestCase):
+    """
+    Answering a prompt hands back the connection it opened.
+
+    The applier builds its own session per answer, so nothing else will
+    close it. Skipping makes no request at all, so it must not pay for a
+    reconnect on the next answer.
+    """
+
+    def test_an_applied_answer_releases_once(self) -> None:
+        comic = make_comic()
+        set_pending_prompts({"fp1": _prompt(comic)})
+
+        def _fake_fetch(_path, _source, _issue_id, _credentials, **_kwargs):
+            return {"series": "X"}
+
+        with (
+            patch(APPLY_FETCH_TARGET, _fake_fetch),
+            patch(_RELEASE_TARGET) as release,
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        release.assert_called_once_with()
+
+    def test_an_applier_that_raises_still_releases(self) -> None:
+        comic = make_comic()
+        set_pending_prompts({"fp1": _prompt(comic)})
+
+        def _boom(*_args, **_kwargs):
+            msg = "apply died"
+            raise RuntimeError(msg)
+
+        with (
+            patch.object(type(self.manager._prompt_applier), "apply", _boom),  # noqa: SLF001
+            patch(_RELEASE_TARGET) as release,
+            pytest.raises(RuntimeError, match="apply died"),
+        ):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        release.assert_called_once_with()
+
+    def test_a_skipped_prompt_releases_nothing(self) -> None:
+        set_pending_prompts(
+            {"fp1": {"fingerprint": "fp1", "pk": 1, "path": "/c/1.cbz", "source": "x"}}
+        )
+
+        with (
+            patch(APPLY_SESSION_TARGET, FakeSession),
+            patch(_RELEASE_TARGET) as release,
+        ):
+            self.manager.resolve_prompt("fp1", "skip", None, None)
+
+        release.assert_not_called()

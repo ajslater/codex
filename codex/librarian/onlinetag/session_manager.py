@@ -120,6 +120,27 @@ def _online_config(effort: str) -> ComicboxSettings:
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
 
 
+def _release_metron_connections() -> None:
+    """
+    Close the pooled Metron HTTP connections this thread's lookups opened.
+
+    Since mokkari 4.8.0 every session keeps one pooled TLS connection,
+    and comicbox 5.2.0 releases it only when asked
+    (``OnlineSession.close`` is this same call). No object in codex owns
+    all of them — the prompt applier and the explicit-id fetch each
+    build their own — so release process-wide at the end of each task.
+    Every Metron path in codex runs on the one ``OnlineTagThread``, so
+    this never interrupts another run. The next lookup reconnects on
+    demand, which is what every request cost before mokkari 4.8.0.
+
+    Imported lazily, exactly as comicbox's own ``close()`` does, so the
+    librarian never pays mokkari's import at startup.
+    """
+    from comicbox.formats.metron_api.online_source import close_shared_sessions
+
+    close_shared_sessions()
+
+
 if TYPE_CHECKING:
     from multiprocessing import Queue
 
@@ -878,6 +899,10 @@ class OnlineTagSessionManager:
             # apply builds its own fresh session, so it's independent of
             # this (possibly crashed) scan's session.
             self._apply_deferred_resolutions(state)
+            # Last: the deferred applies above open their own sessions on
+            # this thread, so releasing before them would only force a
+            # reconnect.
+            _release_metron_connections()
 
     def _log_summary(self, state: SessionState, start: float) -> None:
         """Log how the scan's comics resolved across sources, skips, and prompts."""
@@ -960,7 +985,13 @@ class OnlineTagSessionManager:
         # (the live prompt set wins over the recorded outcome).
         for comic in comics:
             record_resolution(comic["pk"], USER_MATCHED, source)
-        self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+        try:
+            self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+        finally:
+            # The applier built its own session; nothing else will close
+            # it. The skip branch above returns before this, having made
+            # no request at all.
+            _release_metron_connections()
 
     def skip_all_prompts(self) -> int:
         """Drop every pending prompt. Returns the number skipped."""
