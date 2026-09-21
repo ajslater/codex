@@ -30,7 +30,6 @@
     "xior": "^0.8.5"
   },
   "devDependencies": {
-    "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.47",
     "@pinia/testing": "^2.0.1",
     "@types/node": "^26.6.2",
