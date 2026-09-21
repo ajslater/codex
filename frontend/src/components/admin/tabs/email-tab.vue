@@ -32,6 +32,7 @@
         <div class="adminCard">
           <v-text-field
             v-model="draft.host"
+            :error-messages="fieldErrors.host"
             label="Host"
             placeholder="smtp.example.com"
             :rules="hostRules"
@@ -42,6 +43,7 @@
         <div class="adminCard">
           <v-text-field
             v-model.number="draft.port"
+            :error-messages="fieldErrors.port"
             type="number"
             label="Port"
             min="1"
@@ -70,6 +72,7 @@
         <div class="adminCard">
           <v-text-field
             v-model.number="draft.timeout"
+            :error-messages="fieldErrors.timeout"
             type="number"
             label="Timeout (seconds)"
             min="1"
@@ -145,6 +148,7 @@
         <div class="adminCard">
           <v-text-field
             v-model="draft.fromAddress"
+            :error-messages="fieldErrors.fromAddress"
             label="From Address"
             placeholder="codex@example.com"
             hint="Falls back to the SMTP username when blank."
@@ -163,6 +167,12 @@
           />
         </div>
       </AdminSection>
+
+      <div v-if="unboundErrors.length > 0" class="saveErrors">
+        <div v-for="(error, index) in unboundErrors" :key="index">
+          {{ error }}
+        </div>
+      </div>
 
       <AdminActionBar
         save-text="Save Settings"
@@ -229,6 +239,7 @@ import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const EDITABLE_FIELDS = Object.freeze([
   "host",
@@ -241,6 +252,14 @@ const EDITABLE_FIELDS = Object.freeze([
   "subjectPrefix",
 ]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+// Fields with their own :error-messages binding, so the summary below
+// the form does not repeat them.
+const _BOUND_ERROR_FIELDS = Object.freeze([
+  "host",
+  "port",
+  "timeout",
+  "fromAddress",
+]);
 // Length only. The removed hostname regex refused ``localhost`` and every
 // Compose service name; the column width is the one thing the server
 // actually enforces on this field.
@@ -298,6 +317,19 @@ export default {
     };
   },
   computed: {
+    unboundErrors() {
+      // Whatever the server said that no input claimed.
+      const bound = new Set(_BOUND_ERROR_FIELDS);
+      return Object.entries(this.fieldErrors ?? {})
+        .filter(([field]) => !bound.has(field))
+        .flatMap(([, messages]) => messages);
+    },
+    ...mapState(useCommonStore, {
+      // This form showed no save errors at all: the envelope's
+      // 400 wraps into an APIError, which has no ``.response``,
+      // so the old parser could not see it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, {
       settings: (state) => state.emailSettings,
     }),

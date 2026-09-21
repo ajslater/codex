@@ -4,6 +4,7 @@
       v-model="row.name"
       label="Group Name"
       :rules="rules.name"
+      :error-messages="fieldErrors.name"
       clearable
       autofocus
     />
@@ -58,6 +59,7 @@ import AdminRelationPicker from "@/components/admin/create-update-dialog/relatio
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const UPDATE_KEYS = Object.freeze(["name", "userSet", "librarySet", "exclude"]);
 const EMPTY_ROW = Object.freeze({
@@ -87,6 +89,10 @@ export default {
     };
   },
   computed: {
+    ...mapState(useCommonStore, {
+      // The server's reason, bound to the field that caused it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,

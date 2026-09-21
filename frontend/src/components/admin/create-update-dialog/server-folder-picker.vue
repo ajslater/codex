@@ -7,7 +7,7 @@
       v-bind="$attrs"
       aria-label="Library folder"
       clearable
-      :error-messages="formErrors"
+      :error-messages="pathErrors"
       full-width
       hide-details="auto"
       :items="folders"
@@ -61,7 +61,14 @@ export default {
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
+      formFieldErrors: (state) => state.form.fieldErrors,
     }),
+    pathErrors() {
+      // The server's reason for THIS field when it named one -- "Library
+      // with this Path already exists." -- rather than every message the
+      // response carried.
+      return this.formFieldErrors?.path ?? this.formErrors;
+    },
   },
   mounted() {
     /*
