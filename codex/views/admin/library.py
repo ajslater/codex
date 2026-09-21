@@ -52,6 +52,17 @@ _FAILED_COUNT = Coalesce(
     ),
     Value(0),
 )
+# Comics this library has vanished but is still holding for their
+# bookmarks. Same correlated-count shape as the two above.
+_MISSING_COUNT = Coalesce(
+    Subquery(
+        Comic.objects.filter(library=OuterRef("pk"), missing_since__isnull=False)
+        .values("library")
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
 
 
 class AdminLibraryViewSet(AdminModelViewSet):
@@ -62,7 +73,11 @@ class AdminLibraryViewSet(AdminModelViewSet):
 
     queryset = (
         Library.objects.prefetch_related("groups")
-        .annotate(comic_count=_COMIC_COUNT, failed_count=_FAILED_COUNT)
+        .annotate(
+            comic_count=_COMIC_COUNT,
+            failed_count=_FAILED_COUNT,
+            missing_count=_MISSING_COUNT,
+        )
         .defer("update_in_progress", "created_at", "updated_at")
     )
 

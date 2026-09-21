@@ -126,6 +126,13 @@ export const TABLES = Object.freeze({
       ),
     stateField: "failedImports",
   },
+  // Comic and Folder rendered into one list, so this is an envelope
+  // APIView rather than a JSON:API resource.
+  PendingDelete: {
+    getAll: () =>
+      HTTP.get("/admin/pending-deletes", { params: { ts: Date.now() } }),
+    stateField: "pendingDeletes",
+  },
   // ActiveLibrarianStatus stays on the envelope (async APIView, not a
   // JSON:API resource).
   ActiveLibrarianStatus: {
@@ -191,6 +198,9 @@ export const updateTaggingDefaults = (data) =>
 
 export const validateTaggingCredentials = (data) =>
   HTTP.post("/admin/tagging-defaults/validate", data);
+
+export const revivePendingDelete = (collection, pk) =>
+  HTTP.post(`/admin/pending-deletes/${collection}/${pk}/revive`);
 
 export const getTagWriteErrors = () =>
   HTTP.get("/admin/tag-write/errors", { params: { ts: Date.now() } });

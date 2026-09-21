@@ -1,13 +1,11 @@
 """Really delete rows whose retention window has expired."""
 
-from datetime import timedelta
-from typing import Final
-
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.pending_deletes import PENDING_DELETE_WINDOW
 from codex.librarian.scribe.importer.delete.collect import (
     init_comic_collection_map,
     populate_comic_collection_map,
@@ -17,13 +15,6 @@ from codex.librarian.scribe.janitor.status import JanitorReapPendingDeletesStatu
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.models import Comic, Folder, Library
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
-
-#: How long a row that vanished from disk is kept before it is really
-#: deleted. A safety delay before an irreversible action, not a tuning
-#: knob -- the same shape as the telemeter's opt-out window, which is
-#: documented to admins in prose while still not being configurable.
-#: The effective window is this plus the time to the next nightly run.
-_PENDING_DELETE_WINDOW: Final = timedelta(hours=24)
 
 
 class JanitorReap(JanitorCleanup):
@@ -122,7 +113,7 @@ class JanitorReap(JanitorCleanup):
         status = JanitorReapPendingDeletesStatus(0)
         try:
             self.status_controller.start(status)
-            cutoff = timezone.now() - _PENDING_DELETE_WINDOW
+            cutoff = timezone.now() - PENDING_DELETE_WINDOW
             collection_map = init_comic_collection_map()
             with self.db_write_lock:
                 comics, comic_pks = self._reap_comics(cutoff, collection_map)
@@ -132,7 +123,7 @@ class JanitorReap(JanitorCleanup):
             if total:
                 reason = (
                     f"Reaped {comics} comics and {folders} folders"
-                    f" missing for more than {_PENDING_DELETE_WINDOW}."
+                    f" missing for more than {PENDING_DELETE_WINDOW}."
                 )
                 self.log.info(reason)
                 self._publish_reap(collection_map, comic_pks)
