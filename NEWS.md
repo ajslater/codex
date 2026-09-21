@@ -58,6 +58,8 @@ border-radius: 128px;
       can't see.
     - A briefly unreadable folder no longer loses its collections' custom
       covers.
+    - Metadata imports and reading positions respect library and age-rating
+      permissions.
     - Deleting a library succeeds, and library and group membership changes
       refresh the browser.
     - Force Update no longer costs a moved comic its bookmarks.
