@@ -27,9 +27,15 @@ The classmethod forms (:meth:`AgeRatingACLMixin.get_age_rating_acl_filter`,
 :meth:`GroupACLFilterMixin.get_group_acl_filter`) remain as thin
 wrappers for tests and one-off callers that don't have a request in
 hand; they recompute every scalar from scratch per call.
+
+:class:`ComicACL` packages the same three scalars for callers that also
+need the ACL in **raw SQL** — the table view's correlated intersection
+subqueries, which have no queryset to filter. One definition, two
+spellings, so they cannot drift apart.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, override
 
 from django.conf import settings
@@ -411,6 +417,109 @@ class AgeRatingACLMixin(RelPrefixMixin):
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ComicACL:
+    """
+    The comic-visibility ACL as data, with two spellings of one definition.
+
+    The browser's table mode builds collection-row sort keys from
+    *correlated raw SQL* subqueries. Those have no queryset to hang a
+    :class:`~django.db.models.Q` on, so the same predicate has to exist
+    in SQL as well — and two hand-written copies drift. Instead the
+    ACL's three scalars live here once and both spellings derive from
+    them:
+
+    * :meth:`q` — the ORM form, in any model's relation prefix, composed
+      from the very same classmethods :meth:`GroupACLMixin.get_acl_filter`
+      uses.
+    * :meth:`sql` — a raw-SQL fragment for a comic table alias, plus the
+      values to bind to it. Library pks are **parameters**, never
+      interpolated into the statement.
+
+    The pending-delete (``missing_since``) clause is deliberately *not*
+    part of this object. The intersection queries exclude scanner-stamped
+    comics unconditionally, with no staff exemption; folding the
+    staff-aware clause in here would apply one rule to a cell's numerator
+    and another to its denominator.
+    """
+
+    library_pks: tuple[int, ...]
+    max_idx: int
+    default_fits: bool
+
+    @classmethod
+    def for_user(cls, user) -> "ComicACL":
+        """
+        One-shot form: resolve every scalar from scratch for ``user``.
+
+        Preferred by tests and isolated callers. View code should use
+        :meth:`GroupACLMixin.get_comic_acl`, which reads the per-request
+        cache instead of re-querying.
+        """
+        max_idx = AgeRatingACLMixin.compute_max_idx(user)
+        return cls(
+            library_pks=cls.order_pks(
+                GroupACLFilterMixin.compute_visible_library_pks(user)
+            ),
+            max_idx=max_idx,
+            default_fits=AgeRatingACLMixin.compute_default_fits(max_idx),
+        )
+
+    @staticmethod
+    def order_pks(visible_pks) -> tuple[int, ...]:
+        """Freeze a visible-library pk set into a deterministic tuple."""
+        # Deterministic order matters: the pks become positional bind
+        # parameters, and a stable statement string is what lets SQLite
+        # reuse its prepared-statement cache across requests.
+        return tuple(sorted(visible_pks))
+
+    def q(self, model) -> Q:
+        """Return the ORM spelling, relative to ``model``'s Comic relation."""
+        return GroupACLFilterMixin.get_group_acl_filter_for(
+            model, self.library_pks
+        ) & AgeRatingACLMixin.get_age_rating_acl_filter_for(
+            model, self.max_idx, default_fits=self.default_fits
+        )
+
+    def sql(self, alias: str) -> tuple[str, tuple[int, ...]]:
+        """
+        Return the raw-SQL spelling for a comic table ``alias`` + its parameters.
+
+        For **correlated subqueries only**, where the collection FK the
+        subquery correlates on must remain the access path and this ACL
+        is merely a filter over that slice. Hence the unary ``+`` on
+        ``library_id``: SQLite's documented no-op operator that
+        disqualifies a term from index use. Without it the planner
+        prefers ``codex_comic_lib_ari_idx`` over the collection FK index
+        and each correlated evaluation scans every comic in every
+        visible library instead of the handful in one collection —
+        measured 4-6x slower on a 1000-comic single-library fixture, and
+        it grows with the library, not the page.
+
+        ``alias`` is always a module-private literal (``c`` / ``c2``) —
+        it never carries a request value. Everything else rides in the
+        returned tuple as ``%s`` parameters.
+        """
+        if not self.library_pks:
+            # Nothing is visible. ``IN ()`` is a SQLite-only extension;
+            # a false literal says the same thing without depending on it.
+            return "0", ()
+        rel = f"{alias}.age_rating_metron_index"
+        ranked = f"({rel} >= 0 AND {rel} <= %s)"
+        params: list[int] = [*self.library_pks, self.max_idx]
+        if self.default_fits:
+            ranked += f" OR {rel} IS NULL OR {rel} = %s"
+            params.append(UNRANKED_METRON_INDEX)
+        placeholders = ", ".join(["%s"] * len(self.library_pks))
+        # ``age_rating_metron_index`` needs no such guard: it is only ever
+        # the second column of that same composite index, unusable once
+        # the leading column is out.
+        return (
+            f"(+{alias}.library_id IN ({placeholders}) AND ({ranked}))",
+            tuple(params),
+        )
+
+
 class MissingACLFilterMixin(RelPrefixMixin):
     """
     Pending-delete (``missing_since``) visibility filter.
@@ -489,6 +598,20 @@ class GroupACLMixin(
                 self.get_max_idx(user)
             )
         return self._cached_default_fits
+
+    def get_comic_acl(self, user) -> ComicACL:
+        """
+        Return the request's comic-visibility ACL as a value object.
+
+        Same three cached scalars :meth:`get_acl_filter` composes, handed
+        to callers that need the ACL in raw SQL as well as in the ORM —
+        the table view's correlated intersection subqueries.
+        """
+        return ComicACL(
+            library_pks=ComicACL.order_pks(self.get_visible_library_pks(user)),
+            max_idx=self.get_max_idx(user),
+            default_fits=self.get_default_fits(user),
+        )
 
     def get_acl_filter(self, model, user, *, include_missing: bool = False) -> Q:
         """
