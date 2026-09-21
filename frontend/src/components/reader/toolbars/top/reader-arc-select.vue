@@ -152,31 +152,35 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.arcSelect {
-  min-width: 79px;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .arcSelect {
+    min-width: 79px;
+  }
 
-#arcPos {
-  height: 22.75px;
-  padding-top: 4px;
-  font-size: 16px;
-  letter-spacing: -0.15em;
-}
+  #arcPos {
+    height: 22.75px;
+    padding-top: 4px;
+    font-size: 16px;
+    letter-spacing: -0.15em;
+  }
 
-:deep(.v-select__selection) {
-  color: rgb(var(--v-theme-text-secondary)) !important;
-}
+  :deep(.v-select__selection) {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-:deep(.v-select__selection .arcSelectIcon) {
-  top: 4px;
-  color: rgb(var(--v-theme-text-secondary));
-}
+  :deep(.v-select__selection .arcSelectIcon) {
+    top: 4px;
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-:deep(.v-select__selection:hover) .arcSelectIcon {
-  color: white;
-}
+  :deep(.v-select__selection:hover) .arcSelectIcon {
+    color: white;
+  }
 
-:deep(.v-list-item__spacer) {
-  max-width: 12px;
+  :deep(.v-list-item__spacer) {
+    max-width: 12px;
+  }
 }
 </style>

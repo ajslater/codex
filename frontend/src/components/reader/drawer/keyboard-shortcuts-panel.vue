@@ -41,23 +41,27 @@ export default {
 <style scoped lang="scss">
 @forward "./expansion-panel-overrides";
 
-#readerKeyboardShortcuts {
-  background-color: rgb(var(--v-theme-background));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #readerKeyboardShortcuts {
+    background-color: rgb(var(--v-theme-background));
+  }
 
-#shortcutsTitle {
-  padding: 0;
-  padding-left: 17px;
-  padding-right: 10px;
-  font-size: 16px;
-}
+  #shortcutsTitle {
+    padding: 0;
+    padding-left: 17px;
+    padding-right: 10px;
+    font-size: 16px;
+  }
 
-#keyboardShortcutsItem {
-  padding-left: 0px;
-}
+  #keyboardShortcutsItem {
+    padding-left: 0px;
+  }
 
-:deep(.v-expansion-panel-text__wrapper) {
-  padding-left: 10px;
-  padding-right: 10px;
+  :deep(.v-expansion-panel-text__wrapper) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 </style>

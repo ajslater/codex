@@ -43,16 +43,20 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.pageError {
-  height: 100vh;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .pageError {
+    height: 100vh;
+  }
 
-.pageError :deep(.v-icon),
-.pageError :deep(.v-empty-state__headline) {
-  color: rgb(var(--v-theme-error)) !important;
-}
+  .pageError :deep(.v-icon),
+  .pageError :deep(.v-empty-state__headline) {
+    color: rgb(var(--v-theme-error));
+  }
 
-.twoPages {
-  max-width: 50vw;
+  .twoPages {
+    max-width: 50vw;
+  }
 }
 </style>
