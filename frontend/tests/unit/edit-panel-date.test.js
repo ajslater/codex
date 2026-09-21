@@ -16,6 +16,7 @@
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { VTextField } from "vuetify/components";
 
 vi.mock("@/api/v4/base", () => ({
   HTTP: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
@@ -156,17 +157,24 @@ describe("EditPanel — publish date", () => {
 
   test("the rules bound each part", async () => {
     const wrapper = await mountPanel();
-    const check = (rules, value) => rules.map((rule) => rule(value));
-    expect(check(wrapper.vm.monthRules, 13)).toContain("Must be 1–12");
-    expect(check(wrapper.vm.dayRules, 32)).toContain("Must be 1–31");
-    expect(check(wrapper.vm.yearRules, 0)).toContain("Must be 1–9999");
-    expect(check(wrapper.vm.yearRules, 10_000)).toContain("Must be 1–9999");
+    const field = (label) =>
+      wrapper
+        .findAllComponents(VTextField)
+        .find((c) => c.props("label") === label);
+    const errorsFor = async (label, value) => {
+      await field(label).setValue(value);
+      return field(label).vm.validate();
+    };
+    expect(await errorsFor("Month", 13)).toEqual(["Must be 1–12"]);
+    expect(await errorsFor("Day", 32)).toEqual(["Must be 1–31"]);
+    expect(await errorsFor("Year", 0)).toEqual(["Must be 1–9999"]);
+    expect(await errorsFor("Year", 10_000)).toEqual(["Must be 1–9999"]);
     for (const empty of [null, "", undefined]) {
-      expect(check(wrapper.vm.yearRules, empty)).toEqual([true]);
+      expect(await errorsFor("Year", empty)).toEqual([]);
     }
-    expect(check(wrapper.vm.monthRules, 12)).toEqual([true]);
-    expect(check(wrapper.vm.dayRules, 31)).toEqual([true]);
-    expect(check(wrapper.vm.yearRules, 1987)).toEqual([true]);
+    expect(await errorsFor("Month", 12)).toEqual([]);
+    expect(await errorsFor("Day", 31)).toEqual([]);
+    expect(await errorsFor("Year", 1987)).toEqual([]);
   });
 
   test("retyping a cleared part revives it", async () => {

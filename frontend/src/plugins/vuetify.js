@@ -1,6 +1,8 @@
 import { createVuetify } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 
+import { createCodexRulesPlugin } from "@/plugins/rules";
+
 const WHITE = "#FFFFFF";
 const DISABLED = "#808080";
 
@@ -51,7 +53,7 @@ const themeDefaults = {
   },
 };
 
-export default new createVuetify({
+const vuetify = new createVuetify({
   defaults: {
     global: {
       ripple: true,
@@ -105,3 +107,23 @@ export default new createVuetify({
     },
   },
 });
+
+/*
+ * createVuetify() does not install the rules plugin; it is a separate Vue
+ * plugin that needs the locale instance createVuetify() returns. One
+ * composite export keeps `app.use(vuetify)` the single install point for
+ * src/main.js AND for every unit test that passes this default export in
+ * `global.plugins`. Without it an unresolved ["$alias", …] array is silently
+ * skipped by Vuetify's validation and the field validates with no rules at
+ * all — a green test over a broken form (tests/unit/rules-plugin.test.js
+ * guards this).
+ */
+const rulesPlugin = createCodexRulesPlugin(vuetify.locale);
+
+export default {
+  ...vuetify,
+  install(app) {
+    app.use(vuetify);
+    app.use(rulesPlugin);
+  },
+};

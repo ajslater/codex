@@ -78,7 +78,8 @@ export default {
       rules: {
         name: [
           (v) => !!v || "Name is required",
-          (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
+          // $notIn passes on blank, so the required rule must stay first.
+          ["$notIn", () => this.names, "Name already used"],
         ],
       },
     };
