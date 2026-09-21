@@ -44,6 +44,7 @@ border-radius: 128px;
     - Cover thumbnails in table mode and on the custom-covers admin tab open
       with the keyboard.
     - Invalid admin settings values are rejected instead of breaking browsing.
+    - Admin forms show the server's reason when a name is already taken.
     - Buttons on the orange accent use dark text.
     - The email host field accepts hostnames without a dot, such as localhost.
     - The change-password dialog enforces the minimum password length.

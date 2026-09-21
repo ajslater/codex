@@ -222,6 +222,17 @@ export const useAdminStore = defineStore("admin", {
         .then(() => commonStore.setSuccess(text))
         .catch(commonStore.setErrors);
     },
+    /*
+     * Names already taken, for the ``$notIn`` rules.
+     *
+     * A fast local pre-check, not the authority. ``loadTable`` reads
+     * only ``body.results`` and never follows ``next``, so with a page
+     * size of 200 a duplicate on row 201 is not in here. The server is
+     * authoritative -- ``username``, ``Group.name`` and ``Library.path``
+     * are all ``unique=True`` and ModelSerializer attaches the
+     * UniqueValidator automatically -- and its answer now renders on
+     * the field that caused it.
+     */
     nameSet(rows, nameKey, oldRow, dupeCheck) {
       if (this._requireAdmin()) return false;
       const names = new Set();

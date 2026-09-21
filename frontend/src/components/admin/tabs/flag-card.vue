@@ -157,7 +157,7 @@ export default {
   },
   computed: {
     ...mapState(useCommonStore, {
-      formErrors: (state) => state.form.errors,
+      formFieldErrors: (state) => state.form.fieldErrors,
     }),
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
@@ -195,11 +195,10 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["updateRow"]),
     setError(field) {
-      if (this.formErrors && this.formErrors.length > 0) {
-        this.error = Reflect.get(this.formErrors[0], field);
-      } else {
-        this.error = undefined;
-      }
+      // ``formErrors[0]`` was a message string, never a field map, so
+      // ``Reflect.get(..., field)`` was always undefined and a flag
+      // error could never render. The normalized map is keyed by field.
+      this.error = this.formFieldErrors?.[field];
     },
     changeCol(field, val, range) {
       // This control has no v-form and PATCHes on every keystroke, so

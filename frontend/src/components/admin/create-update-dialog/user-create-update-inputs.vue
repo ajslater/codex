@@ -5,6 +5,7 @@
       autocomplete="username"
       label="Username"
       :rules="rules.username"
+      :error-messages="fieldErrors.username"
       clearable
       autofocus
       @keydown.enter="$refs.email.focus()"
@@ -13,6 +14,7 @@
       ref="email"
       v-model="row.email"
       :rules="rules.email"
+      :error-messages="fieldErrors.email"
       label="Email"
       autocomplete="email"
       type="email"
@@ -77,6 +79,7 @@ import AdminRelationPicker from "@/components/admin/create-update-dialog/relatio
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
@@ -131,6 +134,10 @@ export default {
     };
   },
   computed: {
+    ...mapState(useCommonStore, {
+      // The server's reason, bound to the field that caused it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,

@@ -3,30 +3,82 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/common";
 
-const ERROR_KEYS = Object.freeze([
-  "detail",
-  "oldPassword",
-  "password",
-  "username",
-  "passwordConfirm",
-  "path",
-]);
+/*
+ * Two renderers, two 400 shapes, one normalized map.
+ *
+ * Admin resource viewsets render through AdminJSONAPIRenderer, whose
+ * ``format_errors`` is literally ``{"errors": data}`` -- so the body is
+ * ``{"errors": {"username": [...]}}``, a dict rather than the JSON:API
+ * error list, because DJA's own exception handler is not installed. It
+ * stays a plain xior error, since the interceptor only wraps when
+ * ``errors`` is an array.
+ *
+ * Envelope endpoints emit ``{"errors": [{status, title, detail}]}``,
+ * which DOES wrap into an APIError -- and APIError has no ``.response``,
+ * so anything reading ``error.response.data`` saw nothing at all.
+ *
+ * Both are pinned by tests/test_admin_error_shapes.py.
+ */
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const messagesOf = (value) =>
+  (Array.isArray(value) ? value.flat(Number.POSITIVE_INFINITY) : [value])
+    .filter((message) => message !== null && message !== undefined)
+    .map(String);
+
+const fieldErrorMap = (error) => {
+  const body = error?.response?.data;
+  const envelopeDetail = error?.envelopeError?.detail;
+  let map;
+  if (isPlainObject(body) && isPlainObject(body.errors)) {
+    map = body.errors;
+  } else if (isPlainObject(envelopeDetail)) {
+    map = envelopeDetail;
+  } else if (isPlainObject(body) && !("errors" in body)) {
+    // A bare DRF body, which is what a non-admin endpoint returns.
+    map = body;
+  }
+  if (!map) {
+    return {};
+  }
+  const fieldErrors = {};
+  for (const [field, value] of Object.entries(map)) {
+    const messages = messagesOf(value);
+    if (messages.length > 0) {
+      fieldErrors[field] = messages;
+    }
+  }
+  return fieldErrors;
+};
+
+// Sentence-case a camelCase field name for the summary line.
+const fieldLabel = (field) =>
+  field
+    .replaceAll(/([A-Z])/g, " $1")
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
+
+const flattenErrors = (fieldErrors) => {
+  const entries = Object.entries(fieldErrors);
+  if (entries.length === 0) {
+    return [];
+  }
+  // A lone ``detail`` is already a whole sentence; naming it adds noise.
+  if (entries.length === 1 && entries[0][0] === "detail") {
+    return entries[0][1];
+  }
+  return entries.flatMap(([field, messages]) =>
+    field === "detail"
+      ? messages
+      : messages.map((message) => `${fieldLabel(field)}: ${message}`),
+  );
+};
 
 const getErrors = (xiorError) => {
-  let errors = [];
-  if (xiorError && xiorError.response && xiorError.response.data) {
-    let data = xiorError.response.data;
-    for (const key of ERROR_KEYS) {
-      if (key in data) {
-        data = data[key];
-        break;
-      }
-    }
-    errors = Array.isArray(data) ? data.flat() : [data];
-  } else {
-    console.warn("Unable to parse error", xiorError);
-  }
+  let errors = flattenErrors(fieldErrorMap(xiorError));
   if (errors.length === 0) {
+    console.warn("Unable to parse error", xiorError);
     errors = ["Unknown error"];
   }
   return errors;
@@ -36,6 +88,8 @@ export const useCommonStore = defineStore("common", {
   state: () => ({
     form: {
       errors: [],
+      // ``{field: [messages]}``, for binding :error-messages per input.
+      fieldErrors: {},
       success: "",
     },
     versions: {
@@ -75,21 +129,25 @@ export const useCommonStore = defineStore("common", {
         .catch(console.error);
     },
     setErrors(xiorError) {
+      const fieldErrors = fieldErrorMap(xiorError);
       const errors = getErrors(xiorError);
       this.$patch((state) => {
         state.form.errors = errors;
+        state.form.fieldErrors = fieldErrors;
         state.form.success = "";
       });
     },
     setSuccess(success) {
       this.$patch((state) => {
         state.form.errors = [];
+        state.form.fieldErrors = {};
         state.form.success = success;
       });
     },
     clearErrors() {
       this.$patch((state) => {
         state.form.errors = [];
+        state.form.fieldErrors = {};
         state.form.success = "";
       });
     },
