@@ -38,6 +38,8 @@ border-radius: 128px;
     - Hovering a browser card draws its highlight border.
     - The tagging connection chip shows its check or alert icon.
     - An installed Codex gets a dark app bar instead of an orange one.
+    - A tag write refused because another archive in the same batch converts to
+      the same name now links to that comic.
 
 ## v2.3.3
 

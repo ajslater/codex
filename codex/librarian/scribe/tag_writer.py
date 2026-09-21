@@ -15,7 +15,7 @@ from comicbox.events import (
     FileParsed,
     FileShortCircuited,
 )
-from comicbox.write import BulkWriteItem, bulk_write
+from comicbox.write import BulkWriteItem, DestinationOccupiedError, bulk_write
 from django.core.cache import cache
 from django.utils.timezone import now
 
@@ -144,6 +144,12 @@ class TagWriter(WorkerStatusAbortableBase):
         unwritable archive (CBR/CBT/CB7) repacks it as a CBZ at a new path,
         and every later step — rename, DB sync — must chase the file there,
         not the submitted path the DB still holds.
+
+        comicbox 5.2.0 sniffs every destination before the write pool
+        starts, so its preflight refusals arrive as ``FileError`` events
+        ahead of any ``FileParsed`` and as results whose ``error`` is the
+        live exception object — which is what ``_twin_for_refusal``
+        reads.
         """
         written_paths: dict[int, Path] = {}
         had_errors = False
@@ -154,8 +160,7 @@ class TagWriter(WorkerStatusAbortableBase):
             base_config=base_config,
         ):
             if result.error:
-                self.log.warning(f"Tag write error for {result.path}: {result.error}")
-                add_tag_write_error(str(result.path), str(result.error))
+                self._record_write_error(result, path_to_pk)
                 had_errors = True
                 continue
             if not result.written:
@@ -164,9 +169,47 @@ class TagWriter(WorkerStatusAbortableBase):
             if pk is not None:
                 written_paths[pk] = result.final_path or result.path
         if had_errors:
-            # Surface the failures to admins (red badge + Tagging-tab panel).
+            # Surface the failures to admins (red badge + Tagging-tab
+            # panel). Once for the batch: _report_error queues one per
+            # error, which is right for its handful of call sites and
+            # wrong for a whole batch's results.
             self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
         return written_paths
+
+    def _twin_for_refusal(self, result, path_to_pk: dict[Path, int]) -> TwinRef | None:
+        """Return the comic row a comicbox destination refusal points at."""
+        error = result.error
+        if not isinstance(error, DestinationOccupiedError):
+            return None
+        pk = path_to_pk.get(result.path)
+        if pk is None:
+            return None
+        # In-batch collision: the rival *source* archive is the comic to
+        # link, and codex's own check cannot see those — it models the
+        # database, not the batch. Otherwise the destination may have
+        # grown a row since that check ran, which is the race; that row
+        # is the twin.
+        for candidate in (error.occupant, error.destination):
+            if candidate is None or candidate == result.path:
+                continue
+            _reason, twin = self._destination_refusal(pk, candidate)
+            if twin:
+                return twin
+        return None
+
+    def _record_write_error(self, result, path_to_pk: dict[Path, int]) -> None:
+        """Log one failed write and store it for the admin panel."""
+        twin = self._twin_for_refusal(result, path_to_pk)
+        where = f" (twin comic pk {twin.pk} in {twin.library_path})" if twin else ""
+        # comicbox's own message stands: it names both archives and says
+        # what collided. Codex only adds the link.
+        self.log.warning(f"Tag write error for {result.path}: {result.error}{where}")
+        add_tag_write_error(
+            str(result.path),
+            str(result.error),
+            twin_pk=twin.pk if twin else None,
+            twin_name=twin.name if twin else None,
+        )
 
     def _resolve_comics(
         self,

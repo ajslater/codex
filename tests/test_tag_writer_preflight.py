@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
+from comicbox.write import DestinationOccupiedError, WriteResult
 from django.test import TestCase
 
 from codex.librarian.scribe.tag_writer import TagWriter
@@ -273,3 +274,96 @@ class TagWriterKeptConversionCollisionTests(_PreflightTestBase):
         errors = _errors_for(converted)
         assert errors, get_tag_write_errors()
         assert "keeps its old name" in errors[0]
+
+
+class TagWriterInBatchCollisionTests(_PreflightTestBase):
+    """
+    comicbox refuses a batch's colliding destinations; codex links them.
+
+    Two CBRs in one directory whose names differ only by suffix both
+    convert to the same CBZ. Codex's own check passes them both — it
+    models the database, and no row or file holds that name yet — so
+    this collision is comicbox's to find, and its claim map does, before
+    any archive is opened. What codex adds is which comic the rival
+    archive is, so the admin can go straight to it.
+    """
+
+    def _write_with_results(self, comics: dict[Comic, object]) -> None:
+        """Run a tag write whose bulk_write yields the given results."""
+        results = list(comics.values())
+
+        def fake_bulk_write(_items, **_kwargs):
+            return iter(results)
+
+        task = BulkTagWriteTask(
+            comic_pks=frozenset(comic.pk for comic in comics),
+            patch=_PATCH,
+            delete_original=False,
+            rename=False,
+        )
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch(_BULK_WRITE_TARGET, fake_bulk_write),
+        ):
+            self.writer.write_tags(task)
+
+    def test_the_rival_archive_is_linked(self) -> None:
+        cbr = _make_comic(events=False, name="Foo.cbr")
+        cbt = _make_comic(
+            events=False, name="Foo.cbt", issue_number=2, library=cbr.library
+        )
+        cbr_path, cbt_path = Path(cbr.path), Path(cbt.path)
+        destination = _TMP_DIR / "Foo.cbz"
+
+        self._write_with_results(
+            {
+                cbr: WriteResult(path=cbr_path, written=True),
+                cbt: WriteResult(
+                    path=cbt_path,
+                    error=DestinationOccupiedError(
+                        cbt_path, destination, "convert", occupant=cbr_path
+                    ),
+                ),
+            }
+        )
+
+        records = _records_for(cbt_path)
+        assert len(records) == 1, records
+        assert records[0]["twin_pk"] == cbr.pk
+        assert records[0]["twin_name"] == "Foo.cbr"
+        # comicbox's own wording survives; codex only adds the link.
+        assert "destination" in records[0]["error"].lower()
+
+    def test_a_refusal_with_no_row_to_point_at_keeps_the_old_shape(self) -> None:
+        """An orphan file on disk is not a comic anyone can go edit."""
+        cbr = _make_comic(events=False, name="Bar.cbr")
+        cbr_path = Path(cbr.path)
+
+        self._write_with_results(
+            {
+                cbr: WriteResult(
+                    path=cbr_path,
+                    error=DestinationOccupiedError(
+                        cbr_path, _TMP_DIR / "Bar.cbz", "convert"
+                    ),
+                )
+            }
+        )
+
+        records = _records_for(cbr_path)
+        assert len(records) == 1, records
+        assert "twin_pk" not in records[0]
+
+    def test_an_ordinary_write_failure_gains_nothing(self) -> None:
+        """A read-only mount is not a collision."""
+        comic = _make_comic(events=False, name="Baz.cbz")
+        path = Path(comic.path)
+
+        self._write_with_results(
+            {comic: WriteResult(path=path, error=OSError("Read-only file system"))}
+        )
+
+        records = _records_for(path)
+        assert len(records) == 1, records
+        assert "twin_pk" not in records[0]
+        assert "Read-only" in records[0]["error"]
