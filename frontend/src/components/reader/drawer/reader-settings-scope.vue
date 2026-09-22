@@ -66,12 +66,18 @@ import GLOBAL_DEFAULTS from "@/choices/reader-defaults.json";
 import ReaderSettingsControls from "./reader-settings-controls.vue";
 import SettingsIndicatorDot from "./settings-indicator-dot.vue";
 
+/*
+ * PENDING SCHEMA REMOVAL
+ *
+ * ``readRtlInReverse`` and ``finishOnLastPage`` are gone from here because
+ * they no longer have controls to override. Their columns and serializer
+ * fields are deliberately kept -- see the notes in ``stores/reader.js``. Put
+ * them back in this list if the checkboxes come back.
+ */
 const ATTRS = Object.freeze([
   "fitTo",
   "readingDirection",
   "twoPages",
-  "readRtlInReverse",
-  "finishOnLastPage",
   "pageTransition",
   "cacheBook",
 ]);

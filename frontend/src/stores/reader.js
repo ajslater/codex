@@ -235,12 +235,20 @@ export const useReaderStore = defineStore("reader", {
     /*
      * GETTER Algorithms
      */
+    /*
+     * PENDING SCHEMA REMOVAL
+     *
+     * "Read RTL Comics LTR" is no longer a user option, and it is pinned OFF
+     * — its default — so a right-to-left book is read right to left. The
+     * checkbox is gone from the reader settings drawer.
+     * ``SettingsReader.read_rtl_in_reverse`` and its serializer field are
+     * deliberately still there, so every user's stored preference survives
+     * and putting the toggle back is a revert rather than a data migration.
+     * Drop the column, its serializer and ``READER_DEFAULTS`` entries, and
+     * this pass-through, when we commit to this.
+     */
     setReadRTLInReverse(bookSettings) {
-      // Special setting for RTL books
-      return this.globalSettings.readRtlInReverse &&
-        bookSettings.readingDirection === "rtl"
-        ? { ...bookSettings, readingDirection: "ltr" }
-        : bookSettings;
+      return bookSettings;
     },
     getBookSettings(book) {
       if (!book) {
@@ -656,10 +664,18 @@ export const useReaderStore = defineStore("reader", {
       };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
-      if (
-        this.activeSettings.finishOnLastPage &&
-        page >= this.books.current.maxPage
-      ) {
+      /*
+       * PENDING SCHEMA REMOVAL
+       *
+       * Finishing a book on its last page is no longer a user option; the
+       * checkbox is gone from the reader settings drawer.
+       * ``SettingsReader.finish_on_last_page`` and its serializer field are
+       * deliberately still there, so every user's stored preference survives
+       * and putting the toggle back is a revert rather than a data migration.
+       * Drop the column, its serializer and ``READER_DEFAULTS`` entries when
+       * we commit to this.
+       */
+      if (page >= this.books.current.maxPage) {
         updates["finished"] = true;
       }
       await BROWSER_API.updateCollectionBookmarks(

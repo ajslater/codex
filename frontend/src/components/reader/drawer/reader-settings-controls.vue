@@ -43,28 +43,6 @@
     />
   </v-radio-group>
   <v-checkbox
-    :model-value="settings.readRtlInReverse"
-    class="scopedCheckbox"
-    density="compact"
-    label="Read RTL Comics LTR"
-    hide-details="auto"
-    :true-value="true"
-    @update:model-value="$emit('update', { readRtlInReverse: $event })"
-  />
-  <v-checkbox
-    :model-value="settings.finishOnLastPage"
-    class="scopedCheckbox"
-    density="compact"
-    label="Finish Book On Last Page"
-    hide-details="auto"
-    :true-value="true"
-    :indeterminate="
-      settings.finishOnLastPage === null ||
-      settings.finishOnLastPage === undefined
-    "
-    @update:model-value="$emit('update', { finishOnLastPage: $event })"
-  />
-  <v-checkbox
     v-tooltip="{
       openDelay,
       text: 'Animate page turns when reading horizontally.',

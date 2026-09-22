@@ -97,11 +97,6 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
-      /*
-       * ``!== false`` rather than ``|| false``: this setting defaults on, so
-       * a client running ahead of the migration still shows the state.
-       */
-      showReadState: (state) => state.settings?.showReadState !== false,
     }),
     ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
@@ -128,18 +123,18 @@ export default {
         this.isFavorite(this.item.collection, this.favoritePk),
       );
     },
+    /*
+     * PENDING SCHEMA REMOVAL
+     *
+     * Read state is no longer a user option; the ``Read State`` checkbox is
+     * gone from the browser settings drawer. ``SettingsBrowser.show_read_state``
+     * and its serializer field are deliberately still there, so every user's
+     * stored preference survives and putting the toggle back is a revert
+     * rather than a data migration. Drop the column, its serializer and
+     * ``BROWSER_DEFAULTS`` entries when we commit to this.
+     */
     readState() {
-      if (this.showReadState) {
-        return getReadState(this.item);
-      }
-      /*
-       * Setting off: the classic thin progress bar and nothing else. The
-       * finished state stops being distinguishable, which is the "clean
-       * look" this is for.
-       */
-      return Number(this.item.progress) > 0
-        ? READ_STATE.READING
-        : READ_STATE.UNREAD;
+      return getReadState(this.item);
     },
     readStateClass() {
       return `is-${this.readState}`;

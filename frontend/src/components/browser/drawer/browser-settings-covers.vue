@@ -1,3 +1,16 @@
+<!--
+  PENDING SCHEMA REMOVAL
+
+  Parked, not live. Nothing imports this component, so it never enters the
+  bundle -- it is kept intact so the three cover options can be put back by
+  restoring one line in browser-settings-panel.vue.
+
+  Dynamic covers, custom covers and read state are all pinned on; see the
+  notes in views/browser/annotate/cover.py, browser/card/card.vue and
+  models/settings.py. Their SettingsBrowser columns and serializer fields are
+  still there, so the checkboxes below would bind to real stored values on
+  the day they come back. Delete this file when the columns go.
+-->
 <template>
   <div class="browserSettingsBlock">
     <div class="settingsSubHeader">Covers</div>
