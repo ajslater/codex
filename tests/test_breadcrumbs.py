@@ -37,14 +37,15 @@ from django.utils import timezone
 
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_SEE_OTHER: Final = 303
-_TMP_DIR: Final = Path("/tmp/codex.tests.breadcrumbs")  # noqa: S108
-_VISIBLE_DIR: Final = Path("/tmp/codex.tests.breadcrumbs.visible")  # noqa: S108
-_HIDDEN_DIR: Final = Path("/tmp/codex.tests.breadcrumbs.hidden")  # noqa: S108
-_NESTED_DIR: Final = Path("/tmp/codex.tests.breadcrumbs.nested")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.breadcrumbs")
+_VISIBLE_DIR: Final = tmp_dir("codex.tests.breadcrumbs.visible")
+_HIDDEN_DIR: Final = tmp_dir("codex.tests.breadcrumbs.hidden")
+_NESTED_DIR: Final = tmp_dir("codex.tests.breadcrumbs.nested")
 _HIDDEN_LABEL: Final = "Secret"
 # Every name a hidden library contributes, as it would appear on the wire.
 # The volume is deliberately left out: its name is a bare year, which is
@@ -73,11 +74,11 @@ def _settings_payload(top_collection: str) -> str:
     )
 
 
-def _seed_library(tmp_dir: Path, label: str) -> dict:
+def _seed_library(library_dir: Path, label: str) -> dict:
     """Create one library holding a full hierarchy and a nested folder."""
-    child_dir = tmp_dir / f"{label} Folder"
+    child_dir = library_dir / f"{label} Folder"
     child_dir.mkdir(parents=True, exist_ok=True)
-    library = Library.objects.create(path=str(tmp_dir))
+    library = Library.objects.create(path=str(library_dir))
     publisher = Publisher.objects.create(name=f"{label} Publisher")
     imprint = Imprint.objects.create(name=f"{label} Imprint", publisher=publisher)
     series = Series.objects.create(
@@ -87,7 +88,7 @@ def _seed_library(tmp_dir: Path, label: str) -> dict:
         name="1999", series=series, imprint=imprint, publisher=publisher
     )
     root_folder = Folder.objects.create(
-        library=library, path=str(tmp_dir), name=tmp_dir.name
+        library=library, path=str(library_dir), name=library_dir.name
     )
     folder = Folder.objects.create(
         library=library,
@@ -175,10 +176,7 @@ class BreadcrumbsTestCase(TestCase):
         """
         response = self.client.patch(
             "/api/v4/browse/publishers/settings",
-            data=(
-                '{"topCollection": "publishers", "show": {"publishers": true,'
-                ' "imprints": true, "series": true, "volumes": true}}'
-            ),
+            data=_settings_payload("publishers"),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
@@ -242,10 +240,7 @@ class HiddenLibraryBreadcrumbsTestCase(TestCase):
         # redirects on the route shape before it ever names anything.
         response = self.client.patch(
             "/api/v4/browse/publishers/settings",
-            data=(
-                '{"topCollection": "publishers", "show": {"publishers": true,'
-                ' "imprints": true, "series": true, "volumes": true}}'
-            ),
+            data=_settings_payload("publishers"),
             content_type="application/json",
         )
         assert response.status_code == _HTTP_OK, response.content
