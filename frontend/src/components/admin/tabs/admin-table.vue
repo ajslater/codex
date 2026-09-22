@@ -21,8 +21,13 @@ export default {
 // the row striping/header background it claimed to set came entirely
 // from the Vuetify ``v-data-table-virtual`` defaults below it.
 // Deleted as dead code; the visible result is unchanged.
-:deep(.adminNoData) {
-  padding: 1em;
-  text-align: center;
+
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.adminNoData) {
+    padding: 1em;
+    text-align: center;
+  }
 }
 </style>

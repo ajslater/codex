@@ -232,7 +232,7 @@ export default {
 
 .textLabel {
   font-size: 12px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .textContent {
@@ -263,11 +263,11 @@ export default {
 }
 
 .highlight {
-  color: rgb(var(--v-theme-textPrimary)) !important;
+  color: rgb(var(--v-theme-text-primary));
   background-color: rgb(var(--v-theme-primary-darken-1));
 }
 
 .clickable.highlight:hover {
-  border: solid thin rgb(var(--v-theme-textPrimary));
+  border: solid thin rgb(var(--v-theme-text-primary));
 }
 </style>

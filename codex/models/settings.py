@@ -362,6 +362,16 @@ class SettingsBrowser(SettingsBase):
     search = CharField(max_length=4095, default="", blank=True)
 
     # Display preferences
+    #
+    # PENDING SCHEMA REMOVAL
+    #
+    # The next two are no longer user options: their checkboxes are gone
+    # from the browser settings drawer and the behavior is pinned on in
+    # ``views/browser/annotate/cover.py``. The columns stay so nobody's
+    # stored preference is destroyed while we find out whether anyone misses
+    # the toggles -- restoring them is a revert, not a data migration. Drop
+    # these two, their serializer fields and their ``BROWSER_DEFAULTS``
+    # entries together.
     custom_covers = BooleanField(default=True)
     dynamic_covers = BooleanField(default=True)
     twenty_four_hour_time = BooleanField(default=False)
@@ -478,6 +488,15 @@ class SettingsReader(SettingsBase):
         default="",
         max_length=max_choices_len(ReadingDirectionChoices),
     )
+    # PENDING SCHEMA REMOVAL
+    #
+    # The next two are no longer user options: their checkboxes are gone from
+    # the reader settings drawer and the behavior is pinned in
+    # ``stores/reader.js`` -- finish-on-last-page on, read-RTL-in-reverse off
+    # (its default, so a right-to-left book is read right to left). The
+    # columns stay so nobody's stored preference is destroyed; restoring the
+    # toggles is a revert, not a data migration. Drop these two, their
+    # serializer fields and their ``READER_DEFAULTS`` entries together.
     read_rtl_in_reverse = BooleanField(default=None, null=True)
     finish_on_last_page = BooleanField(default=None, null=True)
     page_transition = BooleanField(default=None, null=True)

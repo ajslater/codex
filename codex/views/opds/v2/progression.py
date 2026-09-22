@@ -191,10 +191,18 @@ class OPDS2ProgressionView(
             raise
 
     def _progression_to_page(self, progression: float) -> int | None:
-        """Convert a 0..1 ``progression`` fraction to a 0-indexed page."""
+        """
+        Convert a 0..1 ``progression`` fraction to a 0-indexed page.
+
+        ACL-filtered: the ``None`` return becomes a 404, so an unfiltered
+        lookup here turns the endpoint into an existence oracle for
+        comics in libraries the caller cannot see. ``include_missing``
+        keeps scanner-stamped rows writable (see :meth:`put`).
+        """
         comic_pk = self.kwargs.get("pk")
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         page_count = (
-            Comic.objects.filter(pk=comic_pk)
+            Comic.objects.filter(acl_filter, pk=comic_pk)
             .values_list("page_count", flat=True)
             .first()
         )
@@ -212,6 +220,15 @@ class OPDS2ProgressionView(
         conflict). The conflict check is folded into a single atomic conditional
         UPDATE, and falls back to the async ``update_bookmark`` path when no
         existing bookmark matches (first-time write or no ``modified`` echo).
+
+        The library-group and age-rating ACL applies, via
+        :meth:`_progression_to_page` -- a comic the caller cannot browse
+        is a 404 here too, rather than an existence oracle. Only the
+        pending-delete half is deliberately relaxed, so the write still
+        lands on a scanner-stamped comic: writes land, reads hide. Note
+        the asymmetry that creates and accept it -- the GET above hides
+        stamped rows, so during a retention window a client can write a
+        position it cannot read back. That beats silently discarding it.
         """
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)

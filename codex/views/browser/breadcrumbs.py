@@ -2,9 +2,7 @@
 
 from pathlib import PurePath
 from types import MappingProxyType
-from typing import TYPE_CHECKING, cast
-
-from django.db.models import QuerySet
+from typing import TYPE_CHECKING, NoReturn, cast
 
 from codex.collection import Collection
 from codex.models import (
@@ -15,7 +13,6 @@ from codex.models import (
     Volume,
 )
 from codex.models.collections import Folder as FolderModel
-from codex.models.collections import Publisher
 from codex.views.browser.paginate import BrowserPaginateView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -70,46 +67,67 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         self._collection_instance: BrowserCollectionModel | int | None = 0
 
     def _get_collection_query(self, model):
-        """Get the collection query for the collection instance."""
+        """
+        Get the collection query for the collection instance.
+
+        ``comics`` is a valid collection segment, so ``model`` here can
+        be Comic and the name this resolves is then the comic's own
+        title. It also feeds ``BrowserTitleView._get_collection_name``,
+        reached from the browser and both OPDS versions.
+
+        A row this user may not see -- a hidden library, an age rating
+        above theirs, or a scanner-stamped pending delete -- is simply
+        absent from this queryset, exactly like a pk that never
+        existed. ``collection_instance`` turns that emptiness into a
+        redirect.
+        """
         pks = self.kwargs.get("pks")
-        qs = model.objects.filter(pk__in=pks)
+        # The full ACL, not just the pending-delete half: the pks come
+        # straight off the route, so a hand-typed url would otherwise
+        # name a collection out of a library the user cannot see or one
+        # above their age rating. ``distinct()`` because every non-Comic
+        # model reaches ``library_id`` and the rating index through the
+        # multi-valued ``comic__`` hop.
+        qs = model.objects.filter(
+            self.get_acl_filter(model, self.request.user), pk__in=pks
+        ).distinct()
         if select_related := _COLLECTION_INSTANCE_SELECT_RELATED.get(model):
             qs = qs.select_related(*select_related)
         order_by = "name" if model is Volume else "sort_name"
         return qs.order_by(order_by)
 
-    def _handle_collection_query_missing_model(self, model) -> QuerySet:
-        """Handle a missing model for the collection instance."""
+    def _raise_unresolved_collection_redirect(self) -> NoReturn:
+        """Send the client up a level when the route names nothing it may see."""
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
-        page = self.kwargs.get("page")
-        if not (collection == Collection.ROOT and not pks and page == 1):
-            reason = f"{collection}__in={pks} does not exist!"
-            # ``raise_redirect`` is ``NoReturn``; the type checker
-            # follows the early-return shape so the caller below
-            # is the only path that produces a queryset.
-            self.raise_redirect(reason, route_mask={"collection": collection})
-        return model.objects.none()
+        # Counts and collection values only -- never a name, since the
+        # whole point is that this user may not have the name.
+        reason = f"{collection}__in={pks} does not resolve"
+        self.raise_redirect(reason, route_mask={"collection": collection})
 
     @property
     def collection_instance(self) -> BrowserCollectionModel | None:
-        """Memoize collection instance for getting collection names & counts."""
+        """
+        Memoize collection instance for getting collection names & counts.
+
+        ``None`` means "no collection was asked for" -- the root listing
+        of a collection, which has no pks. A route that *does* name pks
+        and resolves nothing raises a 303 up to that collection's root
+        instead of rendering a page with a nameless crumb and an empty
+        body. The redirect carries the route in its body with no
+        ``Location`` header, the same shape ``BrowserValidateView``
+        already uses.
+        """
         if self._collection_instance == 0:
             collection = self.kwargs.get("collection")
             model = COLLECTION_MODEL_MAP[collection]
             pks = self.kwargs.get("pks")
+            instance = None
             if model and pks and 0 not in pks:
-                try:
-                    collection_query = self._get_collection_query(model)
-                except model.DoesNotExist:
-                    collection_query = self._handle_collection_query_missing_model(
-                        model
-                    )
-            else:
-                if not model:
-                    model = Publisher
-                collection_query = model.objects.none()
-            self._collection_instance = collection_query.first()
+                instance = self._get_collection_query(model).first()
+                if instance is None:
+                    self._raise_unresolved_collection_redirect()
+            self._collection_instance = instance
         # ``_collection_instance`` carries an ``int`` sentinel (``0``) for the
         # unmemoized state; by this point it's been resolved to a real
         # model row or ``None``.
@@ -150,8 +168,10 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         page = self.kwargs["page"]
         # In folder mode ``collection_instance`` is a Folder (or None) by
         # construction — the caller branches on ``collection == FOLDER_COLLECTION``.
+        # It is only ``None`` at the folder root, where ``pks`` is empty:
+        # an unresolvable folder pk redirects instead.
         folder = cast("Folder | None", self.collection_instance)
-        name = folder.name if folder and pks else ""
+        name = folder.name if folder else ""
 
         crumbs: list[Route] = [Route(FOLDER_COLLECTION, pks, page, name)]
 
@@ -164,19 +184,37 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
             # ``PurePath.parents`` yields nearest-first; prefixes above
             # the library root match no rows and drop out, and
             # ``library_id`` keeps sibling libraries' folders excluded.
+            #
+            # The ACL is the full one, so an ancestor only names itself
+            # when it still holds a comic this user may see. An ancestor
+            # whose whole subtree is above their age rating drops out of
+            # the trail rather than leaking its name. ``distinct()``
+            # because the rating and pending-delete clauses both ride
+            # the multi-valued ``comic__`` hop.
             prefixes = [str(p) for p in PurePath(folder.path).parents]
             ancestors = {
                 ancestor.path: ancestor
                 for ancestor in FolderModel.objects.filter(
+                    self.get_acl_filter(FolderModel, self.request.user),
                     library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
                     path__in=prefixes,
-                ).only("pk", "path", "name")
+                )
+                .only("pk", "path", "name")
+                .distinct()
             }
-            crumbs.extend(
-                Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)
-                for prefix in prefixes
-                if (ancestor := ancestors.get(prefix))
-            )
+            # Nearest-first, and the walk stops at the first prefix that
+            # does not resolve. Skipping it instead would hang the
+            # current folder off its grandparent and present a trail
+            # that never existed. The prefixes above the library root
+            # never match a row, so this is also what ends the walk on
+            # an ordinary browse.
+            for prefix in prefixes:
+                ancestor = ancestors.get(prefix)
+                if not ancestor:
+                    break
+                crumbs.append(
+                    Route(FOLDER_COLLECTION, (ancestor.pk,), 1, ancestor.name)
+                )
 
         # Add folder root if not already there
         if crumbs[-1].pks:

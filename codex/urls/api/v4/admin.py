@@ -36,6 +36,10 @@ from codex.views.admin.onlinetag import (
     AdminOnlineTagSnapshotView,
     AdminOnlineTagStartView,
 )
+from codex.views.admin.pending_deletes import (
+    AdminPendingDeleteReviveView,
+    AdminPendingDeletesView,
+)
 from codex.views.admin.restore_user_data import (
     AdminRestoreUserDataView,
     AdminUserDataBackupsView,
@@ -131,6 +135,16 @@ urlpatterns = [
         "failed-imports/seen",
         AdminFailedImportsSeenView.as_view(),
         name="failed_imports_seen",
+    ),
+    path(
+        "pending-deletes",
+        AdminPendingDeletesView.as_view(),
+        name="pending_deletes",
+    ),
+    path(
+        "pending-deletes/<str:collection>/<int:pk>/revive",
+        AdminPendingDeleteReviveView.as_view(),
+        name="pending_deletes_revive",
     ),
     path(
         "age-ratings",

@@ -219,11 +219,15 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         bookmark_filter,
         collection=None,
         pks=None,
+        *,
+        include_missing=False,
     ) -> Q:
         """Return all the filters except the collection filter."""
         big_include_filter = Q()
         big_exclude_filter = Q()
-        big_include_filter &= self.get_acl_filter(model, self.request.user)
+        big_include_filter &= self.get_acl_filter(
+            model, self.request.user, include_missing=include_missing
+        )
         big_include_filter &= self.get_collection_filter(
             collection, pks, page_mtime=page_mtime
         )
@@ -247,14 +251,21 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         *,
         page_mtime=False,
         bookmark_filter=True,
+        include_missing=False,
     ) -> QuerySet:
-        """Get a filtered queryset for the model."""
+        """
+        Get a filtered queryset for the model.
+
+        ``include_missing`` keeps scanner-stamped rows. Only write paths
+        and the reader pass it; see ``get_acl_filter``.
+        """
         query_filters = self._get_query_filters(
             model,
             page_mtime=page_mtime,
             bookmark_filter=bookmark_filter,
             collection=collection,
             pks=pks,
+            include_missing=include_missing,
         )
         qs = model.objects.filter(query_filters)
         # Non-Comic queries traverse ``comic__`` for ACL/group/field filters,

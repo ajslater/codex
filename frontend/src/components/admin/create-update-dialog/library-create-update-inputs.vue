@@ -49,6 +49,7 @@
 <script>
 import { mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
@@ -116,6 +117,7 @@ export default {
             }
             return true;
           },
+          ["$maxLength", LIMITS.maxPathLen],
         ],
       },
     };

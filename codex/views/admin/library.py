@@ -1,7 +1,6 @@
 """Admin Library Views."""
 
 import os
-from dataclasses import replace
 from pathlib import Path
 from typing import override
 
@@ -10,7 +9,6 @@ from django.db.models import OuterRef, Subquery
 from django.db.models.aggregates import Count
 from django.db.models.expressions import Value
 from django.db.models.functions import Coalesce
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from loguru import logger
 from rest_framework.exceptions import ValidationError
@@ -52,17 +50,34 @@ _FAILED_COUNT = Coalesce(
     ),
     Value(0),
 )
+# Comics this library has vanished but is still holding for their
+# bookmarks. Same correlated-count shape as the two above.
+_MISSING_COUNT = Coalesce(
+    Subquery(
+        Comic.objects.filter(library=OuterRef("pk"), missing_since__isnull=False)
+        .values("library")
+        .annotate(cnt=Count("pk"))
+        .values("cnt")[:1]
+    ),
+    Value(0),
+)
 
 
 class AdminLibraryViewSet(AdminModelViewSet):
     """Admin Library Viewset."""
 
-    _WATCHER_SYNC_FIELDS = frozenset({"events", "poll", "pollEvery"})
+    # Serializer field names, which arrive here already un-camelized by
+    # the JSON:API parser — never the camelCase spelling the client sent.
+    _WATCHER_SYNC_FIELDS = frozenset({"events", "poll", "poll_every"})
     serializer_class = LibrarySerializer
 
     queryset = (
         Library.objects.prefetch_related("groups")
-        .annotate(comic_count=_COMIC_COUNT, failed_count=_FAILED_COUNT)
+        .annotate(
+            comic_count=_COMIC_COUNT,
+            failed_count=_FAILED_COUNT,
+            missing_count=_MISSING_COUNT,
+        )
         .defer("update_in_progress", "created_at", "updated_at")
     )
 
@@ -77,14 +92,10 @@ class AdminLibraryViewSet(AdminModelViewSet):
     @staticmethod
     def _on_change() -> None:
         cache.clear()
-        # Admin viewset doesn't pass the touched library down here;
-        # broadcast with empty scope so any library view invalidates.
-        LIBRARIAN_QUEUE.put(
-            replace(
-                LIBRARY_CHANGED_TASK,
-                mtime=int(timezone.now().timestamp() * 1000),
-            )
-        )
+        # A notification carries no payload beyond its type; the client
+        # answers it by probing /api/v4/mtime, so every library view
+        # invalidates whichever library was touched.
+        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
     @staticmethod
     def _create_library_folder(library) -> None:
@@ -115,12 +126,12 @@ class AdminLibraryViewSet(AdminModelViewSet):
         validated_keys = frozenset(serializer.validated_data.keys())
         pk = self.kwargs["pk"]
         super().perform_update(serializer)
-        if "groupSet" in validated_keys:
+        if "groups" in validated_keys:
             self._on_change()
         self._sync_watcher(validated_keys)
         # Only re-poll when the schedule changes; other field edits
-        # (groupSet, …) are picked up by the next already-scheduled poll.
-        if "pollEvery" in validated_keys:
+        # (groups, …) are picked up by the next already-scheduled poll.
+        if "poll_every" in validated_keys:
             self._poll(pk, force=False)
 
     @override

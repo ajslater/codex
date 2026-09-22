@@ -118,23 +118,28 @@ export default {
 <style scoped lang="scss">
 @forward "./expansion-panel-overrides";
 
-// settingsSubHeader defined in settings/settings-drawer.vue
-:deep(.v-expansion-panel-text__wrapper) {
-  padding-left: 10px;
-  padding-right: 10px;
-}
+// settingsSubHeader defined in styles/global.scss
 
-.shortcutsTable {
-  margin-top: 10px;
-  background-color: inherit;
-  color: rgb(var(--v-theme-textDisabled));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.v-expansion-panel-text__wrapper) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 
-.shortcutsTable td {
-  padding: 5px;
-}
+  .shortcutsTable {
+    margin-top: 10px;
+    background-color: inherit;
+    color: rgb(var(--v-theme-text-disabled));
+  }
 
-.shortcutsTable td:first-child {
-  width: 105px;
+  .shortcutsTable td {
+    padding: 5px;
+  }
+
+  .shortcutsTable td:first-child {
+    width: 105px;
+  }
 }
 </style>

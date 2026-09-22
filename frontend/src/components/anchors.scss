@@ -1,17 +1,21 @@
-a,
-a > .v-icon {
-  color: rgb(var(--v-theme-primary)) !important;
-}
-/*
-a:visited,
-a:visited > .v-icon {
-  color: rgb(var(--v-theme-secondary)) !important;
-}
-*/
-a:hover,
-a:hover > .v-icon {
-  color: rgb(var(--v-theme-textPrimary)) !important;
-}
-a.v-btn > .v-icon {
-  color: rgb(var(--v-theme-textPrimary));
+// Self-layered: `@use` emits a partial's CSS at the top of the
+// consuming stylesheet, outside any @layer the consumer writes, so a
+// consumer-side wrap would leave these rules unlayered — and therefore
+// winning over everything. `@use` inside @layer is a Sass error.
+@layer codex-components {
+  // No !important any more: these beat Vuetify's own anchor styling by
+  // layer order, and a component that wants a different anchor colour
+  // beats these the same way — its scoped block is unlayered, or in
+  // codex-components after this one.
+  a,
+  a > .v-icon {
+    color: rgb(var(--v-theme-primary));
+  }
+  a:hover,
+  a:hover > .v-icon {
+    color: rgb(var(--v-theme-text-primary));
+  }
+  a.v-btn > .v-icon {
+    color: rgb(var(--v-theme-text-primary));
+  }
 }

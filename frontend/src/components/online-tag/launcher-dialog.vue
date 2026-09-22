@@ -738,7 +738,7 @@ export default {
 
 .existingIdsLabel {
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .pickSourceWarning {
@@ -750,7 +750,7 @@ export default {
 .tagInfo {
   margin-top: 16px;
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .comicCount {
@@ -775,7 +775,7 @@ export default {
 
 .conversionHelpText {
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   margin-top: 4px;
 }
 </style>

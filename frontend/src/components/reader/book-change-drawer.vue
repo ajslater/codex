@@ -117,6 +117,6 @@ $iconSize: 25%;
   transform: translateX(-50%) translateY(-50%);
   height: $iconSize;
   width: $iconSize;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

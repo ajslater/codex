@@ -69,8 +69,11 @@ export default {
       return this.activeSettings?.twoPages ? 2 : 1;
     },
     trackColor() {
+      // A theme token, not a resolved hex: :track-color accepts either,
+      // and the token keeps following the theme. "" stays the falsy
+      // branch that leaves the track alone.
       return this.twoPages && +this.storePage >= this.maxPage - 1
-        ? this.$vuetify.theme.current.colors.primary
+        ? "primary"
         : "";
     },
     min() {

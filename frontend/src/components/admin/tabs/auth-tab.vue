@@ -323,6 +323,7 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import { APP_BASE } from "@/api/v4/base";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
@@ -349,6 +350,10 @@ const EDITABLE_FIELDS = Object.freeze([
   "rpInitiatedLogout",
 ]);
 const URL_REGEX = /^https?:\/\/\S+$/;
+const URL_RULES = Object.freeze([
+  (v) => !v || URL_REGEX.test(v) || "Enter a valid https URL",
+  ["$maxLength", LIMITS.oidcUrlMaxLength],
+]);
 // Registration, Verify New User Email, Non-Users (anonymous browsing).
 const ACCESS_FLAG_KEYS = Object.freeze(["RG", "RV", "NU"]);
 
@@ -390,6 +395,7 @@ export default {
       saving: false,
       oidcExpanded: false,
       oidcExpandedInitialized: false,
+      urlRules: URL_RULES,
     };
   },
   computed: {
@@ -427,9 +433,6 @@ export default {
     redirectUri() {
       // APP_BASE always ends with a slash ("/" or "/codex/").
       return `${globalThis.location.origin}${APP_BASE}sso/oidc/login/callback/`;
-    },
-    urlRules() {
-      return [(v) => !v || URL_REGEX.test(v) || "Enter a valid https URL"];
     },
   },
   watch: {

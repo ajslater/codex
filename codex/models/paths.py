@@ -4,7 +4,14 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import override
 
-from django.db.models import CASCADE, CharField, ForeignKey, JSONField, TextChoices
+from django.db.models import (
+    CASCADE,
+    CharField,
+    DateTimeField,
+    ForeignKey,
+    JSONField,
+    TextChoices,
+)
 
 from codex.models.base import MAX_NAME_LEN, MAX_PATH_LEN, BaseModel
 from codex.models.choices import max_choices_len
@@ -25,6 +32,16 @@ class WatchedPath(BaseModel):
     )
     path = CharField(max_length=MAX_PATH_LEN, db_index=True)
     stat = JSONField(null=True)
+    # When a scan last failed to find this path on disk. NULL means
+    # present. A stamped row is kept, hidden from ordinary users and
+    # really deleted only after the retention window, so a filesystem
+    # outage does not destroy bookmarks. Owned solely by the scanner's
+    # stamp and unstamp paths -- see _EXCLUDEBULK_UPDATE_COMIC_FIELDS.
+    # Inert on FailedImport and CustomCover: neither is ever stamped.
+    # No db_index -- ``IS NULL`` matches ~every row and no index can
+    # serve it. The reap's ``missing_since < cutoff`` is the selective
+    # query, and Comic and Folder carry a partial index for it.
+    missing_since = DateTimeField(null=True)
     ZERO_STAT = (0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0)
 
     def set_stat(self) -> None:

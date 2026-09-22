@@ -9,6 +9,20 @@
         {% include "headers-icons.html" %}
         {% include "pwa/headers.html" %}
         {% include "headers-script-globals.html" %}
+        {% comment %}
+        Cascade-layer order for the whole app. It must precede every
+        stylesheet: a browser fixes a layer's position the first time it
+        sees the name, and django-vite links imported chunks' CSS —
+        Vuetify component chunks open with `@layer vuetify-components` —
+        before main.js's own CSS. Inline, so it cannot be out of order
+        and cannot 404. Keep in sync with frontend/DESIGN.md "Cascade
+        layers".
+        {% endcomment %}
+        <style nonce="{{ csp_nonce }}">
+          @layer vuetify-core, vuetify-components, vuetify-overrides,
+                 codex-base, codex-components,
+                 vuetify-utilities, vuetify-final, codex-trumps;
+        </style>
         {% vite_hmr_client nonce=csp_nonce %}
         {% vite_asset "src/main.js" nonce=csp_nonce %}
     </head>

@@ -256,70 +256,74 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-#metadataHeader {
-  height: fit-content;
-  max-width: 100vw;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #metadataHeader {
+    height: fit-content;
+    max-width: 100vw;
+  }
 
-#search {
-  width: 100%;
-  margin-bottom: 10px;
-}
+  #search {
+    width: 100%;
+    margin-bottom: 10px;
+  }
 
-#metadataBookCover {
-  float: left;
-  margin-right: 15px;
-}
-
-.inlineRow,
-.inlineRow > * {
-  display: inline-flex;
-}
-
-#seriesRow {
-  margin-top: -10px;
-  font-size: xx-large;
-}
-
-#seriesRow :deep(.text:first-child),
-#publisherRow :deep(.text:first-child),
-#pageDateRow :deep(.text:first-child) {
-  padding-left: 0px;
-}
-
-#seriesRow * {
-  padding-top: 0px;
-}
-
-#titleRow {
-  font-size: large;
-}
-
-.subdued {
-  color: rgb(var(--v-theme-textDisabled));
-}
-
-#pageDateRow {
-  display: block;
-  font-size: smaller;
-}
-
-#controls {
-  margin-top: 16px;
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataBookCover {
-    margin-right: 10px;
+    float: left;
+    margin-right: 15px;
+  }
+
+  .inlineRow,
+  .inlineRow > * {
+    display: inline-flex;
   }
 
   #seriesRow {
-    margin-top: 0px;
-    font-size: large;
+    margin-top: -10px;
+    font-size: xx-large;
+  }
+
+  #seriesRow :deep(.text:first-child),
+  #publisherRow :deep(.text:first-child),
+  #pageDateRow :deep(.text:first-child) {
+    padding-left: 0px;
+  }
+
+  #seriesRow * {
+    padding-top: 0px;
   }
 
   #titleRow {
-    font-size: x-small;
+    font-size: large;
+  }
+
+  .subdued {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  #pageDateRow {
+    display: block;
+    font-size: smaller;
+  }
+
+  #controls {
+    margin-top: 16px;
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    #metadataBookCover {
+      margin-right: 10px;
+    }
+
+    #seriesRow {
+      margin-top: 0px;
+      font-size: large;
+    }
+
+    #titleRow {
+      font-size: x-small;
+    }
   }
 }
 </style>

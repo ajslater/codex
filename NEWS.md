@@ -6,6 +6,68 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.4.0 - Read State & Match Review
+
+- Features
+    - Cover cards show read, unread, and in progress state.
+    - Online tagging match candidates show a cover, a link to the source's page,
+      and what separated their scores.
+    - Hovering a match candidate's cover shows it full size.
+    - The Failed Imports link stays in the admin sidebar while there are failed
+      imports.
+    - Admins can see and manage comics that disappeared from a library but have
+      not been deleted yet.
+
+- Fixes
+    - A filesystem outage no longer costs a library its comics, read progress,
+      or custom covers.
+    - A comic that disappears from a library is kept for a day before it is
+      really deleted.
+    - Two libraries whose paths overlap no longer destroy each other's comics
+      and bookmarks.
+    - Moving, renaming, or force updating a comic keeps its read progress.
+    - Comics with uppercase file extensions no longer lose their folders and
+      read progress.
+    - Read progress can no longer be recorded twice for the same comic.
+    - Folder, series, and story arc progress and read state are counted
+      correctly, including while filters are active.
+    - Marking a comic or collection unread clears its progress.
+    - Breadcrumbs, metadata, and collection totals no longer name or count
+      comics from libraries you can't see.
+    - Metadata imports and reading positions respect library and age-rating
+      permissions.
+    - Browsing to a collection you can't see sends you up a level instead of a
+      blank page.
+    - A comic whose file is missing or unreadable returns Not Found instead of a
+      server error.
+    - OPDS clients can browse from the catalog root again, and one unreadable
+      comic no longer empties a feed.
+    - The OPDS urls dialog opens, and its copy buttons work over plain http.
+    - Deleting a library succeeds, and library and group membership changes
+      refresh the browser.
+    - A refused tag write names the comic to edit instead, and links to it.
+    - The metadata editor no longer saves values its own fields flag as invalid.
+    - Online tagging releases its Comic Vine connections when a scan finishes.
+    - The match review dialog no longer clips its Pause button, and the tagging
+      connection chip shows its check or alert icon.
+    - Registration and the change-password dialog enforce the minimum password
+      length.
+    - Invalid admin settings values are rejected instead of breaking browsing,
+      and admin forms show the server's reason when a name is already taken.
+    - Clearing part of a poll interval no longer produces an invalid value, and
+      the email host field accepts hostnames without a dot.
+    - The nightly cleanup keeps custom cover thumbnails and removes bookmarks
+      belonging to no user or session.
+    - Panels gets both its own sort menu and the sort folders, on every
+      platform.
+    - An installed Codex gets a dark app bar, and buttons on the orange accent
+      use dark text.
+    - Browser cards draw their hover border, and cover thumbnails in table mode
+      and on the custom-covers admin tab open with the keyboard.
+
+- Performance
+    - Browsing with tag filters is about twice as fast.
+
 ## v2.3.3
 
 - Features
@@ -51,7 +113,7 @@ border-radius: 128px;
     - Require simyan >= 4.1.0.
     - Resume publishing images to Docker Hub to upgrade stragglers.
 
-## v2.3.0
+## v2.3.0 - Reprints & Comicbox 5
 
 - Upgrading
     - Comicbox 5.0.0 reads some tags differently and adds others. Existing

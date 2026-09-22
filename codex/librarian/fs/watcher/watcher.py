@@ -127,7 +127,13 @@ class LibraryWatcherThread(NamedThread):
             events_by_library.setdefault(library_pk, []).append(event)
 
         for library_pk, events in events_by_library.items():
-            task = build_import_task(library_pk, events)
+            # ``soft_delete``: a watcher delete is an inference too. The
+            # OS reports the name going away, not the file ceasing to
+            # exist -- a move whose paired add lands in the next batch, a
+            # dir expansion that overmatched, a share that blinked. The
+            # row is kept for the retention window and revived by the
+            # importer's ``unstamp_revived`` phase if the path comes back.
+            task = build_import_task(library_pk, events, soft_delete=True)
             if task is None:
                 continue
             if self._is_a_vanished_library(task):

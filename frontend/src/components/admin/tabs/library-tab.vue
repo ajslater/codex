@@ -12,6 +12,10 @@
     />
 
     <v-expand-transition>
+      <AdminPendingDeletesPanel />
+    </v-expand-transition>
+
+    <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
   </div>
@@ -25,6 +29,7 @@ import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog/cre
 import AdminLibraryCreateUpdateInputs from "@/components/admin/create-update-dialog/library-create-update-inputs.vue";
 import AdminFailedImportsPanel from "@/components/admin/tabs/failed-imports-panel.vue";
 import AdminLibraryTable from "@/components/admin/tabs/library-table.vue";
+import AdminPendingDeletesPanel from "@/components/admin/tabs/pending-deletes-panel.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
@@ -32,6 +37,7 @@ export default {
   components: {
     AdminFailedImportsPanel,
     AdminLibraryTable,
+    AdminPendingDeletesPanel,
     AdminCreateUpdateDialog,
   },
   data() {
@@ -43,7 +49,7 @@ export default {
     ...mapState(useAdminStore, ["libraries"]),
   },
   mounted() {
-    this.loadTables(["Group", "Library", "FailedImport"]);
+    this.loadTables(["Group", "Library", "FailedImport", "PendingDelete"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),

@@ -50,12 +50,21 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         return serializer.validated_data
 
     def _get_comic_query(self):
-        """Get comic pks for collection."""
+        """
+        Get comic pks for collection.
+
+        ``include_missing``: writes land, reads hide. Without it a
+        position written while the comic's path is unreachable resolves
+        to an empty queryset, ``update_bookmarks`` normalizes nothing,
+        and the view returns a bare 200 with the write silently dropped
+        -- the reader would be back where it started once the stamp
+        cleared, which is the outcome retention exists to prevent.
+        """
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
-        return self.get_filtered_queryset(Comic, collection=collection, pks=pks).only(
-            "pk"
-        )
+        return self.get_filtered_queryset(
+            Comic, collection=collection, pks=pks, include_missing=True
+        ).only("pk")
 
     @extend_schema(request=serializer_class, responses=None)
     def patch(self, *_args, **_kwargs) -> Response:

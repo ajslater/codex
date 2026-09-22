@@ -133,6 +133,6 @@ export default {
 
 .apiKeyHint {
   font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 </style>

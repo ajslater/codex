@@ -10,11 +10,19 @@
  *   - Partial dates are legitimate: a comic may carry only a year.
  *   - The parts clear to null rather than "", and both write formats
  *     support them.
+ *   - Save validates first: an out-of-range part aborts it, and a stale
+ *     value in a field the selected formats cannot write does not.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import { VTextField } from "vuetify/components";
 
+vi.mock("@/api/v4/base", () => ({
+  HTTP: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+}));
+
+import { HTTP } from "@/api/v4/base";
 import EditPanel from "@/components/metadata/edit-mode/edit-panel.vue";
 import vuetify from "@/plugins/vuetify";
 
@@ -45,6 +53,10 @@ async function setParts(wrapper, parts) {
 }
 
 describe("EditPanel — publish date", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   test("each part renders its own labeled input", async () => {
     const wrapper = await mountPanel({ md: FULL_DATE_MD });
     const labels = wrapper.findAll("label").map((el) => el.text());
@@ -145,17 +157,24 @@ describe("EditPanel — publish date", () => {
 
   test("the rules bound each part", async () => {
     const wrapper = await mountPanel();
-    const check = (rules, value) => rules.map((rule) => rule(value));
-    expect(check(wrapper.vm.monthRules, 13)).toContain("Must be 1–12");
-    expect(check(wrapper.vm.dayRules, 32)).toContain("Must be 1–31");
-    expect(check(wrapper.vm.yearRules, 0)).toContain("Must be 1–9999");
-    expect(check(wrapper.vm.yearRules, 10_000)).toContain("Must be 1–9999");
+    const field = (label) =>
+      wrapper
+        .findAllComponents(VTextField)
+        .find((c) => c.props("label") === label);
+    const errorsFor = async (label, value) => {
+      await field(label).setValue(value);
+      return field(label).vm.validate();
+    };
+    expect(await errorsFor("Month", 13)).toEqual(["Must be 1–12"]);
+    expect(await errorsFor("Day", 32)).toEqual(["Must be 1–31"]);
+    expect(await errorsFor("Year", 0)).toEqual(["Must be 1–9999"]);
+    expect(await errorsFor("Year", 10_000)).toEqual(["Must be 1–9999"]);
     for (const empty of [null, "", undefined]) {
-      expect(check(wrapper.vm.yearRules, empty)).toEqual([true]);
+      expect(await errorsFor("Year", empty)).toEqual([]);
     }
-    expect(check(wrapper.vm.monthRules, 12)).toEqual([true]);
-    expect(check(wrapper.vm.dayRules, 31)).toEqual([true]);
-    expect(check(wrapper.vm.yearRules, 1987)).toEqual([true]);
+    expect(await errorsFor("Month", 12)).toEqual([]);
+    expect(await errorsFor("Day", 31)).toEqual([]);
+    expect(await errorsFor("Year", 1987)).toEqual([]);
   });
 
   test("retyping a cleared part revives it", async () => {
@@ -174,8 +193,9 @@ describe("EditPanel — publish date", () => {
   });
 
   test("out-of-range parts are bounded rather than written raw", async () => {
-    // Save is not gated on the rules, and comicbox writes any year it is
-    // handed into a column that only takes positive small ints.
+    // Save is gated on the rules now, but buildPatch stays reachable on
+    // its own — a rename-only save, a future caller — and comicbox writes
+    // any year it is handed into a column that takes positive small ints.
     const wrapper = await mountPanel();
     await setParts(wrapper, { year: 99_999, month: 13, day: 45 });
     expect(wrapper.vm.buildPatch().patch.date).toEqual({
@@ -192,5 +212,30 @@ describe("EditPanel — publish date", () => {
     const wrapper = await mountPanel({ md: FULL_DATE_MD });
     await setParts(wrapper, { year: 1987.6 });
     expect(wrapper.vm.buildPatch().patch.date.year).toBe(1988);
+  });
+
+  test("an out-of-range part blocks Save", async () => {
+    const wrapper = await mountPanel();
+    await setParts(wrapper, { year: 10_000 });
+    await wrapper.vm.preSave();
+    expect(HTTP.post).not.toHaveBeenCalled();
+    expect(wrapper.vm.saving).toBe(false);
+  });
+
+  test("a stale value in a disabled field does not block Save", async () => {
+    // The count is METRON_INFO-only, so under COMIC_INFO it is disabled and
+    // its "requires a community rating" rule must not run.
+    HTTP.post.mockResolvedValue({ data: { total: 1, needConversion: 0 } });
+    const wrapper = await mountPanel({
+      formats: ["COMIC_INFO"],
+      md: { communityRatingCount: 7 },
+    });
+    await setParts(wrapper, { year: 1987 });
+    await wrapper.vm.preSave();
+    // The mock also answers the follow-on /admin/tag-write post from doSave().
+    expect(HTTP.post).toHaveBeenCalledWith(
+      "/admin/tag-write/preflight",
+      expect.objectContaining({ pks: ["1"] }),
+    );
   });
 });

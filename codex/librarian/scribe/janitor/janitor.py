@@ -24,6 +24,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBOptimizeStatus,
     JanitorDumpUserDataStatus,
     JanitorFolderRelationsStatus,
+    JanitorReapPendingDeletesStatus,
 )
 from codex.librarian.scribe.janitor.tasks import (
     JanitorAdoptOrphanFoldersTask,
@@ -44,6 +45,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
     JanitorNightlyTask,
+    JanitorReapPendingDeletesTask,
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
@@ -68,6 +70,7 @@ _JANITOR_STATII: Final = (
     JanitorFolderRelationsStatus,
     JanitorDBIntegrityStatus,
     JanitorDBFTSIntegrityStatus,
+    JanitorReapPendingDeletesStatus,
     JanitorCleanupTagsStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
@@ -97,6 +100,11 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     JanitorFolderRelationsCheckTask(),
     JanitorIntegrityCheckTask(),
     JanitorFTSIntegrityCheckTask(),
+    # Before the FK cleanup and the search sync, both of which depend on
+    # the rows really being gone: while a stamped comic still exists its
+    # Publisher/Imprint/Series/Volume are not orphaned, and the index
+    # sync drops FTS rows whose comic no longer exists.
+    JanitorReapPendingDeletesTask(),
     JanitorCleanFKsTask(),
     JanitorCleanCoversTask(),
     JanitorCleanupSessionsTask(),
@@ -114,6 +122,7 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
 _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
     {
         JanitorVacuumTask: "vacuum_db",
+        JanitorReapPendingDeletesTask: "reap_pending_deletes",
         JanitorCleanFKsTask: "cleanup_fks",
         JanitorCleanCoversTask: "cleanup_custom_covers",
         JanitorCleanupSessionsTask: "cleanup_sessions",

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.models import Bookmark
+from codex.models import Bookmark, Comic
 from codex.views.auth import AuthAPIView, AuthMixin, GroupACLMixin
 
 if TYPE_CHECKING:
@@ -84,15 +84,35 @@ class BookmarkAuthMixin(AuthMixin):
         return {"session_id": self._ensure_session_key()}
 
 
-class BookmarkPageMixin(BookmarkAuthMixin):
+class BookmarkPageMixin(BookmarkAuthMixin, GroupACLMixin):
     """Update the bookmark if the bookmark param was passed."""
+
+    def _get_writable_comic_pks(self) -> tuple[int, ...]:
+        """
+        Narrow the URL pk to a comic the caller is allowed to write to.
+
+        The bookmark thread trusts whatever pks arrive on its queue, so
+        the library-group and age-rating ACL has to be applied here.
+        ``include_missing=True``: a position recorded while the file is
+        away still has to land -- writes land, reads hide -- which is
+        the whole point of the pending-delete retention window.
+        """
+        if TYPE_CHECKING:
+            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
+        comic_pk = self.kwargs.get("pk")
+        if not comic_pk:
+            return ()
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
+        return tuple(
+            Comic.objects.filter(acl_filter, pk=comic_pk).values_list("pk", flat=True)
+        )
 
     def update_bookmark(self) -> None:
         """Update the bookmark if the bookmark param was passed."""
-        if TYPE_CHECKING:
-            self.kwargs: dict  # pyright: ignore[reportUninitializedInstanceVariable]
+        comic_pks = self._get_writable_comic_pks()
+        if not comic_pks:
+            return
         auth_filter = self.get_bookmark_auth_filter()
-        comic_pks = (comic_pk,) if (comic_pk := self.kwargs.get("pk")) else ()
         page = self.kwargs.get("page")
         updates = {"page": page}
 

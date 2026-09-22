@@ -2,8 +2,10 @@
 
 from django.db.models import (
     Case,
+    Count,
     F,
     Max,
+    Q,
     Sum,
     Value,
     When,
@@ -22,39 +24,49 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
     """Base class for views that need special metadata annotations."""
 
     def _get_collection_bookmark_page_annotation(
-        self, qs, bm_rel, bm_filter, page_rel, finished_rel
+        self, qs, bm_rel, page_rel, finished_rel
     ) -> Sum:
-        """Get bookmark page subquery."""
-        finished_filter = {finished_rel: True}
+        """Get the Σ of my read position over the collection's child comics."""
         prefix = "" if qs.model is Comic else self.rel_prefix
         page_count = prefix + "page_count"
-        # Can't use a filtered relation for page & finished because of this
-        # page_count case.
+        # A *finished* child contributes its whole page_count even when its
+        # own bookmark page is partial (finished at page 3 of 24 still counts
+        # 24), so this can't collapse to a plain Sum of ``bookmark__page``.
+        # ``bm_rel`` is the my-bookmark filtered relation, so the join is at
+        # most 1:1 per comic and the NULL arm covers comics I have never
+        # opened -- no ``filter=`` and no ``distinct=`` needed. The old
+        # ``distinct=True`` was ``SUM(DISTINCT ...)``, which sums the set of
+        # distinct *values*: a dozen finished 24-page issues summed to 24,
+        # so a single read child pinned the whole collection to 100%.
         bookmark_page_case = Case(
             When(**{bm_rel: None}, then=0),
-            When(**finished_filter, then=page_count),
+            When(**{finished_rel: True}, then=page_count),
             default=page_rel,
             output_field=PositiveSmallIntegerField(),
         )
         return Sum(
             bookmark_page_case,
             default=0,
-            filter=bm_filter,
             output_field=PositiveSmallIntegerField(),
-            distinct=True,
         )
 
-    @classmethod
-    def _get_collection_bookmark_finished_annotation(
-        cls, qs, bm_filter, finished_rel
-    ) -> tuple:
-        """Get finished_count subquery."""
-        finished_count = Sum(
-            finished_rel,
-            default=0,
-            filter=bm_filter,
-            output_field=PositiveSmallIntegerField(),
-            # distinct breaks this sum and only returns one. idk why.
+    def _get_collection_bookmark_finished_annotation(self, qs, finished_rel) -> tuple:
+        """Get the count of child comics I have finished, and the tri-state."""
+        # ``COUNT(DISTINCT comic.id) FILTER (WHERE my_bm.finished)`` counts
+        # each finished child exactly once however many joined rows it
+        # produces, so it survives every fan-out the collection join can
+        # create: an m2m field filter matching one comic on several tags, and
+        # a comic sitting in two ``StoryArcNumber`` rows of the same arc
+        # (``unique_together`` is ("story_arc", "number"), which permits it).
+        # The old ``Sum(finished)`` counted joined rows, so an m2m filter
+        # inverted the tri-state in both directions -- 6-of-12 read reported
+        # fully read, 12-of-12 reported partial -- and one duplicated arc row
+        # made an arc that could never report read. It is also the shape that
+        # pairs with ``child_count``, which is the same COUNT DISTINCT.
+        finished_count = Count(
+            self.rel_prefix + "pk",
+            distinct=True,
+            filter=Q(**{finished_rel: True}),
         )
         qs = qs.alias(finished_count=finished_count)
 
@@ -68,20 +80,23 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
 
     def annotate_bookmarks(self, qs):
         """Hoist up bookmark annotations."""
-        bm_rel = self.get_bm_rel(qs.model)
-        bm_filter = self.get_my_bookmark_filter(bm_rel)
-        page_rel = f"{bm_rel}__page"
-        finished_rel = f"{bm_rel}__finished"
-
         if qs.model is Comic:
-            bookmark_page = Sum(page_rel, filter=bm_filter, default=0)
-            finished_aggregate = Sum(finished_rel, filter=bm_filter, default=False)
+            bm_rel = self.get_bm_rel(qs.model)
+            bm_filter = self.get_my_bookmark_filter(bm_rel)
+            # A comic has at most one bookmark of mine, so the filtered
+            # aggregate is already 1:1 and needs no join rewrite.
+            bookmark_page = Sum(f"{bm_rel}__page", filter=bm_filter, default=0)
+            finished_aggregate = Sum(
+                f"{bm_rel}__finished", filter=bm_filter, default=False
+            )
         else:
+            qs = self.alias_my_bookmark(qs)
+            bm_rel = self.collection_bm_rel(qs.model)
             bookmark_page = self._get_collection_bookmark_page_annotation(
-                qs, bm_rel, bm_filter, page_rel, finished_rel
+                qs, bm_rel, f"{bm_rel}__page", f"{bm_rel}__finished"
             )
             qs, finished_aggregate = self._get_collection_bookmark_finished_annotation(
-                qs, bm_filter, finished_rel
+                qs, f"{bm_rel}__finished"
             )
 
         if (
@@ -105,7 +120,9 @@ class BrowserAnnotateBookmarkView(BrowserAnnotateOrderView):
             # bookmark_updated_at ascending that alias already holds a
             # Min aggregate, and the table-view collection branch
             # annotates it independently.
-            mbmua = self.get_max_bookmark_updated_at_aggregate(qs.model, Max)
+            mbmua = self.get_max_bookmark_updated_at_aggregate(
+                qs.model, Max, bm_rel=self.collection_bm_rel(qs.model)
+            )
             qs = qs.annotate(bookmark_updated_at_max=mbmua)
         return qs
 

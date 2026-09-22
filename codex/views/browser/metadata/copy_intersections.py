@@ -43,7 +43,13 @@ class MetadataCopyIntersectionsView(MetadataQueryIntersectionsView):
         """Values for highlighting the current collection."""
         if self.model and self.model is not Comic:
             field = collection_list_field_name(self.model)
-            qs = self.model.objects.filter(pk__in=obj.ids)
+            # ``obj.ids`` is the raw route pk set, not a filtered one, so
+            # the full ACL applies here. ``annotate_collection_list`` adds
+            # the ``distinct()`` the multi-valued ``comic__`` hop needs.
+            qs = self.model.objects.filter(
+                self.get_acl_filter(self.model, self.request.user),
+                pk__in=obj.ids,
+            )
             setattr(obj, field, annotate_collection_list(qs))
             obj.name = None
 

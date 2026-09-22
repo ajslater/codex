@@ -5,7 +5,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from comicbox.enums.comicbox import FileTypeEnum
 from django.apps import apps
+from django.core.exceptions import FieldDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
@@ -19,7 +21,26 @@ if TYPE_CHECKING:
 
 # Comic file extensions we'll consider — phantom directory-as-comic
 # rows (older bug) are out of scope for parent-folder drift repair.
-_COMIC_SUFFIXES = (".cbz", ".cbr", ".cb7", ".cbt", ".pdf")
+#
+# Derived from comicbox rather than written out, so a new archive format
+# cannot leave rows behind here, and compared case-insensitively because
+# that is how the scanner matched them on the way in
+# (``filters`` compiles its regex with ``re.IGNORECASE`` and the importer
+# stores the path verbatim, so ``Foo.CBZ`` is a real, importable comic).
+# A case-sensitive test dropped those rows from ``needed`` and pruned the
+# folders they live in, cascading the comics and their bookmarks away.
+#
+# Deliberately *not* ``filters.match_comic``: that consults
+# ``Comicbox.is_unrar_supported()`` / ``is_pdf_supported()``, so on a host
+# without unrar every ``.cbr`` row would drop out of ``needed`` and be
+# pruned — the same bug from the other side.
+_COMIC_SUFFIXES = frozenset(f".{file_type.value.lower()}" for file_type in FileTypeEnum)
+
+
+def _is_comic_path(path: str) -> bool:
+    """Whether a stored path is a comic archive, however it is cased."""
+    return Path(path).suffix.lower() in _COMIC_SUFFIXES
+
 
 # SQLite's parameter cap is 32766; leave headroom for the rare case
 # where Django / the driver sneaks in extra bound values. Each rowid
@@ -71,6 +92,23 @@ def _collect_comic_ids_for_table(cursor, table_name: str, rowids: set) -> set:
     return {row[0] for row in cursor.fetchall() if row[0] is not None}
 
 
+def _live_only(model) -> dict:
+    """
+    Keyword filter excluding rows kept for their retention window.
+
+    Empty for a historical model from a ``RunPython`` migration: these
+    functions also run at migration time against a registry whose Comic
+    and Folder predate ``missing_since``, and filtering on a column that
+    does not exist yet raises ``FieldError``. Nothing is stamped at
+    migration time either, so an empty filter is also correct.
+    """
+    try:
+        model._meta.get_field("missing_since")
+    except FieldDoesNotExist:
+        return {}
+    return {"missing_since__isnull": True}
+
+
 def _mark_comics_for_update(fix_comic_pks, log, apps_registry=None) -> None:
     """
     Mark comics with altered foreign keys for update.
@@ -83,8 +121,11 @@ def _mark_comics_for_update(fix_comic_pks, log, apps_registry=None) -> None:
         return
     registry = apps_registry if apps_registry is not None else apps
     comic_model: type[Comic] = registry.get_model(app_label="codex", model_name="comic")  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+    # A comic kept for its retention window must not have its mtime
+    # faked or its ``updated_at`` bumped: both lie to the poller about a
+    # row whose file is not on disk to be re-read.
     outdated_comics: BaseManager[Comic] = comic_model.objects.filter(
-        pk__in=fix_comic_pks
+        pk__in=fix_comic_pks, **_live_only(comic_model)
     ).only("stat", "updated_at")
     if not outdated_comics:
         return
@@ -256,7 +297,7 @@ def _classify_comic_drift(
         "id", "path", "parent_folder_id", "library_id"
     ).iterator(chunk_size=2000)
     for comic_id, comic_path, parent_folder_id, library_id in rows:
-        if not comic_path.endswith(_COMIC_SUFFIXES):
+        if not _is_comic_path(comic_path):
             # Phantom comic-as-folder rows are handled elsewhere.
             continue
         expected = str(Path(comic_path).parent)
@@ -411,11 +452,19 @@ def _compute_desired_folder_state(
     """Derive (needed (library_id, path) dirs, comic_id→ancestor-key set) from paths."""
     needed: set[tuple[int, str]] = set()
     desired_links: dict[int, set[tuple[int, str]]] = {}
-    rows = comic_model.objects.values_list("id", "path", "library_id").iterator(
-        chunk_size=2000
+    # A comic kept for its retention window contributes no desired
+    # folder state. Including it would re-create its ancestors with a
+    # fresh pk and a NULL stamp -- un-hiding the subtree -- and
+    # ``Folder.objects.create`` stats the path in ``presave``, which
+    # raises FileNotFoundError for a vanished dir and kills the whole
+    # nightly integrity task mid-run.
+    rows = (
+        comic_model.objects.filter(**_live_only(comic_model))
+        .values_list("id", "path", "library_id")
+        .iterator(chunk_size=2000)
     )
     for comic_id, comic_path, library_id in rows:
-        if not comic_path.endswith(_COMIC_SUFFIXES):
+        if not _is_comic_path(comic_path):
             continue
         library_path = library_path_by_id.get(library_id)
         if not library_path:
@@ -509,20 +558,36 @@ def _rebuild_folder_m2m(
     return len(add), removed, touched
 
 
-def _prune_stale_folders(folder_model, needed: set[tuple[int, str]], log) -> int:
+def _prune_stale_folders(
+    folder_model, comic_model, needed: set[tuple[int, str]], log
+) -> int:
     """Delete folder rows no comic lives under (deepest-first, FK-safe)."""
+    # A folder any comic still calls its parent is never stale, whatever
+    # ``needed`` says. This delete cascades comics and their bookmarks
+    # away and has no existence probe of its own, so it does not get to
+    # rely on the filter above being right: one mis-derived suffix rule
+    # used to empty a whole library this way.
+    protected = set(
+        comic_model.objects.values_list("parent_folder_id", flat=True).distinct()
+    )
+    # A folder being kept for its retention window is not stale, it is
+    # pending. It holds no comics precisely because they vanished with
+    # it, so it lands in neither ``protected`` nor ``needed`` -- and this
+    # runs hours before the reaper, with the stamp still fresh. The
+    # reaper owns that row.
     stale = [
         (folder_id, path)
-        for folder_id, library_id, path in folder_model.objects.values_list(
-            "id", "library_id", "path"
-        )
-        if (library_id, path) not in needed
+        for folder_id, library_id, path in folder_model.objects.filter(
+            **_live_only(folder_model)
+        ).values_list("id", "library_id", "path")
+        if (library_id, path) not in needed and folder_id not in protected
     ]
     if not stale:
         return 0
     # Deepest-first so deleting a parent never cascade-removes a child we
     # then try to delete again. Safe to cascade: the repoint step above
-    # guarantees no live comic still points at a stale folder.
+    # leaves no live comic pointing at a stale folder, and the
+    # ``protected`` filter holds even if it did.
     stale.sort(key=lambda item: item[1].count("/"), reverse=True)
     stale_ids = [folder_id for folder_id, _ in stale]
     for start in range(0, len(stale_ids), _SQLITE_MAX_VARS):
@@ -546,7 +611,8 @@ def fix_folder_relations(
     empty folders may linger. This is the complete superset of
     ``fix_parent_folder_drift`` — it (1) creates missing ancestor folders,
     (2) re-points ``parent_folder_id``, (3) rebuilds the ``folders`` M2M to
-    the exact ancestor set, (4) prunes stale empty folders, and (5) marks
+    the exact ancestor set, (4) prunes stale empty folders — never one a
+    comic still points at — and (5) marks
     repaired comics so the poller re-indexes covers/search.
 
     Idempotent: a no-op once the database is consistent. ``apps_registry``
@@ -586,7 +652,9 @@ def fix_folder_relations(
     touched = {comic_id for comic_id, _ in repointed} | m2m_comics
     _mark_comics_for_update(touched, log, apps_registry=registry)
 
-    pruned = _prune_stale_folders(folder_model, needed, log) if prune else 0
+    pruned = (
+        _prune_stale_folders(folder_model, comic_model, needed, log) if prune else 0
+    )
 
     result = {
         "created": created,

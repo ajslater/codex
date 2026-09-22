@@ -1,7 +1,8 @@
 <!--
   Bottom-of-Tagging-tab panel listing comics that failed to have their tags
-  written (read-only mount, permission error, …). Errors live in the server's
-  filesystem cache, not the database; the admin clears them here. The
+  written (read-only mount, permission error, a damaged archive that could not
+  be read, a conversion whose destination is taken). Errors live in the
+  server's filesystem cache, not the database; the admin clears them here. The
   ``#tagging-errors`` anchor is the deep-link target from the sidebar drawer.
 -->
 <template>
@@ -26,7 +27,12 @@
       <template #hint>
         These comics failed to have their tags written — usually because the
         comics directory is mounted read-only or Codex lacks permission to write
-        to it. Fix the filesystem permissions, then edit the tags again.
+        to it. Fix the filesystem permissions, then edit the tags again. A
+        damaged archive that cannot be read during a write is listed here too;
+        Failed Imports lists archives that could not be imported at all, which
+        is a different set. Writing tags to a CBR, CBT or CB7 repacks it as a
+        CBZ, so a second write to one that was already converted is refused and
+        names the comic it became — open that one and edit its tags instead.
       </template>
       <v-table id="tagWriteErrorsTable" striped="odd">
         <template #default>
@@ -41,6 +47,14 @@
             <tr v-for="item in tagWriteErrors" :key="`twe:${item.path}`">
               <td class="pathCol">
                 {{ item.path }}
+                <router-link
+                  v-if="item.twinPk"
+                  class="twinLink"
+                  :to="{ name: 'reader', params: { pk: item.twinPk } }"
+                  :title="`Open ${item.twinName}`"
+                >
+                  {{ item.twinName }}
+                </router-link>
               </td>
               <td class="dateCol">
                 <DateTimeColumn :dttm="item.time" />
@@ -134,7 +148,12 @@ export default {
   word-break: break-all;
 }
 
+.twinLink {
+  display: block;
+  font-size: d.$text-small;
+}
+
 .errorCol {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 </style>

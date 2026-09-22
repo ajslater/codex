@@ -1,5 +1,5 @@
 <template>
-  <div id="editPanel">
+  <v-form id="editPanel" ref="form" @submit.prevent>
     <div id="editToolbar">
       <v-select
         v-model="selectedFormats"
@@ -31,7 +31,7 @@
       <v-spacer />
       <v-btn variant="text" @click="$emit('cancel')"> Cancel </v-btn>
       <v-btn
-        :color="canSave ? 'primary' : 'grey-darken-1'"
+        :color="canSave ? 'primary' : 'text-disabled'"
         variant="flat"
         :loading="saving"
         :disabled="!canSave"
@@ -407,7 +407,7 @@
             type="number"
             min="0"
             max="9999"
-            :rules="yearRules"
+            :rules="activeRules('year', yearRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('year')"
@@ -435,7 +435,7 @@
             type="number"
             min="1"
             max="12"
-            :rules="monthRules"
+            :rules="activeRules('month', monthRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('month')"
@@ -463,7 +463,7 @@
             type="number"
             min="1"
             max="31"
-            :rules="dayRules"
+            :rules="activeRules('day', dayRules)"
             hide-details="auto"
             density="compact"
             :disabled="isFieldDisabled('day')"
@@ -773,7 +773,7 @@
           min="0"
           max="5"
           step="0.1"
-          :rules="communityRatingRules"
+          :rules="activeRules('community_rating', communityRatingRules)"
           hide-details="auto"
           density="compact"
           :disabled="isFieldDisabled('community_rating')"
@@ -804,7 +804,9 @@
           type="number"
           min="1"
           step="1"
-          :rules="communityRatingCountRules"
+          :rules="
+            activeRules('community_rating_count', communityRatingCountRules)
+          "
           hide-details="auto"
           density="compact"
           :disabled="isFieldDisabled('community_rating_count')"
@@ -1368,7 +1370,7 @@
         </v-text-field>
       </div>
     </section>
-  </div>
+  </v-form>
 </template>
 
 <script>
@@ -1472,12 +1474,7 @@ const NULL_CLEARED_FIELDS = Object.freeze(
 );
 
 const COMMUNITY_RATING_RULES = Object.freeze([
-  (v) =>
-    v === null ||
-    v === "" ||
-    v === undefined ||
-    (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 5) ||
-    "Must be 0.0–5.0",
+  ["$numRange", [0, 5], "Must be 0.0–5.0"],
 ]);
 
 // The publish date parts and their bounds. comicbox bounds month and day and
@@ -1490,19 +1487,11 @@ const DATE_PART_BOUNDS = Object.freeze({
   day: Object.freeze([1, 31]),
 });
 const DATE_PARTS = Object.freeze(Object.keys(DATE_PART_BOUNDS));
+const EMPTY_RULES = Object.freeze([]);
 
-const intRangeRules = ([min, max]) =>
-  Object.freeze([
-    (v) =>
-      v === null ||
-      v === "" ||
-      v === undefined ||
-      (Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max) ||
-      `Must be ${min}–${max}`,
-  ]);
-const YEAR_RULES = intRangeRules(DATE_PART_BOUNDS.year);
-const MONTH_RULES = intRangeRules(DATE_PART_BOUNDS.month);
-const DAY_RULES = intRangeRules(DATE_PART_BOUNDS.day);
+const YEAR_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.year]]);
+const MONTH_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.month]]);
+const DAY_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.day]]);
 
 const choiceValueForTitle = (choices, named) => {
   // pycountry-backed fields arrive as their long name; fall back to the raw
@@ -1930,6 +1919,11 @@ export default {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
     isFieldDisabled(field) {
       return !this.supportedFields.has(field);
+    },
+    activeRules(field, rules) {
+      // VForm.validate() runs disabled inputs too. A stale value in a field
+      // the selected formats can't write must not block an unrelated save.
+      return this.isFieldDisabled(field) ? EMPTY_RULES : rules;
     },
     tagLabel(key) {
       if (key === "series_groups") return "Series Groups";
@@ -2534,6 +2528,11 @@ export default {
       }
     },
     async preSave() {
+      const form = this.$refs.form;
+      if (form) {
+        const { valid } = await form.validate();
+        if (!valid) return;
+      }
       this.saving = true;
       const pks = this.book.ids || [this.book.pk];
       // Rename-only (no tag edits) sends an empty patch so no tags are
@@ -2618,230 +2617,234 @@ export default {
 @use "sass:map";
 @use "../table";
 
-#editPanel {
-  padding-bottom: 20px;
-}
-
-#editToolbar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 0;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background-color: rgb(var(--v-theme-surface));
-}
-
-.formatSelect {
-  max-width: 280px;
-}
-
-.sectionHeader {
-  margin-top: 20px;
-  margin-bottom: 4px;
-  font-size: 0.75em;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.mdSection {
-  margin-top: 4px;
-  background-color: rgb(var(--v-theme-surface));
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detailsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.inlineRow {
-  display: flex;
-  gap: 8px;
-}
-
-.inlineRow > * {
-  flex: 1;
-}
-
-.fieldChanged :deep(.v-label) {
-  color: rgb(var(--v-theme-primary));
-}
-
-td.labelChanged {
-  color: rgb(var(--v-theme-primary));
-}
-
-.fieldCleared {
-  opacity: 0.5;
-}
-
-.fieldCleared :deep(.v-label) {
-  text-decoration: line-through;
-}
-
-.monochromeRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.tableFooter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.addRoleSelect {
-  max-width: 200px;
-}
-
-.fileInfoPanel {
-  margin-top: 16px;
-}
-
-.fileInfoTitle {
-  font-size: 0.85em;
-  min-height: 36px !important;
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.fileInfoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
-}
-
-.pathField {
-  margin-top: 8px;
-  word-break: break-all;
-}
-
-.removeCol {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.conversionWarning,
-.readOnlyWarning {
-  margin-top: 12px;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(var(--v-theme-warning), 0.1);
-}
-
-.conversionHelpText,
-.renameHelpText {
-  font-size: 0.85em;
-  color: rgb(var(--v-theme-textSecondary));
-  margin-top: 4px;
-}
-
-.renameToggle {
-  flex: 0 0 auto;
-}
-
-.renamePreviewInline {
-  /* Size to the filename when it fits the free toolbar space; when it
-     doesn't, shrink to that space and scroll horizontally rather than
-     truncating. The v-spacer keeps the buttons right-aligned. */
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  white-space: nowrap;
-  font-size: 0.85em;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background-color: rgba(var(--v-theme-on-surface), 0.08);
-  color: rgb(var(--v-theme-textSecondary));
-  scrollbar-width: thin;
-}
-
-.renamePreviewActive {
-  /* The new name (rename on) reads as the primary action; the current name
-     (rename off) stays muted. */
-  color: rgb(var(--v-theme-primary));
-  background-color: rgba(var(--v-theme-primary), 0.1);
-}
-
-.renameInfo {
-  margin-top: 12px;
-}
-
-.renameWarning {
-  margin-bottom: 8px;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(var(--v-theme-warning), 0.1);
-  color: rgb(var(--v-theme-warning));
-}
-
-.renameListLabel {
-  margin-bottom: 6px;
-}
-
-.renamePreviewList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.renamePreviewItem {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px;
-  padding: 2px 0;
-  font-size: 0.85em;
-}
-
-.renamePreviewItem + .renamePreviewItem {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-}
-
-.renameOld {
-  color: rgb(var(--v-theme-textSecondary));
-  word-break: break-all;
-}
-
-.renameArrow {
-  color: rgb(var(--v-theme-textDisabled));
-}
-
-.renamePreview {
-  padding: 1px 4px;
-  border-radius: 3px;
-  background-color: rgba(var(--v-theme-on-surface), 0.08);
-  word-break: break-all;
-}
-
-.readOnlyField {
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: 0.85em;
-}
-
-.readOnlyLabel {
-  font-size: 12px;
-  display: block;
-  color: rgb(var(--v-theme-textDisabled));
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
   #editPanel {
-    font-size: 12px;
+    padding-bottom: 20px;
   }
 
-  .key {
-    font-size: small;
+  #editToolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: rgb(var(--v-theme-surface));
+  }
+
+  .formatSelect {
+    max-width: 280px;
+  }
+
+  .sectionHeader {
+    margin-top: 20px;
+    margin-bottom: 4px;
+    font-size: 0.75em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(var(--v-theme-text-secondary));
+  }
+
+  .mdSection {
+    margin-top: 4px;
+    background-color: rgb(var(--v-theme-surface));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detailsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .inlineRow {
+    display: flex;
+    gap: 8px;
+  }
+
+  .inlineRow > * {
+    flex: 1;
+  }
+
+  .fieldChanged :deep(.v-label) {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  td.labelChanged {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .fieldCleared {
+    opacity: 0.5;
+  }
+
+  .fieldCleared :deep(.v-label) {
+    text-decoration: line-through;
+  }
+
+  .monochromeRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tableFooter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .addRoleSelect {
+    max-width: 200px;
+  }
+
+  .fileInfoPanel {
+    margin-top: 16px;
+  }
+
+  .fileInfoTitle {
+    font-size: 0.85em;
+    min-height: 36px !important;
+    color: rgb(var(--v-theme-text-secondary));
+  }
+
+  .fileInfoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .pathField {
+    margin-top: 8px;
+    word-break: break-all;
+  }
+
+  .removeCol {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  .conversionWarning,
+  .readOnlyWarning {
+    margin-top: 12px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: rgba(var(--v-theme-warning), 0.1);
+  }
+
+  .conversionHelpText,
+  .renameHelpText {
+    font-size: 0.85em;
+    color: rgb(var(--v-theme-text-secondary));
+    margin-top: 4px;
+  }
+
+  .renameToggle {
+    flex: 0 0 auto;
+  }
+
+  .renamePreviewInline {
+    /* Size to the filename when it fits the free toolbar space; when it
+       doesn't, shrink to that space and scroll horizontally rather than
+       truncating. The v-spacer keeps the buttons right-aligned. */
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 0.85em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background-color: rgba(var(--v-theme-on-surface), 0.08);
+    color: rgb(var(--v-theme-text-secondary));
+    scrollbar-width: thin;
+  }
+
+  .renamePreviewActive {
+    /* The new name (rename on) reads as the primary action; the current name
+       (rename off) stays muted. */
+    color: rgb(var(--v-theme-primary));
+    background-color: rgba(var(--v-theme-primary), 0.1);
+  }
+
+  .renameInfo {
+    margin-top: 12px;
+  }
+
+  .renameWarning {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: rgba(var(--v-theme-warning), 0.1);
+    color: rgb(var(--v-theme-warning));
+  }
+
+  .renameListLabel {
+    margin-bottom: 6px;
+  }
+
+  .renamePreviewList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .renamePreviewItem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    padding: 2px 0;
+    font-size: 0.85em;
+  }
+
+  .renamePreviewItem + .renamePreviewItem {
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  }
+
+  .renameOld {
+    color: rgb(var(--v-theme-text-secondary));
+    word-break: break-all;
+  }
+
+  .renameArrow {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  .renamePreview {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background-color: rgba(var(--v-theme-on-surface), 0.08);
+    word-break: break-all;
+  }
+
+  .readOnlyField {
+    color: rgb(var(--v-theme-text-secondary));
+    font-size: 0.85em;
+  }
+
+  .readOnlyLabel {
+    font-size: 12px;
+    display: block;
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    #editPanel {
+      font-size: 12px;
+    }
+
+    .key {
+      font-size: small;
+    }
   }
 }
 </style>

@@ -25,6 +25,12 @@ from codex.librarian.onlinetag.session_snapshot import (
     set_resolved_outcomes,
     set_resume_state,
 )
+from codex.librarian.scribe.importer.delete.existence import (
+    SECOND_LOOK_DELAY_S,
+    confirm_deleted,
+    probe_paths,
+    revived_paths,
+)
 from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImports
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
@@ -134,12 +140,21 @@ def _create_reverse_rel_map() -> MappingProxyType:
 
 
 _MODEL_REVERSE_EMPTY_FILTER_MAP = _create_reverse_rel_map()
+# A bookmark belongs to a user or to a session. One with neither is
+# owned by nobody: invisible to every reader, and returned by no query.
+#
+# ``comic`` is deliberately absent. It is a non-nullable FK, so including
+# it made this filter match nothing at all, and the sweep had never
+# deleted a row. It is also unnecessary: ``Bookmark.comic`` cascades, so
+# a deleted comic takes its bookmarks with it and cannot orphan one.
 _BOOKMARK_FILTER = dict.fromkeys(
-    (f"{rel}__isnull" for rel in ("session", "user", "comic")), True
+    (f"{rel}__isnull" for rel in ("session", "user")), True
 )
 _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
     (f"{rel}__isnull" for rel in ("session", "user")), True
 )
+#: Orphan bookmark pks named in the log before they are deleted.
+_ORPHAN_PKS_LOGGED = 10
 # Backstop for `Favorite.post_delete` signals — the nightly sweep
 # drops favorites whose target row is gone (e.g. wiped by raw-SQL
 # migrations or other paths that bypass Django's ORM signal
@@ -177,6 +192,15 @@ class JanitorCleanup(JanitorUpdateFailedImports):
     def _cleanup_fks_model(self, model, filter_dict, status):
         status.subtitle = model._meta.verbose_name_plural
         self.status_controller.update(status)
+        if model is Folder:
+            # Folder is the only ``_FK_MODELS`` entry that can be kept
+            # for a retention window, and this delete has no disk probe
+            # of its own. A stamped folder holds no comics precisely
+            # because they vanished with it, so it reads as orphaned
+            # here and would die in the same nightly band as the reaper
+            # that owns it. StoryArc is safe: a stamped comic keeps its
+            # StoryArcNumber rows.
+            filter_dict = {**filter_dict, "missing_since__isnull": True}
         qs = model.objects.filter(**filter_dict).distinct()
         count, _ = qs.delete()
         status.complete += count
@@ -249,72 +273,100 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.finish(status)
 
     @staticmethod
-    def _group_covers_by_parent(covers) -> dict[str, list[tuple[int, str]]]:
+    def _group_covers_by_parent(covers) -> dict[str, list[str]]:
         """
-        Bunch (pk, basename) entries by parent directory.
+        Bunch basenames by parent directory.
 
         Cover layouts are typically one-cover-per-series-folder, so
         each parent ends up with one entry. For installs that share a
         directory across many covers, this groups them so the parent
         gets one ``scandir`` instead of N ``stat`` calls.
         """
-        by_dir: dict[str, list[tuple[int, str]]] = defaultdict(list)
+        by_dir: dict[str, list[str]] = defaultdict(list)
         for cover in covers:
             cover_path = Path(cover.path)
-            by_dir[str(cover_path.parent)].append((cover.pk, cover_path.name))
+            by_dir[str(cover_path.parent)].append(cover_path.name)
         return by_dir
 
     @staticmethod
     def _scan_parent_for_present_names(parent: str) -> frozenset[str] | None:
         """
-        Return the set of filenames in ``parent``, or None on read failure.
+        Return the set of filenames in ``parent``, or None if it would not list.
 
-        ``None`` is the "fall back to per-file ``Path.exists()``" signal;
-        callers handle it by treating each cover in the group as
-        unverified rather than guessing at orphan-vs-present.
+        ``None`` means "this directory proved nothing", including when
+        it answers ENOENT. A directory that is missing looks identical
+        to one on a share mid-reconnect, and this delete permanently
+        nulls every collection cover it touches, so the group is not
+        condemned wholesale -- the caller probes each cover path
+        instead, where the probe can fail closed.
         """
         try:
             with os.scandir(parent) as it:
                 return frozenset(entry.name for entry in it)
-        except FileNotFoundError:
-            # Parent directory itself is gone — every cover claiming a
-            # path under it is orphan. Empty set is correct.
-            return frozenset()
         except OSError:
-            # Permission error, transient FS hiccup, etc. — fall back.
             return None
 
-    def _collect_orphan_cover_pks(
-        self, by_dir: dict[str, list[tuple[int, str]]], status
-    ) -> list[int]:
-        """Walk parent directories once via scandir and flag orphans."""
-        delete_pks: list[int] = []
-        for parent, entries in by_dir.items():
+    def _collect_orphan_cover_paths(
+        self, by_dir: dict[str, list[str]], status
+    ) -> list[str]:
+        """Walk parent directories once via scandir and flag candidate orphans."""
+        candidates: list[str] = []
+        unverified: list[str] = []
+        for parent, basenames in by_dir.items():
             present = self._scan_parent_for_present_names(parent)
-            for pk, basename in entries:
+            for basename in basenames:
+                path = str(Path(parent, basename))
                 if present is None:
-                    # scandir failed for this parent; preserve
-                    # pre-fix behavior with a per-file Path.exists().
-                    if not Path(parent, basename).exists():
-                        delete_pks.append(pk)
+                    unverified.append(path)
                 elif basename not in present:
-                    delete_pks.append(pk)
+                    candidates.append(path)
                 status.increment_complete()
             self.status_controller.update(status)
-        return delete_pks
+        if unverified:
+            # Never ``Path.exists()``: it swallows every OSError and
+            # returns False, which is exactly how a briefly unreadable
+            # directory reads as a mass deletion. ``probe_paths`` fails
+            # closed, so only ENOENT/ENOTDIR reach the gone pile.
+            gone, _extant, _unreadable = probe_paths(unverified)
+            candidates.extend(gone)
+        return candidates
+
+    def _confirm_orphan_covers(self, candidates: list[str]) -> frozenset[str]:
+        """
+        Take a second look, then confirm, before condemning a cover.
+
+        Second look first, matching ``DeletedImporter.delete``: it
+        probes, waits, and re-probes only what came back missing, so a
+        share that lies for a moment during a reconnect is caught before
+        anything is condemned. ``confirm_deleted`` then reports whatever
+        is left that is not really gone.
+        """
+        if not candidates:
+            return frozenset()
+        revived = revived_paths(candidates, self.abort_event.wait)
+        if revived:
+            reason = (
+                f"Not deleting {len(revived)} custom covers that answered"
+                f" {SECOND_LOOK_DELAY_S}s later; the filesystem may be flapping."
+            )
+            self.log.warning(reason)
+            candidates = [path for path in candidates if path not in revived]
+        return frozenset(confirm_deleted(candidates, self.log, "custom covers"))
 
     def cleanup_custom_covers(self) -> None:
         """
         Clean up unused custom covers.
 
-        Replaces the prior per-cover ``Path.exists()`` loop with a
-        directory-grouped ``os.scandir`` pass. For typical cover
-        layouts one parent ↔ one cover, the wall-clock is identical;
-        for any layout with multiple covers per parent (or for
-        many covers under sibling directories), the parent's
-        ``readdir`` round-trip replaces N individual ``stat``
-        round-trips. Big win on NFS / SMB / cloud-mounted media
-        where each ``stat`` is single-digit milliseconds.
+        Grouped by parent directory so one ``readdir`` replaces N
+        ``stat`` round-trips -- a big win on NFS / SMB / cloud-mounted
+        media where each ``stat`` is single-digit milliseconds.
+
+        The existence check gets the same treatment the comic delete
+        path has, and for the same reason: deleting a CustomCover row
+        permanently nulls the ``custom_cover`` of every collection
+        pointing at it (``on_delete=SET_DEFAULT``) and nothing restores
+        it. A directory that would not list proves nothing, and only
+        ENOENT after a second look counts as gone.
         """
         # Materialize once so we can group by parent directory before
         # the FS pass. ``only`` keeps the load lean.
@@ -326,13 +378,14 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             by_dir = self._group_covers_by_parent(covers)
             # Read-only phase: lock not held — importer can keep writing
             # while we walk slow storage.
-            delete_pks = self._collect_orphan_cover_pks(by_dir, status)
+            candidates = self._collect_orphan_cover_paths(by_dir, status)
+            orphan_paths = self._confirm_orphan_covers(candidates)
             # Write phase under the lock so a concurrent importer can't
             # be mid-bulk_create on the same rows. TOCTOU window is
             # acceptable: a cover re-created between scan and delete
             # just gets re-discovered next poll.
             with self.db_write_lock:
-                delete_qs = CustomCover.objects.filter(pk__in=delete_pks)
+                delete_qs = CustomCover.objects.filter(path__in=orphan_paths)
                 count, _ = delete_qs.delete()
                 status.complete = count
         finally:
@@ -400,12 +453,32 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             self.status_controller.finish(status)
 
     def cleanup_orphan_bookmarks(self) -> None:
-        """Delete bookmarks without users or sessions."""
+        """
+        Delete bookmarks belonging to neither a user nor a session.
+
+        No ORM path creates one: the auth filter is exclusive and
+        non-null, restore forces a user, and ``cascade_if_user_null``
+        deletes session-owned rows whose user is NULL while nulling the
+        session on the rest, so an expiring session leaves nothing
+        behind. A both-NULL row therefore comes from raw SQL, a
+        migration or legacy data, which is what a backstop sweep is for.
+
+        The rows are named before they go. This filter matched nothing
+        for its whole life, so the first real run on any install is also
+        the first, and its count should be attributable.
+        """
         status = JanitorCleanupBookmarksStatus()
         try:
             self.status_controller.start(status)
             with self.db_write_lock:
                 orphan_bms = Bookmark.objects.filter(**_BOOKMARK_FILTER)
+                pks = tuple(
+                    orphan_bms.order_by("pk").values_list("pk", flat=True)[
+                        :_ORPHAN_PKS_LOGGED
+                    ]
+                )
+                if pks:
+                    self.log.info(f"Deleting orphan bookmarks, pks {pks}...")
                 count, _ = orphan_bms.delete()
             level = "INFO" if count else "DEBUG"
             self.log.log(level, f"Deleted {count} orphan bookmarks.")

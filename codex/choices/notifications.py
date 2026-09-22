@@ -15,6 +15,7 @@ class Notifications(Enum):
     LIBRARIAN_STATUS = "LIBRARIAN_STATUS"
     ONLINE_TAG_PROMPT = "ONLINE_TAG_PROMPT"
     ONLINE_TAG_SNAPSHOT = "ONLINE_TAG_SNAPSHOT"
+    PENDING_DELETES = "PENDING_DELETES_CHANGED"
     TAG_WRITE_ERRORS = "TAG_WRITE_ERRORS"
     USERS = "USERS_CHANGED"
 
@@ -36,6 +37,7 @@ class WebsocketMessages(StrEnum):
     FAILED_IMPORTS_CHANGED = "failed-imports.changed"
     GROUPS_CHANGED = "groups.changed"
     LIBRARY_CHANGED = "library.changed"
+    PENDING_DELETES_CHANGED = "pending-deletes.changed"
     TAG_SESSION_PROMPT = "tag-session.prompt"
     TAG_SESSION_SNAPSHOT = "tag-session.snapshot"
     TAG_WRITE_ERRORS_CHANGED = "tag-write.errors.changed"

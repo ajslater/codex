@@ -35,6 +35,9 @@ class OPDS1EntryLinksMixin:
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
         self.title_filename_fallback = title_filename_fallback
+        # Remember an unreadable archive so ``lazy_metadata`` does not
+        # re-open it once per call site for every feed render.
+        self._lazy_metadata_failed = False
         self._authors_by_pk = data.authors_by_pk
         self._contributors_by_pk = data.contributors_by_pk
         self._category_groups_by_pk = data.category_groups_by_pk
@@ -96,6 +99,13 @@ class OPDS1EntryLinksMixin:
             raise
 
     def _nav_link(self, *, metadata: bool) -> OPDS1Link:
+        # The acquisition-vs-navigation type comes from one flag per
+        # collection. Folders are acquisition on purpose (a folder feed
+        # mixes sub-folders and comics) and the arcs root is knowingly
+        # labeled the same because the flag cannot tell the root from an
+        # individual arc. Both were reviewed against Panels 957 and left
+        # alone; see ``opds_acquisition_collections`` before changing
+        # either (#855 follow-up F7).
         href = self._nav_href(metadata=metadata)
 
         collection = self.obj.nav_collection
@@ -127,11 +137,25 @@ class OPDS1EntryLinksMixin:
 
     def lazy_metadata(self) -> bool:
         """Get barebones metadata lazily to make pse work for chunky-like readers."""
-        if self.obj.page_count and self.obj.file_type:
+        if self._lazy_metadata_failed or (self.obj.page_count and self.obj.file_type):
             return False
-        with Comicbox(self.obj.path, config=COMICBOX_CONFIG) as cb:
-            self.obj.page_count = cb.get_page_count()
-            self.obj.file_type = cb.get_file_type()
+        try:
+            with Comicbox(self.obj.path, config=COMICBOX_CONFIG) as cb:
+                self.obj.page_count = cb.get_page_count()
+                self.obj.file_type = cb.get_file_type()
+        except Exception as exc:
+            # Opening one comic must never take down the feed it appears
+            # in. A broken archive raises from an open-ended set that no
+            # tuple can close: comicbox's own UnsupportedArchiveTypeError
+            # for 16 bytes of junk, OSError for a file that vanished or
+            # cannot be read, and whatever the underlying archive module
+            # throws for a header it half-recognizes (zipfile answers a
+            # corrupt central directory with NotImplementedError). Leave
+            # page_count / file_type as the DB has them so the entry
+            # still renders, minus the archive-derived PSE extras.
+            self._lazy_metadata_failed = True
+            logger.warning(f"Reading lazy OPDS metadata from {self.obj.path}: {exc}")
+            return False
         logger.debug(f"Got lazy opds pse metadata for {self.obj.path}")
         return True
 

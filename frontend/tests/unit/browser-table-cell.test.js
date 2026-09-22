@@ -201,3 +201,38 @@ describe("BrowserTableCell — snake_case to camelCase", () => {
     expect(wrapper.find(".tableTextCell").text()).toBe("42");
   });
 });
+
+describe("BrowserTableCell — cover", () => {
+  const COVER_ROW = { pk: 7, name: "Fight Club 3", coverPk: 42 };
+
+  it("renders the cover through the shared popup component", () => {
+    const wrapper = mountCell({ column: "cover", row: COVER_ROW });
+    const img = wrapper.find("img");
+
+    expect(img.exists()).toBe(true);
+    expect(img.attributes("alt")).toBe("Fight Club 3");
+    expect(img.attributes("title")).toBe("Fight Club 3");
+    // The look .tableCoverThumb used to carry.
+    const style = img.attributes("style");
+    expect(style).toContain("border-radius: 2px");
+    expect(style).toContain("object-fit: cover");
+    expect(style).toContain("height: 100%");
+  });
+
+  it("is openable, which the old click-only popup was not", () => {
+    const img = mountCell({ column: "cover", row: COVER_ROW }).find("img");
+
+    expect(img.attributes("role")).toBe("button");
+    expect(img.attributes("tabindex")).toBe("0");
+  });
+
+  it("a broken cover shows the placeholder with nothing to open", async () => {
+    const wrapper = mountCell({ column: "cover", row: COVER_ROW });
+
+    await wrapper.find("img").trigger("error");
+
+    // Enlarging a placeholder svg tells the user nothing.
+    expect(wrapper.find('[role="button"]').exists()).toBe(false);
+    expect(wrapper.find("img").exists()).toBe(true);
+  });
+});

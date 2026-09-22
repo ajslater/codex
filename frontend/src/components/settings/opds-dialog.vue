@@ -13,21 +13,33 @@
         OPDS
       </v-btn>
     </template>
-    <div v-if="opdsURLs" id="opds">
-      <h2 id="opdsTitle">
-        <v-icon id="opdsIcon">
-          {{ mdiRss }}
-        </v-icon>
-        OPDS
-      </h2>
-      <OPDSUrl title="v1.2" :url-path="opdsURLs.v1" />
-      <OPDSUrl
-        title="v2.0"
-        :url-path="opdsURLs.v2"
-        subtitle="Supported in newer clients (like Stump)"
-      />
-    </div>
-    <PlaceholderLoading v-else />
+    <!-- The card gives the overlay an intrinsic size. Without it the
+       body is a shrink-to-fit box, and a percentage-sized placeholder
+       inside one resolves to nothing: the dialog opens as an invisible
+       sliver behind the scrim, which reads as "no window appeared". -->
+    <v-card>
+      <div v-if="opdsURLs" id="opds">
+        <h2 id="opdsTitle">
+          <v-icon id="opdsIcon">
+            {{ mdiRss }}
+          </v-icon>
+          OPDS
+        </h2>
+        <OPDSUrl title="v1.2" :url-path="opdsURLs.v1" />
+        <OPDSUrl
+          title="v2.0"
+          :url-path="opdsURLs.v2"
+          subtitle="Supported in newer clients (like Stump)"
+        />
+      </div>
+      <div v-else-if="opdsURLsError" id="opdsError">
+        <p>{{ opdsURLsError }}</p>
+        <v-btn variant="text" @click="loadOPDSURLs"> Retry </v-btn>
+      </div>
+      <div v-else id="opdsLoading">
+        <PlaceholderLoading :size="64" />
+      </div>
+    </v-card>
   </v-dialog>
 </template>
 <script>
@@ -52,6 +64,7 @@ export default {
   computed: {
     ...mapState(useCommonStore, {
       opdsURLs: (state) => state.opdsURLs,
+      opdsURLsError: (state) => state.opdsURLsError,
     }),
   },
   methods: {
@@ -71,12 +84,23 @@ export default {
 #opdsButton {
   display: block;
   width: 100%;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 #opdsIcon {
   display: inline-flex;
   vertical-align: -4px;
   font-size: 25px;
+}
+
+#opdsError {
+  padding: 20px;
+  text-align: center;
+}
+
+#opdsLoading {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
 }
 </style>

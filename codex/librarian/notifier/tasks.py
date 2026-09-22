@@ -48,6 +48,9 @@ ONLINE_TAG_PROMPT_TASK = NotifierTask(
 ONLINE_TAG_SNAPSHOT_TASK = NotifierTask(
     Notifications.ONLINE_TAG_SNAPSHOT.value, ChannelGroups.ADMIN
 )
+PENDING_DELETES_CHANGED_TASK = NotifierTask(
+    Notifications.PENDING_DELETES.value, ChannelGroups.ADMIN
+)
 TAG_WRITE_ERRORS_CHANGED_TASK = NotifierTask(
     Notifications.TAG_WRITE_ERRORS.value, ChannelGroups.ADMIN
 )

@@ -20,7 +20,6 @@ Two regressions are locked in here:
 
 import shutil
 from datetime import timedelta
-from pathlib import Path
 from types import SimpleNamespace
 from typing import override
 
@@ -39,8 +38,9 @@ from codex.models import (
     Volume,
 )
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.bookmark_isolation")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.bookmark_isolation")
 
 
 def _make_session(session_key: str) -> None:

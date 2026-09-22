@@ -104,6 +104,7 @@
 import { mdiAccountCog } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import authFormMixin from "@/components/auth/auth-form-mixin";
 import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
@@ -111,6 +112,13 @@ import SubmitFooter from "@/components/submit-footer.vue";
 import AuthTokenDialog from "@/components/auth/auth-token.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+
+const PROFILE_RULES = Object.freeze({
+  username: Object.freeze([(v) => Boolean(v) || "Username is required"]),
+  email: Object.freeze([
+    (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
+  ]),
+});
 
 export default {
   name: "ProfileDialog",
@@ -133,6 +141,7 @@ export default {
       passwordPanel: null,
       emailPanel: null,
       mdiAccountCog,
+      rules: PROFILE_RULES,
     };
   },
   computed: {
@@ -140,7 +149,6 @@ export default {
       user: (state) => state.user,
       emailEnabled: (state) => state.adminFlags.emailEnabled,
       remoteUserEnabled: (state) => state.adminFlags.remoteUserEnabled,
-      MIN_PASSWORD_LENGTH: (state) => state.MIN_PASSWORD_LENGTH,
     }),
     ...mapWritableState(useAuthStore, ["showProfileDialog"]),
     usernameLocked() {
@@ -154,14 +162,6 @@ export default {
     },
     passwordSectionActive() {
       return this.passwordPanel === "password";
-    },
-    rules() {
-      return {
-        username: [(v) => Boolean(v) || "Username is required"],
-        email: [
-          (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
-        ],
-      };
     },
     passwordRules() {
       // Only enforce password validators when the section is open; with it
@@ -181,8 +181,8 @@ export default {
             if (!v) {
               return "New password is required";
             }
-            if (v.length < this.MIN_PASSWORD_LENGTH) {
-              return `Password must be at least ${this.MIN_PASSWORD_LENGTH} characters`;
+            if (v.length < LIMITS.passwordMinLength) {
+              return `Password must be at least ${LIMITS.passwordMinLength} characters`;
             }
             if (v === this.profile.oldPassword) {
               return "New password must differ from old password";
@@ -269,7 +269,7 @@ export default {
   // re-validates the *whole* form on every keystroke — that flashed "required"
   // errors on fields the user hadn't touched yet. Each field still validates
   // itself inline as you type, and `canSubmit`/`isValid` gate the Save button
-  // synchronously. (The mixin is still used for keyup blocking + form state.)
+  // synchronously. (The mixin is still used for form state.)
   methods: {
     ...mapActions(useAuthStore, [
       "updateProfile",

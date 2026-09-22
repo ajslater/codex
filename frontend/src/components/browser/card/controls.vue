@@ -44,53 +44,57 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.cardControls {
-  height: 100%;
-  width: 100%;
-  opacity: 0; // invisible by default. hover exposes it.
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .cardControls {
+    height: 100%;
+    width: 100%;
+    opacity: 0; // invisible by default. hover exposes it.
+  }
 
-$buttonColor: rgb(var(--v-theme-textSecondary));
-$buttonColorHover: rgb(var(--v-theme-linkHover));
+  $buttonColor: rgb(var(--v-theme-text-secondary));
+  $buttonColorHover: rgb(var(--v-theme-link-hover));
 
-/* EYE */
-.eye {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-50%);
-  color: $buttonColorHover;
-}
+  /* EYE */
+  .eye {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    color: $buttonColorHover;
+  }
 
-.cardControls:hover .eye {
-  color: $buttonColorHover;
-}
+  .cardControls:hover .eye {
+    color: $buttonColorHover;
+  }
 
-.cardControls:has(> .tagButton:hover) .eye,
-.cardControls:has(> .browserCardMenuIcon:hover) .eye {
-  color: $buttonColor;
-}
+  .cardControls:has(> .tagButton:hover) .eye,
+  .cardControls:has(> .browserCardMenuIcon:hover) .eye {
+    color: $buttonColor;
+  }
 
-/* BOTTOM CONTROLS */
-:deep(.cardControlButton) {
-  position: absolute !important;
-  bottom: 0px !important;
-  color: $buttonColor !important;
-}
+  /* BOTTOM CONTROLS */
+  :deep(.cardControlButton) {
+    position: absolute !important;
+    bottom: 0px !important;
+    color: $buttonColor;
+  }
 
-:deep(.tagButton) {
-  left: 0px !important;
-}
+  :deep(.tagButton) {
+    left: 0px !important;
+  }
 
-:deep(.browserCardMenuIcon) {
-  right: 0px !important;
-}
+  :deep(.browserCardMenuIcon) {
+    right: 0px !important;
+  }
 
-:deep(.cardControlButton:hover) {
-  color: $buttonColorHover !important;
-}
+  :deep(.cardControlButton:hover) {
+    color: $buttonColorHover;
+  }
 
-:deep(.v-btn__overlay) {
-  background-color: transparent !important;
+  :deep(.v-btn__overlay) {
+    background-color: transparent;
+  }
 }
 </style>

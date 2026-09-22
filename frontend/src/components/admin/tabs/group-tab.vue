@@ -180,10 +180,10 @@ export default {
 }
 
 .see {
-  background-color: rgb(var(--v-theme-includeGroup));
+  background-color: rgb(var(--v-theme-include-group));
 }
 
 .hidden {
-  background-color: rgb(var(--v-theme-excludeGroup));
+  background-color: rgb(var(--v-theme-exclude-group));
 }
 </style>

@@ -232,10 +232,17 @@ def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     field = _COLLECTION_COMIC_FILTER.get(source)
     if field is None:
         return None
+    # This module-level function composes the classmethod halves by hand
+    # rather than going through an instance's ``get_acl_filter``, so the
+    # pending-delete clause has to be added here too -- and here only,
+    # or it would be doubled. This is the cover route the web client
+    # calls, so a stamped comic left in would render as a live series
+    # card's cover.
     acl_q = GroupACLMixin.get_group_acl_filter(Comic, user)
     age_q = GroupACLMixin.get_age_rating_acl_filter(Comic, user)
+    missing_q = GroupACLMixin.get_missing_acl_filter(Comic)
     return (
-        Comic.objects.filter(acl_q & age_q, **{field: pk})
+        Comic.objects.filter(acl_q & age_q & missing_q, **{field: pk})
         .order_by("sort_name", "pk")
         .values_list("pk", flat=True)
         .first()

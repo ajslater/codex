@@ -4,6 +4,7 @@
     <div class="timerFields">
       <v-number-input
         v-model="days"
+        :rules="rules.days"
         class="timerNumber"
         density="compact"
         filled
@@ -18,6 +19,7 @@
       />
       <v-number-input
         v-model="hours"
+        :rules="rules.hours"
         class="timerNumber"
         density="compact"
         filled
@@ -32,6 +34,7 @@
       />
       <v-number-input
         v-model="minutes"
+        :rules="rules.minutes"
         class="timerNumber"
         density="compact"
         filled
@@ -58,6 +61,18 @@ const DEFAULT_MINUTES = 0;
 const DURATION_RE =
   // eslint-disable-next-line security/detect-unsafe-regex
   /^(?<days>[0-3]?\d?\d\s)?(?<hours>[01]?\d|2[0-3]):(?<minutes>[0-5]\d):\d{2}$/;
+/*
+ * Per-part bounds, matching the ``:min``/``:max`` already on each
+ * control. Vuetify's ``$required`` alias carves out ``v === 0``, so
+ * zero passes. The parts sit inside the dialog's ``<v-form>``, so
+ * ``form.validate()`` disables Submit -- but rules do not stop the
+ * emit, which is why ``fieldsToDjangoDuration`` guards as well.
+ */
+const RULES = Object.freeze({
+  days: Object.freeze([["$required"], ["$intRange", [0, 365]]]),
+  hours: Object.freeze([["$required"], ["$intRange", [0, 23]]]),
+  minutes: Object.freeze([["$required"], ["$intRange", [0, 59]]]),
+});
 export default {
   name: "DurationInput",
   props: {
@@ -81,6 +96,7 @@ export default {
       days: DEFAULT_DAYS,
       hours: DEFAULT_HOURS,
       minutes: DEFAULT_MINUTES,
+      rules: RULES,
     };
   },
   computed: {
@@ -112,14 +128,28 @@ export default {
       return { days, hours, minutes };
     },
     fieldsToDjangoDuration(days, hours, minutes) {
+      /*
+       * Clearing a part sets its model to ``null``, and ``String(null)``
+       * is ``"null"`` -- four characters, so ``padStart(3, "0")`` leaves
+       * it alone and the emit became ``"null 01:00:00"``. The server
+       * rejects that with a 400 the dialog used to render as raw JSON.
+       *
+       * Coerced rather than refusing to emit: the field still reads
+       * empty to the user, the rule above says so, and Submit stays
+       * disabled -- but whatever does get emitted is a valid duration.
+       */
       return (
-        String(days).padStart(3, "0") +
+        String(this.partOrZero(days)).padStart(3, "0") +
         " " +
-        String(hours).padStart(2, "0") +
+        String(this.partOrZero(hours)).padStart(2, "0") +
         ":" +
-        String(minutes).padStart(2, "0") +
+        String(this.partOrZero(minutes)).padStart(2, "0") +
         ":00"
       );
+    },
+    partOrZero(value) {
+      const num = Number(value);
+      return Number.isFinite(num) && num >= 0 ? Math.trunc(num) : 0;
     },
   },
 };
@@ -132,7 +162,7 @@ export default {
 
 .timerLabel {
   font-size: small;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .timerFields {

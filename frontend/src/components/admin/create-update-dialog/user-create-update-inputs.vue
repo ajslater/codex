@@ -5,6 +5,7 @@
       autocomplete="username"
       label="Username"
       :rules="rules.username"
+      :error-messages="fieldErrors.username"
       clearable
       autofocus
       @keydown.enter="$refs.email.focus()"
@@ -13,6 +14,7 @@
       ref="email"
       v-model="row.email"
       :rules="rules.email"
+      :error-messages="fieldErrors.email"
       label="Email"
       autocomplete="email"
       type="email"
@@ -72,10 +74,12 @@
 <script>
 import { mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 const UPDATE_KEYS = Object.freeze([
   "username",
@@ -108,18 +112,20 @@ export default {
       rules: {
         username: [
           (v) => !!v || "Username is required",
-          (v) =>
-            (!!v && !this.usernames.has(v.trim())) || "Username already used",
+          // $notIn passes on blank, so the required rule must stay first.
+          ["$notIn", () => this.usernames, "Username already used"],
+          ["$maxLength", LIMITS.usernameMaxLength],
         ],
         email: [
           (v) => !v || /.+@.+\..+/.test(v) || "Enter a valid email address",
+          ["$maxLength", LIMITS.emailMaxLength],
         ],
         password: [
           (v) => !!v || "Password is required",
           (v) =>
             !v ||
-            v.length >= this.minPasswordLength ||
-            `Password must be at least ${this.minPasswordLength} characters`,
+            v.length >= LIMITS.passwordMinLength ||
+            `Password must be at least ${LIMITS.passwordMinLength} characters`,
         ],
         passwordConfirm: [
           (v) => v === this.row.password || "Passwords must match",
@@ -128,14 +134,16 @@ export default {
     };
   },
   computed: {
+    ...mapState(useCommonStore, {
+      // The server's reason, bound to the field that caused it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
       users: (state) => state.users,
       ageRatingMetrons: (state) => state.ageRatingMetrons,
     }),
-    ...mapState(useAuthStore, {
-      minPasswordLength: (state) => state.MIN_PASSWORD_LENGTH,
-    }),
+    ...mapState(useAuthStore, {}),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },

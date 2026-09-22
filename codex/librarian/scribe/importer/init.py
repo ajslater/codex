@@ -7,6 +7,7 @@ from pathlib import Path
 from time import perf_counter, sleep, time
 from typing import TYPE_CHECKING, Any
 
+from django.db.models.query_utils import Q
 from django.utils.timezone import now
 
 from codex.librarian.covers.status import CreateCoversStatus
@@ -52,6 +53,7 @@ from codex.librarian.scribe.search.status import SearchIndexCleanStatus
 from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
+from codex.models.paths import WatchedPath
 from codex.settings import LOGLEVEL
 
 if TYPE_CHECKING:
@@ -73,6 +75,21 @@ class Counts:
     folders: int = 0
     comics_deleted: int = 0
     folders_deleted: int = 0
+    # Kept, not deleted. Counted separately so ``changed()`` fires --
+    # which is what clears the caches and broadcasts library.changed --
+    # without the log claiming a library lost comics it still has.
+    comics_missing: int = 0
+    folders_missing: int = 0
+    # Stamp cleared: a kept row whose path came back. Counted for the
+    # same reason as the two above, and it is load-bearing here. A
+    # revival can be the *only* thing an import does -- a file restored
+    # byte-identically has an unchanged stat, so the read phase skips it
+    # and every other counter stays zero. Without these, ``changed()``
+    # is False, ``finish`` clears no caches and broadcasts nothing, and
+    # the row comes back in the database but stays stale in every
+    # browser.
+    comics_revived: int = 0
+    folders_revived: int = 0
     tags_deleted: int = 0
     covers: int = 0
     covers_deleted: int = 0
@@ -114,6 +131,12 @@ class InitImporter(WorkerStatusBase):
         # operational state, not parsed comic data — keeps the metadata
         # fixture-comparable in tests.
         self.cover_create_pks: set[int] = set()
+        # Comic pks whose pending-delete stamp this import cleared.
+        # ``publish_revival`` needs them at ``finish`` time to drop the
+        # zero-byte cover sentinel a failed render left behind while the
+        # file was gone. Held off ``metadata`` for the same reason as
+        # ``cover_create_pks``.
+        self.revived_comic_pks: set[int] = set()
         # Per-chunk FK-link instance maps built by
         # ``prepare_fk_link_instance_maps`` after the FK create/update
         # steps; consumed by ``get_comic_fk_links`` during comic
@@ -152,6 +175,23 @@ class InitImporter(WorkerStatusBase):
         self._is_log_debug_task = (
             self.log.level(LOGLEVEL).no <= self.log.level("DEBUG").no
         )
+
+    def library_scope(self, model: type["BaseModel"]) -> Q:
+        """
+        Return the library half of a ``WatchedPath`` (library, path) key.
+
+        ``WatchedPath`` is unique on ``(library, path)``, not on ``path``.
+        Nested or overlapping library roots therefore hold the same path in
+        more than one library, and a bare ``path=``/``path__in=`` lookup
+        resolves another library's rows -- deleting or relinking comics and
+        their bookmarks in a library this import never touched. Every path
+        lookup in the importer ANDs this in, so the audit is one grep.
+
+        Models with no ``library`` column (the tag tables) get an empty ``Q``.
+        """
+        if not issubclass(model, WatchedPath):
+            return Q()
+        return Q(library=self.library)
 
     def timed_step(self, name: str, method: Callable[[], Any]) -> Any:
         """Run a method, accumulating its wall time into phase_times."""

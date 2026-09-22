@@ -18,7 +18,6 @@ These tests confirm:
 import json
 import shutil
 from datetime import timedelta
-from pathlib import Path
 from typing import Final, override
 
 import pytest
@@ -36,6 +35,7 @@ from codex.views.browser.order_by import (
     COMIC_ORDER_FIELD_PATHS,
     comic_order_path,
 )
+from tests.tmp_dirs import tmp_dir
 
 _NEW_ORDER_BY_KEYS: Final = (
     "country",
@@ -60,7 +60,7 @@ _NEW_ORDER_BY_KEYS: Final = (
 )
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-TMP_DIR = Path("/tmp/codex.tests.browser_ordering")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.browser_ordering")
 _SETTINGS_URL: Final = "/api/v4/browse/publishers/settings"
 
 

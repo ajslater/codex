@@ -42,7 +42,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// settingsSubHeader defined in settings/settings-drawer.vue
+// settingsSubHeader defined in styles/global.scss
 .readerCodexListItem {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);

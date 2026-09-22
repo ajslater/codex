@@ -18,8 +18,9 @@ from codex.librarian.fs.poller.snapshot import DiskSnapshot
 from codex.librarian.fs.watcher.data import ChangeBatch
 from codex.librarian.fs.watcher.dirs import expand_dir_added
 from codex.librarian.fs.watcher.watcher import CodexWatchFilter
+from tests.tmp_dirs import tmp_dir
 
-_TEST_LIB_ROOT: Final = Path("/tmp/codex.tests.fs_ignore")  # noqa: S108
+_TEST_LIB_ROOT: Final = tmp_dir("codex.tests.fs_ignore")
 
 
 class TestIsIgnoredPath:
@@ -179,6 +180,9 @@ class TestDiskSnapshotSurvivesUnreadableDir:
         # The locked directory stat'd fine so its own entry is recorded,
         # but its unreadable contents are not.
         assert "hidden.cbz" not in names
+        # And the walk admits it skipped them, so the diff can withhold
+        # the deletes they would otherwise imply.
+        assert snap.unreadable == {str(locked)}
 
 
 class TestCodexWatchFilter:

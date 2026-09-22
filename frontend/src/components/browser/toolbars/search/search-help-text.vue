@@ -222,14 +222,14 @@ export default {
 
 #browserSearchText {
   max-width: 850px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 h1,
 h2,
 h3 {
   margin-top: 0.5em;
-  color: rgb(var(--v-theme-textHeader));
+  color: rgb(var(--v-theme-text-header));
 }
 
 #fieldTableContainer {
@@ -242,13 +242,13 @@ h3 {
   margin-bottom: 1em;
   text-align: left;
   background-color: inherit;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 #fieldTable th {
   font-size: larger;
   font-weight: bold;
-  color: rgb(var(--v-theme-textHeader));
+  color: rgb(var(--v-theme-text-header));
 }
 
 #fieldTable th,
@@ -263,7 +263,7 @@ h3 {
 code {
   width: fit-content;
   background-color: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-textHeader)) !important;
+  color: rgb(var(--v-theme-text-header));
 }
 
 .searchExample td {

@@ -104,6 +104,6 @@ export default {
 #browserSubtitle {
   padding-top: 2px;
   font-size: 15px;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 </style>

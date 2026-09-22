@@ -80,7 +80,7 @@ export default {
 .readerNavButton {
   padding-left: 15px;
   padding-right: 15px;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 .readerNavButtonLeft {

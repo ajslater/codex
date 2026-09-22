@@ -187,7 +187,7 @@ export default {
 
 .selectManyCount {
   font-size: 13px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   white-space: nowrap;
   padding-left: 8px;
 }
@@ -226,7 +226,7 @@ export default {
 
   .actionButtons {
     gap: 8px;
-    border: thin solid rgb(var(--v-theme-textDisabled));
+    border: thin solid rgb(var(--v-theme-text-disabled));
     border-radius: 4px;
     padding: 2px 6px;
   }

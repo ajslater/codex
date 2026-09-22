@@ -7,251 +7,258 @@
 
 @use "./design.scss" as d;
 
-// --- Layout (DESIGN.md §1) -------------------------------------------------
+// Self-layered: `@use` emits a partial's CSS at the top of the
+// consuming stylesheet, outside any @layer the consumer writes, so a
+// consumer-side wrap would leave these rules unlayered — and therefore
+// winning over everything. `@use` inside @layer is a Sass error.
+@layer codex-components {
+  // --- Layout (DESIGN.md §1) -----------------------------------------------
 
-// Forms / settings / prose live here: one comfortable, centered column, the
-// same width on every tab. Data tables deliberately ignore this.
-.adminReadingColumn {
-  max-width: d.$reading-width;
-  margin-inline: auto;
-}
+  // Forms / settings / prose live here: one comfortable, centered column, the
+  // same width on every tab. Data tables deliberately ignore this.
 
-// --- Sections --------------------------------------------------------------
+  .adminReadingColumn {
+    max-width: d.$reading-width;
+    margin-inline: auto;
+  }
 
-.adminGroup + .adminGroup {
-  margin-top: d.$space-6;
-}
+  // --- Sections --------------------------------------------------------------
 
-.adminGroupHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: d.$space-1;
-}
+  .adminGroup + .adminGroup {
+    margin-top: d.$space-6;
+  }
 
-.adminGroupHeader > h3 {
-  margin: 0;
-  font-size: d.$text-title;
-}
+  .adminGroupHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: d.$space-1;
+  }
 
-// Sub-section title (AdminSection's `sub` variant): a small overline so
-// it reads unmistakably subordinate to the h3 section that contains it.
-.adminGroupHeader > h4 {
-  margin: 0;
-  font-size: d.$text-meta;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(var(--v-theme-textSecondary));
-}
+  .adminGroupHeader > h3 {
+    margin: 0;
+    font-size: d.$text-title;
+  }
 
-// Nested sub-sections indent under a left rule so containment is visible
-// even when scrolled past the parent header.
-.adminSubGroup {
-  margin-top: d.$space-4;
-  padding-left: d.$space-4;
-  border-left: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
-}
+  // Sub-section title (AdminSection's `sub` variant): a small overline so
+  // it reads unmistakably subordinate to the h3 section that contains it.
+  .adminGroupHeader > h4 {
+    margin: 0;
+    font-size: d.$text-meta;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-// Tighter rhythm between sibling sub-sections than between top-level
-// sections (overrides the $space-6 .adminGroup sibling rule above).
-.adminSubGroup + .adminSubGroup {
-  margin-top: d.$space-4;
-}
+  // Nested sub-sections indent under a left rule so containment is visible
+  // even when scrolled past the parent header.
+  .adminSubGroup {
+    margin-top: d.$space-4;
+    padding-left: d.$space-4;
+    border-left: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
 
-.adminHint {
-  margin-top: d.$space-1;
-  font-size: d.$text-small;
-  color: rgb(var(--v-theme-textSecondary));
-}
+  // Tighter rhythm between sibling sub-sections than between top-level
+  // sections (overrides the $space-6 .adminGroup sibling rule above).
+  .adminSubGroup + .adminSubGroup {
+    margin-top: d.$space-4;
+  }
 
-// --- Cards -----------------------------------------------------------------
+  .adminHint {
+    margin-top: d.$space-1;
+    font-size: d.$text-small;
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-.adminCard {
-  padding: d.$space-3;
-  margin: d.$space-2 0;
-  border-radius: d.$radius;
-  background-color: rgb(var(--v-theme-surface-light));
-  border-left: 3px solid transparent;
-  transition: border-color 0.3s ease;
-}
+  // --- Cards -----------------------------------------------------------------
 
-.adminCardActive {
-  border-left-color: rgb(var(--v-theme-primary));
-}
+  .adminCard {
+    padding: d.$space-3;
+    margin: d.$space-2 0;
+    border-radius: d.$radius;
+    background-color: rgb(var(--v-theme-surface-light));
+    border-left: 3px solid transparent;
+    transition: border-color 0.3s ease;
+  }
 
-.adminCardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: d.$space-3;
-}
+  .adminCardActive {
+    border-left-color: rgb(var(--v-theme-primary));
+  }
 
-.adminCardInfo {
-  flex: 1;
-  min-width: 0;
-}
+  .adminCardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: d.$space-3;
+  }
 
-.adminCardTitle {
-  font-weight: 500;
-}
+  .adminCardInfo {
+    flex: 1;
+    min-width: 0;
+  }
 
-.adminCardDesc {
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: d.$text-small;
-  padding-top: 2px;
-}
+  .adminCardTitle {
+    font-weight: 500;
+  }
 
-.adminCardActions {
-  display: flex;
-  gap: d.$space-2;
-  flex-shrink: 0;
-  align-items: center;
-}
+  .adminCardDesc {
+    color: rgb(var(--v-theme-text-secondary));
+    font-size: d.$text-small;
+    padding-top: 2px;
+  }
 
-// --- Action rows -----------------------------------------------------------
+  .adminCardActions {
+    display: flex;
+    gap: d.$space-2;
+    flex-shrink: 0;
+    align-items: center;
+  }
 
-// The Save / Revert (or Save / cancel) row at the foot of a settings form.
-// Prefer the AdminActionBar component; this class backs it.
-.adminActionBar {
-  display: flex;
-  gap: d.$space-2;
-  align-items: center;
-  margin-top: d.$space-4;
-  margin-bottom: d.$space-4;
-}
+  // --- Action rows -----------------------------------------------------------
 
-// A horizontal cluster of buttons (Save credential / Test / Clear).
-.adminInlineActions {
-  display: flex;
-  gap: d.$space-2;
-  align-items: center;
-}
+  // The Save / Revert (or Save / cancel) row at the foot of a settings form.
+  // Prefer the AdminActionBar component; this class backs it.
+  .adminActionBar {
+    display: flex;
+    gap: d.$space-2;
+    align-items: center;
+    margin-top: d.$space-4;
+    margin-bottom: d.$space-4;
+  }
 
-// A vertical stack of inputs (credential fields, test-send form).
-.adminFieldColumn {
-  display: flex;
-  flex-direction: column;
-  gap: d.$space-2;
-  padding-top: d.$space-2;
-}
+  // A horizontal cluster of buttons (Save credential / Test / Clear).
+  .adminInlineActions {
+    display: flex;
+    gap: d.$space-2;
+    align-items: center;
+  }
 
-// The icon-button cluster in a data table's Actions column: dimmed until
-// hovered so the rows stay calm.
-.adminActionCell :deep(> button) {
-  opacity: 0.7;
-}
+  // A vertical stack of inputs (credential fields, test-send form).
+  .adminFieldColumn {
+    display: flex;
+    flex-direction: column;
+    gap: d.$space-2;
+    padding-top: d.$space-2;
+  }
 
-.adminActionCell :deep(> button:hover) {
-  opacity: 1;
-}
+  // The icon-button cluster in a data table's Actions column: dimmed until
+  // hovered so the rows stay calm.
+  .adminActionCell :deep(> button) {
+    opacity: 0.7;
+  }
 
-// --- Prose & help (DESIGN.md §3) -------------------------------------------
+  .adminActionCell :deep(> button:hover) {
+    opacity: 1;
+  }
 
-// All explanatory prose: reading width, centered, small, always
-// textSecondary. (margin-inline is a no-op inside an already-centered
-// .adminReadingColumn; it centers the standalone help on the Libraries tab.)
-.adminProse {
-  max-width: d.$reading-width;
-  margin-inline: auto;
-  font-size: d.$text-small;
-  color: rgb(var(--v-theme-textSecondary));
-}
+  // --- Prose & help (DESIGN.md §3) -------------------------------------------
 
-.adminProse p + p {
-  margin-top: 0.75em;
-}
+  // All explanatory prose: reading width, centered, small, always
+  // text-secondary. (margin-inline is a no-op inside an already-centered
+  // .adminReadingColumn; it centers the standalone help on the Libraries tab.)
+  .adminProse {
+    max-width: d.$reading-width;
+    margin-inline: auto;
+    font-size: d.$text-small;
+    color: rgb(var(--v-theme-text-secondary));
+  }
 
-.adminProse ul {
-  margin: 0 0 d.$space-2 d.$space-6;
-  padding: 0;
-}
+  .adminProse p + p {
+    margin-top: 0.75em;
+  }
 
-.adminProse li {
-  margin-bottom: d.$space-1;
-}
+  .adminProse ul {
+    margin: 0 0 d.$space-2 d.$space-6;
+    padding: 0;
+  }
 
-.adminProse h3,
-.adminProse h4 {
-  margin: d.$space-4 0 d.$space-1;
-  color: rgb(var(--v-theme-textPrimary));
-}
+  .adminProse li {
+    margin-bottom: d.$space-1;
+  }
 
-// Inline code chip.
-.adminCode {
-  background-color: rgb(var(--v-theme-surface));
-  padding: 1px 4px;
-  border-radius: d.$radius-sm;
-  font-size: d.$text-small;
-}
+  .adminProse h3,
+  .adminProse h4 {
+    margin: d.$space-4 0 d.$space-1;
+    color: rgb(var(--v-theme-text-primary));
+  }
 
-// --- Disclosure toggle -----------------------------------------------------
+  // Inline code chip.
+  .adminCode {
+    background-color: rgb(var(--v-theme-surface));
+    padding: 1px 4px;
+    border-radius: d.$radius-sm;
+    font-size: d.$text-small;
+  }
 
-// The chevron + label used to expand sub-status / log panels. Prefer the
-// AdminExpandToggle component; this class backs it.
-.adminExpandToggle {
-  display: flex;
-  align-items: center;
-  gap: d.$space-1;
-  background: none;
-  border: none;
-  color: rgb(var(--v-theme-textSecondary));
-  cursor: pointer;
-  font-size: d.$text-meta;
-  padding: 2px 0;
-}
+  // --- Disclosure toggle -----------------------------------------------------
 
-.adminExpandToggle:hover {
-  color: rgb(var(--v-theme-textPrimary));
-}
+  // The chevron + label used to expand sub-status / log panels. Prefer the
+  // AdminExpandToggle component; this class backs it.
+  .adminExpandToggle {
+    display: flex;
+    align-items: center;
+    gap: d.$space-1;
+    background: none;
+    border: none;
+    color: rgb(var(--v-theme-text-secondary));
+    cursor: pointer;
+    font-size: d.$text-meta;
+    padding: 2px 0;
+  }
 
-// --- Key/value tables (DESIGN.md §5) ---------------------------------------
+  .adminExpandToggle:hover {
+    color: rgb(var(--v-theme-text-primary));
+  }
 
-// One look for every label→value readout (stats, restore counts). Data/CRUD
-// tables use AdminTable instead.
-.adminKvTable {
-  width: 100%;
-  border-collapse: collapse;
-  color: rgb(var(--v-theme-textSecondary));
-  font-size: d.$text-body;
-  background-color: inherit;
-}
+  // --- Key/value tables (DESIGN.md §5) ---------------------------------------
 
-.adminKvTable td {
-  padding: d.$space-1 0;
-}
+  // One look for every label→value readout (stats, restore counts). Data/CRUD
+  // tables use AdminTable instead.
+  .adminKvTable {
+    width: 100%;
+    border-collapse: collapse;
+    color: rgb(var(--v-theme-text-secondary));
+    font-size: d.$text-body;
+    background-color: inherit;
+  }
 
-// Keep a long label (e.g. "Authorization Groups") from butting up against the
-// right-aligned value column.
-.adminKvTable td:first-child {
-  padding-right: d.$space-6;
-}
+  .adminKvTable td {
+    padding: d.$space-1 0;
+  }
 
-.adminKvTable td:nth-child(2) {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
+  // Keep a long label (e.g. "Authorization Groups") from butting up against the
+  // right-aligned value column.
+  .adminKvTable td:first-child {
+    padding-right: d.$space-6;
+  }
 
-// Alternating bands: every other row a touch brighter for readability. The
-// overlay sits on whatever's behind the table (page surface for stats, the
-// card for restore counts), so it stays subtle in both places.
-.adminKvTable tbody tr:nth-child(even) {
-  background-color: rgba(var(--v-theme-on-surface), 0.05);
-}
+  .adminKvTable td:nth-child(2) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
 
-.adminKvTable .indent {
-  padding-left: 2em;
-}
+  // Alternating bands: every other row a touch brighter for readability. The
+  // overlay sits on whatever's behind the table (page surface for stats, the
+  // card for restore counts), so it stays subtle in both places.
+  .adminKvTable tbody tr:nth-child(even) {
+    background-color: rgba(var(--v-theme-on-surface), 0.05);
+  }
 
-// A reference truth-table (the Groups access-logic matrix). Semantic cell
-// colours are layered on by the consumer.
-.adminMatrix {
-  margin-top: d.$space-4;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-collapse: collapse;
-}
+  .adminKvTable .indent {
+    padding-left: 2em;
+  }
 
-.adminMatrix th,
-.adminMatrix td {
-  padding: d.$space-1;
+  // A reference truth-table (the Groups access-logic matrix). Semantic cell
+  // colours are layered on by the consumer.
+  .adminMatrix {
+    margin-top: d.$space-4;
+    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+    border-collapse: collapse;
+  }
+
+  .adminMatrix th,
+  .adminMatrix td {
+    padding: d.$space-1;
+  }
 }

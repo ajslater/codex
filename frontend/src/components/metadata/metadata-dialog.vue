@@ -199,7 +199,7 @@ export default {
 
 #placeholderTitle {
   font-size: xx-large;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #metadataContainer,

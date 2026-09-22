@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from codex.models import Comic, CustomCover
 from codex.settings import ROOT_CACHE_PATH
 
 
@@ -13,6 +14,21 @@ class CoverPathMixin:
     _HEX_FILL = 8
     _PATH_STEP = 2
     _ZFILL = 12
+
+    @classmethod
+    def get_cover_root(cls, *, custom: bool) -> Path:
+        """Get the cache root that holds a cover namespace's thumbs."""
+        return cls.CUSTOM_COVERS_ROOT if custom else cls.COVERS_ROOT
+
+    @staticmethod
+    def get_cover_model(*, custom: bool) -> type[Comic] | type[CustomCover]:
+        """Get the model whose rows own a cover namespace's thumbs."""
+        return CustomCover if custom else Comic
+
+    @staticmethod
+    def get_cover_desc(*, custom: bool) -> str:
+        """Get the log word for a cover namespace."""
+        return "custom" if custom else "comic"
 
     @classmethod
     def _hex_path(cls, pk: int) -> Path:
@@ -28,7 +44,7 @@ class CoverPathMixin:
     def get_cover_path(cls, pk: int, *, custom: bool):
         """Get cover path for comic pk."""
         cover_path = cls._hex_path(pk)
-        root = cls.CUSTOM_COVERS_ROOT if custom else cls.COVERS_ROOT
+        root = cls.get_cover_root(custom=custom)
         return root / cover_path.with_suffix(".webp")
 
     @classmethod

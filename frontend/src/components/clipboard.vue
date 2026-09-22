@@ -29,6 +29,11 @@ export default {
     const { copy, copied, isSupported } = useClipboard({
       source: () => props.text,
       copiedDuring: 5000,
+      // ``navigator.clipboard`` is undefined on insecure origins, which
+      // is every plain-http LAN deployment. Without the fallback
+      // ``isSupported`` is false there: the icon is hidden, the tooltip
+      // suppressed, and clicking does nothing at all.
+      legacy: true,
     });
     return { copy, copied, isSupported };
   },
@@ -63,25 +68,25 @@ export default {
   padding-left: 0.5em;
   font-size: small;
   font-weight: normal;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 .copied {
   font-size: small;
   font-weight: normal;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .clipboardIcon {
-  color: rgb(var(--v-theme-iconsInactive));
+  color: rgb(var(--v-theme-icons-inactive));
 }
 
 .bodyText {
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .clipboard:hover .clipboardIcon,
 .clipboard:hover .bodyText {
-  color: rgb(var(--v-theme-textPrimary)) !important;
+  color: rgb(var(--v-theme-text-primary));
 }
 </style>

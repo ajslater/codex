@@ -30,27 +30,17 @@
         </td>
       </template>
       <template #[`item.thumb`]="{ item }">
-        <v-menu
-          :close-on-content-click="false"
-          location="end center"
-          offset="8"
-          transition="scale-transition"
-          origin="overlap"
-        >
-          <template #activator="{ props: activator }">
-            <img
-              v-bind="activator"
-              alt="cover"
-              class="customCoverThumb"
-              :src="thumbSrc(item)"
-            />
-          </template>
-          <template #default="{ isActive }">
-            <div class="coverPopup" @mouseleave="isActive.value = false">
-              <img alt="cover" :src="thumbSrc(item)" />
-            </div>
-          </template>
-        </v-menu>
+        <!-- The crop and radius go in as a style object, not a class:
+             CoverPopup renders a VMenu fragment, which a scoped parent
+             class cannot reach. -->
+        <CoverPopup
+          :thumb-src="thumbSrc(item)"
+          :full-src="thumbSrc(item)"
+          thumb-width="60px"
+          thumb-height="90px"
+          :style="THUMB_STYLE"
+          alt="cover"
+        />
       </template>
       <template #[`item.collection`]="{ item }">
         <v-chip class="collectionChip" size="small" variant="tonal">
@@ -93,17 +83,32 @@
 import { mapActions, mapState } from "pinia";
 
 import { V4_BASE } from "@/api/v4/base";
+import LIMITS from "@/choices/limits.json";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/tabs/delete-row-dialog.vue";
 import ReplaceCoverButton from "@/components/admin/tabs/replace-cover-button.vue";
+import CoverPopup from "@/components/cover-popup.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const SIZE_UNITS = Object.freeze(["B", "KB", "MB", "GB"]);
 const MAX_UPLOAD_FLAG_KEY = "CM";
-const MAX_UPLOAD_MIN = 1;
-const MAX_UPLOAD_MAX = 2048;
+// Generated from the same constant the serializer bounds against.
+const [MAX_UPLOAD_MIN, MAX_UPLOAD_MAX] = LIMITS.customCoverMaxUploadMb;
+// What .customCoverThumb used to say. Inline because CoverPopup's menu
+// branch is a fragment and a scoped class would never land on the image.
+const THUMB_STYLE = Object.freeze({
+  objectFit: "cover",
+  borderRadius: "4px",
+});
+const MAX_UPLOAD_MESSAGE = `Must be ${MAX_UPLOAD_MIN}–${MAX_UPLOAD_MAX}`;
+// Blank fails here (the field is effectively required), so $required runs
+// first with the same message; $intRange alone would pass blank.
+const MAX_UPLOAD_RULES = Object.freeze([
+  ["$required", MAX_UPLOAD_MESSAGE],
+  ["$intRange", [MAX_UPLOAD_MIN, MAX_UPLOAD_MAX], MAX_UPLOAD_MESSAGE],
+]);
 
 export default {
   name: "AdminCustomCoversTab",
@@ -111,13 +116,16 @@ export default {
     AdminActionBar,
     AdminTable,
     AdminDeleteRowDialog,
+    CoverPopup,
     DateTimeColumn,
     ReplaceCoverButton,
   },
   data() {
     return {
+      THUMB_STYLE,
       maxUploadDraft: "",
       saving: false,
+      maxUploadRules: MAX_UPLOAD_RULES,
     };
   },
   computed: {
@@ -135,19 +143,6 @@ export default {
     },
     maxUploadChanged() {
       return String(this.maxUploadDraft) !== String(this.maxUploadMb);
-    },
-    maxUploadRules() {
-      return [
-        (v) => {
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) &&
-              n >= MAX_UPLOAD_MIN &&
-              n <= MAX_UPLOAD_MAX) ||
-            `Must be ${MAX_UPLOAD_MIN}–${MAX_UPLOAD_MAX}`
-          );
-        },
-      ];
     },
     headers() {
       return [
@@ -224,41 +219,12 @@ export default {
   max-width: 240px;
 }
 
-.customCoverThumb {
-  width: 60px;
-  height: 90px;
-  object-fit: cover;
-  border-radius: 4px;
-  cursor: zoom-in;
-}
-
 .collectionChip {
   text-transform: uppercase;
 }
 
 .unlinked {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
   font-style: italic;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/*
- * Cover popup — rendered into the v-menu's teleport target, so the
- * styles live in an unscoped block. Mirrors the browser-table cover
- * popup so the admin custom-cover grid feels the same on hover.
- */
-.coverPopup {
-  display: block;
-  cursor: zoom-out;
-}
-
-.coverPopup img {
-  display: block;
-  max-height: 70vh;
-  max-width: 60vw;
-  border-radius: 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 </style>

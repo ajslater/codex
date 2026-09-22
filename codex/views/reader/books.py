@@ -90,8 +90,18 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         raise NotFound(detail=detail)
 
     def _get_comics_filter(self, rel):
-        """Build the filter."""
-        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        """
+        Build the filter.
+
+        ``include_missing``: an open book is not yanked mid-read. Hiding
+        stamped rows here would raise ``NotFound`` from
+        ``_raise_not_found``, whose ``route`` nothing consumes -- the
+        reader store just sets ``empty``, so the user gets a dead-end
+        panel with a retry button that fails for the whole window. The
+        page endpoint already degrades correctly on its own when a page
+        is really unreadable.
+        """
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         nav_filter = {f"{rel}__in": self._selected_arc_ids}
         query_filter = acl_filter & Q(**nav_filter)
         if browser_filters := self.get_from_settings("filters", browser=True):

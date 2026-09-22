@@ -18,11 +18,12 @@ ask again.
 
 from __future__ import annotations
 
+import sys
 import threading
 from dataclasses import replace
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.config.online import resolve_effort
 from comicbox.events import (
@@ -118,6 +119,47 @@ def _online_config(effort: str) -> ComicboxSettings:
     online = COMICBOX_ONLINE_CONFIG.online
     tuning = replace(online.tuning, effort=Effort(effort))
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
+
+
+#: The online source modules that hold process-wide clients to release
+#: at the end of a task. Named, not imported: see
+#: :func:`_release_online_connections`.
+_ONLINE_SOURCE_MODULES: Final = (
+    "comicbox.formats.metron_api.online_source",
+    "comicbox.formats.comicvine_api.online_source",
+)
+
+
+def _release_online_connections() -> None:
+    """
+    Release the connections and cache handles this thread's lookups opened.
+
+    Since mokkari 4.8.0 every Metron session keeps one pooled TLS
+    connection, and comicbox 5.2.1 extends the same release to Comic
+    Vine — its pooled sockets, its response cache's sqlite handle and
+    its rate-limit buckets (``OnlineSession.close`` is these same
+    calls). No object in codex owns all of them — the prompt applier
+    and the explicit-id fetch each build their own — so release
+    process-wide at the end of each task. Nothing a run has spent is
+    forgotten: Comic Vine's hourly budget lives in the bucket file, not
+    the bucket object.
+
+    Every online path in codex runs on the one ``OnlineTagThread``, so
+    this never interrupts another run, and both call sites sit between
+    files rather than under one. That ordering is load-bearing for Comic
+    Vine and not merely tidy: its rate-limit buckets close with the
+    session, so a lookup still holding one fails outright instead of
+    reconnecting.
+
+    Read out of ``sys.modules`` rather than imported, exactly as
+    comicbox's own runner does: a task that used one source never loaded
+    the other's package, and importing it here just to call a no-op
+    would put mokkari's or simyan's import cost on every task.
+    """
+    for name in _ONLINE_SOURCE_MODULES:
+        module = sys.modules.get(name)
+        if module is not None:
+            module.close_shared_sessions()
 
 
 if TYPE_CHECKING:
@@ -878,6 +920,11 @@ class OnlineTagSessionManager:
             # apply builds its own fresh session, so it's independent of
             # this (possibly crashed) scan's session.
             self._apply_deferred_resolutions(state)
+            # Last: the deferred applies above open their own sessions on
+            # this thread. Releasing before them would cost Metron a
+            # reconnect and could fail a Comic Vine lookup outright,
+            # whose rate-limit buckets close with the session.
+            _release_online_connections()
 
     def _log_summary(self, state: SessionState, start: float) -> None:
         """Log how the scan's comics resolved across sources, skips, and prompts."""
@@ -960,7 +1007,13 @@ class OnlineTagSessionManager:
         # (the live prompt set wins over the recorded outcome).
         for comic in comics:
             record_resolution(comic["pk"], USER_MATCHED, source)
-        self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+        try:
+            self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+        finally:
+            # The applier built its own session; nothing else will close
+            # it. The skip branch above returns before this, having made
+            # no request at all.
+            _release_online_connections()
 
     def skip_all_prompts(self) -> int:
         """Drop every pending prompt. Returns the number skipped."""

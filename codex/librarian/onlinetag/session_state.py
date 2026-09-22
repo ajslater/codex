@@ -171,7 +171,17 @@ def serialize_prompt(
 
 
 def serialize_candidate(c) -> dict[str, Any]:
-    """Serialize a comicbox Candidate to a JSON-safe dict."""
+    """
+    Serialize a comicbox Candidate to a JSON-safe dict.
+
+    Every field is read with ``getattr`` and a default so an older
+    comicbox, or a shape that changes under us, degrades to a missing
+    display field rather than an exception in the librarian.
+
+    Adding display fields here must NOT bump ``PROMPT_VERSION``: that
+    gates the fingerprint scheme, and raising it discards every prompt a
+    user has pending. The frontend tolerates their absence instead.
+    """
     summary = c.summary
     return {
         "source": c.source,
@@ -182,11 +192,30 @@ def serialize_candidate(c) -> dict[str, Any]:
             "year": getattr(summary, "year", None),
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
+            # The largest tier the source offers, when it offers one.
+            # Comic Vine has several; Metron sets it equal to cover_url
+            # because its one image is already full size. comicbox owns
+            # the "genuinely larger" guarantee, so the frontend gates
+            # the hover on this being truthy and never on it differing.
+            "cover_url_full": getattr(summary, "cover_url_full", None),
             # Alternative series names comicbox scored this candidate on.
             # Empty for sources whose search results don't carry them.
             "alt_series": list(getattr(summary, "alt_series", ())),
+            # The series' ordinal volume. Metron's issue rows carry one;
+            # Comic Vine's search results have no equivalent.
+            "volume": getattr(summary, "volume", None),
         },
         "score": c.score,
+        # What the blended score is made of. Two candidates can read
+        # identically — same series, issue and year — and differ only
+        # here, which is exactly the case the reporter could not choose
+        # between.
+        "metadata_score": getattr(c, "metadata_score", None),
+        # None when the cover was never compared: either this candidate
+        # has no usable image, or it fell outside the top few the matcher
+        # pays to hash. ``cover_hash_attempted`` tells those apart.
+        "cover_score": getattr(c, "cover_score", None),
+        "cover_hash_attempted": getattr(c, "cover_hash_attempted", False),
         "url": getattr(c, "url", ""),
         # The candidate's parent container id (CV volume, Metron series).
         # None for sources that don't expose it.

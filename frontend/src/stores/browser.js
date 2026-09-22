@@ -7,6 +7,7 @@ import {
   isAbortError,
   useAbortable,
 } from "@/api/v4/abortable";
+import { HTTP_REDIRECT_CODES } from "@/api/v4/base";
 import * as API from "@/api/v4/browser";
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
@@ -35,7 +36,6 @@ const COLLECTIONS = Object.freeze([
   "comics",
 ]);
 export const COLLECTIONS_REVERSED = Object.freeze([...COLLECTIONS].reverse());
-const HTTP_REDIRECT_CODES = Object.freeze(new Set([301, 302, 303, 307, 308]));
 const DEFAULT_BOOKMARK_VALUES = Object.freeze(
   new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
 );
@@ -386,25 +386,24 @@ export const useBrowserStore = defineStore("browser", {
         ? toBrowseRoute({ name: "browser", params })
         : { name: "home" };
     },
+    /*
+     * PENDING SCHEMA REMOVAL
+     *
+     * Dynamic covers are pinned on, so the dynamic keys always ride along and
+     * the ``parentRoute`` fallback the sort-name cover match needed is
+     * unreachable. ``customCovers`` and ``dynamicCovers`` are still sent in
+     * COVER_KEYS and still stored per user; the server ignores them. Drop them
+     * from COVER_KEYS, from the state below and from the schema together.
+     */
     coverSettings(state) {
-      const { collection, pks } = liveBrowseParams();
+      const { collection } = liveBrowseParams();
       if (collection == "comics") {
         return {};
       }
-      let keys = COVER_KEYS;
-      const dc = state.settings.dynamicCovers;
-      if (dc) {
-        keys = [...keys, ...DYNAMIC_COVER_KEYS];
-      }
-
-      const settings = this._filterSettings(state, keys);
-      if (!dc && collection !== "root" && pks) {
-        settings["parentRoute"] = {
-          collection,
-          pks,
-        };
-      }
-      return settings;
+      return this._filterSettings(state, [
+        ...COVER_KEYS,
+        ...DYNAMIC_COVER_KEYS,
+      ]);
     },
     filterOnlySettings(state) {
       return this._filterSettings(state, FILTER_ONLY_KEYS);
@@ -873,7 +872,9 @@ export const useBrowserStore = defineStore("browser", {
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error?.response?.status)) {
         console.debug(error);
-        const data = error.response.data;
+        // The v4 interceptor has already unwrapped the envelope, so
+        // this is the redirect detail itself: {route, settings, reason}.
+        const data = error.response.data || {};
         if (data.settings) {
           this.setSettings(data.settings);
           // Prevent settings reload in loadBrowserPage() erasing the set.

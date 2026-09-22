@@ -13,15 +13,26 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.empty {
-  color: rgb(var(--v-theme-textDisabled));
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .empty {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  :deep(.v-empty-state__action-btn .v-btn__content) {
+    color: rgb(var(--v-theme-on-primary));
+  }
 }
 
-:deep(.v-empty-state__action-btn) {
-  background-color: rgb(var(--v-theme-primary)) !important;
-}
-
-:deep(.v-empty-state__action-btn .v-btn__content) {
-  color: black;
+/* VEmptyState hands its action button `color: surface-variant`, which
+ * arrives as a bg-* utility class — and utilities deliberately outrank
+ * codex-components. Beating a utility is what codex-trumps is for.
+ * Passing `color="primary"` instead would also hand `props.color` to
+ * the icon (VEmptyState.js), turning every empty-state icon orange. */
+@layer codex-trumps {
+  :deep(.v-empty-state__action-btn) {
+    background-color: rgb(var(--v-theme-primary));
+  }
 }
 </style>

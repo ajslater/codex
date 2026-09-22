@@ -7,7 +7,7 @@
       v-bind="$attrs"
       aria-label="Library folder"
       clearable
-      :error-messages="formErrors"
+      :error-messages="pathErrors"
       full-width
       hide-details="auto"
       :items="folders"
@@ -61,7 +61,14 @@ export default {
     }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
+      formFieldErrors: (state) => state.form.fieldErrors,
     }),
+    pathErrors() {
+      // The server's reason for THIS field when it named one -- "Library
+      // with this Path already exists." -- rather than every message the
+      // response carried.
+      return this.formFieldErrors?.path ?? this.formErrors;
+    },
   },
   mounted() {
     /*
@@ -136,12 +143,16 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#folderPicker {
-  border-radius: 5px;
-  background-color: rgb(var(--v-theme-surface));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  #folderPicker {
+    border-radius: 5px;
+    background-color: rgb(var(--v-theme-surface));
+  }
 
-.showHidden :deep(.v-label) {
-  color: rgb(var(--v-theme-textSecondary));
+  .showHidden :deep(.v-label) {
+    color: rgb(var(--v-theme-text-secondary));
+  }
 }
 </style>

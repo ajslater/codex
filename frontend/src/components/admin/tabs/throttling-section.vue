@@ -87,6 +87,7 @@ const SCOPES = Object.freeze([
 ]);
 const SCOPE_KEYS = SCOPES.map((s) => s.key);
 const MAX_RATE = 65_535;
+const RATE_RULES = Object.freeze([["$intRange", [0, MAX_RATE]]]);
 
 function pickFields(source) {
   const out = {};
@@ -108,6 +109,7 @@ export default {
       scopes: SCOPES,
       draft: pickFields(undefined),
       saving: false,
+      rangeRules: RATE_RULES,
     };
   },
   computed: {
@@ -116,18 +118,6 @@ export default {
     }),
     hasChanges() {
       return !dequal(this.draft, pickFields(this.settings));
-    },
-    rangeRules() {
-      return [
-        (v) => {
-          if (v === "" || v === null || v === undefined) return true;
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) && n >= 0 && n <= MAX_RATE) ||
-            `Must be 0–${MAX_RATE}`
-          );
-        },
-      ];
     },
   },
   watch: {

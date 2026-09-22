@@ -5,6 +5,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db.models import Max, Q
+from rest_framework.exceptions import NotFound
 
 from codex.choices.admin import AdminFlagChoices
 from codex.collection import READER_REPRINT_COLLECTION, Collection
@@ -219,14 +220,39 @@ class ReaderArcsView(ReaderParamsView):
         self._selected_arc_ids = arc_ids
 
     def get_arcs(self) -> tuple[dict, int | None]:
-        """Get all series/folder/story arcs."""
+        """
+        Get all series/folder/story arcs.
+
+        This lookup carried no ACL at all, so it resolved arcs for any
+        comic pk a caller supplied. ``include_missing`` keeps a
+        scanner-stamped comic readable, per the reader's D8 answer: the
+        book stays open and the page endpoint degrades on its own if a
+        page really cannot be read. One consequence of that answer,
+        accepted deliberately: ``_get_collection_arc`` reads the parent
+        folder off a forward FK descriptor, which resolves through
+        ``_base_manager`` and cannot be filtered by any Q -- so a
+        stamped folder still names itself in the arc dropdown of the
+        comic the reader is deliberately still showing.
+
+        The bare ``.get()`` raised ``Comic.DoesNotExist``, which is not
+        an ``APIException``, so DRF's handler returned None and Django's
+        500 path ran. Latent before only because ``ReaderView`` calls
+        ``get_book_collection`` afterwards and that 404s properly;
+        pending deletes make stale pks routine.
+        """
         field_names = self._get_field_names()
         comic_pk = self.kwargs.get("pk")
-        comic = (
-            Comic.objects.select_related(*field_names)
-            .only(*field_names)
-            .get(pk=comic_pk)
-        )
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
+        try:
+            comic = (
+                Comic.objects.filter(acl_filter)
+                .select_related(*field_names)
+                .only(*field_names)
+                .get(pk=comic_pk)
+            )
+        except Comic.DoesNotExist as exc:
+            reason = f"comic {comic_pk} not found"
+            raise NotFound(detail=reason) from exc
 
         arcs = {}
         max_mtime = None

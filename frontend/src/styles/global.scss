@@ -1,0 +1,68 @@
+/*
+ * The app's global styles: everything that cannot be scoped to one
+ * component.
+ *
+ * These lived in unscoped <style> blocks across app.vue and
+ * settings-drawer.vue, each needing an eslint-disable. An unscoped block
+ * in a component is a global rule filed under whichever component
+ * happened to need it first.
+ *
+ * The cover popup used to live here too, in two byte-identical copies.
+ * It is a component now — components/cover-popup.vue — because it was
+ * never global styling, only a component nobody had written yet.
+ *
+ * Imported once from main.js, right after vuetify/styles.
+ *
+ * Everything here is in `codex-base`, the lower of the two codex layers:
+ * after Vuetify's component CSS, so these win without !important, and
+ * before Vuetify's utilities, so a `color` prop still beats them. The
+ * order is declared in codex/templates/index.html.
+ */
+
+@layer codex-base {
+  html {
+    overflow-y: auto;
+  }
+
+  noscript {
+    text-align: center;
+    font-family: sans-serif;
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  a {
+    text-decoration: none;
+    color: rgb(var(--v-theme-primary));
+  }
+
+  /*
+   * Overlay content boxes are app chrome: menus, dialogs and tooltips
+   * sit on the page background instead of Vuetify's own surface colors.
+   *
+   * A snackbar used to need an explicit carve-out here. Its `color`
+   * prop paints this very element through a `bg-*` utility class, and
+   * an unlayered background-color beat that class no matter how the
+   * snackbar asked. In `codex-base` the utility wins on layer order, so
+   * the rule can address every overlay and say what it means.
+   */
+  .v-overlay__content {
+    border-radius: 5px;
+    background-color: rgb(var(--v-theme-background));
+  }
+
+  .v-tooltip > .v-overlay__content {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  /*
+   * Sub-header inside the settings drawers. Shared by six components
+   * across the browser and reader drawers.
+   */
+  .settingsSubHeader {
+    padding-top: 10px;
+    padding-left: 15px;
+    padding-right: 10px;
+    font-weight: bolder;
+    color: rgb(var(--v-theme-text-disabled));
+  }
+}

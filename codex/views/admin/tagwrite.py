@@ -11,7 +11,12 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.scribe.tagwrite_rename import build_predict_config, plan_rename
+from codex.librarian.scribe.tagwrite_rename import (
+    CONVERTING_FILE_TYPES,
+    build_predict_config,
+    plan_rename,
+    will_convert,
+)
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.comic import Comic
@@ -101,7 +106,9 @@ class AdminTagWritePreflightView(FilteredComicPksView):
     """Check how many comics need conversion before writing."""
 
     @staticmethod
-    def _preview_one(pk: int, old_path: Path, patch: dict | None, config) -> str:
+    def _preview_one(
+        pk: int, old_path: Path, file_type: str, patch: dict | None, config
+    ) -> str:
         """
         Return the name this comic ends up with, or "" if it can't be built.
 
@@ -111,7 +118,13 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         converted CBZ rather than the interim one. Opens the archive (I/O).
         """
         try:
-            plan = plan_rename(pk, old_path, patch, config)
+            plan = plan_rename(
+                pk,
+                old_path,
+                patch,
+                config,
+                converts=will_convert(file_type, old_path),
+            )
         except Exception:
             return ""
         return plan.final_path.name if plan else ""
@@ -132,7 +145,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         config = build_predict_config(delete_keys, mode)
         comics = (
             Comic.objects.filter(pk__in=comic_pks)
-            .only("pk", "path")
+            .only("pk", "path", "file_type")
             .order_by("pk")[:_FILENAME_PREVIEW_LIMIT]
         )
         previews: list[dict[str, str]] = []
@@ -141,7 +154,9 @@ class AdminTagWritePreflightView(FilteredComicPksView):
             previews.append(
                 {
                     "old": old_path.name,
-                    "new": self._preview_one(comic.pk, old_path, patch, config),
+                    "new": self._preview_one(
+                        comic.pk, old_path, comic.file_type or "", patch, config
+                    ),
                 }
             )
         return previews
@@ -160,7 +175,7 @@ class AdminTagWritePreflightView(FilteredComicPksView):
 
         need_conversion = Comic.objects.filter(
             pk__in=comic_pks,
-            file_type__in=("CBR", "CB7", "CBT"),
+            file_type__in=CONVERTING_FILE_TYPES,
         ).count()
 
         try:

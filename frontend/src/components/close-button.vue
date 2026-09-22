@@ -14,7 +14,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.closeButton :deep(.v-icon) {
-  margin-right: 0 !important;
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .closeButton :deep(.v-icon) {
+    margin-right: 0 !important;
+  }
 }
 </style>

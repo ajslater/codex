@@ -30,11 +30,11 @@ export default {
 #repo {
   display: block;
   width: 100%;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-text-disabled));
 }
 
 #repo:hover {
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
 }
 
 #repoIcon {

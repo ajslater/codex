@@ -12,14 +12,14 @@ from codex.librarian.scribe.importer.const import (
     PARENT_FOLDER_FIELD_NAME,
     PATH_FIELD_NAME,
 )
-from codex.librarian.scribe.importer.read import ReadMetadataImporter
+from codex.librarian.scribe.importer.revive import ReviveImporter
 from codex.librarian.scribe.importer.statii.create import ImporterCreateTagsStatus
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveComicsStatus
 from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTagsStatus
 from codex.models import Comic, CustomCover, Folder
 
 
-class MovedComicsImporter(ReadMetadataImporter):
+class MovedComicsImporter(ReviveImporter):
     """Methods for moving comics and folders."""
 
     def _remove_file_move_collisions(

@@ -2,7 +2,6 @@
 
 import os
 import shutil
-from pathlib import Path
 from typing import override
 from unittest.mock import MagicMock
 
@@ -11,8 +10,9 @@ from django.test import TestCase
 from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff, StaleStatRefresh
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR = Path("/tmp/codex.tests.poller_stat_refresh")  # noqa: S108
+_TMP_DIR = tmp_dir("codex.tests.poller_stat_refresh")
 _STALE_STAT: tuple = (33188, 12345, 0, 0, 0, 0, 100, 0, 1.0, 0)
 
 
@@ -84,7 +84,7 @@ class StaleStatRefreshTestCase(TestCase):
             (StaleStatRefresh(path=comic.path, model=Comic, disk_stat=fresh_stat),)
         )
 
-        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
 
         comic.refresh_from_db()
         # The stored stat now reflects disk's fresh inode...
@@ -99,7 +99,31 @@ class StaleStatRefreshTestCase(TestCase):
         comic = _create_comic_with_stale_stat()
         diff = _diff_with_refreshes(())
 
-        _new_poller_thread()._refresh_stale_stats(diff)  # noqa: SLF001
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
 
         comic.refresh_from_db()
         assert comic.stat == list(_STALE_STAT)
+
+    def test_stat_refresh_stores_a_float_mtime(self) -> None:
+        """
+        The stored mtime must stay a float, as ``set_stat`` writes it.
+
+        ``list(os.stat_result)`` is the sequence form, whose mtime is a
+        truncated int. Storing that makes the row disagree with its own
+        disk snapshot on the next poll — the diff compares mtimes
+        exactly — and the file is re-imported once for nothing.
+        """
+        comic = _create_comic_with_stale_stat()
+        fractional_mtime = 1789943520.932065
+        fresh_stat = os.stat_result(
+            (33188, 99999, 0, 0, 0, 0, 100, 0, fractional_mtime, 0)
+        )
+        diff = _diff_with_refreshes(
+            (StaleStatRefresh(path=comic.path, model=Comic, disk_stat=fresh_stat),)
+        )
+
+        _new_poller_thread()._refresh_stale_stats(comic.library, diff)  # noqa: SLF001
+
+        comic.refresh_from_db()
+        assert comic.stat is not None
+        assert comic.stat[8] == fractional_mtime

@@ -5,14 +5,20 @@ from typing import override
 from django.db.models import DateTimeField, Model
 from django.db.models.base import ModelBase
 
+from codex.choices.limits import MAX_FIELD_LEN, MAX_NAME_LEN, MAX_PATH_LEN
 from codex.models.fields import CleaningCharField
 from codex.models.query import GroupByManager
 
-__all__ = ("BaseModel", "NamedModel")
+__all__ = (
+    "MAX_FIELD_LEN",
+    "MAX_NAME_LEN",
+    "MAX_PATH_LEN",
+    "BaseModel",
+    "NamedModel",
+)
 
-MAX_PATH_LEN = 4095
-MAX_NAME_LEN = 128
-MAX_FIELD_LEN = 32
+# Re-exported from codex.choices.limits so the admin client can bound
+# an input at the same width the column has, from one definition.
 MAX_ISSUE_SUFFIX_LEN = 16
 
 

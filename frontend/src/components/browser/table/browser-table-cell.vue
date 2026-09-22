@@ -5,28 +5,21 @@
     :class="coverSizeClass"
     @click.stop
   >
-    <v-menu
-      v-model="popupOpen"
-      :close-on-content-click="false"
-      location="end center"
-      offset="8"
-      transition="scale-transition"
-      origin="overlap"
-    >
-      <template #activator="{ props }">
-        <img
-          v-bind="props"
-          :src="imgSrc"
-          :alt="row.name || ''"
-          :title="row.name || ''"
-          class="tableCoverThumb"
-          @error="onImgError"
-        />
-      </template>
-      <div class="coverPopup" @mouseleave="popupOpen = false">
-        <img :src="imgSrc" :alt="row.name || ''" />
-      </div>
-    </v-menu>
+    <!-- The crop and radius go in as a style object, not a class:
+         CoverPopup renders a VMenu fragment, which a scoped parent class
+         cannot reach. The key resets the popup when Vue reuses this cell
+         instance for a different row. -->
+    <CoverPopup
+      :key="row.pk"
+      :thumb-src="imgSrc"
+      :full-src="imgErrored ? '' : coverSrc"
+      :alt="row.name || ''"
+      :title="row.name || ''"
+      thumb-height="100%"
+      :style="THUMB_STYLE"
+      loading="eager"
+      @error="onImgError"
+    />
   </span>
   <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
     <FavoriteToggle
@@ -56,9 +49,21 @@ import prettyBytes from "pretty-bytes";
 
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
+import CoverPopup from "@/components/cover-popup.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
+
+// What .tableCoverThumb used to say, minus the height the size class
+// still owns. Inline because CoverPopup's menu branch is a fragment and
+// a scoped class would never land on the image. The width stays auto so
+// the cover keeps its own aspect ratio, which is also why the thumb
+// loads eagerly — see CoverPopup's `loading` prop.
+const THUMB_STYLE = Object.freeze({
+  width: "auto",
+  borderRadius: "2px",
+  objectFit: "cover",
+});
 
 const M2M_COLUMNS = new Set([
   "characters",
@@ -120,6 +125,7 @@ function formatDateTime(value, twentyFourHour) {
 export default {
   name: "BrowserTableCell",
   components: {
+    CoverPopup,
     FavoriteToggle,
   },
   props: {
@@ -148,11 +154,7 @@ export default {
        * broken-image icon. Reset when the row identity changes.
        */
       imgErrored: false,
-      /*
-       * Click-to-zoom state for the cover popup. Opens on thumb
-       * click; closes when the cursor leaves the popup bounds.
-       */
-      popupOpen: false,
+      THUMB_STYLE,
     };
   },
   computed: {
@@ -274,14 +276,12 @@ export default {
   },
   watch: {
     /*
-     * Reset the error flag and dismiss the popup when the row
-     * changes (Vue reuses cell instances across re-renders, so a
-     * fresh row gets a fresh chance — and a stale popup pinned to
-     * the wrong row would be visually wrong).
+     * Reset the error flag when the row changes: Vue reuses cell
+     * instances across re-renders, so a fresh row gets a fresh chance.
+     * The popup dismisses itself — CoverPopup is keyed on the same pk.
      */
     "row.pk"() {
       this.imgErrored = false;
-      this.popupOpen = false;
     },
   },
   methods: {
@@ -303,15 +303,6 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.tableCoverThumb {
-  display: block;
-  height: 100%;
-  width: auto;
-  border-radius: 2px;
-  object-fit: cover;
-  cursor: zoom-in;
 }
 
 .tableCoverSize-sm {
@@ -372,28 +363,5 @@ export default {
 
 .tableIssueSuffix {
   text-align: left;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/*
- * Cover popup — rendered into a v-menu's teleport target, so the
- * styles live in an unscoped block. Minimal chrome: just the image,
- * a small radius, and a soft shadow so it floats above the table
- * without a hard border. The popup grows from its activator origin
- * via Vuetify's scale-transition (set on the v-menu itself).
- */
-.coverPopup {
-  display: block;
-  cursor: zoom-out;
-}
-
-.coverPopup img {
-  display: block;
-  max-height: 70vh;
-  max-width: 60vw;
-  border-radius: 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 </style>

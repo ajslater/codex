@@ -4,6 +4,7 @@
       v-model="row.name"
       label="Group Name"
       :rules="rules.name"
+      :error-messages="fieldErrors.name"
       clearable
       autofocus
     />
@@ -53,10 +54,12 @@
 <script>
 import { mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
 import GroupChip from "@/components/admin/group-chip.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const UPDATE_KEYS = Object.freeze(["name", "userSet", "librarySet", "exclude"]);
 const EMPTY_ROW = Object.freeze({
@@ -78,12 +81,18 @@ export default {
       rules: {
         name: [
           (v) => !!v || "Name is required",
-          (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
+          // $notIn passes on blank, so the required rule must stay first.
+          ["$notIn", () => this.names, "Name already used"],
+          ["$maxLength", LIMITS.groupNameMaxLength],
         ],
       },
     };
   },
   computed: {
+    ...mapState(useCommonStore, {
+      // The server's reason, bound to the field that caused it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, ["libraries"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,

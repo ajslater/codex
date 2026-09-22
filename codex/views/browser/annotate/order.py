@@ -39,6 +39,10 @@ from codex.views.const import (
 )
 from codex.views.mixins import SharedAnnotationsMixin
 
+# The ``FilteredRelation`` alias for the requesting user's own bookmark row.
+# See ``BrowserAnnotateOrderView.alias_my_bookmark``.
+MY_BOOKMARK_ALIAS = "my_bm"
+
 _ORDER_AGGREGATE_FUNCS = MappingProxyType(
     # These are annotated to order_value because they're simple relations.
     # ``Min`` is a sentinel for "use the directional aggregate" — see
@@ -114,7 +118,29 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     @property
     def opds_acquisition_collections(self):
-        """Memoize the opds acquisition collections."""
+        """
+        Memoize the opds acquisition collections.
+
+        These decide which OPDS entries advertise
+        ``kind=acquisition`` rather than ``kind=navigation``.
+
+        ``folders`` is here deliberately: a folder feed genuinely mixes
+        sub-folders and readable comics, including at the library root,
+        and OPDS 1.2 calls a feed whose entries carry acquisition links
+        an Acquisition Feed. Field-verified against Panels (macOS build
+        957), which browses Folder View correctly and follows both kinds
+        of link inside one feed.
+
+        ``arcs`` is here knowingly, and is the one imperfect case. The
+        arcs *root* lists story arcs and nothing else, so that feed is
+        pure navigation, but this one flag also labels every individual
+        arc entry, whose feed lists comics and for which acquisition is
+        right. Splitting them means threading an override through
+        ``_facet_group`` / ``_facet_or_facet_entry`` / ``_facet_entry``
+        for the four root View entries alone. Do not do that on spec
+        reasoning: change it only when a real client is observed
+        misreading Story Arc View (#855 follow-up F7).
+        """
         if self._opds_acquisition_collections is None:
             collections: set[str] = {
                 STORY_ARC_COLLECTION,
@@ -226,6 +252,34 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         return qs.alias(story_arc_number=story_arc_number)
 
+    def alias_my_bookmark(self, qs):
+        """
+        Alias ``my_bm``: the bookmark join restricted to *my* bookmark row.
+
+        Every bookmark reference on a collection queryset goes through this
+        alias instead of the bare ``comic__bookmark`` relation. The bare
+        relation joins on ``comic_id`` alone, so a comic carrying bookmarks
+        from N users or sessions contributes N joined rows and multiplies
+        every plain ``Sum`` over the comic join — the fan-out that
+        ``Sum(distinct=True)`` used to paper over (and, being a sum of
+        *distinct values*, silently collapsed 12 x 24-page issues to 24).
+        Pushing the owner predicate into the ON clause makes the join at
+        most 1:1 per comic (guaranteed by the partial unique indexes on
+        ``(user, comic)`` / ``(session, comic)``), so the sums are exact
+        and the join is smaller.
+
+        Aliased unconditionally for collection querysets and idempotent:
+        Django prunes a ``FilteredRelation`` that nothing references, so
+        paths that never read a bookmark emit no extra join.
+        """
+        if qs.model is Comic or MY_BOOKMARK_ALIAS in qs.query.annotations:
+            return qs
+        rel = self.get_bm_rel(qs.model)
+        condition = self.get_my_bookmark_filter(rel)
+        return qs.alias(
+            **{MY_BOOKMARK_ALIAS: FilteredRelation(rel, condition=condition)}
+        )
+
     def _annotate_page_count(self, qs):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
@@ -236,7 +290,12 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs
 
         rel = self.rel_prefix + "page_count"
-        page_count_sum = Sum(rel, distinct=True)
+        # A plain Sum over the comic join. ``distinct=True`` here was
+        # ``SUM(DISTINCT page_count)``, which sums the distinct *values* —
+        # 12 issues of 24 pages summed to 24. It only looked plausible
+        # because it also masked the bookmark-join fan-out; that is now
+        # handled at the join (see ``alias_my_bookmark``).
+        page_count_sum = Sum(rel)
         if self.TARGET == "browser":
             qs = qs.alias(page_count=page_count_sum)
         else:
@@ -263,8 +322,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         if not primary and not table_column:
             return qs
         agg_func = self.order_agg_func if primary else Max
+        qs = self.alias_my_bookmark(qs)
         bmua_agg = self.get_max_bookmark_updated_at_aggregate(
-            qs.model, agg_func=agg_func
+            qs.model, agg_func=agg_func, bm_rel=self.collection_bm_rel(qs.model)
         )
         if primary:
             # `self.bmua_is_max` is read by `annotate.bookmark` to skip a
@@ -358,7 +418,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # would leave most cards with a NULL sort key, so card mode
         # falls back to sort_name.
         if self.params.get("view_mode") == "table":
-            isort_expr = m2m_intersection_sort_expr(qs.model, self.order_key)
+            isort_expr = m2m_intersection_sort_expr(
+                qs.model, self.order_key, self.get_comic_acl(self.request.user)
+            )
             if isort_expr is not None:
                 return qs, isort_expr
         if qs.model is Volume:
@@ -376,7 +438,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         # wired so adding a new registry scalar doesn't silently
         # regress its sort.
         if self.params.get("view_mode") == "table":
-            isort_expr = scalar_intersection_sort_expr(qs.model, self.order_key)
+            isort_expr = scalar_intersection_sort_expr(
+                qs.model, self.order_key, self.get_comic_acl(self.request.user)
+            )
             if isort_expr is not None:
                 return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS[self.order_key]
@@ -460,7 +524,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
                 else agg(self.get_filename_func(qs.model))
             )
         if key == "bookmark_updated_at":
-            return self.get_max_bookmark_updated_at_aggregate(qs.model, agg_func=agg)
+            return self.get_max_bookmark_updated_at_aggregate(
+                qs.model, agg_func=agg, bm_rel=self.collection_bm_rel(qs.model)
+            )
         if key == "age_rating":
             # Match the primary's severity-sort behavior — aggregate
             # the metron index rather than the FK pk so shift-click
@@ -472,15 +538,16 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         """Collection-row extra: aggregate, intersection, or direct field."""
         if key in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS:
             return None
+        acl = self.get_comic_acl(self.request.user)
         if key in m2m_columns():
-            return m2m_intersection_sort_expr(qs.model, key)
+            return m2m_intersection_sort_expr(qs.model, key, acl)
         special = self._extra_collection_special(qs, key, reverse=reverse)
         if special is not None:
             return special
         # Match the primary's intersection-aware sort for scalars /
         # FK-names so the shift-click extra ranks rows by the same
         # rule the cell display uses.
-        isort_expr = scalar_intersection_sort_expr(qs.model, key)
+        isort_expr = scalar_intersection_sort_expr(qs.model, key, acl)
         if isort_expr is not None:
             return isort_expr
         agg_func = _ORDER_AGGREGATE_FUNCS.get(key)
@@ -550,8 +617,17 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             return qs.annotate(**annotations)
         return qs.alias(**annotations)
 
+    def collection_bm_rel(self, model) -> str:
+        """Return the bookmark relation to aggregate over for ``model``."""
+        return "" if model is Comic else MY_BOOKMARK_ALIAS
+
     def annotate_order_aggregates(self, qs: QuerySet, *, for_cover: bool = False):
         """Annotate common aggregates between browser and metadata."""
+        # Bind the bookmark join to my own bookmark row before anything
+        # aggregates over the comic join -- a bare ``comic__bookmark`` join
+        # would multiply every ``Sum`` by the number of users who have
+        # bookmarked the comic.
+        qs = self.alias_my_bookmark(qs)
         # ``for_cover`` is a pipeline-trim. The cover path needs ORDER BY to
         # pick the "first" comic, but it never reads ``ids`` or ``page_count``
         # — dropping those removes a JsonGroupArray aggregate and a Sum per

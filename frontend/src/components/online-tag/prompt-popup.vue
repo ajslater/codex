@@ -1,9 +1,14 @@
 <template>
-  <v-dialog v-model="promptDialogOpen" max-width="700">
+  <v-dialog v-model="promptDialogOpen" max-width="900">
     <v-card>
+      <!-- Vuetify's .v-card-title is nowrap + overflow:hidden, so as a
+         flex container it clips its last child: the buttons cannot
+         shrink below their content and the title will not yield.
+         ``text-truncate`` makes the title the elastic one (and gives it
+         min-width:0), ``flex-shrink-0`` pins the buttons. -->
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>{{ title }}</span>
-        <div>
+        <span class="flex-grow-1 text-truncate">{{ title }}</span>
+        <div class="flex-shrink-0">
           <v-btn
             variant="text"
             size="small"
@@ -53,47 +58,12 @@
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <div
+              <CandidateRow
                 v-for="(candidate, idx) in prompt.candidates"
                 :key="idx"
-                class="candidateRow"
-              >
-                <div class="candidateInfo">
-                  <strong>{{ candidate.summary.series }}</strong>
-                  <span v-if="candidate.summary.issue">
-                    #{{ candidate.summary.issue }}
-                  </span>
-                  <span v-if="candidate.summary.year" class="candidateYear">
-                    ({{ candidate.summary.year }})
-                  </span>
-                  <span
-                    v-if="candidate.summary.publisher"
-                    class="candidatePublisher"
-                  >
-                    &mdash; {{ candidate.summary.publisher }}
-                  </span>
-                  <v-chip size="x-small" class="ml-2">
-                    {{ Math.round(candidate.score * 100) }}%
-                  </v-chip>
-                  <!-- Matching scores reprint series names too, so a comic
-                     filed under a localized title matches a series name that
-                     looks nothing like its filename. These are the reason. -->
-                  <div
-                    v-if="candidate.summary.altSeries?.length"
-                    class="candidateAka"
-                  >
-                    a.k.a. {{ candidate.summary.altSeries.join(", ") }}
-                  </div>
-                </div>
-                <v-btn
-                  variant="tonal"
-                  size="small"
-                  color="primary"
-                  @click="pick(prompt, idx)"
-                >
-                  Pick
-                </v-btn>
-              </div>
+                :candidate="candidate"
+                @pick="pick(prompt, idx)"
+              />
               <div v-if="coveredCount(prompt) > 1" class="promptCovers">
                 Applies to {{ coveredCount(prompt) }} comics:
                 {{ coveredNames(prompt) }}
@@ -115,6 +85,7 @@
 <script>
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import CandidateRow from "@/components/online-tag/candidate-row.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
@@ -123,6 +94,9 @@ const NAMED_COMICS = 3;
 
 export default {
   name: "OnlineTagPromptPopup",
+  components: {
+    CandidateRow,
+  },
   data() {
     return {
       // Open the first match panel by default so the admin can act on it
@@ -227,32 +201,9 @@ export default {
   align-items: center;
 }
 
-.candidateRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.candidateInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.candidateYear,
-.candidatePublisher,
-.candidateAka {
-  color: rgb(var(--v-theme-textSecondary));
-}
-
-.candidateAka {
-  font-size: 0.8125rem;
-}
-
 .promptCovers {
   padding-top: 8px;
-  color: rgb(var(--v-theme-textSecondary));
+  color: rgb(var(--v-theme-text-secondary));
   font-size: 0.75rem;
 }
 

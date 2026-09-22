@@ -108,9 +108,15 @@ def _validate_metron(creds: OnlineCredentials) -> ValidationResult:
     except ApiError as err:
         return ValidationResult(ok=False, error=str(err) or "API error.")
     # The successful response carried the account's X-RateLimit-* headers.
-    return ValidationResult(
-        ok=True, rate_limits=_extract_rate_limits(session.rate_limit_status)
-    )
+    else:
+        return ValidationResult(
+            ok=True, rate_limits=_extract_rate_limits(session.rate_limit_status)
+        )
+    finally:
+        # This runs in the web process, once per validation, and the
+        # session is not shared with anything. Since mokkari 4.8.0 it
+        # holds a pooled TLS connection until closed.
+        session.close()
 
 
 def _validate_comicvine(creds: OnlineCredentials) -> ValidationResult:

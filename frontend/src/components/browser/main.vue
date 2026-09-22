@@ -126,21 +126,14 @@ export default {
       selectManyActive: (state) => state.active,
     }),
     browsePaneClasses() {
-      const classes = {
+      // Three orthogonal modifiers, each contributing one custom
+      // property that #browsePane sums; no combinatorial class names.
+      return {
         padFooter: this.numPages > 1,
+        browsePaneSelectMany: this.selectManyActive,
+        browsePaneSearch: this.isSearchOpen,
+        browsePaneBanner: this.isBanner,
       };
-      let marginClass = "browsePane";
-      if (this.selectManyActive) {
-        marginClass += "SelectMany";
-      }
-      if (this.isSearchOpen) {
-        marginClass += "Search";
-      }
-      if (this.isBanner) {
-        marginClass += "Banner";
-      }
-      Reflect.set(classes, marginClass, true);
-      return classes;
     },
     isTableMode() {
       /*
@@ -250,139 +243,129 @@ $banner-height: 20px;
 //
 // Side padding lives on the refresh container (not on #browsePane) so the
 // scrollbar sits at the viewport edge instead of inset by $card-margin.
-#browsePane {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  box-sizing: border-box;
-  padding-top: $browse-pane-padding-top;
-  padding-bottom: max($card-margin, env(safe-area-inset-bottom));
-  overflow: hidden;
-}
 
-.browsePaneSelectMany {
-  padding-top: calc($browse-pane-padding-top + $select-many-height) !important;
-}
-
-.browsePaneSearch {
-  padding-top: calc(
-    $browse-pane-padding-top + $search-toolbar-height
-  ) !important;
-}
-
-.browsePaneSelectManySearch {
-  padding-top: calc(
-    $browse-pane-padding-top + $select-many-height + $search-toolbar-height
-  ) !important;
-}
-
-.browsePaneBanner {
-  padding-top: calc($banner-height + $browse-pane-padding-top) !important;
-}
-
-.browsePaneSelectManyBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $select-many-height
-  ) !important;
-}
-
-.browsePaneSearchBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $search-toolbar-height
-  ) !important;
-}
-
-.browsePaneSelectManySearchBanner {
-  padding-top: calc(
-    $banner-height + $browse-pane-padding-top + $select-many-height +
-      $search-toolbar-height
-  ) !important;
-}
-
-#browsePaneRefreshContainer {
-  flex: 1;
-  min-height: 0;
-  padding-left: max($card-margin, env(safe-area-inset-left));
-  padding-right: max($card-margin, env(safe-area-inset-right));
-  overflow-x: clip; // prevents horizontal scrollbar on Firefox
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-}
-
-#browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, bookcover.$cover-width);
-  grid-gap: $card-margin;
-  align-content: flex-start;
-}
-
-// Reserve room at the bottom of the scroll content for the fixed
-// pagination toolbar so the last cards aren't hidden behind it.
-.padFooter > #browsePaneRefreshContainer {
-  padding-bottom: 45px;
-}
-
-.placeholder {
-  position: fixed;
-  height: 50vh !important;
-  width: 50vw !important;
-  top: calc(50% + 75px);
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/*
- * Cancel button surfaced after a 10s grace period on a slow
- * browser query. Sits centered below the spinner so the user can
- * abandon the in-flight request and keep the previous results.
- * Plain ``<button>`` instead of ``<v-btn>`` keeps the visual
- * weight low — the spinner is the focal point; the cancel is a
- * subtle escape hatch.
- */
-.cancelLoadingButton {
-  position: fixed;
-  top: calc(50% + 75px);
-  left: 50%;
-  transform: translate(-50%, calc(-50% + 30vh));
-  padding: 6px 18px;
-  background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-textPrimary));
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 10;
-}
-
-.cancelLoadingButton:hover {
-  color: rgb(var(--v-theme-primary));
-  border-color: rgb(var(--v-theme-primary));
-}
-
-#searchLimitMessage {
-  flex-shrink: 0;
-  padding-top: 20px;
-  text-align: center;
-  font-size: 14px;
-  color: rgb(var(--v-theme-textDisabled));
-}
-
-@media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  $small-card-margin: 16px;
-
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
   #browsePane {
-    padding-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    box-sizing: border-box;
+    // The three toolbars above the grid appear independently, so each
+    // contributes its own height and the ID rule sums them. Seven
+    // combinatorial modifier classes used to do this, and because a class
+    // (0,1,0) cannot beat this ID (1,0,0) every one of them needed
+    // !important.
+    //
+    // Do NOT declare the 0px defaults here: custom properties obey
+    // specificity, so an ID-level default would beat every class-level
+    // override. The var() fallback is the default.
+    padding-top: calc(
+      #{$browse-pane-padding-top} + var(--browse-extra-select-many, 0px) +
+        var(--browse-extra-search, 0px) + var(--browse-extra-banner, 0px)
+    );
+    padding-bottom: max($card-margin, env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  .browsePaneSelectMany {
+    --browse-extra-select-many: #{$select-many-height};
+  }
+
+  .browsePaneSearch {
+    --browse-extra-search: #{$search-toolbar-height};
+  }
+
+  .browsePaneBanner {
+    --browse-extra-banner: #{$banner-height};
   }
 
   #browsePaneRefreshContainer {
-    padding-left: max($small-card-margin, env(safe-area-inset-left));
-    padding-right: max($small-card-margin, env(safe-area-inset-right));
+    flex: 1;
+    min-height: 0;
+    padding-left: max($card-margin, env(safe-area-inset-left));
+    padding-right: max($card-margin, env(safe-area-inset-right));
+    overflow-x: clip; // prevents horizontal scrollbar on Firefox
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
-    grid-template-columns: repeat(auto-fit, bookcover.$small-cover-width);
-    grid-gap: $small-card-margin;
-    justify-content: space-evenly;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, bookcover.$cover-width);
+    grid-gap: $card-margin;
+    align-content: flex-start;
+  }
+
+  // Reserve room at the bottom of the scroll content for the fixed
+  // pagination toolbar so the last cards aren't hidden behind it.
+  .padFooter > #browsePaneRefreshContainer {
+    padding-bottom: 45px;
+  }
+
+  .placeholder {
+    position: fixed;
+    height: 50vh !important;
+    width: 50vw !important;
+    top: calc(50% + 75px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /*
+   * Cancel button surfaced after a 10s grace period on a slow
+   * browser query. Sits centered below the spinner so the user can
+   * abandon the in-flight request and keep the previous results.
+   * Plain ``<button>`` instead of ``<v-btn>`` keeps the visual
+   * weight low — the spinner is the focal point; the cancel is a
+   * subtle escape hatch.
+   */
+  .cancelLoadingButton {
+    position: fixed;
+    top: calc(50% + 75px);
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 30vh));
+    padding: 6px 18px;
+    background: rgb(var(--v-theme-surface));
+    color: rgb(var(--v-theme-text-primary));
+    border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .cancelLoadingButton:hover {
+    color: rgb(var(--v-theme-primary));
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  #searchLimitMessage {
+    flex-shrink: 0;
+    padding-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    $small-card-margin: 16px;
+
+    #browsePane {
+      padding-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+    }
+
+    #browsePaneRefreshContainer {
+      padding-left: max($small-card-margin, env(safe-area-inset-left));
+      padding-right: max($small-card-margin, env(safe-area-inset-right));
+    }
+
+    #browsePaneRefreshContainer > :deep(.v-pull-to-refresh__scroll-container) {
+      grid-template-columns: repeat(auto-fit, bookcover.$small-cover-width);
+      grid-gap: $small-card-margin;
+      justify-content: space-evenly;
+    }
   }
 }
 </style>

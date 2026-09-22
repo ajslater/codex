@@ -77,7 +77,7 @@ export default {
   transform: translate(50%, 0);
   z-index: 200;
   font-size: 50px;
-  color: rgb(var(--v-theme-textPrimary));
+  color: rgb(var(--v-theme-text-primary));
   filter: drop-shadow(1px 1px 1px black);
   opacity: 0.666;
 }

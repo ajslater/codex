@@ -4,7 +4,7 @@ from types import MappingProxyType
 from typing import cast
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
@@ -201,8 +201,14 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                     return getattr(related_obj, name_field, "") or ""
         if not model:
             return ""
+        # The ``?story_arc_pk=`` fallback is a third path with its own
+        # caller-supplied pk, so it needs its own gate; the comic
+        # prefetch cannot cover it.
+        acl_filter = self.get_acl_filter(model, self.request.user, include_missing=True)
         return (
-            model.objects.filter(pk=scope_pk).values_list("name", flat=True).first()
+            model.objects.filter(acl_filter, pk=scope_pk)
+            .values_list("name", flat=True)
+            .first()
             or ""
         )
 
@@ -230,6 +236,48 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                 name = self._resolve_scope_name(scope_pk, comic_fk, comic, model)
                 scope_info[canon] = {"pk": scope_pk, "name": name}
 
+    @staticmethod
+    def _needed_comic_fks(requested: list[str]) -> set[str]:
+        """Collect the comic FKs the requested scopes resolve through."""
+        configs = (_SCOPE_MAP.get(scope) for scope in requested)
+        return {config[1] for config in configs if config and config[1]}
+
+    def _prefetch_comic(self, requested: list[str], comic_pk: int | None):
+        """
+        Fetch the comic once if any non-global, non-comic scope needs it.
+
+        ``select_related`` joins the related rows so the per-scope
+        display name comes off this one comic instead of firing a
+        separate ``Model.objects.filter(pk)`` query per scope
+        (sub-plan 02 #1 / Tier 2 #7).
+        """
+        needed_comic_fks = self._needed_comic_fks(requested)
+        if not needed_comic_fks or not comic_pk:
+            return None
+        select_related = [
+            _COMIC_FK_TO_RELATED[fk][0]
+            for fk in needed_comic_fks
+            if fk in _COMIC_FK_TO_RELATED
+        ]
+        # This endpoint resolved container names for any comic pk a
+        # caller supplied. ``_resolve_scope_name`` reads the folder
+        # and series names off forward FK descriptors, which resolve
+        # through ``_base_manager`` and cannot be filtered by any Q,
+        # so gating the comic fetch is what closes that path too.
+        # ``include_missing``: the reader stays open on a stamped
+        # comic (D8), and its settings must follow it.
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
+        qs = Comic.objects.filter(acl_filter).only(*needed_comic_fks)
+        if select_related:
+            qs = qs.select_related(*select_related)
+        try:
+            comic = qs.get(pk=comic_pk)
+        except Comic.DoesNotExist as exc:
+            reason = f"comic {comic_pk} not found"
+            raise NotFound(detail=reason) from exc
+        else:
+            return comic
+
     # ── HTTP methods ────────────────────────────────────────────────
 
     @extend_schema(responses=None)
@@ -238,28 +286,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         scopes_str = self.request.GET.get("scopes", _GLOBAL_SCOPE)
         requested = scopes_str.split(",")
         comic_pk: int | None = self.kwargs.get("pk")
-
-        # Pre-fetch comic once if any non-g/c scope needs it.
-        # ``select_related`` joins the related rows so the per-scope
-        # display name comes off the prefetched comic instead of
-        # firing a separate ``Model.objects.filter(pk)`` query per
-        # scope (sub-plan 02 #1 / Tier 2 #7).
-        comic: Comic | None = None
-        needed_comic_fks = set()
-        for scope in requested:
-            config = _SCOPE_MAP.get(scope)
-            if config and config[1]:
-                needed_comic_fks.add(config[1])
-        if needed_comic_fks and comic_pk:
-            select_related = [
-                _COMIC_FK_TO_RELATED[fk][0]
-                for fk in needed_comic_fks
-                if fk in _COMIC_FK_TO_RELATED
-            ]
-            qs = Comic.objects.only(*needed_comic_fks)
-            if select_related:
-                qs = qs.select_related(*select_related)
-            comic = qs.get(pk=comic_pk)
+        comic: Comic | None = self._prefetch_comic(requested, comic_pk)
 
         scopes_out: dict = {}
         scope_info: dict = {}

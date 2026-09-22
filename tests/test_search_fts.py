@@ -40,7 +40,6 @@ to INNER before ``force_inner_joins`` ever runs.
 """
 
 import shutil
-from pathlib import Path
 from typing import override
 
 import pytest
@@ -49,8 +48,9 @@ from django.test import TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.views.browser.filters.filter import BrowserFilterView
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR = Path("/tmp/codex.tests.fts")  # noqa: S108
+TMP_DIR = tmp_dir("codex.tests.fts")
 
 
 class _FTSCallableView:

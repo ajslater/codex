@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
 from comicbox.config import get_config
 from comicbox.events import (
@@ -15,7 +15,7 @@ from comicbox.events import (
     FileParsed,
     FileShortCircuited,
 )
-from comicbox.write import BulkWriteItem, bulk_write
+from comicbox.write import BulkWriteItem, DestinationOccupiedError, bulk_write
 from django.core.cache import cache
 from django.utils.timezone import now
 
@@ -30,6 +30,7 @@ from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tagwrite_rename import (
     RenamePlan,
     build_predict_config,
+    conversion_destination,
     plan_rename,
     predict_name,
     will_convert,
@@ -45,6 +46,14 @@ if TYPE_CHECKING:
     from codex.librarian.scribe.tasks import BulkTagWriteTask
 
 
+class TwinRef(NamedTuple):
+    """The comic row that already holds a conversion's destination."""
+
+    pk: int
+    name: str
+    library_path: str
+
+
 class TagWriter(WorkerStatusAbortableBase):
     """Write tags via comicbox.bulk_write and trigger re-import."""
 
@@ -56,6 +65,9 @@ class TagWriter(WorkerStatusAbortableBase):
     # instance also keeps ``since_updated`` alive so StatusController's
     # rate-limit throttles instead of firing a DB write per file.
     _status: TagWriteStatus | None = None
+    #: pk → ``Comic.file_type``, filled by ``_resolve_comics``. comicbox
+    #: sniffed these at import; they decide what a write converts.
+    _file_type_of: dict[int, str] = {}  # noqa: RUF012
 
     def _on_event(self, event: Event) -> None:
         """Translate comicbox write events into librarian status updates."""
@@ -132,6 +144,12 @@ class TagWriter(WorkerStatusAbortableBase):
         unwritable archive (CBR/CBT/CB7) repacks it as a CBZ at a new path,
         and every later step — rename, DB sync — must chase the file there,
         not the submitted path the DB still holds.
+
+        comicbox 5.2.0 sniffs every destination before the write pool
+        starts, so its preflight refusals arrive as ``FileError`` events
+        ahead of any ``FileParsed`` and as results whose ``error`` is the
+        live exception object — which is what ``_twin_for_refusal``
+        reads.
         """
         written_paths: dict[int, Path] = {}
         had_errors = False
@@ -142,8 +160,7 @@ class TagWriter(WorkerStatusAbortableBase):
             base_config=base_config,
         ):
             if result.error:
-                self.log.warning(f"Tag write error for {result.path}: {result.error}")
-                add_tag_write_error(str(result.path), str(result.error))
+                self._record_write_error(result, path_to_pk)
                 had_errors = True
                 continue
             if not result.written:
@@ -152,12 +169,50 @@ class TagWriter(WorkerStatusAbortableBase):
             if pk is not None:
                 written_paths[pk] = result.final_path or result.path
         if had_errors:
-            # Surface the failures to admins (red badge + Tagging-tab panel).
+            # Surface the failures to admins (red badge + Tagging-tab
+            # panel). Once for the batch: _report_error queues one per
+            # error, which is right for its handful of call sites and
+            # wrong for a whole batch's results.
             self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
         return written_paths
 
-    @staticmethod
+    def _twin_for_refusal(self, result, path_to_pk: dict[Path, int]) -> TwinRef | None:
+        """Return the comic row a comicbox destination refusal points at."""
+        error = result.error
+        if not isinstance(error, DestinationOccupiedError):
+            return None
+        pk = path_to_pk.get(result.path)
+        if pk is None:
+            return None
+        # In-batch collision: the rival *source* archive is the comic to
+        # link, and codex's own check cannot see those — it models the
+        # database, not the batch. Otherwise the destination may have
+        # grown a row since that check ran, which is the race; that row
+        # is the twin.
+        for candidate in (error.occupant, error.destination):
+            if candidate is None or candidate == result.path:
+                continue
+            _reason, twin = self._destination_refusal(pk, candidate)
+            if twin:
+                return twin
+        return None
+
+    def _record_write_error(self, result, path_to_pk: dict[Path, int]) -> None:
+        """Log one failed write and store it for the admin panel."""
+        twin = self._twin_for_refusal(result, path_to_pk)
+        where = f" (twin comic pk {twin.pk} in {twin.library_path})" if twin else ""
+        # comicbox's own message stands: it names both archives and says
+        # what collided. Codex only adds the link.
+        self.log.warning(f"Tag write error for {result.path}: {result.error}{where}")
+        add_tag_write_error(
+            str(result.path),
+            str(result.error),
+            twin_pk=twin.pk if twin else None,
+            twin_name=twin.name if twin else None,
+        )
+
     def _resolve_comics(
+        self,
         task: BulkTagWriteTask,
     ) -> tuple[dict[int, Path], dict[int, int]]:
         """
@@ -167,6 +222,10 @@ class TagWriter(WorkerStatusAbortableBase):
         carries their pks (the API funnel already drops them; this is a
         backstop). Returns (path-by-pk, library-id-by-pk).
 
+        Also records each comic's ``file_type`` — comicbox's own sniff of
+        the archive, stored at import — because that, not the filename, is
+        what says whether a write will repack the archive as a CBZ.
+
         Whether a library is watched no longer changes anything here: every
         move is applied inline, and the re-read is requested either way
         because a watched library's own re-read is stat-only unless the
@@ -175,14 +234,20 @@ class TagWriter(WorkerStatusAbortableBase):
         comics = (
             Comic.objects.filter(pk__in=task.comic_pks)
             .exclude(library__read_only=True)
-            .only("pk", "path", "library")
+            .only("pk", "path", "library", "file_type")
         )
         comic_paths: dict[int, Path] = {}
         lib_of: dict[int, int] = {}
+        self._file_type_of = {}
         for comic in comics:
             comic_paths[comic.pk] = Path(comic.path)
             lib_of[comic.pk] = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
+            self._file_type_of[comic.pk] = comic.file_type or ""
         return comic_paths, lib_of
+
+    def _converts(self, pk: int, path: Path) -> bool:
+        """Whether writing this comic repacks it as a CBZ at a new path."""
+        return will_convert(self._file_type_of.get(pk, ""), path)
 
     def write_tags(self, task: BulkTagWriteTask) -> None:
         """
@@ -203,6 +268,11 @@ class TagWriter(WorkerStatusAbortableBase):
         after the write, so it is synced the same way as soon as the batch
         finishes. Only the metadata re-read is left to a queued task, which
         is safe because it names a path the database already holds.
+
+        Which archives convert comes from each row's ``file_type``,
+        comicbox's own sniff recorded at import, not from the filename.
+        A conversion whose destination is already taken is refused in
+        ``_write`` before comicbox opens anything.
         """
         if not task.comic_pks:
             self.log.debug("Tag write called with no comic pks.")
@@ -235,6 +305,91 @@ class TagWriter(WorkerStatusAbortableBase):
         )
         self.log.info(reason)
 
+    @staticmethod
+    def _destination_refusal(pk: int, destination: Path) -> tuple[str, TwinRef | None]:
+        """Return why one conversion destination is unavailable, or ""."""
+        twin = (
+            Comic.objects.filter(path=str(destination))
+            .exclude(pk=pk)
+            .values_list("pk", "library__path")
+            .first()
+        )
+        if twin:
+            twin_pk, library_path = twin
+            reason = (
+                f"already converted to {destination.name} — edit that"
+                f" comic's tags instead, or remove one of the two files"
+            )
+            return reason, TwinRef(twin_pk, destination.name, library_path or "")
+        if destination.exists():
+            return f"conversion destination already exists: {destination.name}", None
+        return "", None
+
+    def _twin_refusal(
+        self, task: BulkTagWriteTask, pk: int, path: Path, config
+    ) -> tuple[str, TwinRef | None]:
+        """Return why this comic's conversion has nowhere to go, or ""."""
+        if not self._converts(pk, path):
+            return "", None
+        destinations = [conversion_destination(path)]
+        if task.rename and not task.delete_original:
+            # The kept original's CBZ is renamed to its scheme name after
+            # the write, which frees the plain destination again. Without
+            # checking the scheme name too, every later write mints
+            # another copy: Foo.cbr, Scheme.cbz and a fresh Foo.cbz.
+            try:
+                plan = plan_rename(
+                    pk, path, self._patch_for(task, pk), config, converts=True
+                )
+            except Exception as exc:
+                self.log.debug(f"Could not predict the scheme name for {path}: {exc}")
+                plan = None
+            if plan is not None:
+                destinations.append(plan.final_path)
+        for destination in destinations:
+            if destination == path:
+                continue
+            reason, twin = self._destination_refusal(pk, destination)
+            if reason:
+                return reason, twin
+        return "", None
+
+    def _refuse_occupied_conversions(
+        self, task: BulkTagWriteTask, current_paths: dict[int, Path]
+    ) -> dict[int, Path]:
+        """
+        Drop comics whose conversion would land on a file that exists.
+
+        comicbox 5.2.0 refuses an occupied destination before reading
+        any metadata, and ``bulk_write`` sniffs every destination before
+        the write pool starts, so this is no longer about *when* the
+        refusal happens. What codex adds is the database: which comic
+        holds the twin, so the error can link it, and the scheme-name
+        twin a rename-on write would mint, which no filesystem check can
+        predict.
+
+        Refusing here also means the comic never reaches ``bulk_write``,
+        so there is only ever one message per path — they dedupe by path,
+        and the last writer would otherwise win. comicbox's own check
+        stays the backstop for in-batch collisions codex cannot model,
+        and those now arrive typed (see ``_twin_for_refusal``).
+
+        Runs on post-rename paths because that is what the write sees: a
+        rename moves the stem, so ``Foo.cbz`` being taken does not block
+        a comic that is about to become ``Scheme.cbr``.
+        """
+        if not current_paths:
+            return current_paths
+        config = build_predict_config(task.delete_keys, task.mode)
+        kept: dict[int, Path] = {}
+        for pk, path in current_paths.items():
+            reason, twin = self._twin_refusal(task, pk, path, config)
+            if reason:
+                self._report_error(path, reason, twin=twin)
+            else:
+                kept[pk] = path
+        return kept
+
     def _write(
         self, task: BulkTagWriteTask, current_paths: dict[int, Path]
     ) -> dict[int, Path]:
@@ -242,7 +397,18 @@ class TagWriter(WorkerStatusAbortableBase):
         items = self._build_items(task, current_paths)
         if not items:
             return {}
-        path_to_pk = {path: pk for pk, path in current_paths.items()}
+        # Only the comics that will actually be written: a rename-only
+        # task converts nothing and must not be refused.
+        writing = {
+            pk: path
+            for pk, path in current_paths.items()
+            if path in {item.path for item in items}
+        }
+        writing = self._refuse_occupied_conversions(task, writing)
+        items = [item for item in items if item.path in set(writing.values())]
+        if not items:
+            return {}
+        path_to_pk = {path: pk for pk, path in writing.items()}
         base_config = self._build_base_config(task)
         return self._collect_written_paths(items, path_to_pk, base_config)
 
@@ -263,11 +429,17 @@ class TagWriter(WorkerStatusAbortableBase):
         plans: list[RenamePlan] = []
         claimed: dict[Path, int] = {}
         for pk, old_path in comic_paths.items():
-            if not task.delete_original and will_convert(old_path):
+            if not task.delete_original and self._converts(pk, old_path):
                 # Renamed after the write instead; the row stays put.
                 continue
             try:
-                plan = plan_rename(pk, old_path, self._patch_for(task, pk), config)
+                plan = plan_rename(
+                    pk,
+                    old_path,
+                    self._patch_for(task, pk),
+                    config,
+                    converts=self._converts(pk, old_path),
+                )
             except Exception as exc:
                 self._report_error(old_path, f"rename failed: {exc}")
                 continue
@@ -392,7 +564,14 @@ class TagWriter(WorkerStatusAbortableBase):
                 if not name:
                     continue
                 target = written_path.parent / name
-                if target == written_path or target.exists():
+                if target == written_path:
+                    continue
+                if target.exists():
+                    reason = (
+                        f"converted, but {target.name} is taken so it keeps"
+                        f" its old name; remove one of the two files"
+                    )
+                    self._report_error(written_path, reason)
                     continue
                 written_path.rename(target)
             except Exception as exc:
@@ -401,10 +580,18 @@ class TagWriter(WorkerStatusAbortableBase):
             post_renamed[pk] = target
         return post_renamed
 
-    def _report_error(self, path: Path, reason: str) -> None:
+    def _report_error(
+        self, path: Path, reason: str, *, twin: TwinRef | None = None
+    ) -> None:
         """Surface a per-file failure to admins (badge + Tagging panel)."""
-        self.log.warning(f"Tag write: {reason} for {path}")
-        add_tag_write_error(str(path), reason)
+        where = f" (twin comic pk {twin.pk} in {twin.library_path})" if twin else ""
+        self.log.warning(f"Tag write: {reason} for {path}{where}")
+        add_tag_write_error(
+            str(path),
+            reason,
+            twin_pk=twin.pk if twin else None,
+            twin_name=twin.name if twin else None,
+        )
         self.librarian_queue.put(TAG_WRITE_ERRORS_CHANGED_TASK)
 
     def _apply_moves_inline(

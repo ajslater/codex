@@ -66,12 +66,18 @@ import GLOBAL_DEFAULTS from "@/choices/reader-defaults.json";
 import ReaderSettingsControls from "./reader-settings-controls.vue";
 import SettingsIndicatorDot from "./settings-indicator-dot.vue";
 
+/*
+ * PENDING SCHEMA REMOVAL
+ *
+ * ``readRtlInReverse`` and ``finishOnLastPage`` are gone from here because
+ * they no longer have controls to override. Their columns and serializer
+ * fields are deliberately kept -- see the notes in ``stores/reader.js``. Put
+ * them back in this list if the checkboxes come back.
+ */
 const ATTRS = Object.freeze([
   "fitTo",
   "readingDirection",
   "twoPages",
-  "readRtlInReverse",
-  "finishOnLastPage",
   "pageTransition",
   "cacheBook",
 ]);
@@ -262,41 +268,45 @@ export default {
 <style scoped lang="scss">
 @forward "./expansion-panel-overrides";
 
-:deep(.v-expansion-panel) {
-  background-color: rgb(var(--v-theme-background));
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  :deep(.v-expansion-panel) {
+    background-color: rgb(var(--v-theme-background));
+  }
 
-.scopePanelTitle {
-  padding-left: 15px;
-  padding-right: 10px;
-  font-weight: bolder;
-  color: rgb(var(--v-theme-textDisabled));
-}
+  .scopePanelTitle {
+    padding-left: 15px;
+    padding-right: 10px;
+    font-weight: bolder;
+    color: rgb(var(--v-theme-text-disabled));
+  }
 
-.intermediateTitleWrap {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-}
+  .intermediateTitleWrap {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
 
-.intermediateTitleMain {
-  display: inline-flex;
-  align-items: center;
-}
+  .intermediateTitleMain {
+    display: inline-flex;
+    align-items: center;
+  }
 
-.intermediateSubtitle {
-  font-size: 0.75rem;
-  font-weight: normal;
-  opacity: 0.7;
-}
+  .intermediateSubtitle {
+    font-size: 0.75rem;
+    font-weight: normal;
+    opacity: 0.7;
+  }
 
-:deep(.v-expansion-panel--active:not(:first-child)) {
-  // Fix for default behavior that makes an unsightly margin on active
-  margin-top: 0px;
-}
+  :deep(.v-expansion-panel--active:not(:first-child)) {
+    // Fix for default behavior that makes an unsightly margin on active
+    margin-top: 0px;
+  }
 
-:deep(.v-expansion-panel-text__wrapper) {
-  padding-left: 10px;
-  padding-right: 10px;
+  :deep(.v-expansion-panel-text__wrapper) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 </style>

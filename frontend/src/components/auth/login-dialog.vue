@@ -103,6 +103,7 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import authFormMixin from "@/components/auth/auth-form-mixin";
 import ResetPasswordRequestDialog from "@/components/auth/reset-password-request-dialog.vue";
 import SsoLoginButton from "@/components/auth/sso-login-button.vue";
@@ -128,8 +129,8 @@ export default {
             if (!v) {
               return "Password is required";
             }
-            if (this.registerMode && v.length < this.MIN_PASSWORD_LEN) {
-              return `Password must be ${this.MIN_PASSWORD_LEN} characters long`;
+            if (this.registerMode && v.length < LIMITS.passwordMinLength) {
+              return `Password must be at least ${LIMITS.passwordMinLength} characters`;
             }
             return true;
           },
@@ -168,7 +169,6 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       adminFlags: (state) => state.adminFlags,
-      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
     ...mapWritableState(useAuthStore, ["showLoginDialog"]),
     submitButtonLabel() {

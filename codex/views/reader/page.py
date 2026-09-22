@@ -93,7 +93,13 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         cached = page_acl_cache.get(cache_key, now)
         if cached is not None:
             return cached
-        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        # ``include_missing``: the reader keeps serving a stamped comic
+        # (D8). If a page really cannot be read the ``FileNotFoundError``
+        # below becomes a NotFound on its own, and if the mount returns
+        # mid-read nothing was ever interrupted. This also carries the
+        # ``?bookmark=true`` side-write, which the bookmark view's own
+        # opt-out cannot reach -- it is a separate BookmarkUpdateTask.
+        acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         qs = Comic.objects.filter(acl_filter).only("path", "file_type")
         comic = qs.get(pk=pk)
         path = comic.path
@@ -218,9 +224,15 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
             pk = self.kwargs.get("pk")
             detail = f"comic {pk} not found in db."
             raise NotFound(detail=detail) from exc
-        except FileNotFoundError as exc:
+        except OSError as exc:
+            # Missing, unreadable, or on a mount that went away: the page
+            # cannot be served, which is a Not Found and not a server
+            # error. ``OSError`` only -- a broad catch would turn a real
+            # programming error into a silent 404. The error text names the
+            # library path, so it goes to the log and not to the client.
             pk = self.kwargs.get("pk")
-            detail = f"comic path for {pk} not found: {exc}."
+            logger.warning(f"Could not read a page of comic {pk}: {exc!r}")
+            detail = f"comic page for {pk} could not be read."
             raise NotFound(detail=detail) from exc
         except ComicboxError as exc:
             logger.warning(exc)

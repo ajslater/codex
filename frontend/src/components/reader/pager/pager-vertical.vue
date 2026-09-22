@@ -191,33 +191,31 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.verticalPage {
-  display: block;
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .verticalPage {
+    display: block;
+  }
 
-:deep(.v-virtual-scroll__item) {
-  position: relative;
-}
+  :deep(.v-virtual-scroll__item) {
+    position: relative;
+  }
 
-$pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
+  $pageTrackerBaseHeight: calc(100vh - env(safe-area-inset-bottom));
 
-.pageTracker {
-  position: absolute;
-  top: 0;
-  //left: 2.5%;
-  z-index: 15;
-  width: 100%;
-  // viewport height - toolbars - mobile buffer.
-  height: calc($pageTrackerBaseHeight * 0.95);
-  // For debugging
-  /*
-  background-color: green;
-  opacity: 0.25;
-  border: dashed 10px red;
-  */
-}
+  .pageTracker {
+    position: absolute;
+    top: 0;
+    //left: 2.5%;
+    z-index: 15;
+    width: 100%;
+    // viewport height - toolbars - mobile buffer.
+    height: calc($pageTrackerBaseHeight * 0.95);
+  }
 
-.pageTrackerToolbars {
-  height: calc(($pageTrackerBaseHeight - 154px - 32px) * 0.95) !important;
+  .pageTrackerToolbars {
+    height: calc(($pageTrackerBaseHeight - 154px - 32px) * 0.95) !important;
+  }
 }
 </style>

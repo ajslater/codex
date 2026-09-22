@@ -32,6 +32,7 @@
         <div class="adminCard">
           <v-text-field
             v-model="draft.host"
+            :error-messages="fieldErrors.host"
             label="Host"
             placeholder="smtp.example.com"
             :rules="hostRules"
@@ -42,6 +43,7 @@
         <div class="adminCard">
           <v-text-field
             v-model.number="draft.port"
+            :error-messages="fieldErrors.port"
             type="number"
             label="Port"
             min="1"
@@ -70,6 +72,7 @@
         <div class="adminCard">
           <v-text-field
             v-model.number="draft.timeout"
+            :error-messages="fieldErrors.timeout"
             type="number"
             label="Timeout (seconds)"
             min="1"
@@ -145,6 +148,7 @@
         <div class="adminCard">
           <v-text-field
             v-model="draft.fromAddress"
+            :error-messages="fieldErrors.fromAddress"
             label="From Address"
             placeholder="codex@example.com"
             hint="Falls back to the SMTP username when blank."
@@ -163,6 +167,12 @@
           />
         </div>
       </AdminSection>
+
+      <div v-if="unboundErrors.length > 0" class="saveErrors">
+        <div v-for="(error, index) in unboundErrors" :key="index">
+          {{ error }}
+        </div>
+      </div>
 
       <AdminActionBar
         save-text="Save Settings"
@@ -224,10 +234,12 @@
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
+import LIMITS from "@/choices/limits.json";
 import AdminActionBar from "@/components/admin/tabs/action-bar.vue";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const EDITABLE_FIELDS = Object.freeze([
   "host",
@@ -239,13 +251,40 @@ const EDITABLE_FIELDS = Object.freeze([
   "fromAddress",
   "subjectPrefix",
 ]);
-// Simple hostname/FQDN regex: at least one ``.``, no whitespace.
-const HOST_REGEX = /^\S+\.\S+$/;
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+// Fields with their own :error-messages binding, so the summary below
+// the form does not repeat them.
+const _BOUND_ERROR_FIELDS = Object.freeze([
+  "host",
+  "port",
+  "timeout",
+  "fromAddress",
+]);
+// Length only. The removed hostname regex refused ``localhost`` and every
+// Compose service name; the column width is the one thing the server
+// actually enforces on this field.
+const HOST_RULES = Object.freeze([["$maxLength", LIMITS.maxNameLen]]);
 const PORT_MIN = 1;
 const PORT_MAX = 65_535;
 const TIMEOUT_MIN = 1;
 const TIMEOUT_MAX = 600;
+const PORT_RULES = Object.freeze([
+  ["$intRange", [PORT_MIN, PORT_MAX], "Port must be between {0} and {1}"],
+]);
+const TIMEOUT_RULES = Object.freeze([
+  [
+    "$intRange",
+    [TIMEOUT_MIN, TIMEOUT_MAX],
+    "Timeout must be between {0} and {1} seconds",
+  ],
+]);
+const EMAIL_RULES = Object.freeze([
+  (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",
+]);
+const RECIPIENT_RULES = Object.freeze([
+  (v) => !!v || "Recipient is required",
+  (v) => EMAIL_REGEX.test(v) || "Enter a valid email address",
+]);
 
 function pickFields(source) {
   const out = {};
@@ -270,9 +309,27 @@ export default {
       testing: false,
       testResult: undefined,
       saving: false,
+      portRules: PORT_RULES,
+      timeoutRules: TIMEOUT_RULES,
+      emailRules: EMAIL_RULES,
+      hostRules: HOST_RULES,
+      recipientRules: RECIPIENT_RULES,
     };
   },
   computed: {
+    unboundErrors() {
+      // Whatever the server said that no input claimed.
+      const bound = new Set(_BOUND_ERROR_FIELDS);
+      return Object.entries(this.fieldErrors ?? {})
+        .filter(([field]) => !bound.has(field))
+        .flatMap(([, messages]) => messages);
+    },
+    ...mapState(useCommonStore, {
+      // This form showed no save errors at all: the envelope's
+      // 400 wraps into an APIError, which has no ``.response``,
+      // so the old parser could not see it.
+      fieldErrors: (state) => state.form.fieldErrors,
+    }),
     ...mapState(useAdminStore, {
       settings: (state) => state.emailSettings,
     }),
@@ -288,44 +345,6 @@ export default {
         return "Will be saved with the rest of the SMTP settings.";
       }
       return this.settings.passwordSet ? "Credential set" : "Not configured";
-    },
-    hostRules() {
-      return [(v) => !v || HOST_REGEX.test(v) || "Enter a valid hostname"];
-    },
-    portRules() {
-      return [
-        (v) => {
-          if (v === "" || v === null || v === undefined) return true;
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) && n >= PORT_MIN && n <= PORT_MAX) ||
-            `Port must be between ${PORT_MIN} and ${PORT_MAX}`
-          );
-        },
-      ];
-    },
-    timeoutRules() {
-      return [
-        (v) => {
-          if (v === "" || v === null || v === undefined) return true;
-          const n = Number(v);
-          return (
-            (Number.isInteger(n) && n >= TIMEOUT_MIN && n <= TIMEOUT_MAX) ||
-            `Timeout must be between ${TIMEOUT_MIN} and ${TIMEOUT_MAX} seconds`
-          );
-        },
-      ];
-    },
-    emailRules() {
-      return [
-        (v) => !v || EMAIL_REGEX.test(v) || "Enter a valid email address",
-      ];
-    },
-    recipientRules() {
-      return [
-        (v) => !!v || "Recipient is required",
-        (v) => EMAIL_REGEX.test(v) || "Enter a valid email address",
-      ];
     },
   },
   watch: {

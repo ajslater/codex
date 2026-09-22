@@ -132,33 +132,37 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.filterGroup {
-  max-height: 80vh;
-  /* has to be less than the menu height */
-}
+/* Layered: these rules beat Vuetify's component CSS by position,
+ * and lose to a `color`/utility prop, which is the intended order. */
+@layer codex-components {
+  .filterGroup {
+    max-height: 80vh;
+    /* has to be less than the menu height */
+  }
 
-.metronName {
+  .metronName {
+    /*
+     * The standardized (metron) equivalent of a raw tagged age
+     * rating, in a left column before the raw tag. Fixed width so
+     * the raw tags align into their own column ("Teen Plus", the
+     * longest value, is 9ch). ``text-disabled`` is too dim against
+     * the dark menu surface, so use ``on-surface`` dimmed by
+     * opacity instead.
+     */
+    width: 10ch;
+    color: rgb(var(--v-theme-on-surface));
+    opacity: 0.7;
+    font-size: smaller;
+  }
+
   /*
-   * The standardized (metron) equivalent of a raw tagged age
-   * rating, in a left column before the raw tag. Fixed width so
-   * the raw tags align into their own column ("Teen Plus", the
-   * longest value, is 9ch). ``textDisabled`` is too dim against
-   * the dark menu surface, so use ``on-surface`` dimmed by
-   * opacity instead.
+   * Vuetify puts a 32px spacer between a list item's prepend and its
+   * content; the standardized column already pads itself with its
+   * fixed width, so tighten the gap. Only As-tagged rows render a
+   * prepend, so the selector can't affect other filter lists.
    */
-  width: 10ch;
-  color: rgb(var(--v-theme-on-surface));
-  opacity: 0.7;
-  font-size: smaller;
-}
-
-/*
- * Vuetify puts a 32px spacer between a list item's prepend and its
- * content; the standardized column already pads itself with its
- * fixed width, so tighten the gap. Only As-tagged rows render a
- * prepend, so the selector can't affect other filter lists.
- */
-.filterGroup :deep(.v-list-item__prepend > .v-list-item__spacer) {
-  width: 8px;
+  .filterGroup :deep(.v-list-item__prepend > .v-list-item__spacer) {
+    width: 8px;
+  }
 }
 </style>

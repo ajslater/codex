@@ -15,11 +15,16 @@ import vuetify from "@/plugins/vuetify";
 
 const AdminStatusListStub = { name: "AdminStatusList", template: "<div />" };
 
-function mountMenu({ tagWriteErrors = [], pendingPrompts = [] } = {}) {
+function mountMenu({
+  tagWriteErrors = [],
+  pendingPrompts = [],
+  failedImports = [],
+  failedImportsSeenAt = "",
+} = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: { isStaff: true } },
-      admin: { tagWriteErrors },
+      admin: { tagWriteErrors, failedImports, failedImportsSeenAt },
       onlineTag: { pendingPrompts },
     },
   });
@@ -79,5 +84,38 @@ describe("AdminMenu", () => {
     expect(wrapper.findAll(".promptsLink")[0].text()).toContain(
       "3 Matches to Review",
     );
+  });
+});
+
+describe("AdminMenu failed imports link", () => {
+  const unseen = [
+    { path: "/comics/bad.cbz", createdAt: "2026-09-20T00:00:00Z" },
+  ];
+
+  test("no link when there are no failed imports", () => {
+    const wrapper = mountMenu();
+
+    expect(wrapper.findAll(".failedImportsLink")).toHaveLength(0);
+  });
+
+  test("link is present and colored while failures are unseen", () => {
+    const wrapper = mountMenu({ failedImports: unseen });
+
+    const link = wrapper.find(".failedImportsLink");
+    expect(link.exists()).toBe(true);
+    expect(link.classes()).toContain("failedImportsUnseen");
+  });
+
+  test("link survives Clear Warning, without the error color", () => {
+    // The reported symptom: clearing the warning hid the only way back
+    // to a table that was still there.
+    const wrapper = mountMenu({
+      failedImports: unseen,
+      failedImportsSeenAt: "2026-09-21T00:00:00Z",
+    });
+
+    const link = wrapper.find(".failedImportsLink");
+    expect(link.exists()).toBe(true);
+    expect(link.classes()).not.toContain("failedImportsUnseen");
   });
 });
