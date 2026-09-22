@@ -12,9 +12,8 @@ cover thumbnail was an orphan on every nightly run.
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
 from threading import Lock
-from typing import Final, override
+from typing import TYPE_CHECKING, Final, override
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -32,8 +31,12 @@ from codex.models import (
     Series,
     Volume,
 )
+from tests.tmp_dirs import tmp_dir
 
-_TMP_DIR: Final = Path("/tmp/codex.tests.cleanup_orphan_covers")  # noqa: S108
+if TYPE_CHECKING:
+    from pathlib import Path
+
+_TMP_DIR: Final = tmp_dir("codex.tests.cleanup_orphan_covers")
 _LIBRARY_DIR: Final = _TMP_DIR / "library"
 _COVERS_ROOT: Final = _TMP_DIR / "covers"
 _CUSTOM_COVERS_ROOT: Final = _TMP_DIR / "custom-covers"

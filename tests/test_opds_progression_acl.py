@@ -28,11 +28,12 @@ from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.auth import GroupAuth
 from codex.startup import init_admin_flags
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _QUEUE_PATCH: Final = "codex.views.bookmark.LIBRARIAN_QUEUE"
 _PROGRESSION_MIME: Final = "application/opds-progression+json"
-_TMP_DIR: Final = Path("/tmp/codex.tests.progression_acl")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.progression_acl")
 _OPEN_DIR: Final = _TMP_DIR / "open"
 _PRIVATE_DIR: Final = _TMP_DIR / "private"
 _HTTP_OK: Final = 200

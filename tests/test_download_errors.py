@@ -44,8 +44,9 @@ from django.test import Client, TestCase
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.startup import init_admin_flags
 from codex.views.reader._archive_cache import archive_cache, page_acl_cache
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR: Final = Path("/tmp/codex.tests.download_errors")  # noqa: S108
+TMP_DIR: Final = tmp_dir("codex.tests.download_errors")
 _SOURCE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
