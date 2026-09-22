@@ -25,7 +25,11 @@ class SearchIndexImporter(SearchIndexPrepareImporter):
 
     def full_text_search(self) -> None:
         """Sync the fts index with the imported database."""
-        statii = (status_class() for status_class in _STATII)
+        # A tuple, not a generator: ``start_many`` would consume it and
+        # leave ``finish_many`` nothing to finish, so the three statuses
+        # would sit active in the librarian status table until some
+        # later task happened to clear them.
+        statii = tuple(status_class() for status_class in _STATII)
         self.status_controller.start_many(statii)
         try:
             count = self.clean_fts()

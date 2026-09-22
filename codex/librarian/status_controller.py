@@ -15,7 +15,7 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.models.admin import LibrarianStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Collection
     from multiprocessing import Queue
 
     from loguru._logger import Logger
@@ -121,7 +121,7 @@ class StatusController:
         status.start()
         self._update(status, notify=notify, preactive=preactive, active=now())
 
-    def start_many(self, statii: Iterable[Status | type[Status]]) -> None:
+    def start_many(self, statii: Collection[Status | type[Status]]) -> None:
         """Start many librarian statuses."""
         for index, status_or_class in enumerate(statii):
             status = status_or_class() if isclass(status_or_class) else status_or_class
@@ -211,11 +211,17 @@ class StatusController:
 
     def finish_many(
         self,
-        statii: Iterable[Status | type[Status] | None],
+        statii: Collection[Status | type[Status] | None],
         *,
         notify: bool = True,
     ) -> None:
-        """Finish all librarian statuses."""
+        """
+        Finish all librarian statuses.
+
+        ``statii`` is a ``Collection``, not an ``Iterable``: the empty
+        check below reads it a second time, and a generator is truthy
+        even once it has been spent.
+        """
         positive_statii: MappingProxyType[str, Status | type[Status]] = (
             MappingProxyType({status.CODE: status for status in statii if status})
         )
