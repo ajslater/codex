@@ -191,6 +191,34 @@ class CronEarlyWakeTestCase(TestCase):
             on=False
         )
 
+    @staticmethod
+    def _passes_short_of_midnight(
+        thread: CronThread, queue: SimpleQueue, midnight: datetime
+    ) -> None:
+        """Three passes with the clock a hair short of the slot."""
+        with patch("django.utils.timezone.now", return_value=midnight - _SHORT_OF_IT):
+            thread._create_task_times()  # noqa: SLF001
+            assert thread._task_times == ((midnight, JanitorNightlyTask),)  # noqa: SLF001
+            for _ in range(3):
+                _cron_pass(thread)
+            assert queue.empty(), (
+                f"Queued {len(_drain(queue))} tasks before midnight; the slot "
+                "had not arrived on any of those passes."
+            )
+            # Still scheduled, and the loop has the remainder to wait out
+            # rather than a timeout of zero.
+            assert _scheduled_classes(thread) == {JanitorNightlyTask}
+            assert 0 < thread._get_timeout() <= _SHORT_OF_IT.total_seconds()  # noqa: SLF001
+
+    @staticmethod
+    def _passes_past_midnight(thread: CronThread, midnight: datetime) -> None:
+        """Three more with the slot behind the clock."""
+        with patch("django.utils.timezone.now", return_value=midnight + _PAST_IT):
+            for _ in range(3):
+                _cron_pass(thread)
+            # The recompute moved on: tonight's slot is spent for good.
+            assert thread._task_times[0][0] > midnight  # noqa: SLF001
+
     def test_the_nightly_janitor_runs_once_across_an_early_wake(self) -> None:
         """
         The reported bug: dozens of nightly runs, every night.
@@ -207,27 +235,8 @@ class CronEarlyWakeTestCase(TestCase):
         midnight = get_janitor_time(_LOG)
         thread, queue = _new_cron_thread()
 
-        short_of_it = midnight - _SHORT_OF_IT
-        with patch("django.utils.timezone.now", return_value=short_of_it):
-            thread._create_task_times()  # noqa: SLF001
-            assert thread._task_times == ((midnight, JanitorNightlyTask),)  # noqa: SLF001
-            for _ in range(3):
-                _cron_pass(thread)
-            assert queue.empty(), (
-                f"Queued {len(_drain(queue))} tasks before midnight; the slot "
-                "had not arrived on any of those passes."
-            )
-            # Still scheduled, and the loop has the remainder to wait out
-            # rather than a timeout of zero.
-            assert _scheduled_classes(thread) == {JanitorNightlyTask}
-            assert 0 < thread._get_timeout() <= _SHORT_OF_IT.total_seconds()  # noqa: SLF001
-
-        past_it = midnight + _PAST_IT
-        with patch("django.utils.timezone.now", return_value=past_it):
-            for _ in range(3):
-                _cron_pass(thread)
-            # The recompute moved on: tonight's slot is spent for good.
-            assert thread._task_times[0][0] > midnight  # noqa: SLF001
+        self._passes_short_of_midnight(thread, queue, midnight)
+        self._passes_past_midnight(thread, midnight)
 
         queued = [
             task for task in _drain(queue) if isinstance(task, JanitorNightlyTask)
