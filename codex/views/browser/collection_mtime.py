@@ -53,21 +53,34 @@ class BrowserCollectionMtimeView(BrowserFilterView):
         # logger.exception(f"Query Error: {msg}") debug
 
     def get_max_bookmark_updated_at_aggregate(
-        self, model, agg_func: type[Aggregate] = Max, default=NONE_DATETIMEFIELD
+        self,
+        model,
+        agg_func: type[Aggregate] = Max,
+        default=NONE_DATETIMEFIELD,
+        bm_rel: str = "",
     ) -> Aggregate:
-        """Get filtered maximum bookmark updated_at relation."""
-        key = (model, agg_func, default)
+        """
+        Get filtered maximum bookmark updated_at relation.
+
+        Passing ``bm_rel`` names an already-my-bookmark-scoped relation —
+        the ``FilteredRelation`` alias collection querysets carry (see
+        ``BrowserAnnotateOrderView.alias_my_bookmark``). Its join condition
+        already restricts the rows, so no ``filter=`` is added and, more
+        importantly, the bare ``comic__bookmark`` relation never enters the
+        query: that join carries no owner predicate, so referencing it here
+        would re-introduce the row multiplication every other aggregate over
+        the comic join has to survive.
+        """
+        key = (model, agg_func, default, bm_rel)
         cached = self._bmua_agg_cache.get(key)
         if cached is not None:
             return cached
 
-        bm_rel = self.get_bm_rel(model)
-        bm_filter = self.get_my_bookmark_filter(bm_rel)
+        kwargs: dict[str, bool | str | Value | Q] = {"default": default}
+        if not bm_rel:
+            bm_rel = self.get_bm_rel(model)
+            kwargs["filter"] = self.get_my_bookmark_filter(bm_rel)
         bmua_rel = f"{bm_rel}__updated_at"
-        kwargs: dict[str, bool | str | Value | Q] = {
-            "default": default,
-            "filter": bm_filter,
-        }
         aggregate = agg_func(bmua_rel, **kwargs)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         self._bmua_agg_cache[key] = aggregate
         return aggregate
