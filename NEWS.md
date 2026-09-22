@@ -9,6 +9,8 @@ border-radius: 128px;
 ## v2.3.4
 
 - Features
+    - Cover cards show read, unread, and in progress state, with a setting to
+      turn it off.
     - Online tagging match candidates show a cover, a link to the source's page,
       and what separated their scores.
     - Hovering a match candidate's cover shows it full size.
@@ -28,6 +30,9 @@ border-radius: 128px;
     - Comics with uppercase file extensions no longer lose their folders and
       read progress.
     - Read progress can no longer be recorded twice for the same comic.
+    - Folder, series, and story arc progress and read state are counted
+      correctly, including while filters are active.
+    - Marking a comic or collection unread clears its progress.
     - Breadcrumbs, metadata, and collection totals no longer name or count
       comics from libraries you can't see.
     - Metadata imports and reading positions respect library and age-rating
@@ -60,6 +65,9 @@ border-radius: 128px;
       use dark text.
     - Browser cards draw their hover border, and cover thumbnails in table mode
       and on the custom-covers admin tab open with the keyboard.
+
+- Performance
+    - Browsing with tag filters is about twice as fast.
 
 ## v2.3.3
 
