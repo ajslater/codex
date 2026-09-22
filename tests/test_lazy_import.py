@@ -25,11 +25,12 @@ from django.test import Client, TestCase
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.models.auth import GroupAuth
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _QUEUE_PATCH: Final = "codex.views.lazy_import.LIBRARIAN_QUEUE"
 _HTTP_OK: Final = 200
-_TMP_DIR: Final = Path("/tmp/codex.tests.lazy_import")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.lazy_import")
 _OPEN_DIR: Final = _TMP_DIR / "open"
 _PRIVATE_DIR: Final = _TMP_DIR / "private"
 

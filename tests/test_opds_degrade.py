@@ -31,10 +31,11 @@ from codex.models import (
 from codex.startup import init_admin_flags
 from codex.views.opds.v1.const import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
+from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
-_TMP_DIR: Final = Path("/tmp/codex.tests.opds.degrade")  # noqa: S108
+_TMP_DIR: Final = tmp_dir("codex.tests.opds.degrade")
 _V1_ROOT: Final = "/opds/v1.2/"
 _COMIC_COUNT: Final = 3
 _GARBAGE: Final = b"not a comic!!!!!"  # the measured repro: a few bytes of junk

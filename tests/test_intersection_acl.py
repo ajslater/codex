@@ -25,7 +25,6 @@ reach blanks every cell in the table.
 """
 
 import shutil
-from pathlib import Path
 from typing import Final, override
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
@@ -54,8 +53,9 @@ from codex.views.browser.intersections import (
     m2m_intersection_sort_expr,
     scalar_intersection_sort_expr,
 )
+from tests.tmp_dirs import tmp_dir
 
-TMP_DIR: Final = Path("/tmp/codex.tests.intersection_acl")  # noqa: S108
+TMP_DIR: Final = tmp_dir("codex.tests.intersection_acl")
 _OPEN_DIR: Final = TMP_DIR / "open"
 _PRIVATE_DIR: Final = TMP_DIR / "private"
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
