@@ -119,6 +119,7 @@ class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerializer):
 
     custom_covers = BooleanField(required=False)
     dynamic_covers = BooleanField(required=False)
+    show_read_state = BooleanField(required=False)
     order_by = ChoiceField(
         choices=tuple(BROWSER_ORDER_BY_CHOICES.keys()), required=False
     )

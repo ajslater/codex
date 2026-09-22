@@ -699,6 +699,14 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
     }
     defaults.update({column: row[column] or "" for column in _BROWSER_STR_COLUMNS})
     defaults.update({column: bool(row[column]) for column in _BROWSER_BOOL_COLUMNS})
+    # Sidecars written before ``show_read_state`` existed carry no such
+    # column. It is not in ``_BROWSER_BOOL_COLUMNS`` because that loop would
+    # raise on the missing key — and because ``bool(None)`` is False, which is
+    # the wrong way to default a preference that ships on. Absent means on.
+    show_read_state = _row_column(row, "show_read_state")
+    defaults["show_read_state"] = (
+        True if show_read_state is None else bool(show_read_state)
+    )
     return defaults
 
 

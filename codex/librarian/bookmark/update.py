@@ -222,6 +222,25 @@ class BookmarkUpdateMixin(GroupACLMixin):
         if not comic_pks:
             return 0
 
+        # "Mark Unread" is a bare ``{"finished": False}`` — the browser card
+        # menu and the select-many toolbar both send nothing else, and the
+        # reader only ever sends ``finished: True``. Rewind the page with it:
+        # otherwise the old position survives, ``annotate_progress`` still
+        # reports it, and a comic the user just marked unread keeps rendering
+        # as nearly finished.
+        #
+        # It has to happen here rather than in the client. ``BookmarkView``
+        # validates every recursive (non-comic) target through
+        # ``BookmarkFinishedSerializer``, whose ``fields`` is ``("finished",)``
+        # — so a ``page`` sent from the browser is dropped on exactly the
+        # containers bulk mark-unread is used on.
+        #
+        # Copy rather than mutate: ``updates`` is shared across the update and
+        # create phases below, and the caller's dict is not ours.
+        mark_unread = updates.get("finished") is False and "page" not in updates
+        if mark_unread:
+            updates = {**updates, "page": 0}
+
         # Single Python timestamp for the whole batch — both phases
         # share it so ``updated_at`` stays consistent across the
         # update + create halves of the operation.
@@ -238,7 +257,16 @@ class BookmarkUpdateMixin(GroupACLMixin):
             # covered every input pk — the hot path on a sequential read
             # (page 2..N of one comic) hits this branch every time after
             # the first bookmark is created.
-            missing_pks = set(comic_pks) - covered
+            #
+            # Mark Unread never creates. ``page`` is nullable with no default
+            # and ``finished`` defaults to False, so a row holding ``page=0,
+            # finished=False`` is indistinguishable from no row at all: the
+            # UNREAD filter is ``~(mine & finished=True)`` and matches both,
+            # IN_PROGRESS needs ``page__gt=0`` and matches neither, and
+            # ``annotate_progress`` coalesces a null page to 0. Creating them
+            # would write one row per never-opened comic in the target — 497
+            # of them for a 500-issue publisher with 3 read.
+            missing_pks = set() if mark_unread else set(comic_pks) - covered
             create_count = cls._create_bookmarks_once(
                 auth_filter, missing_pks, updates, now
             )

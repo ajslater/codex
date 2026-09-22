@@ -1,6 +1,6 @@
 <template>
   <v-lazy :id="`card-${ids}`" transition="scale-transition">
-    <div class="browserCardCoverWrapper">
+    <div class="browserCardCoverWrapper" :class="readStateClass">
       <div class="browserCardTop">
         <BookCover
           :collection="item.collection"
@@ -40,14 +40,15 @@
           :pk="favoritePk"
         />
       </div>
-      <v-progress-linear
-        class="bookCoverProgress"
-        :bg-opacity="progressBGOpacity"
-        :model-value="item.progress"
-        :aria-label="`${item.progress}% read`"
-        rounded
-        height="2"
-      />
+      <!--
+        Read state. ``aria-hidden`` because the state is already folded into
+        the link's accessible name — one announcement per card, not two.
+      -->
+      <div class="readState" :title="readStateLabel" aria-hidden="true">
+        <div class="readStateTrack">
+          <div class="readStateFill" :style="readFillStyle" />
+        </div>
+      </div>
       <footer class="cardFooter">
         <BrowserCardSubtitle :item="item" />
         <OrderByCaption :item="item" />
@@ -64,6 +65,12 @@ import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
+import {
+  getReadFillPercent,
+  getReadState,
+  getReadStateLabel,
+  READ_STATE,
+} from "@/read-state";
 import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
@@ -90,6 +97,11 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
+      /*
+       * ``!== false`` rather than ``|| false``: this setting defaults on, so
+       * a client running ahead of the migration still shows the state.
+       */
+      showReadState: (state) => state.settings?.showReadState !== false,
     }),
     ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
@@ -116,11 +128,46 @@ export default {
         this.isFavorite(this.item.collection, this.favoritePk),
       );
     },
+    readState() {
+      if (this.showReadState) {
+        return getReadState(this.item);
+      }
+      /*
+       * Setting off: the classic thin progress bar and nothing else. The
+       * finished state stops being distinguishable, which is the "clean
+       * look" this is for.
+       */
+      return Number(this.item.progress) > 0
+        ? READ_STATE.READING
+        : READ_STATE.UNREAD;
+    },
+    readStateClass() {
+      return `is-${this.readState}`;
+    },
+    readFillStyle() {
+      const pct =
+        this.readState === READ_STATE.UNREAD
+          ? 0
+          : getReadFillPercent(this.item);
+      return { width: `${pct}%` };
+    },
+    readStateLabel() {
+      return getReadStateLabel(this.item);
+    },
     linkLabel() {
-      let label = "";
-      label += this.item.collection === "comics" ? "Read" : "Browse to";
-      label += " " + this.item.name;
-      return label;
+      /*
+       * The read state is appended unconditionally: the setting governs
+       * pixels, not semantics. It also retires the old progress bar's
+       * ``${item.progress}% read`` label, which announced "0% read" on every
+       * unread card and on every card that had been marked read without
+       * being opened.
+       *
+       * Assembled from the non-empty parts because an untitled comic used to
+       * produce a trailing space, and appending to that read ", unread".
+       */
+      const verb = this.item.collection === "comics" ? "Read" : "Browse to";
+      const target = [verb, this.item.name].filter(Boolean).join(" ");
+      return `${target}, ${this.readStateLabel}`;
     },
     ids() {
       return this.item.ids.join(",");
@@ -142,9 +189,6 @@ export default {
       return this.item.collection === "comics"
         ? getReaderRoute(this.item, this.importMetadata)
         : this.browserRoute;
-    },
-    progressBGOpacity() {
-      return this.item.progress ? 0.1 : 0;
     },
   },
   mounted() {
@@ -305,12 +349,101 @@ export default {
     opacity: 1;
   }
 
-  .bookCoverProgress {
+  /*
+   * READ STATE
+   *
+   * Lives in the 13px band between the cover box and the footer, never on
+   * the artwork — which makes its backdrop a compile-time constant instead
+   * of a per-cover gamble against ``object-fit: contain`` letterboxing, and
+   * keeps the cover itself as clear of marks as it is today.
+   *
+   * A sibling of ``.browserCardTop``, so it sits outside both the
+   * ``rgba(0, 0, 0, 0.55)`` hover scrim and the ``.cardCoverOverlay *``
+   * hover reset that strips ``background-color`` from every descendant of
+   * the router-link — no ``z-index`` needed. It also clears both 48x48
+   * control buttons, so it needs no ``pointer-events: none`` and keeps its
+   * native ``title`` tooltip.
+   *
+   * The slot is a fixed 10px with the track centered in it. If the track
+   * grew from 3px to 6px in flow, a finished card's footer would sit lower
+   * than its neighbour's and every grid row would get a ragged baseline.
+   * 1 + 10 + 2 = 13, the band's previous height, so nothing reflows.
+   */
+  .readState {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 10px;
     margin-top: 1px;
   }
 
+  /*
+   * Painted only where there is a fill to measure against. An always-on
+   * track under every unread cover reads as a ruled grid, and unread is the
+   * majority state in most libraries.
+   */
+  .readStateTrack {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background-color: transparent;
+    transition: height 0.15s;
+  }
+
+  .readStateFill {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.15s;
+  }
+
+  .is-reading .readStateTrack,
+  .is-finished .readStateTrack {
+    background-color: rgba(var(--v-theme-text-disabled), 0.25);
+  }
+
+  /* Still reading: thin, orange. Orange means one thing on this card. */
+  .is-reading .readStateFill {
+    background-color: rgb(var(--v-theme-primary));
+  }
+
+  /*
+   * Finished: double thickness. Thickness is the only boolean, so the fill
+   * stays the real bookmark position — a comic marked read but never opened
+   * is a bare 6px track, still unmistakable against an unread card's
+   * nothing. Neutral grey keeps a second hue out of the grid.
+   */
+  .is-finished .readStateTrack {
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .is-finished .readStateFill {
+    background-color: rgb(var(--v-theme-text-header));
+  }
+
   .cardFooter {
-    margin-top: 10px;
+    margin-top: 2px; /* the .readState slot is 10px tall */
+    color: rgb(var(--v-theme-text-primary));
+  }
+
+  /*
+   * The caption channel: luminance only, so it survives protanopia,
+   * deuteranopia and achromatopsia intact, and it is the half of this design
+   * that would port to table view for free. ``.displayName`` sets no colour
+   * of its own so it inherits; the grey sublines in subtitle.vue set theirs
+   * explicitly and are unaffected.
+   */
+  .is-finished .cardFooter {
+    color: rgb(var(--v-theme-text-disabled));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .readStateTrack,
+    .readStateFill {
+      transition: none;
+    }
   }
 
   @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
