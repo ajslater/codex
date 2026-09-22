@@ -18,60 +18,48 @@ border-radius: 128px;
       not been deleted yet.
 
 - Fixes
-    - A library folder that was briefly unreadable no longer loses its comics
-      and their read progress.
-    - A comic a scan briefly could not find is checked again before its read
-      progress is removed.
-    - Comics with uppercase file extensions no longer lose their folders and
-      read progress to the nightly integrity check.
-    - Renaming or moving a comic between scans keeps its read progress even when
-      the file's inode changes.
-    - Bookmarks that belong to no user or session are now removed by the nightly
-      cleanup.
-    - A comic whose file is missing or unreadable returns Not Found instead of a
-      server error.
-    - OPDS clients can browse the library from the catalog root again.
-    - Panels gets both its own sort menu and the sort folders, on every
-      platform.
-    - The OPDS urls dialog opens, and its copy buttons work over plain http.
-    - Read progress can no longer be recorded twice for the same comic.
-    - Registration now enforces the minimum password length.
-    - Writing tags to a CBR whose CBZ twin already exists now says which file to
-      edit instead, and links to it.
-    - The match review dialog no longer clips its Pause button.
-    - The metadata editor no longer saves values its own fields flag as invalid.
-    - Online tagging releases its Comic Vine connections when a scan finishes.
-    - Hovering a browser card draws its highlight border.
-    - The tagging connection chip shows its check or alert icon.
-    - An installed Codex gets a dark app bar instead of an orange one.
-    - A tag write refused because another archive in the same batch converts to
-      the same name now links to that comic.
-    - Cover thumbnails in table mode and on the custom-covers admin tab open
-      with the keyboard.
-    - Invalid admin settings values are rejected instead of breaking browsing.
-    - Admin forms show the server's reason when a name is already taken.
-    - Clearing part of a poll interval no longer produces an invalid value.
-    - Buttons on the orange accent use dark text.
-    - The email host field accepts hostnames without a dot, such as localhost.
-    - The change-password dialog enforces the minimum password length.
-    - A comic that disappears from a library is kept for a day, so a filesystem
-      outage no longer loses its read progress.
-    - Breadcrumbs and metadata no longer name collections from libraries you
-      can't see.
-    - A briefly unreadable folder no longer loses its collections' custom
-      covers.
-    - Browsing to a collection you can't see sends you up a level instead of a
-      blank page.
-    - Custom cover thumbnails survive the nightly cleanup.
-    - One unreadable comic no longer empties an OPDS feed.
-    - Collection rows only summarize comics you can see.
-    - Metadata imports and reading positions respect library and age-rating
-      permissions.
-    - Deleting a library succeeds, and library and group membership changes
-      refresh the browser.
-    - Force Update no longer costs a moved comic its bookmarks.
+    - A filesystem outage no longer costs a library its comics, read progress,
+      or custom covers.
+    - A comic that disappears from a library is kept for a day before it is
+      really deleted.
     - Two libraries whose paths overlap no longer destroy each other's comics
       and bookmarks.
+    - Moving, renaming, or force updating a comic keeps its read progress.
+    - Comics with uppercase file extensions no longer lose their folders and
+      read progress.
+    - Read progress can no longer be recorded twice for the same comic.
+    - Breadcrumbs, metadata, and collection totals no longer name or count
+      comics from libraries you can't see.
+    - Metadata imports and reading positions respect library and age-rating
+      permissions.
+    - Browsing to a collection you can't see sends you up a level instead of a
+      blank page.
+    - A comic whose file is missing or unreadable returns Not Found instead of a
+      server error.
+    - OPDS clients can browse from the catalog root again, and one unreadable
+      comic no longer empties a feed.
+    - The OPDS urls dialog opens, and its copy buttons work over plain http.
+    - Deleting a library succeeds, and library and group membership changes
+      refresh the browser.
+    - A refused tag write names the comic to edit instead, and links to it.
+    - The metadata editor no longer saves values its own fields flag as invalid.
+    - Online tagging releases its Comic Vine connections when a scan finishes.
+    - The match review dialog no longer clips its Pause button, and the tagging
+      connection chip shows its check or alert icon.
+    - Registration and the change-password dialog enforce the minimum password
+      length.
+    - Invalid admin settings values are rejected instead of breaking browsing,
+      and admin forms show the server's reason when a name is already taken.
+    - Clearing part of a poll interval no longer produces an invalid value, and
+      the email host field accepts hostnames without a dot.
+    - The nightly cleanup keeps custom cover thumbnails and removes bookmarks
+      belonging to no user or session.
+    - Panels gets both its own sort menu and the sort folders, on every
+      platform.
+    - An installed Codex gets a dark app bar, and buttons on the orange accent
+      use dark text.
+    - Browser cards draw their hover border, and cover thumbnails in table mode
+      and on the custom-covers admin tab open with the keyboard.
 
 ## v2.3.3
 
