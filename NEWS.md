@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.3.4
+## v2.4.0 - Read State & Match Review
 
 - Features
     - Cover cards show read, unread, and in progress state.
@@ -113,7 +113,7 @@ border-radius: 128px;
     - Require simyan >= 4.1.0.
     - Resume publishing images to Docker Hub to upgrade stragglers.
 
-## v2.3.0
+## v2.3.0 - Reprints & Comicbox 5
 
 - Upgrading
     - Comicbox 5.0.0 reads some tags differently and adds others. Existing
