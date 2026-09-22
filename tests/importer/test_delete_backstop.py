@@ -123,6 +123,13 @@ class _DeleteTestBase(BaseTestImporter):
         importer.delete()
         return importer
 
+    def _revive(self, **task_kwargs) -> ComicImporter:
+        """Run the revival pre-phase with a fresh importer."""
+        task = ImportTask(library_id=self.library.pk, **task_kwargs)
+        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer.unstamp_revived()
+        return importer
+
 
 class TestDeleteExistenceBackstop(_DeleteTestBase):
     """A path still on disk is never deleted from the database."""

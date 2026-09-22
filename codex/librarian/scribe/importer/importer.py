@@ -21,7 +21,11 @@ _CHUNK_FLOOR = 1000
 # stupendous chunk size that pessimizes recovery from abort.
 _CHUNK_CEILING = 500000
 
-_PRE_PHASES = ("init_apply", "move_and_modify_dirs")
+# ``unstamp_revived`` sits between the two deliberately: after
+# ``init_apply`` sets ``start_time``, which the delete phase's collection
+# re-stamp compares against, and before ``move_and_modify_dirs`` rewrites
+# ``Folder.path`` out from under its source-path keying.
+_PRE_PHASES = ("init_apply", "unstamp_revived", "move_and_modify_dirs")
 _PER_COMIC_PHASES = ("read", "query", "create_and_update", "link")
 _POST_PHASES = ("fail_imports", "delete", "full_text_search")
 

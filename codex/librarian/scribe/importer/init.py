@@ -80,6 +80,16 @@ class Counts:
     # without the log claiming a library lost comics it still has.
     comics_missing: int = 0
     folders_missing: int = 0
+    # Stamp cleared: a kept row whose path came back. Counted for the
+    # same reason as the two above, and it is load-bearing here. A
+    # revival can be the *only* thing an import does -- a file restored
+    # byte-identically has an unchanged stat, so the read phase skips it
+    # and every other counter stays zero. Without these, ``changed()``
+    # is False, ``finish`` clears no caches and broadcasts nothing, and
+    # the row comes back in the database but stays stale in every
+    # browser.
+    comics_revived: int = 0
+    folders_revived: int = 0
     tags_deleted: int = 0
     covers: int = 0
     covers_deleted: int = 0
@@ -121,6 +131,12 @@ class InitImporter(WorkerStatusBase):
         # operational state, not parsed comic data — keeps the metadata
         # fixture-comparable in tests.
         self.cover_create_pks: set[int] = set()
+        # Comic pks whose pending-delete stamp this import cleared.
+        # ``publish_revival`` needs them at ``finish`` time to drop the
+        # zero-byte cover sentinel a failed render left behind while the
+        # file was gone. Held off ``metadata`` for the same reason as
+        # ``cover_create_pks``.
+        self.revived_comic_pks: set[int] = set()
         # Per-chunk FK-link instance maps built by
         # ``prepare_fk_link_instance_maps`` after the FK create/update
         # steps; consumed by ``get_comic_fk_links`` during comic

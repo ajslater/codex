@@ -4,7 +4,10 @@ from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from codex.librarian.covers.tasks import CoverRemoveTask
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import (
+    LIBRARY_CHANGED_TASK,
+    PENDING_DELETES_CHANGED_TASK,
+)
 from codex.librarian.pending_deletes import PENDING_DELETE_WINDOW
 from codex.librarian.scribe.importer.delete.collect import (
     init_comic_collection_map,
@@ -100,6 +103,10 @@ class JanitorReap(JanitorCleanup):
                 CoverRemoveTask(frozenset(comic_pks), custom=False)
             )
         self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+        # The rows just left the Pending Deletes panel. Without this the
+        # panel keeps listing them until an admin reloads the Libraries
+        # tab -- the same gap the stamp side had.
+        self.librarian_queue.put(PENDING_DELETES_CHANGED_TASK)
 
     def reap_pending_deletes(self) -> None:
         """
