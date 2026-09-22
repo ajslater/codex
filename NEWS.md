@@ -9,8 +9,7 @@ border-radius: 128px;
 ## v2.3.4
 
 - Features
-    - Cover cards show read, unread, and in progress state, with a setting to
-      turn it off.
+    - Cover cards show read, unread, and in progress state.
     - Online tagging match candidates show a cover, a link to the source's page,
       and what separated their scores.
     - Hovering a match candidate's cover shows it full size.
