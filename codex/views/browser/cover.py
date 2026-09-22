@@ -240,7 +240,7 @@ def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     # card's cover.
     acl_q = GroupACLMixin.get_group_acl_filter(Comic, user)
     age_q = GroupACLMixin.get_age_rating_acl_filter(Comic, user)
-    missing_q = GroupACLMixin.get_missing_acl_filter(Comic, user)
+    missing_q = GroupACLMixin.get_missing_acl_filter(Comic)
     return (
         Comic.objects.filter(acl_q & age_q & missing_q, **{field: pk})
         .order_by("sort_name", "pk")

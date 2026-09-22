@@ -437,10 +437,12 @@ class ComicACL:
       interpolated into the statement.
 
     The pending-delete (``missing_since``) clause is deliberately *not*
-    part of this object. The intersection queries exclude scanner-stamped
-    comics unconditionally, with no staff exemption; folding the
-    staff-aware clause in here would apply one rule to a cell's numerator
-    and another to its denominator.
+    part of this object. These three scalars are the per-user ones --
+    which libraries, which age ratings -- and they are what the raw-SQL
+    spelling needs bound as parameters. The missing clause is neither:
+    it is the same literal predicate for every user, so the intersection
+    queries carry their own ``_LIVE_COMIC`` copy of it alongside this
+    ACL rather than through it.
     """
 
     library_pks: tuple[int, ...]
@@ -526,18 +528,23 @@ class MissingACLFilterMixin(RelPrefixMixin):
 
     A row whose path a scan could not find is kept for a retention
     window instead of being deleted, so its bookmarks survive a
-    filesystem outage. It is hidden from ordinary users for that window
-    and stays visible to staff, who are the only ones who can act on it.
+    filesystem outage. It is hidden from every browsing surface for that
+    window, staff included. An admin acts on these rows through the
+    Pending Deletes panel, which reads the unfiltered admin endpoint, so
+    the browser has nothing to offer them that the panel does not offer
+    better -- and a staff exemption here would put an admin's listing at
+    odds with the collection aggregates, which drop stamped comics
+    unconditionally.
+
+    Deliberately uniform across users, so it takes no ``user``. The
+    reader and the bookmark writers keep their own exemption through
+    ``include_missing``, which is where "do not yank an open book out
+    from under its reader" lives.
     """
 
     @classmethod
-    def get_missing_acl_filter(cls, model, user) -> Q:
-        """Hide scanner-stamped rows from non-staff users."""
-        if user.is_staff:
-            # Not ``getattr(user, "is_staff", False)``: AnonymousUser
-            # defines ``is_staff = False`` as a class attribute, so the
-            # default would never be exercised and would only mislead.
-            return Q()
+    def get_missing_acl_filter(cls, model) -> Q:
+        """Hide scanner-stamped rows from everyone."""
         # Comic owns the column outright; the collection models reach it
         # through the same relation prefix the group ACL uses.
         q = Q(**{f"{cls.get_rel_prefix(model)}missing_since__isnull": True})
@@ -634,7 +641,7 @@ class GroupACLMixin(
             model, self.get_max_idx(user), default_fits=self.get_default_fits(user)
         )
         if not include_missing:
-            acl_filter &= self.get_missing_acl_filter(model, user)
+            acl_filter &= self.get_missing_acl_filter(model)
         return acl_filter
 
 

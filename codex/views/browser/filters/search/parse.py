@@ -263,7 +263,7 @@ class SearchFilterView(BrowserFTSFilter):
         # path for no benefit, so drop them here.
         pks = tuple(
             Comic.objects.filter(
-                self.get_missing_acl_filter(Comic, self.request.user),
+                self.get_missing_acl_filter(Comic),
                 comicfts__match=fts_text,
             ).values_list("pk", flat=True)
         )

@@ -48,11 +48,12 @@ class AdminPendingDeletesView(AdminAPIView):
     """
     List the rows the retention window is holding.
 
-    Without this an admin sees stamped rows in the ordinary browser
-    rendered identically to live ones -- the ACL exempts staff -- so
-    they cannot tell which is which, cannot revive one, and cannot force
-    an early delete. The admin is otherwise the one person who cannot
-    see the state the feature creates.
+    The only window onto this state. The visibility filter hides a
+    stamped row from every browsing surface with no staff exemption, so
+    without this endpoint the state would be invisible to everyone and
+    an admin could neither revive a row nor force an early delete. That
+    is why this is a plain ``AdminAPIView`` reading the models directly:
+    it must see exactly what the browser must not.
     """
 
     serializer_class = PendingDeleteSerializer

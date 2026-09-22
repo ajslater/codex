@@ -139,7 +139,9 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # folder's absolute path plus a dead browse link. The None arm
         # is a live AttributeError today -- ``is_allowed`` is a no-op
         # for a Comic, which is a sibling of Folder rather than a Folder.
-        if folder is None or (folder.missing_since is not None and not self.is_admin):
+        # No staff exemption, matching ``MissingACLFilterMixin``: a
+        # stamped folder is hidden from everyone.
+        if folder is None or folder.missing_since is not None:
             return []
         name = folder.path
         pks = [folder.pk]

@@ -1,11 +1,11 @@
 """
 The admin surface for pending deletes.
 
-The visibility filter exempts staff, so without this endpoint an admin
-sees stamped rows in the ordinary browser rendered identically to live
-ones: they cannot tell which is which, cannot put one back, and cannot
-force an early delete. The admin is otherwise the one person who cannot
-see the state the feature creates.
+The only window onto this state. The visibility filter hides a stamped
+row from every browsing surface with no staff exemption, so without
+these endpoints an admin could not tell what is being held, could not
+put one back, and could not force an early delete. Every assertion here
+therefore goes through the unfiltered admin API rather than a browse.
 """
 
 import shutil
