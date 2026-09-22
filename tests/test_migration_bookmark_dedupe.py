@@ -1,5 +1,5 @@
 """
-Tests for the 0054 ``dedupe_bookmarks`` data migration.
+Tests for the ``dedupe_bookmarks`` data migration in 0054.
 
 The partial unique constraints the migration adds cannot be applied to a
 table that already violates them, so the same migration merges the
@@ -38,7 +38,7 @@ from codex.models import (
 )
 from tests.tmp_dirs import tmp_dir
 
-_MIGRATION = importlib.import_module("codex.migrations.0054_bookmark_partial_unique")
+_MIGRATION = importlib.import_module("codex.migrations.0054_post_v2_3_3_schema")
 dedupe_bookmarks = _MIGRATION.dedupe_bookmarks
 
 _TMP_DIR: Final = tmp_dir("codex.tests.bookmark_dedupe")
