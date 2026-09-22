@@ -3,9 +3,10 @@ Visibility of scanner-stamped (pending-delete) rows.
 
 A row whose path a scan could not find carries ``missing_since`` and is
 kept for a retention window instead of being deleted, so its bookmarks
-survive a filesystem outage. It must be hidden from ordinary users for
-that window and stay visible to staff, who are the only ones who can act
-on it.
+survive a filesystem outage. It must be hidden from every browsing
+surface for that window, staff included -- an admin acts on these rows
+through the Pending Deletes panel, which reads the unfiltered admin
+endpoint, not through the browser.
 
 Nothing writes the stamp yet, which is what makes these tests possible in
 isolation: every case hand-stamps a row with ``.update(missing_since=…)``
@@ -29,7 +30,7 @@ import json
 import shutil
 from typing import Final, override
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.test import Client, TestCase
 from django.utils import timezone
@@ -75,27 +76,21 @@ def _stamp(model, pk) -> None:
 class MissingACLFilterTestCase(TestCase):
     """The seam itself, without a request."""
 
-    def test_staff_see_everything(self) -> None:
-        """An admin is the one person who can act on a stamped row."""
-        user = User(username="admin", is_staff=True)
-        assert MissingACLFilterMixin.get_missing_acl_filter(Comic, user) == Q()
-
-    def test_anonymous_is_not_staff(self) -> None:
+    def test_the_filter_is_the_same_for_everyone(self) -> None:
         """
-        AnonymousUser defines ``is_staff = False`` as a class attribute.
+        No staff exemption, and no ``user`` argument to carry one.
 
-        So a plain attribute read is correct and a defensive
-        ``getattr(user, "is_staff", False)`` would only mislead the next
-        reader -- its default can never be exercised.
+        The seam takes no user at all, so there is no per-user arm to
+        drift: an anonymous visitor, a plain user and an admin get the
+        identical predicate.
         """
-        q = MissingACLFilterMixin.get_missing_acl_filter(Comic, AnonymousUser())
+        q = MissingACLFilterMixin.get_missing_acl_filter(Comic)
         assert q == Q(missing_since__isnull=True)
 
     def test_collections_reach_the_column_through_comic(self) -> None:
         """Only Comic and Folder own the column; the rest traverse to it."""
-        user = User(username="plain")
         for model in (Publisher, Imprint, Series, Volume):
-            q = MissingACLFilterMixin.get_missing_acl_filter(model, user)
+            q = MissingACLFilterMixin.get_missing_acl_filter(model)
             assert q == Q(comic__missing_since__isnull=True), model.__name__
 
     def test_folder_needs_both_clauses(self) -> None:
@@ -107,7 +102,7 @@ class MissingACLFilterTestCase(TestCase):
         carries its OWN stamp from dirs_deleted, so the self clause is
         needed too -- the same asymmetry ``_library_rel`` encodes.
         """
-        q = MissingACLFilterMixin.get_missing_acl_filter(Folder, User(username="u"))
+        q = MissingACLFilterMixin.get_missing_acl_filter(Folder)
         assert q == Q(comic__missing_since__isnull=True) & Q(missing_since__isnull=True)
 
 
@@ -182,11 +177,18 @@ class MissingVisibilityTestCase(TestCase):
         _stamp(Comic, self.comics[0].pk)
         assert self._browse("comics")["count"] == len(self.comics) - 1
 
-    def test_a_stamped_comic_stays_visible_to_staff(self) -> None:
-        """An admin can still see what the feature is holding."""
+    def test_a_stamped_comic_is_hidden_from_staff_too(self) -> None:
+        """
+        No staff exemption: an admin's listing is the plain user's.
+
+        The admin acts on these rows through the Pending Deletes panel,
+        which reads the unfiltered admin endpoint. A staff exemption
+        here would also put their listing at odds with the collection
+        aggregates, which drop stamped comics unconditionally.
+        """
         _stamp(Comic, self.comics[0].pk)
         self.client.force_login(self.admin)
-        assert self._browse("comics")["count"] == len(self.comics)
+        assert self._browse("comics")["count"] == len(self.comics) - 1
 
     def test_the_row_survives(self) -> None:
         """Hidden is not deleted -- that is the entire point."""

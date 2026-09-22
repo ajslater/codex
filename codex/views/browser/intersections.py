@@ -53,16 +53,17 @@ if TYPE_CHECKING:
 # the failure and is easy to miss: a stamped comic left in the
 # denominator blanks a cell that every live child agrees on.
 #
-# Deliberately unconditional, with no staff exemption, unlike the ACL
-# seam: a staff-aware policy here would make the denominator include
-# rows the numerator excludes -- blanking every table cell for admins
-# specifically. Cells describing only live comics is also the more
-# useful answer.
+# Unconditional, and so is the ACL seam that hides the same rows from
+# the listing (``MissingACLFilterMixin``): one rule for every user, so a
+# cell and the listing it describes cannot disagree. This used to be the
+# asymmetric pair -- the seam exempted staff while these clauses did not
+# -- which made an admin's listing count rows their table cells had
+# already dropped.
 #
-# The ACL itself is uniform for staff and non-staff alike, so it rides
-# alongside these clauses instead: every builder and aggregate below
-# takes a ``ComicACL`` and applies it to the numerator and the
-# ``total_count`` denominator together, for the same reason.
+# The ACL proper is per-user and rides alongside these clauses rather
+# than inside them: every builder and aggregate below takes a
+# ``ComicACL`` and applies it to the numerator and the ``total_count``
+# denominator together, for the same reason.
 _LIVE_COMIC = Q(missing_since__isnull=True)
 _LIVE_COMIC_REL = Q(comic__missing_since__isnull=True)
 _LIVE_COMIC_SQL = "c.missing_since IS NULL"

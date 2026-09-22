@@ -23,6 +23,7 @@ from typing import Final, override
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
+from django.utils import timezone
 
 from codex.models import (
     Bookmark,
@@ -237,6 +238,22 @@ class CollectionRowAggregateTestCase(TestCase):
                     page=n_finished * _PAGES,
                     finished=finished,
                 )
+
+    def test_a_stamped_comic_leaves_the_aggregates_for_staff(self) -> None:
+        """
+        The listing and its aggregates agree for an admin too.
+
+        ``self.me`` is staff. The visibility filter used to exempt
+        staff while the intersection clauses
+        (``intersections._LIVE_COMIC``) never did, so an admin's
+        ``childCount`` counted a pending-delete row that their table
+        cells had already dropped. Both sides hide it now, and this
+        asserts the browse row and its ``/metadata`` twin move together.
+        """
+        self._finish(0)
+        Comic.objects.filter(pk=self.comics[-1].pk).update(missing_since=timezone.now())
+        for _label, collection, pks in self._cases():
+            self._assert_row(collection, pks, children=_N - 1, page=0, finished=False)
 
     def test_m2m_filter_counts(self) -> None:
         """A non-uniform m2m filter must not inflate the sums."""

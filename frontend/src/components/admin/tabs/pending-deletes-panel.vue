@@ -4,10 +4,10 @@
   sibling of Failed Imports -- "on disk, could not import" next to "not
   on disk, not deleted yet" -- and copied from its presentation.
 
-  Without this an admin sees these rows in the ordinary browser rendered
-  identically to live ones (the visibility filter exempts staff), so
-  they cannot tell which is which, cannot put one back, and cannot force
-  an early delete.
+  The only window onto this state. The visibility filter hides a stamped
+  row from every browsing surface with no staff exemption, so without
+  this panel an admin could not tell what is being held, could not put
+  one back, and could not force an early delete.
 -->
 <template>
   <div v-if="showPendingDeletes" id="pendingDeletes" class="pendingDeletes">
@@ -92,9 +92,10 @@ export default {
       mdiClockAlert,
       hint: `These comics and folders disappeared from a library. Codex keeps
         them for a day in case they come back, so a filesystem outage does not
-        lose your read progress. They are hidden from everyone but admins until
-        then. Keep one to stop its countdown; a comic whose file returns is
-        restored on its own by the next scan. See also Failed Imports below.`,
+        lose your read progress. They are hidden from the browser until then,
+        for you too -- this list is the only place they appear. Keep one to
+        stop its countdown; a comic whose file returns is restored on its own
+        by the next scan. See also Failed Imports below.`,
     };
   },
   computed: {
