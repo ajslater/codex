@@ -31,7 +31,10 @@ from codex.librarian.fs.poller.poller import LibraryPollerThread
 from codex.librarian.fs.poller.snapshot import DatabaseSnapshot, DiskSnapshot
 from codex.librarian.fs.poller.snapshot_diff import SnapshotDiff
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import (
+    LIBRARY_CHANGED_TASK,
+    PENDING_DELETES_CHANGED_TASK,
+)
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.integrity.foreign_keys import fix_folder_relations
@@ -90,14 +93,41 @@ class TestSoftDeleteStamping(_DeleteTestBase):
         assert importer.counts.comics_missing == 1
         assert importer.counts.comics_deleted == 0
 
-    def test_a_watcher_delete_still_deletes(self) -> None:
+    def test_a_watcher_delete_is_also_held(self) -> None:
         """
-        Retention is poller-only, and the default is unchanged.
+        Retention covers both scanners, not just the poller.
 
-        A watcher ``deleted`` means the OS observed the name vanish at
-        that instant, with no "the walk could not look" failure mode.
-        The poller also re-observes on every pass, which is what makes
-        retention possible; the watcher cannot.
+        This used to assert the opposite, and that assertion was the
+        bug: a watcher ``deleted`` is an inference too -- the OS reports
+        the *name* going away, which a move whose paired add lands in
+        the next batch, an overmatched dir expansion, or a share that
+        blinked all produce. On a library that is both watched and
+        polled the watcher always wins the race, so retention was dead
+        in its commonest configuration.
+
+        The watcher reaches the way back through the importer's own
+        ``unstamp_revived`` phase rather than the poller's whole-library
+        re-observation.
+        """
+        comic = self._create_comic(_GONE)
+        Path(_GONE).unlink()
+
+        importer = self._soft_delete(files_deleted=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since is not None
+        assert importer.counts.comics_missing == 1
+        assert importer.counts.comics_deleted == 0
+
+    def test_a_hard_delete_is_still_available(self) -> None:
+        """
+        The five database-derived producers keep the default.
+
+        LazyImporter, ForceUpdater, adopt_folders, TagWriter and the
+        janitor's failed_imports build their path sets from the database
+        rather than from disk, so nothing they name is an observation.
+        None populates a deleted set today; the flag stays off so one
+        that grows a delete has to opt in deliberately.
         """
         comic = self._create_comic(_GONE)
         Path(_GONE).unlink()
@@ -107,6 +137,35 @@ class TestSoftDeleteStamping(_DeleteTestBase):
         assert not Comic.objects.filter(pk=comic.pk).exists()
         assert importer.counts.comics_deleted == 1
         assert importer.counts.comics_missing == 0
+
+    def test_stamping_notifies_the_pending_deletes_panel(self) -> None:
+        """
+        Rows appearing in the held set must reach the admin panel live.
+
+        ``comics_missing`` was counted and logged but nothing published
+        ``PENDING_DELETES_CHANGED_TASK``, so the panel only filled on a
+        Libraries-tab reload -- even though the websocket half was
+        already wired and listening.
+        """
+        comic = self._create_comic(_GONE)
+        Path(comic.path).unlink()
+        importer = self._soft_delete(files_deleted=frozenset({_GONE}))
+
+        with patch.object(LIBRARIAN_QUEUE, "put") as put_mock:
+            importer.finish()
+
+        queued = [call.args[0] for call in put_mock.call_args_list]
+        assert PENDING_DELETES_CHANGED_TASK in queued, queued
+
+    def test_an_import_that_stamps_nothing_does_not_notify(self) -> None:
+        """The negative: an ordinary import leaves the panel alone."""
+        importer = self._soft_delete()
+
+        with patch.object(LIBRARIAN_QUEUE, "put") as put_mock:
+            importer.finish()
+
+        queued = [call.args[0] for call in put_mock.call_args_list]
+        assert PENDING_DELETES_CHANGED_TASK not in queued, queued
 
     def test_an_unreadable_path_is_never_stamped(self) -> None:
         """
@@ -382,6 +441,203 @@ class TestRevival(_DeleteTestBase):
         assert comic.missing_since is None
 
 
+class TestImporterRevival(_DeleteTestBase):
+    """
+    The watcher's way back: the importer's own ``unstamp_revived`` phase.
+
+    The poller's revival next door intersects a full database
+    enumeration with a full disk walk, which the watcher has neither of.
+    Without a second route a watcher-stamped row would stay hidden with
+    its file sitting on disk until the reaper destroyed it a day later
+    -- the original bug, delayed and silent, which is exactly what the
+    feature's own commit warned must never ship.
+
+    Every test here keys the revival off the *task's* paths rather than
+    off anything the read or create phases decided, because a file
+    restored byte-identically has an unchanged stat and the read phase
+    skips it entirely.
+    """
+
+    def _stamp(self, model, pk) -> None:
+        """Hand-stamp a row the way a scan would."""
+        model.objects.filter(pk=pk).update(missing_since=timezone.now())
+
+    def _vanish(self, comic: Comic) -> None:
+        """Take the file away and let a scan stamp the row."""
+        Path(comic.path).unlink()
+        self._delete(soft_delete=True, files_deleted=frozenset({comic.path}))
+        comic.refresh_from_db()
+        assert comic.missing_since is not None
+
+    def test_a_created_file_at_a_stamped_path_is_unstamped(self) -> None:
+        """
+        The headline: a returning file reclaims its own row.
+
+        The watcher reports a restored file as ``added``, which becomes
+        ``files_created``. The importer would update the row in place
+        and leave the stamp untouched -- ``missing_since`` is excluded
+        from ``BULK_UPDATE_COMIC_FIELDS`` on purpose -- so without this
+        phase the comic stays invisible and gets reaped a day later.
+        """
+        comic = self._create_comic(_GONE)
+        user = User.objects.create_user(username="back", password="x")  # noqa: S106
+        Bookmark.objects.create(user=user, comic=comic, page=_BOOKMARK_PAGE)
+        pk = comic.pk
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+
+        importer = self._revive(files_created=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.pk == pk
+        assert comic.missing_since is None
+        assert importer.counts.comics_revived == 1
+        assert Bookmark.objects.get(comic=comic).page == _BOOKMARK_PAGE
+
+    def test_a_modified_file_at_a_stamped_path_is_unstamped(self) -> None:
+        """
+        The delete-and-add-in-one-batch shape.
+
+        ``_replaced_paths`` folds a path that is deleted and added in
+        the same watchfiles batch into ``files_modified``, so that set
+        is evidence of existence too.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+
+        importer = self._revive(files_modified=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since is None
+        assert importer.counts.comics_revived == 1
+
+    def test_a_returning_directory_unstamps_its_folders(self) -> None:
+        """
+        The production incident, and the case a path-only revival misses.
+
+        A restored directory produces *no* directory event: the watcher
+        expands an added dir into per-file adds only. So the Folder rows
+        are named nowhere in the task, and ``missing_since`` is absent
+        from ``BULK_UPDATE_FOLDER_FIELDS`` too -- they would keep their
+        stamps forever. A stamped Folder is hidden by the ACL's own self
+        clause even with every comic under it live, so the subtree would
+        stay invisible while the reaper spared it for having live
+        children. The ancestors are derived from the revived comics.
+        """
+        subdir_folder = self._make_subdir_folder()
+        path = str(_SUBDIR / "c.cbz")
+        comic = self._create_comic(path, folder=subdir_folder)
+        self._vanish(comic)
+        self._stamp(Folder, subdir_folder.pk)
+        shutil.copy(COMIC_PATH, path)
+
+        importer = self._revive(files_created=frozenset({path}))
+
+        comic.refresh_from_db()
+        subdir_folder.refresh_from_db()
+        assert comic.missing_since is None
+        assert subdir_folder.missing_since is None
+        assert importer.counts.folders_revived == 1
+
+    def test_a_still_missing_stamped_path_keeps_its_stamp(self) -> None:
+        """
+        The probe, and the reason the phase cannot trust its own task.
+
+        ``ForceUpdater`` and ``LazyImporter`` build ``files_modified``
+        from a database query, so both happily name a stamped comic
+        whose file is still gone. Without the disk probe an admin
+        pressing Force Update would un-hide every pending delete in the
+        library and stop its countdown, and on a watched-but-unpolled
+        library nothing would ever stamp them again.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        # The file is still gone; only the task claims otherwise.
+
+        importer = self._revive(files_modified=frozenset({_GONE}))
+
+        comic.refresh_from_db()
+        assert comic.missing_since is not None
+        assert importer.counts.comics_revived == 0
+
+    def test_an_unrelated_import_leaves_other_stamps_alone(self) -> None:
+        """A revival is scoped to the paths the task named."""
+        gone = self._create_comic(_GONE)
+        other = self._create_comic(_EXTANT)
+        self._vanish(gone)
+        self._stamp(Comic, other.pk)
+        shutil.copy(COMIC_PATH, _GONE)
+
+        self._revive(files_created=frozenset({_GONE}))
+
+        gone.refresh_from_db()
+        other.refresh_from_db()
+        assert gone.missing_since is None
+        assert other.missing_since is not None
+
+    def test_a_stamped_move_source_is_unstamped(self) -> None:
+        """
+        A move is keyed on its source, and probed at its destination.
+
+        This phase runs before ``move_and_modify_dirs``, so the row
+        still sits at the source path while the evidence for it is at
+        the destination. Keying on the destination would match no row
+        at all.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _EXTANT)
+
+        importer = self._revive(files_moved={_GONE: _EXTANT})
+
+        comic.refresh_from_db()
+        assert comic.missing_since is None
+        assert importer.counts.comics_revived == 1
+
+    def test_a_pure_revival_counts_as_a_change(self) -> None:
+        """
+        A revival alone must announce itself.
+
+        A file restored byte-identically has an unchanged stat, so the
+        read phase skips it and every other counter stays zero. If
+        ``changed()`` were False, ``finish`` would clear no caches and
+        broadcast nothing: the row would come back in the database and
+        stay stale in every browser.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+
+        importer = self._revive(files_created=frozenset({_GONE}))
+
+        assert importer.counts.comics_revived == 1
+        assert importer.counts.changed()
+
+    def test_revival_announces_itself(self) -> None:
+        """
+        A revival needs more than the ordinary library-changed sweep.
+
+        ``publish_revival`` also drops the zero-byte cover sentinel that
+        a render failing while the file was missing left behind, which
+        would otherwise leave the comic permanently blank, and clears
+        the row out of the admin panel.
+        """
+        comic = self._create_comic(_GONE)
+        self._vanish(comic)
+        shutil.copy(COMIC_PATH, _GONE)
+        importer = self._revive(files_created=frozenset({_GONE}))
+
+        with patch.object(LIBRARIAN_QUEUE, "put") as put_mock:
+            importer.finish()
+
+        queued = [call.args[0] for call in put_mock.call_args_list]
+        assert LIBRARY_CHANGED_TASK in queued, queued
+        assert PENDING_DELETES_CHANGED_TASK in queued, queued
+        assert any(isinstance(task, CoverRemoveTask) for task in queued), queued
+        assert any(isinstance(task, CoverCreateTask) for task in queued), queued
+
+
 class TestReaper(_DeleteTestBase):
     """
     The nightly reaper, and the cascade it must refuse.
@@ -472,6 +728,9 @@ class TestReaper(_DeleteTestBase):
         # The stamp deliberately kept the covers so a revived row would
         # find its own; now the row is really gone they must follow it.
         assert any(isinstance(task, CoverRemoveTask) for task in queued), queued
+        # The rows just left the panel, which is the other direction of
+        # the same gap the stamp side had.
+        assert PENDING_DELETES_CHANGED_TASK in queued, queued
 
     def test_the_job_is_fully_registered(self) -> None:
         """

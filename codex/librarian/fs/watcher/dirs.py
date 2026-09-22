@@ -62,9 +62,16 @@ def expand_dir_deleted(dir_path: str, library_pk: int, batch: ChangeBatch) -> No
     # Beyond" and all its comics), so terminate the prefix with a separator.
     child_prefix = dir_path.rstrip(os.sep) + os.sep
 
-    # Child folders
+    # Child folders. ``missing_since__isnull=True`` skips rows already
+    # being held for the retention window: they are still in the
+    # database, so a repeat ``deleted`` for the same directory -- which
+    # watchfiles can emit across batches during a long move -- would
+    # re-expand the whole subtree it already stamped. ``_stamp_missing``
+    # refuses to rewrite the clock so that stays correct, but it costs a
+    # stat per child and another five-second second look. The poller
+    # suppresses the same re-report with ``data.deleted -= ref.missing``.
     child_folder_paths = Folder.objects.filter(
-        library_id=library_pk, path__startswith=child_prefix
+        library_id=library_pk, path__startswith=child_prefix, missing_since__isnull=True
     ).values_list("path", flat=True)
     for path in child_folder_paths:
         batch.dir_deleted.append(
@@ -77,7 +84,9 @@ def expand_dir_deleted(dir_path: str, library_pk: int, batch: ChangeBatch) -> No
     # Child comics and failed imports
     for model in (Comic, FailedImport):
         child_paths = model.objects.filter(
-            library_id=library_pk, path__startswith=child_prefix
+            library_id=library_pk,
+            path__startswith=child_prefix,
+            missing_since__isnull=True,
         ).values_list("path", flat=True)
         for path in child_paths:
             batch.deleted.append(

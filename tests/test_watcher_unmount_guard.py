@@ -170,3 +170,35 @@ class WatcherProcessChangesTests(TestCase):
 
         assert len(queued) == 1
         assert queued[0].files_deleted == {str(_ROOT / "a.cbz")}
+
+    def test_the_watcher_asks_for_a_soft_delete(self) -> None:
+        """
+        The assertion that would have caught the retention bug.
+
+        Every other pending-delete test hands ``soft_delete=True`` to
+        the importer by hand, so none of them could see that the watcher
+        never asked for it -- and the watcher beats the poller to every
+        delete on a library that is both watched and polled, which is
+        the default shape. Assert the *call site*, not the branch.
+        """
+        (_ROOT / "b.cbz").write_text("comic")
+        queued: list = []
+
+        self._run(queued)
+
+        assert queued[0].soft_delete is True
+
+    def test_the_unmount_guard_still_drops_a_vanished_library(self) -> None:
+        """
+        Soft deletes do not make the guard redundant.
+
+        A tempting argument once deletes stopped being destructive. But
+        stamping a whole library floods the admin panel with every comic
+        in it, hides all of them from ordinary users for a day, and pays
+        the five-second second look to do it.
+        """
+        queued: list = []
+
+        self._run(queued)
+
+        assert not queued
