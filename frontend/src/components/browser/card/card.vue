@@ -123,16 +123,6 @@ export default {
         this.isFavorite(this.item.collection, this.favoritePk),
       );
     },
-    /*
-     * PENDING SCHEMA REMOVAL
-     *
-     * Read state is no longer a user option; the ``Read State`` checkbox is
-     * gone from the browser settings drawer. ``SettingsBrowser.show_read_state``
-     * and its serializer field are deliberately still there, so every user's
-     * stored preference survives and putting the toggle back is a revert
-     * rather than a data migration. Drop the column, its serializer and
-     * ``BROWSER_DEFAULTS`` entries when we commit to this.
-     */
     readState() {
       return getReadState(this.item);
     },
@@ -151,10 +141,9 @@ export default {
     },
     linkLabel() {
       /*
-       * The read state is appended unconditionally: the setting governs
-       * pixels, not semantics. It also retires the old progress bar's
-       * ``${item.progress}% read`` label, which announced "0% read" on every
-       * unread card and on every card that had been marked read without
+       * The read state is appended to every card, retiring the old progress
+       * bar's ``${item.progress}% read`` label, which announced "0% read" on
+       * every unread card and on every card that had been marked read without
        * being opened.
        *
        * Assembled from the non-empty parts because an untitled comic used to

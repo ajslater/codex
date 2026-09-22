@@ -365,16 +365,15 @@ class SettingsBrowser(SettingsBase):
     #
     # PENDING SCHEMA REMOVAL
     #
-    # The next three are no longer user options: their checkboxes are gone
+    # The next two are no longer user options: their checkboxes are gone
     # from the browser settings drawer and the behavior is pinned on in
-    # ``views/browser/annotate/cover.py`` and ``browser/card/card.vue``.
-    # The columns stay so nobody's stored preference is destroyed while we
-    # find out whether anyone misses the toggles -- restoring them is a
-    # revert, not a data migration. Drop these three, their serializer
-    # fields and their ``BROWSER_DEFAULTS`` entries together.
+    # ``views/browser/annotate/cover.py``. The columns stay so nobody's
+    # stored preference is destroyed while we find out whether anyone misses
+    # the toggles -- restoring them is a revert, not a data migration. Drop
+    # these two, their serializer fields and their ``BROWSER_DEFAULTS``
+    # entries together.
     custom_covers = BooleanField(default=True)
     dynamic_covers = BooleanField(default=True)
-    show_read_state = BooleanField(default=True)
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
 
@@ -411,7 +410,6 @@ class SettingsBrowser(SettingsBase):
             "search",
             "custom_covers",
             "dynamic_covers",
-            "show_read_state",
             "twenty_four_hour_time",
             "always_show_filename",
             "view_mode",

@@ -1,7 +1,7 @@
 """
 Everything the schema gained after v2.3.3, as one migration.
 
-v2.3.3 shipped through 0053, so nothing here has reached a release. The four
+v2.3.3 shipped through 0053, so nothing here has reached a release. The three
 migrations that landed on develop since are folded together rather than left as
 a chain of single-field steps: an upgrading install applies one migration, and
 the bookmark dedupe below runs once, before the constraints that need it.
@@ -28,8 +28,6 @@ In order:
 - **``JRP`` joins the librarian status choices** so the pending-delete
   reaper's status row can exist. All the keys are three characters, so the
   column width does not move.
-- **``SettingsBrowser.show_read_state``**, defaulting on, so a user can turn
-  the cover-card read-state marker off.
 
 SQLite rolls DDL back and ``Migration.atomic`` is on by default, so the merge
 and everything after it land together or not at all. The conditional
@@ -250,10 +248,5 @@ class Migration(migrations.Migration):
                 db_index=True,
                 max_length=3,
             ),
-        ),
-        migrations.AddField(
-            model_name="settingsbrowser",
-            name="show_read_state",
-            field=models.BooleanField(default=True),
         ),
     ]
