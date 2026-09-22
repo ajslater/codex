@@ -84,6 +84,14 @@ async function mountEditPanel(renameFiles, md = {}, ids = [1], childCount = 0) {
   });
   mountedWrappers.push(wrapper);
   await flushPromises();
+  // mounted() flips renameFile from the admin default, which fires the
+  // renameSignature watcher and schedules fetchRenamePreview() behind a
+  // real 400ms setTimeout. Tests assign renamePreviews directly to probe
+  // the computed properties synchronously; under load (a full vitest run
+  // spawns dozens of parallel workers) that debounce can outlast the gap
+  // to the assertion, and its mocked response silently overwrites the
+  // test's own value. Cancel it — direct assignment is the whole point.
+  clearTimeout(wrapper.vm.renamePreviewTimer);
   return wrapper;
 }
 
