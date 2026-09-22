@@ -701,6 +701,7 @@ BROWSER_DEFAULTS = MappingProxyType(
     {
         "custom_covers": True,
         "dynamic_covers": True,
+        "show_read_state": True,
         "filters": _DEFAULT_FILTERS,
         "order_by": "sort_name",
         "order_reverse": False,

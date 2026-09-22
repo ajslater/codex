@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS settings_browser (
     search TEXT NOT NULL DEFAULT '',
     custom_covers INTEGER NOT NULL DEFAULT 1,
     dynamic_covers INTEGER NOT NULL DEFAULT 1,
+    show_read_state INTEGER NOT NULL DEFAULT 1,
     twenty_four_hour_time INTEGER NOT NULL DEFAULT 0,
     always_show_filename INTEGER NOT NULL DEFAULT 0,
     view_mode TEXT NOT NULL DEFAULT '',

@@ -27,6 +27,19 @@
       label="Custom Covers"
       @update:model-value="setSetting('customCovers', $event)"
     />
+    <v-checkbox
+      v-tooltip="{
+        openDelay,
+        text: 'Mark read, unread and in progress state under each cover.',
+      }"
+      class="browserCollectionCheckbox"
+      density="compact"
+      hide-details="auto"
+      :model-value="showReadState"
+      :true-value="true"
+      label="Read State"
+      @update:model-value="setSetting('showReadState', $event)"
+    />
   </div>
   <v-divider />
 </template>
@@ -46,6 +59,8 @@ export default {
     ...mapState(useBrowserStore, {
       dynamicCovers: (state) => state.settings?.dynamicCovers || false,
       customCovers: (state) => state.settings?.customCovers || false,
+      // Defaults on, so ``!== false`` rather than ``|| false``.
+      showReadState: (state) => state.settings?.showReadState !== false,
     }),
   },
   methods: {

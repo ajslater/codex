@@ -364,6 +364,10 @@ class SettingsBrowser(SettingsBase):
     # Display preferences
     custom_covers = BooleanField(default=True)
     dynamic_covers = BooleanField(default=True)
+    # Read, unread and in-progress state under each cover. Defaults on:
+    # without it a finished comic is indistinguishable from one never
+    # opened, which is the defect in issue 856.
+    show_read_state = BooleanField(default=True)
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
 
@@ -400,6 +404,7 @@ class SettingsBrowser(SettingsBase):
             "search",
             "custom_covers",
             "dynamic_covers",
+            "show_read_state",
             "twenty_four_hour_time",
             "always_show_filename",
             "view_mode",

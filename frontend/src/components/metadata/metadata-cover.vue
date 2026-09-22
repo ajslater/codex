@@ -15,15 +15,16 @@
       :child-count="md.childCount"
       :mtime="md.mtime"
     />
-    <v-progress-linear
+    <div
       v-if="!forceGenericCover"
-      class="bookCoverProgress"
-      :model-value="md.progress"
-      rounded
-      background-color="inherit"
-      height="2"
-      aria-label="% read"
-    />
+      class="readState"
+      :class="readStateClass"
+      :aria-label="readStateLabel"
+    >
+      <div class="readStateTrack">
+        <div class="readStateFill" :style="readFillStyle" />
+      </div>
+    </div>
   </div>
 </template>
 <script>
@@ -31,6 +32,12 @@ import { mapState } from "pinia";
 
 import { getPlaceholderSrc } from "@/api/v4/browser";
 import BookCover from "@/components/book-cover.vue";
+import {
+  getReadFillPercent,
+  getReadState,
+  getReadStateLabel,
+  READ_STATE,
+} from "@/read-state";
 import { useMetadataStore } from "@/stores/metadata";
 
 export default {
@@ -55,6 +62,25 @@ export default {
     genericCoverSrc() {
       return getPlaceholderSrc(this.collection);
     },
+    /*
+     * Same derivation as the browser card, from the shared module — the two
+     * surfaces show the same comic at the same time and must not disagree.
+     * Unlike the card this is never gated by the browser setting: the dialog
+     * is where the user came to read the details.
+     */
+    readStateClass() {
+      return `is-${getReadState(this.md)}`;
+    },
+    readFillStyle() {
+      const pct =
+        getReadState(this.md) === READ_STATE.UNREAD
+          ? 0
+          : getReadFillPercent(this.md);
+      return { width: `${pct}%` };
+    },
+    readStateLabel() {
+      return getReadStateLabel(this.md);
+    },
   },
 };
 </script>
@@ -76,8 +102,49 @@ export default {
   opacity: 0.6;
 }
 
-.bookCoverProgress {
-  margin-top: -11px;
+/*
+ * Read state, matching the browser card. The slot is a fixed 10px so the
+ * 3px/6px track can change thickness without moving anything below it; the
+ * negative margins keep the track centered where the old 2px bar sat.
+ */
+.readState {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 10px;
+  margin-top: -15px;
+}
+
+.readStateTrack {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.readStateFill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.is-reading .readStateTrack,
+.is-finished .readStateTrack {
+  background-color: rgba(var(--v-theme-text-disabled), 0.25);
+}
+
+.is-reading .readStateFill {
+  background-color: rgb(var(--v-theme-primary));
+}
+
+.is-finished .readStateTrack {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.is-finished .readStateFill {
+  background-color: rgb(var(--v-theme-text-header));
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
@@ -89,8 +156,8 @@ export default {
     width: 100px;
   }
 
-  .bookCoverProgress {
-    margin-top: 1px;
+  .readState {
+    margin-top: -3px;
   }
 }
 </style>

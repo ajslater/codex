@@ -211,6 +211,7 @@ def serialize_settings_browser(
             "search": browser.search,
             "custom_covers": int(browser.custom_covers),
             "dynamic_covers": int(browser.dynamic_covers),
+            "show_read_state": int(browser.show_read_state),
             "twenty_four_hour_time": int(browser.twenty_four_hour_time),
             "always_show_filename": int(browser.always_show_filename),
             "view_mode": browser.view_mode,
