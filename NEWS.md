@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v2.4.1
 
-- Fix
+- Fixes
     - The browser pane was unable to scroll due to an upstream widget bug.
 
 ## v2.4.0 - Read State & Match Review
