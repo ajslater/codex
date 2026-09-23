@@ -20,6 +20,25 @@ export const READ_STATE = Object.freeze({
 const READING_FILL_MIN = 6;
 
 /*
+ * The label is clamped to its state, the same way the fill is floored.
+ *
+ * A bare ``Math.round`` contradicts the bar beside it. A 251-page comic open
+ * at page 249 is 99.6% and reads "100% read" while the bar is still thin and
+ * orange and ``finished`` is false; page 1 of the same comic is 0.4% and reads
+ * "0% read" while the bar paints its READING minimum. Neither end belongs to
+ * this state: 100% is what FINISHED says and 0% is what UNREAD says, so the
+ * READING label stops one short of each.
+ */
+const READING_LABEL_MIN = 1;
+const READING_LABEL_MAX = 99;
+
+const readingPercent = (progress) =>
+  Math.min(
+    Math.max(Math.round(progress), READING_LABEL_MIN),
+    READING_LABEL_MAX,
+  );
+
+/*
  * ``finished`` is consulted before ``progress``, always.
  *
  * "Mark Read" from the card menu and from select-many send ``{finished}``
@@ -71,7 +90,7 @@ export const getReadStateLabel = (item) => {
       return isComic ? "read" : "all read";
     case READ_STATE.READING:
       return isComic
-        ? `${Math.round(Number(item.progress) || 0)}% read`
+        ? `${readingPercent(Number(item.progress) || 0)}% read`
         : "partly read";
     default:
       return isComic ? "unread" : "none read";
