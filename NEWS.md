@@ -11,7 +11,6 @@ border-radius: 128px;
 - Fixes
     - OPDS clients that send no login or session cookie can read reading
       positions instead of getting a 404 for every comic.
-    - Reading positions on temporarily missing comics are readable again.
     - Cover cards no longer say "100% read" or "0% read" on a comic that is
       partly read.
 

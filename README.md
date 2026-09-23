@@ -1023,9 +1023,11 @@ against it:
   reader each time and will see `204` where it expects its own position. Send
   the same credentials on position requests that you send on feed requests.
 
-Positions on a comic whose file has temporarily vanished stay readable and
-writable for the retention window, so a filesystem outage mid-book does not
-break sync. The comic disappears from feeds for that window, however.
+A comic whose file has temporarily vanished from disk is held for a retention
+window rather than deleted outright. For that window it is hidden from every
+feed and its position reads `404`, even for the reader who was in the middle of
+it. Position writes are still accepted, so nothing a client syncs during the
+outage is lost -- it becomes readable again when the file returns.
 
 #### Supported OPDS Specifications
 

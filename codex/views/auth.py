@@ -537,11 +537,9 @@ class MissingACLFilterMixin(RelPrefixMixin):
     unconditionally.
 
     Deliberately uniform across users, so it takes no ``user``. The
-    reader, the bookmark writers and the OPDS progression endpoint keep
-    their own exemption through ``include_missing``, which is where "do
-    not yank an open book out from under its reader" lives. Note that
-    the exemption follows the *resume* -- both verbs of a per-comic
-    position, not just the write -- while every listing stays filtered.
+    reader and the bookmark writers keep their own exemption through
+    ``include_missing``, which is where "do not yank an open book out
+    from under its reader" lives.
     """
 
     @classmethod

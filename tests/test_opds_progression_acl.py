@@ -9,10 +9,8 @@ walk the pk space and learn exactly which comics exist -- and the write
 itself landed on the bookmark queue with the raw URL pk.
 
 The relaxation that survives is deliberate and pinned here too: the
-pending-delete half of the ACL stays off for *both* verbs, so a position
-recorded while the file is away still lands and can still be read back.
-A per-comic position is a resume, not a listing; the listings are where
-a stamped comic hides.
+pending-delete half of the ACL stays off for the write, so a position
+recorded while the file is away still lands. Writes land, reads hide.
 """
 
 import json
@@ -198,20 +196,19 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         tasks = self._bookmark_tasks(mock_queue)
         assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
 
-    def test_a_stamped_comic_still_reads_the_position_back(self) -> None:
+    def test_a_stamped_comic_hides_the_position_it_accepted(self) -> None:
         """
-        The read half of the retention exemption.
+        The other half of "writes land, reads hide", with a live bookmark.
 
-        A GET during the window is a resume, not a listing: the client
-        that just had its PUT accepted has to be able to read the same
-        position back, or an open book breaks mid-read for the whole
-        window. Listings still hide the row.
+        A stamped comic and its bookmarks are visible to nobody -- not
+        even to staff -- outside the admin Pending Deletes panel, so the
+        read 404s for the retention window even though the write above
+        was accepted. The asymmetry is the point: the position is not
+        discarded, it is just not readable until the row comes back.
         """
         Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
         Comic.objects.filter(pk=self.comic.pk).update(missing_since=timezone.now())
-        response = self.client.get(self._url(self.comic))
-        assert response.status_code == _HTTP_OK
-        assert response.json()["progression"] == _MID_PROGRESSION
+        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NOT_FOUND
 
     def test_a_reachable_comic_reads_its_position_back(self) -> None:
         """The plain 200 path, which nothing in this module pinned."""

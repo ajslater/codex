@@ -133,15 +133,7 @@ class OPDS2ProgressionView(
             reason = f"No model found for group {group}"
             raise ValidationError(reason, code="422")
 
-        # ``include_missing``: a position read is a resume, not a listing.
-        # This is the OPDS analogue of ``reader/page.py``, which carries the
-        # same exemption so an open book is not yanked out from under its
-        # reader. Hiding a scanner-stamped comic here would 404 the resume
-        # of a client whose writes are still being accepted, for the whole
-        # retention window. Feeds and listings still hide the row, and the
-        # group and age-rating halves of the ACL still apply, so this opens
-        # no existence oracle.
-        acl_filter = self.get_acl_filter(model, self.request.user, include_missing=True)
+        acl_filter = self.get_acl_filter(model, self.request.user)
         qs = model.objects.filter(acl_filter).distinct()
 
         bm_rel = self.get_bm_rel(model)
@@ -205,8 +197,7 @@ class OPDS2ProgressionView(
         ACL-filtered: the ``None`` return becomes a 404, so an unfiltered
         lookup here turns the endpoint into an existence oracle for
         comics in libraries the caller cannot see. ``include_missing``
-        keeps scanner-stamped rows writable, matching the read side (see
-        :meth:`put`).
+        keeps scanner-stamped rows writable (see :meth:`put`).
         """
         comic_pk = self.kwargs.get("pk")
         acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
@@ -234,10 +225,10 @@ class OPDS2ProgressionView(
         :meth:`_progression_to_page` -- a comic the caller cannot browse
         is a 404 here too, rather than an existence oracle. Only the
         pending-delete half is deliberately relaxed, so the write still
-        lands on a scanner-stamped comic. The GET relaxes it identically:
-        both verbs treat a stamped comic as an open book, so a client
-        mid-read through a filesystem blip keeps syncing and resuming for
-        the whole retention window. Listings are where the row hides.
+        lands on a scanner-stamped comic: writes land, reads hide. Note
+        the asymmetry that creates and accept it -- the GET above hides
+        stamped rows, so during a retention window a client can write a
+        position it cannot read back. That beats silently discarding it.
         """
         data = self.request.data
         serializer = self.get_serializer(data=data, partial=True)
