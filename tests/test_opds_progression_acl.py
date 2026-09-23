@@ -19,13 +19,14 @@ from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.test import Client, TestCase
 from django.utils import timezone
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
-from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models import Bookmark, Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.auth import GroupAuth
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
@@ -42,10 +43,18 @@ _HTTP_NO_CONTENT: Final = 204
 _PAGE_COUNT: Final = 11
 #: 0.5 over a 0..10 page span.
 _MID_PAGE: Final = 5
+_MID_PROGRESSION: Final = 0.5
 
 
-class OPDS2ProgressionACLTestCase(TestCase):
-    """Both verbs answer the same way for a comic the caller can't reach."""
+class ProgressionSeedTestCase(TestCase):
+    """
+    Shared fixture: one visible comic, one behind a group.
+
+    Carries no tests of its own. The identity under test is the only
+    thing that varies between the two cases below, so it is the only
+    thing they override -- inheriting the tests instead would run the
+    logged-in assertions against an anonymous client.
+    """
 
     @override
     def setUp(self) -> None:
@@ -83,7 +92,6 @@ class OPDS2ProgressionACLTestCase(TestCase):
             username="progression", password=_TEST_PASSWORD
         )
         self.client = Client()
-        self.client.force_login(self.user)
 
     @override
     def tearDown(self) -> None:
@@ -126,6 +134,16 @@ class OPDS2ProgressionACLTestCase(TestCase):
             for call in mock_queue.put.call_args_list
             if isinstance(call.args[0], BookmarkUpdateTask)
         ]
+
+
+class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
+    """Both verbs answer the same way for a comic the caller can't reach."""
+
+    @override
+    def setUp(self) -> None:
+        """Seed the fixture, then take the user's identity."""
+        super().setUp()
+        self.client.force_login(self.user)
 
     @patch(_QUEUE_PATCH)
     def test_a_reachable_comic_accepts_the_position(self, mock_queue) -> None:
@@ -177,3 +195,79 @@ class OPDS2ProgressionACLTestCase(TestCase):
         assert self._put(self.comic).status_code == _HTTP_OK
         tasks = self._bookmark_tasks(mock_queue)
         assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
+
+    def test_a_stamped_comic_hides_the_position_it_accepted(self) -> None:
+        """
+        The other half of "writes land, reads hide", with a live bookmark.
+
+        A stamped comic and its bookmarks are visible to nobody -- not
+        even to staff -- outside the admin Pending Deletes panel, so the
+        read 404s for the retention window even though the write above
+        was accepted. The asymmetry is the point: the position is not
+        discarded, it is just not readable until the row comes back.
+        """
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        Comic.objects.filter(pk=self.comic.pk).update(missing_since=timezone.now())
+        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NOT_FOUND
+
+    def test_a_reachable_comic_reads_its_position_back(self) -> None:
+        """The plain 200 path, which nothing in this module pinned."""
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        response = self.client.get(self._url(self.comic))
+        assert response.status_code == _HTTP_OK
+        assert response.json()["progression"] == _MID_PROGRESSION
+
+
+class OPDS2ProgressionAnonTestCase(ProgressionSeedTestCase):
+    """
+    The position endpoint for visitors who never established a session.
+
+    Most OPDS clients send neither credentials nor a session cookie on a
+    position request. The never-match bookmark filter that identity gets
+    lands in a ``FilteredRelation`` join condition here, so it has to
+    compile to a real SQL predicate; an ``EmptyResultSet`` there takes
+    the whole query with it and every pk answers 404.
+    """
+
+    def _establish_session(self) -> str:
+        """Give the client a real session cookie, as a write would."""
+        session = self.client.session
+        session.save()
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
+        return session.session_key
+
+    def test_a_sessionless_visitor_gets_no_content(self) -> None:
+        """No identity, no bookmark -- but the comic is still there."""
+        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+
+    def test_a_session_visitor_with_no_bookmark_gets_no_content(self) -> None:
+        """The same answer once a session exists, for contrast."""
+        self._establish_session()
+        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+
+    def test_a_session_visitor_reads_their_own_position_back(self) -> None:
+        """A session-keyed bookmark is still resolved by the join."""
+        session_key = self._establish_session()
+        Bookmark.objects.create(
+            session_id=session_key, comic=self.comic, page=_MID_PAGE
+        )
+        response = self.client.get(self._url(self.comic))
+        assert response.status_code == _HTTP_OK
+        assert response.json()["progression"] == _MID_PROGRESSION
+
+    def test_a_sessionless_visitor_cannot_probe_a_private_comic(self) -> None:
+        """The 204 must not come at the cost of the existence oracle."""
+        assert (
+            self.client.get(self._url(self.private_comic)).status_code
+            == _HTTP_NOT_FOUND
+        )
+
+    def test_a_sessionless_visitor_does_not_see_another_bookmark(self) -> None:
+        """
+        The never-match filter still has to match nothing.
+
+        A relation-scoped never-match that accidentally matched rows
+        would hand this visitor the logged-in user's position.
+        """
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT

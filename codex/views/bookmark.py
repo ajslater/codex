@@ -49,7 +49,23 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
                 # (their ``session_id`` is NULL), leaking read state and
                 # progress across users. Match nothing instead; a session key
                 # is created only when the visitor actually writes a bookmark.
-                return Q(pk__in=())
+                #
+                # The never-match must stay relation-scoped and free of empty
+                # ``__in`` lookups. Django compiles ``pk__in=()`` to its
+                # internal ``EmptyResultSet``, which a ``WHERE`` clause and an
+                # aggregate ``filter=`` both absorb -- but this Q is also used
+                # as a ``FilteredRelation`` join condition (see
+                # ``OPDS2ProgressionView._get_bookmark_query`` and
+                # ``BrowserAnnotateOrderView.alias_my_bookmark``), and there it
+                # collapses the whole query to zero rows rather than the join.
+                # No bookmark row ever carries an empty ``session_id``: session
+                # keys are 32 character strings and the column is otherwise
+                # NULL, so this matches nothing in every context.
+                #
+                # Not ``session_id__isnull=True``: in a ``WHERE`` context that
+                # inverts the meaning and hands a session-less visitor every
+                # user-owned bookmark.
+                return Q(**{f"{bm_rel}__session_id": ""})
             key = f"{bm_rel}__session"
             value = session_key
         my_bookmarks_kwargs = {key: value}
