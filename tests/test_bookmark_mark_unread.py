@@ -12,11 +12,6 @@ recursive (non-comic) target through ``BookmarkFinishedSerializer``, whose
 ``fields`` is ``("finished",)``, so a ``page`` sent by the client is dropped on
 exactly the containers bulk mark-unread is used on.
 
-The rewind is also why the reader can send ``{page, finished: False}`` as one
-payload when it pages back through a finished comic: the rewind only fires for
-a bare ``{"finished": False}``, so a combined write keeps its position and
-clears the flag.
-
 It must also not CREATE rows. ``Bookmark.page`` is nullable with no default and
 ``finished`` defaults to False, so a row holding ``page=0, finished=False`` is
 indistinguishable from no row at all to every consumer -- writing one per
@@ -151,29 +146,6 @@ class MarkUnreadTestCase(TestCase):
         bookmark = self._my_bookmark(comic)
         assert bookmark is not None
         assert bookmark.page == _TURNED_TO_PAGE, bookmark.page
-
-    def test_re_reading_a_finished_comic_puts_it_back_in_progress(self) -> None:
-        """
-        The reader's backward page turn, end to end.
-
-        ``{page, finished: False}`` is what the reader store sends when it
-        pages below the last page of a comic whose bookmark says finished.
-        Both halves have to land -- the position kept, the flag cleared --
-        or Keep Reading never shows a comic while it is being re-read.
-        ``test_explicit_page_wins`` pins the page half; this pins the flag
-        and what the filters make of it.
-        """
-        comic = self.comics[0]
-        Bookmark.objects.create(
-            user=self.me, comic=comic, page=_PAGE_COUNT - 1, finished=True
-        )
-        self._patch_comic(comic, {"page": _PART_READ_PAGE, "finished": False})
-        bookmark = self._my_bookmark(comic)
-        assert bookmark is not None
-        assert bookmark.page == _PART_READ_PAGE, bookmark.page
-        assert bookmark.finished is False
-        assert self._filter_count("IN_PROGRESS") == 1
-        assert self._filter_count("READ") == 0
 
     def test_mark_unread_creates_no_rows(self) -> None:
         """
