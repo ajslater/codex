@@ -658,11 +658,12 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async _setBookmarkPage(page) {
+      const book = this.books.current;
       const collectionParams = {
         collection: "comics",
-        ids: [+this.books.current.pk],
+        ids: [+book.pk],
       };
-      page = Math.max(Math.min(this.books.current.maxPage, page), 0);
+      page = Math.max(Math.min(book.maxPage, page), 0);
       const updates = { page };
       /*
        * PENDING SCHEMA REMOVAL
@@ -675,14 +676,56 @@ export const useReaderStore = defineStore("reader", {
        * Drop the column, its serializer and ``READER_DEFAULTS`` entries when
        * we commit to this.
        */
-      if (page >= this.books.current.maxPage) {
+      if (page >= book.maxPage) {
         updates["finished"] = true;
+      } else if (
+        book.bookmark?.finished &&
+        page !== (book.bookmark.page ?? 0)
+      ) {
+        /*
+         * Turning a page inside a finished book un-finishes it.
+         *
+         * Nothing else ever sent ``finished: false`` from the reader, and
+         * the server only ever sets the flag, so a finished comic paged back
+         * through kept ``{page: 50, finished: true}`` forever: absent from
+         * Keep Reading (``IN_PROGRESS`` is ``finished in (false, null) and
+         * page > 0``) for the entire re-read, and drawn with the thick
+         * FINISHED bar over an almost empty fill.
+         *
+         * The page comparison is what keeps *opening* a finished book from
+         * clearing it. ``pager.vue``'s ``created`` writes the restored
+         * position on every open, and a comic marked read from the card menu
+         * has a bookmark at page 0 -- so an unguarded clear would drop the
+         * read state of every marked-read comic the moment it was opened.
+         * Landing on the page the bookmark already names is a restore, not a
+         * page turn; moving off it is the re-read.
+         *
+         * The combined payload is safe: the server's "Mark Unread" rewind
+         * only fires for a bare ``{finished: false}`` with no ``page``, so
+         * this lands as page + flag and does not zero the position.
+         */
+        updates["finished"] = false;
       }
       await BROWSER_API.updateCollectionBookmarks(
         collectionParams,
         {},
         updates,
       );
+      /*
+       * Mirror the write locally. ``books`` is only refetched on a book
+       * change, so without this the store's idea of ``finished`` is
+       * whatever it was at load time and a book finished in this session
+       * would never clear when the reader pages back through it.
+       */
+      const bookmark = book.bookmark;
+      if (bookmark) {
+        bookmark.page = page;
+        if ("finished" in updates) {
+          bookmark.finished = updates["finished"];
+        }
+      } else {
+        book.bookmark = { page, finished: Boolean(updates["finished"]) };
+      }
     },
     async updateComicSettings(updates) {
       const newBookSettings = {

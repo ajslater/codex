@@ -124,4 +124,19 @@ describe("getReadStateLabel", () => {
   it("announces a marked-read comic as read, not as 0%", () => {
     expect(getReadStateLabel(comic(true, 0))).toBe("read");
   });
+
+  it("never claims 100% while the comic is still being read", () => {
+    // Page 249 of 251 rounds to 100, but the bar beside it is still the
+    // thin READING style and ``finished`` is false.
+    expect(getReadStateLabel(comic(false, 99.6))).toBe("99% read");
+  });
+
+  it("never claims 0% while the comic is being read", () => {
+    // Page 1 of 251 rounds to 0, but the bar already paints its floor.
+    expect(getReadStateLabel(comic(false, 0.4))).toBe("1% read");
+  });
+
+  it("leaves a finished comic's label alone", () => {
+    expect(getReadStateLabel(comic(true, 99.6))).toBe("read");
+  });
 });
