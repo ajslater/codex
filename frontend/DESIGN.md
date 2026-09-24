@@ -250,16 +250,15 @@ accessibility fixes.
 Vue's scoping and `:deep()` both survive the wrap: the `[data-v-*]` attribute
 lands inside the layer block.
 
-**Vuetify's own stylesheets are wrapped at build time.** 128 of Vuetify 4.2.1's
-129 component stylesheets open with `@layer vuetify-components`;
-`VPullToRefresh.sass` is the one missing the
-`@include tools.layer('components')` its siblings have, so it shipped unlayered
-— and `.v-pull-to-refresh { overflow: hidden }` outranked the scoped ID rule
-that makes `#browsePaneRefreshContainer` the browse pane's scroller, which
-stopped the browser scrolling in v2.4.0. The `codex:vuetify-unlayered-css`
-plugin in `vite.config.js` wraps any Vuetify stylesheet that arrives without a
-layer. Don't remove it just because upstream looks fixed; it matches on "no
-`@layer`", not on a filename.
+**Every Vuetify stylesheet must arrive layered.** In Vuetify 4.2.1
+`VPullToRefresh.sass` was missing the `@include tools.layer('components')` its
+128 siblings have, so it shipped unlayered — and
+`.v-pull-to-refresh { overflow: hidden }` outranked the scoped ID rule that
+makes `#browsePaneRefreshContainer` the browse pane's scroller, which stopped
+the browser scrolling in v2.4.0. Codex wrapped it at build time until Vuetify
+4.2.2 fixed it upstream; `package.json` now floors at 4.2.2. When bumping
+Vuetify, check that no stylesheet under `node_modules/vuetify/lib` lacks
+`@layer`.
 
 **`!important` is no longer the tool for beating Vuetify.** If a rule needs to
 win, the answer is a layer, not a flag. 76 declarations carried it when the
