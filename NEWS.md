@@ -10,8 +10,7 @@ border-radius: 128px;
 
 - Fixes
     - OPDS "Keep Reading" lists only issues in progress.
-    - OPDS reading positions for unopened comics and rejected position updates
-      follow the Progression spec.
+    - OPDS reading position responses follow the Progression spec.
 
 ## v2.4.2
 
