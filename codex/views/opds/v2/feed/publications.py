@@ -493,7 +493,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         if subtitle:
             metadata["subtitle"] = subtitle
         if number_of_items:
-            metadata["number_of_items"] = self._opds_number_of_books
+            metadata["number_of_items"] = number_of_items
         return metadata
 
     def get_publications(
@@ -574,7 +574,12 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
             book_qs,
             zero_pad,
             link_spec.title,
+            subtitle=link_spec.subtitle,
             items_per_page=_PUBLICATION_PREVIEW_LIMIT,
             link_spec=link_spec,
-            number_of_items=book_count,
+            # The browser caps the count at the limit, so it's only the
+            # real total when it's under the cap. Omit it otherwise.
+            number_of_items=(
+                book_count if book_count < _PUBLICATION_PREVIEW_LIMIT else None
+            ),
         )

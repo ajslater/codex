@@ -13,37 +13,66 @@ pending-delete half of the ACL stays off for the write, so a position
 recorded while the file is away still lands. Writes land, reads hide.
 """
 
+import base64
 import json
 import shutil
 from pathlib import Path
 from typing import Final, override
-from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.test import Client, TestCase
 from django.utils import timezone
+from rest_framework.authtoken.models import Token
 
-from codex.librarian.bookmark.tasks import BookmarkUpdateTask
-from codex.models import Bookmark, Comic, Imprint, Library, Publisher, Series, Volume
+from codex.choices.admin import AdminFlagChoices
+from codex.models import (
+    AdminFlag,
+    Bookmark,
+    Comic,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.models.auth import GroupAuth
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_QUEUE_PATCH: Final = "codex.views.bookmark.LIBRARIAN_QUEUE"
 _PROGRESSION_MIME: Final = "application/opds-progression+json"
 _TMP_DIR: Final = tmp_dir("codex.tests.progression_acl")
 _OPEN_DIR: Final = _TMP_DIR / "open"
 _PRIVATE_DIR: Final = _TMP_DIR / "private"
 _HTTP_OK: Final = 200
+_HTTP_BAD_REQUEST: Final = 400
+_HTTP_UNAUTHORIZED: Final = 401
 _HTTP_NOT_FOUND: Final = 404
-_HTTP_NO_CONTENT: Final = 204
 _PAGE_COUNT: Final = 11
 #: 0.5 over a 0..10 page span.
 _MID_PAGE: Final = 5
 _MID_PROGRESSION: Final = 0.5
+
+
+def _basic(username: str, password: str) -> str:
+    """Build a Basic ``Authorization`` header value."""
+    token = base64.b64encode(f"{username}:{password}".encode()).decode()
+    return f"Basic {token}"
+
+
+def _assert_no_position(response) -> None:
+    """
+    "No position" is 200 with an empty payload, per OPDS Progression 1.0.
+
+    The draft's only GET success row is ``200 OK | Progression Document
+    or an empty payload``; it defines no 204.
+    """
+    assert response.status_code == _HTTP_OK, response.status_code
+    assert response.content == b"", response.content
+    assert "Content-Type" not in response.headers, response.headers
+    assert response.headers["Content-Length"] == "0", response.headers
 
 
 class ProgressionSeedTestCase(TestCase):
@@ -128,12 +157,8 @@ class ProgressionSeedTestCase(TestCase):
         )
 
     @staticmethod
-    def _bookmark_tasks(mock_queue) -> list:
-        return [
-            call.args[0]
-            for call in mock_queue.put.call_args_list
-            if isinstance(call.args[0], BookmarkUpdateTask)
-        ]
+    def _stored_pages() -> list[tuple[int, int]]:
+        return list(Bookmark.objects.values_list("comic_id", "page"))
 
 
 class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
@@ -145,19 +170,15 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         super().setUp()
         self.client.force_login(self.user)
 
-    @patch(_QUEUE_PATCH)
-    def test_a_reachable_comic_accepts_the_position(self, mock_queue) -> None:
+    def test_a_reachable_comic_accepts_the_position(self) -> None:
         """The baseline the ACL must not break."""
         assert self._put(self.comic).status_code == _HTTP_OK
-        tasks = self._bookmark_tasks(mock_queue)
-        assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
-        assert tasks[0].updates == {"page": _MID_PAGE}
+        assert self._stored_pages() == [(self.comic.pk, _MID_PAGE)]
 
-    @patch(_QUEUE_PATCH)
-    def test_an_unreachable_comic_is_not_written(self, mock_queue) -> None:
+    def test_an_unreachable_comic_is_not_written(self) -> None:
         """A PUT to a library the caller can't browse is a 404, not a write."""
         assert self._put(self.private_comic).status_code == _HTTP_NOT_FOUND
-        assert not self._bookmark_tasks(mock_queue)
+        assert not self._stored_pages()
 
     def test_the_put_does_not_leak_existence(self) -> None:
         """
@@ -176,14 +197,13 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
 
     def test_the_get_hides_an_unreachable_comic(self) -> None:
         """The read half of the same seam, for contrast with the write."""
-        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+        _assert_no_position(self.client.get(self._url(self.comic)))
         assert (
             self.client.get(self._url(self.private_comic)).status_code
             == _HTTP_NOT_FOUND
         )
 
-    @patch(_QUEUE_PATCH)
-    def test_a_stamped_comic_still_accepts_the_position(self, mock_queue) -> None:
+    def test_a_stamped_comic_still_accepts_the_position(self) -> None:
         """
         ``include_missing=True`` survives the fix.
 
@@ -193,8 +213,7 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         """
         Comic.objects.filter(pk=self.comic.pk).update(missing_since=timezone.now())
         assert self._put(self.comic).status_code == _HTTP_OK
-        tasks = self._bookmark_tasks(mock_queue)
-        assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
+        assert self._stored_pages() == [(self.comic.pk, _MID_PAGE)]
 
     def test_a_stamped_comic_hides_the_position_it_accepted(self) -> None:
         """
@@ -217,6 +236,84 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         assert response.status_code == _HTTP_OK
         assert response.json()["progression"] == _MID_PROGRESSION
 
+    def test_a_reachable_comic_without_a_position_has_an_empty_payload(self) -> None:
+        """Never opened is 200 + empty payload, not 204 and not a zeroed document."""
+        _assert_no_position(self.client.get(self._url(self.comic)))
+
+    def test_put_with_invalid_progression_is_a_400_not_a_redirect(self) -> None:
+        """
+        A schema-invalid document surfaces as 400.
+
+        The OPDS error handler used to test for a ``progression`` path
+        suffix the route never had, so this redirected to the start feed.
+        """
+        response = self.client.put(
+            self._url(self.comic),
+            data=json.dumps({"progression": "abc"}),
+            content_type=_PROGRESSION_MIME,
+        )
+        assert response.status_code == _HTTP_BAD_REQUEST, response.status_code
+
+
+class OPDS2ProgressionCredentialsTestCase(ProgressionSeedTestCase):
+    """Header-credentialed clients, as real OPDS readers send them."""
+
+    def test_basic_auth_reads_a_position_end_to_end(self) -> None:
+        """Basic resolves the user; no row is the empty 200; a bad password is 401."""
+        auth = _basic(self.user.username, _TEST_PASSWORD)
+        _assert_no_position(
+            self.client.get(self._url(self.comic), HTTP_AUTHORIZATION=auth)
+        )
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        response = self.client.get(self._url(self.comic), HTTP_AUTHORIZATION=auth)
+        assert response.status_code == _HTTP_OK
+        assert response.json()["progression"] == _MID_PROGRESSION
+        bad = _basic(self.user.username, "wrong")
+        response = Client().get(self._url(self.comic), HTTP_AUTHORIZATION=bad)
+        assert response.status_code == _HTTP_UNAUTHORIZED
+
+    def test_bearer_auth_reads_a_position_end_to_end(self) -> None:
+        """The token keyword is ``Bearer``, not DRF's default ``Token``."""
+        token = Token.objects.create(user=self.user)
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        response = self.client.get(
+            self._url(self.comic), HTTP_AUTHORIZATION=f"Bearer {token.key}"
+        )
+        assert response.status_code == _HTTP_OK
+        assert response.json()["progression"] == _MID_PROGRESSION
+
+    def test_position_requires_credentials_when_non_users_is_off(self) -> None:
+        """With anonymous browsing off, an uncredentialed GET is challenged."""
+        AdminFlag.objects.filter(key=AdminFlagChoices.NON_USERS.value).update(on=False)
+        cache.clear()
+        response = self.client.get(self._url(self.comic))
+        assert response.status_code == _HTTP_UNAUTHORIZED
+        assert response.headers["WWW-Authenticate"].startswith("Basic realm=")
+        auth = _basic(self.user.username, _TEST_PASSWORD)
+        _assert_no_position(
+            self.client.get(self._url(self.comic), HTTP_AUTHORIZATION=auth)
+        )
+
+    def test_a_cookie_only_position_get_after_a_basic_feed_get_is_anonymous(
+        self,
+    ) -> None:
+        """
+        The session cookie a feed GET sets carries no user.
+
+        A client that sends Basic on feeds but only replays the cookie
+        on position requests asks as a different reader.
+        """
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
+        auth = _basic(self.user.username, _TEST_PASSWORD)
+        assert self.client.get("/opds/v2.0/", HTTP_AUTHORIZATION=auth).status_code == (
+            _HTTP_OK
+        )
+        assert settings.SESSION_COOKIE_NAME in self.client.cookies
+        _assert_no_position(self.client.get(self._url(self.comic)))
+        response = self.client.get(self._url(self.comic), HTTP_AUTHORIZATION=auth)
+        assert response.status_code == _HTTP_OK
+        assert response.json()["progression"] == _MID_PROGRESSION
+
 
 class OPDS2ProgressionAnonTestCase(ProgressionSeedTestCase):
     """
@@ -236,14 +333,14 @@ class OPDS2ProgressionAnonTestCase(ProgressionSeedTestCase):
         self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
         return session.session_key
 
-    def test_a_sessionless_visitor_gets_no_content(self) -> None:
+    def test_a_sessionless_visitor_gets_no_position(self) -> None:
         """No identity, no bookmark -- but the comic is still there."""
-        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+        _assert_no_position(self.client.get(self._url(self.comic)))
 
-    def test_a_session_visitor_with_no_bookmark_gets_no_content(self) -> None:
+    def test_a_session_visitor_with_no_bookmark_gets_no_position(self) -> None:
         """The same answer once a session exists, for contrast."""
         self._establish_session()
-        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+        _assert_no_position(self.client.get(self._url(self.comic)))
 
     def test_a_session_visitor_reads_their_own_position_back(self) -> None:
         """A session-keyed bookmark is still resolved by the join."""
@@ -256,7 +353,7 @@ class OPDS2ProgressionAnonTestCase(ProgressionSeedTestCase):
         assert response.json()["progression"] == _MID_PROGRESSION
 
     def test_a_sessionless_visitor_cannot_probe_a_private_comic(self) -> None:
-        """The 204 must not come at the cost of the existence oracle."""
+        """The empty 200 must not come at the cost of the existence oracle."""
         assert (
             self.client.get(self._url(self.private_comic)).status_code
             == _HTTP_NOT_FOUND
@@ -270,4 +367,4 @@ class OPDS2ProgressionAnonTestCase(ProgressionSeedTestCase):
         would hand this visitor the logged-in user's position.
         """
         Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
-        assert self.client.get(self._url(self.comic)).status_code == _HTTP_NO_CONTENT
+        _assert_no_position(self.client.get(self._url(self.comic)))

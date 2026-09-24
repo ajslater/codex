@@ -54,45 +54,6 @@ if (IS_TEST_ENV) {
 }
 console.info(defineObj);
 
-/*
- * Put Vuetify's one unlayered stylesheet back in its layer.
- *
- * 128 of Vuetify 4.2.1's 129 component stylesheets open with
- * `@layer vuetify-components`; VPullToRefresh.sass is the lone
- * file missing the `@include tools.layer('components')` every
- * sibling has, so it ships unlayered.
- *
- * Unlayered CSS outranks every layered rule regardless of
- * specificity, so `.v-pull-to-refresh { overflow: hidden }` beat
- * the scoped ID rule that makes `#browsePaneRefreshContainer` the
- * browse pane's scroller, and a library taller than the viewport
- * could not be scrolled at all.
- *
- * Matching on "no @layer" rather than on the filename means the
- * next upstream omission cannot outrank the cascade either. See
- * frontend/DESIGN.md section 10.
- */
-const vuetifyLayerFix = () => ({
-  name: "codex:vuetify-unlayered-css",
-  enforce: "pre",
-  transform(code, id) {
-    const file = id.split("?")[0];
-    if (
-      !file.includes("/node_modules/vuetify/") ||
-      !file.endsWith(".css") ||
-      code.includes("@layer") ||
-      // Both must stay at the top of a stylesheet, so they cannot be
-      // wrapped. Vuetify ships neither today; bail rather than emit
-      // CSS the browser drops on the floor.
-      code.includes("@import") ||
-      code.includes("@charset")
-    ) {
-      return null;
-    }
-    return { code: `@layer vuetify-components {\n${code}\n}\n`, map: null };
-  },
-});
-
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
@@ -240,7 +201,6 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
-      vuetifyLayerFix(),
       checker({
         eslint: {
           lintCommand: "eslint_d --cache .", // "./src/**/*.{js,vue}"',

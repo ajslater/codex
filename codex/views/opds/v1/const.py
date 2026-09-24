@@ -56,13 +56,13 @@ class RootTopLinks:
         MimeType.NAV,
         {
             "topCollection": "series",
-            "filters": json.dumps({"bookmark": "UNREAD"}),
+            "filters": json.dumps({"bookmark": "IN_PROGRESS"}),
             "orderBy": "bookmark_updated_at",
             "orderReverse": True,
         },
         "👀",
         "Keep Reading",
-        "Unread issues, recently read first.",
+        "Issues in progress, recently read first.",
     )
     NEW_UNREAD = TopLink(
         TopRoutes.SERIES,

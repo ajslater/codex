@@ -132,12 +132,13 @@ PREVIEW_GROUPS = (
                 MappingProxyType(
                     {
                         "topCollection": "comics",
-                        **_PREVIEW_GROUP_PARAMS,
+                        "filters": BookmarkFilters.IN_PROGRESS,
                         "orderBy": "bookmark_updated_at",
                         "orderReverse": True,
                         "title": "Keep Reading",
                     }
                 ),
+                subtitle="Issues you have started, most recently read first.",
             ),
             Link(
                 Rel.SORT_NEW,
@@ -152,6 +153,7 @@ PREVIEW_GROUPS = (
                         "title": "Latest Unread",
                     }
                 ),
+                subtitle="Unread issues, newest additions first.",
             ),
             Link(
                 Rel.SORT_NEW,
@@ -166,6 +168,7 @@ PREVIEW_GROUPS = (
                         "title": "Oldest Unread",
                     }
                 ),
+                subtitle="Unread issues, oldest first.",
             ),
         ),
     ),
