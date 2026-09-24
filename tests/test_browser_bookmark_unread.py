@@ -11,11 +11,14 @@ as the other filters.
 """
 
 import json
+import re
 import shutil
 from typing import Final, override
 
 from django.contrib.auth.models import User
+from django.db import connection
 from django.test import Client, TestCase
+from django.test.utils import CaptureQueriesContext
 
 from codex.models import (
     Bookmark,
@@ -40,6 +43,19 @@ def _v4(response):
     if isinstance(body, dict) and "data" in body and "meta" in body:
         return body["data"]
     return body
+
+
+def _exists_subqueries(sql: str) -> list[str]:
+    """Each ``EXISTS(...)`` body, matched to its closing paren."""
+    blocks = []
+    for match in re.finditer(r"EXISTS\(", sql):
+        depth = 1
+        for i in range(match.end(), len(sql)):
+            depth += {"(": 1, ")": -1}.get(sql[i], 0)
+            if not depth:
+                blocks.append(sql[match.end() : i])
+                break
+    return blocks
 
 
 class BookmarkUnreadFilterTestCase(TestCase):
@@ -154,3 +170,52 @@ class BookmarkUnreadFilterTestCase(TestCase):
         data = self._browse("publishers", {"bookmark": "UNREAD"})
         names = {c["name"] for c in data["collections"]}
         assert "Pub1" in names, names
+
+    def test_my_unfinished_bookmark_survives_a_foreign_finished_bookmark(
+        self,
+    ) -> None:
+        """I'm on page 5 of C1 and another user finished it: still unread to me."""
+        c1 = self.comics[0]
+        Bookmark.objects.create(user=self.me, comic=c1, page=5)
+        Bookmark.objects.create(user=self.other, comic=c1, page=10, finished=True)
+        assert self._unread_comic_count() == len(self.comics)
+        in_progress = self._browse("comics", {"bookmark": "IN_PROGRESS"})
+        assert [book["ids"] for book in in_progress["books"]] == [[c1.pk]], in_progress
+
+    def test_my_page_zero_bookmark_survives_a_foreign_finished_bookmark(
+        self,
+    ) -> None:
+        """An opened-but-page-0 bookmark of mine must not change the answer."""
+        c1 = self.comics[0]
+        Bookmark.objects.create(user=self.me, comic=c1, page=0)
+        Bookmark.objects.create(user=self.other, comic=c1, page=10, finished=True)
+        assert self._unread_comic_count() == len(self.comics)
+
+    def test_unread_sql_has_a_single_identity_scoped_not_exists(self) -> None:
+        """The finished probe carries my identity in the same subquery."""
+        Bookmark.objects.create(user=self.me, comic=self.comics[0], page=5)
+        with CaptureQueriesContext(connection) as ctx:
+            self._unread_comic_count()
+        blocks = [
+            block
+            for query in ctx.captured_queries
+            for block in _exists_subqueries(query["sql"])
+            if "codex_bookmark" in block and "finished" in block
+        ]
+        assert blocks, [q["sql"] for q in ctx.captured_queries]
+        for block in blocks:
+            assert "user_id" in block or "session_id" in block, block
+
+    def test_collection_cover_is_my_in_progress_comic(self) -> None:
+        """
+        The cover subquery nests the correlated probe; it must bind per comic.
+
+        Pub1's only comic unread by me is C1, which another user finished.
+        """
+        c1, c2 = self.comics[0], self.comics[1]
+        Bookmark.objects.create(user=self.me, comic=c1, page=5)
+        Bookmark.objects.create(user=self.other, comic=c1, page=10, finished=True)
+        Bookmark.objects.create(user=self.me, comic=c2, finished=True)
+        data = self._browse("publishers", {"bookmark": "UNREAD"})
+        pub1 = next(c for c in data["collections"] if c["name"] == "Pub1")
+        assert pub1["coverPk"] == c1.pk, pub1
