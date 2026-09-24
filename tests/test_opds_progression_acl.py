@@ -18,7 +18,6 @@ import json
 import shutil
 from pathlib import Path
 from typing import Final, override
-from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -28,7 +27,6 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
-from codex.librarian.bookmark.tasks import BookmarkUpdateTask
 from codex.models import (
     AdminFlag,
     Bookmark,
@@ -44,7 +42,6 @@ from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
-_QUEUE_PATCH: Final = "codex.views.bookmark.LIBRARIAN_QUEUE"
 _PROGRESSION_MIME: Final = "application/opds-progression+json"
 _TMP_DIR: Final = tmp_dir("codex.tests.progression_acl")
 _OPEN_DIR: Final = _TMP_DIR / "open"
@@ -160,12 +157,8 @@ class ProgressionSeedTestCase(TestCase):
         )
 
     @staticmethod
-    def _bookmark_tasks(mock_queue) -> list:
-        return [
-            call.args[0]
-            for call in mock_queue.put.call_args_list
-            if isinstance(call.args[0], BookmarkUpdateTask)
-        ]
+    def _stored_pages() -> list[tuple[int, int]]:
+        return list(Bookmark.objects.values_list("comic_id", "page"))
 
 
 class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
@@ -177,19 +170,15 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         super().setUp()
         self.client.force_login(self.user)
 
-    @patch(_QUEUE_PATCH)
-    def test_a_reachable_comic_accepts_the_position(self, mock_queue) -> None:
+    def test_a_reachable_comic_accepts_the_position(self) -> None:
         """The baseline the ACL must not break."""
         assert self._put(self.comic).status_code == _HTTP_OK
-        tasks = self._bookmark_tasks(mock_queue)
-        assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
-        assert tasks[0].updates == {"page": _MID_PAGE}
+        assert self._stored_pages() == [(self.comic.pk, _MID_PAGE)]
 
-    @patch(_QUEUE_PATCH)
-    def test_an_unreachable_comic_is_not_written(self, mock_queue) -> None:
+    def test_an_unreachable_comic_is_not_written(self) -> None:
         """A PUT to a library the caller can't browse is a 404, not a write."""
         assert self._put(self.private_comic).status_code == _HTTP_NOT_FOUND
-        assert not self._bookmark_tasks(mock_queue)
+        assert not self._stored_pages()
 
     def test_the_put_does_not_leak_existence(self) -> None:
         """
@@ -214,8 +203,7 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
             == _HTTP_NOT_FOUND
         )
 
-    @patch(_QUEUE_PATCH)
-    def test_a_stamped_comic_still_accepts_the_position(self, mock_queue) -> None:
+    def test_a_stamped_comic_still_accepts_the_position(self) -> None:
         """
         ``include_missing=True`` survives the fix.
 
@@ -225,8 +213,7 @@ class OPDS2ProgressionACLTestCase(ProgressionSeedTestCase):
         """
         Comic.objects.filter(pk=self.comic.pk).update(missing_since=timezone.now())
         assert self._put(self.comic).status_code == _HTTP_OK
-        tasks = self._bookmark_tasks(mock_queue)
-        assert [t.comic_pks for t in tasks] == [(self.comic.pk,)], tasks
+        assert self._stored_pages() == [(self.comic.pk, _MID_PAGE)]
 
     def test_a_stamped_comic_hides_the_position_it_accepted(self) -> None:
         """

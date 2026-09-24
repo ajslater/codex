@@ -1017,7 +1017,9 @@ against it:
   `progression: 0.0` (a book open on its first page), which is the distinction a
   Start vs. Continue button needs. Treat an empty `200` as "no position" and
   `404` as "no such book, or not yours." (Releases before v2.4.3 answered
-  `204 No Content` here.)
+  `204 No Content` here.) Errors other than `401` carry an
+  [RFC 7807](https://www.rfc-editor.org/rfc/rfc7807) problem document; a
+  successful `PUT` returns the stored Progression Document.
 - **A position belongs to whoever asks for it.** Codex keys a reading position
   to the authenticated user, or, for anonymous use, to the session cookie. A
   client that browses feeds with HTTP Basic auth but fetches positions without
