@@ -60,7 +60,9 @@ def codex_opds_exception_handler(
                 request, status.HTTP_401_UNAUTHORIZED
             )
         elif (
-            not request.path.endswith("progression")
+            # The progression route is ``comics/<pk>/position``
+            # (codex/urls/opds/v2.py); its errors must not redirect.
+            not request.path.endswith("/position")
             and status_code in _OPDS_REDIRECT_TO_TOP_CODES
         ):
             response = _get_redirect_to_start_response(request)

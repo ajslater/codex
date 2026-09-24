@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -26,7 +26,7 @@
     "vue": "^3.5.43",
     "vue-pdf-embed": "^2.1.6",
     "vue-router": "^5.3.1",
-    "vuetify": "^4.2.1",
+    "vuetify": "^4.2.2",
     "xior": "^0.8.5"
   },
   "devDependencies": {
@@ -39,7 +39,7 @@
     "@vue/typescript-plugin": "^3.3.11",
     "happy-dom": "^20.14.5",
     "rollup-plugin-visualizer": "^7.1.1",
-    "sass": "^1.104.1",
+    "sass": "^1.105.0",
     "sass-loader": "^17.0.1",
     "toml": "^5.0.0",
     "vite": "^8.3.0",
