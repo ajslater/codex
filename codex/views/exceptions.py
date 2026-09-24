@@ -99,4 +99,8 @@ class SeeOtherRedirectError(APIException):
 
 
 class NoContent(APIException):
-    """Provide a 204 response."""
+    """
+    Signal that no reading position exists.
+
+    Rendered as 200 with an empty payload (OPDS Progression 1.0, Interactions / Payload).
+    """

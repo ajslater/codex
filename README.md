@@ -1010,18 +1010,26 @@ OPDS v2 clients sync reading positions with
 document. Two Codex behaviors are worth knowing before you write a client
 against it:
 
-- **`204 No Content` means "no position recorded yet", not an error.** The
-  Progression draft defines no status for a book that was never opened, and
-  answering `200` with `progression: 0.0` would make a book nobody has started
-  indistinguishable from one open on its first page — which is exactly the
-  distinction a Start vs. Continue button needs. Treat `204` as "no position"
-  and `404` as "no such book, or not yours."
+- **An empty `200` means "no position recorded yet", not an error.** The
+  [OPDS Progression 1.0](https://drafts.opds.io/opds-progression-1.0.html) draft
+  answers a book that has never been opened with `200 OK` and an empty payload,
+  and Codex does the same. An empty body is distinct from a document with
+  `progression: 0.0` (a book open on its first page), which is the distinction a
+  Start vs. Continue button needs. Treat an empty `200` as "no position" and
+  `404` as "no such book, or not yours." (Releases before v2.4.3 answered
+  `204 No Content` here.)
 - **A position belongs to whoever asks for it.** Codex keys a reading position
   to the authenticated user, or, for anonymous use, to the session cookie. A
   client that browses feeds with HTTP Basic auth but fetches positions without
   it — or that discards cookies between requests — is asking as a different
-  reader each time and will see `204` where it expects its own position. Send
-  the same credentials on position requests that you send on feed requests.
+  reader each time and will see an empty `200` where it expects its own
+  position. Send the same credentials on position requests that you send on feed
+  requests.
+- **"Keep Reading" lists issues in progress.** The OPDS _Keep Reading_ group
+  lists the issues you have started and not finished, most recently read first,
+  so every entry there has a position. It is absent when nothing is in progress.
+  The _Latest Unread_ and _Oldest Unread_ groups include issues you have never
+  opened, and their position is the empty `200` above.
 
 A comic whose file has temporarily vanished from disk is held for a retention
 window rather than deleted outright. For that window it is hidden from every

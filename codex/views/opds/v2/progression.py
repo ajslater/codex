@@ -184,7 +184,9 @@ class OPDS2ProgressionView(
         except Comic.DoesNotExist:
             return Response(status=HTTPStatus.NOT_FOUND)
         except NoContent:
-            return Response(status=HTTPStatus.NO_CONTENT)
+            # OPDS Progression 1.0: "no progression communicated yet" is
+            # 200 with an empty payload. The draft defines no 204.
+            return Response(None, status=HTTPStatus.OK)
         except Exception as exc:
             logger.error("Error in OPDS progression API")
             logger.exception(exc)
