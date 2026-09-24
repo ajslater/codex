@@ -83,8 +83,14 @@ class BookmarkFilterMixin(GroupACLMixin, ABC):
         outer_pk = self.get_rel_prefix(model) + "pk"
         if self.request.user and self.request.user.is_authenticated:
             my = Q(user=self.request.user)
+        elif session_key := self.request.session.session_key:
+            my = Q(session=session_key)
         else:
-            my = Q(session=self.request.session.session_key)
+            # No session owns nothing. Same never-match as
+            # ``get_my_bookmark_filter``: ``session=None`` would match every
+            # user-owned row, and an empty ``__in`` inside an ``Exists``
+            # risks ``EmptyResultSet``.
+            my = Q(session_id="")
         return Exists(
             Bookmark.objects.filter(my, comic=OuterRef(outer_pk), finished=True)
         )

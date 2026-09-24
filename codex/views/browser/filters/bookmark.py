@@ -25,13 +25,16 @@ class BrowserFilterBookmarkView(BookmarkFilterMixin, BrowserValidateView):
                 bookmark_filter = my_finished_filter
             elif choice == "UNREAD":
                 # UNREAD means "*I* have not finished it" — the negation of
-                # my own finished bookmark. A bare ``Q(bookmark=None)`` here
-                # would test whether the comic has *any* bookmark from *any*
-                # user, so once another user finishes a comic it would drop
-                # out of everyone's unread view. The ``~`` compiles to a
-                # per-user NOT-EXISTS subquery, so comics I haven't finished
-                # (including ones I've never opened) stay visible.
-                bookmark_filter = ~my_finished_filter
+                # my own finished bookmark, including comics I've never
+                # opened. Not ``Q(bookmark=None)``, which tests for *any*
+                # user's bookmark. Not ``~my_finished_filter`` either:
+                # negating a multi-valued ``Q`` compiles each condition to
+                # its own EXISTS, so "some bookmark is mine" and "some
+                # bookmark is finished" can be two different rows, and
+                # another user finishing a comic I'm reading hid it from
+                # me. The correlated probe keeps identity and ``finished``
+                # in one subquery.
+                bookmark_filter = ~Q(self.get_my_finished_bookmark_exists(model))
             else:  # IN_PROGRESS
                 bookmark_filter = (
                     my_bookmark_filter

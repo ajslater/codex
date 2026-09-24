@@ -190,3 +190,39 @@ class BookmarkFilterIsolationTestCase(TestCase):
         # A different session inherits nothing.
         other = self._pks(choice="READ", user=AnonymousUser(), session_key="sess-xyz")
         assert self.untouched.pk not in other
+
+    # --- a foreign finished bookmark next to one of mine ---------------
+
+    def test_my_unfinished_bookmark_survives_a_foreign_finished_one(self) -> None:
+        """
+        Admin finished ``admin_read``; aj is halfway through it.
+
+        ``~(mine & finished)`` over a multi-valued relation does not bind
+        both conditions to one row, so admin's finished row used to hide
+        the comic from aj's unread list.
+        """
+        Bookmark.objects.create(comic=self.admin_read, user=self.aj, page=5)
+        pks = self._pks(choice="UNREAD", user=self.aj, session_key=None)
+        assert self.admin_read.pk in pks
+        in_progress = self._pks(choice="IN_PROGRESS", user=self.aj, session_key=None)
+        assert self.admin_read.pk in in_progress
+
+    def test_session_unfinished_bookmark_survives_a_foreign_finished_one(
+        self,
+    ) -> None:
+        """The same, for a session-keyed anonymous reader."""
+        _make_session("sess-abc")
+        Bookmark.objects.create(
+            comic=self.admin_read, user=None, session_id="sess-abc", page=5
+        )
+        pks = self._pks(choice="UNREAD", user=AnonymousUser(), session_key="sess-abc")
+        assert self.admin_read.pk in pks
+
+    def test_sessionless_unread_ignores_foreign_bookmarks(self) -> None:
+        """No session: nothing is mine, so a session-owned finish hides nothing."""
+        _make_session("sess-abc")
+        Bookmark.objects.create(
+            comic=self.untouched, user=None, session_id="sess-abc", finished=True
+        )
+        pks = self._pks(choice="UNREAD", user=AnonymousUser(), session_key=None)
+        assert {self.admin_read.pk, self.untouched.pk} <= pks

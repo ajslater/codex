@@ -228,3 +228,18 @@ class OPDSKeepReadingTestCase(KeepReadingSeedTestCase):
             unquote(link.get("href", "")) for link in entry.iter(f"{_ATOM_NS}link")
         ]
         assert any("IN_PROGRESS" in href for href in hrefs), hrefs
+
+    def test_keep_reading_keeps_my_in_progress_comic_another_user_finished(
+        self,
+    ) -> None:
+        c1 = self.comics[0]
+        self._bookmark(self.user, c1, 5)
+        self._bookmark(self.other, c1, _PAGE_COUNT - 1, finished=True)
+        self.client.force_login(self.user)
+        feed = self._feed(self.client)
+        group = _group(feed, _KEEP_READING)
+        assert group
+        assert _pks(group) == [c1.pk]
+        oldest = _group(feed, _OLDEST_UNREAD)
+        assert oldest
+        assert c1.pk in _pks(oldest)

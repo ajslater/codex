@@ -9,6 +9,8 @@ border-radius: 128px;
 ## v2.4.3
 
 - Fixes
+    - Comics you are reading no longer leave your unread list when another user
+      finishes them.
     - OPDS "Keep Reading" lists only issues in progress.
     - OPDS reading positions for unopened comics and rejected position updates
       follow the Progression spec.
