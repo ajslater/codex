@@ -117,6 +117,14 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.
+- **Releases.** Bump the version and add its `## vX.Y.Z[ - Title]` NEWS.md
+  section on the develop→main PR; the required check's Release Preflight fails
+  without them. After deploy, CI's `release` job runs `bin/release-tag.sh` to
+  tag, publish the GitHub Release from NEWS.md and merge main into develop.
+  Finish a failed release with _Re-run failed jobs_ or `bin/release-tag.sh`
+  locally (`--dry-run` first). The repo variable `RELEASE_AUTOMATION=off`
+  disables both. A positional VERSION is now only an assertion that
+  pyproject.toml agrees.
 - **Every new librarian job needs a priority.** When adding a `ScribeTask`
   (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
   (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in

@@ -41,6 +41,16 @@ jobs:
           # Only fetch full history for the main push gate
           fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
 
+      # A release PR must bump the version and add its NEWS.md section before
+      # it can merge; on a main push a failure here skips build and deploy.
+      - name: Release Preflight
+        if: >-
+          vars.RELEASE_AUTOMATION != 'off' &&
+          ((github.event_name == 'push' && github.ref_name == 'main') || github.base_ref == 'main')
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: bin/release-tag.sh preflight
+
       - name: Check for Redundant Tests & Existing Dist
         id: gate
         if: github.ref_name == 'main' && github.event_name == 'push'
@@ -339,3 +349,46 @@ jobs:
             --tag "${HUB_IMAGE}:latest" \
             --push \
             .
+
+  # ---------------------------------------------------------------------------
+  # Last step of a main release: tag, GitHub Release from NEWS.md, merge-back.
+  # Every step is idempotent: use "Re-run failed jobs" to finish a partial run.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Tag, Release & Merge to Develop
+    needs: [deploy, deploy-hub]
+    # !cancelled() drops the implicit success() so a skipped deploy-hub
+    # (e.g. if it is later gated or removed) does not skip this job.
+    if: >-
+      !cancelled()
+      && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && vars.RELEASE_AUTOMATION != 'off'
+      && needs.deploy.result == 'success'
+      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # tag push, develop push, gh release create
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_SHA: ${{ github.sha }}
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # ancestry/tree lookup against develop
+          # No RELEASE_TOKEN (decided 2026-09-23): the default GITHUB_TOKEN is used.
+
+      - name: Tag
+        run: bin/release-tag.sh tag
+
+      - name: GitHub Release
+        run: bin/release-tag.sh publish
+
+      - name: Merge main into develop
+        run: bin/release-tag.sh merge-back
