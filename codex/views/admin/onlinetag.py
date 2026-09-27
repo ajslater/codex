@@ -313,8 +313,8 @@ class _FileCoverStatus(StrEnum):
     """
     Whether a prompt's own comic has a thumb on disk yet.
 
-    Consumed by the review dialog's file-cover row
-    (``frontend/src/components/online-tag/file-cover-row.vue``). Mirrors how
+    Consumed by the review dialog's file-cover thumb
+    (``frontend/src/components/online-tag/file-cover-thumb.vue``). Mirrors how
     ``CoverView`` answers the same thumb: a present file is served, a missing
     one is queued with a 202, and a zero-byte one is the cover thread's
     failure marker and a 404.

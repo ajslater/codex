@@ -1,41 +1,45 @@
 <!--
-  The file's own cover, as a reference row above the match candidates.
+  The file's own cover, in its prompt's expansion-panel title.
 
   Only the representative comic: the one the candidates were scored
-  against. The thumbnail is Codex's own ACL-checked cover. The enlarge is
+  against. It shows at the candidates' 48x72 so the art compares at a
+  glance. The thumbnail is Codex's own ACL-checked cover. The enlarge is
   page 0 from the reader, which is the same art, and it goes through the
   same CoverPopup as the candidates' covers, so it opens in the same capped
   box at the same size as theirs, never as a full-size page.
 
+  The panel title is a <button> that toggles its panel, so a click on the
+  cover stops at the cover: it opens the enlarge and leaves the panel
+  alone. Vuetify's menu activator stops most of its clicks itself, but
+  lets one through in the 50 ms after the enlarge closes, so the cover
+  stops them all. The placeholder lets clicks through to the title.
+
   The backend reports whether the thumb exists yet. A missing one answers
   202 until the cover thread writes it, which an <img> cannot tell from a
   404, so a pending cover is probed with fetch first. That probe's GET is
-  also what queues the generation.
-
-  Not one of prompt.candidates, so it never shifts a Pick index.
+  also what queues the generation. A placeholder says why in its tooltip.
 -->
 <template>
-  <div class="fileCoverRow">
-    <!-- Size goes in as props, not as a class: CoverPopup's popup branch
-         is a VMenu fragment, and a scoped parent class cannot reach a
-         multi-root child. -->
-    <CoverPopup
-      v-if="state === STATE.READY"
-      :thumb-src="thumbSrc"
-      :full-src="fullSrc"
-      :thumb-width="COVER_WIDTH"
-      :thumb-height="COVER_HEIGHT"
-      :alt="alt"
-      loading="eager"
-      @error="state = STATE.MISSING"
-    />
-    <div v-else class="fileCoverPlaceholder" />
-    <div class="fileCoverInfo">
-      <strong>{{ label }}</strong>
-      <div v-if="filename" class="fileCoverName">{{ filename }}</div>
-      <div v-if="note" class="fileCoverNote">{{ note }}</div>
-    </div>
-  </div>
+  <!-- Size goes in as props, not as a class: CoverPopup's popup branch
+       is a VMenu fragment, and a scoped parent class cannot reach a
+       multi-root child. -->
+  <CoverPopup
+    v-if="state === STATE.READY"
+    :thumb-src="thumbSrc"
+    :full-src="fullSrc"
+    :thumb-width="COVER_WIDTH"
+    :thumb-height="COVER_HEIGHT"
+    :alt="alt"
+    @click.stop
+    @error="state = STATE.MISSING"
+  />
+  <div
+    v-else
+    class="fileCoverPlaceholder"
+    role="img"
+    :aria-label="note"
+    :title="note"
+  />
 </template>
 
 <script>
@@ -67,7 +71,7 @@ const STATE_BY_PROBE = Object.freeze({
 });
 
 export default {
-  name: "OnlineTagFileCoverRow",
+  name: "OnlineTagFileCoverThumb",
   components: {
     CoverPopup,
   },
@@ -75,7 +79,6 @@ export default {
     // {pk, mtime, status}, or null when the comic is no longer in the
     // library.
     fileCover: { type: Object, default: null },
-    path: { type: String, default: "" },
   },
   data() {
     return {
@@ -83,7 +86,6 @@ export default {
       COVER_WIDTH,
       COVER_HEIGHT,
       state: STATE.MISSING,
-      label: "This file",
       alt: "This file's cover",
       goneNote: "This file is no longer in the library",
       noCoverNote: "No cover available for this file",
@@ -104,9 +106,6 @@ export default {
         mtime: this.fileCover.mtime,
         serve: "image",
       });
-    },
-    filename() {
-      return this.path.split("/").pop();
     },
     note() {
       switch (this.state) {
@@ -170,18 +169,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.fileCoverRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: rgba(var(--v-theme-primary), 0.06);
-}
-
 // Same box as candidate-row.vue's .candidateCoverPlaceholder, so a
-// missing cover keeps the rows aligned. Not getPlaceholderSrc: that
+// missing cover keeps the title's layout. Not getPlaceholderSrc: that
 // needs CODEX.STATIC.
 .fileCoverPlaceholder {
   flex: 0 0 auto;
@@ -189,19 +178,5 @@ export default {
   height: 72px;
   background-color: rgba(var(--v-theme-on-surface), 0.06);
   border-radius: 2px;
-}
-
-.fileCoverInfo {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.fileCoverName {
-  overflow-wrap: anywhere;
-}
-
-.fileCoverNote {
-  color: rgb(var(--v-theme-text-secondary));
-  font-size: 0.8125rem;
 }
 </style>
