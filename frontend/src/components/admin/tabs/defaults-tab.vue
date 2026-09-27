@@ -53,6 +53,7 @@
                 hide-details
               />
             </div>
+            <p v-if="lockedShowHint" class="adminHint">{{ lockedShowHint }}</p>
           </div>
           <div class="adminCard">
             <v-select
@@ -388,6 +389,14 @@ export default {
     // The current top collection's box: unchecking it would hide it.
     lockedShowKey() {
       return SHOW_KEYS[this.draft.browser.topCollection];
+    },
+    // Why the locked box is disabled, and how to free it.
+    lockedShowHint() {
+      const title = this.showChoices.find(
+        ({ key }) => key === this.lockedShowKey,
+      )?.title;
+      if (!title) return "";
+      return `${title} is the Top Collection, so it must stay shown. Choose another Top Collection to hide ${title}.`;
     },
     topCollectionErrors() {
       const reason = this.unavailableReason(this.draft.browser.topCollection);
