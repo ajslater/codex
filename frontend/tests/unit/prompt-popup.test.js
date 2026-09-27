@@ -9,7 +9,15 @@
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import vuetify from "@/plugins/vuetify";
@@ -156,13 +164,31 @@ describe("OnlineTagPromptPopup", () => {
   });
 
   /*
-   * The file's own cover sits above the candidates so the admin can compare
-   * the art. It is not a candidate, so it must never shift a Pick index.
+   * The file's own cover sits in each prompt's panel title, beside its
+   * name, so the admin can compare the art with the candidates'. It is not
+   * a candidate, so it must never shift a Pick index, and a click on it
+   * opens the enlarge rather than toggling the panel.
    */
   describe("the file's own cover", () => {
     let fetchMock;
 
     const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
+    const titles = (wrapper) => wrapper.findAll(".v-expansion-panel-title");
+
+    beforeAll(() => {
+      // Clicking the cover opens its VMenu, whose location strategy reads
+      // the bare global; happy-dom has no visual viewport. Same shim as
+      // candidate-row.test.js.
+      globalThis.visualViewport ??= {
+        width: 1024,
+        height: 768,
+        offsetLeft: 0,
+        offsetTop: 0,
+        scale: 1,
+        addEventListener() {},
+        removeEventListener() {},
+      };
+    });
 
     beforeEach(() => {
       fetchMock = vi.fn(() => Promise.resolve(new Response(null)));
@@ -173,20 +199,21 @@ describe("OnlineTagPromptPopup", () => {
       vi.unstubAllGlobals();
     });
 
-    test("renders before the first candidate", async () => {
+    test("sits in the panel title, before the filename", async () => {
       const { wrapper } = mountPopup([candidate(), candidate()], {
         fileCover: fileCover(7),
       });
       await wrapper.vm.$nextTick();
 
-      const rows = wrapper.findAll(".fileCoverRow, .candidateRow");
-      expect(rows.map((row) => row.classes()[0])).toEqual([
-        "fileCoverRow",
-        "candidateRow",
-        "candidateRow",
-      ]);
-      expect(rows[0].find("img").attributes("src")).toBe(
-        `/api/v4/covers/comic/7?ts=${MTIME}`,
+      const header = titles(wrapper)[0].find(".promptHeader");
+      const img = header.find("img");
+      expect(img.attributes("src")).toBe(`/api/v4/covers/comic/7?ts=${MTIME}`);
+      expect(header.element.firstElementChild).toBe(img.element);
+      expect(header.find(".promptPath").text()).toBe("kapitan.cbz");
+      // No separate row in the panel body: the candidates come first.
+      const body = wrapper.find(".v-expansion-panel-text");
+      expect(body.find('img[src^="/api/v4/covers/comic/"]').exists()).toBe(
+        false,
       );
     });
 
@@ -196,7 +223,7 @@ describe("OnlineTagPromptPopup", () => {
 
       expect(wrapper.find(".candidateRow").exists()).toBe(true);
       expect(
-        wrapper.findComponent({ name: "OnlineTagFileCoverRow" }).exists(),
+        wrapper.findComponent({ name: "OnlineTagFileCoverThumb" }).exists(),
       ).toBe(false);
     });
 
@@ -204,9 +231,9 @@ describe("OnlineTagPromptPopup", () => {
       const { wrapper } = mountPopup([candidate()], { fileCover: null });
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find(".fileCoverRow").text()).toContain(
-        "This file is no longer in the library",
-      );
+      expect(
+        titles(wrapper)[0].find(".fileCoverPlaceholder").attributes("title"),
+      ).toBe("This file is no longer in the library");
     });
 
     test("the first Pick still picks candidate 0", async () => {
@@ -225,11 +252,30 @@ describe("OnlineTagPromptPopup", () => {
       expect(store.resolvePrompt).toHaveBeenCalledWith("fp1", "choose", 0, 11);
     });
 
-    test("only an opened panel mounts its row and probes", async () => {
+    test("a click on the cover does not toggle its panel", async () => {
+      const { wrapper } = mountPopup([candidate()], {
+        fileCover: fileCover(7),
+      });
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.openPanel).toBe(0);
+
+      const img = titles(wrapper)[0].find("img");
+      // Open and close the enlarge, then click inside Vuetify's 50 ms
+      // reopen lock: the one click its activator lets bubble.
+      await img.trigger("click");
+      await img.trigger("click");
+      await img.trigger("click");
+      expect(wrapper.vm.openPanel).toBe(0);
+
+      // The rest of the title still toggles.
+      await titles(wrapper)[0].find(".promptPath").trigger("click");
+      expect(wrapper.vm.openPanel).not.toBe(0);
+    });
+
+    test("every prompt's title shows its cover, open or not", async () => {
       /*
-       * Vuetify mounts expansion-panel text only while its panel is open,
-       * so a dialog full of pending covers probes one at a time rather
-       * than all at once.
+       * Titles always render, so each pending cover probes when the
+       * dialog opens, not when its panel does.
        */
       const { wrapper, store } = mountPopup([candidate()], {
         fileCover: fileCover(7, "pending"),
@@ -241,21 +287,17 @@ describe("OnlineTagPromptPopup", () => {
         path: "/comics/other.cbz",
         source: "metron",
         candidates: [candidate()],
-        fileCover: fileCover(8, "pending"),
+        fileCover: fileCover(8),
       });
       await flushPromises();
 
       expect(wrapper.find(".candidateRow").exists()).toBe(false);
-      expect(wrapper.find(".fileCoverRow").exists()).toBe(false);
-      expect(fetchMock).not.toHaveBeenCalled();
-
-      wrapper.vm.openPanel = 1;
-      await flushPromises();
-
-      expect(wrapper.findAll(".fileCoverRow")).toHaveLength(1);
+      expect(titles(wrapper)[1].find("img").attributes("src")).toBe(
+        `/api/v4/covers/comic/8?ts=${MTIME}`,
+      );
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock.mock.calls[0][0]).toBe(
-        `/api/v4/covers/comic/8?ts=${MTIME}`,
+        `/api/v4/covers/comic/7?ts=${MTIME}`,
       );
     });
   });

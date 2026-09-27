@@ -35,37 +35,39 @@
             :key="prompt.fingerprint"
           >
             <v-expansion-panel-title>
-              <div class="promptTitle">
-                <div class="promptPath">{{ promptFilename(prompt.path) }}</div>
-                <div class="promptMeta">
-                  <v-chip size="x-small">{{
-                    sourceLabel(prompt.source)
-                  }}</v-chip>
-                  <v-chip size="x-small" class="ml-1">
-                    {{ prompt.candidates.length }} candidates
-                  </v-chip>
-                  <!-- One question is asked per series, so a pick usually
+              <div class="promptHeader">
+                <!-- The file's own cover, to compare the candidates against.
+                   Absent (undefined) from an older backend: no cover. -->
+                <FileCoverThumb
+                  v-if="prompt.fileCover !== undefined"
+                  :file-cover="prompt.fileCover"
+                />
+                <div class="promptTitle">
+                  <div class="promptPath">
+                    {{ promptFilename(prompt.path) }}
+                  </div>
+                  <div class="promptMeta">
+                    <v-chip size="x-small">{{
+                      sourceLabel(prompt.source)
+                    }}</v-chip>
+                    <v-chip size="x-small" class="ml-1">
+                      {{ prompt.candidates.length }} candidates
+                    </v-chip>
+                    <!-- One question is asked per series, so a pick usually
                      writes more than the comic it names. Say how many. -->
-                  <v-chip
-                    v-if="coveredCount(prompt) > 1"
-                    size="x-small"
-                    class="ml-1"
-                    color="primary"
-                  >
-                    + {{ coveredCount(prompt) - 1 }} more of this series
-                  </v-chip>
+                    <v-chip
+                      v-if="coveredCount(prompt) > 1"
+                      size="x-small"
+                      class="ml-1"
+                      color="primary"
+                    >
+                      + {{ coveredCount(prompt) - 1 }} more of this series
+                    </v-chip>
+                  </div>
                 </div>
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <!-- The file itself, to compare the candidates against.
-                 Absent (undefined) from an older backend: no row. -->
-              <FileCoverRow
-                v-if="prompt.fileCover !== undefined"
-                :key="`file-${prompt.fingerprint}`"
-                :file-cover="prompt.fileCover"
-                :path="prompt.path"
-              />
               <CandidateRow
                 v-for="(candidate, idx) in prompt.candidates"
                 :key="idx"
@@ -94,7 +96,7 @@
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CandidateRow from "@/components/online-tag/candidate-row.vue";
-import FileCoverRow from "@/components/online-tag/file-cover-row.vue";
+import FileCoverThumb from "@/components/online-tag/file-cover-thumb.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
@@ -105,7 +107,7 @@ export default {
   name: "OnlineTagPromptPopup",
   components: {
     CandidateRow,
-    FileCoverRow,
+    FileCoverThumb,
   },
   data() {
     return {
@@ -187,12 +189,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/* The file's cover beside the title text. */
+.promptHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .promptTitle {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  width: 100%;
+  flex: 1 1 0;
   min-width: 0;
 }
 
