@@ -2,13 +2,17 @@
 
 import contextlib
 import uuid
+from collections.abc import Mapping, Sequence
 from dataclasses import fields
+from datetime import datetime
+from enum import StrEnum
 from types import MappingProxyType
-from typing import Final
+from typing import Any, Final
 
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_409_CONFLICT
 
+from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
     get_active_scan_id,
@@ -28,6 +32,7 @@ from codex.librarian.onlinetag.tasks import (
     OnlineTagPromptResponseTask,
     OnlineTagSkipAllPromptsTask,
 )
+from codex.models import Comic
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.serializers.admin.tagging import (
     OnlineTagPromptResponseSerializer,
@@ -304,12 +309,81 @@ class AdminOnlineTagDismissView(AdminAPIView):
         return Response({"detail": "Dismiss signal sent."}, status=HTTP_202_ACCEPTED)
 
 
+class _FileCoverStatus(StrEnum):
+    """
+    Whether a prompt's own comic has a thumb on disk yet.
+
+    Consumed by the review dialog's file-cover row
+    (``frontend/src/components/online-tag/file-cover-row.vue``). Mirrors how
+    ``CoverView`` answers the same thumb: a present file is served, a missing
+    one is queued with a 202, and a zero-byte one is the cover thread's
+    failure marker and a 404.
+    """
+
+    READY = "ready"
+    PENDING = "pending"
+    FAILED = "failed"
+
+
+def _file_cover_status(pk: int) -> _FileCoverStatus:
+    """Classify the comic's thumb without reading it."""
+    try:
+        size = CoverPathMixin.get_cover_path(pk, custom=False).stat().st_size
+    except OSError:
+        return _FileCoverStatus.PENDING
+    return _FileCoverStatus.READY if size else _FileCoverStatus.FAILED
+
+
+def _prompt_pk(prompt: Mapping[str, Any]) -> int | None:
+    """Return the representative's pk: the comic the candidates were scored against."""
+    pk = prompt.get("pk")
+    if pk is None and (comics := prompt.get("comics")):
+        pk = comics[0].get("pk")
+    return pk if isinstance(pk, int) else None
+
+
+def _file_cover(
+    pk: int | None, updated_ats: Mapping[int, datetime]
+) -> dict[str, Any] | None:
+    """Return one prompt's ``file_cover``, or ``None`` when its comic is gone."""
+    if pk is None or (updated_at := updated_ats.get(pk)) is None:
+        return None
+    return {
+        "pk": pk,
+        # The browser's own cover ``?ts=`` convention.
+        "mtime": int(updated_at.timestamp() * 1000),
+        "status": _file_cover_status(pk),
+    }
+
+
+def _with_file_covers(prompts: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Return copies of the prompts, each carrying its own comic's cover.
+
+    Derived when the list is served rather than stored in the prompt, so
+    prompts cached by an older Codex get one too and the cached shape the
+    answer path reads never changes. Sends the pk and mtime, not a URL: the
+    frontend owns URL building. One query for the whole list.
+    """
+    prompt_pks = tuple(_prompt_pk(prompt) for prompt in prompts)
+    pks = frozenset(pk for pk in prompt_pks if pk is not None)
+    updated_ats = (
+        dict(Comic.objects.filter(pk__in=pks).values_list("pk", "updated_at"))
+        if pks
+        else {}
+    )
+    return [
+        {**prompt, "file_cover": _file_cover(pk, updated_ats)}
+        for prompt, pk in zip(prompts, prompt_pks, strict=True)
+    ]
+
+
 class AdminOnlineTagPromptsView(AdminAPIView):
     """List every pending deferred prompt (independent of any running scan)."""
 
     def get(self, _request):
-        """Return all pending prompts from the cache."""
-        prompts = list(get_pending_prompts().values())
+        """Return all pending prompts from the cache, with each file's cover."""
+        prompts = _with_file_covers(list(get_pending_prompts().values()))
         return Response({"prompts": prompts})
 
 

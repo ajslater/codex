@@ -148,6 +148,41 @@ describe("CoverPopup", () => {
     const wrapper = mountPopup({ thumbSrc: THUMB, fullSrc: FULL });
     expect(wrapper.find("img").attributes("src")).toBe(THUMB);
   });
+
+  test("a full-size image that fails says so, not an empty box", async () => {
+    const wrapper = mountPopup();
+    await wrapper.find("img").trigger("click");
+    await flushPromises();
+
+    content()
+      .querySelector(".coverPopupBody img")
+      .dispatchEvent(new Event("error"));
+    await flushPromises();
+
+    expect(content().querySelector(".coverPopupBody img")).toBeNull();
+    expect(content().textContent).toContain("Full-size image unavailable");
+    // The thumbnail is not blamed for the full-size image's failure.
+    expect(wrapper.emitted("error")).toBeUndefined();
+  });
+
+  test("reopening retries a full-size image that failed", async () => {
+    const wrapper = mountPopup();
+    await wrapper.find("img").trigger("click");
+    await flushPromises();
+    content()
+      .querySelector(".coverPopupBody img")
+      .dispatchEvent(new Event("error"));
+    await flushPromises();
+
+    wrapper.vm.open = false;
+    await flushPromises();
+    wrapper.vm.open = true;
+    await flushPromises();
+
+    expect(
+      content().querySelector(".coverPopupBody img").getAttribute("src"),
+    ).toBe(FULL);
+  });
 });
 
 export default {};

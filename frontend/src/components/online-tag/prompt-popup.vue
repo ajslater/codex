@@ -58,6 +58,14 @@
               </div>
             </v-expansion-panel-title>
             <v-expansion-panel-text>
+              <!-- The file itself, to compare the candidates against.
+                 Absent (undefined) from an older backend: no row. -->
+              <FileCoverRow
+                v-if="prompt.fileCover !== undefined"
+                :key="`file-${prompt.fingerprint}`"
+                :file-cover="prompt.fileCover"
+                :path="prompt.path"
+              />
               <CandidateRow
                 v-for="(candidate, idx) in prompt.candidates"
                 :key="idx"
@@ -86,6 +94,7 @@
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CandidateRow from "@/components/online-tag/candidate-row.vue";
+import FileCoverRow from "@/components/online-tag/file-cover-row.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
@@ -96,6 +105,7 @@ export default {
   name: "OnlineTagPromptPopup",
   components: {
     CandidateRow,
+    FileCoverRow,
   },
   data() {
     return {
