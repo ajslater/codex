@@ -109,6 +109,26 @@ describe("AdminDefaultsTab — drafts", () => {
     expect(vm.lockedShowKey).toBeUndefined();
   });
 
+  test("a locked show box explains itself in the card footer", async () => {
+    const { wrapper, vm } = mountTab();
+    const hint = () =>
+      wrapper
+        .findAll(".adminHint")
+        .find((node) => node.text().includes("Top Collection"));
+    expect(hint().text()).toBe(
+      "Publishers is the Top Collection, so it must stay shown. Choose another Top Collection to hide Publishers.",
+    );
+
+    vm.draft.browser.topCollection = "series";
+    await vm.$nextTick();
+    expect(hint().text()).toContain("Series is the Top Collection");
+
+    // Nothing is locked when the top collection has no show box.
+    vm.draft.browser.topCollection = "comics";
+    await vm.$nextTick();
+    expect(hint()).toBeUndefined();
+  });
+
   test("a hidden collection is disabled with a reason", () => {
     const { vm } = mountTab();
     expect(vm.topCollectionItemProps({ value: "imprints" })).toEqual({
