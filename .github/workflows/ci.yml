@@ -41,6 +41,16 @@ jobs:
           # Only fetch full history for the main push gate
           fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
 
+      # A release PR must bump the version and add its NEWS.md section before
+      # it can merge; on a main push a failure here skips build and deploy.
+      - name: Release Preflight
+        if: >-
+          vars.RELEASE_AUTOMATION != 'off' &&
+          ((github.event_name == 'push' && github.ref_name == 'main') || github.base_ref == 'main')
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: bin/release-tag.sh preflight
+
       - name: Check for Redundant Tests & Existing Dist
         id: gate
         if: github.ref_name == 'main' && github.event_name == 'push'
