@@ -169,6 +169,10 @@ class StatsAdminFlagsSerializer(Serializer):
     api_key_set = BooleanField(required=False, read_only=True)
     banner_text_set = BooleanField(required=False, read_only=True)
     browser_default_collection = CharField(required=False, read_only=True)
+    browser_default_bookmark_filter = CharField(
+        required=False, read_only=True, allow_blank=True
+    )
+    settings_defaults_customized = BooleanField(required=False, read_only=True)
     browser_max_obj_per_page = IntegerField(required=False, read_only=True)
     custom_cover_max_upload_mb = IntegerField(required=False, read_only=True)
     age_rating_default = CharField(required=False, read_only=True, allow_blank=True)

@@ -1,5 +1,6 @@
 """Browser Choices."""
 
+from collections.abc import Mapping
 from types import MappingProxyType
 
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
@@ -163,9 +164,9 @@ BROWSER_CHOICES = MappingProxyType(
 # Subset of BROWSER_CHOICES keys included in the Vuetify-list dump
 # (``browser-choices.json``). ``IDENTIFIER_SOURCES`` is omitted — the
 # frontend only consumes its raw-map form from ``browser-map.json``.
-# ``VIEW_MODE`` and ``TABLE_COVER_SIZE`` are not consumed by the
-# frontend in either form; their backing constants are used by the
-# backend (models / serializers) but no JSON dump is needed.
+# ``VIEW_MODE`` feeds the admin Defaults tab's select. ``TABLE_COVER_SIZE``
+# is not consumed by the frontend in either form; its backing constant is
+# used by the backend (models / serializers) but no JSON dump is needed.
 BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
     {
         "BOOKMARK_FILTER",
@@ -173,19 +174,22 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "COVER_ORDER_BY_KEYS",
         "EXTRA_SORT_UNSUPPORTED_KEYS",
         "TOP_COLLECTION",
+        "VIEW_MODE",
         "VUETIFY_NULL_CODE",
         "SETTINGS_COLLECTION",
     }
 )
 
 # Subset of BROWSER_CHOICES keys included in the raw-map dump
-# (``browser-map.json``). The frontend only destructures these three
-# keys from ``browser-map.json``; the others are consumed via their
-# Vuetify-list forms from ``browser-choices.json``.
+# (``browser-map.json``). The frontend only destructures these keys from
+# ``browser-map.json`` (``VIEW_MODE`` for the admin Stats tab labels); the
+# others are consumed via their Vuetify-list forms from
+# ``browser-choices.json``.
 BROWSER_CHOICES_MAP_KEYS = frozenset(
     {
         "ORDER_BY",
         "TOP_COLLECTION",
+        "VIEW_MODE",
         "IDENTIFIER_SOURCES",
     }
 )
@@ -204,16 +208,59 @@ _FLAG_COLLECTION_HAS_OWN_ROUTE = frozenset({"folders", "arcs"})
 
 def admin_default_route_for(top_collection: str) -> dict:
     """
-    Translate a ``BROWSER_DEFAULT_COLLECTION`` collection into a route dict.
+    Translate a ``SettingsDefaults.top_collection`` into a route dict.
 
-    Used (via ``get_last_route``) to seed the bare ``/`` redirect when no
-    per-user ``last_route`` row exists. ``top_collection`` is the collection-name
-    default; folders / arcs own their route, everything else is Root.
+    Seeds a new settings row's ``last_route`` and, via ``get_last_route``,
+    the bare ``/`` redirect when no per-user ``last_route`` row exists.
+    ``top_collection`` is the collection-name default; folders / arcs own
+    their route, everything else is Root.
     """
     collection = (
         top_collection if top_collection in _FLAG_COLLECTION_HAS_OWN_ROUTE else "root"
     )
     return {"collection": collection, "pks": (), "page": 1}
+
+
+# The show-gated browse collections, in validator order.
+SHOW_COLLECTIONS = ("publishers", "imprints", "series", "volumes")
+# Top collections reachable whatever the show flags say. Folders also need
+# the Folder View admin flag.
+_ALWAYS_SHOWN_TOP_COLLECTIONS = frozenset({"comics", "arcs"})
+
+
+def coherent_top_collection(
+    top_collection: str, show: Mapping[str, bool], *, folder_view: bool
+) -> str:
+    """
+    Return ``top_collection`` when it is reachable, else the validator's fallback.
+
+    Mirrors the browser validator's no-nav-context fallback: the first
+    enabled show collection, else comics. Never mutates ``show``.
+    """
+    if top_collection in _ALWAYS_SHOWN_TOP_COLLECTIONS:
+        return top_collection
+    if top_collection == "folders" and folder_view:
+        return top_collection
+    if top_collection in SHOW_COLLECTIONS and show.get(top_collection):
+        return top_collection
+    return next((c for c in SHOW_COLLECTIONS if show.get(c)), "comics")
+
+
+# Order-by choices an admin may pick as the site default. ``""`` is the
+# automatic per-collection sort (Name; Filename in Folders; Story Arc Number
+# in Story Arcs) the ``SettingsBrowser.order_by`` default already means. The
+# keys that cannot be a standing sort are left out: ``search_score`` only
+# means anything during a search and ``story_arc_number`` only inside an arc.
+SETTINGS_DEFAULTS_ORDER_BY_CHOICES = MappingProxyType(
+    {
+        "": "Automatic",
+        **{
+            key: title
+            for key, title in BROWSER_ORDER_BY_CHOICES.items()
+            if key not in BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
+        },
+    }
+)
 
 
 _DEFAULT_SHOW = MappingProxyType(
@@ -696,6 +743,36 @@ BROWSER_TABLE_DEFAULT_COLUMNS = MappingProxyType(
         "arcs": ("cover", "name", "publisher_name", "child_count"),
     }
 )
+
+
+def clean_table_columns(value) -> tuple[dict[str, list[str]], list[str]]:
+    """
+    Return the known collections and columns, and the dropped keys.
+
+    Unknown top-collection keys (e.g. legacy single-char group codes) are
+    dropped as ``"<collection>"``, unknown column keys as
+    ``"<collection>:<column>"``. A value that is not a mapping of lists
+    cleans to ``{}``. Pure: callers decide whether a drop warns or 400s.
+    """
+    cleaned: dict[str, list[str]] = {}
+    dropped: list[str] = []
+    if not isinstance(value, Mapping):
+        return cleaned, dropped
+    for top_collection, columns in value.items():
+        if top_collection not in BROWSER_TOP_COLLECTION_CHOICES or not isinstance(
+            columns, list | tuple
+        ):
+            dropped.append(str(top_collection))
+            continue
+        kept = []
+        for column in columns:
+            if column in BROWSER_TABLE_COLUMNS:
+                kept.append(column)
+            else:
+                dropped.append(f"{top_collection}:{column}")
+        cleaned[top_collection] = kept
+    return cleaned, dropped
+
 
 BROWSER_DEFAULTS = MappingProxyType(
     {

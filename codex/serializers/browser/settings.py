@@ -21,6 +21,7 @@ from codex.choices.browser import (
     BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_TOP_COLLECTION_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
+    clean_table_columns,
 )
 from codex.serializers.browser.filters import BrowserSettingsFilterInputSerializer
 from codex.serializers.fields import TimestampField
@@ -212,23 +213,9 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
         Unknown top-collection keys (e.g. legacy single-char group codes) and
         unknown column keys are dropped with a warning rather than raising.
         """
-        valid_top_collections = set(BROWSER_TOP_COLLECTION_CHOICES.keys())
-        valid_columns = set(BROWSER_TABLE_COLUMNS.keys())
-        cleaned: dict[str, list[str]] = {}
-        for top_collection, columns in value.items():
-            if top_collection not in valid_top_collections:
-                logger.warning(
-                    f"Dropping unknown table_columns top_collection {top_collection!r}"
-                )
-                continue
-            invalid_columns = set(columns) - valid_columns
-            if invalid_columns:
-                msg = (
-                    f"Dropping unknown table_columns columns for "
-                    f"{top_collection!r}: {sorted(invalid_columns)}"
-                )
-                logger.warning(msg)
-            cleaned[top_collection] = [c for c in columns if c in valid_columns]
+        cleaned, dropped = clean_table_columns(value)
+        if dropped:
+            logger.warning(f"Dropping unknown table_columns keys: {dropped}")
         return cleaned
 
     def validate_collection_order_memory(self, value):

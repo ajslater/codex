@@ -14,6 +14,7 @@ from codex.models import (
     AgeRatingMetron,
     LibrarianStatus,
     Library,
+    SettingsDefaults,
     Timestamp,
 )
 from codex.models.age_rating import (
@@ -85,10 +86,6 @@ def init_admin_flags() -> None:
     # default. Heals the row to a sensible state if an admin deletes
     # it; the migration that introduced the flag does the same insert.
     value_defaults = {
-        # Mirrors the ``SettingsBrowser.top_collection`` model default so
-        # ``admin_default_route_for("publishers")`` resolves to the root
-        # publishers listing — upgrade-day no-op.
-        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value: "publishers",
         # Migrated from TOML at first boot of the new version;
         # the value reflects the live settings constant so deleted
         # rows heal back to the operator's configured value.
@@ -164,6 +161,18 @@ def init_timestamps() -> None:
             logger.debug(f"Created {label} timestamp.")
 
 
+def init_settings_defaults() -> None:
+    """
+    Ensure the SettingsDefaults singleton exists.
+
+    Migration 0055 creates it from the old Default View flag; this heals a
+    deleted row back to the factory values.
+    """
+    _, created = SettingsDefaults.objects.get_or_create(pk=1)
+    if created:
+        logger.info("Created SettingsDefaults.")
+
+
 def init_librarian_statuses() -> None:
     """Init librarian statuses."""
     # Remove old statuses from previous versions of codex.
@@ -222,6 +231,7 @@ def ensure_db_rows() -> None:
     # AgeRatingMetron rows must exist before AdminFlag seeds FK targets.
     init_age_rating_metron()
     init_admin_flags()
+    init_settings_defaults()
     init_timestamps()
     init_librarian_statuses()
     init_libraries()

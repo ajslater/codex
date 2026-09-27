@@ -18,15 +18,23 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.browser import (
+    BROWSER_BOOKMARK_FILTER_CHOICES,
+    BROWSER_TOP_COLLECTION_CHOICES,
+    BROWSER_VIEW_MODE_CHOICES,
+    SETTINGS_DEFAULTS_ORDER_BY_CHOICES,
+)
 from codex.choices.limits import OIDC_URL_MAX_LENGTH
 from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.models.age_rating import AgeRatingMetron
 from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
 from codex.models.choices import (
+    ReadingDirectionChoices,
     max_choices_len,
     text_choices_from_map,
 )
 from codex.models.fields import EncryptedCharField
+from codex.models.settings import FitToChoices
 from codex.util import is_docker
 
 __all__ = (
@@ -35,6 +43,7 @@ __all__ = (
     "EmailSettings",
     "LibrarianStatus",
     "OIDCSettings",
+    "SettingsDefaults",
     "ThrottleSettings",
     "Timestamp",
 )
@@ -301,6 +310,85 @@ class ThrottleSettings(BaseModel):
         """Constraints."""
 
         verbose_name_plural = "ThrottleSettings"
+
+
+class SettingsDefaults(BaseModel):
+    """
+    Singleton site-wide defaults for new browser and reader settings rows.
+
+    Copied into a settings row when the row is created (a new anonymous
+    session, a user's first row, an OPDS row for ``top_collection`` only)
+    and again on an explicit browser or reader reset. Existing rows are
+    never rewritten here; the admin opts in to a catch-up per Save.
+
+    ``table_columns`` is the exception: it is never seeded into a row. The
+    SPA falls back to it per collection at read time, so a visitor who
+    customized one collection still follows the site default for the rest.
+
+    Field defaults are the factory values: the ``SettingsBrowser``,
+    ``SettingsBrowserShow`` and ``SettingsBrowserFilters`` field defaults and
+    ``READER_DEFAULTS``, which ``tests/test_settings_defaults.py`` pins them
+    to. ``order_by`` is ``""``, the automatic per-collection sort, not the
+    ``sort_name`` the frontend ``BROWSER_DEFAULTS`` dump starts from.
+    """
+
+    # Browser
+    top_collection = CharField(
+        max_length=32,
+        choices=tuple(BROWSER_TOP_COLLECTION_CHOICES.items()),
+        default="publishers",
+    )
+    show_publishers = BooleanField(default=True)
+    show_imprints = BooleanField(default=False)
+    show_series = BooleanField(default=True)
+    show_volumes = BooleanField(default=False)
+    order_by = CharField(
+        max_length=32,
+        choices=tuple(SETTINGS_DEFAULTS_ORDER_BY_CHOICES.items()),
+        default="",
+        blank=True,
+    )
+    order_reverse = BooleanField(default=False)
+    view_mode = CharField(
+        max_length=8,
+        choices=tuple(BROWSER_VIEW_MODE_CHOICES.items()),
+        default="cover",
+    )
+    twenty_four_hour_time = BooleanField(default=False)
+    always_show_filename = BooleanField(default=False)
+    bookmark = CharField(
+        max_length=16,
+        choices=tuple(BROWSER_BOOKMARK_FILTER_CHOICES.items()),
+        default="",
+        blank=True,
+    )
+    table_columns = JSONField(default=dict)
+
+    # Reader
+    fit_to = CharField(
+        choices=FitToChoices.choices,
+        default="W",
+        max_length=max_choices_len(FitToChoices),
+    )
+    reading_direction = CharField(
+        choices=ReadingDirectionChoices.choices,
+        default="ltr",
+        max_length=max_choices_len(ReadingDirectionChoices),
+    )
+    two_pages = BooleanField(default=False)
+    page_transition = BooleanField(default=True)
+    cache_book = BooleanField(default=False)
+
+    @override
+    def save(self, *args, **kwargs):
+        """Enforce singleton: always use pk=1."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta(BaseModel.Meta):
+        """Constraints."""
+
+        verbose_name_plural = "SettingsDefaults"
 
 
 class LibrarianStatus(BaseModel):

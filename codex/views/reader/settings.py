@@ -8,7 +8,6 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.choices.reader import READER_DEFAULTS
 from codex.collection import Collection
 from codex.models import Comic, Folder, Series
 from codex.models.named import StoryArc
@@ -17,6 +16,7 @@ from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
     ReaderSettingsSerializer,
 )
+from codex.settings.db import get_reader_defaults
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.settings import NULL_VALUES, SettingsBaseView
 
@@ -78,11 +78,12 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
 
     @staticmethod
     def reset_reader_settings(instance: SettingsReader) -> dict:
-        """Reset global reader settings to user-facing defaults."""
-        for key, value in READER_DEFAULTS.items():
+        """Reset global reader settings to the site defaults."""
+        defaults = get_reader_defaults()
+        for key, value in defaults.items():
             setattr(instance, key, value)
         instance.save()
-        return dict(READER_DEFAULTS)
+        return defaults
 
     # ── Auth + scope lookups ────────────────────────────────────────
     # (inlined from the former _ReaderSettingsAuthMixin / BookmarkAuthMixin)
@@ -110,12 +111,12 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
         # awareness. Replaces the manual ``filter().first() + create()``
         # pattern (sub-plan 02 #2). FILTER_ARGS scope the lookup to the
         # null-FK row; CREATE_ARGS get supplied as ``defaults`` along
-        # with READER_DEFAULTS so a freshly created global row is
+        # with the site reader defaults so a freshly created global row is
         # canonical — its stored values match what the user sees.
         base_lookup = self._get_settings_lookup()
         filter_kwargs = {**base_lookup, **self.FILTER_ARGS}
         instance, _ = SettingsReader.objects.get_or_create(
-            defaults={**base_lookup, **self.CREATE_ARGS, **READER_DEFAULTS},
+            defaults={**base_lookup, **self.CREATE_ARGS, **get_reader_defaults()},
             **filter_kwargs,
         )
         return instance

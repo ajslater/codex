@@ -110,9 +110,9 @@ class AdminFlagBoundsTestCase(TestCase):
 
     def test_a_text_flag_is_unaffected(self) -> None:
         """The int bounds must not leak onto flags that hold strings."""
-        key = AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value
+        key = AdminFlagChoices.BANNER_TEXT.value
 
-        response = self._patch_flag(key, "publishers")
+        response = self._patch_flag(key, "Welcome")
 
         assert response.status_code == HTTPStatus.OK, response.content
 

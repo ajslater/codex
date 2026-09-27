@@ -70,6 +70,9 @@ READER_FIELDS: Final[tuple[str, ...]] = (
 # The value a field holds when nobody has touched it. Reader settings are all
 # blank-or-null by default; among browser settings only order_by has one, and
 # the rest ship a real value that an explicit choice is indistinguishable from.
+# A row seeded from an admin site default (SettingsDefaults) stores that value,
+# so an admin-chosen order_by counts here as the user's choice. Known, and
+# deliberately left alone: telling the two apart would need per-row history.
 BROWSER_UNTOUCHED: Final[MappingProxyType[str, str]] = MappingProxyType(
     {"order_by": ""}
 )

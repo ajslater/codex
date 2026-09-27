@@ -388,3 +388,40 @@ def serialize_tagging_defaults(
             "updated_at": _datetime_str(getattr(defaults, "updated_at", None)),
         },
     )
+
+
+# SettingsDefaults columns stored as-is (strings) or as 0/1 (booleans).
+SETTINGS_DEFAULTS_TEXT = (
+    "top_collection",
+    "order_by",
+    "view_mode",
+    "bookmark",
+    "fit_to",
+    "reading_direction",
+)
+SETTINGS_DEFAULTS_BOOLS = (
+    "show_publishers",
+    "show_imprints",
+    "show_series",
+    "show_volumes",
+    "order_reverse",
+    "twenty_four_hour_time",
+    "always_show_filename",
+    "two_pages",
+    "page_transition",
+    "cache_book",
+)
+
+
+def serialize_settings_defaults(
+    defaults,
+) -> tuple[str, tuple[str, ...], dict[str, Any]]:
+    """SettingsDefaults singleton — always pk=1 in main DB."""
+    data: dict[str, Any] = {"pk": 1}
+    data.update({key: getattr(defaults, key) for key in SETTINGS_DEFAULTS_TEXT})
+    data.update(
+        {key: int(bool(getattr(defaults, key))) for key in SETTINGS_DEFAULTS_BOOLS}
+    )
+    data["table_columns"] = json.dumps(defaults.table_columns, separators=(",", ":"))
+    data["updated_at"] = _datetime_str(getattr(defaults, "updated_at", None))
+    return ("settings_defaults", ("pk",), data)

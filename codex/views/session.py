@@ -2,7 +2,8 @@
 Composite session bootstrap endpoint.
 
 ``GET /api/v4/session`` returns ``{user, adminFlags, permissions,
-version}`` in a single request so the SPA boots without the two-call
+version}`` (plus ``defaults`` and ``defaultsRev`` for callers who may
+browse) in a single request so the SPA boots without the two-call
 ``/auth/profile`` + ``/auth/flags`` handshake that v3 used.
 ``opds-urls`` is intentionally *not* bundled — those URLs are rarely
 opened, so they stay on their own lazy ``/api/v4/opds-urls`` endpoint.
@@ -19,7 +20,14 @@ from codex.models import AdminFlag
 from codex.oidc import oidc_logout_url
 from codex.serializers.auth import SessionSerializer
 from codex.settings import GRANIAN_URL_PATH_PREFIX
-from codex.settings.db import email_enabled, get_oidc_settings, oidc_enabled
+from codex.settings.db import (
+    email_enabled,
+    get_browser_defaults,
+    get_oidc_settings,
+    get_reader_defaults,
+    get_settings_defaults,
+    oidc_enabled,
+)
 from codex.views.auth import AuthGenericAPIView, user_payload
 from codex.views.version import version_payload
 
@@ -101,19 +109,40 @@ class SessionView(AuthGenericAPIView):
                 flags["oidc_logout_url"] = logout_url
         return flags
 
+    @staticmethod
+    def _add_defaults(payload: dict) -> None:
+        """
+        Add the site default settings and their revision.
+
+        ``defaults_rev`` is the singleton's ``updated_at``, so every admin
+        Save changes it and open tabs can tell a real change from a refetch.
+        """
+        payload["defaults"] = {
+            "browser": get_browser_defaults(),
+            "reader": get_reader_defaults(),
+        }
+        row = get_settings_defaults()
+        payload["defaults_rev"] = row.updated_at.isoformat() if row else ""
+
     @override
     def get_object(self) -> dict:
         """Build the composite session payload."""
         user_data = user_payload(self.request.user)
-        return {
+        flags = self._admin_flags(authenticated=user_data is not None)
+        payload = {
             "user": user_data,
-            "admin_flags": self._admin_flags(authenticated=user_data is not None),
+            "admin_flags": flags,
             "permissions": {
                 "is_staff": bool(user_data and user_data["is_staff"]),
                 "is_superuser": bool(user_data and user_data["is_superuser"]),
             },
             "version": version_payload(),
         }
+        # Only a caller who may browse needs the defaults to seed its first
+        # paint; an anonymous caller with Non-Users off sees a login screen.
+        if user_data is not None or flags.get("non_users"):
+            self._add_defaults(payload)
+        return payload
 
     def get(self, *args, **kwargs) -> Response:
         """GET /api/v4/session."""

@@ -86,7 +86,7 @@ class BrowserSettingsBaseView(SettingsBaseView):
         params["order_by"] = order_by
 
     def reset_browser_settings(self) -> dict:
-        """Reset browser settings to model defaults and return the params dict."""
+        """Reset browser settings to the site defaults and return the params dict."""
         # ``_get_or_create_settings`` returns the broad ``SettingsBase``
         # supertype; ``self.MODEL`` (``SettingsBrowser``) determines the
         # concrete type.
@@ -99,7 +99,7 @@ class BrowserSettingsBaseView(SettingsBaseView):
                 self.CREATE_ARGS,
             ),
         )
-        defaults = self.get_browser_default_params()
+        defaults = self.get_browser_site_params()
 
         # Reset direct fields
         for key in SettingsBrowser.DIRECT_KEYS:
@@ -212,7 +212,7 @@ class BrowserSettingsView(BrowserSettingsBaseView):
 
     @extend_schema(responses=BrowserSettingsSerializer)
     def delete(self, *args, **kwargs) -> Response:
-        """Reset browser settings to model defaults."""
+        """Reset browser settings to the site defaults."""
         params = self.reset_browser_settings()
         self.set_order_by_default(params)
         serializer = self.get_serializer(params)

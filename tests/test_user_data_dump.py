@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from typing import Final, override
 
@@ -105,6 +106,32 @@ class DumpUserDataTests(TestCase):
         assert rows[0]["metron_key"] == "token"
         assert rows[0]["comicvine_key"] == "key"
         assert rows[0]["comicvine_url"] == "https://cv.example.com/api"
+
+    def test_dump_round_trip_settings_defaults(self) -> None:
+        """Every serialized SettingsDefaults column exists in the sidecar schema."""
+        from codex.models.admin import SettingsDefaults
+
+        columns = {"folders": ["cover", "name", "child_count"]}
+        SettingsDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "top_collection": "series",
+                "bookmark": "UNREAD",
+                "table_columns": columns,
+                "two_pages": True,
+            },
+        )
+
+        counts = dump_user_data()
+        assert counts["settings_defaults"] == 1
+
+        rows = self.store.fetchall("settings_defaults")
+        assert len(rows) == 1
+        assert rows[0]["top_collection"] == "series"
+        assert rows[0]["bookmark"] == "UNREAD"
+        assert json.loads(rows[0]["table_columns"]) == columns
+        assert rows[0]["two_pages"] == 1
+        assert rows[0]["page_transition"] == 1
 
     def test_dump_settings_browser_show_flags(self) -> None:
         """show.{publishers,imprints,series,volumes} → show_{p,i,s,v} columns."""

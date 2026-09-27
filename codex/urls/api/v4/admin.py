@@ -44,6 +44,10 @@ from codex.views.admin.restore_user_data import (
     AdminRestoreUserDataView,
     AdminUserDataBackupsView,
 )
+from codex.views.admin.settings_defaults import (
+    AdminSettingsDefaultsReachView,
+    AdminSettingsDefaultsView,
+)
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tag_write_errors import AdminTagWriteErrorsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
@@ -200,6 +204,16 @@ urlpatterns = [
         "tagging-defaults/validate",
         AdminTaggingValidateView.as_view(),
         name="tagging_defaults_validate",
+    ),
+    path(
+        "settings-defaults",
+        AdminSettingsDefaultsView.as_view(),
+        name="settings_defaults",
+    ),
+    path(
+        "settings-defaults/reach",
+        AdminSettingsDefaultsReachView.as_view(),
+        name="settings_defaults_reach",
     ),
     path(
         "throttle-settings",
