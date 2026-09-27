@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.0
+
+- Features
+    - Online tagging match review shows the file's own cover above the
+      candidates.
+
 ## v2.4.3
 
 - Fixes

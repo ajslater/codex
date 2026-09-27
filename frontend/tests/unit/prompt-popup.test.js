@@ -8,8 +8,8 @@
  * that volume.
  */
 import { createTestingPinia } from "@pinia/testing";
-import { mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import vuetify from "@/plugins/vuetify";
@@ -20,6 +20,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 // Dismiss, Skip All, Pause.
 const THREE_HEADER_BUTTONS = 3;
+const MTIME = 1726999999000;
 
 function candidate(overrides = {}) {
   return {
@@ -44,7 +45,7 @@ function candidate(overrides = {}) {
   };
 }
 
-function mountPopup(candidates) {
+function mountPopup(candidates, promptFields = {}) {
   const pinia = createTestingPinia();
   const wrapper = mount(OnlineTagPromptPopup, {
     global: {
@@ -60,6 +61,7 @@ function mountPopup(candidates) {
       path: "/comics/kapitan.cbz",
       source: "comicvine",
       candidates,
+      ...promptFields,
     },
   ];
   store.promptDialogOpen = true;
@@ -150,6 +152,111 @@ describe("OnlineTagPromptPopup", () => {
 
       expect(wrapper.text()).toContain("No matches need review.");
       expect(wrapper.findAll(".v-progress-circular")).toHaveLength(0);
+    });
+  });
+
+  /*
+   * The file's own cover sits above the candidates so the admin can compare
+   * the art. It is not a candidate, so it must never shift a Pick index.
+   */
+  describe("the file's own cover", () => {
+    let fetchMock;
+
+    const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
+
+    beforeEach(() => {
+      fetchMock = vi.fn(() => Promise.resolve(new Response(null)));
+      vi.stubGlobal("fetch", fetchMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    test("renders before the first candidate", async () => {
+      const { wrapper } = mountPopup([candidate(), candidate()], {
+        fileCover: fileCover(7),
+      });
+      await wrapper.vm.$nextTick();
+
+      const rows = wrapper.findAll(".fileCoverRow, .candidateRow");
+      expect(rows.map((row) => row.classes()[0])).toEqual([
+        "fileCoverRow",
+        "candidateRow",
+        "candidateRow",
+      ]);
+      expect(rows[0].find("img").attributes("src")).toBe(
+        `/api/v4/covers/comic/7?ts=${MTIME}`,
+      );
+    });
+
+    test("is absent when the backend predates it", async () => {
+      const { wrapper } = mountPopup([candidate()]);
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".candidateRow").exists()).toBe(true);
+      expect(
+        wrapper.findComponent({ name: "OnlineTagFileCoverRow" }).exists(),
+      ).toBe(false);
+    });
+
+    test("shows a gone comic's placeholder rather than hiding", async () => {
+      const { wrapper } = mountPopup([candidate()], { fileCover: null });
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".fileCoverRow").text()).toContain(
+        "This file is no longer in the library",
+      );
+    });
+
+    test("the first Pick still picks candidate 0", async () => {
+      const { wrapper, store } = mountPopup(
+        [candidate({ volumeId: 11 }), candidate({ volumeId: 22 })],
+        { fileCover: fileCover(7) },
+      );
+      await wrapper.vm.$nextTick();
+
+      const picks = wrapper
+        .findAll("button")
+        .filter((button) => button.text() === "Pick");
+      expect(picks).toHaveLength(2);
+      await picks[0].trigger("click");
+
+      expect(store.resolvePrompt).toHaveBeenCalledWith("fp1", "choose", 0, 11);
+    });
+
+    test("only an opened panel mounts its row and probes", async () => {
+      /*
+       * Vuetify mounts expansion-panel text only while its panel is open,
+       * so a dialog full of pending covers probes one at a time rather
+       * than all at once.
+       */
+      const { wrapper, store } = mountPopup([candidate()], {
+        fileCover: fileCover(7, "pending"),
+      });
+      wrapper.vm.openPanel = null;
+      store.pendingPrompts.push({
+        fingerprint: "fp2",
+        pk: 8,
+        path: "/comics/other.cbz",
+        source: "metron",
+        candidates: [candidate()],
+        fileCover: fileCover(8, "pending"),
+      });
+      await flushPromises();
+
+      expect(wrapper.find(".candidateRow").exists()).toBe(false);
+      expect(wrapper.find(".fileCoverRow").exists()).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      wrapper.vm.openPanel = 1;
+      await flushPromises();
+
+      expect(wrapper.findAll(".fileCoverRow")).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `/api/v4/covers/comic/8?ts=${MTIME}`,
+      );
     });
   });
 
