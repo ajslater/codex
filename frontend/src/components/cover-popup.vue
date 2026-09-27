@@ -11,9 +11,14 @@
 
   Vuetify mounts overlay content on first activation and tears it down
   after close, so a re-hover re-requests the image from the browser or
-  CDN cache. Codex holds no copy of either image; both load straight
-  from the source, which is why neither carries `crossorigin` (an <img>
-  is CORS-exempt) and both send no referrer.
+  CDN cache. Match candidates load straight from the source's CDN, which
+  is why neither image carries `crossorigin` (an <img> is CORS-exempt)
+  and both send no referrer. Codex's own covers and pages come through
+  here too, and both attributes are harmless on a same-origin image.
+
+  Every enlarge renders in the same capped box (.coverPopupBody img), so
+  a full comic page opens at the same size as a CDN's large tier. One
+  that fails to load says so rather than leaving an empty shadowed box.
 -->
 <template>
   <v-menu
@@ -44,11 +49,14 @@
     </template>
     <div class="coverPopupBody">
       <img
+        v-if="!fullFailed"
         :src="fullSrc"
         :alt="alt"
         loading="lazy"
         referrerpolicy="no-referrer"
+        @error="fullFailed = true"
       />
+      <div v-else class="coverPopupError">{{ fullErrorText }}</div>
     </div>
   </v-menu>
   <slot v-else name="thumb" :props="plainBindings">
@@ -96,6 +104,8 @@ export default {
   data() {
     return {
       open: false,
+      fullFailed: false,
+      fullErrorText: "Full-size image unavailable",
     };
   },
   computed: {
@@ -107,6 +117,12 @@ export default {
     },
     plainBindings() {
       return mergeProps(this.$attrs, this.activatorProps);
+    },
+  },
+  watch: {
+    open(isOpen) {
+      // Each opening retries, as the re-mounted overlay would anyway.
+      if (isOpen) this.fullFailed = false;
     },
   },
   methods: {
@@ -151,6 +167,14 @@ export default {
   max-height: 70vh;
   max-width: 60vw;
   border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+.coverPopupError {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-text-secondary));
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 </style>

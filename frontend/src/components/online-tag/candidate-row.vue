@@ -78,11 +78,10 @@
 import { mdiOpenInNew } from "@mdi/js";
 
 import CoverPopup from "@/components/cover-popup.vue";
+import { COVER_HEIGHT, COVER_WIDTH } from "@/components/online-tag/cover-size";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 
 const PERCENT = 100;
-const COVER_WIDTH = "48px";
-const COVER_HEIGHT = "72px";
 
 export default {
   name: "OnlineTagCandidateRow",
