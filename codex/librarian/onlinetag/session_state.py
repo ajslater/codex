@@ -152,7 +152,9 @@ def serialize_prompt(
     comic first — comicbox fingerprints at series level, so one prompt
     stands for a whole series in the batch (see ``prompt_comics``). ``pk``
     and ``path`` repeat the representative so a prompt written by this
-    codex still reads on a rollback to one that predates the list.
+    codex still reads on a rollback to one that predates the list. The
+    review dialog derives the file's own cover from ``pk`` when the
+    prompt list is served, so no cover data is stored here.
     """
     representative = comics[0]
     return {

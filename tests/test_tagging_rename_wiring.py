@@ -315,3 +315,26 @@ class SerializePromptRenameTests(SimpleTestCase):
             rename=True,
         )
         assert result["rename"] is True
+
+
+class SerializePromptPayloadTests(SimpleTestCase):
+    """
+    The stored prompt names its representative and nothing about its cover.
+
+    The review dialog derives the file's cover from ``pk`` when the prompt
+    list is served, so the cached shape the answer path reads stays as is.
+    """
+
+    def test_representative_pk_and_no_cover(self) -> None:
+        representative = {"pk": 5, "path": "/x/c5.cbz"}
+        result = serialize_prompt(
+            _DeferredPrompt(),
+            [representative, {"pk": 6, "path": "/x/c6.cbz"}],
+            ("COMIC_INFO",),
+            delete_original=False,
+            rename=False,
+        )
+
+        assert result["pk"] == representative["pk"]
+        assert result["comics"][0]["pk"] == representative["pk"]
+        assert "file_cover" not in result

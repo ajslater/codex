@@ -21,10 +21,11 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Lint, test, and build the Python wheel (amd64 only)
+  # Gate: the only job with trigger logic. Runs the Release Preflight, and on a
+  # main push identical to the merged PR reuses that PR's dist.
   # ---------------------------------------------------------------------------
-  test:
-    name: Lint, Test & Build Dist
+  gate:
+    name: Gate
     runs-on: ubuntu-24.04
     if: |
       github.ref_name == 'main' && github.event_name == 'push' ||
@@ -32,14 +33,28 @@ jobs:
       (github.base_ref == 'develop' && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
     permissions:
       contents: read
-      packages: write
-      checks: write
+      actions: read
+      pull-requests: read
+    outputs:
+      # Always "true" or "false".
+      dist_found: ${{ steps.gate.outputs.dist_found == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           # Only fetch full history for the main push gate
           fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
+
+      # A release PR must bump the version and add its NEWS.md section before
+      # it can merge; a failure here fails the gate, so nothing else runs and
+      # the required check goes red.
+      - name: Release Preflight
+        if: >-
+          vars.RELEASE_AUTOMATION != 'off' &&
+          ((github.event_name == 'push' && github.ref_name == 'main') || github.base_ref == 'main')
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: bin/release-tag.sh preflight
 
       - name: Check for Redundant Tests & Existing Dist
         id: gate
@@ -49,86 +64,128 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bin/ci-download-dist-if-identical.sh
 
-      - name: Set up Docker Buildx
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/setup-buildx-action@v4
+      - name: Link the reused run
+        if: steps.gate.outputs.dist_found == 'true'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.gate.outputs.source_run_id }}
+        run: echo "Reused python-dist from CI run $RUN_URL" >>"$GITHUB_STEP_SUMMARY"
 
-      - name: Log in to GHCR
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/login-action@v4
+      - name: Upload reused dist
+        if: steps.gate.outputs.dist_found == 'true'
+        uses: actions/upload-artifact@v7
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: python-dist
+          path: dist/
+          retention-days: 2
+          if-no-files-found: error
 
-      - name: Build dist-builder image
-        id: build-ci
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/build-push-action@v7
+  # ---------------------------------------------------------------------------
+  # Lint, test, and build the Python wheel in parallel in the codex-ci image.
+  # fail-fast (decided 2026-09-23): the first failing task cancels the rest.
+  # Never set fail-fast: false or continue-on-error here; the aggregator and
+  # tests/test_ci_workflow.py rely on it.
+  # ---------------------------------------------------------------------------
+  check:
+    name: ${{ matrix.name }}
+    needs: gate
+    if: needs.gate.outputs.dist_found != 'true'
+    runs-on: ubuntu-24.04
+    # Job permissions cannot vary per combo; this is the union of the four.
+    permissions:
+      contents: read
+      packages: write
+      checks: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Lint is the only combo that writes the registry cache.
+          - task: lint
+            name: Lint
+            write-cache: true
+            make: lint
+          # test-frontend's make prerequisite builds the choices JSON.
+          - task: test-frontend
+            name: Test Frontend
+            write-cache: false
+            make: test-frontend
+          # Neither django-check nor pytest needs the frontend or static files.
+          - task: test-python
+            name: Test Python
+            write-cache: false
+            make: django-check test-python
+          # The wheel ships codex/static, so this combo collects it.
+          - task: dist
+            name: Build Dist
+            write-cache: false
+            make: build-choices build-frontend collectstatic build-only
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Start CI container
+        uses: ./.github/actions/ci-container
         with:
-          context: .
-          target: codex-ci
-          load: true
-          tags: ${{ env.CI_IMAGE_TAG }}
+          image: ${{ env.CI_IMAGE }}
+          write-cache: ${{ matrix.write-cache }}
 
-          cache-from: type=registry,ref=${{ env.CI_IMAGE }}:cache
-          cache-to: type=registry,ref=${{ env.CI_IMAGE }}:cache,mode=max
+      - name: ${{ matrix.name }}
+        id: work
+        run: docker exec ${{ env.CI_CONTAINER }} make ${{ matrix.make }}
 
-      - name: Start Services
-        id: start-services
-        if: steps.build-ci.outcome == 'success'
-        run: |
-          mkdir -p dist test-results
-          docker compose up -d ci
-
-      - name: Lint
-        id: lint
-        if: steps.start-services.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make lint
-
-      - name: Build for Tests & Dist
-        id: build-for-tests
-        if: steps.lint.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make build-choices build-frontend collectstatic
-
-      - name: Tests
-        id: tests
-        if: steps.build-for-tests.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make test-frontend django-check test-python -o build-choices
-
+      # Test Python only: straight after the work step and on !cancelled(), so
+      # a pytest failure still publishes its report.
       - name: Upload Test Results
         id: upload-tests
-        if: "!cancelled() && steps.tests.outcome != 'skipped'"
+        if: matrix.task == 'test-python' && !cancelled() && steps.work.outcome != 'skipped'
         uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: "**/test-results/pytest/*.xml"
 
       - name: Publish Test Report
-        if: "!cancelled() && steps.upload-tests.outcome == 'success'"
+        if: matrix.task == 'test-python' && !cancelled() && steps.upload-tests.outcome == 'success'
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: "**/test-results/pytest/*.xml"
 
-      - name: Build Distribution
-        id: build-dist
-        if: steps.tests.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make build-only
-
-      - name: Stop Services
-        if: steps.start-services.outcome == 'success'
-        run: |
-          touch .env.package # hack because down is too promiscuous
-          docker compose down
-
+      # Build Dist only; implicit success(): only when make succeeded. The one
+      # producer of python-dist unless the gate reused a dist.
       - name: Upload dist artifact
-        if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
+        if: matrix.task == 'dist'
         uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: dist/
           retention-days: 2
+          if-no-files-found: error
 
+  # ---------------------------------------------------------------------------
+  # The required check: green only when the gate and every check combo passed
+  # (or the gate reused an already-tested dist).
+  # ---------------------------------------------------------------------------
+  ci-result:
+    # DO NOT RENAME: "Lint, Test & Build Dist" is the required status check on
+    # main, and branch protection matches it by job name.
+    name: Lint, Test & Build Dist
+    needs: [gate, check]
+    # always(), not !cancelled(): a skipped required check counts as passing,
+    # so a cancelled run must still reach this job and go red.
+    if: ${{ always() && needs.gate.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: All required jobs passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          DIST_FOUND: ${{ needs.gate.outputs.dist_found }}
+        run: |
+          jq -c 'map_values(.result)' <<<"$NEEDS"
+          ok='["success"]'
+          if [[ "$DIST_FOUND" == "true" ]]; then ok='["success","skipped"]'; fi
+          jq -e --argjson ok "$ok" '.gate.result == "success" and (.check.result | IN($ok[]))' <<<"$NEEDS"
+
+      # Here job.status is the aggregate result.
       - name: Discord notification (Test Results)
         if: "!cancelled() && false"
         uses: sarisia/actions-status-discord@v1
@@ -145,9 +202,15 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: Build Image (${{ matrix.arch }})
-    needs: test
-    if: github.event_name == 'push' ||
-      (github.base_ref == 'develop' && github.head_ref == 'pre-release')
+    # Not ci-result: that hop would sit on the deploy path. The explicit
+    # results below are the same condition.
+    needs: [gate, check]
+    if: >-
+      !cancelled()
+      && needs.gate.result == 'success'
+      && (needs.gate.outputs.dist_found == 'true' || needs.check.result == 'success')
+      && (github.event_name == 'push'
+      || (github.base_ref == 'develop' && github.head_ref == 'pre-release'))
     strategy:
       matrix:
         include:
@@ -204,6 +267,10 @@ jobs:
   deploy:
     name: Deploy
     needs: build
+    # Explicit, because the implicit success() would skip this job whenever
+    # an ancestor was skipped.
+    if: >-
+      !cancelled() && needs.build.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -277,6 +344,8 @@ jobs:
   deploy-hub:
     name: Deploy Deprecated Docker Hub Image
     needs: deploy
+    if: >-
+      !cancelled() && needs.deploy.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -339,3 +408,47 @@ jobs:
             --tag "${HUB_IMAGE}:latest" \
             --push \
             .
+
+  # ---------------------------------------------------------------------------
+  # Last step of a main release: tag, GitHub Release from NEWS.md, merge-back.
+  # Every step is idempotent: use "Re-run failed jobs" to finish a partial run.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Tag, Release & Merge to Develop
+    needs: [deploy, deploy-hub]
+    # The same !cancelled() && needs.X.result == 'success' pattern as build,
+    # deploy and deploy-hub. deploy-hub skips only when deploy did not
+    # succeed, so its 'skipped' case only matters if it is later gated.
+    if: >-
+      !cancelled()
+      && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && vars.RELEASE_AUTOMATION != 'off'
+      && needs.deploy.result == 'success'
+      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # tag push, develop push, gh release create
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_SHA: ${{ github.sha }}
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # ancestry/tree lookup against develop
+          # No RELEASE_TOKEN (decided 2026-09-23): the default GITHUB_TOKEN is used.
+
+      - name: Tag
+        run: bin/release-tag.sh tag
+
+      - name: GitHub Release
+        run: bin/release-tag.sh publish
+
+      - name: Merge main into develop
+        run: bin/release-tag.sh merge-back

@@ -89,11 +89,28 @@ Multi-stage build with targets:
 
 ### CI (`.github/workflows/ci.yml`)
 
-Single workflow with three jobs: `test` -> `build` -> `deploy`. The `test` job
-builds the `codex-ci` Docker target, runs lint/test/build inside it via
-`docker exec`. The `build` job creates per-arch production images (amd64 +
-arm64). The `deploy` job creates a multi-arch manifest and publishes to GHCR +
-PyPI.
+One workflow named `CI` (the gate script looks up earlier `CI` runs by name):
+`gate` -> `check` -> `build` -> `deploy` -> `deploy-hub` -> `release`, with the
+aggregator `ci-result` beside `build`.
+
+- **`gate`** holds all the trigger logic, runs the Release Preflight on main
+  pushes and PRs into main, and on a main push identical to the merged PR reuses
+  that run's `python-dist` so `check` is skipped.
+- **`check`** is one matrix job (Lint, Test Frontend, Test Python, Build Dist).
+  Each combo restores the `codex-ci` image through
+  `.github/actions/ci-container` and runs its `make` targets inside it via
+  `docker exec`. `fail-fast: true` makes the first failure cancel the rest;
+  never add `continue-on-error`. Only Lint writes the registry cache; only Build
+  Dist (or `gate`, on reuse) uploads `python-dist`.
+- **`ci-result`** is named **"Lint, Test & Build Dist"**, the required status
+  check on main. **Do not rename it.** It runs with `always()` and passes only
+  when `gate` and every `check` combo succeeded.
+- **`build`** makes the per-arch images, **`deploy`** the GHCR manifest and the
+  PyPI upload, **`deploy-hub`** the deprecated Docker Hub image, and
+  **`release`** tags, publishes the GitHub Release and merges main into develop.
+  Every downstream `if` is `!cancelled() && needs.X.result == 'success'`.
+- `tests/test_ci_workflow.py` guards these invariants; CI never runs actionlint,
+  so run `make lint` on macOS after editing workflows.
 
 ### Makefile Structure
 
@@ -117,6 +134,14 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.
+- **Releases.** Bump the version and add its `## vX.Y.Z[ - Title]` NEWS.md
+  section on the develop→main PR; the required check's Release Preflight fails
+  without them. After deploy, CI's `release` job runs `bin/release-tag.sh` to
+  tag, publish the GitHub Release from NEWS.md and merge main into develop.
+  Finish a failed release with _Re-run failed jobs_ or `bin/release-tag.sh`
+  locally (`--dry-run` first). The repo variable `RELEASE_AUTOMATION=off`
+  disables both. A positional VERSION is now only an assertion that
+  pyproject.toml agrees.
 - **Every new librarian job needs a priority.** When adding a `ScribeTask`
   (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
   (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in
