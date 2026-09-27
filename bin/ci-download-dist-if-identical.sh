@@ -32,6 +32,7 @@ fi
 echo "Found CI run $RUN_ID for commit $SOURCE_SHA"
 if gh run download "$RUN_ID" --name python-dist --dir dist; then
   echo "dist_found=true" >>"$GITHUB_OUTPUT"
+  echo "source_run_id=$RUN_ID" >>"$GITHUB_OUTPUT"
   echo "Successfully retrieved dist from run $RUN_ID"
 else
   echo "Failed to download python-dist artifact from run $RUN_ID"
