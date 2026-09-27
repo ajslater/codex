@@ -78,24 +78,6 @@
       />
     </div>
     <!--
-      ``BG`` (Default View) reuses the existing ``TOP_COLLECTION``
-      choices JSON so the seven labels stay in sync with the
-      rest of the browser UI. Persisted on the flag's ``value``
-      string column; the route-URL derivation happens server-
-      side in ``admin_default_route_for``.
-    -->
-    <div v-else-if="itemKey === 'BG'" class="flagValueRow">
-      <v-select
-        :model-value="item.value"
-        :items="topCollectionChoices"
-        label="Default View"
-        hide-details="auto"
-        density="compact"
-        :error-messages="error"
-        @update:model-value="changeCol('value', $event)"
-      />
-    </div>
-    <!--
       ``MP`` (Browser Page Size) is an int stored in the ``value``
       column. The ``CM`` custom-cover upload cap uses the same
       backing flag but its control lives on the Custom Covers tab.
@@ -122,13 +104,12 @@ import { mdiContentSaveOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
-import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import LIMITS from "@/choices/limits.json";
 import DESC from "@/components/admin/tabs/flag-descriptions.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
-const VALUE_CONTROL_KEYS = new Set(["BT", "AR", "AA", "BG", "MP"]);
+const VALUE_CONTROL_KEYS = new Set(["BT", "AR", "AA", "MP"]);
 
 export default {
   name: "AdminFlagCard",
@@ -177,9 +158,6 @@ export default {
     },
     ageRatingChoices() {
       return this.ageRatingMetrons || [];
-    },
-    topCollectionChoices() {
-      return BROWSER_CHOICES.TOP_COLLECTION || [];
     },
   },
   watch: {

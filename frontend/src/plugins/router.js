@@ -8,6 +8,8 @@ const HttpError = () => import("@/http-error.vue");
 const MainReader = () => import("@/reader.vue");
 const AdminSettingsTab = () =>
   import("@/components/admin/tabs/settings-tab.vue");
+const AdminDefaultsTab = () =>
+  import("@/components/admin/tabs/defaults-tab.vue");
 const AdminUsersTab = () => import("@/components/admin/tabs/user-tab.vue");
 const AdminGroupsTab = () => import("@/components/admin/tabs/group-tab.vue");
 const AdminLibrariesTab = () =>
@@ -78,6 +80,11 @@ const routes = [
         name: "admin-settings",
         path: "settings",
         component: AdminSettingsTab,
+      },
+      {
+        name: "admin-defaults",
+        path: "defaults",
+        component: AdminDefaultsTab,
       },
       { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
       { name: "admin-auth", path: "auth", component: AdminAuthTab },

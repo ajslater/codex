@@ -36,9 +36,11 @@ const COLLECTIONS = Object.freeze([
   "comics",
 ]);
 export const COLLECTIONS_REVERSED = Object.freeze([...COLLECTIONS].reverse());
-const DEFAULT_BOOKMARK_VALUES = Object.freeze(
-  new Set([undefined, null, BROWSER_DEFAULTS.bookmarkFilter]),
-);
+/*
+ * Settings a GET or a save replaces whole instead of merging, so an entry
+ * can be removed: a reset returns ``tableColumns`` as ``{}``.
+ */
+const WHOLE_SETTINGS_KEYS = Object.freeze(new Set(["tableColumns"]));
 const ALWAYS_ENABLED_TOP_COLLECTIONS = Object.freeze(
   new Set(["arcs", "comics"]),
 );
@@ -81,6 +83,52 @@ export function filterShowGatedDefaults(cols, show) {
   }
   if (blocked.size === 0) return cols;
   return cols.filter((c) => !blocked.has(c));
+}
+
+// The registry's column set for a collection, show-gated.
+export function registryTableColumns(topCollection, show) {
+  return filterShowGatedDefaults(
+    BROWSER_TABLE_DEFAULT_COLUMNS[topCollection] ?? [],
+    show,
+  );
+}
+
+/*
+ * The column set a collection shows, per collection: the visitor's own
+ * list, else the admin's site default, else the show-gated registry
+ * default. An empty list counts as unset at every step. Site defaults are
+ * never copied into a visitor's row, so a visitor who customized one
+ * collection still follows the admin's later changes to the others.
+ */
+export function resolveTableColumns(
+  topCollection,
+  tableColumns,
+  show,
+  siteTableColumns,
+) {
+  for (const columns of [
+    tableColumns?.[topCollection],
+    siteTableColumns?.[topCollection],
+  ]) {
+    if (columns?.length > 0) return columns;
+  }
+  return registryTableColumns(topCollection, show);
+}
+
+// The site default table columns ``/session`` delivered, if any.
+export function siteTableColumns() {
+  return useAuthStore().defaults?.browser?.tableColumns;
+}
+
+/*
+ * A bookmark filter at the site default reads as "not filtered": Clear
+ * All Filters has nothing to clear. ``undefined`` and ``null`` are unset.
+ */
+export function isDefaultBookmarkFilter(bookmark) {
+  const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
+  return (
+    bookmark === undefined || bookmark === null || bookmark === siteDefault
+  );
 }
 
 /*
@@ -263,6 +311,9 @@ export const useBrowserStore = defineStore("browser", {
     filterMode: "base",
     zeroPad: 0,
     browserPageLoaded: false,
+    // True once this session's stored settings arrived; stops the first-paint
+    // site-default seed from ever overwriting them.
+    browserSettingsLoaded: false,
     isSearchOpen: false,
     isSearchHelpOpen: false,
     searchHideTimeout: undefined,
@@ -350,7 +401,7 @@ export const useBrowserStore = defineStore("browser", {
       return false;
     },
     isFiltersClearable(state) {
-      const isDefaultBookmarkValueSelected = DEFAULT_BOOKMARK_VALUES.has(
+      const isDefaultBookmarkValueSelected = isDefaultBookmarkFilter(
         state.settings.filters.bookmark,
       );
       const isFavoriteFilterOn = Boolean(state.settings.filters.favorite);
@@ -716,21 +767,19 @@ export const useBrowserStore = defineStore("browser", {
       /*
        * Pick the column set for the current table-view request.
        * Persisted overrides (``settings.tableColumns[topCollection]``) win
-       * over the registry defaults; both fall back to an empty tuple
-       * for unknown top-collections (the backend then uses its own
-       * defaults). Defaults are filtered by the user's ``show.i``
-       * and ``show.v`` flags so a user who hides imprints / volumes
+       * over the admin's site default, which wins over the registry
+       * defaults; all fall back to an empty tuple for unknown
+       * top-collections (the backend then uses its own defaults).
+       * Registry defaults are filtered by the user's ``show.imprints``
+       * and ``show.volumes`` flags so a user who hides imprints / volumes
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      const topCollection = this.settings.topCollection ?? "publishers";
-      const stored = this.settings.tableColumns?.[topCollection];
-      if (stored && stored.length > 0) {
-        return stored;
-      }
-      return filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[topCollection] ?? [],
+      return resolveTableColumns(
+        this.settings.topCollection ?? "publishers",
+        this.settings.tableColumns,
         this.settings.show,
+        siteTableColumns(),
       );
     },
     /*
@@ -740,6 +789,7 @@ export const useBrowserStore = defineStore("browser", {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
           const newValue =
+            !WHOLE_SETTINGS_KEYS.has(key) &&
             typeof state.settings[key] === "object" &&
             !Array.isArray(state.settings[key])
               ? { ...state.settings[key], ...value }
@@ -753,6 +803,33 @@ export const useBrowserStore = defineStore("browser", {
         }
       });
       this.startSearchHideTimeout();
+    },
+    /*
+     * Paint the admin's site defaults before this session's own settings
+     * arrive. Only until ``loadSettings`` lands, so a later ``/session``
+     * refetch can never overwrite real settings. Assigns fresh objects:
+     * the initial state shares the imported ``BROWSER_DEFAULTS`` objects.
+     * ``tableColumns`` isn't seeded; ``resolveTableColumns`` already falls
+     * back to the site default.
+     */
+    seedSiteDefaults(defaults) {
+      if (this.browserSettingsLoaded || !defaults) return false;
+      const {
+        bookmark,
+        orderBy,
+        tableColumns: _tableColumns,
+        ...seed
+      } = structuredClone(toRaw(defaults));
+      this.$patch((state) => {
+        state.settings = {
+          ...state.settings,
+          ...seed,
+          // Automatic sort: the settings GET fills in the collection's sort.
+          orderBy: orderBy || BROWSER_DEFAULTS.orderBy,
+          filters: { ...state.settings.filters, bookmark },
+        };
+      });
+      return true;
     },
     _validateAndSaveSettings(data) {
       /*
@@ -903,6 +980,7 @@ export const useBrowserStore = defineStore("browser", {
         .then((response) => {
           const data = response.data;
           const redirect = this._validateAndSaveSettings(data);
+          this.browserSettingsLoaded = true;
           this.browserPageLoaded = true;
           if (redirect) {
             return redirectRoute(redirect);

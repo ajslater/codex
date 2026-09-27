@@ -121,6 +121,7 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
+      siteBookmarkDefault: (state) => state.defaults?.browser?.bookmark ?? "",
     }),
     ...mapState(useBrowserStore, [
       // eslint-disable-next-line no-secrets/no-secrets
@@ -223,10 +224,9 @@ export default {
          * "Clear All Filters" row stays rendered (its ``v-if``),
          * making it look like the click did nothing. Force a fully
          * cleared state here: zero every non-bookmark filter, set
-         * bookmark to undefined (which is in
-         * ``DEFAULT_BOOKMARK_VALUES``), and explicitly seed the
-         * Age Rating pair from the dual-panel UI in case the
-         * current group's filter state doesn't expose them.
+         * bookmark to the site default (what a reset restores), and
+         * explicitly seed the Age Rating pair from the dual-panel UI
+         * in case the current group's filter state doesn't expose them.
          */
         if (this.isFiltersClearable) {
           const emptyDynamic = Object.fromEntries(
@@ -235,7 +235,7 @@ export default {
               .map((key) => [key, []]),
           );
           const clearedFilters = {
-            bookmark: undefined,
+            bookmark: this.siteBookmarkDefault,
             favorite: false,
             ...emptyDynamic,
             ageRatingMetron: [],

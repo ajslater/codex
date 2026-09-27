@@ -34,6 +34,7 @@ export const TABS = Object.freeze([
   "Tagging",
   "Custom Covers",
   "Settings",
+  "Defaults",
   "Jobs",
   "Restore",
   "Stats",
@@ -65,6 +66,7 @@ export const useAdminStore = defineStore("admin", {
     emailSettings: undefined,
     oidcSettings: undefined,
     throttleSettings: undefined,
+    settingsDefaults: undefined,
     apiKey: "",
     activeTab: "Libraries",
   }),
@@ -523,6 +525,54 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
         return undefined;
       }
+    },
+    async loadSettingsDefaults({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force) {
+        const last = this.timestamps.SettingsDefaults || 0;
+        if (last && Date.now() - last < DYNAMIC_TTL_MS) {
+          return true;
+        }
+      }
+      await API.getSettingsDefaults()
+        .then((response) => {
+          this.settingsDefaults = response.data;
+          this.timestamps.SettingsDefaults = Date.now();
+          return true;
+        })
+        .catch(console.warn);
+    },
+    /*
+     * ``applyToAnonymous`` also moves the existing anonymous sessions still
+     * at the old defaults. Resolves to the per-field row counts it moved
+     * (``{}`` without the catch-up), or ``undefined`` when the save failed.
+     */
+    async updateSettingsDefaults(data, { applyToAnonymous = false } = {}) {
+      if (this._requireAdmin()) return undefined;
+      const commonStore = useCommonStore();
+      const body = applyToAnonymous ? { ...data, applyToAnonymous } : data;
+      return await API.updateSettingsDefaults(body)
+        .then((response) => {
+          const { applied, ...settingsDefaults } = response.data;
+          this.settingsDefaults = settingsDefaults;
+          this.timestamps.SettingsDefaults = Date.now();
+          commonStore.clearErrors();
+          return applied ?? {};
+        })
+        .catch((error) => {
+          commonStore.setErrors(error);
+          return undefined;
+        });
+    },
+    // Never cached: the counts move with every anonymous browse.
+    async loadSettingsDefaultsReach() {
+      if (this._requireAdmin()) return undefined;
+      return await API.getSettingsDefaultsReach()
+        .then((response) => response.data)
+        .catch((error) => {
+          console.warn(error);
+          return undefined;
+        });
     },
     async loadThrottleSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
