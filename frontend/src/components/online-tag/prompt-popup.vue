@@ -34,7 +34,9 @@
             v-for="prompt in pendingPrompts"
             :key="prompt.fingerprint"
           >
-            <v-expansion-panel-title>
+            <!-- The title is the file under review; the tint sets it
+               apart from the candidate matches listed under it. -->
+            <v-expansion-panel-title class="promptFileTitle">
               <div class="promptHeader">
                 <!-- The file's own cover, to compare the candidates against.
                    Absent (undefined) from an older backend: no cover. -->
@@ -189,8 +191,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
-/* The file's cover beside the title text. */
+/* The file under review, tinted apart from the candidates under it. */
+.promptFileTitle {
+  background-color: rgba(var(--v-theme-primary), 0.08);
+  border-left: 3px solid rgb(var(--v-theme-primary));
+}
+
+/*
+ * The file's cover beside the title text. Vuetify's hover overlay is an
+ * absolutely positioned layer over the whole title, which would sit on
+ * top of the cover and swallow its hover and clicks. Lift the header
+ * above it; the title's :hover tint still shows through.
+ */
 .promptHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 12px;
