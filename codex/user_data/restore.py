@@ -29,6 +29,16 @@ from codex.xz import read_text_maybe_xz
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+# The retired Default View flag, folded into SettingsDefaults.top_collection
+# by migration 0055, and the Folder View flag its folders value depends on.
+_BG_KEY: Final = "BG"
+_FV_KEY: Final = "FV"
+_RETIRED_ADMIN_FLAG_KEYS: Final = frozenset({_BG_KEY})
+_LEGACY_FALLBACK_TOP_COLLECTION: Final = "publishers"
+_LEGACY_REACHABLE_TOP_COLLECTIONS: Final = frozenset(
+    {"publishers", "series", "comics", "arcs"}
+)
+
 
 @dataclass
 class RestoreReport:
@@ -75,6 +85,7 @@ def restore(
         _restore_admin_flags(store, report, dry_run=dry_run)
         _restore_timestamps(store, report, dry_run=dry_run)
         _restore_tagging_defaults(store, report, dry_run=dry_run)
+        _restore_settings_defaults(store, report, dry_run=dry_run)
         _restore_bookmarks(store, report, dry_run=dry_run)
         _restore_favorites(store, report, dry_run=dry_run)
         _restore_settings_browser(store, report, dry_run=dry_run)
@@ -317,6 +328,10 @@ def _restore_admin_flags(
     from codex.models.age_rating import AgeRatingMetron
 
     for row in store.fetchall("admin_flags"):
+        if row["key"] in _RETIRED_ADMIN_FLAG_KEYS:
+            # Default View moved to SettingsDefaults.top_collection; the
+            # settings_defaults restore maps a legacy BG row onto it.
+            continue
         if dry_run:
             report.note_written("admin_flags")
             continue
@@ -420,6 +435,91 @@ def _restore_tagging_defaults(
         pk=1, defaults=_build_tagging_defaults(row)
     )
     report.note_written("tagging_defaults")
+
+
+def _build_settings_defaults(row) -> dict[str, Any]:
+    """Map a sidecar settings_defaults row to ``update_or_create`` defaults."""
+    from codex.choices.browser import clean_table_columns
+    from codex.user_data.serializers import (
+        SETTINGS_DEFAULTS_BOOLS,
+        SETTINGS_DEFAULTS_TEXT,
+    )
+
+    # ``sqlite3.Row`` raises on a missing column; let the model default stand
+    # for anything a sidecar predating the column doesn't carry.
+    cols = set(row.keys())
+    defaults: dict[str, Any] = {
+        key: row[key]
+        for key in SETTINGS_DEFAULTS_TEXT
+        if key in cols and row[key] is not None
+    }
+    defaults.update(
+        {key: bool(row[key]) for key in SETTINGS_DEFAULTS_BOOLS if key in cols}
+    )
+    if "table_columns" in cols:
+        table_columns = json.loads(row["table_columns"] or "{}")
+        defaults["table_columns"], _ = clean_table_columns(table_columns)
+    return defaults
+
+
+def legacy_top_collection(*, bg_on: bool, bg_value: str, folder_view_on: bool) -> str:
+    """
+    Map a retired Default View (BG) flag onto the effective top collection.
+
+    Mirrors migration 0055: the stored value is the one new sessions
+    actually landed on. Imprints and volumes are hidden by the factory show
+    flags and folders needs Folder View, so those fall back to publishers.
+    """
+    if not bg_on:
+        return _LEGACY_FALLBACK_TOP_COLLECTION
+    if bg_value in _LEGACY_REACHABLE_TOP_COLLECTIONS:
+        return bg_value
+    if bg_value == "folders" and folder_view_on:
+        return bg_value
+    return _LEGACY_FALLBACK_TOP_COLLECTION
+
+
+def _legacy_settings_defaults(store: SidecarStore) -> dict[str, Any] | None:
+    """Map a pre-SettingsDefaults backup's BG flag onto ``top_collection``."""
+    flags = {
+        row["key"]: row
+        for row in store.fetchall("admin_flags")
+        if row["key"] in (_BG_KEY, _FV_KEY)
+    }
+    bg = flags.get(_BG_KEY)
+    if bg is None:
+        return None
+    fv = flags.get(_FV_KEY)
+    top_collection = legacy_top_collection(
+        bg_on=bool(bg["on_flag"]),
+        bg_value=bg["value"] or "",
+        folder_view_on=bool(fv and fv["on_flag"]),
+    )
+    return {"top_collection": top_collection}
+
+
+def _restore_settings_defaults(
+    store: SidecarStore, report: RestoreReport, *, dry_run: bool
+) -> None:
+    """
+    Restore the SettingsDefaults singleton.
+
+    A backup taken before the singleton existed still gets an empty
+    ``settings_defaults`` table (the sidecar schema is applied on every
+    connection), so "no row" is the legacy test: its BG flag maps onto
+    ``top_collection`` instead.
+    """
+    from codex.models.admin import SettingsDefaults
+
+    rows = store.fetchall("settings_defaults")
+    defaults = (
+        _build_settings_defaults(rows[0]) if rows else _legacy_settings_defaults(store)
+    )
+    if defaults is None:
+        return
+    if not dry_run:
+        SettingsDefaults.objects.update_or_create(pk=1, defaults=defaults)
+    report.note_written("settings_defaults")
 
 
 def _watched_path_pks(model, path: str) -> tuple[int, ...]:

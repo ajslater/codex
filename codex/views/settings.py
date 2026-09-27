@@ -9,13 +9,8 @@ from typing import cast
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from loguru import logger
 
-from codex.choices.admin import AdminFlagChoices
-from codex.choices.browser import (
-    BROWSER_TOP_COLLECTION_CHOICES,
-    admin_default_route_for,
-)
+from codex.choices.browser import admin_default_route_for, coherent_top_collection
 from codex.collection import Collection
-from codex.models import AdminFlag
 from codex.models.settings import (
     ClientChoices,
     SettingsBase,
@@ -25,13 +20,8 @@ from codex.models.settings import (
     SettingsBrowserShow,
     SettingsReader,
 )
+from codex.settings.db import folder_view_on, get_browser_defaults, get_reader_defaults
 from codex.views.auth import AuthFilterGenericAPIView
-
-# Fallback top-collection when the BG flag row is missing, off, or holds
-# an invalid value. Mirrors ``SettingsBrowser.top_collection``'s model
-# default; ``admin_default_route_for("publishers")`` yields the Root
-# redirect target.
-_FALLBACK_DEFAULT_TOP_COLLECTION = Collection.PUBLISHER
 
 CREDIT_PERSON_UI_FIELD = "credits"
 STORY_ARC_UI_FIELD = "story_arcs"
@@ -46,6 +36,17 @@ _SHOW_KEYS = (
     Collection.IMPRINT,
     Collection.SERIES,
     Collection.VOLUME,
+)
+# Site default keys seeded onto a new API browser row. ``table_columns`` is
+# deliberately absent: it is never seeded, the SPA falls back to the site
+# default per collection at read time.
+_SEEDED_BROWSER_KEYS = (
+    "top_collection",
+    "order_by",
+    "order_reverse",
+    "view_mode",
+    "twenty_four_hour_time",
+    "always_show_filename",
 )
 
 
@@ -149,53 +150,53 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return instance
 
     @staticmethod
-    def _get_admin_default_top_collection() -> str:
-        """
-        Read the admin-configured default top collection.
-
-        Returns the validated ``BROWSER_DEFAULT_COLLECTION`` flag value,
-        falling back to ``"publishers"`` if the row is missing, the
-        flag is off, or the value is out of range (defense against a
-        hand-edited DB / pre-migration state). ``"publishers"`` mirrors
-        the ``SettingsBrowser.top_collection`` model default and resolves to
-        the Root redirect target.
-        """
-        try:
-            flag = AdminFlag.objects.only("on", "value").get(
-                key=AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value
-            )
-        except AdminFlag.DoesNotExist:
-            return _FALLBACK_DEFAULT_TOP_COLLECTION
-        if flag.on and flag.value in BROWSER_TOP_COLLECTION_CHOICES:
-            return flag.value
-        return _FALLBACK_DEFAULT_TOP_COLLECTION
+    def _get_admin_default_route() -> Mapping:
+        """Translate the site default top collection into a redirect target."""
+        return admin_default_route_for(get_browser_defaults()["top_collection"])
 
     @classmethod
-    def _get_admin_default_route(cls) -> Mapping:
-        """Translate the admin default top collection into a redirect target."""
-        return admin_default_route_for(cls._get_admin_default_top_collection())
+    def _get_factory_show(cls) -> dict:
+        """Return the model-default show flags."""
+        return {k: cls._get_field_default(SettingsBrowserShow, k) for k in _SHOW_KEYS}
+
+    @classmethod
+    def _browser_seed(cls, client, create_args) -> tuple[dict, dict, str, dict]:
+        """
+        Return the create kwargs, show flags, bookmark and last route to seed.
+
+        API rows take every site default except ``table_columns``. OPDS rows
+        stay on the factory defaults except ``top_collection``, made coherent
+        with the factory show flags they get.
+        """
+        defaults = get_browser_defaults()
+        create_kwargs = dict(create_args)
+        if client == ClientChoices.OPDS:
+            show = cls._get_factory_show()
+            top_collection = coherent_top_collection(
+                defaults["top_collection"], show, folder_view=folder_view_on()
+            )
+            create_kwargs.setdefault("top_collection", top_collection)
+            return create_kwargs, show, "", {}
+        for key in _SEEDED_BROWSER_KEYS:
+            create_kwargs.setdefault(key, defaults[key])
+        route = admin_default_route_for(create_kwargs["top_collection"])
+        route["pks"] = list(route["pks"])
+        return create_kwargs, defaults["show"], defaults["bookmark"], route
 
     @classmethod
     def _create_browser_settings(cls, user, session_key, client, create_args):
         """
         Create a SettingsBrowser with its related show/filters/last_route.
 
-        Sets ``top_collection`` from the admin-configured default unless
-        the caller already supplied one. The override applies only on
-        row creation; ``_get_or_create_settings`` returns existing
-        rows before reaching this branch, so a returning user's
-        pinned ``top_collection`` is never overwritten.
+        Seeds the row from the site defaults unless the caller already
+        supplied a value. The seed applies only on row creation;
+        ``_get_or_create_settings`` returns existing rows before reaching
+        this branch, so a returning user's settings are never overwritten.
         """
-        show, _ = SettingsBrowserShow.objects.get_or_create(
-            publishers=True,
-            imprints=False,
-            series=True,
-            volumes=False,
+        create_kwargs, show_flags, bookmark, route = cls._browser_seed(
+            client, create_args
         )
-        create_kwargs = dict(create_args)
-        create_kwargs.setdefault(
-            "top_collection", cls._get_admin_default_top_collection()
-        )
+        show, _ = SettingsBrowserShow.objects.get_or_create(**show_flags)
         instance = SettingsBrowser.objects.create(
             user=user,
             session_id=session_key,
@@ -203,12 +204,32 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             show=show,
             **create_kwargs,
         )
-        SettingsBrowserFilters.objects.create(browser=instance)
-        SettingsBrowserLastRoute.objects.create(browser=instance)
+        SettingsBrowserFilters.objects.create(browser=instance, bookmark=bookmark)
+        SettingsBrowserLastRoute.objects.create(browser=instance, **route)
         # Re-fetch with select_related so the reverse OneToOne accessors work.
         return SettingsBrowser.objects.select_related(
             *SETTINGS_BROWSER_SELECT_RELATED
         ).get(pk=instance.pk)
+
+    @staticmethod
+    def _create_reader_settings(user, session_key, client, filter_args, create_args):
+        """
+        Get or create the reader row, seeded with the site reader defaults.
+
+        Keyed on the owner only, like ``_get_global_settings``: a lookup
+        that also carried ``session_id`` would miss a user's global row and
+        raise on ``unique_settingsreader_user_global``. ``get_or_create``
+        also absorbs the race with a concurrent global-row create.
+        """
+        owner = {"user": user} if user else {"session_id": session_key}
+        lookup = {"client": client, **filter_args, **owner}
+        defaults = {
+            **({"session_id": session_key} if user else {}),
+            **create_args,
+            **get_reader_defaults(),
+        }
+        instance, _ = SettingsReader.objects.get_or_create(defaults=defaults, **lookup)
+        return instance
 
     def _get_or_create_settings(
         self,
@@ -259,11 +280,8 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
                     create_args,
                 )
             else:
-                instance = model.objects.create(
-                    user=user,
-                    session_id=session_key,
-                    client=client,
-                    **create_args,
+                instance = self._create_reader_settings(
+                    user, session_key, client, filter_args, create_args
                 )
 
         if only is None:
@@ -369,15 +387,19 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         return self._get_admin_default_route()
 
     @classmethod
-    def get_browser_default_params(cls) -> dict:
-        """Derive browser default params from model field metadata."""
+    def get_browser_factory_params(cls) -> dict:
+        """
+        Derive browser default params from model field metadata.
+
+        The factory defaults, blind to the admin site defaults. OPDS start
+        pages and previews use these so their params never change with the
+        admin's choices.
+        """
         result: dict = {}
         for key in SettingsBrowser.DIRECT_KEYS:
             result[key] = cls._get_field_default(SettingsBrowser, key)
 
-        result["show"] = {
-            k: cls._get_field_default(SettingsBrowserShow, k) for k in _SHOW_KEYS
-        }
+        result["show"] = cls._get_factory_show()
 
         result["filters"] = {
             k: cls._get_field_default(SettingsBrowserFilters, k)
@@ -393,6 +415,25 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         }
 
         return result
+
+    @classmethod
+    def get_browser_site_params(cls) -> dict:
+        """
+        Derive browser default params with the admin site defaults applied.
+
+        Keeps every key the factory params carry, so a reset can index them
+        all. ``table_columns`` stays the factory ``{}``: it is never seeded.
+        """
+        factory = cls.get_browser_factory_params()
+        defaults = get_browser_defaults()
+        bookmark = defaults.pop("bookmark")
+        defaults.pop("table_columns")
+        return {
+            **factory,
+            **defaults,
+            "filters": {**factory["filters"], "bookmark": bookmark},
+            "last_route": admin_default_route_for(defaults["top_collection"]),
+        }
 
     def load_params_from_settings(self, only: Sequence[str] | None = None) -> dict:
         """Get session settings with defaults."""

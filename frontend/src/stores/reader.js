@@ -146,6 +146,9 @@ export const useReaderStore = defineStore("reader", {
     },
     showToolbars: false,
     settingsLoaded: false,
+    // True once the stored global settings arrived; stops the first-paint
+    // site-default seed from ever overwriting them.
+    globalLoaded: false,
     bookSettings: {},
   }),
   getters: {
@@ -392,7 +395,21 @@ export const useReaderStore = defineStore("reader", {
         };
         state.bookSettings = {};
         state.empty = false;
+        state.globalLoaded = true;
       });
+    },
+    /*
+     * Paint the admin's site reader defaults before this session's own
+     * global settings arrive. Only until they land, so a later
+     * ``/session`` refetch can never overwrite real settings.
+     */
+    seedGlobalDefaults(defaults) {
+      if (this.globalLoaded || !defaults) return false;
+      this.$patch((state) => {
+        state.globalSettings = { ...state.globalSettings, ...defaults };
+        state.bookSettings = {};
+      });
+      return true;
     },
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;

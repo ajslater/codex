@@ -16,18 +16,21 @@ from comicbox.formats.base.online import SOURCE_NAMES
 from django.conf import settings
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.browser import BROWSER_BOOKMARK_FILTER_CHOICES
 from codex.collection import Collection
 from codex.models.admin import (
     AdminFlag,
     ComicboxTaggingDefaults,
     EmailSettings,
     OIDCSettings,
+    SettingsDefaults,
     ThrottleSettings,
 )
 from codex.models.auth import GroupAuth, UserAuth
 from codex.settings.db import (
     get_email_settings,
     get_oidc_settings,
+    get_settings_defaults,
     get_throttle_settings,
     oidc_enabled,
 )
@@ -61,14 +64,6 @@ _FLAG_INTS: Final = MappingProxyType(
         AdminFlagChoices.CUSTOM_COVER_MAX_UPLOAD_MB.value: "custom_cover_max_upload_mb",
     }
 )
-# Flags whose value is a collection name.
-_FLAG_COLLECTIONS: Final = MappingProxyType(
-    {
-        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value: (
-            "browser_default_collection"
-        ),
-    }
-)
 # Flags whose signal is their AgeRatingMetron row. That table is a fixed
 # lookup seeded by migration, so its names are a closed vocabulary.
 _FLAG_AGE_RATINGS: Final = MappingProxyType(
@@ -78,6 +73,8 @@ _FLAG_AGE_RATINGS: Final = MappingProxyType(
     }
 )
 _COLLECTION_VALUES: Final = frozenset(member.value for member in Collection)
+# The default bookmark filter's closed vocabulary. "" is "All".
+_BOOKMARK_FILTER_VALUES: Final = frozenset(BROWSER_BOOKMARK_FILTER_CHOICES)
 # How much api budget a scan may spend per comic. A closed vocabulary, so an
 # unrecognized value means the column drifted and is reported as "other".
 _EFFORT_VALUES: Final = frozenset(ComicboxTaggingDefaults.EffortChoices.values)
@@ -93,6 +90,8 @@ _TOKEN_AUTH_METHODS: Final = frozenset(
         "none",
     }
 )
+# SettingsDefaults columns that are bookkeeping, not a default.
+_SETTINGS_DEFAULTS_BOOKKEEPING: Final = frozenset({"id", "created_at", "updated_at"})
 _OIDC_BOOLS: Final = (
     "create_users",
     "link_by_email",
@@ -123,17 +122,49 @@ def _add_flag(stats: dict[str, Any], flag: AdminFlag) -> None:
         stats[name] = bool(flag.value)
     elif name := _FLAG_INTS.get(flag.key):
         stats[name] = _safe_int(flag.value)
-    elif name := _FLAG_COLLECTIONS.get(flag.key):
-        stats[name] = flag.value if flag.value in _COLLECTION_VALUES else _OTHER
     elif name := _FLAG_AGE_RATINGS.get(flag.key):
         stats[name] = flag.age_rating_metron.name if flag.age_rating_metron else ""
 
 
+def _closed(value: str, vocabulary: frozenset[str]) -> str:
+    """Report a closed-vocabulary value, or "other" if the column drifted."""
+    return value if value in vocabulary else _OTHER
+
+
+def _settings_defaults_customized(defaults: SettingsDefaults) -> bool:
+    """Whether any site default differs from the factory. Never the values."""
+    return any(
+        getattr(defaults, field.attname) != field.get_default()
+        for field in SettingsDefaults._meta.concrete_fields
+        if field.attname not in _SETTINGS_DEFAULTS_BOOKKEEPING
+    )
+
+
+def _add_settings_defaults(stats: dict[str, Any]) -> None:
+    """
+    Report the site default browser settings.
+
+    Closed enums and one boolean only. The ``table_columns`` dict is never
+    sent; a non-empty one only counts toward ``settings_defaults_customized``.
+    """
+    defaults = get_settings_defaults()
+    if not defaults:
+        return
+    stats["browser_default_collection"] = _closed(
+        defaults.top_collection, _COLLECTION_VALUES
+    )
+    stats["browser_default_bookmark_filter"] = _closed(
+        defaults.bookmark, _BOOKMARK_FILTER_VALUES
+    )
+    stats["settings_defaults_customized"] = _settings_defaults_customized(defaults)
+
+
 def get_admin_flag_stats() -> dict[str, Any]:
-    """Report every admin flag, in one query."""
+    """Report every admin flag, in one query, plus the site defaults."""
     stats: dict[str, Any] = {}
     for flag in AdminFlag.objects.select_related("age_rating_metron"):
         _add_flag(stats, flag)
+    _add_settings_defaults(stats)
     return stats
 
 

@@ -31,6 +31,15 @@ export const useAuthStore = defineStore("auth", {
      * ``dockerHub`` the deprecated-image snackbar.
      */
     version: undefined,
+    /*
+     * The admin site defaults, ``{browser, reader}``, and their revision.
+     * ``/session`` sends them only to a caller who may browse. They seed a
+     * view's first paint and feed the runtime table-column, bookmark and
+     * reader-scope fallbacks; ``defaultsRev`` changing is what reloads an
+     * open view's settings after the admin saves.
+     */
+    defaults: undefined,
+    defaultsRev: undefined,
     token: undefined,
     showLoginDialog: false,
     showChangePasswordDialog: false,
@@ -63,6 +72,11 @@ export const useAuthStore = defineStore("auth", {
     },
   },
   actions: {
+    // Absent from the payload means this caller may not browse: clear them.
+    _setDefaults({ defaults, defaultsRev }) {
+      this.defaults = defaults;
+      this.defaultsRev = defaultsRev;
+    },
     /*
      * v4 composite boot: one request returns user + adminFlags +
      * permissions + version. Use this on app start; the per-resource
@@ -72,10 +86,12 @@ export const useAuthStore = defineStore("auth", {
     async loadSession() {
       try {
         const response = await API.getSession();
-        const { user, adminFlags, version } = response.data || {};
+        const data = response.data || {};
+        const { user, adminFlags, version } = data;
         if (adminFlags) this.adminFlags = adminFlags;
         this.user = user || undefined;
         if (version) this.version = version;
+        this._setDefaults(data);
         return true;
       } catch (error) {
         console.error(error);
@@ -84,8 +100,9 @@ export const useAuthStore = defineStore("auth", {
     async loadAdminFlags() {
       try {
         const response = await API.getSession();
-        const { adminFlags } = response.data || {};
-        if (adminFlags) this.adminFlags = adminFlags;
+        const data = response.data || {};
+        if (data.adminFlags) this.adminFlags = data.adminFlags;
+        this._setDefaults(data);
         return true;
       } catch (error) {
         console.error(error);

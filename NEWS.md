@@ -9,6 +9,12 @@ border-radius: 128px;
 ## v2.5.0
 
 - Features
+    - Admin Defaults tab sets the browser and reader settings new sessions start
+      with, replaces Default View, and can update existing anonymous sessions.
+    - Browser and reader resets restore the admin defaults.
+- Fixes
+    - A Folders or Story Arcs default view opens there instead of Publishers.
+    - "Clear All Filters" no longer shows when no filter is set.
     - Online tagging match review shows the file's own cover above the
       candidates.
 

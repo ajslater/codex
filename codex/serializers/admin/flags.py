@@ -6,7 +6,6 @@ from typing import override
 from rest_framework.serializers import PrimaryKeyRelatedField, ValidationError
 
 from codex.choices.admin import AdminFlagChoices
-from codex.choices.browser import BROWSER_TOP_COLLECTION_CHOICES
 from codex.choices.limits import (
     BROWSER_MAX_OBJ_PER_PAGE,
     CUSTOM_COVER_MAX_UPLOAD_MB,
@@ -39,22 +38,6 @@ class AdminFlagSerializer(BaseModelSerializer):
         }
     )
 
-    def _validate_collection(self, attrs) -> None:
-        """
-        ``BROWSER_DEFAULT_COLLECTION`` constrains ``value`` to a top collection.
-
-        The route URL is derived from the value at read time via
-        ``admin_default_route_for``. Note we validate against the
-        top-collection set, not ``BROWSER_ROUTE_COLLECTION_CHOICES`` --
-        the ``root`` pseudo-collection is not a valid flag value, only a
-        derived URL.
-        """
-        value = attrs.get("value", self.instance.value)
-        if value not in BROWSER_TOP_COLLECTION_CHOICES:
-            valid = tuple(BROWSER_TOP_COLLECTION_CHOICES)
-            reason = f"value must be one of {valid}"
-            raise ValidationError({"value": reason})
-
     def _validate_int_range(self, attrs, bounds) -> None:
         """
         Bound an integer flag.
@@ -83,10 +66,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         """Per-flag value validation."""
         if not self.instance:
             return attrs
-        key = self.instance.key
-        if key == AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value:
-            self._validate_collection(attrs)
-        elif bounds := self._INT_RANGES.get(key):
+        if bounds := self._INT_RANGES.get(self.instance.key):
             self._validate_int_range(attrs, bounds)
         return attrs
 

@@ -102,6 +102,8 @@ const STATS = {
     apiKeySet: true,
     bannerTextSet: false,
     browserDefaultCollection: "publishers",
+    browserDefaultBookmarkFilter: "UNREAD",
+    settingsDefaultsCustomized: true,
     browserMaxObjPerPage: 100,
     ageRatingDefault: "Everyone",
   },
@@ -160,6 +162,12 @@ describe("AdminStatsTab", () => {
     expect(text).toContain("Folder View");
     expect(text).toContain("Yes");
     expect(text).toContain("No");
+  });
+
+  test("labels the site defaults keys", () => {
+    const text = mountTab().text();
+    expect(text).toContain("Default Bookmark Filter");
+    expect(text).toContain("Site Defaults Customized");
   });
 
   test("configured-or-not booleans read as Set/Not set", () => {

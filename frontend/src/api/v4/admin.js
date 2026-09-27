@@ -231,6 +231,17 @@ export const updateOidcSettings = (data) =>
 export const testOidcConnection = (data) =>
   HTTP.post("/admin/oidc-settings/test", data);
 
+export const getSettingsDefaults = () =>
+  HTTP.get("/admin/settings-defaults", { params: { ts: Date.now() } });
+
+// ``applyToAnonymous`` rides in the body: the catch-up needs the old
+// defaults, which only exist until this save commits.
+export const updateSettingsDefaults = (data) =>
+  HTTP.put("/admin/settings-defaults", data);
+
+export const getSettingsDefaultsReach = () =>
+  HTTP.get("/admin/settings-defaults/reach", { params: { ts: Date.now() } });
+
 export const getThrottleSettings = () =>
   HTTP.get("/admin/throttle-settings", { params: { ts: Date.now() } });
 

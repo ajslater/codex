@@ -15,7 +15,6 @@ class AdminFlagChoices(TextChoices):
     AGE_RATING_DEFAULT = "AR"
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
-    BROWSER_DEFAULT_COLLECTION = "BG"
     CUSTOM_COVER_MAX_UPLOAD_MB = "CM"
     FOLDER_VIEW = "FV"
     IMPORT_METADATA = "IM"
@@ -34,7 +33,6 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.AGE_RATING_DEFAULT.value: "Age Rating Default",
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
-        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION.value: "Default View",
         AdminFlagChoices.BROWSER_MAX_OBJ_PER_PAGE.value: "Browser Page Size",
         AdminFlagChoices.CUSTOM_COVER_MAX_UPLOAD_MB.value: (
             "Custom Cover Max Upload (MB)"

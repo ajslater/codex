@@ -32,6 +32,32 @@ function currentRouteName() {
   return router?.currentRoute?.value?.name;
 }
 
+// Admin routes whose FlagCards or controls read the Flag table.
+const FLAG_ROUTES = Object.freeze(
+  new Set(["admin-settings", "admin-users", "admin-defaults"]),
+);
+
+/*
+ * Refetch ``/session`` and, when the admin changed the site defaults,
+ * reload the open view's settings: a catch-up may have rewritten this
+ * session's stored row. Compares ``defaultsRev`` before and after, so a
+ * flags-only change or the first load never reloads. Lives here, not in
+ * the auth store, because it needs the route and the auth store must not
+ * import the router.
+ */
+export async function reloadOnDefaultsChange(routeName) {
+  const auth = useAuthStore();
+  const prev = auth.defaultsRev;
+  await auth.loadAdminFlags();
+  if (prev === undefined || prev === auth.defaultsRev) return false;
+  if (routeName === "browser") {
+    await useBrowserStore().loadSettings();
+  } else if (routeName === "reader") {
+    await useReaderStore().loadGlobalSettings();
+  }
+  return true;
+}
+
 /*
  * Manual heartbeat — fire-and-forget empty string, no pong expected.
  * VueUse's built-in heartbeat option closes the connection if no pong is
@@ -163,15 +189,18 @@ export const useSocketStore = defineStore("socket", () => {
     store.loadBrowserPage(Date.now());
   }
 
-  function adminFlagsNotified() {
-    useAuthStore().loadAdminFlags();
-    // ``Flag`` rows feed the Settings tab directly and the Users tab
-    // via the access / age-rating FlagCard sections. Both rely on the
-    // Pinia store list — reload whenever we're on either route.
+  async function adminFlagsNotified() {
     const route = currentRouteName();
-    if (route === "admin-settings" || route === "admin-users") {
+    /*
+     * ``Flag`` rows feed the Settings tab directly, the Users tab via
+     * the access / age-rating FlagCard sections, and the Defaults tab's
+     * Folder View gate. All rely on the Pinia store list — reload
+     * whenever we're on one of them.
+     */
+    if (FLAG_ROUTES.has(route)) {
       adminLoadTables(["Flag"]);
     }
+    await reloadOnDefaultsChange(route);
   }
 
   function groupsNotified() {

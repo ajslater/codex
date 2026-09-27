@@ -76,7 +76,7 @@
     @update:model-value="$emit('update', { cacheBook: $event })"
   />
   <v-radio-group
-    v-if="isPDF"
+    v-if="isPDF && !standalone"
     v-tooltip="{
       openDelay,
       text:
@@ -96,11 +96,11 @@
   </v-radio-group>
 
   <v-btn
-    v-if="showClear"
+    v-if="showClear && !standalone"
     id="clearSettingsButton"
     v-tooltip="{
       openDelay,
-      text: 'Use the default settings for all comics for this comic',
+      text: clearTooltip,
     }"
     :disabled="clearDisabled"
     @click="$emit('clear')"
@@ -112,7 +112,8 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { useReaderStore } from "@/stores/reader";
+import READER_CHOICES from "@/choices/reader-choices.json";
+import { VERTICAL_READING_DIRECTIONS, useReaderStore } from "@/stores/reader";
 
 export default {
   name: "ReaderSettingsControls",
@@ -129,19 +130,46 @@ export default {
       type: Boolean,
       default: true,
     },
+    clearTooltip: {
+      type: String,
+      default: "Use the default settings for all comics for this comic",
+    },
+    /*
+     * Standalone: edit a settings object with no book open, as the admin
+     * Defaults tab does. Reads nothing book-specific from the reader store,
+     * which keeps the last book after the reader unmounts: verticality
+     * follows ``settings`` and the PDF radio and Clear button are hidden.
+     */
+    standalone: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update", "clear"],
   data() {
     return {
       openDelay: 2000,
+      standaloneChoices: Object.freeze({
+        fitTo: READER_CHOICES.FIT_TO,
+        readingDirection: READER_CHOICES.READING_DIRECTION,
+      }),
     };
   },
   computed: {
-    ...mapState(useReaderStore, ["isVertical", "isPDF"]),
     ...mapState(useReaderStore, {
-      choices: (state) => state.choices,
+      storeIsVertical: "isVertical",
+      isPDF: "isPDF",
+      storeChoices: (state) => state.choices,
       pdfRenderMode: (state) => state.clientSettings?.pdfRenderMode || "auto",
     }),
+    isVertical() {
+      return this.standalone
+        ? VERTICAL_READING_DIRECTIONS.has(this.settings.readingDirection)
+        : this.storeIsVertical;
+    },
+    choices() {
+      return this.standalone ? this.standaloneChoices : this.storeChoices;
+    },
     fitToChoices() {
       return this.choicesWithoutNull("fitTo");
     },

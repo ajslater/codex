@@ -181,6 +181,31 @@ CREATE TABLE IF NOT EXISTS tagging_defaults (
     updated_at TEXT
 );
 
+-- ``SettingsDefaults`` singleton: the site default browser + reader settings
+-- new sessions are seeded with. ``table_columns`` is a JSON object keyed by
+-- top collection.
+CREATE TABLE IF NOT EXISTS settings_defaults (
+    pk INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
+    top_collection TEXT NOT NULL DEFAULT 'publishers',
+    show_publishers INTEGER NOT NULL DEFAULT 1,
+    show_imprints INTEGER NOT NULL DEFAULT 0,
+    show_series INTEGER NOT NULL DEFAULT 1,
+    show_volumes INTEGER NOT NULL DEFAULT 0,
+    order_by TEXT NOT NULL DEFAULT '',
+    order_reverse INTEGER NOT NULL DEFAULT 0,
+    view_mode TEXT NOT NULL DEFAULT 'cover',
+    twenty_four_hour_time INTEGER NOT NULL DEFAULT 0,
+    always_show_filename INTEGER NOT NULL DEFAULT 0,
+    bookmark TEXT NOT NULL DEFAULT '',
+    table_columns TEXT NOT NULL DEFAULT '{}',
+    fit_to TEXT NOT NULL DEFAULT 'W',
+    reading_direction TEXT NOT NULL DEFAULT 'ltr',
+    two_pages INTEGER NOT NULL DEFAULT 0,
+    page_transition INTEGER NOT NULL DEFAULT 1,
+    cache_book INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT
+);
+
 -- ``Timestamp`` model. ``value`` (previously ``version``) holds the
 -- last-known value for the keyed singleton; ``updated_at`` is the
 -- last-touch marker.

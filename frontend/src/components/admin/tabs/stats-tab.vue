@@ -17,10 +17,13 @@ import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
-import { ORDER_BY, TOP_COLLECTION } from "@/choices/browser-map.json";
+import {
+  ORDER_BY,
+  TOP_COLLECTION,
+  VIEW_MODE,
+} from "@/choices/browser-map.json";
 import { FIT_TO, READING_DIRECTION } from "@/choices/reader-map.json";
 
-const VIEW_MODE = Object.freeze({ cover: "Cover", table: "Table" });
 const TABLE_COVER_SIZE = Object.freeze({ sm: "Small" });
 // Buckets keyed by a boolean arrive as the strings "true" and "false", which
 // are the wire's words and not a reader's. Chronicle's dashboard says on/off
@@ -94,7 +97,9 @@ const ADMIN_FLAG_LABELS = Object.freeze({
   sendTelemetry: "Send Stats",
   apiKeySet: "API Key",
   bannerTextSet: "Banner Text",
-  browserDefaultCollection: "Default View",
+  browserDefaultCollection: "Default Top Collection",
+  browserDefaultBookmarkFilter: "Default Bookmark Filter",
+  settingsDefaultsCustomized: "Site Defaults Customized",
   browserMaxObjPerPage: "Browser Page Size",
   customCoverMaxUploadMb: "Custom Cover Max Upload (MB)",
   ageRatingDefault: "Age Rating Default",

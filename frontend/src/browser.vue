@@ -38,10 +38,22 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+      siteDefaults: (state) => state.defaults?.browser,
     }),
     ...mapState(useAuthStore, ["isAuthorized"]),
   },
   watch: {
+    /*
+     * Not in created(): that runs before ``/session`` resolves on a cold
+     * boot, when there are no defaults yet. The store only seeds until
+     * this session's own settings load.
+     */
+    siteDefaults: {
+      immediate: true,
+      handler(defaults) {
+        this.seedSiteDefaults(defaults);
+      },
+    },
     $route() {
       const refresh = document.getElementById("browsePaneRefreshContainer");
       if (refresh) refresh.scrollTop = 0;
@@ -63,7 +75,11 @@ export default {
     }, wait);
   },
   methods: {
-    ...mapActions(useBrowserStore, ["loadBrowserPage", "loadSettings"]),
+    ...mapActions(useBrowserStore, [
+      "loadBrowserPage",
+      "loadSettings",
+      "seedSiteDefaults",
+    ]),
     ...mapActions(useBrowserSelectManyStore, {
       deactivateSelectMany: "deactivate",
     }),

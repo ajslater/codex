@@ -47,12 +47,24 @@ export default {
     ...mapState(useAuthStore, ["isAuthorized"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+      siteDefaults: (state) => state.defaults?.reader,
     }),
     ...mapState(useReaderStore, {
       empty: (state) => state.empty,
     }),
   },
   watch: {
+    /*
+     * Not in created(): that runs before ``/session`` resolves on a cold
+     * boot, when there are no defaults yet. The store only seeds until
+     * this session's own global settings load.
+     */
+    siteDefaults: {
+      immediate: true,
+      handler(defaults) {
+        this.seedGlobalDefaults(defaults);
+      },
+    },
     user() {
       this.loadGlobalSettings();
     },
@@ -83,6 +95,7 @@ export default {
       "flushBookmarkWrite",
       "loadGlobalSettings",
       "reset",
+      "seedGlobalDefaults",
     ]),
   },
 };
