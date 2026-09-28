@@ -57,7 +57,7 @@ export const useAdminStore = defineStore("admin", {
     tagWriteErrors: [],
     flags: [],
     folderPicker: {
-      root: undefined,
+      rootFolder: undefined,
       folders: [],
     },
     timestamps: {},
@@ -162,9 +162,9 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
       }
     },
-    async clearFolders(root) {
+    async clearFolders(rootFolder) {
       if (this._requireAdmin()) return false;
-      this.folderPicker = { root, folders: [""] };
+      this.folderPicker = { rootFolder, folders: [""] };
     },
     /*
      * createRow and updateRow resolve true when the row saved and false when
