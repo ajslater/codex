@@ -69,10 +69,10 @@ export const useMetadataStore = defineStore("metadata", {
       const reprints = rows.filter((row) => !row.alternativeName);
       const alternativeNames = rows.filter((row) => row.alternativeName);
       const tagMap = {};
-      if (reprints.length) {
+      if (reprints.length > 0) {
         tagMap["Reprints"] = { filter: "reprints", tags: reprints };
       }
-      if (alternativeNames.length) {
+      if (alternativeNames.length > 0) {
         tagMap["Alternative Names"] = {
           filter: "reprints",
           tags: alternativeNames,
@@ -111,7 +111,7 @@ export const useMetadataStore = defineStore("metadata", {
     },
     tags(state) {
       const tags = {};
-      if (state.protagonists.length) {
+      if (state.protagonists.length > 0) {
         tags["Protagonist"] = { filter: "", tags: state.protagonists };
       }
       Object.assign(tags, state.mapTag(state.md, TAGS));
@@ -139,8 +139,7 @@ export const useMetadataStore = defineStore("metadata", {
         useBrowserStore().metadataSettings,
       )
         .then((response) => {
-          const md = { ...response.data };
-          md.loaded = true;
+          const md = { ...response.data, loaded: true };
           this.md = md;
           return true;
         })
@@ -155,7 +154,7 @@ export const useMetadataStore = defineStore("metadata", {
     getTagName(key) {
       return TAG_NAMES[key] || capitalCase(key);
     },
-    mapTag(tagSource, keys, filter = undefined) {
+    mapTag(tagSource, keys, filter) {
       const tagMap = {};
 
       for (const key of keys) {

@@ -94,6 +94,11 @@ export default defineConfig([
       "unicorn/no-top-level-side-effects": "off",
       // Duplicates no-unused-vars without an ignoreRestSiblings option.
       "sonarjs/no-unused-vars": "off",
+      // The code mixes one-line `/** x */` and starred three-line block
+      // comments. Both modes of this rule's autofix mangle one of them
+      // (dropping the ` * ` gutter or leaving `/* * X */`), the same reason
+      // the base config turns off @stylistic/multiline-comment-style.
+      "unicorn/single-line-block-comment-style": "off",
     },
   },
   {
@@ -113,72 +118,43 @@ export default defineConfig([
     name: "codex/pending-cleanup",
     rules: {
       "import-x/no-named-as-default": "off", // 1 hit
-      "perfectionist/sort-imports": "off", // 13 hits, fixable
-      "perfectionist/sort-modules": "off", // 13 hits, fixable
-      "perfectionist/sort-named-imports": "off", // 2 hits, fixable
-      "perfectionist/sort-sets": "off", // 8 hits, fixable
-      "perfectionist/sort-switch-case": "off", // 5 hits, fixable
       "promise/always-return": "off", // 9 hits
       "promise/param-names": "off", // 1 hit
-      "regexp/letter-case": "off", // 2 hits, fixable
       "regexp/no-super-linear-move": "off", // 1 hit
       "regexp/prefer-named-capture-group": "off", // 3 hits
       "regexp/require-unicode-regexp": "off", // 20 hits, 17 fixable
       "regexp/require-unicode-sets-regexp": "off", // 20 hits
-      "regexp/sort-alternatives": "off", // 1 hit, fixable
       "sonarjs/no-floating-point-equality": "off", // 1 hit
       "sonarjs/no-nested-conditional": "off", // 1 hit
       "sonarjs/parameterized-tests": "off", // 1 hit
       "sonarjs/prefer-specific-assertions": "off", // 6 hits
       "sonarjs/super-linear-regex": "off", // 1 hit
       "sonarjs/todo-tag": "off", // 1 hit
-      "unicorn/catch-error-name": "off", // 2 hits, fixable
       "unicorn/consistent-boolean-name": "off", // 18 hits, 7 fixable
       "unicorn/consistent-function-scoping": "off", // 18 hits
-      "unicorn/explicit-length-check": "off", // 10 hits, fixable
-      "unicorn/new-for-builtins": "off", // 1 hit, fixable
       "unicorn/no-array-callback-reference": "off", // 2 hits
       "unicorn/no-array-reverse": "off", // 1 hit
       "unicorn/no-array-sort": "off", // 10 hits
       "unicorn/no-computed-property-existence-check": "off", // 10 hits
       "unicorn/no-for-each": "off", // 2 hits
-      "unicorn/no-immediate-mutation": "off", // 1 hit, fixable
       "unicorn/no-invalid-argument-count": "off", // 1 hit
       "unicorn/no-object-as-default-parameter": "off", // 1 hit
       "unicorn/no-return-array-push": "off", // 2 hits
       "unicorn/no-this-assignment": "off", // 1 hit
       "unicorn/no-top-level-assignment-in-function": "off", // 27 hits
       "unicorn/no-unnecessary-global-this": "off", // 17 hits, 8 fixable
-      "unicorn/no-unnecessary-splice": "off", // 1 hit, fixable
-      "unicorn/no-useless-continue": "off", // 1 hit, fixable
-      "unicorn/no-useless-else": "off", // 4 hits, fixable
-      "unicorn/no-useless-fallback-in-spread": "off", // 2 hits, fixable
-      "unicorn/no-useless-undefined": "off", // 26 hits, fixable
-      "unicorn/numeric-separators-style": "off", // 5 hits, fixable
-      "unicorn/operator-assignment": "off", // 1 hit, fixable
       "unicorn/prefer-await": "off", // 149 hits
-      "unicorn/prefer-combined-guards": "off", // 1 hit, fixable
-      "unicorn/prefer-early-return": "off", // 4 hits, fixable
-      "unicorn/prefer-global-number-constants": "off", // 2 hits, fixable
-      "unicorn/prefer-global-this": "off", // 5 hits, fixable
       "unicorn/prefer-https": "off", // 3 hits, fixable
       "unicorn/prefer-includes-over-repeated-comparisons": "off", // 2 hits
       "unicorn/prefer-iterator-to-array": "off", // 2 hits
-      "unicorn/prefer-node-protocol": "off", // 3 hits, fixable
       "unicorn/prefer-number-coercion": "off", // 9 hits
       "unicorn/prefer-number-is-safe-integer": "off", // 6 hits
       "unicorn/prefer-promise-try": "off", // 1 hit
       "unicorn/prefer-promise-with-resolvers": "off", // 1 hit
       "unicorn/prefer-scoped-selector": "off", // 5 hits
       "unicorn/prefer-simple-condition-first": "off", // 4 hits
-      "unicorn/prefer-split-limit": "off", // 2 hits, fixable
-      "unicorn/prefer-string-raw": "off", // 4 hits, fixable
-      "unicorn/prefer-string-starts-ends-with": "off", // 1 hit, fixable
-      "unicorn/prefer-ternary": "off", // 15 hits, fixable
       "unicorn/prefer-top-level-await": "off", // 1 hit
       "unicorn/require-array-sort-compare": "off", // 8 hits
-      "unicorn/single-line-block-comment-style": "off", // 20 hits, fixable
-      "unicorn/switch-case-braces": "off", // 28 hits, fixable
     },
   },
   {

@@ -23,7 +23,7 @@ const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 const messagesOf = (value) =>
-  (Array.isArray(value) ? value.flat(Number.POSITIVE_INFINITY) : [value])
+  (Array.isArray(value) ? value.flat(Infinity) : [value])
     .filter((message) => message !== null && message !== undefined)
     .map(String);
 
@@ -65,14 +65,13 @@ const flattenErrors = (fieldErrors) => {
     return [];
   }
   // A lone ``detail`` is already a whole sentence; naming it adds noise.
-  if (entries.length === 1 && entries[0][0] === "detail") {
-    return entries[0][1];
-  }
-  return entries.flatMap(([field, messages]) =>
-    field === "detail"
-      ? messages
-      : messages.map((message) => `${fieldLabel(field)}: ${message}`),
-  );
+  return entries.length === 1 && entries[0][0] === "detail"
+    ? entries[0][1]
+    : entries.flatMap(([field, messages]) =>
+        field === "detail"
+          ? messages
+          : messages.map((message) => `${fieldLabel(field)}: ${message}`),
+      );
 };
 
 const getErrors = (xiorError) => {

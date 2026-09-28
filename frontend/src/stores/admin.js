@@ -17,13 +17,13 @@ const warnError = (error) => console.warn(error);
  * picking up changes from explicit invalidators (CRUD mutations
  * and websocket fan-out both pass ``{ force: true }``).
  */
-const DYNAMIC_TTL_MS = 5_000;
+const DYNAMIC_TTL_MS = 5000;
 /*
  * AgeRatingMetron is a static enum lookup; once loaded it never
  * needs refreshing for the session.
  */
 const TABLE_TTL_MS = Object.freeze({
-  AgeRatingMetron: Number.POSITIVE_INFINITY,
+  AgeRatingMetron: Infinity,
 });
 export const TABS = Object.freeze([
   "Users",
@@ -348,7 +348,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(commonStore.setErrors);
     },
     async validateTaggingCredentials(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.validateTaggingCredentials(data);
@@ -356,7 +356,7 @@ export const useAdminStore = defineStore("admin", {
         return response.data.results;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
       }
     },
     async loadTagWriteErrors({ force = false } = {}) {
@@ -463,7 +463,7 @@ export const useAdminStore = defineStore("admin", {
      * field-level validation messages.
      */
     async sendEmailTest(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.sendEmailTest(data);
@@ -471,7 +471,7 @@ export const useAdminStore = defineStore("admin", {
         return response.data;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
       }
     },
     async loadOidcSettings({ force = false } = {}) {
@@ -515,7 +515,7 @@ export const useAdminStore = defineStore("admin", {
      * from the server; errors land on the common store too.
      */
     async testOidcConnection(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.testOidcConnection(data);
@@ -523,7 +523,7 @@ export const useAdminStore = defineStore("admin", {
         return response.data;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
       }
     },
     async loadSettingsDefaults({ force = false } = {}) {
@@ -548,7 +548,7 @@ export const useAdminStore = defineStore("admin", {
      * (``{}`` without the catch-up), or ``undefined`` when the save failed.
      */
     async updateSettingsDefaults(data, { applyToAnonymous = false } = {}) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       const body = applyToAnonymous ? { ...data, applyToAnonymous } : data;
       return await API.updateSettingsDefaults(body)
@@ -561,17 +561,15 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch((error) => {
           commonStore.setErrors(error);
-          return undefined;
         });
     },
     // Never cached: the counts move with every anonymous browse.
     async loadSettingsDefaultsReach() {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       return await API.getSettingsDefaultsReach()
         .then((response) => response.data)
         .catch((error) => {
           console.warn(error);
-          return undefined;
         });
     },
     async loadThrottleSettings({ force = false } = {}) {

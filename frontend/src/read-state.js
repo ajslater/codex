@@ -74,25 +74,31 @@ export const getReadState = (item) => {
 export const getReadFillPercent = (item) => {
   const progress = Number(item.progress) || 0;
   switch (getReadState(item)) {
-    case READ_STATE.FINISHED:
+    case READ_STATE.FINISHED: {
       return Math.min(progress, 100);
-    case READ_STATE.READING:
+    }
+    case READ_STATE.READING: {
       return Math.min(Math.max(progress, READING_FILL_MIN), 100);
-    default:
+    }
+    default: {
       return 0;
+    }
   }
 };
 
 export const getReadStateLabel = (item) => {
   const isComic = item.collection === "comics";
   switch (getReadState(item)) {
-    case READ_STATE.FINISHED:
+    case READ_STATE.FINISHED: {
       return isComic ? "read" : "all read";
-    case READ_STATE.READING:
+    }
+    case READ_STATE.READING: {
       return isComic
         ? `${readingPercent(Number(item.progress) || 0)}% read`
         : "partly read";
-    default:
+    }
+    default: {
       return isComic ? "unread" : "none read";
+    }
   }
 };

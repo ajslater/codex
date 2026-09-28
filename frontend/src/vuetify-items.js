@@ -1,8 +1,8 @@
 // Shared functions for most metadata components.
 import { VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
-export const NULL_PKS = new Set(["", VUETIFY_NULL_CODE, undefined, null]);
+export const NULL_PKS = new Set(["", null, undefined, VUETIFY_NULL_CODE]);
 
-const toVuetifyItem = function (item, copyKeys = undefined) {
+const toVuetifyItem = function (item, copyKeys) {
   /*
    * Translate a raw value or item into a vuetify item.
    *
@@ -14,7 +14,7 @@ const toVuetifyItem = function (item, copyKeys = undefined) {
    * single equality check rather than re-running the ``NULL_PKS`` test.
    */
   if (NULL_PKS.has(item)) {
-    return undefined;
+    return;
   }
   if (typeof item !== "object") {
     // Scalar (e.g. a year). Numbers + strings only — null was caught above.
@@ -29,7 +29,7 @@ const toVuetifyItem = function (item, copyKeys = undefined) {
      * call ``intersection`` (an ES2024 method Vite doesn't polyfill).
      */
     if (item.ids.some((id) => NULL_PKS.has(id))) {
-      return undefined;
+      return;
     }
     vuetifyItem = { value: item.ids.join(","), title: item.name };
   } else if (NULL_PKS.has(item.pk)) {
@@ -69,7 +69,7 @@ export const toVuetifyItems = function ({
   items,
   filter,
   sortBy = "title",
-  copyKeys = undefined,
+  copyKeys,
 }) {
   /*
    * Map a list of raw items to vuetify items, filter by ``filter``,

@@ -1,6 +1,15 @@
 import { HTTP } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
 
+export function flattenJsonApi(body) {
+  if (Array.isArray(body)) {
+    return body.map((entry) => flattenResource(entry));
+  }
+  return body && typeof body === "object" && "type" in body && "id" in body
+    ? flattenResource(body)
+    : body;
+}
+
 /*
  * v4 admin resource endpoints render in JSON:API
  * (``{data: {type, id, attributes, relationships}}``) rather than
@@ -38,16 +47,6 @@ function flattenResource(item) {
   };
 }
 
-export function flattenJsonApi(body) {
-  if (Array.isArray(body)) {
-    return body.map((entry) => flattenResource(entry));
-  }
-  if (body && typeof body === "object" && "type" in body && "id" in body) {
-    return flattenResource(body);
-  }
-  return body;
-}
-
 async function jsonApiList(response) {
   response.data = flattenJsonApi(response.data);
   return response;
@@ -74,7 +73,7 @@ async function jsonApiOne(response) {
  */
 function wrapJsonApi(resourceType, data, { pk } = {}) {
   const body = {
-    data: { type: resourceType, attributes: { ...(data || {}) } },
+    data: { type: resourceType, attributes: { ...data } },
   };
   if (pk !== undefined && pk !== null) {
     body.data.id = String(pk);

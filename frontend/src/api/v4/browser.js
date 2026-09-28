@@ -35,8 +35,7 @@ const _normalizePks = (pks) => {
 const _segment = (collection, pks) => {
   const seg = _collection(collection);
   const ids = _normalizePks(pks);
-  if (!ids.length) return seg;
-  return `${seg}/${ids.join(",")}`;
+  return ids.length === 0 ? seg : `${seg}/${ids.join(",")}`;
 };
 
 const getBrowserHrefPath = ({ collection, pks, query, ts }) => {

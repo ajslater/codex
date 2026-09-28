@@ -30,10 +30,11 @@ export const routeForCollection = ({ collection, pks }) => ({
  */
 export const collectionForRoute = ({ collection, parentIds }) => {
   const ids = normalizeParentIds(parentIds);
-  if (collection === "publishers" && !ids.length) {
-    return { collection: "root", pks: ids };
-  }
-  return { collection, pks: ids };
+  return {
+    collection:
+      collection === "publishers" && ids.length === 0 ? "root" : collection,
+    pks: ids,
+  };
 };
 
 /*
@@ -45,7 +46,9 @@ export const collectionForRoute = ({ collection, parentIds }) => {
  */
 export const browserRouteParams = ({ collection, parentIds, pks }) => {
   const ids = normalizeParentIds(parentIds ?? pks);
-  return ids.length ? { collection, parentIds: ids.join(",") } : { collection };
+  return ids.length > 0
+    ? { collection, parentIds: ids.join(",") }
+    : { collection };
 };
 
 const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));

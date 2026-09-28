@@ -105,10 +105,12 @@ export const useFavoritesStore = defineStore("favorites", {
         changed.map((pk) => apiCall(collection, pk)),
       );
       results.forEach((result, index) => {
-        if (result.status === "rejected") {
-          this._setLocal(collection, changed[index], !on);
-          console.error(result.reason);
+        if (result.status !== "rejected") {
+          return;
         }
+
+        this._setLocal(collection, changed[index], !on);
+        console.error(result.reason);
       });
     },
     _setLocal(collection, pk, on) {

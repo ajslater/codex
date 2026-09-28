@@ -60,6 +60,10 @@ function comicItem(overrides = {}) {
   };
 }
 
+function dialogOf(wrapper) {
+  return wrapper.findComponent(ConfirmDialog);
+}
+
 function mountButton(item) {
   const pinia = createTestingPinia({ stubActions: true });
   const wrapper = mount(MarkReadButton, {
@@ -67,10 +71,6 @@ function mountButton(item) {
     props: { button: false, item },
   });
   return { wrapper, browserStore: useBrowserStore() };
-}
-
-function dialogOf(wrapper) {
-  return wrapper.findComponent(ConfirmDialog);
 }
 
 describe("MarkReadButton — browser card kebab menu", () => {

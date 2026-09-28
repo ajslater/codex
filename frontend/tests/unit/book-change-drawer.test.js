@@ -11,7 +11,6 @@
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, test } from "vitest";
-
 import { VApp } from "vuetify/components";
 
 import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";

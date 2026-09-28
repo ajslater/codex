@@ -23,10 +23,9 @@ export const isIndeterminate = (status) => {
 
 /** Compute 0–100 progress percentage for a status. */
 export const statusProgress = (status) => {
-  if (!status.total || isIndeterminate(status)) {
-    return 0;
-  }
-  return (100 * +status.complete) / +status.total;
+  return !status.total || isIndeterminate(status)
+    ? 0
+    : (100 * +status.complete) / +status.total;
 };
 
 /** Human-readable title for a statusType code. */
@@ -40,18 +39,14 @@ export const statusDuration = (status, now) => {
     const activeTime = new Date(status.active).getTime();
     return getFormattedDuration(activeTime, now);
   }
-  if (status.preactive) {
-    return "pending";
-  }
-  return "";
+  return status.preactive ? "pending" : "";
 };
 
 /** Whole seconds remaining from `now` until an ISO target, clamped at 0. */
 const secondsUntil = (iso, now) => {
-  if (!iso) {
-    return null;
-  }
-  return Math.max(0, Math.round((new Date(iso).getTime() - now) / 1000));
+  return iso
+    ? Math.max(0, Math.round((new Date(iso).getTime() - now) / 1000))
+    : null;
 };
 
 /** Format a countdown as "m:ss" (>= 60s) or "Ns". */

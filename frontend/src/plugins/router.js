@@ -32,9 +32,10 @@ const _lr = globalThis.CODEX.LAST_ROUTE || lastRoute;
 const _lrParentIds = normalizeParentIds(_lr.parentIds);
 const LAST_ROUTE = {
   name: "browser",
-  params: _lrParentIds.length
-    ? { collection: _lr.collection, parentIds: _lrParentIds.join(",") }
-    : { collection: _lr.collection },
+  params:
+    _lrParentIds.length > 0
+      ? { collection: _lr.collection, parentIds: _lrParentIds.join(",") }
+      : { collection: _lr.collection },
   query: _lr.page && Number(_lr.page) !== 1 ? { page: Number(_lr.page) } : {},
 };
 
@@ -51,7 +52,7 @@ const routes = [
   },
   {
     name: "browser",
-    path: "/:collection(publishers|imprints|series|volumes|comics|folders|arcs)/:parentIds([\\d,]+)?",
+    path: String.raw`/:collection(publishers|imprints|series|volumes|comics|folders|arcs)/:parentIds([\d,]+)?`,
     component: MainBrowser,
   },
   {
@@ -118,16 +119,18 @@ router.afterEach((to) => {
    * Strip the ts cache-busting query param from the visible URL.
    * Vue Router's $route watcher already captured the value before this fires.
    */
-  if (to.query?.ts !== undefined) {
-    const { ts, ...query } = to.query;
-    const cleanRoute = router.resolve({
-      name: to.name,
-      params: to.params,
-      query,
-      hash: to.hash,
-    });
-    history.replaceState(history.state, "", cleanRoute.href);
+  if (to.query?.ts === undefined) {
+    return;
   }
+
+  const { ts, ...query } = to.query;
+  const cleanRoute = router.resolve({
+    name: to.name,
+    params: to.params,
+    query,
+    hash: to.hash,
+  });
+  history.replaceState(history.state, "", cleanRoute.href);
 });
 
 /*
@@ -136,9 +139,9 @@ router.afterEach((to) => {
  * the server), force a full page load so the browser pulls a fresh index.html.
  */
 const CHUNK_ERROR_PATTERNS = [
-  /Failed to fetch dynamically imported module/i,
+  /failed to fetch dynamically imported module/i,
   /error loading dynamically imported module/i,
-  /Importing a module script failed/i,
+  /importing a module script failed/i,
 ];
 const CHUNK_RELOAD_KEY = "codex-chunk-reload-path";
 

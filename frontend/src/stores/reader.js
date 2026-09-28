@@ -59,10 +59,10 @@ function _runPendingBookmark() {
   });
 }
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
-  new Set(["ttb", "btt"]),
+  new Set(["btt", "ttb"]),
 );
 export const REVERSE_READING_DIRECTIONS = Object.freeze(
-  new Set(["rtl", "btt"]),
+  new Set(["btt", "rtl"]),
 );
 export const SCALE_DEFAULT = 1;
 const FIT_TO_CLASSES = Object.freeze({
@@ -351,7 +351,7 @@ export const useReaderStore = defineStore("reader", {
       ) {
         delta = 2;
       }
-      delta = delta * deltaModifier;
+      delta *= deltaModifier;
       const page = +activePage + delta;
 
       let routeParams = false;
@@ -497,16 +497,19 @@ export const useReaderStore = defineStore("reader", {
        * server lands the user's final position without waiting
        * out the debounce window.
        */
-      if (_bookmarkTimer) {
-        globalThis.clearTimeout(_bookmarkTimer);
-        _runPendingBookmark();
+      if (!_bookmarkTimer) {
+        return;
       }
+
+      globalThis.clearTimeout(_bookmarkTimer);
+      _runPendingBookmark();
     },
     setActivePage(page, reactWithScroll = true) {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
-      } else if (page > this.books.current.maxPage) {
+      }
+      if (page > this.books.current.maxPage) {
         console.warn(
           `Page out of bounds. Redirecting to ${this.books.current.maxPage}.`,
         );
@@ -642,7 +645,7 @@ export const useReaderStore = defineStore("reader", {
           arcs.push(arc);
         }
       }
-      if (!arcs.length) {
+      if (arcs.length === 0) {
         /*
          * No arcs is a 500 from the mtime api. Use the same
          * ``{ collection, pks }`` shape the loop above produces — the
@@ -666,10 +669,7 @@ export const useReaderStore = defineStore("reader", {
           COMMON_API.getMtime(arcs, {}),
         );
         const newMtime = response.data.maxMtime;
-        if (newMtime !== this.mtime) {
-          return this.loadBooks({ mtime: newMtime });
-        }
-        return true;
+        return newMtime === this.mtime || this.loadBooks({ mtime: newMtime });
       } catch (error) {
         console.error(error);
       }
@@ -752,10 +752,9 @@ export const useReaderStore = defineStore("reader", {
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
-      if (this.arc?.collection === "arcs" && this.arc?.ids?.length) {
-        return this.arc.ids[0];
-      }
-      return null;
+      return this.arc?.collection === "arcs" && this.arc?.ids?.length
+        ? this.arc.ids[0]
+        : null;
     },
     async loadAllSettings(pk) {
       if (!pk) {

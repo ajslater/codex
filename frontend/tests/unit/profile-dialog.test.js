@@ -16,8 +16,8 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
 import ProfileDialog from "@/components/auth/profile-dialog.vue";
-import { useAuthStore } from "@/stores/auth";
 import vuetify from "@/plugins/vuetify";
+import { useAuthStore } from "@/stores/auth";
 
 function mountDialog() {
   const pinia = createTestingPinia({

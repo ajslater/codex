@@ -100,7 +100,7 @@ describe("getReadFillPercent", () => {
   });
 
   it("survives a missing progress", () => {
-    expect(getReadFillPercent(comic(false, undefined))).toBe(0);
+    expect(getReadFillPercent(comic(false))).toBe(0);
   });
 
   it("uses the collection percentage for a mixed collection", () => {

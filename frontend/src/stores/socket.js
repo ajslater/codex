@@ -1,7 +1,7 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
 
-import { MESSAGE_TYPES, WS_URL_V4, parseV4Message } from "@/api/v4/notify";
+import { MESSAGE_TYPES, parseV4Message, WS_URL_V4 } from "@/api/v4/notify";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -15,7 +15,7 @@ const USER_GROUP_ROUTES = Object.freeze([
   "admin-libraries",
 ]);
 
-const HEARTBEAT_INTERVAL_MS = 5_000;
+const HEARTBEAT_INTERVAL_MS = 5000;
 /*
  * Exponential backoff: 1s, 2s, 4s, 8s, 16s, then 30s cap. Avoids
  * hammering a momentarily-down server (the previous fixed 3s delay
@@ -24,7 +24,7 @@ const HEARTBEAT_INTERVAL_MS = 5_000;
  * blip. Counter resets on successful connect so a long-lived
  * session that drops once doesn't pay the full backoff next time.
  */
-const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 
 // TODO move to some generic util.
@@ -34,7 +34,7 @@ function currentRouteName() {
 
 // Admin routes whose FlagCards or controls read the Flag table.
 const FLAG_ROUTES = Object.freeze(
-  new Set(["admin-settings", "admin-users", "admin-defaults"]),
+  new Set(["admin-defaults", "admin-settings", "admin-users"]),
 );
 
 /*
@@ -68,20 +68,6 @@ let heartbeatTimer = 0;
 let reconnectTimer = 0;
 let reconnectAttempts = 0;
 
-function startHeartbeat(ws) {
-  stopHeartbeat();
-  heartbeatTimer = globalThis.setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send("");
-    }
-  }, HEARTBEAT_INTERVAL_MS);
-}
-
-function stopHeartbeat() {
-  globalThis.clearInterval(heartbeatTimer);
-  heartbeatTimer = 0;
-}
-
 function clearReconnectTimer() {
   globalThis.clearTimeout(reconnectTimer);
   reconnectTimer = 0;
@@ -105,6 +91,20 @@ function scheduleReconnect(open) {
     reconnectTimer = 0;
     open();
   }, delay);
+}
+
+function startHeartbeat(ws) {
+  stopHeartbeat();
+  heartbeatTimer = globalThis.setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("");
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function stopHeartbeat() {
+  globalThis.clearInterval(heartbeatTimer);
+  heartbeatTimer = 0;
 }
 
 export const useSocketStore = defineStore("socket", () => {
@@ -144,10 +144,11 @@ export const useSocketStore = defineStore("socket", () => {
   // Lazy admin store loader
 
   async function getAdminStore() {
-    if (!useAuthStore().isUserAdmin) return undefined;
-    return import("@/stores/admin")
-      .then((m) => m.useAdminStore())
-      .catch(console.error);
+    return useAuthStore().isUserAdmin
+      ? import("@/stores/admin")
+          .then((m) => m.useAdminStore())
+          .catch(console.error)
+      : undefined;
   }
 
   // Notification handlers
@@ -223,18 +224,21 @@ export const useSocketStore = defineStore("socket", () => {
   async function libraryNotified() {
     useCommonStore().setTimestamp();
     switch (currentRouteName()) {
-      case "browser":
-        useBrowserStore().loadMtimes();
-        break;
-      case "reader":
-        useReaderStore().loadMtimes();
-        break;
-      case "admin-libraries":
+      case "admin-libraries": {
         adminLoadTables(["Library", "FailedImport"]);
         break;
+      }
       case "admin-stats": {
         const adminStore = await getAdminStore();
         adminStore?.loadStats();
+        break;
+      }
+      case "browser": {
+        useBrowserStore().loadMtimes();
+        break;
+      }
+      case "reader": {
+        useReaderStore().loadMtimes();
         break;
       }
     }
@@ -292,8 +296,8 @@ export const useSocketStore = defineStore("socket", () => {
    * onMounted load covers arriving mid-scan.
    */
   function onlineTagSnapshotNotified() {
-    if (!useAuthStore().isUserAdmin) return;
-    if (currentRouteName() !== "admin-tagging") return;
+    if (!useAuthStore().isUserAdmin || currentRouteName() !== "admin-tagging")
+      return;
     import("@/stores/online-tag")
       .then((m) => m.useOnlineTagStore().loadSnapshot())
       .catch(console.error);
@@ -310,48 +314,61 @@ export const useSocketStore = defineStore("socket", () => {
     }
     console.debug("[socket] message:", payload);
     switch (payload.type) {
-      case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED:
+      case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED: {
         adminFlagsNotified();
         break;
-      case MESSAGE_TYPES.BOOKMARK_CHANGED:
+      }
+      case MESSAGE_TYPES.BOOKMARK_CHANGED: {
         reloadBrowser();
         break;
-      case MESSAGE_TYPES.COVERS_CHANGED:
+      }
+      case MESSAGE_TYPES.COVERS_CHANGED: {
         useCommonStore().setTimestamp();
         forceReloadBrowser();
         break;
-      case MESSAGE_TYPES.GROUPS_CHANGED:
+      }
+      case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED: {
+        failedImportsNotified();
+        break;
+      }
+      case MESSAGE_TYPES.GROUPS_CHANGED: {
         groupsNotified();
         libraryNotified();
         break;
-      case MESSAGE_TYPES.USERS_CHANGED:
-        usersNotified();
+      }
+      case MESSAGE_TYPES.LIBRARY_CHANGED: {
         libraryNotified();
         break;
-      case MESSAGE_TYPES.LIBRARY_CHANGED:
-        libraryNotified();
+      }
+      case MESSAGE_TYPES.PENDING_DELETES_CHANGED: {
+        pendingDeletesNotified();
         break;
-      case MESSAGE_TYPES.TASK_PROGRESS:
+      }
+      case MESSAGE_TYPES.TAG_SESSION_PROMPT: {
+        onlineTagPromptNotified();
+        break;
+      }
+      case MESSAGE_TYPES.TAG_SESSION_SNAPSHOT: {
+        onlineTagSnapshotNotified();
+        break;
+      }
+      case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED: {
+        tagWriteErrorsNotified();
+        break;
+      }
+      case MESSAGE_TYPES.TASK_PROGRESS: {
         adminLoadTables(["ActiveLibrarianStatus"]);
         adminLoadAllStatuses();
         break;
-      case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
-        failedImportsNotified();
+      }
+      case MESSAGE_TYPES.USERS_CHANGED: {
+        usersNotified();
+        libraryNotified();
         break;
-      case MESSAGE_TYPES.PENDING_DELETES_CHANGED:
-        pendingDeletesNotified();
-        break;
-      case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
-        tagWriteErrorsNotified();
-        break;
-      case MESSAGE_TYPES.TAG_SESSION_SNAPSHOT:
-        onlineTagSnapshotNotified();
-        break;
-      case MESSAGE_TYPES.TAG_SESSION_PROMPT:
-        onlineTagPromptNotified();
-        break;
-      default:
+      }
+      default: {
         console.debug("Unhandled v4 WebSocket type:", payload.type, payload);
+      }
     }
   }
 

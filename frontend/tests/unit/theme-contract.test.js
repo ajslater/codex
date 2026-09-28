@@ -56,7 +56,7 @@ describe("theme contract", () => {
     // A resolved hex lands as an inline style on the element and stops
     // following the theme; a token resolves to a class at render time.
     const hexed = Object.entries(vuetify.defaults.value)
-      .filter(([, props]) => /^#/.test(props?.color ?? ""))
+      .filter(([, props]) => (props?.color ?? "").startsWith("#"))
       .map(([name]) => name);
     expect(hexed).toEqual([]);
   });

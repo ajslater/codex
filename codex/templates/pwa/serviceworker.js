@@ -9,7 +9,7 @@ const FILES_TO_CACHE = [
   "{% static 'img/logo.svg' %}",
 ];
 // Cache offline page on install
-self.addEventListener("install", (event) => {
+globalThis.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME).then((cache) => {
@@ -18,7 +18,7 @@ self.addEventListener("install", (event) => {
   );
 });
 // Clear old caches on activate
-self.addEventListener("activate", (event) => {
+globalThis.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
       /*
@@ -27,7 +27,7 @@ self.addEventListener("activate", (event) => {
        * stale SW (e.g. one with a stale CSP) would need a second
        * reload to take effect.
        */
-      self.clients.claim(),
+      globalThis.clients.claim(),
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames
@@ -40,7 +40,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 // Serve from Cache
-self.addEventListener("fetch", (event) => {
+globalThis.addEventListener("fetch", (event) => {
   /*
    * Pass through non-GET and cross-origin requests so the browser
    * handles them under the page's CSP rather than the SW's snapshot
@@ -49,7 +49,10 @@ self.addEventListener("fetch", (event) => {
    * pre-dates the dev-only overlay.
    */
   const url = new URL(event.request.url);
-  if (event.request.method !== "GET" || url.origin !== self.location.origin) {
+  if (
+    event.request.method !== "GET" ||
+    url.origin !== globalThis.location.origin
+  ) {
     return;
   }
   event.respondWith(

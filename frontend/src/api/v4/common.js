@@ -7,12 +7,15 @@ const _keepIfNotEmpty = (val) => {
   if (val === undefined) return false;
   switch (val?.constructor) {
     case Array:
-    case String:
+    case String: {
       return val.length > 0;
-    case Object:
+    }
+    case Object: {
       return Object.keys(val).length > 0;
-    default:
+    }
+    default: {
       return true;
+    }
   }
 };
 
@@ -20,8 +23,9 @@ const _deepClone = (obj, filterEmpty = false) => {
   obj = toRaw(obj);
   const _keep = (val) => !filterEmpty || _keepIfNotEmpty(val);
   switch (obj?.constructor) {
-    case Array:
+    case Array: {
       return obj.map((v) => _deepClone(v, filterEmpty)).filter(_keep);
+    }
     case Object: {
       const result = {};
       for (const [key, val] of Object.entries(obj)) {
@@ -30,8 +34,9 @@ const _deepClone = (obj, filterEmpty = false) => {
       }
       return result;
     }
-    default:
+    default: {
       return obj;
+    }
   }
 };
 
@@ -39,8 +44,9 @@ const _jsonSerialize = (params) => {
   for (const [key, value] of Object.entries(params)) {
     switch (value?.constructor) {
       case Array:
-      case Object:
+      case Object: {
         params[key] = JSON.stringify(value);
+      }
     }
   }
 };

@@ -28,7 +28,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 // Dismiss, Skip All, Pause.
 const THREE_HEADER_BUTTONS = 3;
-const MTIME = 1726999999000;
+const MTIME = 1_726_999_999_000;
 
 function candidate(overrides = {}) {
   return {

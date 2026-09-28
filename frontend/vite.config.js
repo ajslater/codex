@@ -1,12 +1,12 @@
 import { Unhead } from "@unhead/vue/vite";
 import vue from "@vitejs/plugin-vue";
+import fs from "node:fs";
+import { hostname } from "node:os";
+import path from "node:path";
 import { visualizer } from "rollup-plugin-visualizer";
-import checker from "vite-plugin-checker";
-import fs from "fs";
-import { hostname } from "os";
-import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
+import checker from "vite-plugin-checker";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
@@ -78,7 +78,7 @@ const config = defineConfig(({ mode }) => {
   const rawHost = hostname().toLowerCase();
   const mDNSHost =
     rawHost.includes(".") && !rawHost.endsWith(".local")
-      ? `${rawHost.split(".")[0]}.local`
+      ? `${rawHost.split(".", 1)[0]}.local`
       : rawHost;
   /*
    * Mirror Django's ``_vite_dev_server_host``: explicit
@@ -95,12 +95,12 @@ const config = defineConfig(({ mode }) => {
   const ALLOWED_HOSTS = DEV
     ? [
         ...new Set([
-          HMR_HOST,
-          rawHost,
-          mDNSHost,
-          "localhost",
           "127.0.0.1",
           "[::1]",
+          HMR_HOST,
+          "localhost",
+          mDNSHost,
+          rawHost,
         ]),
       ]
     : [];
@@ -117,11 +117,11 @@ const config = defineConfig(({ mode }) => {
    * port so browser-side fetches from Django (or anything else on
    * the same hostname) work.
    */
-  const reEscape = (s) => s.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&");
+  const reEscape = (s) => s.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`);
   const CORS_ORIGIN = DEV
     ? // eslint-disable-next-line security/detect-non-literal-regexp
       new RegExp(
-        `^https?://(${ALLOWED_HOSTS.map(reEscape).join("|")})(?::\\d+)?$`,
+        String.raw`^https?://(${ALLOWED_HOSTS.map(reEscape).join("|")})(?::\d+)?$`,
       )
     : undefined;
   /*

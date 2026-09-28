@@ -29,7 +29,7 @@ export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
       issueStr = intIssue.toString();
     } else {
       issueStr = floatIssue.toString();
-      zeroPad += issueStr.split(".")[1].length + 1;
+      zeroPad += issueStr.split(".", 2)[1].length + 1;
     }
     issueStr = issueStr.padStart(zeroPad, "0");
   } catch {

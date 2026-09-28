@@ -12,8 +12,8 @@ import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
-import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import LIMITS from "@/choices/limits.json";
+import ChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
 import vuetify from "@/plugins/vuetify";
 
 const MIN = LIMITS.passwordMinLength;

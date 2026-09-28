@@ -20,6 +20,10 @@ import vuetify from "@/plugins/vuetify";
 
 const DISABLED_TIP = "Not supported by selected metadata formats";
 
+function findButton(wrapper, label) {
+  return wrapper.findAll("button").find((b) => b.text().includes(label));
+}
+
 async function mountPanel({ formats = ["COMIC_INFO"], md = {} } = {}) {
   const pinia = createTestingPinia({
     initialState: {
@@ -36,10 +40,6 @@ async function mountPanel({ formats = ["COMIC_INFO"], md = {} } = {}) {
   // metadata; both are reactive, so let the DOM flush before asserting.
   await flushPromises();
   return wrapper;
-}
-
-function findButton(wrapper, label) {
-  return wrapper.findAll("button").find((b) => b.text().includes(label));
 }
 
 describe("EditPanel — Add Universe tooltip", () => {

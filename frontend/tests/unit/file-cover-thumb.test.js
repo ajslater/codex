@@ -37,7 +37,7 @@ vi.mock("@/api/v4/cover-probe", async (importOriginal) => ({
 }));
 
 const PK = 123;
-const MTIME = 1726999999000;
+const MTIME = 1_726_999_999_000;
 const THUMB_SRC = `/api/v4/covers/comic/${PK}?ts=${MTIME}`;
 const FULL_SRC = `/api/v4/comics/${PK}/pages/0?ts=${MTIME}&serve=image`;
 
@@ -72,6 +72,19 @@ afterEach(() => {
   vi.mocked(probeCover).mockReset();
 });
 
+// A probe the test settles by hand, recording the signal it was given.
+function deferProbe() {
+  const probe = {};
+  vi.mocked(probeCover).mockImplementation((src, { signal }) => {
+    probe.src = src;
+    probe.signal = signal;
+    return new Promise((resolve) => {
+      probe.resolve = resolve;
+    });
+  });
+  return probe;
+}
+
 function fileCover(overrides = {}) {
   return { pk: PK, mtime: MTIME, status: "ready", ...overrides };
 }
@@ -84,19 +97,6 @@ function mountThumb(cover) {
   });
   wrappers.push(wrapper);
   return wrapper;
-}
-
-// A probe the test settles by hand, recording the signal it was given.
-function deferProbe() {
-  const probe = {};
-  vi.mocked(probeCover).mockImplementation((src, { signal }) => {
-    probe.src = src;
-    probe.signal = signal;
-    return new Promise((resolve) => {
-      probe.resolve = resolve;
-    });
-  });
-  return probe;
 }
 
 // The placeholder's tooltip: why there is no cover.

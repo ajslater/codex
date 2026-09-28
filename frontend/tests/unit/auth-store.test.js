@@ -201,7 +201,7 @@ describe("reloadOnDefaultsChange", () => {
 
   it("does nothing on the first load, from an undefined revision", async () => {
     API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r1" }));
-    const { browser } = stores(undefined);
+    const { browser } = stores();
     expect(await reloadOnDefaultsChange("browser")).toBe(false);
     expect(browser.loadSettings).not.toHaveBeenCalled();
   });

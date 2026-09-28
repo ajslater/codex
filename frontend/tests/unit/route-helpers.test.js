@@ -43,7 +43,7 @@ describe("route helpers", () => {
   it("normalizeParentIds drops 0, empties, and handles arrays", () => {
     expect(normalizeParentIds("0")).toEqual([]);
     expect(normalizeParentIds([5, 0, 7])).toEqual(["5", "7"]);
-    expect(normalizeParentIds(undefined)).toEqual([]);
+    expect(normalizeParentIds()).toEqual([]);
   });
 
   describe("browserRouteParams (never an array — vue-router throws on that)", () => {

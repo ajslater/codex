@@ -1,6 +1,7 @@
 import { dequal } from "dequal";
 import { defineStore } from "pinia";
 import { toRaw } from "vue";
+
 import {
   abortKey,
   dedupedFetch,
@@ -81,8 +82,18 @@ export function filterShowGatedDefaults(cols, show) {
   for (const [col, flag] of Object.entries(_SHOW_GATED_COLUMNS)) {
     if (!showMap[flag]) blocked.add(col);
   }
-  if (blocked.size === 0) return cols;
-  return cols.filter((c) => !blocked.has(c));
+  return blocked.size === 0 ? cols : cols.filter((c) => !blocked.has(c));
+}
+
+/*
+ * A bookmark filter at the site default reads as "not filtered": Clear
+ * All Filters has nothing to clear. ``undefined`` and ``null`` are unset.
+ */
+export function isDefaultBookmarkFilter(bookmark) {
+  const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
+  return (
+    bookmark === undefined || bookmark === null || bookmark === siteDefault
+  );
 }
 
 // The registry's column set for a collection, show-gated.
@@ -118,17 +129,6 @@ export function resolveTableColumns(
 // The site default table columns ``/session`` delivered, if any.
 export function siteTableColumns() {
   return useAuthStore().defaults?.browser?.tableColumns;
-}
-
-/*
- * A bookmark filter at the site default reads as "not filtered": Clear
- * All Filters has nothing to clear. ``undefined`` and ``null`` are unset.
- */
-export function isDefaultBookmarkFilter(bookmark) {
-  const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
-  return (
-    bookmark === undefined || bookmark === null || bookmark === siteDefault
-  );
 }
 
 /*
@@ -176,13 +176,10 @@ const _DEFAULT_SINGLE_ORDER = Object.freeze({
 });
 
 function _defaultOrderFor(topCollection, viewMode) {
-  if (
-    viewMode === "table" &&
+  return viewMode === "table" &&
     Object.hasOwn(_DEFAULT_TABLE_ORDER, topCollection)
-  ) {
-    return _DEFAULT_TABLE_ORDER[topCollection];
-  }
-  return _DEFAULT_SINGLE_ORDER;
+    ? _DEFAULT_TABLE_ORDER[topCollection]
+    : _DEFAULT_SINGLE_ORDER;
 }
 
 /*
@@ -229,10 +226,10 @@ const toBrowseRoute = (route) => {
     }));
   }
   const out = { name: route?.name || "browser", params: { collection } };
-  if (parentIds.length) {
+  if (parentIds.length > 0) {
     out.params.parentIds = parentIds.join(",");
   }
-  const query = { ...(route?.query || {}) };
+  const query = { ...route?.query };
   const page = params.page;
   if (
     page !== undefined &&
@@ -240,7 +237,7 @@ const toBrowseRoute = (route) => {
   ) {
     query.page = Number(page);
   }
-  if (Object.keys(query).length) {
+  if (Object.keys(query).length > 0) {
     out.query = query;
   }
   if (route?.hash) {
@@ -364,9 +361,8 @@ export const useBrowserStore = defineStore("browser", {
         ) {
           // denied order_by condition
           continue;
-        } else {
-          choices.push(item);
         }
+        choices.push(item);
       }
       return choices;
     },
@@ -541,11 +537,10 @@ export const useBrowserStore = defineStore("browser", {
     _isRootCollectionEnabled(topCollection) {
       if (ALWAYS_ENABLED_TOP_COLLECTIONS.has(topCollection)) {
         return true;
-      } else if (topCollection == "folders") {
-        return this.page.adminFlags?.folderView;
-      } else {
-        return this.settings.show[topCollection];
       }
+      return topCollection == "folders"
+        ? this.page.adminFlags?.folderView
+        : this.settings.show[topCollection];
     },
     /*
      * COLLECTION ORDER MEMORY
@@ -637,7 +632,8 @@ export const useBrowserStore = defineStore("browser", {
           this._restoreSearchOrder(data);
         }
         return;
-      } else if (this.settings.search) {
+      }
+      if (this.settings.search) {
         // A search was active. If it's being cleared, undo the redirect the
         // first search performed: entering search sends us down to
         // ``lowestShownCollection`` (below), so clearing from that
@@ -982,10 +978,7 @@ export const useBrowserStore = defineStore("browser", {
           const redirect = this._validateAndSaveSettings(data);
           this.browserSettingsLoaded = true;
           this.browserPageLoaded = true;
-          if (redirect) {
-            return redirectRoute(redirect);
-          }
-          return this.loadBrowserPage(undefined);
+          return redirect ? redirectRoute(redirect) : this.loadBrowserPage();
         })
         .catch((error) => {
           this.browserPageLoaded = true;
