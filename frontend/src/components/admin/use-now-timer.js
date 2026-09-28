@@ -17,7 +17,7 @@ export function useNowTimer() {
 
   const start = () => {
     stop();
-    timer = globalThis.setInterval(() => {
+    timer = setInterval(() => {
       now.value = Date.now();
     }, TICK_INTERVAL_MS);
   };
@@ -27,7 +27,7 @@ export function useNowTimer() {
       return;
     }
 
-    globalThis.clearInterval(timer);
+    clearInterval(timer);
     timer = 0;
   };
 

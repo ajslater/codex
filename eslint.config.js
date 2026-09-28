@@ -103,16 +103,20 @@ export default defineConfig([
   },
   {
     /*
-     * Browser code stays runnable on Safari/iOS 15.4, the oldest the app
-     * already needs (structuredClone, Object.hasOwn, Array#at). The RegExp
+     * Browser code stays runnable on Safari/iOS 15.4, which is all our own
+     * code requires (structuredClone, Object.hasOwn, Array#at). The RegExp
      * `v` flag needs Safari 17, and the bundler turns each `v` literal into
      * a RegExp() call that throws on older Safari, several of them at
      * startup. `u` gives these ASCII patterns the same strictness.
+     * toSorted/toReversed need Safari 16 and Promise.try 18.2.
      */
     files: ["codex/templates/**/*.js", "frontend/src/**/*.js"],
     name: "codex/browser-floor",
     rules: {
       "regexp/require-unicode-sets-regexp": "off",
+      "unicorn/no-array-reverse": "off",
+      "unicorn/no-array-sort": "off",
+      "unicorn/prefer-promise-try": "off",
     },
   },
   {
@@ -121,49 +125,6 @@ export default defineConfig([
     rules: {
       // Tests stub globals (fetch, matchMedia, ...) on purpose.
       "unicorn/no-global-object-property-assignment": "off",
-    },
-  },
-  {
-    // Preset rules that fire on existing code. They were inert until the
-    // presets in cfg/eslint.config.base.js started applying, so the code was
-    // never written against them. Off until it is cleaned up: re-enable one
-    // rule at a time and run `make fix`. Counts are from 2026-09-28.
-    files: ["**/*.js"],
-    name: "codex/pending-cleanup",
-    rules: {
-      "import-x/no-named-as-default": "off", // 1 hit
-      "promise/always-return": "off", // 9 hits
-      "promise/param-names": "off", // 1 hit
-      "sonarjs/no-floating-point-equality": "off", // 1 hit
-      "sonarjs/no-nested-conditional": "off", // 1 hit
-      "sonarjs/parameterized-tests": "off", // 1 hit
-      "sonarjs/prefer-specific-assertions": "off", // 6 hits
-      "sonarjs/todo-tag": "off", // 1 hit
-      "unicorn/consistent-boolean-name": "off", // 18 hits, 7 fixable
-      "unicorn/consistent-function-scoping": "off", // 18 hits
-      "unicorn/no-array-callback-reference": "off", // 2 hits
-      "unicorn/no-array-reverse": "off", // 1 hit
-      "unicorn/no-array-sort": "off", // 10 hits
-      "unicorn/no-computed-property-existence-check": "off", // 10 hits
-      "unicorn/no-for-each": "off", // 2 hits
-      "unicorn/no-invalid-argument-count": "off", // 1 hit
-      "unicorn/no-object-as-default-parameter": "off", // 1 hit
-      "unicorn/no-return-array-push": "off", // 2 hits
-      "unicorn/no-this-assignment": "off", // 1 hit
-      "unicorn/no-top-level-assignment-in-function": "off", // 27 hits
-      "unicorn/no-unnecessary-global-this": "off", // 17 hits, 8 fixable
-      "unicorn/prefer-await": "off", // 149 hits
-      "unicorn/prefer-https": "off", // 3 hits, fixable
-      "unicorn/prefer-includes-over-repeated-comparisons": "off", // 2 hits
-      "unicorn/prefer-iterator-to-array": "off", // 2 hits
-      "unicorn/prefer-number-coercion": "off", // 9 hits
-      "unicorn/prefer-number-is-safe-integer": "off", // 6 hits
-      "unicorn/prefer-promise-try": "off", // 1 hit
-      "unicorn/prefer-promise-with-resolvers": "off", // 1 hit
-      "unicorn/prefer-scoped-selector": "off", // 5 hits
-      "unicorn/prefer-simple-condition-first": "off", // 4 hits
-      "unicorn/prefer-top-level-await": "off", // 1 hit
-      "unicorn/require-array-sort-compare": "off", // 8 hits
     },
   },
   {

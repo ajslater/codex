@@ -119,13 +119,13 @@ export const useCommonStore = defineStore("common", {
   }),
   actions: {
     async loadVersions() {
-      await API.getVersions(this.timestamp)
-        .then((response) => {
-          const data = response.data;
-          this.versions = data;
-          return this.versions;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.getVersions(this.timestamp);
+        const data = response.data;
+        this.versions = data;
+      } catch (error) {
+        console.error(error);
+      }
     },
     setErrors(xiorError) {
       const fieldErrors = fieldErrorMap(xiorError);
@@ -167,15 +167,13 @@ export const useCommonStore = defineStore("common", {
         return;
       }
       this.opdsURLsError = "";
-      await API.getOPDSURLs()
-        .then((response) => {
-          this.opdsURLs = Object.freeze({ ...response.data });
-          return this.opdsURLs;
-        })
-        .catch((error) => {
-          this.opdsURLsError = "Could not load the OPDS urls.";
-          console.error(error);
-        });
+      try {
+        const response = await API.getOPDSURLs();
+        this.opdsURLs = Object.freeze({ ...response.data });
+      } catch (error) {
+        this.opdsURLsError = "Could not load the OPDS urls.";
+        console.error(error);
+      }
     },
   },
 });

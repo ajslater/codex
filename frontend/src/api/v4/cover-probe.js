@@ -51,7 +51,7 @@ export async function probeCover(
 }
 
 function retryAfterMs(response, defaultRetryAfterSec) {
-  const seconds = Number.parseInt(response.headers.get("Retry-After"), 10);
+  const seconds = Math.trunc(Number(response.headers.get("Retry-After")));
   return (seconds > 0 ? seconds : defaultRetryAfterSec) * MS_PER_SEC;
 }
 

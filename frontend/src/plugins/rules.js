@@ -16,8 +16,7 @@ const unwrap = (value) => (typeof value === "function" ? value() : value);
 // A blank numeric field is "unset", not "out of range" — every numeric field
 // in Codex is optional and clears to null or "". Call sites that require a
 // value put "$required" ahead of the range rule.
-const isBlank = (value) =>
-  value === null || value === "" || value === undefined;
+const isBlank = (value) => ["", null, undefined].includes(value);
 
 const RANGE_MESSAGE = "Must be {0}–{1}";
 

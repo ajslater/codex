@@ -19,17 +19,19 @@ const _keepIfNotEmpty = (val) => {
   }
 };
 
-const _deepClone = (obj, filterEmpty = false) => {
+const _deepClone = (obj, shouldFilterEmpty = false) => {
   obj = toRaw(obj);
-  const _keep = (val) => !filterEmpty || _keepIfNotEmpty(val);
+  const _keep = (val) => !shouldFilterEmpty || _keepIfNotEmpty(val);
   switch (obj?.constructor) {
     case Array: {
-      return obj.map((v) => _deepClone(v, filterEmpty)).filter(_keep);
+      return obj
+        .map((v) => _deepClone(v, shouldFilterEmpty))
+        .filter((val) => _keep(val));
     }
     case Object: {
       const result = {};
       for (const [key, val] of Object.entries(obj)) {
-        const clonedVal = _deepClone(val, filterEmpty);
+        const clonedVal = _deepClone(val, shouldFilterEmpty);
         if (_keep(clonedVal)) result[key] = clonedVal;
       }
       return result;
@@ -60,25 +62,25 @@ const _addTimestamp = (params, ts) => {
 
 export const deepClone = (obj) => _deepClone(obj, false);
 
-export const serializeParams = (data, ts, filterEmpty = true) => {
-  const params = _deepClone(data, filterEmpty) || {};
+export const serializeParams = (data, ts, shouldFilterEmpty = true) => {
+  const params = _deepClone(data, shouldFilterEmpty) || {};
   _jsonSerialize(params);
   _addTimestamp(params, ts);
   return params;
 };
 
 export const getDownloadIOSPWAFix = (href, filename) => {
-  HTTP.get(href, { responseType: "blob" })
+  void HTTP.get(href, { responseType: "blob" })
     .then((response) => {
       const link = document.createElement("a");
       const blob = new Blob([response.data], {
         type: "application/octet-stream",
       });
-      const objectUrl = globalThis.URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       link.href = objectUrl;
       link.download = filename;
       link.click();
-      globalThis.URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(objectUrl);
       return link.remove();
     })
     .catch(console.warn);

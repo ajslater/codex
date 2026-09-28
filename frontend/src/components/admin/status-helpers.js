@@ -8,17 +8,21 @@ import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
 
 /** Format an integer for display, or "?" if not an integer. */
 export const nf = (val) => {
-  return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
+  return Number.isSafeInteger(val) ? NUMBER_FORMAT.format(val) : "?";
 };
 
 /** Whether a status has displayable numeric progress. */
 export const hasNumbers = (status) => {
-  return Number.isInteger(status.complete) || Number.isInteger(status.total);
+  return (
+    Number.isSafeInteger(status.complete) || Number.isSafeInteger(status.total)
+  );
 };
 
 /** Whether the progress bar should be indeterminate. */
 export const isIndeterminate = (status) => {
-  return status.active && (!status.total || !Number.isInteger(status.complete));
+  return (
+    status.active && (!status.total || !Number.isSafeInteger(status.complete))
+  );
 };
 
 /** Compute 0–100 progress percentage for a status. */

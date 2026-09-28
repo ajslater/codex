@@ -16,11 +16,15 @@ export const formattedVolumeName = function (name, numberTo) {
 export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
   let issueStr;
   try {
-    if (issueNumber == undefined && !issueSuffix) {
+    if (!issueSuffix && issueNumber == undefined) {
       // Null issue defaults to display #0
       issueNumber = 0;
     }
-    const floatIssue = Number.parseFloat(issueNumber);
+    /*
+     * parseFloat(null) was NaN but Number(null) is 0: keep a null number
+     * with a suffix NaN so it still renders as the bare suffix, not "0a".
+     */
+    const floatIssue = issueNumber == undefined ? NaN : Number(issueNumber);
     const intIssue = Math.floor(floatIssue);
     if (zeroPad === undefined) {
       zeroPad = 0;

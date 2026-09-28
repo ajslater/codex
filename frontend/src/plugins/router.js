@@ -154,13 +154,13 @@ router.onError((error, to) => {
   if (!isChunkLoadError(error)) {
     return;
   }
-  const path = to?.fullPath ?? globalThis.location.pathname;
+  const path = to?.fullPath ?? location.pathname;
   // Guard against reload loops if the fresh fetch still fails.
   if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === path) {
     return;
   }
   sessionStorage.setItem(CHUNK_RELOAD_KEY, path);
-  globalThis.location.assign(path);
+  location.assign(path);
 });
 
 router.afterEach(() => {

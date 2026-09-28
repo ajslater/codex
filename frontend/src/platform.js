@@ -1,8 +1,8 @@
 // Identify platforms for special behaviors
 
-const _IS_MOBILE_RE = /Android|iP(?:ad|hone|od)/u; // codespell:ignore od
+const _MOBILE_RE = /Android|iP(?:ad|hone|od)/u; // codespell:ignore od
 
-const _IS_MOBILE_UA = _IS_MOBILE_RE.test(navigator.userAgent);
+const _IS_MOBILE_UA = _MOBILE_RE.test(navigator.userAgent);
 
 export const IS_MOBILE = _IS_MOBILE_UA || globalThis.orientation !== undefined;
 

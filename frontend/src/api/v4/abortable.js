@@ -17,9 +17,7 @@ export function abortKey(key) {
 export function dedupedFetch(key, fetcher) {
   const existing = _pending.get(key);
   if (existing) return existing;
-  const promise = Promise.resolve()
-    .then(fetcher)
-    .finally(() => _pending.delete(key));
+  const promise = runDeduped(key, fetcher);
   _pending.set(key, promise);
   return promise;
 }
@@ -36,4 +34,18 @@ export function useAbortable(key) {
   const controller = new AbortController();
   _controllers.set(key, controller);
   return controller.signal;
+}
+
+async function runDeduped(key, fetcher) {
+  /*
+   * Yield before calling the fetcher so dedupedFetch registers this
+   * promise first. A fetcher that throws synchronously would otherwise
+   * clean up before the entry exists and strand it in the map.
+   */
+  await Promise.resolve();
+  try {
+    return await fetcher();
+  } finally {
+    _pending.delete(key);
+  }
 }

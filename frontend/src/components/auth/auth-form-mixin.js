@@ -35,7 +35,7 @@ export default {
           this.submitButtonEnabled = false;
           return;
         }
-        form
+        void form
           .validate()
           .then(({ valid }) => {
             this.submitButtonEnabled = valid;

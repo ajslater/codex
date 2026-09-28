@@ -53,10 +53,15 @@ const vuetifyItemCompareTitle = function (itemA, itemB) {
 };
 
 const vuetifyItemCompareNumeric = function (itemA, itemB) {
-  return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
+  return Number(itemA.title) - Number(itemB.title);
 };
+/*
+ * A tagged age rating with no Metron mapping has a null index. parseFloat
+ * made that NaN where Number(null) is 0, so keep it NaN.
+ */
+const metronIndexNumber = (index) => (index === null ? NaN : Number(index));
 const vuetifyItemCompareMetronIndex = function (itemA, itemB) {
-  return Number.parseFloat(itemA.index) - Number.parseFloat(itemB.index);
+  return metronIndexNumber(itemA.index) - metronIndexNumber(itemB.index);
 };
 
 const SORT_BY_FUNC_MAP = Object.freeze({

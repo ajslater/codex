@@ -127,26 +127,27 @@ export const useMetadataStore = defineStore("metadata", {
       }
       Object.assign(tags, state.reprintRows);
       for (const tagObj of Object.values(tags)) {
-        tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
+        // Sort a copy: sorting in place would mutate store state in a getter.
+        tagObj.tags = [...tagObj.tags].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
       }
       return tags;
     },
   },
   actions: {
     async loadMetadata({ collection, pks }) {
-      await API.getMetadata(
-        { collection, pks },
-        useBrowserStore().metadataSettings,
-      )
-        .then((response) => {
-          const md = { ...response.data, loaded: true };
-          this.md = md;
-          return true;
-        })
-        .catch((error) => {
-          console.error(error);
-          this.clearMetadata();
-        });
+      try {
+        const response = await API.getMetadata(
+          { collection, pks },
+          useBrowserStore().metadataSettings,
+        );
+        const md = { ...response.data, loaded: true };
+        this.md = md;
+      } catch (error) {
+        console.error(error);
+        this.clearMetadata();
+      }
     },
     clearMetadata() {
       this.md = undefined;

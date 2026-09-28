@@ -9,16 +9,17 @@ const FILES_TO_CACHE = [
   "{% static 'img/logo.svg' %}",
 ];
 // Cache offline page on install
-globalThis.addEventListener("install", (event) => {
+addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME).then((cache) => {
+    (async () => {
+      const cache = await caches.open(STATIC_CACHE_NAME);
       return cache.addAll(FILES_TO_CACHE);
-    }),
+    })(),
   );
 });
 // Clear old caches on activate
-globalThis.addEventListener("activate", (event) => {
+addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
       /*
@@ -28,19 +29,20 @@ globalThis.addEventListener("activate", (event) => {
        * reload to take effect.
        */
       globalThis.clients.claim(),
-      caches.keys().then((cacheNames) => {
+      (async () => {
+        const cacheNames = await caches.keys();
         return Promise.all(
           cacheNames
             .filter((cacheName) => cacheName.startsWith(CACHE_PREFIX))
             .filter((cacheName) => cacheName !== STATIC_CACHE_NAME)
             .map((cacheName) => caches.delete(cacheName)),
         );
-      }),
+      })(),
     ]),
   );
 });
 // Serve from Cache
-globalThis.addEventListener("fetch", (event) => {
+addEventListener("fetch", (event) => {
   /*
    * Pass through non-GET and cross-origin requests so the browser
    * handles them under the page's CSP rather than the SW's snapshot
@@ -49,20 +51,17 @@ globalThis.addEventListener("fetch", (event) => {
    * pre-dates the dev-only overlay.
    */
   const url = new URL(event.request.url);
-  if (
-    event.request.method !== "GET" ||
-    url.origin !== globalThis.location.origin
-  ) {
+  if (event.request.method !== "GET" || url.origin !== location.origin) {
     return;
   }
   event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
-      .catch(() => {
+    (async () => {
+      try {
+        const response = await caches.match(event.request);
+        return response || (await fetch(event.request));
+      } catch {
         return caches.match(OFFLINE_PATH);
-      }),
+      }
+    })(),
   );
 });

@@ -80,7 +80,7 @@ export function filterShowGatedDefaults(cols, show) {
   const showMap = show && typeof show === "object" ? show : {};
   const blocked = new Set();
   for (const [col, flag] of Object.entries(_SHOW_GATED_COLUMNS)) {
-    if (!showMap[flag]) blocked.add(col);
+    if (showMap[flag] !== true) blocked.add(col);
   }
   return blocked.size === 0 ? cols : cols.filter((c) => !blocked.has(c));
 }
@@ -91,9 +91,7 @@ export function filterShowGatedDefaults(cols, show) {
  */
 export function isDefaultBookmarkFilter(bookmark) {
   const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
-  return (
-    bookmark === undefined || bookmark === null || bookmark === siteDefault
-  );
+  return [null, siteDefault, undefined].includes(bookmark);
 }
 
 // The registry's column set for a collection, show-gated.
@@ -248,7 +246,7 @@ const toBrowseRoute = (route) => {
 
 const redirectRoute = (route) => {
   if (route && route.params) {
-    router.push(toBrowseRoute(route)).catch(console.warn);
+    void router.push(toBrowseRoute(route)).catch(console.warn);
   }
 };
 
@@ -686,8 +684,8 @@ export const useBrowserStore = defineStore("browser", {
       if (
         oldTopCollection === newTopCollection ||
         !newTopCollection ||
-        (!oldTopCollection && newTopCollection) ||
-        newTopCollection === currentCollection
+        newTopCollection === currentCollection ||
+        (!oldTopCollection && newTopCollection)
       ) {
         /*
          * First url, initializing settings.
@@ -702,13 +700,13 @@ export const useBrowserStore = defineStore("browser", {
         COLLECTIONS_REVERSED.indexOf(oldTopCollection);
       const newTopCollectionIndex =
         COLLECTIONS_REVERSED.indexOf(newTopCollection);
-      const newTopCollectionIsBrowse = newTopCollectionIndex !== -1;
-      const oldAndNewBothBrowseCollections =
-        newTopCollectionIsBrowse && oldTopCollectionIndex !== -1;
+      const isNewTopCollectionBrowse = newTopCollectionIndex !== -1;
+      const areBothBrowseCollections =
+        isNewTopCollectionBrowse && oldTopCollectionIndex !== -1;
 
       // Construct and return new redirect
       let params;
-      if (oldAndNewBothBrowseCollections) {
+      if (areBothBrowseCollections) {
         if (oldTopCollectionIndex < newTopCollectionIndex) {
           /*
            * new top collection is a parent (REVERSED)
@@ -729,7 +727,7 @@ export const useBrowserStore = defineStore("browser", {
         }
       } else {
         // redirect to the new TopCollection
-        const collection = newTopCollectionIsBrowse ? "root" : newTopCollection;
+        const collection = isNewTopCollectionBrowse ? "root" : newTopCollection;
         params = { collection, pks: "", page: "1" };
       }
       return { params };
@@ -748,7 +746,10 @@ export const useBrowserStore = defineStore("browser", {
         for (const testCollection of COLLECTIONS_REVERSED.slice(
           collectionIndex,
         )) {
-          if (testCollection !== "root" && this.settings.show[testCollection]) {
+          if (
+            testCollection !== "root" &&
+            this.settings.show[testCollection] === true
+          ) {
             topCollection = testCollection;
             break;
           }
@@ -809,7 +810,7 @@ export const useBrowserStore = defineStore("browser", {
      * back to the site default.
      */
     seedSiteDefaults(defaults) {
-      if (this.browserSettingsLoaded || !defaults) return false;
+      if (!defaults || this.browserSettingsLoaded) return false;
       const {
         bookmark,
         orderBy,
@@ -871,26 +872,27 @@ export const useBrowserStore = defineStore("browser", {
       });
       await this.loadBrowserPage(undefined, true);
     },
-    async clearFilters(clearAll = false) {
-      await API.resetSettings()
-        .then((response) => {
-          const data = response.data;
-          this.$patch((state) => {
-            state.settings.filters = data.filters;
-            state.filterMode = "base";
-            if (clearAll) {
-              state.settings.search = data.search;
-              state.settings.orderBy = data.orderBy;
-              state.settings.orderReverse = data.orderReverse;
-              // Assigned, not merged: a reset empties the memory, and
-              // ``_addSettings``' merge could never remove an entry.
-              state.settings.collectionOrderMemory =
-                data.collectionOrderMemory ?? {};
-            }
-            state.browserPageLoaded = true;
-          });
-        })
-        .catch(console.error);
+    async clearFilters(shouldClearAll = false) {
+      try {
+        const response = await API.resetSettings();
+        const data = response.data;
+        this.$patch((state) => {
+          state.settings.filters = data.filters;
+          state.filterMode = "base";
+          if (shouldClearAll) {
+            state.settings.search = data.search;
+            state.settings.orderBy = data.orderBy;
+            state.settings.orderReverse = data.orderReverse;
+            // Assigned, not merged: a reset empties the memory, and
+            // ``_addSettings``' merge could never remove an entry.
+            state.settings.collectionOrderMemory =
+              data.collectionOrderMemory ?? {};
+          }
+          state.browserPageLoaded = true;
+        });
+      } catch (error) {
+        console.error(error);
+      }
       await this.loadBrowserPage(undefined, true);
     },
     async setBookmarkFinished(params, finished) {
@@ -899,10 +901,8 @@ export const useBrowserStore = defineStore("browser", {
       }
       await API.updateCollectionBookmarks(params, this.filterOnlySettings, {
         finished,
-      }).then(() => {
-        this.loadBrowserPage(getTimestamp());
-        return true;
       });
+      this.loadBrowserPage(getTimestamp());
     },
     async forceUpdateCollection(params) {
       if (!this.isAuthorized) {
@@ -938,7 +938,7 @@ export const useBrowserStore = defineStore("browser", {
      */
     routeToPage(page) {
       const params = { ...liveBrowseParams(), page };
-      router
+      void router
         .push(toBrowseRoute({ name: "browser", params }))
         .catch(console.warn);
     },
@@ -972,18 +972,21 @@ export const useBrowserStore = defineStore("browser", {
         state.choices.dynamic = undefined;
       });
       const collection = liveBrowseParams().collection;
-      await API.getSettings({ collection })
-        .then((response) => {
-          const data = response.data;
-          const redirect = this._validateAndSaveSettings(data);
-          this.browserSettingsLoaded = true;
-          this.browserPageLoaded = true;
-          return redirect ? redirectRoute(redirect) : this.loadBrowserPage();
-        })
-        .catch((error) => {
-          this.browserPageLoaded = true;
-          return this.handlePageError(error);
-        });
+      try {
+        const response = await API.getSettings({ collection });
+        const data = response.data;
+        const redirect = this._validateAndSaveSettings(data);
+        this.browserSettingsLoaded = true;
+        this.browserPageLoaded = true;
+        if (redirect) {
+          redirectRoute(redirect);
+        } else {
+          await this.loadBrowserPage();
+        }
+      } catch (error) {
+        this.browserPageLoaded = true;
+        this.handlePageError(error);
+      }
     },
     async cancelBrowserPage() {
       /*
@@ -1017,7 +1020,7 @@ export const useBrowserStore = defineStore("browser", {
         orderExtraKeys: order.orderExtraKeys,
       });
     },
-    async loadBrowserPage(mtime, updateSettings = false) {
+    async loadBrowserPage(mtime, shouldUpdateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
         return;
@@ -1075,7 +1078,7 @@ export const useBrowserStore = defineStore("browser", {
         if (isAbortError(error)) return;
         this.handlePageError(error);
       }
-      if (updateSettings) {
+      if (shouldUpdateSettings) {
         API.updateSettings(this.settings);
       }
     },
@@ -1137,9 +1140,9 @@ export const useBrowserStore = defineStore("browser", {
           API.getBrowserHead(params, this.settings),
         );
         const head = response?.data;
-        const changed =
+        const isChanged =
           head?.mtime !== this.page.mtime || head?.count !== this.page.count;
-        if (changed) {
+        if (isChanged) {
           this.choices.dynamic = undefined;
           this.loadBrowserPage(head?.mtime);
         }
@@ -1157,7 +1160,7 @@ export const useBrowserStore = defineStore("browser", {
       // instead of re-fetching the stored ones over them.
       this.browserPageLoaded = true;
       // ignore redirect
-      router.push(toBrowseRoute(route)).catch(console.error);
+      void router.push(toBrowseRoute(route)).catch(console.error);
     },
     /*
      * SAVED SETTINGS
@@ -1166,55 +1169,55 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized) {
         return;
       }
-      await API.getSavedSettingsList()
-        .then((response) => {
-          this.savedSettingsList = Object.freeze(
-            response.data.savedSettings || [],
-          );
-          return true;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.getSavedSettingsList();
+        this.savedSettingsList = Object.freeze(
+          response.data.savedSettings || [],
+        );
+      } catch (error) {
+        console.error(error);
+      }
     },
     async saveCurrentSettings(name) {
       if (!this.isAuthorized) {
         return;
       }
-      await API.saveSettings(name)
-        .then(() => {
-          this.loadSavedSettingsList();
-          return true;
-        })
-        .catch(console.error);
+      try {
+        await API.saveSettings(name);
+        this.loadSavedSettingsList();
+      } catch (error) {
+        console.error(error);
+      }
     },
     async loadSavedSettings(pk) {
       if (!this.isAuthorized) {
         return;
       }
-      await API.loadSavedSettings(pk)
-        .then((response) => {
-          const { settings, filterWarnings } = response.data;
-          if (settings) {
-            this._validateAndSaveSettings(settings);
-            this.browserPageLoaded = true;
-            this.loadBrowserPage(undefined, true);
-          }
-          if (filterWarnings && filterWarnings.length > 0) {
-            this.savedSettingsSnackbar = filterWarnings;
-          }
-          return true;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.loadSavedSettings(pk);
+        const { settings, filterWarnings } = response.data;
+        if (settings) {
+          this._validateAndSaveSettings(settings);
+          this.browserPageLoaded = true;
+          this.loadBrowserPage(undefined, true);
+        }
+        if (filterWarnings && filterWarnings.length > 0) {
+          this.savedSettingsSnackbar = filterWarnings;
+        }
+      } catch (error) {
+        console.error(error);
+      }
     },
     async deleteSavedSettings(pk) {
       if (!this.isAuthorized) {
         return;
       }
-      await API.deleteSavedSettings(pk)
-        .then(() => {
-          this.loadSavedSettingsList();
-          return true;
-        })
-        .catch(console.error);
+      try {
+        await API.deleteSavedSettings(pk);
+        this.loadSavedSettingsList();
+      } catch (error) {
+        console.error(error);
+      }
     },
     clearSavedSettingsSnackbar() {
       this.savedSettingsSnackbar = [];

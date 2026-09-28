@@ -22,13 +22,11 @@ app.use(createHead());
 app.mixin(VueHeadMixin);
 app.directive("drag-scroller", dragScrollDirective);
 
-router
-  .isReady()
-  .then(() => {
-    return app.mount("#App");
-  })
-  // Top level await would require a plugin
-
-  .catch(console.error);
+try {
+  await router.isReady();
+  app.mount("#App");
+} catch (error) {
+  console.error(error);
+}
 
 export default app;
