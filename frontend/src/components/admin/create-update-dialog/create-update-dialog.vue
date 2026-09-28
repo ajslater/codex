@@ -73,6 +73,8 @@ export default {
       row: {},
       showDialog: false,
       submitButtonEnabled: false,
+      // Counts change() calls. Not rendered.
+      validationId: 0,
     };
   },
   computed: {
@@ -121,25 +123,19 @@ export default {
           return false;
         });
     },
-    change(event) {
+    async change(event) {
       this.row = event;
-      // ``validate()`` returns a Promise<boolean>. Assigning it
-      // directly to ``submitButtonEnabled`` always evaluates truthy
-      // (Promises are objects), so the submit button stayed enabled
-      // even when the form was invalid — including too-short
-      // passwords. Await the result.
-      const result = this.validate();
-      if (typeof result?.then === "function") {
-        result
-          .then((valid) => {
-            this.submitButtonEnabled = !!valid;
-            return valid;
-          })
-          .catch(() => {
-            this.submitButtonEnabled = false;
-          });
-      } else {
-        this.submitButtonEnabled = !!result;
+      // Validations overlap and can settle out of order; only the newest
+      // may set the button.
+      const validationId = ++this.validationId;
+      /*
+       * The inputs emit from a watcher, before they re-render, so the form
+       * would validate the fields' values from before this edit.
+       */
+      await this.$nextTick();
+      const valid = await this.validate();
+      if (validationId === this.validationId) {
+        this.submitButtonEnabled = valid;
       }
     },
     getRow(show) {
