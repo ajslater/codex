@@ -17,6 +17,7 @@ border-radius: 128px;
     - A Folders or Story Arcs default view opens there instead of Publishers.
     - "Clear All Filters" no longer shows when no filter is set.
     - Anonymous browsing no longer logs a timezone error.
+    - The reader's "b" shortcut sets bottom to top reading.
 
 ## v2.4.3
 

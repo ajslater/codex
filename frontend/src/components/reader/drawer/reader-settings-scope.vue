@@ -255,7 +255,7 @@ export default {
           break;
         case "b":
           updates = {
-            readingDirection: "bbt",
+            readingDirection: "btt",
           };
           break;
       }

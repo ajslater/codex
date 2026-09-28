@@ -42,7 +42,6 @@ export default {
     }
   },
   computed: {
-    ...mapState(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       computedDirection() {
         return this.normalizeDirection(this.direction);

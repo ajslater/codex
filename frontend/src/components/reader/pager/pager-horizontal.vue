@@ -56,7 +56,6 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       prevBook: (state) => state.routes.books?.prev,
-      nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
       transition: (state) => state.globalSettings.pageTransition,
@@ -135,7 +134,6 @@ export default {
     ...mapActions(useReaderStore, [
       "getBookSettings",
       "routeToDirection",
-      "setBookChangeFlag",
       "setActivePage",
     ]),
     setPages() {
