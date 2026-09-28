@@ -747,7 +747,10 @@ export const useReaderStore = defineStore("reader", {
       };
       try {
         await READER_API.updateSettings(payload);
-        this.books.current.settings = newBookSettings;
+        // The reader may have moved to another book while this saved.
+        if (this._isCurrentBook(pk)) {
+          this.books.current.settings = newBookSettings;
+        }
         this.bookSettings = {};
       } catch (error) {
         console.error(error);
@@ -765,7 +768,7 @@ export const useReaderStore = defineStore("reader", {
       try {
         await READER_API.resetSettings({ scope: "comics", scopePk: pk });
         this.$patch((state) => {
-          if (state.books.current) {
+          if (this._isCurrentBook(pk)) {
             state.books.current.settings = {};
           }
           state.bookSettings = {};
@@ -773,6 +776,19 @@ export const useReaderStore = defineStore("reader", {
       } catch (error) {
         console.error(error);
       }
+    },
+    /*
+     * Settings requests can outlive the book or series they were made for.
+     * Their responses must only land on the book or scope still open.
+     */
+    _isCurrentBook(pk) {
+      return +this.books.current?.pk === +pk;
+    },
+    _isIntermediateScope(scopeType, scopePk) {
+      return (
+        this.intermediateInfo?.scopeType === scopeType &&
+        this.intermediateInfo?.scopePk === scopePk
+      );
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
@@ -792,6 +808,8 @@ export const useReaderStore = defineStore("reader", {
           ["global", arcCollection, "comics"],
           storyArcPk,
         );
+        // A later load for the book now open supersedes this one.
+        if (!this._isCurrentBook(pk)) return;
         const data = response.data;
         const scopes = data.scopes || {};
         const scopeInfo = data.scopeInfo || {};
@@ -837,15 +855,18 @@ export const useReaderStore = defineStore("reader", {
         ...updates,
       };
       ensureNoTwoPageVertical(newSettings);
+      const { scopeType, scopePk } = this.intermediateInfo;
       const payload = {
         ...newSettings,
-        scope: this.intermediateInfo.scopeType,
-        scopePk: this.intermediateInfo.scopePk,
+        scope: scopeType,
+        scopePk,
       };
       try {
         await READER_API.updateSettings(payload);
         this.$patch((state) => {
-          state.intermediateSettings = newSettings;
+          if (this._isIntermediateScope(scopeType, scopePk)) {
+            state.intermediateSettings = newSettings;
+          }
           state.bookSettings = {};
         });
       } catch (error) {
@@ -854,13 +875,13 @@ export const useReaderStore = defineStore("reader", {
     },
     async clearIntermediateSettings() {
       if (!this.intermediateInfo) return;
+      const { scopeType, scopePk } = this.intermediateInfo;
       try {
-        await READER_API.resetSettings({
-          scope: this.intermediateInfo.scopeType,
-          scopePk: this.intermediateInfo.scopePk,
-        });
+        await READER_API.resetSettings({ scope: scopeType, scopePk });
         this.$patch((state) => {
-          state.intermediateSettings = {};
+          if (this._isIntermediateScope(scopeType, scopePk)) {
+            state.intermediateSettings = {};
+          }
           state.bookSettings = {};
         });
       } catch (error) {
