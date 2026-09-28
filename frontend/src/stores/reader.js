@@ -934,10 +934,13 @@ export const useReaderStore = defineStore("reader", {
       // Special two page adjuster
       direction = this.normalizeDirection(direction);
       const delta = direction === "prev" ? -1 : 1;
-      const page = (this.page += delta);
-      if (page < 0 || page > this.books.current.maxPage) {
+      const page = this.page + delta;
+      // Check before writing, so a step past either end leaves the page alone.
+      const isInBook = page >= 0 && page <= this.books.current.maxPage;
+      if (!isInBook) {
         return;
       }
+      this.page = page;
       const params = {
         pk: this.books.current.pk,
         page: page,
