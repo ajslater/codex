@@ -166,6 +166,10 @@ export const useAdminStore = defineStore("admin", {
       if (this._requireAdmin()) return false;
       this.folderPicker = { root, folders: [""] };
     },
+    /*
+     * createRow and updateRow resolve true when the row saved and false when
+     * it didn't, so a dialog can stay open to show the server's field errors.
+     */
     async createRow(table, data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
@@ -173,8 +177,10 @@ export const useAdminStore = defineStore("admin", {
         await TABLES[table].create(data);
         commonStore.clearErrors();
         await this.loadTable(table, { force: true });
+        return true;
       } catch (error) {
         commonStore.setErrors(error);
+        return false;
       }
     },
     async updateRow(table, pk, data) {
@@ -184,8 +190,10 @@ export const useAdminStore = defineStore("admin", {
         await TABLES[table].update(pk, data);
         commonStore.clearErrors();
         await this.loadTable(table, { force: true });
+        return true;
       } catch (error) {
         commonStore.setErrors(error);
+        return false;
       }
     },
     async changeUserPassword(pk, data) {
