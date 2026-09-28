@@ -95,7 +95,7 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
     await store.pauseSession();
     expect(HTTP.delete).toHaveBeenCalledWith("/admin/tag-sessions/sid-9");
-    expect(store.activeSessionId).toBe(null);
+    expect(store.activeSessionId).toBeNull();
   });
 
   it("resumes by posting to the resume endpoint and tracks the new session", async () => {
@@ -118,8 +118,8 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
     await store.dismissSession();
     expect(HTTP.post).toHaveBeenCalledWith("/admin/tag-sessions/dismiss");
-    expect(store.snapshot).toBe(null);
-    expect(store.activeSessionId).toBe(null);
+    expect(store.snapshot).toBeNull();
+    expect(store.activeSessionId).toBeNull();
   });
 
   it("optimistically overlays a resolution and prunes once the server agrees", async () => {
@@ -299,12 +299,8 @@ describe("useOnlineTagStore — loadSnapshot", () => {
     // faster than the round trip; each one re-reads the prompt cache and
     // re-walks every row server-side.
     const store = useOnlineTagStore();
-    let resolve;
-    HTTP.get.mockReturnValue(
-      new Promise((r) => {
-        resolve = r;
-      }),
-    );
+    const { promise, resolve } = Promise.withResolvers();
+    HTTP.get.mockReturnValue(promise);
 
     const first = store.loadSnapshot();
     const second = store.loadSnapshot();

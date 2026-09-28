@@ -24,7 +24,7 @@ describe("reader store toRoute", () => {
   it("returns an empty object when there is no route", () => {
     const store = useReaderStore();
     expect(store.toRoute(false)).toEqual({});
-    expect(store.toRoute(undefined)).toEqual({});
+    expect(store.toRoute()).toEqual({});
   });
 });
 

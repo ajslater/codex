@@ -28,7 +28,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 // Dismiss, Skip All, Pause.
 const THREE_HEADER_BUTTONS = 3;
-const MTIME = 1726999999000;
+const MTIME = 1_726_999_999_000;
 
 function candidate(overrides = {}) {
   return {
@@ -75,6 +75,9 @@ function mountPopup(candidates, promptFields = {}) {
   store.promptDialogOpen = true;
   return { wrapper, store };
 }
+
+const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
+const titles = (wrapper) => wrapper.findAll(".v-expansion-panel-title");
 
 describe("OnlineTagPromptPopup", () => {
   describe("reprint series names", () => {
@@ -171,9 +174,6 @@ describe("OnlineTagPromptPopup", () => {
    */
   describe("the file's own cover", () => {
     let fetchMock;
-
-    const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
-    const titles = (wrapper) => wrapper.findAll(".v-expansion-panel-title");
 
     beforeAll(() => {
       // Clicking the cover opens its VMenu, whose location strategy reads
@@ -348,6 +348,6 @@ describe("OnlineTagPromptPopup header", () => {
     expect(title.classes()).toContain("flex-grow-1");
     const actions = wrapper.find(".v-card-title .flex-shrink-0");
     expect(actions.exists()).toBe(true);
-    expect(actions.findAll("button").length).toBe(THREE_HEADER_BUTTONS);
+    expect(actions.findAll("button")).toHaveLength(THREE_HEADER_BUTTONS);
   });
 });

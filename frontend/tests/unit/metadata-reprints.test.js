@@ -50,23 +50,23 @@ describe("metadata store reprints row", () => {
   });
 });
 
-describe("reprint chips", () => {
-  function mountTags() {
-    const pinia = createTestingPinia({
-      initialState: {
-        browser: {
-          settings: { show: {}, filters: {}, topCollection: "publishers" },
-        },
-        metadata: { md: { collection: "comics", ids: [1] } },
+function mountTags() {
+  const pinia = createTestingPinia({
+    initialState: {
+      browser: {
+        settings: { show: {}, filters: {}, topCollection: "publishers" },
       },
-    });
-    const wrapper = mount(MetadataTags, {
-      global: { plugins: [pinia, vuetify] },
-      props: { label: "", filter: "reprints", values: REPRINTS },
-    });
-    return { wrapper, browserStore: useBrowserStore() };
-  }
+      metadata: { md: { collection: "comics", ids: [1] } },
+    },
+  });
+  const wrapper = mount(MetadataTags, {
+    global: { plugins: [pinia, vuetify] },
+    props: { label: "", filter: "reprints", values: REPRINTS },
+  });
+  return { wrapper, browserStore: useBrowserStore() };
+}
 
+describe("reprint chips", () => {
   test("renders the composed names", () => {
     const { wrapper } = mountTags();
     const text = wrapper.text();

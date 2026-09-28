@@ -24,12 +24,16 @@ export const getTimeFormat = function (twentyFourHourTime) {
   });
 };
 
-export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
+export const getDateTime = function (
+  dttm,
+  twentyFourHourTime,
+  shouldBreak = false,
+) {
   const date = new Date(dttm);
   const dttm_date = DATE_FORMAT.format(date);
   const timeFormat = getTimeFormat(twentyFourHourTime);
   const dttm_time = timeFormat.format(date);
-  const divider = br ? "<br />" : ", ";
+  const divider = shouldBreak ? "<br />" : ", ";
   return dttm_date + divider + dttm_time;
 };
 

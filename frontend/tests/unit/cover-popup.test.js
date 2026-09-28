@@ -36,7 +36,7 @@ beforeAll(() => {
   };
 });
 
-let wrappers = [];
+const wrappers = [];
 
 function mountPopup(props = {}, attrs = {}) {
   const wrapper = mount(CoverPopup, {
@@ -55,7 +55,7 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
 });
 
 describe("CoverPopup", () => {
@@ -155,11 +155,11 @@ describe("CoverPopup", () => {
     await flushPromises();
 
     content()
-      .querySelector(".coverPopupBody img")
+      .querySelector(":scope .coverPopupBody img")
       .dispatchEvent(new Event("error"));
     await flushPromises();
 
-    expect(content().querySelector(".coverPopupBody img")).toBeNull();
+    expect(content().querySelector(":scope .coverPopupBody img")).toBeNull();
     expect(content().textContent).toContain("Full-size image unavailable");
     // The thumbnail is not blamed for the full-size image's failure.
     expect(wrapper.emitted("error")).toBeUndefined();
@@ -170,7 +170,7 @@ describe("CoverPopup", () => {
     await wrapper.find("img").trigger("click");
     await flushPromises();
     content()
-      .querySelector(".coverPopupBody img")
+      .querySelector(":scope .coverPopupBody img")
       .dispatchEvent(new Event("error"));
     await flushPromises();
 
@@ -180,7 +180,7 @@ describe("CoverPopup", () => {
     await flushPromises();
 
     expect(
-      content().querySelector(".coverPopupBody img").getAttribute("src"),
+      content().querySelector(":scope .coverPopupBody img").getAttribute("src"),
     ).toBe(FULL);
   });
 });

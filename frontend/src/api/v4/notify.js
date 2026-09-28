@@ -36,7 +36,7 @@ export const MESSAGE_TYPES = Object.freeze(messages);
  * (e.g. heartbeat echoes) by returning null instead of throwing.
  */
 export function parseV4Message(raw) {
-  if (!raw) return undefined;
+  if (!raw) return;
   try {
     const payload = JSON.parse(raw);
     if (payload && typeof payload === "object" && "type" in payload) {
@@ -45,5 +45,4 @@ export function parseV4Message(raw) {
   } catch {
     /* not JSON — fall through */
   }
-  return undefined;
 }

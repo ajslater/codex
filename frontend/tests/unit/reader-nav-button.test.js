@@ -47,7 +47,7 @@ test("reader-nav-button", async () => {
   const btn = wrapper.findComponent({ name: "v-btn" });
 
   expect(btn.classes(BTN_DISABLED)).toBe(true);
-  await wrapper.vm.$router.push({
+  await router.push({
     name: "reader",
     params: { pk: 2 },
     query: { page: 10 },
@@ -57,7 +57,7 @@ test("reader-nav-button", async () => {
   expect(btn.classes(BTN_DISABLED)).toBe(false);
 
   // push back to original state
-  await wrapper.vm.$router.push({
+  await router.push({
     name: "reader",
     params: { pk: 2 },
     query: { page: 0 },

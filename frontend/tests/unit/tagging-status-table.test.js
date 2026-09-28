@@ -224,7 +224,7 @@ describe("AdminTaggingStatusTable", () => {
     // it — a class that no rule targets would style nothing.
     const { wrapper } = mountTable({ snapshot: makeSnapshot() });
     const styled = wrapper.element.querySelectorAll(
-      ".v-data-table .v-table__wrapper > table > thead > tr th.v-data-table-column--nowrap",
+      ":scope .v-data-table .v-table__wrapper > table > thead > tr th.v-data-table-column--nowrap",
     );
     expect([...styled].map((th) => th.textContent.trim())).toEqual([
       "Metron Cloud",
@@ -294,7 +294,7 @@ describe("AdminTaggingStatusTable", () => {
     });
     snapshot.batch.mergeAllSources = true;
     const { wrapper } = mountTable({ snapshot });
-    expect(wrapper.vm.rows[0].cells.comicvine).toBe(null);
+    expect(wrapper.vm.rows[0].cells.comicvine).toBeNull();
   });
 
   test("fills a cell-less no_match row with No match in every column", () => {

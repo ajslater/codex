@@ -23,7 +23,7 @@ const isPlainObject = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
 const messagesOf = (value) =>
-  (Array.isArray(value) ? value.flat(Number.POSITIVE_INFINITY) : [value])
+  (Array.isArray(value) ? value.flat(Infinity) : [value])
     .filter((message) => message !== null && message !== undefined)
     .map(String);
 
@@ -55,8 +55,8 @@ const fieldErrorMap = (error) => {
 // Sentence-case a camelCase field name for the summary line.
 const fieldLabel = (field) =>
   field
-    .replaceAll(/([A-Z])/g, " $1")
-    .replace(/^./, (c) => c.toUpperCase())
+    .replaceAll(/[A-Z]/gu, " $&")
+    .replace(/^./u, (c) => c.toUpperCase())
     .trim();
 
 const flattenErrors = (fieldErrors) => {
@@ -65,14 +65,13 @@ const flattenErrors = (fieldErrors) => {
     return [];
   }
   // A lone ``detail`` is already a whole sentence; naming it adds noise.
-  if (entries.length === 1 && entries[0][0] === "detail") {
-    return entries[0][1];
-  }
-  return entries.flatMap(([field, messages]) =>
-    field === "detail"
-      ? messages
-      : messages.map((message) => `${fieldLabel(field)}: ${message}`),
-  );
+  return entries.length === 1 && entries[0][0] === "detail"
+    ? entries[0][1]
+    : entries.flatMap(([field, messages]) =>
+        field === "detail"
+          ? messages
+          : messages.map((message) => `${fieldLabel(field)}: ${message}`),
+      );
 };
 
 const getErrors = (xiorError) => {
@@ -120,13 +119,13 @@ export const useCommonStore = defineStore("common", {
   }),
   actions: {
     async loadVersions() {
-      await API.getVersions(this.timestamp)
-        .then((response) => {
-          const data = response.data;
-          this.versions = data;
-          return this.versions;
-        })
-        .catch(console.error);
+      try {
+        const response = await API.getVersions(this.timestamp);
+        const data = response.data;
+        this.versions = data;
+      } catch (error) {
+        console.error(error);
+      }
     },
     setErrors(xiorError) {
       const fieldErrors = fieldErrorMap(xiorError);
@@ -168,15 +167,13 @@ export const useCommonStore = defineStore("common", {
         return;
       }
       this.opdsURLsError = "";
-      await API.getOPDSURLs()
-        .then((response) => {
-          this.opdsURLs = Object.freeze({ ...response.data });
-          return this.opdsURLs;
-        })
-        .catch((error) => {
-          this.opdsURLsError = "Could not load the OPDS urls.";
-          console.error(error);
-        });
+      try {
+        const response = await API.getOPDSURLs();
+        this.opdsURLs = Object.freeze({ ...response.data });
+      } catch (error) {
+        this.opdsURLsError = "Could not load the OPDS urls.";
+        console.error(error);
+      }
     },
   },
 });

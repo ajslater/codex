@@ -37,7 +37,7 @@ vi.mock("@/api/v4/cover-probe", async (importOriginal) => ({
 }));
 
 const PK = 123;
-const MTIME = 1726999999000;
+const MTIME = 1_726_999_999_000;
 const THUMB_SRC = `/api/v4/covers/comic/${PK}?ts=${MTIME}`;
 const FULL_SRC = `/api/v4/comics/${PK}/pages/0?ts=${MTIME}&serve=image`;
 
@@ -55,11 +55,11 @@ beforeAll(() => {
   };
 });
 
-let wrappers = [];
-let fetchMock;
+const wrappers = [];
+const fetchMock = vi.fn();
 
 beforeEach(() => {
-  fetchMock = vi.fn();
+  fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -67,10 +67,23 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
   vi.unstubAllGlobals();
   vi.mocked(probeCover).mockReset();
 });
+
+// A probe the test settles by hand, recording the signal it was given.
+function deferProbe() {
+  const probe = {};
+  vi.mocked(probeCover).mockImplementation((src, { signal }) => {
+    probe.src = src;
+    probe.signal = signal;
+    return new Promise((resolve) => {
+      probe.resolve = resolve;
+    });
+  });
+  return probe;
+}
 
 function fileCover(overrides = {}) {
   return { pk: PK, mtime: MTIME, status: "ready", ...overrides };
@@ -86,19 +99,6 @@ function mountThumb(cover) {
   return wrapper;
 }
 
-// A probe the test settles by hand, recording the signal it was given.
-function deferProbe() {
-  const probe = {};
-  vi.mocked(probeCover).mockImplementation((src, { signal }) => {
-    probe.src = src;
-    probe.signal = signal;
-    return new Promise((resolve) => {
-      probe.resolve = resolve;
-    });
-  });
-  return probe;
-}
-
 // The placeholder's tooltip: why there is no cover.
 function note(wrapper) {
   return wrapper.find(".fileCoverPlaceholder").attributes("title");
@@ -109,6 +109,9 @@ async function openEnlarge(wrapper) {
   await flushPromises();
   return document.querySelector(".v-overlay__content .coverPopupBody img");
 }
+
+const scopeOf = (el) =>
+  el.getAttributeNames().filter((name) => name.startsWith("data-v-"));
 
 describe("FileCoverThumb ready", () => {
   test("shows the comic's own cover at the candidates' size", () => {
@@ -178,8 +181,6 @@ describe("FileCoverThumb ready", () => {
      */
     const full = await openEnlarge(mountThumb(fileCover()));
     const fileBody = full.parentElement;
-    const scopeOf = (el) =>
-      el.getAttributeNames().filter((name) => name.startsWith("data-v-"));
 
     expect(fileBody.classList.contains("coverPopupBody")).toBe(true);
     expect(full.getAttribute("style")).toBeNull();
@@ -297,7 +298,7 @@ describe("FileCoverThumb pending", () => {
     const wrapper = mountThumb(fileCover({ status: "pending" }));
 
     wrapper.unmount();
-    wrappers = [];
+    wrappers.length = 0;
 
     expect(probe.signal.aborted).toBe(true);
   });

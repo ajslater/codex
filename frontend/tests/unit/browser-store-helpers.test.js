@@ -110,7 +110,7 @@ describe("filterShowGatedDefaults", () => {
      */
     const cols = ["imprint_name", "volume_name", "issue"];
     expect(filterShowGatedDefaults(cols, null)).toStrictEqual(["issue"]);
-    expect(filterShowGatedDefaults(cols, undefined)).toStrictEqual(["issue"]);
+    expect(filterShowGatedDefaults(cols)).toStrictEqual(["issue"]);
   });
 
   it("treats a non-object show value as 'all flags off'", () => {
