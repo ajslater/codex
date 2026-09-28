@@ -1,8 +1,7 @@
+import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintJs from "@eslint/js";
 import eslintJson from "@eslint/json";
-import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintPluginStylistic from "@stylistic/eslint-plugin";
-import { defineConfig } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginCompat from "eslint-plugin-compat";
 import eslintPluginDeMorgan from "eslint-plugin-de-morgan";
@@ -24,9 +23,9 @@ import eslintPluginSonarjs from "eslint-plugin-sonarjs";
 import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import eslintPluginYml from "eslint-plugin-yml";
+import { defineConfig } from "eslint/config";
 import globals from "globals";
 
-export const FLAT_ALL = "flat/all";
 export const FLAT_RECOMMENDED = "flat/recommended";
 
 export const SHARED_RULES = {
@@ -38,39 +37,42 @@ export const SHARED_RULES = {
   "security/detect-object-injection": "off",
 };
 
-export const CONFIGS = {
+// Presets for JavaScript. Each becomes its own flat-config entry through
+// defineConfig's `extends`, so every preset's rules, plugins and
+// languageOptions survive. Spreading them into one object made the last spread
+// win and silently discarded everything but SHARED_RULES. `extends` also throws
+// on an undefined entry, so a preset name that does not exist fails loudly.
+export const JS_PRESETS = Object.freeze([
+  eslintJs.configs.recommended,
+  eslintPluginComments.recommended,
+  eslintPluginCompat.configs[FLAT_RECOMMENDED],
+  eslintPluginDeMorgan.configs.recommended,
+  eslintPluginDepend.configs[FLAT_RECOMMENDED],
+  eslintPluginImport.flatConfigs.recommended, // no `all` preset exists
+  eslintPluginMath.configs.recommended,
+  eslintPluginNoUnsanitized.configs.recommended,
+  eslintPluginPerfectionist.configs["recommended-natural"],
+  eslintPluginPromise.configs[FLAT_RECOMMENDED], // no `flat/all` preset exists
+  eslintPluginRegexp.configs.all,
+  eslintPluginSonarjs.configs.recommended, // no `all` preset exists
+  eslintPluginUnicorn.configs.recommended, // `all` adds the opinionated tail
+]);
+
+export const CONFIGS = Object.freeze({
   js: {
-    ...eslintJs.configs.recommended,
-    ...eslintPluginComments.recommended,
-    ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
-    ...eslintPluginDeMorgan.configs.recommended,
-    ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
-    ...eslintPluginImport.flatConfigs.all,
-    ...eslintPluginMath.configs.recommended,
-    ...eslintPluginNoUnsanitized.configs.recommended,
-    ...eslintPluginPerfectionist.configs["recommended-natural"],
-    ...eslintPluginPromise.configs[FLAT_ALL],
-    ...eslintPluginRegexp.configs.all,
-    ...eslintPluginSonarjs.configs.all,
-    ...eslintPluginUnicorn.configs.all,
-    plugins: {
-      depend: eslintPluginDepend,
-      sonarjs: eslintPluginSonarjs,
-      unicorn: eslintPluginUnicorn,
-    },
+    extends: JS_PRESETS,
     languageOptions: {
       ecmaVersion: "latest",
     },
+    name: "devenv/js",
     rules: {
       ...SHARED_RULES,
     },
   },
-};
-Object.freeze(CONFIGS);
+});
 
 export default defineConfig([
   {
-    name: "globalIgnores",
     ignores: [
       "**/*.min.css",
       "**/*.min.js",
@@ -90,6 +92,7 @@ export default defineConfig([
       "typings/",
       "uv.lock",
     ],
+    name: "globalIgnores",
   },
   eslintPluginNoUseExtendNative.configs.recommended,
   eslintPluginSecurity.configs.recommended,
@@ -106,7 +109,6 @@ export default defineConfig([
     },
     plugins: {
       "no-secrets": eslintPluginNoSecrets,
-      perfectionist: eslintPluginPerfectionist,
     },
     rules: {
       "prettier/prettier": "warn",
@@ -119,6 +121,16 @@ export default defineConfig([
   {
     files: ["**/*.js"],
     ...CONFIGS.js,
+  },
+  {
+    files: ["**/eslint.config*.js"],
+    name: "devenv/eslint-config-files",
+    rules: {
+      // Plugin modules export `configs` both as a property of the default
+      // export and by name; reading it off the default export is their
+      // documented usage.
+      "import-x/no-named-as-default-member": "off",
+    },
   },
   {
     files: ["**/*.json", "**/*.md/*.json"],
