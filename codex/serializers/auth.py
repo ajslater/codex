@@ -164,6 +164,12 @@ class SessionSerializer(Serializer):
     defaults_rev = CharField(read_only=True, allow_blank=True)
 
 
+class TimezoneSerializer(Serializer):
+    """The browser's IANA timezone, stored on the session."""
+
+    timezone = TimezoneField(write_only=True)
+
+
 class ProfileUpdateSerializer(Serializer):
     """
     Writable subset of the user profile.
@@ -176,7 +182,6 @@ class ProfileUpdateSerializer(Serializer):
 
     username = CharField(required=False, allow_blank=False)
     email = EmailField(required=False, allow_blank=True)
-    timezone = TimezoneField(required=False, write_only=True)
 
     @override
     def get_fields(self):
