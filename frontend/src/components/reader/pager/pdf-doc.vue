@@ -50,9 +50,8 @@ export default {
     },
     width() {
       /*
-       * Wide PDFs will not fit to SCREEN well.
-       * vue-pdf-embed internal canvas sizing algorithm makes this difficult.
-       * Maybe not impossible but I'm lazy right now.
+       * vue-pdf-embed sizes by height when width is 0, so Fit to
+       * Screen passes only a height and the CSS caps wide pages.
        */
       let width = ["W", "O"].includes(this.bookSettings.fitTo)
         ? this.innerWidth
@@ -105,25 +104,21 @@ export default {
     display: inline-block;
   }
 
-  /* bugfixes for vue-pdf-embed */
-  :deep(.vue-pdf-embed.fitToHeightTwo > div > canvas),
-  :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
-    width: inherit !important;
-  }
-
-  :deep(.vue-pdf-embed.fitToScreen > div > canvas),
-  :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas),
-  :deep(.vue-pdf-embed.fitToScreenVertical > div > canvas) {
+  /*
+   * Fit to Screen sizes the canvas by height, so a wide page can be
+   * wider than the screen. Cap the width and letterbox the page, as
+   * page-img.vue does for images. The embed is this component's root,
+   * so these rules scope on it rather than on a top-level :deep().
+   */
+  .pdfDoc.fitToScreen :deep(canvas),
+  .pdfDoc.fitToScreenVertical :deep(canvas) {
+    max-width: 100vw;
     object-fit: contain;
   }
 
-  :deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
-    height: inherit !important;
-  }
-
-  :deep(.vue-pdf-embed.fitToOrigTwo > div > canvas) {
-    height: inherit !important;
-    width: inherit !important;
+  .pdfDoc.fitToScreenTwo :deep(canvas) {
+    max-width: 50vw;
+    object-fit: contain;
   }
 }
 </style>
