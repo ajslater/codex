@@ -50,12 +50,12 @@
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 import { mapState } from "pinia";
+import { defineAsyncComponent } from "vue";
 
 import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
-import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -79,7 +79,11 @@ export default {
     DownloadButton,
     FavoriteToggle,
     MarkReadButton,
-    OnlineTagLauncherDialog,
+    // Async so the admin store it imports stays out of the browser and
+    // reader bundles; only admins, who can edit, ever render it.
+    OnlineTagLauncherDialog: defineAsyncComponent(
+      () => import("@/components/online-tag/launcher-dialog.vue"),
+    ),
   },
   props: {
     collection: {
