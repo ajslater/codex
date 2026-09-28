@@ -304,7 +304,6 @@ export const useBrowserStore = defineStore("browser", {
     },
     // LOCAL UI
     filterMode: "base",
-    zeroPad: 0,
     browserPageLoaded: false,
     // True once this session's stored settings arrived; stops the first-paint
     // site-default seed from ever overwriting them.
@@ -1198,17 +1197,6 @@ export const useBrowserStore = defineStore("browser", {
         if (filterWarnings && filterWarnings.length > 0) {
           this.savedSettingsSnackbar = filterWarnings;
         }
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async deleteSavedSettings(pk) {
-      if (!this.isAuthorized) {
-        return;
-      }
-      try {
-        await API.deleteSavedSettings(pk);
-        this.loadSavedSettingsList();
       } catch (error) {
         console.error(error);
       }
