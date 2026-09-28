@@ -15,6 +15,7 @@ border-radius: 128px;
     - Online tagging match review shows each file's own cover beside its name.
 - Fixes
     - A Folders or Story Arcs default view opens there instead of Publishers.
+    - Reader zoom scales pages from their original size.
     - "Clear All Filters" no longer shows when no filter is set.
     - Anonymous browsing no longer logs a timezone error.
     - The reader's "b" shortcut sets bottom to top reading.

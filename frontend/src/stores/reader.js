@@ -151,7 +151,6 @@ export const useReaderStore = defineStore("reader", {
       pdfRenderMode: "auto",
     },
     showToolbars: false,
-    settingsLoaded: false,
     // True once the stored global settings arrived; stops the first-paint
     // site-default seed from ever overwriting them.
     globalLoaded: false,
@@ -429,7 +428,6 @@ export const useReaderStore = defineStore("reader", {
         state.arcs = {};
         state.arc = DEFAULT_ARC;
         state.mtime = 0;
-        state.settingsLoaded = false;
         state.books = structuredClone(BOOKS_NULL);
         state.routes = structuredClone(ROUTES_NULL);
         state.bookSettings = {};
@@ -579,9 +577,6 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadBooks({ params, arc, mtime }) {
-      if (!this.settingsLoaded) {
-        this.loadGlobalSettings();
-      }
       const route = router.currentRoute.value;
       if (!params) {
         params = route.params;
@@ -638,7 +633,7 @@ export const useReaderStore = defineStore("reader", {
           state.bookSettings = {};
         });
 
-        // Load all three settings layers for the current comic.
+        // Load all three settings layers, global included, for the comic.
         if (books.current?.pk) {
           this.loadAllSettings(+books.current.pk);
         }
@@ -756,10 +751,14 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     setSettingsClient(updates) {
-      this.clientSettings = {
-        ...this.clientSettings,
-        ...updates,
-      };
+      // fitToClass bakes the scale into each cached book's settings.
+      this.$patch((state) => {
+        state.clientSettings = {
+          ...state.clientSettings,
+          ...updates,
+        };
+        state.bookSettings = {};
+      });
     },
     async clearComicSettings() {
       const pk = +this.books?.current?.pk;
@@ -826,6 +825,7 @@ export const useReaderStore = defineStore("reader", {
               ...state.globalSettings,
               ...scopes.global,
             };
+            state.globalLoaded = true;
           }
           state.intermediateSettings =
             (intermediateKey && scopes[intermediateKey]) || {};
