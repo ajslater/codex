@@ -114,6 +114,24 @@ describe("reader store fitToClass", () => {
       {},
       "fitToScreen",
     ],
+    [
+      "shows the original size setting at the default scale",
+      SCALE_DEFAULT,
+      { fitTo: "O" },
+      "fitToOrig",
+    ],
+    [
+      "shows two pages at the original size setting",
+      SCALE_DEFAULT,
+      { fitTo: "O", twoPages: true },
+      "fitToOrigTwo",
+    ],
+    [
+      "shows vertical pages at the original size setting",
+      SCALE_DEFAULT,
+      { fitTo: "O", readingDirection: "ttb" },
+      "fitToOrigVertical",
+    ],
     ["shows the original size zoomed in", SCALE_DEFAULT + 0.5, {}, "fitToOrig"],
     [
       "shows two original pages zoomed in",

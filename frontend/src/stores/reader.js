@@ -75,7 +75,7 @@ const FIT_TO_CLASSES = Object.freeze({
   S: "Screen",
   W: "Width",
   H: "Height",
-  O: "Original",
+  O: "Orig",
 });
 const BOOKS_NULL = Object.freeze({
   current: undefined,
@@ -374,7 +374,7 @@ export const useReaderStore = defineStore("reader", {
       let fitTo;
       fitTo =
         this.clientSettings.scale > SCALE_DEFAULT
-          ? "Orig"
+          ? FIT_TO_CLASSES.O
           : FIT_TO_CLASSES[bookSettings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
