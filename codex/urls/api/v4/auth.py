@@ -5,7 +5,7 @@ from rest_registration.api.views.change_password import ChangePasswordView
 from rest_registration.api.views.login import LoginView, LogoutView
 
 from codex.oidc import OIDCLoginRedirectView
-from codex.views.auth import AuthToken, CSRFView, ProfileView
+from codex.views.auth import AuthToken, CSRFView, ProfileView, TimezoneView
 from codex.views.register import RegisterView
 from codex.views.reset_password import ResetPasswordView, SendResetPasswordLinkView
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path("oidc/login", OIDCLoginRedirectView.as_view(), name="oidc-login"),
     path("token", AuthToken.as_view(), name="token"),
     path("profile", ProfileView.as_view(), name="profile"),
+    path("timezone", TimezoneView.as_view(), name="timezone"),
     path(
         "password/reset",
         SendResetPasswordLinkView.as_view(),
