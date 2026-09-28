@@ -53,12 +53,6 @@ export default {
       bookRoutes: (state) => state.routes.books,
       transition: (state) => state.globalSettings.pageTransition,
     }),
-    bookChangePrev() {
-      return this.bookChangeShow("prev");
-    },
-    bookChangeNext() {
-      return this.bookChangeShow("next");
-    },
   },
   watch: {
     $route(to, from) {

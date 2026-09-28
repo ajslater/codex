@@ -33,7 +33,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useReaderStore, ["activeTitle", "routeParams"]),
+    ...mapState(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
       currentBook: (state) => state.books?.current,
       fileType: (state) => state.books?.current?.fileType,

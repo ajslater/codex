@@ -26,7 +26,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(useReaderStore, ["isBTT", "routes"]),
+    ...mapState(useReaderStore, ["routes"]),
     toRoute() {
       // Delegate the route shape to the store's toRoute so the reader's
       // page-in-query convention lives in one place. Keep "" (not {}) when

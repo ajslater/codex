@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { useThrottleFn, useWindowSize } from "@vueuse/core";
 
 import BookPage from "@/components/reader/pager/page/page.vue";
@@ -69,7 +69,7 @@ export default {
       storePage: (state) => state.page,
       showToolbars: (state) => state.showToolbars,
     }),
-    ...mapWritableState(useReaderStore, ["reactWithScroll"]),
+    ...mapState(useReaderStore, ["reactWithScroll"]),
     bookSettings() {
       return this.getBookSettings(this.book);
     },
