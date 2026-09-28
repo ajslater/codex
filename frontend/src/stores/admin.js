@@ -33,12 +33,23 @@ const TABLE_TTL_MS = Object.freeze({
 export const isFresh = (last, ttl = DYNAMIC_TTL_MS, now = Date.now()) =>
   Boolean(last) && now - last < ttl;
 /*
- * loadTable request order. Every load takes the next number, and its
- * rows land only if no later load of the same table has landed first,
- * so a slow unforced read can't overwrite the rows a forced reload
- * already stored after a save. ``landed`` is keyed by table.
+ * Request order for the reads that can overlap: every loadTable, and the
+ * tag-write errors list, whose clear counts as a request too. Every
+ * request takes the next number, and its response lands only if no later
+ * request for the same data has landed first, so a slow unforced read
+ * can't overwrite what a forced reload or a clear already stored.
+ * ``landed`` is keyed like ``timestamps``.
  */
 const tableRequests = { issued: 0, landed: {} };
+/*
+ * Claim ``key`` for the response to ``request``. False when a later
+ * request already landed there: this response is older, so drop it.
+ */
+const claimLanding = (key, request) => {
+  if (request < (tableRequests.landed[key] ?? 0)) return false;
+  tableRequests.landed[key] = request;
+  return true;
+};
 export const TABS = Object.freeze([
   "Users",
   "Groups",
@@ -145,8 +156,7 @@ export const useAdminStore = defineStore("admin", {
           return;
         }
         // A later load of this table already landed; these rows are older.
-        if (request < (tableRequests.landed[table] ?? 0)) return;
-        tableRequests.landed[table] = request;
+        if (!claimLanding(table, request)) return;
         this[t.stateField] = rows;
         /*
          * Stamp when the request went out, not when it came back: the
@@ -387,10 +397,14 @@ export const useAdminStore = defineStore("admin", {
     async loadTagWriteErrors({ force = false } = {}) {
       if (this._requireAdmin()) return false;
       if (!force && isFresh(this.timestamps.TagWriteErrors)) return true;
+      // Ordered and stamped like loadTable: the WebSocket forces reloads.
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
       try {
         const response = await API.getTagWriteErrors();
+        if (!claimLanding("TagWriteErrors", request)) return;
         this.tagWriteErrors = Array.isArray(response.data) ? response.data : [];
-        this.timestamps.TagWriteErrors = Date.now();
+        this.timestamps.TagWriteErrors = requestedAt;
       } catch (error) {
         console.warn(error);
       }
@@ -398,10 +412,19 @@ export const useAdminStore = defineStore("admin", {
     async clearTagWriteErrors() {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
+      /*
+       * The clear is ordered with the reads. A read that went out before
+       * it can't put the cleared errors back, and a read that went out
+       * after it and already landed isn't wiped by it.
+       */
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
       try {
         await API.clearTagWriteErrors();
-        this.tagWriteErrors = [];
-        this.timestamps.TagWriteErrors = Date.now();
+        if (claimLanding("TagWriteErrors", request)) {
+          this.tagWriteErrors = [];
+          this.timestamps.TagWriteErrors = requestedAt;
+        }
         commonStore.clearErrors();
       } catch (error) {
         commonStore.setErrors(error);
