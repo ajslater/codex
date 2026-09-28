@@ -107,7 +107,8 @@ describe("rules plugin", () => {
       eager: true,
     });
     for (const [file, source] of Object.entries(sources)) {
-      for (const [, name] of source.matchAll(/\[\s*"\$(\w+)"/g)) {
+      for (const match of source.matchAll(/\[\s*"\$(?<name>\w+)"/gv)) {
+        const { name } = match.groups;
         expect(names, `${file} uses $${name}`).toContain(name);
       }
     }

@@ -27,7 +27,12 @@ import package_json from "./package.json" with { type: "json" };
  * into window.CODEX.APP_PATH).
  */
 const normalizeUrlPathPrefix = (prefix) => {
-  const trimmed = prefix.replace(/^\/+/, "").replace(/\/+$/, "");
+  // Trim leading and trailing slashes without a backtracking regex.
+  let start = 0;
+  let end = prefix.length;
+  while (start < end && prefix[start] === "/") start += 1;
+  while (end > start && prefix[end - 1] === "/") end -= 1;
+  const trimmed = prefix.slice(start, end);
   return trimmed ? `/${trimmed}` : "";
 };
 
@@ -117,7 +122,8 @@ const config = defineConfig(({ mode }) => {
    * port so browser-side fetches from Django (or anything else on
    * the same hostname) work.
    */
-  const reEscape = (s) => s.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`);
+  const reEscape = (s) =>
+    s.replaceAll(/[$\(\)*+.?\[\\\]^\{\|\}]/gv, String.raw`\$&`);
   const CORS_ORIGIN = DEV
     ? // eslint-disable-next-line security/detect-non-literal-regexp
       new RegExp(

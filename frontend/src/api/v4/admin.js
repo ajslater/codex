@@ -39,7 +39,7 @@ function flattenRelationships(rels) {
 function flattenResource(item) {
   if (!item) return item;
   const pkRaw = item.id;
-  const pk = /^\d+$/.test(String(pkRaw)) ? Number.parseInt(pkRaw, 10) : pkRaw;
+  const pk = /^\d+$/u.test(String(pkRaw)) ? Number.parseInt(pkRaw, 10) : pkRaw;
   return {
     pk,
     ...item.attributes,

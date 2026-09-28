@@ -102,6 +102,20 @@ export default defineConfig([
     },
   },
   {
+    /*
+     * Browser code stays runnable on Safari/iOS 15.4, the oldest the app
+     * already needs (structuredClone, Object.hasOwn, Array#at). The RegExp
+     * `v` flag needs Safari 17, and the bundler turns each `v` literal into
+     * a RegExp() call that throws on older Safari, several of them at
+     * startup. `u` gives these ASCII patterns the same strictness.
+     */
+    files: ["codex/templates/**/*.js", "frontend/src/**/*.js"],
+    name: "codex/browser-floor",
+    rules: {
+      "regexp/require-unicode-sets-regexp": "off",
+    },
+  },
+  {
     files: ["frontend/tests/**/*.js"],
     name: "codex/tests-style",
     rules: {
@@ -120,15 +134,10 @@ export default defineConfig([
       "import-x/no-named-as-default": "off", // 1 hit
       "promise/always-return": "off", // 9 hits
       "promise/param-names": "off", // 1 hit
-      "regexp/no-super-linear-move": "off", // 1 hit
-      "regexp/prefer-named-capture-group": "off", // 3 hits
-      "regexp/require-unicode-regexp": "off", // 20 hits, 17 fixable
-      "regexp/require-unicode-sets-regexp": "off", // 20 hits
       "sonarjs/no-floating-point-equality": "off", // 1 hit
       "sonarjs/no-nested-conditional": "off", // 1 hit
       "sonarjs/parameterized-tests": "off", // 1 hit
       "sonarjs/prefer-specific-assertions": "off", // 6 hits
-      "sonarjs/super-linear-regex": "off", // 1 hit
       "sonarjs/todo-tag": "off", // 1 hit
       "unicorn/consistent-boolean-name": "off", // 18 hits, 7 fixable
       "unicorn/consistent-function-scoping": "off", // 18 hits

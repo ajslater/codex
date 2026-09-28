@@ -15,7 +15,7 @@ import { describe, expect, test } from "vitest";
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import vuetify from "@/plugins/vuetify";
 
-const DURATION_RE = /^\d{3} \d{2}:\d{2}:\d{2}$/;
+const DURATION_RE = /^\d{3} \d{2}:\d{2}:\d{2}$/v;
 
 function lastEmitted(wrapper) {
   const emitted = wrapper.emitted("update:modelValue");

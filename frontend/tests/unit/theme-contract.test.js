@@ -81,14 +81,14 @@ describe("style contract", () => {
   });
 
   test("no rbg( typos", () => {
-    expect(filesMatching(/\brbg\(/)).toEqual([]);
+    expect(filesMatching(/\brbg\(/v)).toEqual([]);
   });
 
   test("theme variables are kebab-case", () => {
     // The eight custom tokens were camelCase until the rename; a
     // reintroduced one resolves to nothing and the declaration is
     // dropped without a word.
-    expect(filesMatching(/--v-theme-[a-z]+[A-Z]/)).toEqual([]);
+    expect(filesMatching(/--v-theme-[a-z]+[A-Z]/v)).toEqual([]);
   });
 });
 

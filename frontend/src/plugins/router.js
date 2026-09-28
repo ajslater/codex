@@ -139,9 +139,9 @@ router.afterEach((to) => {
  * the server), force a full page load so the browser pulls a fresh index.html.
  */
 const CHUNK_ERROR_PATTERNS = [
-  /failed to fetch dynamically imported module/i,
-  /error loading dynamically imported module/i,
-  /importing a module script failed/i,
+  /failed to fetch dynamically imported module/iu,
+  /error loading dynamically imported module/iu,
+  /importing a module script failed/iu,
 ];
 const CHUNK_RELOAD_KEY = "codex-chunk-reload-path";
 

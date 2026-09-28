@@ -21,7 +21,7 @@ export const HTTP = xior.create(CONFIG);
 
 const CSRF_HEADER = "X-CSRFToken";
 // Captures the value of the `csrftoken` cookie.
-const CSRF_COOKIE_REGEX = /(?:^|;)\s*csrftoken=([^;]*)/;
+const CSRF_COOKIE_REGEX = /(?:^|;)\s*csrftoken=(?<token>[^;]*)/u;
 
 let _cachedCookieSnapshot = "";
 let _cachedToken = "";
@@ -31,7 +31,7 @@ function readCSRFToken() {
   if (cookie === _cachedCookieSnapshot) return _cachedToken;
   _cachedCookieSnapshot = cookie;
   const match = cookie.match(CSRF_COOKIE_REGEX);
-  _cachedToken = match ? match[1] : "";
+  _cachedToken = match ? match.groups.token : "";
   return _cachedToken;
 }
 

@@ -55,8 +55,8 @@ const fieldErrorMap = (error) => {
 // Sentence-case a camelCase field name for the summary line.
 const fieldLabel = (field) =>
   field
-    .replaceAll(/([A-Z])/g, " $1")
-    .replace(/^./, (c) => c.toUpperCase())
+    .replaceAll(/[A-Z]/gu, " $&")
+    .replace(/^./u, (c) => c.toUpperCase())
     .trim();
 
 const flattenErrors = (fieldErrors) => {
