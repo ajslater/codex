@@ -16,6 +16,7 @@ border-radius: 128px;
 - Fixes
     - A Folders or Story Arcs default view opens there instead of Publishers.
     - Reader zoom scales pages from their original size.
+    - Fit to Screen fits wide pages when PDFs render as vectors.
     - "Clear All Filters" no longer shows when no filter is set.
     - Anonymous browsing no longer logs a timezone error.
     - The reader's "b" shortcut sets bottom to top reading.
