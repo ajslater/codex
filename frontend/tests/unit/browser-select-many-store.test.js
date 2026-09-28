@@ -29,7 +29,10 @@ function seedPage({ rows, collections, books }) {
 }
 
 function selectedNames(store) {
-  return [...store.selectedItems.values()].map((i) => i.name);
+  return store.selectedItems
+    .values()
+    .map((i) => i.name)
+    .toArray();
 }
 
 beforeEach(() => {
@@ -98,7 +101,9 @@ describe("useBrowserSelectManyStore — selectItemAt range fill", () => {
     const store = useBrowserSelectManyStore();
     store.selectItemAt(collections[0]);
     store.selectItemAt(collections[3], { shift: true });
-    expect(selectedNames(store).sort()).toEqual(["s-1", "s-2", "s-3", "s-4"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["s-1", "s-2", "s-3", "s-4"],
+    );
     // Target becomes the new anchor for further extensions.
     expect(store.lastAnchorKey).toBe("s:4");
   });
@@ -109,7 +114,9 @@ describe("useBrowserSelectManyStore — selectItemAt range fill", () => {
     const store = useBrowserSelectManyStore();
     store.selectItemAt(collections[3]);
     store.selectItemAt(collections[1], { shift: true });
-    expect(selectedNames(store).sort()).toEqual(["s-2", "s-3", "s-4"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["s-2", "s-3", "s-4"],
+    );
     expect(store.lastAnchorKey).toBe("s:2");
   });
 
@@ -120,12 +127,16 @@ describe("useBrowserSelectManyStore — selectItemAt range fill", () => {
     // Two plain clicks → s:1 and s:3 selected; anchor follows to s:3.
     store.selectItemAt(collections[0]);
     store.selectItemAt(collections[2]);
-    expect(selectedNames(store).sort()).toEqual(["s-1", "s-3"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["s-1", "s-3"],
+    );
     // Shift-click from anchor s:3 back to s:1 — fills [s:1, s:2, s:3]
     // by SET, not toggle. s:1 and s:3 (already selected) stay
     // selected; s:2 is newly added.
     store.selectItemAt(collections[0], { shift: true });
-    expect(selectedNames(store).sort()).toEqual(["s-1", "s-2", "s-3"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["s-1", "s-2", "s-3"],
+    );
   });
 });
 
@@ -138,7 +149,9 @@ describe("useBrowserSelectManyStore — selectItemAt with off-page anchor", () =
     seedPage({ collections: [_row("s", 10), _row("s", 11), _row("s", 12)] });
     store.selectItemAt(_row("s", 12), { shift: true });
     // Anchor was stale; treated as plain click on s:12 only.
-    expect(selectedNames(store).sort()).toEqual(["s-1", "s-12"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["s-1", "s-12"],
+    );
     expect(store.lastAnchorKey).toBe("s:12");
   });
 });
@@ -152,7 +165,9 @@ describe("useBrowserSelectManyStore — mixed visible lists", () => {
     const store = useBrowserSelectManyStore();
     store.selectItemAt(_row("s", 2));
     store.selectItemAt(_row("c", 100), { shift: true });
-    expect(selectedNames(store).sort()).toEqual(["c-100", "s-2"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["c-100", "s-2"],
+    );
   });
 
   it("prefers rows over collections+books when both are populated", () => {
@@ -165,7 +180,9 @@ describe("useBrowserSelectManyStore — mixed visible lists", () => {
     const store = useBrowserSelectManyStore();
     store.selectItemAt(_row("c", 1));
     store.selectItemAt(_row("c", 3), { shift: true });
-    expect(selectedNames(store).sort()).toEqual(["c-1", "c-2", "c-3"]);
+    expect(selectedNames(store).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      ["c-1", "c-2", "c-3"],
+    );
   });
 });
 

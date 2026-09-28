@@ -87,17 +87,17 @@ describe("EditPanel — disabled per-row inputs", () => {
   });
 });
 
+function findProtagonistRow(wrapper) {
+  return wrapper
+    .findAll("tr")
+    .find((r) => r.find("td")?.text() === "Protagonist");
+}
+
 describe("EditPanel — protagonist select", () => {
   const md = {
     characters: [{ name: "Spider-Man" }],
     teams: [{ name: "Avengers" }],
   };
-
-  function findProtagonistRow(wrapper) {
-    return wrapper
-      .findAll("tr")
-      .find((r) => r.find("td")?.text() === "Protagonist");
-  }
 
   test("explains itself when protagonist is unsupported", async () => {
     const wrapper = await mountPanel({ formats: ["METRON_INFO"], md });

@@ -64,7 +64,7 @@ describe("useOnlineTagStore — rename forwarding", () => {
   });
 });
 
-let mountedWrappers = [];
+const mountedWrappers = [];
 
 async function mountEditPanel(renameFiles, md = {}, ids = [1], childCount = 0) {
   const pinia = createTestingPinia({
@@ -106,8 +106,10 @@ describe("EditPanel — rename toggle", () => {
   afterEach(() => {
     // Unmount so beforeUnmount clears the debounce timer; otherwise a pending
     // single-comic preview fetch can fire during a later test.
-    mountedWrappers.forEach((wrapper) => wrapper.unmount());
-    mountedWrappers = [];
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount();
+    }
+    mountedWrappers.length = 0;
   });
 
   test("seeds the toggle from the admin default", async () => {

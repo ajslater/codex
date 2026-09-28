@@ -13,18 +13,18 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-let savedCodex;
-
-beforeEach(() => {
-  savedCodex = globalThis.CODEX;
-  vi.resetModules();
-});
-
-afterEach(() => {
-  globalThis.CODEX = savedCodex;
-});
-
 describe("v4 base honors the URL path prefix", () => {
+  let savedCodex;
+
+  beforeEach(() => {
+    savedCodex = globalThis.CODEX;
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    globalThis.CODEX = savedCodex;
+  });
+
   test("under a /codex subpath", async () => {
     globalThis.CODEX = { APP_PATH: "/codex/" };
     const { APP_BASE, V4_BASE } = await import("@/api/v4/base");

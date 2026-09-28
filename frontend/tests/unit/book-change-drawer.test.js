@@ -18,7 +18,7 @@ import vuetify from "@/plugins/vuetify";
 
 const MAX_PAGE = 10;
 
-let wrappers = [];
+const wrappers = [];
 
 async function mountDrawer(direction, { bookChange } = {}) {
   const pinia = createTestingPinia({
@@ -68,7 +68,7 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
 });
 
 describe("BookChangeDrawer — offscreen when closed", () => {

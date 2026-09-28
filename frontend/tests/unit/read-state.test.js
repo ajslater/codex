@@ -82,7 +82,7 @@ describe("getReadFillPercent", () => {
   });
 
   it("does not floor the finished state", () => {
-    expect(getReadFillPercent(comic(true, 0.33))).toBe(0.33);
+    expect(getReadFillPercent(comic(true, 0.33))).toBeCloseTo(0.33);
   });
 
   it("paints nothing when unread", () => {

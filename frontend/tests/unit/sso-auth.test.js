@@ -40,9 +40,7 @@ describe("useAuthStore — SSO actions", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     // spyOn returns the same spy on re-entry; clear its call history.
-    assign = vi
-      .spyOn(globalThis.location, "assign")
-      .mockImplementation(() => {});
+    assign = vi.spyOn(location, "assign").mockImplementation(() => {});
     assign.mockClear();
     for (const fn of Object.values(API)) {
       if (typeof fn?.mockReset === "function") {
@@ -128,18 +126,18 @@ describe("SsoLoginButton", () => {
   });
 });
 
-describe("SsoError", () => {
-  function mountError(error) {
-    return mountWithFlags(
-      SsoError,
-      { oidcEnabled: true, oidcProviderName: "SSO" },
-      {
-        $route: { query: error ? { error } : {} },
-        $router: { push: vi.fn() },
-      },
-    );
-  }
+function mountError(error) {
+  return mountWithFlags(
+    SsoError,
+    { oidcEnabled: true, oidcProviderName: "SSO" },
+    {
+      $route: { query: error ? { error } : {} },
+      $router: { push: vi.fn() },
+    },
+  );
+}
 
+describe("SsoError", () => {
   it("maps access_denied to a human message and offers retry", () => {
     const wrapper = mountError("access_denied");
     expect(wrapper.text()).toContain("denied the login request");

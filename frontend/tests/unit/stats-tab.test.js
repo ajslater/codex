@@ -164,16 +164,28 @@ describe("AdminStatsTab", () => {
     expect(text).toContain("No");
   });
 
-  test("labels the site defaults keys", () => {
+  test.each([
+    {
+      title: "labels the site defaults keys",
+      first: "Default Bookmark Filter",
+      second: "Site Defaults Customized",
+    },
+    {
+      title: "configured-or-not booleans read as Set/Not set",
+      first: "Set",
+      second: "Not set",
+    },
+    {
+      // The section arrives as perUser, not per_user; reading the snake_case
+      // name rendered the caption over an empty table.
+      title: "fills the per-user table from the camelCased payload",
+      first: "Browser User",
+      second: "Unset (Name)",
+    },
+  ])("$title", ({ first, second }) => {
     const text = mountTab().text();
-    expect(text).toContain("Default Bookmark Filter");
-    expect(text).toContain("Site Defaults Customized");
-  });
-
-  test("configured-or-not booleans read as Set/Not set", () => {
-    const text = mountTab().text();
-    expect(text).toContain("Set");
-    expect(text).toContain("Not set");
+    expect(text).toContain(first);
+    expect(text).toContain(second);
   });
 
   test("renders new v2 sections with readable labels", () => {
@@ -206,20 +218,12 @@ describe("AdminStatsTab", () => {
     expect(text).not.toContain("true");
   });
 
-  test("fills the per-user table from the camelCased payload", () => {
-    // The section arrives as perUser, not per_user; reading the snake_case
-    // name rendered the caption over an empty table.
-    const text = mountTab().text();
-    expect(text).toContain("Browser User");
-    expect(text).toContain("Unset (Name)");
-  });
-
   test("every section that has data renders rows", () => {
     // The empty per-user table was invisible because nothing asserted that a
     // populated section actually produces rows.
     const wrapper = mountTab();
     const blocks = wrapper.findAll(".adminKvBlock");
-    expect(blocks.length).toBe(SECTION_TITLES.length);
+    expect(blocks).toHaveLength(SECTION_TITLES.length);
     for (const block of blocks) {
       expect(block.findAll("tr").length).toBeGreaterThan(0);
     }

@@ -55,11 +55,11 @@ beforeAll(() => {
   };
 });
 
-let wrappers = [];
-let fetchMock;
+const wrappers = [];
+const fetchMock = vi.fn();
 
 beforeEach(() => {
-  fetchMock = vi.fn();
+  fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -67,7 +67,7 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
   vi.unstubAllGlobals();
   vi.mocked(probeCover).mockReset();
 });
@@ -109,6 +109,9 @@ async function openEnlarge(wrapper) {
   await flushPromises();
   return document.querySelector(".v-overlay__content .coverPopupBody img");
 }
+
+const scopeOf = (el) =>
+  el.getAttributeNames().filter((name) => name.startsWith("data-v-"));
 
 describe("FileCoverThumb ready", () => {
   test("shows the comic's own cover at the candidates' size", () => {
@@ -178,8 +181,6 @@ describe("FileCoverThumb ready", () => {
      */
     const full = await openEnlarge(mountThumb(fileCover()));
     const fileBody = full.parentElement;
-    const scopeOf = (el) =>
-      el.getAttributeNames().filter((name) => name.startsWith("data-v-"));
 
     expect(fileBody.classList.contains("coverPopupBody")).toBe(true);
     expect(full.getAttribute("style")).toBeNull();
@@ -297,7 +298,7 @@ describe("FileCoverThumb pending", () => {
     const wrapper = mountThumb(fileCover({ status: "pending" }));
 
     wrapper.unmount();
-    wrappers = [];
+    wrappers.length = 0;
 
     expect(probe.signal.aborted).toBe(true);
   });
