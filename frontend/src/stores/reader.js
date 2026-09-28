@@ -567,17 +567,16 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadGlobalSettings() {
-      void (async () => {
-        try {
-          const response = await READER_API.getSettings(null, ["global"]);
-          const data = response.data?.scopes?.global;
-          if (data) {
-            this._applyGlobalSettings(data);
-          }
-        } catch (error) {
-          console.error(error);
+      // Resolve after the settings land, so an awaiting caller sees them.
+      try {
+        const response = await READER_API.getSettings(null, ["global"]);
+        const data = response.data?.scopes?.global;
+        if (data) {
+          this._applyGlobalSettings(data);
         }
-      })();
+      } catch (error) {
+        console.error(error);
+      }
     },
     async loadBooks({ params, arc, mtime }) {
       if (!this.settingsLoaded) {
