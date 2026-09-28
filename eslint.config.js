@@ -1,11 +1,13 @@
-import { defineConfig } from "eslint/config";
-import baseConfig, { SHARED_RULES } from "./cfg/eslint.config.base.js";
-import eslintPluginVue from "eslint-plugin-vue";
 import eslintPluginVitest from "@vitest/eslint-plugin";
-import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
 import eslintPluginConfigPrettier from "eslint-config-prettier";
-import path from "path";
-import { fileURLToPath } from "url";
+import { createNodeResolver } from "eslint-plugin-import-x";
+import eslintPluginVue from "eslint-plugin-vue";
+import eslintPluginVueScopedCSS from "eslint-plugin-vue-scoped-css";
+import { defineConfig } from "eslint/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import baseConfig, { SHARED_RULES } from "./cfg/eslint.config.base.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +40,12 @@ export default defineConfig([
   eslintPluginConfigPrettier, // Again last after adding other plugins.
   {
     files: ["frontend/**/*.{js,vue}"],
+    languageOptions: {
+      globals: {
+        // Injected by vite `define` in frontend/vite.config.js.
+        CODEX_PACKAGE_VERSION: "readonly",
+      },
+    },
     rules: {
       ...SHARED_RULES,
       "no-console": [
@@ -56,14 +64,121 @@ export default defineConfig([
       ],
     },
     settings: {
-      "import/extensions": [".js", ".vue"],
-      "import/parsers": {
-        "vue-eslint-parser": [".vue"],
-        "@eslint/json": [".json"],
-      },
-      "import/resolver": {
-        alias: { map: [["@", path.resolve(__dirname, "frontend/src")]] },
-      },
+      // import-x reads only `import-x/*` settings; the old `import/resolver`
+      // block named an `alias` resolver that was never installed.
+      "import-x/resolver-next": [
+        createNodeResolver({
+          alias: { "@": [path.resolve(__dirname, "frontend/src")] },
+          extensions: [".js", ".json", ".vue"],
+        }),
+      ],
+    },
+  },
+  {
+    // Preset rules that clash with how this codebase is built.
+    files: ["**/*.js"],
+    name: "codex/style",
+    rules: {
+      // `const { show: _show, ...query } = settings` strips keys on purpose.
+      "no-unused-vars": ["error", { ignoreRestSiblings: true }],
+      // Alphabetizing keys would scramble Pinia option stores
+      // (state/getters/actions), route tables and the choices maps.
+      "perfectionist/sort-objects": "off",
+      // The existing style uses `params`, `str`, `e`, `rel` and friends.
+      "unicorn/name-replacements": "off",
+      // Nulls come from the JSON API and the database and are meaningful.
+      "unicorn/no-null": "off",
+      // Vue Options API mixins and Pinia option stores use `this`.
+      "unicorn/no-this-outside-of-class": "off",
+      // Application wiring: app.use(), axios interceptors, vi.mock().
+      "unicorn/no-top-level-side-effects": "off",
+      // Duplicates no-unused-vars without an ignoreRestSiblings option.
+      "sonarjs/no-unused-vars": "off",
+    },
+  },
+  {
+    files: ["frontend/tests/**/*.js"],
+    name: "codex/tests-style",
+    rules: {
+      // Tests stub globals (fetch, matchMedia, ...) on purpose.
+      "unicorn/no-global-object-property-assignment": "off",
+    },
+  },
+  {
+    // Preset rules that fire on existing code. They were inert until the
+    // presets in cfg/eslint.config.base.js started applying, so the code was
+    // never written against them. Off until it is cleaned up: re-enable one
+    // rule at a time and run `make fix`. Counts are from 2026-09-28.
+    files: ["**/*.js"],
+    name: "codex/pending-cleanup",
+    rules: {
+      "import-x/no-named-as-default": "off", // 1 hit
+      "perfectionist/sort-imports": "off", // 13 hits, fixable
+      "perfectionist/sort-modules": "off", // 13 hits, fixable
+      "perfectionist/sort-named-imports": "off", // 2 hits, fixable
+      "perfectionist/sort-sets": "off", // 8 hits, fixable
+      "perfectionist/sort-switch-case": "off", // 5 hits, fixable
+      "promise/always-return": "off", // 9 hits
+      "promise/param-names": "off", // 1 hit
+      "regexp/letter-case": "off", // 2 hits, fixable
+      "regexp/no-super-linear-move": "off", // 1 hit
+      "regexp/prefer-named-capture-group": "off", // 3 hits
+      "regexp/require-unicode-regexp": "off", // 20 hits, 17 fixable
+      "regexp/require-unicode-sets-regexp": "off", // 20 hits
+      "regexp/sort-alternatives": "off", // 1 hit, fixable
+      "sonarjs/no-floating-point-equality": "off", // 1 hit
+      "sonarjs/no-nested-conditional": "off", // 1 hit
+      "sonarjs/parameterized-tests": "off", // 1 hit
+      "sonarjs/prefer-specific-assertions": "off", // 6 hits
+      "sonarjs/super-linear-regex": "off", // 1 hit
+      "sonarjs/todo-tag": "off", // 1 hit
+      "unicorn/catch-error-name": "off", // 2 hits, fixable
+      "unicorn/consistent-boolean-name": "off", // 18 hits, 7 fixable
+      "unicorn/consistent-function-scoping": "off", // 18 hits
+      "unicorn/explicit-length-check": "off", // 10 hits, fixable
+      "unicorn/new-for-builtins": "off", // 1 hit, fixable
+      "unicorn/no-array-callback-reference": "off", // 2 hits
+      "unicorn/no-array-reverse": "off", // 1 hit
+      "unicorn/no-array-sort": "off", // 10 hits
+      "unicorn/no-computed-property-existence-check": "off", // 10 hits
+      "unicorn/no-for-each": "off", // 2 hits
+      "unicorn/no-immediate-mutation": "off", // 1 hit, fixable
+      "unicorn/no-invalid-argument-count": "off", // 1 hit
+      "unicorn/no-object-as-default-parameter": "off", // 1 hit
+      "unicorn/no-return-array-push": "off", // 2 hits
+      "unicorn/no-this-assignment": "off", // 1 hit
+      "unicorn/no-top-level-assignment-in-function": "off", // 27 hits
+      "unicorn/no-unnecessary-global-this": "off", // 17 hits, 8 fixable
+      "unicorn/no-unnecessary-splice": "off", // 1 hit, fixable
+      "unicorn/no-useless-continue": "off", // 1 hit, fixable
+      "unicorn/no-useless-else": "off", // 4 hits, fixable
+      "unicorn/no-useless-fallback-in-spread": "off", // 2 hits, fixable
+      "unicorn/no-useless-undefined": "off", // 26 hits, fixable
+      "unicorn/numeric-separators-style": "off", // 5 hits, fixable
+      "unicorn/operator-assignment": "off", // 1 hit, fixable
+      "unicorn/prefer-await": "off", // 149 hits
+      "unicorn/prefer-combined-guards": "off", // 1 hit, fixable
+      "unicorn/prefer-early-return": "off", // 4 hits, fixable
+      "unicorn/prefer-global-number-constants": "off", // 2 hits, fixable
+      "unicorn/prefer-global-this": "off", // 5 hits, fixable
+      "unicorn/prefer-https": "off", // 3 hits, fixable
+      "unicorn/prefer-includes-over-repeated-comparisons": "off", // 2 hits
+      "unicorn/prefer-iterator-to-array": "off", // 2 hits
+      "unicorn/prefer-node-protocol": "off", // 3 hits, fixable
+      "unicorn/prefer-number-coercion": "off", // 9 hits
+      "unicorn/prefer-number-is-safe-integer": "off", // 6 hits
+      "unicorn/prefer-promise-try": "off", // 1 hit
+      "unicorn/prefer-promise-with-resolvers": "off", // 1 hit
+      "unicorn/prefer-scoped-selector": "off", // 5 hits
+      "unicorn/prefer-simple-condition-first": "off", // 4 hits
+      "unicorn/prefer-split-limit": "off", // 2 hits, fixable
+      "unicorn/prefer-string-raw": "off", // 4 hits, fixable
+      "unicorn/prefer-string-starts-ends-with": "off", // 1 hit, fixable
+      "unicorn/prefer-ternary": "off", // 15 hits, fixable
+      "unicorn/prefer-top-level-await": "off", // 1 hit
+      "unicorn/require-array-sort-compare": "off", // 8 hits
+      "unicorn/single-line-block-comment-style": "off", // 20 hits, fixable
+      "unicorn/switch-case-braces": "off", // 28 hits, fixable
     },
   },
   {
