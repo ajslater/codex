@@ -25,6 +25,13 @@ const DYNAMIC_TTL_MS = 5000;
 const TABLE_TTL_MS = Object.freeze({
   AgeRatingMetron: Infinity,
 });
+/*
+ * Whether data stamped at ``last`` is still inside its sticky-cache
+ * window. Never-loaded data (a falsy stamp) is stale, and so is data
+ * exactly ``ttl`` old.
+ */
+export const isFresh = (last, ttl = DYNAMIC_TTL_MS, now = Date.now()) =>
+  Boolean(last) && now - last < ttl;
 export const TABS = Object.freeze([
   "Users",
   "Groups",
@@ -105,12 +112,8 @@ export const useAdminStore = defineStore("admin", {
        * pass ``{ force: true }`` because they know the data
        * changed underneath us.
        */
-      if (!force) {
-        const ttl = TABLE_TTL_MS[table] ?? DYNAMIC_TTL_MS;
-        const last = this.timestamps[table] || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps[table], TABLE_TTL_MS[table])) {
+        return true;
       }
       try {
         const response = await t.getAll();
@@ -332,13 +335,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadTaggingDefaults({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.TaggingDefaults || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.TaggingDefaults)) return true;
       try {
         const response = await API.getTaggingDefaults();
         this.taggingDefaults = response.data;
@@ -373,13 +370,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadTagWriteErrors({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.TagWriteErrors || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.TagWriteErrors)) return true;
       try {
         const response = await API.getTagWriteErrors();
         this.tagWriteErrors = Array.isArray(response.data) ? response.data : [];
@@ -440,13 +431,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadEmailSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.EmailSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.EmailSettings)) return true;
       try {
         const response = await API.getEmailSettings();
         this.emailSettings = response.data;
@@ -487,13 +472,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadOidcSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.OidcSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.OidcSettings)) return true;
       try {
         const response = await API.getOidcSettings();
         this.oidcSettings = response.data;
@@ -539,12 +518,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadSettingsDefaults({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const last = this.timestamps.SettingsDefaults || 0;
-        if (last && Date.now() - last < DYNAMIC_TTL_MS) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.SettingsDefaults)) return true;
       try {
         const response = await API.getSettingsDefaults();
         this.settingsDefaults = response.data;
@@ -585,13 +559,7 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadThrottleSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.ThrottleSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
-      }
+      if (!force && isFresh(this.timestamps.ThrottleSettings)) return true;
       try {
         const response = await API.getThrottleSettings();
         this.throttleSettings = response.data;
