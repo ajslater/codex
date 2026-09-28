@@ -20,7 +20,6 @@
 import { mdiImagePlus, mdiImageEdit } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { uploadCustomCover } from "@/api/v4/admin";
 import CodexListItem from "@/components/codex-list-item.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -74,6 +73,8 @@ export default {
       event.target.value = "";
       if (!file) return;
       try {
+        // Lazy: keeps the admin API client out of the browser bundle.
+        const { uploadCustomCover } = await import("@/api/v4/admin");
         const response = await uploadCustomCover({
           collection: this.item.collection,
           pks: this.item.ids,
