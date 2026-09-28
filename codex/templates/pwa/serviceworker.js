@@ -9,16 +9,17 @@ const FILES_TO_CACHE = [
   "{% static 'img/logo.svg' %}",
 ];
 // Cache offline page on install
-self.addEventListener("install", (event) => {
+addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME).then((cache) => {
+    (async () => {
+      const cache = await caches.open(STATIC_CACHE_NAME);
       return cache.addAll(FILES_TO_CACHE);
-    }),
+    })(),
   );
 });
 // Clear old caches on activate
-self.addEventListener("activate", (event) => {
+addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
       /*
@@ -27,20 +28,21 @@ self.addEventListener("activate", (event) => {
        * stale SW (e.g. one with a stale CSP) would need a second
        * reload to take effect.
        */
-      self.clients.claim(),
-      caches.keys().then((cacheNames) => {
+      globalThis.clients.claim(),
+      (async () => {
+        const cacheNames = await caches.keys();
         return Promise.all(
           cacheNames
             .filter((cacheName) => cacheName.startsWith(CACHE_PREFIX))
             .filter((cacheName) => cacheName !== STATIC_CACHE_NAME)
             .map((cacheName) => caches.delete(cacheName)),
         );
-      }),
+      })(),
     ]),
   );
 });
 // Serve from Cache
-self.addEventListener("fetch", (event) => {
+addEventListener("fetch", (event) => {
   /*
    * Pass through non-GET and cross-origin requests so the browser
    * handles them under the page's CSP rather than the SW's snapshot
@@ -49,17 +51,17 @@ self.addEventListener("fetch", (event) => {
    * pre-dates the dev-only overlay.
    */
   const url = new URL(event.request.url);
-  if (event.request.method !== "GET" || url.origin !== self.location.origin) {
+  if (event.request.method !== "GET" || url.origin !== location.origin) {
     return;
   }
   event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
-      .catch(() => {
+    (async () => {
+      try {
+        const response = await caches.match(event.request);
+        return response || (await fetch(event.request));
+      } catch {
         return caches.match(OFFLINE_PATH);
-      }),
+      }
+    })(),
   );
 });

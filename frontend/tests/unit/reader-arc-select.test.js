@@ -14,7 +14,9 @@ import { describe, expect, test } from "vitest";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import vuetify from "@/plugins/vuetify";
 
-function mountArcSelect(arcs, arc = { collection: "series", ids: "1" }) {
+const defaultArc = () => ({ collection: "series", ids: "1" });
+
+function mountArcSelect(arcs, arc = defaultArc()) {
   const pinia = createTestingPinia({
     initialState: { reader: { arcs, arc } },
   });

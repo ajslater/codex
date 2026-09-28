@@ -16,20 +16,6 @@ import { useAuthStore } from "@/stores/auth";
 
 const Stub = { template: "<div />" };
 
-function setupRouter() {
-  return createRouter({
-    history: createWebHistory(),
-    routes: [
-      { name: "home", path: "/", component: Stub },
-      {
-        name: "reset-password",
-        path: "/auth/reset-password",
-        component: ResetPasswordConfirm,
-      },
-    ],
-  });
-}
-
 async function mountConfirm(query) {
   const router = setupRouter();
   router.push({ name: "reset-password", query });
@@ -43,6 +29,20 @@ async function mountConfirm(query) {
     global: { plugins: [router, vuetify, pinia] },
   });
   return { wrapper, router, store: useAuthStore() };
+}
+
+function setupRouter() {
+  return createRouter({
+    history: createWebHistory(),
+    routes: [
+      { name: "home", path: "/", component: Stub },
+      {
+        name: "reset-password",
+        path: "/auth/reset-password",
+        component: ResetPasswordConfirm,
+      },
+    ],
+  });
 }
 
 describe("ResetPasswordConfirm", () => {

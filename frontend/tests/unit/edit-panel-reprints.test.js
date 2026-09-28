@@ -46,6 +46,10 @@ const SHAPED_REPRINTS = Object.freeze([
   },
 ]);
 
+function findButton(wrapper, label) {
+  return wrapper.findAll("button").find((b) => b.text().includes(label));
+}
+
 async function mountPanel({ formats = ["METRON_INFO"], md = {} } = {}) {
   const pinia = createTestingPinia({
     initialState: {
@@ -60,10 +64,6 @@ async function mountPanel({ formats = ["METRON_INFO"], md = {} } = {}) {
   });
   await flushPromises();
   return wrapper;
-}
-
-function findButton(wrapper, label) {
-  return wrapper.findAll("button").find((b) => b.text().includes(label));
 }
 
 describe("EditPanel reprints rows", () => {
@@ -179,7 +179,7 @@ describe("EditPanel reprints patch", () => {
 
   test("removing a row drops it from the patch", async () => {
     const wrapper = await mountPanel({ md: { reprints: SHAPED_REPRINTS } });
-    wrapper.vm.reprints.splice(0, 1);
+    wrapper.vm.reprints.shift();
     await flushPromises();
 
     const { patch } = wrapper.vm.buildPatch();

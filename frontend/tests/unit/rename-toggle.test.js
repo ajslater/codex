@@ -9,8 +9,8 @@
  *   - The admin Tagging tab renders a "Rename files" default and binds it.
  */
 import { createTestingPinia } from "@pinia/testing";
-import { createPinia, setActivePinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 
 vi.mock("@/api/v4/base", () => ({
@@ -18,8 +18,8 @@ vi.mock("@/api/v4/base", () => ({
 }));
 
 import { HTTP } from "@/api/v4/base";
-import EditPanel from "@/components/metadata/edit-mode/edit-panel.vue";
 import TaggingTab from "@/components/admin/tabs/tagging-tab.vue";
+import EditPanel from "@/components/metadata/edit-mode/edit-panel.vue";
 import vuetify from "@/plugins/vuetify";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
@@ -64,7 +64,7 @@ describe("useOnlineTagStore — rename forwarding", () => {
   });
 });
 
-let mountedWrappers = [];
+const mountedWrappers = [];
 
 async function mountEditPanel(renameFiles, md = {}, ids = [1], childCount = 0) {
   const pinia = createTestingPinia({
@@ -106,8 +106,10 @@ describe("EditPanel — rename toggle", () => {
   afterEach(() => {
     // Unmount so beforeUnmount clears the debounce timer; otherwise a pending
     // single-comic preview fetch can fire during a later test.
-    mountedWrappers.forEach((wrapper) => wrapper.unmount());
-    mountedWrappers = [];
+    for (const wrapper of mountedWrappers) {
+      wrapper.unmount();
+    }
+    mountedWrappers.length = 0;
   });
 
   test("seeds the toggle from the admin default", async () => {

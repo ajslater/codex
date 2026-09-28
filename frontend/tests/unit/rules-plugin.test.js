@@ -27,15 +27,15 @@ const mountField = (rules, modelValue, plugin = vuetify) =>
 const errorsFor = (rules, value, plugin) =>
   mountField(rules, value, plugin).vm.validate();
 
-let warn;
-beforeEach(() => {
-  warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-});
-afterEach(() => {
-  warn.mockRestore();
-});
-
 describe("rules plugin", () => {
+  let warn;
+  beforeEach(() => {
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
   test("$intRange rejects out-of-range and non-integers, passes blank", async () => {
     const rules = [["$intRange", [0, 100]]];
     expect(await errorsFor(rules, 101)).toEqual(["Must be 0–100"]);
@@ -107,7 +107,8 @@ describe("rules plugin", () => {
       eager: true,
     });
     for (const [file, source] of Object.entries(sources)) {
-      for (const [, name] of source.matchAll(/\[\s*"\$(\w+)"/g)) {
+      for (const match of source.matchAll(/\[\s*"\$(?<name>\w+)"/gv)) {
+        const { name } = match.groups;
         expect(names, `${file} uses $${name}`).toContain(name);
       }
     }

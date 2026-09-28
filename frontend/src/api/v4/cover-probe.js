@@ -20,30 +20,6 @@ const HTTP_ACCEPTED = 202;
 const HTTP_NOT_FOUND = 404;
 const MS_PER_SEC = 1000;
 
-function sleep(ms, signal) {
-  // Rejects on abort so a probe torn down mid-wait never fetches again.
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(signal.reason);
-      return;
-    }
-    const onAbort = () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-function retryAfterMs(response, defaultRetryAfterSec) {
-  const seconds = Number.parseInt(response.headers.get("Retry-After"), 10);
-  return (seconds > 0 ? seconds : defaultRetryAfterSec) * MS_PER_SEC;
-}
-
 /*
  * Resolve to one COVER_PROBE value; never rejects. A 2xx other than 202 is
  * READY, a 404 is MISSING, and `maxRetries` 202s in a row are PENDING. Any
@@ -72,4 +48,28 @@ export async function probeCover(
     }
   }
   return COVER_PROBE.PENDING;
+}
+
+function retryAfterMs(response, defaultRetryAfterSec) {
+  const seconds = Math.trunc(Number(response.headers.get("Retry-After")));
+  return (seconds > 0 ? seconds : defaultRetryAfterSec) * MS_PER_SEC;
+}
+
+function sleep(ms, signal) {
+  // Rejects on abort so a probe torn down mid-wait never fetches again.
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

@@ -39,7 +39,7 @@ beforeAll(() => {
   };
 });
 
-let wrappers = [];
+const wrappers = [];
 
 async function mountOpenMenu({ bookmark = "UNREAD", loggedIn = true } = {}) {
   const pinia = createTestingPinia({
@@ -69,7 +69,7 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
 });
 
 describe("BrowserFilterBySelect — closing on select", () => {
@@ -89,12 +89,12 @@ describe("BrowserFilterBySelect — closing on select", () => {
   });
 });
 
-describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
-  const arrow = (el, key) =>
-    el.dispatchEvent(
-      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
-    );
+const arrow = (el, key) =>
+  el.dispatchEvent(
+    new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+  );
 
+describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
   test("ArrowDown off the last bookmark row lands on Favorites Only", async () => {
     const { content, rows } = await mountOpenMenu();
     const last = rows.at(-1);

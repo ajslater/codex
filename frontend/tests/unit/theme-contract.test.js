@@ -56,7 +56,7 @@ describe("theme contract", () => {
     // A resolved hex lands as an inline style on the element and stops
     // following the theme; a token resolves to a class at render time.
     const hexed = Object.entries(vuetify.defaults.value)
-      .filter(([, props]) => /^#/.test(props?.color ?? ""))
+      .filter(([, props]) => (props?.color ?? "").startsWith("#"))
       .map(([name]) => name);
     expect(hexed).toEqual([]);
   });
@@ -81,14 +81,14 @@ describe("style contract", () => {
   });
 
   test("no rbg( typos", () => {
-    expect(filesMatching(/\brbg\(/)).toEqual([]);
+    expect(filesMatching(/\brbg\(/v)).toEqual([]);
   });
 
   test("theme variables are kebab-case", () => {
     // The eight custom tokens were camelCase until the rename; a
     // reintroduced one resolves to nothing and the declaration is
     // dropped without a word.
-    expect(filesMatching(/--v-theme-[a-z]+[A-Z]/)).toEqual([]);
+    expect(filesMatching(/--v-theme-[a-z]+[A-Z]/v)).toEqual([]);
   });
 });
 

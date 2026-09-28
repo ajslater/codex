@@ -60,6 +60,10 @@ function comicItem(overrides = {}) {
   };
 }
 
+function dialogOf(wrapper) {
+  return wrapper.findComponent(ConfirmDialog);
+}
+
 function mountButton(item) {
   const pinia = createTestingPinia({ stubActions: true });
   const wrapper = mount(MarkReadButton, {
@@ -67,10 +71,6 @@ function mountButton(item) {
     props: { button: false, item },
   });
   return { wrapper, browserStore: useBrowserStore() };
-}
-
-function dialogOf(wrapper) {
-  return wrapper.findComponent(ConfirmDialog);
 }
 
 describe("MarkReadButton — browser card kebab menu", () => {
@@ -115,22 +115,22 @@ describe("MarkReadButton — browser card kebab menu", () => {
   });
 });
 
-describe("MetadataControls — mark read item", () => {
-  function mountControls(md) {
-    const pinia = createTestingPinia({
-      initialState: { metadata: { md } },
-      stubActions: true,
-    });
-    return mount(MetadataControls, {
-      global: {
-        plugins: [pinia, vuetify],
-        mocks: { $route: { name: "browser" } },
-        stubs: { VDialog: VDialogStub },
-      },
-      props: { collection: md.collection },
-    });
-  }
+function mountControls(md) {
+  const pinia = createTestingPinia({
+    initialState: { metadata: { md } },
+    stubActions: true,
+  });
+  return mount(MetadataControls, {
+    global: {
+      plugins: [pinia, vuetify],
+      mocks: { $route: { name: "browser" } },
+      stubs: { VDialog: VDialogStub },
+    },
+    props: { collection: md.collection },
+  });
+}
 
+describe("MetadataControls — mark read item", () => {
   test("builds its item with childCount, the key the button reads", () => {
     const wrapper = mountControls({
       collection: "publishers",

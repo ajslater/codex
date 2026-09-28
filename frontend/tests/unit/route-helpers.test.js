@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   browserRouteParams,
   collectionForRoute,
+  getReaderRoute,
   normalizeParentIds,
   routeForCollection,
 } from "@/route";
@@ -43,7 +44,7 @@ describe("route helpers", () => {
   it("normalizeParentIds drops 0, empties, and handles arrays", () => {
     expect(normalizeParentIds("0")).toEqual([]);
     expect(normalizeParentIds([5, 0, 7])).toEqual(["5", "7"]);
-    expect(normalizeParentIds(undefined)).toEqual([]);
+    expect(normalizeParentIds()).toEqual([]);
   });
 
   describe("browserRouteParams (never an array — vue-router throws on that)", () => {
@@ -70,5 +71,39 @@ describe("route helpers", () => {
         browserRouteParams({ collection: "series", parentIds: "5,7" }),
       ).toEqual({ collection: "series", parentIds: "5,7" });
     });
+  });
+});
+
+const readerRoute = (pk, page) => ({
+  name: "reader",
+  params: { pk },
+  query: { page },
+});
+
+describe("getReaderRoute", () => {
+  it.each(["ltr", "rtl", "ttb", "btt"])(
+    "opens an unbookmarked %s comic at page 0",
+    (readingDirection) => {
+      const item = { ids: [7], page: 0, pageCount: 20, readingDirection };
+      expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 0));
+    },
+  );
+
+  it("opens at the bookmarked page", () => {
+    const item = { ids: [7], page: "12", pageCount: 20 };
+    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 12));
+  });
+
+  it("returns no route without ids", () => {
+    expect(getReaderRoute({ ids: [], page: 3, pageCount: 20 }, false)).toBe("");
+  });
+
+  it("returns no route for an unimported comic when metadata import is on", () => {
+    expect(getReaderRoute({ ids: [7], page: 0, pageCount: 0 }, true)).toBe("");
+  });
+
+  it("opens a comic with no page count when metadata import is off", () => {
+    const item = { ids: [7], page: 0, pageCount: 0 };
+    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 0));
   });
 });

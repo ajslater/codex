@@ -18,23 +18,23 @@ const HTTP_ACCEPTED = 202;
 const HTTP_NOT_FOUND = 404;
 const HTTP_SERVER_ERROR = 500;
 
-let fetchMock;
-
 const respond = (status, headers = {}) =>
   new Response(null, { status, headers });
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  fetchMock = vi.fn();
-  vi.stubGlobal("fetch", fetchMock);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-  vi.unstubAllGlobals();
-});
-
 describe("probeCover", () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it("is READY after one fetch when the cover exists", async () => {
     fetchMock.mockResolvedValueOnce(respond(HTTP_OK));
 

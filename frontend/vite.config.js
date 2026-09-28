@@ -1,12 +1,12 @@
 import { Unhead } from "@unhead/vue/vite";
 import vue from "@vitejs/plugin-vue";
+import fs from "node:fs";
+import { hostname } from "node:os";
+import path from "node:path";
 import { visualizer } from "rollup-plugin-visualizer";
-import checker from "vite-plugin-checker";
-import fs from "fs";
-import { hostname } from "os";
-import path from "path";
 import toml from "toml";
 import { defineConfig } from "vite";
+import { checker } from "vite-plugin-checker";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import { run } from "vite-plugin-run";
 import vuetify from "vite-plugin-vuetify";
@@ -27,7 +27,12 @@ import package_json from "./package.json" with { type: "json" };
  * into window.CODEX.APP_PATH).
  */
 const normalizeUrlPathPrefix = (prefix) => {
-  const trimmed = prefix.replace(/^\/+/, "").replace(/\/+$/, "");
+  // Trim leading and trailing slashes without a backtracking regex.
+  let start = 0;
+  let end = prefix.length;
+  while (start < end && prefix[start] === "/") start += 1;
+  while (end > start && prefix[end - 1] === "/") end -= 1;
+  const trimmed = prefix.slice(start, end);
   return trimmed ? `/${trimmed}` : "";
 };
 
@@ -55,8 +60,8 @@ if (IS_TEST_ENV) {
 console.info(defineObj);
 
 const config = defineConfig(({ mode }) => {
-  const PROD = mode === "production";
-  const DEV = mode === "development";
+  const IS_PROD = mode === "production";
+  const IS_DEV = mode === "development";
   /*
    * ``--mode analyze`` opts into a one-shot bundle-size report.
    * Run via ``bun run analyze``; opens ``frontend/bundle-stats.html``
@@ -64,7 +69,7 @@ const config = defineConfig(({ mode }) => {
    * it. Used by tasks/frontend-perf/05-bundle-and-startup.md when
    * tuning the manualChunks split.
    */
-  const ANALYZE = mode === "analyze";
+  const IS_ANALYZE = mode === "analyze";
   /*
    * https://github.com/vitejs/vite/issues/19242
    * Match the host django-vite renders into <script src=...>.
@@ -78,7 +83,7 @@ const config = defineConfig(({ mode }) => {
   const rawHost = hostname().toLowerCase();
   const mDNSHost =
     rawHost.includes(".") && !rawHost.endsWith(".local")
-      ? `${rawHost.split(".")[0]}.local`
+      ? `${rawHost.split(".", 1)[0]}.local`
       : rawHost;
   /*
    * Mirror Django's ``_vite_dev_server_host``: explicit
@@ -92,24 +97,24 @@ const config = defineConfig(({ mode }) => {
    * ERR_CONNECTION_REFUSED for HMR + module fetches.
    */
   const HMR_HOST = process.env.VITE_HOST?.toLowerCase() || mDNSHost;
-  const ALLOWED_HOSTS = DEV
+  const ALLOWED_HOSTS = IS_DEV
     ? [
         ...new Set([
-          HMR_HOST,
-          rawHost,
-          mDNSHost,
-          "localhost",
           "127.0.0.1",
           "[::1]",
+          HMR_HOST,
+          "localhost",
+          mDNSHost,
+          rawHost,
         ]),
       ]
     : [];
   /*
    * Vite 6+ defaults ``server.cors.origin`` to a regex matching
-   * only loopback / ``.localhost`` hosts. When the Django dev
-   * server is browsed at e.g. ``http://hooloovoo.local:9810``, the
-   * browser sends ``Origin: http://hooloovoo.local:9810`` while
-   * fetching ``<script src="http://hooloovoo.local:5173/...">``.
+   * only loopback / ``.localhost`` hosts. When the plain-HTTP Django
+   * dev server is browsed at e.g. ``hooloovoo.local:9810``, the
+   * browser sends that host and port as its ``Origin`` while fetching
+   * scripts from ``hooloovoo.local:5173``.
    * That origin doesn't match Vite's default regex, so the dev
    * server replies with ``Vary: Origin`` but no
    * ``Access-Control-Allow-Origin`` and the script load is blocked.
@@ -117,11 +122,12 @@ const config = defineConfig(({ mode }) => {
    * port so browser-side fetches from Django (or anything else on
    * the same hostname) work.
    */
-  const reEscape = (s) => s.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&");
-  const CORS_ORIGIN = DEV
+  const reEscape = (s) =>
+    s.replaceAll(/[$\(\)*+.?\[\\\]^\{\|\}]/gv, String.raw`\$&`);
+  const CORS_ORIGIN = IS_DEV
     ? // eslint-disable-next-line security/detect-non-literal-regexp
       new RegExp(
-        `^https?://(${ALLOWED_HOSTS.map(reEscape).join("|")})(?::\\d+)?$`,
+        String.raw`^https?://(${ALLOWED_HOSTS.map((host) => reEscape(host)).join("|")})(?::\d+)?$`,
       )
     : undefined;
   /*
@@ -147,7 +153,7 @@ const config = defineConfig(({ mode }) => {
        * sizes the visualizer reports match what users actually
        * download.
        */
-      minify: PROD || ANALYZE,
+      minify: IS_PROD || IS_ANALYZE,
       outDir: path.resolve("../codex/static_build"),
       rollupOptions: {
         // No need for index.html
@@ -187,10 +193,10 @@ const config = defineConfig(({ mode }) => {
           },
         },
       },
-      sourcemap: DEV,
+      sourcemap: IS_DEV,
     },
     css: {
-      devSourcemap: DEV,
+      devSourcemap: IS_DEV,
       preprocessorOptions: {
         scss: {
           api: "modern",
@@ -227,7 +233,7 @@ const config = defineConfig(({ mode }) => {
        * vite config rather than into the published static_build
        * dir so it stays a dev-only artifact.
        */
-      ANALYZE &&
+      IS_ANALYZE &&
         visualizer({
           filename: path.resolve("./bundle-stats.html"),
           template: "treemap",

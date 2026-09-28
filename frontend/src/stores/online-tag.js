@@ -215,17 +215,19 @@ export const useOnlineTagStore = defineStore("onlineTag", {
        * during a fetch get that fetch's result rather than a second one.
        */
       if (this._snapshotRequest) return this._snapshotRequest;
-      this._snapshotRequest = HTTP.get("/admin/tag-sessions/snapshot", {
+      const request = HTTP.get("/admin/tag-sessions/snapshot", {
         params: { ts: Date.now() },
-      })
-        .then((response) => {
+      });
+      this._snapshotRequest = (async () => {
+        try {
+          const response = await request;
           this.snapshot = response.data.snapshot || null;
           this.pruneLocallyResolved();
           return this.snapshot;
-        })
-        .finally(() => {
+        } finally {
           this._snapshotRequest = null;
-        });
+        }
+      })();
       return this._snapshotRequest;
     },
     pruneLocallyResolved() {
@@ -257,7 +259,8 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       // no write activity, so this notification is the only signal the table
       // gets that a skip landed.
       this.loadPrompts();
-      this.loadSnapshot().catch(() => {});
+      // Best-effort: a failed refresh is dropped.
+      void this.loadSnapshot().catch(() => {});
     },
   },
 });

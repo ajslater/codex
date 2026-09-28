@@ -165,17 +165,17 @@ describe("useAuthStore — site defaults", () => {
   });
 });
 
-describe("reloadOnDefaultsChange", () => {
-  function stores(rev) {
-    const auth = useAuthStore();
-    auth.defaultsRev = rev;
-    const browser = useBrowserStore();
-    browser.loadSettings = vi.fn();
-    const reader = useReaderStore();
-    reader.loadGlobalSettings = vi.fn();
-    return { auth, browser, reader };
-  }
+function stores(rev) {
+  const auth = useAuthStore();
+  auth.defaultsRev = rev;
+  const browser = useBrowserStore();
+  browser.loadSettings = vi.fn();
+  const reader = useReaderStore();
+  reader.loadGlobalSettings = vi.fn();
+  return { auth, browser, reader };
+}
 
+describe("reloadOnDefaultsChange", () => {
   it("reloads the browser settings when defaultsRev changed", async () => {
     API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r2" }));
     const { browser, reader } = stores("r1");
@@ -201,7 +201,7 @@ describe("reloadOnDefaultsChange", () => {
 
   it("does nothing on the first load, from an undefined revision", async () => {
     API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r1" }));
-    const { browser } = stores(undefined);
+    const { browser } = stores();
     expect(await reloadOnDefaultsChange("browser")).toBe(false);
     expect(browser.loadSettings).not.toHaveBeenCalled();
   });

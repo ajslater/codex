@@ -65,17 +65,17 @@ describe("canEnableOidc — enable-switch gate", () => {
   });
 });
 
-describe("AuthTab — OIDC disclosure", () => {
-  function mountTab(oidcSettings) {
-    const pinia = createTestingPinia({
-      initialState: {
-        auth: { user: { id: 1, username: "admin", isStaff: true } },
-        admin: { oidcSettings, flags: [] },
-      },
-    });
-    return mount(AuthTab, { global: { plugins: [vuetify, pinia] } });
-  }
+function mountTab(oidcSettings) {
+  const pinia = createTestingPinia({
+    initialState: {
+      auth: { user: { id: 1, username: "admin", isStaff: true } },
+      admin: { oidcSettings, flags: [] },
+    },
+  });
+  return mount(AuthTab, { global: { plugins: [vuetify, pinia] } });
+}
 
+describe("AuthTab — OIDC disclosure", () => {
   it("starts collapsed when OIDC is disabled", () => {
     const wrapper = mountTab({ ...SETTINGS, enabled: false });
     expect(wrapper.find("form").exists()).toBe(false);

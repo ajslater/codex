@@ -15,18 +15,18 @@ import { describe, expect, test } from "vitest";
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import vuetify from "@/plugins/vuetify";
 
-const DURATION_RE = /^\d{3} \d{2}:\d{2}:\d{2}$/;
+const DURATION_RE = /^\d{3} \d{2}:\d{2}:\d{2}$/v;
+
+function lastEmitted(wrapper) {
+  const emitted = wrapper.emitted("update:modelValue");
+  return emitted?.at(-1)?.[0];
+}
 
 function mountInput(modelValue = "000 01:00:00") {
   return mount(DurationInput, {
     props: { label: "Poll Every", modelValue },
     global: { plugins: [vuetify] },
   });
-}
-
-function lastEmitted(wrapper) {
-  const emitted = wrapper.emitted("update:modelValue");
-  return emitted?.at(-1)?.[0];
 }
 
 describe("DurationInput", () => {
@@ -81,7 +81,7 @@ describe("DurationInput", () => {
     expect(wrapper.vm.partOrZero(-5)).toBe(0);
     expect(wrapper.vm.partOrZero("")).toBe(0);
     expect(wrapper.vm.partOrZero("abc")).toBe(0);
-    expect(wrapper.vm.partOrZero(undefined)).toBe(0);
+    expect(wrapper.vm.partOrZero()).toBe(0);
   });
 
   test("zero is a legitimate value, not an empty one", () => {

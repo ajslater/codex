@@ -10,7 +10,7 @@ const dragScrollDirective = {
     let scrollLeft = 0;
     let scrollTop = 0;
     let pointerId = null;
-    let dragging = false;
+    let isDragging = false;
 
     const onPointerDown = (e) => {
       // Don't intercept clicks on interactive children
@@ -20,18 +20,18 @@ const dragScrollDirective = {
       scrollLeft = el.scrollLeft;
       scrollTop = el.scrollTop;
       pointerId = e.pointerId;
-      dragging = false; // not committed yet
+      isDragging = false; // not committed yet
     };
 
     const onPointerMove = (e) => {
       if (pointerId === null) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      if (!dragging) {
+      if (!isDragging) {
         // Only commit to drag once threshold is exceeded
         if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD)
           return;
-        dragging = true;
+        isDragging = true;
         el.setPointerCapture(pointerId);
         el.style.cursor = "grabbing";
       }
@@ -40,12 +40,12 @@ const dragScrollDirective = {
     };
 
     const onPointerUp = () => {
-      if (dragging && pointerId !== null) {
+      if (isDragging && pointerId !== null) {
         el.releasePointerCapture(pointerId);
         el.style.cursor = "";
       }
       pointerId = null;
-      dragging = false;
+      isDragging = false;
     };
 
     el._dragScroll = { onPointerDown, onPointerMove, onPointerUp };

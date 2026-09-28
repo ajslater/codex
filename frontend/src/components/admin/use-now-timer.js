@@ -3,7 +3,7 @@
  *
  * Used by: job-tab.vue, status-list.vue
  */
-import { ref, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 
 const TICK_INTERVAL_MS = 1000;
 
@@ -17,16 +17,18 @@ export function useNowTimer() {
 
   const start = () => {
     stop();
-    timer = globalThis.setInterval(() => {
+    timer = setInterval(() => {
       now.value = Date.now();
     }, TICK_INTERVAL_MS);
   };
 
   const stop = () => {
-    if (timer) {
-      globalThis.clearInterval(timer);
-      timer = 0;
+    if (!timer) {
+      return;
     }
+
+    clearInterval(timer);
+    timer = 0;
   };
 
   onMounted(start);
