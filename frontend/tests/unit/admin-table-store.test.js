@@ -1,8 +1,9 @@
 /*
  * Characterization spec for the admin store's generic table engine:
- * loadTable and loadTables with their per-table sticky cache, the forced
- * reloads after row writes and pending-delete revival, the in-place
- * librarian-status diff, and the admin gate in front of all of them.
+ * loadTable and loadTables with their per-table sticky cache and response
+ * ordering, the forced reloads after row writes and pending-delete revival,
+ * the in-place librarian-status diff, and the admin gate in front of all of
+ * them.
  *
  * The HTTP layer is mocked. Every TABLES entry keeps its real stateField
  * and each of its request functions becomes a vi.fn(), so the table list
@@ -55,6 +56,13 @@ const rowsFor = (name, version = 1) => [{ name, pk: 1, version }];
 
 const serve = (name, version = 1) =>
   TABLES[name].getAll.mockResolvedValue({ data: rowsFor(name, version) });
+
+// Hold the next fetch of ``name`` open; the returned function lands it.
+const deferGetAll = (name) => {
+  const response = Promise.withResolvers();
+  TABLES[name].getAll.mockReturnValueOnce(response.promise);
+  return (version) => response.resolve({ data: rowsFor(name, version) });
+};
 
 const serveAll = (version = 1) => {
   for (const name of TABLE_NAMES) serve(name, version);
@@ -292,6 +300,89 @@ describe("loadTable sticky cache", () => {
 
     await store.loadTable("AgeRatingMetron", { force: true });
     expect(TABLES.AgeRatingMetron.getAll).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("loadTable response order", () => {
+  const SAVED_AT = NOW + 1000;
+
+  it("drops a slow read that lands after a later forced reload", async () => {
+    const landA = deferGetAll("Library");
+    const landB = deferGetAll("Library");
+    const store = adminStore();
+    // A tab mounts with an empty cache; its read A goes out and stalls.
+    const readA = store.loadTable("Library");
+    // A save force-reloads the table; read B goes out and lands first.
+    vi.setSystemTime(SAVED_AT);
+    const readB = store.loadTable("Library", { force: true });
+    landB(2);
+    await readB;
+    advance(500);
+    landA(1);
+    await readA;
+
+    expect(store.libraries).toStrictEqual(rowsFor("Library", 2));
+    expect(store.timestamps.Library).toBe(SAVED_AT);
+
+    // An unforced read inside B's TTL is served B's rows from state.
+    vi.setSystemTime(SAVED_AT + TTL_MS - 1);
+    await store.loadTable("Library");
+
+    expect(TABLES.Library.getAll).toHaveBeenCalledTimes(2);
+    expect(store.libraries).toStrictEqual(rowsFor("Library", 2));
+  });
+
+  it("lands both reads when they arrive in order", async () => {
+    const landA = deferGetAll("Library");
+    const landB = deferGetAll("Library");
+    const store = adminStore();
+    const readA = store.loadTable("Library");
+    vi.setSystemTime(SAVED_AT);
+    const readB = store.loadTable("Library", { force: true });
+
+    landA(1);
+    await readA;
+    expect(store.libraries).toStrictEqual(rowsFor("Library", 1));
+    expect(store.timestamps.Library).toBe(NOW);
+
+    landB(2);
+    await readB;
+    expect(store.libraries).toStrictEqual(rowsFor("Library", 2));
+    expect(store.timestamps.Library).toBe(SAVED_AT);
+  });
+
+  it("still lands an earlier read when the later one fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const landA = deferGetAll("Library");
+    TABLES.Library.getAll.mockRejectedValueOnce(new Error("offline"));
+    const store = adminStore();
+    const readA = store.loadTable("Library");
+    await store.loadTable("Library", { force: true });
+
+    landA(1);
+    await readA;
+
+    expect(store.libraries).toStrictEqual(rowsFor("Library", 1));
+    expect(store.timestamps.Library).toBe(NOW);
+  });
+
+  it("stamps the time the read went out, not when it landed", async () => {
+    const land = deferGetAll("User");
+    const store = adminStore();
+    const read = store.loadTable("User");
+    advance(3000);
+    land(1);
+    await read;
+
+    expect(store.timestamps.User).toBe(NOW);
+
+    // The TTL runs from the request, so it is over TTL_MS after it went out.
+    vi.setSystemTime(NOW + TTL_MS);
+    serve("User", 2);
+    await store.loadTable("User");
+
+    expect(TABLES.User.getAll).toHaveBeenCalledTimes(2);
+    expect(store.users).toStrictEqual(rowsFor("User", 2));
   });
 });
 
