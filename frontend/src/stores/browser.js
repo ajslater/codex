@@ -478,25 +478,19 @@ export const useBrowserStore = defineStore("browser", {
       for (const row of this.page.books) updateRow(row);
     },
     _filterSettings(state, keys) {
-      return Object.fromEntries(
-        Object.entries(state.settings).filter(([k, v]) => {
-          if (!keys.includes(k)) {
-            return null;
-          }
-          if (k === "filters") {
-            const usedFilters = {};
-            for (const [subkey, subvalue] of Object.entries(v)) {
-              if (notEmptyOrBool(subvalue)) {
-                usedFilters[subkey] = subvalue;
-              }
-            }
-            v = usedFilters;
-          }
-          if (notEmptyOrBool(v)) {
-            return [k, v];
-          }
-        }),
-      );
+      const picked = {};
+      for (const [key, value] of Object.entries(state.settings)) {
+        if (!keys.includes(key)) continue;
+        // Send only the filters in use; the server treats a missing one as unset.
+        const kept =
+          key === "filters"
+            ? Object.fromEntries(
+                Object.entries(value).filter(([, sub]) => notEmptyOrBool(sub)),
+              )
+            : value;
+        if (notEmptyOrBool(kept)) picked[key] = kept;
+      }
+      return picked;
     },
     _maxLenChoices(choices) {
       let maxLen = 0;
