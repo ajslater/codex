@@ -11,7 +11,7 @@
  * read from the card menu sits at page 0.
  */
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as BROWSER_API from "@/api/v4/browser";
 import { useReaderStore } from "@/stores/reader";
@@ -92,5 +92,82 @@ describe("reader store _setBookmarkPage", () => {
     await store._setBookmarkPage(-3);
 
     expect(lastUpdates(spy)).toEqual({ page: 0 });
+  });
+});
+
+describe("reader store debounced bookmark writes", () => {
+  /*
+   * The debounce used to read ``books.current`` when its timer fired, and
+   * a new write replaced a pending one. Paging to a book's last page and
+   * moving straight on to the next book either dropped that book's final
+   * page and ``finished`` flag, or wrote them to the next book.
+   */
+  const BOOK_A = Object.freeze({ pk: 3, maxPage: MAX_PAGE, settings: {} });
+  const BOOK_B = Object.freeze({ pk: 4, maxPage: 20, settings: {} });
+  let spy;
+
+  const writes = () =>
+    spy.mock.calls.map(([params, , updates]) => ({
+      ids: params.ids,
+      ...updates,
+    }));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setActivePinia(createPinia());
+    spy = vi
+      .spyOn(BROWSER_API, "updateCollectionBookmarks")
+      .mockResolvedValue({});
+  });
+
+  afterEach(async () => {
+    // Drain the module-level debounce so it can't leak into the next test.
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
+  });
+
+  it("coalesces rapid page turns in one book into one write", async () => {
+    const store = useReaderStore();
+    store.books = { current: BOOK_A, prev: false, next: false };
+
+    store._scheduleBookmarkWrite(1);
+    store._scheduleBookmarkWrite(2);
+    store._scheduleBookmarkWrite(3);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(writes()).toStrictEqual([{ ids: [3], page: 3 }]);
+  });
+
+  it("writes to the book the page was read in after the book changes", async () => {
+    const store = useReaderStore();
+    store.books = { current: BOOK_A, prev: false, next: false };
+
+    store._scheduleBookmarkWrite(MAX_PAGE);
+    store.books = { current: BOOK_B, prev: BOOK_A, next: false };
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(writes()).toStrictEqual([
+      { ids: [3], page: MAX_PAGE, finished: true },
+    ]);
+  });
+
+  it("lands a pending write for one book before scheduling the next", async () => {
+    const store = useReaderStore();
+    store.books = { current: BOOK_A, prev: false, next: false };
+
+    store._scheduleBookmarkWrite(MAX_PAGE);
+    store.books = { current: BOOK_B, prev: BOOK_A, next: false };
+    store._scheduleBookmarkWrite(0);
+
+    expect(writes()).toStrictEqual([
+      { ids: [3], page: MAX_PAGE, finished: true },
+    ]);
+
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(writes()).toStrictEqual([
+      { ids: [3], page: MAX_PAGE, finished: true },
+      { ids: [4], page: 0 },
+    ]);
   });
 });

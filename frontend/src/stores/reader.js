@@ -41,18 +41,20 @@ const BOOKMARK_DEBOUNCE_MS = 1000;
 const _bookmarkDebounce = {
   timer: 0,
   store: undefined,
+  // The book the page belongs to, captured when the write is scheduled.
+  book: undefined,
   page: undefined,
 };
 
 async function _runPendingBookmark() {
   _bookmarkDebounce.timer = 0;
-  const store = _bookmarkDebounce.store;
-  const page = _bookmarkDebounce.page;
+  const { store, book, page } = _bookmarkDebounce;
   _bookmarkDebounce.store = undefined;
+  _bookmarkDebounce.book = undefined;
   _bookmarkDebounce.page = undefined;
   if (!store || page === undefined) return;
   try {
-    await store._setBookmarkPage(page);
+    await store._setBookmarkPage(page, book);
   } catch (error) {
     /*
      * Don't revert local page state — the user is reading
@@ -485,8 +487,18 @@ export const useReaderStore = defineStore("reader", {
        * resets on every call, so the write fires
        * ``BOOKMARK_DEBOUNCE_MS`` after the user stops
        * advancing.
+       *
+       * The write belongs to the book being read now, not whichever book is
+       * current when the timer fires. A pending write for another book (the
+       * reader just moved on) lands now instead of being replaced, so its
+       * last page and ``finished`` flag aren't lost.
        */
+      const book = this.books.current;
+      if (_bookmarkDebounce.timer && _bookmarkDebounce.book?.pk !== book?.pk) {
+        this.flushBookmarkWrite();
+      }
       _bookmarkDebounce.store = this;
+      _bookmarkDebounce.book = book;
       _bookmarkDebounce.page = page;
       if (_bookmarkDebounce.timer) clearTimeout(_bookmarkDebounce.timer);
       _bookmarkDebounce.timer = setTimeout(
@@ -684,12 +696,12 @@ export const useReaderStore = defineStore("reader", {
         console.error(error);
       }
     },
-    async _setBookmarkPage(page) {
+    async _setBookmarkPage(page, book = this.books.current) {
       const collectionParams = {
         collection: "comics",
-        ids: [+this.books.current.pk],
+        ids: [+book.pk],
       };
-      page = Math.max(Math.min(this.books.current.maxPage, page), 0);
+      page = Math.max(Math.min(book.maxPage, page), 0);
       const updates = { page };
       /*
        * PENDING SCHEMA REMOVAL
@@ -702,7 +714,7 @@ export const useReaderStore = defineStore("reader", {
        * Drop the column, its serializer and ``READER_DEFAULTS`` entries when
        * we commit to this.
        */
-      if (page >= this.books.current.maxPage) {
+      if (page >= book.maxPage) {
         updates["finished"] = true;
       }
       /*
