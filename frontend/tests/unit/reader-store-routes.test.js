@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
 import { useReaderStore } from "@/stores/reader";
@@ -66,5 +66,51 @@ describe("reader store closeBookRoute", () => {
       name: "browser",
       params: { collection: BROWSER_DEFAULTS.lastRoute.collection },
     });
+  });
+});
+
+describe("reader store routeToDirectionOne", () => {
+  /*
+   * The one-page step in two-page mode used to write ``this.page += delta``
+   * before its bounds check, so "previous" on the first page left the
+   * reader on page -1, and every further press drifted further out.
+   */
+  const MAX_PAGE = 5;
+
+  const readerAt = (page) => {
+    const store = useReaderStore();
+    store.books.current = { pk: 9, maxPage: MAX_PAGE };
+    store.page = page;
+    const routeTo = vi.spyOn(store, "_routeTo").mockImplementation(() => {});
+    return { routeTo, store };
+  };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it.each([
+    ["prev", 0],
+    ["next", MAX_PAGE],
+  ])("stays put stepping %s past the edge from page %i", (direction, page) => {
+    const { routeTo, store } = readerAt(page);
+
+    store.routeToDirectionOne(direction);
+    store.routeToDirectionOne(direction);
+
+    expect(store.page).toBe(page);
+    expect(routeTo).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["prev", 2, 1],
+    ["next", 2, 3],
+  ])("steps %s from page %i to %i", (direction, page, expected) => {
+    const { routeTo, store } = readerAt(page);
+
+    store.routeToDirectionOne(direction);
+
+    expect(store.page).toBe(expected);
+    expect(routeTo).toHaveBeenCalledExactlyOnceWith({ pk: 9, page: expected });
   });
 });
