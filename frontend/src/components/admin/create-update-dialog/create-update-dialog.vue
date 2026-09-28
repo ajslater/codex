@@ -34,6 +34,7 @@ import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/cre
 import SubmitFooter from "@/components/submit-footer.vue";
 import { deepClone } from "@/api/v4/common";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminCreateUpdateDialog",
@@ -89,10 +90,13 @@ export default {
   watch: {
     showDialog(show) {
       this.row = this.getRow(show);
+      // Dialog content stays mounted, so drop errors from an earlier attempt.
+      if (show) this.clearErrors();
     },
   },
   methods: {
     ...mapActions(useAdminStore, ["createRow", "updateRow"]),
+    ...mapActions(useCommonStore, ["clearErrors"]),
     validate() {
       let changed = false;
       for (const [key, value] of Object.entries(this.row)) {
@@ -153,7 +157,7 @@ export default {
       }
       return updateRow;
     },
-    doUpdate: function () {
+    async doUpdate() {
       // only pass diff from old user as update
       const updateRow = {};
       for (const [key, value] of Object.entries(this.row)) {
@@ -161,20 +165,15 @@ export default {
           Reflect.set(updateRow, key, value);
         }
       }
-      this.updateRow(this.table, this.oldRow.pk, updateRow)
-        .then(() => {
-          this.showDialog = false;
-          return true;
-        })
-        .catch(console.error);
+      // Stay open on failure so the server's field errors show.
+      if (await this.updateRow(this.table, this.oldRow.pk, updateRow)) {
+        this.showDialog = false;
+      }
     },
-    doCreate: function () {
-      this.createRow(this.table, this.row)
-        .then(() => {
-          this.showDialog = false;
-          return true;
-        })
-        .catch(console.error);
+    async doCreate() {
+      if (await this.createRow(this.table, this.row)) {
+        this.showDialog = false;
+      }
     },
     submit: function () {
       const form = this.$refs.form;
