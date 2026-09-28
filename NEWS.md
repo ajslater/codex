@@ -19,6 +19,7 @@ border-radius: 128px;
     - "Clear All Filters" no longer shows when no filter is set.
     - Anonymous browsing no longer logs a timezone error.
     - The reader's "b" shortcut sets bottom to top reading.
+    - Admin tables no longer revert to old values after a save.
 
 ## v2.4.3
 

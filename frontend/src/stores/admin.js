@@ -32,6 +32,13 @@ const TABLE_TTL_MS = Object.freeze({
  */
 export const isFresh = (last, ttl = DYNAMIC_TTL_MS, now = Date.now()) =>
   Boolean(last) && now - last < ttl;
+/*
+ * loadTable request order. Every load takes the next number, and its
+ * rows land only if no later load of the same table has landed first,
+ * so a slow unforced read can't overwrite the rows a forced reload
+ * already stored after a save. ``landed`` is keyed by table.
+ */
+const tableRequests = { issued: 0, landed: {} };
 export const TABS = Object.freeze([
   "Users",
   "Groups",
@@ -115,6 +122,8 @@ export const useAdminStore = defineStore("admin", {
       if (!force && isFresh(this.timestamps[table], TABLE_TTL_MS[table])) {
         return true;
       }
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
       try {
         const response = await t.getAll();
         /*
@@ -135,8 +144,15 @@ export const useAdminStore = defineStore("admin", {
           console.warn(t.stateField, "response shape unrecognized");
           return;
         }
+        // A later load of this table already landed; these rows are older.
+        if (request < (tableRequests.landed[table] ?? 0)) return;
+        tableRequests.landed[table] = request;
         this[t.stateField] = rows;
-        this.timestamps[table] = Date.now();
+        /*
+         * Stamp when the request went out, not when it came back: the
+         * rows are only as fresh as the moment they were asked for.
+         */
+        this.timestamps[table] = requestedAt;
       } catch (error) {
         warnError(error);
       }
