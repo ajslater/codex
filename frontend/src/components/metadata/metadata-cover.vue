@@ -80,11 +80,12 @@ export default {
 }
 
 /*
- * The negative margins keep the read state's 10px slot centered where the
- * old 2px bar sat.
+ * Under the cover, as on the browser card. Tucked up over the cover's
+ * bottom edge it was hidden: the cover image is absolutely positioned, so
+ * it paints over any unpositioned sibling.
  */
 .metadataReadState {
-  margin-top: -15px;
+  margin-top: 1px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
@@ -94,10 +95,6 @@ export default {
 
   .genericCoverImg {
     width: 100px;
-  }
-
-  .metadataReadState {
-    margin-top: -3px;
   }
 }
 </style>
