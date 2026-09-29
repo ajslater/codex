@@ -13,18 +13,18 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-let savedCodex;
-
-beforeEach(() => {
-  savedCodex = globalThis.CODEX;
-  vi.resetModules();
-});
-
-afterEach(() => {
-  globalThis.CODEX = savedCodex;
-});
-
 describe("v4 base honors the URL path prefix", () => {
+  let savedCodex;
+
+  beforeEach(() => {
+    savedCodex = globalThis.CODEX;
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    globalThis.CODEX = savedCodex;
+  });
+
   test("under a /codex subpath", async () => {
     globalThis.CODEX = { APP_PATH: "/codex/" };
     const { APP_BASE, V4_BASE } = await import("@/api/v4/base");
@@ -32,7 +32,7 @@ describe("v4 base honors the URL path prefix", () => {
 
     expect(APP_BASE).toBe("/codex/");
     expect(V4_BASE).toBe("/codex/api/v4/");
-    expect(WS_URL_V4).toMatch(/^wss?:\/\/[^/]+\/codex\/api\/v4\/ws$/);
+    expect(WS_URL_V4).toMatch(/^wss?:\/\/[^\/]+\/codex\/api\/v4\/ws$/v);
   });
 
   test("at the server root", async () => {
@@ -42,7 +42,7 @@ describe("v4 base honors the URL path prefix", () => {
 
     expect(APP_BASE).toBe("/");
     expect(V4_BASE).toBe("/api/v4/");
-    expect(WS_URL_V4).toMatch(/^wss?:\/\/[^/]+\/api\/v4\/ws$/);
+    expect(WS_URL_V4).toMatch(/^wss?:\/\/[^\/]+\/api\/v4\/ws$/v);
   });
 
   test("falls back to root when CODEX is absent", async () => {

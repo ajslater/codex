@@ -34,26 +34,38 @@
             v-for="prompt in pendingPrompts"
             :key="prompt.fingerprint"
           >
-            <v-expansion-panel-title>
-              <div class="promptTitle">
-                <div class="promptPath">{{ promptFilename(prompt.path) }}</div>
-                <div class="promptMeta">
-                  <v-chip size="x-small">{{
-                    sourceLabel(prompt.source)
-                  }}</v-chip>
-                  <v-chip size="x-small" class="ml-1">
-                    {{ prompt.candidates.length }} candidates
-                  </v-chip>
-                  <!-- One question is asked per series, so a pick usually
+            <!-- The title is the file under review; the tint sets it
+               apart from the candidate matches listed under it. -->
+            <v-expansion-panel-title class="promptFileTitle">
+              <div class="promptHeader">
+                <!-- The file's own cover, to compare the candidates against.
+                   Absent (undefined) from an older backend: no cover. -->
+                <FileCoverThumb
+                  v-if="prompt.fileCover !== undefined"
+                  :file-cover="prompt.fileCover"
+                />
+                <div class="promptTitle">
+                  <div class="promptPath">
+                    {{ promptFilename(prompt.path) }}
+                  </div>
+                  <div class="promptMeta">
+                    <v-chip size="x-small">{{
+                      sourceLabel(prompt.source)
+                    }}</v-chip>
+                    <v-chip size="x-small" class="ml-1">
+                      {{ prompt.candidates.length }} candidates
+                    </v-chip>
+                    <!-- One question is asked per series, so a pick usually
                      writes more than the comic it names. Say how many. -->
-                  <v-chip
-                    v-if="coveredCount(prompt) > 1"
-                    size="x-small"
-                    class="ml-1"
-                    color="primary"
-                  >
-                    + {{ coveredCount(prompt) - 1 }} more of this series
-                  </v-chip>
+                    <v-chip
+                      v-if="coveredCount(prompt) > 1"
+                      size="x-small"
+                      class="ml-1"
+                      color="primary"
+                    >
+                      + {{ coveredCount(prompt) - 1 }} more of this series
+                    </v-chip>
+                  </div>
                 </div>
               </div>
             </v-expansion-panel-title>
@@ -86,6 +98,7 @@
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CandidateRow from "@/components/online-tag/candidate-row.vue";
+import FileCoverThumb from "@/components/online-tag/file-cover-thumb.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
@@ -96,6 +109,7 @@ export default {
   name: "OnlineTagPromptPopup",
   components: {
     CandidateRow,
+    FileCoverThumb,
   },
   data() {
     return {
@@ -177,12 +191,34 @@ export default {
 </script>
 
 <style scoped lang="scss">
+/* The file under review, tinted apart from the candidates under it. */
+.promptFileTitle {
+  background-color: rgba(var(--v-theme-primary), 0.08);
+  border-left: 3px solid rgb(var(--v-theme-primary));
+}
+
+/*
+ * The file's cover beside the title text. Vuetify's hover overlay is an
+ * absolutely positioned layer over the whole title, which would sit on
+ * top of the cover and swallow its hover and clicks. Lift the header
+ * above it; the title's :hover tint still shows through.
+ */
+.promptHeader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .promptTitle {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  width: 100%;
+  flex: 1 1 0;
   min-width: 0;
 }
 

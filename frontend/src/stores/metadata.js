@@ -69,10 +69,10 @@ export const useMetadataStore = defineStore("metadata", {
       const reprints = rows.filter((row) => !row.alternativeName);
       const alternativeNames = rows.filter((row) => row.alternativeName);
       const tagMap = {};
-      if (reprints.length) {
+      if (reprints.length > 0) {
         tagMap["Reprints"] = { filter: "reprints", tags: reprints };
       }
-      if (alternativeNames.length) {
+      if (alternativeNames.length > 0) {
         tagMap["Alternative Names"] = {
           filter: "reprints",
           tags: alternativeNames,
@@ -111,7 +111,7 @@ export const useMetadataStore = defineStore("metadata", {
     },
     tags(state) {
       const tags = {};
-      if (state.protagonists.length) {
+      if (state.protagonists.length > 0) {
         tags["Protagonist"] = { filter: "", tags: state.protagonists };
       }
       Object.assign(tags, state.mapTag(state.md, TAGS));
@@ -127,27 +127,27 @@ export const useMetadataStore = defineStore("metadata", {
       }
       Object.assign(tags, state.reprintRows);
       for (const tagObj of Object.values(tags)) {
-        tagObj.tags = tagObj.tags.sort((a, b) => a.name.localeCompare(b.name));
+        // Sort a copy: sorting in place would mutate store state in a getter.
+        tagObj.tags = [...tagObj.tags].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
       }
       return tags;
     },
   },
   actions: {
     async loadMetadata({ collection, pks }) {
-      await API.getMetadata(
-        { collection, pks },
-        useBrowserStore().metadataSettings,
-      )
-        .then((response) => {
-          const md = { ...response.data };
-          md.loaded = true;
-          this.md = md;
-          return true;
-        })
-        .catch((error) => {
-          console.error(error);
-          this.clearMetadata();
-        });
+      try {
+        const response = await API.getMetadata(
+          { collection, pks },
+          useBrowserStore().metadataSettings,
+        );
+        const md = { ...response.data, loaded: true };
+        this.md = md;
+      } catch (error) {
+        console.error(error);
+        this.clearMetadata();
+      }
     },
     clearMetadata() {
       this.md = undefined;
@@ -155,7 +155,7 @@ export const useMetadataStore = defineStore("metadata", {
     getTagName(key) {
       return TAG_NAMES[key] || capitalCase(key);
     },
-    mapTag(tagSource, keys, filter = undefined) {
+    mapTag(tagSource, keys, filter) {
       const tagMap = {};
 
       for (const key of keys) {

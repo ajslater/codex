@@ -8,9 +8,6 @@ on:
     branches: [main, develop]
 
 env:
-  CI_IMAGE: ghcr.io/${{ github.repository }}-ci
-  CI_IMAGE_TAG: ghcr.io/${{ github.repository }}-ci:latest
-  CI_CONTAINER: ${{ github.event.repository.name }}-ci
   IMAGE: ghcr.io/${{ github.repository }}
   HUB_IMAGE: docker.io/ajslater/codex
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -19,135 +16,44 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# codex composes devenv's CI building blocks (the devenv-* workflows and
+# actions, managed by devenv) with its own image jobs. Every job after ci
+# reads ci's outputs instead of testing the event itself, and checks
+# !cancelled() plus an explicit needs.X.result, so a skipped or cancelled
+# ancestor never lets it run.
 jobs:
   # ---------------------------------------------------------------------------
-  # Lint, test, and build the Python wheel (amd64 only)
+  # devenv-check: the gate (Release Preflight; on a main push, reuse the dist
+  # of an earlier run that passed on the same tree), one codex-ci image, the
+  # fail-fast check matrix, and the required check
+  # "CI / Lint, Test & Build Dist".
   # ---------------------------------------------------------------------------
-  test:
-    name: Lint, Test & Build Dist
-    runs-on: ubuntu-24.04
-    if: |
-      github.ref_name == 'main' && github.event_name == 'push' ||
-      github.base_ref == 'main' ||
-      (github.base_ref == 'develop' && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
+  ci:
+    name: CI
+    uses: ./.github/workflows/devenv-check.yml
+    # test-frontend's make prerequisite builds the choices JSON. Neither
+    # django-check nor pytest needs the frontend or static files. The wheel
+    # ships codex/static, so Build Dist collects it.
+    with:
+      ci-target: codex-ci
+      matrix: >-
+        [{"name": "Lint", "make": "lint"},
+        {"name": "Test Frontend", "make": "test-frontend"},
+        {"name": "Test Python", "make": "django-check test-python", "junit": true},
+        {"name": "Build Dist", "make": "build-choices build-frontend collectstatic build-only", "dist": true}]
     permissions:
       contents: read
+      actions: read
       packages: write
       checks: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          # Only fetch full history for the main push gate
-          fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
-
-      - name: Check for Redundant Tests & Existing Dist
-        id: gate
-        if: github.ref_name == 'main' && github.event_name == 'push'
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bin/ci-download-dist-if-identical.sh
-
-      - name: Set up Docker Buildx
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GHCR
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build dist-builder image
-        id: build-ci
-        if: steps.gate.outputs.dist_found != 'true'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: codex-ci
-          load: true
-          tags: ${{ env.CI_IMAGE_TAG }}
-
-          cache-from: type=registry,ref=${{ env.CI_IMAGE }}:cache
-          cache-to: type=registry,ref=${{ env.CI_IMAGE }}:cache,mode=max
-
-      - name: Start Services
-        id: start-services
-        if: steps.build-ci.outcome == 'success'
-        run: |
-          mkdir -p dist test-results
-          docker compose up -d ci
-
-      - name: Lint
-        id: lint
-        if: steps.start-services.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make lint
-
-      - name: Build for Tests & Dist
-        id: build-for-tests
-        if: steps.lint.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make build-choices build-frontend collectstatic
-
-      - name: Tests
-        id: tests
-        if: steps.build-for-tests.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make test-frontend django-check test-python -o build-choices
-
-      - name: Upload Test Results
-        id: upload-tests
-        if: "!cancelled() && steps.tests.outcome != 'skipped'"
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: "**/test-results/pytest/*.xml"
-
-      - name: Publish Test Report
-        if: "!cancelled() && steps.upload-tests.outcome == 'success'"
-        uses: mikepenz/action-junit-report@v6
-        with:
-          report_paths: "**/test-results/pytest/*.xml"
-
-      - name: Build Distribution
-        id: build-dist
-        if: steps.tests.outcome == 'success'
-        run: docker exec ${{ env.CI_CONTAINER }} make build-only
-
-      - name: Stop Services
-        if: steps.start-services.outcome == 'success'
-        run: |
-          touch .env.package # hack because down is too promiscuous
-          docker compose down
-
-      - name: Upload dist artifact
-        if: "!cancelled() && steps.gate.outputs.dist_found == 'true' || steps.build-dist.outcome =='success'"
-        uses: actions/upload-artifact@v7
-        with:
-          name: python-dist
-          path: dist/
-          retention-days: 2
-
-      - name: Discord notification (Test Results)
-        if: "!cancelled() && false"
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          title: Lint & Test
-          description: "Tests for ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
-          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
-          url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
   # Build per-arch Docker images natively
   # ---------------------------------------------------------------------------
   build:
     name: Build Image (${{ matrix.arch }})
-    needs: test
-    if: github.event_name == 'push' ||
-      (github.base_ref == 'develop' && github.head_ref == 'pre-release')
+    needs: ci
+    if: ${{ !cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true' }}
     strategy:
       matrix:
         include:
@@ -159,6 +65,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      CODEX_VERSION: ${{ needs.ci.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -173,10 +81,7 @@ jobs:
           path: dist/
 
       - name: Set Build Context
-        run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
-          echo "CODEX_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "CODEX_WHEEL=$(find dist -name '*.whl' -print0 | xargs basename)" >> "$GITHUB_ENV"
+        run: echo "CODEX_WHEEL=$(find dist -name '*.whl' -print0 | xargs -0 basename)" >> "$GITHUB_ENV"
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -199,11 +104,13 @@ jobs:
           cache-to: type=gha,scope=build-${{ matrix.arch }},mode=max
 
   # ---------------------------------------------------------------------------
-  # Create multi-arch manifest and publish
+  # Create the multi-arch manifest, then publish to PyPI: images first, since
+  # a PyPI version can never be replaced.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy
-    needs: build
+    needs: [ci, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -214,9 +121,6 @@ jobs:
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v8.0.0
 
       - name: Download dist artifact
         uses: actions/download-artifact@v8
@@ -232,12 +136,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push manifest
+        env:
+          VERSION: ${{ needs.ci.outputs.version }}
+          FINAL: ${{ needs.ci.outputs.final }}
         run: |
-          VERSION=$(uv version --short)
           TAG_ARGS=("-t" "${IMAGE}:${VERSION}")
 
-          # Positive regex check for Final versions (e.g., 1.2.3)
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          # Final versions (X.Y.Z) also get latest.
+          if [[ $FINAL == true ]]; then
             TAG_ARGS+=("-t" "${IMAGE}:latest")
           fi
 
@@ -254,9 +160,10 @@ jobs:
             "${IMAGE}:${VERSION}-arm64"
 
       - name: Publish to PyPI
-        run: uv publish dist/*
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        uses: ./.github/actions/devenv-pypi
+        with:
+          token: ${{ secrets.PYPI_TOKEN }}
+          download: "false"
 
       - name: Discord notification (Deploy Results)
         if: "!cancelled() && false"
@@ -272,11 +179,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Republish final releases to Docker Hub as a deprecated derivative of the
   # ghcr.io image: identical layers, one ENV and two labels, so stranded
-  # docker.io users get the in-app "move to ghcr.io" warning.
+  # docker.io users get the in-app "move to ghcr.io" warning. Alphas never
+  # reach Docker Hub: nothing prunes them there and the only tag stranded
+  # users pull is latest.
   # ---------------------------------------------------------------------------
   deploy-hub:
     name: Deploy Deprecated Docker Hub Image
-    needs: deploy
+    needs: [ci, deploy]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.ci.outputs.final == 'true' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -287,6 +197,7 @@ jobs:
     # ends Docker Hub publishing.
     env:
       DOCKERHUB_ENABLED: ${{ secrets.DOCKER_PASS != '' }}
+      VERSION: ${{ needs.ci.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -294,29 +205,15 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Check for a final version
-        id: version
-        run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          # The same rule that gives the ghcr.io index its latest tag.
-          # Alphas never reach Docker Hub: nothing prunes them there and
-          # the only tag stranded users pull is latest.
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "final=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
+        if: env.DOCKERHUB_ENABLED == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
       - name: Build and push deprecated image
-        if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+        if: env.DOCKERHUB_ENABLED == 'true'
         run: |
           # No RUN steps: buildx rewrites the config blob per platform and
           # copies the ghcr.io layers across unchanged, so no QEMU is needed.
@@ -339,3 +236,18 @@ jobs:
             --tag "${HUB_IMAGE}:latest" \
             --push \
             .
+
+  # ---------------------------------------------------------------------------
+  # Last step of a main release: tag, GitHub Release from NEWS.md, merge-back.
+  # deploy-hub is skipped for alphas, so skipped counts as done there.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Release
+    needs: [ci, deploy, deploy-hub]
+    if: >-
+      ${{ !cancelled() && needs.ci.outputs.release == 'true'
+      && needs.deploy.result == 'success'
+      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped') }}
+    uses: ./.github/workflows/devenv-release.yml
+    permissions:
+      contents: write

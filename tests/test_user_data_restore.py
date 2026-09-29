@@ -296,6 +296,73 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert AdminFlag.objects.filter(key="AU").count() == 1
 
 
+class SettingsDefaultsRestoreTests(_SidecarRestoreCase):
+    """The site defaults singleton round-trips; a legacy BG flag maps onto it."""
+
+    _COLUMNS: Final = {"folders": ["cover", "name", "child_count"]}
+
+    def test_round_trip_restores_settings_defaults(self) -> None:
+        from codex.models.admin import SettingsDefaults
+
+        SettingsDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "top_collection": "arcs",
+                "view_mode": "table",
+                "bookmark": "UNREAD",
+                "table_columns": self._COLUMNS,
+                "fit_to": "H",
+                "page_transition": False,
+            },
+        )
+        snapshot = self._snapshot_sidecar()
+        SettingsDefaults.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("settings_defaults") == 1
+        row = SettingsDefaults.objects.get(pk=1)
+        assert row.top_collection == "arcs"
+        assert row.view_mode == "table"
+        assert row.bookmark == "UNREAD"
+        assert row.table_columns == self._COLUMNS
+        assert row.fit_to == "H"
+        assert row.page_transition is False
+
+    def _legacy_snapshot(self, *, bg_value: str, fv_on: bool) -> Path:
+        """Snapshot a pre-SettingsDefaults backup: a BG flag, no singleton row."""
+        snapshot = self._snapshot_sidecar()
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute("DELETE FROM settings_defaults")
+            conn.execute("DELETE FROM admin_flags WHERE key IN ('BG', 'FV')")
+            conn.executemany(
+                "INSERT INTO admin_flags (key, on_flag, value) VALUES (?, ?, ?)",
+                (("BG", 1, bg_value), ("FV", int(fv_on), "")),
+            )
+        return snapshot
+
+    def test_legacy_backup_maps_bg_onto_top_collection(self) -> None:
+        from codex.models.admin import SettingsDefaults
+
+        snapshot = self._legacy_snapshot(bg_value="folders", fv_on=True)
+        SettingsDefaults.objects.filter(pk=1).update(view_mode="table")
+
+        restore(sidecar_path=snapshot)
+
+        row = SettingsDefaults.objects.get(pk=1)
+        assert row.top_collection == "folders"
+        # Only the top collection comes from a legacy backup.
+        assert row.view_mode == "table"
+        assert not AdminFlag.objects.filter(key="BG").exists()
+
+    def test_legacy_backup_folders_without_folder_view(self) -> None:
+        from codex.models.admin import SettingsDefaults
+
+        snapshot = self._legacy_snapshot(bg_value="folders", fv_on=False)
+        restore(sidecar_path=snapshot)
+        assert SettingsDefaults.objects.get(pk=1).top_collection == "publishers"
+
+
 class OverlappingLibraryRestoreTests(_SidecarRestoreCase):
     """
     The sidecar keys user data on a path, which two libraries can share.

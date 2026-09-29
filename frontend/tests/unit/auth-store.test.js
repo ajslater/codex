@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/api/v4/auth", () => ({
   getAdminFlags: vi.fn(),
+  getSession: vi.fn(),
   updateTimezone: vi.fn(),
   register: vi.fn(),
   login: vi.fn(),
@@ -24,7 +25,21 @@ vi.mock("@/api/v4/auth", () => ({
 
 import * as API from "@/api/v4/auth";
 import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
+import { useReaderStore } from "@/stores/reader";
+import { reloadOnDefaultsChange } from "@/stores/socket";
+
+const DEFAULTS = Object.freeze({
+  browser: { topCollection: "folders", bookmark: "UNREAD" },
+  reader: { fitTo: "H" },
+});
+
+function sessionResponse(extra = {}) {
+  return {
+    data: { user: null, adminFlags: { nonUsers: true }, ...extra },
+  };
+}
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -119,5 +134,75 @@ describe("useAuthStore — resetPassword", () => {
       password: "newpw",
     });
     expect(ok).toBe(false);
+  });
+});
+
+describe("useAuthStore — site defaults", () => {
+  it("loadSession keeps defaults and defaultsRev", async () => {
+    API.getSession.mockResolvedValue(
+      sessionResponse({ defaults: DEFAULTS, defaultsRev: "r1" }),
+    );
+    const store = useAuthStore();
+    await store.loadSession();
+    expect(store.defaults).toEqual(DEFAULTS);
+    expect(store.defaultsRev).toBe("r1");
+  });
+
+  it("loadAdminFlags keeps them too, and clears them when withheld", async () => {
+    API.getSession.mockResolvedValueOnce(
+      sessionResponse({ defaults: DEFAULTS, defaultsRev: "r1" }),
+    );
+    const store = useAuthStore();
+    await store.loadAdminFlags();
+    expect(store.defaults).toEqual(DEFAULTS);
+    expect(store.defaultsRev).toBe("r1");
+
+    // Non-Users turned off: the anonymous payload omits both.
+    API.getSession.mockResolvedValueOnce(sessionResponse());
+    await store.loadAdminFlags();
+    expect(store.defaults).toBeUndefined();
+    expect(store.defaultsRev).toBeUndefined();
+  });
+});
+
+function stores(rev) {
+  const auth = useAuthStore();
+  auth.defaultsRev = rev;
+  const browser = useBrowserStore();
+  browser.loadSettings = vi.fn();
+  const reader = useReaderStore();
+  reader.loadGlobalSettings = vi.fn();
+  return { auth, browser, reader };
+}
+
+describe("reloadOnDefaultsChange", () => {
+  it("reloads the browser settings when defaultsRev changed", async () => {
+    API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r2" }));
+    const { browser, reader } = stores("r1");
+    expect(await reloadOnDefaultsChange("browser")).toBe(true);
+    expect(browser.loadSettings).toHaveBeenCalledOnce();
+    expect(reader.loadGlobalSettings).not.toHaveBeenCalled();
+  });
+
+  it("reloads the reader's global settings on the reader route", async () => {
+    API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r2" }));
+    const { browser, reader } = stores("r1");
+    await reloadOnDefaultsChange("reader");
+    expect(reader.loadGlobalSettings).toHaveBeenCalledOnce();
+    expect(browser.loadSettings).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when defaultsRev is unchanged", async () => {
+    API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r1" }));
+    const { browser } = stores("r1");
+    expect(await reloadOnDefaultsChange("browser")).toBe(false);
+    expect(browser.loadSettings).not.toHaveBeenCalled();
+  });
+
+  it("does nothing on the first load, from an undefined revision", async () => {
+    API.getSession.mockResolvedValue(sessionResponse({ defaultsRev: "r1" }));
+    const { browser } = stores();
+    expect(await reloadOnDefaultsChange("browser")).toBe(false);
+    expect(browser.loadSettings).not.toHaveBeenCalled();
   });
 });

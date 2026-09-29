@@ -10,6 +10,7 @@
           :settings="globalSettings"
           show-clear
           :clear-disabled="isGlobalClearDisabled"
+          :clear-tooltip="globalClearTooltip"
           @update="updateGlobalSettings"
           @clear="clearGlobalSettings"
         />
@@ -91,15 +92,16 @@ const SCOPE_TYPE_TITLES = Object.freeze({
 /*
  * Global settings have a special "is overridden" criterion: rather than
  * checking for null/undefined (as intermediate and comic settings do), they
- * are compared against the recorded global default values, since after
- * initialization every key is populated.
+ * are compared against the default values, since after initialization every
+ * key is populated. The defaults are the admin's site defaults when
+ * ``/session`` delivered them, else the factory JSON.
  */
-const differsFromGlobalDefaults = (settings) => {
+export const differsFromDefaults = (settings, defaults = GLOBAL_DEFAULTS) => {
   if (!settings) {
     return false;
   }
   for (const attr of ATTRS) {
-    if (settings[attr] !== GLOBAL_DEFAULTS[attr]) {
+    if (settings[attr] !== defaults[attr]) {
       return true;
     }
   }
@@ -112,10 +114,14 @@ export default {
   data() {
     return {
       openPanels: [],
+      globalClearTooltip: "Reset to the site defaults",
     };
   },
   computed: {
     ...mapState(useAuthStore, ["isAuthDialogOpen"]),
+    ...mapState(useAuthStore, {
+      globalDefaults: (state) => state.defaults?.reader ?? GLOBAL_DEFAULTS,
+    }),
     ...mapState(useReaderStore, {
       globalSettings: (state) => state.globalSettings,
       intermediateSettingsData: (state) => state.intermediateSettings || {},
@@ -140,7 +146,7 @@ export default {
       },
     }),
     isGlobalClearDisabled() {
-      return !differsFromGlobalDefaults(this.globalSettings);
+      return !differsFromDefaults(this.globalSettings, this.globalDefaults);
     },
     hasIntermediate() {
       return Boolean(this.intermediateInfo);
@@ -174,7 +180,7 @@ export default {
       return true;
     },
     hasGlobalOverrides() {
-      return differsFromGlobalDefaults(this.globalSettings);
+      return differsFromDefaults(this.globalSettings, this.globalDefaults);
     },
     hasIntermediateOverrides() {
       return this.hasIntermediate && !this.isIntermediateClearDisabled;
@@ -249,7 +255,7 @@ export default {
           break;
         case "b":
           updates = {
-            readingDirection: "bbt",
+            readingDirection: "btt",
           };
           break;
       }

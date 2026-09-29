@@ -17,14 +17,39 @@ const warnError = (error) => console.warn(error);
  * picking up changes from explicit invalidators (CRUD mutations
  * and websocket fan-out both pass ``{ force: true }``).
  */
-const DYNAMIC_TTL_MS = 5_000;
+const DYNAMIC_TTL_MS = 5000;
 /*
  * AgeRatingMetron is a static enum lookup; once loaded it never
  * needs refreshing for the session.
  */
 const TABLE_TTL_MS = Object.freeze({
-  AgeRatingMetron: Number.POSITIVE_INFINITY,
+  AgeRatingMetron: Infinity,
 });
+/*
+ * Whether data stamped at ``last`` is still inside its sticky-cache
+ * window. Never-loaded data (a falsy stamp) is stale, and so is data
+ * exactly ``ttl`` old.
+ */
+export const isFresh = (last, ttl = DYNAMIC_TTL_MS, now = Date.now()) =>
+  Boolean(last) && now - last < ttl;
+/*
+ * Request order for the reads that can overlap: every loadTable, and the
+ * tag-write errors list, whose clear counts as a request too. Every
+ * request takes the next number, and its response lands only if no later
+ * request for the same data has landed first, so a slow unforced read
+ * can't overwrite what a forced reload or a clear already stored.
+ * ``landed`` is keyed like ``timestamps``.
+ */
+const tableRequests = { issued: 0, landed: {} };
+/*
+ * Claim ``key`` for the response to ``request``. False when a later
+ * request already landed there: this response is older, so drop it.
+ */
+const claimLanding = (key, request) => {
+  if (request < (tableRequests.landed[key] ?? 0)) return false;
+  tableRequests.landed[key] = request;
+  return true;
+};
 export const TABS = Object.freeze([
   "Users",
   "Groups",
@@ -34,6 +59,7 @@ export const TABS = Object.freeze([
   "Tagging",
   "Custom Covers",
   "Settings",
+  "Defaults",
   "Jobs",
   "Restore",
   "Stats",
@@ -56,7 +82,7 @@ export const useAdminStore = defineStore("admin", {
     tagWriteErrors: [],
     flags: [],
     folderPicker: {
-      root: undefined,
+      rootFolder: undefined,
       folders: [],
     },
     timestamps: {},
@@ -65,6 +91,7 @@ export const useAdminStore = defineStore("admin", {
     emailSettings: undefined,
     oidcSettings: undefined,
     throttleSettings: undefined,
+    settingsDefaults: undefined,
     apiKey: "",
     activeTab: "Libraries",
   }),
@@ -103,38 +130,42 @@ export const useAdminStore = defineStore("admin", {
        * pass ``{ force: true }`` because they know the data
        * changed underneath us.
        */
-      if (!force) {
-        const ttl = TABLE_TTL_MS[table] ?? DYNAMIC_TTL_MS;
-        const last = this.timestamps[table] || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps[table], TABLE_TTL_MS[table])) {
+        return true;
       }
-      await t
-        .getAll()
-        .then((response) => {
-          /*
-           * v4 admin viewsets use cursor pagination, so list responses
-           * arrive as ``{count?, next, previous, results}`` inside the
-           * envelope. Read-only enums (AgeRatingMetron) and the few
-           * non-viewset list endpoints still return a bare array — accept
-           * both shapes so callers don't need to know which is which.
-           */
-          const body = response.data;
-          const rows = Array.isArray(body)
-            ? body
-            : Array.isArray(body?.results)
-              ? body.results
-              : undefined;
-          if (rows === undefined) {
-            console.warn(t.stateField, "response shape unrecognized");
-            return false;
-          }
-          this[t.stateField] = rows;
-          this.timestamps[table] = Date.now();
-          return true;
-        })
-        .catch(warnError);
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
+      try {
+        const response = await t.getAll();
+        /*
+         * v4 admin viewsets use cursor pagination, so list responses
+         * arrive as ``{count?, next, previous, results}`` inside the
+         * envelope. Read-only enums (AgeRatingMetron) and the few
+         * non-viewset list endpoints still return a bare array — accept
+         * both shapes so callers don't need to know which is which.
+         */
+        const body = response.data;
+        let rows;
+        if (Array.isArray(body)) {
+          rows = body;
+        } else if (Array.isArray(body?.results)) {
+          rows = body.results;
+        }
+        if (rows === undefined) {
+          console.warn(t.stateField, "response shape unrecognized");
+          return;
+        }
+        // A later load of this table already landed; these rows are older.
+        if (!claimLanding(table, request)) return;
+        this[t.stateField] = rows;
+        /*
+         * Stamp when the request went out, not when it came back: the
+         * rows are only as fresh as the moment they were asked for.
+         */
+        this.timestamps[table] = requestedAt;
+      } catch (error) {
+        warnError(error);
+      }
     },
     async loadTables(tables, options) {
       if (this._requireAdmin()) return false;
@@ -152,76 +183,88 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadFolders(path, showHidden) {
       if (this._requireAdmin()) return false;
-      await API.getFolders(path, showHidden)
-        .then((response) => {
-          this.folderPicker = response.data;
-          return true;
-        })
-        .catch(useCommonStore().setErrors);
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.getFolders(path, showHidden);
+        this.folderPicker = response.data;
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
-    async clearFolders(root) {
+    async clearFolders(rootFolder) {
       if (this._requireAdmin()) return false;
-      this.folderPicker = { root, folders: [""] };
+      this.folderPicker = { rootFolder, folders: [""] };
     },
+    /*
+     * createRow and updateRow resolve true when the row saved and false when
+     * it didn't, so a dialog can stay open to show the server's field errors.
+     */
     async createRow(table, data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await TABLES[table]
-        .create(data)
-        .then(() => {
-          commonStore.clearErrors();
-          return this.loadTable(table, { force: true });
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await TABLES[table].create(data);
+        commonStore.clearErrors();
+        await this.loadTable(table, { force: true });
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
     },
     async updateRow(table, pk, data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await TABLES[table]
-        .update(pk, data)
-        .then(() => {
-          commonStore.clearErrors();
-          return this.loadTable(table, { force: true });
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await TABLES[table].update(pk, data);
+        commonStore.clearErrors();
+        await this.loadTable(table, { force: true });
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
     },
     async changeUserPassword(pk, data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.changeUserPassword(pk, data)
-        .then((response) => {
-          commonStore.setSuccess(response.data.detail);
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.changeUserPassword(pk, data);
+        commonStore.setSuccess(response.data.detail);
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async sendUserVerificationEmail(pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.sendUserVerificationEmail(pk)
-        .then((response) => {
-          commonStore.setSuccess(response.data.detail);
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.sendUserVerificationEmail(pk);
+        commonStore.setSuccess(response.data.detail);
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async deleteRow(table, pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await TABLES[table]
-        .destroy(pk)
-        .then(() => {
-          commonStore.clearErrors();
-          return this.loadTable(table, { force: true });
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await TABLES[table].destroy(pk);
+        commonStore.clearErrors();
+        await this.loadTable(table, { force: true });
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async librarianTask(task, text, libraryId) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.postLibrarianTask({ task, libraryId })
-        .then(() => commonStore.setSuccess(text))
-        .catch(commonStore.setErrors);
+      try {
+        await API.postLibrarianTask({ task, libraryId });
+        commonStore.setSuccess(text);
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Names already taken, for the ``$notIn`` rules.
@@ -248,27 +291,27 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadStats() {
       if (this._requireAdmin()) return false;
-      await API.getStats()
-        .then((response) => {
-          this.stats = response.data;
-          return true;
-        })
-        .catch(console.warn);
+      try {
+        const response = await API.getStats();
+        this.stats = response.data;
+      } catch (error) {
+        console.warn(error);
+      }
     },
     async loadAllStatuses() {
       if (this._requireAdmin()) return false;
-      await API.getAllLibrarianStatuses()
-        .then((response) => {
-          if (Array.isArray(response.data)) {
-            const next = {};
-            for (const status of response.data) {
-              next[status.statusType] = status;
-            }
-            this._patchAllLibrarianStatuses(next);
+      try {
+        const response = await API.getAllLibrarianStatuses();
+        if (Array.isArray(response.data)) {
+          const next = {};
+          for (const status of response.data) {
+            next[status.statusType] = status;
           }
-          return true;
-        })
-        .catch(console.warn);
+          this._patchAllLibrarianStatuses(next);
+        }
+      } catch (error) {
+        console.warn(error);
+      }
     },
     _patchAllLibrarianStatuses(next) {
       /*
@@ -287,7 +330,7 @@ export const useAdminStore = defineStore("admin", {
       const current = this.allLibrarianStatuses;
       // Remove keys that vanished from the latest payload.
       for (const key of Object.keys(current)) {
-        if (!(key in next)) {
+        if (!Object.hasOwn(next, key)) {
           delete current[key];
         }
       }
@@ -300,53 +343,47 @@ export const useAdminStore = defineStore("admin", {
     },
     async loadAPIKey() {
       if (this._requireAdmin()) return false;
-      await API.getAPIKey()
-        .then((response) => {
-          this.apiKey = response.data?.apiKey ?? "";
-          return true;
-        })
-        .catch(console.warn);
+      try {
+        const response = await API.getAPIKey();
+        this.apiKey = response.data?.apiKey ?? "";
+      } catch (error) {
+        console.warn(error);
+      }
     },
     async updateAPIKey() {
       if (this._requireAdmin()) return false;
-      await API.updateAPIKey()
-        .then((response) => {
-          this.apiKey = response.data?.apiKey ?? this.apiKey;
-          return true;
-        })
-        .catch(console.warn);
+      try {
+        const response = await API.updateAPIKey();
+        this.apiKey = response.data?.apiKey ?? this.apiKey;
+      } catch (error) {
+        console.warn(error);
+      }
     },
     async loadTaggingDefaults({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.TaggingDefaults || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps.TaggingDefaults)) return true;
+      try {
+        const response = await API.getTaggingDefaults();
+        this.taggingDefaults = response.data;
+        this.timestamps.TaggingDefaults = Date.now();
+      } catch (error) {
+        console.warn(error);
       }
-      await API.getTaggingDefaults()
-        .then((response) => {
-          this.taggingDefaults = response.data;
-          this.timestamps.TaggingDefaults = Date.now();
-          return true;
-        })
-        .catch(console.warn);
     },
     async updateTaggingDefaults(data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.updateTaggingDefaults(data)
-        .then((response) => {
-          this.taggingDefaults = response.data;
-          this.timestamps.TaggingDefaults = Date.now();
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.updateTaggingDefaults(data);
+        this.taggingDefaults = response.data;
+        this.timestamps.TaggingDefaults = Date.now();
+        commonStore.clearErrors();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async validateTaggingCredentials(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.validateTaggingCredentials(data);
@@ -354,48 +391,53 @@ export const useAdminStore = defineStore("admin", {
         return response.data.results;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
       }
     },
     async loadTagWriteErrors({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.TagWriteErrors || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps.TagWriteErrors)) return true;
+      // Ordered and stamped like loadTable: the WebSocket forces reloads.
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
+      try {
+        const response = await API.getTagWriteErrors();
+        if (!claimLanding("TagWriteErrors", request)) return;
+        this.tagWriteErrors = Array.isArray(response.data) ? response.data : [];
+        this.timestamps.TagWriteErrors = requestedAt;
+      } catch (error) {
+        console.warn(error);
       }
-      await API.getTagWriteErrors()
-        .then((response) => {
-          this.tagWriteErrors = Array.isArray(response.data)
-            ? response.data
-            : [];
-          this.timestamps.TagWriteErrors = Date.now();
-          return true;
-        })
-        .catch(console.warn);
     },
     async clearTagWriteErrors() {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.clearTagWriteErrors()
-        .then(() => {
+      /*
+       * The clear is ordered with the reads. A read that went out before
+       * it can't put the cleared errors back, and a read that went out
+       * after it and already landed isn't wiped by it.
+       */
+      const request = ++tableRequests.issued;
+      const requestedAt = Date.now();
+      try {
+        await API.clearTagWriteErrors();
+        if (claimLanding("TagWriteErrors", request)) {
           this.tagWriteErrors = [];
-          this.timestamps.TagWriteErrors = Date.now();
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+          this.timestamps.TagWriteErrors = requestedAt;
+        }
+        commonStore.clearErrors();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async loadFailedImportsSeen() {
       if (this._requireAdmin()) return false;
-      await API.getFailedImportsSeen()
-        .then((response) => {
-          this.failedImportsSeenAt = response.data?.seenAt ?? "";
-          return true;
-        })
-        .catch(console.warn);
+      try {
+        const response = await API.getFailedImportsSeen();
+        this.failedImportsSeenAt = response.data?.seenAt ?? "";
+      } catch (error) {
+        console.warn(error);
+      }
     },
     async markFailedImportsSeen() {
       if (this._requireAdmin()) return false;
@@ -403,56 +445,51 @@ export const useAdminStore = defineStore("admin", {
       // Persist the "seen" marker so the hamburger dot + sidebar item stay
       // cleared across reloads and sessions. The Libraries-tab table persists;
       // failed imports created after this moment re-activate the warning.
-      await API.markFailedImportsSeen()
-        .then((response) => {
-          this.failedImportsSeenAt = response.data?.seenAt ?? "";
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.markFailedImportsSeen();
+        this.failedImportsSeenAt = response.data?.seenAt ?? "";
+        commonStore.clearErrors();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async revivePendingDelete(collection, pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.revivePendingDelete(collection, pk)
-        .then(() => {
-          commonStore.clearErrors();
-          // The websocket tells every other admin session; this one
-          // refreshes itself so the row leaves immediately.
-          return this.loadTables(["PendingDelete", "Library"], {
-            force: true,
-          });
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await API.revivePendingDelete(collection, pk);
+        commonStore.clearErrors();
+        // The websocket tells every other admin session; this one
+        // refreshes itself so the row leaves immediately.
+        await this.loadTables(["PendingDelete", "Library"], {
+          force: true,
+        });
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async loadEmailSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.EmailSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps.EmailSettings)) return true;
+      try {
+        const response = await API.getEmailSettings();
+        this.emailSettings = response.data;
+        this.timestamps.EmailSettings = Date.now();
+      } catch (error) {
+        console.warn(error);
       }
-      await API.getEmailSettings()
-        .then((response) => {
-          this.emailSettings = response.data;
-          this.timestamps.EmailSettings = Date.now();
-          return true;
-        })
-        .catch(console.warn);
     },
     async updateEmailSettings(data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.updateEmailSettings(data)
-        .then((response) => {
-          this.emailSettings = response.data;
-          this.timestamps.EmailSettings = Date.now();
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.updateEmailSettings(data);
+        this.emailSettings = response.data;
+        this.timestamps.EmailSettings = Date.now();
+        commonStore.clearErrors();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Trigger a one-shot SMTP send using the supplied overrides on top
@@ -461,7 +498,7 @@ export const useAdminStore = defineStore("admin", {
      * field-level validation messages.
      */
     async sendEmailTest(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.sendEmailTest(data);
@@ -469,43 +506,37 @@ export const useAdminStore = defineStore("admin", {
         return response.data;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
       }
     },
     async loadOidcSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.OidcSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps.OidcSettings)) return true;
+      try {
+        const response = await API.getOidcSettings();
+        this.oidcSettings = response.data;
+        this.timestamps.OidcSettings = Date.now();
+      } catch (error) {
+        console.warn(error);
       }
-      await API.getOidcSettings()
-        .then((response) => {
-          this.oidcSettings = response.data;
-          this.timestamps.OidcSettings = Date.now();
-          return true;
-        })
-        .catch(console.warn);
     },
     async updateOidcSettings(data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.updateOidcSettings(data)
-        .then(async (response) => {
-          this.oidcSettings = response.data;
-          this.timestamps.OidcSettings = Date.now();
-          commonStore.clearErrors();
-          // Keep the auth store's public OIDC flags — which drive the
-          // "Login with <provider>" button — in sync with the settings
-          // just saved, so toggling OIDC on/off is reflected without a
-          // manual page reload. OIDCSettings is a singleton (no
-          // admin.flags.changed websocket broadcast), so refresh here.
-          await useAuthStore().loadAdminFlags();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.updateOidcSettings(data);
+        this.oidcSettings = response.data;
+        this.timestamps.OidcSettings = Date.now();
+        commonStore.clearErrors();
+        // Keep the auth store's public OIDC flags — which drive the
+        // "Login with <provider>" button — in sync with the settings
+        // just saved, so toggling OIDC on/off is reflected without a
+        // manual page reload. OIDCSettings is a singleton (no
+        // admin.flags.changed websocket broadcast), so refresh here.
+        await useAuthStore().loadAdminFlags();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Probe the identity provider's discovery document, optionally with
@@ -513,7 +544,7 @@ export const useAdminStore = defineStore("admin", {
      * from the server; errors land on the common store too.
      */
     async testOidcConnection(data) {
-      if (this._requireAdmin()) return undefined;
+      if (this._requireAdmin()) return;
       const commonStore = useCommonStore();
       try {
         const response = await API.testOidcConnection(data);
@@ -521,37 +552,72 @@ export const useAdminStore = defineStore("admin", {
         return response.data;
       } catch (error) {
         commonStore.setErrors(error);
-        return undefined;
+        return;
+      }
+    },
+    async loadSettingsDefaults({ force = false } = {}) {
+      if (this._requireAdmin()) return false;
+      if (!force && isFresh(this.timestamps.SettingsDefaults)) return true;
+      try {
+        const response = await API.getSettingsDefaults();
+        this.settingsDefaults = response.data;
+        this.timestamps.SettingsDefaults = Date.now();
+      } catch (error) {
+        console.warn(error);
+      }
+    },
+    /*
+     * ``applyToAnonymous`` also moves the existing anonymous sessions still
+     * at the old defaults. Resolves to the per-field row counts it moved
+     * (``{}`` without the catch-up), or ``undefined`` when the save failed.
+     */
+    async updateSettingsDefaults(data, { applyToAnonymous = false } = {}) {
+      if (this._requireAdmin()) return;
+      const commonStore = useCommonStore();
+      const body = applyToAnonymous ? { ...data, applyToAnonymous } : data;
+      try {
+        const response = await API.updateSettingsDefaults(body);
+        const { applied, ...settingsDefaults } = response.data;
+        this.settingsDefaults = settingsDefaults;
+        this.timestamps.SettingsDefaults = Date.now();
+        commonStore.clearErrors();
+        return applied ?? {};
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
+    },
+    // Never cached: the counts move with every anonymous browse.
+    async loadSettingsDefaultsReach() {
+      if (this._requireAdmin()) return;
+      try {
+        const response = await API.getSettingsDefaultsReach();
+        return response.data;
+      } catch (error) {
+        console.warn(error);
       }
     },
     async loadThrottleSettings({ force = false } = {}) {
       if (this._requireAdmin()) return false;
-      if (!force) {
-        const ttl = DYNAMIC_TTL_MS;
-        const last = this.timestamps.ThrottleSettings || 0;
-        if (last && Date.now() - last < ttl) {
-          return true;
-        }
+      if (!force && isFresh(this.timestamps.ThrottleSettings)) return true;
+      try {
+        const response = await API.getThrottleSettings();
+        this.throttleSettings = response.data;
+        this.timestamps.ThrottleSettings = Date.now();
+      } catch (error) {
+        console.warn(error);
       }
-      await API.getThrottleSettings()
-        .then((response) => {
-          this.throttleSettings = response.data;
-          this.timestamps.ThrottleSettings = Date.now();
-          return true;
-        })
-        .catch(console.warn);
     },
     async updateThrottleSettings(data) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
-      await API.updateThrottleSettings(data)
-        .then((response) => {
-          this.throttleSettings = response.data;
-          this.timestamps.ThrottleSettings = Date.now();
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.updateThrottleSettings(data);
+        this.throttleSettings = response.data;
+        this.timestamps.ThrottleSettings = Date.now();
+        commonStore.clearErrors();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Snapshot the user-data sidecar from the main DB. Returns

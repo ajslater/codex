@@ -19,7 +19,7 @@ const PK = 7;
 const MAX_PAGE = 9;
 const PAST_THE_THROTTLE_WINDOW_MS = 1000;
 
-let wrappers = [];
+const wrappers = [];
 
 function mountPager(readingDirection) {
   const scrollToIndex = vi.fn();
@@ -60,7 +60,7 @@ afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
   }
-  wrappers = [];
+  wrappers.length = 0;
 });
 
 describe("PagerVertical — scrolling to a page", () => {

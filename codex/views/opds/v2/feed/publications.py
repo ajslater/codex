@@ -552,7 +552,7 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         feed_view._admin_flags = self.admin_flags  # noqa: SLF001
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
         feed_view.kwargs = {"collection": link_spec.group, "pks": [0], "page": 1}
-        params = self.get_browser_default_params()
+        params = self.get_browser_factory_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 snake_key = snakecase(key)

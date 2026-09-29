@@ -356,15 +356,15 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
   });
 });
 
-describe("AdminTaggingTab — source priority order", () => {
-  function mountBoth(defaultSources) {
-    return mountTab({
-      hasMetronCredentials: true,
-      hasComicvineCredentials: true,
-      defaultSources,
-    });
-  }
+function mountBoth(defaultSources) {
+  return mountTab({
+    hasMetronCredentials: true,
+    hasComicvineCredentials: true,
+    defaultSources,
+  });
+}
 
+describe("AdminTaggingTab — source priority order", () => {
   test("enabling a source appends it at the end (lowest priority)", async () => {
     const vm = mountBoth(["comicvine"]).vm;
     vm.metronEnabled = true;

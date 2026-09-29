@@ -30,10 +30,11 @@ export const routeForCollection = ({ collection, pks }) => ({
  */
 export const collectionForRoute = ({ collection, parentIds }) => {
   const ids = normalizeParentIds(parentIds);
-  if (collection === "publishers" && !ids.length) {
-    return { collection: "root", pks: ids };
-  }
-  return { collection, pks: ids };
+  return {
+    collection:
+      collection === "publishers" && ids.length === 0 ? "root" : collection,
+    pks: ids,
+  };
 };
 
 /*
@@ -45,27 +46,18 @@ export const collectionForRoute = ({ collection, parentIds }) => {
  */
 export const browserRouteParams = ({ collection, parentIds, pks }) => {
   const ids = normalizeParentIds(parentIds ?? pks);
-  return ids.length ? { collection, parentIds: ids.join(",") } : { collection };
+  return ids.length > 0
+    ? { collection, parentIds: ids.join(",") }
+    : { collection };
 };
 
-const REVERSE_READING_DIRECTIONS = Object.freeze(new Set("rtl", "btt"));
-export const getReaderRoute = (
-  { ids, page, readingDirection, pageCount },
-  importMetadata,
-) => {
-  // Get the route to a comic with the correct entry page.
+export const getReaderRoute = ({ ids, page, pageCount }, importMetadata) => {
+  // Get the route to a comic, opening at its bookmarked page or page 0.
   if (ids.length === 0 || (importMetadata && !pageCount)) {
     return "";
   }
   const pk = ids[0];
-  if (page) {
-    page = Number(page);
-  } else if (REVERSE_READING_DIRECTIONS.has(readingDirection)) {
-    const maxPage = Number(pageCount) - 1;
-    page = Math.max(maxPage, 0);
-  } else {
-    page = 0;
-  }
+  page = page ? Number(page) : 0;
   return {
     name: "reader",
     params: { pk },

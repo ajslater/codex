@@ -153,12 +153,6 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
-    ...mapActions(useReaderStore, [
-      "routeToDirection",
-      "routeToDirectionOne",
-      "routeToBook",
-      "setBookChangeFlag",
-    ]),
     openMetadata() {
       this.$refs.metadataDialog.dialog = true;
     },

@@ -5,7 +5,14 @@ from typing import override
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import BooleanField, CharField, EmailField, IntegerField
+from rest_framework.fields import (
+    BooleanField,
+    CharField,
+    DictField,
+    EmailField,
+    IntegerField,
+    ListField,
+)
 from rest_framework.serializers import Serializer
 from rest_registration.api.serializers import DefaultUserProfileSerializer
 
@@ -99,6 +106,39 @@ class UserSerializer(Serializer):
     is_superuser = BooleanField(read_only=True)
 
 
+class SessionBrowserDefaultsSerializer(Serializer):
+    """Site default browser settings. Closed vocabulary only."""
+
+    top_collection = CharField(read_only=True)
+    show = DictField(child=BooleanField(), read_only=True)
+    order_by = CharField(read_only=True, allow_blank=True)
+    order_reverse = BooleanField(read_only=True)
+    view_mode = CharField(read_only=True)
+    twenty_four_hour_time = BooleanField(read_only=True)
+    always_show_filename = BooleanField(read_only=True)
+    bookmark = CharField(read_only=True, allow_blank=True)
+    table_columns = DictField(child=ListField(child=CharField()), read_only=True)
+
+
+class SessionReaderDefaultsSerializer(Serializer):
+    """Site default global reader settings."""
+
+    fit_to = CharField(read_only=True)
+    reading_direction = CharField(read_only=True)
+    two_pages = BooleanField(read_only=True)
+    page_transition = BooleanField(read_only=True)
+    cache_book = BooleanField(read_only=True)
+    finish_on_last_page = BooleanField(read_only=True)
+    read_rtl_in_reverse = BooleanField(read_only=True)
+
+
+class SessionDefaultsSerializer(Serializer):
+    """Site default settings that seed a new session's first paint."""
+
+    browser = SessionBrowserDefaultsSerializer(read_only=True)
+    reader = SessionReaderDefaultsSerializer(read_only=True)
+
+
 class SessionSerializer(Serializer):
     """
     Composite session payload: user + adminFlags + permissions + version.
@@ -109,12 +149,25 @@ class SessionSerializer(Serializer):
     waste. ``version`` ships here because the SPA chrome reads
     ``installed`` immediately and the update-check fields ride along
     for free off the same Timestamp row.
+
+    ``defaults`` and ``defaults_rev`` ship only to callers who may browse:
+    authenticated users, or anyone while Non-Users is on. Both are omitted
+    otherwise, so an anonymous caller facing the login screen learns
+    nothing about the site's browser settings.
     """
 
     user = UserSerializer(allow_null=True)
     admin_flags = AdminFlagsSerializer()
     permissions = PermissionsSerializer()
     version = VersionsSerializer()
+    defaults = SessionDefaultsSerializer(read_only=True)
+    defaults_rev = CharField(read_only=True, allow_blank=True)
+
+
+class TimezoneSerializer(Serializer):
+    """The browser's IANA timezone, stored on the session."""
+
+    timezone = TimezoneField(write_only=True)
 
 
 class ProfileUpdateSerializer(Serializer):
@@ -129,7 +182,6 @@ class ProfileUpdateSerializer(Serializer):
 
     username = CharField(required=False, allow_blank=False)
     email = EmailField(required=False, allow_blank=True)
-    timezone = TimezoneField(required=False, write_only=True)
 
     @override
     def get_fields(self):

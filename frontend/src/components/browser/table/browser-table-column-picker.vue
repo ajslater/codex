@@ -95,9 +95,12 @@ import { mapActions, mapState } from "pinia";
 
 import BROWSER_TABLE_COLUMN_COSTS from "@/choices/browser-table-column-costs.json";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
-import BROWSER_TABLE_DEFAULT_COLUMNS from "@/choices/browser-table-default-columns.json";
 import { TOP_COLLECTION } from "@/choices/browser-map.json";
-import { filterShowGatedDefaults, useBrowserStore } from "@/stores/browser";
+import {
+  resolveTableColumns,
+  siteTableColumns,
+  useBrowserStore,
+} from "@/stores/browser";
 
 /*
  * Tooltip copy + CSS class for the per-column cost indicator. The
@@ -248,12 +251,37 @@ export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "BrowserTableColumnPicker",
   props: {
+    // The dialog's open state, in both modes.
     modelValue: {
       type: Boolean,
       required: true,
     },
+    /*
+     * Standalone: edit one collection's column list without the browser
+     * store, as the admin Defaults tab does. The ``standalone*`` props
+     * stand in for the store's settings; Save emits ``save`` with the
+     * list instead of saving settings, and Defaults means the registry.
+     * The names can't be ``topCollection`` / ``show``: a prop would
+     * shadow the computed of the same name.
+     */
+    standalone: {
+      type: Boolean,
+      default: false,
+    },
+    standaloneTopCollection: {
+      type: String,
+      default: "",
+    },
+    standaloneColumns: {
+      type: Array,
+      default: () => [],
+    },
+    standaloneShow: {
+      type: Object,
+      default: undefined,
+    },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "save"],
   data() {
     /*
      * Editing state. ``draft`` is the user's draft column order;
@@ -273,10 +301,27 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      topCollection: (state) => state.settings.topCollection,
-      tableColumns: (state) => state.settings.tableColumns,
-      show: (state) => state.settings.show,
+      storeTopCollection: (state) => state.settings.topCollection,
+      storeTableColumns: (state) => state.settings.tableColumns,
+      storeShow: (state) => state.settings.show,
     }),
+    topCollection() {
+      return this.standalone
+        ? this.standaloneTopCollection
+        : this.storeTopCollection;
+    },
+    tableColumns() {
+      return this.standalone
+        ? { [this.standaloneTopCollection]: this.standaloneColumns }
+        : this.storeTableColumns;
+    },
+    show() {
+      return this.standalone ? this.standaloneShow : this.storeShow;
+    },
+    // The admin's site default columns; standalone mode is what sets them.
+    siteColumns() {
+      return this.standalone ? undefined : siteTableColumns();
+    },
     topCollectionLabel() {
       return TOP_COLLECTION[this.topCollection] ?? this.topCollection;
     },
@@ -343,15 +388,14 @@ export default {
       };
     },
     _snapshot() {
-      const stored = this.tableColumns?.[this.topCollection];
-      if (Array.isArray(stored) && stored.length > 0) {
-        this.draft = [...stored];
-      } else {
-        this.draft = filterShowGatedDefaults(
-          BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
+      this.draft = [
+        ...resolveTableColumns(
+          this.topCollection,
+          this.tableColumns,
           this.show,
-        );
-      }
+          this.siteColumns,
+        ),
+      ];
     },
     toggleColumn(key, on) {
       if (on) {
@@ -374,10 +418,14 @@ export default {
       this.draft = this.draft.filter((k) => k !== key);
     },
     resetToDefaults() {
-      this.draft = filterShowGatedDefaults(
-        BROWSER_TABLE_DEFAULT_COLUMNS[this.topCollection] ?? [],
-        this.show,
-      );
+      this.draft = [
+        ...resolveTableColumns(
+          this.topCollection,
+          undefined,
+          this.show,
+          this.siteColumns,
+        ),
+      ];
     },
     selectAll() {
       this.draft = Object.keys(BROWSER_TABLE_COLUMNS);
@@ -437,11 +485,15 @@ export default {
       this.$emit("update:modelValue", false);
     },
     onSave() {
-      const next = {
-        ...(this.tableColumns ?? {}),
-        [this.topCollection]: this.draft,
-      };
-      this.setSettings({ tableColumns: next });
+      if (this.standalone) {
+        this.$emit("save", [...this.draft]);
+      } else {
+        const next = {
+          ...(this.tableColumns ?? {}),
+          [this.topCollection]: this.draft,
+        };
+        this.setSettings({ tableColumns: next });
+      }
       this.$emit("update:modelValue", false);
     },
   },

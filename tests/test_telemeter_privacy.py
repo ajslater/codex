@@ -24,6 +24,7 @@ from codex.models.admin import (
     ComicboxTaggingDefaults,
     EmailSettings,
     OIDCSettings,
+    SettingsDefaults,
 )
 from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
@@ -119,6 +120,7 @@ def _enum_values(*enums) -> set[str]:
 def _choice_vocabularies() -> set[str]:
     """Collect the enums and choice tuples codex defines in its own source."""
     from codex.choices.browser import (
+        BROWSER_BOOKMARK_FILTER_CHOICES,
         BROWSER_ORDER_BY_CHOICES,
         BROWSER_TABLE_COVER_SIZE_CHOICES,
         BROWSER_VIEW_MODE_CHOICES,
@@ -131,6 +133,7 @@ def _choice_vocabularies() -> set[str]:
     values |= set(BROWSER_ORDER_BY_CHOICES)
     values |= set(BROWSER_VIEW_MODE_CHOICES)
     values |= set(BROWSER_TABLE_COVER_SIZE_CHOICES)
+    values |= {key.lower() for key in BROWSER_BOOKMARK_FILTER_CHOICES}
     return values | {
         value.lower() for choices in READER_CHOICES.values() for value in choices
     }
@@ -220,6 +223,14 @@ class TelemeterPrivacyTestCase(TestCase):
             password=f"{SENTINEL}-smtp-password",
             from_address=f"{SENTINEL}@example.com",
             subject_prefix=f"[{SENTINEL}] ",
+        )
+        # Closed-enum site defaults plus a table_columns dict, which must
+        # never be sent -- only folded into the customized boolean.
+        cls._set_singleton(
+            SettingsDefaults,
+            top_collection="series",
+            bookmark="UNREAD",
+            table_columns={"folders": ["cover", "name"]},
         )
         AdminFlag.objects.filter(key=AdminFlagChoices.BANNER_TEXT.value).update(
             value=f"{SENTINEL}-banner"
@@ -325,6 +336,32 @@ class TelemeterPrivacyTestCase(TestCase):
             if value.lower() not in vocabularies:
                 unexpected.append((path, value))
         assert not unexpected, f"open-ended strings in payload: {unexpected}"
+
+    def test_site_defaults_report_closed_enums_and_a_boolean(self) -> None:
+        """The site defaults ship as enum keys and one flag, never the columns."""
+        flags = CodexStats().get()["admin_flags"]
+        assert flags["browser_default_collection"] == "series"
+        assert flags["browser_default_bookmark_filter"] == "UNREAD"
+        assert flags["settings_defaults_customized"] is True
+        payload = json.dumps(CodexStats().get(), default=str)
+        assert "table_columns" not in payload
+        assert "child_count" not in payload
+
+    def test_unknown_site_default_reports_other(self) -> None:
+        """A drifted stored value collapses to "other"."""
+        SettingsDefaults.objects.filter(pk=1).update(
+            top_collection=f"{SENTINEL}-top", bookmark=f"{SENTINEL}-bookmark"
+        )
+        flags = CodexStats().get()["admin_flags"]
+        assert flags["browser_default_collection"] == "other"
+        assert flags["browser_default_bookmark_filter"] == "other"
+
+    def test_factory_site_defaults_are_not_customized(self) -> None:
+        SettingsDefaults.objects.all().delete()
+        SettingsDefaults().save()
+        flags = CodexStats().get()["admin_flags"]
+        assert flags["settings_defaults_customized"] is False
+        assert flags["browser_default_bookmark_filter"] == ""
 
     @staticmethod
     def _declared_field_names() -> frozenset[str]:

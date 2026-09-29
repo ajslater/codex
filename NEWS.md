@@ -6,6 +6,23 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.0 - Admin Defaults
+
+- Features
+    - Admin Defaults tab sets the browser and reader settings new sessions start
+      with, replaces Default View, and can update existing anonymous sessions.
+    - Browser and reader resets restore the admin defaults.
+    - Read comics and collections show a check mark instead of dimmed titles.
+    - Online tagging match review shows each file's own cover beside its name.
+- Fixes
+    - A Folders or Story Arcs default view opens there instead of Publishers.
+    - Reader zoom scales pages from their original size.
+    - Fit to Screen fits wide pages when PDFs render as vectors.
+    - Admin tables and tag write errors no longer revert to old values.
+    - The reader's "b" shortcut sets bottom to top reading.
+    - "Clear All Filters" no longer shows when no filter is set.
+    - Anonymous browsing no longer logs a timezone error.
+
 ## v2.4.3
 
 - Fixes

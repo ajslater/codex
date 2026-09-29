@@ -1,0 +1,368 @@
+# Managed by devenv (copy/ci). Edit it there, not in a child repo.
+#
+# Gate, one CI image build, a fail-fast lint/test/build matrix that pulls that
+# image, and the required-check aggregator. With container: false the matrix
+# runs natively on inputs.runner instead (for macOS-only projects) and no
+# image is built. Call it from a job in ci.yml; later jobs read its outputs
+# instead of repeating any trigger logic:
+#
+#   ci:
+#     uses: ./.github/workflows/devenv-check.yml
+#     permissions: { contents: read, actions: read, packages: write, checks: write }
+#   deploy-job:
+#     needs: ci
+#     if: ${{ !cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true' }}
+name: devenv check
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: >-
+          JSON list of check combos, one parallel job each. Keys: name (the
+          job name), make (make targets run in the CI container), and the
+          booleans junit (publish test-results/pytest) and dist (upload dist/
+          as python-dist).
+        type: string
+        default: >-
+          [{"name": "Lint", "make": "lint"},
+          {"name": "Test", "make": "test", "junit": true},
+          {"name": "Build Dist", "make": "build", "dist": true}]
+      ci-target:
+        description: Dockerfile target for the CI image. Empty builds the last stage.
+        type: string
+        default: ""
+      container:
+        description: >-
+          true runs every combo in the CI image built from the Dockerfile.
+          false runs it natively on the runner after setup-uv, setup-bun and
+          make install, for projects that cannot run in a Linux container.
+        type: boolean
+        default: true
+      runner:
+        description: >-
+          Runner for the check matrix, e.g. macos-latest with container false.
+          The gate, image and result jobs stay on ubuntu-24.04.
+        type: string
+        default: ubuntu-24.04
+      release-preflight:
+        description: >-
+          Run bin/release-tag.sh preflight in the gate on main pushes and pull
+          requests into main.
+        type: boolean
+        default: true
+      retention-days:
+        description: Days to keep python-dist and the ci-passed marker.
+        type: number
+        default: 7
+    outputs:
+      deploy:
+        description: '"true" on a main push or a develop <- pre-release pull request.'
+        value: ${{ jobs.gate.outputs.deploy }}
+      release:
+        description: '"true" on a main push unless vars.RELEASE_AUTOMATION is "off".'
+        value: ${{ jobs.gate.outputs.release }}
+      version:
+        description: The version in pyproject.toml.
+        value: ${{ jobs.gate.outputs.version }}
+      final:
+        description: '"true" when the version is a final X.Y.Z release.'
+        value: ${{ jobs.gate.outputs.final }}
+      dist_found:
+        description: '"true" when the gate reused python-dist from an earlier run.'
+        value: ${{ jobs.gate.outputs.dist_found }}
+      source_run_id:
+        description: The run python-dist was reused from.
+        value: ${{ jobs.gate.outputs.source_run_id }}
+      tree:
+        description: The git tree that was checked.
+        value: ${{ jobs.gate.outputs.tree }}
+
+env:
+  CI_IMAGE: ghcr.io/${{ github.repository }}-ci
+  CI_CONTAINER: ${{ github.event.repository.name }}-ci
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: the only job with trigger logic. Runs the Release Preflight, and on a
+  # main push reuses the dist of an earlier run that passed on the same tree.
+  # ---------------------------------------------------------------------------
+  gate:
+    name: Gate
+    runs-on: ubuntu-24.04
+    if: >-
+      (github.event_name == 'push' && github.ref_name == 'main')
+      || github.base_ref == 'main'
+      || (github.base_ref == 'develop'
+      && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      deploy: >-
+        ${{ (github.event_name == 'push' && github.ref_name == 'main')
+        || (github.base_ref == 'develop' && github.head_ref == 'pre-release') }}
+      release: >-
+        ${{ github.event_name == 'push' && github.ref_name == 'main'
+        && vars.RELEASE_AUTOMATION != 'off' }}
+      version: ${{ steps.info.outputs.version }}
+      final: ${{ steps.info.outputs.final }}
+      tree: ${{ steps.info.outputs.tree }}
+      # Always "true" or "false".
+      dist_found: ${{ steps.reuse.outputs.dist_found == 'true' }}
+      source_run_id: ${{ steps.reuse.outputs.source_run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # A release PR must bump the version and add its NEWS.md section before
+      # it can merge; a failure here fails the gate, so nothing else runs and
+      # the required check goes red.
+      - name: Release Preflight
+        if: >-
+          inputs.release-preflight && vars.RELEASE_AUTOMATION != 'off'
+          && ((github.event_name == 'push' && github.ref_name == 'main')
+          || github.base_ref == 'main')
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: bin/release-tag.sh preflight
+
+      - name: Tree and version
+        id: info
+        run: |
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >>"$GITHUB_OUTPUT"
+          if [[ -f bin/release_info.py ]]; then
+            python3 bin/release_info.py version --pyproject pyproject.toml \
+              --github-output "$GITHUB_OUTPUT"
+          fi
+
+      # Main pushes only: a pull request always runs the full check.
+      - name: Reuse a dist that passed on this tree
+        id: reuse
+        if: github.event_name == 'push' && github.ref_name == 'main'
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: bin/ci-reuse-dist.sh
+
+      - name: Link the reused run
+        if: steps.reuse.outputs.dist_found == 'true'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.reuse.outputs.source_run_id }}
+        run: echo "Reused python-dist from CI run $RUN_URL" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reused dist
+        if: steps.reuse.outputs.dist_found == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-dist
+          path: dist/
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Build the CI image once, with the registry cache, and push it by digest.
+  # Pushing skips exporting and loading the image into the Docker daemon,
+  # which cost about a minute per job when every combo built its own.
+  # ---------------------------------------------------------------------------
+  image:
+    name: CI Image
+    needs: gate
+    if: inputs.container && needs.gate.outputs.dist_found != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: "false"
+      DOCKER_BUILD_SUMMARY: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push CI image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # An empty target builds the Dockerfile's last stage.
+          target: ${{ inputs.ci-target }}
+          # Untagged, by digest: every check job pulls exactly this image.
+          outputs: type=image,name=${{ env.CI_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          # One manifest per run, so pruning never splits an image index.
+          provenance: false
+          sbom: false
+          cache-from: type=registry,ref=${{ env.CI_IMAGE }}:cache
+          cache-to: type=registry,ref=${{ env.CI_IMAGE }}:cache,mode=max
+
+      - name: Image reference
+        id: ref
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "image=$CI_IMAGE@$DIGEST" >>"$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Every run leaves an untagged CI image in the <repo>-ci package; keep the
+  # newest 10. It runs beside the check matrix, off the deploy path: this
+  # run's image is the newest, and each check has pulled its own copy within
+  # seconds of starting. A failure here never fails CI. The spares cover
+  # "Re-run failed jobs", which reuses this run's image digest.
+  # ---------------------------------------------------------------------------
+  prune:
+    name: Prune CI Images
+    needs: image
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old untagged CI images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}-ci
+          package-type: container
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: "true"
+
+  # ---------------------------------------------------------------------------
+  # Lint, test and build in parallel in the CI image. fail-fast: the first
+  # failing combo cancels the rest. Never set fail-fast: false or
+  # continue-on-error here; the result job relies on it.
+  # ---------------------------------------------------------------------------
+  check:
+    name: ${{ matrix.name }}
+    needs: [gate, image]
+    # Skipped when the gate reused a dist. The image job is skipped in native
+    # mode; in container mode it must have succeeded.
+    if: >-
+      !cancelled() && needs.gate.result == 'success'
+      && needs.gate.outputs.dist_found != 'true'
+      && (needs.image.result == 'success'
+      || (!inputs.container && needs.image.result == 'skipped'))
+    runs-on: ${{ inputs.runner }}
+    # Job permissions cannot vary per combo; this is the union.
+    permissions:
+      contents: read
+      packages: read
+      checks: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Start CI container
+        if: inputs.container
+        uses: ./.github/actions/devenv-ci-container
+        with:
+          image: ${{ needs.image.outputs.image }}
+
+      # Native mode: install the project on the runner instead.
+      - name: Set up uv
+        if: ${{ !inputs.container }}
+        uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+
+      - name: Set up bun
+        if: ${{ !inputs.container }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        if: ${{ !inputs.container }}
+        run: |
+          uv python install
+          mkdir -p dist test-results
+          make install
+
+      - name: ${{ matrix.name }}
+        id: work
+        env:
+          MAKE_TARGETS: ${{ matrix.make }}
+          IN_CONTAINER: ${{ inputs.container }}
+        run: |
+          read -ra targets <<<"$MAKE_TARGETS"
+          if [[ $IN_CONTAINER == true ]]; then
+            docker exec "$CI_CONTAINER" make "${targets[@]}"
+          else
+            make "${targets[@]}"
+          fi
+
+      # Straight after the work step and on !cancelled(), so a test failure
+      # still publishes its report.
+      - name: Upload Test Results
+        id: upload-tests
+        if: matrix.junit && !cancelled() && steps.work.outcome != 'skipped'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ strategy.job-index }}
+          path: "**/test-results/pytest/*.xml"
+
+      - name: Publish Test Report
+        if: matrix.junit && !cancelled() && steps.upload-tests.outcome == 'success'
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: "**/test-results/pytest/*.xml"
+
+      # Implicit success(): only when make succeeded. The one producer of
+      # python-dist unless the gate reused a dist.
+      - name: Upload dist artifact
+        if: matrix.dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-dist
+          path: dist/
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # The required check, "<caller job name> / Lint, Test & Build Dist": green
+  # only when the gate and every check combo passed, or the gate reused an
+  # already-tested dist.
+  # ---------------------------------------------------------------------------
+  result:
+    name: Lint, Test & Build Dist
+    needs: [gate, check]
+    # always(), not !cancelled(): a skipped required check counts as passing,
+    # so a cancelled run must still reach this job and go red.
+    if: ${{ always() && needs.gate.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: All required jobs passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          DIST_FOUND: ${{ needs.gate.outputs.dist_found }}
+        run: |
+          jq -c 'map_values(.result)' <<<"$NEEDS"
+          ok='["success"]'
+          if [[ "$DIST_FOUND" == "true" ]]; then ok='["success","skipped"]'; fi
+          jq -e --argjson ok "$ok" '.gate.result == "success" and (.check.result | IN($ok[]))' <<<"$NEEDS"
+
+      # The marker bin/ci-reuse-dist.sh looks for: this tree passed, and this
+      # run holds its python-dist.
+      - name: Record the passing tree
+        run: echo "$GITHUB_RUN_ID" >ci-passed
+
+      - name: Upload the passing-tree marker
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-passed-${{ needs.gate.outputs.tree }}
+          path: ci-passed
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error

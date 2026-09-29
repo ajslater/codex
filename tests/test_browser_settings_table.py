@@ -9,6 +9,7 @@ from django.test import Client, TestCase
 from codex.choices.browser import (
     BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_VIEW_MODE_CHOICES,
+    clean_table_columns,
 )
 from codex.models.settings import SettingsBrowser
 from codex.serializers.browser.settings import BrowserSettingsSerializer
@@ -147,6 +148,31 @@ class BrowserTableSettingsSerializerTestCase(TestCase):
         assert s.validated_data["order_extra_keys"] == [
             {"key": "year", "reverse": False}
         ]
+
+
+class CleanTableColumnsTestCase(TestCase):
+    """The shared cleaner keeps what the user validator always kept."""
+
+    def test_keeps_known_collections_and_columns(self):
+        value = {"comics": ["cover", "name"], "folders": ["name", "child_count"]}
+        cleaned, dropped = clean_table_columns(value)
+        assert cleaned == value
+        assert dropped == []
+
+    def test_drops_unknown_collections_and_columns(self):
+        cleaned, dropped = clean_table_columns(
+            {"x": ["cover"], "comics": ["cover", "phantom_column"]}
+        )
+        assert cleaned == {"comics": ["cover"]}
+        assert dropped == ["x", "comics:phantom_column"]
+
+    def test_keeps_an_empty_list(self):
+        """Empty means "unset" to the SPA; the admin serializer rejects it."""
+        assert clean_table_columns({"comics": []}) == ({"comics": []}, [])
+
+    def test_non_mapping_cleans_to_empty(self):
+        assert clean_table_columns(["cover"]) == ({}, [])
+        assert clean_table_columns({"comics": "cover"}) == ({}, ["comics"])
 
 
 class BrowserTableSettingsRoundTripTestCase(TestCase):

@@ -138,7 +138,7 @@ describe("BrowserTableCell — type-aware text formatters", () => {
       row: { size: 1024 },
     });
     const text = wrapper.find(".tableTextCell").text();
-    expect(text).toMatch(/\bkB\b/);
+    expect(text).toMatch(/\bkB\b/v);
   });
 
   it("formats date as a locale-friendly string", () => {
@@ -148,7 +148,7 @@ describe("BrowserTableCell — type-aware text formatters", () => {
     });
     const text = wrapper.find(".tableTextCell").text();
     // The locale format varies, but the year should always show.
-    expect(text).toMatch(/2024/);
+    expect(text).toMatch(/2024/v);
   });
 
   it("expands reading_direction enum codes via the choices map", () => {

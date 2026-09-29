@@ -42,6 +42,7 @@ _TRACKED_TABLES: Final[tuple[str, ...]] = (
     "admin_flags",
     "timestamps",
     "tagging_defaults",
+    "settings_defaults",
 )
 
 
@@ -95,6 +96,7 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
     from codex.models.admin import (
         AdminFlag,
         ComicboxTaggingDefaults,
+        SettingsDefaults,
         Timestamp,
     )
     from codex.models.bookmark import Bookmark
@@ -140,6 +142,11 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         store,
         ComicboxTaggingDefaults.objects.all(),
         serializers.serialize_tagging_defaults,
+    )
+    counts["settings_defaults"] = _dump_queryset(
+        store,
+        SettingsDefaults.objects.all(),
+        serializers.serialize_settings_defaults,
     )
     counts["bookmarks"] = _dump_queryset(
         store,

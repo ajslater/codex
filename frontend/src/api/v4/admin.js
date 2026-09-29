@@ -1,6 +1,15 @@
 import { HTTP } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
 
+export function flattenJsonApi(body) {
+  if (Array.isArray(body)) {
+    return body.map((entry) => flattenResource(entry));
+  }
+  return body && typeof body === "object" && "type" in body && "id" in body
+    ? flattenResource(body)
+    : body;
+}
+
 /*
  * v4 admin resource endpoints render in JSON:API
  * (``{data: {type, id, attributes, relationships}}``) rather than
@@ -17,9 +26,9 @@ function flattenRelationships(rels) {
   for (const [key, rel] of Object.entries(rels)) {
     const d = rel?.data;
     if (Array.isArray(d)) {
-      out[key] = d.map((entry) => Number.parseInt(entry.id, 10));
+      out[key] = d.map((entry) => Math.trunc(Number(entry.id)));
     } else if (d) {
-      out[key] = Number.parseInt(d.id, 10);
+      out[key] = Math.trunc(Number(d.id));
     } else {
       out[key] = null;
     }
@@ -30,7 +39,7 @@ function flattenRelationships(rels) {
 function flattenResource(item) {
   if (!item) return item;
   const pkRaw = item.id;
-  const pk = /^\d+$/.test(String(pkRaw)) ? Number.parseInt(pkRaw, 10) : pkRaw;
+  const pk = /^\d+$/u.test(String(pkRaw)) ? Number(pkRaw) : pkRaw;
   return {
     pk,
     ...item.attributes,
@@ -38,22 +47,8 @@ function flattenResource(item) {
   };
 }
 
-export function flattenJsonApi(body) {
-  if (Array.isArray(body)) {
-    return body.map((entry) => flattenResource(entry));
-  }
-  if (body && typeof body === "object" && "type" in body && "id" in body) {
-    return flattenResource(body);
-  }
-  return body;
-}
-
-async function jsonApiList(response) {
-  response.data = flattenJsonApi(response.data);
-  return response;
-}
-
-async function jsonApiOne(response) {
+async function jsonApiResponse(request) {
+  const response = await request;
   response.data = flattenJsonApi(response.data);
   return response;
 }
@@ -74,7 +69,7 @@ async function jsonApiOne(response) {
  */
 function wrapJsonApi(resourceType, data, { pk } = {}) {
   const body = {
-    data: { type: resourceType, attributes: { ...(data || {}) } },
+    data: { type: resourceType, attributes: { ...data } },
   };
   if (pk !== undefined && pk !== null) {
     body.data.id = String(pk);
@@ -94,12 +89,12 @@ const makeAdminCRUD = (entity) => {
   const path = `/admin/${entity}`;
   return {
     create: (data) =>
-      HTTP.post(path, wrapJsonApi(entity, data)).then(jsonApiOne),
+      jsonApiResponse(HTTP.post(path, wrapJsonApi(entity, data))),
     getAll: () =>
-      HTTP.get(path, { params: serializeParams() }).then(jsonApiList),
+      jsonApiResponse(HTTP.get(path, { params: serializeParams() })),
     update: (pk, data) =>
-      HTTP.patch(`${path}/${pk}`, wrapJsonApi(entity, data, { pk })).then(
-        jsonApiOne,
+      jsonApiResponse(
+        HTTP.patch(`${path}/${pk}`, wrapJsonApi(entity, data, { pk })),
       ),
     destroy: (pk) => HTTP.delete(`${path}/${pk}`),
   };
@@ -111,18 +106,20 @@ export const TABLES = Object.freeze({
   Library: { ...makeAdminCRUD("libraries"), stateField: "libraries" },
   Flag: {
     getAll: () =>
-      HTTP.get("/admin/flags", { params: serializeParams() }).then(jsonApiList),
+      jsonApiResponse(HTTP.get("/admin/flags", { params: serializeParams() })),
     update: (key, data) =>
-      HTTP.patch(
-        `/admin/flags/${key}`,
-        wrapJsonApi("flags", data, { pk: key }),
-      ).then(jsonApiOne),
+      jsonApiResponse(
+        HTTP.patch(
+          `/admin/flags/${key}`,
+          wrapJsonApi("flags", data, { pk: key }),
+        ),
+      ),
     stateField: "flags",
   },
   FailedImport: {
     getAll: () =>
-      HTTP.get("/admin/failed-imports", { params: serializeParams() }).then(
-        jsonApiList,
+      jsonApiResponse(
+        HTTP.get("/admin/failed-imports", { params: serializeParams() }),
       ),
     stateField: "failedImports",
   },
@@ -140,13 +137,13 @@ export const TABLES = Object.freeze({
     stateField: "activeLibrarianStatuses",
   },
   AgeRatingMetron: {
-    getAll: () => HTTP.get("/admin/age-ratings").then(jsonApiList),
+    getAll: () => jsonApiResponse(HTTP.get("/admin/age-ratings")),
     stateField: "ageRatingMetrons",
   },
   CustomCover: {
     getAll: () =>
-      HTTP.get("/admin/custom-covers", { params: serializeParams() }).then(
-        jsonApiList,
+      jsonApiResponse(
+        HTTP.get("/admin/custom-covers", { params: serializeParams() }),
       ),
     destroy: (pk) => HTTP.delete(`/admin/custom-covers/${pk}`),
     stateField: "customCovers",
@@ -230,6 +227,17 @@ export const updateOidcSettings = (data) =>
 
 export const testOidcConnection = (data) =>
   HTTP.post("/admin/oidc-settings/test", data);
+
+export const getSettingsDefaults = () =>
+  HTTP.get("/admin/settings-defaults", { params: { ts: Date.now() } });
+
+// ``applyToAnonymous`` rides in the body: the catch-up needs the old
+// defaults, which only exist until this save commits.
+export const updateSettingsDefaults = (data) =>
+  HTTP.put("/admin/settings-defaults", data);
+
+export const getSettingsDefaultsReach = () =>
+  HTTP.get("/admin/settings-defaults/reach", { params: { ts: Date.now() } });
 
 export const getThrottleSettings = () =>
   HTTP.get("/admin/throttle-settings", { params: { ts: Date.now() } });

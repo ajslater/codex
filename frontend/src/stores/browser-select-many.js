@@ -12,7 +12,7 @@ const _groupSelectedItems = (selectedItems) => {
   // Group selected items by their collection field.
   const grouped = {};
   for (const item of selectedItems.values()) {
-    if (!grouped[item.collection]) {
+    if (!Object.hasOwn(grouped, item.collection)) {
       grouped[item.collection] = [];
     }
     grouped[item.collection].push(item);

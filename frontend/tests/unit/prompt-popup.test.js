@@ -8,8 +8,16 @@
  * that volume.
  */
 import { createTestingPinia } from "@pinia/testing";
-import { mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import vuetify from "@/plugins/vuetify";
@@ -20,6 +28,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 // Dismiss, Skip All, Pause.
 const THREE_HEADER_BUTTONS = 3;
+const MTIME = 1_726_999_999_000;
 
 function candidate(overrides = {}) {
   return {
@@ -44,7 +53,7 @@ function candidate(overrides = {}) {
   };
 }
 
-function mountPopup(candidates) {
+function mountPopup(candidates, promptFields = {}) {
   const pinia = createTestingPinia();
   const wrapper = mount(OnlineTagPromptPopup, {
     global: {
@@ -60,11 +69,15 @@ function mountPopup(candidates) {
       path: "/comics/kapitan.cbz",
       source: "comicvine",
       candidates,
+      ...promptFields,
     },
   ];
   store.promptDialogOpen = true;
   return { wrapper, store };
 }
+
+const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
+const titles = (wrapper) => wrapper.findAll(".v-expansion-panel-title");
 
 describe("OnlineTagPromptPopup", () => {
   describe("reprint series names", () => {
@@ -153,6 +166,142 @@ describe("OnlineTagPromptPopup", () => {
     });
   });
 
+  /*
+   * The file's own cover sits in each prompt's panel title, beside its
+   * name, so the admin can compare the art with the candidates'. It is not
+   * a candidate, so it must never shift a Pick index, and a click on it
+   * opens the enlarge rather than toggling the panel.
+   */
+  describe("the file's own cover", () => {
+    let fetchMock;
+
+    beforeAll(() => {
+      // Clicking the cover opens its VMenu, whose location strategy reads
+      // the bare global; happy-dom has no visual viewport. Same shim as
+      // candidate-row.test.js.
+      globalThis.visualViewport ??= {
+        width: 1024,
+        height: 768,
+        offsetLeft: 0,
+        offsetTop: 0,
+        scale: 1,
+        addEventListener() {},
+        removeEventListener() {},
+      };
+    });
+
+    beforeEach(() => {
+      fetchMock = vi.fn(() => Promise.resolve(new Response(null)));
+      vi.stubGlobal("fetch", fetchMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    test("sits in the panel title, before the filename", async () => {
+      const { wrapper } = mountPopup([candidate(), candidate()], {
+        fileCover: fileCover(7),
+      });
+      await wrapper.vm.$nextTick();
+
+      const header = titles(wrapper)[0].find(".promptHeader");
+      const img = header.find("img");
+      expect(img.attributes("src")).toBe(`/api/v4/covers/comic/7?ts=${MTIME}`);
+      expect(header.element.firstElementChild).toBe(img.element);
+      expect(header.find(".promptPath").text()).toBe("kapitan.cbz");
+      // No separate row in the panel body: the candidates come first.
+      const body = wrapper.find(".v-expansion-panel-text");
+      expect(body.find('img[src^="/api/v4/covers/comic/"]').exists()).toBe(
+        false,
+      );
+    });
+
+    test("is absent when the backend predates it", async () => {
+      const { wrapper } = mountPopup([candidate()]);
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".candidateRow").exists()).toBe(true);
+      expect(
+        wrapper.findComponent({ name: "OnlineTagFileCoverThumb" }).exists(),
+      ).toBe(false);
+    });
+
+    test("shows a gone comic's placeholder rather than hiding", async () => {
+      const { wrapper } = mountPopup([candidate()], { fileCover: null });
+      await wrapper.vm.$nextTick();
+
+      expect(
+        titles(wrapper)[0].find(".fileCoverPlaceholder").attributes("title"),
+      ).toBe("This file is no longer in the library");
+    });
+
+    test("the first Pick still picks candidate 0", async () => {
+      const { wrapper, store } = mountPopup(
+        [candidate({ volumeId: 11 }), candidate({ volumeId: 22 })],
+        { fileCover: fileCover(7) },
+      );
+      await wrapper.vm.$nextTick();
+
+      const picks = wrapper
+        .findAll("button")
+        .filter((button) => button.text() === "Pick");
+      expect(picks).toHaveLength(2);
+      await picks[0].trigger("click");
+
+      expect(store.resolvePrompt).toHaveBeenCalledWith("fp1", "choose", 0, 11);
+    });
+
+    test("a click on the cover does not toggle its panel", async () => {
+      const { wrapper } = mountPopup([candidate()], {
+        fileCover: fileCover(7),
+      });
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.openPanel).toBe(0);
+
+      const img = titles(wrapper)[0].find("img");
+      // Open and close the enlarge, then click inside Vuetify's 50 ms
+      // reopen lock: the one click its activator lets bubble.
+      await img.trigger("click");
+      await img.trigger("click");
+      await img.trigger("click");
+      expect(wrapper.vm.openPanel).toBe(0);
+
+      // The rest of the title still toggles.
+      await titles(wrapper)[0].find(".promptPath").trigger("click");
+      expect(wrapper.vm.openPanel).not.toBe(0);
+    });
+
+    test("every prompt's title shows its cover, open or not", async () => {
+      /*
+       * Titles always render, so each pending cover probes when the
+       * dialog opens, not when its panel does.
+       */
+      const { wrapper, store } = mountPopup([candidate()], {
+        fileCover: fileCover(7, "pending"),
+      });
+      wrapper.vm.openPanel = null;
+      store.pendingPrompts.push({
+        fingerprint: "fp2",
+        pk: 8,
+        path: "/comics/other.cbz",
+        source: "metron",
+        candidates: [candidate()],
+        fileCover: fileCover(8),
+      });
+      await flushPromises();
+
+      expect(wrapper.find(".candidateRow").exists()).toBe(false);
+      expect(titles(wrapper)[1].find("img").attributes("src")).toBe(
+        `/api/v4/covers/comic/8?ts=${MTIME}`,
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `/api/v4/covers/comic/7?ts=${MTIME}`,
+      );
+    });
+  });
+
   describe("pick", () => {
     test("passes the chosen candidate's volume id", () => {
       const { wrapper, store } = mountPopup([
@@ -199,6 +348,6 @@ describe("OnlineTagPromptPopup header", () => {
     expect(title.classes()).toContain("flex-grow-1");
     const actions = wrapper.find(".v-card-title .flex-shrink-0");
     expect(actions.exists()).toBe(true);
-    expect(actions.findAll("button").length).toBe(THREE_HEADER_BUTTONS);
+    expect(actions.findAll("button")).toHaveLength(THREE_HEADER_BUTTONS);
   });
 });

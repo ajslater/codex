@@ -63,7 +63,11 @@ from codex.models.age_rating import (
     UNRESTRICTED_RATING_INDEX,
 )
 from codex.models.auth import UserAuth
-from codex.serializers.auth import ProfileUpdateSerializer, UserSerializer
+from codex.serializers.auth import (
+    ProfileUpdateSerializer,
+    TimezoneSerializer,
+    UserSerializer,
+)
 from codex.views.envelope import EnvelopeJSONRenderer as _EnvelopeJSONRenderer
 
 if TYPE_CHECKING:
@@ -750,9 +754,8 @@ class ProfileView(AuthAPIView):
         """
         Apply a partial profile update.
 
-        Accepts ``username`` (unless remote-user auth owns identity),
-        ``email`` (blank → cleared), and ``timezone`` (stored on the
-        session, same as the v3 timezone endpoint).
+        Accepts ``username`` (unless remote-user auth owns identity) and
+        ``email`` (blank → cleared).
         """
         if not getattr(request.user, "is_authenticated", False):
             raise NotAuthenticated
@@ -776,11 +779,26 @@ class ProfileView(AuthAPIView):
         if updated_fields:
             user.save(update_fields=updated_fields)
 
-        timezone = validated.get("timezone")
-        if timezone:
-            session = request.session
-            session["django_timezone"] = timezone
-            session.save()
-
         data = UserSerializer(user_payload(user)).data
         return Response(data)
+
+
+class TimezoneView(AuthAPIView):
+    """
+    ``PUT /api/v4/auth/timezone`` — store the browser's timezone on the session.
+
+    Keeps the default :class:`IsAuthenticatedOrEnabledNonUsers` policy
+    rather than :class:`ProfileView`'s ``IsAuthenticated``: kiosk
+    (non-user) visitors browse on an anonymous session, and
+    :class:`~codex.middleware.CodexMiddleware` activates this timezone
+    for every request on that session.
+    """
+
+    def put(self, request, *args, **kwargs) -> Response:
+        """Validate and save the timezone."""
+        serializer = TimezoneSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        session = request.session
+        session["django_timezone"] = serializer.validated_data["timezone"]
+        session.save()
+        return Response(status=204)

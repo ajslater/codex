@@ -72,7 +72,12 @@ describe("the v4 error interceptor", () => {
     ]);
     const error = xiorError(400, body);
 
-    const rejected = await rejectEnvelopeError(error).catch((e) => e);
+    let rejected;
+    try {
+      rejected = await rejectEnvelopeError(error);
+    } catch (error_) {
+      rejected = error_;
+    }
 
     expect(rejected).toBeInstanceOf(APIError);
     // Not ``null``: several callers still read the raw body.
@@ -91,7 +96,12 @@ describe("the v4 error interceptor", () => {
       ]),
     );
 
-    const rejected = await rejectEnvelopeError(error).catch((e) => e);
+    let rejected;
+    try {
+      rejected = await rejectEnvelopeError(error);
+    } catch (error_) {
+      rejected = error_;
+    }
     useCommonStore().setErrors(rejected);
 
     expect(useCommonStore().form.fieldErrors).toStrictEqual({
@@ -122,7 +132,11 @@ describe("the v4 error interceptor", () => {
 describe("the browser store's redirect handler", () => {
   it("follows the unwrapped redirect", async () => {
     const error = xiorError(303, envelope(REDIRECT_DETAIL));
-    await rejectEnvelopeError(error).catch(() => undefined);
+    try {
+      await rejectEnvelopeError(error);
+    } catch {
+      // Expected: the interceptor always rejects.
+    }
 
     useBrowserStore().handlePageError(error);
 

@@ -16,7 +16,6 @@
 import { mdiImageRemove } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { removeCustomCover } from "@/api/v4/admin";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -55,6 +54,8 @@ export default {
     ...mapActions(useCommonStore, ["setSessionError"]),
     async remove() {
       try {
+        // Lazy: keeps the admin API client out of the browser bundle.
+        const { removeCustomCover } = await import("@/api/v4/admin");
         await removeCustomCover({
           collection: this.item.collection,
           pks: this.item.ids,

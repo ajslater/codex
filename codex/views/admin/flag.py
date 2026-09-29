@@ -15,7 +15,6 @@ _REFRESH_LIBRARY_FLAGS = frozenset(
     flag.value
     for flag in (
         AdminFlagChoices.BANNER_TEXT,
-        AdminFlagChoices.BROWSER_DEFAULT_COLLECTION,
         AdminFlagChoices.FOLDER_VIEW,
         AdminFlagChoices.NON_USERS,
     )

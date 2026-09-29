@@ -68,8 +68,8 @@ describe("getReadState", () => {
 
 describe("getReadFillPercent", () => {
   it("leaves a marked-read comic at zero", () => {
-    // Thickness carries "finished", so the fill stays honest: a bare thick
-    // track is how the card says "read, never opened".
+    // The end cap carries "finished", so the fill stays honest: a bare
+    // track and its cap is how the card says "read, never opened".
     expect(getReadFillPercent(comic(true, 0))).toBe(0);
   });
 
@@ -82,7 +82,7 @@ describe("getReadFillPercent", () => {
   });
 
   it("does not floor the finished state", () => {
-    expect(getReadFillPercent(comic(true, 0.33))).toBe(0.33);
+    expect(getReadFillPercent(comic(true, 0.33))).toBeCloseTo(0.33);
   });
 
   it("paints nothing when unread", () => {
@@ -90,7 +90,7 @@ describe("getReadFillPercent", () => {
   });
 
   it("allows a part read comic to reach full width", () => {
-    // No ceiling: thickness and the caption colour already separate this
+    // No ceiling: the end cap and the fill colour already separate this
     // from finished, so the length is allowed to be truthful.
     expect(getReadFillPercent(comic(false, 100))).toBe(100);
   });
@@ -100,7 +100,7 @@ describe("getReadFillPercent", () => {
   });
 
   it("survives a missing progress", () => {
-    expect(getReadFillPercent(comic(false, undefined))).toBe(0);
+    expect(getReadFillPercent(comic(false))).toBe(0);
   });
 
   it("uses the collection percentage for a mixed collection", () => {
@@ -127,7 +127,7 @@ describe("getReadStateLabel", () => {
 
   it("never claims 100% while the comic is still being read", () => {
     // Page 249 of 251 rounds to 100, but the bar beside it is still the
-    // thin READING style and ``finished`` is false.
+    // orange READING style and ``finished`` is false.
     expect(getReadStateLabel(comic(false, 99.6))).toBe("99% read");
   });
 

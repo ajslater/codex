@@ -38,38 +38,44 @@ const PREFETCH_WINDOW = 50;
  * single PATCH instead of 20.
  */
 const BOOKMARK_DEBOUNCE_MS = 1000;
-let _bookmarkTimer = 0;
-let _pendingBookmarkStore;
-let _pendingBookmarkPage;
+const _bookmarkDebounce = {
+  timer: 0,
+  store: undefined,
+  // The book the page belongs to, captured when the write is scheduled.
+  book: undefined,
+  page: undefined,
+};
 
-function _runPendingBookmark() {
-  _bookmarkTimer = 0;
-  const store = _pendingBookmarkStore;
-  const page = _pendingBookmarkPage;
-  _pendingBookmarkStore = undefined;
-  _pendingBookmarkPage = undefined;
+async function _runPendingBookmark() {
+  _bookmarkDebounce.timer = 0;
+  const { store, book, page } = _bookmarkDebounce;
+  _bookmarkDebounce.store = undefined;
+  _bookmarkDebounce.book = undefined;
+  _bookmarkDebounce.page = undefined;
   if (!store || page === undefined) return;
-  store._setBookmarkPage(page).catch((error) => {
+  try {
+    await store._setBookmarkPage(page, book);
+  } catch (error) {
     /*
      * Don't revert local page state — the user is reading
      * forward; the bookmark catches up on the next call. Log
      * so a network blip doesn't silently lose the write.
      */
     console.warn("Bookmark write failed:", error);
-  });
+  }
 }
 export const VERTICAL_READING_DIRECTIONS = Object.freeze(
-  new Set(["ttb", "btt"]),
+  new Set(["btt", "ttb"]),
 );
 export const REVERSE_READING_DIRECTIONS = Object.freeze(
-  new Set(["rtl", "btt"]),
+  new Set(["btt", "rtl"]),
 );
 export const SCALE_DEFAULT = 1;
 const FIT_TO_CLASSES = Object.freeze({
   S: "Screen",
   W: "Width",
   H: "Height",
-  O: "Original",
+  O: "Orig",
 });
 const BOOKS_NULL = Object.freeze({
   current: undefined,
@@ -145,7 +151,9 @@ export const useReaderStore = defineStore("reader", {
       pdfRenderMode: "auto",
     },
     showToolbars: false,
-    settingsLoaded: false,
+    // True once the stored global settings arrived; stops the first-paint
+    // site-default seed from ever overwriting them.
+    globalLoaded: false,
     bookSettings: {},
   }),
   getters: {
@@ -254,7 +262,7 @@ export const useReaderStore = defineStore("reader", {
       if (!book) {
         return {};
       }
-      if (!(book.pk in this.bookSettings)) {
+      if (!Object.hasOwn(this.bookSettings, book.pk)) {
         /*
          * Mask the book settings over intermediate over global
          * settings into a fresh accumulator. The previous code
@@ -348,7 +356,7 @@ export const useReaderStore = defineStore("reader", {
       ) {
         delta = 2;
       }
-      delta = delta * deltaModifier;
+      delta *= deltaModifier;
       const page = +activePage + delta;
 
       let routeParams = false;
@@ -366,7 +374,7 @@ export const useReaderStore = defineStore("reader", {
       let fitTo;
       fitTo =
         this.clientSettings.scale > SCALE_DEFAULT
-          ? "Orig"
+          ? FIT_TO_CLASSES.O
           : FIT_TO_CLASSES[bookSettings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
@@ -392,7 +400,21 @@ export const useReaderStore = defineStore("reader", {
         };
         state.bookSettings = {};
         state.empty = false;
+        state.globalLoaded = true;
       });
+    },
+    /*
+     * Paint the admin's site reader defaults before this session's own
+     * global settings arrive. Only until they land, so a later
+     * ``/session`` refetch can never overwrite real settings.
+     */
+    seedGlobalDefaults(defaults) {
+      if (!defaults || this.globalLoaded) return false;
+      this.$patch((state) => {
+        state.globalSettings = { ...state.globalSettings, ...defaults };
+        state.bookSettings = {};
+      });
+      return true;
     },
     toggleToolbars() {
       this.showToolbars = !this.showToolbars;
@@ -406,7 +428,6 @@ export const useReaderStore = defineStore("reader", {
         state.arcs = {};
         state.arc = DEFAULT_ARC;
         state.mtime = 0;
-        state.settingsLoaded = false;
         state.books = structuredClone(BOOKS_NULL);
         state.routes = structuredClone(ROUTES_NULL);
         state.bookSettings = {};
@@ -464,11 +485,21 @@ export const useReaderStore = defineStore("reader", {
        * resets on every call, so the write fires
        * ``BOOKMARK_DEBOUNCE_MS`` after the user stops
        * advancing.
+       *
+       * The write belongs to the book being read now, not whichever book is
+       * current when the timer fires. A pending write for another book (the
+       * reader just moved on) lands now instead of being replaced, so its
+       * last page and ``finished`` flag aren't lost.
        */
-      _pendingBookmarkStore = this;
-      _pendingBookmarkPage = page;
-      if (_bookmarkTimer) globalThis.clearTimeout(_bookmarkTimer);
-      _bookmarkTimer = globalThis.setTimeout(
+      const book = this.books.current;
+      if (_bookmarkDebounce.timer && _bookmarkDebounce.book?.pk !== book?.pk) {
+        this.flushBookmarkWrite();
+      }
+      _bookmarkDebounce.store = this;
+      _bookmarkDebounce.book = book;
+      _bookmarkDebounce.page = page;
+      if (_bookmarkDebounce.timer) clearTimeout(_bookmarkDebounce.timer);
+      _bookmarkDebounce.timer = setTimeout(
         _runPendingBookmark,
         BOOKMARK_DEBOUNCE_MS,
       );
@@ -480,22 +511,25 @@ export const useReaderStore = defineStore("reader", {
        * server lands the user's final position without waiting
        * out the debounce window.
        */
-      if (_bookmarkTimer) {
-        globalThis.clearTimeout(_bookmarkTimer);
-        _runPendingBookmark();
+      if (!_bookmarkDebounce.timer) {
+        return;
       }
+
+      clearTimeout(_bookmarkDebounce.timer);
+      _runPendingBookmark();
     },
-    setActivePage(page, reactWithScroll = true) {
+    setActivePage(page, shouldReactWithScroll = true) {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
-      } else if (page > this.books.current.maxPage) {
+      }
+      if (page > this.books.current.maxPage) {
         console.warn(
           `Page out of bounds. Redirecting to ${this.books.current.maxPage}.`,
         );
         return this.routeToPage(this.books.current.maxPage);
       }
-      this.reactWithScroll = Boolean(reactWithScroll);
+      this.reactWithScroll = Boolean(shouldReactWithScroll);
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.isPagesNotRoutes) {
@@ -510,7 +544,7 @@ export const useReaderStore = defineStore("reader", {
           query: { page },
         };
         const { href } = router.resolve(route);
-        globalThis.history.pushState({}, undefined, href);
+        history.pushState({}, undefined, href);
       }
       /*
        * Reset window scroll for any non-vertical mode. Previously
@@ -531,19 +565,18 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     async loadGlobalSettings() {
-      READER_API.getSettings(null, ["global"])
-        .then((response) => {
-          const data = response.data?.scopes?.global;
-          if (data) {
-            this._applyGlobalSettings(data);
-          }
-        })
-        .catch(console.error);
+      // Resolve after the settings land, so an awaiting caller sees them.
+      try {
+        const response = await READER_API.getSettings(null, ["global"]);
+        const data = response.data?.scopes?.global;
+        if (data) {
+          this._applyGlobalSettings(data);
+        }
+      } catch (error) {
+        console.error(error);
+      }
     },
     async loadBooks({ params, arc, mtime }) {
-      if (!this.settingsLoaded) {
-        this.loadGlobalSettings();
-      }
       const route = router.currentRoute.value;
       if (!params) {
         params = route.params;
@@ -600,7 +633,7 @@ export const useReaderStore = defineStore("reader", {
           state.bookSettings = {};
         });
 
-        // Load all three settings layers for the current comic.
+        // Load all three settings layers, global included, for the comic.
         if (books.current?.pk) {
           this.loadAllSettings(+books.current.pk);
         }
@@ -625,7 +658,7 @@ export const useReaderStore = defineStore("reader", {
           arcs.push(arc);
         }
       }
-      if (!arcs.length) {
+      if (arcs.length === 0) {
         /*
          * No arcs is a 500 from the mtime api. Use the same
          * ``{ collection, pks }`` shape the loop above produces — the
@@ -642,27 +675,27 @@ export const useReaderStore = defineStore("reader", {
        */
       const dedupKey = `reader:loadMtimes:${arcs
         .map((a) => `${a.collection}/${a.pks}`)
-        .sort()
+        .sort((a, b) => {
+          if (a === b) return 0;
+          return a < b ? -1 : 1;
+        })
         .join(",")}`;
       try {
         const response = await dedupedFetch(dedupKey, () =>
           COMMON_API.getMtime(arcs, {}),
         );
         const newMtime = response.data.maxMtime;
-        if (newMtime !== this.mtime) {
-          return this.loadBooks({ mtime: newMtime });
-        }
-        return true;
+        return newMtime === this.mtime || this.loadBooks({ mtime: newMtime });
       } catch (error) {
         console.error(error);
       }
     },
-    async _setBookmarkPage(page) {
+    async _setBookmarkPage(page, book = this.books.current) {
       const collectionParams = {
         collection: "comics",
-        ids: [+this.books.current.pk],
+        ids: [+book.pk],
       };
-      page = Math.max(Math.min(this.books.current.maxPage, page), 0);
+      page = Math.max(Math.min(book.maxPage, page), 0);
       const updates = { page };
       /*
        * PENDING SCHEMA REMOVAL
@@ -675,7 +708,7 @@ export const useReaderStore = defineStore("reader", {
        * Drop the column, its serializer and ``READER_DEFAULTS`` entries when
        * we commit to this.
        */
-      if (page >= this.books.current.maxPage) {
+      if (page >= book.maxPage) {
         updates["finished"] = true;
       }
       /*
@@ -684,7 +717,7 @@ export const useReaderStore = defineStore("reader", {
        * ``finished`` means "was finished at least once", so paging back
        * through a book the reader already reached the end of leaves it read;
        * only the explicit Mark Unread input un-finishes a comic. A card in
-       * that state is honest about it -- the thick FINISHED bar carries the
+       * that state is honest about it -- the FINISHED end cap carries the
        * boolean and the short fill carries the real position (see
        * ``read-state.js``) -- and re-reading is not "in progress".
        */
@@ -706,39 +739,60 @@ export const useReaderStore = defineStore("reader", {
         scope: "comics",
         scopePk: pk,
       };
-      await READER_API.updateSettings(payload)
-        .then(() => {
+      try {
+        await READER_API.updateSettings(payload);
+        // The reader may have moved to another book while this saved.
+        if (this._isCurrentBook(pk)) {
           this.books.current.settings = newBookSettings;
-          this.bookSettings = {};
-        })
-        .catch(console.error);
+        }
+        this.bookSettings = {};
+      } catch (error) {
+        console.error(error);
+      }
     },
     setSettingsClient(updates) {
-      this.clientSettings = {
-        ...this.clientSettings,
-        ...updates,
-      };
+      // fitToClass bakes the scale into each cached book's settings.
+      this.$patch((state) => {
+        state.clientSettings = {
+          ...state.clientSettings,
+          ...updates,
+        };
+        state.bookSettings = {};
+      });
     },
     async clearComicSettings() {
       const pk = +this.books?.current?.pk;
       if (!pk) return;
-      await READER_API.resetSettings({ scope: "comics", scopePk: pk })
-        .then(() => {
-          this.$patch((state) => {
-            if (state.books.current) {
-              state.books.current.settings = {};
-            }
-            state.bookSettings = {};
-          });
-        })
-        .catch(console.error);
+      try {
+        await READER_API.resetSettings({ scope: "comics", scopePk: pk });
+        this.$patch((state) => {
+          if (this._isCurrentBook(pk)) {
+            state.books.current.settings = {};
+          }
+          state.bookSettings = {};
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    /*
+     * Settings requests can outlive the book or series they were made for.
+     * Their responses must only land on the book or scope still open.
+     */
+    _isCurrentBook(pk) {
+      return +this.books.current?.pk === +pk;
+    },
+    _isIntermediateScope(scopeType, scopePk) {
+      return (
+        this.intermediateInfo?.scopeType === scopeType &&
+        this.intermediateInfo?.scopePk === scopePk
+      );
     },
     _getStoryArcPk() {
       // When browsing by story arc, pass the first arc id for scoped settings.
-      if (this.arc?.collection === "arcs" && this.arc?.ids?.length) {
-        return this.arc.ids[0];
-      }
-      return null;
+      return this.arc?.collection === "arcs" && this.arc?.ids?.length
+        ? this.arc.ids[0]
+        : null;
     },
     async loadAllSettings(pk) {
       if (!pk) {
@@ -746,45 +800,50 @@ export const useReaderStore = defineStore("reader", {
       }
       const arcCollection = this.arc?.collection || "series";
       const storyArcPk = this._getStoryArcPk();
-      await READER_API.getSettings(
-        pk,
-        ["global", arcCollection, "comics"],
-        storyArcPk,
-      )
-        .then((response) => {
-          const data = response.data;
-          const scopes = data.scopes || {};
-          const scopeInfo = data.scopeInfo || {};
+      try {
+        const response = await READER_API.getSettings(
+          pk,
+          ["global", arcCollection, "comics"],
+          storyArcPk,
+        );
+        // A later load for the book now open supersedes this one.
+        if (!this._isCurrentBook(pk)) return;
+        const data = response.data;
+        const scopes = data.scopes || {};
+        const scopeInfo = data.scopeInfo || {};
 
-          // Determine the canonical intermediate scope key.
-          const intermediateKey = ["series", "folders", "arcs"].find(
-            (k) => k in scopes,
-          );
+        // Determine the canonical intermediate scope key.
+        const intermediateKey = ["series", "folders", "arcs"].find((k) =>
+          Object.hasOwn(scopes, k),
+        );
+        const intermediateScopeInfo =
+          intermediateKey && scopeInfo[intermediateKey];
 
-          this.$patch((state) => {
-            if (scopes.global) {
-              state.globalSettings = {
-                ...state.globalSettings,
-                ...scopes.global,
-              };
-            }
-            state.intermediateSettings =
-              (intermediateKey && scopes[intermediateKey]) || {};
-            state.intermediateInfo =
-              intermediateKey && scopeInfo[intermediateKey]
-                ? {
-                    scopeType: intermediateKey,
-                    scopePk: scopeInfo[intermediateKey].pk,
-                    name: scopeInfo[intermediateKey].name,
-                  }
-                : null;
-            if (scopes.comics && state.books.current) {
-              state.books.current.settings = scopes.comics;
-            }
-            state.bookSettings = {};
-          });
-        })
-        .catch(console.error);
+        this.$patch((state) => {
+          if (scopes.global) {
+            state.globalSettings = {
+              ...state.globalSettings,
+              ...scopes.global,
+            };
+            state.globalLoaded = true;
+          }
+          state.intermediateSettings =
+            (intermediateKey && scopes[intermediateKey]) || {};
+          state.intermediateInfo = intermediateScopeInfo
+            ? {
+                scopeType: intermediateKey,
+                scopePk: intermediateScopeInfo.pk,
+                name: intermediateScopeInfo.name,
+              }
+            : null;
+          if (scopes.comics && state.books.current) {
+            state.books.current.settings = scopes.comics;
+          }
+          state.bookSettings = {};
+        });
+      } catch (error) {
+        console.error(error);
+      }
     },
     async updateIntermediateSettings(updates) {
       if (!this.intermediateInfo) {
@@ -795,42 +854,48 @@ export const useReaderStore = defineStore("reader", {
         ...updates,
       };
       ensureNoTwoPageVertical(newSettings);
+      const { scopeType, scopePk } = this.intermediateInfo;
       const payload = {
         ...newSettings,
-        scope: this.intermediateInfo.scopeType,
-        scopePk: this.intermediateInfo.scopePk,
+        scope: scopeType,
+        scopePk,
       };
-      await READER_API.updateSettings(payload)
-        .then(() => {
-          this.$patch((state) => {
+      try {
+        await READER_API.updateSettings(payload);
+        this.$patch((state) => {
+          if (this._isIntermediateScope(scopeType, scopePk)) {
             state.intermediateSettings = newSettings;
-            state.bookSettings = {};
-          });
-        })
-        .catch(console.error);
+          }
+          state.bookSettings = {};
+        });
+      } catch (error) {
+        console.error(error);
+      }
     },
     async clearIntermediateSettings() {
       if (!this.intermediateInfo) return;
-      await READER_API.resetSettings({
-        scope: this.intermediateInfo.scopeType,
-        scopePk: this.intermediateInfo.scopePk,
-      })
-        .then(() => {
-          this.$patch((state) => {
+      const { scopeType, scopePk } = this.intermediateInfo;
+      try {
+        await READER_API.resetSettings({ scope: scopeType, scopePk });
+        this.$patch((state) => {
+          if (this._isIntermediateScope(scopeType, scopePk)) {
             state.intermediateSettings = {};
-            state.bookSettings = {};
-          });
-        })
-        .catch(console.error);
+          }
+          state.bookSettings = {};
+        });
+      } catch (error) {
+        console.error(error);
+      }
     },
     async clearGlobalSettings() {
-      await READER_API.resetSettings({ scope: "global" })
-        .then((response) => {
-          const data = response.data;
-          this._applyGlobalSettings(data);
-          this.clearComicSettings();
-        })
-        .catch(console.error);
+      try {
+        const response = await READER_API.resetSettings({ scope: "global" });
+        const data = response.data;
+        this._applyGlobalSettings(data);
+        this.clearComicSettings();
+      } catch (error) {
+        console.error(error);
+      }
     },
     async updateGlobalSettings(updates) {
       const newGlobalSettings = {
@@ -841,17 +906,19 @@ export const useReaderStore = defineStore("reader", {
         ...newGlobalSettings,
         scope: "global",
       };
-      await READER_API.updateSettings(payload)
-        .then((response) => {
-          const data = response.data;
-          this._applyGlobalSettings(data);
-          this.clearComicSettings();
-        })
-        .catch(console.error);
+      try {
+        const response = await READER_API.updateSettings(payload);
+        const data = response.data;
+        this._applyGlobalSettings(data);
+        this.clearComicSettings();
+      } catch (error) {
+        console.error(error);
+      }
     },
     setBookChangeFlag(direction) {
       direction = this.normalizeDirection(direction);
-      this.bookChange = this.routes.books[direction] ? direction : undefined;
+      const bookRoute = this.routes.books[direction];
+      this.bookChange = bookRoute ? direction : undefined;
     },
     linkLabel(direction, suffix) {
       const prefix = direction === "prev" ? "Previous" : "Next";
@@ -892,17 +959,20 @@ export const useReaderStore = defineStore("reader", {
           params: { pk: params.pk },
           query: { page: params.page },
         };
-        router.push(route).catch(console.debug);
+        void router.push(route).catch(console.debug);
       }
     },
     routeToDirectionOne(direction) {
       // Special two page adjuster
       direction = this.normalizeDirection(direction);
       const delta = direction === "prev" ? -1 : 1;
-      const page = (this.page += delta);
-      if (page < 0 || page > this.books.current.maxPage) {
+      const page = this.page + delta;
+      // Check before writing, so a step past either end leaves the page alone.
+      const isInBook = page >= 0 && page <= this.books.current.maxPage;
+      if (!isInBook) {
         return;
       }
+      this.page = page;
       const params = {
         pk: this.books.current.pk,
         page: page,
@@ -911,12 +981,13 @@ export const useReaderStore = defineStore("reader", {
     },
     routeToDirection(direction) {
       direction = this.normalizeDirection(direction);
-      if (this.routes[direction]) {
-        const params = this.routes[direction];
+      const params = this.routes[direction];
+      const bookRoute = this.routes.books[direction];
+      if (params) {
         this._routeTo(params);
-      } else if (this.routes.books[direction]) {
+      } else if (bookRoute) {
         if (this.bookChange === direction) {
-          this._routeTo(this.routes.books[direction], this.books[direction]);
+          this._routeTo(bookRoute, this.books[direction]);
         } else {
           // Block book change routes unless the book change flag is set.
           this.setBookChangeFlag(direction);
@@ -947,16 +1018,21 @@ export const useReaderStore = defineStore("reader", {
         : {};
     },
     // PREFETCH
-    _prefetchSrc(params, direction, bookChange = false, secondPage = false) {
+    _prefetchSrc(
+      params,
+      direction,
+      isBookChange = false,
+      isSecondPage = false,
+    ) {
       if (!params) {
         return false;
       }
-      const book = bookChange ? this.books[direction] : this.books.current;
+      const book = isBookChange ? this.books[direction] : this.books.current;
       if (!book) {
         return false;
       }
       let page = params.page;
-      if (secondPage) {
+      if (isSecondPage) {
         const settings = this.getBookSettings(book);
         if (!settings.twoPages) {
           return false;
@@ -974,13 +1050,13 @@ export const useReaderStore = defineStore("reader", {
       };
       return READER_API.getComicPageSource(paramsPlus);
     },
-    prefetchLinks(params, direction, bookChange = false) {
-      if (!bookChange && this.cacheBook) {
+    prefetchLinks(params, direction, isBookChange = false) {
+      if (!isBookChange && this.cacheBook) {
         return {};
       }
       const sources = [
-        this._prefetchSrc(params, direction, bookChange, false),
-        this._prefetchSrc(params, direction, bookChange, true),
+        this._prefetchSrc(params, direction, isBookChange, false),
+        this._prefetchSrc(params, direction, isBookChange, true),
       ];
       const link = [];
       for (const href of sources) {

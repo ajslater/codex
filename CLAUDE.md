@@ -79,21 +79,42 @@ Vue 3 + Vite + Vuetify 4 SPA.
 
 Multi-stage build with targets:
 
-1. **`runtime-base`** — Slim Debian with runtime libs only
-2. **`builder`** — Python 3.14 + Node 24 + build tools
-3. **`codex-ci`** — Builder + full source + dev deps (used in CI for
+1. **`builder-base`**: Python 3.14 + Node 26 + build tools
+2. **`bun-source`**: only supplies the bun binaries
+3. **`codex-ci`**: builder-base + dev deps + full source (used in CI for
    lint/test/build)
-4. **`wheel-installer`** — Installs compiled wheel, strips binaries
-5. **`final`** (default) — Minimal production image. Exposes port 9810, volumes
-   `/comics` and `/config`.
+4. **`wheel-installer`**: installs the compiled wheel, strips binaries
+5. **`final`** (default): minimal production image on
+   `ghcr.io/ajslater/python-debian`. Exposes port 9810, volumes `/comics` and
+   `/config`.
 
 ### CI (`.github/workflows/ci.yml`)
 
-Single workflow with three jobs: `test` -> `build` -> `deploy`. The `test` job
-builds the `codex-ci` Docker target, runs lint/test/build inside it via
-`docker exec`. The `build` job creates per-arch production images (amd64 +
-arm64). The `deploy` job creates a multi-arch manifest and publishes to GHCR +
-PyPI.
+`ci.yml` composes devenv's CI building blocks (the `devenv-*` workflows and
+actions, copied in by `make update-devenv`; edit them in devenv, not here) with
+codex's own jobs: `ci` -> `build` -> `deploy` -> `deploy-hub` -> `release`.
+
+- **`ci`** calls `devenv-check.yml` with `ci-target: codex-ci` and the matrix
+  Lint, Test Frontend, Test Python and Build Dist. Inside it:
+    - a gate runs the Release Preflight on main pushes and PRs into main, and on
+      a main push reuses the `python-dist` of an earlier run that passed on the
+      same git tree;
+    - one image job builds `codex-ci` and pushes it by digest;
+    - a fail-fast matrix pulls that image and runs each combo's `make` targets;
+    - **"CI / Lint, Test & Build Dist"** is the required status check on main.
+
+    `ci`'s outputs (`deploy`, `release`, `version`, `final`) are the only
+    trigger logic later jobs use.
+
+- **`build`** makes the per-arch images, **`deploy`** the GHCR manifest and then
+  the PyPI upload (through `devenv-pypi`), **`deploy-hub`** the deprecated
+  Docker Hub image (final releases only), and **`release`** runs
+  `devenv-release.yml` to tag, publish the GitHub Release and merge main into
+  develop. Every later `if` is `!cancelled()` plus explicit
+  `needs.X.result == 'success'`.
+- `tests/test_ci_workflow.py` guards how codex wires the blocks; devenv tests
+  the blocks themselves. CI never runs actionlint, so run `make lint` on macOS
+  after editing workflows.
 
 ### Makefile Structure
 
@@ -117,6 +138,14 @@ sibling `cfg` boilerplate system. Key fragments: `codex.mk`, `django.mk`,
 - Choices/enums are shared between frontend and backend via generated JSON
   (`make build-choices`).
 - The `compose.yaml` `ci` service mirrors the CI Docker build for local testing.
+- **Releases.** Bump the version and add its `## vX.Y.Z[ - Title]` NEWS.md
+  section on the develop→main PR; the required check's Release Preflight fails
+  without them. After deploy, CI's `release` job runs devenv's
+  `bin/release-tag.sh` to tag, publish the GitHub Release from NEWS.md and merge
+  main into develop. Finish a failed release with _Re-run failed jobs_ or
+  `bin/release-tag.sh` locally (`--dry-run` first). The repo variable
+  `RELEASE_AUTOMATION=off` disables both. A positional VERSION is now only an
+  assertion that pyproject.toml agrees.
 - **Every new librarian job needs a priority.** When adding a `ScribeTask`
   (including any `JanitorTask`), register its class in `_SCRIBE_TASK_PRIORITY`
   (`codex/librarian/scribe/priority.py`) — and, for janitor jobs, in

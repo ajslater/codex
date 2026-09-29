@@ -34,6 +34,7 @@ import AdminCreateUpdateButton from "@/components/admin/create-update-dialog/cre
 import SubmitFooter from "@/components/submit-footer.vue";
 import { deepClone } from "@/api/v4/common";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminCreateUpdateDialog",
@@ -72,6 +73,8 @@ export default {
       row: {},
       showDialog: false,
       submitButtonEnabled: false,
+      // Counts change() calls. Not rendered.
+      validationId: 0,
     };
   },
   computed: {
@@ -89,10 +92,13 @@ export default {
   watch: {
     showDialog(show) {
       this.row = this.getRow(show);
+      // Dialog content stays mounted, so drop errors from an earlier attempt.
+      if (show) this.clearErrors();
     },
   },
   methods: {
     ...mapActions(useAdminStore, ["createRow", "updateRow"]),
+    ...mapActions(useCommonStore, ["clearErrors"]),
     validate() {
       let changed = false;
       for (const [key, value] of Object.entries(this.row)) {
@@ -117,25 +123,19 @@ export default {
           return false;
         });
     },
-    change(event) {
+    async change(event) {
       this.row = event;
-      // ``validate()`` returns a Promise<boolean>. Assigning it
-      // directly to ``submitButtonEnabled`` always evaluates truthy
-      // (Promises are objects), so the submit button stayed enabled
-      // even when the form was invalid — including too-short
-      // passwords. Await the result.
-      const result = this.validate();
-      if (typeof result?.then === "function") {
-        result
-          .then((valid) => {
-            this.submitButtonEnabled = !!valid;
-            return valid;
-          })
-          .catch(() => {
-            this.submitButtonEnabled = false;
-          });
-      } else {
-        this.submitButtonEnabled = !!result;
+      // Validations overlap and can settle out of order; only the newest
+      // may set the button.
+      const validationId = ++this.validationId;
+      /*
+       * The inputs emit from a watcher, before they re-render, so the form
+       * would validate the fields' values from before this edit.
+       */
+      await this.$nextTick();
+      const valid = await this.validate();
+      if (validationId === this.validationId) {
+        this.submitButtonEnabled = valid;
       }
     },
     getRow(show) {
@@ -153,7 +153,7 @@ export default {
       }
       return updateRow;
     },
-    doUpdate: function () {
+    async doUpdate() {
       // only pass diff from old user as update
       const updateRow = {};
       for (const [key, value] of Object.entries(this.row)) {
@@ -161,20 +161,15 @@ export default {
           Reflect.set(updateRow, key, value);
         }
       }
-      this.updateRow(this.table, this.oldRow.pk, updateRow)
-        .then(() => {
-          this.showDialog = false;
-          return true;
-        })
-        .catch(console.error);
+      // Stay open on failure so the server's field errors show.
+      if (await this.updateRow(this.table, this.oldRow.pk, updateRow)) {
+        this.showDialog = false;
+      }
     },
-    doCreate: function () {
-      this.createRow(this.table, this.row)
-        .then(() => {
-          this.showDialog = false;
-          return true;
-        })
-        .catch(console.error);
+    async doCreate() {
+      if (await this.createRow(this.table, this.row)) {
+        this.showDialog = false;
+      }
     },
     submit: function () {
       const form = this.$refs.form;

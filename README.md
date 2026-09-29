@@ -233,6 +233,25 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ghcr.io/ajslater/codex
 ```
 
+### 🎚️ Default Settings for New Sessions
+
+The Admin Panel's Defaults tab sets the browser and reader settings new sessions
+start with: the top collection and which collections to show, the sort order,
+cover or table view and the table columns for each collection, the time and
+filename display, the bookmark filter, and the reader's fit, reading direction,
+two pages, page turn animation and caching. It replaces the old Default View
+setting.
+
+- Defaults apply to new sessions and to browser and reader resets. A new user
+  keeps the settings their anonymous session started with.
+- Visitors who already have settings keep them. To move existing anonymous
+  sessions that still hold the old default, tick "Also apply to existing
+  anonymous sessions" before you save. Settings a visitor changed are kept.
+- A collection's default table columns apply to every visitor who hasn't picked
+  their own columns for that collection.
+- Folders can only be the default top collection while Folder View is on.
+- OPDS keeps the factory defaults, except its top collection.
+
 ### 💾 Backup & Restore User Data
 
 Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
@@ -254,7 +273,8 @@ SQLite file: the **user data sidecar**.
 
 Users (with hashed passwords), groups & permissions, group memberships,
 libraries and their access lists, bookmarks, favorites, per-user browser
-settings, admin flags, timestamps, and online-tagging defaults.
+settings, admin flags, timestamps, online-tagging defaults, and the default
+settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -939,10 +959,11 @@ then restrict it for normal operation.
 
 Once your administrator has added some comic libraries, you may browse and read
 comics. Codex will remember your preferences, bookmarks and progress in the
-browser session. Codex destroys anonymous sessions and bookmarks after 60 days.
-To preserve these settings across browsers and after sessions expire, you may
-register an account with a username and password. You will have to contact your
-administrator to reset your password if you forget it.
+browser session. A new session starts with the default settings your
+administrator chose. Codex destroys anonymous sessions and bookmarks after 60
+days. To preserve these settings across browsers and after sessions expire, you
+may register an account with a username and password. You will have to contact
+your administrator to reset your password if you forget it.
 
 ### ᯤ OPDS
 

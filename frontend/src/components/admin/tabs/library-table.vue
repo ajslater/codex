@@ -192,12 +192,7 @@ export default {
     this.loadTables(["Group", "Library", "FailedImport"]);
   },
   methods: {
-    ...mapActions(useAdminStore, [
-      "updateRow",
-      "clearErrors",
-      "librarianTask",
-      "loadTables",
-    ]),
+    ...mapActions(useAdminStore, ["updateRow", "librarianTask", "loadTables"]),
     formatNumber(num) {
       return NUMBER_FORMAT.format(num);
     },

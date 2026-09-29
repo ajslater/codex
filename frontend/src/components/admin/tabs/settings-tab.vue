@@ -2,6 +2,12 @@
   <div id="settings" class="adminReadingColumn">
     <template v-for="group in groupedFlags" :key="group.title">
       <AdminSection :title="group.title">
+        <template v-if="group.title === defaultsHintGroup" #hint>
+          The default view and the other settings new sessions start with are on
+          the
+          <router-link :to="{ name: 'admin-defaults' }">Defaults</router-link>
+          tab.
+        </template>
         <FlagCard v-for="key in group.keys" :key="`f${key}`" :item-key="key" />
       </AdminSection>
       <!--
@@ -76,6 +82,7 @@ export default {
   data() {
     return {
       schemaHref: `${V4_BASE}schema`,
+      defaultsHintGroup: "Browser Display",
     };
   },
   computed: {

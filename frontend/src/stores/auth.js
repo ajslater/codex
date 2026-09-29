@@ -31,6 +31,15 @@ export const useAuthStore = defineStore("auth", {
      * ``dockerHub`` the deprecated-image snackbar.
      */
     version: undefined,
+    /*
+     * The admin site defaults, ``{browser, reader}``, and their revision.
+     * ``/session`` sends them only to a caller who may browse. They seed a
+     * view's first paint and feed the runtime table-column, bookmark and
+     * reader-scope fallbacks; ``defaultsRev`` changing is what reloads an
+     * open view's settings after the admin saves.
+     */
+    defaults: undefined,
+    defaultsRev: undefined,
     token: undefined,
     showLoginDialog: false,
     showChangePasswordDialog: false,
@@ -63,6 +72,11 @@ export const useAuthStore = defineStore("auth", {
     },
   },
   actions: {
+    // Absent from the payload means this caller may not browse: clear them.
+    _setDefaults({ defaults, defaultsRev }) {
+      this.defaults = defaults;
+      this.defaultsRev = defaultsRev;
+    },
     /*
      * v4 composite boot: one request returns user + adminFlags +
      * permissions + version. Use this on app start; the per-resource
@@ -72,10 +86,12 @@ export const useAuthStore = defineStore("auth", {
     async loadSession() {
       try {
         const response = await API.getSession();
-        const { user, adminFlags, version } = response.data || {};
+        const data = response.data || {};
+        const { user, adminFlags, version } = data;
         if (adminFlags) this.adminFlags = adminFlags;
         this.user = user || undefined;
         if (version) this.version = version;
+        this._setDefaults(data);
         return true;
       } catch (error) {
         console.error(error);
@@ -84,40 +100,44 @@ export const useAuthStore = defineStore("auth", {
     async loadAdminFlags() {
       try {
         const response = await API.getSession();
-        const { adminFlags } = response.data || {};
-        if (adminFlags) this.adminFlags = adminFlags;
+        const data = response.data || {};
+        if (data.adminFlags) this.adminFlags = data.adminFlags;
+        this._setDefaults(data);
         return true;
       } catch (error) {
         console.error(error);
       }
     },
     async loadProfile() {
-      return API.getProfile()
-        .then((response) => {
-          this.user = response.data;
-          return true;
-        })
-        .catch(console.debug);
+      try {
+        const response = await API.getProfile();
+        this.user = response.data;
+        return true;
+      } catch (error) {
+        console.debug(error);
+      }
     },
-    async login(credentials, clear = true) {
+    async login(credentials, shouldClear = true) {
       const commonStore = useCommonStore();
-      await API.login(credentials)
-        .then(() => {
-          if (clear) {
-            commonStore.clearErrors();
-          }
-          return this.loadSession();
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await API.login(credentials);
+        if (shouldClear) {
+          commonStore.clearErrors();
+        }
+        await this.loadSession();
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     async register(credentials) {
       const commonStore = useCommonStore();
-      await API.register(credentials)
-        .then(() => {
-          commonStore.clearErrors();
-          return this.login(credentials);
-        })
-        .catch(commonStore.setErrors);
+      try {
+        await API.register(credentials);
+        commonStore.clearErrors();
+        await this.login(credentials);
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Full-page navigation, not an XHR: the identity provider's login
@@ -128,7 +148,7 @@ export const useAuthStore = defineStore("auth", {
     loginSSO() {
       const url = this.adminFlags.oidcLoginUrl;
       if (url) {
-        globalThis.location.assign(url);
+        location.assign(url);
       }
     },
     async logout() {
@@ -164,7 +184,7 @@ export const useAuthStore = defineStore("auth", {
         if (oidcLogoutUrl) {
           // Full-page redirect to end the IdP session; the ensuing
           // reload refreshes the flags on its own.
-          globalThis.location.assign(oidcLogoutUrl);
+          location.assign(oidcLogoutUrl);
         } else {
           /*
            * Refresh the public admin flags so the logged-out login
@@ -182,12 +202,13 @@ export const useAuthStore = defineStore("auth", {
         password: credentials.password,
       };
       const commonStore = useCommonStore();
-      await API.updatePassword(credentials)
-        .then((response) => {
-          commonStore.setSuccess(response.data.detail);
-          return this.login(changedCredentials, false);
-        })
-        .catch(commonStore.setErrors);
+      try {
+        const response = await API.updatePassword(credentials);
+        commonStore.setSuccess(response.data.detail);
+        await this.login(changedCredentials, false);
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
     },
     /*
      * Update editable user-profile fields (username, email).
@@ -200,55 +221,62 @@ export const useAuthStore = defineStore("auth", {
         return true;
       }
       const commonStore = useCommonStore();
-      return API.updateProfile(profile)
-        .then((response) => {
-          this.user = response.data;
-          commonStore.clearErrors();
-          return true;
-        })
-        .catch((error) => {
-          commonStore.setErrors(error);
-          return false;
-        });
+      try {
+        const response = await API.updateProfile(profile);
+        this.user = response.data;
+        commonStore.clearErrors();
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
     },
     async sendResetPasswordLink(login) {
       const commonStore = useCommonStore();
-      return API.sendResetPasswordLink(login)
-        .then((response) => {
-          commonStore.setSuccess(response.data.detail);
-          return true;
-        })
-        .catch((error) => {
-          commonStore.setErrors(error);
-          return false;
-        });
+      try {
+        const response = await API.sendResetPasswordLink(login);
+        commonStore.setSuccess(response.data.detail);
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
     },
     async resetPassword(payload) {
       const commonStore = useCommonStore();
-      return API.resetPassword(payload)
-        .then((response) => {
-          commonStore.setSuccess(response.data.detail);
-          return true;
-        })
-        .catch((error) => {
-          commonStore.setErrors(error);
-          return false;
-        });
+      try {
+        const response = await API.resetPassword(payload);
+        commonStore.setSuccess(response.data.detail);
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
     },
     async setTimezone() {
       if (this.adminFlags.nonUsers || this.user) {
-        await API.updateTimezone().catch(console.error);
+        try {
+          await API.updateTimezone();
+        } catch (error) {
+          console.error(error);
+        }
       }
     },
     async getToken() {
-      await API.getToken()
-        .then((response) => (this.token = response.data.token))
-        .catch(console.error);
+      try {
+        const response = await API.getToken();
+        this.token = response.data.token;
+      } catch (error) {
+        console.error(error);
+      }
     },
     async updateToken() {
-      await API.updateToken()
-        .then((response) => (this.token = response.data.token))
-        .catch(console.error);
+      try {
+        const response = await API.updateToken();
+        this.token = response.data.token;
+      } catch (error) {
+        console.error(error);
+      }
     },
   },
 });

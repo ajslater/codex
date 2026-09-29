@@ -8,25 +8,28 @@ import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
 
 /** Format an integer for display, or "?" if not an integer. */
 export const nf = (val) => {
-  return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
+  return Number.isSafeInteger(val) ? NUMBER_FORMAT.format(val) : "?";
 };
 
 /** Whether a status has displayable numeric progress. */
 export const hasNumbers = (status) => {
-  return Number.isInteger(status.complete) || Number.isInteger(status.total);
+  return (
+    Number.isSafeInteger(status.complete) || Number.isSafeInteger(status.total)
+  );
 };
 
 /** Whether the progress bar should be indeterminate. */
 export const isIndeterminate = (status) => {
-  return status.active && (!status.total || !Number.isInteger(status.complete));
+  return (
+    status.active && (!status.total || !Number.isSafeInteger(status.complete))
+  );
 };
 
 /** Compute 0–100 progress percentage for a status. */
 export const statusProgress = (status) => {
-  if (!status.total || isIndeterminate(status)) {
-    return 0;
-  }
-  return (100 * +status.complete) / +status.total;
+  return !status.total || isIndeterminate(status)
+    ? 0
+    : (100 * +status.complete) / +status.total;
 };
 
 /** Human-readable title for a statusType code. */
@@ -40,18 +43,14 @@ export const statusDuration = (status, now) => {
     const activeTime = new Date(status.active).getTime();
     return getFormattedDuration(activeTime, now);
   }
-  if (status.preactive) {
-    return "pending";
-  }
-  return "";
+  return status.preactive ? "pending" : "";
 };
 
 /** Whole seconds remaining from `now` until an ISO target, clamped at 0. */
 const secondsUntil = (iso, now) => {
-  if (!iso) {
-    return null;
-  }
-  return Math.max(0, Math.round((new Date(iso).getTime() - now) / 1000));
+  return iso
+    ? Math.max(0, Math.round((new Date(iso).getTime() - now) / 1000))
+    : null;
 };
 
 /** Format a countdown as "m:ss" (>= 60s) or "Ns". */

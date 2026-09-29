@@ -23,12 +23,19 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.browser import (
+    SHOW_COLLECTIONS,
+    clean_table_columns,
+    coherent_top_collection,
+)
+from codex.choices.reader import READER_DEFAULTS
 
 if TYPE_CHECKING:
     from codex.models.admin import (
         AdminFlag,
         EmailSettings,
         OIDCSettings,
+        SettingsDefaults,
         ThrottleSettings,
     )
 
@@ -176,6 +183,104 @@ def get_email_subject_prefix() -> str:
     if db is not None and db.subject_prefix:
         return db.subject_prefix
     return settings.EMAIL_SUBJECT_PREFIX
+
+
+def folder_view_on() -> bool:
+    """
+    Return whether the Folder View admin flag is on.
+
+    A missing row counts as on: startup seeds the flag on.
+    """
+    flag = _get_admin_flag(AdminFlagChoices.FOLDER_VIEW.value)
+    return True if flag is None else flag.on
+
+
+def get_settings_defaults() -> SettingsDefaults | None:
+    """Return the SettingsDefaults singleton or None when DB isn't ready."""
+    try:
+        from codex.models.admin import SettingsDefaults
+    except (ImportError, RuntimeError):
+        return None
+    try:
+        return SettingsDefaults.objects.filter(pk=1).first()
+    except Exception:
+        return None
+
+
+def _get_settings_defaults_or_factory() -> SettingsDefaults:
+    """Return the singleton, or an unsaved instance holding the factory values."""
+    from codex.models.admin import SettingsDefaults
+
+    return get_settings_defaults() or SettingsDefaults()
+
+
+def _in_choices_or_factory(row: SettingsDefaults, key: str) -> Any:
+    """
+    Return the stored value, or the field's factory value when out of choices.
+
+    Guards against vocabulary drift: a stored choice that a later codex
+    removed must not reach a settings row, where the SPA would echo it
+    through a strict ChoiceField and 400 every browse. Booleans and the
+    choiceless JSON field always pass.
+    """
+    field = row._meta.get_field(key)
+    value = getattr(row, key)
+    if not field.choices or value in {choice for choice, _ in field.flatchoices}:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        return value
+    return field.get_default()
+
+
+_BROWSER_DEFAULTS_KEYS: tuple[str, ...] = (
+    "top_collection",
+    *(f"show_{collection}" for collection in SHOW_COLLECTIONS),
+    "order_by",
+    "order_reverse",
+    "view_mode",
+    "twenty_four_hour_time",
+    "always_show_filename",
+    "bookmark",
+    "table_columns",
+)
+_READER_DEFAULTS_KEYS: tuple[str, ...] = (
+    "fit_to",
+    "reading_direction",
+    "two_pages",
+    "page_transition",
+    "cache_book",
+)
+
+
+def get_browser_defaults() -> dict[str, Any]:
+    """
+    Resolve the site default browser settings.
+
+    Returns the ``SettingsBrowser`` direct keys plus ``bookmark``,
+    ``table_columns`` and a nested ``show`` dict. A missing row yields the
+    factory values. ``top_collection`` is made coherent with ``show`` and the
+    Folder View flag, so a seeded row never lands on a hidden collection.
+    """
+    row = _get_settings_defaults_or_factory()
+    values = {key: _in_choices_or_factory(row, key) for key in _BROWSER_DEFAULTS_KEYS}
+    values["table_columns"], _ = clean_table_columns(values["table_columns"])
+    show = {c: values.pop(f"show_{c}") for c in SHOW_COLLECTIONS}
+    values["top_collection"] = coherent_top_collection(
+        values["top_collection"], show, folder_view=folder_view_on()
+    )
+    return {**values, "show": show}
+
+
+def get_reader_defaults() -> dict[str, Any]:
+    """
+    Resolve the site default global reader settings.
+
+    Keeps the two pinned ``READER_DEFAULTS`` keys seeded alongside the
+    admin-configurable ones.
+    """
+    row = _get_settings_defaults_or_factory()
+    return {
+        **READER_DEFAULTS,
+        **{key: _in_choices_or_factory(row, key) for key in _READER_DEFAULTS_KEYS},
+    }
 
 
 def get_throttle_settings() -> ThrottleSettings | None:

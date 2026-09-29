@@ -1,7 +1,7 @@
 import { useWebSocket } from "@vueuse/core";
 import { defineStore } from "pinia";
 
-import { MESSAGE_TYPES, WS_URL_V4, parseV4Message } from "@/api/v4/notify";
+import { MESSAGE_TYPES, parseV4Message, WS_URL_V4 } from "@/api/v4/notify";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -15,7 +15,7 @@ const USER_GROUP_ROUTES = Object.freeze([
   "admin-libraries",
 ]);
 
-const HEARTBEAT_INTERVAL_MS = 5_000;
+const HEARTBEAT_INTERVAL_MS = 5000;
 /*
  * Exponential backoff: 1s, 2s, 4s, 8s, 16s, then 30s cap. Avoids
  * hammering a momentarily-down server (the previous fixed 3s delay
@@ -24,12 +24,38 @@ const HEARTBEAT_INTERVAL_MS = 5_000;
  * blip. Counter resets on successful connect so a long-lived
  * session that drops once doesn't pay the full backoff next time.
  */
-const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 
-// TODO move to some generic util.
+// Kept here: route.js can't import the router, which already imports it.
 function currentRouteName() {
   return router?.currentRoute?.value?.name;
+}
+
+// Admin routes whose FlagCards or controls read the Flag table.
+const FLAG_ROUTES = Object.freeze(
+  new Set(["admin-defaults", "admin-settings", "admin-users"]),
+);
+
+/*
+ * Refetch ``/session`` and, when the admin changed the site defaults,
+ * reload the open view's settings: a catch-up may have rewritten this
+ * session's stored row. Compares ``defaultsRev`` before and after, so a
+ * flags-only change or the first load never reloads. Lives here, not in
+ * the auth store, because it needs the route and the auth store must not
+ * import the router.
+ */
+export async function reloadOnDefaultsChange(routeName) {
+  const auth = useAuthStore();
+  const prev = auth.defaultsRev;
+  await auth.loadAdminFlags();
+  if (prev === undefined || prev === auth.defaultsRev) return false;
+  if (routeName === "browser") {
+    await useBrowserStore().loadSettings();
+  } else if (routeName === "reader") {
+    await useReaderStore().loadGlobalSettings();
+  }
+  return true;
 }
 
 /*
@@ -38,27 +64,15 @@ function currentRouteName() {
  * received within its pongTimeout (default 1000ms), which breaks servers
  * that silently consume the ping without echoing anything back.
  */
-let heartbeatTimer = 0;
-let reconnectTimer = 0;
-let reconnectAttempts = 0;
-
-function startHeartbeat(ws) {
-  stopHeartbeat();
-  heartbeatTimer = globalThis.setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send("");
-    }
-  }, HEARTBEAT_INTERVAL_MS);
-}
-
-function stopHeartbeat() {
-  globalThis.clearInterval(heartbeatTimer);
-  heartbeatTimer = 0;
-}
+const socketState = {
+  heartbeatTimer: 0,
+  reconnectTimer: 0,
+  reconnectAttempts: 0,
+};
 
 function clearReconnectTimer() {
-  globalThis.clearTimeout(reconnectTimer);
-  reconnectTimer = 0;
+  clearTimeout(socketState.reconnectTimer);
+  socketState.reconnectTimer = 0;
 }
 
 function scheduleReconnect(open) {
@@ -66,19 +80,33 @@ function scheduleReconnect(open) {
    * Coalesce: a duplicate ``onDisconnected`` (or a stray error
    * before the scheduled reconnect fires) shouldn't double-schedule.
    */
-  if (reconnectTimer) return;
+  if (socketState.reconnectTimer) return;
   const delay = Math.min(
-    RECONNECT_BASE_MS * 2 ** reconnectAttempts,
+    RECONNECT_BASE_MS * 2 ** socketState.reconnectAttempts,
     RECONNECT_MAX_MS,
   );
-  reconnectAttempts += 1;
+  socketState.reconnectAttempts += 1;
   console.debug(
-    `[socket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}).`,
+    `[socket] Reconnecting in ${delay}ms (attempt ${socketState.reconnectAttempts}).`,
   );
-  reconnectTimer = globalThis.setTimeout(() => {
-    reconnectTimer = 0;
+  socketState.reconnectTimer = setTimeout(() => {
+    socketState.reconnectTimer = 0;
     open();
   }, delay);
+}
+
+function startHeartbeat(ws) {
+  stopHeartbeat();
+  socketState.heartbeatTimer = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("");
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function stopHeartbeat() {
+  clearInterval(socketState.heartbeatTimer);
+  socketState.heartbeatTimer = 0;
 }
 
 export const useSocketStore = defineStore("socket", () => {
@@ -92,7 +120,7 @@ export const useSocketStore = defineStore("socket", () => {
     autoReconnect: false,
     onConnected(ws) {
       clearReconnectTimer();
-      reconnectAttempts = 0;
+      socketState.reconnectAttempts = 0;
       startHeartbeat(ws);
       console.debug("[socket] Connected.");
       onlineTagSync();
@@ -115,217 +143,6 @@ export const useSocketStore = defineStore("socket", () => {
     },
   });
 
-  // Lazy admin store loader
-
-  async function getAdminStore() {
-    if (!useAuthStore().isUserAdmin) return undefined;
-    return import("@/stores/admin")
-      .then((m) => m.useAdminStore())
-      .catch(console.error);
-  }
-
-  // Notification handlers
-
-  async function adminLoadTables(tables) {
-    const adminStore = await getAdminStore();
-    /*
-     * Force-skip the admin store's sticky cache: a websocket
-     * fan-out fires precisely because the data changed on the
-     * server, so cached state is by definition stale.
-     */
-    adminStore?.loadTables(tables, { force: true });
-  }
-
-  async function adminLoadAllStatuses() {
-    const adminStore = await getAdminStore();
-    adminStore?.loadAllStatuses();
-  }
-
-  function reloadBrowser() {
-    if (currentRouteName() === "browser") {
-      useBrowserStore().loadMtimes();
-    }
-  }
-
-  /*
-   * Skip the ``loadMtimes`` mtime gate and pull a fresh page.
-   * ``COVERS`` events fire precisely because a cover row changed; the
-   * card data the previous response handed us is stale by definition,
-   * and the page mtime aggregate doesn't always observe the right
-   * write (e.g. a fresh ``CustomCover`` row that swaps the linked FK).
-   * Forcing a fetch with a fresh ``ts`` query sidesteps any
-   * server-side cachalot caching too.
-   */
-  function forceReloadBrowser() {
-    if (currentRouteName() !== "browser") return;
-    const store = useBrowserStore();
-    store.browserPageLoaded = true;
-    store.loadBrowserPage(Date.now());
-  }
-
-  function adminFlagsNotified() {
-    useAuthStore().loadAdminFlags();
-    // ``Flag`` rows feed the Settings tab directly and the Users tab
-    // via the access / age-rating FlagCard sections. Both rely on the
-    // Pinia store list — reload whenever we're on either route.
-    const route = currentRouteName();
-    if (route === "admin-settings" || route === "admin-users") {
-      adminLoadTables(["Flag"]);
-    }
-  }
-
-  function groupsNotified() {
-    if (USER_GROUP_ROUTES.includes(currentRouteName())) {
-      adminLoadTables(["Group"]);
-    }
-  }
-
-  function usersNotified() {
-    if (USER_GROUP_ROUTES.includes(currentRouteName())) {
-      adminLoadTables(["User"]);
-    }
-  }
-
-  /*
-   * ``library.changed`` (and groups/users) only signal that something
-   * changed; the browser/reader stores probe the scoped ``/api/v4/mtime``
-   * and reload only if the currently-viewed collection actually moved.
-   */
-  async function libraryNotified() {
-    useCommonStore().setTimestamp();
-    switch (currentRouteName()) {
-      case "browser":
-        useBrowserStore().loadMtimes();
-        break;
-      case "reader":
-        useReaderStore().loadMtimes();
-        break;
-      case "admin-libraries":
-        adminLoadTables(["Library", "FailedImport"]);
-        break;
-      case "admin-stats": {
-        const adminStore = await getAdminStore();
-        adminStore?.loadStats();
-        break;
-      }
-    }
-  }
-
-  async function failedImportsNotified() {
-    const adminStore = await getAdminStore();
-    if (!adminStore) return;
-    // Force-skip the sticky cache so the hamburger dot, sidebar item, and the
-    // Libraries-tab panel update live app-wide. Reload the seen marker too so a
-    // clear performed in another admin session propagates here; new failed
-    // imports (created after the marker) re-activate the warning on their own.
-    adminStore.loadTables(["FailedImport"], { force: true });
-    adminStore.loadFailedImportsSeen();
-  }
-
-  async function pendingDeletesNotified() {
-    const adminStore = await getAdminStore();
-    if (!adminStore) return;
-    // The panel and the per-library count move together, so reload both.
-    adminStore.loadTables(["PendingDelete", "Library"], { force: true });
-  }
-
-  async function tagWriteErrorsNotified() {
-    const adminStore = await getAdminStore();
-    adminStore?.loadTagWriteErrors({ force: true });
-  }
-
-  async function onlineTagPromptNotified() {
-    if (!useAuthStore().isUserAdmin) return;
-    import("@/stores/online-tag")
-      .then((m) => m.useOnlineTagStore().onPromptNotification())
-      .catch(console.error);
-  }
-
-  /*
-   * On (re)connect, resync transient online-tagging state so any prompts
-   * left pending from a previous run or restart surface without waiting for
-   * a fresh notification. Best-effort and admin-only.
-   */
-  function onlineTagSync() {
-    if (!useAuthStore().isUserAdmin) return;
-    import("@/stores/online-tag")
-      .then((m) => m.useOnlineTagStore().refresh())
-      .catch(console.error);
-  }
-
-  /*
-   * Refresh the online-tag status snapshot. Driven by its own
-   * ``tag-session.snapshot`` message rather than ``task.progress``, which
-   * fires for every librarian job and already costs two other fetches — the
-   * daemon announces this one only when the tagging snapshot actually moved,
-   * including mid-comic when a source starts looking a comic up. Gated to the
-   * Tagging tab, the only place the snapshot is rendered; the table's own
-   * onMounted load covers arriving mid-scan.
-   */
-  function onlineTagSnapshotNotified() {
-    if (!useAuthStore().isUserAdmin) return;
-    if (currentRouteName() !== "admin-tagging") return;
-    import("@/stores/online-tag")
-      .then((m) => m.useOnlineTagStore().loadSnapshot())
-      .catch(console.error);
-  }
-
-  // Message Dispatcher — routes v4 typed payloads ({type, ...}).
-
-  function dispatchMessage(raw) {
-    if (!raw) return;
-    const payload = parseV4Message(raw);
-    if (!payload) {
-      console.debug("[socket] unparseable message:", raw);
-      return;
-    }
-    console.debug("[socket] message:", payload);
-    switch (payload.type) {
-      case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED:
-        adminFlagsNotified();
-        break;
-      case MESSAGE_TYPES.BOOKMARK_CHANGED:
-        reloadBrowser();
-        break;
-      case MESSAGE_TYPES.COVERS_CHANGED:
-        useCommonStore().setTimestamp();
-        forceReloadBrowser();
-        break;
-      case MESSAGE_TYPES.GROUPS_CHANGED:
-        groupsNotified();
-        libraryNotified();
-        break;
-      case MESSAGE_TYPES.USERS_CHANGED:
-        usersNotified();
-        libraryNotified();
-        break;
-      case MESSAGE_TYPES.LIBRARY_CHANGED:
-        libraryNotified();
-        break;
-      case MESSAGE_TYPES.TASK_PROGRESS:
-        adminLoadTables(["ActiveLibrarianStatus"]);
-        adminLoadAllStatuses();
-        break;
-      case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED:
-        failedImportsNotified();
-        break;
-      case MESSAGE_TYPES.PENDING_DELETES_CHANGED:
-        pendingDeletesNotified();
-        break;
-      case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED:
-        tagWriteErrorsNotified();
-        break;
-      case MESSAGE_TYPES.TAG_SESSION_SNAPSHOT:
-        onlineTagSnapshotNotified();
-        break;
-      case MESSAGE_TYPES.TAG_SESSION_PROMPT:
-        onlineTagPromptNotified();
-        break;
-      default:
-        console.debug("Unhandled v4 WebSocket type:", payload.type, payload);
-    }
-  }
-
   // Public open for recconnect when user changes.
   const reopen = () => {
     // Don't force a reopen if we're in the middle of connecting.
@@ -336,7 +153,7 @@ export const useSocketStore = defineStore("socket", () => {
      * immediately, not wait out the previous failure's window.
      */
     clearReconnectTimer();
-    reconnectAttempts = 0;
+    socketState.reconnectAttempts = 0;
     open(true);
   };
 
@@ -345,4 +162,235 @@ export const useSocketStore = defineStore("socket", () => {
 
 export function useSocketStoreWithOut() {
   return useSocketStore(store);
+}
+
+// Notification handlers
+
+async function adminFlagsNotified() {
+  const route = currentRouteName();
+  /*
+   * ``Flag`` rows feed the Settings tab directly, the Users tab via
+   * the access / age-rating FlagCard sections, and the Defaults tab's
+   * Folder View gate. All rely on the Pinia store list — reload
+   * whenever we're on one of them.
+   */
+  if (FLAG_ROUTES.has(route)) {
+    adminLoadTables(["Flag"]);
+  }
+  await reloadOnDefaultsChange(route);
+}
+
+async function adminLoadAllStatuses() {
+  const adminStore = await getAdminStore();
+  adminStore?.loadAllStatuses();
+}
+
+async function adminLoadTables(tables) {
+  const adminStore = await getAdminStore();
+  /*
+   * Force-skip the admin store's sticky cache: a websocket
+   * fan-out fires precisely because the data changed on the
+   * server, so cached state is by definition stale.
+   */
+  adminStore?.loadTables(tables, { force: true });
+}
+
+// Message Dispatcher — routes v4 typed payloads ({type, ...}).
+function dispatchMessage(raw) {
+  if (!raw) return;
+  const payload = parseV4Message(raw);
+  if (!payload) {
+    console.debug("[socket] unparseable message:", raw);
+    return;
+  }
+  console.debug("[socket] message:", payload);
+  switch (payload.type) {
+    case MESSAGE_TYPES.ADMIN_FLAGS_CHANGED: {
+      adminFlagsNotified();
+      break;
+    }
+    case MESSAGE_TYPES.BOOKMARK_CHANGED: {
+      reloadBrowser();
+      break;
+    }
+    case MESSAGE_TYPES.COVERS_CHANGED: {
+      useCommonStore().setTimestamp();
+      forceReloadBrowser();
+      break;
+    }
+    case MESSAGE_TYPES.FAILED_IMPORTS_CHANGED: {
+      failedImportsNotified();
+      break;
+    }
+    case MESSAGE_TYPES.GROUPS_CHANGED: {
+      groupsNotified();
+      libraryNotified();
+      break;
+    }
+    case MESSAGE_TYPES.LIBRARY_CHANGED: {
+      libraryNotified();
+      break;
+    }
+    case MESSAGE_TYPES.PENDING_DELETES_CHANGED: {
+      pendingDeletesNotified();
+      break;
+    }
+    case MESSAGE_TYPES.TAG_SESSION_PROMPT: {
+      onlineTagPromptNotified();
+      break;
+    }
+    case MESSAGE_TYPES.TAG_SESSION_SNAPSHOT: {
+      onlineTagSnapshotNotified();
+      break;
+    }
+    case MESSAGE_TYPES.TAG_WRITE_ERRORS_CHANGED: {
+      tagWriteErrorsNotified();
+      break;
+    }
+    case MESSAGE_TYPES.TASK_PROGRESS: {
+      adminLoadTables(["ActiveLibrarianStatus"]);
+      adminLoadAllStatuses();
+      break;
+    }
+    case MESSAGE_TYPES.USERS_CHANGED: {
+      usersNotified();
+      libraryNotified();
+      break;
+    }
+    default: {
+      console.debug("Unhandled v4 WebSocket type:", payload.type, payload);
+    }
+  }
+}
+
+async function failedImportsNotified() {
+  const adminStore = await getAdminStore();
+  if (!adminStore) return;
+  // Force-skip the sticky cache so the hamburger dot, sidebar item, and the
+  // Libraries-tab panel update live app-wide. Reload the seen marker too so a
+  // clear performed in another admin session propagates here; new failed
+  // imports (created after the marker) re-activate the warning on their own.
+  adminStore.loadTables(["FailedImport"], { force: true });
+  adminStore.loadFailedImportsSeen();
+}
+
+/*
+ * Skip the ``loadMtimes`` mtime gate and pull a fresh page.
+ * ``COVERS`` events fire precisely because a cover row changed; the
+ * card data the previous response handed us is stale by definition,
+ * and the page mtime aggregate doesn't always observe the right
+ * write (e.g. a fresh ``CustomCover`` row that swaps the linked FK).
+ * Forcing a fetch with a fresh ``ts`` query sidesteps any
+ * server-side cachalot caching too.
+ */
+function forceReloadBrowser() {
+  if (currentRouteName() !== "browser") return;
+  const store = useBrowserStore();
+  store.browserPageLoaded = true;
+  store.loadBrowserPage(Date.now());
+}
+
+// Lazy admin store loader
+async function getAdminStore() {
+  if (!useAuthStore().isUserAdmin) return;
+  try {
+    const m = await import("@/stores/admin");
+    return m.useAdminStore();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function groupsNotified() {
+  if (USER_GROUP_ROUTES.includes(currentRouteName())) {
+    adminLoadTables(["Group"]);
+  }
+}
+
+/*
+ * ``library.changed`` (and groups/users) only signal that something
+ * changed; the browser/reader stores probe the scoped ``/api/v4/mtime``
+ * and reload only if the currently-viewed collection actually moved.
+ */
+async function libraryNotified() {
+  useCommonStore().setTimestamp();
+  switch (currentRouteName()) {
+    case "admin-libraries": {
+      adminLoadTables(["Library", "FailedImport"]);
+      break;
+    }
+    case "admin-stats": {
+      const adminStore = await getAdminStore();
+      adminStore?.loadStats();
+      break;
+    }
+    case "browser": {
+      useBrowserStore().loadMtimes();
+      break;
+    }
+    case "reader": {
+      useReaderStore().loadMtimes();
+      break;
+    }
+  }
+}
+
+async function onlineTagPromptNotified() {
+  if (!useAuthStore().isUserAdmin) return;
+  void import("@/stores/online-tag")
+    .then((m) => m.useOnlineTagStore().onPromptNotification())
+    .catch(console.error);
+}
+
+/*
+ * Refresh the online-tag status snapshot. Driven by its own
+ * ``tag-session.snapshot`` message rather than ``task.progress``, which
+ * fires for every librarian job and already costs two other fetches — the
+ * daemon announces this one only when the tagging snapshot actually moved,
+ * including mid-comic when a source starts looking a comic up. Gated to the
+ * Tagging tab, the only place the snapshot is rendered; the table's own
+ * onMounted load covers arriving mid-scan.
+ */
+function onlineTagSnapshotNotified() {
+  if (!useAuthStore().isUserAdmin || currentRouteName() !== "admin-tagging")
+    return;
+  void import("@/stores/online-tag")
+    .then((m) => m.useOnlineTagStore().loadSnapshot())
+    .catch(console.error);
+}
+
+/*
+ * On (re)connect, resync transient online-tagging state so any prompts
+ * left pending from a previous run or restart surface without waiting for
+ * a fresh notification. Best-effort and admin-only.
+ */
+function onlineTagSync() {
+  if (!useAuthStore().isUserAdmin) return;
+  void import("@/stores/online-tag")
+    .then((m) => m.useOnlineTagStore().refresh())
+    .catch(console.error);
+}
+
+async function pendingDeletesNotified() {
+  const adminStore = await getAdminStore();
+  if (!adminStore) return;
+  // The panel and the per-library count move together, so reload both.
+  adminStore.loadTables(["PendingDelete", "Library"], { force: true });
+}
+
+function reloadBrowser() {
+  if (currentRouteName() === "browser") {
+    useBrowserStore().loadMtimes();
+  }
+}
+
+async function tagWriteErrorsNotified() {
+  const adminStore = await getAdminStore();
+  adminStore?.loadTagWriteErrors({ force: true });
+}
+
+function usersNotified() {
+  if (USER_GROUP_ROUTES.includes(currentRouteName())) {
+    adminLoadTables(["User"]);
+  }
 }

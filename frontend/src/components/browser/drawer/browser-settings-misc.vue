@@ -34,8 +34,6 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) =>
         state.settings?.twentyFourHourTime || false,
-      twentyFourHourTimeTitle: (state) =>
-        state.choices?.static?.twentyFourHourTime?.title || "",
       alwaysShowFilename: (state) =>
         state.settings?.alwaysShowFilename || false,
     }),

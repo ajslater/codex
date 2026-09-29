@@ -28,7 +28,7 @@ export const getProfile = () => HTTP.get("/auth/profile");
 export const updateProfile = (profile) => HTTP.patch("/auth/profile", profile);
 
 export const updateTimezone = () =>
-  HTTP.patch("/auth/profile", {
+  HTTP.put("/auth/timezone", {
     timezone: new Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 

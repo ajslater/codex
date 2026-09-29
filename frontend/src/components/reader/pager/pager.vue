@@ -65,7 +65,6 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "getBookSettings",
-      "isBookVertical",
       "setActivePage",
       "prefetchBook",
     ]),
