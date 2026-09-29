@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.1
+
+- Fixes
+    - Browsing a series or volume emptied by tagging returns to the top instead
+      of a list with no way back.
+
 ## v2.5.0 - Admin Defaults
 
 - Features
