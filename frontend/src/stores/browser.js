@@ -1182,6 +1182,19 @@ export const useBrowserStore = defineStore("browser", {
         console.error(error);
       }
     },
+    async deleteSavedSettings(pk) {
+      if (!this.isAuthorized) {
+        return;
+      }
+      try {
+        await API.deleteSavedSettings(pk);
+      } catch (error) {
+        console.error(error);
+      }
+      // Reload even after a failure: a 404 means another tab already
+      // deleted it, and the stale entry should drop out of the list.
+      this.loadSavedSettingsList();
+    },
     async loadSavedSettings(pk) {
       if (!this.isAuthorized) {
         return;
