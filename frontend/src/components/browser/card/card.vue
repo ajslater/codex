@@ -1,6 +1,6 @@
 <template>
   <v-lazy :id="`card-${ids}`" transition="scale-transition">
-    <div class="browserCardCoverWrapper" :class="readStateClass">
+    <div class="browserCardCoverWrapper">
       <div class="browserCardTop">
         <BookCover
           :collection="item.collection"
@@ -44,11 +44,12 @@
         Read state. ``aria-hidden`` because the state is already folded into
         the link's accessible name — one announcement per card, not two.
       -->
-      <div class="readState" :title="readStateLabel" aria-hidden="true">
-        <div class="readStateTrack">
-          <div class="readStateFill" :style="readFillStyle" />
-        </div>
-      </div>
+      <ReadStateBar
+        class="cardReadState"
+        :item="item"
+        :title="readStateLabel"
+        aria-hidden="true"
+      />
       <footer class="cardFooter">
         <BrowserCardSubtitle :item="item" />
         <OrderByCaption :item="item" />
@@ -65,12 +66,8 @@ import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
-import {
-  getReadFillPercent,
-  getReadState,
-  getReadStateLabel,
-  READ_STATE,
-} from "@/read-state";
+import ReadStateBar from "@/components/read-state-bar.vue";
+import { getReadStateLabel } from "@/read-state";
 import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
@@ -86,6 +83,7 @@ export default {
     BrowserCardSubtitle,
     FavoriteToggle,
     OrderByCaption,
+    ReadStateBar,
   },
   props: {
     item: {
@@ -122,19 +120,6 @@ export default {
         this.favoritePk &&
         this.isFavorite(this.item.collection, this.favoritePk),
       );
-    },
-    readState() {
-      return getReadState(this.item);
-    },
-    readStateClass() {
-      return `is-${this.readState}`;
-    },
-    readFillStyle() {
-      const pct =
-        this.readState === READ_STATE.UNREAD
-          ? 0
-          : getReadFillPercent(this.item);
-      return { width: `${pct}%` };
     },
     readStateLabel() {
       return getReadStateLabel(this.item);
@@ -348,86 +333,15 @@ export default {
    * control buttons, so it needs no ``pointer-events: none`` and keeps its
    * native ``title`` tooltip.
    *
-   * The slot is a fixed 10px with the track centered in it. If the track
-   * grew from 3px to 6px in flow, a finished card's footer would sit lower
-   * than its neighbour's and every grid row would get a ragged baseline.
-   * 1 + 10 + 2 = 13, the band's previous height, so nothing reflows.
+   * 1 + 10 + 2 = 13, the band's height, so nothing reflows.
    */
-  .readState {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: 10px;
+  .cardReadState {
     margin-top: 1px;
   }
 
-  /*
-   * Painted only where there is a fill to measure against. An always-on
-   * track under every unread cover reads as a ruled grid, and unread is the
-   * majority state in most libraries.
-   */
-  .readStateTrack {
-    width: 100%;
-    height: 3px;
-    border-radius: 2px;
-    overflow: hidden;
-    background-color: transparent;
-    transition: height 0.15s;
-  }
-
-  .readStateFill {
-    width: 0;
-    height: 100%;
-    border-radius: inherit;
-    transition: width 0.15s;
-  }
-
-  .is-reading .readStateTrack,
-  .is-finished .readStateTrack {
-    background-color: rgba(var(--v-theme-text-disabled), 0.25);
-  }
-
-  /* Still reading: thin, orange. Orange means one thing on this card. */
-  .is-reading .readStateFill {
-    background-color: rgb(var(--v-theme-primary));
-  }
-
-  /*
-   * Finished: double thickness. Thickness is the only boolean, so the fill
-   * stays the real bookmark position — a comic marked read but never opened
-   * is a bare 6px track, still unmistakable against an unread card's
-   * nothing. Neutral grey keeps a second hue out of the grid.
-   */
-  .is-finished .readStateTrack {
-    height: 6px;
-    border-radius: 3px;
-  }
-
-  .is-finished .readStateFill {
-    background-color: rgb(var(--v-theme-text-header));
-  }
-
   .cardFooter {
-    margin-top: 2px; /* the .readState slot is 10px tall */
+    margin-top: 2px; /* the read state slot is 10px tall */
     color: rgb(var(--v-theme-text-primary));
-  }
-
-  /*
-   * The caption channel: luminance only, so it survives protanopia,
-   * deuteranopia and achromatopsia intact, and it is the half of this design
-   * that would port to table view for free. ``.displayName`` sets no colour
-   * of its own so it inherits; the grey sublines in subtitle.vue set theirs
-   * explicitly and are unaffected.
-   */
-  .is-finished .cardFooter {
-    color: rgb(var(--v-theme-text-disabled));
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .readStateTrack,
-    .readStateFill {
-      transition: none;
-    }
   }
 
   @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

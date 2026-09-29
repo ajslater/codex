@@ -6,9 +6,9 @@
  * the derivation in one place stops the two surfaces disagreeing about the
  * same comic on the same screen.
  *
- * Three states. Thickness carries the only boolean (a finished thing gets the
- * thick bar), and the fill length is always the real read position — so a
- * finished comic never has to claim it was read to the end.
+ * Three states. The end cap carries the only boolean (a finished thing gets a
+ * check at the end of its bar), and the fill length is always the real read
+ * position — so a finished comic never has to claim it was read to the end.
  */
 export const READ_STATE = Object.freeze({
   UNREAD: "unread",
@@ -23,8 +23,8 @@ const READING_FILL_MIN = 6;
  * The label is clamped to its state, the same way the fill is floored.
  *
  * A bare ``Math.round`` contradicts the bar beside it. A 251-page comic open
- * at page 249 is 99.6% and reads "100% read" while the bar is still thin and
- * orange and ``finished`` is false; page 1 of the same comic is 0.4% and reads
+ * at page 249 is 99.6% and reads "100% read" while the bar is still orange,
+ * with no cap, and ``finished`` is false; page 1 of the same comic is 0.4% and reads
  * "0% read" while the bar paints its READING minimum. Neither end belongs to
  * this state: 100% is what FINISHED says and 0% is what UNREAD says, so the
  * READING label stops one short of each.
@@ -69,7 +69,7 @@ export const getReadState = (item) => {
  * count even if its own bookmark stopped short.
  *
  * No floor on the finished state: a comic marked read but never opened is
- * genuinely at 0, and the bare thick track is how the card says so.
+ * genuinely at 0, and a bare track with its cap is how the card says so.
  */
 export const getReadFillPercent = (item) => {
   const progress = Number(item.progress) || 0;

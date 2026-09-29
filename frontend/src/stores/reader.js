@@ -717,7 +717,7 @@ export const useReaderStore = defineStore("reader", {
        * ``finished`` means "was finished at least once", so paging back
        * through a book the reader already reached the end of leaves it read;
        * only the explicit Mark Unread input un-finishes a comic. A card in
-       * that state is honest about it -- the thick FINISHED bar carries the
+       * that state is honest about it -- the FINISHED end cap carries the
        * boolean and the short fill carries the real position (see
        * ``read-state.js``) -- and re-reading is not "in progress".
        */

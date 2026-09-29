@@ -12,6 +12,7 @@ border-radius: 128px;
     - Admin Defaults tab sets the browser and reader settings new sessions start
       with, replaces Default View, and can update existing anonymous sessions.
     - Browser and reader resets restore the admin defaults.
+    - Read comics and collections show a check mark instead of dimmed titles.
     - Online tagging match review shows each file's own cover beside its name.
 - Fixes
     - A Folders or Story Arcs default view opens there instead of Publishers.
