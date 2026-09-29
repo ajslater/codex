@@ -15,6 +15,7 @@ border-radius: 128px;
       of a list with no way back.
     - Clearing a search or loading a saved view no longer leaves a list with no
       way back, and saved views keep their top collection.
+    - The saved views menu no longer reopens after loading a view.
 
 ## v2.5.0 - Admin Defaults
 
