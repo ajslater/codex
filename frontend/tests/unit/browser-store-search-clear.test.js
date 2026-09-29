@@ -59,6 +59,34 @@ describe("browser store _validateSearch — clearing search", () => {
     });
   });
 
+  it("redirects to the top collection when the show flags moved lowestShownCollection during the search", () => {
+    const store = makeStore();
+    store.settings.search = "batman";
+    setRoute("series"); // the search sent us here with volumes hidden...
+    store.settings.show.volumes = true; // ...then volumes were shown
+    expect(store.lowestShownCollection).toBe("volumes");
+
+    const redirect = store._validateSearch({ search: "" });
+
+    expect(redirect).toStrictEqual({
+      params: { collection: "root", pks: "", page: "1" },
+    });
+  });
+
+  it.each(["folders", "arcs", "comics"])(
+    "does not redirect when clearing at the %s root",
+    (collection) => {
+      const store = makeStore();
+      store.settings.topCollection = collection;
+      store.settings.search = "batman";
+      setRoute(collection); // searching here never redirected
+
+      const redirect = store._validateSearch({ search: "" });
+
+      expect(redirect).toBeUndefined();
+    },
+  );
+
   it("does not redirect when clearing from a deep (non-root) collection", () => {
     const store = makeStore();
     store.settings.search = "batman";
