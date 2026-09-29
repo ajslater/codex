@@ -19,11 +19,13 @@ collection resolves to nothing -- a bad pk, a library outside the user's
 groups, or a scanner-stamped pending delete -- used to render a page with
 a nameless crumb and an empty body, because the redirect that was meant
 to catch it sat behind an ``except model.DoesNotExist`` wrapped around a
-lazy queryset that can never raise. It now answers 303 up to that
-collection's root, the same body-carrying redirect ``BrowserValidateView``
-already speaks. The folder trail gets the matching treatment: it stops at
-the first ancestor it cannot resolve instead of hanging the current folder
-off its grandparent.
+lazy queryset that can never raise. It now answers 303 up to the top
+collection's root (or the folder or story arc root), the same body-carrying
+redirect ``BrowserValidateView`` already speaks. Not the bare root of the
+route's own collection: ``/series`` under a Publishers top collection has no
+crumb to climb, so a series emptied by a tag write stranded the user there.
+The folder trail gets the matching treatment: it stops at the first ancestor
+it cannot resolve instead of hanging the current folder off its grandparent.
 """
 
 import shutil
@@ -378,17 +380,46 @@ class UnresolvableCollectionTestCase(TestCase):
         """Hand-stamp a folder the way the scanner will."""
         Folder.objects.filter(pk=folder.pk).update(missing_since=timezone.now())
 
-    def test_a_pk_that_names_nothing_redirects_up_a_level(self) -> None:
-        """The headline: no more blank page with a nameless crumb."""
-        self._set_top_collection("publishers")
-        response = self.client.get("/api/v4/browse/series/999999?page=1")
+    def _redirect_params(self, url: str) -> dict:
+        response = self.client.get(url)
         assert response.status_code == _HTTP_SEE_OTHER, response.content
         # Codex's redirect carries its target in the body; there is no
         # ``Location`` header for a client to follow.
         assert "Location" not in response.headers
-        route = _v4(response)["route"]
-        assert route["params"]["collection"] == "series"
-        assert route["params"]["parentIds"] == []
+        return _v4(response)["route"]["params"]
+
+    def test_a_pk_that_names_nothing_redirects_to_the_top(self) -> None:
+        """
+        The headline: no more blank page with a nameless crumb.
+
+        The target is the top collection's root, which the v4 route
+        spells as ``publishers`` with no parent ids. ``/series`` bare
+        would be a listing with no crumb to climb back out of.
+        """
+        self._set_top_collection("publishers")
+        params = self._redirect_params("/api/v4/browse/series/999999?page=1")
+        assert params["collection"] == "publishers"
+        assert params["parentIds"] == []
+
+    def test_an_emptied_volume_redirects_to_the_top(self) -> None:
+        """
+        A tag write that moves a volume's only comic leaves it childless.
+
+        The ACL resolves through ``comic__``, so the volume the page is
+        still showing no longer resolves on the refresh that follows.
+        """
+        self._set_top_collection("publishers")
+        volume = Volume.objects.get(series=self.series)
+        new_volume = Volume.objects.create(
+            name="2025",
+            series=self.series,
+            imprint=self.series.imprint,
+            publisher=self.series.publisher,
+        )
+        Comic.objects.filter(volume=volume).update(volume=new_volume)
+        params = self._redirect_params(f"/api/v4/browse/volumes/{volume.pk}?page=1")
+        assert params["collection"] == "publishers"
+        assert params["parentIds"] == []
 
     def test_a_stamped_container_redirects_like_an_invisible_one(self) -> None:
         """
@@ -398,8 +429,10 @@ class UnresolvableCollectionTestCase(TestCase):
         """
         self._set_top_collection("folders")
         self._stamp(self.leaf)
-        response = self.client.get(f"/api/v4/browse/folders/{self.leaf.pk}?page=1")
-        assert response.status_code == _HTTP_SEE_OTHER, response.content
+        params = self._redirect_params(f"/api/v4/browse/folders/{self.leaf.pk}?page=1")
+        # Folders are their own top: the redirect stays in folder view.
+        assert params["collection"] == "folders"
+        assert params["parentIds"] == []
 
     def test_the_folder_trail_names_every_visible_ancestor(self) -> None:
         """The control: nothing is hidden, so nothing truncates."""
