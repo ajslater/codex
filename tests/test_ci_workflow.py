@@ -1,19 +1,17 @@
 """
-Invariants of the CI job graph in .github/workflows/ci.yml.
+Invariants of codex's CI in .github/workflows/ci.yml.
 
-"Lint, Test & Build Dist" is the required check on main, so it must keep its
-name and fail closed. The check matrix must stop at the first failure, and
-nothing downstream may run unless everything it depends on succeeded. CI
-never runs actionlint, so these are the only workflow checks CI enforces.
-
-What GitHub reports as ``needs.check.result`` when one matrix combo failed
-and fail-fast cancelled the rest is recorded by the graph simulation
-(tasks/ci-job-split.md §5 case g). The aggregator accepts only "success", so
-any other value fails closed.
+ci.yml composes devenv's CI building blocks: devenv-check (the gate, one
+codex-ci image, the fail-fast check matrix and the required check
+"CI / Lint, Test & Build Dist") and devenv-release, with codex's own image,
+manifest, PyPI and Docker Hub jobs between them. devenv tests the blocks
+themselves; these tests pin how codex wires them. CI never runs actionlint,
+so these are the only workflow checks CI enforces.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -22,26 +20,24 @@ import pytest
 yaml = pytest.importorskip("yaml")
 
 _WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
-_REQUIRED_CHECK = "Lint, Test & Build Dist"
-_CHECK_NAMES = frozenset(("Lint", "Test Frontend", "Test Python", "Build Dist"))
-_DOWNSTREAM = ("build", "deploy", "deploy-hub", "release")
-_DIST_ARTIFACT = "python-dist"
+_CALL_CHECK = "./.github/workflows/devenv-check.yml"
+_CALL_RELEASE = "./.github/workflows/devenv-release.yml"
+_CALL_PYPI = "./.github/actions/devenv-pypi"
+_MATRIX = (
+    ("Lint", "lint"),
+    ("Test Frontend", "test-frontend"),
+    ("Test Python", "django-check test-python"),
+    ("Build Dist", "build-choices build-frontend collectstatic build-only"),
+)
+_DEPLOY_JOBS = ("build", "deploy", "deploy-hub")
+_LATER_JOBS = [*_DEPLOY_JOBS, "release"]
+_EVENT_TESTS = ("github.event_name", "github.ref", "base_ref", "head_ref")
 
 
 @pytest.fixture(scope="module")
-def workflow() -> dict[str, Any]:
-    """Return the parsed workflow."""
-    return yaml.safe_load(_WORKFLOW.read_text(encoding="utf-8"))
-
-
-@pytest.fixture(scope="module")
-def jobs(workflow: dict[str, Any]) -> dict[str, Any]:
+def jobs() -> dict[str, Any]:
     """Return the workflow's jobs by id."""
-    return workflow["jobs"]
-
-
-def _steps(job: dict[str, Any]) -> list[dict[str, Any]]:
-    return job.get("steps", [])
+    return yaml.safe_load(_WORKFLOW.read_text(encoding="utf-8"))["jobs"]
 
 
 def _needs(job: dict[str, Any]) -> list[str]:
@@ -49,85 +45,93 @@ def _needs(job: dict[str, Any]) -> list[str]:
     return [needs] if isinstance(needs, str) else needs
 
 
-def test_workflow_name_is_ci(workflow: dict[str, Any]) -> None:
-    """bin/ci-download-dist-if-identical.sh looks up earlier runs named CI."""
-    assert workflow["name"] == "CI"
+def _ancestors(jobs: dict[str, Any], job_id: str) -> set[str]:
+    found: set[str] = set()
+    todo = _needs(jobs[job_id])
+    while todo:
+        need = todo.pop()
+        if need not in found:
+            found.add(need)
+            todo.extend(_needs(jobs[need]))
+    return found
 
 
-def test_required_check_aggregates_every_container_job(jobs: dict[str, Any]) -> None:
-    """The required check runs always() and needs every job that runs tests."""
-    (aggregator,) = (job for job in jobs.values() if job.get("name") == _REQUIRED_CHECK)
-    assert "always()" in aggregator["if"]
-    container_jobs = {
-        job_id
-        for job_id, job in jobs.items()
-        if any("docker exec" in step.get("run", "") for step in _steps(job))
+def test_ci_is_devenv_check_with_the_codex_ci_image(jobs: dict[str, Any]) -> None:
+    """The required check is "CI / Lint, Test & Build Dist", so ci keeps its name."""
+    ci = jobs["ci"]
+    assert ci["uses"] == _CALL_CHECK
+    assert ci["name"] == "CI"
+    assert ci["with"]["ci-target"] == "codex-ci"
+    assert ci["permissions"] == {
+        "contents": "read",
+        "actions": "read",
+        "packages": "write",
+        "checks": "write",
     }
-    assert "check" in container_jobs
-    assert container_jobs <= set(_needs(aggregator))
 
 
-def test_check_matrix_fails_fast(jobs: dict[str, Any]) -> None:
-    """The first failing combo must cancel the rest (decided 2026-09-23)."""
-    check = jobs["check"]
-    assert check["strategy"]["fail-fast"] is True
-    assert "continue-on-error" not in check
-    assert all("continue-on-error" not in step for step in _steps(check))
-    assert check["name"] == "${{ matrix.name }}"
+def test_check_matrix(jobs: dict[str, Any]) -> None:
+    """Four combos; Test Python publishes junit and Build Dist the dist."""
+    matrix = json.loads(jobs["ci"]["with"]["matrix"])
+    assert tuple((combo["name"], combo["make"]) for combo in matrix) == _MATRIX
+    assert [combo["name"] for combo in matrix if combo.get("junit")] == ["Test Python"]
+    assert [combo["name"] for combo in matrix if combo.get("dist")] == ["Build Dist"]
 
 
-def test_check_matrix_combos(jobs: dict[str, Any]) -> None:
-    """Four named combos, and only one writes the registry cache."""
-    include = jobs["check"]["strategy"]["matrix"]["include"]
-    assert {combo["name"] for combo in include} == _CHECK_NAMES
-    assert len(include) == len(_CHECK_NAMES)
-    assert [combo["task"] for combo in include if combo["write-cache"] is True] == [
-        "lint"
-    ]
-
-
-@pytest.mark.parametrize("job_id", _DOWNSTREAM)
-def test_downstream_jobs_need_explicit_success(
-    jobs: dict[str, Any], job_id: str
-) -> None:
+@pytest.mark.parametrize("job_id", _LATER_JOBS)
+def test_later_jobs_need_explicit_success(jobs: dict[str, Any], job_id: str) -> None:
     """!cancelled() plus explicit results: a cancelled ancestor never passes."""
-    condition = jobs[job_id]["if"]
+    job = jobs[job_id]
+    condition = job["if"]
     assert "!cancelled()" in condition
-    assert ".result == 'success'" in condition
+    for need in [need for need in _needs(job) if need != "ci"] or ["ci"]:
+        assert f"needs.{need}.result ==" in condition, need
 
 
-def test_python_dist_has_two_guarded_producers(jobs: dict[str, Any]) -> None:
-    """Only the gate (on reuse) and the Build Dist combo upload python-dist."""
-    producers = {
-        job_id: step.get("if", "")
-        for job_id, job in jobs.items()
-        for step in _steps(job)
-        if "upload-artifact" in step.get("uses", "")
-        and step.get("with", {}).get("name") == _DIST_ARTIFACT
-    }
-    assert set(producers) == {"gate", "check"}
-    assert "dist_found == 'true'" in producers["gate"]
-    assert "matrix.task == 'dist'" in producers["check"]
+@pytest.mark.parametrize("job_id", _LATER_JOBS)
+def test_triggers_come_from_ci(jobs: dict[str, Any], job_id: str) -> None:
+    """Later jobs read ci's outputs and never test the event themselves."""
+    job = jobs[job_id]
+    assert "ci" in _needs(job)
+    for event_test in _EVENT_TESTS:
+        assert event_test not in job["if"], event_test
 
 
-def test_release_preflight_runs_once_in_the_gate(jobs: dict[str, Any]) -> None:
-    """The preflight fails the gate, which fails the required check."""
-    preflights = [
-        (job_id, step)
-        for job_id, job in jobs.items()
-        for step in _steps(job)
-        if step.get("name") == "Release Preflight"
+def test_images_build_only_on_deploy(jobs: dict[str, Any]) -> None:
+    """Main pushes and pre-release PRs build images, from ci's version."""
+    build = jobs["build"]
+    assert "needs.ci.outputs.deploy == 'true'" in build["if"]
+    assert build["env"]["CODEX_VERSION"] == "${{ needs.ci.outputs.version }}"
+
+
+def test_versions_come_from_ci(jobs: dict[str, Any]) -> None:
+    """No deploy job reads the version from pyproject.toml itself."""
+    for job_id in _DEPLOY_JOBS:
+        for step in jobs[job_id]["steps"]:
+            run = step.get("run", "")
+            assert "pyproject.toml" not in run, (job_id, step["name"])
+            assert "uv version" not in run, (job_id, step["name"])
+
+
+def test_pypi_publishes_after_the_manifest(jobs: dict[str, Any]) -> None:
+    """Images first: a PyPI version can never be replaced."""
+    names = [step.get("name") for step in jobs["deploy"]["steps"]]
+    (pypi,) = [
+        step for step in jobs["deploy"]["steps"] if step.get("uses") == _CALL_PYPI
     ]
-    assert [job_id for job_id, _ in preflights] == ["gate"]
-    assert preflights[0][1]["run"] == "bin/release-tag.sh preflight"
-    checkout = _steps(jobs["gate"])[0]
-    assert checkout["uses"].startswith("actions/checkout@")
-    assert "if" not in checkout
+    assert names.index("Create and push manifest") < names.index(pypi["name"])
+    assert pypi["with"]["download"] == "false"
 
 
-def test_release_job_runs_only_after_a_main_deploy(jobs: dict[str, Any]) -> None:
-    """The release job is the last job and only runs for a push to main."""
+def test_docker_hub_gets_final_releases_only(jobs: dict[str, Any]) -> None:
+    """Alphas never reach Docker Hub."""
+    assert "needs.ci.outputs.final == 'true'" in jobs["deploy-hub"]["if"]
+
+
+def test_release_runs_last_on_main_pushes(jobs: dict[str, Any]) -> None:
+    """The release waits for every deploy job and runs only on outputs.release."""
     release = jobs["release"]
-    assert set(_needs(release)) == {"deploy", "deploy-hub"}
-    assert "github.ref == 'refs/heads/main'" in release["if"]
+    assert release["uses"] == _CALL_RELEASE
+    assert "needs.ci.outputs.release == 'true'" in release["if"]
     assert release["permissions"] == {"contents": "write"}
+    assert set(_DEPLOY_JOBS) <= _ancestors(jobs, "release")

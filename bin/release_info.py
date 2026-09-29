@@ -7,6 +7,8 @@ the release notes, so the CI release job and a local run agree.
 
   info       Print version=, tag=, final= and title= lines, and write the
              version's NEWS.md section to --notes-file.
+  version    Print version= and final= lines from pyproject.toml alone. The
+             CI gate uses this; it never reads NEWS.md.
   is-latest  Read `git ls-remote --tags --refs` lines on stdin. Print true
              when --version is a final release at least as new as every
              final vX.Y.Z tag listed, otherwise false.
@@ -165,14 +167,24 @@ def _read(path: Path) -> str:
     return path.read_bytes().decode("utf-8")
 
 
+def _write_fields(fields: dict[str, str], github_output: Path | None) -> None:
+    lines = "".join(f"{key}={value}\n" for key, value in fields.items())
+    sys.stdout.write(lines)
+    if github_output:
+        with github_output.open("a", encoding="utf-8") as output:
+            output.write(lines)
+
+
 def _run_info(args: Namespace) -> None:
     info = build_info(_read(args.pyproject), _read(args.news), args.version)
     args.notes_file.write_bytes(info.notes.encode("utf-8"))
-    lines = "".join(f"{key}={value}\n" for key, value in info.fields().items())
-    sys.stdout.write(lines)
-    if args.github_output:
-        with args.github_output.open("a", encoding="utf-8") as output:
-            output.write(lines)
+    _write_fields(info.fields(), args.github_output)
+
+
+def _run_version(args: Namespace) -> None:
+    version = read_version(_read(args.pyproject))
+    final = "true" if is_final(version) else "false"
+    _write_fields({"version": version, "final": final}, args.github_output)
 
 
 def _error(message: str) -> None:
@@ -196,6 +208,11 @@ def build_parser() -> ArgumentParser:
     info.add_argument(
         "--github-output", type=Path, help="also append the facts to this file"
     )
+    version = commands.add_parser("version", help="version and final only")
+    version.add_argument("--pyproject", type=Path, required=True)
+    version.add_argument(
+        "--github-output", type=Path, help="also append the facts to this file"
+    )
     latest = commands.add_parser("is-latest", help="is this the newest final?")
     latest.add_argument("--version", required=True)
     return parser
@@ -207,6 +224,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "info":
             _run_info(args)
+        elif args.command == "version":
+            _run_version(args)
         else:
             print("true" if is_latest(args.version, sys.stdin) else "false")
     except (ReleaseInfoError, OSError, UnicodeDecodeError) as exc:

@@ -6,6 +6,7 @@ if [ "$(uname)" != "Darwin" ]; then
   exit 0
 fi
 
-if [ -f .github/workflows/ci.yml ]; then
-  actionlint .github/workflows/ci.yml
+# Every workflow, so ci.yml's calls into the devenv-* workflows are checked.
+if [ -d .github/workflows ]; then
+  actionlint
 fi

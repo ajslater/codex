@@ -1,0 +1,48 @@
+# Managed by devenv (copy/ci). Edit it there, not in a child repo.
+#
+# Last step of a main release: tag, GitHub Release from NEWS.md, merge-back.
+# Every step is idempotent: use "Re-run failed jobs" to finish a partial run.
+# The caller decides when it runs, because only the caller knows which deploy
+# jobs must succeed first:
+#
+#   release:
+#     needs: [ci, pypi]
+#     if: ${{ !cancelled() && needs.ci.outputs.release == 'true' && needs.pypi.result == 'success' }}
+#     uses: ./.github/workflows/devenv-release.yml
+#     permissions: { contents: write }
+name: devenv release
+
+on: workflow_call
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  release:
+    name: Tag, Release & Merge to Develop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # tag push, develop push, gh release create
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_SHA: ${{ github.sha }}
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # ancestry and tree lookups against develop
+
+      - name: Tag
+        run: bin/release-tag.sh tag
+
+      - name: GitHub Release
+        run: bin/release-tag.sh publish
+
+      - name: Merge main into develop
+        run: bin/release-tag.sh merge-back
