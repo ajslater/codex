@@ -39,7 +39,7 @@ import sys
 import time
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
@@ -220,7 +220,7 @@ class RegistrySession:
         self._repo = repo
         self._auth = HTTPBasicAuth(user, secret)
         self._session = requests.Session()
-        self._expires = datetime.now(tz=UTC)
+        self._expires = datetime.now(tz=timezone.utc)
         self._token = ""
 
     def _reissue(self) -> None:
@@ -243,13 +243,13 @@ class RegistrySession:
             reason = "registry returned no token"
             raise PruneError(reason)
         lifetime = int(body.get("expires_in") or DEFAULT_TOKEN_LIFETIME)
-        self._expires = datetime.now(tz=UTC) + timedelta(
+        self._expires = datetime.now(tz=timezone.utc) + timedelta(
             seconds=max(lifetime - TOKEN_LEEWAY, 1)
         )
 
     def _request(self, method: str, digest: str, accept: str = "") -> requests.Response:
         """Call the registry, reissuing the token before and after it lapses."""
-        if datetime.now(tz=UTC) >= self._expires:
+        if datetime.now(tz=timezone.utc) >= self._expires:
             self._reissue()
         url = f"{REGISTRY_API}/{self._repo}/manifests/{digest}"
         headers = {"Accept": accept} if accept else {}
@@ -476,7 +476,7 @@ def prune(repo: str, min_age: int, *, execute: bool) -> int:
 
     cutoff = ""
     if min_age:
-        moment = datetime.now(tz=UTC) - timedelta(days=min_age)
+        moment = datetime.now(tz=timezone.utc) - timedelta(days=min_age)
         cutoff = moment.strftime("%Y-%m-%dT%H:%M:%SZ")
         print(f"  Age filter: last push and last pull both before {cutoff}")
 

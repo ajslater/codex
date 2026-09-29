@@ -1,8 +1,10 @@
 # Managed by devenv (copy/ci). Edit it there, not in a child repo.
 #
 # Gate, one CI image build, a fail-fast lint/test/build matrix that pulls that
-# image, and the required-check aggregator. Call it from a job in ci.yml;
-# later jobs read its outputs instead of repeating any trigger logic:
+# image, and the required-check aggregator. With container: false the matrix
+# runs natively on inputs.runner instead (for macOS-only projects) and no
+# image is built. Call it from a job in ci.yml; later jobs read its outputs
+# instead of repeating any trigger logic:
 #
 #   ci:
 #     uses: ./.github/workflows/devenv-check.yml
@@ -30,6 +32,19 @@ on:
         description: Dockerfile target for the CI image. Empty builds the last stage.
         type: string
         default: ""
+      container:
+        description: >-
+          true runs every combo in the CI image built from the Dockerfile.
+          false runs it natively on the runner after setup-uv, setup-bun and
+          make install, for projects that cannot run in a Linux container.
+        type: boolean
+        default: true
+      runner:
+        description: >-
+          Runner for the check matrix, e.g. macos-latest with container false.
+          The gate, image and result jobs stay on ubuntu-24.04.
+        type: string
+        default: ubuntu-24.04
       release-preflight:
         description: >-
           Run bin/release-tag.sh preflight in the gate on main pushes and pull
@@ -154,7 +169,7 @@ jobs:
   image:
     name: CI Image
     needs: gate
-    if: needs.gate.outputs.dist_found != 'true'
+    if: inputs.container && needs.gate.outputs.dist_found != 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -229,9 +244,15 @@ jobs:
   # ---------------------------------------------------------------------------
   check:
     name: ${{ matrix.name }}
-    # Implicit success(): skipped with the image when the gate reused a dist.
-    needs: image
-    runs-on: ubuntu-24.04
+    needs: [gate, image]
+    # Skipped when the gate reused a dist. The image job is skipped in native
+    # mode; in container mode it must have succeeded.
+    if: >-
+      !cancelled() && needs.gate.result == 'success'
+      && needs.gate.outputs.dist_found != 'true'
+      && (needs.image.result == 'success'
+      || (!inputs.container && needs.image.result == 'skipped'))
+    runs-on: ${{ inputs.runner }}
     # Job permissions cannot vary per combo; this is the union.
     permissions:
       contents: read
@@ -246,17 +267,41 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Start CI container
+        if: inputs.container
         uses: ./.github/actions/devenv-ci-container
         with:
           image: ${{ needs.image.outputs.image }}
+
+      # Native mode: install the project on the runner instead.
+      - name: Set up uv
+        if: ${{ !inputs.container }}
+        uses: astral-sh/setup-uv@v8.0.0
+        with:
+          enable-cache: true
+
+      - name: Set up bun
+        if: ${{ !inputs.container }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        if: ${{ !inputs.container }}
+        run: |
+          uv python install
+          mkdir -p dist test-results
+          make install
 
       - name: ${{ matrix.name }}
         id: work
         env:
           MAKE_TARGETS: ${{ matrix.make }}
+          IN_CONTAINER: ${{ inputs.container }}
         run: |
           read -ra targets <<<"$MAKE_TARGETS"
-          docker exec "$CI_CONTAINER" make "${targets[@]}"
+          if [[ $IN_CONTAINER == true ]]; then
+            docker exec "$CI_CONTAINER" make "${targets[@]}"
+          else
+            make "${targets[@]}"
+          fi
 
       # Straight after the work step and on !cancelled(), so a test failure
       # still publishes its report.

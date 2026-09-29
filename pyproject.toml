@@ -379,7 +379,7 @@ ignore-overlong-task-comments = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D101", "D102", "T201", "T203"]
-"bin/hub_prune_stale.py" = ["T201"]
+"bin/hub_prune_stale.py" = ["T201", "UP017"]
 "bin/release_info.py" = ["T201"]
 "bin/roman.py" = ["T201"]
 "bin/*" = ["T201"]

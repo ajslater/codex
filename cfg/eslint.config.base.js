@@ -93,6 +93,7 @@ export default defineConfig([
       ".venv/",
       "bun.lock",
       "dist/",
+      "tasks/",
       "test-results/",
       "typings/",
       "uv.lock",
