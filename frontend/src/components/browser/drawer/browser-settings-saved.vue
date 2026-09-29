@@ -3,6 +3,7 @@
     <div class="settingsSubHeader">Saved Views</div>
     <div class="savedSettingsRow">
       <v-combobox
+        ref="combobox"
         v-model="selectedName"
         :items="savedItems"
         class="savedSettingsCombobox"
@@ -150,6 +151,10 @@ export default {
   watch: {
     browserSettings: {
       handler() {
+        if (this.selectedName?.pk != null) {
+          // Clearing a picked view re-opens a focused combobox's menu.
+          this.$refs.combobox?.blur();
+        }
         this.selectedName = null;
       },
       deep: true,
