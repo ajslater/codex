@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.5.0
+## v2.5.0 - Admin Defaults
 
 - Features
     - Admin Defaults tab sets the browser and reader settings new sessions start
@@ -18,10 +18,10 @@ border-radius: 128px;
     - A Folders or Story Arcs default view opens there instead of Publishers.
     - Reader zoom scales pages from their original size.
     - Fit to Screen fits wide pages when PDFs render as vectors.
+    - Admin tables and tag write errors no longer revert to old values.
+    - The reader's "b" shortcut sets bottom to top reading.
     - "Clear All Filters" no longer shows when no filter is set.
     - Anonymous browsing no longer logs a timezone error.
-    - The reader's "b" shortcut sets bottom to top reading.
-    - Admin tables and tag write errors no longer revert to old values.
 
 ## v2.4.3
 
