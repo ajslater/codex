@@ -1,0 +1,35 @@
+# Managed by devenv (copy/ci). Edit it there, not in a child repo.
+name: devenv CI container
+description: >-
+  Pull the CI image devenv-check's image job pushed, by digest, and start the
+  compose service "ci" from it. CI_CONTAINER comes from the calling
+  workflow's env.
+inputs:
+  image:
+    description: The CI image by digest (devenv-check's needs.image.outputs.image).
+    required: true
+  token:
+    description: Token for logging in to GHCR.
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Log in to GHCR
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.token }}
+
+    - name: Start Services
+      shell: bash
+      env:
+        # compose.yaml's `image: ${CI_IMAGE}`.
+        CI_IMAGE: ${{ inputs.image }}
+      run: |
+        mkdir -p dist test-results
+        if ! docker pull --quiet "$CI_IMAGE"; then
+          echo "::error::Could not pull $CI_IMAGE. A re-run of a failed job reuses its original CI image, which may have been pruned since; use \"Re-run all jobs\" to rebuild it."
+          exit 1
+        fi
+        docker compose up --detach --no-build ci

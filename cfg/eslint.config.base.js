@@ -35,6 +35,11 @@ export const SHARED_RULES = {
   "no-debugger": "warn",
   "no-secrets/no-secrets": "error",
   "security/detect-object-injection": "off",
+  // Duplicates core no-unused-vars, which has the options worth configuring.
+  "sonarjs/no-unused-vars": "off",
+  // Unicorn's twin of @stylistic/multiline-comment-style. Both of its autofix
+  // modes mangle one-line `/** x */` or starred multi-line block comments.
+  "unicorn/single-line-block-comment-style": "off",
 };
 
 // Presets for JavaScript. Each becomes its own flat-config entry through
@@ -153,19 +158,22 @@ export default defineConfig([
       "depend/ban-dependencies": "error",
     },
   },
+  // Markdown is two entries: the files themselves and their fenced code blocks
+  // (virtual `README.md/0.js` files). Spreading both presets into one object
+  // kept only the code-block `files` glob, so no Markdown was linted at all.
   {
-    files: ["**/*.{md,mdx}"],
     ...eslintPluginMdx.flat,
-    ...eslintPluginMdx.flatCodeBlocks,
     processor: eslintPluginMdx.createRemarkProcessor({
       lintCodeBlocks: true,
     }),
     rules: {
-      "no-undef": "off",
-      "no-unused-vars": "off",
-      "prettier/prettier": ["warn", { parser: "markdown" }],
+      ...eslintPluginMdx.flat.rules,
+      // The remark CLI already reports these, and this rule's autofix rewrites
+      // the whole file with remark-stringify, which fights prettier.
+      "mdx/remark": "off",
     },
   },
+  eslintPluginMdx.flatCodeBlocks,
   ...eslintPluginToml.configs.recommended,
   {
     files: ["**/*.toml", "**/*.md/*.toml"],

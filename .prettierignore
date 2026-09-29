@@ -1,7 +1,6 @@
 __pycache__
 .*cache
 .*cache/
-.circleci
 .claude
 .git
 .mypy_cache

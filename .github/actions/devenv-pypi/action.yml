@@ -1,0 +1,35 @@
+# Managed by devenv (copy/ci). Edit it there, not in a child repo.
+#
+# A composite action, not a reusable workflow, so it can run in any job (for
+# example straight after an image manifest) and so PyPI trusted publishing,
+# which PyPI refuses from inside a reusable workflow, stays possible.
+name: devenv PyPI publish
+description: >-
+  Publish the python-dist artifact to PyPI with uv. Files already on PyPI are
+  skipped, so a re-run finishes a partial publish.
+inputs:
+  token:
+    description: The PyPI API token (secrets.PYPI_TOKEN).
+    required: true
+  download:
+    description: >-
+      "false" when the job has already downloaded python-dist into dist/.
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Download dist artifact
+      if: inputs.download == 'true'
+      uses: actions/download-artifact@v8
+      with:
+        name: python-dist
+        path: dist/
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v8.0.0
+
+    - name: Publish to PyPI
+      shell: bash
+      env:
+        UV_PUBLISH_TOKEN: ${{ inputs.token }}
+      run: uv publish --check-url https://pypi.org/simple/ dist/*
