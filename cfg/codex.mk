@@ -12,6 +12,16 @@ install::
 ## @category Test
 test-frontend:: build-choices
 
+.PHONY: lint
+## Lint with dependencies: eslint resolves the generated choices JSON
+## @category Lint
+lint:: build-choices
+
+.PHONY: fix
+## Fix lint errors with dependencies: eslint resolves the generated choices JSON
+## @category Fix
+fix:: build-choices
+
 .PHONY: dev
 ## Run Granian (backend) + Vite (frontend) together with interleaved logs
 ## @category Run Server

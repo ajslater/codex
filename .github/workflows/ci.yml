@@ -8,9 +8,6 @@ on:
     branches: [main, develop]
 
 env:
-  CI_IMAGE: ghcr.io/${{ github.repository }}-ci
-  CI_IMAGE_TAG: ghcr.io/${{ github.repository }}-ci:latest
-  CI_CONTAINER: ${{ github.event.repository.name }}-ci
   IMAGE: ghcr.io/${{ github.repository }}
   HUB_IMAGE: docker.io/ajslater/codex
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -19,198 +16,44 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# codex composes devenv's CI building blocks (the devenv-* workflows and
+# actions, managed by devenv) with its own image jobs. Every job after ci
+# reads ci's outputs instead of testing the event itself, and checks
+# !cancelled() plus an explicit needs.X.result, so a skipped or cancelled
+# ancestor never lets it run.
 jobs:
   # ---------------------------------------------------------------------------
-  # Gate: the only job with trigger logic. Runs the Release Preflight, and on a
-  # main push identical to the merged PR reuses that PR's dist.
+  # devenv-check: the gate (Release Preflight; on a main push, reuse the dist
+  # of an earlier run that passed on the same tree), one codex-ci image, the
+  # fail-fast check matrix, and the required check
+  # "CI / Lint, Test & Build Dist".
   # ---------------------------------------------------------------------------
-  gate:
-    name: Gate
-    runs-on: ubuntu-24.04
-    if: |
-      github.ref_name == 'main' && github.event_name == 'push' ||
-      github.base_ref == 'main' ||
-      (github.base_ref == 'develop' && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
+  ci:
+    name: CI
+    uses: ./.github/workflows/devenv-check.yml
+    # test-frontend's make prerequisite builds the choices JSON. Neither
+    # django-check nor pytest needs the frontend or static files. The wheel
+    # ships codex/static, so Build Dist collects it.
+    with:
+      ci-target: codex-ci
+      matrix: >-
+        [{"name": "Lint", "make": "lint"},
+        {"name": "Test Frontend", "make": "test-frontend"},
+        {"name": "Test Python", "make": "django-check test-python", "junit": true},
+        {"name": "Build Dist", "make": "build-choices build-frontend collectstatic build-only", "dist": true}]
     permissions:
       contents: read
       actions: read
-      pull-requests: read
-    outputs:
-      # Always "true" or "false".
-      dist_found: ${{ steps.gate.outputs.dist_found == 'true' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          # Only fetch full history for the main push gate
-          fetch-depth: ${{ (github.ref_name == 'main' && github.event_name == 'push') && 0 || 1 }}
-
-      # A release PR must bump the version and add its NEWS.md section before
-      # it can merge; a failure here fails the gate, so nothing else runs and
-      # the required check goes red.
-      - name: Release Preflight
-        if: >-
-          vars.RELEASE_AUTOMATION != 'off' &&
-          ((github.event_name == 'push' && github.ref_name == 'main') || github.base_ref == 'main')
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-        run: bin/release-tag.sh preflight
-
-      - name: Check for Redundant Tests & Existing Dist
-        id: gate
-        if: github.ref_name == 'main' && github.event_name == 'push'
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bin/ci-download-dist-if-identical.sh
-
-      - name: Link the reused run
-        if: steps.gate.outputs.dist_found == 'true'
-        env:
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.gate.outputs.source_run_id }}
-        run: echo "Reused python-dist from CI run $RUN_URL" >>"$GITHUB_STEP_SUMMARY"
-
-      - name: Upload reused dist
-        if: steps.gate.outputs.dist_found == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: python-dist
-          path: dist/
-          retention-days: 2
-          if-no-files-found: error
-
-  # ---------------------------------------------------------------------------
-  # Lint, test, and build the Python wheel in parallel in the codex-ci image.
-  # fail-fast (decided 2026-09-23): the first failing task cancels the rest.
-  # Never set fail-fast: false or continue-on-error here; the aggregator and
-  # tests/test_ci_workflow.py rely on it.
-  # ---------------------------------------------------------------------------
-  check:
-    name: ${{ matrix.name }}
-    needs: gate
-    if: needs.gate.outputs.dist_found != 'true'
-    runs-on: ubuntu-24.04
-    # Job permissions cannot vary per combo; this is the union of the four.
-    permissions:
-      contents: read
       packages: write
       checks: write
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          # Lint is the only combo that writes the registry cache.
-          - task: lint
-            name: Lint
-            write-cache: true
-            make: lint
-          # test-frontend's make prerequisite builds the choices JSON.
-          - task: test-frontend
-            name: Test Frontend
-            write-cache: false
-            make: test-frontend
-          # Neither django-check nor pytest needs the frontend or static files.
-          - task: test-python
-            name: Test Python
-            write-cache: false
-            make: django-check test-python
-          # The wheel ships codex/static, so this combo collects it.
-          - task: dist
-            name: Build Dist
-            write-cache: false
-            make: build-choices build-frontend collectstatic build-only
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Start CI container
-        uses: ./.github/actions/ci-container
-        with:
-          image: ${{ env.CI_IMAGE }}
-          write-cache: ${{ matrix.write-cache }}
-
-      - name: ${{ matrix.name }}
-        id: work
-        run: docker exec ${{ env.CI_CONTAINER }} make ${{ matrix.make }}
-
-      # Test Python only: straight after the work step and on !cancelled(), so
-      # a pytest failure still publishes its report.
-      - name: Upload Test Results
-        id: upload-tests
-        if: matrix.task == 'test-python' && !cancelled() && steps.work.outcome != 'skipped'
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: "**/test-results/pytest/*.xml"
-
-      - name: Publish Test Report
-        if: matrix.task == 'test-python' && !cancelled() && steps.upload-tests.outcome == 'success'
-        uses: mikepenz/action-junit-report@v6
-        with:
-          report_paths: "**/test-results/pytest/*.xml"
-
-      # Build Dist only; implicit success(): only when make succeeded. The one
-      # producer of python-dist unless the gate reused a dist.
-      - name: Upload dist artifact
-        if: matrix.task == 'dist'
-        uses: actions/upload-artifact@v7
-        with:
-          name: python-dist
-          path: dist/
-          retention-days: 2
-          if-no-files-found: error
-
-  # ---------------------------------------------------------------------------
-  # The required check: green only when the gate and every check combo passed
-  # (or the gate reused an already-tested dist).
-  # ---------------------------------------------------------------------------
-  ci-result:
-    # DO NOT RENAME: "Lint, Test & Build Dist" is the required status check on
-    # main, and branch protection matches it by job name.
-    name: Lint, Test & Build Dist
-    needs: [gate, check]
-    # always(), not !cancelled(): a skipped required check counts as passing,
-    # so a cancelled run must still reach this job and go red.
-    if: ${{ always() && needs.gate.result != 'skipped' }}
-    runs-on: ubuntu-24.04
-    permissions: {}
-    steps:
-      - name: All required jobs passed
-        env:
-          NEEDS: ${{ toJSON(needs) }}
-          DIST_FOUND: ${{ needs.gate.outputs.dist_found }}
-        run: |
-          jq -c 'map_values(.result)' <<<"$NEEDS"
-          ok='["success"]'
-          if [[ "$DIST_FOUND" == "true" ]]; then ok='["success","skipped"]'; fi
-          jq -e --argjson ok "$ok" '.gate.result == "success" and (.check.result | IN($ok[]))' <<<"$NEEDS"
-
-      # Here job.status is the aggregate result.
-      - name: Discord notification (Test Results)
-        if: "!cancelled() && false"
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          title: Lint & Test
-          description: "Tests for ${{ github.ref_name }} #${{ github.run_number }} ${{ job.status == 'success' && 'passed' || 'FAILED' }}"
-          color: ${{ job.status == 'success' && '0x28a745' || '0xd73a49' }}
-          url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ---------------------------------------------------------------------------
   # Build per-arch Docker images natively
   # ---------------------------------------------------------------------------
   build:
     name: Build Image (${{ matrix.arch }})
-    # Not ci-result: that hop would sit on the deploy path. The explicit
-    # results below are the same condition.
-    needs: [gate, check]
-    if: >-
-      !cancelled()
-      && needs.gate.result == 'success'
-      && (needs.gate.outputs.dist_found == 'true' || needs.check.result == 'success')
-      && (github.event_name == 'push'
-      || (github.base_ref == 'develop' && github.head_ref == 'pre-release'))
+    needs: ci
+    if: ${{ !cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true' }}
     strategy:
       matrix:
         include:
@@ -222,6 +65,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      CODEX_VERSION: ${{ needs.ci.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -236,10 +81,7 @@ jobs:
           path: dist/
 
       - name: Set Build Context
-        run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
-          echo "CODEX_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "CODEX_WHEEL=$(find dist -name '*.whl' -print0 | xargs basename)" >> "$GITHUB_ENV"
+        run: echo "CODEX_WHEEL=$(find dist -name '*.whl' -print0 | xargs -0 basename)" >> "$GITHUB_ENV"
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -262,15 +104,13 @@ jobs:
           cache-to: type=gha,scope=build-${{ matrix.arch }},mode=max
 
   # ---------------------------------------------------------------------------
-  # Create multi-arch manifest and publish
+  # Create the multi-arch manifest, then publish to PyPI: images first, since
+  # a PyPI version can never be replaced.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy
-    needs: build
-    # Explicit, because the implicit success() would skip this job whenever
-    # an ancestor was skipped.
-    if: >-
-      !cancelled() && needs.build.result == 'success'
+    needs: [ci, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -281,9 +121,6 @@ jobs:
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v8.0.0
 
       - name: Download dist artifact
         uses: actions/download-artifact@v8
@@ -299,12 +136,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push manifest
+        env:
+          VERSION: ${{ needs.ci.outputs.version }}
+          FINAL: ${{ needs.ci.outputs.final }}
         run: |
-          VERSION=$(uv version --short)
           TAG_ARGS=("-t" "${IMAGE}:${VERSION}")
 
-          # Positive regex check for Final versions (e.g., 1.2.3)
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          # Final versions (X.Y.Z) also get latest.
+          if [[ $FINAL == true ]]; then
             TAG_ARGS+=("-t" "${IMAGE}:latest")
           fi
 
@@ -321,9 +160,10 @@ jobs:
             "${IMAGE}:${VERSION}-arm64"
 
       - name: Publish to PyPI
-        run: uv publish dist/*
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        uses: ./.github/actions/devenv-pypi
+        with:
+          token: ${{ secrets.PYPI_TOKEN }}
+          download: "false"
 
       - name: Discord notification (Deploy Results)
         if: "!cancelled() && false"
@@ -339,13 +179,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Republish final releases to Docker Hub as a deprecated derivative of the
   # ghcr.io image: identical layers, one ENV and two labels, so stranded
-  # docker.io users get the in-app "move to ghcr.io" warning.
+  # docker.io users get the in-app "move to ghcr.io" warning. Alphas never
+  # reach Docker Hub: nothing prunes them there and the only tag stranded
+  # users pull is latest.
   # ---------------------------------------------------------------------------
   deploy-hub:
     name: Deploy Deprecated Docker Hub Image
-    needs: deploy
-    if: >-
-      !cancelled() && needs.deploy.result == 'success'
+    needs: [ci, deploy]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.ci.outputs.final == 'true' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -356,6 +197,7 @@ jobs:
     # ends Docker Hub publishing.
     env:
       DOCKERHUB_ENABLED: ${{ secrets.DOCKER_PASS != '' }}
+      VERSION: ${{ needs.ci.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -363,29 +205,15 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Check for a final version
-        id: version
-        run: |
-          VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          # The same rule that gives the ghcr.io index its latest tag.
-          # Alphas never reach Docker Hub: nothing prunes them there and
-          # the only tag stranded users pull is latest.
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "final=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Log in to Docker Hub
-        if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
+        if: env.DOCKERHUB_ENABLED == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
       - name: Build and push deprecated image
-        if: env.DOCKERHUB_ENABLED == 'true' && steps.version.outputs.final == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+        if: env.DOCKERHUB_ENABLED == 'true'
         run: |
           # No RUN steps: buildx rewrites the config blob per platform and
           # copies the ghcr.io layers across unchanged, so no QEMU is needed.
@@ -411,44 +239,15 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Last step of a main release: tag, GitHub Release from NEWS.md, merge-back.
-  # Every step is idempotent: use "Re-run failed jobs" to finish a partial run.
+  # deploy-hub is skipped for alphas, so skipped counts as done there.
   # ---------------------------------------------------------------------------
   release:
-    name: Tag, Release & Merge to Develop
-    needs: [deploy, deploy-hub]
-    # The same !cancelled() && needs.X.result == 'success' pattern as build,
-    # deploy and deploy-hub. deploy-hub skips only when deploy did not
-    # succeed, so its 'skipped' case only matters if it is later gated.
+    name: Release
+    needs: [ci, deploy, deploy-hub]
     if: >-
-      !cancelled()
-      && github.event_name == 'push' && github.ref == 'refs/heads/main'
-      && vars.RELEASE_AUTOMATION != 'off'
+      ${{ !cancelled() && needs.ci.outputs.release == 'true'
       && needs.deploy.result == 'success'
-      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped') }}
+    uses: ./.github/workflows/devenv-release.yml
     permissions:
-      contents: write # tag push, develop push, gh release create
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GH_REPO: ${{ github.repository }}
-      RELEASE_SHA: ${{ github.sha }}
-      GIT_AUTHOR_NAME: github-actions[bot]
-      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-      GIT_COMMITTER_NAME: github-actions[bot]
-      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0 # ancestry/tree lookup against develop
-          # No RELEASE_TOKEN (decided 2026-09-23): the default GITHUB_TOKEN is used.
-
-      - name: Tag
-        run: bin/release-tag.sh tag
-
-      - name: GitHub Release
-        run: bin/release-tag.sh publish
-
-      - name: Merge main into develop
-        run: bin/release-tag.sh merge-back
+      contents: write
