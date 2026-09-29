@@ -17,7 +17,23 @@
         variant="outlined"
         @update:model-value="onSelect"
         @click:clear="onClear"
-      />
+      >
+        <template #item="{ internalItem, props }">
+          <v-list-item v-bind="props" role="option" :title="internalItem.title">
+            <template #append>
+              <v-btn
+                class="savedSettingsDeleteBtn"
+                density="compact"
+                :icon="mdiTrashCan"
+                size="small"
+                title="Delete Saved View"
+                variant="text"
+                @click.stop="onDeleteClick(internalItem.raw)"
+              />
+            </template>
+          </v-list-item>
+        </template>
+      </v-combobox>
       <v-btn
         class="savedSettingsSaveBtn"
         density="compact"
@@ -80,10 +96,30 @@
       </div>
     </div>
   </v-dialog>
+  <!-- Delete confirmation dialog. Outside the combobox so the menu
+       closing can't unmount it. -->
+  <v-dialog
+    v-model="showDeleteConfirm"
+    min-width="320"
+    width="auto"
+    transition="fab-transition"
+  >
+    <div class="saveDialog">
+      <div class="saveDialogTitle">Delete View</div>
+      <div>
+        Delete the saved view "<strong>{{ deleteTarget?.name }}</strong
+        >"?
+      </div>
+      <div class="saveDialogActions">
+        <v-btn size="small" @click="showDeleteConfirm = false">Cancel</v-btn>
+        <v-btn color="error" size="small" @click="doDelete">Delete</v-btn>
+      </div>
+    </div>
+  </v-dialog>
   <v-divider />
 </template>
 <script>
-import { mdiContentSave } from "@mdi/js";
+import { mdiContentSave, mdiTrashCan } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
@@ -93,10 +129,13 @@ export default {
   data() {
     return {
       mdiContentSave,
+      mdiTrashCan,
       selectedName: null,
       showSaveDialog: false,
       showOverwriteConfirm: false,
       saveName: "",
+      showDeleteConfirm: false,
+      deleteTarget: null,
     };
   },
   computed: {
@@ -124,6 +163,7 @@ export default {
       "loadSavedSettingsList",
       "saveCurrentSettings",
       "loadSavedSettings",
+      "deleteSavedSettings",
     ]),
     onSelect(item) {
       if (!item) {
@@ -152,6 +192,17 @@ export default {
       this.showOverwriteConfirm = false;
       this.saveCurrentSettings(this.saveName);
       this.saveName = "";
+    },
+    onDeleteClick(item) {
+      this.deleteTarget = item;
+      this.showDeleteConfirm = true;
+    },
+    doDelete() {
+      this.showDeleteConfirm = false;
+      if (this.selectedName?.pk === this.deleteTarget.pk) {
+        this.selectedName = null;
+      }
+      this.deleteSavedSettings(this.deleteTarget.pk);
     },
   },
 };

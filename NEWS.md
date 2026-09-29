@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v2.5.1
 
+- Features
+    - Saved views can be deleted.
 - Fixes
     - Browsing a series or volume emptied by tagging returns to the top instead
       of a list with no way back.
