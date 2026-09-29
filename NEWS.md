@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - Browsing a series or volume emptied by tagging returns to the top instead
       of a list with no way back.
+    - Clearing a search or loading a saved view no longer leaves a list with no
+      way back, and saved views keep their top collection.
 
 ## v2.5.0 - Admin Defaults
 

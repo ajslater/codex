@@ -48,6 +48,14 @@ const ALWAYS_ENABLED_TOP_COLLECTIONS = Object.freeze(
 const NO_REDIRECT_ON_SEARCH_COLLECTIONS = Object.freeze(
   new Set(["arcs", "comics", "folders"]),
 );
+/*
+ * Nav collections whose bare root only a search belongs at: it has no
+ * breadcrumbs above it. Entering a search redirects into one of these
+ * (``lowestShownCollection``), so leaving the search must leave it.
+ */
+const SEARCH_ROOT_COLLECTIONS = Object.freeze(
+  new Set(["imprints", "series", "volumes"]),
+);
 const NON_BROWSE_COLLECTIONS = Object.freeze(new Set(["arcs", "folders"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
 const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
@@ -630,11 +638,13 @@ export const useBrowserStore = defineStore("browser", {
         // ``lowestShownCollection`` (below), so clearing from that
         // redirected-into root must send us back to the top collection.
         // Otherwise we'd strand the user at e.g. the series root with no
-        // parent breadcrumbs / up-arrows.
+        // parent breadcrumbs / up-arrows. Any such root counts, not just
+        // today's ``lowestShownCollection``: the show flags can change
+        // while the search runs.
         if (Object.hasOwn(data, "search") && !data.search) {
           this._restoreSearchOrder(data);
           const { collection, pks } = liveBrowseParams();
-          if (!pks && collection === this.lowestShownCollection) {
+          if (!pks && SEARCH_ROOT_COLLECTIONS.has(collection)) {
             return { params: { collection: "root", pks: "", page: "1" } };
           }
         }
@@ -866,9 +876,18 @@ export const useBrowserStore = defineStore("browser", {
       await this.loadBrowserPage(undefined, true);
     },
     async clearFilters(shouldClearAll = false) {
+      let redirect;
       try {
         const response = await API.resetSettings();
         const data = response.data;
+        if (shouldClearAll) {
+          /*
+           * Leave the root the search redirected into, as clearing it
+           * from the search box does. Only the redirect is wanted: the
+           * reset brings its own sort.
+           */
+          redirect = this._validateSearch({ search: data.search });
+        }
         this.$patch((state) => {
           state.settings.filters = data.filters;
           state.filterMode = "base";
@@ -886,7 +905,11 @@ export const useBrowserStore = defineStore("browser", {
       } catch (error) {
         console.error(error);
       }
-      await this.loadBrowserPage(undefined, true);
+      if (redirect) {
+        redirectRoute(redirect);
+      } else {
+        await this.loadBrowserPage(undefined, true);
+      }
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isAuthorized) {
@@ -1190,9 +1213,8 @@ export const useBrowserStore = defineStore("browser", {
         const response = await API.loadSavedSettings(pk);
         const { settings, filterWarnings } = response.data;
         if (settings) {
-          this._validateAndSaveSettings(settings);
-          this.browserPageLoaded = true;
-          this.loadBrowserPage(undefined, true);
+          // A view with another search or top collection may need a new route.
+          await this.setSettings(settings);
         }
         if (filterWarnings && filterWarnings.length > 0) {
           this.savedSettingsSnackbar = filterWarnings;
