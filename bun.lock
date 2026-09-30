@@ -127,7 +127,7 @@
 
     "@stylistic/eslint-plugin": ["@stylistic/eslint-plugin@5.10.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.9.1", "@typescript-eslint/types": "^8.56.0", "eslint-visitor-keys": "^4.2.1", "espree": "^10.4.0", "estraverse": "^5.3.0", "picomatch": "^4.0.3" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0" } }, "sha512-nPK52ZHvot8Ju/0A4ucSX1dcPV2/1clx0kLcH5wDmrE4naKso7TUC/voUyU1O9OTKTrR6MYip6LP0ogEMQ9jPQ=="],
 
-    "@tombi-toml/wasm-lib": ["@tombi-toml/wasm-lib@1.6.0", "", {}, "sha512-h9BlQJljCUfZpUlGZ8I0di3MA9ErAMhZqo4JhVmMcpB59+qanp+YPOl+JhruopwhB9Io2mlwExhZzaHAZJZpMA=="],
+    "@tombi-toml/wasm-lib": ["@tombi-toml/wasm-lib@1.6.1", "", {}, "sha512-Fvw7ODZhJWUkXCutkhvU0C76MNUSUxDvpsVqVFSE8tFo2xYycK4KvsirxvDphHkRRq/B3CuiuDFeqXI/gYB7Mg=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
