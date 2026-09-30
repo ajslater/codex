@@ -206,8 +206,8 @@ reportUnusedParameter = false
 
 [tool.codespell]
 builtin = "clear,code,rare"
-ignore-words-list = "assertin,coverd,crate,deque,falsy,iff,notin,ro,searchd,ser,thead,versio,waitfor,wan,warmup,ws"
-skip = "*.pdf,*.svg,*~,./codex/static,./codex/static_build,./frontend/src/choices,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,comics,config,dist,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
+ignore-words-list = "asend,assertin,coverd,crate,deque,falsy,iam,iff,notin,ro,searchd,ser,thead,uis,versio,waitfor,wan,warmup,ws"
+skip = "*.pdf,*.svg,*~,./codex/static,./codex/static_build,./frontend/src/choices,./tests/schema,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,comics,config,dist,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true

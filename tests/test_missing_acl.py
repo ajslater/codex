@@ -249,11 +249,11 @@ class MissingVisibilityTestCase(TestCase):
         The Comic-level predicate reaches the FTS traversal.
 
         ``get_fts_filter`` builds a relation traversal inside the
-        caller's own queryset and ANDs it into the same Q as the ACL, so
-        there is no "FTS first, then filter" stage that could bypass the
-        seam -- and the FTS row is deliberately NOT removed on stamping,
-        which would fight ``remove_stale_records`` and thrash FTS5 for
-        the whole window.
+        caller's own queryset and combines it with AND into the same Q
+        as the ACL, so there is no "FTS first, then filter" stage that
+        could bypass the seam -- and the FTS row is deliberately NOT
+        removed on stamping, which would fight ``remove_stale_records``
+        and thrash FTS5 for the whole window.
 
         The FTS table is populated by the librarian's index sync, so
         this seeds the rows directly.

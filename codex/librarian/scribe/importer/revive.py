@@ -184,7 +184,7 @@ class ReviveImporter(ReadMetadataImporter):
                 break
             batch = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
             # ``library=`` even though the pks are already scoped: every
-            # path lookup in the importer ANDs it in, so the
+            # path lookup in the importer combines it with AND, so the
             # overlapping-libraries audit stays one grep.
             count += clear_stamps(model, library=self.library, path__in=batch)
         return count

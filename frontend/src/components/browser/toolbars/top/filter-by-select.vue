@@ -256,7 +256,7 @@ export default {
     /*
      * Vuetify 4.2 moved select keyboard navigation into ``useScrolling``,
      * which wraps from the last bookmark row straight back to the first and
-     * calls ``stopImmediatePropagation()``. That pre-empts VList's own focus
+     * calls ``stopImmediatePropagation()``. That preempts VList's own focus
      * walk, which is what used to carry the user into the rows this menu
      * adds through the prepend/append slots ("Clear All Filters",
      * "Favorites Only" and the filter sub-menus), leaving them mouse-only.
