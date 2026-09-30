@@ -23,7 +23,7 @@ def is_outdated(installed: str, latest: str) -> bool:
     """
     Is the installed version older than the latest published version.
 
-    Pure and total: never raises. Unparseable versions mean "don't
+    Pure and total: never raises. Unparsable versions mean "don't
     know", which is reported as not outdated. That covers a source
     checkout (``VERSION == "test"``) and an empty or garbage latest
     version cache, both of which used to raise ``InvalidVersion`` from

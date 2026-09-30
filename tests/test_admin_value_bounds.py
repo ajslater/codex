@@ -68,7 +68,7 @@ class AdminFlagBoundsTestCase(TestCase):
         A saved ``0`` breaks browsing entirely.
 
         ``get_browser_max_obj_per_page`` honours "0" -- only an empty or
-        unparseable value falls back -- and ``ceil(count / 0)`` raises
+        unparsable value falls back -- and ``ceil(count / 0)`` raises
         ZeroDivisionError, so every browse 500s until an admin fixes the
         flag from a UI they now cannot reach.
         """

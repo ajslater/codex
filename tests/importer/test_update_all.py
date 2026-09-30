@@ -72,7 +72,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
         CREATE_COMICS: {
             PATH: {
                 "alternative_issue_number": Decimal(44),
-                "alternative_issue_suffix": "BU",
+                "alternative_issue_suffix": "BU",  # codespell:ignore bu
                 "collection_title": "The Big Omnibus Part 2",
                 "community_rating": Decimal("3.5"),
                 "community_rating_count": 200,
@@ -454,7 +454,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
         UPDATE_COMICS: {
             1: {
                 "alternative_issue_number": Decimal(44),
-                "alternative_issue_suffix": "BU",
+                "alternative_issue_suffix": "BU",  # codespell:ignore bu
                 "collection_title": "The Big Omnibus Part 2",
                 "community_rating": Decimal("3.5"),
                 "community_rating_count": 200,
@@ -583,7 +583,7 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
         UPDATE_COMICS: {
             1: {
                 "alternative_issue_number": Decimal(44),
-                "alternative_issue_suffix": "BU",
+                "alternative_issue_suffix": "BU",  # codespell:ignore bu
                 "collection_title": "The Big Omnibus Part 2",
                 "community_rating": Decimal("3.5"),
                 "community_rating_count": 200,

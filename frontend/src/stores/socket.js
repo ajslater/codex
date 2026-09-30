@@ -200,7 +200,7 @@ function dispatchMessage(raw) {
   if (!raw) return;
   const payload = parseV4Message(raw);
   if (!payload) {
-    console.debug("[socket] unparseable message:", raw);
+    console.debug("[socket] unparsable message:", raw);
     return;
   }
   console.debug("[socket] message:", payload);

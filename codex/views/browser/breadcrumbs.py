@@ -97,13 +97,23 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         return qs.order_by(order_by)
 
     def _raise_unresolved_collection_redirect(self) -> NoReturn:
-        """Send the client up a level when the route names nothing it may see."""
+        """
+        Send the client to the top when the route names nothing it may see.
+
+        Not to the bare root of the route's own collection: under a
+        Publishers top collection, ``/series`` lists every series with
+        only the top crumb, which the client hides as the current view,
+        so the user is stranded with no way back up. A collection
+        emptied out from under the page -- a tag write that moves its
+        comics elsewhere -- lands here on the next refresh.
+        """
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         # Counts and collection values only -- never a name, since the
         # whole point is that this user may not have the name.
         reason = f"{collection}__in={pks} does not resolve"
-        self.raise_redirect(reason, route_mask={"collection": collection})
+        route_mask, _ = self._get_up_page_redirect()
+        self.raise_redirect(reason, route_mask=route_mask)
 
     @property
     def collection_instance(self) -> BrowserCollectionModel | None:
@@ -112,11 +122,11 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
 
         ``None`` means "no collection was asked for" -- the root listing
         of a collection, which has no pks. A route that *does* name pks
-        and resolves nothing raises a 303 up to that collection's root
-        instead of rendering a page with a nameless crumb and an empty
-        body. The redirect carries the route in its body with no
-        ``Location`` header, the same shape ``BrowserValidateView``
-        already uses.
+        and resolves nothing raises a 303 up to the top collection's root
+        (or the folder or story arc root) instead of rendering a page
+        with a nameless crumb and an empty body. The redirect carries
+        the route in its body with no ``Location`` header, the same
+        shape ``BrowserValidateView`` already uses.
         """
         if self._collection_instance == 0:
             collection = self.kwargs.get("collection")

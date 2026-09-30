@@ -3,7 +3,7 @@ comicbox:
   age_rating: Adult
   alternative_issue:
     number: 44
-    suffix: BU
+    suffix: BU # codespell:ignore bu
   arcs:
     c: {}
     d:

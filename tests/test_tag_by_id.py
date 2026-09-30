@@ -236,7 +236,7 @@ class TagByIdStartViewTests(TestCase):
         task = self._post_resolving_one_comic({"metron": f"metron:{_ISSUE_ID}"})
         assert task.ids == {"metron": _ISSUE_ID}
 
-    def test_unparseable_identifier_returns_400(self) -> None:
+    def test_unparsable_identifier_returns_400(self) -> None:
         response = self._post({"metron": "not-an-id"})
         assert response.status_code == HTTPStatus.BAD_REQUEST
 

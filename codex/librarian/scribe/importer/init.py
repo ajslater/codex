@@ -185,7 +185,7 @@ class InitImporter(WorkerStatusBase):
         more than one library, and a bare ``path=``/``path__in=`` lookup
         resolves another library's rows -- deleting or relinking comics and
         their bookmarks in a library this import never touched. Every path
-        lookup in the importer ANDs this in, so the audit is one grep.
+        lookup in the importer combines this with AND, so the audit is one grep.
 
         Models with no ``library`` column (the tag tables) get an empty ``Q``.
         """

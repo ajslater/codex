@@ -52,7 +52,7 @@ _SESSION_URL: Final = "/api/v4/session"
     ],
 )
 def test_is_outdated(installed: str, latest: str, *, expected: bool) -> None:
-    """The version comparison is total: unparseable means "not outdated"."""
+    """The version comparison is total: unparsable means "not outdated"."""
     assert is_outdated(installed, latest) is expected
 
 

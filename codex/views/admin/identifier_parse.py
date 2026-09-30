@@ -63,7 +63,7 @@ def parse_identifier_input(
     then a bare Comic Vine ``4000-NNN`` code, then a bare integer — whose
     source comes from ``source_hint`` or, failing that, the sole configured
     source. Raises :class:`ValueError` with an operator-facing message on
-    anything unparseable or non-issue.
+    anything unparsable or non-issue.
     """
     raw = (raw or "").strip()
     if not raw:

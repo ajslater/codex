@@ -1,10 +1,21 @@
 # 📜 Codex News
 
-<img src="codex/img/logo.svg" style="
+<img src="codex/img/logo.svg" alt="Codex logo" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;
 " />
+
+## v2.5.1
+
+- Features
+    - Saved views can be deleted.
+- Fixes
+    - Browsing a series or volume emptied by tagging returns to the top instead
+      of a list with no way back.
+    - Clearing a search or loading a saved view no longer leaves a list with no
+      way back, and saved views keep their top collection.
+    - The saved views menu no longer reopens after loading a view.
 
 ## v2.5.0 - Admin Defaults
 

@@ -27,10 +27,10 @@ function mountCaption(orderBy, item) {
 describe("order by caption", () => {
   test("reprint series joins the label list on a comic card", () => {
     const wrapper = mountCaption("reprints", {
-      orderValue: JSON.stringify(["Crossover v2", "Otra Serie (es)"]),
+      orderValue: JSON.stringify(["Crossover v2", "Otra Serie (es)"]), // codespell:ignore serie
       collection: "comics",
     });
-    expect(wrapper.text()).toBe("Crossover v2, Otra Serie (es)");
+    expect(wrapper.text()).toBe("Crossover v2, Otra Serie (es)"); // codespell:ignore serie
   });
 
   test("reprint series shows nothing on a collection card", () => {

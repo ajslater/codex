@@ -9,14 +9,14 @@ classifiers = [
   "Programming Language :: JavaScript",
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Internet :: WWW/HTTP",
-  "Topic :: Multimedia :: Graphics :: Viewers"
+  "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 dependencies = [
   "adrf~=0.1.12",
   "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=5.2.1",
+  "comicbox[pdf]~=5.2.2",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -44,7 +44,7 @@ dependencies = [
   "typing-extensions~=4.14",
   "tzlocal~=5.0",
   "watchfiles>=1.1.1",
-  "zipstream-ng~=1.8"
+  "zipstream-ng~=1.8",
 ]
 description = "A comic archive web server."
 keywords = ["cb7", "cbr", "cbt", "cbz", "comic", "pdf"]
@@ -52,7 +52,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.5.0"
+version = "2.5.1"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -76,11 +76,11 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.5",
+  "picopt~=6.8.2",
   "pypi-cleanup~=0.1.10",
   "semver~=3.1.0",
   "toml-cli~=0.7",
-  "tomlkit~=0.14"
+  "tomlkit~=0.14",
 ]
 build = ["resvg-py~=0.5.0"]
 lint = [
@@ -98,7 +98,7 @@ lint = [
   "ruff~=0.16",
   "types-python-dateutil~=2.9",
   "ty~=0.0.18",
-  "vulture~=2.3"
+  "vulture~=2.3",
 ]
 test = [
   "coverage~=7.0",
@@ -108,7 +108,7 @@ test = [
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
-  "rnc2rng~=2.7"
+  "rnc2rng~=2.7",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
@@ -125,7 +125,6 @@ source-include = [
   ".github/**",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
-  ".remarkignore",
   ".shellcheckrc",
   "Makefile",
   "NEWS.md",
@@ -153,13 +152,13 @@ source-include = [
   "package.json",
   "tests/**",
   "uv.lock",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 source-exclude = [
   "**/*\\~",
   "**/.DS_Store",
   "codex/static_build",
-  "frontend/node_modules"
+  "frontend/node_modules",
 ]
 wheel-exclude = [
   "**/*\\~",
@@ -167,7 +166,7 @@ wheel-exclude = [
   "codex/**/README.md",
   "codex/img",
   "codex/static_build",
-  "codex/static_src"
+  "codex/static_src",
 ]
 
 [tool.basedpyright]
@@ -184,7 +183,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 pythonVersion = "3.12"
 failOnWarnings = false
@@ -207,27 +206,12 @@ reportUnusedParameter = false
 
 [tool.codespell]
 builtin = "clear,code,rare"
-check-hidden = true
-ignore-words-list = "assertin,coverd,crate,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
-skip = "*.svg,*~,.*,.*/*,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
+ignore-words-list = "asend,assertin,coverd,crate,deque,falsy,iam,iff,notin,ro,searchd,ser,thead,uis,versio,waitfor,wan,warmup,ws"
+skip = "*.pdf,*.svg,*~,./codex/static,./codex/static_build,./frontend/src/choices,./tests/schema,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,comics,config,dist,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = [
-  "**/.*",
-  "**/__pycache__",
-  ".cache",
-  ".git",
-  ".github",
-  ".venv",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-  "vulture_ignorelist.py"
-]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -248,7 +232,7 @@ omit = [
   "site/*",
   "test-results/*",
   "typings/*",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 
 [tool.pytest]
@@ -261,7 +245,7 @@ addopts = [
   "--junit-xml=test-results/pytest/results.xml",
   "--strict-config",
   "--strict-markers",
-  "-ra"
+  "-ra",
 ]
 junit_family = "xunit2"
 strict = true
@@ -283,7 +267,7 @@ extend-exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 show-fixes = true
 target-version = "py312"
@@ -304,7 +288,7 @@ extend-ignore = [
   "PERF203",
   "PLC0415",
   "S101",
-  "W191"
+  "W191",
 ]
 extend-select = [
   "A",
@@ -363,7 +347,7 @@ extend-select = [
   "TRY",
   "UP",
   "W",
-  "YTT"
+  "YTT",
 ]
 external = ["V101"]
 task-tags = ["FIXME", "HACK", "TODO", "XXX", "http"]
@@ -408,22 +392,22 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 
 [tool.vulture]
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
+  "*/.venv/*",
+  "*/__pycache__/*",
+  "*/dist/*",
+  "*/frontend/*",
+  "*/node_modules/*",
+  "*/site/*",
+  "*/test-results/*",
+  "*/typings/*",
   "codex/static/",
   "codex/static_build/",
   "comics/",
-  "dist/",
-  "frontend/",
-  "site",
-  "test-results/",
-  "typings/"
 ]
 min_confidence = 61
 sort_by_size = true

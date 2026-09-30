@@ -1,6 +1,7 @@
 import eslintPluginComments from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintJs from "@eslint/js";
 import eslintJson from "@eslint/json";
+import markdown from "@eslint/markdown";
 import eslintPluginStylistic from "@stylistic/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginCompat from "eslint-plugin-compat";
@@ -9,7 +10,6 @@ import eslintPluginDepend from "eslint-plugin-depend";
 import eslintPluginHtml from "eslint-plugin-html";
 import eslintPluginImport from "eslint-plugin-import-x";
 import eslintPluginMath from "eslint-plugin-math";
-import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
@@ -76,6 +76,77 @@ export const CONFIGS = Object.freeze({
   },
 });
 
+// @eslint/markdown's processor replaces a Markdown file with its fenced code
+// blocks, so with the processor alone the markdown/* rules never see the
+// file (docs/processors/markdown.md suggests two ESLint runs instead).
+// Returning the whole file as the first block makes ESLint lint the file
+// itself, with this config, and then the blocks. ESLint lints a bare-string
+// block as the parent file on purpose ("Keep the legacy behavior" in
+// lib/linter/linter.js); eslint-plugin-mdx and antfu/eslint-config rely on
+// the same mechanism.
+const codeBlocks = markdown.processors.markdown;
+export const markdownAndCodeBlocks = {
+  meta: { name: "devenv/markdown-and-code-blocks", version: "1.0.0" },
+  postprocess: ([fileMessages, ...blockMessages], filename) => [
+    ...fileMessages,
+    ...codeBlocks.postprocess(blockMessages, filename),
+  ],
+  preprocess: (text, filename) => [
+    text,
+    ...codeBlocks.preprocess(text, filename),
+  ],
+  supportsAutofix: true,
+};
+
+export const MARKDOWN_CONFIGS = [
+  {
+    extends: ["markdown/recommended"],
+    files: ["**/*.md"],
+    // GitHub-Flavored Markdown: tables, autolinks, task lists. Also required
+    // by no-bare-urls and table-column-count, which are GFM-only in 9.0.
+    // Known upstream crash (eslint/markdown#619, #710): "Custom getLoc()
+    // method must be implemented in the subclass", with no file name, means
+    // some Markdown file has `<www.…>` or a URL, www host or email inside
+    // brackets that are not a link, such as `[https://…]`. --fix also hits it
+    // on a bare www host, which no-bare-urls rewrites to `<www.…>`. Write a
+    // full link or `<https://…>` instead.
+    language: "markdown/gfm",
+    languageOptions: { frontmatter: "yaml" },
+    // The whole-file pass sees `<!-- eslint-disable-next-line ... -->`
+    // comments meant for the code block that follows and would report them
+    // unused; --fix would then delete them.
+    linterOptions: { reportUnusedDisableDirectives: "off" },
+    name: "devenv/markdown",
+    plugins: { markdown },
+    processor: markdownAndCodeBlocks,
+    rules: {
+      // remark-preset-lint-markdown-style-guide enforced both of these.
+      "markdown/no-bare-urls": "error",
+      "markdown/no-duplicate-headings": "error",
+    },
+  },
+  {
+    // Fenced js blocks become virtual files such as README.md/1_0.js. Doc
+    // snippets are fragments, so relax what @eslint/markdown's processor
+    // preset relaxes, plus no-console.
+    files: ["**/*.md/*.js"],
+    languageOptions: {
+      parserOptions: { ecmaFeatures: { impliedStrict: true } },
+    },
+    name: "devenv/markdown-code-blocks",
+    rules: {
+      "eol-last": "off",
+      "no-console": "off",
+      "no-undef": "off",
+      "no-unused-expressions": "off",
+      "no-unused-vars": "off",
+      "padded-blocks": "off",
+      strict: "off",
+      "unicode-bom": "off",
+    },
+  },
+];
+
 export default defineConfig([
   {
     ignores: [
@@ -139,7 +210,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["**/*.json", "**/*.md/*.json"],
+    files: ["**/*.json"],
     plugins: {
       json: eslintJson,
     },
@@ -159,25 +230,10 @@ export default defineConfig([
       "depend/ban-dependencies": "error",
     },
   },
-  // Markdown is two entries: the files themselves and their fenced code blocks
-  // (virtual `README.md/0.js` files). Spreading both presets into one object
-  // kept only the code-block `files` glob, so no Markdown was linted at all.
-  {
-    ...eslintPluginMdx.flat,
-    processor: eslintPluginMdx.createRemarkProcessor({
-      lintCodeBlocks: true,
-    }),
-    rules: {
-      ...eslintPluginMdx.flat.rules,
-      // The remark CLI already reports these, and this rule's autofix rewrites
-      // the whole file with remark-stringify, which fights prettier.
-      "mdx/remark": "off",
-    },
-  },
-  eslintPluginMdx.flatCodeBlocks,
+  ...MARKDOWN_CONFIGS,
   ...eslintPluginToml.configs.recommended,
   {
-    files: ["**/*.toml", "**/*.md/*.toml"],
+    files: ["**/*.toml"],
     rules: {
       "prettier/prettier": ["error", { parser: "toml" }],
     },
@@ -185,7 +241,7 @@ export default defineConfig([
   ...eslintPluginYml.configs.standard,
   ...eslintPluginYml.configs.prettier,
   {
-    files: ["**/*.yaml", "**/*.yml", "**/*.md/*.yaml", "**/*.md/*.yml"],
+    files: ["**/*.yaml", "**/*.yml"],
     rules: {
       "prettier/prettier": ["error", { parser: "yaml" }],
     },

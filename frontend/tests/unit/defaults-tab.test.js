@@ -5,7 +5,7 @@
  * Behavior locked in here:
  *   - Nothing saves on change; each section tracks its own changes.
  *   - Revert restores the server values; Factory fills the draft from the
- *     GET's factory block, whose orderBy is "" (the automatic sort).
+ *     GET response's factory block, whose orderBy is "" (the automatic sort).
  *   - The catch-up checkbox starts off. With it on, Save asks first and the
  *     dialog lists only the fields the draft changes, with their summed reach.
  *   - Clearing a collection's columns, or saving an empty picker list,
