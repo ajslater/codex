@@ -123,6 +123,11 @@ def test_pypi_publishes_after_the_manifest(jobs: dict[str, Any]) -> None:
     assert pypi["with"]["download"] == "false"
 
 
+def test_pypi_job_can_get_an_identity_token(jobs: dict[str, Any]) -> None:
+    """PyPI trusted publishing fails at the token exchange without id-token: write."""
+    assert jobs["deploy"]["permissions"]["id-token"] == "write"
+
+
 def test_docker_hub_gets_final_releases_only(jobs: dict[str, Any]) -> None:
     """Alphas never reach Docker Hub."""
     assert "needs.ci.outputs.final == 'true'" in jobs["deploy-hub"]["if"]
