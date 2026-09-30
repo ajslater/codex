@@ -1,6 +1,6 @@
 # 📜 Codex News
 
-<img src="codex/img/logo.svg" style="
+<img src="codex/img/logo.svg" alt="Codex logo" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;

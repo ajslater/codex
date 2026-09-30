@@ -2,7 +2,7 @@
 
 A comic archive browser and reader.
 
-<img src="/img/logo.svg" style="
+<img src="/img/logo.svg" alt="Codex logo" style="
 height: 128px;
 width: 128px;
 border-radius: 128px;
@@ -171,7 +171,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](docs/WINDOWS/).
+[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
 
 #### Run Codex Natively
 
@@ -185,6 +185,8 @@ codex
 ### Use Codex
 
 Once installed and running you may navigate to <http://localhost:9810/>
+
+<a name="administration"></a>
 
 ## 👑 Administration
 
@@ -251,6 +253,8 @@ setting.
   their own columns for that collection.
 - Folders can only be the default top collection while Folder View is on.
 - OPDS keeps the factory defaults, except its top collection.
+
+<a name="backup-restore-user-data"></a>
 
 ### 💾 Backup & Restore User Data
 
@@ -430,8 +434,8 @@ url_path_prefix = ""
 ```
 
 The config directory also holds the main sqlite database, the `user_data.sqlite`
-sidecar (see [Backup & Restore User Data](#-backup--restore-user-data)), a
-Django cache, and comic book cover thumbnails.
+sidecar (see [Backup & Restore User Data](#backup-restore-user-data)), a Django
+cache, and comic book cover thumbnails.
 
 ### Full `codex.toml` Reference
 
@@ -634,7 +638,7 @@ to 2 queries per second.
   `X-Forwarded-For` to poison the log.
 - OIDC single sign-on has no environment variables or TOML keys — it is
   configured in the Admin UI under the **Auth** tab. See the
-  [OIDC Single Sign On](#oauth--oidc) section below.
+  [OIDC Single Sign On](#oauth-oidc) section below.
 
 ### Reverse Proxy
 
@@ -730,6 +734,8 @@ recreate. See this
 article.
 
 #### Single Sign On and Third Party Authentication
+
+<a name="oauth-oidc"></a>
 
 ##### OAuth & OIDC
 
@@ -1084,7 +1090,7 @@ outage is lost -- it becomes readable again when the file returns.
 
 - [OpenSearch 1.1 (draft)](https://github.com/dewitt/opensearch)
 
-## [🩺 Troubleshooting](#troubleshooting)
+## 🩺 Troubleshooting
 
 ### 📒 Logs
 
