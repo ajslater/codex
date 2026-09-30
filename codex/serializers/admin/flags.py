@@ -43,7 +43,7 @@ class AdminFlagSerializer(BaseModelSerializer):
         Bound an integer flag.
 
         ``get_admin_flag_int`` honours "0" and "-1" -- only an empty or
-        unparseable value falls back to the default -- so nothing
+        unparsable value falls back to the default -- so nothing
         downstream rejects them. A saved ``-1`` for the upload cap makes
         every upload fail with "Upload exceeds -1 MB limit", and a saved
         ``0`` for the page size is a live 500: ``ceil(count / 0)``

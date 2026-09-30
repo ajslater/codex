@@ -98,7 +98,7 @@ describe("common store error normalization", () => {
     }
   });
 
-  test("an unparseable error still yields something to show", () => {
+  test("an unparsable error still yields something to show", () => {
     const store = useCommonStore();
 
     store.setErrors(new Error("network down"));

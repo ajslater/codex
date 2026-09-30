@@ -75,7 +75,7 @@ describe("DurationInput", () => {
     expect(lastEmitted(wrapper)).toBe("000 00:00:00");
   });
 
-  test("a negative or unparseable part falls back to zero", () => {
+  test("a negative or unparsable part falls back to zero", () => {
     const wrapper = mountInput();
 
     expect(wrapper.vm.partOrZero(-5)).toBe(0);
