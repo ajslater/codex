@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && prettier --check . && bin/remark-for-claude.sh"
+    "lint": "eslint_d --cache . && prettier --check ."
   },
   "browserslist": [
     "> 1%",
@@ -47,16 +47,6 @@
       }
     ]
   },
-  "remarkConfig": {
-    "plugins": [
-      "gfm",
-      "lint",
-      "preset-lint-consistent",
-      "preset-lint-markdown-style-guide",
-      "preset-lint-recommended",
-      "preset-prettier"
-    ]
-  },
   "overrides": {
     "typescript": "~6.0.3"
   },
@@ -64,6 +54,7 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.1.0",
+    "@eslint/markdown": "^8.0.3",
     "@fsouza/prettierd": "^0.29.0",
     "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.10.0",
@@ -71,14 +62,12 @@
     "eslint": "^10.11.0",
     "eslint_d": "^15.0.3",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-array-func": "^5.1.1",
     "eslint-plugin-compat": "^7.0.2",
     "eslint-plugin-de-morgan": "^2.2.0",
     "eslint-plugin-depend": "^1.5.0",
     "eslint-plugin-html": "^8.2.1",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-math": "^0.13.1",
-    "eslint-plugin-mdx": "^3.8.1",
     "eslint-plugin-no-secrets": "^2.3.3",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "eslint-plugin-no-use-extend-native": "^0.7.3",
@@ -99,12 +88,6 @@
     "prettier-plugin-nginx": "^2.0.0",
     "prettier-plugin-packagejson": "^3.0.2",
     "prettier-plugin-toml": "^3.0.2",
-    "remark-cli": "^12.0.1",
-    "remark-gfm": "^4.0.1",
-    "remark-preset-lint-consistent": "^6.0.1",
-    "remark-preset-lint-markdown-style-guide": "^6.0.1",
-    "remark-preset-lint-recommended": "^7.0.1",
-    "remark-preset-prettier": "^2.0.2",
     "svgo": "^4.1.0"
   }
 }
