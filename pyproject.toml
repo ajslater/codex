@@ -206,27 +206,12 @@ reportUnusedParameter = false
 
 [tool.codespell]
 builtin = "clear,code,rare"
-check-hidden = true
-ignore-words-list = "assertin,coverd,crate,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
-skip = "*.svg,*~,.*,.*/*,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
+ignore-words-list = "assertin,coverd,crate,deque,falsy,iff,ro,searchd,ser,thead,versio,wan,warmup,ws"
+skip = "*.pdf,*.svg,*~,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,codex/static,codex/static_build,comics,config,dist,frontend/src/choices,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
 paths = ["codex", "tests"]
-exclude = [
-  "**/.*",
-  "**/__pycache__",
-  ".cache",
-  ".git",
-  ".github",
-  ".venv",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-  "vulture_ignorelist.py"
-]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -412,17 +397,17 @@ exclude = [
 
 [tool.vulture]
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
+  "*/.venv/*",
+  "*/__pycache__/*",
+  "*/dist/*",
+  "*/frontend/*",
+  "*/node_modules/*",
+  "*/site/*",
+  "*/test-results/*",
+  "*/typings/*",
   "codex/static/",
   "codex/static_build/",
-  "comics/",
-  "dist/",
-  "frontend/",
-  "site",
-  "test-results/",
-  "typings/"
+  "comics/"
 ]
 min_confidence = 61
 sort_by_size = true

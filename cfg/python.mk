@@ -69,6 +69,12 @@ typecheck:
 ty:
 	uv run --group lint --group test --group build ty check .
 
+.PHONY: vulture
+## Lint dead code with vulture
+## @category Lint
+vulture:
+	./bin/lint-vulture.sh
+
 .PHONY: complexity
 ## Lint backend complexity
 ## @category Lint
