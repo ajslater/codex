@@ -51,6 +51,8 @@ _SOURCE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _HTTP_OK: Final = 200
 _HTTP_NOT_FOUND: Final = 404
+# The example archive has one page, so index 1 is the first past the end.
+_PAST_THE_END: Final = 1
 _EACCES: Final = PermissionError(13, "Permission denied")
 #: ``BOOK_AGE`` / ``PAGE_MAX_AGE``, the week these routes ask for.
 _WEEK: Final = "max-age=604800"
@@ -152,8 +154,8 @@ class DownloadErrorsTestCase(TestCase):
     def _pdf_url(self, index: int = 0) -> str:
         return f"/c/{self.comics[index].pk}/book.pdf"
 
-    def _page_url(self, index: int = 0) -> str:
-        return f"/api/v4/comics/{self.comics[index].pk}/pages/0"
+    def _page_url(self, index: int = 0, page: int = 0) -> str:
+        return f"/api/v4/comics/{self.comics[index].pk}/pages/{page}"
 
     def _collection_url(self) -> str:
         return f"/api/v4/browse/series/{self.series.pk}/download/Ser.zip"
@@ -236,6 +238,17 @@ class DownloadErrorsTestCase(TestCase):
         with _unreadable(self.paths[0]):
             response = self.client.get(self._page_url())
         assert response.status_code == _HTTP_NOT_FOUND, response.status_code
+
+    def test_a_page_past_the_end_is_not_found(self) -> None:
+        """
+        Comicbox answers ``None`` for an index past the last page.
+
+        That became an empty ``200 image/jpeg`` the route then told
+        clients to cache publicly for a week.
+        """
+        response = self.client.get(self._page_url(page=_PAST_THE_END))
+        assert response.status_code == _HTTP_NOT_FOUND, response.status_code
+        assert _WEEK not in response.headers.get("Cache-Control", "")
 
     def test_the_page_error_does_not_name_the_file(self) -> None:
         """The old detail string echoed the raw ``OSError``, path and all."""
