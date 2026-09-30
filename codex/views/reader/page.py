@@ -187,8 +187,10 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         # because ZipFile / RarFile / PDF backends aren't thread-safe.
         with archive_cache.open(path) as cb:
             page_image = cb.get_page_by_index(page, pdf_format="")
-        if not page_image:
-            page_image = b""
+        if page_image is None:
+            # comicbox's answer for an index past the last page.
+            detail = f"comic {pk} has no page {page}."
+            raise NotFound(detail=detail)
 
         content_type = _PDF_MIME_TYPE if is_pdf else self.content_type
         return page_image, content_type
