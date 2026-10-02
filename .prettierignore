@@ -1,12 +1,7 @@
 __pycache__
 .*cache
-.*cache/
 .claude
 .git
-.mypy_cache
-.pytest_cache
-.ruff_cache
-.venv
 .venv*
 *.sh
 *Dockerfile
