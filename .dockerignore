@@ -1,6 +1,4 @@
 __pycache__
-!dist
-!docker/debian.sources
 .*cache
 .claude
 .coverage*
