@@ -4,17 +4,17 @@ import { deepClone } from "@/api/v4/common";
 import { useAdminStore } from "@/stores/admin";
 
 /**
- * Mixin for create-update input components.
- *
- * Required options for importing components:
- *   EMPTY_ROW  – with default field values
- *   UPDATE_KEYS – the keys sent on update
- *
- * Provides:
- *   props.oldRow, emits["change"], data.row,
- *   watchers that sync row and oldRow and emit "change",
- *   and the nameSet action from the admin store.
- */
+Mixin for create-update input components.
+
+Required options for importing components:
+  EMPTY_ROW  – with default field values
+  UPDATE_KEYS – the keys sent on update
+
+Provides:
+  props.oldRow, emits["change"], data.row,
+  watchers that sync row and oldRow and emit "change",
+  and the nameSet action from the admin store.
+*/
 /*
  * ``deepClone`` (over ``structuredClone``) because ``oldRow`` rows
  * from the admin store carry reactive nested arrays (``groups``,

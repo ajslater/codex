@@ -1,6 +1,4 @@
 __pycache__
-!dist
-!docker/debian.sources
 .*cache
 .claude
 .coverage*
@@ -20,6 +18,14 @@ __pycache__
 .venv*
 *.egg-info
 *.py[co]
+**/__pycache__
+**/.*cache
+**/.DS_Store
+**/*.egg-info
+**/*.py[co]
+**/*~
+**/node_modules
+**/test-results
 *~
 *Dockerfile
 benchmark
@@ -40,3 +46,6 @@ test-results
 TODO.md
 update-builder-requirement.sh
 version.sh
+!dist
+!docker/debian.sources
+!Dockerfile

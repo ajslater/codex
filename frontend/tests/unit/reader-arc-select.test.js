@@ -14,11 +14,11 @@ import { describe, expect, test } from "vitest";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import vuetify from "@/plugins/vuetify";
 
-const defaultArc = () => ({ collection: "series", ids: "1" });
-
-function mountArcSelect(arcs, arc = defaultArc()) {
+function mountArcSelect(arcs) {
   const pinia = createTestingPinia({
-    initialState: { reader: { arcs, arc } },
+    initialState: {
+      reader: { arcs, arc: { collection: "series", ids: "1" } },
+    },
   });
   return mount(ReaderArcSelect, {
     global: { plugins: [pinia, vuetify] },

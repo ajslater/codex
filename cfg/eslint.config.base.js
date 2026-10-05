@@ -147,7 +147,8 @@ export const MARKDOWN_CONFIGS = [
   },
 ];
 
-export default defineConfig([
+// unicorn/no-top-level-side-effects reports `export default <call>`.
+const baseConfig = defineConfig([
   {
     ignores: [
       "**/*.min.css",
@@ -254,3 +255,5 @@ export default defineConfig([
   },
   eslintConfigPrettier, // Best if last
 ]);
+
+export default baseConfig;

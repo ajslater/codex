@@ -41,14 +41,14 @@ beforeAll(() => {
 
 const wrappers = [];
 
-async function mountOpenMenu({ bookmark = "UNREAD", loggedIn = true } = {}) {
+async function mountOpenMenu({ loggedIn = true } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : undefined },
       browser: {
         filterMode: "base",
         // A non-default bookmark makes the "Clear All Filters" row render.
-        settings: { filters: { bookmark } },
+        settings: { filters: { bookmark: "UNREAD" } },
         choices: { dynamic: { characters: true } },
       },
     },

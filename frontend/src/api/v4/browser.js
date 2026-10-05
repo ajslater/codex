@@ -137,8 +137,8 @@ export const getMetadata = ({ collection, pks }, settings) => {
   return HTTP.get(`/browse/${_segment(collection, pks)}/metadata`, { params });
 };
 
-const _collectionSettingsBase = (collection) =>
-  `/browse/${_collection(collection || "root")}/settings`;
+const _collectionSettingsBase = (collection = "root") =>
+  `/browse/${_collection(collection)}/settings`;
 
 export const getSettings = (data) => {
   const params = serializeParams(data);
@@ -200,8 +200,8 @@ export const forceUpdateCollection = ({ collection, ids }, settings) => {
  * as global) get the root publishers collection by default; consumers
  * that want per-collection scope can pass the collection value.
  */
-const _collectionSavedSettings = (collection) =>
-  `/browse/${_collection(collection || "root")}/saved-settings`;
+const _collectionSavedSettings = (collection = "root") =>
+  `/browse/${_collection(collection)}/saved-settings`;
 
 export const getSavedSettingsList = (collection) =>
   HTTP.get(_collectionSavedSettings(collection));

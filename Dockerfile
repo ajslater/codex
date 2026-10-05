@@ -26,17 +26,7 @@ RUN apt-get clean \
         build-essential \
         cmake \
         git \
-        libimagequant0 \
-        libjpeg62-turbo \
-        libopenjp2-7 \
-        libssl3 \
-        libyaml-0-2 \
-        libtiff6 \
-        libwebp7 \
-        python3-dev \
-        ruamel.yaml.clib \
         unrar \
-        zlib1g \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -88,33 +78,30 @@ VOLUME /app/dist
 VOLUME /app/test-results
 VOLUME /app/frontend/src/choices
 
-# ---- Stage 3: wheel-installer (compile native extensions) ------------------
+# ---- Stage 3: wheel-installer (runtime venv) --------------------------------
 FROM builder-base AS wheel-installer
 ARG CODEX_WHEEL=unbuilt
-COPY dist/${CODEX_WHEEL} /tmp/${CODEX_WHEEL}
-# hadolint ignore=DL3059,DL3013
-RUN PYMUPDF_SETUP_PY_LIMITED_API=0 pip3 install --no-cache-dir /tmp/${CODEX_WHEEL}
+WORKDIR /tmp/build
+COPY pyproject.toml uv.lock ./
+COPY dist/${CODEX_WHEEL} ./
+# Pin the runtime closure to uv.lock; install the wheel itself without deps.
+RUN uv export --frozen --no-default-groups --no-emit-project -o requirements.txt \
+    && uv venv --python /usr/local/bin/python3.14 /opt/codex \
+    && PYMUPDF_SETUP_PY_LIMITED_API=0 uv pip install --python /opt/codex/bin/python \
+        --no-cache --compile-bytecode -r requirements.txt \
+    && uv pip install --python /opt/codex/bin/python --no-cache --no-deps \
+        --compile-bytecode ./${CODEX_WHEEL}
 
-# Slim down /usr/local before it gets copied to the final image
-# hadolint ignore=DL3059
+# Strip debug symbols, drop type stubs, and drop every translation but
+# English: LANGUAGE_CODE is en-us and nothing activates another language.
+# hadolint ignore=SC2016
 RUN set -eux \
-    # Remove pip, setuptools, wheel — not needed at runtime
-    && pip3 uninstall -y pip setuptools wheel 2>/dev/null || true \
-    && rm -rf /usr/local/bin/pip* \
-    # Strip debug symbols from shared libraries (~30-50% size reduction on .so files)
-    && find /usr/local -name '*.so' -exec strip --strip-unneeded {} + 2>/dev/null || true \
-    && find /usr/local -name '*.so.*' -exec strip --strip-unneeded {} + 2>/dev/null || true \
-    # Remove Python bytecode caches (regenerated on first import)
-    && find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true \
-    && find /usr/local -name '*.pyc' -delete 2>/dev/null || true \
-    # Remove the stdlib test suite (~30MB) — safe, never needed at runtime
-    && rm -rf /usr/local/lib/python*/test \
-    && rm -rf /usr/local/lib/python*/idlelib \
-    && rm -rf /usr/local/lib/python*/ensurepip \
-    # Remove type stubs — only used by type checkers
-    && find /usr/local -name '*.pyi' -delete 2>/dev/null || true \
-    # Remove the installed wheel
-    && rm -f /tmp/${CODEX_WHEEL}
+    && find /opt/codex -type f \( -name '*.so' -o -name '*.so.*' \) \
+        -exec strip --strip-unneeded {} + \
+    && find /opt/codex -name '*.pyi' -delete \
+    && rm -rf /opt/codex/lib/python3.14/site-packages/pycountry/locales \
+    && find /opt/codex/lib/python3.14/site-packages -type d -name locale -prune \
+        -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
 
 # ---- Stage 4: final (production image) ------------------------------------
 FROM ghcr.io/ajslater/python-debian:3.14.6-slim-trixie_0 AS final
@@ -129,21 +116,14 @@ LABEL org.opencontainers.image.title="Codex" \
 
 COPY debian.sources /etc/apt/sources.list.d/
 
+# Manylinux wheels (pymupdf, rapidfuzz) link the system libstdc++.so.6.
 # hadolint ignore=DL3008
 RUN apt-get clean \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         curl \
-        libimagequant0 \
-        libjpeg62-turbo \
-        libopenjp2-7 \
-        libssl3 \
-        libyaml-0-2 \
-        libtiff6 \
-        libwebp7 \
-        ruamel.yaml.clib \
+        libstdc++6 \
         unrar \
-        zlib1g \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -152,9 +132,12 @@ RUN mkdir -p /home/abc/.config/comicbox \
     && chown -R abc /home/abc/.config \
     && chmod 777 /home/abc/.config /home/abc/.config/comicbox
 
-COPY --from=wheel-installer /usr/local /usr/local
+COPY --from=wheel-installer /opt/codex /opt/codex
+ENV PATH="/opt/codex/bin:${PATH}"
+# Fail the build, not the container start, on a broken venv.
+RUN python -B -c "import django, comicbox, pymupdf, PIL.Image, cryptography, granian, rapidfuzz"
 
 VOLUME /comics
 VOLUME /config
 EXPOSE 9810
-CMD ["/usr/local/bin/codex"]
+CMD ["/opt/codex/bin/codex"]

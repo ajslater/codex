@@ -46,8 +46,10 @@ const SHAPED_REPRINTS = Object.freeze([
   },
 ]);
 
-function findButton(wrapper, label) {
-  return wrapper.findAll("button").find((b) => b.text().includes(label));
+function findButton(wrapper) {
+  return wrapper
+    .findAll("button")
+    .find((b) => b.text().includes("Add Reprint"));
 }
 
 async function mountPanel({ formats = ["METRON_INFO"], md = {} } = {}) {
@@ -96,7 +98,7 @@ describe("EditPanel reprints rows", () => {
 
   test("the add button appends a blank row", async () => {
     const wrapper = await mountPanel();
-    await findButton(wrapper, "Add Reprint").trigger("click");
+    await findButton(wrapper).trigger("click");
 
     expect(wrapper.vm.reprints).toStrictEqual([
       {
@@ -250,7 +252,7 @@ describe("EditPanel reprints format support", () => {
       formats: ["METRON_INFO"],
       md: { reprints: SHAPED_REPRINTS },
     });
-    const btn = findButton(wrapper, "Add Reprint");
+    const btn = findButton(wrapper);
 
     expect(btn.element.disabled).toBe(false);
     expect(wrapper.vm.isFieldDisabled("reprint_volume")).toBe(false);

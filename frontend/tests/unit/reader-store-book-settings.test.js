@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as READER_API from "@/api/v4/reader";
 import { SCALE_DEFAULT, useReaderStore } from "@/stores/reader";
 
-const book = (pk, settings = {}) => ({ pk, maxPage: 10, settings });
+const book = (settings = {}) => ({ pk: 3, maxPage: 10, settings });
 
 const GLOBAL = Object.freeze({
   fitTo: "S",
@@ -40,7 +40,7 @@ describe("reader store getBookSettings mask", () => {
   });
 
   it("layers the book over the series over the global settings", () => {
-    const store = readerOn(book(3, { fitTo: "W" }), {
+    const store = readerOn(book({ fitTo: "W" }), {
       fitTo: "H",
       twoPages: true,
     });
@@ -57,7 +57,7 @@ describe("reader store getBookSettings mask", () => {
     ["null", null],
     ["undefined", undefined],
   ])("never lets %s override a lower scope", (_label, value) => {
-    const store = readerOn(book(3, { fitTo: value }), { fitTo: value });
+    const store = readerOn(book({ fitTo: value }), { fitTo: value });
 
     expect(store.getBookSettings(store.books.current).fitTo).toBe("S");
   });
@@ -66,7 +66,7 @@ describe("reader store getBookSettings mask", () => {
     ["false", false],
     ["0", 0],
   ])("lets %s override a lower scope", (_label, value) => {
-    const store = readerOn(book(3, { cacheBook: value }));
+    const store = readerOn(book({ cacheBook: value }));
 
     expect(store.getBookSettings(store.books.current).cacheBook).toBe(value);
   });
@@ -77,7 +77,7 @@ describe("reader store getBookSettings mask", () => {
     ["ttb", false],
     ["btt", false],
   ])("reading %s keeps two pages: %s", (readingDirection, twoPages) => {
-    const store = readerOn(book(3, { readingDirection }), { twoPages: true });
+    const store = readerOn(book({ readingDirection }), { twoPages: true });
 
     expect(store.getBookSettings(store.books.current).twoPages).toBe(twoPages);
   });
@@ -90,7 +90,7 @@ describe("reader store getBookSettings mask", () => {
   ])(
     "reading %s is vertical: %s, reversed: %s",
     (readingDirection, isVertical, isReadInReverse) => {
-      const store = readerOn(book(3, { readingDirection }));
+      const store = readerOn(book({ readingDirection }));
 
       expect(store.getBookSettings(store.books.current)).toMatchObject({
         isVertical,
@@ -146,7 +146,7 @@ describe("reader store fitToClass", () => {
       "fitToOrigVertical",
     ],
   ])("%s", (_label, scale, settings, fitToClass) => {
-    const store = readerOn(book(3, settings));
+    const store = readerOn(book(settings));
     store.clientSettings.scale = scale;
 
     expect(store.getBookSettings(store.books.current).fitToClass).toStrictEqual(
@@ -168,13 +168,13 @@ describe("reader store book settings cache", () => {
     vi.spyOn(READER_API, "resetSettings").mockResolvedValue({ data: {} });
     vi.spyOn(READER_API, "getReaderInfo").mockImplementation(async () => ({
       data: {
-        books: { current: book(3), prev: false, next: false },
+        books: { current: book(), prev: false, next: false },
         arcs: {},
         arc: { collection: "series", ids: [] },
         mtime: 1,
       },
     }));
-    current = book(3);
+    current = book();
     store = readerOn(current);
     store.intermediateInfo = { ...SERIES_7 };
   });
@@ -260,7 +260,7 @@ describe("reader store loadBooks settings request", () => {
       .mockReturnValue(promise);
     vi.spyOn(READER_API, "getReaderInfo").mockResolvedValue({
       data: {
-        books: { current: book(3), prev: false, next: false },
+        books: { current: book(), prev: false, next: false },
         arcs: {},
         arc: { collection: "series", ids: [] },
         mtime: 1,
@@ -287,7 +287,7 @@ describe("reader store loadBooks settings request", () => {
     });
     vi.spyOn(READER_API, "getReaderInfo").mockResolvedValue({
       data: {
-        books: { current: book(3), prev: false, next: false },
+        books: { current: book(), prev: false, next: false },
         arcs: {},
         arc: { collection: "series", ids: [] },
         mtime: 1,

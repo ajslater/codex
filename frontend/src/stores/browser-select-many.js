@@ -80,9 +80,9 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
       return state.selectedItems.size > 0;
     },
     /**
-     * Build a composite item suitable for the metadata dialog.
-     * Combines all selected items into one object with merged ids.
-     */
+    Build a composite item suitable for the metadata dialog.
+    Combines all selected items into one object with merged ids.
+    */
     compositeItem(state) {
       if (state.selectedItems.size === 0) {
         return null;

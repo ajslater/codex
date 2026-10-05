@@ -37,15 +37,12 @@ export function createCodexRulesPlugin(locale) {
       aliases: {
         intRange: range(Number.isInteger),
         numRange: range(Number.isFinite),
-        notIn: (names, err) => (v) => {
-          const taken = unwrap(names);
-          return (
-            !v ||
-            !taken ||
-            !taken.has(String(v).trim()) ||
-            t(err ?? "Already used")
-          );
-        },
+        notIn:
+          (names, err = "Already used") =>
+          (v) => {
+            const taken = unwrap(names);
+            return !v || !taken || !taken.has(String(v).trim()) || t(err);
+          },
       },
     },
     locale,

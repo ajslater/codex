@@ -141,6 +141,9 @@ export const useOnlineTagStore = defineStore("onlineTag", {
         },
       };
     },
+    // Callers pass null for "no volume"; a default parameter only catches
+    // undefined and would post the string "null".
+    // eslint-disable-next-line unicorn/prefer-default-parameters
     async resolvePrompt(fingerprint, action, payload, chosenVolumeId) {
       // Answering a prompt is decoupled from any scan: the server applies the
       // chosen match in a fresh session and writes that one comic.

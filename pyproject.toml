@@ -34,6 +34,7 @@ dependencies = [
   "lark~=1.2",
   "loguru~=0.7.3",
   "nh3~=0.2",
+  "packaging>=24.0",
   "Pillow~=12.0",
   "psutil~=7.1",
   "requests-cache~=1.2",
@@ -52,7 +53,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.5.1"
+version = "2.5.2"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -76,7 +77,7 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.8.2",
+  "picopt~=6.10.0",
   "pypi-cleanup~=0.1.10",
   "semver~=3.1.0",
   "toml-cli~=0.7",
@@ -171,9 +172,6 @@ wheel-exclude = [
 
 [tool.basedpyright]
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "codex/static",
   "codex/static_build",
   "comics",
@@ -207,7 +205,7 @@ reportUnusedParameter = false
 [tool.codespell]
 builtin = "clear,code,rare"
 ignore-words-list = "asend,assertin,coverd,crate,deque,falsy,iam,iff,notin,ro,searchd,ser,thead,uis,versio,waitfor,wan,warmup,ws"
-skip = "*.pdf,*.svg,*~,./codex/static,./codex/static_build,./frontend/src/choices,./tests/schema,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,comics,config,dist,htmlcov,node_modules,package.json,site,test-results,typings,uv.lock"
+skip = "*.pdf,*.svg,*~,./codex/static,./codex/static_build,./frontend/src/choices,./tests/schema,.claude,.coverage*,.git,.github,.venv,__pycache__,bun.lock,comics,config,dist,htmlcov,node_modules,package.json,site,tasks,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
@@ -221,8 +219,6 @@ source = ["codex"]
 branch = true
 concurrency = ["multiprocessing"]
 omit = [
-  "*/.*",
-  "*__pycache__*",
   "codex/static/*",
   "codex/static_build/*",
   "comics/*",
@@ -254,13 +250,12 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,.*,.*/*,__pycache__/*,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
+exclude = "*~,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
 
 [tool.ruff]
 builtins = ["ic"]
 extend-exclude = [
   "**/.*",
-  "**/__pycache__",
   "codex/static",
   "codex/static_build",
   "frontend",
@@ -381,13 +376,10 @@ python-version = "3.12"
 [tool.ty.src]
 exclude = [
   "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "codex/static",
   "codex/static_build",
   "comics",
   "config",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -398,7 +390,6 @@ exclude = [
 [tool.vulture]
 exclude = [
   "*/.venv/*",
-  "*/__pycache__/*",
   "*/dist/*",
   "*/frontend/*",
   "*/node_modules/*",

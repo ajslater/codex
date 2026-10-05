@@ -40,7 +40,7 @@ const GroupInputs = defineComponent({
 
 const mountDialog = (oldRow) =>
   mount(CreateUpdateDialog, {
-    props: { table: "Group", inputs: GroupInputs, oldRow: oldRow ?? false },
+    props: { table: "Group", inputs: GroupInputs, oldRow },
     // Stub VDialog: its overlay reads visualViewport, which the test DOM
     // lacks; these tests check the dialog's state, not the overlay.
     global: {

@@ -62,10 +62,10 @@ describe("picking a saved view", () => {
     };
   };
 
-  const pickView = async (name) => {
+  const pickView = async () => {
     const opened = await openMenu();
     const option = [...document.querySelectorAll('[role="option"]')].find(
-      (el) => el.textContent.trim() === name,
+      (el) => el.textContent.trim() === "DC by Year",
     );
     option.click();
     await flushPromises();
@@ -73,7 +73,7 @@ describe("picking a saved view", () => {
   };
 
   test("the menu stays closed when the view's settings land", async () => {
-    const { combobox, store } = await pickView("DC by Year");
+    const { combobox, store } = await pickView();
     expect(store.loadSavedSettings).toHaveBeenCalledWith(7);
     expect(combobox.vm.menu).toBe(false);
 
@@ -85,7 +85,7 @@ describe("picking a saved view", () => {
   });
 
   test("the loaded view's name is cleared", async () => {
-    const { combobox, store } = await pickView("DC by Year");
+    const { combobox, store } = await pickView();
     expect(combobox.vm.search).toBe("DC by Year");
 
     store.settings.orderBy = "date";
