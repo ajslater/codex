@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.2
+
+- Fixes
+    - Fresh PyPI installs no longer fail to start.
+- Performance
+    - Docker image is about 490 MB smaller and starts faster.
+
 ## v2.5.1
 
 - Features
