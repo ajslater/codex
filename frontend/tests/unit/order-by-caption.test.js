@@ -14,9 +14,9 @@ import { describe, expect, test } from "vitest";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import vuetify from "@/plugins/vuetify";
 
-function mountCaption(orderBy, item) {
+function mountCaption(item) {
   const pinia = createTestingPinia({
-    initialState: { browser: { settings: { orderBy } } },
+    initialState: { browser: { settings: { orderBy: "reprints" } } },
   });
   return mount(OrderByCaption, {
     props: { item },
@@ -26,7 +26,7 @@ function mountCaption(orderBy, item) {
 
 describe("order by caption", () => {
   test("reprint series joins the label list on a comic card", () => {
-    const wrapper = mountCaption("reprints", {
+    const wrapper = mountCaption({
       orderValue: JSON.stringify(["Crossover v2", "Otra Serie (es)"]), // codespell:ignore serie
       collection: "comics",
     });
@@ -34,7 +34,7 @@ describe("order by caption", () => {
   });
 
   test("reprint series shows nothing on a collection card", () => {
-    const wrapper = mountCaption("reprints", {
+    const wrapper = mountCaption({
       orderValue: JSON.stringify(["Crossover"]),
       collection: "series",
     });

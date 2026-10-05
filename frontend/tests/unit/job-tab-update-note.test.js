@@ -13,17 +13,12 @@ import vuetify from "@/plugins/vuetify";
 
 const GHCR_URL = "https://github.com/ajslater/codex/pkgs/container/codex";
 
-function mountTab({
-  installed = "1.0.0",
-  latest = "2.0.0",
-  outdated = true,
-  docker = false,
-} = {}) {
+function mountTab({ latest = "2.0.0", outdated = true, docker = false } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: { isStaff: true } },
       admin: { allLibrarianStatuses: {} },
-      common: { versions: { installed, latest, outdated, docker } },
+      common: { versions: { installed: "1.0.0", latest, outdated, docker } },
     },
   });
   return mount(AdminJobsTab, {

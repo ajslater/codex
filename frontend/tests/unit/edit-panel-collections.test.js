@@ -21,11 +21,11 @@ import vuetify from "@/plugins/vuetify";
 
 const MULTI_PLACEHOLDER = "Multiple — select one to apply to all";
 
-async function mountPanel({ formats = ["COMIC_INFO"], md = {} } = {}) {
+async function mountPanel({ md = {} } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       metadata: { md },
-      admin: { taggingDefaults: { defaultFormats: formats } },
+      admin: { taggingDefaults: { defaultFormats: ["COMIC_INFO"] } },
       browser: { settings: { twentyFourHourTime: false } },
     },
   });

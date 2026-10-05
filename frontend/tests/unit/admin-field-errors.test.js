@@ -21,7 +21,7 @@ import vuetify from "@/plugins/vuetify";
 const TAKEN_USER = "A user with that username already exists.";
 const TAKEN_GROUP = "Group with this Name already exists.";
 
-function mountInputs(component, fieldErrors, adminState = {}) {
+function mountInputs(component, fieldErrors) {
   const pinia = createTestingPinia({
     initialState: {
       common: { form: { errors: [], fieldErrors, success: "" } },
@@ -30,7 +30,6 @@ function mountInputs(component, fieldErrors, adminState = {}) {
         groups: [],
         libraries: [],
         ageRatingMetrons: [],
-        ...adminState,
       },
     },
   });

@@ -74,9 +74,9 @@ describe("route helpers", () => {
   });
 });
 
-const readerRoute = (pk, page) => ({
+const readerRoute = (page) => ({
   name: "reader",
-  params: { pk },
+  params: { pk: 7 },
   query: { page },
 });
 
@@ -85,13 +85,13 @@ describe("getReaderRoute", () => {
     "opens an unbookmarked %s comic at page 0",
     (readingDirection) => {
       const item = { ids: [7], page: 0, pageCount: 20, readingDirection };
-      expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 0));
+      expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(0));
     },
   );
 
   it("opens at the bookmarked page", () => {
     const item = { ids: [7], page: "12", pageCount: 20 };
-    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 12));
+    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(12));
   });
 
   it("returns no route without ids", () => {
@@ -104,6 +104,6 @@ describe("getReaderRoute", () => {
 
   it("opens a comic with no page count when metadata import is off", () => {
     const item = { ids: [7], page: 0, pageCount: 0 };
-    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(7, 0));
+    expect(getReaderRoute(item, false)).toStrictEqual(readerRoute(0));
   });
 });

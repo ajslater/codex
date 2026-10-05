@@ -1,8 +1,8 @@
 /**
- * Shared status display helpers for admin status components.
- *
- * Used by: job-tab.vue, status-list-item.vue
- */
+Shared status display helpers for admin status components.
+
+Used by: job-tab.vue, status-list-item.vue
+*/
 import STATUS_TITLES from "@/choices/admin-status-titles.json";
 import { getFormattedDuration, NUMBER_FORMAT } from "@/datetime";
 
@@ -79,12 +79,12 @@ const formatRemaining = (secs) => {
 };
 
 /**
- * Live "retrying in M:SS" countdown for a rate-limited status, or "".
- *
- * The backend stamps `retryAt` once per retry attempt; we tick down to it
- * client-side so a multi-minute rate-limit wait reads as a live countdown
- * (the admin can see it's waiting, not hung) instead of a frozen number.
- */
+Live "retrying in M:SS" countdown for a rate-limited status, or "".
+
+The backend stamps `retryAt` once per retry attempt; we tick down to it
+client-side so a multi-minute rate-limit wait reads as a live countdown
+(the admin can see it's waiting, not hung) instead of a frozen number.
+*/
 export const retryRemaining = (status, now) => {
   const secs = secondsUntil(status.retryAt, now);
   if (secs === null) {
@@ -94,12 +94,12 @@ export const retryRemaining = (status, now) => {
 };
 
 /**
- * Live "~Xm Ys left" total-time-remaining countdown, or "".
- *
- * Carries forward the launcher dialog's time estimate and ticks it down to
- * the backend-computed `eta`, which the backend re-estimates as comics
- * complete and pushes out by rate-limit waits.
- */
+Live "~Xm Ys left" total-time-remaining countdown, or "".
+
+Carries forward the launcher dialog's time estimate and ticks it down to
+the backend-computed `eta`, which the backend re-estimates as comics
+complete and pushes out by rate-limit waits.
+*/
 export const etaRemaining = (status, now) => {
   if (!status.active) {
     return "";

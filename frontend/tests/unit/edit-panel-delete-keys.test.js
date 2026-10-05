@@ -19,11 +19,11 @@ import { HTTP } from "@/api/v4/base";
 import EditPanel from "@/components/metadata/edit-mode/edit-panel.vue";
 import vuetify from "@/plugins/vuetify";
 
-async function mountPanel({ formats = ["COMIC_INFO"], md = {} } = {}) {
+async function mountPanel({ md = {} } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       metadata: { md },
-      admin: { taggingDefaults: { defaultFormats: formats } },
+      admin: { taggingDefaults: { defaultFormats: ["COMIC_INFO"] } },
       browser: { settings: { twentyFourHourTime: false } },
     },
   });

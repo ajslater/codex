@@ -20,11 +20,11 @@ import { describe, expect, it } from "vitest";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import vuetify from "@/plugins/vuetify";
 
-function mountCell({ column, row, twentyFourHourTime = false }) {
+function mountCell({ column, row }) {
   const pinia = createTestingPinia({
     initialState: {
       browser: {
-        settings: { twentyFourHourTime },
+        settings: { twentyFourHourTime: false },
       },
     },
   });

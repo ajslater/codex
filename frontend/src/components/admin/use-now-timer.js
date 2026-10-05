@@ -1,16 +1,16 @@
 /**
- * Reactive "now" timestamp that ticks every second.
- *
- * Used by: job-tab.vue, status-list.vue
- */
+Reactive "now" timestamp that ticks every second.
+
+Used by: job-tab.vue, status-list.vue
+*/
 import { onMounted, onUnmounted, ref } from "vue";
 
 const TICK_INTERVAL_MS = 1000;
 
 /**
- * Returns a reactive `now` ref (Date.now()) that auto-updates every second
- * while the component is mounted. Cleans up on unmount.
- */
+Returns a reactive `now` ref (Date.now()) that auto-updates every second
+while the component is mounted. Cleans up on unmount.
+*/
 export function useNowTimer() {
   const now = ref(Date.now());
   let timer = 0;

@@ -1,16 +1,16 @@
 /**
- * Mixin for auth form dialogs: login, change-password.
- *
- * Provides:
- *   - data.submitButtonEnabled
- *   - Deep watcher on `credentials` that auto-validates via $refs.form
- *   - Computed: formErrors, formSuccess from commonStore
- *
- * Using components require:
- *   - data.credentials  (their own shape)
- *   - data.rules
- *   - A <v-form ref="form"> in their template
- */
+Mixin for auth form dialogs: login, change-password.
+
+Provides:
+  - data.submitButtonEnabled
+  - Deep watcher on `credentials` that auto-validates via $refs.form
+  - Computed: formErrors, formSuccess from commonStore
+
+Using components require:
+  - data.credentials  (their own shape)
+  - data.rules
+  - A <v-form ref="form"> in their template
+*/
 import { mapState } from "pinia";
 
 import { useCommonStore } from "@/stores/common";

@@ -12,20 +12,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
-const _row = (group, pk, name = `${group}-${pk}`) => ({
+const _row = (group, pk) => ({
   collection: group,
   ids: [pk],
   pk,
-  name,
+  name: `${group}-${pk}`,
 });
 
-function seedPage({ rows, collections, books }) {
+function seedPage({ rows = null, collections = [], books = [] }) {
   const browserStore = useBrowserStore();
-  browserStore.page = {
-    rows: rows ?? null,
-    collections: collections ?? [],
-    books: books ?? [],
-  };
+  browserStore.page = { rows, collections, books };
 }
 
 function selectedNames(store) {
