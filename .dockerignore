@@ -48,3 +48,4 @@ update-builder-requirement.sh
 version.sh
 !dist
 !docker/debian.sources
+!Dockerfile
