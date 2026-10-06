@@ -118,6 +118,7 @@ be installed with the following steps :
 ### Install & Run as a Native Application
 
 You can also run Codex as a natively installed python application with pip.
+Codex requires Python 3.12 or later.
 
 #### Binary Dependencies
 
