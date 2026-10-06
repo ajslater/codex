@@ -10,6 +10,7 @@ disk, rendered a ``200`` with zero entries.
 """
 
 import shutil
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Final
@@ -189,3 +190,45 @@ class OPDSLazyMetadataTestCase(_DegradeFixtureMixin, TestCase):
         entry = self._entry(_TMP_DIR / "folder1" / "c1.cbz")
         assert entry.lazy_metadata() is False
         assert entry.lazy_metadata() is False
+
+
+class OPDSEntryDateTestCase(TestCase):
+    """Entry dates render as UTC ISO 8601 strings whatever their input type."""
+
+    _EXPECTED: Final = "2024-01-02T03:04:05+00:00"
+
+    @staticmethod
+    def _updated(value: object) -> str | None:
+        """Render ``updated`` for a stand-in row whose ``updated_at`` is ``value``."""
+        obj = SimpleNamespace(pk=1, nav_collection="comics", updated_at=value)
+        data = OPDS1EntryData(
+            acquisition_collections=frozenset(),
+            zero_pad=3,
+            metadata=False,
+            mime_type_map={},
+        )
+        return OPDS1Entry(obj, {}, data, title_filename_fallback=False).updated
+
+    def test_iso_string(self) -> None:
+        """An ISO string parses to the same string a datetime produces."""
+        assert self._updated(self._EXPECTED) == self._EXPECTED
+
+    def test_naive_sqlite_string_is_utc(self) -> None:
+        """A naive string in SQLite's storage format is read as UTC."""
+        assert self._updated("2024-01-02 03:04:05") == self._EXPECTED
+
+    def test_datetime_is_converted_to_utc(self) -> None:
+        """An aware datetime in another zone is shifted to UTC."""
+        plus_two = timezone(timedelta(hours=2))
+        value = datetime(2024, 1, 2, 5, 4, 5, tzinfo=plus_two)
+        assert self._updated(value) == self._EXPECTED
+
+    def test_utc_datetime(self) -> None:
+        """A UTC datetime renders unchanged."""
+        assert self._updated(datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)) == (
+            self._EXPECTED
+        )
+
+    def test_junk_is_none(self) -> None:
+        """An unparsable string renders as no date rather than raising."""
+        assert self._updated("not a date") is None
