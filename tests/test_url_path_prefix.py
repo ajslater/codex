@@ -9,8 +9,6 @@ malformed. :func:`normalize_url_path_prefix` guards against that by forcing the
 ``root_path`` convention: one leading slash, no trailing slash.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from codex.settings.config import normalize_url_path_prefix

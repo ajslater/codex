@@ -6,8 +6,6 @@ just guard that codex's thin adapter forwards correctly and re-exports the rate
 map the session snapshot reads.
 """
 
-from __future__ import annotations
-
 from typing import Final
 
 from codex.librarian.onlinetag.estimate import (

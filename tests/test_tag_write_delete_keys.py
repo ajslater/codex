@@ -8,8 +8,6 @@ paths: view → ``BulkTagWriteTask`` → ``BulkWriteItem`` → comicbox's
 in the patch made every "clear field" action a silent no-op on the archive.
 """
 
-from __future__ import annotations
-
 import json
 import shutil
 import threading

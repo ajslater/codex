@@ -6,8 +6,6 @@ bin/release_info.py, so these pin the titles and bodies already published.
 bin/release_info.py itself is devenv's and is tested there.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import sys
 from pathlib import Path

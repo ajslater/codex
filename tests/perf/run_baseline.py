@@ -18,8 +18,6 @@ Usage::
 Each flow runs twice: one warm-up (discarded) and one measured call.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json

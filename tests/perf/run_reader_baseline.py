@@ -32,8 +32,6 @@ Out of scope (matches the reader perf plan):
 - Multi-worker shared cache shape.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json

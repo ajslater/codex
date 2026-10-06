@@ -8,8 +8,6 @@ returned false always. It lives here now, on the side that can read a
 PEP 440 version.
 """
 
-from __future__ import annotations
-
 from queue import SimpleQueue
 from typing import Final, override
 from unittest.mock import patch

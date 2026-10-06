@@ -23,8 +23,6 @@ clients on cold-start (or after a librarian-driven invalidation) pay
 the cold cost on every navigation step.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json

@@ -1,7 +1,5 @@
 """``manage.py restore_user_data`` — read the sidecar, write the main DB."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import override
 

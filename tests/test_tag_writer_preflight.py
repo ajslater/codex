@@ -18,8 +18,6 @@ arrive as a typed ``DestinationOccupiedError`` naming the rival, which
 codex turns into the same twin link.
 """
 
-from __future__ import annotations
-
 import shutil
 from pathlib import Path
 from typing import Final, override

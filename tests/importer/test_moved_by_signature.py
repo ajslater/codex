@@ -16,8 +16,6 @@ This drives the poller's own path — snapshot, diff, task, importer — so
 the pairing is exercised where it actually runs.
 """
 
-from __future__ import annotations
-
 import shutil
 from threading import Event, Lock
 from typing import override

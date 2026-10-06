@@ -1,7 +1,5 @@
 """Ignore-pattern filtering across the librarian's fs walker, watcher, and helpers."""
 
-from __future__ import annotations
-
 import os
 import shutil
 from logging import getLogger

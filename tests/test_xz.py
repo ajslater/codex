@@ -1,7 +1,5 @@
 """Tests for the xz backup helpers."""
 
-from __future__ import annotations
-
 import lzma
 import re
 import shutil

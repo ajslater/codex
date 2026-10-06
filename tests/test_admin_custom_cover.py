@@ -1,7 +1,5 @@
 """Tests for the admin custom-cover endpoints."""
 
-from __future__ import annotations
-
 import io
 import json
 from http import HTTPStatus

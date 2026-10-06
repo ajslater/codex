@@ -13,8 +13,6 @@ loses that race: the row it meant to insert is already there, so it
 updates that one instead of failing.
 """
 
-from __future__ import annotations
-
 import shutil
 from datetime import timedelta
 from typing import Final, override

@@ -1,7 +1,5 @@
 """Tests for the user-data sidecar store."""
 
-from __future__ import annotations
-
 import sqlite3
 from typing import Final, override
 

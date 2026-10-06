@@ -6,8 +6,6 @@ admin default), the preflight filename preview, the online tag-by-id path, and
 deferred-prompt serialization.
 """
 
-from __future__ import annotations
-
 import shutil
 from http import HTTPStatus
 from pathlib import Path

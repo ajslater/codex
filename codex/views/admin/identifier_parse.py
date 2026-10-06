@@ -13,8 +13,6 @@ Only Metron and Comic Vine support id tagging, so non-issue resource types and
 other sources are rejected with operator-facing messages.
 """
 
-from __future__ import annotations
-
 from comicbox.identifiers import PARSE_COMICVINE_RE
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 

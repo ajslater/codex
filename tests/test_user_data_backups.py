@@ -1,7 +1,5 @@
 """Tests for sidecar backup naming, listing, and safe resolution."""
 
-from __future__ import annotations
-
 import shutil
 from typing import Final, override
 

@@ -9,8 +9,6 @@ The delete-phase existence check cannot help — while the mount is gone
 the files really are unreachable.
 """
 
-from __future__ import annotations
-
 import shutil
 from typing import Any, Final, override
 

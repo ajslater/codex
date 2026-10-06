@@ -27,8 +27,6 @@ bottom out there, and patching it leaves the ``open`` builtin -- which
 the rest of the request uses -- alone.
 """
 
-from __future__ import annotations
-
 import io
 import os
 import shutil

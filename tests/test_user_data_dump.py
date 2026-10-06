@@ -1,7 +1,5 @@
 """Tests for the on-demand sidecar dump."""
 
-from __future__ import annotations
-
 import json
 import shutil
 import sqlite3

@@ -23,8 +23,6 @@ Vendored files are kept PRISTINE — the small transforms needed to make
 diff against upstream stays empty and auditable.
 """
 
-from __future__ import annotations
-
 import urllib.request
 from pathlib import Path
 

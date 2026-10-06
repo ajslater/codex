@@ -13,8 +13,6 @@ rest cover that each new editor field reaches the archive under the comicbox
 key the editor names, and that sibling top-level keys survive each other.
 """
 
-from __future__ import annotations
-
 import shutil
 import threading
 import zipfile
