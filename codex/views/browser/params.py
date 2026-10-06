@@ -1,6 +1,7 @@
 """Parse browser params."""
 
 from collections.abc import Mapping, MutableMapping
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any
 
@@ -21,11 +22,6 @@ class BrowserParamsView(BrowserSettingsBaseView):
     input_serializer_class: type[BrowserSettingsSerializerBase] = (
         BrowserSettingsSerializer
     )
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize properties."""
-        super().__init__(*args, **kwargs)
-        self._params: MappingProxyType[str, Any] | None = None
 
     def init_params(self) -> MutableMapping[str, Any]:
         """Get params from stored settings and request."""
@@ -71,22 +67,20 @@ class BrowserParamsView(BrowserSettingsBaseView):
 
     def set_params(self, params: Mapping) -> None:
         """Manually set the params."""
-        self._params = MappingProxyType(params)
+        self.params = MappingProxyType(params)
 
-    @property
+    @cached_property
     def params(self) -> MappingProxyType:
         """Validate submitted settings and apply them over the session settings."""
-        if self._params is None:
-            try:
-                params = self.init_params()
-                route_changed = self._update_last_route(params)
-                self.save_params_to_settings(params, defer_last_route=True)
-                if route_changed:
-                    self._queue_last_route_update(params["last_route"])
-                self.set_order_by_default(params)
-                self.set_params(params)
-            except Exception as exc:
-                # for debugging if this goes awry
-                logger.exception(exc)
-                raise
-        return self._params  # pyright: ignore[reportReturnType], # ty: ignore[invalid-return-type]
+        try:
+            params = self.init_params()
+            route_changed = self._update_last_route(params)
+            self.save_params_to_settings(params, defer_last_route=True)
+            if route_changed:
+                self._queue_last_route_update(params["last_route"])
+            self.set_order_by_default(params)
+        except Exception as exc:
+            # for debugging if this goes awry
+            logger.exception(exc)
+            raise
+        return MappingProxyType(params)

@@ -32,8 +32,6 @@ Out of scope (matches the reader perf plan):
 - Multi-worker shared cache shape.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json
@@ -374,7 +372,7 @@ def run(out_path: Path) -> int:
     for flow in flows:
         _reset_user_settings(client)
         sample = _capture(client, flow["url"])
-        results.append({**flow, **sample})
+        results.append(flow | sample)
 
     artifact = {
         "series_pk_used": series_pk,

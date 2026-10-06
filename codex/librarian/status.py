@@ -3,7 +3,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from time import time
+from time import perf_counter
 from typing import ClassVar
 
 from humanize import intword, naturaldelta
@@ -59,10 +59,10 @@ class Status(ABC):
 
     def start(self) -> None:
         """Set start time."""
-        self.start_time = time()
+        self.start_time = perf_counter()
 
     def _elapsed(self):
-        return time() - self.start_time if self.start_time else 0
+        return perf_counter() - self.start_time if self.start_time else 0
 
     def elapsed(self) -> str:
         """Elapsed time."""

@@ -1,7 +1,5 @@
 """Admin endpoint: snapshot the user-data sidecar from the main DB."""
 
-from __future__ import annotations
-
 from rest_framework.response import Response
 
 from codex.user_data.dump import snapshot_sidecar

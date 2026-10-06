@@ -1,7 +1,5 @@
 """Integration tests for the online-tag resume + dismiss endpoints."""
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import Final, override
 from unittest.mock import patch

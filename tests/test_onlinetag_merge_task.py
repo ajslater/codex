@@ -8,8 +8,6 @@ natural gesture) queues them twice: inflated totals and duplicate lookups
 against rate-limited sources.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Final
 

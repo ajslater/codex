@@ -12,7 +12,7 @@ and using the most recently supported Ubuntu version.
 
 ## Install Codex Dependencies
 
-Ensure python3 & pip3 are installed in the WSL:
+Ensure python3 (3.12 or later) & pip3 are installed in the WSL:
 
 <!-- eslint-skip -->
 

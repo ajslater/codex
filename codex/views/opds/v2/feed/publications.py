@@ -2,6 +2,7 @@
 
 from collections.abc import Collection, Iterable
 from datetime import datetime
+from functools import cached_property
 from math import floor
 from types import MappingProxyType, SimpleNamespace
 from typing import Final, override
@@ -71,11 +72,6 @@ _MD_CREDIT_MAP: Final[MappingProxyType[str, frozenset[str]]] = MappingProxyType(
 
 class OPDS2PublicationBaseView(OPDS2FeedLinksView):
     """Base view for publication entries."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize vars."""
-        self._auth_link = None
-        super().__init__(*args, **kwargs)
 
     def is_allowed(self, link_spec: Link | BrowserCollectionModel) -> bool:
         """
@@ -177,18 +173,16 @@ class OPDS2PublicationBaseView(OPDS2FeedLinksView):
             contributor["links"] = [link]
         return contributor
 
-    @property
+    @cached_property
     def auth_link(self):
         """Create a reusable authentication link dict."""
-        if self._auth_link is None:
-            auth_href_data = HrefData({}, url_name="opds:auth:v1")
-            auth_link_data = LinkData(
-                Rel.AUTHENTICATION,
-                auth_href_data,
-                mime_type=MimeType.AUTHENTICATION,
-            )
-            self._auth_link = self.link(auth_link_data)
-        return self._auth_link
+        auth_href_data = HrefData({}, url_name="opds:auth:v1")
+        auth_link_data = LinkData(
+            Rel.AUTHENTICATION,
+            auth_href_data,
+            mime_type=MimeType.AUTHENTICATION,
+        )
+        return self.link(auth_link_data)
 
     def _publication_link(self, kwargs, url_name, rel, mime_type, size=None):
         href_data = HrefData(kwargs, url_name=url_name)
@@ -546,10 +540,10 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         feed_view.request = self.request
         # Share request-scoped caches with the parent so each preview
         # link_spec doesn't repeat the AdminFlag fetch + visible-library
-        # ACL lookup. ``_admin_flags`` and ``_cached_visible_library_pks``
+        # ACL lookup. ``admin_flags`` and ``_cached_visible_library_pks``
         # depend on (user, request) only, not on params/kwargs — safe to
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
-        feed_view._admin_flags = self.admin_flags  # noqa: SLF001
+        feed_view.admin_flags = self.admin_flags
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
         feed_view.kwargs = {"collection": link_spec.group, "pks": [0], "page": 1}
         params = self.get_browser_factory_params()

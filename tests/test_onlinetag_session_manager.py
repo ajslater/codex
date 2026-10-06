@@ -7,8 +7,6 @@ prompts, then returns without blocking. Answering those prompts is covered by
 ``test_onlinetag_credentials``.
 """
 
-from __future__ import annotations
-
 import sys
 from pathlib import Path
 from types import SimpleNamespace

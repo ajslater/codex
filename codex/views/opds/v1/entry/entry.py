@@ -4,7 +4,6 @@ import json
 from contextlib import suppress
 from datetime import UTC, datetime
 
-from dateutil import parser
 from loguru import logger
 
 from codex.models import Comic
@@ -78,25 +77,29 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Return the publisher."""
         return self.obj.publisher_name
 
-    def _get_datefield(self, key) -> datetime | None:
-        result = None
-        if not self.fake and (value := getattr(self.obj, key, None)):
+    def _get_datefield(self, key) -> str | None:
+        """Format a datetime or ISO 8601 string field as a UTC ISO string."""
+        if self.fake or not (value := getattr(self.obj, key, None)):
+            return None
+        if isinstance(value, str):
             try:
-                if isinstance(value, str):
-                    result = parser.parse(value)
-                if isinstance(value, datetime):
-                    result = value.astimezone(UTC).isoformat()
+                value = datetime.fromisoformat(value)
             except ValueError:
-                pass
-        return result  # pyright: ignore[reportReturnType]
+                return None
+        if not isinstance(value, datetime):
+            return None
+        if value.tzinfo is None:
+            # Django stores naive datetimes in SQLite as UTC.
+            value = value.replace(tzinfo=UTC)
+        return value.astimezone(UTC).isoformat()
 
     @property
-    def updated(self) -> datetime | None:
+    def updated(self) -> str | None:
         """When the entry was last updated."""
         return self._get_datefield("updated_at")
 
     @property
-    def published(self) -> datetime | None:
+    def published(self) -> str | None:
         """When the entry was created."""
         return self._get_datefield("created_at")
 

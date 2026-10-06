@@ -9,8 +9,6 @@ every process recompile on import. CI's image build only runs on deploy, so
 these are the only Dockerfile checks a PR gets.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 

@@ -1,5 +1,6 @@
 """Browser breadcrumbs calculations."""
 
+from functools import cached_property
 from pathlib import PurePath
 from types import MappingProxyType
 from typing import TYPE_CHECKING, NoReturn, cast
@@ -60,12 +61,6 @@ _COLLECTION_PARENT_CHAIN: MappingProxyType[
 class BrowserBreadcrumbsView(BrowserPaginateView):
     """Browser breadcrumbs calculations."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Set params for the type checker."""
-        super().__init__(*args, **kwargs)
-        # Use 0 to indicate unmemoized because None is a valid value
-        self._collection_instance: BrowserCollectionModel | int | None = 0
-
     def _get_collection_query(self, model):
         """
         Get the collection query for the collection instance.
@@ -115,7 +110,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         route_mask, _ = self._get_up_page_redirect()
         self.raise_redirect(reason, route_mask=route_mask)
 
-    @property
+    @cached_property
     def collection_instance(self) -> BrowserCollectionModel | None:
         """
         Memoize collection instance for getting collection names & counts.
@@ -128,20 +123,15 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
         the route in its body with no ``Location`` header, the same
         shape ``BrowserValidateView`` already uses.
         """
-        if self._collection_instance == 0:
-            collection = self.kwargs.get("collection")
-            model = COLLECTION_MODEL_MAP[collection]
-            pks = self.kwargs.get("pks")
-            instance = None
-            if model and pks and 0 not in pks:
-                instance = self._get_collection_query(model).first()
-                if instance is None:
-                    self._raise_unresolved_collection_redirect()
-            self._collection_instance = instance
-        # ``_collection_instance`` carries an ``int`` sentinel (``0``) for the
-        # unmemoized state; by this point it's been resolved to a real
-        # model row or ``None``.
-        return cast("BrowserCollectionModel | None", self._collection_instance)
+        collection = self.kwargs.get("collection")
+        model = COLLECTION_MODEL_MAP[collection]
+        pks = self.kwargs.get("pks")
+        instance = None
+        if model and pks and 0 not in pks:
+            instance = self._get_collection_query(model).first()
+            if instance is None:
+                self._raise_unresolved_collection_redirect()
+        return instance
 
     def _build_collection_breadcrumbs(self) -> tuple[Route, ...]:
         """Build breadcrumbs for browse collection mode by walking FK parents."""

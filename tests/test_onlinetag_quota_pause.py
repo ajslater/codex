@@ -12,8 +12,6 @@ So codex treats it as the operator's own Pause: stop at the first cancelled
 result, leave the rest queued, stay resumable.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Final

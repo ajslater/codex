@@ -138,7 +138,7 @@ class JanitorVacuum(JanitorIntegrity):
             # the caller's transaction state; the write lock keeps Python
             # writers out for a consistent image, matching ``vacuum_db``.
             with self.db_write_lock:
-                raw = sqlite3.connect(DB_PATH, isolation_level=None)
+                raw = sqlite3.connect(DB_PATH, autocommit=True)
                 try:
                     raw.execute(f"VACUUM INTO {str(tmp_db)!r}")
                 finally:

@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
 #: (action, payload, chosen_volume_id) — the admin's answer as the review
 #: dialog sends it, carried together because every step needs all three.
-Resolution = tuple[str, Any, int | None]
+type Resolution = tuple[str, Any, int | None]
 
 
 def comic_prompt(prompt: dict[str, Any], comic: dict[str, Any]) -> dict[str, Any]:

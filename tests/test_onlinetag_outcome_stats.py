@@ -10,8 +10,6 @@ The same fold also builds ``source_status_by_path`` — what each source did
 with each comic — which the snapshot renders as one status column per source.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from comicbox.events import (

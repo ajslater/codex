@@ -1,7 +1,5 @@
 """Admin endpoints: list and restore user-data sidecar backups."""
 
-from __future__ import annotations
-
 from loguru import logger
 from rest_framework import status
 from rest_framework.response import Response

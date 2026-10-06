@@ -1,7 +1,5 @@
 """Integration tests for the /admin/tagging-defaults/validate endpoint."""
 
-from __future__ import annotations
-
 from typing import Final, override
 from unittest.mock import patch
 

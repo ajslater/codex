@@ -64,5 +64,5 @@ def get_sort_name(name: str) -> str:
     lower_name = name.lower()
     name_parts = lower_name.split()
     if len(name_parts) > 1 and (first_word := name_parts[0]) in _ARTICLES:
-        return " ".join(name_parts[1:]) + ", " + first_word
+        return f"{' '.join(name_parts[1:])}, {first_word}"
     return lower_name

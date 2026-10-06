@@ -1,5 +1,6 @@
 """Views for reading comic books."""
 
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any
 
@@ -25,7 +26,6 @@ class ReaderParamsView(ReaderSettingsBaseView):
         """Initialize instance vars."""
         super().__init__(*args, **kwargs)
         self._collection_pks: dict[str, tuple[int, ...]] = {}
-        self._params: MappingProxyType[str, Any] | None = None
 
     def _ensure_arc_collection(self, params: dict[str, Any]) -> None:
         arc = params.get("arc", {})
@@ -60,21 +60,19 @@ class ReaderParamsView(ReaderSettingsBaseView):
         self._ensure_arc_collection(params)
         self._ensure_arc_ids(params)
 
-    @property
-    def params(self):
+    @cached_property
+    def params(self) -> MappingProxyType[str, Any]:
         """Memoized params property."""
-        if self._params is None:
-            try:
-                serializer = self.input_serializer_class(data=self.request.GET)
-                serializer.is_valid(raise_exception=True)
+        try:
+            serializer = self.input_serializer_class(data=self.request.GET)
+            serializer.is_valid(raise_exception=True)
 
-                params = self.load_params_from_settings()
-                if serializer.validated_data:
-                    params.update(serializer.validated_data)
-                self._ensure_arc(params)
-                self.save_params_to_settings(params)
-                self._params = MappingProxyType(params)
-            except Exception:
-                logger.exception("validate")
-                raise
-        return self._params
+            params = self.load_params_from_settings()
+            if serializer.validated_data:
+                params.update(serializer.validated_data)
+            self._ensure_arc(params)
+            self.save_params_to_settings(params)
+            return MappingProxyType(params)
+        except Exception:
+            logger.exception("validate")
+            raise

@@ -1,7 +1,7 @@
 """The main importer class."""
 
 from operator import itemgetter
-from time import time
+from time import perf_counter
 from types import MappingProxyType
 
 from django.core.cache import cache
@@ -82,7 +82,7 @@ class FinishImporter(InitImporter):
 
     def _log_finish(self) -> None:
         """Log Finish."""
-        elapsed_time = time() - self.start_time.timestamp()
+        elapsed_time = perf_counter() - self.started
         elapsed = naturaldelta(elapsed_time)
         if self.counts.changed():
             log_txt = self._get_log_finish_changed_text(elapsed, elapsed_time)

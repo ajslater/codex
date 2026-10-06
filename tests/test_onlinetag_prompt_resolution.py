@@ -7,8 +7,6 @@ write — no live scan required. A response that arrives *during* a scan is
 deferred instead, and applied when the scan winds down.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Final

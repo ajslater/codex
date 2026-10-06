@@ -1,7 +1,5 @@
 """Unit tests for parsing the numeric issue id out of a stored identifier key."""
 
-from __future__ import annotations
-
 import pytest
 
 from codex.librarian.onlinetag.issue_id import parse_issue_id

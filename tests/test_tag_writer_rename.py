@@ -9,8 +9,6 @@ both. What remains queued is only the metadata re-read, which names a path
 the database already holds.
 """
 
-from __future__ import annotations
-
 import shutil
 import tarfile
 import zipfile

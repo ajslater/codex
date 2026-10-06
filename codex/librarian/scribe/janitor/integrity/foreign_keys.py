@@ -2,6 +2,7 @@
 
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 from collections import defaultdict
+from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -212,8 +213,7 @@ def _execute_fix_batch(
 ) -> int:
     """Run one batched UPDATE or DELETE; return rows affected."""
     affected = 0
-    for start in range(0, len(rowids), _SQLITE_MAX_VARS):
-        batch = rowids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(rowids, _SQLITE_MAX_VARS):
         placeholders = ",".join(["%s"] * len(batch))
         if all_nullable:
             set_clauses = ", ".join(f'"{col}" = NULL' for col in cols)
@@ -435,13 +435,11 @@ def _comic_ancestor_dirs(comic_path: str, library_path: str) -> list[str]:
     ``Path(comic_path).parents`` entry relative to the library path).
     """
     library = Path(library_path)
-    ancestors: list[str] = []
-    for parent in Path(comic_path).parents:
-        try:
-            parent.relative_to(library)
-        except ValueError:
-            continue
-        ancestors.append(str(parent))
+    ancestors = [
+        str(parent)
+        for parent in Path(comic_path).parents
+        if parent.is_relative_to(library)
+    ]
     ancestors.reverse()
     return ancestors
 
@@ -529,8 +527,7 @@ def _delete_m2m_pairs(through, remove: set[tuple[int, int]]) -> int:
         if (comic_id, folder_id) in remove
     ]
     deleted = 0
-    for start in range(0, len(remove_ids), _SQLITE_MAX_VARS):
-        batch = remove_ids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(remove_ids, _SQLITE_MAX_VARS):
         deleted += through.objects.filter(id__in=batch).delete()[0]
     return deleted
 
@@ -590,8 +587,7 @@ def _prune_stale_folders(
     # ``protected`` filter holds even if it did.
     stale.sort(key=lambda item: item[1].count("/"), reverse=True)
     stale_ids = [folder_id for folder_id, _ in stale]
-    for start in range(0, len(stale_ids), _SQLITE_MAX_VARS):
-        batch = stale_ids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(stale_ids, _SQLITE_MAX_VARS):
         folder_model.objects.filter(id__in=batch).delete()
     log.info(f"Pruned {len(stale_ids)} stale empty folders.")
     return len(stale_ids)

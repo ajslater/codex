@@ -1,6 +1,7 @@
 """Prune M2M links that don't need updating."""
 
 from collections.abc import Iterable
+from itertools import batched
 from typing import TYPE_CHECKING, cast
 
 from codex.librarian.scribe.importer.const import (
@@ -217,10 +218,9 @@ class QueryPruneLinksM2M(QueryPruneLinksFKs):
             return
         paths = tuple(self.metadata[LINK_M2MS].keys())
         # Batch path__in to stay under SQLite's variable limit.
-        for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
+        for batch_paths in batched(paths, IMPORTER_LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 return
-            batch_paths = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
             self._query_prune_comic_m2m_links_batch(batch_paths, field_names, status)
         delete_field_names = tuple(self.metadata[DELETE_M2MS].keys())
         for field_name in delete_field_names:

@@ -5,8 +5,6 @@ Unit tests for the credentials the session manager hands comicbox.
 configured only when it carries something that can actually authenticate.
 """
 
-from __future__ import annotations
-
 from codex.models import ComicboxTaggingDefaults
 from tests.onlinetag_session_fakes import OnlineTagSessionTestCase
 

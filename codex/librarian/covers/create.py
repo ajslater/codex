@@ -15,7 +15,7 @@ from concurrent.futures import (
 from io import BytesIO
 from pathlib import Path
 from queue import Empty
-from time import time
+from time import perf_counter
 from typing import TYPE_CHECKING, override
 
 from comicbox.box import Comicbox
@@ -171,16 +171,25 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
 
     @override
     def stop(self) -> None:
-        """Stop the thread and shut down the worker pool."""
-        if self._cover_pool is not None:
-            # Workers ignore SIGINT (see ``_init_cover_worker``), so the
-            # librarian owns teardown. Cancel pending work and SIGTERM
-            # in-flight workers — any current cover would be re-rendered
-            # on the next request via the 202-poll path. Then wait for
-            # the executor manager thread to finish reaping workers so
-            # ``_python_exit``'s atexit hook doesn't have to.
-            self._cover_pool.terminate_workers()  # ty: ignore[unresolved-attribute]  # pyright: ignore[reportAttributeAccessIssue]
-            self._cover_pool.shutdown(wait=True)
+        """
+        Stop the thread and shut down the worker pool.
+
+        Workers ignore SIGINT (see ``_init_cover_worker``), so the
+        librarian owns teardown. Pending work is cancelled. On Python
+        3.14+ in-flight workers are SIGTERMed too — any current cover
+        is re-rendered on the next request via the 202-poll path. On
+        3.12/3.13, which lack ``terminate_workers``, the in-flight
+        renders finish first. Either way, wait for the executor manager
+        thread to finish reaping workers so ``_python_exit``'s atexit
+        hook doesn't have to.
+        """
+        pool = self._cover_pool
+        if pool is not None:
+            # ``terminate_workers`` is 3.14+; probe so the 3.12 floor stays runnable.
+            terminate = getattr(pool, "terminate_workers", None)
+            if terminate is not None:
+                terminate()
+            pool.shutdown(wait=True, cancel_futures=True)
             self._cover_pool = None
         super().stop()
 
@@ -282,11 +291,13 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
             try:
                 pk, _cover_path_str, err = future.result()
             except (CancelledError, BrokenExecutor):
-                # ``stop()`` cancels pending futures and SIGTERMs in-flight
-                # workers before ``SHUTDOWN_MSG`` lands — pending futures
-                # raise CancelledError, in-flight ones raise BrokenExecutor.
-                # Drop both; the burst handler's ``finally`` still finishes
-                # the status cleanly.
+                # ``stop()`` cancels pending futures before ``SHUTDOWN_MSG``
+                # lands, so they raise CancelledError. On 3.14+ it also
+                # SIGTERMs in-flight workers, whose futures raise
+                # BrokenExecutor; on 3.12/3.13 those renders finish and
+                # yield results before the cancelled tail follows. Drop
+                # both errors; the burst handler's ``finally`` still
+                # finishes the status cleanly.
                 break
             if err:
                 self.log.warning(f"Could not create cover thumbnail for pk={pk}: {err}")
@@ -307,13 +318,13 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         """
         status = CreateCoversStatus(0, 0)
         try:
-            start_time = time()
+            start_time = perf_counter()
             self.status_controller.start(status)
             self._render_covers_into_status(pks, custom=custom, status=status)
             desc = self.get_cover_desc(custom=custom)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
-            elapsed = naturaldelta(time() - start_time)
+            elapsed = naturaldelta(perf_counter() - start_time)
             self.log.log(level, f"Created {count} {desc} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)
@@ -408,12 +419,12 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         interruptor: LibrarianTask | None = None
         status = CreateCoversStatus(0, 0)
         try:
-            start_time = time()
+            start_time = perf_counter()
             self.status_controller.start(status)
             interruptor = self._drain_burst_loop(pending, status)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
-            elapsed = naturaldelta(time() - start_time)
+            elapsed = naturaldelta(perf_counter() - start_time)
             self.log.log(level, f"Created {count} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)

@@ -12,8 +12,6 @@ Duplicates cannot be seeded once the constraints exist, so these drop
 them for the duration of each test and put them back.
 """
 
-from __future__ import annotations
-
 import importlib
 import shutil
 from contextlib import contextmanager

@@ -1,7 +1,5 @@
 """Unit tests for the online-source credential validator."""
 
-from __future__ import annotations
-
 from typing import Final
 from unittest.mock import MagicMock, patch
 

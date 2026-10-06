@@ -7,8 +7,6 @@ Every janitor task the scribe dispatches reaches ``ScribeThread.put`` →
 from that tuple raises ``ValueError`` and kills the librarian loop.
 """
 
-from __future__ import annotations
-
 from queue import PriorityQueue
 from unittest.mock import patch
 

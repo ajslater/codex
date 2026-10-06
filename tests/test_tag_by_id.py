@@ -9,8 +9,6 @@ explicit-id config builder the stored-id prepass and prompt resolution share,
 and the start endpoint's pinned-id validation + task enqueue.
 """
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import Final, override
 from unittest.mock import patch

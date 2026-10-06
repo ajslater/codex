@@ -198,7 +198,6 @@ class SearchFilterView(BrowserFTSFilter):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize search variables."""
         super().__init__(*args, **kwargs)
-        self._admin_flags: MappingProxyType[str, bool] | None = None
         self.fts_mode = False
         self.search_mode = False
         self.search_error = ""
@@ -206,22 +205,20 @@ class SearchFilterView(BrowserFTSFilter):
         # pk-set; the cover subquery reads it to skip its own wrap.
         self.fts_q_is_pk_set = False
 
-    @property
+    @cached_property
     def admin_flags(self) -> MappingProxyType[str, bool]:
         """Set browser relevant admin flags."""
-        if self._admin_flags is None:
-            if self.ADMIN_FLAGS:
-                admin_pairs = AdminFlag.objects.filter(
-                    key__in=(enum.value for enum in self.ADMIN_FLAGS)
-                ).values_list("key", "on")
-            else:
-                admin_pairs = ()
-            admin_flags = {}
-            for key, on in admin_pairs:
-                export_key = AdminFlagChoices(key).name.lower()
-                admin_flags[export_key] = on
-            self._admin_flags = MappingProxyType(admin_flags)
-        return self._admin_flags
+        if self.ADMIN_FLAGS:
+            admin_pairs = AdminFlag.objects.filter(
+                key__in=(enum.value for enum in self.ADMIN_FLAGS)
+            ).values_list("key", "on")
+        else:
+            admin_pairs = ()
+        admin_flags = {}
+        for key, on in admin_pairs:
+            export_key = AdminFlagChoices(key).name.lower()
+            admin_flags[export_key] = on
+        return MappingProxyType(admin_flags)
 
     def _is_path_column_allowed(self) -> bool:
         """Is path column allowed."""

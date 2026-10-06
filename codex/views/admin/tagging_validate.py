@@ -1,7 +1,5 @@
 """Admin endpoint for testing online-source credentials."""
 
-from __future__ import annotations
-
 from dataclasses import asdict
 
 from comicbox.online_session import OnlineCredentials

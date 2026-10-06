@@ -1,7 +1,5 @@
 """Ignore-pattern filtering across the librarian's fs walker, watcher, and helpers."""
 
-from __future__ import annotations
-
 import os
 import shutil
 from logging import getLogger
@@ -222,7 +220,7 @@ class TestCodexWatchFilter:
 
 
 class TestExpandDirAddedSkipsDotfiles:
-    """``os.walk`` recursion under a new dir must prune hidden subtrees."""
+    """``Path.walk`` recursion under a new dir must prune hidden subtrees."""
 
     @pytest.fixture(autouse=True)
     def _tmp_library(self):

@@ -9,8 +9,6 @@ themselves; these tests pin how codex wires them. CI never runs actionlint,
 so these are the only workflow checks CI enforces.
 """
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 from typing import Any

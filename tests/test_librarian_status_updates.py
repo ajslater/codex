@@ -7,8 +7,6 @@ worth coalescing — the next one carries the same information plus more.
 A state change is not: it *is* the information, so it forces its way out.
 """
 
-from __future__ import annotations
-
 from typing import override
 
 from django.test import TestCase

@@ -1,7 +1,6 @@
 """Tests for the user-data sidecar store."""
 
-from __future__ import annotations
-
+import sqlite3
 from typing import Final, override
 
 import pytest
@@ -37,6 +36,40 @@ class SidecarStoreTests(TestCase):
         conn = self.store.connection()
         version = conn.execute("SELECT version FROM schema_version").fetchone()
         assert version["version"] == SCHEMA_VERSION
+
+    def test_connection_is_autocommit(self) -> None:
+        """Statements commit on their own; nothing holds a transaction open."""
+        conn = self.store.connection()
+        assert conn.autocommit is True
+        assert not conn.in_transaction
+        self.store.upsert("users", ("username",), {"username": "alice"})
+        assert not conn.in_transaction
+
+    def test_transaction_commits(self) -> None:
+        """``transaction()`` writes are visible to another connection after exit."""
+        with self.store.transaction() as conn:
+            conn.execute("INSERT INTO users (username) VALUES (?)", ("alice",))
+            conn.execute("INSERT INTO groups (name) VALUES (?)", ("editors",))
+            assert conn.in_transaction
+        assert not conn.in_transaction
+
+        other = SidecarStore(self.sidecar_path)
+        try:
+            assert [r["username"] for r in other.fetchall("users")] == ["alice"]
+            assert [r["name"] for r in other.fetchall("groups")] == ["editors"]
+        finally:
+            other.close()
+
+    def test_transaction_rolls_back_on_error(self) -> None:
+        """A failing statement undoes the whole block and ends the transaction."""
+        with (  # noqa: PT012
+            pytest.raises(sqlite3.OperationalError, match="no such table"),
+            self.store.transaction() as conn,
+        ):
+            conn.execute("INSERT INTO users (username) VALUES (?)", ("alice",))
+            conn.execute("DELETE FROM no_such_table")
+        assert not conn.in_transaction
+        assert self.store.fetchall("users") == []
 
     def test_upsert_inserts_then_updates(self) -> None:
         """upsert(...) writes a fresh row, then updates existing columns."""

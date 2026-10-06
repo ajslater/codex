@@ -1,6 +1,6 @@
 """Search Index update."""
 
-from time import time
+from time import perf_counter
 
 from humanize import naturaldelta
 
@@ -189,7 +189,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
 
     def _update_search_index(self, cleaned_count: int) -> None:
         """Update or Rebuild the search index."""
-        start_time = time()
+        start_time = perf_counter()
         if self.abort_event.is_set():
             return
         updated_count = self._update_search_index_update()
@@ -197,7 +197,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             return
         created_count = self._update_search_index_create()
 
-        elapsed_time = time() - start_time
+        elapsed_time = perf_counter() - start_time
         elapsed = naturaldelta(elapsed_time)
         cleaned = f"{cleaned_count} cleaned up" if cleaned_count else ""
         updated = f"{updated_count} updated" if updated_count else ""

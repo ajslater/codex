@@ -9,8 +9,6 @@ explicit-id confirmation) treat that as "not resolvable", which safely falls
 back to search or rejects the id rather than guessing a wrong one.
 """
 
-from __future__ import annotations
-
 from comicbox.identifiers import PARSE_COMICVINE_RE
 
 

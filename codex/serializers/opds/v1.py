@@ -1,6 +1,6 @@
 """Serializers for the browser view."""
 
-from zoneinfo import ZoneInfo
+from datetime import UTC
 
 from rest_framework.fields import (
     BooleanField,
@@ -13,8 +13,6 @@ from rest_framework.fields import (
 from rest_framework.serializers import Serializer
 
 from codex.serializers.models.pycountry import LanguageSerializer
-
-UTC_TZ = ZoneInfo("UTC")
 
 
 class OPDS1TemplateLinkSerializer(Serializer):
@@ -47,8 +45,8 @@ class OPDS1TemplateEntrySerializer(Serializer):
     title = CharField(read_only=True)
     links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
-    updated = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
-    published = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
+    updated = DateTimeField(read_only=True, required=False, default_timezone=UTC)
+    published = DateTimeField(read_only=True, required=False, default_timezone=UTC)
     publisher = CharField(read_only=True, required=False)
     language = LanguageSerializer(read_only=True, required=False)
     summary = CharField(read_only=True, required=False)
@@ -64,7 +62,7 @@ class OPDS1TemplateSerializer(Serializer):
     is_acquisition = BooleanField(read_only=True)
     id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
-    updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
+    updated = DateTimeField(read_only=True, default_timezone=UTC)
     links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
     entries = OPDS1TemplateEntrySerializer(many=True, read_only=True)
     items_per_page = IntegerField(read_only=True)

@@ -167,7 +167,7 @@ def merged_claims(sociallogin: "SocialLogin") -> dict:
     id_token = extra.get("id_token") or {}
     userinfo = extra.get("userinfo") or {}
     if id_token or userinfo:
-        return {**id_token, **userinfo}
+        return id_token | userinfo
     # Pre-65.11 allauth stored a flat claims dict.
     return dict(extra)
 

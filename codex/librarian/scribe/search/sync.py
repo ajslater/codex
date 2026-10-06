@@ -1,11 +1,10 @@
 """Search Index update."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from math import floor
 from time import monotonic
 from types import MappingProxyType
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from django.db.models import Q
 from django.db.models.aggregates import Max
@@ -33,7 +32,7 @@ from codex.settings import IMPORTER_SEARCH_SYNC_BATCH_MEMORY_RATIO
 if TYPE_CHECKING:
     from codex.librarian.status import Status
 
-_MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+_MIN_UTC_DATE = datetime.min.replace(tzinfo=UTC)
 _ALL_FTS_COMIC_IDS_QUERY = Q(pk__in=ComicFTS.objects.values_list("comic_id", flat=True))
 _SIMPLE_FTS_FIELDS = (
     # Group Fks
