@@ -435,13 +435,11 @@ def _comic_ancestor_dirs(comic_path: str, library_path: str) -> list[str]:
     ``Path(comic_path).parents`` entry relative to the library path).
     """
     library = Path(library_path)
-    ancestors: list[str] = []
-    for parent in Path(comic_path).parents:
-        try:
-            parent.relative_to(library)
-        except ValueError:
-            continue
-        ancestors.append(str(parent))
+    ancestors = [
+        str(parent)
+        for parent in Path(comic_path).parents
+        if parent.is_relative_to(library)
+    ]
     ancestors.reverse()
     return ancestors
 

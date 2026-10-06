@@ -30,8 +30,8 @@ def expand_dir_added(
     if not root.is_dir():
         return
     count = 0
-    for dirpath, dirnames, filenames in os.walk(root):
-        # Prune ignored directories in place so ``os.walk`` never
+    for dirpath, dirnames, filenames in root.walk():
+        # Prune ignored directories in place so ``Path.walk`` never
         # descends into them under a freshly-added tree. Rules come
         # from the central registry in ``filters`` — extend that
         # module to add more patterns.
@@ -39,7 +39,7 @@ def expand_dir_added(
         for filename in filenames:
             if is_ignored_basename(filename):
                 continue
-            file_path = Path(dirpath) / filename
+            file_path = dirpath / filename
             if event := _classify_added_file(file_path):
                 batch.added.append((library_pk, event))
                 count += 1

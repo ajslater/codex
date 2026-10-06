@@ -98,8 +98,7 @@ def _is_bypassed(scope) -> bool:
     """
     path = scope.get("path", "")
     root_path = scope.get("root_path", "")
-    if root_path and path.startswith(root_path):
-        path = path[len(root_path) :]
+    path = path.removeprefix(root_path)
     if not path.startswith("/"):
         path = "/" + path
     try:

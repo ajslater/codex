@@ -222,7 +222,7 @@ class TestCodexWatchFilter:
 
 
 class TestExpandDirAddedSkipsDotfiles:
-    """``os.walk`` recursion under a new dir must prune hidden subtrees."""
+    """``Path.walk`` recursion under a new dir must prune hidden subtrees."""
 
     @pytest.fixture(autouse=True)
     def _tmp_library(self):

@@ -21,7 +21,7 @@ import json
 import re
 import shutil
 import tempfile
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -84,7 +84,7 @@ def _pythonize_patterns(node: Any) -> None:
             _pythonize_patterns(item)
 
 
-@lru_cache(maxsize=1)
+@cache
 def _v2_registry() -> Registry:
     """Build a referencing Registry from every vendored v2 JSON schema."""
     resources: list[tuple[str, Resource]] = []
@@ -174,7 +174,7 @@ def _patch_opds_rnc(raw: str) -> str:
     return _RNC_NS_PREAMBLE + patched
 
 
-@lru_cache(maxsize=1)
+@cache
 def _v1_relaxng() -> etree.RelaxNG:
     """Compile the OPDS 1.2 RELAX NG schema (rnc -> rng -> lxml), cached."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -210,7 +210,7 @@ _ATOM_NS = "http://www.w3.org/2005/Atom"
 _PSE_STREAM_REL = "http://vaemendis.net/opds-pse/stream"
 
 
-@lru_cache(maxsize=1)
+@cache
 def _pse_relaxng() -> etree.RelaxNG:
     """Compile the hand-authored OPDS-PSE 1.2 link RELAX NG, cached."""
     rng = rnc2rng.dumps(rnc2rng.load(str(_V1_DIR / "opds-pse-1.2.rnc")))
@@ -243,7 +243,7 @@ def validate_opds_pse(xml: bytes) -> list[str]:
 #################
 
 
-@lru_cache(maxsize=1)
+@cache
 def _opensearch_relaxng() -> etree.RelaxNG:
     """Compile the hand-authored OpenSearch 1.1 RELAX NG, cached."""
     rng = rnc2rng.dumps(rnc2rng.load(str(_V1_DIR / "opensearch-1.1.rnc")))
