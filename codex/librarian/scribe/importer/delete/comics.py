@@ -1,5 +1,7 @@
 """Delete comics methods."""
 
+from itertools import batched
+
 from django.db.models.functions import Now
 
 from codex.librarian.scribe.importer.delete.collect import (
@@ -91,10 +93,9 @@ class DeletedComicsImporter(DeletedCoversImporter):
             self._warn_on_mass_delete(len(paths))
             delete_comic_pks: set[int] = set()
             missing_count = 0
-            for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
+            for batch_paths in batched(paths, IMPORTER_LINK_FK_BATCH_SIZE):
                 if self.abort_event.is_set():
                     break
-                batch_paths = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
                 delete_qs = Comic.objects.filter(
                     library=self.library, path__in=batch_paths
                 )

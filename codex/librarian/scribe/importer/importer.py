@@ -1,5 +1,7 @@
 """The main importer class."""
 
+from itertools import batched
+
 from codex.librarian.memory import get_mem_limit
 from codex.librarian.scribe.importer.moved import MovedImporter
 from codex.librarian.scribe.importer.pragmas import importer_pragmas
@@ -91,10 +93,10 @@ class ComicImporter(MovedImporter):
         # log-diff debugging and for any future resume-from-watermark
         # work.
         path_list = sorted(all_paths)
-        for start in range(0, len(path_list), chunk_size):
+        for chunk_paths in batched(path_list, chunk_size):
             if self.abort_event.is_set():
                 return False
-            chunk = frozenset(path_list[start : start + chunk_size])
+            chunk = frozenset(chunk_paths)
             self.task.files_created = chunk & saved_created
             self.task.files_modified = chunk & saved_modified
             if not self._run_phases(_PER_COMIC_PHASES):

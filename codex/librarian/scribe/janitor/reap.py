@@ -1,5 +1,7 @@
 """Really delete rows whose retention window has expired."""
 
+from itertools import batched
+
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
@@ -56,10 +58,9 @@ class JanitorReap(JanitorCleanup):
             Comic.objects.filter(missing_since__lt=cutoff).values_list("pk", flat=True)
         )
         reaped: set[int] = set()
-        for start in range(0, len(pks), IMPORTER_LINK_FK_BATCH_SIZE):
+        for batch in batched(pks, IMPORTER_LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 break
-            batch = pks[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
             qs = Comic.objects.filter(pk__in=batch)
             # Before the delete: afterwards there is nothing to read the
             # collections off, and the browser's refresh probe reads a
@@ -73,10 +74,9 @@ class JanitorReap(JanitorCleanup):
         """Delete expired empty folders in batches."""
         pks = self._reapable_folder_pks(cutoff)
         count = 0
-        for start in range(0, len(pks), IMPORTER_LINK_FK_BATCH_SIZE):
+        for batch in batched(pks, IMPORTER_LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 break
-            batch = pks[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
             Folder.objects.filter(pk__in=batch).delete()
             count += len(batch)
         return count
