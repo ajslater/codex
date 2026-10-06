@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.3
+
+- Fixes
+    - Failed imports no longer vanish from the admin list after other imports.
+    - Size searches accept kb, mb, gb and tb units and the >= and <= operators.
+    - Codex shuts down cleanly on Python 3.12 and 3.13.
+
 ## v2.5.2
 
 - Fixes
