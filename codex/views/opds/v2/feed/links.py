@@ -3,6 +3,7 @@
 import json
 from copy import deepcopy
 from datetime import datetime
+from functools import cached_property
 from typing import override
 from urllib.parse import parse_qsl, urlparse
 
@@ -28,32 +29,19 @@ class OPDS2LinksView(OPDS2HrefMixin, OPDSBrowserView):
     # to the Divina media type.
     renderer_classes = (OPDS2FeedRenderer,)
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize properties."""
-        super().__init__(*args, **kwargs)
-        self._num_pages: int | None = None
-        self._collection_and_books: (
-            tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int] | None
-        ) = None
-        self._user_agent_client: str | None = None
-
-    @property
+    @cached_property
     def collection_and_books(
         self,
     ) -> tuple[QuerySet, QuerySet, int, int, int | None, datetime | None, int]:
         """Memoize Collection And Books for num_pages."""
         # collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count
-        if self._collection_and_books is None:
-            self._collection_and_books = self._get_collection_and_books()
-        return self._collection_and_books
+        return self._get_collection_and_books()
 
     @property
     @override
     def num_pages(self) -> int:
-        """Memoize num_pages."""
-        if self._num_pages is None:
-            self._num_pages = self.collection_and_books[2]
-        return self._num_pages
+        """Read num_pages off the memoized collection and books."""
+        return self.collection_and_books[2]
 
     @staticmethod
     def _link_attributes(data, link) -> None:

@@ -49,7 +49,7 @@ def _assert_covers_enqueued(mock_queue) -> None:
     notification text rather than identity-comparing the singleton.
     """
     enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
-    assert any(getattr(t, "text", None) == Notifications.COVERS.value for t in enqueued)
+    assert any(getattr(t, "text", None) == Notifications.COVERS for t in enqueued)
 
 
 class AdminCustomCoverUploadTestCase(TestCase):

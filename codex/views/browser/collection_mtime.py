@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from cachalot.api import cachalot_disabled
@@ -29,17 +30,12 @@ class BrowserCollectionMtimeView(BrowserFilterView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize memoized values."""
         super().__init__(*args, **kwargs)
-        self._is_bookmark_filtered: bool | None = None
         self._bmua_agg_cache: dict = {}
 
-    @property
+    @cached_property
     def is_bookmark_filtered(self) -> bool:
         """Is bookmark filter in effect."""
-        if self._is_bookmark_filtered is None:
-            self._is_bookmark_filtered = bool(
-                self.params.get("filters", {}).get("bookmark")
-            )
-        return self._is_bookmark_filtered
+        return bool(self.params.get("filters", {}).get("bookmark"))
 
     def _handle_operational_error(self, err) -> None:
         msg = err.args[0] if err.args else ""

@@ -1,5 +1,7 @@
 """OPDS Authentican mixin."""
 
+from functools import cached_property
+
 from rest_framework.authentication import (
     BasicAuthentication,
     SessionAuthentication,
@@ -18,14 +20,8 @@ class OPDSAuthMixin(AuthMixin):
         BearerTokenAuthentication,
         SessionAuthentication,
     )
-    # Class-level default doubles as the unmemoized sentinel so
-    # subclasses don't need to redeclare. Lazily resolved on first
-    # access via ``user_agent_name``.
-    _user_agent_client: str | None = None
 
-    @property
+    @cached_property
     def user_agent_name(self) -> str:
         """Memoize the user agent client name."""
-        if self._user_agent_client is None:
-            self._user_agent_client = get_user_agent_name(self.request)
-        return self._user_agent_client
+        return get_user_agent_name(self.request)

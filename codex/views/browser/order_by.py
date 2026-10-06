@@ -1,5 +1,6 @@
 """Base view for ordering the query."""
 
+from functools import cached_property
 from types import MappingProxyType
 
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
@@ -50,21 +51,18 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
     def __init__(self, *args, **kwargs) -> None:
         """Initialize memoized vars."""
         super().__init__(*args, **kwargs)
-        self._order_key: str = ""
         self._comic_sort_names: tuple[str, ...] = ()
 
-    @property
+    @cached_property
     def order_key(self) -> str:
         """Get the default order key for the view."""
-        if not self._order_key:
-            order_key: str = self.params["order_by"]
-            if (order_key == "search_score" and not self.fts_mode) or (
-                (order_key == "filename" and not self.admin_flags["folder_view"])
-                or (order_key == "child_count" and self.TARGET == "cover")
-            ):
-                order_key = "sort_name"
-            self._order_key = order_key
-        return self._order_key
+        order_key: str = self.params["order_by"]
+        if (order_key == "search_score" and not self.fts_mode) or (
+            (order_key == "filename" and not self.admin_flags["folder_view"])
+            or (order_key == "child_count" and self.TARGET == "cover")
+        ):
+            order_key = "sort_name"
+        return order_key
 
     def _normalize_comic_order_key(self, order_key: str, *, for_cover: bool) -> str:
         """Resolve a Comic-row ``order_key`` to its canonical sort form."""

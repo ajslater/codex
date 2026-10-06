@@ -17,18 +17,18 @@ from codex.choices.notifications import Notifications, WebsocketMessages
 # not in the map is forwarded as ``{type: "unknown", raw: "<str>"}`` so
 # the frontend can log it without crashing.
 NOTIFICATION_TYPE_MAP: Mapping[str, WebsocketMessages] = {
-    Notifications.ADMIN_FLAGS.value: WebsocketMessages.ADMIN_FLAGS_CHANGED,
-    Notifications.BOOKMARK.value: WebsocketMessages.BOOKMARK_CHANGED,
-    Notifications.COVERS.value: WebsocketMessages.COVERS_CHANGED,
-    Notifications.FAILED_IMPORTS.value: WebsocketMessages.FAILED_IMPORTS_CHANGED,
-    Notifications.GROUPS.value: WebsocketMessages.GROUPS_CHANGED,
-    Notifications.LIBRARY.value: WebsocketMessages.LIBRARY_CHANGED,
-    Notifications.LIBRARIAN_STATUS.value: WebsocketMessages.TASK_PROGRESS,
-    Notifications.ONLINE_TAG_PROMPT.value: WebsocketMessages.TAG_SESSION_PROMPT,
-    Notifications.ONLINE_TAG_SNAPSHOT.value: WebsocketMessages.TAG_SESSION_SNAPSHOT,
-    Notifications.PENDING_DELETES.value: WebsocketMessages.PENDING_DELETES_CHANGED,
-    Notifications.TAG_WRITE_ERRORS.value: WebsocketMessages.TAG_WRITE_ERRORS_CHANGED,
-    Notifications.USERS.value: WebsocketMessages.USERS_CHANGED,
+    Notifications.ADMIN_FLAGS: WebsocketMessages.ADMIN_FLAGS_CHANGED,
+    Notifications.BOOKMARK: WebsocketMessages.BOOKMARK_CHANGED,
+    Notifications.COVERS: WebsocketMessages.COVERS_CHANGED,
+    Notifications.FAILED_IMPORTS: WebsocketMessages.FAILED_IMPORTS_CHANGED,
+    Notifications.GROUPS: WebsocketMessages.GROUPS_CHANGED,
+    Notifications.LIBRARY: WebsocketMessages.LIBRARY_CHANGED,
+    Notifications.LIBRARIAN_STATUS: WebsocketMessages.TASK_PROGRESS,
+    Notifications.ONLINE_TAG_PROMPT: WebsocketMessages.TAG_SESSION_PROMPT,
+    Notifications.ONLINE_TAG_SNAPSHOT: WebsocketMessages.TAG_SESSION_SNAPSHOT,
+    Notifications.PENDING_DELETES: WebsocketMessages.PENDING_DELETES_CHANGED,
+    Notifications.TAG_WRITE_ERRORS: WebsocketMessages.TAG_WRITE_ERRORS_CHANGED,
+    Notifications.USERS: WebsocketMessages.USERS_CHANGED,
 }
 
 

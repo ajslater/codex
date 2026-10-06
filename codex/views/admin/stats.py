@@ -3,6 +3,7 @@
 import hashlib
 import json
 from copy import deepcopy
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any, Final
 
@@ -39,25 +40,18 @@ class AdminStatsView(AsyncAdminGenericAPIView):
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize properties."""
-        super().__init__(*args, **kwargs)
-        self._params: MappingProxyType[str, Any] | None = None
-
-    @property
+    @cached_property
     def params(self) -> MappingProxyType[str, Any]:
         """Parse and input params."""
-        if self._params is None:
-            data = self.request.GET
+        data = self.request.GET
 
-            input_serializer = self.input_serializer_class(data=data)
-            input_serializer.is_valid(raise_exception=True)
-            # ``validated_data`` is always a populated dict at this
-            # point (``is_valid(raise_exception=True)`` guarantees it),
-            # so a per-item guard checking the parent for emptiness was
-            # dead code. Wrap directly.
-            self._params = MappingProxyType(dict(input_serializer.validated_data))
-        return self._params
+        input_serializer = self.input_serializer_class(data=data)
+        input_serializer.is_valid(raise_exception=True)
+        # ``validated_data`` is always a populated dict at this
+        # point (``is_valid(raise_exception=True)`` guarantees it),
+        # so a per-item guard checking the parent for emptiness was
+        # dead code. Wrap directly.
+        return MappingProxyType(dict(input_serializer.validated_data))
 
     async def _aadd_api_key(self, obj) -> None:
         """Add the api key to the config object if specified."""

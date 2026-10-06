@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any, NoReturn, cast
 
@@ -30,44 +31,29 @@ class BrowserValidateView(SearchFilterView):
         {"name": "browser", "params": DEFAULT_BROWSER_ROUTE}
     )
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize properties."""
-        super().__init__(*args, **kwargs)
-        self._is_admin: bool | None = None
-        self._model_collection: str = ""
-        self._model: type[BrowserCollectionModel] | None = None
-        self._rel_prefix: str | None = None
-        self._valid_nav_collections: tuple[str, ...] | None = None
-
-    @property
+    @cached_property
     def model_collection(self) -> str:
         """Memoize the model collection."""
-        if not self._model_collection:
-            collection = self.kwargs["collection"]
-            if collection == ROOT_COLLECTION:
-                collection = self.params["top_collection"]
-            self._model_collection = collection
-        return self._model_collection
+        collection = self.kwargs["collection"]
+        if collection == ROOT_COLLECTION:
+            collection = self.params["top_collection"]
+        return collection
 
-    @property
+    @cached_property
     def model(self) -> type[BrowserCollectionModel] | None:
         """Memoize the model for the browse list."""
-        if not self._model:
-            model = COLLECTION_MODEL_MAP.get(self.model_collection)
-            if model is None:
-                collection = self.kwargs["collection"]
-                detail = f"Cannot browse {collection=}"
-                logger.debug(detail)
-                raise NotFound(detail=detail)
-            self._model = model
-        return self._model
+        model = COLLECTION_MODEL_MAP.get(self.model_collection)
+        if model is None:
+            collection = self.kwargs["collection"]
+            detail = f"Cannot browse {collection=}"
+            logger.debug(detail)
+            raise NotFound(detail=detail)
+        return model
 
-    @property
+    @cached_property
     def rel_prefix(self) -> str:
         """Memoize model rel prefix."""
-        if self._rel_prefix is None:
-            self._rel_prefix = self.get_rel_prefix(self.model)
-        return self._rel_prefix
+        return self.get_rel_prefix(self.model)
 
     def raise_redirect(
         self, reason, route_mask=None, settings_mask: Mapping | None = None
@@ -183,22 +169,18 @@ class BrowserValidateView(SearchFilterView):
         self._validate_top_collection(valid_top_collections)
         return valid_top_collections
 
-    @property
+    @cached_property
     def valid_nav_collections(self) -> tuple[str, ...]:
         """Memoize valid nav collections."""
-        if self._valid_nav_collections is None:
-            collection = self.kwargs["collection"]
-            validate_collection = (
-                self.params["top_collection"]
-                if collection == COMIC_COLLECTION
-                else collection
-            )
+        collection = self.kwargs["collection"]
+        validate_collection = (
+            self.params["top_collection"]
+            if collection == COMIC_COLLECTION
+            else collection
+        )
 
-            if validate_collection == FOLDER_COLLECTION:
-                vng = self._validate_folder_settings()
-            elif validate_collection == STORY_ARC_COLLECTION:
-                vng = self._validate_story_arc_settings()
-            else:
-                vng = self._validate_browser_collection_settings()
-            self._valid_nav_collections = vng
-        return self._valid_nav_collections
+        if validate_collection == FOLDER_COLLECTION:
+            return self._validate_folder_settings()
+        if validate_collection == STORY_ARC_COLLECTION:
+            return self._validate_story_arc_settings()
+        return self._validate_browser_collection_settings()

@@ -1,5 +1,6 @@
 """Bookmark view."""
 
+from functools import cached_property
 from types import MappingProxyType
 from typing import TYPE_CHECKING, override
 
@@ -77,14 +78,11 @@ class BookmarkView(BookmarkUpdateMixin, BookmarkAuthMixin, BrowserFilterView):
         self.update_bookmarks(auth_filter, comic_qs, updates)
         return Response()
 
-    @property
+    @cached_property
     @override
     def params(self):
         """Retrieve params but don't save them."""
-        if self._params is None:
-            params = self.load_params_from_settings()
-            self._params = MappingProxyType(params)
-        return self._params
+        return MappingProxyType(self.load_params_from_settings())
 
 
 class ComicBookmarkView(BookmarkView):

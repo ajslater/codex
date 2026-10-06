@@ -1,5 +1,6 @@
 """Views for browsing comic library."""
 
+from functools import cached_property
 from math import ceil, floor, log10
 from types import MappingProxyType
 from typing import override
@@ -89,31 +90,28 @@ class BrowserView(BrowserTitleView):
     # Init #
     ########
 
-    @property
+    @cached_property
     @override
     def model_collection(self):
         """Get the collection of the models to browse."""
         # the model collection shown must be:
         #   A valid nav collection or 'c'
         #   the child of the current nav collection or 'c'
-        if not self._model_collection:
-            collection = self.kwargs["collection"]
-            if collection == FOLDER_COLLECTION:
-                self._model_collection = collection
-            elif collection == STORY_ARC_COLLECTION:
-                pks = self.kwargs.get("pks")
-                self._model_collection = COMIC_COLLECTION if pks else collection
-            elif (
-                collection == self.valid_nav_collections[-1]
-                or collection == COMIC_COLLECTION
-            ):
-                # special case for lowest valid collection
-                self._model_collection = COMIC_COLLECTION
-            else:
-                self._model_collection = self.valid_nav_collections[
-                    self.valid_nav_collections.index(collection) + 1
-                ]
-        return self._model_collection
+        collection = self.kwargs["collection"]
+        if collection == FOLDER_COLLECTION:
+            return collection
+        if collection == STORY_ARC_COLLECTION:
+            pks = self.kwargs.get("pks")
+            return COMIC_COLLECTION if pks else collection
+        if (
+            collection == self.valid_nav_collections[-1]
+            or collection == COMIC_COLLECTION
+        ):
+            # special case for lowest valid collection
+            return COMIC_COLLECTION
+        return self.valid_nav_collections[
+            self.valid_nav_collections.index(collection) + 1
+        ]
 
     ################
     # MAIN QUERIES #

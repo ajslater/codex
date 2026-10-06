@@ -15,8 +15,3 @@ class OPDSBrowserView(OPDSBrowserSettingsMixin, UserActiveMixin, BrowserView):
 
     throttle_classes: Sequence[type[BaseThrottle]] = (ScopedRateThrottle,)
     throttle_scope = "opds"
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Add User Agent Name."""
-        super().__init__(*args, **kwargs)
-        self._user_agent_client = None
