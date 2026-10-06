@@ -15,7 +15,7 @@ from concurrent.futures import (
 from io import BytesIO
 from pathlib import Path
 from queue import Empty
-from time import time
+from time import perf_counter
 from typing import TYPE_CHECKING, override
 
 from comicbox.box import Comicbox
@@ -318,13 +318,13 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         """
         status = CreateCoversStatus(0, 0)
         try:
-            start_time = time()
+            start_time = perf_counter()
             self.status_controller.start(status)
             self._render_covers_into_status(pks, custom=custom, status=status)
             desc = self.get_cover_desc(custom=custom)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
-            elapsed = naturaldelta(time() - start_time)
+            elapsed = naturaldelta(perf_counter() - start_time)
             self.log.log(level, f"Created {count} {desc} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)
@@ -419,12 +419,12 @@ class CoverCreateThread(QueuedThread, CoverPathMixin, ABC):
         interruptor: LibrarianTask | None = None
         status = CreateCoversStatus(0, 0)
         try:
-            start_time = time()
+            start_time = perf_counter()
             self.status_controller.start(status)
             interruptor = self._drain_burst_loop(pending, status)
             count = status.complete or 0
             level = "INFO" if count else "DEBUG"
-            elapsed = naturaldelta(time() - start_time)
+            elapsed = naturaldelta(perf_counter() - start_time)
             self.log.log(level, f"Created {count} covers in {elapsed}.")
         finally:
             self.status_controller.finish(status)

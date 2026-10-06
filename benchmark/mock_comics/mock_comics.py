@@ -314,11 +314,11 @@ def main(args):
         print(f"{args[0]} <path> <num_comics>")
         sys.exit(1)
 
-    since = time.time()
+    since = time.monotonic()
     index = 0
     for index in range(num_comics):
         create_file(root, index)
-        now = time.time()
+        now = time.monotonic()
         if now - since > STATUS_DELAY:
             print(f"{index + 1}/{num_comics}")
             since = now

@@ -311,7 +311,7 @@ def run(out_path: Path) -> int:
     for flow in flows:
         _reset_user_settings(client)
         sample = _capture(client, flow["url"])
-        results.append({**flow, **sample})
+        results.append(flow | sample)
 
     artifact = {
         "series_pk_used": series_pk,

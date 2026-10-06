@@ -134,4 +134,4 @@ class Identifier(BaseModel):
     @override
     def __repr__(self) -> str:
         """Represent as a string."""
-        return self.name + ":" + self.url
+        return f"{self.name}:{self.url}"

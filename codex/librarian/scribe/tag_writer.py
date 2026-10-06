@@ -284,7 +284,7 @@ class TagWriter(WorkerStatusAbortableBase):
             return
 
         renamed_paths = self._rename_first(task, comic_paths, lib_of)
-        current_paths = {**comic_paths, **renamed_paths}
+        current_paths = comic_paths | renamed_paths
 
         written_paths = self._write(task, current_paths)
         converted_paths = self._sync_conversions(
