@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import shutil
+import sqlite3
 from typing import Final, override
+from unittest.mock import patch
 
+import pytest
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 
 from codex.models.admin import AdminFlag, Timestamp
 from codex.models.settings import SettingsBrowser, SettingsBrowserShow
-from codex.user_data.dump import dump_user_data
+from codex.user_data.dump import _clear_sidecar, dump_user_data
 from codex.user_data.store import SidecarStore, reset_store_for_tests
 from tests.tmp_dirs import tmp_dir
 
@@ -52,6 +55,29 @@ class DumpUserDataTests(TestCase):
         assert "alice" in usernames
         group_names = {r["name"] for r in self.store.fetchall("groups")}
         assert "editors" in group_names
+
+    def test_clear_sidecar_is_one_transaction(self) -> None:
+        """
+        A truncate that fails part-way leaves every table untouched.
+
+        The sidecar connection runs in autocommit mode, where ``with
+        conn:`` never issues ``BEGIN``, so each ``DELETE`` used to commit
+        on its own and a failure stranded a half-cleared sidecar.
+        """
+        self.store.upsert("users", ("username",), {"username": "alice"})
+        self.store.upsert("groups", ("name",), {"name": "editors"})
+
+        with (
+            patch(
+                "codex.user_data.dump._TRACKED_TABLES",
+                ("users", "groups", "no_such_table"),
+            ),
+            pytest.raises(sqlite3.OperationalError, match="no such table"),
+        ):
+            _clear_sidecar(self.store)
+
+        assert [r["username"] for r in self.store.fetchall("users")] == ["alice"]
+        assert [r["name"] for r in self.store.fetchall("groups")] == ["editors"]
 
     def test_dump_clears_stale_rows(self) -> None:
         """A second dump removes rows that no longer exist in the main DB."""

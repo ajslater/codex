@@ -16,13 +16,15 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
 from loguru import logger
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Generator, Iterable, Mapping
+    from contextlib import AbstractContextManager
 
 SCHEMA_VERSION: Final[int] = 1
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
@@ -55,6 +57,26 @@ def _add_column_clause(column: sqlite3.Row) -> str:
     if column["dflt_value"] is not None:
         clause += f" DEFAULT {column['dflt_value']}"
     return clause
+
+
+@contextmanager
+def _transaction(conn: sqlite3.Connection) -> Generator[sqlite3.Connection]:
+    """
+    Run the block as one explicit transaction on an autocommit connection.
+
+    An ``autocommit=True`` connection never opens a transaction on its
+    own and its ``with conn:`` context manager does nothing, so issue
+    BEGIN / COMMIT / ROLLBACK directly. SQLite already rolls back on some
+    errors (e.g. SQLITE_FULL), hence the ``in_transaction`` check.
+    """
+    conn.execute("BEGIN")
+    try:
+        yield conn
+        conn.execute("COMMIT")
+    except BaseException:
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
+        raise
 
 
 class SidecarStore:
@@ -93,11 +115,15 @@ class SidecarStore:
         else:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             database = self._path
-        # ``isolation_level=None`` puts sqlite3 into autocommit mode so
-        # we manage transactions explicitly via ``with conn:`` blocks.
+        # ``autocommit=True``: every statement commits on its own and
+        # sqlite3 never opens a transaction implicitly; multi-statement
+        # writes that must be atomic use ``transaction()``. Not
+        # ``autocommit=False``: this long-lived, thread-local connection
+        # also reads outside any block, and a permanently open
+        # transaction would pin a WAL snapshot.
         conn = sqlite3.connect(
             database,
-            isolation_level=None,
+            autocommit=True,
             timeout=5.0,
             check_same_thread=True,
         )
@@ -147,7 +173,8 @@ class SidecarStore:
             if self._schema_applied:
                 return
             ddl = _SCHEMA_PATH.read_text(encoding="utf-8")
-            with conn:
+            # Not ``self.transaction()``: it would re-enter ``_schema_lock``.
+            with _transaction(conn):
                 conn.executescript(ddl)
                 if not self._is_memory:
                     self._reconcile_columns(conn, ddl)
@@ -165,6 +192,10 @@ class SidecarStore:
             self._local.conn = conn
         self._ensure_schema(conn)
         return conn
+
+    def transaction(self) -> AbstractContextManager[sqlite3.Connection]:
+        """Run a ``with`` block as one transaction on this thread's connection."""
+        return _transaction(self.connection())
 
     def close(self) -> None:
         """Close the current thread's connection if open."""
@@ -209,9 +240,7 @@ class SidecarStore:
         sql = (
             f"INSERT INTO {table} ({col_list}) VALUES ({placeholders}){conflict_clause}"  # noqa: S608
         )
-        conn = self.connection()
-        with conn:
-            conn.execute(sql, tuple(data[c] for c in columns))
+        self.connection().execute(sql, tuple(data[c] for c in columns))
 
     def delete(self, table: str, where: Mapping[str, Any]) -> None:
         """Delete rows from ``table`` matching every column in ``where``."""
@@ -221,9 +250,7 @@ class SidecarStore:
         clause = " AND ".join(f"{c}=?" for c in where)
         # Table/column names are sidecar-schema-owned; values are bound.
         sql = f"DELETE FROM {table} WHERE {clause}"  # noqa: S608
-        conn = self.connection()
-        with conn:
-            conn.execute(sql, tuple(where.values()))
+        self.connection().execute(sql, tuple(where.values()))
 
     def fetchall(
         self,
