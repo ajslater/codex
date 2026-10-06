@@ -21,13 +21,19 @@ from codex.models.util import parse_issue_parts
 from codex.settings import FALSY
 
 _QUOTES_RE = re.compile(r"[\"']")
-_OP_MAP = MappingProxyType({">": "gt", ">=": "gte", "<": "lt", "<=": "lte"})
+# Order matters: matched by ``startswith`` in order, so the two-character
+# operators go first or ``>=5`` would parse as ``>`` with the value ``=5``.
+_OP_MAP = MappingProxyType({">=": "gte", "<=": "lte", ">": "gt", "<": "lt"})
 _RANGE_RE = re.compile(r"\.{2,}")
 _LIKE_QUERY_VALUE = re.compile(r"\S\*+\S")
 _ICONTAINS_QUERY_VALUE = re.compile(r"^(\*.*\*|[^*].*[^*]|^\**$)$")
 _IENDSWITH_QEURY_VALUE = re.compile(r"^\*")
 _ISTARTSWITH_QEURY_VALUE = re.compile(r"\*$")
-_SIZE_UNITS = {"b": 1, "kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4}
+# Order matters: matched by ``endswith`` in order, so the bare ``b`` goes
+# last or it would claim every ``kb``/``mb``/``gb``/``tb`` value.
+_SIZE_UNITS = MappingProxyType(
+    {"kb": 1024, "mb": 1024**2, "gb": 1024**3, "tb": 1024**4, "b": 1}
+)
 _DB_OPS = BaseDatabaseOperations(None)  # only uses prep_for_like_query — no connection
 
 
@@ -138,7 +144,7 @@ def _parse_operator(operator, rel, rel_class, exp) -> dict:
     """Move value operator out of value into relation operator."""
     lookup = _OP_MAP[operator]
     span_rel = f"{rel}__{lookup}" if operator else rel
-    value = exp[len(operator) :]
+    value = exp.removeprefix(operator)
     if rel == "issue":
         return _parse_issue_values(span_rel, value)
     return _parse_operator_numeric(span_rel, rel_class, value)
