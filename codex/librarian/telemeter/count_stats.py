@@ -26,7 +26,6 @@ OTHER_IDENTIFIER_SOURCE: Final = "other"
 # comicbox's closed source vocabulary. A source name read from a comic file
 # that isn't in here is collapsed to "other" before it leaves the process.
 IDENTIFIER_SOURCES: Final = frozenset(source.value for source in ID_SOURCE_NAME_MAP)
-_ID_TYPES: Final = frozenset(member.value for member in IdentifierType)
 
 # Comic columns whose signal is "how many comics have this filled in".
 _COMIC_POPULATED_FIELDS: Final = MappingProxyType(
@@ -156,7 +155,7 @@ def _identifier_bucket_key(source: str | None, id_type: str | None) -> str:
     name = (source or "").lower()
     if name not in IDENTIFIER_SOURCES:
         name = OTHER_IDENTIFIER_SOURCE
-    kind = id_type if id_type in _ID_TYPES else OTHER_IDENTIFIER_SOURCE
+    kind = id_type if id_type in IdentifierType else OTHER_IDENTIFIER_SOURCE
     return f"{name}:{kind}"
 
 

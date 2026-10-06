@@ -1,11 +1,14 @@
 """Utility classes by many views."""
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import wraps
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from django.utils.cache import patch_cache_control
+
+if TYPE_CHECKING:
+    from django.http.response import HttpResponseBase
 
 
 def cache_control_2xx(**kwargs):
@@ -25,10 +28,10 @@ def cache_control_2xx(**kwargs):
     already set (typically uncached).
     """
 
-    def _wrap(viewfunc):
+    def _wrap[**P, R: HttpResponseBase](viewfunc: Callable[P, R]) -> Callable[P, R]:
         @wraps(viewfunc)
-        def _wrapped(request, *args, **kw):
-            response = viewfunc(request, *args, **kw)
+        def _wrapped(*args: P.args, **kw: P.kwargs) -> R:
+            response = viewfunc(*args, **kw)
             status = getattr(response, "status_code", 0)
             if 200 <= status < 300:  # noqa: PLR2004
                 patch_cache_control(response, **kwargs)

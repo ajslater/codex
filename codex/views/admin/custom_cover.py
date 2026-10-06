@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from django.db.models import Model
 
 _ALLOWED_EXTS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"})
-_COLLECTION_CHOICES = frozenset(c.value for c in CustomCover.CollectionChoices)
 _MODEL_BY_COLLECTION: dict[str, type[Model]] = {
     collection: model for model, collection in CLASS_CUSTOM_COVER_COLLECTION_MAP.items()
 }
@@ -169,7 +168,7 @@ class AdminCustomCoverUploadView(AdminAPIView):
     def post(self, request, *_args, **_kwargs) -> Response:
         """Accept a multipart upload and link it to ``pks`` of ``collection``."""
         collection = request.data.get("collection", "")
-        if collection not in _COLLECTION_CHOICES:
+        if collection not in CustomCover.CollectionChoices:
             msg = f"Invalid collection {collection!r}"
             raise ValidationError(msg)
         pks = _parse_pks(request.data.get("pks", ""))
@@ -232,7 +231,7 @@ class AdminCustomCoverRemoveView(AdminAPIView):
     def post(self, request, *_args, **_kwargs) -> Response:
         """Unlink the custom cover from each given collection pk."""
         collection = request.data.get("collection", "")
-        if collection not in _COLLECTION_CHOICES:
+        if collection not in CustomCover.CollectionChoices:
             msg = f"Invalid collection {collection!r}"
             raise ValidationError(msg)
         pks = _parse_pks(str(request.data.get("pks", "")))

@@ -193,7 +193,7 @@ class InitImporter(WorkerStatusBase):
             return Q()
         return Q(library=self.library)
 
-    def timed_step(self, name: str, method: Callable[[], Any]) -> Any:
+    def timed_step[T](self, name: str, method: Callable[[], T]) -> T:
         """Run a method, accumulating its wall time into phase_times."""
         start = perf_counter()
         result = method()

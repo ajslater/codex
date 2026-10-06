@@ -133,7 +133,7 @@ def oidc_enabled(row: OIDCSettings | None = None) -> bool:
     return bool(row and row.enabled and row.server_url and row.client_id)
 
 
-def _coalesce(db_value: Any, settings_value: Any) -> Any:
+def _coalesce[T](db_value: T | None, settings_value: T) -> T:
     """Prefer ``db_value`` when truthy; otherwise fall back to ``settings_value``."""
     return db_value or settings_value
 

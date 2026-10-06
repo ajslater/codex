@@ -18,7 +18,7 @@ import sqlite3
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Self
 
 from loguru import logger
 
@@ -96,7 +96,7 @@ class SidecarStore:
         self._schema_applied = False
 
     @classmethod
-    def in_memory(cls) -> SidecarStore:
+    def in_memory(cls) -> Self:
         """Build an ephemeral in-memory store (used to stage a dump snapshot)."""
         return cls(Path(":memory:"))
 

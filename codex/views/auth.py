@@ -36,7 +36,7 @@ spellings, so they cannot drift apart.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Self, override
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -454,7 +454,7 @@ class ComicACL:
     default_fits: bool
 
     @classmethod
-    def for_user(cls, user) -> "ComicACL":
+    def for_user(cls, user) -> Self:
         """
         One-shot form: resolve every scalar from scratch for ``user``.
 
