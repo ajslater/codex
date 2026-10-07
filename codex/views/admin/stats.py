@@ -36,7 +36,10 @@ _CACHE_KEY_PREFIX: Final = "admin-stats:"
 class AdminStatsView(AsyncAdminGenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes = (HasAPIKeyOrIsAdminUser,)
+    # DRF's stubs declare this an instance variable and AdminAuthMixin a
+    # ClassVar; no annotation satisfies both checkers from a class that
+    # inherits the two, so the override says which rule it is waiving.
+    permission_classes = (HasAPIKeyOrIsAdminUser,)  # ty: ignore[invalid-attribute-override]
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 

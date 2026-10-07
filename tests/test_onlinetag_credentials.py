@@ -22,6 +22,9 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
         legacy = manager._build_credentials()  # noqa: SLF001
         assert legacy is not None
         assert legacy.metron_user == "u"
+        # None, not "": mokkari sends a Bearer header for any token that is
+        # not None, which would replace the username and password.
+        assert legacy.metron_key is None
         assert manager._source_has_credentials(legacy, "metron") is True  # noqa: SLF001
 
         ComicboxTaggingDefaults.objects.update_or_create(
@@ -31,6 +34,7 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
         keyed = manager._build_credentials()  # noqa: SLF001
         assert keyed is not None
         assert keyed.metron_key == "t"
+        assert keyed.metron_user is None
         assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
 
     def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:

@@ -80,7 +80,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
         assert cover.collection == "publishers"
-        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
+        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
         # Naming convention: ``{collection}-{pk}-{slug}.{ext}``. Sortable by
         # collection on disk and trivially scannable for a given linked

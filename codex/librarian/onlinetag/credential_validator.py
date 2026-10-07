@@ -1,38 +1,51 @@
 """
-Validate online-source credentials by making a tiny authenticated call.
+Validate online-source credentials with comicbox's own probe.
 
 Used by the admin tagging settings page to give operators an immediate
 yes/no on whether a saved (or in-the-form) credential set actually
 works against Metron / Comic Vine — so they don't discover problems
 only when a real tagging run fails halfway through.
 
+Each source's ``probe()`` is its cheapest authenticated request, sent
+once on a private client with no response cache and never retried, so
+the verdict is the server's rather than a cached or pooled answer.
+Metron's goes through comicbox's process-wide rate gate; Comic Vine's
+is counted against the real shared rate-limit bucket under codex's
+comicbox cache dir — the one tagging runs draw on — and is refused
+outright when that pool is already spent.
+
 A successful Metron check also reports the account's live rate limits,
-which mokkari 4 reads off the ``X-RateLimit-*`` headers of the
-validation response itself. The daily "sustained" limit varies by
-Metron OpenCollective donor tier (5,000-25,000/day), so it is only
-discoverable this way.
+which the probe reads off the ``X-RateLimit-*`` headers of its own
+response. The daily "sustained" limit varies by Metron OpenCollective
+donor tier (5,000-25,000/day), so it is only discoverable this way.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final
 
+from comicbox.config.online.settings import OnlineSourceCredentials
 from comicbox.formats.base.online import SOURCE_NAMES
+from comicbox.formats.base.online.retry import RetryCategory
+from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
+from comicbox.formats.metron_api.online_source import MetronOnlineSource
+
+from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
-    from collections.abc import Collection
+    from collections.abc import Callable, Collection, Mapping
 
+    from comicbox.formats.base.online.sources.base import OnlineSource
     from comicbox.online_session import OnlineCredentials
-    from mokkari.session import RateLimitStatus
 
 # comicbox owns the canonical online-tag source names (metron, comicvine); derive
 # from it so codex tracks a new source instead of hand-syncing a literal.
 KNOWN_SOURCES: frozenset[str] = frozenset(SOURCE_NAMES)
 
-_COMICVINE_TIMEOUT_SECS: float = 10.0
+#: What a probe returns: ``{window: {"limit", "remaining", "reset_epoch"}}``.
+type _Windows = Mapping[str, Mapping[str, Any]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,11 +59,12 @@ class RateLimitWindowInfo:
 @dataclass(frozen=True, slots=True)
 class RateLimitInfo:
     """
-    A source account's live rate limits, mirrored from mokkari's status.
+    A source account's live rate limits, mirrored from the probe's windows.
 
-    ``reset`` datetimes are deliberately dropped: the burst window resets
-    within a minute (stale before an admin reads it) and the sustained
-    reset isn't worth datetime plumbing for a one-shot validation chip.
+    ``reset_epoch`` values are deliberately dropped: the burst window
+    resets within a minute (stale before an admin reads it) and the
+    sustained reset isn't worth datetime plumbing for a one-shot
+    validation chip.
     """
 
     burst: RateLimitWindowInfo = RateLimitWindowInfo()
@@ -66,104 +80,91 @@ class ValidationResult:
     rate_limits: RateLimitInfo | None = None
 
 
-def _extract_rate_limits(status: RateLimitStatus) -> RateLimitInfo | None:
-    """Codex-shaped rate limits, or None when the source reported nothing."""
-    burst = status.burst
-    sustained = status.sustained
-    if (
-        burst.limit is None
-        and burst.remaining is None
-        and sustained.limit is None
-        and sustained.remaining is None
-    ):
-        return None
-    return RateLimitInfo(
-        burst=RateLimitWindowInfo(limit=burst.limit, remaining=burst.remaining),
-        sustained=RateLimitWindowInfo(
-            limit=sustained.limit, remaining=sustained.remaining
-        ),
-    )
-
-
-def _validate_metron(creds: OnlineCredentials) -> ValidationResult:
-    if not (creds.metron_key or (creds.metron_user and creds.metron_password)):
-        return ValidationResult(ok=False, error="API key required.")
-    from mokkari.exceptions import ApiError, AuthenticationError
-    from mokkari.session import Session
-
+def _metron_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:
     # ``or None`` is load bearing: mokkari sends a Bearer header whenever
     # api_token is not None, so an empty string would defeat the legacy
     # username & password fallback.
-    session = Session(
-        username=creds.metron_user,
-        passwd=creds.metron_password,
-        api_token=creds.metron_key or None,
-        cache=None,
-        user_agent="codex-credential-check",
+    return OnlineSourceCredentials(
+        key=creds.metron_key or None,
+        user=creds.metron_user or None,
+        password=creds.metron_password or None,
     )
-    try:
-        session.publishers_list({"page": 1})
-    except AuthenticationError as err:
-        return ValidationResult(ok=False, error=str(err) or "Authentication failed.")
-    except ApiError as err:
-        return ValidationResult(ok=False, error=str(err) or "API error.")
-    # The successful response carried the account's X-RateLimit-* headers.
-    else:
-        return ValidationResult(
-            ok=True, rate_limits=_extract_rate_limits(session.rate_limit_status)
-        )
-    finally:
-        # This runs in the web process, once per validation, and the
-        # session is not shared with anything. Since mokkari 4.8.0 it
-        # holds a pooled TLS connection until closed.
-        session.close()
 
 
-def _validate_comicvine(creds: OnlineCredentials) -> ValidationResult:
-    if not creds.comicvine_key:
+def _comicvine_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:
+    return OnlineSourceCredentials(
+        key=creds.comicvine_key or None, url=creds.comicvine_url or None
+    )
+
+
+def _window_info(window: Mapping[str, Any] | None) -> RateLimitWindowInfo:
+    if not window:
+        return RateLimitWindowInfo()
+    return RateLimitWindowInfo(
+        limit=window.get("limit"), remaining=window.get("remaining")
+    )
+
+
+def _metron_rate_limits(windows: _Windows) -> RateLimitInfo | None:
+    """Codex-shaped rate limits, or None when the response carried no headers."""
+    info = RateLimitInfo(
+        burst=_window_info(windows.get("burst")),
+        sustained=_window_info(windows.get("daily")),
+    )
+    return None if info == RateLimitInfo() else info
+
+
+def _no_rate_limits(_windows: _Windows) -> None:
+    """Comic Vine's pools are hourly; the UI chip speaks per-minute / per-day."""
+
+
+@dataclass(frozen=True, slots=True)
+class _Source:
+    """How codex drives one comicbox online source for a credential check."""
+
+    cls: type[OnlineSource]
+    credentials: Callable[[OnlineCredentials], OnlineSourceCredentials]
+    rate_limits: Callable[[_Windows], RateLimitInfo | None]
+
+
+_SOURCES: Final[Mapping[str, _Source]] = MappingProxyType(
+    {
+        "metron": _Source(MetronOnlineSource, _metron_credentials, _metron_rate_limits),
+        "comicvine": _Source(
+            ComicVineOnlineSource, _comicvine_credentials, _no_rate_limits
+        ),
+    }
+)
+
+# Shown when the client's exception carries no message of its own.
+_FALLBACK_ERRORS: Final[Mapping[RetryCategory | None, str]] = MappingProxyType(
+    {
+        RetryCategory.AUTH: "Authentication failed.",
+        RetryCategory.RATE_LIMIT: "Rate limited.",
+    }
+)
+
+
+def _error_message(source: OnlineSource, exc: Exception) -> str:
+    """Name what went wrong: the exception's first line, else its category."""
+    # simyan raises ``RateLimitError(None)`` for a 429 with no error body,
+    # and str() of that is the word "None". Some upstream errors carry a
+    # whole HTML page, of which only the first line is the message.
+    text = str(exc) if exc.args and exc.args[0] is not None else ""
+    first_line = text.partition("\n")[0].strip()
+    category = source.classify_retry_exception(exc)
+    return first_line or _FALLBACK_ERRORS.get(category, type(exc).__name__)
+
+
+def _validate(spec: _Source, creds: OnlineCredentials) -> ValidationResult:
+    source = spec.cls(spec.credentials(creds), COMICBOX_ONLINE_CONFIG.online)
+    if not source.is_configured():
         return ValidationResult(ok=False, error="API key required.")
-    from requests_cache import DO_NOT_CACHE
-    from simyan.comicvine import Comicvine
-    from simyan.errors import AuthenticationError, ServiceError
-
-    # A credential check must always hit the network — api_key is
-    # excluded from simyan's cache key, so a cached response would
-    # validate any key — so responses are never cached (DO_NOT_CACHE)
-    # and both sqlite files land in a throwaway dir.
-    #
-    # The AuthenticationError below only started firing with simyan 4:
-    # 3.x returned Comic Vine's error body verbatim, so a rejected key
-    # came back as an ordinary empty result and validated as good.
-    with TemporaryDirectory(prefix="codex-credential-check-") as tmp:
-        tmp_path = Path(tmp)
-        # dict[str, Any] expansion because DO_NOT_CACHE is an int sentinel
-        # that simyan's timedelta-typed cache_expiry accepts at runtime.
-        kwargs: dict[str, Any] = {
-            "api_key": creds.comicvine_key,
-            "user_agent": "codex-credential-check",
-            "timeout": _COMICVINE_TIMEOUT_SECS,
-            "cache_path": tmp_path / "cache.sqlite",
-            "cache_expiry": DO_NOT_CACHE,
-            "ratelimit_path": tmp_path / "ratelimits.sqlite",
-        }
-        if creds.comicvine_url:
-            kwargs["base_url"] = creds.comicvine_url
-        cv = Comicvine(**kwargs)
-        try:
-            cv.list_publishers(params={"limit": "1"}, max_results=1)
-        except AuthenticationError as err:
-            return ValidationResult(
-                ok=False, error=str(err) or "Authentication failed."
-            )
-        except ServiceError as err:
-            return ValidationResult(ok=False, error=str(err) or "Service error.")
-    return ValidationResult(ok=True)
-
-
-_VALIDATORS = {
-    "metron": _validate_metron,
-    "comicvine": _validate_comicvine,
-}
+    try:
+        windows = source.probe()
+    except Exception as exc:
+        return ValidationResult(ok=False, error=_error_message(source, exc))
+    return ValidationResult(ok=True, rate_limits=spec.rate_limits(windows or {}))
 
 
 def validate_credentials(
@@ -177,4 +178,4 @@ def validate_credentials(
     constrained the inputs.
     """
     targets = KNOWN_SOURCES if sources is None else (set(sources) & KNOWN_SOURCES)
-    return {name: _VALIDATORS[name](creds) for name in sorted(targets)}
+    return {name: _validate(_SOURCES[name], creds) for name in sorted(targets)}

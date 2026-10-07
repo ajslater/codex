@@ -38,7 +38,9 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
         )
         rels = MODEL_REL_MAP[model]
         select_related = MODEL_SELECT_RELATED.get(model, ())
-        fields = tuple(filter(bool, flatten(rels)))
+        # A comprehension, not filter(bool, ...): bool's signature widens the
+        # element type to object, which values_list refuses.
+        fields = tuple(field for field in flatten(rels) if field)
         qs = model.objects
         qs = qs.select_related(*select_related)
         qs = qs.filter(fk_filter).distinct().values_list(*fields)

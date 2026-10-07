@@ -8,6 +8,7 @@ from loguru import logger
 from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
+from codex.doctor import log_doctor_problems
 from codex.librarian.status_controller import STATUS_DEFAULTS
 from codex.models import (
     AdminFlag,
@@ -257,4 +258,5 @@ def codex_init() -> bool:
     if AUTH_REMOTE_USER:
         logger.info("Remote User authorization enabled.")
     log_docker_hub_deprecation(logger)
+    log_doctor_problems(logger)
     return True

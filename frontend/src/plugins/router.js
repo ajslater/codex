@@ -19,6 +19,7 @@ const AdminCustomCoversTab = () =>
 const AdminJobsTab = () => import("@/components/admin/tabs/job-tab.vue");
 const AdminRestoreTab = () => import("@/components/admin/tabs/restore-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
+const AdminDoctorTab = () => import("@/components/admin/tabs/doctor-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
 const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
 const AdminAuthTab = () => import("@/components/admin/tabs/auth-tab.vue");
@@ -93,6 +94,7 @@ const routes = [
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },
       { name: "admin-stats", path: "stats", component: AdminStatsTab },
       { name: "admin-restore", path: "restore", component: AdminRestoreTab },
+      { name: "admin-doctor", path: "doctor", component: AdminDoctorTab },
     ],
   },
   {

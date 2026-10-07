@@ -226,7 +226,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
                 **direct_kwargs,
             )
             # Clone filters
-            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue]
+            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             new_filters = SettingsBrowserFilters(browser=new_sb)
             for key in SettingsBrowserFilters.FILTER_KEYS:
                 val = getattr(src_filters, key)
@@ -236,7 +236,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
             new_filters.save()
 
             # Clone last_route
-            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue]
+            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             SettingsBrowserLastRoute.objects.create(
                 browser=new_sb,
                 collection=src_route.collection,
@@ -286,7 +286,7 @@ class SavedBrowserSettingsLoadView(SettingsBaseView):
         data = self.browser_instance_to_dict(saved)
 
         # Validate filter PKs, persist cleaned data, and collect warnings.
-        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue]
+        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         filter_warnings = _validate_filter_pks(data.get("filters", {}), filters_obj)
 
         result = {

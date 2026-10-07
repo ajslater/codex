@@ -152,7 +152,8 @@ apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev sq
 
 ##### Install unrar Runtime Dependency on non-debian Linux
 
-Codex requires unrar to read CBR formatted comic archives. Unrar is often not
+Codex requires [RARLAB's unrar](https://www.rarlab.com) to read CBR comic
+archives; the bsdtar and 7-Zip fallbacks cannot extract them. Unrar is often not
 packaged for Linux, but here are some instructions:
 [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
@@ -1104,6 +1105,28 @@ codex like:
 
 ```sh
 LOGLEVEL=DEBUG codex
+```
+
+### 🩺 Doctor
+
+The Admin panel's Doctor tab reports whether this install can read each comic
+archive format, has the image codecs cover matching needs, whether comicbox's
+config and package versions are in order, and whether the database, config
+directory, library folders, filesystem watcher and stored credentials are
+usable, with a fix for each problem. Codex logs the problems when it starts,
+too.
+
+The same report runs from the command line, which helps when Codex will not
+start. In Codex's Python environment:
+
+```sh
+comicbox doctor
+```
+
+In Docker:
+
+```sh
+docker exec codex comicbox doctor
 ```
 
 ### Watching Filesystem Events with Docker

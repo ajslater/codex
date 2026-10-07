@@ -77,7 +77,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             .order_by("source_name", "key")
         )
         return ",".join(
-            f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue]
+            f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             for identifier in identifiers
         )
 
