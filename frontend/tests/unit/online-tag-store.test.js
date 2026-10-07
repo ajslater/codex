@@ -16,7 +16,7 @@ vi.mock("@/api/v4/base", () => ({
 }));
 
 import { HTTP } from "@/api/v4/base";
-import { useOnlineTagStore } from "@/stores/online-tag";
+import { pendingTitle, useOnlineTagStore } from "@/stores/online-tag";
 
 const fps = (store) => store.pendingPrompts.map((p) => p.fingerprint);
 const promptsResponse = (...fingerprints) => ({
@@ -40,13 +40,13 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
     // Backend lagging: still returns the resolved prompt.
     HTTP.get.mockResolvedValue(promptsResponse("a", "b"));
-    await store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts();
     expect(fps(store)).toEqual(["b"]); // "a" stays suppressed
     expect(store.recentlyResolved).toEqual(["a"]); // still echoed → kept
 
     // Backend catches up and drops it.
     HTTP.get.mockResolvedValue(promptsResponse("b"));
-    await store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts();
     expect(fps(store)).toEqual(["b"]);
     expect(store.recentlyResolved).toEqual([]); // gone → forgotten
   });
@@ -59,7 +59,7 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
     // The match drifted; the daemon re-queued a fresh prompt as "a2".
     HTTP.get.mockResolvedValue(promptsResponse("a2"));
-    await store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts();
     expect(fps(store)).toEqual(["a2"]);
   });
 
@@ -76,7 +76,7 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 
     // A lagging echo of both is fully suppressed.
     HTTP.get.mockResolvedValue(promptsResponse("x", "y"));
-    await store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts();
     expect(fps(store)).toEqual([]);
   });
 
@@ -189,6 +189,19 @@ describe("useOnlineTagStore — resolution reconciliation", () => {
 });
 
 describe("useOnlineTagStore — the review dialog's lifecycle", () => {
+  // Opening it on every deferral interrupted browsing in every admin tab; a
+  // Review button opens it instead.
+  it("never opens the dialog on its own when prompts arrive", async () => {
+    const store = useOnlineTagStore();
+    HTTP.get.mockResolvedValue(promptsResponse("a", "b"));
+
+    // A deferral's socket notification: the path that used to open it.
+    store.onPromptNotification();
+    await vi.waitFor(() => expect(fps(store)).toEqual(["a", "b"]));
+
+    expect(store.promptDialogOpen).toBe(false);
+  });
+
   it("closes the dialog when the queue empties behind its back", async () => {
     const store = useOnlineTagStore();
     store.pendingPrompts = [{ fingerprint: "a" }];
@@ -196,7 +209,7 @@ describe("useOnlineTagStore — the review dialog's lifecycle", () => {
 
     // Another tab answered the last one, or the daemon resolved it.
     HTTP.get.mockResolvedValue(promptsResponse());
-    await store.loadPrompts({ autoOpen: false });
+    await store.loadPrompts();
 
     expect(fps(store)).toEqual([]);
     expect(store.promptDialogOpen).toBe(false);
@@ -212,8 +225,8 @@ describe("useOnlineTagStore — the review dialog's lifecycle", () => {
     );
     HTTP.get.mockResolvedValueOnce(promptsResponse("fresh"));
 
-    const first = store.loadPrompts({ autoOpen: false });
-    await store.loadPrompts({ autoOpen: false });
+    const first = store.loadPrompts();
+    await store.loadPrompts();
     releaseFirst();
     await first;
 
@@ -328,5 +341,37 @@ describe("useOnlineTagStore — loadSnapshot", () => {
     HTTP.get.mockResolvedValue({ data: { snapshot: { comics: [] } } });
     await store.loadSnapshot();
     expect(HTTP.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useOnlineTagStore — pending comic count", () => {
+  it("counts comics, not questions", () => {
+    const store = useOnlineTagStore();
+    store.pendingPrompts = [
+      { fingerprint: "a", pk: 1, comics: [{ pk: 1 }, { pk: 2 }, { pk: 3 }] },
+      // Names no comic at all; still one thing to look at.
+      { fingerprint: "b" },
+    ];
+
+    expect(store.pendingComicCount).toBe(4);
+  });
+
+  it("is zero for an empty queue", () => {
+    expect(useOnlineTagStore().pendingComicCount).toBe(0);
+  });
+});
+
+describe("pendingTitle", () => {
+  it("leaves the title alone with nothing to review", () => {
+    expect(pendingTitle(0, "Browse / Series")).toBe("Browse / Series");
+  });
+
+  it("prefixes the count", () => {
+    expect(pendingTitle(3, "Admin / Tagging")).toBe("(3) Admin / Tagging");
+  });
+
+  it("has nothing to prefix without a title", () => {
+    expect(pendingTitle(3, "")).toBe("");
+    expect(pendingTitle(3)).toBeUndefined();
   });
 });

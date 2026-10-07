@@ -4,6 +4,7 @@
     <v-toolbar id="titleBar" flat density="compact">
       <span id="buttonSpacer" />
       <v-toolbar-title id="adminTitle"> Codex Administration </v-toolbar-title>
+      <OnlineTagReviewButton />
       <SettingsDrawerButton
         :key="mdAndDown"
         class="adminSettingsButton"
@@ -28,12 +29,14 @@ import { mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
 import AppBanner from "@/components/banner.vue";
+import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { TABS, useAdminStore } from "@/stores/admin";
 export default {
   name: "AdminTitleToolbar",
   components: {
     AppBanner,
+    OnlineTagReviewButton,
     SettingsDrawerButton,
   },
   data() {

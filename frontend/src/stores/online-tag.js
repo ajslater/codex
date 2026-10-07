@@ -3,6 +3,14 @@ import { defineStore } from "pinia";
 import { HTTP } from "@/api/v4/base";
 
 /*
+ * The document title with a "(N) " prefix while N matches wait for review, so
+ * a background tab announces them. No title, nothing to prefix.
+ */
+export function pendingTitle(count, title) {
+  return title && count > 0 ? `(${count}) ${title}` : title;
+}
+
+/*
  * Every comic one match-review prompt answers for, representative first.
  *
  * Comicbox fingerprints a deferred prompt at series level on purpose, so one
@@ -46,6 +54,18 @@ export const useOnlineTagStore = defineStore("onlineTag", {
     // rendered.
     _promptsRequestId: 0,
   }),
+  getters: {
+    pendingComicCount(state) {
+      // Comics, not questions: one question can hold a whole series, and the
+      // Tagging tab counts the rows it will mark for review. A prompt that
+      // names no comic at all still counts as one thing to look at, so a
+      // malformed cache entry can't make a visible queue read as empty.
+      return state.pendingPrompts.reduce(
+        (total, prompt) => total + Math.max(promptComics(prompt).length, 1),
+        0,
+      );
+    },
+  },
   actions: {
     async startSession({
       collection,
@@ -81,7 +101,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.activeSessionId = sid || null;
       return sid;
     },
-    async loadPrompts({ autoOpen = true } = {}) {
+    async loadPrompts() {
       /*
        * Pending prompts persist in the cache independently of any running
        * scan, so they're fetched globally — no active session required. They
@@ -105,17 +125,19 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       this.pendingPrompts = raw.filter(
         (p) => !this.recentlyResolved.includes(p.fingerprint),
       );
+      /*
+       * Only ever closes the dialog; it opens from a click on a Review
+       * button. Opening it on every deferral interrupted browsing in every
+       * admin tab for the length of a large run.
+       *
+       * Nothing left to review: close rather than leave the dialog sitting
+       * on an empty list. The queue empties behind this tab's back all the
+       * time — another tab answered, or the daemon resolved the last one —
+       * and the dialog used to stay open showing a spinner that no
+       * notification would ever end.
+       */
       if (this.pendingPrompts.length === 0) {
-        /*
-         * Nothing left to review: close rather than leave the dialog
-         * sitting on an empty list. The queue empties behind this tab's
-         * back all the time — another tab answered, or the daemon resolved
-         * the last one — and the dialog used to stay open showing a
-         * spinner that no notification would ever end.
-         */
         this.promptDialogOpen = false;
-      } else if (autoOpen && !this.promptDialogOpen) {
-        this.promptDialogOpen = true;
       }
     },
     rememberResolved(fingerprint) {
@@ -253,7 +275,7 @@ export const useOnlineTagStore = defineStore("onlineTag", {
       // is live, plus any prompts still awaiting an answer and the status
       // snapshot for the Tagging-tab table.
       await this.discoverSession();
-      await this.loadPrompts({ autoOpen: false });
+      await this.loadPrompts();
       await this.loadSnapshot();
     },
     onPromptNotification() {
