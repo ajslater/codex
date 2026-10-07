@@ -1,9 +1,9 @@
 <!--
-  comicbox's doctor report: one row per environment check (archive backends,
-  image codecs, config files, Python packages), grouped by section. Sits at
-  the foot of the Jobs tab so an admin whose import just failed on a format
-  can see which backend is missing, and the command that fixes it, without
-  leaving the page.
+  The doctor report: one row per environment check (archive backends, image
+  codecs, config files, Python packages, and what codex itself needs),
+  grouped by section. Opens the Stats tab, above the Platform readout it
+  extends, so an admin asking "what is this install" finds what is broken
+  and the command that fixes it in the same place.
 -->
 <template>
   <AdminSection id="doctor" title="Doctor">

@@ -1,5 +1,6 @@
 <template>
-  <div v-if="stats" id="stats">
+  <div id="stats">
+    <DoctorPanel />
     <AdminKeyValueTable
       v-for="section of sections"
       :key="section.title"
@@ -13,6 +14,7 @@
 import { mapActions, mapState } from "pinia";
 import { capitalCase } from "text-case";
 
+import DoctorPanel from "@/components/admin/tabs/doctor-panel.vue";
 import AdminKeyValueTable from "@/components/admin/tabs/key-value-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
@@ -201,6 +203,7 @@ export default {
   name: "AdminStatsTab",
   components: {
     AdminKeyValueTable,
+    DoctorPanel,
   },
   data() {
     return {

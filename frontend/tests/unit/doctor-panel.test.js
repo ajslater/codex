@@ -1,5 +1,5 @@
 /*
- * Tests for the Jobs tab's Doctor panel.
+ * Tests for the Stats tab's Doctor panel.
  *
  * The panel is what an administrator sees of comicbox's doctor report, so
  * behavior locked in here:

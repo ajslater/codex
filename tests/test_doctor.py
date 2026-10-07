@@ -1,8 +1,9 @@
 """
-comicbox's doctor as codex runs it.
+The doctor as codex runs it.
 
-The report is comicbox's; what codex adds is dropping the Online section,
-counting the problems, and logging them once at startup.
+comicbox's report is comicbox's; what codex adds is dropping the Online
+section, appending its own rows, counting the problems, and logging them
+once at startup.
 """
 
 from pathlib import Path
@@ -10,8 +11,10 @@ from unittest.mock import MagicMock, patch
 
 from comicbox.doctor import CheckResult, DoctorReport, Status
 from comicbox.doctor.online import SECTION as ONLINE_SECTION
+from django.test import TestCase
 
 from codex.doctor import log_doctor_problems, problem_count, run_doctor
+from codex.doctor.checks import SECTION as CODEX_SECTION
 
 _HEADER = ("comicbox 5.3.0", "Python 3.14.4", "Linux-6.1")
 _CBR_MISSING = CheckResult(
@@ -37,67 +40,86 @@ _METRON = CheckResult(ONLINE_SECTION, "metron", Status.OFF, detail="no credentia
 _REPORT = DoctorReport(
     header=_HEADER, results=(_CBR_MISSING, _PDF_OK, _UNKNOWN_KEY, _METRON)
 )
+_DATABASE_OK = CheckResult(CODEX_SECTION, "database", Status.OK, detail="fts5 · wal")
 
 
 def _patched(report: DoctorReport = _REPORT):
     return patch("codex.doctor.run_checks", return_value=report)
 
 
-class TestRunDoctor:
-    """What codex keeps of comicbox's report."""
+def _codex_rows(*rows: CheckResult):
+    """Stand in for every codex check with fixed rows."""
+    return patch("codex.doctor.CHECKS", (("codex", lambda: rows),))
 
-    def test_drops_the_online_section(self) -> None:
+
+class RunDoctorTests(TestCase):
+    """What codex keeps of comicbox's report, and what it adds."""
+
+    def test_drops_the_online_section_and_appends_codex_rows(self) -> None:
         """Codex checks credentials on the Tagging tab, from its own database."""
-        with _patched():
+        with _patched(), _codex_rows(_DATABASE_OK):
             report = run_doctor()
         assert report.header == _HEADER
-        assert report.results == (_CBR_MISSING, _PDF_OK, _UNKNOWN_KEY)
+        assert report.results == (_CBR_MISSING, _PDF_OK, _UNKNOWN_KEY, _DATABASE_OK)
 
     def test_problems_are_failures_not_warnings(self) -> None:
-        with _patched():
+        with _patched(), _codex_rows(_DATABASE_OK):
             report = run_doctor()
         assert problem_count(report) == 1
 
+    def test_a_crashing_codex_check_is_one_error_row(self) -> None:
+        def explode():
+            msg = "boom"
+            raise RuntimeError(msg)
+
+        with _patched(), patch("codex.doctor.CHECKS", (("watcher", explode),)):
+            report = run_doctor()
+        assert report.results[-1] == CheckResult(
+            CODEX_SECTION, "watcher", Status.ERROR, detail="RuntimeError: boom"
+        )
+
     def test_the_real_doctor_runs(self) -> None:
-        """Unpatched: comicbox's checks run here, whatever they find."""
+        """Unpatched: comicbox's checks and codex's run here, whatever they find."""
         report = run_doctor()
         assert report.header
         names = {row.name for row in report.results}
         assert {"CBZ", "CBR", "PDF", "Pillow", "cover hash"} <= names
+        assert {"database", "config dir", "library", "watcher", "credentials"} <= names
         assert not any(row.section == ONLINE_SECTION for row in report.results)
 
 
-class TestLogDoctorProblems:
+class LogDoctorProblemsTests(TestCase):
     """Failures warn with their fix, warnings inform, and a verdict closes."""
 
     def test_failures_warn_with_the_fix(self) -> None:
         log = MagicMock()
-        with _patched():
+        with _patched(), _codex_rows(_DATABASE_OK):
             log_doctor_problems(log)
         warnings = [call.args[0] for call in log.warning.call_args_list]
         assert warnings == [
             (
-                "comicbox doctor: CBR MISSING: no RAR tool found: 'unrar' not on path"
+                "doctor: CBR MISSING: no RAR tool found: 'unrar' not on path"
                 " Fix: apt install unrar (Debian: enable non-free)"
             ),
-            "comicbox doctor found 1 problem. See the Admin Jobs tab.",
+            "The doctor found 1 problem. See the Admin Stats tab.",
         ]
 
     def test_warnings_inform(self) -> None:
         log = MagicMock()
-        with _patched():
+        with _patched(), _codex_rows(_DATABASE_OK):
             log_doctor_problems(log)
         infos = [call.args[0] for call in log.info.call_args_list]
         assert infos == [
             (
-                "comicbox doctor: unknown key WARN: general.loglevl is ignored"
+                "doctor: unknown key WARN: general.loglevl is ignored"
                 " Fix: did you mean general.loglevel?"
             )
         ]
 
     def test_a_clean_report_is_quiet(self) -> None:
         log = MagicMock()
-        with _patched(DoctorReport(header=_HEADER, results=(_PDF_OK, _METRON))):
+        clean = DoctorReport(header=_HEADER, results=(_PDF_OK, _METRON))
+        with _patched(clean), _codex_rows(_DATABASE_OK):
             log_doctor_problems(log)
         log.warning.assert_not_called()
         log.info.assert_not_called()

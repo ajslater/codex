@@ -234,7 +234,6 @@
         </div>
       </div>
     </AdminSection>
-    <DoctorPanel />
   </div>
 </template>
 
@@ -245,7 +244,6 @@ import { camelCase } from "text-case";
 
 import { ADMIN_JOBS } from "@/choices/admin-jobs.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
-import DoctorPanel from "@/components/admin/tabs/doctor-panel.vue";
 import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
 import {
   etaRemaining,
@@ -277,7 +275,6 @@ export default {
     AdminExpandToggle,
     AdminSection,
     ConfirmDialog,
-    DoctorPanel,
   },
   setup() {
     const { now } = useNowTimer();
