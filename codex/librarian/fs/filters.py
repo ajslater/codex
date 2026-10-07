@@ -4,8 +4,7 @@ import re
 from contextlib import suppress
 from pathlib import Path
 
-from comicbox.box import Comicbox
-from loguru import logger
+from comicbox.enums.comicbox import FileTypeEnum
 
 # Component-level ignore registry consulted by the poller's walker and
 # the watchfiles filter. Either constant can be extended to add new
@@ -68,40 +67,25 @@ def is_ignored_path(path: Path | str, root: Path | str | None = None) -> bool:
 _IMAGE_REGEX = r"\.(jpe?g|webp|png|gif|bmp)"
 _IMAGE_MATCHER: re.Pattern = re.compile(_IMAGE_REGEX, re.IGNORECASE)
 
-
-def _build_comic_matcher() -> re.Pattern:
-    comic_regex = r"\.(cb[zt7"
-    unsupported = []
-    if Comicbox.is_unrar_supported():
-        comic_regex += r"r"
-    else:
-        unsupported.append("CBR")
-    comic_regex += r"]"
-
-    if Comicbox.is_pdf_supported():
-        comic_regex += r"|pdf"
-    else:
-        unsupported.append("PDF")
-    comic_regex += ")$"
-    if unsupported:
-        un_str = ", ".join(unsupported)
-        logger.warning(f"Cannot detect or read from {un_str} archives")
-    return re.compile(comic_regex, re.IGNORECASE)
-
-
-_COMIC_MATCHER: re.Pattern = _build_comic_matcher()
-
-
-def _match_suffix(pattern: re.Pattern, path: Path) -> bool:
-    """Match suffix with pattern."""
-    return bool(path and path.suffix and pattern.match(path.suffix) is not None)
+#: Every comic archive suffix, lowercase with its dot, derived from
+#: comicbox's file types rather than from what this host can read today.
+#: The scan used to leave out CBR and PDF when comicbox said their tool
+#: was missing. That made every existing row of that type look deleted
+#: to the poller the day unrar went missing, and comicbox 5.3.0's probe,
+#: which test-extracts a member, fails on more hosts than the path check
+#: it replaced. A comic the host cannot open now fails its import with
+#: comicbox's reason instead ("'unrar' not on path"), where the admin
+#: can see it, and its row stays.
+COMIC_SUFFIXES: frozenset[str] = frozenset(
+    f".{file_type.value.lower()}" for file_type in FileTypeEnum
+)
 
 
 def match_comic(path: Path) -> bool:
     """Match comic file."""
-    return _match_suffix(_COMIC_MATCHER, path)
+    return bool(path and path.suffix) and path.suffix.lower() in COMIC_SUFFIXES
 
 
 def match_image(path: Path) -> bool:
     """Match image file."""
-    return _match_suffix(_IMAGE_MATCHER, path)
+    return bool(path and path.suffix and _IMAGE_MATCHER.match(path.suffix) is not None)

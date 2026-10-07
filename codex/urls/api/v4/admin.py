@@ -14,6 +14,7 @@ from codex.views.admin.custom_cover import (
     AdminCustomCoverRemoveView,
     AdminCustomCoverUploadView,
 )
+from codex.views.admin.doctor import AdminDoctorView
 from codex.views.admin.dump_user_data import AdminDumpUserDataView
 from codex.views.admin.email import AdminEmailSettingsView, AdminEmailTestSendView
 from codex.views.admin.failed_imports_seen import AdminFailedImportsSeenView
@@ -224,6 +225,11 @@ urlpatterns = [
         "stats",
         AdminStatsView.as_view(),
         name="stats",
+    ),
+    path(
+        "doctor",
+        AdminDoctorView.as_view(),
+        name="doctor",
     ),
     path(
         "api-key",

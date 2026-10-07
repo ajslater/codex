@@ -44,6 +44,7 @@ from codex.librarian.onlinetag.session_state import CLIENT_NAME, serialize_promp
 from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.comic import Comic
+from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -319,6 +320,10 @@ class PromptApplier:
             # PROMPT_VERSION; only the comicbox kwarg moved.
             match=MatchMode(prompt.get("mode") or "auto"),
             defer_prompts=True,
+            # The same settings the search ran with, so the replay reads
+            # the response cache that search filled under /config rather
+            # than comicbox's own default cache dir.
+            config=COMICBOX_ONLINE_CONFIG,
             client_name=CLIENT_NAME,
         )
         session.preload_resolution(

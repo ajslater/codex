@@ -217,12 +217,16 @@ class OnlineTagSessionManager:
             and not defaults.comicvine_key
         ):
             return None
+        # ``or None``, not ``or ""``: comicbox hands the key to mokkari as its
+        # api_token, and mokkari sends a Bearer header for any token that is
+        # not None, an empty one included, in place of the username and
+        # password. An unset key spelled "" shut off every legacy login.
         return OnlineCredentials(
-            metron_key=defaults.metron_key or "",
-            metron_user=defaults.metron_user or "",
-            metron_password=defaults.metron_password or "",
-            comicvine_key=defaults.comicvine_key or "",
-            comicvine_url=defaults.comicvine_url or "",
+            metron_key=defaults.metron_key or None,
+            metron_user=defaults.metron_user or None,
+            metron_password=defaults.metron_password or None,
+            comicvine_key=defaults.comicvine_key or None,
+            comicvine_url=defaults.comicvine_url or None,
         )
 
     @staticmethod

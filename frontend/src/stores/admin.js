@@ -87,6 +87,7 @@ export const useAdminStore = defineStore("admin", {
     },
     timestamps: {},
     stats: undefined,
+    doctor: undefined,
     taggingDefaults: undefined,
     emailSettings: undefined,
     oidcSettings: undefined,
@@ -294,6 +295,15 @@ export const useAdminStore = defineStore("admin", {
       try {
         const response = await API.getStats();
         this.stats = response.data;
+      } catch (error) {
+        console.warn(error);
+      }
+    },
+    async loadDoctor() {
+      if (this._requireAdmin()) return false;
+      try {
+        const response = await API.getDoctorReport();
+        this.doctor = response.data;
       } catch (error) {
         console.warn(error);
       }

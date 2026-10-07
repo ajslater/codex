@@ -5,12 +5,12 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Final
 
+from comicbox.box import Comicbox
 from comicbox.exceptions import ComicboxError
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from loguru import logger
-from pdffile import PageMode, PDFFile
 from rest_framework.exceptions import NotFound
 
 from codex.librarian.bookmark.tasks import BookmarkUpdateTask
@@ -22,7 +22,7 @@ from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.reader._archive_cache import archive_cache, page_acl_cache
 
 if TYPE_CHECKING:
-    from pdffile import PageVerdict
+    from pdffile import PageVerdict, PDFFile
 
     from codex.views.reader._archive_cache import _ArchiveEntry
 
@@ -132,6 +132,16 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         ``None`` when the caller should fall back to the legacy
         single-page-PDF path.
         """
+        if not Comicbox.is_pdf_supported():
+            # Since comicbox 5.3.0 a pdffile that is installed but will not
+            # import (pymupdf against the wrong libmupdf, say) disables PDFs
+            # instead of breaking comicbox. Importing pdffile at module
+            # level here undid that: it failed the reader's import and with
+            # it the server. The legacy path below reports the same comic
+            # as unreadable, which is the truth.
+            return None
+        from pdffile import PageMode, PDFFile
+
         with archive_cache.open_entry(path) as entry:
             # ``Comicbox._get_archive`` returns the underlying archive
             # union (zip / rar / 7z / tar / pdf). Caller has gated on

@@ -6,12 +6,12 @@ from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from comicbox.enums.comicbox import FileTypeEnum
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
+from codex.librarian.fs.filters import COMIC_SUFFIXES
 from codex.models.util import get_sort_name
 
 if TYPE_CHECKING:
@@ -22,25 +22,16 @@ if TYPE_CHECKING:
 
 # Comic file extensions we'll consider — phantom directory-as-comic
 # rows (older bug) are out of scope for parent-folder drift repair.
-#
-# Derived from comicbox rather than written out, so a new archive format
-# cannot leave rows behind here, and compared case-insensitively because
-# that is how the scanner matched them on the way in
-# (``filters`` compiles its regex with ``re.IGNORECASE`` and the importer
-# stores the path verbatim, so ``Foo.CBZ`` is a real, importable comic).
-# A case-sensitive test dropped those rows from ``needed`` and pruned the
+# The scanner's own list, compared case-insensitively because that is
+# how the scanner matched them on the way in (the importer stores the
+# path verbatim, so ``Foo.CBZ`` is a real, importable comic). A
+# case-sensitive test dropped those rows from ``needed`` and pruned the
 # folders they live in, cascading the comics and their bookmarks away.
-#
-# Deliberately *not* ``filters.match_comic``: that consults
-# ``Comicbox.is_unrar_supported()`` / ``is_pdf_supported()``, so on a host
-# without unrar every ``.cbr`` row would drop out of ``needed`` and be
-# pruned — the same bug from the other side.
-_COMIC_SUFFIXES = frozenset(f".{file_type.value.lower()}" for file_type in FileTypeEnum)
 
 
 def _is_comic_path(path: str) -> bool:
     """Whether a stored path is a comic archive, however it is cased."""
-    return Path(path).suffix.lower() in _COMIC_SUFFIXES
+    return Path(path).suffix.lower() in COMIC_SUFFIXES
 
 
 # SQLite's parameter cap is 32766; leave headroom for the rare case

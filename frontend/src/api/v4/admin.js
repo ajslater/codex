@@ -182,6 +182,10 @@ export const getAllLibrarianStatuses = () =>
 export const getStats = () =>
   HTTP.get("/admin/stats", { params: { ts: Date.now() } });
 
+// comicbox's doctor report: one row per environment check.
+export const getDoctorReport = () =>
+  HTTP.get("/admin/doctor", { params: { ts: Date.now() } });
+
 export const getAPIKey = () =>
   HTTP.get("/admin/api-key", { params: { ts: Date.now() } });
 
