@@ -1,8 +1,8 @@
 <!--
   Opens the online-tagging Match Review dialog while matches wait for an
   admin. The dialog never opens on its own, so this button is the cue in the
-  browser toolbar and the admin title bar; the settings drawer item is the
-  second path. Phones show the icon and count only.
+  browser and reader top toolbars and the admin title bar; the settings drawer
+  item is the second path. Phones show the icon and count only.
 
   A plain v-btn, not ScaleButton: compact density on phones stacks with
   size="small" and shrinks the button to 16px tall.
