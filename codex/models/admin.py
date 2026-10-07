@@ -2,6 +2,7 @@
 
 from typing import override
 
+from comicbox.config.online import MatchMode
 from django.db.models import (
     SET_NULL,
     BooleanField,
@@ -31,6 +32,7 @@ from codex.models.base import MAX_FIELD_LEN, MAX_NAME_LEN, BaseModel
 from codex.models.choices import (
     ReadingDirectionChoices,
     max_choices_len,
+    text_choices_from_enum,
     text_choices_from_map,
 )
 from codex.models.fields import EncryptedCharField
@@ -103,12 +105,11 @@ class AdminFlag(BaseModel):
 class ComicboxTaggingDefaults(BaseModel):
     """Singleton model for default comicbox tagging options and credentials."""
 
-    class MatchModeChoices(TextChoices):
-        """Match mode options for online tagging (mirrors comicbox.MatchMode)."""
-
-        CAREFUL = "careful", _("Careful")
-        AUTO = "auto", _("Auto")
-        EAGER = "eager", _("Eager")
+    # comicbox's match modes, ask through eager, so a mode it adds reaches
+    # the admin page without a hand-synced copy. Ask auto-writes nothing
+    # and prompts for every match; comicbox 5.3.1 accepts it from a session
+    # with a prompt handler, which codex always supplies.
+    MatchModeChoices = text_choices_from_enum(MatchMode, "MatchModeChoices")
 
     class PromptsModeChoices(TextChoices):
         """Prompt behavior options for online tagging."""
@@ -143,7 +144,7 @@ class ComicboxTaggingDefaults(BaseModel):
     default_match_mode = CharField(
         max_length=MAX_FIELD_LEN,
         choices=MatchModeChoices.choices,
-        default=MatchModeChoices.AUTO,
+        default=MatchMode.AUTO.value,
     )
     default_prompts_mode = CharField(
         max_length=MAX_FIELD_LEN,

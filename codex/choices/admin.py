@@ -2,7 +2,7 @@
 
 from types import MappingProxyType
 
-from comicbox.config.online import Effort
+from comicbox.config.online import Effort, MatchMode
 from comicbox.formats.base.online import SOURCE_NAMES
 from django.db.models.enums import TextChoices
 
@@ -50,12 +50,10 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
 
 TAGGING_CHOICES = MappingProxyType(
     {
+        # comicbox's match modes, ask through eager, derived so the two
+        # cannot drift. Ask prompts for every match instead of writing.
         "matchMode": MappingProxyType(
-            {
-                "careful": "Careful",
-                "auto": "Auto",
-                "eager": "Eager",
-            }
+            {mode.value: mode.value.capitalize() for mode in MatchMode}
         ),
         "promptsMode": MappingProxyType(
             {

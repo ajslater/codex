@@ -61,7 +61,11 @@ class OnlineTagStartSerializer(Serializer):
     collection = CharField()
     pks = ListField(child=CharField())
     sources = ListField(child=CharField(), required=False, default=list(SOURCE_NAMES))
-    mode = CharField(required=False, default="auto")
+    mode = ChoiceField(
+        choices=ComicboxTaggingDefaults.MatchModeChoices.values,
+        required=False,
+        default="auto",
+    )
     # None falls back to the admin default, like the flags below.
     effort = CharField(required=False, default=None, allow_null=True)
     prompts_mode = CharField(required=False, default="ask")

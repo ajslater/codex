@@ -9,6 +9,8 @@ border-radius: 128px;
 ## v2.5.3
 
 - Features
+    - Online tagging gains an Ask match mode that prompts for every match
+      instead of writing any.
     - Admin Doctor tab: archive tools, PDF support, image codecs, database,
       libraries, watcher limits, config and package problems, each with its fix.
       Problems are also logged at startup.

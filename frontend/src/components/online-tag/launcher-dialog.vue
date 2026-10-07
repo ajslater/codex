@@ -187,6 +187,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 // so it changes no request count. Effort is what buys calls, and only
 // against Comic Vine: Metron answers in a flat two-step whatever you ask.
 const MATCH_MODE_HINTS = {
+  ask: "Writes nothing on its own. Every match becomes a prompt to review, so Prompts must be set to Ask.",
   careful:
     "Only accepts high-confidence, unambiguous matches. Defers anything uncertain for manual review.",
   auto: "Balances accuracy and speed. Accepts confident matches automatically and defers uncertain ones.",
