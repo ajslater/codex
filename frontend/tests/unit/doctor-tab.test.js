@@ -6,8 +6,9 @@
  *   - Every status the doctor can report wears the chip colour the
  *     component's own map says, so a status the backend adds without a
  *     colour fails here rather than rendering grey by accident.
- *   - A section header renders once, ahead of its first row, and the rows
- *     stay in report order.
+ *   - comicbox's rows and codex's own sit under their own headings; a
+ *     section header renders once among comicbox's rows, ahead of its
+ *     first row, and the rows stay in report order.
  *   - The heading is the verdict, counting the problems in plain words and
  *     coloured by it; the hint carries the host line.
  *   - A fix is a shell command or a setting path, so it renders as code.
@@ -18,16 +19,15 @@ import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
-import DoctorTab, {
-  STATUS_COLORS,
-} from "@/components/admin/tabs/doctor-tab.vue";
+import DoctorTab from "@/components/admin/tabs/doctor-tab.vue";
+import { STATUS_COLORS } from "@/components/admin/tabs/doctor-table.vue";
 import vuetify from "@/plugins/vuetify";
 import { useAdminStore } from "@/stores/admin";
 
 const HEADER = ["comicbox 5.3.0", "Python 3.14.4", "Linux-6.1", "Docker"];
 const PDF_FIX = "pip install --force-reinstall 'comicbox-pdffile~=1.0'";
 
-const RESULTS = [
+const COMICBOX_RESULTS = [
   {
     section: "Archives",
     name: "CBR",
@@ -68,6 +68,8 @@ const RESULTS = [
     detail: "general.loglevl is ignored",
     fix: "did you mean general.loglevel?",
   },
+];
+const CODEX_RESULTS = [
   {
     section: "Codex",
     name: "library",
@@ -85,14 +87,20 @@ const RESULTS = [
     fix: "mount it, or add comics",
   },
 ];
+const RESULTS = [...COMICBOX_RESULTS, ...CODEX_RESULTS];
 
-const REPORT = { header: HEADER, results: RESULTS, problems: 1 };
+const REPORT = {
+  header: HEADER,
+  comicbox: COMICBOX_RESULTS,
+  codex: CODEX_RESULTS,
+  problems: 1,
+};
 
 // One row per status the component knows, so the chip test enumerates the
 // vocabulary from the component instead of keeping a second copy here.
 const EVERY_STATUS_REPORT = {
   header: HEADER,
-  results: Object.keys(STATUS_COLORS).map((status) => ({
+  comicbox: Object.keys(STATUS_COLORS).map((status) => ({
     section: "Statuses",
     name: status.toLowerCase(),
     status,
@@ -100,6 +108,7 @@ const EVERY_STATUS_REPORT = {
     detail: "",
     fix: "",
   })),
+  codex: [],
   problems: 4,
 };
 
@@ -133,22 +142,24 @@ describe("AdminDoctorTab", () => {
     }
   });
 
-  test("renders each section header once, ahead of its rows", () => {
+  test("comicbox and codex rows sit under their own headings", () => {
     const { wrapper } = mountTab(REPORT);
-    const headers = wrapper
-      .findAll(".doctorSectionRow")
-      .map((row) => row.text());
-    expect(headers).toStrictEqual([
-      "Archives",
-      "Images (online cover matching)",
-      "Config",
-      "Codex",
-    ]);
-    // Rows stay in report order under their headers, repeated names included.
+    const headings = wrapper.findAll("h4").map((el) => el.text());
+    expect(headings).toStrictEqual(["comicbox", "Codex"]);
+    const tables = wrapper.findAll(".doctorTable");
+    expect(tables).toHaveLength(2);
+    // comicbox's rows are grouped by section, each header once, ahead of
+    // its first row.
+    const [comicbox, codex] = tables;
+    expect(
+      comicbox.findAll(".doctorSectionRow").map((row) => row.text()),
+    ).toStrictEqual(["Archives", "Images (online cover matching)", "Config"]);
+    expect(comicbox.find("tbody tr").classes()).toContain("doctorSectionRow");
+    // Codex's rows run flat under their heading: no "Codex" row repeating it.
+    expect(codex.findAll(".doctorSectionRow")).toHaveLength(0);
+    // Rows stay in report order, repeated names included.
     const names = wrapper.findAll(".doctorName").map((cell) => cell.text());
     expect(names).toStrictEqual(RESULTS.map((result) => result.name));
-    // The first row of the table is a header, not a check.
-    expect(wrapper.find("tbody tr").classes()).toContain("doctorSectionRow");
   });
 
   test.each([
@@ -196,6 +207,7 @@ describe("AdminDoctorTab", () => {
     expect(wrapper.find(".adminGroup").classes()).not.toContain("doctorOk");
     expect(wrapper.find(".adminHint").exists()).toBe(false);
     expect(wrapper.find(".doctorTable").exists()).toBe(false);
+    expect(wrapper.find("h4").exists()).toBe(false);
     expect(wrapper.find(".v-btn").exists()).toBe(true);
   });
 

@@ -4,9 +4,11 @@ from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
-from comicbox.doctor import CheckResult, DoctorReport, Status
+from comicbox.doctor import CheckResult, Status
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
+
+from codex.doctor import DoctorReport
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _URL: Final = "/api/v4/admin/doctor"
@@ -15,7 +17,7 @@ _HTTP_FORBIDDEN: Final = 403
 
 _REPORT = DoctorReport(
     header=("comicbox 5.3.0", "Python 3.14.4", "Linux-6.1", "Docker"),
-    results=(
+    comicbox=(
         CheckResult(
             "Archives", "CBR", Status.OK, found="rarfile 4.5", detail="via unrar"
         ),
@@ -33,6 +35,16 @@ _REPORT = DoctorReport(
             Status.OK,
             found=Path("/home/abc/.config/comicbox/config.yaml"),
             detail="parsed",
+        ),
+    ),
+    codex=(
+        CheckResult(
+            "Codex",
+            "library",
+            Status.MISSING,
+            found=Path("/comics"),
+            detail="not there: its comics look deleted until it is back",
+            fix="mount it, or remove the library on the Libraries tab",
         ),
     ),
 )
@@ -75,8 +87,8 @@ class DoctorReportTestCase(TestCase):
         assert response.status_code == _HTTP_OK
         data = _data(response)
         assert data["header"] == list(_REPORT.header)
-        assert data["problems"] == 1
-        pdf = data["results"][1]
+        assert data["problems"] == _REPORT.problems
+        pdf = data["comicbox"][1]
         assert pdf == {
             "section": "Archives",
             "name": "PDF",
@@ -87,5 +99,8 @@ class DoctorReportTestCase(TestCase):
             "fix": "pip install 'comicbox-pdffile~=1.0'",
         }
         # A Path renders as its string.
-        assert data["results"][2]["found"] == "/home/abc/.config/comicbox/config.yaml"
-        assert data["results"][0]["fix"] == ""
+        assert data["comicbox"][2]["found"] == "/home/abc/.config/comicbox/config.yaml"
+        assert data["comicbox"][0]["fix"] == ""
+        # Codex's own rows arrive apart, for their own heading.
+        assert [row["name"] for row in data["codex"]] == ["library"]
+        assert data["codex"][0]["found"] == "/comics"

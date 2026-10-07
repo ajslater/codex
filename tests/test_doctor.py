@@ -13,7 +13,7 @@ from comicbox.doctor import CheckResult, DoctorReport, Status
 from comicbox.doctor.online import SECTION as ONLINE_SECTION
 from django.test import TestCase
 
-from codex.doctor import log_doctor_problems, problem_count, run_doctor
+from codex.doctor import log_doctor_problems, run_doctor
 from codex.doctor.checks import SECTION as CODEX_SECTION
 
 _HEADER = ("comicbox 5.3.0", "Python 3.14.4", "Linux-6.1")
@@ -55,17 +55,19 @@ def _codex_rows(*rows: CheckResult):
 class RunDoctorTests(TestCase):
     """What codex keeps of comicbox's report, and what it adds."""
 
-    def test_drops_the_online_section_and_appends_codex_rows(self) -> None:
+    def test_drops_the_online_section_and_keeps_codex_rows_apart(self) -> None:
         """Codex checks credentials on the Tagging tab, from its own database."""
         with _patched(), _codex_rows(_DATABASE_OK):
             report = run_doctor()
         assert report.header == _HEADER
+        assert report.comicbox == (_CBR_MISSING, _PDF_OK, _UNKNOWN_KEY)
+        assert report.codex == (_DATABASE_OK,)
         assert report.results == (_CBR_MISSING, _PDF_OK, _UNKNOWN_KEY, _DATABASE_OK)
 
     def test_problems_are_failures_not_warnings(self) -> None:
         with _patched(), _codex_rows(_DATABASE_OK):
             report = run_doctor()
-        assert problem_count(report) == 1
+        assert report.problems == 1
 
     def test_a_crashing_codex_check_is_one_error_row(self) -> None:
         def explode():
@@ -74,18 +76,23 @@ class RunDoctorTests(TestCase):
 
         with _patched(), patch("codex.doctor.CHECKS", (("watcher", explode),)):
             report = run_doctor()
-        assert report.results[-1] == CheckResult(
-            CODEX_SECTION, "watcher", Status.ERROR, detail="RuntimeError: boom"
+        assert report.codex == (
+            CheckResult(
+                CODEX_SECTION, "watcher", Status.ERROR, detail="RuntimeError: boom"
+            ),
         )
 
     def test_the_real_doctor_runs(self) -> None:
         """Unpatched: comicbox's checks and codex's run here, whatever they find."""
         report = run_doctor()
         assert report.header
-        names = {row.name for row in report.results}
-        assert {"CBZ", "CBR", "PDF", "Pillow", "cover hash"} <= names
-        assert {"database", "config dir", "library", "watcher", "credentials"} <= names
-        assert not any(row.section == ONLINE_SECTION for row in report.results)
+        assert {"CBZ", "CBR", "PDF", "Pillow", "cover hash"} <= {
+            row.name for row in report.comicbox
+        }
+        assert {"database", "config dir", "library", "watcher", "credentials"} <= {
+            row.name for row in report.codex
+        }
+        assert not any(row.section == ONLINE_SECTION for row in report.comicbox)
 
 
 class LogDoctorProblemsTests(TestCase):

@@ -6,9 +6,9 @@ archive format, whether Pillow has the codecs cover matching needs, whether
 the user's comicbox config parses, and whether comicbox's package pins are
 satisfied, with a one-line fix for anything that is not. Codex adds the
 checks for what it needs on top (``codex.doctor.checks``), shows the rows
-to admins, and logs the problems once at startup, so a missing unrar or a
-full disk is explained in one place rather than discovered as failed
-imports with no cause.
+to admins under two headings, and logs the problems once at startup, so a
+missing unrar or a full disk is explained in one place rather than
+discovered as failed imports with no cause.
 
 comicbox's Online section is left out. Codex keeps the tagging credentials
 in its own database and checks them on the Tagging tab, so the doctor's "no
@@ -21,9 +21,10 @@ installed while codex runs shows up after a restart.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from comicbox.doctor import CheckResult, DoctorReport, Status, run_checks
+from comicbox.doctor import CheckResult, Status, run_checks
 from comicbox.doctor.online import SECTION as _ONLINE_SECTION
 
 from codex.doctor.checks import CHECKS, SECTION
@@ -32,6 +33,26 @@ if TYPE_CHECKING:
     from loguru import Logger
 
     from codex.doctor.checks import Check
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorReport:
+    """comicbox's rows and codex's own, with the host they ran on."""
+
+    #: comicbox version, Python, platform: information only.
+    header: tuple[str, ...]
+    comicbox: tuple[CheckResult, ...]
+    codex: tuple[CheckResult, ...]
+
+    @property
+    def results(self) -> tuple[CheckResult, ...]:
+        """Every row, comicbox's first."""
+        return (*self.comicbox, *self.codex)
+
+    @property
+    def problems(self) -> int:
+        """How many rows say something codex needs is broken."""
+        return sum(row.status.is_failure for row in self.results)
 
 
 def _run_check(name: str, check: Check) -> list[CheckResult]:
@@ -51,14 +72,11 @@ def _run_check(name: str, check: Check) -> list[CheckResult]:
 def run_doctor() -> DoctorReport:
     """Run comicbox's doctor and codex's checks; keep the rows that describe this server."""
     report = run_checks()
-    comicbox_rows = [row for row in report.results if row.section != _ONLINE_SECTION]
-    codex_rows = [row for name, check in CHECKS for row in _run_check(name, check)]
-    return DoctorReport(header=report.header, results=(*comicbox_rows, *codex_rows))
-
-
-def problem_count(report: DoctorReport) -> int:
-    """Count the rows that say something codex needs is broken."""
-    return sum(row.status.is_failure for row in report.results)
+    comicbox_rows = tuple(
+        row for row in report.results if row.section != _ONLINE_SECTION
+    )
+    codex_rows = tuple(row for name, check in CHECKS for row in _run_check(name, check))
+    return DoctorReport(header=report.header, comicbox=comicbox_rows, codex=codex_rows)
 
 
 def _describe(row: CheckResult) -> str:
@@ -83,7 +101,7 @@ def log_doctor_problems(log: Logger) -> None:
             log.warning(_describe(row))
         elif row.status is Status.WARN:
             log.info(_describe(row))
-    if problems := problem_count(report):
+    if problems := report.problems:
         noun = "problem" if problems == 1 else "problems"
         log.warning(f"The doctor found {problems} {noun}. See the Admin Doctor tab.")
     else:

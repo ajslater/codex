@@ -9,7 +9,7 @@ from rest_framework.serializers import (
 
 
 class DoctorRowSerializer(Serializer):
-    """One row of comicbox's doctor report."""
+    """One row of the doctor report."""
 
     section = CharField(read_only=True)
     name = CharField(read_only=True)
@@ -21,9 +21,10 @@ class DoctorRowSerializer(Serializer):
 
 
 class DoctorReportSerializer(Serializer):
-    """comicbox's doctor report for this install."""
+    """The doctor report for this install: comicbox's rows and codex's own."""
 
     #: comicbox version, Python, platform, and "Docker" inside a container.
     header = ListField(child=CharField(), read_only=True)
-    results = DoctorRowSerializer(many=True, read_only=True)
+    comicbox = DoctorRowSerializer(many=True, read_only=True)
+    codex = DoctorRowSerializer(many=True, read_only=True)
     problems = IntegerField(read_only=True)
