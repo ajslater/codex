@@ -1,15 +1,15 @@
 /*
- * Tests for the Stats tab's Doctor panel.
+ * Tests for the admin Doctor tab.
  *
- * The panel is what an administrator sees of comicbox's doctor report, so
- * behavior locked in here:
+ * The tab is what an administrator sees of the doctor report, so behavior
+ * locked in here:
  *   - Every status the doctor can report wears the chip colour the
  *     component's own map says, so a status the backend adds without a
  *     colour fails here rather than rendering grey by accident.
  *   - A section header renders once, ahead of its first row, and the rows
  *     stay in report order.
- *   - The hint carries the platform header and a verdict that counts the
- *     problems in plain words, red when there are any.
+ *   - The heading is the verdict, counting the problems in plain words and
+ *     coloured by it; the hint carries the host line.
  *   - A fix is a shell command or a setting path, so it renders as code.
  *   - A report already in the store shows at once without a refetch; an
  *     empty store fetches on mount; Re-check always fetches.
@@ -18,9 +18,9 @@ import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
-import DoctorPanel, {
+import DoctorTab, {
   STATUS_COLORS,
-} from "@/components/admin/tabs/doctor-panel.vue";
+} from "@/components/admin/tabs/doctor-tab.vue";
 import vuetify from "@/plugins/vuetify";
 import { useAdminStore } from "@/stores/admin";
 
@@ -69,12 +69,20 @@ const RESULTS = [
     fix: "did you mean general.loglevel?",
   },
   {
-    section: "Python packages",
-    name: "requirements",
+    section: "Codex",
+    name: "library",
     status: "OK",
-    found: "",
-    detail: "31 satisfied",
+    found: "/comics",
+    detail: "readable · writable",
     fix: "",
+  },
+  {
+    section: "Codex",
+    name: "library",
+    status: "WARN",
+    found: "/comics-empty",
+    detail: "readable · read only · empty: suspect unmounted",
+    fix: "mount it, or add comics",
   },
 ];
 
@@ -101,17 +109,17 @@ const COLOR_CLASSES = new Set(
     .map((color) => `text-${color}`),
 );
 
-function mountPanel(doctor) {
+function mountTab(doctor) {
   const pinia = createTestingPinia({ initialState: { admin: { doctor } } });
-  const wrapper = mount(DoctorPanel, {
+  const wrapper = mount(DoctorTab, {
     global: { plugins: [pinia, vuetify] },
   });
   return { wrapper, store: useAdminStore() };
 }
 
-describe("AdminDoctorPanel", () => {
+describe("AdminDoctorTab", () => {
   test("every status wears its chip colour", () => {
-    const chips = mountPanel(EVERY_STATUS_REPORT).wrapper.findAll(".v-chip");
+    const chips = mountTab(EVERY_STATUS_REPORT).wrapper.findAll(".v-chip");
     expect(chips).toHaveLength(Object.keys(STATUS_COLORS).length);
     for (const chip of chips) {
       const status = chip.text();
@@ -126,7 +134,7 @@ describe("AdminDoctorPanel", () => {
   });
 
   test("renders each section header once, ahead of its rows", () => {
-    const { wrapper } = mountPanel(REPORT);
+    const { wrapper } = mountTab(REPORT);
     const headers = wrapper
       .findAll(".doctorSectionRow")
       .map((row) => row.text());
@@ -134,9 +142,9 @@ describe("AdminDoctorPanel", () => {
       "Archives",
       "Images (online cover matching)",
       "Config",
-      "Python packages",
+      "Codex",
     ]);
-    // Rows stay in report order under their headers.
+    // Rows stay in report order under their headers, repeated names included.
     const names = wrapper.findAll(".doctorName").map((cell) => cell.text());
     expect(names).toStrictEqual(RESULTS.map((result) => result.name));
     // The first row of the table is a header, not a check.
@@ -144,54 +152,60 @@ describe("AdminDoctorPanel", () => {
   });
 
   test.each([
-    { problems: 0, verdict: "No problems", cls: "doctorVerdictOk" },
-    { problems: 1, verdict: "1 problem", cls: "doctorVerdictProblems" },
-    { problems: 3, verdict: "3 problems", cls: "doctorVerdictProblems" },
-  ])("verdict for $problems problems", ({ problems, verdict, cls }) => {
-    const { wrapper } = mountPanel({ ...REPORT, problems });
-    const el = wrapper.find(".doctorVerdict");
-    expect(el.text()).toBe(verdict);
-    expect(el.classes()).toContain(cls);
-  });
+    { problems: 0, verdict: "No problems", cls: "doctorOk" },
+    { problems: 1, verdict: "1 problem", cls: "doctorProblems" },
+    { problems: 3, verdict: "3 problems", cls: "doctorProblems" },
+  ])(
+    "the heading is the verdict for $problems problems",
+    ({ problems, verdict, cls }) => {
+      const { wrapper } = mountTab({ ...REPORT, problems });
+      expect(wrapper.find("h3").text()).toBe(verdict);
+      expect(wrapper.find(".adminGroup").classes()).toContain(cls);
+    },
+  );
 
-  test("renders the header line in the hint", () => {
-    const hint = mountPanel(REPORT).wrapper.find(".adminHint").text();
-    expect(hint).toContain(HEADER.join(" · "));
-    expect(hint).toContain("1 problem");
-    // The hint does not restate the section title.
-    expect(hint).not.toContain("Doctor");
+  test("the hint is the host line, not the verdict", () => {
+    const hint = mountTab(REPORT).wrapper.find(".adminHint").text();
+    expect(hint).toBe(HEADER.join(" · "));
   });
 
   test("renders a fix as code and an empty fix as nothing", () => {
-    const { wrapper } = mountPanel(REPORT);
+    const { wrapper } = mountTab(REPORT);
     const fixes = wrapper.findAll(".doctorFix");
     expect(fixes).toHaveLength(RESULTS.length);
     const codes = wrapper.findAll(".doctorFix code").map((el) => el.text());
-    expect(codes).toStrictEqual([PDF_FIX, "did you mean general.loglevel?"]);
+    expect(codes).toStrictEqual([
+      PDF_FIX,
+      "did you mean general.loglevel?",
+      "mount it, or add comics",
+    ]);
     expect(fixes[0].find("code").exists()).toBe(false);
     expect(fixes[0].text()).toBe("");
   });
 
   test("renders found and detail", () => {
-    const text = mountPanel(REPORT).wrapper.text();
+    const text = mountTab(REPORT).wrapper.text();
     expect(text).toContain("rarfile 4.5");
     expect(text).toContain("general.loglevl is ignored");
+    expect(text).toContain("/comics-empty");
   });
 
   test("shows Checking… and no table before the report arrives", () => {
-    const { wrapper } = mountPanel();
-    expect(wrapper.find(".adminHint").text()).toBe("Checking…");
+    const { wrapper } = mountTab();
+    expect(wrapper.find("h3").text()).toBe("Checking…");
+    expect(wrapper.find(".adminGroup").classes()).not.toContain("doctorOk");
+    expect(wrapper.find(".adminHint").exists()).toBe(false);
     expect(wrapper.find(".doctorTable").exists()).toBe(false);
     expect(wrapper.find(".v-btn").exists()).toBe(true);
   });
 
   test("fetches on mount only when the store is empty", () => {
-    expect(mountPanel(REPORT).store.loadDoctor).not.toHaveBeenCalled();
-    expect(mountPanel().store.loadDoctor).toHaveBeenCalledTimes(1);
+    expect(mountTab(REPORT).store.loadDoctor).not.toHaveBeenCalled();
+    expect(mountTab().store.loadDoctor).toHaveBeenCalledTimes(1);
   });
 
   test("Re-check always fetches", async () => {
-    const { wrapper, store } = mountPanel(REPORT);
+    const { wrapper, store } = mountTab(REPORT);
     await wrapper.find(".v-btn").trigger("click");
     expect(store.loadDoctor).toHaveBeenCalledTimes(1);
   });

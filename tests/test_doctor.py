@@ -101,7 +101,7 @@ class LogDoctorProblemsTests(TestCase):
                 "doctor: CBR MISSING: no RAR tool found: 'unrar' not on path"
                 " Fix: apt install unrar (Debian: enable non-free)"
             ),
-            "The doctor found 1 problem. See the Admin Stats tab.",
+            "The doctor found 1 problem. See the Admin Doctor tab.",
         ]
 
     def test_warnings_inform(self) -> None:

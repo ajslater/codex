@@ -9,9 +9,9 @@ border-radius: 128px;
 ## v2.5.3
 
 - Features
-    - Doctor report on the admin Stats tab: archive tools, PDF support, image
-      codecs, database, libraries, watcher limits, config and package problems,
-      each with its fix. Problems are also logged at startup.
+    - Admin Doctor tab: archive tools, PDF support, image codecs, database,
+      libraries, watcher limits, config and package problems, each with its fix.
+      Problems are also logged at startup.
 - Fixes
     - A missing or broken unrar no longer hides CBR comics from scans or deletes
       them from the library; they are listed as failed imports with the cause.

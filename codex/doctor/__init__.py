@@ -85,6 +85,6 @@ def log_doctor_problems(log: Logger) -> None:
             log.info(_describe(row))
     if problems := problem_count(report):
         noun = "problem" if problems == 1 else "problems"
-        log.warning(f"The doctor found {problems} {noun}. See the Admin Stats tab.")
+        log.warning(f"The doctor found {problems} {noun}. See the Admin Doctor tab.")
     else:
         log.debug("The doctor found no problems.")

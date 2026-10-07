@@ -1109,12 +1109,12 @@ LOGLEVEL=DEBUG codex
 
 ### 🩺 Doctor
 
-The Admin panel's Stats tab opens with a Doctor report: whether this install can
-read each comic archive format, has the image codecs cover matching needs,
-whether comicbox's config and package versions are in order, and whether the
-database, config directory, library folders, filesystem watcher and stored
-credentials are usable, with a fix for each problem. Codex logs the problems
-when it starts, too.
+The Admin panel's Doctor tab reports whether this install can read each comic
+archive format, has the image codecs cover matching needs, whether comicbox's
+config and package versions are in order, and whether the database, config
+directory, library folders, filesystem watcher and stored credentials are
+usable, with a fix for each problem. Codex logs the problems when it starts,
+too.
 
 The same report runs from the command line, which helps when Codex will not
 start. In Codex's Python environment:

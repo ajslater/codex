@@ -1,59 +1,53 @@
 <!--
-  The doctor report: one row per environment check (archive backends, image
-  codecs, config files, Python packages, and what codex itself needs),
-  grouped by section. Opens the Stats tab, above the Platform readout it
-  extends, so an admin asking "what is this install" finds what is broken
-  and the command that fixes it in the same place.
+  The Doctor tab: comicbox's health report plus codex's own checks, one row
+  per check grouped by section. The page leads with its verdict as the
+  heading, since that is the one thing an admin came to read; the host line
+  sits under it and Re-check runs the report again.
 -->
 <template>
-  <AdminSection id="doctor" title="Doctor">
-    <template #actions>
-      <v-btn
-        size="small"
-        variant="tonal"
-        text="Re-check"
-        :loading="checking"
-        @click="recheck"
-      />
-    </template>
-    <template #hint>
-      <template v-if="doctor">
-        <span v-if="headerText">{{ headerText }} · </span>
-        <span
-          class="doctorVerdict"
-          :class="problems ? 'doctorVerdictProblems' : 'doctorVerdictOk'"
-          >{{ verdict }}</span
-        >
+  <div id="doctor" class="adminReadingColumn">
+    <AdminSection
+      :title="verdict"
+      :class="{ doctorOk: doctor && !problems, doctorProblems: problems > 0 }"
+    >
+      <template #actions>
+        <v-btn
+          size="small"
+          variant="tonal"
+          text="Re-check"
+          :loading="checking"
+          @click="recheck"
+        />
       </template>
-      <template v-else>{{ CHECKING }}</template>
-    </template>
-    <table v-if="doctor" class="doctorTable">
-      <tbody>
-        <template v-for="row in rows" :key="row.key">
-          <tr v-if="row.sectionStart" class="doctorSectionRow">
-            <td :colspan="columns">{{ row.section }}</td>
-          </tr>
-          <tr class="doctorRow">
-            <td class="doctorStatus">
-              <v-chip
-                size="small"
-                variant="tonal"
-                :color="statusColor(row.status)"
-              >
-                {{ row.status }}
-              </v-chip>
-            </td>
-            <td class="doctorName">{{ row.name }}</td>
-            <td v-if="showFound" class="doctorFound">{{ row.found }}</td>
-            <td class="doctorDetail">{{ row.detail }}</td>
-            <td class="doctorFix">
-              <code v-if="row.fix" class="adminCode">{{ row.fix }}</code>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
-  </AdminSection>
+      <template v-if="headerText" #hint>{{ headerText }}</template>
+      <table v-if="doctor" class="doctorTable">
+        <tbody>
+          <template v-for="row in rows" :key="row.key">
+            <tr v-if="row.sectionStart" class="doctorSectionRow">
+              <td :colspan="columns">{{ row.section }}</td>
+            </tr>
+            <tr class="doctorRow">
+              <td class="doctorStatus">
+                <v-chip
+                  size="small"
+                  variant="tonal"
+                  :color="statusColor(row.status)"
+                >
+                  {{ row.status }}
+                </v-chip>
+              </td>
+              <td class="doctorName">{{ row.name }}</td>
+              <td v-if="showFound" class="doctorFound">{{ row.found }}</td>
+              <td class="doctorDetail">{{ row.detail }}</td>
+              <td class="doctorFix">
+                <code v-if="row.fix" class="adminCode">{{ row.fix }}</code>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </AdminSection>
+  </div>
 </template>
 
 <script>
@@ -63,7 +57,7 @@ import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import { useAdminStore } from "@/stores/admin";
 
 /*
- * Every status comicbox's doctor can report, and the chip colour it wears.
+ * Every status the doctor can report, and the chip colour it wears.
  * OFF is an optional feature that is simply not set up, so it stays the
  * default grey. The failure statuses -- the ones ``problems`` counts -- are
  * all error red.
@@ -79,7 +73,7 @@ export const STATUS_COLORS = Object.freeze({
 });
 
 export default {
-  name: "AdminDoctorPanel",
+  name: "AdminDoctorTab",
   components: {
     AdminSection,
   },
@@ -101,13 +95,15 @@ export default {
       return this.doctor?.problems ?? 0;
     },
     verdict() {
+      if (!this.doctor) return this.CHECKING;
       if (!this.problems) return this.NO_PROBLEMS;
       return this.problems === 1 ? "1 problem" : `${this.problems} problems`;
     },
     /*
      * Report order, with a section header ahead of the first row of each
      * section. Names may repeat within a section (one WARN row per unknown
-     * config key), so the row's position is the only stable key.
+     * config key, one row per library), so the row's position is the only
+     * stable key.
      */
     rows() {
       const seen = new Set();
@@ -150,11 +146,12 @@ export default {
 @use "@/components/admin/tabs/admin-section.scss";
 @use "@/components/admin/tabs/design.scss" as d;
 
-.doctorVerdictOk {
+// The verdict is the heading, coloured by what it says.
+.doctorOk :deep(h3) {
   color: rgb(var(--v-theme-success));
 }
 
-.doctorVerdictProblems {
+.doctorProblems :deep(h3) {
   color: rgb(var(--v-theme-error));
 }
 

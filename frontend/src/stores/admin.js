@@ -63,6 +63,7 @@ export const TABS = Object.freeze([
   "Jobs",
   "Restore",
   "Stats",
+  "Doctor",
 ]);
 
 export const UNRESTRICTED_LABEL = "Adult";
