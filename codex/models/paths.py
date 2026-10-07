@@ -152,11 +152,7 @@ class CustomCover(WatchedPath):
         from codex.settings import CUSTOM_COVERS_UPLOADS_DIR
 
         path = Path(self.path)
-        try:
-            path.relative_to(CUSTOM_COVERS_UPLOADS_DIR)
-        except ValueError:
-            pass
-        else:
+        if path.is_relative_to(CUSTOM_COVERS_UPLOADS_DIR):
             return
         stem = path.stem
         if stem == self.FOLDER_COVER_STEM:

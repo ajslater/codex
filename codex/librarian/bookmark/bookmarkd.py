@@ -23,7 +23,7 @@ from codex.librarian.telemeter.telemeter import send_telemetry
 from codex.librarian.threads import AggregateMessageQueuedThread
 
 
-@dataclass
+@dataclass(frozen=True)
 class BookmarkKey:
     """
     Bookmark queue item key.
@@ -83,7 +83,7 @@ class BookmarkKey:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class _LastRouteKey:
     """Aggregation key for deferred last-route writes — one per settings row."""
 

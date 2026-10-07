@@ -1,5 +1,6 @@
 """Bulk update m2m fields foreign keys."""
 
+from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -43,9 +44,7 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
             return {}
         model = cast("type[BaseModel]", Comic._meta.get_field(field_name).related_model)
         instances: dict[int, BaseModel] = {}
-        pks = tuple(pk_map.values())
-        for start in range(0, len(pks), IMPORTER_LINK_FK_BATCH_SIZE):
-            batch = pks[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+        for batch in batched(pk_map.values(), IMPORTER_LINK_FK_BATCH_SIZE):
             instances.update(model.objects.in_bulk(batch))
         return {key: instances[pk] for key, pk in pk_map.items() if pk in instances}
 
@@ -54,11 +53,10 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
     ) -> dict[str, dict[str, "BaseModel"]]:
         """Resolve protagonist names to Character/Team instances."""
         maps: dict[str, dict[str, BaseModel]] = {}
-        name_list = tuple(sorted(names))
+        name_list = sorted(names)
         for field_name, model in PROTAGONIST_FIELD_MODEL_MAP.items():
             field_map: dict[str, BaseModel] = {}
-            for start in range(0, len(name_list), IMPORTER_LINK_FK_BATCH_SIZE):
-                batch = name_list[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+            for batch in batched(name_list, IMPORTER_LINK_FK_BATCH_SIZE):
                 for obj in model.objects.filter(name__in=batch):
                     field_map[obj.name] = obj
             maps[field_name] = field_map
@@ -66,12 +64,11 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
 
     def _build_parent_folder_map(self) -> dict[str, Folder]:
         """Resolve the distinct parent dirs of the comics to be created."""
-        parent_paths = tuple(
-            sorted({str(Path(path).parent) for path in self.metadata[CREATE_COMICS]})
+        parent_paths = sorted(
+            {str(Path(path).parent) for path in self.metadata[CREATE_COMICS]}
         )
         folder_map: dict[str, Folder] = {}
-        for start in range(0, len(parent_paths), IMPORTER_LINK_FK_BATCH_SIZE):
-            batch = parent_paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+        for batch in batched(parent_paths, IMPORTER_LINK_FK_BATCH_SIZE):
             for folder in Folder.objects.filter(library=self.library, path__in=batch):
                 folder_map[folder.path] = folder
         return folder_map

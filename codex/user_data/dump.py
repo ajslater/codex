@@ -74,8 +74,7 @@ def _dump_queryset(
 
 def _clear_sidecar(store: SidecarStore) -> None:
     """Truncate every tracked table inside a single transaction."""
-    conn = store.connection()
-    with conn:
+    with store.transaction() as conn:
         for table in _TRACKED_TABLES:
             # Table names come from a static module-level tuple, not user input.
             conn.execute(f"DELETE FROM {table}")  # noqa: S608

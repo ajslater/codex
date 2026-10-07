@@ -10,8 +10,6 @@ size agree, while still pairing the write-then-rename flow whose stored
 size is legitimately stale.
 """
 
-from __future__ import annotations
-
 import shutil
 from pathlib import Path
 from typing import Final, override

@@ -11,8 +11,6 @@ log, so an admin who never opens the web UI still finds out that their
 image has stopped being the real one.
 """
 
-from __future__ import annotations
-
 from threading import Lock
 from typing import override
 from unittest.mock import patch

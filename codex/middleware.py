@@ -2,7 +2,7 @@
 
 from base64 import b64decode
 from inspect import iscoroutinefunction
-from time import time
+from time import perf_counter
 from typing import Any, Final
 
 from asgiref.sync import markcoroutinefunction
@@ -86,9 +86,9 @@ class LogResponseTimeMiddleware:
 
     def _log_response_time(self, request):
         """Log response times if slow or debug."""
-        start_time = time()
+        start_time = perf_counter()
         response = self.get_response(request)
-        response_time = time() - start_time
+        response_time = perf_counter() - start_time
         is_slow = response_time > DEBUG_SLOW_QUERY_LIMIT
 
         if is_slow or DEBUG_LOG_RESPONSE_TIME:

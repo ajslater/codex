@@ -1,6 +1,7 @@
 """Prepare links with database objects."""
 
 from collections.abc import Iterable, Mapping
+from itertools import batched
 from typing import TYPE_CHECKING
 
 from django.db.models.query_utils import Q
@@ -92,8 +93,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
         pk_map: dict[tuple, int] = {}
         # IN clause batched against SQLite's 32766-variable cap.
         values = sorted({tup[0] for tup in key_tuples if tup})
-        for start in range(0, len(values), IMPORTER_LINK_FK_BATCH_SIZE):
-            batch = values[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+        for batch in batched(values, IMPORTER_LINK_FK_BATCH_SIZE):
             rows = model.objects.filter(scope, **{f"{rel}__in": batch}).values_list(
                 "pk", rel
             )
@@ -136,14 +136,12 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
                 {tup[index] for tup in key_tuples if tup[index] is not None}
             )
             residual_tuples = {tup for tup in key_tuples if tup[index] is None}
-            for start in range(0, len(selector_values), IMPORTER_LINK_FK_BATCH_SIZE):
-                batch = selector_values[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+            for batch in batched(selector_values, IMPORTER_LINK_FK_BATCH_SIZE):
                 or_q = Q(**{f"{selector_rel}__in": batch})
                 pk_map.update(cls._build_pk_map_rows(model, rels, scope & or_q))
         # Q-OR chain batched at a planner-friendly cap.
         tuples = sorted(residual_tuples, key=_none_safe_key)
-        for start in range(0, len(tuples), _M2M_OR_CHAIN_CAP):
-            batch = tuples[start : start + _M2M_OR_CHAIN_CAP]
+        for batch in batched(tuples, _M2M_OR_CHAIN_CAP):
             or_q = Q()
             for tup in batch:
                 or_q |= Q(**dict(zip(rels, tup, strict=False)))

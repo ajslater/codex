@@ -1,5 +1,6 @@
 """OPDS v1 Facets methods."""
 
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any
 
@@ -24,66 +25,49 @@ class OPDS1FacetsView(CodexXMLTemplateMixin, OPDSBrowserView):
     TARGET = "opds1"
     IS_START_PAGE: bool = False
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialize properties."""
-        super().__init__(*args, **kwargs)
-        self._user_agent_client: str | None = None
-        self._mime_type_map: MappingProxyType[str, str] | None = None
-        self._use_facets: bool | None = None
-        self._use_facets_order: bool | None = None
-        self._obj: MappingProxyType[str, Any] | None = None
-
-    @property
+    @cached_property
     def mime_type_map(self) -> MappingProxyType[str, str]:
         """Memoize mime type map."""
-        if self._mime_type_map is None:
-            self._mime_type_map = (
-                MimeType.SIMPLE_FILE_TYPE_MAP
-                if self.user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES
-                else MimeType.FILE_TYPE_MAP
-            )
-        return self._mime_type_map
+        return (
+            MimeType.SIMPLE_FILE_TYPE_MAP
+            if self.user_agent_name in UserAgentNames.SIMPLE_DOWNLOAD_MIME_TYPES
+            else MimeType.FILE_TYPE_MAP
+        )
 
-    @property
+    @cached_property
     def use_facets(self) -> bool:
         """Memoize use_facets."""
-        if self._use_facets is None:
-            self._use_facets = self.user_agent_name in UserAgentNames.FACET_SUPPORT
-        return self._use_facets
+        return self.user_agent_name in UserAgentNames.FACET_SUPPORT
 
-    @property
+    @cached_property
     def use_facets_order(self) -> bool:
         """Memoize use_facets_order."""
-        if self._use_facets_order is None:
-            collection = self.kwargs.get("collection")
-            self._use_facets_order = (
-                collection != Collection.COMIC
-                and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
-            )
-        return self._use_facets_order  # pyright: ignore[reportReturnType]
+        collection = self.kwargs.get("collection")
+        return (
+            collection != Collection.COMIC
+            and self.user_agent_name not in UserAgentNames.CLIENT_REORDERS
+        )
 
-    @property
+    @cached_property
     def obj(self) -> MappingProxyType[str, Any]:
         """Get the browser page and serialize it for this subclass."""
-        if self._obj is None:
-            collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, _ = (
-                self._get_collection_and_books()
-            )
-            book_qs = book_qs.select_related("series", "volume", "language")
+        collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, _ = (
+            self._get_collection_and_books()
+        )
+        book_qs = book_qs.select_related("series", "volume", "language")
 
-            title = self.get_browser_page_title()
-            self._obj = MappingProxyType(
-                {
-                    "title": title,
-                    "groups": collection_qs,
-                    "books": book_qs,
-                    "zero_pad": zero_pad,
-                    "num_pages": num_pages,
-                    "total_count": total_count,
-                    "mtime": mtime,
-                }
-            )
-        return self._obj
+        title = self.get_browser_page_title()
+        return MappingProxyType(
+            {
+                "title": title,
+                "groups": collection_qs,
+                "books": book_qs,
+                "zero_pad": zero_pad,
+                "num_pages": num_pages,
+                "total_count": total_count,
+                "mtime": mtime,
+            }
+        )
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params) -> OPDS1Link:
         facet_active = False

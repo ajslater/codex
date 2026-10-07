@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import TYPE_CHECKING, Final
 
 from asgiref.sync import SyncToAsync, ThreadSensitiveContext, sync_to_async
@@ -188,20 +188,15 @@ class WorkerPool:
 
     async def stop(self) -> None:
         """Take the pool out of service and release its workers."""
-        if self._free is None:
+        free = self._free
+        if free is None:
             return
         self.enabled = False
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + self.STOP_TIMEOUT
         idle: list[ThreadSensitiveContext] = []
-        while len(idle) < len(self._contexts):
-            remaining = deadline - loop.time()
-            if remaining <= 0:
-                break
-            try:
-                idle.append(await asyncio.wait_for(self._free.get(), remaining))
-            except TimeoutError:
-                break
+        with suppress(TimeoutError):
+            async with asyncio.timeout(self.STOP_TIMEOUT):
+                while len(idle) < len(self._contexts):
+                    idle.append(await free.get())
         busy = [context for context in self._contexts if context not in idle]
         if busy:
             logger.warning(

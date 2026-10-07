@@ -23,8 +23,6 @@ clients on cold-start (or after a librarian-driven invalidation) pay
 the cold cost on every navigation step.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json
@@ -311,7 +309,7 @@ def run(out_path: Path) -> int:
     for flow in flows:
         _reset_user_settings(client)
         sample = _capture(client, flow["url"])
-        results.append({**flow, **sample})
+        results.append(flow | sample)
 
     artifact = {
         "series_pk_used": series_pk,

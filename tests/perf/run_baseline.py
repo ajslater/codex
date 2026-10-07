@@ -18,8 +18,6 @@ Usage::
 Each flow runs twice: one warm-up (discarded) and one measured call.
 """
 
-from __future__ import annotations
-
 import argparse
 import importlib
 import json
@@ -336,7 +334,7 @@ def run(out_path: Path) -> int:
             sample = _capture_browse_plus_covers(client, flow["url"])
         else:
             sample = _capture(client, flow["url"])
-        results.append({**flow, **sample})
+        results.append(flow | sample)
 
     artifact = {
         "series_pk_used": series_pk,

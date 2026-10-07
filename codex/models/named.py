@@ -67,8 +67,8 @@ class IdentifiedNamedModel(NamedModel):
     @override
     def __repr__(self) -> str:
         """Return the name."""
-        suffix = ":" + str(self.identifier) if self.identifier else ""
-        return self.name + suffix
+        suffix = f":{self.identifier}" if self.identifier else ""
+        return f"{self.name}{suffix}"
 
 
 class Character(IdentifiedNamedModel):
@@ -104,7 +104,7 @@ class Credit(BaseModel):
     @override
     def __repr__(self) -> str:
         """Return the strings of parts."""
-        parts = str(self.person) + ":" + str(self.role)
+        parts = f"{self.person}:{self.role}"
         return parts + ":primary" if self.primary else parts
 
 
@@ -283,8 +283,8 @@ class Universe(IdentifiedNamedModel):
     @override
     def __repr__(self) -> str:
         """Provide a name to imitate a NamedModel."""
-        name = self.name + ":" + str(self.designation)
+        name = f"{self.name}:{self.designation}"
         if self.identifier:
-            name += ":" + str(self.identifier)
+            name += f":{self.identifier}"
 
         return name

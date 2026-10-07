@@ -6,6 +6,29 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.3
+
+- Features
+    - Online tagging gains an Ask match mode that prompts for every match
+      instead of writing any.
+    - Admin Doctor tab: archive tools, PDF support, image codecs, database,
+      libraries, watcher limits, config and package problems, each with its fix.
+      Problems are also logged at startup.
+- Fixes
+    - A missing or broken unrar no longer hides CBR comics from scans or deletes
+      them from the library; they are listed as failed imports with the cause.
+    - A broken PDF library disables PDF reading instead of stopping the server.
+    - Metron logins by username and password tag again; a blank API key no
+      longer overrides them.
+    - Credential checks no longer compete with a running tagging job for
+      Metron's rate limit.
+    - Re-applying a chosen online match reuses the cached search.
+    - Failed imports no longer vanish from the admin list after other imports.
+    - Size searches accept kb, mb, gb and tb units and the >= and <= operators.
+    - Codex shuts down cleanly on Python 3.12 and 3.13.
+- Performance
+    - Docker image is about 165 MB smaller.
+
 ## v2.5.2
 
 - Fixes

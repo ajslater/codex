@@ -1,9 +1,9 @@
 """Notification messages."""
 
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 
-class Notifications(Enum):
+class Notifications(StrEnum):
     """Websocket Notifications."""
 
     ADMIN_FLAGS = "ADMIN_FLAGS_CHANGED"

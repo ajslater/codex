@@ -36,7 +36,7 @@ class LazyImporter(WorkerBase):
         # Map comics to libraries.
         library_path_map: defaultdict[int, set[str]] = defaultdict(set)
         for comic in comics:
-            library_id = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
+            library_id = comic.library_id  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             library_path_map[library_id].add(comic.path)
 
         for library_id, paths in library_path_map.items():

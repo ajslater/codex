@@ -177,7 +177,7 @@ class AdminLibrarianTaskView(AdminAPIView):
         if name == "notify_bookmark_changed":
             uid = self.request.user.pk
             group = f"user_{uid}"
-            return NotifierTask(Notifications.BOOKMARK.value, group)
+            return NotifierTask(Notifications.BOOKMARK, group)
         task = _TASK_MAP.get(name)
         if isinstance(task, FSPollLibrariesTask):
             # ``_TASK_MAP`` holds a single shared ``FSPollLibrariesTask``

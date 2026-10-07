@@ -1,6 +1,7 @@
 """Force update browser view: re-import metadata for a filtered comic set."""
 
 from collections.abc import Sequence
+from functools import cached_property
 from types import MappingProxyType
 from typing import override
 
@@ -27,14 +28,11 @@ class ForceUpdateView(BrowserFilterView):
         super().__init__(*args, **kwargs)
         self.init_group_acl()
 
-    @property
+    @cached_property
     @override
     def params(self):
         """Retrieve params from the request without saving them to settings."""
-        if self._params is None:
-            params = self.load_params_from_settings()
-            self._params = MappingProxyType(params)
-        return self._params
+        return MappingProxyType(self.load_params_from_settings())
 
     @extend_schema(request=None, responses=serializer_class)
     def post(self, *_args, **_kwargs) -> Response:

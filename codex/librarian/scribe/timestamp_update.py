@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from datetime import datetime
+from itertools import batched
 
 from django.db.models.functions.datetime import Now
 from django.db.models.query_utils import Q
@@ -101,8 +102,7 @@ class TimestampUpdater(WorkerStatusBase):
         if count:
             # .update() can't run on a .distinct() queryset; route the
             # distinct pks back through a batched plain filter.
-            for start in range(0, count, IMPORTER_LINK_FK_BATCH_SIZE):
-                batch = pks[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
+            for batch in batched(pks, IMPORTER_LINK_FK_BATCH_SIZE):
                 model.objects.filter(pk__in=batch).update(updated_at=Now())
             log_list.append(f"{count} {model.__name__}s")
         return count

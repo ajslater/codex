@@ -16,8 +16,6 @@ unexpected shapes. Signal handlers wrap calls and log without
 re-raising.
 """
 
-from __future__ import annotations
-
 import json
 from typing import Any
 

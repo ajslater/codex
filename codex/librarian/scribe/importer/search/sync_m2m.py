@@ -1,5 +1,6 @@
 """Update fts fields for updated foreign keys with non key search values."""
 
+from itertools import batched
 from typing import TYPE_CHECKING
 
 from django.db import transaction
@@ -114,8 +115,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         """
         pks = tuple(c.comic_id for c in comicftss)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
         with transaction.atomic():
-            for start in range(0, len(pks), _FTS_BATCH_SIZE):
-                chunk = pks[start : start + _FTS_BATCH_SIZE]
+            for chunk in batched(pks, _FTS_BATCH_SIZE):
                 ComicFTS.objects.filter(pk__in=chunk).delete()
             ComicFTS.objects.bulk_create(comicftss, batch_size=_FTS_BATCH_SIZE)
 

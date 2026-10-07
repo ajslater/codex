@@ -16,8 +16,6 @@ directory also still stats from its parent, so it can only ever reproduce
 the first route.
 """
 
-from __future__ import annotations
-
 import os
 import shutil
 from pathlib import Path

@@ -7,8 +7,6 @@ write — no live scan required. A response that arrives *during* a scan is
 deferred instead, and applied when the scan winds down.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Final
@@ -26,6 +24,7 @@ from codex.librarian.onlinetag.session_state import SessionState
 from codex.librarian.onlinetag.statuses import USER_MATCHED
 from codex.librarian.onlinetag.tasks import OnlineTagPromptResponseTask
 from codex.librarian.scribe.tagwrite_errors import get_tag_write_errors
+from codex.settings import COMICBOX_ONLINE_CONFIG
 from tests.onlinetag_session_fakes import (
     APPLY_FETCH_TARGET,
     APPLY_SESSION_TARGET,
@@ -216,6 +215,30 @@ class OnlineTagPromptResolutionTests(OnlineTagSessionTestCase):
             self.manager.resolve_prompt("fp1", "choose", 0, None)
 
         assert not self.write_tasks()
+
+    def test_replay_runs_with_codex_online_config(self) -> None:
+        """
+        The replay reads the cache the search filled.
+
+        Built without ``config``, the session fell back to comicbox's own
+        defaults: the user's config file and a cache dir under platformdirs,
+        not the one under /config the search wrote to.
+        """
+        comic = make_comic()
+        set_pending_prompts({"fp1": _prompt(comic, candidates=[{"source": "metron"}])})
+        FakeSession.tag_results = [
+            SimpleNamespace(
+                path=Path(comic.path),
+                tags={"series": "Existing"},
+                error=None,
+                matched=False,
+            )
+        ]
+
+        with patch(APPLY_SESSION_TARGET, FakeSession):
+            self.manager.resolve_prompt("fp1", "choose", 0, None)
+
+        assert FakeSession.last_kwargs["config"] is COMICBOX_ONLINE_CONFIG
 
     def test_resolve_skip_drops_prompt_without_writing(self) -> None:
         set_pending_prompts(

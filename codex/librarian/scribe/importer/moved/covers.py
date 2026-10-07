@@ -50,10 +50,10 @@ class MovedCoversImporter(MovedComicsImporter):
             collections = model.objects.filter(custom_cover__in=unlink_pks)
             unlink_collections = []
             for collection in collections:
-                collection.custom_cover = None
+                collection.custom_cover = None  # ty: ignore[invalid-assignment]
                 unlink_collections.append(collection)
             if unlink_collections:
-                model.objects.bulk_update(unlink_collections, ["custom_cover"])
+                model.objects.bulk_update(unlink_collections, ["custom_cover"])  # ty: ignore[invalid-argument-type]
                 self.log.debug(
                     f"Unlinked {len(unlink_collections)} {model.__name__} moved custom covers."
                 )

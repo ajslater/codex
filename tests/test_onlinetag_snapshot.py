@@ -11,8 +11,6 @@ the marker the daemon sets off the comicbox event stream, so no marker means
 nothing is in flight.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

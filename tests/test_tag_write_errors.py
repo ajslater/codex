@@ -1,7 +1,5 @@
 """Tests for tag-write error collection: the fs cache + the admin endpoint."""
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import Final, override
 from unittest.mock import patch

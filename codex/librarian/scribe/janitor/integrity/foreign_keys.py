@@ -2,15 +2,16 @@
 
 # Uses app.get_model() because functions may also be called before the models are ready on startup.
 from collections import defaultdict
+from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from comicbox.enums.comicbox import FileTypeEnum
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from django.db.models.functions import Now
 
+from codex.librarian.fs.filters import COMIC_SUFFIXES
 from codex.models.util import get_sort_name
 
 if TYPE_CHECKING:
@@ -21,25 +22,16 @@ if TYPE_CHECKING:
 
 # Comic file extensions we'll consider — phantom directory-as-comic
 # rows (older bug) are out of scope for parent-folder drift repair.
-#
-# Derived from comicbox rather than written out, so a new archive format
-# cannot leave rows behind here, and compared case-insensitively because
-# that is how the scanner matched them on the way in
-# (``filters`` compiles its regex with ``re.IGNORECASE`` and the importer
-# stores the path verbatim, so ``Foo.CBZ`` is a real, importable comic).
-# A case-sensitive test dropped those rows from ``needed`` and pruned the
+# The scanner's own list, compared case-insensitively because that is
+# how the scanner matched them on the way in (the importer stores the
+# path verbatim, so ``Foo.CBZ`` is a real, importable comic). A
+# case-sensitive test dropped those rows from ``needed`` and pruned the
 # folders they live in, cascading the comics and their bookmarks away.
-#
-# Deliberately *not* ``filters.match_comic``: that consults
-# ``Comicbox.is_unrar_supported()`` / ``is_pdf_supported()``, so on a host
-# without unrar every ``.cbr`` row would drop out of ``needed`` and be
-# pruned — the same bug from the other side.
-_COMIC_SUFFIXES = frozenset(f".{file_type.value.lower()}" for file_type in FileTypeEnum)
 
 
 def _is_comic_path(path: str) -> bool:
     """Whether a stored path is a comic archive, however it is cased."""
-    return Path(path).suffix.lower() in _COMIC_SUFFIXES
+    return Path(path).suffix.lower() in COMIC_SUFFIXES
 
 
 # SQLite's parameter cap is 32766; leave headroom for the rare case
@@ -212,8 +204,7 @@ def _execute_fix_batch(
 ) -> int:
     """Run one batched UPDATE or DELETE; return rows affected."""
     affected = 0
-    for start in range(0, len(rowids), _SQLITE_MAX_VARS):
-        batch = rowids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(rowids, _SQLITE_MAX_VARS):
         placeholders = ",".join(["%s"] * len(batch))
         if all_nullable:
             set_clauses = ", ".join(f'"{col}" = NULL' for col in cols)
@@ -435,13 +426,11 @@ def _comic_ancestor_dirs(comic_path: str, library_path: str) -> list[str]:
     ``Path(comic_path).parents`` entry relative to the library path).
     """
     library = Path(library_path)
-    ancestors: list[str] = []
-    for parent in Path(comic_path).parents:
-        try:
-            parent.relative_to(library)
-        except ValueError:
-            continue
-        ancestors.append(str(parent))
+    ancestors = [
+        str(parent)
+        for parent in Path(comic_path).parents
+        if parent.is_relative_to(library)
+    ]
     ancestors.reverse()
     return ancestors
 
@@ -529,8 +518,7 @@ def _delete_m2m_pairs(through, remove: set[tuple[int, int]]) -> int:
         if (comic_id, folder_id) in remove
     ]
     deleted = 0
-    for start in range(0, len(remove_ids), _SQLITE_MAX_VARS):
-        batch = remove_ids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(remove_ids, _SQLITE_MAX_VARS):
         deleted += through.objects.filter(id__in=batch).delete()[0]
     return deleted
 
@@ -590,8 +578,7 @@ def _prune_stale_folders(
     # ``protected`` filter holds even if it did.
     stale.sort(key=lambda item: item[1].count("/"), reverse=True)
     stale_ids = [folder_id for folder_id, _ in stale]
-    for start in range(0, len(stale_ids), _SQLITE_MAX_VARS):
-        batch = stale_ids[start : start + _SQLITE_MAX_VARS]
+    for batch in batched(stale_ids, _SQLITE_MAX_VARS):
         folder_model.objects.filter(id__in=batch).delete()
     log.info(f"Pruned {len(stale_ids)} stale empty folders.")
     return len(stale_ids)

@@ -1,5 +1,6 @@
 """Base view for metadata annotations."""
 
+from functools import cached_property
 from os import sep
 from types import MappingProxyType
 
@@ -110,13 +111,10 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def __init__(self, *args, **kwargs) -> None:
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
-        self._order_agg_func: type[Min | Max] | None = None
-        self._is_opds_acquisition: bool | None = None
-        self._opds_acquisition_collections: frozenset[str] | None = None
         self.bmua_is_max = False
         self._child_count_annotated = False
 
-    @property
+    @cached_property
     def opds_acquisition_collections(self):
         """
         Memoize the opds acquisition collections.
@@ -141,37 +139,31 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         reasoning: change it only when a real client is observed
         misreading Story Arc View (#855 follow-up F7).
         """
-        if self._opds_acquisition_collections is None:
-            collections: set[str] = {
-                STORY_ARC_COLLECTION,
-                FOLDER_COLLECTION,
-                COMIC_COLLECTION,
-            }
-            collections |= {*self.valid_nav_collections[-2:]}
-            self._opds_acquisition_collections = frozenset(collections)
-        return self._opds_acquisition_collections
+        collections: set[str] = {
+            STORY_ARC_COLLECTION,
+            FOLDER_COLLECTION,
+            COMIC_COLLECTION,
+        }
+        collections |= {*self.valid_nav_collections[-2:]}
+        return frozenset(collections)
 
-    @property
+    @cached_property
     def is_opds_acquisition(self) -> bool:
         """Memoize if we're in an opds acquisition view."""
-        if self._is_opds_acquisition is None:
-            is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
-            if is_opds_acquisition:
-                collection = self.kwargs.get("collection")
-                is_opds_acquisition &= collection in self.opds_acquisition_collections
-                if is_opds_acquisition and collection == STORY_ARC_COLLECTION:
-                    pks = self.kwargs["pks"]
-                    is_opds_acquisition &= bool(pks and 0 not in pks)
-            self._is_opds_acquisition = is_opds_acquisition
-        return self._is_opds_acquisition
+        is_opds_acquisition = self.TARGET in self._OPDS_TARGETS
+        if is_opds_acquisition:
+            collection = self.kwargs.get("collection")
+            is_opds_acquisition &= collection in self.opds_acquisition_collections
+            if is_opds_acquisition and collection == STORY_ARC_COLLECTION:
+                pks = self.kwargs["pks"]
+                is_opds_acquisition &= bool(pks and 0 not in pks)
+        return is_opds_acquisition
 
-    @property
-    def order_agg_func(self):
+    @cached_property
+    def order_agg_func(self) -> type[Min | Max]:
         """Get the order aggregate function."""
-        if self._order_agg_func is None:
-            order_reverse = self.params.get("order_reverse")
-            self._order_agg_func = Max if order_reverse else Min
-        return self._order_agg_func
+        order_reverse = self.params.get("order_reverse")
+        return Max if order_reverse else Min
 
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""

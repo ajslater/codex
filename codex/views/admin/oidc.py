@@ -1,7 +1,5 @@
 """Admin OIDC Settings View."""
 
-from __future__ import annotations
-
 import requests
 from django.core.cache import cache
 from loguru import logger

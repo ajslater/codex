@@ -256,4 +256,4 @@ def get_per_user_stats() -> dict[str, Any]:
     and every bucket empty, which is a different and more useful statement
     than sending nothing at all.
     """
-    return {**_browser_stats(), **_reader_stats()}
+    return _browser_stats() | _reader_stats()

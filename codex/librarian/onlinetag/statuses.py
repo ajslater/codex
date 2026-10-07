@@ -11,8 +11,6 @@ events into them and :mod:`~codex.librarian.onlinetag.session_snapshot`
 renders them — and importing one from the other would close a cycle.
 """
 
-from __future__ import annotations
-
 from typing import Final
 
 QUEUED: Final = "queued"

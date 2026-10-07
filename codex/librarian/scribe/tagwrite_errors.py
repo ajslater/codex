@@ -17,8 +17,6 @@ delete every entry regardless of key prefix. Use
 :func:`clear_tag_write_errors` for granular clearing.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from django.utils import timezone

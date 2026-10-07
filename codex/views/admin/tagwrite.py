@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Sequence
+from functools import cached_property
 from pathlib import Path
 from types import MappingProxyType
 from typing import override
@@ -53,13 +54,11 @@ class FilteredComicPksView(BrowserFilterView):
         #: Set by the most recent ``resolve_comic_pks`` call.
         self.skipped_read_only: int = 0
 
-    @property
+    @cached_property
     @override
     def params(self):
         """Load active browser filters from settings without persisting."""
-        if self._params is None:
-            self._params = MappingProxyType(self.load_params_from_settings())
-        return self._params
+        return MappingProxyType(self.load_params_from_settings())
 
     def resolve_comic_pks(self, collection: str, pks) -> frozenset[int]:
         """

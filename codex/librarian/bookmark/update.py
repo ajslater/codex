@@ -107,7 +107,7 @@ class BookmarkUpdateMixin(GroupACLMixin):
     def _notify_library_changed(uid) -> None:
         """Notify one user that their library changed."""
         group = f"user_{uid}"
-        task = NotifierTask(Notifications.BOOKMARK.value, group)
+        task = NotifierTask(Notifications.BOOKMARK, group)
         LIBRARIAN_QUEUE.put(task)
 
     @classmethod

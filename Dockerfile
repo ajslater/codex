@@ -134,8 +134,11 @@ RUN mkdir -p /home/abc/.config/comicbox \
 
 COPY --from=wheel-installer /opt/codex /opt/codex
 ENV PATH="/opt/codex/bin:${PATH}"
-# Fail the build, not the container start, on a broken venv.
-RUN python -B -c "import django, comicbox, pymupdf, PIL.Image, cryptography, granian, rapidfuzz"
+# Fail the build, not the container start, on a broken venv. comicbox's
+# doctor proves unrar extracts a RAR member, pymupdf loads and every pin is
+# satisfied; HOME keeps the config dir it creates out of the image.
+RUN python -B -c "import django, cryptography, granian, rapidfuzz" \
+    && HOME=/tmp comicbox doctor -q
 
 VOLUME /comics
 VOLUME /config

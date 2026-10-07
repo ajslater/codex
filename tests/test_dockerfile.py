@@ -9,8 +9,6 @@ every process recompile on import. CI's image build only runs on deploy, so
 these are the only Dockerfile checks a PR gets.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 
@@ -112,3 +110,11 @@ def test_bytecode_is_kept(stages: dict[str, list[tuple[str, str]]]) -> None:
     ]
     assert installs
     assert all("--compile-bytecode" in command for command in installs)
+
+
+def test_final_smoke_test_runs_the_doctor(
+    stages: dict[str, list[tuple[str, str]]],
+) -> None:
+    """The doctor proves the image reads every archive format before it ships."""
+    runs = _runs(stages["final"])
+    assert [run for run in runs if "comicbox doctor -q" in run]

@@ -53,7 +53,7 @@
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^2.1.0",
+    "@eslint/json": "^2.1.1",
     "@eslint/markdown": "^8.0.3",
     "@fsouza/prettierd": "^0.29.0",
     "@prettier/plugin-xml": "^3.4.2",

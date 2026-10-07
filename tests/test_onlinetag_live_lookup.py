@@ -15,8 +15,6 @@ that a display path can never corrupt a comic's outcome. The projection into
 snapshot rows is covered by ``test_onlinetag_snapshot``.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import override
 from unittest.mock import patch

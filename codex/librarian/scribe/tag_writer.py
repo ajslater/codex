@@ -241,7 +241,7 @@ class TagWriter(WorkerStatusAbortableBase):
         self._file_type_of = {}
         for comic in comics:
             comic_paths[comic.pk] = Path(comic.path)
-            lib_of[comic.pk] = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
+            lib_of[comic.pk] = comic.library_id  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             self._file_type_of[comic.pk] = comic.file_type or ""
         return comic_paths, lib_of
 
@@ -284,7 +284,7 @@ class TagWriter(WorkerStatusAbortableBase):
             return
 
         renamed_paths = self._rename_first(task, comic_paths, lib_of)
-        current_paths = {**comic_paths, **renamed_paths}
+        current_paths = comic_paths | renamed_paths
 
         written_paths = self._write(task, current_paths)
         converted_paths = self._sync_conversions(

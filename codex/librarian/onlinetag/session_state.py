@@ -165,7 +165,7 @@ def serialize_prompt(
         "comics": comics,
         "source": dp.source,
         "candidates": [serialize_candidate(c) for c in dp.candidates],
-        "mode": getattr(dp.match, "value", str(dp.match)),
+        "mode": str(dp.match),
         "formats": list(formats),
         "delete_original": delete_original,
         "rename": rename,

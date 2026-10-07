@@ -1,7 +1,5 @@
 """Integration tests for the session-agnostic online-tag prompt endpoints."""
 
-from __future__ import annotations
-
 import shutil
 from datetime import timedelta
 from http import HTTPStatus

@@ -17,8 +17,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from loguru import logger
 
+from codex.librarian.fs.filters import COMIC_SUFFIXES
 from codex.librarian.scribe.janitor.integrity.foreign_keys import (
-    _COMIC_SUFFIXES,
     _is_comic_path,
     fix_folder_relations,
 )
@@ -235,8 +235,8 @@ class ComicSuffixTests(TestCase):
 
     def test_suffixes_are_derived_from_comicbox(self) -> None:
         """A new archive format in comicbox must not be left behind here."""
-        assert frozenset({".cbz", ".cbr", ".cb7", ".cbt", ".pdf"}) == _COMIC_SUFFIXES, (
-            _COMIC_SUFFIXES
+        assert frozenset({".cbz", ".cbr", ".cb7", ".cbt", ".pdf"}) == COMIC_SUFFIXES, (
+            COMIC_SUFFIXES
         )
 
     def test_comic_paths_are_recognized_in_any_case(self) -> None:

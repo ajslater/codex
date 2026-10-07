@@ -36,7 +36,8 @@ spellings, so they cannot drift apart.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, override
+from functools import cached_property
+from typing import TYPE_CHECKING, Self, override
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -187,27 +188,17 @@ class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIn
 class IsAdminMixin:
     """Expose lazy ``is_admin`` check for the current request user."""
 
-    # Class-level default doubles as the unmemoized sentinel; the
-    # mixin no longer needs ``init_is_admin`` to set it before use.
-    _is_admin: bool | None = None
-
     if TYPE_CHECKING:
         # ``self.request`` is supplied by the DRF view base class
         # at dispatch; declare the attribute for the mixin so the
         # property body type-checks without requiring a parent.
         request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
 
-    def init_is_admin(self) -> None:
-        """Initialize the cached admin flag."""
-        self._is_admin = None
-
-    @property
+    @cached_property
     def is_admin(self) -> bool:
         """Is the current user an admin."""
-        if self._is_admin is None:
-            user = self.request.user
-            self._is_admin = bool(user and getattr(user, "is_staff", False))
-        return self._is_admin
+        user = self.request.user
+        return bool(user and getattr(user, "is_staff", False))
 
 
 class RelPrefixMixin:
@@ -454,7 +445,7 @@ class ComicACL:
     default_fits: bool
 
     @classmethod
-    def for_user(cls, user) -> "ComicACL":
+    def for_user(cls, user) -> Self:
         """
         One-shot form: resolve every scalar from scratch for ``user``.
 
@@ -585,7 +576,6 @@ class GroupACLMixin(
 
     def init_group_acl(self) -> None:
         """Initialize per-request cached scalars."""
-        self.init_is_admin()
         self._cached_visible_library_pks = None
         self._cached_max_idx = None
         self._cached_default_fits = None

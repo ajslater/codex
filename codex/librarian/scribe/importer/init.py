@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from multiprocessing.queues import Queue
 from pathlib import Path
-from time import perf_counter, sleep, time
+from time import monotonic, perf_counter, sleep
 from typing import TYPE_CHECKING, Any
 
 from django.db.models.query_utils import Q
@@ -165,6 +165,7 @@ class InitImporter(WorkerStatusBase):
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()
+        self.started = perf_counter()
         # Wall time accumulated per phase name across all chunks, keyed
         # by the method names in importer.py's _PRE/_PER_COMIC/_POST
         # phase tuples. Sub-steps nest with a dotted "phase.step" name
@@ -193,7 +194,7 @@ class InitImporter(WorkerStatusBase):
             return Q()
         return Q(library=self.library)
 
-    def timed_step(self, name: str, method: Callable[[], Any]) -> Any:
+    def timed_step[T](self, name: str, method: Callable[[], T]) -> T:
         """Run a method, accumulating its wall time into phase_times."""
         start = perf_counter()
         result = method()
@@ -203,7 +204,7 @@ class InitImporter(WorkerStatusBase):
 
     def _wait_for_filesystem_ops_to_finish(self) -> bool:
         """Watcher sends events before filesystem events finish, so wait for them."""
-        started_checking = time()
+        started_checking = monotonic()
 
         # Don't wait for deletes to complete.
         # Do wait for move, modified, create files before import.
@@ -228,7 +229,7 @@ class InitImporter(WorkerStatusBase):
                     f"{old_total_size} != {total_size}"
                 )
                 self.log.debug(reason)
-            if time() - started_checking > _WRITE_WAIT_EXPIRY:
+            if monotonic() - started_checking > _WRITE_WAIT_EXPIRY:
                 return True
 
             old_total_size = total_size
@@ -427,6 +428,7 @@ class InitImporter(WorkerStatusBase):
     def init_apply(self) -> None:
         """Initialize the library and status flags."""
         self.start_time = now()
+        self.started = perf_counter()
         self.library.start_update()
         if self._wait_for_filesystem_ops_to_finish():
             # The import runs anyway: abandoning the task would drop these

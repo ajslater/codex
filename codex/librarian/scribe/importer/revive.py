@@ -40,6 +40,7 @@ and are not:
 """
 
 from collections.abc import Collection, Mapping
+from itertools import batched
 
 from codex.librarian.pending_deletes import clear_stamps
 from codex.librarian.scribe.importer.delete.existence import split_extant
@@ -177,12 +178,10 @@ class ReviveImporter(ReadMetadataImporter):
 
     def _clear(self, model, revived: Mapping[str, int]) -> int:
         """Clear stamps in batches, returning how many rows moved."""
-        paths = tuple(revived)
         count = 0
-        for start in range(0, len(paths), IMPORTER_LINK_FK_BATCH_SIZE):
+        for batch in batched(revived, IMPORTER_LINK_FK_BATCH_SIZE):
             if self.abort_event.is_set():
                 break
-            batch = paths[start : start + IMPORTER_LINK_FK_BATCH_SIZE]
             # ``library=`` even though the pks are already scoped: every
             # path lookup in the importer combines it with AND, so the
             # overlapping-libraries audit stays one grep.

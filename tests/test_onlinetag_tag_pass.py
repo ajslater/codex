@@ -5,8 +5,6 @@ One of the online tagging manager modules; the shared test doubles and the
 comic factory live in ``tests.onlinetag_session_fakes``.
 """
 
-from __future__ import annotations
-
 import shutil
 from pathlib import Path
 from types import SimpleNamespace

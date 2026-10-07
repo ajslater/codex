@@ -1,7 +1,5 @@
 """Custom cover admin serializers."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from rest_framework.serializers import (

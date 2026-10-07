@@ -1,7 +1,5 @@
 """Tests for the admin custom-cover endpoints."""
 
-from __future__ import annotations
-
 import io
 import json
 from http import HTTPStatus
@@ -49,7 +47,7 @@ def _assert_covers_enqueued(mock_queue) -> None:
     notification text rather than identity-comparing the singleton.
     """
     enqueued = [call.args[0] for call in mock_queue.put.call_args_list]
-    assert any(getattr(t, "text", None) == Notifications.COVERS.value for t in enqueued)
+    assert any(getattr(t, "text", None) == Notifications.COVERS for t in enqueued)
 
 
 class AdminCustomCoverUploadTestCase(TestCase):
@@ -82,7 +80,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
         assert cover.collection == "publishers"
-        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
+        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
         # Naming convention: ``{collection}-{pk}-{slug}.{ext}``. Sortable by
         # collection on disk and trivially scannable for a given linked
