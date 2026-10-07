@@ -20,7 +20,7 @@ class ForceUpdater(WorkerBase):
         comics = Comic.objects.filter(pk__in=task.comic_pks).only("path", "library_id")
         library_path_map: defaultdict[int, set[str]] = defaultdict(set)
         for comic in comics:
-            library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue]
+            library_path_map[comic.library_id].add(comic.path)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
         total = 0
         for library_id, paths in library_path_map.items():

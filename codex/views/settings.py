@@ -116,13 +116,13 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if instance is None:
             return None
 
-        if session_key and instance.session_id != session_key:  # pyright: ignore[reportAttributeAccessIssue]
+        if session_key and instance.session_id != session_key:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             # Discard any anonymous row that owns the new session so
             # the unique constraint isn't violated.
             model.objects.filter(
                 session_id=session_key, user__isnull=True, **base_filter
             ).delete()
-            instance.session_id = session_key  # pyright: ignore[reportAttributeAccessIssue]
+            instance.session_id = session_key  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[invalid-assignment]
             instance.save(update_fields=("session_id", "updated_at"))
         return instance
 
@@ -143,7 +143,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if instance is None:
             return None
 
-        if user and instance.user_id is None:
+        if user and instance.user_id is None:  # ty: ignore[unresolved-attribute]
             # Promote anonymous row to a user row (first login).
             instance.user = user
             instance.save(update_fields=("user_id", "updated_at"))

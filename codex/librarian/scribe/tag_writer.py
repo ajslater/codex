@@ -241,7 +241,7 @@ class TagWriter(WorkerStatusAbortableBase):
         self._file_type_of = {}
         for comic in comics:
             comic_paths[comic.pk] = Path(comic.path)
-            lib_of[comic.pk] = comic.library_id  # pyright: ignore[reportAttributeAccessIssue]
+            lib_of[comic.pk] = comic.library_id  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             self._file_type_of[comic.pk] = comic.file_type or ""
         return comic_paths, lib_of
 

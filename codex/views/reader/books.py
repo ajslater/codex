@@ -66,7 +66,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             **reader_auth, comic_id__in=book_pks
         )
         settings_by_pk: dict[int, SettingsReader] = {
-            s.comic_id: s  # pyright: ignore[reportAttributeAccessIssue]
+            s.comic_id: s  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             for s in settings_qs
         }
         bookmark_auth = self.get_bookmark_auth_filter()
@@ -74,7 +74,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             **bookmark_auth, comic_id__in=book_pks
         ).only("page", "finished", "comic_id")
         bookmarks_by_pk: dict[int, Bookmark] = {
-            b.comic_id: b  # pyright: ignore[reportAttributeAccessIssue]
+            b.comic_id: b  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
             for b in bookmark_qs
         }
         return settings_by_pk, bookmarks_by_pk

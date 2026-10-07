@@ -49,7 +49,7 @@ class MovedFoldersImporter(MovedCoversImporter):
             folder.name = Path(new_path).name
             folder.path = new_path
             parent_path_str = str(Path(new_path).parent)
-            folder.parent_folder = dest_parent_folders_map.get(parent_path_str)
+            folder.parent_folder = dest_parent_folders_map.get(parent_path_str)  # ty: ignore[invalid-assignment]
             folder.presave()
             folder.updated_at = Now()
             update_folders.append(folder)

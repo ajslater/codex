@@ -77,7 +77,7 @@ class OPDSAuthentication1View(GenericAPIView):
     def static_get(cls, request, status_code=status.HTTP_200_OK) -> JsonResponse:
         """Serialize the authentication dict with absolute URLs."""
         doc = cls._absolute_doc(request)
-        serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall]
+        serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall], # ty: ignore[call-non-callable]
         response = JsonResponse(
             serializer.data,
             status=status_code,

@@ -121,7 +121,7 @@ class NewSessionSeedingTestCase(SettingsDefaultsCase):
         row = SettingsBrowser.objects.select_related("last_route").get(
             session_id=client.session.session_key
         )
-        assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue]
+        assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         response = client.get("/api/v4/browse/folders")
         assert response.status_code == HTTPStatus.OK, response.content
 
