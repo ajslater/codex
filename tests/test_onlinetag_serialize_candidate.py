@@ -49,6 +49,7 @@ def _summary(
 def _candidate(
     summary: CandidateSummary,
     *,
+    score: float = 0.92,
     metadata_score: float = 0.0,
     cover_score: float | None = None,
     cover_hash_attempted: bool = False,
@@ -57,7 +58,7 @@ def _candidate(
         source="metron",
         issue_id=7,
         summary=summary,
-        score=0.92,
+        score=score,
         url="https://metron.cloud/issue/7",
         metadata_score=metadata_score,
         cover_score=cover_score,
@@ -96,6 +97,29 @@ class SerializeCandidateTests(SimpleTestCase):
 
         assert data["cover_score"] is None
         assert data["cover_hash_attempted"] is False
+
+    def test_scores_are_stored_as_plain_floats(self) -> None:
+        """
+        A library's float subclass must not ride into the tagging cache.
+
+        comicbox 5.2 scored covers as ``numpy.float64``; prompts pickled
+        with those could not be read back once numpy was dropped.
+        """
+
+        class _LibraryFloat(float):
+            pass
+
+        candidate = _candidate(
+            _summary(),
+            score=_LibraryFloat(0.92),
+            metadata_score=_LibraryFloat(_METADATA_SCORE),
+            cover_score=_LibraryFloat(_COVER_SCORE),
+        )
+
+        data = serialize_candidate(candidate)
+
+        for key in ("score", "metadata_score", "cover_score"):
+            assert type(data[key]) is float, key
 
     def test_the_volume_ordinal_is_carried(self) -> None:
         """Metron's issue rows carry one; Comic Vine's search rows do not."""

@@ -172,6 +172,10 @@ def serialize_prompt(
     }
 
 
+def _plain_float(value) -> float | None:
+    return None if value is None else float(value)
+
+
 def serialize_candidate(c) -> dict[str, Any]:
     """
     Serialize a comicbox Candidate to a JSON-safe dict.
@@ -179,6 +183,11 @@ def serialize_candidate(c) -> dict[str, Any]:
     Every field is read with ``getattr`` and a default so an older
     comicbox, or a shape that changes under us, degrades to a missing
     display field rather than an exception in the librarian.
+
+    Scores are cast to plain ``float``. The dict is pickled into the
+    tagging cache, and a pickle names the class of every value in it:
+    comicbox 5.2's cover scores were ``numpy.float64``, so prompts stored
+    then could not be read once numpy was gone.
 
     Adding display fields here must NOT bump ``PROMPT_VERSION``: that
     gates the fingerprint scheme, and raising it discards every prompt a
@@ -207,16 +216,16 @@ def serialize_candidate(c) -> dict[str, Any]:
             # Comic Vine's search results have no equivalent.
             "volume": getattr(summary, "volume", None),
         },
-        "score": c.score,
+        "score": float(c.score),
         # What the blended score is made of. Two candidates can read
         # identically — same series, issue and year — and differ only
         # here, which is exactly the case the reporter could not choose
         # between.
-        "metadata_score": getattr(c, "metadata_score", None),
+        "metadata_score": _plain_float(getattr(c, "metadata_score", None)),
         # None when the cover was never compared: either this candidate
         # has no usable image, or it fell outside the top few the matcher
         # pays to hash. ``cover_hash_attempted`` tells those apart.
-        "cover_score": getattr(c, "cover_score", None),
+        "cover_score": _plain_float(getattr(c, "cover_score", None)),
         "cover_hash_attempted": getattr(c, "cover_hash_attempted", False),
         "url": getattr(c, "url", ""),
         # The candidate's parent container id (CV volume, Metron series).
