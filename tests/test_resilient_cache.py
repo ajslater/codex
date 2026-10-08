@@ -14,6 +14,7 @@ from types import ModuleType
 from typing import Final, override
 
 from django.test import SimpleTestCase
+from loguru import logger
 
 from codex.cache import tagging_cache
 from codex.librarian.onlinetag.session_cache import (
@@ -67,6 +68,27 @@ class StalePickleTestCase(SimpleTestCase):
 
         assert tagging_cache.get(_KEY, _MISS) == _MISS
         assert not tagging_cache.has_key(_KEY)
+
+    def test_the_discard_is_logged_with_its_cause(self) -> None:
+        """
+        The file is gone afterwards, so the log is the only evidence.
+
+        It must name the key and carry the traceback, in case this ever
+        catches an error it should not.
+        """
+        tagging_cache.set(_KEY, {"cover_score": self._library_float(0.6)})
+        self._uninstall_module()
+        records: list[str] = []
+        sink_id = logger.add(records.append, level="WARNING", format="{message}")
+        try:
+            tagging_cache.get(_KEY)
+        finally:
+            logger.remove(sink_id)
+
+        assert len(records) == 1
+        assert _KEY in records[0]
+        assert "ModuleNotFoundError" in records[0]
+        assert "Traceback" in records[0]
 
     def test_touch_discards_it_too(self) -> None:
         """``touch`` unpickles the value to rewrite it with a new expiry."""

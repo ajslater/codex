@@ -52,11 +52,15 @@ _UNREADABLE_CACHE_ERRORS: tuple[type[BaseException], ...] = (
 class ResilientFileBasedCache(FileBasedCache):
     """Cache backend that tolerates unreadable cache entries."""
 
-    def _discard_unreadable(self, fname: str, exc: BaseException) -> None:
-        # Warn rather than debug: the tagging cache holds pending prompts and
-        # tag-write errors, and an admin whose queue just emptied should be
-        # able to find out why.
-        logger.warning(f"Discarded unreadable cache file {fname}: {exc!r}")
+    def _discard_unreadable(self, key, version, exc: BaseException) -> None:
+        # The file is deleted here, so this warning is the only record of
+        # what was dropped and why. It carries the key and the traceback:
+        # an admin whose review queue just emptied can see the cause, and an
+        # error caught here that should not have been shows where it came from.
+        fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        logger.opt(exception=exc).warning(
+            f"Discarded unreadable cache entry {key!r} ({fname}): {exc!r}"
+        )
         self._delete(fname)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
     @override
@@ -64,8 +68,7 @@ class ResilientFileBasedCache(FileBasedCache):
         try:
             return super().get(key, default=default, version=version)
         except _UNREADABLE_CACHE_ERRORS as exc:
-            fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self._discard_unreadable(fname, exc)
+            self._discard_unreadable(key, version, exc)
             return default
 
     @override
@@ -73,8 +76,7 @@ class ResilientFileBasedCache(FileBasedCache):
         try:
             return super().touch(key, timeout=timeout, version=version)
         except _UNREADABLE_CACHE_ERRORS as exc:
-            fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self._discard_unreadable(fname, exc)
+            self._discard_unreadable(key, version, exc)
             return False
 
     @override
