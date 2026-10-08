@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.5
+
+- Fixes
+    - Online tagging matches saved for review by 2.5.3 no longer break the
+      review list and scan status with "No module named 'numpy'". They are
+      dropped, so those comics need tagging again.
+
 ## v2.5.4
 
 - Features

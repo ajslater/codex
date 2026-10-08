@@ -8,9 +8,17 @@ happened to fall on that key. A corrupt entry is rare but inevitable
 (a write killed mid-flush leaves a file Django can't decompress) and
 the right behaviour is just "treat it as a miss".
 
-``ResilientFileBasedCache`` catches those decode errors, deletes the
-bad file, and reports a miss so the caller continues with the
-underlying query instead of returning a 500 to the user.
+An intact entry can be just as unreadable after an upgrade. A pickle
+names the module and class of every object in it, so an entry written
+before a dependency was dropped raises ``ModuleNotFoundError`` on load,
+and one naming a since-removed class raises ``AttributeError``. Codex
+2.5.3 pickled comicbox's numpy cover scores into pending online-tag
+prompts; 2.5.4 ships without numpy, and every read of those prompts
+returned a 500.
+
+``ResilientFileBasedCache`` catches those errors, deletes the bad file,
+and reports a miss so the caller continues with the underlying query
+instead of returning a 500 to the user.
 
 It also no-ops ``validate_key``: the base class checks every key for
 memcached compatibility (no spaces / control chars / length > 250)
@@ -31,36 +39,44 @@ from django.core.cache.backends.filebased import FileBasedCache
 from django.utils.connection import ConnectionProxy
 from loguru import logger
 
-_CORRUPT_CACHE_ERRORS: tuple[type[BaseException], ...] = (
+_UNREADABLE_CACHE_ERRORS: tuple[type[BaseException], ...] = (
     zlib.error,
     UnpicklingError,
     EOFError,
+    # A stale pickle: its module (ModuleNotFoundError) or class is gone.
+    ImportError,
+    AttributeError,
 )
 
 
 class ResilientFileBasedCache(FileBasedCache):
-    """Cache backend that tolerates corrupt cache entries."""
+    """Cache backend that tolerates unreadable cache entries."""
 
-    def _discard_corrupt(self, fname: str, exc: BaseException) -> None:
-        logger.debug(f"Discarded corrupt cache file {fname}: {exc}")
+    def _discard_unreadable(self, key, version, exc: BaseException) -> None:
+        # The file is deleted here, so this warning is the only record of
+        # what was dropped and why. It carries the key and the traceback:
+        # an admin whose review queue just emptied can see the cause, and an
+        # error caught here that should not have been shows where it came from.
+        fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        logger.opt(exception=exc).warning(
+            f"Discarded unreadable cache entry {key!r} ({fname}): {exc!r}"
+        )
         self._delete(fname)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
 
     @override
     def get(self, key, default=None, version=None):
         try:
             return super().get(key, default=default, version=version)
-        except _CORRUPT_CACHE_ERRORS as exc:
-            fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self._discard_corrupt(fname, exc)
+        except _UNREADABLE_CACHE_ERRORS as exc:
+            self._discard_unreadable(key, version, exc)
             return default
 
     @override
     def touch(self, key, timeout=DEFAULT_TIMEOUT, version=None):
         try:
             return super().touch(key, timeout=timeout, version=version)
-        except _CORRUPT_CACHE_ERRORS as exc:
-            fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self._discard_corrupt(fname, exc)
+        except _UNREADABLE_CACHE_ERRORS as exc:
+            self._discard_unreadable(key, version, exc)
             return False
 
     @override
