@@ -2,7 +2,7 @@
 # Lint checks
 set -euxo pipefail
 
-uv run mbake validate Makefile cfg/*.mk
+uvx mbake@latest validate Makefile cfg/*.mk
 
 # Javascript, JSON, Markdown, YAML #####
 bun run lint
