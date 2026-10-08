@@ -17,7 +17,7 @@ fix:: build-choices
 ## Run a bundled production webserver
 ## @category Run Server
 prod-server: build-frontend collectstatic
-        ./bin/dev-prod-server.sh
+	./bin/dev-prod-server.sh
 
 .PHONY: dev
 ## Run Granian (backend) + Vite (frontend) together with interleaved logs
