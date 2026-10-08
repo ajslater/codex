@@ -4,8 +4,9 @@
 # prettier let the last matching line win, so a negation only works after the
 # patterns it overrides.
 set -euo pipefail
-# Set locale to make output deterministic across shells
-export LC_ALL=en_US.UTF-8
+# Bytewise order: every machine has the C locale, and it is the codepoint
+# order merge_dotfiles.py sorts in, so the two never reorder each other.
+export LC_ALL=C
 sorted=$(mktemp)
 trap 'rm -f "$sorted"' EXIT
 for f in .*ignore; do

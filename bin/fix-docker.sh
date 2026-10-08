@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Fix common linting errors with docker
+# Fix Dockerfile formatting
 set -euxo pipefail
 
-#######################
-###### Dockerfile #####
-#######################
-mapfile -t dockerfiles < <(find . -type f -name '*Dockerfile' -print -quit)
-if [ ${#dockerfiles[@]} -gt 0 ]; then
-  dockerfmt --write "${dockerfiles[@]}"
+bin=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck source=bin/_lib.sh
+. "$bin/_lib.sh"
+
+load_files "$bin/find-files.sh" -- -name '*Dockerfile'
+if ((${#files[@]})) && need dockerfmt; then
+  dockerfmt --write "${files[@]}"
 fi

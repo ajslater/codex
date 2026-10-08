@@ -1,10 +1,10 @@
-__pycache__
+*.sh
+*Dockerfile
 .*cache
 .claude
 .git
 .venv*
-*.sh
-*Dockerfile
+__pycache__
 bun.lock
 cache
 codex/static

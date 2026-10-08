@@ -20,4 +20,4 @@ bun run fix
 ###################
 ###### Shell ######
 ###################
-bin/fix-sh.sh
+bin/sh-tools.sh --fix

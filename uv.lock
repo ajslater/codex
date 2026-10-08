@@ -683,9 +683,7 @@ dev = [
     { name = "nplusone" },
     { name = "picopt" },
     { name = "pypi-cleanup" },
-    { name = "semver" },
     { name = "toml-cli" },
-    { name = "tomlkit" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -705,6 +703,7 @@ lint = [
     { name = "radon" },
     { name = "ruff" },
     { name = "ty" },
+    { name = "types-python-dateutil" },
     { name = "vulture" },
 ]
 test = [
@@ -765,9 +764,7 @@ dev = [
     { name = "nplusone", specifier = "~=1.0" },
     { name = "picopt", specifier = "~=6.10.0" },
     { name = "pypi-cleanup", specifier = "~=0.1.10" },
-    { name = "semver", specifier = "~=3.1.0" },
     { name = "toml-cli", specifier = "~=0.7" },
-    { name = "tomlkit", specifier = "~=0.14" },
 ]
 docs = [
     { name = "mkdocs", specifier = "~=1.6" },
@@ -787,6 +784,7 @@ lint = [
     { name = "radon", specifier = "~=6.0" },
     { name = "ruff", specifier = "~=0.16" },
     { name = "ty", specifier = "~=0.0.18" },
+    { name = "types-python-dateutil", specifier = "~=2.9" },
     { name = "vulture", specifier = "~=2.3" },
 ]
 test = [
@@ -1911,20 +1909,20 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "json5"
-version = "0.15.0"
+version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e4/7d/05c46a96a78147ae3bf99c2f4169ce144a70220b8d6fcd56f6ec368b8ce9/json5-0.15.0.tar.gz", hash = "sha256:7424d1f1eb1d56da6e3d70643f53619862b4ce81440bdb8ecfd6f875e5ba4a71", size = 53278, upload-time = "2026-06-19T20:08:27.716Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/63/503651a3946bfacb6d6098985f2af6b3bf880d8eedc53035761c628d13bc/json5-0.16.0.tar.gz", hash = "sha256:8b135a77b231f22e3656c601fec7621c5354c64c4fb2773715ee0814e4dc6bf7", size = 55924, upload-time = "2026-10-08T03:08:26.732Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/be/59527c99478aade6bb33a68d72e6e18dd4e6ff6eacfc7d01bdb15bc76912/json5-0.15.0-py3-none-any.whl", hash = "sha256:56636a30c0e8a4665fe2179c0212f32eae3796dea89ea6f649b9436ecdb39618", size = 36570, upload-time = "2026-06-19T20:08:26.748Z" },
+    { url = "https://files.pythonhosted.org/packages/22/ea/6983226ffa91ff470b685e1673b7bd863e526eb208af1e7458fd71f02e31/json5-0.16.0-py3-none-any.whl", hash = "sha256:ab703e0d2e565ecff92b4d3525159108911db47e1becc3903a9433d4d504505a", size = 37394, upload-time = "2026-10-08T03:08:25.715Z" },
 ]
 
 [[package]]
 name = "jsonpointer"
-version = "3.1.1"
+version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/18/c7/af399a2e7a67fd18d63c40c5e62d3af4e67b836a2107468b6a5ea24c4304/jsonpointer-3.1.1.tar.gz", hash = "sha256:0b801c7db33a904024f6004d526dcc53bbb8a4a0f4e32bfd10beadf60adf1900", size = 9068, upload-time = "2026-03-23T22:32:32.458Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/30/76a208d3eb75a5e2bcfec4e132c207ea1e22253d10b52a06c8ff3839dfc9/jsonpointer-3.2.0.tar.gz", hash = "sha256:807db557622fbe07a0d49e19cf4795a269d55eee5ba345fb9959d148eba5ef94", size = 11062, upload-time = "2026-10-07T13:37:16.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/6a/a83720e953b1682d2d109d3c2dbb0bc9bf28cc1cbc205be4ef4be5da709d/jsonpointer-3.1.1-py3-none-any.whl", hash = "sha256:8ff8b95779d071ba472cf5bc913028df06031797532f08a7d5b602d8b2a488ca", size = 7659, upload-time = "2026-03-23T22:32:31.568Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/b7/5b934a4fa2ea1e28177fb74a08de7aff8ee160fb6e5ddc6574c7af1a808d/jsonpointer-3.2.0-py3-none-any.whl", hash = "sha256:3e25c9bcadf5ae20c3420922234eaba1ae36ab9bef64cd72454aeaceb0b29aad", size = 8236, upload-time = "2026-10-07T13:37:15.167Z" },
 ]
 
 [[package]]
@@ -2860,11 +2858,11 @@ wheels = [
 
 [[package]]
 name = "platformdirs"
-version = "4.12.3"
+version = "4.12.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/42/23/4a86fc741c38c5b69792a4ef954b281afa69bea9f083f881de1b0d23bc07/platformdirs-4.12.3.tar.gz", hash = "sha256:427fc0bb321ae0c5b037fa03238ca74820437be162e78b4848c4d4055b9b766c", size = 59538, upload-time = "2026-10-03T23:40:46.595Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/a1/d5f9002a70298c64a789779077d8dd90c10aa1f47fe40c86802df874f2a6/platformdirs-4.12.4.tar.gz", hash = "sha256:63743c02414e755de4e31b8f68125c1407495b86c5a006e203c01ff8b9924250", size = 60010, upload-time = "2026-10-07T23:30:32.426Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/9b/6ce1ead737fe496611bda600c263b9a11ae7bd8f41bb13f9bd7e0a2c37a4/platformdirs-4.12.3-py3-none-any.whl", hash = "sha256:080f3b39423b5abfca9a23d84c4e9795f54d395cd8459867a8ded44084fcd5f8", size = 32493, upload-time = "2026-10-03T23:40:45.104Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/ba/223e00b885e960edd5d4b4d178c88acce019bd5b83786093681b8c393492/platformdirs-4.12.4-py3-none-any.whl", hash = "sha256:78bfb9db2a8471ed7eebe3c3c932da413911042994e699b384fbb4493fa872d7", size = 32596, upload-time = "2026-10-07T23:30:30.825Z" },
 ]
 
 [[package]]
@@ -3958,15 +3956,6 @@ wheels = [
 ]
 
 [[package]]
-name = "semver"
-version = "3.1.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/92/f5/e1dfe8e1d91c54ce212fd93916eb01fd1c590f413be0a0978c39a97aa1bb/semver-3.1.0.tar.gz", hash = "sha256:14bc073439513d7773662a338f4db9829cf16c12b74b9568e2d2689975fbd7fc", size = 304162, upload-time = "2026-09-12T18:38:14.045Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/02/bce7a1d70e9d0f6ea8623c16386138c251b5855af6cd3a11433d3fba4e66/semver-3.1.0-py3-none-any.whl", hash = "sha256:6e4998f8b4762acdfea85f9bfd5b4032e0bb50038dc04bf82011b42d5d1145c5", size = 18783, upload-time = "2026-09-12T18:38:12.457Z" },
-]
-
-[[package]]
 name = "servestatic"
 version = "4.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4288,6 +4277,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/23/6e/6dd8466de262775179699bebe9d21b2aabac4a53df512686f9f7c405fabc/types_psycopg2-2.9.21.20260911.tar.gz", hash = "sha256:834373add0aaf2497401acc49c41c540c4adfdec9bcc265f0460bb0808826a7d", size = 27831, upload-time = "2026-09-11T06:45:03.02Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/79/1fb4dd00dad9a230af7485bcd2da0cb3b653c2de9bfa38e3ffe93d2e8d20/types_psycopg2-2.9.21.20260911-py3-none-any.whl", hash = "sha256:429920488100aa22c220f40aaaac96270125ea64333cf159858e422daa7d8174", size = 25026, upload-time = "2026-09-11T06:45:01.783Z" },
+]
+
+[[package]]
+name = "types-python-dateutil"
+version = "2.9.0.20260807"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/4e/b3fa538f9cb38dfece0d6ccf6d3d0d925bdedb144fb9c8129dfc007cd003/types_python_dateutil-2.9.0.20260807.tar.gz", hash = "sha256:e0b8a90d464c8684c66b7b8e4556d9074afdddcc56ca45323f0987134f9e7034", size = 17618, upload-time = "2026-08-07T04:17:13.491Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/5e/3715867caea2f4cea56ccb04c851cde23ed063449c3b004c7a047f20dd48/types_python_dateutil-2.9.0.20260807-py3-none-any.whl", hash = "sha256:54aa3707350ed7a9cc0776fd2f6739679d6967d11b40150985e81edcb86df4db", size = 18486, upload-time = "2026-08-07T04:17:12.504Z" },
 ]
 
 [[package]]

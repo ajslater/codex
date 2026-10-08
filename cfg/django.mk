@@ -19,12 +19,6 @@ lint::
 django-check:
 	bin/pm check
 
-.PHONY: prod-server
-## Run a bundled production webserver
-## @category Run Server
-prod-server: build-frontend collectstatic
-	./bin/dev-prod-server.sh
-
 .PHONY: collectstatic
 ## Collect static files for django
 ## @category Build
@@ -32,12 +26,12 @@ collectstatic: build-frontend
 	bin/collectstatic.sh
 
 .PHONY: build-only
-## Build python package
+## Build python package without collecting static files
 ## @category Build
 build-only:
 	uv build
 
 .PHONY: build
-## Build python package
+## Collect static files before python.mk builds the package
 ## @category Build
-build:: collectstatic build-only
+build:: collectstatic

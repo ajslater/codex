@@ -1,11 +1,16 @@
 DEVENV_FRONTEND := 1
 export DEVENV_FRONTEND
 
+# Dummy target for mbake linting, which runs this file's first target with
+# make -n. $(MAKE) lines run even under -n, and frontend/ may not exist there.
+.PHONY: all
+all:: ;
+
 .PHONY: clean-frontend
 ## Clean frontend
 ## @category Clean
 clean-frontend:
-	cd frontend && make clean
+	$(MAKE) -C frontend clean
 
 .PHONY: clean
 ## Clean frontend too
@@ -16,7 +21,7 @@ clean:: clean-frontend
 ## Install frontend
 ## @category Install
 install-frontend:
-	cd frontend && make install
+	$(MAKE) -C frontend install
 
 .PHONY: install
 ## Install with all extras
@@ -27,7 +32,7 @@ install:: install-frontend
 ## Update deps for frontend
 ## @category Update
 update-frontend:
-	cd frontend && make update
+	$(MAKE) -C frontend update
 
 .PHONY: update
 ## Update deps for frontend too
@@ -38,7 +43,7 @@ update:: update-frontend
 ## Fix only frontend lint errors
 ## @category Fix
 fix-frontend:
-	bash -c "cd frontend && make fix"
+	$(MAKE) -C frontend fix
 
 .PHONY: fix
 ## Fix lint errors
@@ -49,7 +54,7 @@ fix:: fix-frontend
 ## Lint the frontend
 ## @category Lint
 lint-frontend:
-	bash -c "cd frontend && make lint"
+	$(MAKE) -C frontend lint
 
 .PHONY: lint
 ## Lint
@@ -60,11 +65,10 @@ lint:: lint-frontend
 ## Run frontend tests
 ## @category Test
 test-frontend::
-	cd frontend && make test
+	$(MAKE) -C frontend test
 
 .PHONY: test
 ## Run frontend tests too
-## Test
 ## @category Test
 test:: test-frontend
 
@@ -72,7 +76,7 @@ test:: test-frontend
 ## Build frontend
 ## @category Build
 build-frontend:
-	cd frontend && make build
+	$(MAKE) -C frontend build
 
 .PHONY: build
 ## Build with frontend

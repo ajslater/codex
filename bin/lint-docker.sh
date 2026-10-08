@@ -2,11 +2,17 @@
 # Lint checks for docker
 set -euxo pipefail
 
-if [ "$(uname)" != "Darwin" ]; then
+bin=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck source=bin/_lib.sh
+. "$bin/_lib.sh"
+
+load_files "$bin/find-files.sh" -- -name '*Dockerfile'
+if ((${#files[@]} == 0)); then
   exit 0
 fi
-mapfile -t dockerfiles < <(find . -type f -name '*Dockerfile' -print -quit)
-if [ ${#dockerfiles[@]} -gt 0 ]; then
-  hadolint "${dockerfiles[@]}"
-  dockerfmt --check "${dockerfiles[@]}"
+if need hadolint; then
+  hadolint "${files[@]}"
+fi
+if need dockerfmt; then
+  dockerfmt --check "${files[@]}"
 fi

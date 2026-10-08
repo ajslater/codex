@@ -80,9 +80,7 @@ dev = [
   "nplusone~=1.0",
   "picopt~=6.10.0",
   "pypi-cleanup~=0.1.10",
-  "semver~=3.1.0",
   "toml-cli~=0.7",
-  "tomlkit~=0.14",
 ]
 build = ["resvg-py~=0.5.0"]
 lint = [
@@ -100,6 +98,7 @@ lint = [
   "ruff~=0.16",
   "ty~=0.0.18",
   "vulture~=2.3",
+  "types-python-dateutil~=2.9",
 ]
 test = [
   "coverage~=7.0",

@@ -5,25 +5,19 @@ export DEVENV_PYTHON
 ## Clean python caches
 ## @category Clean
 clean::
-	find . -name "__pycache__" -print0 | xargs -0 rm -rf
-	rm -rf .coverage
-
-.PHONY: install-deps-pip
-## Update pip and install node packages
-## @category Install
-install-deps-pip:
-	pip install --upgrade pip
+	find . \( -name node_modules -o -path '*/.*' \) -prune -o -name __pycache__ -type d -print0 | xargs -0 rm -rf
+	rm -rf .coverage .coverage.*
 
 .PHONY: install-prod
 ## Install for production
 ## @category Install
-install-prod: install-deps-pip
+install-prod:
 	uv sync --no-install-project --no-dev
 
 .PHONY: install
 ## Install with dev and all extras and groups
 ## @category Install
-install:: install-deps-pip
+install::
 	uv sync --no-install-project --all-extras --all-groups --all-packages
 
 .PHONY: update-python
@@ -37,9 +31,6 @@ update-python:
 ## @category Update
 update:: update-python
 
-## Show version. Use V variable to set version
-## @category Update
-V :=
 .PHONY: version
 ## Show or set project version for python
 ## @category Update
@@ -104,6 +95,8 @@ uml:
 cycle:
 	uvx pycycle --ignore node_modules,.venv --verbose --here
 
+## Tests to run, as pytest arguments
+## @category Test
 T :=
 .PHONY: test-python
 ## Test Python

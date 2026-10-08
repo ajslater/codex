@@ -13,7 +13,6 @@ import eslintPluginMath from "eslint-plugin-math";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
-import eslintPluginPackageJson from "eslint-plugin-package-json";
 import eslintPluginPerfectionist from "eslint-plugin-perfectionist";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginPromise from "eslint-plugin-promise";
@@ -218,14 +217,8 @@ const baseConfig = defineConfig([
     ...eslintJson.configs.recommended,
     language: "json/json",
   },
-  eslintPluginPackageJson.configs.recommended,
-  eslintPluginPackageJson.configs.stylistic,
-  eslintPluginPackageJson.configs["recommended-publishable"],
   {
-    files: ["package.json"],
-    languageOptions: {
-      parser: "jsonc-eslint-parser",
-    },
+    files: ["**/package.json"],
     plugins: { depend: eslintPluginDepend },
     rules: {
       "depend/ban-dependencies": "error",

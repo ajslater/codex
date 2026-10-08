@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Delete stale Docker Hub manifests: uv run bin/hub_prune_stale.py NAMESPACE/REPO [--execute]
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["requests"]
+# ///
 """
 Delete stale images and image indexes from a Docker Hub repository.
 
@@ -507,7 +512,7 @@ def main() -> None:
     args = build_parser().parse_args()
     try:
         sys.exit(prune(args.repository, args.min_age, execute=args.execute))
-    except PruneError as exc:
+    except (PruneError, requests.RequestException) as exc:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:

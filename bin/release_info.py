@@ -46,7 +46,9 @@ class ReleaseInfoError(Exception):
     """The release content is missing, ambiguous or inconsistent."""
 
 
-@dataclass(frozen=True, slots=True)
+# No slots=True: that needs Python 3.10, and this runs on any python3, down to
+# macOS's /usr/bin/python3 3.9.
+@dataclass(frozen=True)
 class ReleaseInfo:
     """What a release is called and what its notes say."""
 
