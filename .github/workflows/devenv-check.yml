@@ -87,15 +87,24 @@ jobs:
   # ---------------------------------------------------------------------------
   # Gate: the only job with trigger logic. Runs the Release Preflight, and on a
   # main push reuses the dist of an earlier run that passed on the same tree.
+  # A pull request into develop is checked only from pre-release or a version
+  # branch: "v" and a digit, as in v1.2.3. Expressions have no regex, so each
+  # digit is its own prefix; a bare "v" prefix would also match vulture-fix.
   # ---------------------------------------------------------------------------
   gate:
     name: Gate
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     if: >-
       (github.event_name == 'push' && github.ref_name == 'main')
       || github.base_ref == 'main'
       || (github.base_ref == 'develop'
-      && (github.head_ref == 'pre-release' || startsWith(github.head_ref, 'v')))
+      && (github.head_ref == 'pre-release'
+      || startsWith(github.head_ref, 'v0') || startsWith(github.head_ref, 'v1')
+      || startsWith(github.head_ref, 'v2') || startsWith(github.head_ref, 'v3')
+      || startsWith(github.head_ref, 'v4') || startsWith(github.head_ref, 'v5')
+      || startsWith(github.head_ref, 'v6') || startsWith(github.head_ref, 'v7')
+      || startsWith(github.head_ref, 'v8') || startsWith(github.head_ref, 'v9')))
     permissions:
       contents: read
       actions: read
@@ -114,7 +123,7 @@ jobs:
       source_run_id: ${{ steps.reuse.outputs.source_run_id }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       # A release PR must bump the version and add its NEWS.md section before
       # it can merge; a failure here fails the gate, so nothing else runs and
@@ -154,7 +163,7 @@ jobs:
 
       - name: Upload reused dist
         if: steps.reuse.outputs.dist_found == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: python-dist
           path: dist/
@@ -171,6 +180,8 @@ jobs:
     needs: gate
     if: inputs.container && needs.gate.outputs.dist_found != 'true'
     runs-on: ubuntu-24.04
+    # The slowest job: a cold build without the registry cache.
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
@@ -181,13 +192,13 @@ jobs:
       DOCKER_BUILD_SUMMARY: "false"
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -195,7 +206,7 @@ jobs:
 
       - name: Build and push CI image
         id: build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           # An empty target builds the Dockerfile's last stage.
@@ -225,12 +236,13 @@ jobs:
     name: Prune CI Images
     needs: image
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     continue-on-error: true
     permissions:
       packages: write
     steps:
       - name: Delete old untagged CI images
-        uses: actions/delete-package-versions@v5
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-name: ${{ github.event.repository.name }}-ci
           package-type: container
@@ -253,6 +265,7 @@ jobs:
       && (needs.image.result == 'success'
       || (!inputs.container && needs.image.result == 'skipped'))
     runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
     # Job permissions cannot vary per combo; this is the union.
     permissions:
       contents: read
@@ -264,7 +277,7 @@ jobs:
         include: ${{ fromJSON(inputs.matrix) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Start CI container
         if: inputs.container
@@ -275,13 +288,13 @@ jobs:
       # Native mode: install the project on the runner instead.
       - name: Set up uv
         if: ${{ !inputs.container }}
-        uses: astral-sh/setup-uv@v8.0.0
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
         with:
           enable-cache: true
 
       - name: Set up bun
         if: ${{ !inputs.container }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
       - name: Install
         if: ${{ !inputs.container }}
@@ -308,14 +321,14 @@ jobs:
       - name: Upload Test Results
         id: upload-tests
         if: matrix.junit && !cancelled() && steps.work.outcome != 'skipped'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results-${{ strategy.job-index }}
           path: "**/test-results/pytest/*.xml"
 
       - name: Publish Test Report
         if: matrix.junit && !cancelled() && steps.upload-tests.outcome == 'success'
-        uses: mikepenz/action-junit-report@v6
+        uses: mikepenz/action-junit-report@b7b80d7ac5b1da46d6aaff9fb57ad50d8453bcb3 # v6.6.0
         with:
           report_paths: "**/test-results/pytest/*.xml"
 
@@ -323,7 +336,7 @@ jobs:
       # python-dist unless the gate reused a dist.
       - name: Upload dist artifact
         if: matrix.dist
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: python-dist
           path: dist/
@@ -342,6 +355,7 @@ jobs:
     # so a cancelled run must still reach this job and go red.
     if: ${{ always() && needs.gate.result != 'skipped' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions: {}
     steps:
       - name: All required jobs passed
@@ -360,7 +374,7 @@ jobs:
         run: echo "$GITHUB_RUN_ID" >ci-passed
 
       - name: Upload the passing-tree marker
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-passed-${{ needs.gate.outputs.tree }}
           path: ci-passed

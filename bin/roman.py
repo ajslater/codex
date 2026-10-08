@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# uv run reads this block, so pathspec arrives without the lint group.
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pathspec~=1.1"]
+# ///
 """
 Check shell scripts recursively for a descriptive comment on line 2.
 

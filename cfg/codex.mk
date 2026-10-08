@@ -1,12 +1,3 @@
-.PHONY: install
-## Configure wheel building for Darwin
-## @category Install
-install::
-	BREW_PREFIX=$(brew --prefix)
-	export LDFLAGS="-L${BREW_PREFIX}/opt/openssl@3/lib"
-	export CPPFLAGS="-I${BREW_PREFIX}/opt/openssl@3/include"
-	export PKG_CONFIG_PATH="${BREW_PREFIX}/opt/openssl@3/lib/pkgconfig"
-
 .PHONY: test-frontend
 ## Run frontend test with dependencies
 ## @category Test
@@ -21,6 +12,12 @@ lint:: build-choices
 ## Fix lint errors with dependencies: eslint resolves the generated choices JSON
 ## @category Fix
 fix:: build-choices
+
+.PHONY: prod-server
+## Run a bundled production webserver
+## @category Run Server
+prod-server: build-frontend collectstatic
+	./bin/dev-prod-server.sh
 
 .PHONY: dev
 ## Run Granian (backend) + Vite (frontend) together with interleaved logs

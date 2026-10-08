@@ -20,6 +20,7 @@
           />
         </v-toolbar-items>
         <v-spacer />
+        <OnlineTagReviewButton class="readerReviewButton" />
         <v-toolbar-items v-if="!empty">
           <ReaderArcSelect />
           <FavoriteToggle
@@ -61,12 +62,12 @@ import { mapActions, mapState } from "pinia";
 import AppBanner from "@/components/banner.vue";
 import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
+import { useReaderKeyUp } from "@/components/reader/use-reader-keyup";
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
-import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "ReaderTitleToolbar",
@@ -74,6 +75,7 @@ export default {
     AppBanner,
     FavoriteToggle,
     MetadataDialog,
+    OnlineTagReviewButton,
     ReaderArcSelect,
     SettingsDrawerButton,
   },
@@ -97,7 +99,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
     ...mapState(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
       showToolbars: (state) => state.showToolbars,
@@ -149,7 +150,7 @@ export default {
     },
   },
   created() {
-    useEventListener(document, "keyup", this._keyUpListener);
+    useReaderKeyUp(this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
@@ -163,9 +164,6 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
-      if (this.isAuthDialogOpen) {
-        return;
-      }
       switch (event.key) {
         case "Escape":
           this.$refs.closeBook.$el.click();
@@ -222,6 +220,18 @@ export default {
   font-size: clamp(16px, 3vw, 18px);
   color: rgb(var(--v-theme-text-secondary));
   padding-bottom: 10px;
+}
+
+/*
+ * Nothing else in this toolbar can shrink, so below 360px the Review button
+ * would push the settings button off-screen (a three-digit reading order
+ * needs 360px with it, 302px without). The settings drawer item still offers
+ * the review there.
+ */
+@media (max-width: 359.98px) {
+  .readerReviewButton {
+    display: none;
+  }
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {

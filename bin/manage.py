@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Django's command-line utility for administrative tasks."""
 
 import os
@@ -48,7 +48,10 @@ def _discover() -> str:
 
 def main():
     """Run the server."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", _from_pyproject() or _discover())
+    # Not setdefault: its argument runs first, and _discover() raises in a
+    # project with two settings modules even when the variable picks one.
+    if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+        os.environ["DJANGO_SETTINGS_MODULE"] = _from_pyproject() or _discover()
     try:
         from django.core.management import (
             execute_from_command_line,

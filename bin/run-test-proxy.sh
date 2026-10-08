@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#
 # Launch a local nginx that reverse-proxies to a running Codex, for testing
 # a `url_path_prefix` / subpath deployment (GitHub #784) without Docker.
 #

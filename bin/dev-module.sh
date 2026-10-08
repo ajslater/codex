@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Run a main method in an arbitrary module
 set -euxo pipefail
-THIS_DIR="$(dirname "$0")"
-cd "$THIS_DIR" || exit 1
-export PYTHONPATH="${PYTHONPATH:-}:$THIS_DIR"
-export DEBUG="${DEBUG:-1}"
-export PYTHONDEVMODE="$DEBUG"
-export PYTHONDONTWRITEBYTECODE=1 #"$DEBUG"
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+# Only an unset DEBUG defaults on; DEBUG= or DEBUG=0 turns it off.
+export DEBUG="${DEBUG-1}"
+case $DEBUG in
+'' | 0 | false | False) ;;
+*) export PYTHONDEVMODE=1 ;;
+esac
+export PYTHONDONTWRITEBYTECODE=1
 uv run python3 "$@"

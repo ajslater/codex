@@ -13,6 +13,7 @@ import DockerHubDeprecatedSnackbar from "@/components/docker-hub-deprecated-snac
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useFavoritesStore } from "@/stores/favorites";
+import { pendingTitle, useOnlineTagStore } from "@/stores/online-tag";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -21,7 +22,20 @@ export default {
     DockerHubDeprecatedSnackbar,
     SessionErrorSnackbar,
   },
+  head() {
+    /*
+     * "(N) " on whatever title the page sets, so a background tab shows
+     * matches waiting for review. Read the count here, not inside the
+     * template function: unhead calls that at render time, outside this
+     * effect, so only what head() itself reads re-runs it.
+     */
+    const count = this.isUserAdmin ? this.pendingComicCount : 0;
+    if (!count) return {};
+    return { titleTemplate: (title) => pendingTitle(count, title) };
+  },
   computed: {
+    ...mapState(useOnlineTagStore, ["pendingComicCount"]),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
       /*
