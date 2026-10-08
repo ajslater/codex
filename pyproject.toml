@@ -54,7 +54,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.5.3"
+version = "2.5.4"
 
 [[project.authors]]
 name = "AJ Slater"
