@@ -59,14 +59,6 @@ export const useAuthStore = defineStore("auth", {
     isUserAdmin() {
       return this.user && (this.user.isStaff || this.user.isSuperuser);
     },
-    isAuthDialogOpen() {
-      return (
-        this.showLoginDialog ||
-        this.showChangePasswordDialog ||
-        this.showProfileDialog ||
-        this.showResetPasswordRequestDialog
-      );
-    },
     isBanner(state) {
       return Boolean(state.adminFlags.bannerText);
     },

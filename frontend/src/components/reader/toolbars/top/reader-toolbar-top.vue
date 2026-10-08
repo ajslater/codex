@@ -64,11 +64,10 @@ import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
+import { useReaderKeyUp } from "@/components/reader/use-reader-keyup";
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
-import { useEventListener } from "@vueuse/core";
 
 export default {
   name: "ReaderTitleToolbar",
@@ -100,7 +99,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
     ...mapState(useReaderStore, ["activeTitle", "closeBookRoute"]),
     ...mapState(useReaderStore, {
       showToolbars: (state) => state.showToolbars,
@@ -152,7 +150,7 @@ export default {
     },
   },
   created() {
-    useEventListener(document, "keyup", this._keyUpListener);
+    useReaderKeyUp(this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
@@ -166,9 +164,6 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
-      if (this.isAuthDialogOpen) {
-        return;
-      }
       switch (event.key) {
         case "Escape":
           this.$refs.closeBook.$el.click();
