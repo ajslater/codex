@@ -58,9 +58,9 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { useReaderKeyUp } from "@/components/reader/use-reader-keyup";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
-import { useEventListener } from "@vueuse/core";
 
 import GLOBAL_DEFAULTS from "@/choices/reader-defaults.json";
 
@@ -118,7 +118,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, ["isAuthDialogOpen"]),
     ...mapState(useAuthStore, {
       globalDefaults: (state) => state.defaults?.reader ?? GLOBAL_DEFAULTS,
     }),
@@ -190,7 +189,7 @@ export default {
     },
   },
   created() {
-    useEventListener(document, "keyup", this._keyUpListener);
+    useReaderKeyUp(this._keyUpListener);
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -216,9 +215,6 @@ export default {
     },
     _keyUpListener(event) {
       event.stopPropagation();
-      if (this.isAuthDialogOpen) {
-        return;
-      }
       let updates;
       switch (event.key) {
         case "w":
