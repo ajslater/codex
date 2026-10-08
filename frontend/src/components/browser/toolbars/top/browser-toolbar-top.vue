@@ -8,6 +8,7 @@
       <BrowserSearchButton />
     </v-toolbar-items>
     <v-spacer />
+    <OnlineTagReviewButton />
     <v-toolbar-items>
       <BrowserColumnsButton />
       <BrowserViewModeToggle />
@@ -27,6 +28,7 @@ import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-r
 import BrowserSearchButton from "@/components/browser/toolbars/top/search-button.vue";
 import BrowserTopCollectionSelect from "@/components/browser/toolbars/top/top-collection-select.vue";
 import BrowserViewModeToggle from "@/components/browser/toolbars/top/view-mode-toggle.vue";
+import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -40,6 +42,7 @@ export default {
     BrowserOrderBySelect,
     BrowserOrderReverseButton,
     BrowserViewModeToggle,
+    OnlineTagReviewButton,
     SettingsDrawerButton,
   },
   data() {

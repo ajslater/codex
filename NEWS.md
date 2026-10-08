@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.4
+
+- Features
+    - Online tagging matches to review show a toolbar Review button and a
+      tab-title count instead of popping up a dialog.
+
 ## v2.5.3
 
 - Features
