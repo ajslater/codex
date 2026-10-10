@@ -15,6 +15,7 @@
 .*cache
 .DS_Store
 .Python
+.claude
 .claude/settings.local.json
 .claude/worktrees/
 .coverage*
