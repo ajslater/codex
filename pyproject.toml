@@ -94,7 +94,7 @@ lint = [
   "icecream~=2.1",
   "pathspec~=1.1.0",
   "radon~=6.0",
-  "ruff~=0.16",
+  "ruff~=0.17",
   "ty~=0.0.18",
   "vulture~=2.3",
   "types-python-dateutil~=2.9",
@@ -152,6 +152,7 @@ source-include = [
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
+  "docs/**",
 ]
 source-exclude = [
   "**/*\\~",

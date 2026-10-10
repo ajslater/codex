@@ -150,24 +150,28 @@ export const MARKDOWN_CONFIGS = [
 const baseConfig = defineConfig([
   {
     ignores: [
+      // Unlike a .gitignore line, an ESLint pattern is anchored at the project
+      // root: "dist/" ignores dist/ but lints frontend/dist/. Tool output can
+      // land in any subproject, so it takes "**/". The last four are root-level
+      // state; deeper down, tasks/ and typings/ can be real source directories.
       "**/*.min.css",
       "**/*.min.js",
+      "**/*~",
+      "**/.*cache/",
+      "**/.eslintcache",
+      "**/.venv/",
       "**/__pycache__/",
+      "**/bun.lock",
       "**/coverage/",
+      "**/dist/",
       "**/htmlcov/",
       "**/node_modules/",
-      "*~",
+      "**/test-results/",
+      "**/uv.lock",
       ".claude",
-      ".eslintcache",
       ".git/",
-      ".*cache/",
-      ".venv/",
-      "bun.lock",
-      "dist/",
       "tasks/",
-      "test-results/",
       "typings/",
-      "uv.lock",
     ],
     name: "globalIgnores",
   },
