@@ -5,7 +5,7 @@ set -euxo pipefail
 #####################
 ###### Makefile #####
 #####################
-uv run mbake format Makefile cfg/*.mk
+uvx mbake@latest format Makefile cfg/*.mk
 
 ################
 # Ignore files #
@@ -15,9 +15,10 @@ bin/sort-ignore.sh
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
-bun run fix
+# node_root merges a fix script; a project without node_root may have none.
+bun run --if-present fix
 
 ###################
 ###### Shell ######
 ###################
-bin/fix-sh.sh
+bin/sh-tools.sh --fix

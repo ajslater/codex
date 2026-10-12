@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# Get version or set version in Frontend & API.
+# Get or set the node version: frontend/package.json if there is one, else ./package.json
 set -euo pipefail
 VERSION="${1:-}"
-if [ "$VERSION" = "" ]; then
-  if [ -d frontend ]; then
-    cd frontend
-    node -e "const {name, version} =  require('./package.json'); console.log(name, version);"
-  fi
+if [[ -d frontend ]]; then
+  cd frontend
+fi
+if [[ ! -f package.json ]]; then
+  echo "ERROR: no package.json in $PWD" >&2
+  exit 1
+fi
+if [[ $VERSION == "" ]]; then
+  bun pm pkg get name version
 else
-  if [ -d frontend ]; then
-    cd frontend
-    bunx npm version --allow-same-version "$VERSION"
-  fi
+  # pkg set, unlike bun pm version, never commits or tags.
+  bun pm pkg set "version=$VERSION"
 fi

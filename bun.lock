@@ -15,7 +15,7 @@
         "eslint": "^10.12.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-compat": "^7.0.2",
-        "eslint-plugin-de-morgan": "^2.2.0",
+        "eslint-plugin-de-morgan": "^2.2.1",
         "eslint-plugin-depend": "^1.5.0",
         "eslint-plugin-html": "^8.2.1",
         "eslint-plugin-import-x": "^4.17.1",
@@ -124,7 +124,7 @@
 
     "@stylistic/eslint-plugin": ["@stylistic/eslint-plugin@5.10.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.9.1", "@typescript-eslint/types": "^8.56.0", "eslint-visitor-keys": "^4.2.1", "espree": "^10.4.0", "estraverse": "^5.3.0", "picomatch": "^4.0.3" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0" } }, "sha512-nPK52ZHvot8Ju/0A4ucSX1dcPV2/1clx0kLcH5wDmrE4naKso7TUC/voUyU1O9OTKTrR6MYip6LP0ogEMQ9jPQ=="],
 
-    "@tombi-toml/wasm-lib": ["@tombi-toml/wasm-lib@1.8.2", "", {}, "sha512-bLDAoTcR8NEc+heTfBC0e44e3ezJ19hJPmuBN3wf1AMsWL9xSF0j5HvtPiA5u/VVWDpCtYPoPjYMVcq3MPe8Dg=="],
+    "@tombi-toml/wasm-lib": ["@tombi-toml/wasm-lib@1.8.4", "", {}, "sha512-Zz3a0yH60YqQpMMGF1V9mAAgtEmz6h4aVYTZ2lp8XInMPNZXTYFkGS8nl4q4VBeHZtIF1tKkeU75vrFldU11bA=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
@@ -310,7 +310,7 @@
 
     "eslint-plugin-compat": ["eslint-plugin-compat@7.0.2", "", { "dependencies": { "@mdn/browser-compat-data": "^6.1.1", "ast-metadata-inferer": "^0.8.1", "browserslist": "^4.25.2", "find-up": "^5.0.0", "globals": "^15.7.0", "lodash.memoize": "^4.1.2", "semver": "^7.6.2" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0" } }, "sha512-gN8hF+4NzMsHUbr4m/TYZK0FtW3DcV4g8rXpTsY2EV5xiRD8jsilUlB9lNSkGGX0veDCxMhKSWbSd+faJByQDA=="],
 
-    "eslint-plugin-de-morgan": ["eslint-plugin-de-morgan@2.2.0", "", { "peerDependencies": { "eslint": "^8.45.0 || ^9.0.0 || ^10.0.0" } }, "sha512-bHg8e68rQTJ01av4sxhgNWQeoSzPWDjb6MqeKgmgRGaCzq83Ou6/g5S1ZssvFdHHS4BsblkJkagoioUmSEHPMg=="],
+    "eslint-plugin-de-morgan": ["eslint-plugin-de-morgan@2.2.1", "", { "peerDependencies": { "eslint": "^8.45.0 || ^9.0.0 || ^10.0.0" } }, "sha512-uJeLrx8bt1wGn9GCPy+2jTfH6OLBw/59ipjrhWolKijzty8F3VrnerKKtclQhIIizuy/QrRIV5fYrrALo6psyw=="],
 
     "eslint-plugin-depend": ["eslint-plugin-depend@1.5.0", "", { "dependencies": { "empathic": "^2.0.0", "module-replacements": "^2.10.1", "semver": "^7.6.3" }, "peerDependencies": { "eslint": ">=8.40.0" } }, "sha512-i3UeLYmclf1Icp35+6W7CR4Bp2PIpDgBuf/mpmXK5UeLkZlvYJ21VuQKKHHAIBKRTPivPGX/gZl5JGno1o9Y0A=="],
 

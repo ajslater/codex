@@ -15,7 +15,8 @@ bin/sort-ignore.sh
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
-bun run fix
+# node_root merges a fix script; a project without node_root may have none.
+bun run --if-present fix
 
 ###################
 ###### Shell ######

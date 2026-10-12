@@ -5,7 +5,8 @@ set -euxo pipefail
 uvx mbake@latest validate Makefile cfg/*.mk
 
 # Javascript, JSON, Markdown, YAML #####
-bun run lint
+# node_root merges a lint script; a project without node_root may have none.
+bun run --if-present lint
 
 bin/sh-tools.sh --lint
 
