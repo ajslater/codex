@@ -7,20 +7,22 @@ export const getSettings = (pk, scopes, storyArcPk) => {
     queryParams.story_arc_pk = storyArcPk;
   }
   const params = serializeParams(queryParams);
-  return pk
-    ? HTTP.get(`/comics/${pk}/reader-settings`, { params })
-    : HTTP.get("/reader/settings", { params });
+  return HTTP.get(pk ? `/comics/${pk}/reader-settings` : "/reader/settings", {
+    params,
+  });
 };
 
 export const updateSettings = (data) =>
-  data?.pk
-    ? HTTP.patch(`/comics/${data.pk}/reader-settings`, data)
-    : HTTP.patch("/reader/settings", data);
+  HTTP.patch(
+    data?.pk ? `/comics/${data.pk}/reader-settings` : "/reader/settings",
+    data,
+  );
 
 export const resetSettings = (data) =>
-  data?.pk
-    ? HTTP.delete(`/comics/${data.pk}/reader-settings`, { data })
-    : HTTP.delete("/reader/settings", { data });
+  HTTP.delete(
+    data?.pk ? `/comics/${data.pk}/reader-settings` : "/reader/settings",
+    { data },
+  );
 
 export const getReaderInfo = (pk, data, ts, options = {}) => {
   const params = serializeParams(data, ts);

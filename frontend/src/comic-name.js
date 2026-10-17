@@ -1,14 +1,14 @@
 // Create comic names
 export const formattedVolumeName = function (name, numberTo) {
   let fmtName;
-  if (name != null && !Number.isNaN(name)) {
+  if (name == null || Number.isNaN(name)) {
+    fmtName = "";
+  } else {
     let compoundName = name;
     if (numberTo != null && !Number.isNaN(numberTo)) {
       compoundName += "-" + numberTo;
     }
     fmtName = name.length === 4 ? `(${compoundName})` : `v${compoundName}`;
-  } else {
-    fmtName = "";
   }
   return fmtName;
 };
