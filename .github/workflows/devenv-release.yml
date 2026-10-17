@@ -20,7 +20,7 @@ env:
 jobs:
   release:
     name: Tag, Release & Merge to Develop
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write # tag push, develop push, gh release create

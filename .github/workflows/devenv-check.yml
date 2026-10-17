@@ -42,9 +42,9 @@ on:
       runner:
         description: >-
           Runner for the check matrix, e.g. macos-latest with container false.
-          The gate, image and result jobs stay on ubuntu-24.04.
+          The gate, image and result jobs stay on ubuntu-latest.
         type: string
-        default: ubuntu-24.04
+        default: ubuntu-latest
       release-preflight:
         description: >-
           Run bin/release-tag.sh preflight in the gate on main pushes and pull
@@ -93,7 +93,7 @@ jobs:
   # ---------------------------------------------------------------------------
   gate:
     name: Gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: >-
       (github.event_name == 'push' && github.ref_name == 'main')
@@ -179,7 +179,7 @@ jobs:
     name: CI Image
     needs: gate
     if: inputs.container && needs.gate.outputs.dist_found != 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     # The slowest job: a cold build without the registry cache.
     timeout-minutes: 45
     permissions:
@@ -235,7 +235,7 @@ jobs:
   prune:
     name: Prune CI Images
     needs: image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
     permissions:
@@ -354,7 +354,7 @@ jobs:
     # always(), not !cancelled(): a skipped required check counts as passing,
     # so a cancelled run must still reach this job and go red.
     if: ${{ always() && needs.gate.result != 'skipped' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
     steps:
