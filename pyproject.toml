@@ -117,6 +117,11 @@ ci = []
 requires = ["uv_build~=0.13"]
 build-backend = "uv_build"
 
+[tool.uv]
+# TODO: Remove once deepdiff releases with cachebox>=6 (its <6 pin has no
+# cp315 wheels).
+override-dependencies = ["cachebox~=6.0"]
+
 [tool.uv.build-backend]
 module-root = ""
 source-include = [
