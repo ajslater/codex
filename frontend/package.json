@@ -12,8 +12,9 @@
     "devBuild": "vite build --mode development",
     "fix": "eslint_d --cache --fix . && prettier --write .",
     "lint": "eslint_d --cache . && prettier --check .",
-    "test": "vitest --reporter verbose --update",
-    "test:ci": "vitest run --reporter verbose --update"
+    "test": "vitest --reporter verbose",
+    "test:ci": "vitest run --reporter verbose",
+    "test:update": "vitest run --update"
   },
   "dependencies": {
     "@unhead/vue": "^3.4.3",
