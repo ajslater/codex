@@ -280,8 +280,11 @@ cmd_publish() {
     return 0
     ;;
   esac
-  latest=$(git ls-remote --tags --refs "$REMOTE" 'v*' |
-    python3 "$RELEASE_INFO" is-latest --version "$VERSION") ||
+  # A file, not a pipe: is-latest may stop reading early (always for an
+  # alpha), and under pipefail the SIGPIPE it gives ls-remote fails the run.
+  git ls-remote --tags --refs "$REMOTE" 'v*' >"$TMP/tags" ||
+    die "could not list tags on $REMOTE"
+  latest=$(python3 "$RELEASE_INFO" is-latest --version "$VERSION" <"$TMP/tags") ||
     die "could not work out whether $TAG is the latest release"
   if [ "$FINAL" != true ]; then
     flags=(--prerelease --latest=false)
