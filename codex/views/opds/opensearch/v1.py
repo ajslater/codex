@@ -39,7 +39,7 @@ class _OpenSearchTemplateMixin(CodexXMLTemplateMixin):
 
 
 @extend_schema(responses={("200", MimeType.OPENSEARCH): OpenApiTypes.BYTE})
-class OpenSearch1View(_OpenSearchTemplateMixin, OPDSAuthMixin, CodexAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
+class OpenSearch1View(_OpenSearchTemplateMixin, OPDSAuthMixin, CodexAPIView):
     """OpenSearchView."""
 
     # ``_OpenSearchTemplateMixin`` must precede ``OPDSAuthMixin`` so its

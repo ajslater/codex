@@ -45,6 +45,8 @@ class OPDSDownloadView(OPDSAuthMixin, DownloadView):
 class OPDSPageView(OPDSAuthMixin, ReaderPageView):
     """Page View with Basic Auth."""
 
-    content_negotiation_class: type[BaseContentNegotiation] = (  # pyright:ignore[reportIncompatibleVariableOverride]
+    # djangorestframework-stubs types this `str | None`, but DRF resolves
+    # the DEFAULT_CONTENT_NEGOTIATION_CLASS import string to a class.
+    content_negotiation_class: type[BaseContentNegotiation] = (  # pyright: ignore[reportIncompatibleVariableOverride], # ty: ignore[invalid-attribute-override]
         IgnoreClientContentNegotiation
     )

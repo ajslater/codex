@@ -10,8 +10,8 @@ from loguru import logger
 from codex.librarian.bookmark.tasks import LastRouteUpdateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.serializers.browser.settings import (
+    BrowserFilterChoicesInputSerializer,
     BrowserSettingsSerializer,
-    BrowserSettingsSerializerBase,
 )
 from codex.views.browser.settings import BrowserSettingsBaseView
 
@@ -19,7 +19,9 @@ from codex.views.browser.settings import BrowserSettingsBaseView
 class BrowserParamsView(BrowserSettingsBaseView):
     """Browser Params Parsing."""
 
-    input_serializer_class: type[BrowserSettingsSerializerBase] = (
+    # The common base of every input serializer a subclass sets: choices
+    # and metadata take filters only, mtime its own shape.
+    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (
         BrowserSettingsSerializer
     )
 

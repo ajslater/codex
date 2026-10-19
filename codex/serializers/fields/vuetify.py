@@ -21,7 +21,8 @@ from codex.serializers.fields.base import CodexChoiceField
 class VuetifyNullCodeFieldMixin:
     """Convert Vuetify null codes to None."""
 
-    NULL_CODE: int = VUETIFY_NULL_CODE
+    # Compared against the parsed value, so char fields set it as a str.
+    NULL_CODE: int | str = VUETIFY_NULL_CODE
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
@@ -57,7 +58,7 @@ class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: 
 class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
     """Char Field with null code conversion."""
 
-    NULL_CODE: str = str(VUETIFY_NULL_CODE)  # pyright: ignore[reportIncompatibleVariableOverride]
+    NULL_CODE = str(VUETIFY_NULL_CODE)
 
 
 class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]

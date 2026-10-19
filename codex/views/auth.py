@@ -52,7 +52,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -72,6 +72,8 @@ from codex.serializers.auth import (
 from codex.views.envelope import EnvelopeJSONRenderer as _EnvelopeJSONRenderer
 
 if TYPE_CHECKING:
+    # _PermissionClass exists only in djangorestframework-stubs, not at runtime.
+    from rest_framework.permissions import _PermissionClass
     from rest_framework.request import Request
 
 
@@ -111,7 +113,9 @@ class AuthMixin:
     # of the GET dict when the URL pattern doesn't carry it.
     requires_page: bool = False
 
-    permission_classes: Sequence[type[BasePermission]] = (
+    # DRF's own type, so subclasses that set their own classes override
+    # APIView's declaration and this one alike.
+    permission_classes: Sequence["_PermissionClass"] = (
         IsAuthenticatedOrEnabledNonUsers,
     )
     renderer_classes = (_EnvelopeJSONRenderer,)
@@ -177,11 +181,11 @@ class AuthMixin:
         return session.session_key
 
 
-class AuthAPIView(AuthMixin, APIView):  # pyright: ignore[reportIncompatibleVariableOverride]
+class AuthAPIView(AuthMixin, APIView):
     """Auth Policy APIView."""
 
 
-class AuthGenericAPIView(AuthMixin, GenericAPIView):  # pyright: ignore[reportIncompatibleVariableOverride]
+class AuthGenericAPIView(AuthMixin, GenericAPIView):
     """Auth Policy GenericAPIView."""
 
 
