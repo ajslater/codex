@@ -471,6 +471,10 @@ present.
 # websockets = true
 # HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
 # url_path_prefix = ""
+# Public origins accepted for CSRF when a reverse proxy serves Codex under
+# another scheme or host than Codex sees (e.g. https in front of http).
+# First make sure the proxy sends X-Forwarded-Proto and X-Forwarded-Host.
+# csrf_trusted_origins = ["https://comics.example.com"]
 
 # [logging]
 # Log level: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
@@ -569,6 +573,9 @@ Environment variables override values set in the TOML config file.
   Default true.
 - `GRANIAN_URL_PATH_PREFIX` HTTP path prefix for codex (e.g. "/codex" for
   reverse proxy sub-path). Defaults to "".
+- `CODEX_CSRF_TRUSTED_ORIGINS` Comma-separated public origins (e.g.
+  `https://comics.example.com`) accepted for CSRF behind a reverse proxy. See
+  [CSRF 403 behind a proxy](#csrf-403-behind-a-proxy). Defaults to none.
 
 ##### Repair
 
@@ -696,6 +703,27 @@ If you put an authenticating reverse proxy (Organizr, Authelia, etc.) in front
 of the `/codex` location with `auth_request`, exempt the API the way Codex's own
 examples do (`location /codex/api { auth_request off; ... }`); the `^~` note
 above is what keeps the static assets reachable.
+
+#### CSRF 403 behind a proxy
+
+If logging in or saving changes fails with a 403 "CSRF Failed" error behind a
+reverse proxy, first make sure the proxy sends `X-Forwarded-Proto` and
+`X-Forwarded-Host` (the nginx example above does). Codex compares them with the
+browser's `Origin` header. Only if the proxy can't send them, or the error
+persists, add the public origin the browser uses to `config/codex.toml`:
+
+```toml
+[server]
+csrf_trusted_origins = ["https://comics.example.com"]
+```
+
+or set `CODEX_CSRF_TRUSTED_ORIGINS="https://comics.example.com"` (comma
+separated for more than one). An origin is `scheme://host[:port]` with no path;
+`https://*.example.com` trusts every subdomain.
+
+Do not remove Django's `CsrfViewMiddleware` to work around the error. The API
+enforces CSRF through Django REST Framework anyway, so removing it doesn't fix
+the API, and it strips CSRF protection from Codex's other pages.
 
 #### Preserving the Codex Server Header
 
