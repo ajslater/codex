@@ -108,8 +108,11 @@ class CleanupCustomCoversTestCase(TestCase):
             path.write_bytes(b"not really a png")
             self.covers.append(CustomCover.objects.create(path=str(path)))
         # Patch the second look's wait so the tests assert *that* it
-        # waited without any of them paying for it.
-        wait_patcher = patch.object(Event, "wait")
+        # waited without any of them paying for it. Only the janitor's own
+        # abort event: ``Thread.start()`` waits on an ``Event`` too, and
+        # would satisfy ``assert_called()`` on its own.
+        self.abort_event = Event()  # pyright: ignore[reportUninitializedInstanceVariable]
+        wait_patcher = patch.object(self.abort_event, "wait")
         self.wait_mock = wait_patcher.start()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.addCleanup(wait_patcher.stop)
 
@@ -118,9 +121,10 @@ class CleanupCustomCoversTestCase(TestCase):
         """Remove the temp cover tree."""
         shutil.rmtree(TMP_DIR, ignore_errors=True)
 
-    @staticmethod
-    def _cleanup() -> None:
-        Janitor(logger, LIBRARIAN_QUEUE, Lock(), Event()).cleanup_custom_covers()
+    def _cleanup(self) -> None:
+        Janitor(
+            logger, LIBRARIAN_QUEUE, Lock(), self.abort_event
+        ).cleanup_custom_covers()
 
     def _surviving_pks(self) -> set[int]:
         return set(CustomCover.objects.values_list("pk", flat=True))
