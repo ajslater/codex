@@ -2,7 +2,7 @@
 
 import shutil
 import tomllib
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from os import environ
 from pathlib import Path
 
@@ -20,6 +20,7 @@ _ENV_OVERRIDES: dict[str, str] = {
     "GRANIAN_HTTP": "server.http",
     "GRANIAN_WEBSOCKETS": "server.websockets",
     "GRANIAN_URL_PATH_PREFIX": "server.url_path_prefix",
+    "CODEX_CSRF_TRUSTED_ORIGINS": "server.csrf_trusted_origins",
     # Logging
     "LOGLEVEL": "logging.loglevel",
     "CODEX_LOG_RETENTION": "logging.log_retention",
@@ -150,6 +151,33 @@ def normalize_url_path_prefix(prefix: str) -> str:
     return f"/{prefix}" if prefix else ""
 
 
+def normalize_csrf_trusted_origins(origins: Iterable[str]) -> tuple[str, ...]:
+    """
+    Normalize origins for Django's ``CSRF_TRUSTED_ORIGINS``.
+
+    Django matches the ``Origin`` header against each entry by exact string,
+    or by subdomain for a ``https://*.example.com`` wildcard. A trailing slash
+    never matches, so it is stripped. An entry without a scheme can never
+    match either (and fails system check 4_0.E001), so it is dropped with a
+    warning. Duplicates are removed, keeping the first.
+    """
+    normalized: dict[str, None] = {}
+    for raw_origin in origins:
+        origin = raw_origin.rstrip("/")
+        if "://" not in origin:
+            reason = (
+                f"Ignoring server.csrf_trusted_origins entry {raw_origin!r}:"
+                " an origin has the form scheme://host[:port], e.g."
+                " https://comics.example.com. If CSRF 403s persist behind a"
+                " proxy, first check that it sends X-Forwarded-Proto and"
+                " X-Forwarded-Host."
+            )
+            logger.warning(reason)
+            continue
+        normalized[origin] = None
+    return tuple(normalized)
+
+
 def get_int(config: Mapping, keypath: str, default: int = 0) -> int:
     """Get an integer value from the config."""
     val = _deep_get(config, keypath, default)
@@ -172,3 +200,25 @@ def get_bool(config: Mapping, keypath: str, *, default: bool = False) -> bool:
     if isinstance(val, str):
         return val.lower() not in {"", "false", "0", "no"}
     return bool(val)
+
+
+def get_str_list(
+    config: Mapping, keypath: str, default: tuple[str, ...] = ()
+) -> tuple[str, ...]:
+    """
+    Get a list of strings from the config.
+
+    TOML gives a native array; an env override gives one comma-separated
+    string. Items are stripped of whitespace and empty items are dropped.
+    """
+    val = _deep_get(config, keypath)
+    match val:
+        case None:
+            return default
+        case str():
+            items = val.split(",")
+        case list() | tuple():
+            items = val
+        case _:
+            items = (val,)
+    return tuple(item for raw in items if (item := str(raw).strip()))
