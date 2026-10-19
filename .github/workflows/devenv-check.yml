@@ -54,7 +54,7 @@ on:
         type: boolean
         default: true
       retention-days:
-        description: Days to keep python-dist and the ci-passed marker.
+        description: Days to keep python-dist, the ci-passed marker and coverage.
         type: number
         default: 7
     outputs:
@@ -333,6 +333,17 @@ jobs:
         with:
           name: test-results-${{ strategy.job-index }}
           path: "**/test-results/pytest/*.xml"
+
+      # pytest-cov's HTML report. A project whose tests write none, such as
+      # one with pytest addopts of its own, has nothing to upload.
+      - name: Upload Coverage
+        if: matrix.junit && !cancelled() && steps.work.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-${{ strategy.job-index }}
+          path: "**/test-results/coverage/"
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: ignore
 
       - name: Publish Test Report
         if: matrix.junit && !cancelled() && steps.upload-tests.outcome == 'success'

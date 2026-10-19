@@ -23,7 +23,6 @@ and it lives in ``test_pending_deletes``.
 
 import os
 import shutil
-import threading
 from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
@@ -68,10 +67,14 @@ class _DeleteTestBase(BaseTestImporter):
     @override
     def setUp(self) -> None:
         super().setUp()
-        # Every delete-bearing batch waits between its two probes. Patch
-        # the wait rather than shortening it, so the tests assert *that*
-        # it waited without any of them paying for it.
-        wait_patcher = patch.object(threading.Event, "wait")
+        # Every delete-bearing batch waits between its two probes, on the
+        # importer's abort event. Patch that event's wait rather than
+        # shortening it, so the tests assert *that* it waited without any
+        # of them paying for it. Not ``Event.wait`` for every event:
+        # ``Thread.start()`` waits on one too, and the first queue ``put``
+        # in a process starts the queue's feeder thread.
+        self.abort_event = Event()
+        wait_patcher = patch.object(self.abort_event, "wait")
         self.wait_mock = wait_patcher.start()
         self.addCleanup(wait_patcher.stop)
         self.library = Library.objects.get(pk=self.task.library_id)
@@ -116,17 +119,21 @@ class _DeleteTestBase(BaseTestImporter):
             library=self.library, path=str(_SUBDIR), name=_SUBDIR.name
         )
 
+    def _new_importer(self, task: ImportTask) -> ComicImporter:
+        """Build an importer that waits on the test's patched abort event."""
+        return ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), self.abort_event)
+
     def _delete(self, **task_kwargs) -> ComicImporter:
         """Run the delete phase with a fresh importer, as a scan would."""
         task = ImportTask(library_id=self.library.pk, **task_kwargs)
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         importer.delete()
         return importer
 
     def _revive(self, **task_kwargs) -> ComicImporter:
         """Run the revival pre-phase with a fresh importer."""
         task = ImportTask(library_id=self.library.pk, **task_kwargs)
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         importer.unstamp_revived()
         return importer
 
@@ -198,7 +205,7 @@ class TestMassDeleteWarning(_DeleteTestBase):
     def _importer(self) -> tuple[ComicImporter, MagicMock]:
         """Build an importer whose log is captured for assertions."""
         task = ImportTask(library_id=self.library.pk)
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         mock_log = MagicMock()
         importer.log = mock_log
         return importer, mock_log
@@ -303,7 +310,7 @@ class TestDeleteFailsClosedOnUnreadable(_DeleteTestBase):
         task = ImportTask(
             library_id=self.library.pk, files_deleted=frozenset({_EXTANT})
         )
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         mock_log = MagicMock()
         importer.log = mock_log
 
@@ -392,7 +399,7 @@ class TestFolderCascadeIsProbed(_DeleteTestBase):
         task = ImportTask(
             library_id=self.library.pk, dirs_deleted=frozenset({str(_SUBDIR)})
         )
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         mock_log = MagicMock()
         importer.log = mock_log
 
@@ -418,7 +425,7 @@ class TestUnreadableSubtreeEndToEnd(_DeleteTestBase):
         # Nothing under the unreadable directory may even be proposed.
         assert not [path for path in task.files_deleted if str(_SUBDIR) in path]
         assert not [path for path in task.dirs_deleted if str(_SUBDIR) in path]
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         importer.delete()
 
     def test_bookmarks_survive_an_unreadable_publisher_directory(self) -> None:
@@ -536,7 +543,7 @@ class TestSecondLookBeforeDeleting(_DeleteTestBase):
         task = ImportTask(
             library_id=self.library.pk, files_deleted=frozenset({_EXTANT})
         )
-        importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
+        importer = self._new_importer(task)
         mock_log = MagicMock()
         importer.log = mock_log
 

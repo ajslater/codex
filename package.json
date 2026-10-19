@@ -2,8 +2,8 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache . && prettier --check ."
+    "fix": "eslint_d --cache --ignore-pattern frontend/ --fix . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint_d --cache --ignore-pattern frontend/ . && prettier --check ."
   },
   "browserslist": [
     "> 1%",

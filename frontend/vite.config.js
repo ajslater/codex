@@ -207,12 +207,14 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify({ autoImport: true }),
-      checker({
-        eslint: {
-          lintCommand: "eslint_d --cache .", // "./src/**/*.{js,vue}"',
-          useFlatConfig: true,
-        },
-      }),
+      // Lint runs ESLint over the frontend; vitest needn't run it again.
+      !IS_TEST_ENV &&
+        checker({
+          eslint: {
+            lintCommand: "eslint_d --cache .", // "./src/**/*.{js,vue}"',
+            useFlatConfig: true,
+          },
+        }),
       dynamicBase({
         publicPath: PUBLIC_PATH,
       }),
