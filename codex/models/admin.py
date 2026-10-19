@@ -167,7 +167,8 @@ class ComicboxTaggingDefaults(BaseModel):
     # metron_user & metron_password are legacy. Metron authenticates with an
     # API token now, and the admin UI only accepts one. Existing logins keep
     # working (metron.cloud and comicbox still accept them) until an API key
-    # is saved, which clears them. mokkari prefers the token when both exist.
+    # is saved, which clears them. comicbox sends only the token when both
+    # exist.
     metron_key = EncryptedCharField()
     metron_user = EncryptedCharField()
     metron_password = EncryptedCharField()
