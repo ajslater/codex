@@ -474,6 +474,7 @@ present.
 # Public origins accepted for CSRF when a reverse proxy serves Codex under
 # another scheme or host than Codex sees (e.g. https in front of http).
 # First make sure the proxy sends X-Forwarded-Proto and X-Forwarded-Host.
+# A correctly configured proxy does, and then you shouldn't need this.
 # csrf_trusted_origins = ["https://comics.example.com"]
 
 # [logging]
@@ -709,8 +710,9 @@ above is what keeps the static assets reachable.
 If logging in or saving changes fails with a 403 "CSRF Failed" error behind a
 reverse proxy, first make sure the proxy sends `X-Forwarded-Proto` and
 `X-Forwarded-Host` (the nginx example above does). Codex compares them with the
-browser's `Origin` header. Only if the proxy can't send them, or the error
-persists, add the public origin the browser uses to `config/codex.toml`:
+browser's `Origin` header, so a correctly configured proxy ordinarily needs no
+CSRF setting at all. Only if the proxy can't send them, or the error persists,
+add the public origin the browser uses to `config/codex.toml`:
 
 ```toml
 [server]
