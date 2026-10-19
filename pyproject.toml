@@ -243,10 +243,14 @@ omit = [
 [tool.pytest]
 minversion = "9.0"
 addopts = [
+  "-p",
+  "tests.pytest_config_dir",
   "--cov",
   "--cov-append",
   "--cov-report=html",
   "--cov-report=term",
+  "--durations=25",
+  "--durations-min=1.0",
   "--junit-xml=test-results/pytest/results.xml",
   "--strict-config",
   "--strict-markers",
