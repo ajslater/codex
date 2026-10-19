@@ -108,6 +108,7 @@ test = [
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
+  "pytest-xdist~=3.8",
   "rnc2rng~=2.7",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
@@ -245,6 +246,13 @@ minversion = "9.0"
 addopts = [
   "-p",
   "tests.pytest_config_dir",
+  "--numprocesses=auto",
+  "--dist=loadscope",
+  # Keep pytest-django's order, TestCase before TransactionTestCase, on every
+  # worker. loadscope otherwise sorts scopes by size, and a
+  # TransactionTestCase's flush then strips the migration-seeded rows from
+  # the TestCases that follow it on that worker.
+  "--no-loadscope-reorder",
   "--cov",
   "--cov-append",
   "--cov-report=html",
