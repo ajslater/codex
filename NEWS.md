@@ -12,6 +12,9 @@ border-radius: 128px;
     - Online tagging matches saved for review by 2.5.3 no longer break the
       review list and scan status with "No module named 'numpy'". They are
       dropped, so those comics need tagging again.
+    - Renamed comics no longer contain colons or other characters Windows and
+      SMB shares can't store.
+    - A Metron API key is no longer overridden by a `~/.netrc` login.
 
 ## v2.5.4
 
