@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
     - `csrf_trusted_origins` setting for CSRF 403s behind a reverse proxy.
+    - Docker images now use Python 3.15
 - Fixes
     - Online tagging matches saved for review by 2.5.3 no longer break the
       review list and scan status with "No module named 'numpy'". They are
