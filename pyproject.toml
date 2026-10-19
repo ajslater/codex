@@ -11,6 +11,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
@@ -19,7 +20,7 @@ dependencies = [
   "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=5.3.1",
+  "comicbox[pdf]~=5.3.2",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -38,7 +39,7 @@ dependencies = [
   "loguru~=0.7.3",
   "nh3~=0.2",
   "packaging>=24.0",
-  "Pillow~=12.0",
+  "Pillow~=13.0",
   "psutil~=7.1",
   "requests-cache~=1.2",
   "servestatic[brotli]~=4.1",
@@ -54,7 +55,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.5.4"
+version = "2.5.5"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -86,16 +87,15 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.0.1",
+  "complexipy~=8.1.0",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
   "djlint~=1.39",
   "icecream~=2.1",
-  "mbake~=1.4.5",
   "pathspec~=1.1.0",
   "radon~=6.0",
-  "ruff~=0.16",
+  "ruff~=0.17",
   "ty~=0.0.18",
   "vulture~=2.3",
   "types-python-dateutil~=2.9",
@@ -108,14 +108,20 @@ test = [
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
+  "pytest-xdist~=3.8",
   "rnc2rng~=2.7",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
 
 [build-system]
-requires = ["uv_build~=0.12.0"]
+requires = ["uv_build~=0.13"]
 build-backend = "uv_build"
+
+[tool.uv]
+# TODO: Remove once deepdiff releases with cachebox>=6 (its <6 pin has no
+# cp315 wheels).
+override-dependencies = ["cachebox~=6.0"]
 
 [tool.uv.build-backend]
 module-root = ""
@@ -153,8 +159,12 @@ source-include = [
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
+  "docs/**",
 ]
 source-exclude = [
+  # Symlinks to directories, which the sdist builder reads as files.
+  "docs/NEWS/codex",
+  "docs/img",
   "**/*\\~",
   "**/.DS_Store",
   "codex/static_build",
@@ -234,10 +244,21 @@ omit = [
 [tool.pytest]
 minversion = "9.0"
 addopts = [
+  "-p",
+  "tests.pytest_config_dir",
+  "--numprocesses=auto",
+  "--dist=loadscope",
+  # Keep pytest-django's order, TestCase before TransactionTestCase, on every
+  # worker. loadscope otherwise sorts scopes by size, and a
+  # TransactionTestCase's flush then strips the migration-seeded rows from
+  # the TestCases that follow it on that worker.
+  "--no-loadscope-reorder",
   "--cov",
   "--cov-append",
   "--cov-report=html",
   "--cov-report=term",
+  "--durations=25",
+  "--durations-min=1.0",
   "--junit-xml=test-results/pytest/results.xml",
   "--strict-config",
   "--strict-markers",
@@ -386,6 +407,19 @@ exclude = [
   "typings",
   "vulture_ignorelist.py",
 ]
+
+# ty >= 0.0.86 rejects the `class Meta(<Base>.Meta)` idiom of Django models and
+# DRF serializers as an invalid override, though the nested class subclasses the
+# one it replaces (https://github.com/astral-sh/ty/issues/4711). Scoped to the
+# models and serializers so the check still guards every other module; drop this
+# once that issue is fixed, and then mark the two deliberate overrides it also
+# hides, Volume.name and CustomCover.library, with
+# `# ty: ignore[invalid-attribute-override]`.
+[[tool.ty.overrides]]
+include = ["codex/models/**", "codex/serializers/**"]
+
+[tool.ty.overrides.rules]
+invalid-attribute-override = "ignore"
 
 [tool.vulture]
 exclude = [

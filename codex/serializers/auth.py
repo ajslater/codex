@@ -128,8 +128,6 @@ class SessionReaderDefaultsSerializer(Serializer):
     two_pages = BooleanField(read_only=True)
     page_transition = BooleanField(read_only=True)
     cache_book = BooleanField(read_only=True)
-    finish_on_last_page = BooleanField(read_only=True)
-    read_rtl_in_reverse = BooleanField(read_only=True)
 
 
 class SessionDefaultsSerializer(Serializer):

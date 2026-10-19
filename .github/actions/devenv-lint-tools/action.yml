@@ -1,0 +1,27 @@
+# Managed by devenv (copy/ci). Edit it there, not in a child repo.
+name: devenv lint tools
+description: >-
+  Install the lint tools devenv's bin/ scripts run with Homebrew and put them
+  on PATH for later steps. The latest of each, as on the dev machines. Works
+  on ubuntu runners, where Homebrew is installed but not on PATH, and on macOS.
+inputs:
+  tools:
+    description: Space-separated Homebrew formulae to install.
+    default: shellcheck shellharden shfmt hadolint dockerfmt actionlint
+runs:
+  using: composite
+  steps:
+    - name: Install lint tools with Homebrew
+      shell: bash
+      env:
+        TOOLS: ${{ inputs.tools }}
+        HOMEBREW_NO_AUTO_UPDATE: "1"
+        HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        HOMEBREW_NO_ANALYTICS: "1"
+      run: |
+        if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        fi
+        read -ra formulae <<<"$TOOLS"
+        brew install "${formulae[@]}"
+        echo "$(brew --prefix)/bin" >>"$GITHUB_PATH"

@@ -3,13 +3,12 @@
 # and https://gist.github.com/klmr/575726c7e05d8780505a
 
 # fancy colors
-cyan := "$$(tput setaf 6)"
-green := "$$(tput setaf 2)"
-red := "$$(tput setaf 1)"
-yel := "$$(tput setaf 3)"
-gray := "$$(tput setaf 8)"
-grayb := "$$(printf "\033[1m"; tput setaf 8)"
-end := "$$(tput sgr0)"
+# tput errors without a TERM, as in CI; plain output is fine there.
+cyan := "$$(tput setaf 6 2>/dev/null)"
+green := "$$(tput setaf 2 2>/dev/null)"
+red := "$$(tput setaf 1 2>/dev/null)"
+grayb := "$$(printf "\033[1m"; tput setaf 8 2>/dev/null)"
+end := "$$(tput sgr0 2>/dev/null)"
 TARGET_STYLED_HELP_NAME = "$(cyan)TARGET$(end)"
 ARGUMENTS_HELP_NAME = "$(green)ARGUMENT$(end)=$(red)VALUE$(end)"
 
@@ -53,7 +52,7 @@ DEFAULT_CATEGORY = General
 .PHONY: help
 help:
 	@echo "Usage: make [$(TARGET_STYLED_HELP_NAME) [$(TARGET_STYLED_HELP_NAME) ...]] [$(ARGUMENTS_HELP_NAME) [$(ARGUMENTS_HELP_NAME) ...]]"
-	@cat ${MAKEFILE_LIST} \
+	@awk 1 ${MAKEFILE_LIST} \
 	| tr '\t' '    ' \
 	| sed -n -e "/^## / { \
 	h; \

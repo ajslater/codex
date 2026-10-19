@@ -9,6 +9,7 @@ services:
       - infinity
     environment:
       - PYTHONUNBUFFERED=1
+      - CI
     image: ${CI_IMAGE}
     volumes:
       - ./test-results:/app/test-results

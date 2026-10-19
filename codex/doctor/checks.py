@@ -248,9 +248,9 @@ def check_watcher() -> Iterator[CheckResult]:
         yield _row("watcher", Status.OK, found=found, detail=detail)
 
 
-def check_credentials() -> Iterator[CheckResult]:
+def _stored_credentials() -> dict[str, str]:
     """
-    Whether the stored tagging credentials still decrypt.
+    Read the tagging credentials as stored, still encrypted, by field name.
 
     The field decrypts on load and, on failure, hands back the ciphertext
     as if it were the value, so the Tagging tab would show gibberish and a
@@ -268,9 +268,12 @@ def check_credentials() -> Iterator[CheckResult]:
         .values(*(f"raw_{f.name}" for f in fields))
         .first()
     ) or {}
-    stored: dict[str, str] = {
-        f.name: token for f in fields if (token := raw.get(f"raw_{f.name}"))
-    }
+    return {f.name: token for f in fields if (token := raw.get(f"raw_{f.name}"))}
+
+
+def check_credentials() -> Iterator[CheckResult]:
+    """Whether the stored tagging credentials still decrypt."""
+    stored = _stored_credentials()
     if not stored:
         yield _row("credentials", Status.OFF, detail="no tagging credentials stored")
         return

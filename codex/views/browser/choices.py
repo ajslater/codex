@@ -83,9 +83,7 @@ _M2M_DISTINCT_PROBE_LIMIT = 2
 class BrowserChoicesViewBase(BrowserFilterView):
     """Get choices for filter dialog."""
 
-    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
-        BrowserFilterChoicesInputSerializer
-    )
+    input_serializer_class = BrowserFilterChoicesInputSerializer
     TARGET: str = "choices"
 
     @staticmethod

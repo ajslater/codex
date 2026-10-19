@@ -13,7 +13,7 @@
 ###############################################################################
 
 # ---- Stage 1: builder (build tools + Node for compilation) -----------------
-FROM nikolaik/python-nodejs:python3.14-nodejs26 AS builder-base
+FROM nikolaik/python-nodejs:python3.15-nodejs26 AS builder-base
 # nodejs25 blocked on bug https://github.com/nodejs/node/issues/60303
 
 COPY debian.sources /etc/apt/sources.list.d/
@@ -40,16 +40,17 @@ RUN pip3 install --no-cache --upgrade pip
 FROM oven/bun:latest AS bun-source
 FROM builder-base AS codex-ci
 
-# hadolint ignore=DL3008
-RUN apt-get clean \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
-        shellcheck \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=bun-source /usr/local/bin/bunx /usr/local/bin/bunx
+
+# Lint tools devenv's bin/ scripts run, unpinned on purpose.
+COPY --from=koalaman/shellcheck:stable /bin/shellcheck /usr/local/bin/
+COPY --from=mvdan/shfmt:latest /bin/shfmt /usr/local/bin/
+COPY --from=hadolint/hadolint:latest /bin/hadolint /usr/local/bin/
+COPY --from=rhysd/actionlint:latest /usr/local/bin/actionlint /usr/local/bin/
+COPY --from=ghcr.io/reteps/dockerfmt:latest /ko-app/dockerfmt /usr/local/bin/
+ADD https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-musl.tar.gz /tmp/shellharden.tar.gz
+RUN tar -xzf /tmp/shellharden.tar.gz -C /usr/local/bin shellharden && rm /tmp/shellharden.tar.gz
 
 WORKDIR /app
 
@@ -86,7 +87,7 @@ COPY pyproject.toml uv.lock ./
 COPY dist/${CODEX_WHEEL} ./
 # Pin the runtime closure to uv.lock; install the wheel itself without deps.
 RUN uv export --frozen --no-default-groups --no-emit-project -o requirements.txt \
-    && uv venv --python /usr/local/bin/python3.14 /opt/codex \
+    && uv venv --python /usr/local/bin/python3.15 /opt/codex \
     && PYMUPDF_SETUP_PY_LIMITED_API=0 uv pip install --python /opt/codex/bin/python \
         --no-cache --compile-bytecode -r requirements.txt \
     && uv pip install --python /opt/codex/bin/python --no-cache --no-deps \
@@ -96,15 +97,15 @@ RUN uv export --frozen --no-default-groups --no-emit-project -o requirements.txt
 # English: LANGUAGE_CODE is en-us and nothing activates another language.
 # hadolint ignore=SC2016
 RUN set -eux \
-    && find /opt/codex -type f \( -name '*.so' -o -name '*.so.*' \) \
-        -exec strip --strip-unneeded {} + \
-    && find /opt/codex -name '*.pyi' -delete \
-    && rm -rf /opt/codex/lib/python3.14/site-packages/pycountry/locales \
-    && find /opt/codex/lib/python3.14/site-packages -type d -name locale -prune \
-        -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
+  && find /opt/codex -type f \( -name '*.so' -o -name '*.so.*' \) \
+  -exec strip --strip-unneeded {} + \
+  && find /opt/codex -name '*.pyi' -delete \
+  && rm -rf /opt/codex/lib/python3.15/site-packages/pycountry/locales \
+  && find /opt/codex/lib/python3.15/site-packages -type d -name locale -prune \
+  -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
 
 # ---- Stage 4: final (production image) ------------------------------------
-FROM ghcr.io/ajslater/python-debian:3.14.6-slim-trixie_0 AS final
+FROM ghcr.io/ajslater/python-debian:3.15.0-slim-trixie_0 AS final
 ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.description="Codex Comic Server" \

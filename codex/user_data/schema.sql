@@ -88,8 +88,6 @@ CREATE TABLE IF NOT EXISTS settings_browser (
     order_extra_keys TEXT NOT NULL DEFAULT '[]',
     collection_order_memory TEXT NOT NULL DEFAULT '{}',
     search TEXT NOT NULL DEFAULT '',
-    custom_covers INTEGER NOT NULL DEFAULT 1,
-    dynamic_covers INTEGER NOT NULL DEFAULT 1,
     twenty_four_hour_time INTEGER NOT NULL DEFAULT 0,
     always_show_filename INTEGER NOT NULL DEFAULT 0,
     view_mode TEXT NOT NULL DEFAULT '',

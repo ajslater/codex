@@ -53,8 +53,6 @@ BROWSER_FIELDS: Final[tuple[str, ...]] = (
     "order_by",
     "view_mode",
     "table_cover_size",
-    "dynamic_covers",
-    "custom_covers",
 )
 # Ordered, unlike SettingsReader.DIRECT_KEYS which is a frozenset. A test pins
 # the two to the same set so this cannot drift from the model.
@@ -62,8 +60,6 @@ READER_FIELDS: Final[tuple[str, ...]] = (
     "fit_to",
     "two_pages",
     "reading_direction",
-    "read_rtl_in_reverse",
-    "finish_on_last_page",
     "page_transition",
     "cache_book",
 )

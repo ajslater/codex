@@ -15,6 +15,11 @@
 # websockets = true
 # HTTP path prefix for codex (e.g. "/codex" for reverse proxy sub-path)
 # url_path_prefix = ""
+# Public origins accepted for CSRF when a reverse proxy serves Codex under
+# another scheme or host than Codex sees (e.g. https in front of http).
+# First make sure the proxy sends X-Forwarded-Proto and X-Forwarded-Host.
+# A correctly configured proxy does, and then you shouldn't need this.
+# csrf_trusted_origins = ["https://comics.example.com"]
 # Worker threads that keep a warm database connection between requests.
 # Opening one costs a few milliseconds, mostly SQLite re-reading the
 # schema, so reusing them makes short requests noticeably cheaper. Each

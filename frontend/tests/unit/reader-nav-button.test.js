@@ -40,7 +40,12 @@ test("reader-nav-button", async () => {
   const readerStore = useReaderStore();
 
   // test initial state
-  expect(wrapper.html()).toMatchSnapshot();
+  expect(wrapper.element.tagName).toBe("A");
+  expect(wrapper.attributes("href")).toBe("/read/0?page=0");
+  expect(wrapper.attributes("title")).toBe("Page 0");
+  expect(wrapper.attributes("aria-disabled")).toBe("true");
+  expect(wrapper.classes()).toContain("readerNavButton");
+  expect(wrapper.classes()).toContain("readerNavButtonLeft");
   expect(wrapper.text()).toContain("0");
 
   // push new route

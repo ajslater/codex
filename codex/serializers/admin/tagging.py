@@ -193,7 +193,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
 
         The key is the only Metron credential the UI offers now, so saving one
         (or clearing it) drops the old login rather than leaving a stale
-        fallback that mokkari would silently ignore anyway.
+        fallback that comicbox would never send anyway.
         """
         if "metron_key" in validated_data:
             validated_data["metron_user"] = ""

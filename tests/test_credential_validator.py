@@ -113,7 +113,7 @@ class TestValidateCredentials:
         )
 
     def test_metron_key_wins_over_legacy_login(self) -> None:
-        """Both stored: the token reaches mokkari, which prefers it."""
+        """Both stored: all three reach comicbox, which sends only the token."""
         creds = OnlineCredentials(
             metron_key="token",
             metron_user="user",

@@ -2,9 +2,10 @@
 #
 # Gate, one CI image build, a fail-fast lint/test/build matrix that pulls that
 # image, and the required-check aggregator. With container: false the matrix
-# runs natively on inputs.runner instead (for macOS-only projects) and no
-# image is built. Call it from a job in ci.yml; later jobs read its outputs
-# instead of repeating any trigger logic:
+# runs natively on inputs.runner instead (for macOS-only projects), no image
+# is built and the lint combo installs the lint tools with brew. Call it from
+# a job in ci.yml; later jobs read its outputs instead of repeating any
+# trigger logic:
 #
 #   ci:
 #     uses: ./.github/workflows/devenv-check.yml
@@ -36,15 +37,16 @@ on:
         description: >-
           true runs every combo in the CI image built from the Dockerfile.
           false runs it natively on the runner after setup-uv, setup-bun and
-          make install, for projects that cannot run in a Linux container.
+          make install, for projects that cannot run in a Linux container; a
+          combo that runs lint installs the lint tools with brew first.
         type: boolean
         default: true
       runner:
         description: >-
           Runner for the check matrix, e.g. macos-latest with container false.
-          The gate, image and result jobs stay on ubuntu-24.04.
+          The gate, image and result jobs stay on ubuntu-latest.
         type: string
-        default: ubuntu-24.04
+        default: ubuntu-latest
       release-preflight:
         description: >-
           Run bin/release-tag.sh preflight in the gate on main pushes and pull
@@ -52,7 +54,7 @@ on:
         type: boolean
         default: true
       retention-days:
-        description: Days to keep python-dist and the ci-passed marker.
+        description: Days to keep python-dist, the ci-passed marker and coverage.
         type: number
         default: 7
     outputs:
@@ -93,7 +95,7 @@ jobs:
   # ---------------------------------------------------------------------------
   gate:
     name: Gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: >-
       (github.event_name == 'push' && github.ref_name == 'main')
@@ -179,7 +181,7 @@ jobs:
     name: CI Image
     needs: gate
     if: inputs.container && needs.gate.outputs.dist_found != 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     # The slowest job: a cold build without the registry cache.
     timeout-minutes: 45
     permissions:
@@ -235,7 +237,7 @@ jobs:
   prune:
     name: Prune CI Images
     needs: image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
     permissions:
@@ -296,6 +298,12 @@ jobs:
         if: ${{ !inputs.container }}
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
+      # Only the combo that lints pays for the install. In container mode the
+      # CI stage of the project's Dockerfile has the tools.
+      - name: Install lint tools
+        if: ${{ !inputs.container && contains(matrix.make, 'lint') }}
+        uses: ./.github/actions/devenv-lint-tools
+
       - name: Install
         if: ${{ !inputs.container }}
         run: |
@@ -326,6 +334,17 @@ jobs:
           name: test-results-${{ strategy.job-index }}
           path: "**/test-results/pytest/*.xml"
 
+      # pytest-cov's HTML report. A project whose tests write none, such as
+      # one with pytest addopts of its own, has nothing to upload.
+      - name: Upload Coverage
+        if: matrix.junit && !cancelled() && steps.work.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-${{ strategy.job-index }}
+          path: "**/test-results/coverage/"
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: ignore
+
       - name: Publish Test Report
         if: matrix.junit && !cancelled() && steps.upload-tests.outcome == 'success'
         uses: mikepenz/action-junit-report@b7b80d7ac5b1da46d6aaff9fb57ad50d8453bcb3 # v6.6.0
@@ -354,7 +373,7 @@ jobs:
     # always(), not !cancelled(): a skipped required check counts as passing,
     # so a cancelled run must still reach this job and go red.
     if: ${{ always() && needs.gate.result != 'skipped' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
     steps:

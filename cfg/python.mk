@@ -43,6 +43,12 @@ version::
 fix-python:
 	./bin/fix-python.sh
 
+.PHONY: fix-complexity
+## Refactor python functions over the complexity limit
+## @category Fix
+fix-complexity:
+	./bin/fix-complexity.sh
+
 .PHONY: fix
 ## Fix python lint errors
 ## @category Fix

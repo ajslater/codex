@@ -1,5 +1,5 @@
 build:
-  os: ubuntu-24.04
+  os: ubuntu-lts-latest
   tools:
     python: "3"
 mkdocs:

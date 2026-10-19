@@ -25,6 +25,10 @@ django-check:
 collectstatic: build-frontend
 	bin/collectstatic.sh
 
+# Does nothing unless frontend.mk or the project's own .mk gives it a recipe.
+.PHONY: build-frontend
+build-frontend:
+
 .PHONY: build-only
 ## Build python package without collecting static files
 ## @category Build

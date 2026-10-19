@@ -31,7 +31,9 @@ from codex.settings.config import (
     get_float,
     get_int,
     get_str,
+    get_str_list,
     load_codex_config,
+    normalize_csrf_trusted_origins,
     normalize_url_path_prefix,
 )
 from codex.settings.logging import get_logging_settings
@@ -535,6 +537,14 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 # Proxy headers
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Public origins (e.g. "https://comics.example.com") a proxy serves Codex under
+# when the scheme or host Django sees differs. DRF's SessionAuthentication
+# enforces CSRF on the API too, so this is the fix, not removing the middleware.
+CSRF_TRUSTED_ORIGINS = list(
+    normalize_csrf_trusted_origins(
+        get_str_list(CODEX_CONFIG, "server.csrf_trusted_origins")
+    )
+)
 
 # Debug
 INTERNAL_IPS = ("127.0.0.1",)

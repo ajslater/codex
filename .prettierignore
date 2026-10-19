@@ -1,7 +1,8 @@
 *.sh
 *Dockerfile
 .*cache
-.claude
+.claude/settings.local.json
+.claude/worktrees/
 .git
 .venv*
 __pycache__

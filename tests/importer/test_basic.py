@@ -16,7 +16,6 @@ from typing import override
 from deepdiff import DeepDiff
 from django.core.cache import cache
 from django.test import TestCase
-from django.test.testcases import SerializeMixin
 from loguru import logger
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -946,9 +945,7 @@ def run_full_import(importer) -> None:
     importer.full_text_search()
 
 
-class BaseTestImporter(SerializeMixin, TestCase, ABC):
-    lockfile = __file__
-
+class BaseTestImporter(TestCase, ABC):
     @override
     @classmethod
     def setUpTestData(cls):

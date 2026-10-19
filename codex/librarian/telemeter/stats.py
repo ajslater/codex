@@ -62,13 +62,11 @@ _USER_STATS: Final = (
         (
             "top_collection",
             "order_by",
-            "dynamic_covers",
             "view_mode",
             "table_cover_size",
-            "custom_covers",
         ),
     ),
-    (SettingsReader, ("finish_on_last_page", "fit_to", "reading_direction")),
+    (SettingsReader, ("fit_to", "reading_direction")),
 )
 # Sections built by a single collector function, in payload order.
 _SIMPLE_SECTIONS: Final = (

@@ -270,7 +270,7 @@ def _restore_libraries(
     store: SidecarStore, report: RestoreReport, *, dry_run: bool
 ) -> None:
     """Restore Library rows."""
-    import datetime
+    import datetime as dt
 
     from codex.models.library import Library
 
@@ -285,9 +285,7 @@ def _restore_libraries(
         }
         if row["poll_every"]:
             # Stored as total-seconds float by ``serialize_library``.
-            defaults["poll_every"] = datetime.timedelta(
-                seconds=float(row["poll_every"])
-            )
+            defaults["poll_every"] = dt.timedelta(seconds=float(row["poll_every"]))
         Library.objects.update_or_create(path=row["path"], defaults=defaults)
         report.note_written("libraries")
 
@@ -777,8 +775,6 @@ _BROWSER_STR_COLUMNS: Final[tuple[str, ...]] = (
 )
 _BROWSER_BOOL_COLUMNS: Final[tuple[str, ...]] = (
     "order_reverse",
-    "custom_covers",
-    "dynamic_covers",
     "twenty_four_hour_time",
     "always_show_filename",
 )

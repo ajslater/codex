@@ -207,8 +207,6 @@ def serialize_settings_browser(
                 browser.collection_order_memory, separators=(",", ":")
             ),
             "search": browser.search,
-            "custom_covers": int(browser.custom_covers),
-            "dynamic_covers": int(browser.dynamic_covers),
             "twenty_four_hour_time": int(browser.twenty_four_hour_time),
             "always_show_filename": int(browser.always_show_filename),
             "view_mode": browser.view_mode,

@@ -1,12 +1,11 @@
 """Force update browser view: re-import metadata for a filtered comic set."""
 
-from collections.abc import Sequence
 from functools import cached_property
 from types import MappingProxyType
 from typing import override
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import BasePermission, IsAdminUser
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -19,7 +18,7 @@ from codex.views.browser.filters.filter import BrowserFilterView
 class ForceUpdateView(BrowserFilterView):
     """Force a metadata re-import for every comic under a collection + filters."""
 
-    permission_classes: Sequence[type[BasePermission]] = (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
     serializer_class = OKSerializer
     TARGET: str = "force_update"
 

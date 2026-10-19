@@ -29,9 +29,6 @@ update:: update-node
 kill-eslint_d:
 	bin/kill-eslint_d.sh
 
-## Show version. Use V variable to set version
-## @category Update
-V :=
 .PHONY: version
 ## Show or set project version for node
 ## @category Update

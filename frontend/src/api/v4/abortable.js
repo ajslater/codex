@@ -23,9 +23,10 @@ export function dedupedFetch(key, fetcher) {
 }
 
 export function isAbortError(error) {
-  return error
-    ? error.name === "AbortError" || error.name === "CanceledError"
-    : false;
+  return (
+    Boolean(error) &&
+    (error.name === "AbortError" || error.name === "CanceledError")
+  );
 }
 
 export function useAbortable(key) {
