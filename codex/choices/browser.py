@@ -776,8 +776,6 @@ def clean_table_columns(value) -> tuple[dict[str, list[str]], list[str]]:
 
 BROWSER_DEFAULTS = MappingProxyType(
     {
-        "custom_covers": True,
-        "dynamic_covers": True,
         "filters": _DEFAULT_FILTERS,
         "order_by": "sort_name",
         "order_reverse": False,

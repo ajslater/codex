@@ -1,32 +1,11 @@
 """Cover pk annotation for browser card querysets."""
 
-from typing import Final
-
 from django.db.models import OuterRef, Q, Subquery
 
-from codex.models import Comic, Folder, Volume
+from codex.models import Comic, Folder
 from codex.models.paths import CustomCover
-from codex.views.browser.annotate.card import _COLLECTION_BY, BrowserAnnotateCardView
+from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
-
-# PENDING SCHEMA REMOVAL
-#
-# Dynamic covers and custom covers are no longer user options.
-# They are pinned on here instead of read from ``self.params``, and their
-# toggles are gone from the browser settings drawer.
-#
-# What is deliberately still here: ``SettingsBrowser.dynamic_covers`` and
-# ``.custom_covers``, their serializer fields, and the query params. Every
-# user's stored preference is therefore untouched, so putting the toggles back
-# means reverting the code — no data migration, and nobody's setting is lost in
-# the meantime.
-#
-# When we commit to this, drop the two columns, their serializer and
-# ``BROWSER_DEFAULTS`` entries, the params the client sends, and the branches
-# below that can no longer be reached: the sort-name fuzzy match in
-# ``_cover_collection_q`` and the early return in ``_cover_custom_subqueries``.
-_DYNAMIC_COVERS: Final[bool] = True
-_CUSTOM_COVERS: Final[bool] = True
 
 
 class BrowserAnnotateCoverView(BrowserAnnotateCardView):
@@ -35,40 +14,23 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
 
     Pre-computes the representative comic pk per card via a correlated
     subquery, replacing the 72-request fan-out to ``CoverView`` with a
-    single aggregation pass. Reproduces ``CoverView.get_collection_filter``
-    semantics exactly: direct collection-fk match when ``dynamic_covers`` is
-    on or the model is Volume/Folder; sort-name fuzzy match (correlated
-    on the GROUP BY columns) otherwise. Dynamic covers are now pinned on, so
-    the fuzzy branch is unreachable — see the note above.
+    single aggregation pass. The cover comic comes from a direct
+    collection-fk match; Folder cards match through the ``folders`` M2M so
+    descendant subfolders count. A custom cover, when one exists, overrides it.
     """
 
     def _cover_collection_q(self, collection_model) -> Q:
         """Build the collection filter Q for a cover subquery (correlated via OuterRef)."""
+        # Folders are hierarchical: parent_folder is the direct FK, but the
+        # browse filter uses the ``folders`` M2M that includes every
+        # ancestor folder. A Folder card's cover must be pickable from any
+        # comic in a descendant subfolder, not just direct children —
+        # otherwise parent folders that contain only subfolders fall back
+        # to the card's own pk and serve the missing-cover placeholder.
+        if collection_model is Folder:
+            return Q(folders__pk=OuterRef("pk"))
         collection_rel = COLLECTION_RELATION[self.model_collection]
-        if _DYNAMIC_COVERS or collection_model in (Volume, Folder):
-            # Folders are hierarchical: parent_folder is the direct FK, but the
-            # browse filter uses the ``folders`` M2M that includes every
-            # ancestor folder. A Folder card's cover must be pickable from any
-            # comic in a descendant subfolder, not just direct children —
-            # otherwise parent folders that contain only subfolders fall back
-            # to the card's own pk and serve the missing-cover placeholder.
-            if collection_model is Folder:
-                return Q(folders__pk=OuterRef("pk"))
-            return Q(**{f"{collection_rel}__pk": OuterRef("pk")})
-
-        # Fuzzy match: correlate on the GROUP BY columns. These are the
-        # same columns used by add_group_by, so ``ids`` (the JsonGroupArray
-        # of merged collection pks) and the cover subquery pick the exact same
-        # comic set — without recomputing sort_names in Python.
-        collection_by_cols = _COLLECTION_BY.get(collection_model, ("sort_name",))
-        correlation: dict = {
-            f"{collection_rel}__{col}": OuterRef(col) for col in collection_by_cols
-        }
-        parent_route = self.params.get("parent_route", {})
-        if parent_pks := parent_route.get("pks"):
-            parent_rel = COLLECTION_RELATION[parent_route["collection"]]
-            correlation[f"{parent_rel}__pk__in"] = parent_pks
-        return Q(**correlation)
+        return Q(**{f"{collection_rel}__pk": OuterRef("pk")})
 
     def _cover_filter_q(self, collection_model) -> Q:
         """Build the full filter Q for the cover comic subquery."""
@@ -121,8 +83,6 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
 
     def _cover_custom_subqueries(self):
         """Return (pk, updated_at) subqueries for a CustomCover, or (None, None)."""
-        if not _CUSTOM_COVERS:
-            return None, None
         # ``model_collection`` is the collection the cards being annotated belong to
         # (the *child* of the URL collection). ``kwargs["collection"]`` is the URL
         # collection itself, which is one level too high for the cover lookup —

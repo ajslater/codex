@@ -465,6 +465,7 @@ class LegacyKeyRenameTests(TestCase):
             "order_reverse": 1,
             "order_extra_keys": "[]",
             "search": "",
+            # Retired sidecar columns; restore must ignore them.
             "custom_covers": 1,
             "dynamic_covers": 1,
             "twenty_four_hour_time": 0,

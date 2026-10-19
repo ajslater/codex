@@ -35,9 +35,7 @@ const UNSET_LABELS = Object.freeze({
   fitTo: "Unset (Fit to Width)",
   readingDirection: "Unset (Left to Right)",
   orderBy: "Unset (Name)",
-  finishOnLastPage: "Unset (On)",
   twoPages: "Unset (Off)",
-  readRtlInReverse: "Unset (Off)",
   pageTransition: "Unset (On)",
   cacheBook: "Unset (Off)",
 });

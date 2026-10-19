@@ -58,13 +58,6 @@ const SEARCH_ROOT_COLLECTIONS = Object.freeze(
 );
 const NON_BROWSE_COLLECTIONS = Object.freeze(new Set(["arcs", "folders"]));
 const SEARCH_HIDE_TIMEOUT = 5000;
-const COVER_KEYS = Object.freeze(["customCovers", "dynamicCovers", "show"]);
-const DYNAMIC_COVER_KEYS = Object.freeze([
-  "filters",
-  "orderBy",
-  "orderReverse",
-  "q",
-]);
 const FILTER_ONLY_KEYS = Object.freeze(["filters", "q"]);
 const METADATA_LOAD_KEYS = Object.freeze(["filters", "q", "mtime"]);
 
@@ -276,8 +269,6 @@ export const useBrowserStore = defineStore("browser", {
     },
     settings: {
       breadcrumbs: [],
-      customCovers: BROWSER_DEFAULTS.customCovers,
-      dynamicCovers: BROWSER_DEFAULTS.dynamicCovers,
       filters: BROWSER_DEFAULTS.filters,
       orderBy: BROWSER_DEFAULTS.orderBy,
       orderReverse: BROWSER_DEFAULTS.orderReverse,
@@ -437,25 +428,6 @@ export const useBrowserStore = defineStore("browser", {
       return params
         ? toBrowseRoute({ name: "browser", params })
         : { name: "home" };
-    },
-    /*
-     * PENDING SCHEMA REMOVAL
-     *
-     * Dynamic covers are pinned on, so the dynamic keys always ride along and
-     * the ``parentRoute`` fallback the sort-name cover match needed is
-     * unreachable. ``customCovers`` and ``dynamicCovers`` are still sent in
-     * COVER_KEYS and still stored per user; the server ignores them. Drop them
-     * from COVER_KEYS, from the state below and from the schema together.
-     */
-    coverSettings(state) {
-      const { collection } = liveBrowseParams();
-      if (collection == "comics") {
-        return {};
-      }
-      return this._filterSettings(state, [
-        ...COVER_KEYS,
-        ...DYNAMIC_COVER_KEYS,
-      ]);
     },
     filterOnlySettings(state) {
       return this._filterSettings(state, FILTER_ONLY_KEYS);
