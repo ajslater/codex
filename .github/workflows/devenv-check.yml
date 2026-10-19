@@ -2,9 +2,10 @@
 #
 # Gate, one CI image build, a fail-fast lint/test/build matrix that pulls that
 # image, and the required-check aggregator. With container: false the matrix
-# runs natively on inputs.runner instead (for macOS-only projects) and no
-# image is built. Call it from a job in ci.yml; later jobs read its outputs
-# instead of repeating any trigger logic:
+# runs natively on inputs.runner instead (for macOS-only projects), no image
+# is built and the lint combo installs the lint tools with brew. Call it from
+# a job in ci.yml; later jobs read its outputs instead of repeating any
+# trigger logic:
 #
 #   ci:
 #     uses: ./.github/workflows/devenv-check.yml
@@ -36,7 +37,8 @@ on:
         description: >-
           true runs every combo in the CI image built from the Dockerfile.
           false runs it natively on the runner after setup-uv, setup-bun and
-          make install, for projects that cannot run in a Linux container.
+          make install, for projects that cannot run in a Linux container; a
+          combo that runs lint installs the lint tools with brew first.
         type: boolean
         default: true
       runner:
@@ -295,6 +297,12 @@ jobs:
       - name: Set up bun
         if: ${{ !inputs.container }}
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      # Only the combo that lints pays for the install. In container mode the
+      # CI stage of the project's Dockerfile has the tools.
+      - name: Install lint tools
+        if: ${{ !inputs.container && contains(matrix.make, 'lint') }}
+        uses: ./.github/actions/devenv-lint-tools
 
       - name: Install
         if: ${{ !inputs.container }}

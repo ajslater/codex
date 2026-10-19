@@ -371,8 +371,7 @@ export const useReaderStore = defineStore("reader", {
     },
     fitToClass(bookSettings) {
       const classes = {};
-      let fitTo;
-      fitTo =
+      const fitTo =
         this.clientSettings.scale > SCALE_DEFAULT
           ? FIT_TO_CLASSES.O
           : FIT_TO_CLASSES[bookSettings.fitTo];

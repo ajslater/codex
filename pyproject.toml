@@ -161,6 +161,9 @@ source-include = [
   "docs/**",
 ]
 source-exclude = [
+  # Symlinks to directories, which the sdist builder reads as files.
+  "docs/NEWS/codex",
+  "docs/img",
   "**/*\\~",
   "**/.DS_Store",
   "codex/static_build",
