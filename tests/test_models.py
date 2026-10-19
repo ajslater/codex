@@ -1,6 +1,6 @@
 """Test models."""
 
-import datetime
+import datetime as dt
 import shutil
 from typing import override
 
@@ -40,7 +40,7 @@ class ComicTestCase(TestCase):
     YEAR = 1975
     MONTH = 4
     DAY = 9
-    DATE = datetime.date(YEAR, MONTH, DAY)
+    DATE = dt.date(YEAR, MONTH, DAY)
 
     @override
     def setUp(self):

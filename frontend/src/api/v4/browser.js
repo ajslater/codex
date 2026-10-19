@@ -55,13 +55,12 @@ export const getBrowserHref = ({ collection, pks, query }) => {
 
 export const getCoverSrc = ({ coverPk, coverCustomPk }, ts) => {
   const query = ts ? `?ts=${ts}` : "";
-  if (coverCustomPk) {
-    return `${V4_BASE}covers/custom/${coverCustomPk}${query}`;
-  }
   // ``coverPk`` is the representative comic pk pre-annotated by the
   // browser response. v4 keeps the per-comic source so the URL is
   // cacheable across cards that share a representative.
-  return `${V4_BASE}covers/comic/${coverPk}${query}`;
+  return coverCustomPk
+    ? `${V4_BASE}covers/custom/${coverCustomPk}${query}`
+    : `${V4_BASE}covers/comic/${coverPk}${query}`;
 };
 
 const PLACEHOLDER_BY_GROUP = Object.freeze({
