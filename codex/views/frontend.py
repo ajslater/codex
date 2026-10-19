@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 
 from caseconverter import camelcase
-from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.permissions import AllowAny
 from rest_framework.renderers import BaseRenderer, TemplateHTMLRenderer
 from rest_framework.response import Response
 
@@ -15,7 +15,7 @@ from codex.views.mixins import UserActiveMixin
 class IndexView(BrowserSettingsBaseView, UserActiveMixin):
     """The main app."""
 
-    permission_classes: Sequence[type[BasePermission]] = (AllowAny,)
+    permission_classes = (AllowAny,)
     renderer_classes: Sequence[type[BaseRenderer]] = [TemplateHTMLRenderer]
     template_name = "index.html"
 

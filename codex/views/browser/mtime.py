@@ -24,9 +24,7 @@ from codex.views.const import (
 class MtimeView(BrowserCollectionMtimeView):
     """Get the mtimes for the submitted collections."""
 
-    input_serializer_class: type[CollectionsMtimeSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
-        CollectionsMtimeSerializer
-    )
+    input_serializer_class = CollectionsMtimeSerializer
     serializer_class: type[BaseSerializer] | None = MtimeSerializer
 
     TARGET: str = "mtime"

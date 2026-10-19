@@ -1,13 +1,12 @@
 """Admin Tag Write View."""
 
 import json
-from collections.abc import Sequence
 from functools import cached_property
 from pathlib import Path
 from types import MappingProxyType
 from typing import override
 
-from rest_framework.permissions import BasePermission, IsAdminUser
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
@@ -43,7 +42,7 @@ class FilteredComicPksView(BrowserFilterView):
     :class:`~codex.views.browser.force_update.ForceUpdateView`.
     """
 
-    permission_classes: Sequence[type[BasePermission]] = (IsAdminUser,)
+    permission_classes = (IsAdminUser,)
     TARGET: str = "force_update"  # recursive folder rel + filter semantics
 
     def __init__(self, *args, **kwargs) -> None:

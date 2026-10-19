@@ -396,6 +396,19 @@ exclude = [
   "vulture_ignorelist.py",
 ]
 
+# ty >= 0.0.86 rejects the `class Meta(<Base>.Meta)` idiom of Django models and
+# DRF serializers as an invalid override, though the nested class subclasses the
+# one it replaces (https://github.com/astral-sh/ty/issues/4711). Scoped to the
+# models and serializers so the check still guards every other module; drop this
+# once that issue is fixed, and then mark the two deliberate overrides it also
+# hides, Volume.name and CustomCover.library, with
+# `# ty: ignore[invalid-attribute-override]`.
+[[tool.ty.overrides]]
+include = ["codex/models/**", "codex/serializers/**"]
+
+[tool.ty.overrides.rules]
+invalid-attribute-override = "ignore"
+
 [tool.vulture]
 exclude = [
   "*/.venv/*",

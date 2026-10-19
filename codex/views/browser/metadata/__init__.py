@@ -22,9 +22,7 @@ class MetadataView(MetadataCopyIntersectionsView):
     """Aggregate Collection and Comic Metadata View."""
 
     serializer_class: type[BaseSerializer] | None = MetadataSerializer
-    input_serializer_class: type[BrowserFilterChoicesInputSerializer] = (  # pyright: ignore[reportIncompatibleVariableOverride]
-        BrowserFilterChoicesInputSerializer
-    )
+    input_serializer_class = BrowserFilterChoicesInputSerializer
     TARGET: str = "metadata"
     ADMIN_FLAGS = (AdminFlagChoices.FOLDER_VIEW,)
 
