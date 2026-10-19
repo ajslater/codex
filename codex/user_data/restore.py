@@ -775,8 +775,6 @@ _BROWSER_STR_COLUMNS: Final[tuple[str, ...]] = (
 )
 _BROWSER_BOOL_COLUMNS: Final[tuple[str, ...]] = (
     "order_reverse",
-    "custom_covers",
-    "dynamic_covers",
     "twenty_four_hour_time",
     "always_show_filename",
 )

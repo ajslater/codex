@@ -24,10 +24,8 @@ READER_CHOICES = MappingProxyType(
 )
 READER_DEFAULTS = MappingProxyType(
     {
-        "finish_on_last_page": True,
         "fit_to": "W",
         "reading_direction": "ltr",
-        "read_rtl_in_reverse": False,
         "two_pages": False,
         "page_transition": True,
         "cache_book": False,

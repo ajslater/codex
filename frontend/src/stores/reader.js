@@ -120,8 +120,6 @@ export const useReaderStore = defineStore("reader", {
       fitTo: READER_DEFAULTS.fitTo,
       twoPages: READER_DEFAULTS.twoPages,
       readingDirection: READER_DEFAULTS.readingDirection,
-      readRtlInReverse: READER_DEFAULTS.readRtlInReverse,
-      finishOnLastPage: READER_DEFAULTS.finishOnLastPage,
       pageTransition: READER_DEFAULTS.pageTransition,
       cacheBook: READER_DEFAULTS.cacheBook,
     },
@@ -243,21 +241,6 @@ export const useReaderStore = defineStore("reader", {
     /*
      * GETTER Algorithms
      */
-    /*
-     * PENDING SCHEMA REMOVAL
-     *
-     * "Read RTL Comics LTR" is no longer a user option, and it is pinned OFF
-     * — its default — so a right-to-left book is read right to left. The
-     * checkbox is gone from the reader settings drawer.
-     * ``SettingsReader.read_rtl_in_reverse`` and its serializer field are
-     * deliberately still there, so every user's stored preference survives
-     * and putting the toggle back is a revert rather than a data migration.
-     * Drop the column, its serializer and ``READER_DEFAULTS`` entries, and
-     * this pass-through, when we commit to this.
-     */
-    setReadRTLInReverse(bookSettings) {
-      return bookSettings;
-    },
     getBookSettings(book) {
       if (!book) {
         return {};
@@ -277,8 +260,7 @@ export const useReaderStore = defineStore("reader", {
          * shape confusion.
          */
         const resultSettings = {};
-        let bookSettings = book?.settings || {};
-        bookSettings = this.setReadRTLInReverse(bookSettings);
+        const bookSettings = book?.settings || {};
         const allSettings = [
           this.globalSettings,
           this.intermediateSettings,
@@ -696,17 +678,6 @@ export const useReaderStore = defineStore("reader", {
       };
       page = Math.max(Math.min(book.maxPage, page), 0);
       const updates = { page };
-      /*
-       * PENDING SCHEMA REMOVAL
-       *
-       * Finishing a book on its last page is no longer a user option; the
-       * checkbox is gone from the reader settings drawer.
-       * ``SettingsReader.finish_on_last_page`` and its serializer field are
-       * deliberately still there, so every user's stored preference survives
-       * and putting the toggle back is a revert rather than a data migration.
-       * Drop the column, its serializer and ``READER_DEFAULTS`` entries when
-       * we commit to this.
-       */
       if (page >= book.maxPage) {
         updates["finished"] = true;
       }

@@ -93,13 +93,7 @@ class FactoryParityTestCase(SettingsDefaultsCase):
         assert _field_default(SettingsDefaults, "table_columns") == {}
 
     def test_reader_field_defaults_match_reader_defaults(self) -> None:
-        for key in (
-            "fit_to",
-            "reading_direction",
-            "two_pages",
-            "page_transition",
-            "cache_book",
-        ):
+        for key in READER_DEFAULTS:
             assert _field_default(SettingsDefaults, key) == READER_DEFAULTS[key], key
 
     def test_fresh_get_equals_factory(self) -> None:

@@ -30,7 +30,6 @@ from codex.serializers.fields.collection import (
     BrowserRouteCollectionField,
 )
 from codex.serializers.mixins import JSONFieldSerializer
-from codex.serializers.route import SimpleRouteSerializer
 from codex.serializers.settings import SettingsInputSerializer
 
 # Sorts worth remembering per top collection. ``search_score`` only means
@@ -113,33 +112,16 @@ class BrowserFilterChoicesInputSerializer(JSONFieldSerializer):
     search = CharField(allow_blank=True, required=False)
 
 
-class BrowserCoverInputSerializerBase(BrowserFilterChoicesInputSerializer):
-    """Base Serializer for Cover and Settings."""
+class BrowserSettingsSerializerBase(BrowserFilterChoicesInputSerializer):
+    """Base Serializer for Browser & OPDS Settings."""
 
     JSON_FIELDS = frozenset(BrowserFilterChoicesInputSerializer.JSON_FIELDS | {"show"})
 
-    custom_covers = BooleanField(required=False)
-    dynamic_covers = BooleanField(required=False)
     order_by = ChoiceField(
         choices=tuple(BROWSER_ORDER_BY_CHOICES.keys()), required=False
     )
     order_reverse = BooleanField(required=False)
     show = BrowserSettingsShowCollectionFlagsSerializer(required=False)
-
-
-class BrowserCoverInputSerializer(BrowserCoverInputSerializerBase):
-    """Browser Settings for the cover response."""
-
-    JSON_FIELDS = frozenset(
-        BrowserCoverInputSerializerBase.JSON_FIELDS | {"parent_route"}
-    )
-
-    parent_route = SimpleRouteSerializer(required=False)
-
-
-class BrowserSettingsSerializerBase(BrowserCoverInputSerializerBase):
-    """Base Serializer for Browser & OPDS Settings."""
-
     top_collection = BrowseCollectionField(required=False)
 
     @override

@@ -241,13 +241,6 @@ _BROWSER_DEFAULTS_KEYS: tuple[str, ...] = (
     "bookmark",
     "table_columns",
 )
-_READER_DEFAULTS_KEYS: tuple[str, ...] = (
-    "fit_to",
-    "reading_direction",
-    "two_pages",
-    "page_transition",
-    "cache_book",
-)
 
 
 def get_browser_defaults() -> dict[str, Any]:
@@ -270,17 +263,9 @@ def get_browser_defaults() -> dict[str, Any]:
 
 
 def get_reader_defaults() -> dict[str, Any]:
-    """
-    Resolve the site default global reader settings.
-
-    Keeps the two pinned ``READER_DEFAULTS`` keys seeded alongside the
-    admin-configurable ones.
-    """
+    """Resolve the site default global reader settings."""
     row = _get_settings_defaults_or_factory()
-    return {
-        **READER_DEFAULTS,
-        **{key: _in_choices_or_factory(row, key) for key in _READER_DEFAULTS_KEYS},
-    }
+    return {key: _in_choices_or_factory(row, key) for key in READER_DEFAULTS}
 
 
 def get_throttle_settings() -> ThrottleSettings | None:

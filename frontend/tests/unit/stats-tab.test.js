@@ -48,13 +48,10 @@ const STATS = {
     topCollection: { publishers: 2 },
     // camelCase, like the API renders it and like the choices maps are keyed.
     orderBy: { sortName: 2 },
-    dynamicCovers: { true: 2 },
-    finishOnLastPage: { true: 1 },
     fitTo: { W: 1 },
     readingDirection: { ltr: 1 },
     viewMode: { cover: 2, table: 1 },
     tableCoverSize: { sm: 1 },
-    customCovers: { true: 2 },
     multiSortCount: 0,
   },
   collections: {
@@ -87,6 +84,7 @@ const STATS = {
     browserOrderByUsers: { sortName: 1, "": 1 },
     browserChosenOrderByUsers: { sortName: 1 },
     readerGlobalFitToUsers: { W: 1, "": 1 },
+    readerGlobalTwoPagesUsers: { true: 1, "": 1 },
   },
   usage: {
     bookmarkCount: 1,
