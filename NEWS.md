@@ -17,8 +17,6 @@ border-radius: 128px;
     - Renamed comics no longer contain colons or other characters Windows and
       SMB shares can't store.
     - A Metron API key is no longer overridden by a `~/.netrc` login.
-    - Dynamic covers, custom covers and finishing a book on its last page are
-      always on; those settings and "Read RTL Comics LTR" are gone.
 
 ## v2.5.4
 
