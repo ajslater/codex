@@ -143,7 +143,9 @@ AGGREGATED = MappingProxyType(
                     "TestImprint",
                     "Captain Science",
                 ): {
-                    (None, None),
+                    # identifier, volume_count, start_year, end_year, status,
+                    # summary
+                    (None, None, None, None, None, None),
                 }
             },
             SeriesGroup: {("science comics",): set()},
@@ -416,6 +418,10 @@ QUERIED = MappingProxyType(
                     "Youthful Adventure Stories",
                     "TestImprint",
                     "Captain Science",
+                    None,
+                    None,
+                    None,
+                    None,
                     None,
                     None,
                 )

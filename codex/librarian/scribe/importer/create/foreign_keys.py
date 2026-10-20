@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from itertools import chain
 
 from codex.librarian.scribe.importer.const import (
-    COLLECTION_MODEL_COUNT_FIELDS,
+    COLLECTION_MODEL_ATTR_FIELDS,
     COMPLEX_M2M_MODELS,
     CREATE_FKS,
     FTS_CREATED_M2MS,
@@ -93,7 +93,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             value = values_tuple[index]
             arg_map = key_args if index < num_keys else update_args
             if field_model and value is not None:
-                if field_model in COLLECTION_MODEL_COUNT_FIELDS and index < num_keys:
+                if field_model in COLLECTION_MODEL_ATTR_FIELDS and index < num_keys:
                     key = tuple(values_tuple[: index + 1])
                 elif isinstance(value, tuple):
                     key = value

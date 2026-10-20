@@ -24,6 +24,8 @@
           collection="series"
           :highlight="'series' === md.collection"
         />
+        <MetadataText :value="seriesYears" class="subdued noWrap" />
+        <MetadataText :value="md.seriesStatus" class="subdued" />
         <MetadataText
           v-if="md.volumeList?.length === 1"
           id="volume"
@@ -239,6 +241,13 @@ export default {
     fileType() {
       return this?.md?.fileType || "Unknown";
     },
+    seriesYears() {
+      const start = this.md.seriesStartYear;
+      const end = this.md.seriesEndYear;
+      if (!start && !end) return "";
+      if (start === end) return `(${start})`;
+      return `(${start || ""}–${end || " "})`;
+    },
     seriesVolumeCount() {
       const count = this.md.seriesVolumeCount;
       if (!count) return "";
@@ -280,6 +289,7 @@ export default {
   }
 
   #seriesRow {
+    flex-wrap: wrap;
     margin-top: -10px;
     font-size: xx-large;
   }
@@ -300,6 +310,10 @@ export default {
 
   .subdued {
     color: rgb(var(--v-theme-text-disabled));
+  }
+
+  .noWrap {
+    white-space: nowrap;
   }
 
   #pageDateRow {

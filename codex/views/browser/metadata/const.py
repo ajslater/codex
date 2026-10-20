@@ -20,11 +20,14 @@ from codex.models.named import (
 ############
 # Annotate #
 ############
+# Comic value fields that collection models carry too (Series.summary is the
+# series' own), so collection panes annotate them under a prefix.
 COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     {
         "created_at",
         "name",
         "path",
+        "summary",
         "updated_at",
     }
 )
@@ -40,7 +43,16 @@ COMIC_VALUE_FIELD_NAMES = frozenset(
     for field in Comic._meta.get_fields()
     if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES
 )
-COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
+COMIC_RELATED_VALUE_FIELDS = frozenset(
+    {
+        "series__volume_count",
+        "series__start_year",
+        "series__end_year",
+        "series__status",
+        "series__summary",
+        "volume__issue_count",
+    }
+)
 SUM_FIELDS = frozenset({"page_count", "size"})
 
 #########

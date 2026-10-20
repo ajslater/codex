@@ -18,7 +18,7 @@ import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import vuetify from "@/plugins/vuetify";
 import { useMetadataStore } from "@/stores/metadata";
 
-function mountHeader({ multiSelect = false, editing = false } = {}) {
+function mountHeader({ multiSelect = false, editing = false, md = {} } = {}) {
   const pinia = createTestingPinia({
     initialState: { browser: { settings: { search: "" } } },
   });
@@ -28,6 +28,7 @@ function mountHeader({ multiSelect = false, editing = false } = {}) {
     collection: "comics",
     ids: [1, 2, 3],
     pageCount: 3,
+    ...md,
   };
   return mount(MetadataHeader, {
     global: {
@@ -62,6 +63,34 @@ describe("MetadataHeader — controls toolbar gate", () => {
   test("hides the toolbar while the edit panel is open", () => {
     const wrapper = mountHeader({ multiSelect: true, editing: true });
     expect(wrapper.findComponent(MetadataControls).exists()).toBe(false);
+  });
+});
+
+const seriesYears = (md) => mountHeader({ md }).vm.seriesYears;
+
+describe("MetadataHeader — series years", () => {
+  test("shows a closed range", () => {
+    expect(seriesYears({ seriesStartYear: 1963, seriesEndYear: 1996 })).toBe(
+      "(1963–1996)",
+    );
+  });
+
+  test("leaves an ongoing range open", () => {
+    expect(seriesYears({ seriesStartYear: 1963 })).toBe("(1963– )");
+  });
+
+  test("collapses a single-year run", () => {
+    expect(seriesYears({ seriesStartYear: 1963, seriesEndYear: 1963 })).toBe(
+      "(1963)",
+    );
+  });
+
+  test("shows an end year with no known start", () => {
+    expect(seriesYears({ seriesEndYear: 1996 })).toBe("(–1996)");
+  });
+
+  test("shows nothing when neither year is known", () => {
+    expect(seriesYears({})).toBe("");
   });
 });
 

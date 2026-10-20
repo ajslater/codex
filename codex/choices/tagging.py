@@ -156,16 +156,17 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 # Editor sub-fields comicbox stores only for some formats and which its
 # transform specs don't surface at the SPECS_TO top level (the
 # hand-maintained support data): MetronInfo's Series carries a volume
-# count, only MetronInfo's CommunityRating persists a rating count, and
-# only MetronInfo encodes a reprint's volume number (in Reprints) and
-# language (in Series/AlternativeNames). Whether a reprint row is one of
-# the series' other names is MetronInfo's too, and for the same reason:
-# ComicInfo has no reprint tag at all, since comicbox 5 reads its
-# AlternateSeries and AlternateNumber as a story arc.
+# count and a start year, only MetronInfo's CommunityRating persists a
+# rating count, and only MetronInfo encodes a reprint's volume number (in
+# Reprints) and language (in Series/AlternativeNames). Whether a reprint
+# row is one of the series' other names is MetronInfo's too, and for the
+# same reason: ComicInfo has no reprint tag at all, since comicbox 5 reads
+# its AlternateSeries and AlternateNumber as a story arc.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
         "METRON_INFO": (
             "volume_count",
+            "start_year",
             "community_rating_count",
             "reprint_volume",
             "reprint_language",

@@ -56,6 +56,10 @@ SERIES_FIELD_NAME = "series"
 PARENT_FOLDER_FIELD_NAME = "parent_folder"
 VOLUME_COUNT_FIELD_NAME = "volume_count"
 ISSUE_COUNT_FIELD_NAME = "issue_count"
+START_YEAR_FIELD_NAME = "start_year"
+END_YEAR_FIELD_NAME = "end_year"
+STATUS_FIELD_NAME = "status"
+SUMMARY_FIELD_NAME = "summary"
 PATH_FIELD_NAME = "path"
 IDENTIFIERS_FIELD_NAME = "identifiers"
 CREDIT_PRIMARY_FIELD_NAME = "primary"
@@ -159,14 +163,20 @@ FTS_UPDATED_M2MS = "fts_updated_m2ms"
 #######
 # M2M #
 #######
-COLLECTION_MODEL_COUNT_FIELDS: MappingProxyType[
-    type[BrowserCollectionModel], str | None
+COLLECTION_MODEL_ATTR_FIELDS: MappingProxyType[
+    type[BrowserCollectionModel], tuple[str, ...]
 ] = MappingProxyType(
     {
-        Publisher: None,
-        Imprint: None,
-        Series: VOLUME_COUNT_FIELD_NAME,
-        Volume: ISSUE_COUNT_FIELD_NAME,
+        Publisher: (),
+        Imprint: (),
+        Series: (
+            VOLUME_COUNT_FIELD_NAME,
+            START_YEAR_FIELD_NAME,
+            END_YEAR_FIELD_NAME,
+            STATUS_FIELD_NAME,
+            SUMMARY_FIELD_NAME,
+        ),
+        Volume: (ISSUE_COUNT_FIELD_NAME,),
     }
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
@@ -282,7 +292,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
                 NAME_FIELD_NAME,
             ),
             _IDENTIFIER_RELS,
-            VOLUME_COUNT_FIELD_NAME,
+            *COLLECTION_MODEL_ATTR_FIELDS[Series],
         ),
         Volume: (
             (
@@ -293,7 +303,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
                 NUMBER_TO_FIELD_NAME,
             ),
             "",
-            ISSUE_COUNT_FIELD_NAME,
+            *COLLECTION_MODEL_ATTR_FIELDS[Volume],
         ),
         Folder: (
             (PATH_FIELD_NAME,),

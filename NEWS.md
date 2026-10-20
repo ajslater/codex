@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.6
+
+- Features
+    - Series years, status and summary in the metadata pane.
+    - Tag editor edits the MetronInfo series start year.
+
 ## v2.5.5
 
 - Features

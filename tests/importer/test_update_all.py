@@ -225,6 +225,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     (
                         ("comicvine", "series", "333"),
                         None,
+                        None,
+                        None,
+                        None,
+                        None,
                     ),
                 }
             },
@@ -498,6 +502,11 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                     "Captain Science",
                     ("comicvine", "series", "333"),
                     None,
+                    None,
+                    None,
+                    # The stored status and summary stand.
+                    "",
+                    "",
                 )
             },
             Character: {("Captain Science", ("metron", "character", "123"))},

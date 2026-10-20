@@ -177,6 +177,10 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     file_name = CharField(read_only=True)
     parent_folder_id = IntegerField(read_only=True, required=False)
     series_volume_count = IntegerField(read_only=True)
+    series_start_year = IntegerField(read_only=True)
+    series_end_year = IntegerField(read_only=True)
+    series_status = CharField(read_only=True)
+    series_summary = CharField(read_only=True)
     volume_issue_count = IntegerField(read_only=True)
 
     # cover_pk and cover_custom_pk are annotated on collection queryset by
