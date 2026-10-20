@@ -27,7 +27,7 @@
     "vue": "^3.5.44",
     "vue-pdf-embed": "^2.1.7",
     "vue-router": "^5.4.0",
-    "vuetify": "^4.2.6",
+    "vuetify": "^4.3.0",
     "xior": "^0.8.5"
   },
   "devDependencies": {

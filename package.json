@@ -86,7 +86,7 @@
     "prettier": "^3.9.10",
     "prettier-plugin-nginx": "^2.0.0",
     "prettier-plugin-packagejson": "^3.0.2",
-    "prettier-plugin-toml": "^4.0.0",
+    "prettier-plugin-toml": "^4.1.0",
     "svgo": "^4.1.0"
   }
 }
