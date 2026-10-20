@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
     - Series years, status and summary in the metadata pane.
+    - Online tagging saves series years, status and summary.
     - Browser title shows series years and a Tags button.
     - Tag editor edits series years, status and summary. End year, status and
       summary are saved in Codex only.

@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from codex.librarian.scribe.tasks import ScribeTask
 
@@ -31,6 +32,14 @@ class ImportTask(ScribeTask):
 
     force_import_metadata: bool = False
     check_metadata_mtime: bool = True
+    # path -> series attributes laid over the series that file names.
+    #
+    # Set only by the TagWriter's re-read, for values a tag write was
+    # given but no format it writes can hold. Applying them during the
+    # import, rather than to the comic's series row beforehand, lands them
+    # on the row the comic ends up in: a write that names a new publisher
+    # or series moves the comic to a different row.
+    series_attrs: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     # Keep vanished rows instead of deleting them.
     #
     # Set by the two filesystem scanners, the poller and the watcher,
