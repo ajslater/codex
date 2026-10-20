@@ -24,8 +24,6 @@
           collection="series"
           :highlight="'series' === md.collection"
         />
-        <MetadataText :value="seriesYears" class="subdued noWrap" />
-        <MetadataText :value="md.seriesStatus" class="subdued" />
         <MetadataText
           v-if="md.volumeList?.length === 1"
           id="volume"
@@ -42,6 +40,9 @@
           :highlight="'comics' === md.collection"
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
+      </div>
+      <div v-if="seriesFacts" id="seriesFactsRow" class="subdued">
+        {{ seriesFacts }}
       </div>
     </section>
     <span v-if="!multiSelect && md.name" id="titleRow">
@@ -125,7 +126,7 @@
 import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import { formattedIssue } from "@/comic-name";
+import { formattedIssue, formattedYearRange } from "@/comic-name";
 import MetadataControls from "@/components/metadata/metadata-controls.vue";
 import MetadataBookCover from "@/components/metadata/metadata-cover.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
@@ -242,11 +243,12 @@ export default {
       return this?.md?.fileType || "Unknown";
     },
     seriesYears() {
-      const start = this.md.seriesStartYear;
-      const end = this.md.seriesEndYear;
-      if (!start && !end) return "";
-      if (start === end) return `(${start})`;
-      return `(${start || ""}–${end || " "})`;
+      return formattedYearRange(this.md.seriesStartYear, this.md.seriesEndYear);
+    },
+    seriesFacts() {
+      return [this.seriesYears, this.md.seriesStatus]
+        .filter(Boolean)
+        .join(" · ");
     },
     seriesVolumeCount() {
       const count = this.md.seriesVolumeCount;
@@ -304,16 +306,13 @@ export default {
     padding-top: 0px;
   }
 
-  #titleRow {
+  #titleRow,
+  #seriesFactsRow {
     font-size: large;
   }
 
   .subdued {
     color: rgb(var(--v-theme-text-disabled));
-  }
-
-  .noWrap {
-    white-space: nowrap;
   }
 
   #pageDateRow {
@@ -335,7 +334,8 @@ export default {
       font-size: large;
     }
 
-    #titleRow {
+    #titleRow,
+    #seriesFactsRow {
       font-size: x-small;
     }
   }

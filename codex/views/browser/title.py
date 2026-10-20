@@ -1,9 +1,21 @@
 """Browser title."""
 
 from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Final
 
-from codex.models import Comic, Volume
+from codex.models import Comic, Series, Volume
 from codex.views.browser.breadcrumbs import BrowserBreadcrumbsView
+
+_EMPTY_TITLE: Final = MappingProxyType(
+    {
+        "collection_name": "",
+        "collection_number_to": None,
+        "collection_count": 0,
+        "collection_start_year": None,
+        "collection_end_year": None,
+    }
+)
 
 
 class BrowserTitleView(BrowserBreadcrumbsView):
@@ -19,7 +31,7 @@ class BrowserTitleView(BrowserBreadcrumbsView):
             raise ValueError(reason)
         return plural.capitalize(), 0
 
-    def _get_collection_name(self) -> tuple:
+    def _get_collection_name(self) -> Mapping:
         """
         Name the collection the route points at.
 
@@ -29,32 +41,27 @@ class BrowserTitleView(BrowserBreadcrumbsView):
         collection this user cannot see, so the empty defaults below are
         now only the root-listing case (no pks).
         """
-        collection_number_to = None
-        collection_count = 0
-        collection_name = ""
+        title = dict(_EMPTY_TITLE)
         if gi := self.collection_instance:
-            collection_name = gi.name
-            if isinstance(gi, Volume):
-                collection_number_to = gi.number_to
-                collection_count = gi.series.volume_count
+            title["collection_name"] = gi.name
+            if isinstance(gi, Series):
+                title["collection_start_year"] = gi.start_year
+                title["collection_end_year"] = gi.end_year
+            elif isinstance(gi, Volume):
+                title["collection_number_to"] = gi.number_to
+                title["collection_count"] = gi.series.volume_count
             elif isinstance(gi, Comic):
-                collection_number_to = gi.volume.number_to
-                collection_count = gi.volume.issue_count
-        return collection_name, collection_number_to, collection_count
+                title["collection_number_to"] = gi.volume.number_to
+                title["collection_count"] = gi.volume.issue_count
+        return title
 
     def get_browser_page_title(self) -> Mapping:
         """Get the proper title for this browse level."""
-        pks = self.kwargs.get("pks")
-        if not pks:
-            collection_name, collection_count = self._get_root_collection_name()
-            collection_number_to = None
-        else:
-            collection_name, collection_number_to, collection_count = (
-                self._get_collection_name()
-            )
-
+        if self.kwargs.get("pks"):
+            return self._get_collection_name()
+        collection_name, collection_count = self._get_root_collection_name()
         return {
+            **_EMPTY_TITLE,
             "collection_name": collection_name,
-            "collection_number_to": collection_number_to,
             "collection_count": collection_count,
         }

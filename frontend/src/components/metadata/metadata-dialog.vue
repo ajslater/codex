@@ -5,6 +5,8 @@
         v-bind="activatorProps"
         :book="book"
         :toolbar="toolbar"
+        :size="size"
+        :density="density"
       />
     </template>
     <CloseButton class="closeButton" title="Close Tags (esc)" @click="close" />
@@ -78,6 +80,14 @@ export default {
     noActivator: {
       type: Boolean,
       default: false,
+    },
+    size: {
+      type: String,
+      default: undefined,
+    },
+    density: {
+      type: String,
+      default: undefined,
     },
   },
   emits: ["close"],
