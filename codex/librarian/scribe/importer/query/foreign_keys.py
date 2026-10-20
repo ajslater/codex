@@ -4,7 +4,6 @@ from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     FK_KEYS,
     MODEL_REL_MAP,
-    MODEL_SELECT_RELATED,
     QUERY_MODELS,
     TOTAL,
     UPDATE_FKS,
@@ -37,13 +36,10 @@ class QueryForeignKeysQueryImporter(QueryIsUpdateImporter):
             batch_proposed_key_tuples,
         )
         rels = MODEL_REL_MAP[model]
-        select_related = MODEL_SELECT_RELATED.get(model, ())
         # A comprehension, not filter(bool, ...): bool's signature widens the
         # element type to object, which values_list refuses.
         fields = tuple(field for field in flatten(rels) if field)
-        qs = model.objects
-        qs = qs.select_related(*select_related)
-        qs = qs.filter(fk_filter).distinct().values_list(*fields)
+        qs = model.objects.filter(fk_filter).distinct().values_list(*fields)
         extra_index = get_key_index(model)
         has_id = bool(rels[1])
         existing_mds = {}
