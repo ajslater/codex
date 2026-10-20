@@ -1,7 +1,7 @@
 """Aggregate Browser Collection Trees."""
 
 from collections.abc import Mapping
-from contextlib import suppress
+from types import MappingProxyType
 
 from comicbox.enums.comicbox import IdSources
 from comicbox.formats.comicbox.schema import (
@@ -20,9 +20,13 @@ from django.db.models.base import Model
 from codex.librarian.scribe.importer.const import (
     COLLECTION_FIELD_NAMES,
     COLLECTION_FIELD_NAMES_SET,
-    COLLECTION_MODEL_COUNT_FIELDS,
+    COLLECTION_MODEL_ATTR_FIELDS,
+    END_YEAR_FIELD_NAME,
     LINK_FKS,
     QUERY_MODELS,
+    START_YEAR_FIELD_NAME,
+    STATUS_FIELD_NAME,
+    SUMMARY_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.query import QueryForeignKeysImporter
 from codex.librarian.scribe.importer.read.const import (
@@ -38,10 +42,21 @@ from codex.models.identifier import (
     to_codex_id_type,
     to_comicbox_id_type,
 )
-from codex.util import max_none
+from codex.util import first_none, max_none, min_none
 
 _MINIMAL_KEYS = frozenset(
     {"file_type", PAGE_COUNT_KEY, "path"} | COLLECTION_FIELD_NAMES_SET
+)
+# How comics of one collection in an import batch combine an attribute.
+# Counts and the end year take the largest, the start year the earliest
+# and text the first comic's.
+_ATTR_MERGE = MappingProxyType(
+    {
+        START_YEAR_FIELD_NAME: min_none,
+        END_YEAR_FIELD_NAME: max_none,
+        STATUS_FIELD_NAME: first_none,
+        SUMMARY_FIELD_NAME: first_none,
+    }
 )
 
 
@@ -131,6 +146,41 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             return ()
         return (value,), None
 
+    def _merge_collection_attrs(
+        self,
+        model: type[BrowserCollectionModel],
+        key_values: tuple,
+        collection: Mapping,
+    ) -> tuple:
+        """
+        Merge one comic's collection attributes into the batch's so far.
+
+        Every comic proposes its own extra values for its collection. The
+        query phase settles several proposals by set order, so the ones
+        already proposed are rewritten to carry the merged attributes too
+        and all proposals agree.
+        """
+        attr_names = COLLECTION_MODEL_ATTR_FIELDS[model]
+        values = []
+        for attr_name in attr_names:
+            field = model._meta.get_field(attr_name)
+            value = field.get_prep_value(collection.get(attr_name))
+            values.append(None if value == "" else value)
+        proposed = self.metadata[QUERY_MODELS].get(model, {}).get(key_values)
+        if not proposed:
+            return tuple(values)
+        num_attrs = len(attr_names)
+        for extra_values in proposed:
+            old_values = extra_values[-num_attrs:]
+            for index, attr_name in enumerate(attr_names):
+                merge = _ATTR_MERGE.get(attr_name, max_none)
+                values[index] = merge(old_values[index], values[index])
+        merged = tuple(values)
+        self.metadata[QUERY_MODELS][model][key_values] = {
+            (*extra_values[:-num_attrs], *merged) for extra_values in proposed
+        }
+        return merged
+
     def _set_collection_tree_node(
         self,
         model: type[BrowserCollectionModel],
@@ -153,16 +203,12 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         else:
             identifier_tuple = self.get_identifier_tuple(model, collection)
             extra_vals.append(identifier_tuple)
-        count_key = COLLECTION_MODEL_COUNT_FIELDS[model]
-        if count_key:
-            count = collection.get(count_key)
-            with suppress(Exception):
-                old_count_val = (
-                    self.metadata[QUERY_MODELS].get(model, {}).get(collection_list)
-                )
-                count = max_none(old_count_val, count)
-            extra_vals.append(count)
-        return tuple(collection_list), frozenset((tuple(extra_vals),))
+        key_values = tuple(collection_list)
+        if COLLECTION_MODEL_ATTR_FIELDS[model]:
+            extra_vals.extend(
+                self._merge_collection_attrs(model, key_values, collection)
+            )
+        return key_values, frozenset((tuple(extra_vals),))
 
     def get_fk_metadata(self, md, path) -> None:
         """Aggregate Simple Foreign Keys."""

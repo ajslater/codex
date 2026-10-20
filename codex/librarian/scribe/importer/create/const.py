@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 from codex.librarian.scribe.importer.const import (
+    COLLECTION_MODEL_ATTR_FIELDS,
     CREDIT_PERSON_FIELD_NAME,
     CREDIT_PRIMARY_FIELD_NAME,
     CREDIT_ROLE_FIELD_NAME,
@@ -28,7 +29,6 @@ from codex.librarian.scribe.importer.const import (
     REPRINT_VOLUME_NUMBER_FIELD_NAME,
     SERIES_FIELD_NAME,
     STORY_ARC_FIELD_NAME,
-    VOLUME_COUNT_FIELD_NAME,
 )
 from codex.models import (
     Credit,
@@ -68,6 +68,7 @@ NON_NULL_CHARFIELD_NAMES: MappingProxyType[type[BaseModel], frozenset[str]] = (
         {
             Universe: frozenset({"designation"}),
             Identifier: frozenset({"id_type", "key", "url"}),
+            Series: DEFAULT_NON_NULL_CHARFIELD_NAMES | {"status", "summary"},
             Comic: frozenset({"path"}),
             Volume: frozenset({}),
         }
@@ -104,7 +105,10 @@ MODEL_CREATE_ARGS_MAP: MappingProxyType[
                 IMPRINT_FIELD_NAME: Imprint,
                 NAME_FIELD_NAME: None,
             },
-            {IDENTIFIER_FIELD_NAME: Identifier, VOLUME_COUNT_FIELD_NAME: None},
+            {
+                IDENTIFIER_FIELD_NAME: Identifier,
+                **dict.fromkeys(COLLECTION_MODEL_ATTR_FIELDS[Series]),
+            },
         ),
         Volume: (
             {

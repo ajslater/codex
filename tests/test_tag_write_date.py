@@ -39,6 +39,7 @@ _LATER_YEAR: Final = 1999
 _ISSUE_NUMBER: Final = "1"
 _ALTERNATIVE_ISSUE: Final = MappingProxyType({"number": 5, "suffix": "AU"})
 _COLLECTION_TITLE: Final = "The Dark Phoenix Saga"
+_START_YEAR: Final = 1963
 
 
 def _double(stub: object) -> Any:
@@ -105,6 +106,7 @@ class TagEditorFieldSupportTestCase(TestCase):
             "collection_title",
             "alternative_issue_number",
             "alternative_issue_suffix",
+            "start_year",
         }
         assert metron_only <= metron
         assert not (metron_only & comic_info)
@@ -206,3 +208,11 @@ class TagWriteDateTestCase(TestCase):
         sub_md = self._write_metron({"collection_title": _COLLECTION_TITLE})
 
         assert sub_md.get("collection_title") == _COLLECTION_TITLE
+
+    def test_write_series_start_year(self) -> None:
+        """The editor's Start Year rides the series object into MetronInfo."""
+        sub_md = self._write_metron(
+            {"series": {"name": "S", "start_year": _START_YEAR}}
+        )
+
+        assert sub_md.get("series", {}).get("start_year") == _START_YEAR

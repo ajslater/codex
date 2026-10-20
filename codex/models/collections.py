@@ -2,10 +2,15 @@
 
 from typing import override
 
-from django.db.models import CASCADE, SET_DEFAULT, ForeignKey, Index, Q
+from django.db.models import CASCADE, SET_DEFAULT, CharField, ForeignKey, Index, Q
 
 from codex.models.base import MAX_NAME_LEN, BaseModel
-from codex.models.fields import CleaningCharField, CoercingPositiveSmallIntegerField
+from codex.models.choices import SeriesStatusChoices, max_choices_len
+from codex.models.fields import (
+    CleaningCharField,
+    CleaningTextField,
+    CoercingPositiveSmallIntegerField,
+)
 from codex.models.identifier import Identifier
 from codex.models.paths import CustomCover, WatchedPath
 from codex.models.util import get_sort_name
@@ -122,6 +127,15 @@ class Series(IdentifiedBrowserCollectionModel):
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = CoercingPositiveSmallIntegerField(null=True)
+    start_year = CoercingPositiveSmallIntegerField(null=True)
+    end_year = CoercingPositiveSmallIntegerField(null=True)
+    status = CharField(
+        blank=True,
+        choices=SeriesStatusChoices.choices,
+        default="",
+        max_length=max_choices_len(SeriesStatusChoices),
+    )
+    summary = CleaningTextField(blank=True, default="", db_collation="nocase")
 
     class Meta(IdentifiedBrowserCollectionModel.Meta):
         """Constraints."""

@@ -259,6 +259,31 @@
             </template>
           </v-text-field>
         </div>
+        <div
+          :title="isFieldDisabled('start_year') ? disabledTooltip : ''"
+          class="flexItem"
+        >
+          <v-text-field
+            v-model="patch.start_year"
+            label="Start Year"
+            type="number"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('start_year')"
+            :class="{
+              fieldCleared: isCleared('start_year'),
+              fieldChanged:
+                isFieldChanged('start_year') && !isCleared('start_year'),
+            }"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('start_year')"
+                @toggle="toggleClear('start_year')"
+              />
+            </template>
+          </v-text-field>
+        </div>
       </div>
       <div class="inlineRow">
         <div
@@ -1566,6 +1591,7 @@ export default {
         volume: "",
         volume_issue_count: "",
         volume_count: "",
+        start_year: "",
         issue_number: "",
         issue_suffix: "",
         alternative_issue_number: "",
@@ -2102,6 +2128,7 @@ export default {
       }
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
       this.patch.volume_count = this.md.seriesVolumeCount || "";
+      this.patch.start_year = this.md.seriesStartYear || "";
       this.patch.issue_number =
         this.md.issueNumber == null || this.md.issueNumber === ""
           ? ""
@@ -2278,12 +2305,20 @@ export default {
         if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
         else cbPatch[key] = { name: this.patch[key] };
       }
-      if (changed.has("series") || changed.has("volume_count")) {
+      if (
+        changed.has("series") ||
+        changed.has("volume_count") ||
+        changed.has("start_year")
+      ) {
         const series = {};
         if (this.patch.series) series.name = this.patch.series;
         if (this.patch.volume_count) {
           const vc = parseInt(this.patch.volume_count, 10);
           if (!isNaN(vc)) series.volume_count = vc;
+        }
+        if (this.patch.start_year) {
+          const sy = parseInt(this.patch.start_year, 10);
+          if (!isNaN(sy)) series.start_year = sy;
         }
         if (Object.keys(series).length) cbPatch.series = series;
         else deleteKeys.push("series");

@@ -7,8 +7,9 @@
  *   - Collection title is a plain string, cleared through a delete key.
  *   - Country rides the technical select path alongside language, storing
  *     the two-letter code the Country model names.
- *   - Per-format enablement: the alternative issue and collection title are
- *     METRON_INFO-only; country is COMIC_INFO-only.
+ *   - The series start year rides the series object with the volume count.
+ *   - Per-format enablement: the alternative issue, collection title and
+ *     series start year are METRON_INFO-only; country is COMIC_INFO-only.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -196,5 +197,42 @@ describe("EditPanel — country", () => {
     const metron = await mountPanel({ formats: ["METRON_INFO"] });
     expect(comicInfo.vm.isFieldDisabled("country")).toBe(false);
     expect(metron.vm.isFieldDisabled("country")).toBe(true);
+  });
+});
+
+describe("EditPanel — series start year", () => {
+  test("it seeds from the series and renders its own input", async () => {
+    const wrapper = await mountPanel({ md: { seriesStartYear: 1963 } });
+    expect(wrapper.vm.patch.start_year).toBe(1963);
+    const labels = wrapper.findAll("label").map((el) => el.text());
+    expect(labels).toContain("Start Year");
+  });
+
+  test("it rides the series object with the volume count", async () => {
+    const wrapper = await mountPanel({
+      md: { seriesList: [{ name: "S", ids: [1] }], seriesVolumeCount: 3 },
+    });
+    await setField(wrapper, "start_year", "1963");
+    expect(wrapper.vm.buildPatch().patch.series).toEqual({
+      name: "S",
+      volume_count: 3,
+      start_year: 1963,
+    });
+  });
+
+  test("clearing it drops it from the series object", async () => {
+    const wrapper = await mountPanel({
+      md: { seriesList: [{ name: "S", ids: [1] }], seriesStartYear: 1963 },
+    });
+    wrapper.vm.toggleClear("start_year");
+    await flushPromises();
+    expect(wrapper.vm.buildPatch().patch.series).toEqual({ name: "S" });
+  });
+
+  test("it is METRON_INFO-only", async () => {
+    const comicInfo = await mountPanel({ formats: ["COMIC_INFO"] });
+    const metron = await mountPanel({ formats: ["METRON_INFO"] });
+    expect(comicInfo.vm.isFieldDisabled("start_year")).toBe(true);
+    expect(metron.vm.isFieldDisabled("start_year")).toBe(false);
   });
 });
