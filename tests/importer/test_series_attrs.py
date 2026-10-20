@@ -188,3 +188,16 @@ class TestSeriesAttrs(TestCase):
         assert series.end_year == _LATE
         assert series.status == _COMPLETED
         assert series.summary == _SUMMARY_B
+
+    def test_reimport_keeps_database_only_attrs(self) -> None:
+        """Values the tag editor saved to the database survive a re-import."""
+        self._import(_md({"start_year": _EARLY}))
+        Series.objects.filter(name="S").update(
+            end_year=_LATE, status=_COMPLETED, summary=_SUMMARY_C
+        )
+        self._import(_md({"start_year": _EARLY}))
+
+        series = Series.objects.get(name="S")
+        assert series.end_year == _LATE
+        assert series.status == _COMPLETED
+        assert series.summary == _SUMMARY_C

@@ -27,6 +27,7 @@ from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
 
 from codex.choices.reader import READER_CHOICES
+from codex.models.choices import SeriesStatusChoices
 from codex.models.identifier import IdentifierType, to_comicbox_id_type
 
 # comicbox transform per codex write-format id.
@@ -82,6 +83,13 @@ IDENTIFIER_TYPES = _vuetify_choices(
 # its rows from them.
 IDENTIFIER_TYPE_BY_CODEX_NAME = MappingProxyType(
     {id_type.value: to_comicbox_id_type(id_type.value) for id_type in IdentifierType}
+)
+
+# A series' publication status (Ongoing, Completed, ...). No format codex
+# writes holds it, so the editor saves it to the database only and offers
+# it under every format.
+SERIES_STATUSES = _vuetify_choices(
+    (str(label), str(value)) for value, label in SeriesStatusChoices.choices
 )
 
 

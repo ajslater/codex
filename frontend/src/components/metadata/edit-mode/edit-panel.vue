@@ -286,6 +286,80 @@
         </div>
       </div>
       <div class="inlineRow">
+        <div :title="seriesAttrsLockReason" class="flexItem">
+          <v-text-field
+            v-model="patch.end_year"
+            label="End Year"
+            type="number"
+            :rules="activeRules('end_year', endYearRules)"
+            hide-details="auto"
+            density="compact"
+            :disabled="isFieldDisabled('end_year')"
+            :class="{
+              fieldCleared: isCleared('end_year'),
+              fieldChanged:
+                isFieldChanged('end_year') && !isCleared('end_year'),
+            }"
+            @update:model-value="onFieldInput('end_year')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('end_year')"
+                @toggle="toggleClear('end_year')"
+              />
+            </template>
+          </v-text-field>
+        </div>
+        <div :title="seriesAttrsLockReason" class="flexItem">
+          <v-select
+            v-model="patch.series_status"
+            :items="seriesStatusChoices"
+            label="Status"
+            hide-details
+            density="compact"
+            :disabled="isFieldDisabled('series_status')"
+            :class="{
+              fieldCleared: isCleared('series_status'),
+              fieldChanged:
+                isFieldChanged('series_status') && !isCleared('series_status'),
+            }"
+            @update:model-value="onFieldInput('series_status')"
+          >
+            <template #append-inner>
+              <ClearFieldIcon
+                :cleared="isCleared('series_status')"
+                @toggle="toggleClear('series_status')"
+              />
+            </template>
+          </v-select>
+        </div>
+      </div>
+      <div :title="seriesAttrsLockReason">
+        <v-textarea
+          v-model="patch.series_summary"
+          label="Series Summary"
+          rows="2"
+          auto-grow
+          density="compact"
+          :hint="seriesAttrsHint"
+          persistent-hint
+          :disabled="isFieldDisabled('series_summary')"
+          :class="{
+            fieldCleared: isCleared('series_summary'),
+            fieldChanged:
+              isFieldChanged('series_summary') && !isCleared('series_summary'),
+          }"
+          @update:model-value="onFieldInput('series_summary')"
+        >
+          <template #append-inner>
+            <ClearFieldIcon
+              :cleared="isCleared('series_summary')"
+              @toggle="toggleClear('series_summary')"
+            />
+          </template>
+        </v-textarea>
+      </div>
+      <div class="inlineRow">
         <div
           :title="isFieldDisabled('issue_number') ? disabledTooltip : ''"
           class="flexItem"
@@ -1418,7 +1492,8 @@ const FORMAT_CHOICES = [
   { title: "ComicInfo", value: "COMIC_INFO" },
 ];
 import LANGUAGES from "@/choices/languages.json";
-import { getDateTime } from "@/datetime";
+import SERIES_STATUSES from "@/choices/series-statuses.json";
+import { getDateTime, getTimestamp } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -1515,6 +1590,14 @@ const DATE_PARTS = Object.freeze(Object.keys(DATE_PART_BOUNDS));
 const EMPTY_RULES = Object.freeze([]);
 
 const YEAR_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.year]]);
+// The series end year, bounded like MetronInfo's StartYear.
+const END_YEAR_RULES = Object.freeze([["$intRange", [1000, 9999]]]);
+
+// Series attributes no format codex writes can hold. They save straight to
+// the database, apart from the tag write, so no format gates them.
+const SERIES_DB_FIELDS = Object.freeze(
+  new Set(["end_year", "series_status", "series_summary"]),
+);
 const MONTH_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.month]]);
 const DAY_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.day]]);
 
@@ -1549,6 +1632,11 @@ export default {
       urls: [],
       communityRatingRules: COMMUNITY_RATING_RULES,
       yearRules: YEAR_RULES,
+      endYearRules: END_YEAR_RULES,
+      seriesStatusChoices: SERIES_STATUSES,
+      seriesAttrsWarning:
+        "End year, status and series summary are saved in Codex only, " +
+        "not written to the comic files.",
       monthRules: MONTH_RULES,
       dayRules: DAY_RULES,
       tagKeys: TAG_KEYS,
@@ -1592,6 +1680,9 @@ export default {
         volume_issue_count: "",
         volume_count: "",
         start_year: "",
+        end_year: "",
+        series_status: null,
+        series_summary: "",
         issue_number: "",
         issue_suffix: "",
         alternative_issue_number: "",
@@ -1685,6 +1776,22 @@ export default {
     },
     disabledTooltip() {
       return "Not supported by selected metadata formats";
+    },
+    seriesAttrsLockReason() {
+      // The database-only series attributes land on exactly one Series row.
+      if (this.md?.seriesList?.length !== 1) {
+        return "Edit one series at a time.";
+      }
+      if (this.changedFields.has("series")) {
+        // They would land on the series the comics are leaving.
+        return "Save the series change first.";
+      }
+      return "";
+    },
+    seriesAttrsHint() {
+      return [this.seriesAttrsLockReason, this.seriesAttrsWarning]
+        .filter(Boolean)
+        .join(" ");
     },
     protagonistItems() {
       // One protagonist, picked from the entered characters and teams.
@@ -1944,6 +2051,9 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
     isFieldDisabled(field) {
+      if (SERIES_DB_FIELDS.has(field)) {
+        return Boolean(this.seriesAttrsLockReason);
+      }
       return !this.supportedFields.has(field);
     },
     activeRules(field, rules) {
@@ -2129,6 +2239,9 @@ export default {
       this.patch.volume_issue_count = this.md.volumeIssueCount || "";
       this.patch.volume_count = this.md.seriesVolumeCount || "";
       this.patch.start_year = this.md.seriesStartYear || "";
+      this.patch.end_year = this.md.seriesEndYear || "";
+      this.patch.series_status = this.md.seriesStatus || null;
+      this.patch.series_summary = this.md.seriesSummary || "";
       this.patch.issue_number =
         this.md.issueNumber == null || this.md.issueNumber === ""
           ? ""
@@ -2266,6 +2379,29 @@ export default {
         reprints.push(reprint);
       }
       return { reprints, alternativeNames };
+    },
+    buildSeriesAttrs() {
+      // The changed database-only series attributes; a clear sends empty.
+      const changed = this.changedFields;
+      const attrs = {};
+      if (changed.has("end_year")) {
+        const year = parseInt(this.patch.end_year, 10);
+        attrs.endYear = isNaN(year) ? null : year;
+      }
+      if (changed.has("series_status")) {
+        attrs.status = this.patch.series_status || "";
+      }
+      if (changed.has("series_summary")) {
+        attrs.summary = this.patch.series_summary || "";
+      }
+      return attrs;
+    },
+    writesFiles(patch, deleteKeys) {
+      return (
+        Object.keys(patch).length > 0 ||
+        deleteKeys.length > 0 ||
+        this.renameFile
+      );
     },
     buildPatch() {
       // Returns { patch, deleteKeys }. A merge write can only add or replace
@@ -2575,6 +2711,11 @@ export default {
       const { patch, deleteKeys } = this.hasChanges
         ? this.buildPatch()
         : { patch: {}, deleteKeys: [] };
+      if (!this.writesFiles(patch, deleteKeys)) {
+        // Only database-only series attributes changed: nothing to preflight.
+        await this.doSave();
+        return;
+      }
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
           collection: this.book.collection,
@@ -2615,27 +2756,40 @@ export default {
       const { patch, deleteKeys } = this.hasChanges
         ? this.buildPatch()
         : { patch: {}, deleteKeys: [] };
+      const seriesAttrs = this.hasChanges ? this.buildSeriesAttrs() : {};
+      const target = { collection: this.book.collection, pks: pks.map(String) };
 
       try {
-        const payload = {
-          collection: this.book.collection,
-          pks: pks.map(String),
-          patch: JSON.stringify(patch),
-          deleteKeys,
-          mode: "update",
-          formats,
-          rename: this.renameFile,
-        };
-        if (this.confirmInfo.needConversion > 0) {
-          payload.deleteOriginal = this.confirmDeleteOriginal;
+        const messages = [];
+        if (Object.keys(seriesAttrs).length > 0) {
+          await HTTP.post("/admin/series-attrs", { ...target, ...seriesAttrs });
+          messages.push("Series details saved.");
+          if (this.$route?.name === "browser") {
+            // The title shows the series years; no librarian event follows.
+            useBrowserStore().loadBrowserPage(getTimestamp());
+          }
         }
-        const response = await HTTP.post("/admin/tag-write", payload);
-        const skipped = response.data?.skipped || 0;
-        let message = "Tag write queued.";
-        if (skipped > 0) {
-          message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
+        if (this.writesFiles(patch, deleteKeys)) {
+          const payload = {
+            ...target,
+            patch: JSON.stringify(patch),
+            deleteKeys,
+            mode: "update",
+            formats,
+            rename: this.renameFile,
+          };
+          if (this.confirmInfo.needConversion > 0) {
+            payload.deleteOriginal = this.confirmDeleteOriginal;
+          }
+          const response = await HTTP.post("/admin/tag-write", payload);
+          const skipped = response.data?.skipped || 0;
+          let message = "Tag write queued.";
+          if (skipped > 0) {
+            message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
+          }
+          messages.push(message);
         }
-        useCommonStore().setSuccess(message);
+        useCommonStore().setSuccess(messages.join(" "));
         this.$emit("saved");
       } catch (error) {
         useCommonStore().setErrors(error);
