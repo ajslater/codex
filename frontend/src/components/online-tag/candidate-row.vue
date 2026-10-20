@@ -81,19 +81,19 @@
         {{ scoreDetail }}
       </div>
     </div>
-    <!-- Pinned, so long detail text wraps instead of squeezing them. -->
-    <v-chip size="x-small" class="ml-2 flex-shrink-0">
-      {{ scorePercent }}%
-    </v-chip>
-    <v-btn
-      class="flex-shrink-0"
-      variant="tonal"
-      size="small"
-      color="primary"
-      @click="$emit('pick')"
-    >
-      Pick
-    </v-btn>
+    <!-- Never shrinks, so long detail text wraps instead of squeezing
+         these. On phones it drops to its own line; see the styles. -->
+    <div class="candidateActions">
+      <v-chip size="x-small" class="ml-2">{{ scorePercent }}%</v-chip>
+      <v-btn
+        variant="tonal"
+        size="small"
+        color="primary"
+        @click="$emit('pick')"
+      >
+        Pick
+      </v-btn>
+    </div>
   </div>
 </template>
 
@@ -186,6 +186,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
 .candidateRow {
   display: flex;
   align-items: center;
@@ -240,5 +243,31 @@ export default {
 .candidateSourceLink {
   margin-left: 8px;
   white-space: nowrap;
+}
+
+.candidateActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+// A phone has no room for cover, text, score and Pick side by side; the
+// text was left about 100px. The score and Pick wrap to their own line,
+// right-aligned, so the text gets the width beside the cover. The text's
+// zero basis keeps it on the cover's line however long it runs.
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+  .candidateRow {
+    flex-wrap: wrap;
+  }
+
+  .candidateInfo {
+    flex-basis: 0;
+  }
+
+  .candidateActions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

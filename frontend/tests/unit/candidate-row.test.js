@@ -214,6 +214,23 @@ describe("CandidateRow details", () => {
     expect(mountRow().find(".candidateVolume").exists()).toBe(false);
   });
 
+  /*
+   * On phones the score and Pick wrap below the text as one unit, so the
+   * text gets the row's width. happy-dom applies no media queries; this
+   * pins the grouping the phone styles rely on.
+   */
+  test("groups the score and Pick apart from the text", () => {
+    const wrapper = mountRow();
+    const actions = wrapper.find(".candidateRow > .candidateActions");
+
+    expect(actions.exists()).toBe(true);
+    expect(actions.find(".v-chip").text()).toBe("92%");
+    expect(actions.find("button").text()).toBe("Pick");
+    expect(wrapper.find(".candidateInfo .candidateActions").exists()).toBe(
+      false,
+    );
+  });
+
   test("emits pick", async () => {
     const wrapper = mountRow();
 
