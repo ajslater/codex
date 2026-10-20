@@ -4,7 +4,7 @@
       <MetadataText :value="md.summary" :max-height="100" />
       <MetadataText
         :value="md.seriesSummary"
-        label="Series"
+        label="Series Summary"
         :max-height="100"
       />
       <MetadataText :value="md.review" label="Review" :max-height="100" />

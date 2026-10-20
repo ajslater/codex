@@ -1,4 +1,4 @@
-"""The metadata pane carries the series' year range, status and summary."""
+"""The metadata pane and browser title carry the series' attributes."""
 
 import shutil
 from typing import Final, override
@@ -18,6 +18,10 @@ _END_YEAR: Final = 1996
 _STATUS: Final = "Completed"
 _SUMMARY: Final = "A friendly neighborhood series."
 _COMIC_SUMMARY: Final = "One issue of it."
+_SHOW_ALL_SETTINGS: Final = (
+    '{"topCollection": "publishers", "show": {"publishers": true,'
+    ' "imprints": true, "series": true, "volumes": true}}'
+)
 
 
 def _v4(response):
@@ -48,7 +52,7 @@ class MetadataSeriesFieldsTestCase(TestCase):
             status=_STATUS,
             summary=_SUMMARY,
         )
-        volume = Volume.objects.create(
+        self.volume = Volume.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="1963", series=self.series, imprint=imprint, publisher=publisher
         )
         path = TMP_DIR / "c1.cbz"
@@ -61,7 +65,7 @@ class MetadataSeriesFieldsTestCase(TestCase):
             publisher=publisher,
             imprint=imprint,
             series=self.series,
-            volume=volume,
+            volume=self.volume,
             size=42,
             summary=_COMIC_SUMMARY,
         )
@@ -107,3 +111,27 @@ class MetadataSeriesFieldsTestCase(TestCase):
         data = self._get_metadata("comics", self.comic.pk)
         assert "seriesStartYear" not in data
         assert "seriesEndYear" not in data
+
+    def _get_title(self, collection: str, pk: int) -> dict:
+        """Browse one collection with every level shown and return its title."""
+        response = self.client.patch(
+            "/api/v4/browse/publishers/settings",
+            data=_SHOW_ALL_SETTINGS,
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        response = self.client.get(f"/api/v4/browse/{collection}/{pk}?page=1")
+        assert response.status_code == _HTTP_OK, response.content
+        return _v4(response)["title"]
+
+    def test_series_title_has_years(self) -> None:
+        title = self._get_title("series", self.series.pk)
+        assert title["collectionName"] == "Ser"
+        assert title["collectionStartYear"] == _START_YEAR
+        assert title["collectionEndYear"] == _END_YEAR
+
+    def test_volume_title_has_no_years(self) -> None:
+        title = self._get_title("volumes", self.volume.pk)
+        assert title["collectionName"] == "1963"
+        assert title["collectionStartYear"] is None
+        assert title["collectionEndYear"] is None

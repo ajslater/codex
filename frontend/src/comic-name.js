@@ -77,8 +77,17 @@ export const getFullComicName = function (
   return [seriesName, fvn, issueName].filter(Boolean).join(" ");
 };
 
+export const formattedYearRange = function (start, end) {
+  // A series run: "1963–1996", open-ended "1963–", "–1996", or one year.
+  if (!start && !end) {
+    return "";
+  }
+  return start === end ? String(start) : `${start || ""}–${end || ""}`;
+};
+
 export default {
   getFullComicName,
   formattedVolumeName,
+  formattedYearRange,
   getIssueName,
 };
