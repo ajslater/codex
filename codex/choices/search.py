@@ -14,6 +14,8 @@ _REVERSE_TYPE_MAP = MappingProxyType(
             "month",
             "year",
             "page_count",
+            "series_end_year",
+            "series_start_year",
             "size",
             "decade",
             "volume",
@@ -114,7 +116,15 @@ FIELDMAP = MappingProxyType(
         "review": (),
         "scan_info": ("scan",),
         "series": (),
+        "series_end_year": _get_fieldmap_values("series_end_year", "end_year"),
         "series_groups": _get_fieldmap_values("series_groups"),
+        "series_start_year": _get_fieldmap_values("series_start_year", "start_year"),
+        # Hand-written: the generator would strip the final "s" into a
+        # bogus singular.
+        "series_status": ("series-status", "seriesstatus", "status"),
+        "series_summary": _get_fieldmap_values(
+            "series_summary", "series_desc", "series_description"
+        ),
         "size": (),
         "sources": _get_fieldmap_values("sources", "id_sources"),
         "stories": ("story",),

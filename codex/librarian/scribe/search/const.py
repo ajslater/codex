@@ -11,6 +11,7 @@ _COMICFTS_FKS = (
     "publisher",
     "imprint",
     "series",
+    "series_summary",
     "age_rating_tagged",
     "age_rating_metron",
     "country",

@@ -12,6 +12,7 @@ from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyListField,
     VuetifyReadingDirectionChoiceField,
+    VuetifySeriesStatusChoiceField,
 )
 
 
@@ -39,7 +40,10 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     original_format = VuetifyListField()
     reading_direction = VuetifyListField(child=VuetifyReadingDirectionChoiceField)
     reprints = VuetifyListField()
+    series_end_year = VuetifyListField()
     series_groups = VuetifyListField()
+    series_start_year = VuetifyListField()
+    series_status = VuetifyListField(child=VuetifySeriesStatusChoiceField)
     stories = VuetifyListField()
     story_arcs = VuetifyListField()
     tagger = VuetifyListField()

@@ -211,6 +211,8 @@ REPRINT_ISSUE_FIELD_NAME = "issue"
 REPRINT_LANGUAGE_FIELD_NAME = "language"
 # Reprints index only their series names, under their own ComicFTS column.
 ALTERNATE_SERIES_FTS_FIELD_NAME = "alternate_series"
+# The linked series' summary, indexed on each of its comics.
+SERIES_SUMMARY_FTS_FIELD_NAME = "series_summary"
 UNIVERSES_FIELD_NAME = "universes"
 NAME_FIELD_NAME = "name"
 NUMBER_TO_FIELD_NAME = "number_to"

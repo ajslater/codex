@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models.comic import ComicFTS
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
 
@@ -148,3 +149,25 @@ class AdminSeriesAttrsTestCase(TestCase):
         response = self._post("comics", [self.comic.pk], status="Completed")
         assert response.status_code == _HTTP_FORBIDDEN
         assert Series.objects.get(pk=self.series.pk).status == ""
+
+    def _series_summary_column(self, comic: Comic) -> str:
+        return ComicFTS.objects.get(comic=comic).series_summary
+
+    def _index_comics(self) -> None:
+        for comic in (self.comic, self.other_comic):
+            ComicFTS.objects.create(comic=comic, series_summary="old")
+
+    def test_summary_updates_the_search_index(self) -> None:
+        """The series' comics are searchable by the new summary at once."""
+        self._index_comics()
+        response = self._post("comics", [self.comic.pk], summary=_SUMMARY)
+        assert response.status_code == _HTTP_OK, response.content
+        assert self._series_summary_column(self.comic) == _SUMMARY
+        assert self._series_summary_column(self.other_comic) == "old"
+
+    def test_other_attrs_leave_the_search_index(self) -> None:
+        """Only a summary edit touches the index."""
+        self._index_comics()
+        response = self._post("comics", [self.comic.pk], status="Completed")
+        assert response.status_code == _HTTP_OK, response.content
+        assert self._series_summary_column(self.comic) == "old"

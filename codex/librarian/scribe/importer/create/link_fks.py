@@ -11,10 +11,11 @@ from codex.librarian.scribe.importer.const import (
     LINK_FKS,
     PARENT_FOLDER_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
+    SERIES_SUMMARY_FTS_FIELD_NAME,
     VOLUME_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.link import LinkComicsImporter
-from codex.models import Folder
+from codex.models import Folder, Series
 from codex.models.comic import Comic
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
@@ -160,6 +161,10 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
                     subkey,
                     field_name,
                     (values[-1],),
+                )
+            if isinstance(instance, Series):
+                self.add_links_to_fts(
+                    subkey, SERIES_SUMMARY_FTS_FIELD_NAME, (instance.summary,)
                 )
 
     def get_comic_fk_links(

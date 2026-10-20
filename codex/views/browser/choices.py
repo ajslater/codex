@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Any, cast, override
 
 from caseconverter import snakecase
-from django.db.models import Exists, F, QuerySet
+from django.db.models import Exists, F, Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -73,6 +73,22 @@ _BACK_REL_MAP = MappingProxyType(
         IdentifierSource: "identifier__",
     }
 )
+# Series attributes, reached across the series FK. They aren't Comic fields,
+# so ``get_rel_and_model`` can't look them up on the model.
+_SERIES_ATTR_FIELD_RELS = MappingProxyType(
+    {
+        "series_end_year": "series__end_year",
+        "series_start_year": "series__start_year",
+        "series_status": "series__status",
+    }
+)
+# Plain columns whose "None" is a blank string, never NULL.
+_BLANK_IS_NULL_RELS = frozenset({"series__status"})
+# Plain fields that offer a "None" choice, so they take the m2m
+# availability rule: two distinct values, or a value and a "None".
+_NULL_CHOICE_FIELDS = frozenset({"series_status"})
+# Plain fields whose choices are serialized as {pk, name} rows.
+_NAMED_ROW_CHOICE_FIELDS = frozenset({"community_rating", "file_type", "series_status"})
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
 _NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 # We only need to know whether an m2m relation has two or more distinct
@@ -87,9 +103,25 @@ class BrowserChoicesViewBase(BrowserFilterView):
     TARGET: str = "choices"
 
     @staticmethod
-    def get_field_choices_query(comic_qs, field_name):
+    def present(comic_qs: QuerySet, rel: str) -> QuerySet:
+        """Comics with a value for the relation."""
+        comic_qs = comic_qs.filter(**{f"{rel}__isnull": False})
+        if rel in _BLANK_IS_NULL_RELS:
+            comic_qs = comic_qs.exclude(**{rel: ""})
+        return comic_qs
+
+    @staticmethod
+    def absent(comic_qs: QuerySet, rel: str) -> QuerySet:
+        """Comics without a value for the relation, the "None" choice."""
+        query = Q(**{f"{rel}__isnull": True})
+        if rel in _BLANK_IS_NULL_RELS:
+            query |= Q(**{rel: ""})
+        return comic_qs.filter(query)
+
+    @classmethod
+    def get_field_choices_query(cls, comic_qs, rel):
         """Get distinct values for the field."""
-        return comic_qs.exclude(**{f"{field_name}__isnull": True}).distinct()
+        return cls.present(comic_qs, rel).distinct()
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
@@ -97,17 +129,19 @@ class BrowserChoicesViewBase(BrowserFilterView):
         m2m_filter = {f"{back_rel}comic__in": comic_qs}
         return model.objects.filter(**m2m_filter).distinct()
 
-    @staticmethod
-    def does_m2m_null_exist(comic_qs, rel):
-        """Get if comics exist in the filter without values exists for an m2m field."""
+    @classmethod
+    def does_null_exist(cls, comic_qs, rel):
+        """Get if comics exist in the filter without values for the field."""
         # Detect if there are null choices. Regretably with another query.
-        return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
+        return cls.absent(comic_qs, rel).exists()
 
     def get_rel_and_model(self, field_name) -> tuple:
         """Return the relation and model for the field name."""
         rel_and_model = _FIELD_TO_REL_MODEL_MAP.get(field_name)
         if rel_and_model:
             rel, model = rel_and_model
+        elif rel := _SERIES_ATTR_FIELD_RELS.get(field_name):
+            model = None
         else:
             remote_field = getattr(
                 Comic._meta.get_field(field_name), "remote_field", None
@@ -135,8 +169,8 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
     serializer_class: type[BaseSerializer] | None = BrowserFilterChoicesSerializer
 
-    @staticmethod
-    def _has_two_distinct_m2m_values(comic_qs: QuerySet, rel: str) -> bool:
+    @classmethod
+    def _has_two_distinct_m2m_values(cls, comic_qs: QuerySet, rel: str) -> bool:
         """
         Return True iff ``rel`` resolves to >= 2 distinct non-null values.
 
@@ -148,7 +182,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         rows scanned.
         """
         first_two = list(
-            comic_qs.filter(**{f"{rel}__isnull": False})
+            cls.present(comic_qs, rel)
             .values_list(rel, flat=True)
             .distinct()[:_M2M_DISTINCT_PROBE_LIMIT]
         )
@@ -190,22 +224,21 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 early_data[field_name] = True
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
-            if m2m_model is None:
+            if m2m_model is None and field_name not in _NULL_CHOICE_FIELDS:
                 # FK on Comic: legacy semantic is "any non-null value exists".
-                aggregates[field_name] = Exists(
-                    qs.filter(**{f"{field_name}__isnull": False}).values("pk")[:1]
-                )
+                aggregates[field_name] = Exists(self.present(qs, rel).values("pk")[:1])
             else:
-                # m2m / m2m-through: legacy semantic is "(distinct rels >= 2)
+                # m2m / m2m-through and plain fields with a "None" choice:
+                # legacy semantic is "(distinct rels >= 2)
                 # OR (>= 1 rel AND a null sibling)". Decompose into two
                 # cheap EXISTS booleans; the rarer "1 rel, 0 null" case
                 # falls back to a per-field distinct-count probe below.
                 m2m_specs[field_name] = rel
                 aggregates[f"_has_{field_name}"] = Exists(
-                    qs.filter(**{f"{rel}__isnull": False}).values("pk")[:1]
+                    self.present(qs, rel).values("pk")[:1]
                 )
                 aggregates[f"_null_{field_name}"] = Exists(
-                    qs.filter(**{f"{rel}__isnull": True}).values("pk")[:1]
+                    self.absent(qs, rel).values("pk")[:1]
                 )
         return early_data, aggregates, m2m_specs
 
@@ -287,7 +320,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         qs = qs.values(*values)
 
         # Add null if it exists
-        if self.does_m2m_null_exist(comic_qs, rel):
+        if self.does_null_exist(comic_qs, rel):
             iterables.append(_NULL_NAMED_ROW_ITERABLE)
 
         iterables.append(qs)
@@ -309,11 +342,13 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         if m2m_model:
             choices = self._get_m2m_field_choices(m2m_model, qs, rel)
         else:
-            choices = self.get_field_choices_query(qs, field_name)
-            choices = choices.values_list(field_name, flat=True)
+            choices = self.get_field_choices_query(qs, rel)
+            choices = choices.values_list(rel, flat=True)
 
-        if field_name in ("community_rating", "file_type"):
+        if field_name in _NAMED_ROW_CHOICE_FIELDS:
             choices = tuple({"pk": choice, "name": choice} for choice in choices)
+        if field_name in _NULL_CHOICE_FIELDS and self.does_null_exist(qs, rel):
+            choices = (_NULL_NAMED_ROW, *choices)
 
         return {
             "field_name": field_name,

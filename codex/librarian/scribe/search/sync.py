@@ -55,6 +55,8 @@ _SIMPLE_FTS_ANNOTATIONS = MappingProxyType(
         # The second traverses the AgeRating.metron FK into AgeRatingMetron.
         "fts_age_rating_tagged": F("age_rating__name"),
         "fts_age_rating_metron": F("age_rating__metron__name"),
+        # Series.summary is the one non-name FK value in the index.
+        "fts_series_summary": F("series__summary"),
     }
 )
 # Alias → FK-traversal path. The alias becomes the FTS column name

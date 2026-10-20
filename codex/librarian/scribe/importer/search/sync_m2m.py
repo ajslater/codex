@@ -1,10 +1,11 @@
 """Update fts fields for updated foreign keys with non key search values."""
 
 from itertools import batched
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from django.db import transaction
-from django.db.models.expressions import Value
+from django.db.models.expressions import F, Value
 from django.db.models.functions.datetime import Now
 from django.db.models.functions.text import Concat
 from loguru import logger
@@ -12,7 +13,10 @@ from loguru import logger
 if TYPE_CHECKING:
     from collections.abc import Collection
 
-from codex.librarian.scribe.importer.const import FTS_UPDATED_M2MS
+from codex.librarian.scribe.importer.const import (
+    FTS_UPDATED_M2MS,
+    SERIES_SUMMARY_FTS_FIELD_NAME,
+)
 from codex.librarian.scribe.importer.finish import FinishImporter
 from codex.models.comic import ComicFTS
 from codex.models.functions import GroupConcat
@@ -21,6 +25,16 @@ from codex.models.functions import GroupConcat
 # default. ``ComicFTS`` carries ~28 columns; 500 rows x 28 cols is a
 # safe ceiling that still amortizes per-statement overhead.
 _FTS_BATCH_SIZE = 500
+# FTS columns that index a plain attribute of an FK, keyed by the column:
+# (filter on the FK's updated pks, the attribute's value). No GROUP_CONCAT.
+_FK_ATTR_FTS_MAP = MappingProxyType(
+    {
+        SERIES_SUMMARY_FTS_FIELD_NAME: (
+            "comic__series__in",
+            F("comic__series__summary"),
+        ),
+    }
+)
 
 
 class SearchIndexSyncManyToManyImporter(FinishImporter):
@@ -73,8 +87,11 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         for field_name in field_names:
             if self.abort_event.is_set():
                 return per_comic
-            rel = f"comic__{field_name}__in"
-            fts_value = self._get_fts_m2m_concat(field_name)
+            fk_attr = _FK_ATTR_FTS_MAP.get(field_name)
+            rel, fts_value = fk_attr or (
+                f"comic__{field_name}__in",
+                self._get_fts_m2m_concat(field_name),
+            )
             model_pks = self.metadata[FTS_UPDATED_M2MS].pop(field_name)
             self.log.debug(
                 f"Preparing {len(model_pks)} search entries for {field_name} updates."
@@ -86,7 +103,9 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
                 .values_list("pk", "fts_value")
             )
             for pk, raw_value in rows:
-                value = (raw_value or "").strip(",")
+                value = raw_value or ""
+                if not fk_attr:
+                    value = value.strip(",")
                 per_comic.setdefault(pk, {})[field_name] = value
         return per_comic
 

@@ -41,7 +41,12 @@ import { mapActions, mapState } from "pinia";
 import { toVuetifyItems } from "@/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
-const NUMERIC_FILTERS = new Set(["decade", "year"]);
+const NUMERIC_FILTERS = new Set([
+  "decade",
+  "seriesEndYear",
+  "seriesStartYear",
+  "year",
+]);
 
 export default {
   name: "BrowserFilterChoiceList",

@@ -23,6 +23,7 @@ from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyReadingDirectionChoiceField,
     VuetifyReadOnlyListField,
+    VuetifySeriesStatusChoiceField,
 )
 from codex.serializers.models.pycountry import CountrySerializer, LanguageSerializer
 
@@ -46,7 +47,10 @@ class BrowserFilterChoicesSerializer(Serializer):
     original_format = BooleanField(read_only=True)
     reading_direction = BooleanField(read_only=True)
     reprints = BooleanField(read_only=True)
+    series_end_year = BooleanField(read_only=True)
     series_groups = BooleanField(read_only=True)
+    series_start_year = BooleanField(read_only=True)
+    series_status = BooleanField(read_only=True)
     stories = BooleanField(read_only=True)
     story_arcs = BooleanField(read_only=True)
     tagger = BooleanField(read_only=True)
@@ -81,7 +85,10 @@ class BrowserSettingsFilterSerializer(Serializer):
         child=VuetifyReadingDirectionChoiceField
     )
     reprints = VuetifyReadOnlyListField()
+    series_end_year = VuetifyReadOnlyListField()
     series_groups = VuetifyReadOnlyListField()
+    series_start_year = VuetifyReadOnlyListField()
+    series_status = VuetifyReadOnlyListField(child=VuetifySeriesStatusChoiceField)
     stories = VuetifyReadOnlyListField()
     story_arcs = VuetifyReadOnlyListField()
     tagger = VuetifyReadOnlyListField()
@@ -141,6 +148,12 @@ class BrowserChoicesCharPkSerializer(BrowserChoicesIntegerPkSerializer):
     pk = VuetifyCharField(read_only=True)
 
 
+class BrowserChoicesSeriesStatusPkSerializer(BrowserChoicesIntegerPkSerializer):
+    """Status strings, but the "None" row keeps the int null code."""
+
+    pk = VuetifySeriesStatusChoiceField(read_only=True)
+
+
 class BrowserChoicesDecimalPkSerializer(BrowserChoicesIntegerPkSerializer):
     """Named Model Serailizer with pk = char hack for languages & countries."""
 
@@ -157,10 +170,20 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
         "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
         "reprints": BrowserChoicesReprintPkSerializer,
+        "series_status": BrowserChoicesSeriesStatusPkSerializer,
         "universe": BrowserChoicesUniversePkSerializer,
     }
 )
-_LIST_FIELDS = frozenset({"decade", "monochrome", "reading_direction", "year"})
+_LIST_FIELDS = frozenset(
+    {
+        "decade",
+        "monochrome",
+        "reading_direction",
+        "series_end_year",
+        "series_start_year",
+        "year",
+    }
+)
 # ``BrowserSettingsFilterSerializer().get_fields()`` walks DRF's
 # metaclass and instantiates a serializer just to look up four field
 # representations. The fields are class-level definitions, so resolve
