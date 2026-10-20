@@ -214,11 +214,99 @@ describe("CandidateRow details", () => {
     expect(mountRow().find(".candidateVolume").exists()).toBe(false);
   });
 
+  /*
+   * On phones the score and Pick wrap below the text as one unit, so the
+   * text gets the row's width. happy-dom applies no media queries; this
+   * pins the grouping the phone styles rely on.
+   */
+  test("groups the score and Pick apart from the text", () => {
+    const wrapper = mountRow();
+    const actions = wrapper.find(".candidateRow > .candidateActions");
+
+    expect(actions.exists()).toBe(true);
+    expect(actions.find(".v-chip").text()).toBe("92%");
+    expect(actions.find("button").text()).toBe("Pick");
+    expect(wrapper.find(".candidateInfo .candidateActions").exists()).toBe(
+      false,
+    );
+  });
+
   test("emits pick", async () => {
     const wrapper = mountRow();
 
     await wrapper.find("button").trigger("click");
 
     expect(wrapper.emitted("pick")).toHaveLength(1);
+  });
+});
+
+/*
+ * Near-identical covers with identical titles are common: a reprint
+ * volume, a foreign or a collected edition. Two subdued lines under the
+ * title carry what tells them apart.
+ */
+describe("CandidateRow series and issue detail", () => {
+  const DETAIL = {
+    seriesPublisher: "DC Comics",
+    seriesType: "Ongoing Series",
+    seriesStartYear: 2016,
+    seriesIssueCount: 85,
+    issueTitle: "I Am Gotham, Part One",
+    issueSummary: "A new hero arrives.",
+  };
+
+  test("joins what the source knows about the series", () => {
+    const line = mountRow({ summary: DETAIL }).find(".candidateSeriesDetail");
+
+    expect(line.text()).toBe(
+      "DC Comics · Ongoing Series · Series began 2016 · 85 issues",
+    );
+  });
+
+  test("a one-issue series says issue, not issues", () => {
+    const line = mountRow({ summary: { seriesIssueCount: 1 } }).find(
+      ".candidateSeriesDetail",
+    );
+
+    expect(line.text()).toBe("Dark Horse · 1 issue");
+  });
+
+  test("the series publisher wins over the scored one", () => {
+    const line = mountRow({ summary: { seriesPublisher: "Panini" } }).find(
+      ".candidateSeriesDetail",
+    );
+
+    expect(line.text()).toBe("Panini");
+  });
+
+  test("the publisher has left the title line", () => {
+    const wrapper = mountRow();
+
+    expect(wrapper.find(".candidatePublisher").exists()).toBe(false);
+    expect(wrapper.find(".candidateSeriesDetail").text()).toBe("Dark Horse");
+  });
+
+  test("quotes the issue title before its deck, the whole as a tooltip", () => {
+    const line = mountRow({ summary: DETAIL }).find(".candidateIssueDetail");
+    const text = "“I Am Gotham, Part One” — A new hero arrives.";
+
+    expect(line.text()).toBe(text);
+    expect(line.attributes("title")).toBe(text);
+  });
+
+  test.each([
+    [{ issueTitle: "Title" }, "“Title”"],
+    [{ issueSummary: "Deck" }, "Deck"],
+  ])("shows either half of the issue line alone", (summary, expected) => {
+    const line = mountRow({ summary }).find(".candidateIssueDetail");
+
+    expect(line.text()).toBe(expected);
+  });
+
+  test("a prompt cached before comicbox carried these shows neither line", () => {
+    const wrapper = mountRow({ summary: { publisher: null } });
+
+    expect(wrapper.find(".candidateSeriesDetail").exists()).toBe(false);
+    expect(wrapper.find(".candidateIssueDetail").exists()).toBe(false);
   });
 });

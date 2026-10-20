@@ -215,6 +215,21 @@ def serialize_candidate(c) -> dict[str, Any]:
             # The series' ordinal volume. Metron's issue rows carry one;
             # Comic Vine's search results have no equivalent.
             "volume": getattr(summary, "volume", None),
+            # What tells apart candidates whose covers and titles read
+            # identically: a reprint volume, a foreign or a collected
+            # edition. Comic Vine fills most of these from rows it already
+            # fetched. Metron always has the start year, but gets the
+            # format, publisher and issue count only when titles collide.
+            # Absent before comicbox 5.4, and None wherever a source has
+            # nothing.
+            "series_start_year": getattr(summary, "series_start_year", None),
+            "series_publisher": getattr(summary, "series_publisher", None),
+            "series_issue_count": getattr(summary, "series_issue_count", None),
+            # Publication format, e.g. "Trade Paperback". Metron only.
+            "series_type": getattr(summary, "series_type", None),
+            # The issue's own title and one-line deck. Comic Vine only.
+            "issue_title": getattr(summary, "issue_title", None),
+            "issue_summary": getattr(summary, "issue_summary", None),
         },
         "score": float(c.score),
         # What the blended score is made of. Two candidates can read

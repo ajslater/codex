@@ -11,6 +11,7 @@ only prove camelCase passthrough of whatever dict is stored. These run
 the serializer against real comicbox objects.
 """
 
+from types import MappingProxyType, SimpleNamespace
 from typing import Final
 
 from comicbox.formats.base.online.profile import Candidate, CandidateSummary
@@ -25,6 +26,16 @@ _COVER_URL_FULL: Final = "https://comicvine.gamespot.com/a/uploads/original/1/2/
 _METADATA_SCORE: Final = 1.0
 _COVER_SCORE: Final = 0.6
 _VOLUME: Final = 2
+_DETAIL: Final = MappingProxyType(
+    {
+        "series_start_year": 2016,
+        "series_publisher": "DC Comics",
+        "series_issue_count": 85,
+        "series_type": "Ongoing Series",
+        "issue_title": "I Am Gotham, Part One",
+        "issue_summary": "A new hero arrives.",
+    }
+)
 
 
 def _summary(
@@ -169,6 +180,25 @@ class SerializeCandidateTests(SimpleTestCase):
         assert data["cover_score"] is None
         assert data["cover_hash_attempted"] is False
         assert data["volume_id"] is None
+        for key in _DETAIL:
+            assert data["summary"][key] is None, key
+
+    def test_what_tells_identical_titles_apart_is_carried(self) -> None:
+        """
+        Near-identical covers and titles differ in these.
+
+        The summary is a stand-in because the pinned comicbox predates
+        the fields; the serializer reads them by name either way.
+        """
+        summary = SimpleNamespace(series="Batman", issue="1", year=2016, **_DETAIL)
+        candidate = SimpleNamespace(
+            source="comicvine", issue_id=1, score=0.5, summary=summary
+        )
+
+        data = serialize_candidate(candidate)
+
+        for key, value in _DETAIL.items():
+            assert data["summary"][key] == value, key
 
     def test_display_fields_do_not_bump_the_prompt_version(self) -> None:
         """
