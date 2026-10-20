@@ -16,8 +16,7 @@ border-radius: 128px;
     - Online tag match picker shows series and issue details to help
       disambiguate similar covers and titles.
 - Fixes
-    - Searches for a changed universe designation no longer miss comics after
-      large imports.
+    - Searches for a universe designation no longer miss imported comics.
 
 ## v2.5.5
 

@@ -157,7 +157,6 @@ FK_KEYS = SimpleNamespace(CREATE_FKS=CREATE_FKS, UPDATE_FKS=UPDATE_FKS)
 FTS_UPDATE = "fts_update"
 FTS_CREATE = "fts_create"
 FTS_EXISTING_M2MS = "fts_existing_m2ms"
-FTS_CREATED_M2MS = "fts_created_m2ms"
 FTS_UPDATED_M2MS = "fts_updated_m2ms"
 
 #######

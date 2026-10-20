@@ -4,7 +4,6 @@ from codex.librarian.scribe.importer.const import (
     ALTERNATE_SERIES_FTS_FIELD_NAME,
     CREDITS_FIELD_NAME,
     FTS_CREATE,
-    FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_FIELD_TARGETS,
     FTS_UPDATE,
@@ -99,13 +98,8 @@ class SearchIndexPrepareImporter(SearchIndexCreateUpdateImporter):
             )
             # Alternative might be kicking off an FTS sync
 
-        flat_values = flatten(values)
-        extra_values = (
-            self.metadata[FTS_CREATED_M2MS].get(field_name, {}).pop(flat_values, ())
-        )
-        combined_values = flat_values + extra_values
         for fts_field_name, target_values in self._iter_fts_targets(
-            field_name, combined_values
+            field_name, tuple(flatten(values))
         ):
             fts_values = self._to_fts_tuple(target_values)
             self.metadata[key][sub_key][fts_field_name] = fts_values
