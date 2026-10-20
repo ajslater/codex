@@ -27,7 +27,6 @@ from codex.librarian.scribe.importer.const import (
     DELETE_M2MS,
     FIS,
     FTS_CREATE,
-    FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
     FTS_UPDATED_M2MS,
@@ -590,7 +589,6 @@ CREATED_FK = MappingProxyType(
         DELETE_M2MS: {},
         FTS_EXISTING_M2MS: {},
         FTS_UPDATED_M2MS: {},
-        FTS_CREATED_M2MS: {"universes": {("Young Adult Silly Universe",): ("4242",)}},
     }
 )
 CREATED_COMICS = MappingProxyType(
@@ -645,7 +643,6 @@ CREATED_COMICS = MappingProxyType(
         },
         FTS_UPDATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_CREATED_M2MS: {"universes": {("Young Adult Silly Universe",): ("4242",)}},
     }
 )
 LINKED_COMICS = MappingProxyType(
@@ -679,14 +676,10 @@ LINKED_COMICS = MappingProxyType(
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
-                "universes": (
-                    "4242",
-                    "Young Adult Silly Universe",
-                ),
+                "universes": ("Young Adult Silly Universe",),
             },
         },
         FTS_EXISTING_M2MS: {},
-        FTS_CREATED_M2MS: {"universes": {}},
         FTS_UPDATED_M2MS: {},
     }
 )
@@ -721,15 +714,11 @@ FAILED_IMPORTS = MappingProxyType(
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
-                "universes": (
-                    "4242",
-                    "Young Adult Silly Universe",
-                ),
+                "universes": ("Young Adult Silly Universe",),
             },
         },
         FTS_EXISTING_M2MS: {},
         FTS_UPDATED_M2MS: {},
-        FTS_CREATED_M2MS: {"universes": {}},
     }
 )
 DELETED_COMICS = MappingProxyType(
@@ -762,15 +751,11 @@ DELETED_COMICS = MappingProxyType(
                 "tagger": ("comicbox dev",),
                 "tags": ("a", "b", "c"),
                 "teams": ("Team Scientific Method",),
-                "universes": (
-                    "4242",
-                    "Young Adult Silly Universe",
-                ),
+                "universes": ("Young Adult Silly Universe",),
             },
         },
         FTS_EXISTING_M2MS: {},
         FTS_UPDATED_M2MS: {},
-        FTS_CREATED_M2MS: {"universes": {}},
     }
 )
 FTSED = MappingProxyType({})
@@ -799,6 +784,8 @@ FTS_FINAL_BASIC = MappingProxyType(
         "country": "US,United States",
         "language": "en,English",
         "sources": "Comic Vine,Metron,comicvine,metron",
+        # Designations join the names when the search entry is written.
+        "universes": "4242,Young Adult Silly Universe",
     }
 )
 
