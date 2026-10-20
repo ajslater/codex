@@ -11,7 +11,9 @@ border-radius: 128px;
 - Features
     - Series years, status and summary in the metadata pane.
     - Browser title shows series years and a Tags button.
-    - Tag editor edits the MetronInfo series start year.
+    - Tag editor edits series years, status and summary. End year, status and
+      summary are saved in Codex only.
+    - Online tag match picker shows series and issue details.
 
 ## v2.5.5
 

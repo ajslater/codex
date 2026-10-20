@@ -26,10 +26,11 @@ from django.core.cache import cache
 from django.test import TestCase
 from loguru import logger
 
-from codex.choices.tagging import FORMAT_FIELD_SUPPORT
+from codex.choices.tagging import FORMAT_FIELD_SUPPORT, SERIES_STATUSES
 from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models.choices import SeriesStatusChoices
 from tests.tmp_dirs import tmp_dir
 
 _TMP_DIR: Final = tmp_dir("codex.tests.tagwritedate")
@@ -117,6 +118,15 @@ class TagEditorFieldSupportTestCase(TestCase):
         # reading_direction rides ComicInfo's Manga, not a canonical key of
         # its own.
         assert "reading_direction" in comic_info
+
+    def test_database_only_series_fields_are_no_format_field(self) -> None:
+        # No format holds them; the editor saves them to the database.
+        for fields in FORMAT_FIELD_SUPPORT.values():
+            assert not {"end_year", "series_status", "series_summary"} & set(fields)
+
+    def test_series_statuses_follow_the_model_choices(self) -> None:
+        values = [choice["value"] for choice in SERIES_STATUSES]
+        assert values == list(SeriesStatusChoices.values)
 
 
 class TagWriteDateTestCase(TestCase):

@@ -17,6 +17,7 @@ from rest_framework.serializers import (
 
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
+from codex.models.choices import SeriesStatusChoices
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -53,6 +54,27 @@ class TagWriteRequestSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     rename = BooleanField(required=False, default=None)
+
+
+class SeriesAttrsRequestSerializer(Serializer):
+    """
+    A series' Codex-only attributes, edited from the tag editor.
+
+    No format codex writes holds a series' end year, status or summary, so
+    these go straight to the Series row. Only the keys sent change; null or
+    "" clears one.
+    """
+
+    collection = CharField()
+    pks = ListField(child=CharField())
+    # MetronInfo's StartYear bounds, so the pair stays comparable.
+    end_year = IntegerField(
+        required=False, allow_null=True, min_value=1000, max_value=9999
+    )
+    status = ChoiceField(
+        choices=SeriesStatusChoices.choices, required=False, allow_blank=True
+    )
+    summary = CharField(required=False, allow_blank=True)
 
 
 class OnlineTagStartSerializer(Serializer):
