@@ -334,23 +334,6 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
         Universe: ((NAME_FIELD_NAME,), _IDENTIFIER_RELS, DESIGNATION_FIELD_NAME),
     }
 )
-_IDENTIFIED_SELECT_RELATED = ("identifier", "identifier__source")
-MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
-    MappingProxyType(
-        {
-            **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_SELECT_RELATED),
-            Identifier: (IDENTIFIER_SOURCE_FIELD_NAME,),
-            Publisher: _IDENTIFIED_SELECT_RELATED,
-            Imprint: ("publisher",),
-            Series: ("publisher", "imprint"),
-            Volume: ("publisher", "imprint", "series"),
-            Credit: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
-            Reprint: _IDENTIFIED_SELECT_RELATED,
-            StoryArcNumber: (STORY_ARC_FIELD_NAME,),
-            Universe: _IDENTIFIED_SELECT_RELATED,
-        }
-    )
-)
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {
         # ``related_model`` is typed ``type[Model] | Literal['self']
