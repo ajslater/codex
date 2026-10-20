@@ -123,6 +123,9 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         """Aggregate metadata for one path."""
         # Prepare
         md = self.metadata[EXTRACTED].pop(path)
+        if series_attrs := self.task.series_attrs.get(path):
+            # A tag write's values the file couldn't hold. See ImportTask.
+            md[SERIES_KEY] = {**(md.get(SERIES_KEY) or {}), **series_attrs}
         self._transform_metadata(md)
 
         # Aggregate
