@@ -223,6 +223,11 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             and update_args.get(SUMMARY_FIELD_NAME, obj.summary) != obj.summary
         )
 
+    def _add_fts_updated_pks(self, field_name: str, pks: set[int]) -> None:
+        """Queue comics to re-index, merged across the per-comic chunks."""
+        if pks:
+            self.metadata[FTS_UPDATED_M2MS].setdefault(field_name, set()).update(pks)
+
     def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
         update_tuples: list[tuple] | None = self.metadata[UPDATE_FKS].pop(model, None)
@@ -263,14 +268,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             if model == Universe:
                 fts_update_pks.add(obj.pk)
 
-        if fts_update_pks:
-            field_name = model.__name__.lower() + "s"
-            self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
-        if series_summary_pks:
-            # Merge: the per-comic phases run once per chunk.
-            self.metadata[FTS_UPDATED_M2MS].setdefault(
-                SERIES_SUMMARY_FTS_FIELD_NAME, set()
-            ).update(series_summary_pks)
+        self._add_fts_updated_pks(model.__name__.lower() + "s", fts_update_pks)
+        self._add_fts_updated_pks(SERIES_SUMMARY_FTS_FIELD_NAME, series_summary_pks)
 
         update_fields = tuple(update_args_map.keys())
         if model in COLLECTION_BASE_MODELS:

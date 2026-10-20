@@ -15,6 +15,9 @@ border-radius: 128px;
     - Browser title shows series years and a Tags button.
     - Online tag match picker shows series and issue details to help
       disambiguate similar covers and titles.
+- Fixes
+    - Searches for a changed universe designation no longer miss comics after
+      large imports.
 
 ## v2.5.5
 
