@@ -222,10 +222,14 @@ export default {
 }
 
 .candidateSeriesDetail,
-.candidateIssueDetail,
-.candidateAka,
-.candidateScoreDetail {
+.candidateAka {
   font-size: 0.8125rem;
+}
+
+// A step smaller: the deck and the score caveat are the least needed.
+.candidateIssueDetail,
+.candidateScoreDetail {
+  font-size: 0.75rem;
 }
 
 // A deck can run long. Two lines, then an ellipsis: one line left a
