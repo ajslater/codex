@@ -38,7 +38,7 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
     "@vue/typescript-plugin": "^3.3.13",
-    "happy-dom": "^21.0.3",
+    "happy-dom": "^21.0.4",
     "rollup-plugin-visualizer": "^7.1.1",
     "sass": "^1.105.2",
     "sass-loader": "^17.0.1",
