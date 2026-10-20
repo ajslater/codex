@@ -9,14 +9,12 @@ border-radius: 128px;
 ## v2.5.6
 
 - Features
-    - Series years, status and summary in the metadata pane.
-    - Filter by series years and status.
-    - Search series years, status and summary.
-    - Online tagging saves series years, status and summary.
+    - Filter, search, view, edit, and online tag by series years, series status,
+      and series summary. End year, status and summary are saved in Codex only,
+      not comic metadata.
     - Browser title shows series years and a Tags button.
-    - Tag editor edits series years, status and summary. End year, status and
-      summary are saved in Codex only.
-    - Online tag match picker shows series and issue details.
+    - Online tag match picker shows series and issue details to help
+      disambiguate similar covers and titles.
 
 ## v2.5.5
 
