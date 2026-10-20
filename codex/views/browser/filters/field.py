@@ -24,9 +24,15 @@ _FILTER_REL_MAP = MappingProxyType(
         # via the ``age_rating__metron`` chain.
         "age_rating_tagged": "age_rating",
         "age_rating_metron": "age_rating__metron",
+        # Series attributes filter every comic of the series.
+        "series_end_year": "series__end_year",
+        "series_start_year": "series__start_year",
+        "series_status": "series__status",
     }
 )
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)
+# Filters whose "None" choice is a blank string column, never NULL.
+_FILTER_BLANK_NULL_FIELDS: frozenset[str] = frozenset({"series_status"})
 
 
 class ComicFieldFilterView(CollectionFilterView):
@@ -44,6 +50,14 @@ class ComicFieldFilterView(CollectionFilterView):
             if model is None:
                 break
         return False
+
+    @staticmethod
+    def _null_q(field: str, rel: str) -> Q:
+        """Match the "None" choice for a filter field."""
+        query = Q(**{f"{rel}__isnull": True})
+        if field in _FILTER_BLANK_NULL_FIELDS:
+            query |= Q(**{rel: ""})
+        return query
 
     @classmethod
     def _filter_by_comic_field(cls, field, rel_prefix, filter_list) -> Q:
@@ -74,14 +88,14 @@ class ComicFieldFilterView(CollectionFilterView):
             # publishers browse over 18k comics: 52ms -> 32ms).
             inner = Q()
             if match_null:
-                inner |= Q(**{f"{comic_rel}__isnull": True})
+                inner |= cls._null_q(field, comic_rel)
             if non_null_filter_list:
                 inner |= Q(**{f"{comic_rel}__in": non_null_filter_list})
             comic_pks = Comic.objects.filter(inner).values("pk")
             return Q(**{f"{rel_prefix}pk__in": comic_pks})
 
         if match_null:
-            filter_query |= Q(**{f"{rel}__isnull": True})
+            filter_query |= cls._null_q(field, rel)
         if non_null_filter_list:
             filter_query |= Q(**{f"{rel}__in": non_null_filter_list})
         return filter_query

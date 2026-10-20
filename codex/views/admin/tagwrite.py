@@ -21,7 +21,7 @@ from codex.librarian.scribe.tagwrite_rename import (
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.collections import Series
-from codex.models.comic import Comic
+from codex.models.comic import Comic, ComicFTS
 from codex.serializers.admin.tagging import (
     SeriesAttrsRequestSerializer,
     TagWriteRequestSerializer,
@@ -288,4 +288,11 @@ class AdminSeriesAttrsView(FilteredComicPksView):
 
         series_pk = series_pks[0]
         Series.objects.filter(pk=series_pk).update(**attrs, updated_at=timezone.now())
+        if "summary" in attrs:
+            # Search reads the summary from each comic's index row. Rewrite
+            # just that column in place: bumping the comics' updated_at for
+            # a full re-index would churn every comic of the series.
+            ComicFTS.objects.filter(comic__series_id=series_pk).update(
+                series_summary=attrs["summary"]
+            )
         return Response({"detail": "Series details saved.", "series": series_pk})

@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Features
     - Series years, status and summary in the metadata pane.
+    - Filter by series years and status.
+    - Search series years, status and summary.
     - Online tagging saves series years, status and summary.
     - Browser title shows series years and a Tags button.
     - Tag editor edits series years, status and summary. End year, status and

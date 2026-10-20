@@ -5,8 +5,11 @@ from types import MappingProxyType
 from django.db.models import CharField
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
+from codex.models.collections import Series
 from codex.models.comic import Comic
 
+# Series attributes searched on every comic of the series.
+_SERIES_ATTR_FIELDS = ("end_year", "start_year", "status", "summary")
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
         "alternate_series": "reprints__series_name",
@@ -15,6 +18,7 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
         "identifiers": "identifiers__key",
         "sources": "identifiers__source__name",
         "story_arcs": "story_arc_number__story_arc__name",
+        **{f"series_{name}": f"series__{name}" for name in _SERIES_ATTR_FIELDS},
     }
 )
 _FIELD_TYPE_MAP = MappingProxyType(
@@ -23,6 +27,10 @@ _FIELD_TYPE_MAP = MappingProxyType(
             field.name: field.__class__
             for field in Comic._meta.get_fields()
             if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        },
+        **{
+            f"series_{name}": Series._meta.get_field(name).__class__
+            for name in _SERIES_ATTR_FIELDS
         },
         "role": ManyToManyField,
         "issue": CharField,

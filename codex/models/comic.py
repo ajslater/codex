@@ -440,6 +440,7 @@ class ComicFTS(BaseModel):
     name = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     review = TextField(db_collation="nocase")
     summary = TextField(db_collation="nocase")
+    series_summary = TextField(db_collation="nocase")
     # FK collections
     publisher = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)
     imprint = CharField(db_collation="nocase", max_length=MAX_NAME_LEN)

@@ -14,6 +14,8 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATED_M2MS,
     FTS_UPDATED_M2MS,
     MODEL_REL_MAP,
+    SERIES_SUMMARY_FTS_FIELD_NAME,
+    SUMMARY_FIELD_NAME,
     TOTAL,
     UPDATE_FKS,
 )
@@ -35,7 +37,7 @@ from codex.librarian.scribe.importer.statii.create import (
 )
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
-from codex.models.collections import Folder
+from codex.models.collections import Folder, Series
 from codex.models.named import Universe
 
 
@@ -213,6 +215,14 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             )
         return count
 
+    @staticmethod
+    def _series_summary_changed(obj: BaseModel, update_args: Mapping) -> bool:
+        """Whether a series update changes the summary its comics index."""
+        return (
+            isinstance(obj, Series)
+            and update_args.get(SUMMARY_FIELD_NAME, obj.summary) != obj.summary
+        )
+
     def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
         update_tuples: list[tuple] | None = self.metadata[UPDATE_FKS].pop(model, None)
@@ -226,6 +236,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         update_objs = []
         update_tuples = sorted(update_tuples, key=str)
         fts_update_pks = set()
+        series_summary_pks = set()
         for values_tuple in update_tuples:
             key_args, update_args = self._get_create_update_args(
                 model,
@@ -235,6 +246,10 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 parent_pk_maps,
             )
             obj = model.objects.get(**key_args)
+            # The importer prunes unchanged series links, so a summary
+            # change has to re-index every comic of the series.
+            if self._series_summary_changed(obj, update_args):
+                series_summary_pks.add(obj.pk)
             for key, value in update_args.items():
                 setattr(obj, key, value)
             obj.presave()
@@ -251,6 +266,11 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         if fts_update_pks:
             field_name = model.__name__.lower() + "s"
             self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
+        if series_summary_pks:
+            # Merge: the per-comic phases run once per chunk.
+            self.metadata[FTS_UPDATED_M2MS].setdefault(
+                SERIES_SUMMARY_FTS_FIELD_NAME, set()
+            ).update(series_summary_pks)
 
         update_fields = tuple(update_args_map.keys())
         if model in COLLECTION_BASE_MODELS:

@@ -238,7 +238,10 @@ class SettingsBrowserFilters(BaseModel):
     original_format = JSONField(default=list)
     reading_direction = JSONField(default=list)
     reprints = JSONField(default=list)
+    series_end_year = JSONField(default=list)
     series_groups = JSONField(default=list)
+    series_start_year = JSONField(default=list)
+    series_status = JSONField(default=list)
     stories = JSONField(default=list)
     story_arcs = JSONField(default=list)
     tagger = JSONField(default=list)
@@ -267,7 +270,10 @@ class SettingsBrowserFilters(BaseModel):
             "original_format",
             "reading_direction",
             "reprints",
+            "series_end_year",
             "series_groups",
+            "series_start_year",
+            "series_status",
             "stories",
             "story_arcs",
             "tagger",
