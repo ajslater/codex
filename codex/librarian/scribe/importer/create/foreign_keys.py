@@ -309,6 +309,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             )
             count += self.bulk_update_all_models(update_status)
         finally:
+            self.chunk_fks_updated = bool(count)
             self.metadata.pop(UPDATE_FKS, None)
             self.status_controller.finish(update_status)
         return count
