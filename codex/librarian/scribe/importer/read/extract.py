@@ -9,7 +9,6 @@ from typing import Any
 from comicbox.formats.comicbox.schema import PAGE_COUNT_KEY
 from comicbox.process import ReadResult, iter_process_files
 
-from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.const import (
     EXTRACTED,
     EXTRACTED_STAT_ONLY,
@@ -20,7 +19,6 @@ from codex.librarian.scribe.importer.read.aggregate_path import (
     AggregateMetadataImporter,
 )
 from codex.librarian.scribe.importer.statii.read import ImporterReadComicsStatus
-from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_CONFIG, LOGLEVEL
 from codex.startup.loguru import CODEX_LOG_FORMAT
@@ -102,11 +100,7 @@ class ExtractMetadataImporter(AggregateMetadataImporter):
 
     def _get_import_metadata_flag(self) -> bool:
         """Set import_metadata flag."""
-        if self.task.force_import_metadata:
-            import_metadata = True
-        else:
-            key = AdminFlagChoices.IMPORT_METADATA.value
-            import_metadata = AdminFlag.objects.only("on").get(key=key).on
+        import_metadata = self.is_import_metadata()
         if not import_metadata:
             self.log.warning("Admin flag set to NOT import tags.")
         return import_metadata
