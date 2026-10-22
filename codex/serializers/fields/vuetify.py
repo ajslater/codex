@@ -14,7 +14,11 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.browser import VUETIFY_NULL_CODE
-from codex.models.choices import FileTypeChoices, ReadingDirectionChoices
+from codex.models.choices import (
+    FileTypeChoices,
+    ReadingDirectionChoices,
+    SeriesStatusChoices,
+)
 from codex.serializers.fields.base import CodexChoiceField
 
 
@@ -45,6 +49,25 @@ class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceF
     """Reading Direction Choice Field."""
 
     class_choices = ReadingDirectionChoices.values
+
+
+class VuetifySeriesStatusChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+    """
+    Series Status Choice Field.
+
+    Its null code is the "None" choice for a blank status. It converts
+    before the choice check, which would reject it, and serializes back
+    to the int the frontend recognizes.
+    """
+
+    class_choices = SeriesStatusChoices.values
+
+    @override
+    def to_internal_value(self, data) -> str | None:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+        """Convert the null code to None, otherwise validate the choice."""
+        if data in (VUETIFY_NULL_CODE, str(VUETIFY_NULL_CODE)):
+            return None
+        return super().to_internal_value(data)
 
 
 class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]

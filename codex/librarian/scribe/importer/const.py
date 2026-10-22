@@ -56,6 +56,10 @@ SERIES_FIELD_NAME = "series"
 PARENT_FOLDER_FIELD_NAME = "parent_folder"
 VOLUME_COUNT_FIELD_NAME = "volume_count"
 ISSUE_COUNT_FIELD_NAME = "issue_count"
+START_YEAR_FIELD_NAME = "start_year"
+END_YEAR_FIELD_NAME = "end_year"
+STATUS_FIELD_NAME = "status"
+SUMMARY_FIELD_NAME = "summary"
 PATH_FIELD_NAME = "path"
 IDENTIFIERS_FIELD_NAME = "identifiers"
 CREDIT_PRIMARY_FIELD_NAME = "primary"
@@ -153,20 +157,25 @@ FK_KEYS = SimpleNamespace(CREATE_FKS=CREATE_FKS, UPDATE_FKS=UPDATE_FKS)
 FTS_UPDATE = "fts_update"
 FTS_CREATE = "fts_create"
 FTS_EXISTING_M2MS = "fts_existing_m2ms"
-FTS_CREATED_M2MS = "fts_created_m2ms"
 FTS_UPDATED_M2MS = "fts_updated_m2ms"
 
 #######
 # M2M #
 #######
-COLLECTION_MODEL_COUNT_FIELDS: MappingProxyType[
-    type[BrowserCollectionModel], str | None
+COLLECTION_MODEL_ATTR_FIELDS: MappingProxyType[
+    type[BrowserCollectionModel], tuple[str, ...]
 ] = MappingProxyType(
     {
-        Publisher: None,
-        Imprint: None,
-        Series: VOLUME_COUNT_FIELD_NAME,
-        Volume: ISSUE_COUNT_FIELD_NAME,
+        Publisher: (),
+        Imprint: (),
+        Series: (
+            VOLUME_COUNT_FIELD_NAME,
+            START_YEAR_FIELD_NAME,
+            END_YEAR_FIELD_NAME,
+            STATUS_FIELD_NAME,
+            SUMMARY_FIELD_NAME,
+        ),
+        Volume: (ISSUE_COUNT_FIELD_NAME,),
     }
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
@@ -201,6 +210,8 @@ REPRINT_ISSUE_FIELD_NAME = "issue"
 REPRINT_LANGUAGE_FIELD_NAME = "language"
 # Reprints index only their series names, under their own ComicFTS column.
 ALTERNATE_SERIES_FTS_FIELD_NAME = "alternate_series"
+# The linked series' summary, indexed on each of its comics.
+SERIES_SUMMARY_FTS_FIELD_NAME = "series_summary"
 UNIVERSES_FIELD_NAME = "universes"
 NAME_FIELD_NAME = "name"
 NUMBER_TO_FIELD_NAME = "number_to"
@@ -282,7 +293,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
                 NAME_FIELD_NAME,
             ),
             _IDENTIFIER_RELS,
-            VOLUME_COUNT_FIELD_NAME,
+            *COLLECTION_MODEL_ATTR_FIELDS[Series],
         ),
         Volume: (
             (
@@ -293,7 +304,7 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
                 NUMBER_TO_FIELD_NAME,
             ),
             "",
-            ISSUE_COUNT_FIELD_NAME,
+            *COLLECTION_MODEL_ATTR_FIELDS[Volume],
         ),
         Folder: (
             (PATH_FIELD_NAME,),
@@ -323,23 +334,6 @@ MODEL_REL_MAP: MappingProxyType[type[BaseModel], tuple] = MappingProxyType(
         ),
         Universe: ((NAME_FIELD_NAME,), _IDENTIFIER_RELS, DESIGNATION_FIELD_NAME),
     }
-)
-_IDENTIFIED_SELECT_RELATED = ("identifier", "identifier__source")
-MODEL_SELECT_RELATED: MappingProxyType[type[BaseModel], tuple[str, ...]] = (
-    MappingProxyType(
-        {
-            **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_SELECT_RELATED),
-            Identifier: (IDENTIFIER_SOURCE_FIELD_NAME,),
-            Publisher: _IDENTIFIED_SELECT_RELATED,
-            Imprint: ("publisher",),
-            Series: ("publisher", "imprint"),
-            Volume: ("publisher", "imprint", "series"),
-            Credit: (CREDIT_PERSON_FIELD_NAME, CREDIT_ROLE_FIELD_NAME),
-            Reprint: _IDENTIFIED_SELECT_RELATED,
-            StoryArcNumber: (STORY_ARC_FIELD_NAME,),
-            Universe: _IDENTIFIED_SELECT_RELATED,
-        }
-    )
 )
 FIELD_NAME_KEYS_REL_MAP = MappingProxyType(
     {

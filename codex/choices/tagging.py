@@ -27,6 +27,7 @@ from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
 
 from codex.choices.reader import READER_CHOICES
+from codex.models.choices import SeriesStatusChoices
 from codex.models.identifier import IdentifierType, to_comicbox_id_type
 
 # comicbox transform per codex write-format id.
@@ -82,6 +83,13 @@ IDENTIFIER_TYPES = _vuetify_choices(
 # its rows from them.
 IDENTIFIER_TYPE_BY_CODEX_NAME = MappingProxyType(
     {id_type.value: to_comicbox_id_type(id_type.value) for id_type in IdentifierType}
+)
+
+# A series' publication status (Ongoing, Completed, ...). No format codex
+# writes holds it, so the editor saves it to the database only and offers
+# it under every format.
+SERIES_STATUSES = _vuetify_choices(
+    (str(label), str(value)) for value, label in SeriesStatusChoices.choices
 )
 
 
@@ -156,16 +164,17 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 # Editor sub-fields comicbox stores only for some formats and which its
 # transform specs don't surface at the SPECS_TO top level (the
 # hand-maintained support data): MetronInfo's Series carries a volume
-# count, only MetronInfo's CommunityRating persists a rating count, and
-# only MetronInfo encodes a reprint's volume number (in Reprints) and
-# language (in Series/AlternativeNames). Whether a reprint row is one of
-# the series' other names is MetronInfo's too, and for the same reason:
-# ComicInfo has no reprint tag at all, since comicbox 5 reads its
-# AlternateSeries and AlternateNumber as a story arc.
+# count and a start year, only MetronInfo's CommunityRating persists a
+# rating count, and only MetronInfo encodes a reprint's volume number (in
+# Reprints) and language (in Series/AlternativeNames). Whether a reprint
+# row is one of the series' other names is MetronInfo's too, and for the
+# same reason: ComicInfo has no reprint tag at all, since comicbox 5 reads
+# its AlternateSeries and AlternateNumber as a story arc.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
         "METRON_INFO": (
             "volume_count",
+            "start_year",
             "community_rating_count",
             "reprint_volume",
             "reprint_language",

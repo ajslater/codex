@@ -6,6 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.6
+
+- Features
+    - Filter, search, view, edit, and online tag by series years, series status,
+      and series summary. End year, status and summary are saved in Codex only,
+      not comic metadata.
+    - Browser title shows series years and a Tags button.
+    - Online tag match picker shows series and issue details to help
+      disambiguate similar covers and titles.
+- Fixes
+    - Browsing comics without embedded tags, or re-importing unchanged comics,
+      no longer rebuilds their covers and reloads the page.
+    - Searches for a universe designation no longer miss imported comics.
+
 ## v2.5.5
 
 - Features

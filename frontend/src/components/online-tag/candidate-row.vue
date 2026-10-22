@@ -6,6 +6,16 @@
   a link to the source's own page, and what the blended score is made
   of (#854).
 
+  Covers are often near-identical too: a reprint volume, a foreign or a
+  collected edition. So two subdued lines under the title carry what the
+  source knows about the series (publisher, format, start year, issue
+  count) and about the issue (its title and one-line deck). Comic Vine
+  supplies most of it from rows comicbox already fetched. Metron always
+  has the start year, but its format, publisher and issue count cost
+  comicbox a request, so they arrive only when titles would otherwise
+  collide. Any of it may be absent, and a prompt cached before comicbox
+  carried it shows neither line.
+
   The thumbnail loads straight from the source CDN. An <img> is exempt
   from CORS, and codex's own img-src allows the two upload paths (see
   _ONLINE_TAG_COVER_SECURE_CSP), so there is nothing to proxy. A blocked
@@ -44,9 +54,6 @@
       <span v-if="candidate.summary.year" class="candidateYear">
         ({{ candidate.summary.year }})
       </span>
-      <span v-if="candidate.summary.publisher" class="candidatePublisher">
-        &mdash; {{ candidate.summary.publisher }}
-      </span>
       <!-- eslint-disable-next-line sonarjs/no-vue-bypass-sanitization -->
       <a
         v-if="candidate.url"
@@ -57,6 +64,13 @@
         >{{ sourceLabel(candidate.source) }}
         <v-icon size="x-small">{{ mdiOpenInNew }}</v-icon></a
       >
+      <div v-if="seriesDetail" class="candidateSeriesDetail">
+        {{ seriesDetail }}
+      </div>
+      <!-- A deck can run long: clamped, the rest in the tooltip. -->
+      <div v-if="issueDetail" class="candidateIssueDetail" :title="issueDetail">
+        {{ issueDetail }}
+      </div>
       <!-- Matching scores reprint series names too, so a comic filed
          under a localized title matches a series name that looks
          nothing like its filename. These are the reason. -->
@@ -67,10 +81,19 @@
         {{ scoreDetail }}
       </div>
     </div>
-    <v-chip size="x-small" class="ml-2">{{ scorePercent }}%</v-chip>
-    <v-btn variant="tonal" size="small" color="primary" @click="$emit('pick')">
-      Pick
-    </v-btn>
+    <!-- Never shrinks, so long detail text wraps instead of squeezing
+         these. On phones it drops to its own line; see the styles. -->
+    <div class="candidateActions">
+      <v-chip size="x-small" class="ml-2">{{ scorePercent }}%</v-chip>
+      <v-btn
+        variant="tonal"
+        size="small"
+        color="primary"
+        @click="$emit('pick')"
+      >
+        Pick
+      </v-btn>
+    </div>
   </div>
 </template>
 
@@ -107,6 +130,31 @@ export default {
     scorePercent() {
       return Math.round(this.candidate.score * PERCENT);
     },
+    seriesDetail() {
+      const {
+        seriesPublisher,
+        publisher,
+        seriesType,
+        seriesStartYear,
+        seriesIssueCount,
+      } = this.candidate.summary;
+      return [
+        seriesPublisher || publisher,
+        seriesType,
+        seriesStartYear ? `Series began ${seriesStartYear}` : "",
+        seriesIssueCount
+          ? `${seriesIssueCount} ${seriesIssueCount === 1 ? "issue" : "issues"}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    },
+    issueDetail() {
+      const { issueTitle, issueSummary } = this.candidate.summary;
+      return [issueTitle ? `“${issueTitle}”` : "", issueSummary]
+        .filter(Boolean)
+        .join(" — ");
+    },
     scoreDetail() {
       // Prompts cached before these fields existed carry neither, and
       // the headline percentage alone is still meaningful.
@@ -138,6 +186,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+
 .candidateRow {
   display: flex;
   align-items: center;
@@ -163,19 +214,64 @@ export default {
 
 .candidateVolume,
 .candidateYear,
-.candidatePublisher,
+.candidateSeriesDetail,
+.candidateIssueDetail,
 .candidateAka,
 .candidateScoreDetail {
   color: rgb(var(--v-theme-text-secondary));
 }
 
-.candidateAka,
-.candidateScoreDetail {
+.candidateSeriesDetail,
+.candidateAka {
   font-size: 0.8125rem;
+}
+
+// A step smaller: the deck and the score caveat are the least needed.
+.candidateIssueDetail,
+.candidateScoreDetail {
+  font-size: 0.75rem;
+}
+
+// A deck can run long. Two lines, then an ellipsis: one line left a
+// phone-width row about a dozen characters, and touch has no tooltip.
+// Same multi-line clamp as browser-table-cell.vue.
+.candidateIssueDetail {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 .candidateSourceLink {
   margin-left: 8px;
   white-space: nowrap;
+}
+
+.candidateActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+// A phone has no room for cover, text, score and Pick side by side; the
+// text was left about 100px. The score and Pick wrap to their own line,
+// right-aligned, so the text gets the width beside the cover. The text's
+// zero basis keeps it on the cover's line however long it runs.
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+  .candidateRow {
+    flex-wrap: wrap;
+  }
+
+  .candidateInfo {
+    flex-basis: 0;
+  }
+
+  .candidateActions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

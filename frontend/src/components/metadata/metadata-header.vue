@@ -41,6 +41,9 @@
         />
         <MetadataText :value="volumeIssueCount" class="subdued" />
       </div>
+      <div v-if="seriesFacts" id="seriesFactsRow" class="subdued">
+        {{ seriesFacts }}
+      </div>
     </section>
     <span v-if="!multiSelect && md.name" id="titleRow">
       {{ collectionTitle }} {{ md.name }}
@@ -123,7 +126,7 @@
 import { mapState } from "pinia";
 import prettyBytes from "pretty-bytes";
 
-import { formattedIssue } from "@/comic-name";
+import { formattedIssue, formattedYearRange } from "@/comic-name";
 import MetadataControls from "@/components/metadata/metadata-controls.vue";
 import MetadataBookCover from "@/components/metadata/metadata-cover.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
@@ -239,6 +242,14 @@ export default {
     fileType() {
       return this?.md?.fileType || "Unknown";
     },
+    seriesYears() {
+      return formattedYearRange(this.md.seriesStartYear, this.md.seriesEndYear);
+    },
+    seriesFacts() {
+      return [this.seriesYears, this.md.seriesStatus]
+        .filter(Boolean)
+        .join(" · ");
+    },
     seriesVolumeCount() {
       const count = this.md.seriesVolumeCount;
       if (!count) return "";
@@ -280,6 +291,7 @@ export default {
   }
 
   #seriesRow {
+    flex-wrap: wrap;
     margin-top: -10px;
     font-size: xx-large;
   }
@@ -294,7 +306,8 @@ export default {
     padding-top: 0px;
   }
 
-  #titleRow {
+  #titleRow,
+  #seriesFactsRow {
     font-size: large;
   }
 
@@ -321,7 +334,8 @@ export default {
       font-size: large;
     }
 
-    #titleRow {
+    #titleRow,
+    #seriesFactsRow {
       font-size: x-small;
     }
   }

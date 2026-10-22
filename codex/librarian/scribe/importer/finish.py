@@ -1,5 +1,6 @@
 """The main importer class."""
 
+from itertools import batched
 from operator import itemgetter
 from time import perf_counter
 from types import MappingProxyType
@@ -8,6 +9,7 @@ from django.core.cache import cache
 from django.db.models.functions import Now
 from humanize import intcomma, naturaldelta
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.notifier.tasks import (
     FAILED_IMPORTS_CHANGED_TASK,
     LIBRARY_CHANGED_TASK,
@@ -18,7 +20,9 @@ from codex.librarian.scribe.importer.init import InitImporter
 from codex.librarian.scribe.importer.statii import IMPORTER_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
+from codex.models.admin import AdminFlag
 from codex.models.comic import Comic
+from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
 _REPORT_MAP = MappingProxyType(
     {
@@ -91,24 +95,34 @@ class FinishImporter(InitImporter):
         self.log.success(log_txt)
         self._log_phase_times()
 
+    def is_import_metadata(self) -> bool:
+        """Return whether this pass reads tags, forced or by admin flag."""
+        if self.task.force_import_metadata:
+            return True
+        key = AdminFlagChoices.IMPORT_METADATA.value
+        return AdminFlag.objects.only("on").get(key=key).on
+
     def _stamp_metadata_imported(self) -> None:
         """
-        Mark every comic this forced import pass touched as import-complete.
+        Mark every comic this tag-reading pass touched as import-complete.
 
         Path-scoped so it covers SKIPPED no-metadata comics that never reach
-        the per-comic write path. Idempotent (``__isnull=True``) and gated on
-        ``force_import_metadata`` so ordinary watcher-driven imports never
-        rewrite the column.
+        the per-comic write path. Idempotent (``__isnull=True``). A scan with
+        the import-tags flag off reads no tags, so it leaves the column NULL
+        for the lazy importer to pick up.
         """
-        if not self.task.force_import_metadata:
-            return
         if not (paths := self.metadata_import_paths):
             return
-        Comic.objects.filter(
-            library=self.library,
-            path__in=paths,
-            metadata_imported_at__isnull=True,
-        ).update(metadata_imported_at=Now())
+        if not self.is_import_metadata():
+            return
+        # A first scan reaches here with every path in the library, so
+        # batch path__in to stay under SQLite's variable limit.
+        for batch_paths in batched(paths, IMPORTER_LINK_FK_BATCH_SIZE):
+            Comic.objects.filter(
+                library=self.library,
+                path__in=batch_paths,
+                metadata_imported_at__isnull=True,
+            ).update(metadata_imported_at=Now())
 
     def finish(self) -> None:
         """Perform final tasks when the apply is done."""

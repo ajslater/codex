@@ -16,7 +16,8 @@ from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 # on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
 # minus the local-column / FK keys (year, decade, country, language,
 # community_rating, monochrome, original_format, file_type, reading_direction,
-# tagger, age_rating_metron, age_rating_tagged).
+# tagger, age_rating_metron, age_rating_tagged, series_end_year,
+# series_start_year, series_status).
 _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
     {
         "characters",

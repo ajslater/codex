@@ -14,7 +14,6 @@ from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     DELETE_M2MS,
     FIS,
-    FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
     FTS_UPDATED_M2MS,
@@ -58,7 +57,6 @@ CREATED_FK_UPDATE_NONE = MappingProxyType(
         CREATE_COMICS: {},
         DELETE_M2MS: {},
         FIS: {},
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
         FTS_UPDATED_M2MS: {},
         LINK_FKS: {},
@@ -70,9 +68,8 @@ CREATED_COMICS_UPDATE_NONE = MappingProxyType(
     {
         DELETE_M2MS: {},
         FIS: {},
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
         LINK_M2MS: {},
     }
@@ -80,25 +77,22 @@ CREATED_COMICS_UPDATE_NONE = MappingProxyType(
 LINKED_COMICS_UPDATE_NONE = MappingProxyType(
     {
         FIS: {},
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )
 FAILED_IMPORTS_UPDATE_NONE = MappingProxyType(
     {
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )
 DELETED_COMICS_UPDATE_NONE = MappingProxyType(
     {
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )

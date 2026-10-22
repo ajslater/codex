@@ -12,7 +12,6 @@ from codex.librarian.scribe.importer.const import (
     CREATE_FKS,
     DELETE_M2MS,
     FIS,
-    FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
     FTS_UPDATED_M2MS,
@@ -224,6 +223,10 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                 ("Youthful Adventure Stories", "TestImprint", "Captain Science"): {
                     (
                         ("comicvine", "series", "333"),
+                        None,
+                        None,
+                        None,
+                        None,
                         None,
                     ),
                 }
@@ -498,6 +501,11 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                     "Captain Science",
                     ("comicvine", "series", "333"),
                     None,
+                    None,
+                    None,
+                    # The stored status and summary stand.
+                    "",
+                    "",
                 )
             },
             Character: {("Captain Science", ("metron", "character", "123"))},
@@ -612,7 +620,6 @@ CREATED_FK_UPDATE_ALL = MappingProxyType(
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
-        FTS_CREATED_M2MS: {},
     }
 )
 CREATED_COMICS_UPDATE_ALL = MappingProxyType(
@@ -673,7 +680,6 @@ CREATED_COMICS_UPDATE_ALL = MappingProxyType(
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
-        FTS_CREATED_M2MS: {},
     }
 )
 LINKED_COMICS_UPDATE_ALL = MappingProxyType(
@@ -715,12 +721,10 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
             }
         },
         FTS_UPDATED_M2MS: {"universes": {1}},
-        FTS_CREATED_M2MS: {},
     }
 )
 FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
     {
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {
             1: {
                 "alternate_series": ("Capitan Sciencia",),
@@ -761,7 +765,6 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
 )
 DELETED_COMICS_UPDATE_ALL = MappingProxyType(
     {
-        FTS_CREATED_M2MS: {},
         FTS_EXISTING_M2MS: {
             1: {
                 "alternate_series": ("Capitan Sciencia",),

@@ -4,35 +4,51 @@ The ``metadata_imported_at`` marker breaks the lazy-import hover loop.
 ``Comic.metadata_mtime`` is comicbox's *embedded* metadata mtime, which stays
 NULL forever for an archive with no metadata file. The tag-icon hover gate and
 the lazy-import worker used to key off ``metadata_mtime``, so a no-metadata comic
-re-fired the importer endlessly. ``metadata_imported_at`` records that a forced
-import pass actually ran, independent of embedded metadata:
+re-fired the importer endlessly. ``metadata_imported_at`` records that a
+tag-reading import pass actually ran, independent of embedded metadata:
 
-* ``FinishImporter.finish`` stamps every comic a *forced* import touched (by
+* ``FinishImporter.finish`` stamps every comic a tag-reading import touched (by
   path, so it covers the SKIPPED no-metadata comics that never reach the
-  per-comic write path); a non-forced watcher import leaves the column alone.
+  per-comic write path). That is any forced import, and any library scan with
+  the import-tags flag on; a scan with the flag off reads no tags and leaves the
+  column NULL for the lazy importer.
 * ``LazyImporter.lazy_import`` gates on ``metadata_imported_at__isnull=True``, so
   a comic is imported once and then excluded from further hover-triggered passes.
+* Migration 0058 stamps the rows scans left NULL before scans stamped them.
 """
 
+import importlib
 import shutil
+import zipfile
 from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from django.apps import apps
 from django.core.cache import cache
 from django.test import TestCase
 from loguru import logger
 
+from codex.choices.admin import AdminFlagChoices
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.lazy_importer import LazyImporter
 from codex.librarian.scribe.tasks import LazyImportComicsTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models.admin import AdminFlag
 from tests.tmp_dirs import tmp_dir
+
+_MIGRATION = importlib.import_module("codex.migrations.0058_post_v2_5_5_schema")
+_backfill = _MIGRATION._backfill_metadata_imported_at  # noqa: SLF001
 
 _LIB_PATH: Final = tmp_dir(Path(__file__).stem)
 _COMIC_PATH: Final = str(_LIB_PATH / "bare.cbz")
+_SCAN_LIB_PATH: Final = tmp_dir(f"{Path(__file__).stem}-scan")
+
+
+def _set_import_metadata_flag(*, on: bool) -> None:
+    AdminFlag.objects.filter(key=AdminFlagChoices.IMPORT_METADATA.value).update(on=on)
 
 
 class LazyImportMarkerTestCase(TestCase):
@@ -98,9 +114,69 @@ class LazyImportMarkerTestCase(TestCase):
         self.comic.refresh_from_db()
         assert self.comic.metadata_imported_at is not None
 
-    def test_non_forced_finish_leaves_marker_null(self) -> None:
-        """An ordinary watcher import must not touch the marker."""
+    def test_forced_finish_stamps_marker_with_import_tags_off(self) -> None:
+        """A forced pass reads tags whatever the scan flag says."""
+        _set_import_metadata_flag(on=False)
+        self._make_importer(force=True).finish()
+        self.comic.refresh_from_db()
+        assert self.comic.metadata_imported_at is not None
+
+    def test_scan_finish_stamps_marker_with_import_tags_on(self) -> None:
+        """A scan that read tags stamps the comic, so hovers never re-import it."""
         self._make_importer(force=False).finish()
+        self.comic.refresh_from_db()
+        assert self.comic.metadata_imported_at is not None
+
+    def test_stamp_covers_every_batch(self) -> None:
+        """A path set larger than one batch still stamps every comic."""
+        other_path = str(_LIB_PATH / "other.cbz")
+        Path(other_path).write_bytes(b"")
+        other = Comic.objects.create(
+            library=self.library,
+            path=other_path,
+            issue_number=2,
+            name="other",
+            publisher=self.comic.publisher,
+            imprint=self.comic.imprint,
+            series=self.comic.series,
+            volume=self.comic.volume,
+            size=1,
+            page_count=1,
+        )
+        importer = self._make_importer(force=False)
+        importer.metadata_import_paths = frozenset({_COMIC_PATH, other_path})
+        with patch(
+            "codex.librarian.scribe.importer.finish.IMPORTER_LINK_FK_BATCH_SIZE", 1
+        ):
+            importer.finish()
+        for comic in (self.comic, other):
+            comic.refresh_from_db()
+            assert comic.metadata_imported_at is not None
+
+    def test_scan_finish_leaves_marker_null_with_import_tags_off(self) -> None:
+        """A scan that read no tags leaves the comic for the lazy importer."""
+        _set_import_metadata_flag(on=False)
+        self._make_importer(force=False).finish()
+        self.comic.refresh_from_db()
+        assert self.comic.metadata_imported_at is None
+
+    def test_backfill_stamps_with_import_tags_on(self) -> None:
+        """0058 stamps the rows a tag-reading scan left NULL."""
+        _backfill(apps, None)
+        self.comic.refresh_from_db()
+        assert self.comic.metadata_imported_at == self.comic.updated_at
+
+    def test_backfill_stamps_with_no_flag_row(self) -> None:
+        """A missing flag row counts as its default, on."""
+        AdminFlag.objects.filter(key=AdminFlagChoices.IMPORT_METADATA.value).delete()
+        _backfill(apps, None)
+        self.comic.refresh_from_db()
+        assert self.comic.metadata_imported_at is not None
+
+    def test_backfill_skips_with_import_tags_off(self) -> None:
+        """0058 leaves the rows of a scan that read no tags to the lazy importer."""
+        _set_import_metadata_flag(on=False)
+        _backfill(apps, None)
         self.comic.refresh_from_db()
         assert self.comic.metadata_imported_at is None
 
@@ -136,3 +212,38 @@ class LazyImportMarkerTestCase(TestCase):
             LazyImportComicsTask(collection="comics", pks=frozenset({self.comic.pk}))
         )
         assert not self._enqueued_import_tasks(queue)
+
+
+class ScanStampsTaglessComicTestCase(TestCase):
+    """Issue 992: a scanned comic with no tags file must not read as un-imported."""
+
+    @override
+    def setUp(self) -> None:
+        """Seed admin flags, a library and a CBZ with pages but no tags."""
+        from codex.startup import init_admin_flags
+
+        cache.clear()
+        init_admin_flags()
+        _SCAN_LIB_PATH.mkdir(exist_ok=True, parents=True)
+        self.path = str(_SCAN_LIB_PATH / "tagless.cbz")  # pyright: ignore[reportUninitializedInstanceVariable]
+        with zipfile.ZipFile(self.path, "w") as zf:
+            zf.writestr("page1.jpg", b"\xff\xd8\xff\xe0not-a-real-jpeg")
+        self.library = Library.objects.create(path=str(_SCAN_LIB_PATH))  # pyright: ignore[reportUninitializedInstanceVariable]
+
+    @override
+    def tearDown(self) -> None:
+        shutil.rmtree(_SCAN_LIB_PATH, ignore_errors=True)
+        cache.clear()
+
+    def test_scan_stamps_tagless_comic(self) -> None:
+        """An ordinary scan creates the comic already stamped."""
+        task = ImportTask(
+            library_id=self.library.pk, files_created=frozenset({self.path})
+        )
+        importer = ComicImporter(task, logger, MagicMock(), Lock(), Event())
+        assert importer._run_per_comic_phases_chunked()  # noqa: SLF001
+        importer.finish()
+
+        comic = Comic.objects.get(path=self.path)
+        assert comic.metadata_mtime is None
+        assert comic.metadata_imported_at is not None

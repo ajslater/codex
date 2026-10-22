@@ -48,6 +48,11 @@ def _discover() -> str:
 
 def main():
     """Run the server."""
+    # Python puts the script's own bin/ first on sys.path, not the root, so
+    # the project would come from whatever copy the venv installed (another
+    # worktree's editable install, say). Put the root first, as a root-level
+    # manage.py gets for free.
+    sys.path.insert(0, str(ROOT))
     # Not setdefault: its argument runs first, and _discover() raises in a
     # project with two settings modules even when the variable picks one.
     if not os.environ.get("DJANGO_SETTINGS_MODULE"):

@@ -8,12 +8,13 @@ from collections.abc import Mapping
 from itertools import chain
 
 from codex.librarian.scribe.importer.const import (
-    COLLECTION_MODEL_COUNT_FIELDS,
+    COLLECTION_MODEL_ATTR_FIELDS,
     COMPLEX_M2M_MODELS,
     CREATE_FKS,
-    FTS_CREATED_M2MS,
     FTS_UPDATED_M2MS,
     MODEL_REL_MAP,
+    SERIES_SUMMARY_FTS_FIELD_NAME,
+    SUMMARY_FIELD_NAME,
     TOTAL,
     UPDATE_FKS,
 )
@@ -35,7 +36,7 @@ from codex.librarian.scribe.importer.statii.create import (
 )
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
-from codex.models.collections import Folder
+from codex.models.collections import Folder, Series
 from codex.models.named import Universe
 
 
@@ -93,7 +94,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             value = values_tuple[index]
             arg_map = key_args if index < num_keys else update_args
             if field_model and value is not None:
-                if field_model in COLLECTION_MODEL_COUNT_FIELDS and index < num_keys:
+                if field_model in COLLECTION_MODEL_ATTR_FIELDS and index < num_keys:
                     key = tuple(values_tuple[: index + 1])
                 elif isinstance(value, tuple):
                     key = value
@@ -145,7 +146,6 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         parent_pk_maps = self._build_parent_fk_pk_maps(model)
         create_objs = []
         create_tuples = sorted(create_tuples, key=str)
-        created_fts_values = {}
         for values_tuple in create_tuples:
             key_args, update_args = self._get_create_update_args(
                 model,
@@ -159,15 +159,6 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             if model in CUSTOM_COVER_MODELS:
                 self._add_custom_cover(model, obj)
             create_objs.append(obj)
-            if model == Universe and update_args:
-                fts_update_values = tuple(
-                    value for value in update_args.values() if isinstance(value, str)
-                )
-                created_fts_values[tuple(key_args.values())] = fts_update_values
-
-        if created_fts_values:
-            field_name = model.__name__.lower() + "s"
-            self.metadata[FTS_CREATED_M2MS][field_name] = created_fts_values
 
         update_fields = tuple(key_args_map.keys()) + tuple(update_args_map.keys())
         if model in COLLECTION_BASE_MODELS:
@@ -213,6 +204,19 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             )
         return count
 
+    @staticmethod
+    def _series_summary_changed(obj: BaseModel, update_args: Mapping) -> bool:
+        """Whether a series update changes the summary its comics index."""
+        return (
+            isinstance(obj, Series)
+            and update_args.get(SUMMARY_FIELD_NAME, obj.summary) != obj.summary
+        )
+
+    def _add_fts_updated_pks(self, field_name: str, pks: set[int]) -> None:
+        """Queue comics to re-index, merged across the per-comic chunks."""
+        if pks:
+            self.metadata[FTS_UPDATED_M2MS].setdefault(field_name, set()).update(pks)
+
     def _bulk_update_models(self, model: type[BaseModel], status) -> int:
         count = 0
         update_tuples: list[tuple] | None = self.metadata[UPDATE_FKS].pop(model, None)
@@ -226,6 +230,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         update_objs = []
         update_tuples = sorted(update_tuples, key=str)
         fts_update_pks = set()
+        series_summary_pks = set()
         for values_tuple in update_tuples:
             key_args, update_args = self._get_create_update_args(
                 model,
@@ -235,6 +240,10 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
                 parent_pk_maps,
             )
             obj = model.objects.get(**key_args)
+            # The importer prunes unchanged series links, so a summary
+            # change has to re-index every comic of the series.
+            if self._series_summary_changed(obj, update_args):
+                series_summary_pks.add(obj.pk)
             for key, value in update_args.items():
                 setattr(obj, key, value)
             obj.presave()
@@ -248,9 +257,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             if model == Universe:
                 fts_update_pks.add(obj.pk)
 
-        if fts_update_pks:
-            field_name = model.__name__.lower() + "s"
-            self.metadata[FTS_UPDATED_M2MS][field_name] = fts_update_pks
+        self._add_fts_updated_pks(model.__name__.lower() + "s", fts_update_pks)
+        self._add_fts_updated_pks(SERIES_SUMMARY_FTS_FIELD_NAME, series_summary_pks)
 
         update_fields = tuple(update_args_map.keys())
         if model in COLLECTION_BASE_MODELS:
@@ -274,9 +282,6 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
         fkc = self.metadata.get(CREATE_FKS, {})
         create_status = ImporterCreateTagsStatus(0, fkc.pop(TOTAL, 0))
         try:
-            # FTS_CREATED_M2MS accumulates across chunks (consumed later
-            # by full_text_search); setdefault preserves prior chunks.
-            self.metadata.setdefault(FTS_CREATED_M2MS, {})
             if not fkc:
                 return count
             self.status_controller.start(create_status)
@@ -304,6 +309,7 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             )
             count += self.bulk_update_all_models(update_status)
         finally:
+            self.chunk_fks_updated = bool(count)
             self.metadata.pop(UPDATE_FKS, None)
             self.status_controller.finish(update_status)
         return count

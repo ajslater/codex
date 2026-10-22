@@ -33,6 +33,7 @@ from codex.choices.tagging import (
     IDENTIFIER_TYPE_BY_CODEX_NAME,
     IDENTIFIER_TYPES,
     LANGUAGES,
+    SERIES_STATUSES,
 )
 
 _DEFAULTS = MappingProxyType(
@@ -81,6 +82,7 @@ _MAP_DUMPS = MappingProxyType(
         "reader-defaults.json": READER_DEFAULTS,
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,
+        "series-statuses.json": SERIES_STATUSES,
         "tagging-estimate.json": TAGGING_ESTIMATE,
     }
 )

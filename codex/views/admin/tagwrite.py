@@ -4,8 +4,9 @@ import json
 from functools import cached_property
 from pathlib import Path
 from types import MappingProxyType
-from typing import override
+from typing import Final, override
 
+from django.utils import timezone
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
@@ -19,8 +20,12 @@ from codex.librarian.scribe.tagwrite_rename import (
 )
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.admin import ComicboxTaggingDefaults
-from codex.models.comic import Comic
-from codex.serializers.admin.tagging import TagWriteRequestSerializer
+from codex.models.collections import Series
+from codex.models.comic import Comic, ComicFTS
+from codex.serializers.admin.tagging import (
+    SeriesAttrsRequestSerializer,
+    TagWriteRequestSerializer,
+)
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.identifier_parse import parse_identifier_url
 from codex.views.browser.filters.filter import BrowserFilterView
@@ -28,6 +33,8 @@ from codex.views.browser.filters.filter import BrowserFilterView
 #: Cap on how many per-comic rename previews the preflight builds — each opens
 #: an archive, so a huge multi-selection can't stall the request.
 _FILENAME_PREVIEW_LIMIT = 100
+#: Series attributes the tag editor saves to the database only.
+_SERIES_ATTRS: Final = ("end_year", "status", "summary")
 
 
 class FilteredComicPksView(BrowserFilterView):
@@ -248,3 +255,44 @@ class AdminTagWriteView(FilteredComicPksView):
             },
             status=HTTP_202_ACCEPTED,
         )
+
+
+class AdminSeriesAttrsView(FilteredComicPksView):
+    """
+    POST a series' end year, status or summary straight to the database.
+
+    No format codex writes can hold them, so unlike a tag write nothing
+    touches the comic files. Re-imports leave the values standing, because
+    the importer ignores a series attribute a file doesn't carry.
+    """
+
+    def post(self, request):
+        """Update the one series the selected comics belong to."""
+        serializer = SeriesAttrsRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        attrs = {key: data[key] for key in _SERIES_ATTRS if key in data}
+        if not attrs:
+            return Response({"detail": "No series attributes sent."}, status=400)
+
+        comic_pks = self.resolve_comic_pks(data["collection"], data["pks"])
+        if not comic_pks:
+            return Response({"detail": "No comics matched."}, status=400)
+        series_pks = tuple(
+            Series.objects.filter(comic__pk__in=comic_pks)
+            .values_list("pk", flat=True)
+            .distinct()
+        )
+        if len(series_pks) != 1:
+            return Response({"detail": "Edit one series at a time."}, status=400)
+
+        series_pk = series_pks[0]
+        Series.objects.filter(pk=series_pk).update(**attrs, updated_at=timezone.now())
+        if "summary" in attrs:
+            # Search reads the summary from each comic's index row. Rewrite
+            # just that column in place: bumping the comics' updated_at for
+            # a full re-index would churn every comic of the series.
+            ComicFTS.objects.filter(comic__series_id=series_pk).update(
+                series_summary=attrs["summary"]
+            )
+        return Response({"detail": "Series details saved.", "series": series_pk})

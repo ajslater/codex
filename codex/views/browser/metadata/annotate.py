@@ -1,6 +1,9 @@
 """Metadata Annotations."""
 
-from django.db.models import Count, IntegerField, Sum, Value
+from typing import cast
+
+from django.db.models import Count, IntegerField, Model, Sum, Value
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.query import QuerySet
 
 from codex.models import Comic
@@ -85,7 +88,12 @@ class MetadataAnnotateView(BrowserAnnotateCoverView):
     def _value_output_field(field: str):
         if field.endswith("count"):
             return IntegerField()
-        return Comic._meta.get_field(field)
+        # Related values like series__start_year live on the related model.
+        model: type[Model] = Comic
+        *relations, field_name = field.split(LOOKUP_SEP)
+        for relation in relations:
+            model = cast("type[Model]", model._meta.get_field(relation).related_model)
+        return model._meta.get_field(field_name)
 
     def _annotate_value_constants(
         self, qs: QuerySet, single_value_specs, row

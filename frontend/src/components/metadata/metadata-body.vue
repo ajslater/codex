@@ -2,6 +2,11 @@
   <div id="metadataBody">
     <section class="mdSection">
       <MetadataText :value="md.summary" :max-height="100" />
+      <MetadataText
+        :value="md.seriesSummary"
+        label="Series Summary"
+        :max-height="100"
+      />
       <MetadataText :value="md.review" label="Review" :max-height="100" />
     </section>
     <MetadataTagsTable :tag-map="credits" class="mdSection" />

@@ -154,6 +154,8 @@ class BrowserTitleSerializer(Serializer):
     collection_name = CharField(read_only=True)
     collection_number_to = CharField(read_only=True)
     collection_count = IntegerField(read_only=True, allow_null=True)
+    collection_start_year = IntegerField(read_only=True, allow_null=True)
+    collection_end_year = IntegerField(read_only=True, allow_null=True)
 
 
 def _emit_cover(row, instance) -> None:

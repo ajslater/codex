@@ -1,14 +1,17 @@
 """Search Index update."""
 
+from collections.abc import Mapping
+from itertools import batched
 from time import perf_counter
 
 from humanize import naturaldelta
 
 from codex.librarian.scribe.importer.const import (
     FTS_CREATE,
-    FTS_CREATED_M2MS,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
+    FTS_UPDATED_M2MS,
+    UNIVERSES_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.search.sync_m2m import (
     SearchIndexSyncManyToManyImporter,
@@ -21,10 +24,49 @@ from codex.librarian.scribe.importer.statii.search import (
 from codex.librarian.scribe.search.prepare import SearchEntryPrepare
 from codex.librarian.status import Status
 from codex.models.comic import ComicFTS
+from codex.models.named import Universe
+from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
 
 
 class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
     """Search Index update methods."""
+
+    def _get_universe_designations(self, entries: Mapping[int, dict]) -> dict:
+        """
+        Map the names of the universes these entries index to designations.
+
+        The index holds each universe's designation beside its name, as a
+        full rebuild writes it. The link phase only knows the names, so look
+        up every one this pass touches, new, existing or kept, in batches.
+        """
+        existing = self.metadata.get(FTS_EXISTING_M2MS, {})
+        names = set()
+        for pk, entry in entries.items():
+            names.update(entry.get(UNIVERSES_FIELD_NAME, ()))
+            names.update(existing.get(pk, {}).get(UNIVERSES_FIELD_NAME, ()))
+        designations = {}
+        for batch in batched(sorted(names), IMPORTER_LINK_FK_BATCH_SIZE):
+            designations.update(
+                Universe.objects.filter(name__in=batch)
+                .exclude(designation="")
+                .values_list("name", "designation")
+            )
+        return designations
+
+    @staticmethod
+    def _add_universe_designations(
+        entry: dict, existing_m2m_values: dict | None, designations: Mapping
+    ) -> None:
+        """Index the designations of the entry's new and kept universes."""
+        names = (
+            *entry.get(UNIVERSES_FIELD_NAME, ()),
+            *(existing_m2m_values or {}).get(UNIVERSES_FIELD_NAME, ()),
+        )
+        if found := {designations[name] for name in names if name in designations}:
+            entry[UNIVERSES_FIELD_NAME] = (
+                *entry.get(UNIVERSES_FIELD_NAME, ()),
+                *sorted(found),
+            )
 
     def _create_comicfts_entry(
         self,
@@ -32,9 +74,11 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         entry: dict,
         obj_list: list[ComicFTS],
         status: Status,
+        designations: Mapping,
     ) -> None:
         if entry:
             existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(pk)
+            self._add_universe_designations(entry, existing_m2m_values, designations)
             SearchEntryPrepare.prepare_import_fts_entry(
                 pk, entry, existing_m2m_values, None, obj_list, status, create=True
             )
@@ -47,6 +91,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         comicfts: ComicFTS,
         obj_list: list[ComicFTS],
         status: Status,
+        designations: Mapping,
     ) -> None:
         comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
         # ``codex_comicfts`` is an FTS5 virtual table without a unique
@@ -57,6 +102,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         # as "empty entry" — both mean "nothing to write for this row".
         if entry := self.metadata[FTS_UPDATE].pop(comic_id, None):
             existing_m2m_values = self.metadata[FTS_EXISTING_M2MS].get(comic_id)
+            self._add_universe_designations(entry, existing_m2m_values, designations)
             SearchEntryPrepare.prepare_import_fts_entry(
                 comic_id,
                 entry,
@@ -84,9 +130,10 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         obj_list = []
         if self.abort_event.is_set():
             return tuple(obj_list), ()
+        designations = self._get_universe_designations(entries)
         for pk in pks:
             entry = entries.pop(pk)
-            self._create_comicfts_entry(pk, entry, obj_list, status)
+            self._create_comicfts_entry(pk, entry, obj_list, status, designations)
         return tuple(obj_list), pks
 
     def _update_search_index_operate_update(
@@ -97,8 +144,9 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             comicftss = ComicFTS.objects.filter(comic_id__in=pks)
             if self.abort_event.is_set():
                 return tuple(obj_list), ()
+            designations = self._get_universe_designations(self.metadata[FTS_UPDATE])
             for comicfts in comicftss:
-                self._update_comicfts_entry(comicfts, obj_list, status)
+                self._update_comicfts_entry(comicfts, obj_list, status, designations)
             if self.metadata[FTS_UPDATE]:
                 # If updates not popped, turn them into creates.
                 if FTS_CREATE not in self.metadata:
@@ -223,8 +271,10 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             if self.abort_event.is_set():
                 self.log.info("Search Index update aborted early.")
             self.abort_event.clear()
-            self.metadata.pop(FTS_EXISTING_M2MS, None)
-            self.metadata.pop(FTS_CREATED_M2MS, None)
+            # An operate with no entries returns before it consumes its
+            # inputs; an import that rewrote no comics leaves them empty.
+            for key in (FTS_CREATE, FTS_UPDATE, FTS_UPDATED_M2MS, FTS_EXISTING_M2MS):
+                self.metadata.pop(key, None)
             self.status_controller.finish_many(
                 (ImporterFTSCreateStatus, ImporterFTSUpdateStatus)
             )

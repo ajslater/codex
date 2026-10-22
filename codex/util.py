@@ -53,6 +53,16 @@ def max_none(*args):
     return max((x for x in args if x is not None), default=None)
 
 
+def min_none(*args):
+    """None aware math.min."""
+    return min((x for x in args if x is not None), default=None)
+
+
+def first_none(*args):
+    """None aware coalesce: the first argument that isn't None."""
+    return next((x for x in args if x is not None), None)
+
+
 def mapping_to_dict(data) -> dict | set | frozenset | tuple | list:
     """Convert nested Mapping objects to dicts."""
     if isinstance(data, Mapping):

@@ -4,6 +4,8 @@
     class="tagButton cardControlButton"
     :variant="variant"
     :icon="mdiTagOutline"
+    :size="size"
+    :density="density"
     title="Tags"
     @mouseenter="onMouseEnter"
     @click.prevent
@@ -21,6 +23,8 @@ export default {
   props: {
     book: { type: Object, required: true },
     toolbar: { type: Boolean, require: true },
+    size: { type: String, default: undefined },
+    density: { type: String, default: undefined },
   },
   data() {
     return {

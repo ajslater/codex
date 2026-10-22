@@ -24,6 +24,7 @@ _COMIC_KEYS = (
     "fts_publisher",
     "fts_imprint",
     "fts_series",
+    "fts_series_summary",
     "fts_age_rating_tagged",
     "fts_age_rating_metron",
     "fts_original_format",
