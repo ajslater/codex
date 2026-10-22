@@ -14,7 +14,7 @@ tag-reading import pass actually ran, independent of embedded metadata:
   column NULL for the lazy importer.
 * ``LazyImporter.lazy_import`` gates on ``metadata_imported_at__isnull=True``, so
   a comic is imported once and then excluded from further hover-triggered passes.
-* Migration 0060 stamps the rows scans left NULL before scans stamped them.
+* Migration 0058 stamps the rows scans left NULL before scans stamped them.
 """
 
 import importlib
@@ -39,9 +39,7 @@ from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from codex.models.admin import AdminFlag
 from tests.tmp_dirs import tmp_dir
 
-_MIGRATION = importlib.import_module(
-    "codex.migrations.0060_backfill_metadata_imported_at"
-)
+_MIGRATION = importlib.import_module("codex.migrations.0058_post_v2_5_5_schema")
 _backfill = _MIGRATION._backfill_metadata_imported_at  # noqa: SLF001
 
 _LIB_PATH: Final = tmp_dir(Path(__file__).stem)
@@ -163,7 +161,7 @@ class LazyImportMarkerTestCase(TestCase):
         assert self.comic.metadata_imported_at is None
 
     def test_backfill_stamps_with_import_tags_on(self) -> None:
-        """0060 stamps the rows a tag-reading scan left NULL."""
+        """0058 stamps the rows a tag-reading scan left NULL."""
         _backfill(apps, None)
         self.comic.refresh_from_db()
         assert self.comic.metadata_imported_at == self.comic.updated_at
@@ -176,7 +174,7 @@ class LazyImportMarkerTestCase(TestCase):
         assert self.comic.metadata_imported_at is not None
 
     def test_backfill_skips_with_import_tags_off(self) -> None:
-        """0060 leaves the rows of a scan that read no tags to the lazy importer."""
+        """0058 leaves the rows of a scan that read no tags to the lazy importer."""
         _set_import_metadata_flag(on=False)
         _backfill(apps, None)
         self.comic.refresh_from_db()
