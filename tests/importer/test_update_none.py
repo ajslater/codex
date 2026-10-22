@@ -69,7 +69,7 @@ CREATED_COMICS_UPDATE_NONE = MappingProxyType(
         DELETE_M2MS: {},
         FIS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
         LINK_M2MS: {},
     }
@@ -78,21 +78,21 @@ LINKED_COMICS_UPDATE_NONE = MappingProxyType(
     {
         FIS: {},
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )
 FAILED_IMPORTS_UPDATE_NONE = MappingProxyType(
     {
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )
 DELETED_COMICS_UPDATE_NONE = MappingProxyType(
     {
         FTS_EXISTING_M2MS: {},
-        FTS_UPDATE: {1: {}},
+        FTS_UPDATE: {},
         FTS_UPDATED_M2MS: {},
     }
 )

@@ -16,6 +16,8 @@ border-radius: 128px;
     - Online tag match picker shows series and issue details to help
       disambiguate similar covers and titles.
 - Fixes
+    - Browsing comics without embedded tags, or re-importing unchanged comics,
+      no longer rebuilds their covers and reloads the page.
     - Searches for a universe designation no longer miss imported comics.
 
 ## v2.5.5

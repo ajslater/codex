@@ -33,7 +33,8 @@ class QueryUpdateComics(QueryForeignKeysQueryImporter):
             for key, value in proposed_comic_dict.items()
             if getattr(comic, key) != value
         }
-        # Update even if update_comic_dict is empty to set stat
+        # Keep it even if update_comic_dict is empty: the update phase still
+        # writes a changed stat, and skips the comic only if nothing changed.
         self.metadata[UPDATE_COMICS][comic.pk] = update_comic_dict
         status.increment_complete()
         self.status_controller.update(status)

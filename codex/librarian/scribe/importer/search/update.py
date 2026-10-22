@@ -10,6 +10,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_CREATE,
     FTS_EXISTING_M2MS,
     FTS_UPDATE,
+    FTS_UPDATED_M2MS,
     UNIVERSES_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.search.sync_m2m import (
@@ -270,7 +271,10 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
             if self.abort_event.is_set():
                 self.log.info("Search Index update aborted early.")
             self.abort_event.clear()
-            self.metadata.pop(FTS_EXISTING_M2MS, None)
+            # An operate with no entries returns before it consumes its
+            # inputs; an import that rewrote no comics leaves them empty.
+            for key in (FTS_CREATE, FTS_UPDATE, FTS_UPDATED_M2MS, FTS_EXISTING_M2MS):
+                self.metadata.pop(key, None)
             self.status_controller.finish_many(
                 (ImporterFTSCreateStatus, ImporterFTSUpdateStatus)
             )

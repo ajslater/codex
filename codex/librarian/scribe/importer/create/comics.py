@@ -12,9 +12,11 @@ from codex.librarian.scribe.importer.const import (
     BULK_UPDATE_COMIC_FIELDS_SET,
     COLLECTION_FIELD_NAMES,
     CREATE_COMICS,
+    DELETE_M2MS,
     FTS_CREATE,
     FTS_UPDATE,
     LINK_FKS,
+    LINK_M2MS,
     NON_FTS_FIELDS,
     PATH_FIELD_NAME,
     UPDATE_COMICS,
@@ -32,6 +34,10 @@ from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
 if TYPE_CHECKING:
     from codex.models.collections import BrowserCollectionModel
+
+# What ``presave`` derives from the file and the row. An update that would
+# change none of them, the timestamp aside, writes nothing new.
+_NOOP_CHECK_FIELDS = tuple(sorted(ALWAYS_UPDATE_COMIC_FIELDS - {"updated_at"}))
 
 
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
@@ -66,10 +72,55 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             )
             self.moved_source_collections.setdefault(model, set()).add(old_pk)
 
+    def _is_noop_update(
+        self,
+        comic: Comic,
+        md: dict,
+        link_md: dict,
+        m2m_deleted_pks: frozenset[int],
+    ) -> bool:
+        """
+        Return whether updating this comic would write nothing new.
+
+        A forced or lazy import of an unchanged comic, typically one with no
+        embedded tags, used to rewrite the row anyway: that purged and rebuilt
+        its cover and broadcast LIBRARY_CHANGED, reloading every browser. The
+        query phase has already pruned every link that is already correct, so
+        no scalar, FK or m2m change remains. If ``presave`` then derives the
+        same stat and the same values from the file on disk, the row is
+        current. A chunk that changed tag or collection rows keeps every comic
+        (see ``chunk_fks_updated``).
+        """
+        if (
+            self.chunk_fks_updated
+            or md
+            or link_md
+            or comic.path in self.task.series_attrs
+        ):
+            return False
+        if (
+            comic.path in self.metadata.get(LINK_M2MS, {})
+            or comic.pk in m2m_deleted_pks
+        ):
+            return False
+        before = tuple(getattr(comic, field_name) for field_name in _NOOP_CHECK_FIELDS)
+        comic.presave()
+        return before == tuple(
+            getattr(comic, field_name) for field_name in _NOOP_CHECK_FIELDS
+        )
+
     def _update_comic_values(
-        self, comic: Comic, update_comics: list, comic_pks: list, changed_fields: set
+        self,
+        comic: Comic,
+        update_comics: list,
+        comic_pks: list,
+        changed_fields: set,
+        m2m_deleted_pks: frozenset[int],
     ) -> None:
         md = self.metadata[UPDATE_COMICS].pop(comic.pk, {})
+        link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
+        if self._is_noop_update(comic, md, link_md, m2m_deleted_pks):
+            return
         for field_name, value in md.items():
             setattr(comic, field_name, value)
         changed_fields.update(md)
@@ -82,7 +133,6 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             field_name: getattr(comic, f"{field_name}_id")
             for field_name in COLLECTION_FIELD_NAMES
         }
-        link_md = self.get_comic_fk_links(comic.pk, comic.path, for_create=False)
         changed_fields.update(link_md)
         for field_name, value in link_md.items():
             set_value = value
@@ -125,12 +175,17 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             update_comics = []
             comic_pks = []
             changed_fields: set[str] = set()
+            m2m_deleted_pks = frozenset(
+                comic_pk
+                for rows in self.metadata.get(DELETE_M2MS, {}).values()
+                for comic_pk, _ in rows
+            )
             for comic in comics:
                 if self.abort_event.is_set():
                     return count
                 try:
                     self._update_comic_values(
-                        comic, update_comics, comic_pks, changed_fields
+                        comic, update_comics, comic_pks, changed_fields, m2m_deleted_pks
                     )
                 except Exception:
                     self.log.exception(f"Error preparing {comic} for update.")

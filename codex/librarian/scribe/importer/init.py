@@ -156,6 +156,11 @@ class InitImporter(WorkerStatusBase):
         self.moved_source_collections: dict[
             type[BrowserCollectionModel | Reprint], set[int]
         ] = {}
+        # Whether this chunk's ``update_all_fks`` changed any rows. Those
+        # rows reach the browser's refresh gate and the search index only
+        # through the comics this import rewrites, so ``update_comics`` keeps
+        # every comic of such a chunk, changed or not.
+        self.chunk_fks_updated = False
         # Full set of paths this import touched, captured before the chunking
         # loop and extract phase zero out ``task.files_*``. Consumed at finish
         # to stamp ``Comic.metadata_imported_at`` on every comic a forced/lazy
