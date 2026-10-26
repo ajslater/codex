@@ -151,7 +151,7 @@ class SeriesFieldsSearchTestCase(_SeriesSearchTestCase):
     def _book_pks(self, path: str, query: str) -> list[int]:
         """Search the comic's series' comics: no prefix."""
         comic = Comic.objects.get(path=path)
-        body = self._browse(f"/api/v4/browse/series/{comic.series_id}", query)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        body = self._browse(f"/api/v4/browse/series/{comic.series_id}", query)  # pyright: ignore[reportAttributeAccessIssue]
         return [book["pk"] for book in body["books"]]
 
     def test_import_indexes_series_summary(self) -> None:

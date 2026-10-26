@@ -119,10 +119,11 @@ class SharedAnnotationsMixin:  # (BrowserFilterView):
 class UserActiveMixin:
     """View that records user activity."""
 
+    if TYPE_CHECKING:
+        request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
+
     def mark_user_active(self) -> None:
         """Get the app index page."""
-        if TYPE_CHECKING:
-            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
         if self.request.user and self.request.user.pk:
             task = UserActiveTask(pk=self.request.user.pk)
             LIBRARIAN_QUEUE.put(task)

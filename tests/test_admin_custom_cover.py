@@ -80,7 +80,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         pk = _v4(response)["customCoverPk"]
         cover = CustomCover.objects.get(pk=pk)
         assert cover.collection == "publishers"
-        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert cover.library_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert cover.path.startswith(str(CUSTOM_COVERS_UPLOADS_DIR))
         # Naming convention: ``{collection}-{pk}-{slug}.{ext}``. Sortable by
         # collection on disk and trivially scannable for a given linked
@@ -90,7 +90,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert filename.endswith(".png")
         assert "marvel" in filename
         self.publisher.refresh_from_db()
-        assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue]
         # COVERS notification fans out to the WebSocket so connected
         # browsers refresh the changed card without a manual reload.
         _assert_covers_enqueued(mock_queue)
@@ -181,7 +181,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         )
         assert response.status_code == HTTPStatus.NO_CONTENT
         self.publisher.refresh_from_db()
-        assert self.publisher.custom_cover_id is None  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert self.publisher.custom_cover_id is None  # pyright: ignore[reportAttributeAccessIssue]
         assert not CustomCover.objects.filter(pk=pk).exists()
 
     @patch(_QUEUE_PATCH)
@@ -247,7 +247,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert second_pk != first_pk
         assert not CustomCover.objects.filter(pk=first_pk).exists()
         self.publisher.refresh_from_db()
-        assert self.publisher.custom_cover_id == second_pk  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert self.publisher.custom_cover_id == second_pk  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class CustomCoverVolumeSupportTestCase(TestCase):
@@ -290,7 +290,7 @@ class CustomCoverVolumeSupportTestCase(TestCase):
         assert response.status_code == HTTPStatus.CREATED
         self.volume.refresh_from_db()
         assert (
-            self.volume.custom_cover_id == _v4(response)["customCoverPk"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            self.volume.custom_cover_id == _v4(response)["customCoverPk"]  # pyright: ignore[reportAttributeAccessIssue]
         )
 
 

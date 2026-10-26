@@ -132,7 +132,7 @@ class SearchIndexSyncManyToManyImporter(FinishImporter):
         interrupted run leaves the original row intact rather than a
         comic with no FTS row.
         """
-        pks = tuple(c.comic_id for c in comicftss)  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
+        pks = tuple(c.comic_id for c in comicftss)  # pyright: ignore[reportAttributeAccessIssue]
         with transaction.atomic():
             for chunk in batched(pks, _FTS_BATCH_SIZE):
                 ComicFTS.objects.filter(pk__in=chunk).delete()

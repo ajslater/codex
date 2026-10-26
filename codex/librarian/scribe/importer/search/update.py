@@ -93,7 +93,7 @@ class SearchIndexCreateUpdateImporter(SearchIndexSyncManyToManyImporter):
         status: Status,
         designations: Mapping,
     ) -> None:
-        comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        comic_id = comicfts.comic_id  # pyright:ignore[reportAttributeAccessIssue]
         # ``codex_comicfts`` is an FTS5 virtual table without a unique
         # constraint on ``comic_id``; the queryset can yield the same
         # comic_id more than once if the table contains duplicate rows
