@@ -557,6 +557,17 @@ export const useReaderStore = defineStore("reader", {
         console.error(error);
       }
     },
+    /*
+     * The page the prev/next page routes step from. The reader route keeps
+     * the page in the query, never in params. A reload of the open book
+     * steps from the store's page: in cacheBook mode pages move by
+     * pushState, so the router's query lags behind.
+     */
+    _getRoutesPage(pk) {
+      return this.page !== undefined && this._isCurrentBook(pk)
+        ? this.page
+        : Number(router.currentRoute.value.query?.page) || 0;
+    },
     async loadBooks({ params, arc, mtime }) {
       const route = router.currentRoute.value;
       if (!params) {
@@ -592,6 +603,8 @@ export const useReaderStore = defineStore("reader", {
         }
         // Generate routes.
         const routesBooks = this._getBookRoutes(books.prev, books.next);
+        // Before the patch, while books.current is still the book on screen.
+        const page = this._getRoutesPage(pk);
 
         this.$patch((state) => {
           state.books = books;
@@ -599,12 +612,12 @@ export const useReaderStore = defineStore("reader", {
           state.arc = data.arc;
           state.routes.prev = this._getRouteParams(
             state.books.current,
-            params.page,
+            page,
             "prev",
           );
           state.routes.next = this._getRouteParams(
             state.books.current,
-            params.page,
+            page,
             "next",
           );
           state.routes.books = routesBooks;

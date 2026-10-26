@@ -50,17 +50,25 @@ export default {
     },
   },
   watch: {
+    /*
+     * ``setActivePage`` acts on the store's current book. On a book change
+     * the route moves before ``loadBooks`` swaps the books, so a pager the
+     * book-change flag already mounted must wait until its book is current,
+     * or it pages and bookmarks the book being left.
+     */
     $route(to) {
-      if (+to.params.pk === this.book.pk) {
+      if (this.isActiveBook && +to.params.pk === this.book.pk) {
         this.setActivePage(Number(to.query.page) || 0, true);
       }
     },
-  },
-  created() {
-    if (this.isActiveBook) {
-      // Active Book
-      this.setActivePage(Number(this.$route.query.page) || 0, true);
-    }
+    isActiveBook: {
+      handler(isActive) {
+        if (isActive) {
+          this.setActivePage(Number(this.$route.query.page) || 0, true);
+        }
+      },
+      immediate: true,
+    },
   },
   methods: {
     ...mapActions(useReaderStore, [
