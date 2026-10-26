@@ -1,7 +1,15 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// ``loadBooks`` reads ``router.currentRoute.value``; mock the router so
+// tests can place the reader on any book and page.
+vi.mock("@/plugins/router", () => ({
+  default: { currentRoute: { value: { params: {}, query: {} } } },
+}));
+
+import * as READER_API from "@/api/v4/reader";
 import BROWSER_DEFAULTS from "@/choices/browser-defaults.json";
+import router from "@/plugins/router";
 import { useReaderStore } from "@/stores/reader";
 
 describe("reader store toRoute", () => {
@@ -112,5 +120,75 @@ describe("reader store routeToDirectionOne", () => {
 
     expect(store.page).toBe(expected);
     expect(routeTo).toHaveBeenCalledExactlyOnceWith({ pk: 9, page: expected });
+  });
+});
+
+const setRoute = (pk, page) => {
+  router.currentRoute.value = {
+    params: { pk: String(pk) },
+    query: { page: String(page) },
+  };
+};
+
+describe("reader store loadBooks page routes", () => {
+  /*
+   * The reader route keeps the page in the query, so ``route.params`` never
+   * has one. ``loadBooks`` used to step the page routes from
+   * ``params.page``, which left both ``false`` after any reload of the open
+   * book (a library change, an arc switch): the next-page link then went to
+   * the cover and the arrow keys fell through to the next book.
+   */
+  const MAX_PAGE = 19;
+  const book = (pk) => ({ pk, maxPage: MAX_PAGE, settings: {} });
+
+  const readerOn = (current, page) => {
+    vi.spyOn(READER_API, "getSettings").mockResolvedValue({
+      data: { scopes: {} },
+    });
+    vi.spyOn(READER_API, "getReaderInfo").mockImplementation(async (pk) => ({
+      data: {
+        books: { current: book(+pk), prev: book(+pk - 1), next: false },
+        arcs: {},
+        arc: { collection: "series", ids: [] },
+        mtime: 2,
+      },
+    }));
+    const store = useReaderStore();
+    store.books = { current, prev: false, next: false };
+    store.page = page;
+    return store;
+  };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["a library change", { mtime: 2 }],
+    ["an arc switch", { arc: { collection: "arcs", ids: [9] } }],
+  ])("steps from the store's page after %s", async (_reason, args) => {
+    // The query lags in cacheBook mode, where pages move by pushState.
+    setRoute(3, 2);
+    const store = readerOn(book(3), 7);
+
+    await store.loadBooks(args);
+
+    expect(store.routes.prev).toStrictEqual({ pk: 3, page: 6 });
+    expect(store.routes.next).toStrictEqual({ pk: 3, page: 8 });
+  });
+
+  it("steps from the query's page on a book change", async () => {
+    // Back to the previous book, which opens on its last page.
+    setRoute(2, MAX_PAGE);
+    const store = readerOn(book(3), 0);
+
+    await store.loadBooks({ params: { pk: "2" } });
+
+    expect(store.routes.prev).toStrictEqual({ pk: 2, page: MAX_PAGE - 1 });
+    expect(store.routes.next).toBe(false);
   });
 });
