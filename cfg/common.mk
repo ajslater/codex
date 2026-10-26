@@ -9,6 +9,16 @@ export DEVENV_COMMON
 clean::
 	rm -rf .*cache
 
+## Flags for prune-branches: -n only lists, -f deletes unmerged branches too
+## @category Clean
+PRUNE_BRANCHES_FLAGS :=
+.PHONY: prune-branches
+## Delete local branches but main, master, develop, pre-release, those in
+## .keep-branches and those checked out in a worktree
+## @category Clean
+prune-branches:
+	./bin/prune-branches.sh $(PRUNE_BRANCHES_FLAGS)
+
 ## Flags for update-devenv, such as --no-update-deps
 ## @category Update
 UPDATE_DEVENV_FLAGS :=

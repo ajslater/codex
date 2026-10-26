@@ -87,7 +87,7 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.1.0",
+  "complexipy~=8.2",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
