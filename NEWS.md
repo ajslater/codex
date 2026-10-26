@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.7
+
+- Fixes
+    - Reader no longer jumps to the cover or the next book after a library
+      update, or rewrites the bookmark of the book it leaves.
+
 ## v2.5.6
 
 - Features
