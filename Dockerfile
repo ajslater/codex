@@ -105,7 +105,7 @@ RUN set -eux \
   -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
 
 # ---- Stage 4: final (production image) ------------------------------------
-FROM ghcr.io/ajslater/python-debian:3.15.0-slim-trixie_0 AS final
+FROM ghcr.io/ajslater/python-debian:3.15.2-slim-trixie_0 AS final
 ARG CODEX_VERSION=dev
 LABEL org.opencontainers.image.title="Codex" \
     org.opencontainers.image.description="Codex Comic Server" \
