@@ -81,14 +81,7 @@ class ValidationResult:
 
 
 def _metron_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:
-    # ``or None`` is load bearing: mokkari sends a Bearer header whenever
-    # api_token is not None, so an empty string would defeat the legacy
-    # username & password fallback.
-    return OnlineSourceCredentials(
-        key=creds.metron_key or None,
-        user=creds.metron_user or None,
-        password=creds.metron_password or None,
-    )
+    return OnlineSourceCredentials(key=creds.metron_key or None)
 
 
 def _comicvine_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:

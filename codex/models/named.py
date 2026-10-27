@@ -122,7 +122,7 @@ class Genre(IdentifiedNamedModel):
 
 
 class Language(NamedModel):
-    """The two letter language code."""
+    """A BCP 47 language tag, like ``en`` or ``pt-BR``."""
 
 
 class Location(IdentifiedNamedModel):

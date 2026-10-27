@@ -135,10 +135,10 @@ def _release_online_connections() -> None:
     Release the connections and cache handles this thread's lookups opened.
 
     Since mokkari 4.8.0 every Metron session keeps one pooled TLS
-    connection, and comicbox 5.2.1 extends the same release to Comic
-    Vine — its pooled sockets, its response cache's sqlite handle and
-    its rate-limit buckets (``OnlineSession.close`` is these same
-    calls). No object in codex owns all of them — the prompt applier
+    connection, and since comicbox 5.5.0 its response cache's sqlite
+    handle too. comicbox 5.2.1 extends the same release to Comic Vine —
+    its pooled sockets, its response cache's sqlite handle and its
+    rate-limit buckets (``OnlineSession.close`` is these same calls). No object in codex owns all of them — the prompt applier
     and the explicit-id fetch each build their own — so release
     process-wide at the end of each task. Nothing a run has spent is
     forgotten: Comic Vine's hourly budget lives in the bucket file, not
@@ -211,20 +211,12 @@ class OnlineTagSessionManager:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             return None
-        if (
-            not defaults.metron_key
-            and not defaults.metron_user
-            and not defaults.comicvine_key
-        ):
+        if not defaults.metron_key and not defaults.comicvine_key:
             return None
-        # ``or None``, not ``or ""``: comicbox hands the key to mokkari as its
-        # api_token, and mokkari sends a Bearer header for any token that is
-        # not None, an empty one included, in place of the username and
-        # password. An unset key spelled "" shut off every legacy login.
+        # ``or None``: the encrypted fields store an unset value as "", and
+        # comicbox's credentials spell unset as None.
         return OnlineCredentials(
             metron_key=defaults.metron_key or None,
-            metron_user=defaults.metron_user or None,
-            metron_password=defaults.metron_password or None,
             comicvine_key=defaults.comicvine_key or None,
             comicvine_url=defaults.comicvine_url or None,
         )
@@ -233,10 +225,7 @@ class OnlineTagSessionManager:
     def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
         """Whether ``credentials`` actually carries auth for ``source``."""
         if source == "metron":
-            return bool(
-                credentials.metron_key
-                or (credentials.metron_user and credentials.metron_password)
-            )
+            return bool(credentials.metron_key)
         if source == "comicvine":
             return bool(credentials.comicvine_key)
         return False

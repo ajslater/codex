@@ -55,7 +55,6 @@ from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
 from codex.views.admin.tagwrite import (
     AdminParseIdentifierURLView,
-    AdminSeriesAttrsView,
     AdminTagWritePreflightView,
     AdminTagWriteView,
 )
@@ -323,11 +322,6 @@ urlpatterns = [
         "tag-write",
         AdminTagWriteView.as_view(),
         name="tag_write",
-    ),
-    path(
-        "series-attrs",
-        AdminSeriesAttrsView.as_view(),
-        name="series_attrs",
     ),
     path(
         "folders",

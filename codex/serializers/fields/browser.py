@@ -1,7 +1,9 @@
 """Custom fields."""
 
+import re
 from abc import ABC
-from typing import ClassVar, override
+from functools import cache
+from typing import ClassVar, Final, override
 
 import pycountry
 from loguru import logger
@@ -15,6 +17,9 @@ from codex.choices.browser import (
 )
 from codex.serializers.fields.base import CodexChoiceField
 from codex.serializers.route import RouteSerializer
+
+# MetronInfo v1.2's languageCode pattern: a BCP 47 tag.
+_BCP47_RE: Final = re.compile(r"[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*")
 
 
 class BookmarkFilterField(CodexChoiceField):
@@ -59,6 +64,43 @@ class PyCountryField(CharField, ABC):
             }
         return cls._alpha_2_map
 
+    @classmethod
+    def _split(cls, value: str) -> tuple[str, str]:
+        """Split a value into the code pycountry resolves and a suffix to keep."""
+        return value, ""
+
+    @classmethod
+    def _lookup_name(cls, code: str) -> str | None:
+        """Return the long name for one code, or None."""
+        if len(code) == cls._ALPHA_2_LEN:
+            return cls._get_alpha_2_map().get(code)
+        # Non-alpha_2 fallback — rare, e.g. legacy ``"eng"`` (alpha_3)
+        # or a free-form name. Fuzzy ``DB.lookup`` covers both.
+        try:
+            row = cls.DB.lookup(code)
+        except (LookupError, KeyError):
+            return None
+        return row.name if row else None
+
+    @classmethod
+    @cache
+    def display_name(cls, value: str) -> str:
+        """
+        Return the long name, or the value itself if pycountry can't name it.
+
+        Cached per value, so an unknown value warns once rather than on
+        every row that carries it.
+        """
+        # Defensive ``.strip()``: belt-and-braces for the pycountry
+        # cache lookup even if a row predates migration 0041.
+        value = value.strip()
+        code, suffix = cls._split(value)
+        name = cls._lookup_name(code)
+        if name is None:
+            logger.warning(f"Could not serialize name with pycountry {value}")
+            return value
+        return f"{name} ({suffix})" if suffix else name
+
     @override
     def to_representation(self, value) -> str:
         """Look up the long name via the cached alpha_2 map."""
@@ -66,19 +108,7 @@ class PyCountryField(CharField, ABC):
             return ""
         if value == DUMMY_NULL_NAME:
             return value
-        # Defensive ``.strip()``: belt-and-braces for the pycountry
-        # cache lookup even if a row predates migration 0041.
-        value = value.strip()
-        if len(value) == self._ALPHA_2_LEN:
-            return self._get_alpha_2_map().get(value, value)
-        # Non-alpha_2 fallback — rare, e.g. legacy ``"eng"`` (alpha_3)
-        # or a free-form name. Fuzzy ``DB.lookup`` covers both.
-        try:
-            row = self.DB.lookup(value)
-        except (LookupError, KeyError):
-            logger.warning(f"Could not serialize name with pycountry {value}")
-            return value
-        return row.name if row else value
+        return self.display_name(value)
 
 
 class CountryField(PyCountryField):
@@ -89,10 +119,27 @@ class CountryField(PyCountryField):
 
 
 class LanguageField(PyCountryField):
-    """Serializer to long language name."""
+    """
+    Serializer to long language name.
+
+    Holds a BCP 47 tag: ``pt-BR`` reads ``Portuguese (BR)``, naming the
+    primary language and keeping the script, region and variant subtags
+    as given.
+    """
 
     DB: Database = pycountry.languages
     _alpha_2_map: ClassVar[dict[str, str] | None] = None
+
+    @override
+    @classmethod
+    def _split(cls, value: str) -> tuple[str, str]:
+        """Split a BCP 47 tag into its primary language and the rest."""
+        if not _BCP47_RE.fullmatch(value):
+            # Not a tag: a language name like "English".
+            return value, ""
+        code, _, suffix = value.partition("-")
+        # Primary language subtags are case-insensitive; pycountry's are lower.
+        return code.lower(), suffix
 
 
 class BreadcrumbsField(ListField):

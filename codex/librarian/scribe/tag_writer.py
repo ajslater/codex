@@ -35,7 +35,6 @@ from codex.librarian.scribe.tagwrite_rename import (
     predict_name,
     will_convert,
 )
-from codex.librarian.scribe.tagwrite_series_attrs import patch_series_attrs
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.librarian.worker import WorkerStatusAbortableBase
 from codex.models.comic import Comic
@@ -298,7 +297,7 @@ class TagWriter(WorkerStatusAbortableBase):
         )
 
         self._enqueue_rereads(
-            task, current_paths, written_paths, converted_paths, post_renamed, lib_of
+            current_paths, written_paths, converted_paths, post_renamed, lib_of
         )
         num_renamed = len(renamed_paths) + len(post_renamed)
         reason = (
@@ -676,7 +675,6 @@ class TagWriter(WorkerStatusAbortableBase):
 
     def _enqueue_rereads(
         self,
-        task: BulkTagWriteTask,
         current_paths: dict[int, Path],
         written_paths: dict[int, Path],
         converted_paths: dict[int, Path],
@@ -692,29 +690,19 @@ class TagWriter(WorkerStatusAbortableBase):
         eventually re-read from the watcher's own modify event, but only
         with the import-metadata flag on, so the re-read is requested
         either way.
-
-        Each comic's patch may carry series attributes the written formats
-        can't hold. They ride along for the importer to apply (see
-        ``tagwrite_series_attrs``).
         """
         modified: defaultdict[int, set[str]] = defaultdict(set)
         created: defaultdict[int, set[str]] = defaultdict(set)
-        series_attrs: defaultdict[int, dict[str, dict]] = defaultdict(dict)
         for pk, written_path in written_paths.items():
             library_id = lib_of[pk]
             if pk in converted_paths:
-                path = str(converted_paths[pk])
-                modified[library_id].add(path)
+                modified[library_id].add(str(converted_paths[pk]))
             elif written_path != current_paths[pk]:
                 # A kept original's new CBZ is a file the database has
                 # never seen.
-                path = str(post_renamed.get(pk, written_path))
-                created[library_id].add(path)
+                created[library_id].add(str(post_renamed.get(pk, written_path)))
             else:
-                path = str(written_path)
-                modified[library_id].add(path)
-            if attrs := patch_series_attrs(self._patch_for(task, pk)):
-                series_attrs[library_id][path] = attrs
+                modified[library_id].add(str(written_path))
         # A rename with no write changed no metadata, so nothing to re-read.
         for library_id in modified.keys() | created.keys():
             import_task = ImportTask(
@@ -723,6 +711,5 @@ class TagWriter(WorkerStatusAbortableBase):
                 files_created=frozenset(created.get(library_id, ())),
                 force_import_metadata=True,
                 check_metadata_mtime=False,
-                series_attrs=series_attrs.get(library_id, {}),
             )
             self.librarian_queue.put(import_task)

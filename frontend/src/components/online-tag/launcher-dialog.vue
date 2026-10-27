@@ -15,12 +15,6 @@
           </router-link>
         </div>
         <template v-else>
-          <div v-if="metronLegacyCredentials" class="credentialWarning">
-            Metron password authentication is deprecated.
-            <router-link :to="{ name: 'admin-tagging' }">
-              Add an API key in Admin &rarr; Tagging
-            </router-link>
-          </div>
           <v-select
             v-model="sources"
             :items="sourceItems"
@@ -326,20 +320,6 @@ export default {
     },
     hasComicvine() {
       return Boolean(this.taggingDefaults?.hasComicvineCredentials);
-    },
-    // Metron still authenticates with a legacy username & password, which
-    // metron.cloud is retiring in favor of API keys. Only worth saying when
-    // this session would actually query Metron.
-    metronLegacyCredentials() {
-      return (
-        this.hasMetron &&
-        !this.taggingDefaults?.metronKeySet &&
-        this.metronSessionEnabled
-      );
-    },
-    metronSessionEnabled() {
-      // Pinning an id selects its source, so the selection is the whole story.
-      return this.activeSources.includes("metron");
     },
     bothConfigured() {
       return this.hasMetron && this.hasComicvine;
