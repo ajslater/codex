@@ -286,7 +286,10 @@
         </div>
       </div>
       <div class="inlineRow">
-        <div :title="seriesAttrsLockReason" class="flexItem">
+        <div
+          :title="isFieldDisabled('end_year') ? disabledTooltip : ''"
+          class="flexItem"
+        >
           <v-text-field
             v-model="patch.end_year"
             label="End Year"
@@ -310,7 +313,10 @@
             </template>
           </v-text-field>
         </div>
-        <div :title="seriesAttrsLockReason" class="flexItem">
+        <div
+          :title="isFieldDisabled('series_status') ? disabledTooltip : ''"
+          class="flexItem"
+        >
           <v-select
             v-model="patch.series_status"
             :items="seriesStatusChoices"
@@ -334,15 +340,13 @@
           </v-select>
         </div>
       </div>
-      <div :title="seriesAttrsLockReason">
+      <div :title="isFieldDisabled('series_summary') ? disabledTooltip : ''">
         <v-textarea
           v-model="patch.series_summary"
           label="Series Summary"
           rows="2"
           auto-grow
           density="compact"
-          :hint="seriesAttrsHint"
-          persistent-hint
           :disabled="isFieldDisabled('series_summary')"
           :class="{
             fieldCleared: isCleared('series_summary'),
@@ -1493,7 +1497,7 @@ const FORMAT_CHOICES = [
 ];
 import LANGUAGES from "@/choices/languages.json";
 import SERIES_STATUSES from "@/choices/series-statuses.json";
-import { getDateTime, getTimestamp } from "@/datetime";
+import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -1591,13 +1595,17 @@ const EMPTY_RULES = Object.freeze([]);
 
 const YEAR_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.year]]);
 // The series end year, bounded like MetronInfo's StartYear.
-const END_YEAR_RULES = Object.freeze([["$intRange", [1000, 9999]]]);
-
-// Series attributes no format codex writes can hold. They save straight to
-// the database, apart from the tag write, so no format gates them.
-const SERIES_DB_FIELDS = Object.freeze(
-  new Set(["end_year", "series_status", "series_summary"]),
-);
+const END_YEAR_RANGE = Object.freeze(["$intRange", [1000, 9999]]);
+const ONGOING_STATUS = "Ongoing";
+// The editor fields that make up comicbox's series object.
+const SERIES_FIELDS = Object.freeze([
+  "series",
+  "volume_count",
+  "start_year",
+  "end_year",
+  "series_status",
+  "series_summary",
+]);
 const MONTH_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.month]]);
 const DAY_RULES = Object.freeze([["$intRange", DATE_PART_BOUNDS.day]]);
 
@@ -1607,6 +1615,18 @@ const choiceValueForTitle = (choices, named) => {
   const title = named?.name;
   if (!title) return null;
   return choices.find((choice) => choice.title === title)?.value ?? title;
+};
+
+// "Portuguese (BR)": a language's name with the rest of its BCP 47 tag.
+const TAGGED_LANGUAGE_RE = /^(.+) \(([\dA-Za-z-]+)\)$/;
+
+const languageValueForTitle = (named) => {
+  // A BCP 47 tag arrives named like "Portuguese (BR)"; rebuild "pt-BR" so an
+  // untouched language writes back the tag it came from.
+  const value = choiceValueForTitle(LANGUAGES, named);
+  const [, title, subtags] = TAGGED_LANGUAGE_RE.exec(value ?? "") ?? [];
+  const primary = title && LANGUAGES.find((choice) => choice.title === title);
+  return primary ? `${primary.value}-${subtags}` : value;
 };
 
 export default {
@@ -1632,11 +1652,8 @@ export default {
       urls: [],
       communityRatingRules: COMMUNITY_RATING_RULES,
       yearRules: YEAR_RULES,
-      endYearRules: END_YEAR_RULES,
+      endYearRules: Object.freeze([END_YEAR_RANGE, this.endYearConflict]),
       seriesStatusChoices: SERIES_STATUSES,
-      seriesAttrsWarning:
-        "End year, status and series summary are saved in Codex only, " +
-        "not written to the comic files.",
       monthRules: MONTH_RULES,
       dayRules: DAY_RULES,
       tagKeys: TAG_KEYS,
@@ -1776,22 +1793,6 @@ export default {
     },
     disabledTooltip() {
       return "Not supported by selected metadata formats";
-    },
-    seriesAttrsLockReason() {
-      // The database-only series attributes land on exactly one Series row.
-      if (this.md?.seriesList?.length !== 1) {
-        return "Edit one series at a time.";
-      }
-      if (this.changedFields.has("series")) {
-        // They would land on the series the comics are leaving.
-        return "Save the series change first.";
-      }
-      return "";
-    },
-    seriesAttrsHint() {
-      return [this.seriesAttrsLockReason, this.seriesAttrsWarning]
-        .filter(Boolean)
-        .join(" ");
     },
     protagonistItems() {
       // One protagonist, picked from the entered characters and teams.
@@ -2051,15 +2052,24 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["loadTaggingDefaults"]),
     isFieldDisabled(field) {
-      if (SERIES_DB_FIELDS.has(field)) {
-        return Boolean(this.seriesAttrsLockReason);
-      }
       return !this.supportedFields.has(field);
     },
     activeRules(field, rules) {
       // VForm.validate() runs disabled inputs too. A stale value in a field
       // the selected formats can't write must not block an unrelated save.
       return this.isFieldDisabled(field) ? EMPTY_RULES : rules;
+    },
+    endYearConflict(value) {
+      // MetronInfo forbids these end years and comicbox drops them from the
+      // file without an error, so stop the save and say why instead.
+      const endYear = parseInt(value, 10);
+      if (isNaN(endYear)) return true;
+      if (this.patch.series_status === ONGOING_STATUS) {
+        return "An Ongoing series has no end year";
+      }
+      const startYear = parseInt(this.patch.start_year, 10);
+      if (endYear < startYear) return "End year precedes start year";
+      return true;
     },
     tagLabel(key) {
       if (key === "series_groups") return "Series Groups";
@@ -2333,7 +2343,7 @@ export default {
       // The API serializes these to their long English names; the choices are
       // keyed by the two-letter code comicbox writes, so map back or the
       // current value matches no item and re-picking it looks like an edit.
-      this.patch.language = choiceValueForTitle(LANGUAGES, this.md.language);
+      this.patch.language = languageValueForTitle(this.md.language);
       this.patch.country = choiceValueForTitle(COUNTRIES, this.md.country);
       this.patch.age_rating = this.md.ageRating?.name || null;
       this.patch.community_rating =
@@ -2380,29 +2390,6 @@ export default {
       }
       return { reprints, alternativeNames };
     },
-    buildSeriesAttrs() {
-      // The changed database-only series attributes; a clear sends empty.
-      const changed = this.changedFields;
-      const attrs = {};
-      if (changed.has("end_year")) {
-        const year = parseInt(this.patch.end_year, 10);
-        attrs.endYear = isNaN(year) ? null : year;
-      }
-      if (changed.has("series_status")) {
-        attrs.status = this.patch.series_status || "";
-      }
-      if (changed.has("series_summary")) {
-        attrs.summary = this.patch.series_summary || "";
-      }
-      return attrs;
-    },
-    writesFiles(patch, deleteKeys) {
-      return (
-        Object.keys(patch).length > 0 ||
-        deleteKeys.length > 0 ||
-        this.renameFile
-      );
-    },
     buildPatch() {
       // Returns { patch, deleteKeys }. A merge write can only add or replace
       // values — comicbox prunes empty patch values on schema load — so
@@ -2441,20 +2428,23 @@ export default {
         if (cleared.has(key) || !this.patch[key]) deleteKeys.push(key);
         else cbPatch[key] = { name: this.patch[key] };
       }
-      if (
-        changed.has("series") ||
-        changed.has("volume_count") ||
-        changed.has("start_year")
-      ) {
+      if (SERIES_FIELDS.some((field) => changed.has(field))) {
         const series = {};
         if (this.patch.series) series.name = this.patch.series;
         if (this.patch.volume_count) {
           const vc = parseInt(this.patch.volume_count, 10);
           if (!isNaN(vc)) series.volume_count = vc;
         }
-        if (this.patch.start_year) {
-          const sy = parseInt(this.patch.start_year, 10);
-          if (!isNaN(sy)) series.start_year = sy;
+        for (const field of ["start_year", "end_year"]) {
+          const year = parseInt(this.patch[field], 10);
+          if (!isNaN(year)) series[field] = year;
+        }
+        // The editor's names differ from comicbox's series keys.
+        if (this.patch.series_status) {
+          series.status = this.patch.series_status;
+        }
+        if (this.patch.series_summary) {
+          series.summary = this.patch.series_summary;
         }
         if (Object.keys(series).length) cbPatch.series = series;
         else deleteKeys.push("series");
@@ -2711,11 +2701,6 @@ export default {
       const { patch, deleteKeys } = this.hasChanges
         ? this.buildPatch()
         : { patch: {}, deleteKeys: [] };
-      if (!this.writesFiles(patch, deleteKeys)) {
-        // Only database-only series attributes changed: nothing to preflight.
-        await this.doSave();
-        return;
-      }
       try {
         const response = await HTTP.post("/admin/tag-write/preflight", {
           collection: this.book.collection,
@@ -2756,40 +2741,27 @@ export default {
       const { patch, deleteKeys } = this.hasChanges
         ? this.buildPatch()
         : { patch: {}, deleteKeys: [] };
-      const seriesAttrs = this.hasChanges ? this.buildSeriesAttrs() : {};
-      const target = { collection: this.book.collection, pks: pks.map(String) };
 
       try {
-        const messages = [];
-        if (Object.keys(seriesAttrs).length > 0) {
-          await HTTP.post("/admin/series-attrs", { ...target, ...seriesAttrs });
-          messages.push("Series details saved.");
-          if (this.$route?.name === "browser") {
-            // The title shows the series years; no librarian event follows.
-            useBrowserStore().loadBrowserPage(getTimestamp());
-          }
+        const payload = {
+          collection: this.book.collection,
+          pks: pks.map(String),
+          patch: JSON.stringify(patch),
+          deleteKeys,
+          mode: "update",
+          formats,
+          rename: this.renameFile,
+        };
+        if (this.confirmInfo.needConversion > 0) {
+          payload.deleteOriginal = this.confirmDeleteOriginal;
         }
-        if (this.writesFiles(patch, deleteKeys)) {
-          const payload = {
-            ...target,
-            patch: JSON.stringify(patch),
-            deleteKeys,
-            mode: "update",
-            formats,
-            rename: this.renameFile,
-          };
-          if (this.confirmInfo.needConversion > 0) {
-            payload.deleteOriginal = this.confirmDeleteOriginal;
-          }
-          const response = await HTTP.post("/admin/tag-write", payload);
-          const skipped = response.data?.skipped || 0;
-          let message = "Tag write queued.";
-          if (skipped > 0) {
-            message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
-          }
-          messages.push(message);
+        const response = await HTTP.post("/admin/tag-write", payload);
+        const skipped = response.data?.skipped || 0;
+        let message = "Tag write queued.";
+        if (skipped > 0) {
+          message += ` ${skipped} comic${skipped === 1 ? "" : "s"} in read-only libraries skipped.`;
         }
-        useCommonStore().setSuccess(messages.join(" "));
+        useCommonStore().setSuccess(message);
         this.$emit("saved");
       } catch (error) {
         useCommonStore().setErrors(error);

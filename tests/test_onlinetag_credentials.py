@@ -10,31 +10,16 @@ from tests.onlinetag_session_fakes import OnlineTagSessionTestCase
 
 
 class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
-    """Keys and legacy logins configure a source; a bare url does not."""
+    """A key configures a source; a bare url does not."""
 
-    def test_metron_credentials_accept_a_key_or_a_legacy_login(self) -> None:
-        """Both auth styles configure Metron; comicbox raises on neither."""
+    def test_a_metron_key_configures_metron(self) -> None:
         manager = self.manager
         ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "", "metron_user": "u", "metron_password": "p"},
-        )
-        legacy = manager._build_credentials()  # noqa: SLF001
-        assert legacy is not None
-        assert legacy.metron_user == "u"
-        # None, not "": mokkari sends a Bearer header for any token that is
-        # not None, which would replace the username and password.
-        assert legacy.metron_key is None
-        assert manager._source_has_credentials(legacy, "metron") is True  # noqa: SLF001
-
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "t", "metron_user": "", "metron_password": ""},
+            pk=1, defaults={"metron_key": "t"}
         )
         keyed = manager._build_credentials()  # noqa: SLF001
         assert keyed is not None
         assert keyed.metron_key == "t"
-        assert keyed.metron_user is None
         assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
 
     def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:
@@ -42,8 +27,6 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
             pk=1,
             defaults={
                 "metron_key": "",
-                "metron_user": "",
-                "metron_password": "",
                 "comicvine_key": "",
             },
         )
@@ -67,8 +50,6 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
             pk=1,
             defaults={
                 "metron_key": "",
-                "metron_user": "",
-                "metron_password": "",
                 "comicvine_key": "",
                 "comicvine_url": "https://cv.example.com/api",
             },

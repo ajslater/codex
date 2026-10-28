@@ -186,8 +186,6 @@ class TelemeterPrivacyTestCase(TestCase):
         cls._set_singleton(
             ComicboxTaggingDefaults,
             metron_key=f"{SENTINEL}-metron-key",
-            metron_user=f"{SENTINEL}-metron-user",
-            metron_password=f"{SENTINEL}-metron-password",
             comicvine_key=f"{SENTINEL}-comicvine-key",
             comicvine_url=f"https://{SENTINEL}-comicvine.example.com",
             default_sources=["metron", f"{SENTINEL}-source"],

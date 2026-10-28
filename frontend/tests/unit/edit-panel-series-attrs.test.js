@@ -1,14 +1,15 @@
 /*
- * Tests for the tag editor's database-only series attributes.
+ * Tests for the tag editor's series end year, status and summary.
  *
- * No format codex writes can hold a series' end year, status or summary,
- * so the editor saves them straight to the database:
- *   - They seed from the series, under any write format.
- *   - They lock, with a visible reason, unless exactly one series is being
- *     edited and its name is unchanged.
- *   - A visible hint warns they are not written to the comic files.
- *   - Only changed ones are sent, to /admin/series-attrs, and never ride
- *     the comicbox patch; a save with nothing else skips the tag write.
+ * MetronInfo v1.2 holds them in its Series element, so they behave like
+ * Start Year:
+ *   - They seed from the series and are METRON_INFO-only, with the usual
+ *     disabled tooltip under ComicInfo alone.
+ *   - They ride the comicbox series object with its name, volume count and
+ *     start year, under comicbox's key names; a clear drops the key.
+ *   - A save is one tag write; nothing else is posted.
+ *   - End Year refuses the years MetronInfo would silently drop: any end
+ *     year of an Ongoing series, or one before the start year.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -21,38 +22,33 @@ vi.mock("@/api/v4/base", () => ({
 import { HTTP } from "@/api/v4/base";
 import EditPanel from "@/components/metadata/edit-mode/edit-panel.vue";
 import vuetify from "@/plugins/vuetify";
-import { useBrowserStore } from "@/stores/browser";
 
-const ONE_SERIES = Object.freeze([{ name: "S", ids: [1] }]);
+const DISABLED_TIP = "Not supported by selected metadata formats";
+const SERIES_FIELDS = Object.freeze([
+  "end_year",
+  "series_status",
+  "series_summary",
+]);
 const SERIES_MD = Object.freeze({
-  seriesList: ONE_SERIES,
+  seriesList: Object.freeze([{ name: "S", ids: [1] }]),
+  seriesVolumeCount: 3,
   seriesStartYear: 1963,
   seriesEndYear: 1996,
   seriesStatus: "Completed",
   seriesSummary: "A run.",
 });
-const WARNING =
-  "End year, status and series summary are saved in Codex only, " +
-  "not written to the comic files.";
 
-async function mountPanel({
-  formats = ["COMIC_INFO"],
-  md = SERIES_MD,
-  routeName = "reader",
-} = {}) {
+async function mountPanel({ formats = ["METRON_INFO"] } = {}) {
   const pinia = createTestingPinia({
     initialState: {
-      metadata: { md: { ...md } },
+      metadata: { md: { ...SERIES_MD } },
       admin: { taggingDefaults: { defaultFormats: formats } },
       browser: { settings: { twentyFourHourTime: false } },
     },
   });
   const wrapper = mount(EditPanel, {
     props: { book: { pk: 1, collection: "series", ids: [1] } },
-    global: {
-      plugins: [pinia, vuetify],
-      mocks: { $route: { name: routeName } },
-    },
+    global: { plugins: [pinia, vuetify] },
   });
   await flushPromises();
   return wrapper;
@@ -71,7 +67,7 @@ beforeEach(() => {
   vi.mocked(HTTP.post).mockResolvedValue({ data: {} });
 });
 
-describe("EditPanel — series attributes seed and render", () => {
+describe("EditPanel — series end year, status and summary", () => {
   test("they seed from the series and render their own inputs", async () => {
     const wrapper = await mountPanel();
     expect(wrapper.vm.patch.end_year).toBe(1996);
@@ -83,93 +79,98 @@ describe("EditPanel — series attributes seed and render", () => {
     );
   });
 
-  test("no write format gates them", async () => {
-    const wrapper = await mountPanel({ formats: ["COMIC_INFO"] });
-    for (const field of ["end_year", "series_status", "series_summary"]) {
-      expect(wrapper.vm.isFieldDisabled(field)).toBe(false);
+  test("they are METRON_INFO-only", async () => {
+    const comicInfo = await mountPanel({ formats: ["COMIC_INFO"] });
+    const metron = await mountPanel({ formats: ["METRON_INFO"] });
+    for (const field of SERIES_FIELDS) {
+      expect(comicInfo.vm.isFieldDisabled(field)).toBe(true);
+      expect(metron.vm.isFieldDisabled(field)).toBe(false);
     }
   });
 
-  test("the hint warns they stay out of the comic files", async () => {
-    const wrapper = await mountPanel();
-    expect(wrapper.vm.seriesAttrsHint).toBe(WARNING);
-    expect(wrapper.text()).toContain(WARNING);
-  });
-});
-
-describe("EditPanel — series attributes lock", () => {
-  test("two series lock them and say why", async () => {
-    const wrapper = await mountPanel({
-      md: {
-        seriesList: [
-          { name: "S", ids: [1] },
-          { name: "T", ids: [2] },
-        ],
-      },
-    });
-    expect(wrapper.vm.isFieldDisabled("end_year")).toBe(true);
-    expect(wrapper.vm.seriesAttrsHint).toBe(
-      `Edit one series at a time. ${WARNING}`,
-    );
+  test("disabled, the summary explains why and no hint shows", async () => {
+    const wrapper = await mountPanel({ formats: ["COMIC_INFO"] });
+    const summary = wrapper
+      .findAll("textarea")
+      .find((el) => el.element.disabled && el.element.value === "A run.");
+    expect(
+      summary.element.closest(`[title="${CSS.escape(DISABLED_TIP)}"]`),
+    ).toBeTruthy();
+    expect(wrapper.text()).not.toContain("saved in Codex only");
   });
 
-  test("renaming the series locks them until it is saved", async () => {
-    const wrapper = await mountPanel();
-    await setField(wrapper, "series", "Renamed");
-    expect(wrapper.vm.isFieldDisabled("series_status")).toBe(true);
-    expect(wrapper.vm.seriesAttrsLockReason).toBe(
-      "Save the series change first.",
-    );
-  });
-});
-
-describe("EditPanel — series attributes save", () => {
-  test("only changed attributes are sent, never in the patch", async () => {
+  test("they ride the series object under comicbox's keys", async () => {
     const wrapper = await mountPanel();
     await setField(wrapper, "end_year", "1998");
-    expect(wrapper.vm.buildSeriesAttrs()).toEqual({ endYear: 1998 });
-    const { patch, deleteKeys } = wrapper.vm.buildPatch();
-    expect(patch).toEqual({});
-    expect(deleteKeys).toEqual([]);
+    expect(wrapper.vm.buildPatch().patch.series).toEqual({
+      name: "S",
+      volume_count: 3,
+      start_year: 1963,
+      end_year: 1998,
+      status: "Completed",
+      summary: "A run.",
+    });
   });
 
-  test("clears send empty values", async () => {
+  test("clearing them drops their keys from the series object", async () => {
     const wrapper = await mountPanel();
-    for (const field of ["end_year", "series_status", "series_summary"]) {
+    for (const field of SERIES_FIELDS) {
       wrapper.vm.toggleClear(field);
     }
     await flushPromises();
-    expect(wrapper.vm.buildSeriesAttrs()).toEqual({
-      endYear: null,
-      status: "",
-      summary: "",
+    expect(wrapper.vm.buildPatch().patch.series).toEqual({
+      name: "S",
+      volume_count: 3,
+      start_year: 1963,
     });
   });
 
-  test("a database-only save skips the preflight and the tag write", async () => {
+  test("a save posts the tag write and nothing else", async () => {
+    const wrapper = await mountPanel();
+    await setField(wrapper, "series_status", "Cancelled");
+    await wrapper.vm.preSave();
+    expect(postedUrls()).toEqual([
+      "/admin/tag-write/preflight",
+      "/admin/tag-write",
+    ]);
+    const [, payload] = vi.mocked(HTTP.post).mock.calls[1];
+    expect(JSON.parse(payload.patch).series.status).toBe("Cancelled");
+  });
+});
+
+describe("EditPanel — End Year rule", () => {
+  test("an Ongoing series has no end year", async () => {
+    const wrapper = await mountPanel();
+    await setField(wrapper, "series_status", "Ongoing");
+    expect(wrapper.vm.endYearConflict(1996)).toBe(
+      "An Ongoing series has no end year",
+    );
+    expect(wrapper.vm.endYearConflict("")).toBe(true);
+  });
+
+  test("the end year cannot precede the start year", async () => {
+    const wrapper = await mountPanel();
+    expect(wrapper.vm.endYearConflict("1950")).toBe(
+      "End year precedes start year",
+    );
+    expect(wrapper.vm.endYearConflict("1963")).toBe(true);
+    wrapper.vm.toggleClear("start_year");
+    await flushPromises();
+    expect(wrapper.vm.endYearConflict("1950")).toBe(true);
+  });
+
+  test("a conflict blocks the save", async () => {
     const wrapper = await mountPanel();
     await setField(wrapper, "series_status", "Ongoing");
     await wrapper.vm.preSave();
-    expect(postedUrls()).toEqual(["/admin/series-attrs"]);
-    expect(HTTP.post).toHaveBeenCalledWith("/admin/series-attrs", {
-      collection: "series",
-      pks: ["1"],
-      status: "Ongoing",
-    });
+    expect(HTTP.post).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("An Ongoing series has no end year");
   });
 
-  test("a save with tag edits too posts both", async () => {
-    const wrapper = await mountPanel({ md: { ...SERIES_MD, summary: "x" } });
-    await setField(wrapper, "series_summary", "A longer run.");
-    await setField(wrapper, "summary", "y");
-    await wrapper.vm.doSave();
-    expect(postedUrls()).toEqual(["/admin/series-attrs", "/admin/tag-write"]);
-  });
-
-  test("the browser page reloads so the title years refresh", async () => {
-    const wrapper = await mountPanel({ routeName: "browser" });
-    await setField(wrapper, "end_year", "1998");
-    await wrapper.vm.doSave();
-    expect(useBrowserStore().loadBrowserPage).toHaveBeenCalledTimes(1);
+  test("it is off while the format can't write the end year", async () => {
+    const wrapper = await mountPanel({ formats: ["COMIC_INFO"] });
+    await setField(wrapper, "series_status", "Ongoing");
+    await wrapper.vm.preSave();
+    expect(postedUrls()).toContain("/admin/tag-write");
   });
 });

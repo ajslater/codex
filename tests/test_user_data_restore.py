@@ -596,8 +596,6 @@ class TaggingDefaultsRestoreTests(TestCase):
             "default_sources": '["metron"]',
             "delete_original": 0,
             "metron_key": "token",
-            "metron_user": "",
-            "metron_password": "",
             "comicvine_key": "",
             "comicvine_url": "",
         }
@@ -620,15 +618,6 @@ class TaggingDefaultsRestoreTests(TestCase):
         assert "metron_key" not in defaults
         assert defaults["default_match_mode"] == "auto"
 
-    def test_legacy_login_round_trips(self) -> None:
-        from codex.user_data.restore import _build_tagging_defaults
-
-        defaults = _build_tagging_defaults(
-            self._row(metron_key="", metron_user="u", metron_password="p")  # noqa: S106
-        )
-        assert defaults["metron_user"] == "u"
-        assert defaults["metron_password"] == "p"  # noqa: S105
-
     def test_comicvine_url_round_trips(self) -> None:
         from codex.user_data.restore import _build_tagging_defaults
 
@@ -645,3 +634,14 @@ class TaggingDefaultsRestoreTests(TestCase):
             self._row(metron_url="https://metron.example.com")
         )
         assert "metron_url" not in defaults
+
+    def test_a_retired_metron_login_is_ignored(self) -> None:
+        """Sidecars from before Metron took only a key carry its login columns."""
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(
+            self._row(metron_user="u", metron_password="p")  # noqa: S106
+        )
+        assert "metron_user" not in defaults
+        assert "metron_password" not in defaults
+        assert defaults["metron_key"] == "token"

@@ -1,7 +1,5 @@
 """Comicbox tagging serializers."""
 
-from typing import override
-
 from comicbox.formats.base.online import SOURCE_NAMES
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
@@ -17,7 +15,6 @@ from rest_framework.serializers import (
 
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
-from codex.models.choices import SeriesStatusChoices
 from codex.serializers.models.base import BaseModelSerializer
 
 
@@ -54,27 +51,6 @@ class TagWriteRequestSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     rename = BooleanField(required=False, default=None)
-
-
-class SeriesAttrsRequestSerializer(Serializer):
-    """
-    A series' Codex-only attributes, edited from the tag editor.
-
-    No format codex writes holds a series' end year, status or summary, so
-    these go straight to the Series row. Only the keys sent change; null or
-    "" clears one.
-    """
-
-    collection = CharField()
-    pks = ListField(child=CharField())
-    # MetronInfo's StartYear bounds, so the pair stays comparable.
-    end_year = IntegerField(
-        required=False, allow_null=True, min_value=1000, max_value=9999
-    )
-    status = ChoiceField(
-        choices=SeriesStatusChoices.choices, required=False, allow_blank=True
-    )
-    summary = CharField(required=False, allow_blank=True)
 
 
 class OnlineTagStartSerializer(Serializer):
@@ -192,11 +168,11 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     @staticmethod
     def get_has_metron_credentials(obj) -> bool:
         """
-        Whether Metron can authenticate: an API key or a legacy login.
+        Whether a Metron API key is set.
 
         Mirrors comicbox's ``MetronOnlineSource.is_configured``.
         """
-        return bool(obj.metron_key or (obj.metron_user and obj.metron_password))
+        return bool(obj.metron_key)
 
     @staticmethod
     def get_has_comicvine_credentials(obj) -> bool:
@@ -207,20 +183,6 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def validate_default_sources(value: list) -> list:
         """Require known source names; preserve the priority order."""
         return _validate_ordered_sources(value)
-
-    @override
-    def update(self, instance, validated_data):
-        """
-        Retire the legacy username & password whenever the API key is written.
-
-        The key is the only Metron credential the UI offers now, so saving one
-        (or clearing it) drops the old login rather than leaving a stale
-        fallback that comicbox would never send anyway.
-        """
-        if "metron_key" in validated_data:
-            validated_data["metron_user"] = ""
-            validated_data["metron_password"] = ""
-        return super().update(instance, validated_data)
 
     class Meta(BaseModelSerializer.Meta):
         """Specify model and fields."""

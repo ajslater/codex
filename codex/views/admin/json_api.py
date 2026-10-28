@@ -14,6 +14,8 @@ honored, but the frontend's xior client sends
 both media types so admin endpoints respond correctly to either.
 """
 
+from typing import override
+
 from rest_framework_json_api.parsers import JSONParser as _JsonApiJSONParser
 from rest_framework_json_api.renderers import (
     JSONRenderer as _JsonApiJSONRenderer,
@@ -28,6 +30,20 @@ class AdminJSONAPIRenderer(_JsonApiJSONRenderer):
 
     media_type = "application/json"
     format = "json"
+
+    @override
+    def render_errors(self, data, accepted_media_type=None, renderer_context=None):
+        """
+        Wrap DRF's error body in ``errors``, whatever its shape.
+
+        DJA's own exception handler is not installed, so ``data`` is
+        DRF's field map or message list, not JSON:API error objects. DJA
+        9's ``format_errors`` passes a dict through bare and sorts a list
+        as error objects, which crashes on a list of strings.
+        """
+        return super(_JsonApiJSONRenderer, self).render(
+            {"errors": data}, accepted_media_type, renderer_context
+        )
 
 
 class AdminJSONAPIParser(_JsonApiJSONParser):

@@ -5,6 +5,8 @@
  *   - The alternative issue's number + suffix build the same nested comicbox
  *     issue shape as the issue proper, replaced wholesale on any change.
  *   - Collection title is a plain string, cleared through a delete key.
+ *   - A BCP 47 language arrives named like "Portuguese (BR)" and seeds back
+ *     to its tag, "pt-BR".
  *   - Country rides the technical select path alongside language, storing
  *     the two-letter code the Country model names.
  *   - The series start year rides the series object with the volume count.
@@ -197,6 +199,25 @@ describe("EditPanel — country", () => {
     const metron = await mountPanel({ formats: ["METRON_INFO"] });
     expect(comicInfo.vm.isFieldDisabled("country")).toBe(false);
     expect(metron.vm.isFieldDisabled("country")).toBe(true);
+  });
+});
+
+describe("EditPanel — language", () => {
+  test("a BCP 47 tag seeds back from its display name", async () => {
+    const wrapper = await mountPanel({
+      md: { language: { name: "Portuguese (BR)" } },
+    });
+    expect(wrapper.vm.patch.language).toBe("pt-BR");
+    // Untouched, it is no edit and the write leaves the file's tag alone.
+    expect(wrapper.vm.isFieldChanged("language")).toBe(false);
+    expect(wrapper.vm.buildPatch().patch).not.toHaveProperty("language");
+  });
+
+  test("a name in parentheses with no known language stays raw", async () => {
+    const wrapper = await mountPanel({
+      md: { language: { name: "Klingon (KL)" } },
+    });
+    expect(wrapper.vm.patch.language).toBe("Klingon (KL)");
   });
 });
 

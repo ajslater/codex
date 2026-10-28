@@ -48,11 +48,7 @@ def _build_auth_source(
 ) -> OnlineSourceCredentials:
     """Map codex credentials onto comicbox's per-source auth for one source."""
     if source == "metron":
-        return OnlineSourceCredentials(
-            key=credentials.metron_key,
-            user=credentials.metron_user,
-            password=credentials.metron_password,
-        )
+        return OnlineSourceCredentials(key=credentials.metron_key)
     return OnlineSourceCredentials(
         key=credentials.comicvine_key,
         url=credentials.comicvine_url,

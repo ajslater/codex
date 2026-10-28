@@ -117,7 +117,7 @@ LABEL org.opencontainers.image.title="Codex" \
 
 COPY debian.sources /etc/apt/sources.list.d/
 
-# Manylinux wheels (pymupdf, rapidfuzz) link the system libstdc++.so.6.
+# Manylinux wheels (pymupdf-lite, rapidfuzz) link the system libstdc++.so.6.
 # hadolint ignore=DL3008
 RUN apt-get clean \
     && apt-get update \
@@ -136,8 +136,8 @@ RUN mkdir -p /home/abc/.config/comicbox \
 COPY --from=wheel-installer /opt/codex /opt/codex
 ENV PATH="/opt/codex/bin:${PATH}"
 # Fail the build, not the container start, on a broken venv. comicbox's
-# doctor proves unrar extracts a RAR member, pymupdf loads and every pin is
-# satisfied; HOME keeps the config dir it creates out of the image.
+# doctor proves unrar extracts a RAR member, pymupdf-lite loads and every pin
+# is satisfied; HOME keeps the config dir it creates out of the image.
 RUN python -B -c "import django, cryptography, granian, rapidfuzz" \
     && HOME=/tmp comicbox doctor -q
 

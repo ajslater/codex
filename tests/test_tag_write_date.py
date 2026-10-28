@@ -22,6 +22,7 @@ from typing import Any, Final, override
 from unittest.mock import MagicMock
 
 from comicbox.box import Comicbox
+from comicbox.enums.comicbox import SeriesStatusEnum
 from django.core.cache import cache
 from django.test import TestCase
 from loguru import logger
@@ -41,6 +42,9 @@ _ISSUE_NUMBER: Final = "1"
 _ALTERNATIVE_ISSUE: Final = MappingProxyType({"number": 5, "suffix": "AU"})
 _COLLECTION_TITLE: Final = "The Dark Phoenix Saga"
 _START_YEAR: Final = 1963
+_END_YEAR: Final = 1996
+_STATUS: Final = SeriesStatusEnum.COMPLETED
+_SERIES_SUMMARY: Final = "A run."
 
 
 def _double(stub: object) -> Any:
@@ -108,6 +112,9 @@ class TagEditorFieldSupportTestCase(TestCase):
             "alternative_issue_number",
             "alternative_issue_suffix",
             "start_year",
+            "end_year",
+            "series_status",
+            "series_summary",
         }
         assert metron_only <= metron
         assert not (metron_only & comic_info)
@@ -118,11 +125,6 @@ class TagEditorFieldSupportTestCase(TestCase):
         # reading_direction rides ComicInfo's Manga, not a canonical key of
         # its own.
         assert "reading_direction" in comic_info
-
-    def test_database_only_series_fields_are_no_format_field(self) -> None:
-        # No format holds them; the editor saves them to the database.
-        for fields in FORMAT_FIELD_SUPPORT.values():
-            assert not {"end_year", "series_status", "series_summary"} & set(fields)
 
     def test_series_statuses_follow_the_model_choices(self) -> None:
         values = [choice["value"] for choice in SERIES_STATUSES]
@@ -226,3 +228,36 @@ class TagWriteDateTestCase(TestCase):
         )
 
         assert sub_md.get("series", {}).get("start_year") == _START_YEAR
+
+    def test_write_series_end_year_status_and_summary(self) -> None:
+        """MetronInfo v1.2 holds the rest of the series object and reads it back."""
+        sub_md = self._write_metron(
+            {
+                "series": {
+                    "name": "S",
+                    "start_year": _START_YEAR,
+                    "end_year": _END_YEAR,
+                    "status": _STATUS.value,
+                    "summary": _SERIES_SUMMARY,
+                }
+            }
+        )
+
+        series = sub_md.get("series", {})
+        assert series.get("end_year") == _END_YEAR
+        assert series.get("status") == _STATUS
+        assert series.get("summary") == _SERIES_SUMMARY
+
+    def test_a_cleared_series_end_year_leaves_the_file(self) -> None:
+        """The editor clears one by resending the series object without it."""
+        self._write_metron(
+            {"series": {"name": "S", "end_year": _END_YEAR, "status": _STATUS.value}}
+        )
+        self._write(
+            patch={"series": {"name": "S", "status": _STATUS.value}},
+            formats=("METRON_INFO",),
+        )
+
+        series = _read_sub_md(Path(self.comic.path)).get("series", {})
+        assert "end_year" not in series
+        assert series.get("status") == _STATUS

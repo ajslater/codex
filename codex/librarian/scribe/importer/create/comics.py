@@ -91,12 +91,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         current. A chunk that changed tag or collection rows keeps every comic
         (see ``chunk_fks_updated``).
         """
-        if (
-            self.chunk_fks_updated
-            or md
-            or link_md
-            or comic.path in self.task.series_attrs
-        ):
+        if self.chunk_fks_updated or md or link_md:
             return False
         if (
             comic.path in self.metadata.get(LINK_M2MS, {})

@@ -85,9 +85,8 @@ IDENTIFIER_TYPE_BY_CODEX_NAME = MappingProxyType(
     {id_type.value: to_comicbox_id_type(id_type.value) for id_type in IdentifierType}
 )
 
-# A series' publication status (Ongoing, Completed, ...). No format codex
-# writes holds it, so the editor saves it to the database only and offers
-# it under every format.
+# A series' publication status (Ongoing, Completed, ...). MetronInfo holds
+# it in Series/Status.
 SERIES_STATUSES = _vuetify_choices(
     (str(label), str(value)) for value, label in SeriesStatusChoices.choices
 )
@@ -164,17 +163,21 @@ _CANONICAL_TO_EDITOR: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 # Editor sub-fields comicbox stores only for some formats and which its
 # transform specs don't surface at the SPECS_TO top level (the
 # hand-maintained support data): MetronInfo's Series carries a volume
-# count and a start year, only MetronInfo's CommunityRating persists a
-# rating count, and only MetronInfo encodes a reprint's volume number (in
-# Reprints) and language (in Series/AlternativeNames). Whether a reprint
-# row is one of the series' other names is MetronInfo's too, and for the
-# same reason: ComicInfo has no reprint tag at all, since comicbox 5 reads
-# its AlternateSeries and AlternateNumber as a story arc.
+# count, start and end years, a status and a summary, only MetronInfo's
+# CommunityRating persists a rating count, and only MetronInfo encodes a
+# reprint's volume number (in Reprints) and language (in
+# Series/AlternativeNames). Whether a reprint row is one of the series'
+# other names is MetronInfo's too, and for the same reason: ComicInfo has
+# no reprint tag at all, since comicbox 5 reads its AlternateSeries and
+# AlternateNumber as a story arc.
 _EXTRA_FORMAT_FIELDS: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
     {
         "METRON_INFO": (
             "volume_count",
             "start_year",
+            "end_year",
+            "series_status",
+            "series_summary",
             "community_rating_count",
             "reprint_volume",
             "reprint_language",

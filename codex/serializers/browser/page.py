@@ -16,7 +16,7 @@ from codex.serializers.browser.mixins import (
     BrowserAggregateSerializerMixin,
 )
 from codex.serializers.fields import TimestampField
-from codex.serializers.fields.browser import BreadcrumbsField
+from codex.serializers.fields.browser import BreadcrumbsField, LanguageField
 from codex.serializers.fields.collection import BrowseCollectionField
 from codex.views.browser.columns import (
     fk_alias_for,
@@ -66,19 +66,18 @@ def _format_issue(number, suffix) -> dict:
 
 
 def _resolve_language(code) -> str | None:
-    """Translate ISO-639 alpha-2 language codes to readable names."""
+    """Translate BCP 47 language tags to readable names."""
     if not code:
         return None
-    record = pycountry.languages.get(alpha_2=str(code).lower())
-    return record.name if record else str(code)
+    return LanguageField.display_name(str(code))
 
 
 # Per-column display transforms applied to the raw queryset value
 # before it lands on the wire. Each callable takes the raw value
 # (typically a string from an FK annotation) and returns the display
-# string. The Country / Language tables store ISO-2 codes in their
-# ``name`` field, so the column lookup hits pycountry to surface the
-# full readable name.
+# string. The Country / Language tables store ISO-2 codes (and BCP 47
+# tags for languages) in their ``name`` field, so the column lookup hits
+# pycountry to surface the full readable name.
 _COLUMN_VALUE_TRANSFORMS = {
     "country": _resolve_country,
     "language": _resolve_language,

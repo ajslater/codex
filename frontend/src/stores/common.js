@@ -7,7 +7,7 @@ import * as API from "@/api/v4/common";
  * Two renderers, two 400 shapes, one normalized map.
  *
  * Admin resource viewsets render through AdminJSONAPIRenderer, whose
- * ``format_errors`` is literally ``{"errors": data}`` -- so the body is
+ * ``render_errors`` is literally ``{"errors": data}`` -- so the body is
  * ``{"errors": {"username": [...]}}``, a dict rather than the JSON:API
  * error list, because DJA's own exception handler is not installed. It
  * stays a plain xior error, since the interceptor only wraps when
