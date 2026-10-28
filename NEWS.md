@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fixes
     - Reader no longer jumps to the cover or the next book after a library
       update, or rewrites the bookmark of the book it leaves.
+    - Admin explains why you can't remove your own staff or active status
+      instead of showing an unknown error.
 
 ## v2.5.6
 
