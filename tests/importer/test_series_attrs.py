@@ -14,6 +14,8 @@ from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
 
+from comicbox.box import Comicbox
+from comicbox.formats import MetadataFormats
 from django.core.cache import cache
 from django.test import TestCase
 from loguru import logger
@@ -55,6 +57,24 @@ _ARCHIVE_YAML: Final = f"""comicbox:
     status: completed
     summary: {_SUMMARY_B}
 """
+
+
+def _metron_info_xml() -> str:
+    """MetronInfo v1.2 carrying the series attributes, as comicbox writes it."""
+    md = {
+        "comicbox": {
+            "publisher": {"name": "P"},
+            "series": {
+                "name": "S",
+                "start_year": _EARLY,
+                "end_year": _LATE,
+                "status": _COMPLETED,
+                "summary": _SUMMARY_B,
+            },
+        }
+    }
+    with Comicbox(metadata=md) as cb:
+        return cb.to_string(fmt=MetadataFormats.METRON_INFO)
 
 
 def _md(series: dict | None = None, volume: dict | None = None) -> dict:
@@ -111,17 +131,30 @@ class TestSeriesAttrs(TestCase):
         importer.aggregate_metadata()
         self._create_collections(importer)
 
-    def test_archive_series_attrs(self) -> None:
-        """The attributes come through from an archive's comicbox metadata."""
+    def _import_archive(self, name: str, contents: str) -> Series:
+        """Import one archive holding a single metadata file; return its series."""
         path = TMP_DIR / "archive.cbz"
         with zipfile.ZipFile(path, "w") as zf:
-            zf.writestr("comicbox.yaml", _ARCHIVE_YAML)
+            zf.writestr(name, contents)
             zf.writestr("page1.jpg", b"\xff\xd8\xff\xe0not-a-real-jpeg")
         importer = self._importer({str(path)})
         importer.read()
         self._create_collections(importer)
+        return Series.objects.get(name="S")
 
-        series = Series.objects.get(name="S")
+    def test_archive_series_attrs(self) -> None:
+        """The attributes come through from an archive's comicbox metadata."""
+        series = self._import_archive("comicbox.yaml", _ARCHIVE_YAML)
+
+        assert series.start_year == _EARLY
+        assert series.end_year == _LATE
+        assert series.status == _COMPLETED
+        assert series.summary == _SUMMARY_B
+
+    def test_metroninfo_series_fields_import(self) -> None:
+        """MetronInfo v1.2 carries the attributes the tag editor writes."""
+        series = self._import_archive("MetronInfo.xml", _metron_info_xml())
+
         assert series.start_year == _EARLY
         assert series.end_year == _LATE
         assert series.status == _COMPLETED
@@ -188,16 +221,3 @@ class TestSeriesAttrs(TestCase):
         assert series.end_year == _LATE
         assert series.status == _COMPLETED
         assert series.summary == _SUMMARY_B
-
-    def test_reimport_keeps_database_only_attrs(self) -> None:
-        """Values the tag editor saved to the database survive a re-import."""
-        self._import(_md({"start_year": _EARLY}))
-        Series.objects.filter(name="S").update(
-            end_year=_LATE, status=_COMPLETED, summary=_SUMMARY_C
-        )
-        self._import(_md({"start_year": _EARLY}))
-
-        series = Series.objects.get(name="S")
-        assert series.end_year == _LATE
-        assert series.status == _COMPLETED
-        assert series.summary == _SUMMARY_C

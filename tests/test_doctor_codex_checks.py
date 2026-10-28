@@ -250,10 +250,10 @@ class CredentialsCheckTests(TestCase):
 
     def test_a_changed_key_file_is_misconfigured(self) -> None:
         ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1, defaults={"metron_key": "token", "metron_user": "u"}
+            pk=1, defaults={"metron_key": "token", "comicvine_key": "cv"}
         )
         with override_settings(FIELD_ENCRYPTION_KEY=Fernet.generate_key()):
             (row,) = check_credentials()
         assert row.status is Status.MISCONFIGURED
-        assert row.found == "metron_key, metron_user"
+        assert row.found == "metron_key, comicvine_key"
         assert "Tagging tab" in row.fix

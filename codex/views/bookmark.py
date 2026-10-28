@@ -21,10 +21,11 @@ if TYPE_CHECKING:
 class BookmarkFilterMixin(GroupACLMixin, ABC):
     """Bookmark filter methods."""
 
+    if TYPE_CHECKING:
+        request: Request
+
     def init_bookmark_filter(self) -> None:
         """Initialize the bm_annotation_data."""
-        if TYPE_CHECKING:
-            self.request: Request
         self._bm_rels: dict[BrowserCollectionModel, str] = {}
         self._bm_filters: dict[BrowserCollectionModel, Q] = {}
 

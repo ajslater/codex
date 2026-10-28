@@ -106,3 +106,34 @@ class AdminWriteTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.CREATED, resp.content
         assert User.objects.filter(username="baz").exists()
+
+    def test_deleting_yourself_is_a_400(self) -> None:
+        """The self-delete guard is a form error, not a 500."""
+        resp = self.client.delete(f"/api/v4/admin/users/{self.admin.pk}")
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+        assert resp.json()["errors"]["detail"] == "Cannot delete logged in user."
+        assert User.objects.filter(pk=self.admin.pk).exists()
+
+    def test_deactivating_yourself_is_a_400(self) -> None:
+        """Unticking your own Is Staff or Is Active is a form error, not a 500."""
+        url = f"/api/v4/admin/users/{self.admin.pk}"
+        for attribute in ("isStaff", "isActive"):
+            with self.subTest(attribute=attribute):
+                body = {
+                    "data": {
+                        "type": "users",
+                        "id": str(self.admin.pk),
+                        "attributes": {attribute: False},
+                    }
+                }
+                resp = self.client.patch(
+                    url, data=json.dumps(body), content_type="application/json"
+                )
+                assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+                assert (
+                    resp.json()["errors"]["detail"]
+                    == "Cannot deactivate logged in user."
+                )
+        self.admin.refresh_from_db()
+        assert self.admin.is_staff
+        assert self.admin.is_active

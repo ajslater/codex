@@ -65,16 +65,19 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         settings_qs = SettingsReader.objects.filter(
             **reader_auth, comic_id__in=book_pks
         )
+        # ``comic`` is nullable for global rows, which the filter excludes;
+        # the guard narrows the key for the type checker.
         settings_by_pk: dict[int, SettingsReader] = {
-            s.comic_id: s  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            comic_id: s
             for s in settings_qs
+            if (comic_id := s.comic_id) is not None  # pyright: ignore[reportAttributeAccessIssue]
         }
         bookmark_auth = self.get_bookmark_auth_filter()
         bookmark_qs = Bookmark.objects.filter(
             **bookmark_auth, comic_id__in=book_pks
         ).only("page", "finished", "comic_id")
         bookmarks_by_pk: dict[int, Bookmark] = {
-            b.comic_id: b  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            b.comic_id: b  # pyright: ignore[reportAttributeAccessIssue]
             for b in bookmark_qs
         }
         return settings_by_pk, bookmarks_by_pk

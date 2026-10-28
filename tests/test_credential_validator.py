@@ -40,14 +40,6 @@ def _full_creds() -> OnlineCredentials:
     return OnlineCredentials(metron_key="token", comicvine_key="key")
 
 
-def _legacy_creds() -> OnlineCredentials:
-    """Build credentials for an install predating Metron's API keys."""
-    return OnlineCredentials(
-        metron_user="user",
-        metron_password="pw",  # noqa: S106
-    )
-
-
 def _probe(source_cls: type, **kwargs: Any):
     """Patch ``source_cls.probe``; autospec so the mock is called with ``self``."""
     return patch.object(source_cls, "probe", autospec=True, **kwargs)
@@ -100,34 +92,6 @@ class TestValidateCredentials:
             sustained=RateLimitWindowInfo(limit=5_000)
         )
 
-    def test_metron_legacy_login_still_validates(self) -> None:
-        """A stored username & password authenticates when no API key is set."""
-        with _probe(MetronOnlineSource, return_value=_EMPTY_METRON_WINDOWS) as probe:
-            results = validate_credentials(_legacy_creds(), {"metron"})
-        assert results == {"metron": ValidationResult(ok=True)}
-        # key is None, not "" — mokkari sends a Bearer header for any non-None
-        # token, which would shut off the username & password fallback.
-        assert _probed_source(probe)._credentials == OnlineSourceCredentials(  # noqa: SLF001
-            user="user",
-            password="pw",  # noqa: S106
-        )
-
-    def test_metron_key_wins_over_legacy_login(self) -> None:
-        """Both stored: all three reach comicbox, which sends only the token."""
-        creds = OnlineCredentials(
-            metron_key="token",
-            metron_user="user",
-            metron_password="pw",  # noqa: S106
-        )
-        with _probe(MetronOnlineSource, return_value=_EMPTY_METRON_WINDOWS) as probe:
-            results = validate_credentials(creds, {"metron"})
-        assert results["metron"].ok is True
-        assert _probed_source(probe)._credentials == OnlineSourceCredentials(  # noqa: SLF001
-            key="token",
-            user="user",
-            password="pw",  # noqa: S106
-        )
-
     def test_metron_auth_failure(self) -> None:
         from mokkari.exceptions import AuthenticationError
 
@@ -153,15 +117,7 @@ class TestValidateCredentials:
         assert results["metron"] == ValidationResult(ok=False, error="502 Bad Gateway")
 
     def test_metron_missing_creds(self) -> None:
-        creds = OnlineCredentials(metron_key="", metron_user="", metron_password="")
-        with _probe(MetronOnlineSource) as probe:
-            results = validate_credentials(creds, {"metron"})
-        assert results["metron"].ok is False
-        assert "api key required" in (results["metron"].error or "").lower()
-        probe.assert_not_called()
-
-    def test_metron_half_a_legacy_login_is_not_enough(self) -> None:
-        creds = OnlineCredentials(metron_user="user", metron_password="")
+        creds = OnlineCredentials(metron_key="")
         with _probe(MetronOnlineSource) as probe:
             results = validate_credentials(creds, {"metron"})
         assert results["metron"].ok is False
@@ -309,8 +265,6 @@ class TestValidateCredentials:
 _EXPECTED_CRED_FIELDS: Final = frozenset(
     {
         "metron_key",
-        "metron_user",
-        "metron_password",
         "metron_url",
         "comicvine_key",
         "comicvine_url",

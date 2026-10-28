@@ -18,7 +18,7 @@ _NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v4/auth/profile
 # Query-string credentials we never want in logs. httpx logs the full
 # request URL at INFO when codex bridges stdlib logging into loguru, so
 # a ComicVine call leaks the ``api_key=`` value verbatim. Mokkari
-# (Metron) uses HTTP Basic auth in headers — the Authorization regex
+# (Metron) sends a Bearer token in headers — the Authorization regex
 # below covers that path defensively even though httpx doesn't log
 # headers today.
 _SECRET_QUERY_PARAM_RE: Final = re.compile(

@@ -6,6 +6,21 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.7
+
+- Features
+    - Series end year, status and summary are written to MetronInfo v1.2 and
+      read back from it, no longer saved in Codex only.
+    - Metron online tagging uses only an API key; saved Metron usernames and
+      passwords are removed.
+- Fixes
+    - Reader no longer jumps to the cover or the next book after a library
+      update, or rewrites the bookmark of the book it leaves.
+    - Languages with a region or script, like pt-BR, are kept and shown by name.
+    - Admin explains why you can't remove your own staff or active status
+      instead of showing an unknown error.
+    - The Metron response cache starts over once after upgrading.
+
 ## v2.5.6
 
 - Features

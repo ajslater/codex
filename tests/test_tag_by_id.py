@@ -126,14 +126,6 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         assert settings.online.lookup.first_wins is True
         assert settings.online.auth.sources["metron"].key == "t"
 
-    def test_build_explicit_id_config_passes_legacy_login(self) -> None:
-        """A pre-API-key install still authenticates by explicit id."""
-        creds = OnlineCredentials(metron_user="u", metron_password="p")  # noqa: S106
-        settings = build_explicit_id_config("metron", 123, creds)
-        auth = settings.online.auth.sources["metron"]
-        assert auth.user == "u"
-        assert auth.password == "p"  # noqa: S105
-
     def test_build_explicit_id_config_passes_the_comicvine_url(self) -> None:
         """Tagging by explicit id honors the custom Comic Vine endpoint."""
         creds = OnlineCredentials(
@@ -217,22 +209,11 @@ class TagByIdStartViewTests(TestCase):
             pk=1,
             defaults={
                 "metron_key": "",
-                "metron_user": "",
-                "metron_password": "",
                 "comicvine_key": "",
             },
         )
         response = self._post({"metron": "1"})
         assert response.status_code == HTTPStatus.BAD_REQUEST
-
-    def test_legacy_login_still_counts_as_configured(self) -> None:
-        """An install predating API keys can still tag by id."""
-        ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1,
-            defaults={"metron_key": "", "metron_user": "u", "metron_password": "p"},
-        )
-        task = self._post_resolving_one_comic({"metron": f"metron:{_ISSUE_ID}"})
-        assert task.ids == {"metron": _ISSUE_ID}
 
     def test_unparsable_identifier_returns_400(self) -> None:
         response = self._post({"metron": "not-an-id"})

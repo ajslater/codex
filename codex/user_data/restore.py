@@ -393,8 +393,6 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
         "default_match_mode": "auto",
         "default_prompts_mode": "ask",
         "metron_key": "",
-        "metron_user": "",
-        "metron_password": "",
         "comicvine_key": "",
         "comicvine_url": "",
     }
@@ -409,10 +407,11 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
     defaults["delete_original"] = bool(row["delete_original"])
     # ``active_session_id`` / ``active_prompts`` used to be on this row before
-    # they moved to the Django cache as transient state, and ``metron_url``
-    # before that no-op override was removed for good. Older sidecar backups
-    # still carry those columns — since this comprehension walks ``coalesced``
-    # rather than the row, they are silently ignored.
+    # they moved to the Django cache as transient state, ``metron_url``
+    # before that no-op override was removed for good, and ``metron_user`` /
+    # ``metron_password`` until Metron took only an API key. Older sidecar
+    # backups still carry those columns — since this comprehension walks
+    # ``coalesced`` rather than the row, they are silently ignored.
     return defaults
 
 

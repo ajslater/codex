@@ -20,7 +20,7 @@ dependencies = [
   "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=5.4.0",
+  "comicbox[pdf]~=5.5.0",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -29,7 +29,7 @@ dependencies = [
   "django-rest-registration~=0.9",
   "django-vite~=3.1",
   "djangorestframework-camel-case~=1.4",
-  "djangorestframework-jsonapi~=8.1",
+  "djangorestframework-jsonapi~=9.0",
   "djangorestframework~=3.16",
   "django~=6.0",
   "drf-spectacular~=0.28",
@@ -55,7 +55,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.5.6"
+version = "2.5.7"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -87,7 +87,7 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.1.0",
+  "complexipy~=8.2",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
@@ -98,7 +98,6 @@ lint = [
   "ruff~=0.17",
   "ty~=0.0.18",
   "vulture~=2.3",
-  "types-python-dateutil~=2.9",
 ]
 test = [
   "coverage~=7.0",

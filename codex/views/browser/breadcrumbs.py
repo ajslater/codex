@@ -196,7 +196,7 @@ class BrowserBreadcrumbsView(BrowserPaginateView):
                 ancestor.path: ancestor
                 for ancestor in FolderModel.objects.filter(
                     self.get_acl_filter(FolderModel, self.request.user),
-                    library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+                    library_id=folder.library_id,  # pyright: ignore[reportAttributeAccessIssue]
                     path__in=prefixes,
                 )
                 .only("pk", "path", "name")

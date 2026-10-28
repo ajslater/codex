@@ -67,7 +67,7 @@ class TelemeterCountsTestCase(BaseTestImporter):
         copy_path = Path(f"{PATH}.copy.cbz")
         copy_path.touch()  # presave stats the file
         comic = Comic.objects.get(path=PATH)
-        comic.pk = None
+        comic.pk = None  # ty: ignore[invalid-assignment]
         comic.path = str(copy_path)
         comic.manga_volume = ""
         comic.urls = []

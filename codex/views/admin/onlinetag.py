@@ -58,7 +58,7 @@ def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[s
     if not defaults:
         return frozenset()
     sources = set()
-    if defaults.metron_key or (defaults.metron_user and defaults.metron_password):
+    if defaults.metron_key:
         sources.add("metron")
     if defaults.comicvine_key:
         sources.add("comicvine")

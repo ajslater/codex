@@ -116,7 +116,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if instance is None:
             return None
 
-        if session_key and instance.session_id != session_key:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if session_key and instance.session_id != session_key:  # pyright: ignore[reportAttributeAccessIssue]
             # Discard any anonymous row that owns the new session so
             # the unique constraint isn't violated.
             model.objects.filter(
@@ -143,7 +143,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if instance is None:
             return None
 
-        if user and instance.user_id is None:  # ty: ignore[unresolved-attribute]
+        if user and instance.user_id is None:
             # Promote anonymous row to a user row (first login).
             instance.user = user
             instance.save(update_fields=("user_id", "updated_at"))
@@ -457,7 +457,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         if current and all(getattr(current, k) == show_kwargs[k] for k in _SHOW_KEYS):
             return False
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_kwargs)  # pyright: ignore[reportArgumentType]
-        if instance.show_id == show.pk:  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+        if instance.show_id == show.pk:  # pyright: ignore[reportAttributeAccessIssue]
             return False
         instance.show = show
         return True

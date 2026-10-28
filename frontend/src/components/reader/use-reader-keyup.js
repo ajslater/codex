@@ -40,8 +40,8 @@ export function useReaderKeyUp(listener) {
     { capture: true },
   );
   useEventListener(document, "keyup", (event) => {
-    const pressedInOverlay = overlayKeys.delete(event.code);
-    if (pressedInOverlay || isInOverlay(event.target)) {
+    const isPressedInOverlay = overlayKeys.delete(event.code);
+    if (isPressedInOverlay || isInOverlay(event.target)) {
       return;
     }
     listener(event);

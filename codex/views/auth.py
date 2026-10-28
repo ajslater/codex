@@ -113,6 +113,11 @@ class AuthMixin:
     # of the GET dict when the URL pattern doesn't carry it.
     requires_page: bool = False
 
+    # At class level, as APIView declares it: ty rejects an in-method
+    # ``self.request`` declaration as an incompatible override.
+    if TYPE_CHECKING:
+        request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
+
     # DRF's own type, so subclasses that set their own classes override
     # APIView's declaration and this one alike.
     permission_classes: Sequence["_PermissionClass"] = (
@@ -168,8 +173,6 @@ class AuthMixin:
         # from the DB (e.g. by sessions cleanup or expiry). The cached_db
         # backend serves such sessions from cache without rechecking, so
         # session.session_key alone is not safe to use as an FK target.
-        if TYPE_CHECKING:
-            self.request: Request  # pyright: ignore[reportUninitializedInstanceVariable]
         session = self.request.session
         if (
             session.session_key
