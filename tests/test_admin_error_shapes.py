@@ -7,11 +7,11 @@ than an implementation detail. It is not the obvious one on either
 renderer, and neither is documented anywhere else:
 
 * Admin **resource** viewsets render through ``AdminJSONAPIRenderer``.
-  For any 4xx ``get_resource_name`` returns ``"errors"`` and
-  ``format_errors`` is literally ``return {"errors": data}`` -- so the
-  body is ``{"errors": {"username": [...]}}``, a **dict**, not the
-  JSON:API error *list* a reader would expect, because DJA's own
-  exception handler is not installed.
+  For any 4xx ``get_resource_name`` returns ``"errors"`` and its
+  ``render_errors`` is literally ``{"errors": data}`` -- so the body is
+  ``{"errors": {"username": [...]}}``, a **dict**, not the JSON:API
+  error *list* a reader would expect, because DJA's own exception
+  handler is not installed.
 * **Envelope** endpoints emit ``{"errors": [{status, title, detail}]}``
   where ``detail`` carries the field map.
 
@@ -27,6 +27,7 @@ from django.test import Client, TestCase
 
 from codex.models import Library
 from codex.startup import init_admin_flags
+from codex.views.admin.json_api import AdminJSONAPIRenderer
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -60,7 +61,7 @@ class AdminErrorShapeTestCase(TestCase):
         """
         Not a JSON:API error list.
 
-        ``format_errors`` wraps the DRF dict verbatim, so the field map
+        ``render_errors`` wraps the DRF dict verbatim, so the field map
         sits one level down under ``errors``. A client scanning the top
         level -- which is what ``getErrors`` did -- finds nothing and
         renders the whole object.
@@ -121,3 +122,15 @@ class AdminErrorShapeTestCase(TestCase):
         detail = body["errors"][0]["detail"]
         assert isinstance(detail, dict), body
         assert "port" in detail, body
+
+
+def test_a_message_list_has_the_same_shape() -> None:
+    """
+    A view-level ``ValidationError("...")`` reaches the renderer as a list.
+
+    DJA 9's own ``format_errors`` sorts a list as error objects and
+    crashes on the strings, which would turn the 400 into a 500.
+    """
+    body = AdminJSONAPIRenderer().render_errors(["Not allowed."])
+
+    assert json.loads(body) == {"errors": ["Not allowed."]}
