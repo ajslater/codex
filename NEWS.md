@@ -17,6 +17,8 @@ border-radius: 128px;
     - Reader no longer jumps to the cover or the next book after a library
       update, or rewrites the bookmark of the book it leaves.
     - Languages with a region or script, like pt-BR, are kept and shown by name.
+    - Admin explains why you can't remove your own staff or active status
+      instead of showing an unknown error.
     - The Metron response cache starts over once after upgrading.
 
 ## v2.5.6

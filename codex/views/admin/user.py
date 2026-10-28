@@ -71,7 +71,9 @@ class AdminUserViewSet(AdminModelViewSet):
         """Destroy with guard for logged in user."""
         if self._is_change_to_current_user():
             reason = "Cannot delete logged in user."
-            raise ValidationError(reason)
+            # A DRF error, or it's a 500 (see ``perform_create``). Keyed
+            # ``detail`` so the admin form shows it as a plain sentence.
+            raise DRFValidationError({"detail": reason})
         res = super().destroy(request, *args, **kwargs)
         self._on_change(0)
         return res
@@ -86,7 +88,7 @@ class AdminUserViewSet(AdminModelViewSet):
             data.get(key) is False for key in _BAD_CURRENT_USER_FALSE_KEYS
         ):
             reason = "Cannot deactivate logged in user."
-            raise ValidationError(reason)
+            raise DRFValidationError({"detail": reason})
         uid = self.kwargs.get("pk", 0)
         super().perform_update(serializer)
         self._on_change(uid)
