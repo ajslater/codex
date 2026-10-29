@@ -23,6 +23,7 @@ from comicbox.enums.comicbox import IdSources, MangaEnum
 from comicbox.enums.generic import GenericFormatEnum
 from comicbox.enums.maps.age_rating import COMICINFO_AGE_RATING_MAP
 from comicbox.enums.metroninfo import MetronAgeRatingEnum, MetronFormatEnum
+from comicbox.formats import MetadataFormats
 from comicbox.formats.comic_info.transform import ComicInfoTransform
 from comicbox.formats.metron_info.transform import MetronInfoTransform
 
@@ -30,12 +31,18 @@ from codex.choices.reader import READER_CHOICES
 from codex.models.choices import SeriesStatusChoices
 from codex.models.identifier import IdentifierType, to_comicbox_id_type
 
-# comicbox transform per codex write-format id.
+# comicbox transform per codex write-format id, in the order the editors
+# offer them.
 _TRANSFORMS = MappingProxyType(
     {
-        "COMIC_INFO": ComicInfoTransform,
         "METRON_INFO": MetronInfoTransform,
+        "COMIC_INFO": ComicInfoTransform,
     }
+)
+
+# The write formats the editors offer, titled by comicbox (id -> title).
+WRITE_FORMATS = MappingProxyType(
+    {fmt: MetadataFormats[fmt].value.label for fmt in _TRANSFORMS}
 )
 
 
