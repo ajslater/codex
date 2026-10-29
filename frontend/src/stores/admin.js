@@ -82,10 +82,6 @@ export const useAdminStore = defineStore("admin", {
     pendingDeletes: [],
     tagWriteErrors: [],
     flags: [],
-    folderPicker: {
-      rootFolder: undefined,
-      folders: [],
-    },
     timestamps: {},
     stats: undefined,
     doctor: undefined,
@@ -184,20 +180,10 @@ export const useAdminStore = defineStore("admin", {
             tables.map((table) => this.loadTable(table, options)),
           );
     },
-    async loadFolders(path, showHidden) {
-      if (this._requireAdmin()) return false;
-      const commonStore = useCommonStore();
-      try {
-        const response = await API.getFolders(path, showHidden);
-        this.folderPicker = response.data;
-      } catch (error) {
-        commonStore.setErrors(error);
-      }
-    },
     /*
      * One folder listing for the folder tree: ``{rootFolder, parentFolder,
      * folders}``. Throws the server's reason, so each caller decides where
-     * it shows, and touches neither folderPicker nor the shared form errors.
+     * it shows, and leaves the shared form errors alone.
      */
     async fetchFolders(path, showHidden) {
       if (this._requireAdmin()) {
@@ -210,10 +196,6 @@ export const useAdminStore = defineStore("admin", {
         const reasons = fieldErrorMap(error).path ?? getErrors(error);
         throw new Error(reasons.join(" "), { cause: error });
       }
-    },
-    async clearFolders(rootFolder) {
-      if (this._requireAdmin()) return false;
-      this.folderPicker = { rootFolder, folders: [""] };
     },
     /*
      * createRow and updateRow resolve true when the row saved and false when

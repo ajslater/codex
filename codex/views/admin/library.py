@@ -165,9 +165,6 @@ class AdminFolderListView(AdminGenericAPIView):
         ``Path.resolve().is_dir()`` (which chains a full readlink walk
         before stat-ing). Broken symlinks are skipped silently.
         """
-        dirs: list[str] = []
-        if root_path.parent != root_path:
-            dirs.append("..")
         subdirs: list[str] = []
         with os.scandir(root_path) as it:
             for entry in it:
@@ -180,8 +177,7 @@ class AdminFolderListView(AdminGenericAPIView):
                     continue
                 if is_dir:
                     subdirs.append(entry.name)
-        dirs.extend(sorted(subdirs, key=str.casefold))
-        return tuple(dirs)
+        return tuple(sorted(subdirs, key=str.casefold))
 
     @staticmethod
     def _default_root_path() -> Path:

@@ -66,8 +66,6 @@ import { useAdminStore } from "@/stores/admin";
  * path.
  */
 export const FOLDER_CAP = 200;
-// The server's "go up" entry; the Parent folder button replaces it.
-const PARENT_ENTRY = "..";
 // Ends the value of the "N more folders" leaf past the cap.
 const MORE_SUFFIX = "\0more";
 
@@ -149,8 +147,7 @@ export default {
       }
       return { title, value: folder, children: [] };
     },
-    fillChildren(node, folders, keep = new Map()) {
-      const names = folders.filter((name) => name !== PARENT_ENTRY);
+    fillChildren(node, names, keep = new Map()) {
       if (names.length === 0) {
         // An empty folder is a leaf: no chevron to open into nothing.
         delete node.children;

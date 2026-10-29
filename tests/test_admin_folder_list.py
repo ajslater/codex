@@ -43,7 +43,7 @@ class AdminFolderListTestCase(TestCase):
         """``Beta`` sorts between ``alpha`` and ``charlie``, not first."""
         response = self._get(TMP_DIR)
         assert response.status_code == HTTPStatus.OK, response.content
-        assert response.json()["data"]["folders"] == ["..", "alpha", "Beta", "charlie"]
+        assert response.json()["data"]["folders"] == ["alpha", "Beta", "charlie"]
 
     def test_hidden_folders_only_on_request(self) -> None:
         response = self._get(TMP_DIR, showHidden="true")
@@ -61,7 +61,6 @@ class AdminFolderListTestCase(TestCase):
         assert response.status_code == HTTPStatus.OK, response.content
         body = response.json()["data"]
         assert body["parentFolder"] is None
-        assert ".." not in body["folders"]
 
     def test_an_unlistable_folder_is_a_400(self) -> None:
         """Not a logged traceback and a "Server Error"."""

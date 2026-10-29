@@ -4,7 +4,7 @@
  * Behavior locked in here:
  *   - It opens on the server's default folder with nothing chosen, since
  *     that folder is the newest library's parent and no valid choice.
- *   - Opening a folder lists its subfolders, dropping the server's "..";
+ *   - Opening a folder lists its subfolders;
  *     an empty folder becomes a leaf; past FOLDER_CAP the rest collapse
  *     into one disabled "type the path" leaf.
  *   - A folder an existing library covers is disabled and says why.
@@ -35,23 +35,23 @@ const LISTINGS = Object.freeze({
   "/comics": {
     rootFolder: "/comics",
     parentFolder: "/",
-    folders: ["..", "DC", "empty", "Marvel"],
+    folders: ["DC", "empty", "Marvel"],
   },
   "/comics/DC": {
     rootFolder: "/comics/DC",
     parentFolder: "/comics",
-    folders: ["..", "Batman"],
+    folders: ["Batman"],
   },
   "/comics/empty": {
     rootFolder: "/comics/empty",
     parentFolder: "/comics",
-    folders: [".."],
+    folders: [],
   },
   "/": { rootFolder: "/", parentFolder: null, folders: ["comics", "tmp"] },
   "/comics/.hidden": {
     rootFolder: "/comics/.hidden",
     parentFolder: "/comics",
-    folders: ["..", "deep"],
+    folders: ["deep"],
   },
 });
 
@@ -100,7 +100,7 @@ describe("AdminServerFolderTree — opening", () => {
     expect(wrapper.find("label").text()).toBe("Library Folder");
   });
 
-  test("lists subfolders without the server's '..'", async () => {
+  test("lists the default folder's subfolders", async () => {
     const { vm } = mountTree();
     await flushPromises();
     expect(vm.items[0].children.map(({ title }) => title)).toEqual([
