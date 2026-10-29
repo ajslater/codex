@@ -45,22 +45,44 @@
     </template>
     <template #[`item.actions`]="{ item }">
       <span class="adminActionCell">
-        <ConfirmDialog
+        <!-- Comfortable in a group is the size compact is alone. -->
+        <v-split-btn
           :icon="mdiDatabaseClockOutline"
+          :size="iconSize"
+          density="comfortable"
+          class="pollSplitBtn"
+          title="Poll for updated comics"
+          menu-label="More poll options"
+          @click="pollPk = item.pk"
+        >
+          <template #menu>
+            <v-list density="compact">
+              <v-list-item
+                :prepend-icon="mdiDatabaseSyncOutline"
+                title="Force update comics"
+                @click="forcePollPk = item.pk"
+              />
+            </v-list>
+          </template>
+        </v-split-btn>
+        <!--
+          Controlled and outside the menu: the menu closes on a click and
+          unmounts its content, which would take a dialog inside it along.
+        -->
+        <ConfirmDialog
+          :model-value="pollPk === item.pk"
           title-text="Poll for updated comics"
           :text="item.path"
           confirm-text="Poll Library"
-          :size="iconSize"
-          density="compact"
+          @update:model-value="pollPk = $event ? item.pk : null"
           @confirm="poll(item)"
         />
         <ConfirmDialog
-          :icon="mdiDatabaseSyncOutline"
+          :model-value="forcePollPk === item.pk"
           title-text="Force update comics"
           :text="item.path"
           confirm-text="Force Update"
-          :size="iconSize"
-          density="compact"
+          @update:model-value="forcePollPk = $event ? item.pk : null"
           @confirm="forcePoll(item)"
         />
         <AdminCreateUpdateDialog
@@ -126,6 +148,9 @@ export default {
       mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
+      // The library whose Poll / Force Update confirmation is open.
+      pollPk: null,
+      forcePollPk: null,
     };
   },
   computed: {
@@ -252,5 +277,10 @@ export default {
 // failure. Matches the panel's own count.
 .missingComics {
   color: rgb(var(--v-theme-warning));
+}
+
+// A narrow menu toggle, so the split button stays close to an icon's width.
+.pollSplitBtn {
+  --v-split-btn-toggle-padding-inline: 0;
 }
 </style>
