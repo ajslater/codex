@@ -13,6 +13,7 @@ from rest_framework.serializers import (
     ValidationError,
 )
 
+from codex.choices.tagging import WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
@@ -178,6 +179,29 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def get_has_comicvine_credentials(obj) -> bool:
         """Whether a Comic Vine API key is set."""
         return bool(obj.comicvine_key)
+
+    @staticmethod
+    def validate_default_formats(value: object) -> list:
+        """
+        Require at least one known write format.
+
+        comicbox refuses a write with no formats, so an empty default would
+        fail every file in an online-tagging session.
+        """
+        if not isinstance(value, list):
+            reason = "Expected a list of metadata formats."
+            raise ValidationError(reason)
+        formats = list(dict.fromkeys(value))
+        if not formats:
+            reason = "At least one metadata format is required."
+            raise ValidationError(reason)
+        if unknown := [fmt for fmt in formats if fmt not in WRITE_FORMATS]:
+            reason = (
+                f"Unknown metadata format(s): {', '.join(map(str, unknown))}. "
+                f"Known: {', '.join(WRITE_FORMATS)}."
+            )
+            raise ValidationError(reason)
+        return formats
 
     @staticmethod
     def validate_default_sources(value: list) -> list:

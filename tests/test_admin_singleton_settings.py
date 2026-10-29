@@ -180,6 +180,29 @@ class AdminSingletonSettingsTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
 
+    def test_tagging_defaults_rejects_no_formats(self) -> None:
+        """An empty format list is a 400: comicbox can't write no formats."""
+        resp = _put_envelope(
+            self.client, "/api/v4/admin/tagging-defaults", {"defaultFormats": []}
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
+    def test_tagging_defaults_rejects_unknown_format(self) -> None:
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"defaultFormats": ["COMIC_INFO", "COMET"]},
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
+    def test_tagging_defaults_rejects_non_list_formats(self) -> None:
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"defaultFormats": "COMIC_INFO"},
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
     def test_throttle_settings_put(self) -> None:
         """PUT /admin/throttle-settings returns 200 with the saved row."""
         resp = _put_envelope(
