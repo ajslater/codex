@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.5.8
+
+- Features
+    - New Add Library server folders picker component.
+- Fixes
+    - A new visitor's first page load no longer sometimes fails.
+    - Unchecking every default metadata format no longer breaks online tagging.
+    - Unreadable folders in Add Library say "Permission denied" instead of
+      "Server Error".
+
 ## v2.5.7
 
 - Features
