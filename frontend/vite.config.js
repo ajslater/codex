@@ -206,7 +206,7 @@ const config = defineConfig(({ mode }) => {
     define: defineObj,
     plugins: [
       vue(),
-      vuetify({ autoImport: true }),
+      vuetify({ autoImport: { labs: true } }),
       // Lint runs ESLint over the frontend; vitest needn't run it again.
       !IS_TEST_ENV &&
         checker({
