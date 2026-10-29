@@ -109,11 +109,11 @@ describe("AdminDefaultsTab — drafts", () => {
     expect(vm.lockedShowKey).toBeUndefined();
   });
 
-  test("a locked show box explains itself in the card footer", async () => {
+  test("a locked show box explains itself in the group's hint", async () => {
     const { wrapper, vm } = mountTab();
     const hint = () =>
       wrapper
-        .findAll(".adminHint")
+        .findAll(".v-messages__message")
         .find((node) => node.text().includes("Top Collection"));
     expect(hint().text()).toBe(
       "Publishers is the Top Collection, so it must stay shown. Choose another Top Collection to hide Publishers.",
@@ -127,6 +127,27 @@ describe("AdminDefaultsTab — drafts", () => {
     vm.draft.browser.topCollection = "comics";
     await vm.$nextTick();
     expect(hint()).toBeUndefined();
+  });
+
+  test("the show checkboxes flip one draft flag each", async () => {
+    const { wrapper, vm } = mountTab();
+    const group = wrapper.findComponent({ name: "VCheckboxGroup" });
+    expect(group.exists()).toBe(true);
+    const box = (key) => group.find(`input[value="${key}"]`);
+    expect(box("showPublishers").element.disabled).toBe(true);
+    expect(box("showImprints").element.checked).toBe(false);
+
+    await box("showImprints").setValue(true);
+    expect(vm.draft.browser).toMatchObject({
+      showPublishers: true,
+      showImprints: true,
+      showSeries: true,
+      showVolumes: false,
+    });
+
+    await box("showSeries").setValue(false);
+    expect(vm.draft.browser.showSeries).toBe(false);
+    expect(vm.draft.browser.showImprints).toBe(true);
   });
 
   test("a hidden collection is disabled with a reason", () => {
