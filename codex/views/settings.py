@@ -7,6 +7,7 @@ from types import MappingProxyType
 from typing import cast
 
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+from django.db import IntegrityError, transaction
 from loguru import logger
 
 from codex.choices.browser import admin_default_route_for, coherent_top_collection
@@ -192,20 +193,25 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         supplied a value. The seed applies only on row creation;
         ``_get_or_create_settings`` returns existing rows before reaching
         this branch, so a returning user's settings are never overwritten.
+
+        The three rows go in as one unit, so a concurrent request never finds
+        a browser row without its filters or last route, and an insert that
+        loses a create race (``IntegrityError``) leaves nothing behind.
         """
         create_kwargs, show_flags, bookmark, route = cls._browser_seed(
             client, create_args
         )
         show, _ = SettingsBrowserShow.objects.get_or_create(**show_flags)
-        instance = SettingsBrowser.objects.create(
-            user=user,
-            session_id=session_key,
-            client=client,
-            show=show,
-            **create_kwargs,
-        )
-        SettingsBrowserFilters.objects.create(browser=instance, bookmark=bookmark)
-        SettingsBrowserLastRoute.objects.create(browser=instance, **route)
+        with transaction.atomic():
+            instance = SettingsBrowser.objects.create(
+                user=user,
+                session_id=session_key,
+                client=client,
+                show=show,
+                **create_kwargs,
+            )
+            SettingsBrowserFilters.objects.create(browser=instance, bookmark=bookmark)
+            SettingsBrowserLastRoute.objects.create(browser=instance, **route)
         # Re-fetch with select_related so the reverse OneToOne accessors work.
         return SettingsBrowser.objects.select_related(
             *SETTINGS_BROWSER_SELECT_RELATED
@@ -230,6 +236,43 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         }
         instance, _ = SettingsReader.objects.get_or_create(defaults=defaults, **lookup)
         return instance
+
+    @classmethod
+    def _find_settings(
+        cls,
+        model: type[SettingsReader | SettingsBrowser],
+        user: AbstractBaseUser | AnonymousUser | None,
+        session_key: str | None,
+        base_filter: Mapping,
+        only: Sequence[str] | None,
+    ) -> SettingsBrowser | SettingsReader | None:
+        """Return the user's row, else the session's row, else None."""
+        instance = None
+        if user:
+            instance = cls._get_or_create_settings_user(
+                model, user, session_key, base_filter, only
+            )
+        if instance is None and session_key:
+            instance = cls._get_or_create_settings_session(
+                model, user, session_key, base_filter, only
+            )
+        return instance
+
+    @classmethod
+    def _create_settings(
+        cls,
+        model: type[SettingsReader | SettingsBrowser],
+        user: AbstractBaseUser | AnonymousUser | None,
+        session_key: str | None,
+        client: ClientChoices,
+        filter_args: Mapping,
+        create_args: Mapping,
+    ) -> SettingsBrowser | SettingsReader:
+        if model is SettingsBrowser:
+            return cls._create_browser_settings(user, session_key, client, create_args)
+        return cls._create_reader_settings(
+            user, session_key, client, filter_args, create_args
+        )
 
     def _get_or_create_settings(
         self,
@@ -257,32 +300,25 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
 
         base_filter = {"client": client, **filter_args}
 
-        instance = None
-        # 1. Authenticated user — look up by user first.
-        if user:
-            instance = self._get_or_create_settings_user(
-                model, user, session_key, base_filter, only
-            )
-
-        # 2. Try by session.
-        if instance is None and session_key:
-            instance = self._get_or_create_settings_session(
-                model, user, session_key, base_filter, only
-            )
+        # 1. Authenticated user row, then 2. session row.
+        instance = self._find_settings(model, user, session_key, base_filter, only)
 
         # 3. Nothing found — create.
         if instance is None:
-            if model is SettingsBrowser:
-                instance = self._create_browser_settings(
-                    user,
-                    session_key,
-                    client,
-                    create_args,
+            try:
+                instance = self._create_settings(
+                    model, user, session_key, client, filter_args, create_args
                 )
-            else:
-                instance = self._create_reader_settings(
-                    user, session_key, client, filter_args, create_args
+            except IntegrityError:
+                # A concurrent first request for this user or session, most
+                # often a new visitor's page load and its API calls, created
+                # the row after the lookups above. Use that row; with none,
+                # the error was something else.
+                instance = self._find_settings(
+                    model, user, session_key, base_filter, only
                 )
+                if instance is None:
+                    raise
 
         if only is None:
             # Only memoize full rows: an ``only()``-deferred instance
