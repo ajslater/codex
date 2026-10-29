@@ -68,11 +68,23 @@ import { useAdminStore } from "@/stores/admin";
 export const FOLDER_CAP = 200;
 // The server's "go up" entry; the Parent folder button replaces it.
 const PARENT_ENTRY = "..";
+// Ends the value of the "N more folders" leaf past the cap.
+const MORE_SUFFIX = "\0more";
 
 const joinPath = (parent, name) =>
   parent.endsWith("/") || parent.endsWith("\\")
     ? parent + name
     : `${parent}/${name}`;
+
+// Where a folder goes among its siblings, in the server's caseless order.
+const sortedIndex = (children, title) => {
+  const key = title.toLowerCase();
+  const index = children.findIndex(
+    ({ title: other, value }) =>
+      value.endsWith(MORE_SUFFIX) || other.toLowerCase() > key,
+  );
+  return index === -1 ? children.length : index;
+};
 
 export default {
   name: "AdminServerFolderTree",
@@ -107,11 +119,7 @@ export default {
       }
     },
     showHidden() {
-      // Re-root at the chosen folder, keeping it chosen, or at the root.
-      const chosen = this.activated[0];
-      this.reRoot(chosen || this.items[0]?.value, {
-        activate: Boolean(chosen),
-      });
+      this.refreshTree();
     },
   },
   mounted() {
@@ -141,21 +149,22 @@ export default {
       }
       return { title, value: folder, children: [] };
     },
-    fillChildren(node, folders) {
+    fillChildren(node, folders, keep = new Map()) {
       const names = folders.filter((name) => name !== PARENT_ENTRY);
       if (names.length === 0) {
         // An empty folder is a leaf: no chevron to open into nothing.
         delete node.children;
         return;
       }
-      node.children = names
-        .slice(0, FOLDER_CAP)
-        .map((name) => this.makeNode(joinPath(node.value, name), name));
+      node.children = names.slice(0, FOLDER_CAP).map((name) => {
+        const folder = joinPath(node.value, name);
+        return keep.get(folder) || this.makeNode(folder, name);
+      });
       const more = names.length - FOLDER_CAP;
       if (more > 0) {
         node.children.push({
           title: `${more} more folders, type the path above`,
-          value: `${node.value}\0more`,
+          value: node.value + MORE_SUFFIX,
           props: { disabled: true },
         });
       }
@@ -177,6 +186,88 @@ export default {
       } catch (error) {
         this.pathErrors = [error.message];
       }
+    },
+    openNodes() {
+      // The root and every open folder below it, as far as the tree is open.
+      const opened = new Set(this.opened);
+      const nodes = [];
+      const visit = (node) => {
+        nodes.push(node);
+        for (const child of node.children || []) {
+          if (opened.has(child.value) && child.children) {
+            visit(child);
+          }
+        }
+      };
+      visit(this.items[0]);
+      return nodes;
+    },
+    chosenBranch() {
+      // Each loaded folder on the way to the chosen one, by its parent.
+      const chosen = this.activated[0];
+      const branch = new Map();
+      let node = this.items[0];
+      while (chosen && node) {
+        const next = (node.children || []).find(({ value }) =>
+          isPathParent(value, chosen),
+        );
+        if (next) {
+          branch.set(node.value, next);
+        }
+        node = next;
+      }
+      return branch;
+    },
+    keepBranch(node, next, open) {
+      // Hiding hidden folders never hides the way to the chosen one.
+      const children = node.children || [];
+      if (children.some(({ value }) => value === next.value)) {
+        return;
+      }
+      if (!open.has(next.value) && next.children?.length) {
+        next.children = [];
+      }
+      children.splice(sortedIndex(children, next.title), 0, next);
+      node.children = children;
+    },
+    async refreshTree() {
+      /*
+       * Show Hidden Folders keeps the tree where it is: refetch the root
+       * and each open folder, keeping the open ones as they are, and keep
+       * the way to the chosen folder even when it is hidden. A closed
+       * folder goes back to unloaded, to list with the new setting when it
+       * is opened.
+       */
+      const root = this.items[0];
+      if (!root) {
+        this.reRoot();
+        return;
+      }
+      const { showHidden } = this;
+      const nodes = this.openNodes();
+      const branch = this.chosenBranch();
+      const results = await Promise.allSettled(
+        nodes.map(({ value }) => this.fetchFolders(value, showHidden)),
+      );
+      if (this.items[0] !== root || this.showHidden !== showHidden) {
+        // Re-rooted or toggled again meanwhile; this answer is stale.
+        return;
+      }
+      const open = new Map(nodes.map((node) => [node.value, node]));
+      for (const [index, node] of nodes.entries()) {
+        const result = results[index];
+        if (result.status === "fulfilled") {
+          this.fillChildren(node, result.value.folders, open);
+          const next = branch.get(node.value);
+          if (next) {
+            this.keepBranch(node, next, open);
+          }
+        } else {
+          node.props = { subtitle: result.reason.message };
+          delete node.children;
+        }
+      }
+      this.opened = [...open.keys()];
     },
     async loadChildren(node) {
       try {

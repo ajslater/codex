@@ -13,7 +13,10 @@
  *     the server's reason under the field.
  *   - Parent folder re-roots one level up and keeps the old root, open,
  *     with what it already loaded.
- *   - Show Hidden Folders refetches.
+ *   - Show Hidden Folders keeps the tree where it is: the root and the open
+ *     folders refetch and stay open, and a closed folder reloads with the
+ *     new setting when it is opened. Hiding never hides the way to the
+ *     chosen folder.
  *   - A folder that fails to load says so on its node, not in the form's
  *     shared errors.
  */
@@ -45,6 +48,11 @@ const LISTINGS = Object.freeze({
     folders: [".."],
   },
   "/": { rootFolder: "/", parentFolder: null, folders: ["comics", "tmp"] },
+  "/comics/.hidden": {
+    rootFolder: "/comics/.hidden",
+    parentFolder: "/comics",
+    folders: ["..", "deep"],
+  },
 });
 
 function child(vm, title, node = vm.items[0]) {
@@ -59,12 +67,18 @@ function mountTree({ libraries = [], listings = LISTINGS } = {}) {
     },
   });
   const store = useAdminStore(pinia);
-  // No path asks for the server's default folder.
-  store.fetchFolders.mockImplementation((path = "/comics") => {
+  // No path asks for the server's default folder. Every folder holds a
+  // hidden one.
+  store.fetchFolders.mockImplementation((path = "/comics", showHidden) => {
     const listing = listings[path];
-    return listing
-      ? Promise.resolve(structuredClone(listing))
-      : Promise.reject(new Error("Not a directory"));
+    if (!listing) {
+      return Promise.reject(new Error("Not a directory"));
+    }
+    const result = structuredClone(listing);
+    if (showHidden) {
+      result.folders.push(".hidden");
+    }
+    return Promise.resolve(result);
   });
   const wrapper = mount(ServerFolderTree, {
     attrs: { label: "Library Folder" },
@@ -191,16 +205,77 @@ describe("AdminServerFolderTree — navigating", () => {
     expect(vm.parentFolder).toBeNull();
   });
 
-  test("Show Hidden Folders refetches the chosen folder", async () => {
+  test("Show Hidden Folders keeps the tree and lists hidden folders", async () => {
     const { vm, store } = mountTree();
     await flushPromises();
-    vm.activated = ["/comics/DC"];
+    const dc = child(vm, "DC");
+    await vm.loadChildren(dc);
+    vm.opened = ["/comics", "/comics/DC"];
+    vm.activated = ["/comics/DC/Batman"];
+    await flushPromises();
+
+    vm.showHidden = true;
+    await flushPromises();
+
+    expect(store.fetchFolders).toHaveBeenCalledWith("/comics", true);
+    expect(store.fetchFolders).toHaveBeenCalledWith("/comics/DC", true);
+    expect(vm.items[0].value).toBe("/comics");
+    expect(child(vm, ".hidden")).toBeTruthy();
+    // The open folder is the same node, still open, now with its hidden one.
+    expect(child(vm, "DC")).toBe(dc);
+    expect(dc.children.map(({ title }) => title)).toEqual([
+      "Batman",
+      ".hidden",
+    ]);
+    expect(vm.opened).toEqual(["/comics", "/comics/DC"]);
+    expect(vm.activated).toEqual(["/comics/DC/Batman"]);
+    expect(vm.path).toBe("/comics/DC/Batman");
+
+    vm.showHidden = false;
+    await flushPromises();
+    expect(child(vm, ".hidden")).toBeUndefined();
+    expect(dc.children.map(({ title }) => title)).toEqual(["Batman"]);
+  });
+
+  test("hiding keeps the open way to a chosen folder inside a hidden one", async () => {
+    const { vm } = mountTree();
     await flushPromises();
     vm.showHidden = true;
     await flushPromises();
-    expect(store.fetchFolders).toHaveBeenLastCalledWith("/comics/DC", true);
-    expect(vm.items[0].value).toBe("/comics/DC");
-    expect(vm.activated).toEqual(["/comics/DC"]);
+    const hidden = child(vm, ".hidden");
+    await vm.loadChildren(hidden);
+    vm.opened = ["/comics", "/comics/.hidden"];
+    vm.activated = ["/comics/.hidden/deep"];
+    await flushPromises();
+
+    vm.showHidden = false;
+    await flushPromises();
+
+    expect(vm.items[0].children.map(({ title }) => title)).toEqual([
+      ".hidden",
+      "DC",
+      "empty",
+      "Marvel",
+    ]);
+    expect(child(vm, ".hidden")).toBe(hidden);
+    expect(hidden.children.map(({ title }) => title)).toEqual(["deep"]);
+    expect(vm.opened).toEqual(["/comics", "/comics/.hidden"]);
+    expect(vm.path).toBe("/comics/.hidden/deep");
+  });
+
+  test("a closed folder lists with the new setting when opened", async () => {
+    const { vm } = mountTree();
+    await flushPromises();
+    await vm.loadChildren(child(vm, "empty"));
+    expect(child(vm, "empty")).not.toHaveProperty("children");
+
+    vm.showHidden = true;
+    await flushPromises();
+
+    const empty = child(vm, "empty");
+    expect(empty.children).toEqual([]);
+    await vm.loadChildren(empty);
+    expect(empty.children.map(({ title }) => title)).toEqual([".hidden"]);
   });
 
   test("a folder that fails to load says so on its node only", async () => {
