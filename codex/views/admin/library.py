@@ -180,7 +180,7 @@ class AdminFolderListView(AdminGenericAPIView):
                     continue
                 if is_dir:
                     subdirs.append(entry.name)
-        dirs.extend(sorted(subdirs))
+        dirs.extend(sorted(subdirs, key=str.casefold))
         return tuple(dirs)
 
     @staticmethod
@@ -234,10 +234,20 @@ class AdminFolderListView(AdminGenericAPIView):
 
             dirs = self._get_dirs(root_path, show_hidden)
 
-            data = {"root_folder": str(root_path), "folders": dirs}
+            parent = root_path.parent
+            data = {
+                "root_folder": str(root_path),
+                "parent_folder": str(parent) if parent != root_path else None,
+                "folders": dirs,
+            }
             serializer = self.get_serializer(data)
         except ValidationError:
             raise
+        except PermissionError as exc:
+            # A folder the server may see but not list. Keyed to the path,
+            # like "Not a directory", so the envelope carries the reason.
+            reason = {"path": ["Permission denied"]}
+            raise ValidationError(reason) from exc
         except Exception as exc:
             logger.exception("get admin folder list view")
             reason = "Server Error"
