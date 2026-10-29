@@ -79,7 +79,7 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "nplusone~=1.0",
-  "picopt~=6.10.0",
+  "picopt~=6.11.0",
   "pypi-cleanup~=0.1.10",
   "toml-cli~=0.7",
 ]
