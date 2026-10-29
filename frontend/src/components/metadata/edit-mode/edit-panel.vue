@@ -1,17 +1,24 @@
 <template>
   <v-form id="editPanel" ref="form" @submit.prevent>
     <div id="editToolbar">
-      <v-select
+      <v-checkbox-group
         v-model="selectedFormats"
-        :items="formatChoices"
-        label="Formats"
+        aria-label="Metadata formats"
+        :hint="formatsHint"
+        :error-messages="formatsError"
+        persistent-hint
         density="compact"
-        hide-details
-        multiple
-        chips
-        class="formatSelect"
-        @update:model-value="enforceMinFormat"
-      />
+        inline
+        class="formatGroup"
+      >
+        <v-checkbox
+          v-for="format in formatChoices"
+          :key="format.value"
+          :value="format.value"
+          :label="format.title"
+          :disabled="isLastFormat(format.value)"
+        />
+      </v-checkbox-group>
       <v-checkbox
         v-model="renameFile"
         :label="renameCheckboxLabel"
@@ -1490,13 +1497,9 @@ import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
 import IDENTIFIER_TYPE_BY_CODEX_NAME from "@/choices/identifier-type-by-codex-name.json";
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
-
-const FORMAT_CHOICES = [
-  { title: "MetronInfo", value: "METRON_INFO" },
-  { title: "ComicInfo", value: "COMIC_INFO" },
-];
 import LANGUAGES from "@/choices/languages.json";
 import SERIES_STATUSES from "@/choices/series-statuses.json";
+import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -1643,7 +1646,7 @@ export default {
   emits: ["cancel", "saved"],
   data() {
     return {
-      formatChoices: FORMAT_CHOICES,
+      formatChoices: TAGGING_CHOICES.formats,
       selectedFormats: ["COMIC_INFO"],
       languageChoices: LANGUAGES,
       countryChoices: COUNTRIES,
@@ -1775,6 +1778,15 @@ export default {
         }
         return item;
       });
+    },
+    formatsHint() {
+      // The last checked box is disabled; say why.
+      return this.selectedFormats.length === 1
+        ? "At least one format must be written"
+        : "";
+    },
+    formatsError() {
+      return this.selectedFormats.length ? [] : ["Choose at least one format"];
     },
     enabledFormats() {
       return this.selectedFormats.length > 0
@@ -2082,12 +2094,11 @@ export default {
       }
       return capitalCase(key);
     },
-    enforceMinFormat(val) {
-      if (!val || val.length === 0) {
-        this.selectedFormats = this.lastFormats || ["COMIC_INFO"];
-      } else {
-        this.lastFormats = [...val];
-      }
+    isLastFormat(value) {
+      return (
+        this.selectedFormats.length === 1 &&
+        this.selectedFormats.includes(value)
+      );
     },
     unionFormatValues(key) {
       const seen = new Set();
@@ -2796,8 +2807,35 @@ export default {
     background-color: rgb(var(--v-theme-surface));
   }
 
-  .formatSelect {
-    max-width: 280px;
+  /* The format boxes never squeeze; the filename preview gives way. */
+  .formatGroup {
+    flex: 0 0 auto;
+  }
+
+  /*
+   * Keep a wide toolbar one row: the formats' hint sits beside the boxes
+   * instead of under them, so the boxes line up with the rest of the row.
+   * A narrower toolbar has no room for that, so there the hint stays
+   * underneath and the toolbar wraps.
+   */
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    #editToolbar {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'md-and-up')} {
+    .formatGroup {
+      grid-template-areas: "prepend control messages append";
+      grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
+      grid-template-rows: auto;
+    }
+
+    .formatGroup :deep(> .v-input__details) {
+      align-self: center;
+      min-height: 0;
+      padding: 0 0 0 8px;
+    }
   }
 
   .sectionHeader {
