@@ -45,6 +45,12 @@ function mountDialog({
   return { wrapper, onlineTagStore };
 }
 
+function sourceInput(wrapper, source) {
+  return wrapper
+    .findComponent({ name: "VCheckboxGroup" })
+    .find(`input[value="${source}"]`);
+}
+
 describe("OnlineTagLauncherDialog", () => {
   describe("action button", () => {
     test("reads Search when nothing is pinned", async () => {
@@ -122,6 +128,61 @@ describe("OnlineTagLauncherDialog", () => {
 
       expect(wrapper.vm.allSourcesDisabled).toBe(true);
       expect(wrapper.vm.actionDisabled).toBe(true);
+    });
+  });
+
+  describe("source checkboxes", () => {
+    test("an unconfigured source is disabled and the group says why", async () => {
+      const { wrapper } = mountDialog({
+        taggingDefaults: {
+          hasMetronCredentials: true,
+          hasComicvineCredentials: false,
+        },
+      });
+      wrapper.vm.sources = ["metron"];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findComponent({ name: "VCheckboxGroup" }).exists()).toBe(
+        true,
+      );
+      expect(sourceInput(wrapper, "metron").element.disabled).toBe(false);
+      expect(sourceInput(wrapper, "comicvine").element.disabled).toBe(true);
+      expect(wrapper.text()).toContain(
+        "Comic Vine has no API key. Add one in Admin → Tagging.",
+      );
+    });
+
+    test("an empty selection explains the disabled action", async () => {
+      const { wrapper } = mountDialog();
+      wrapper.vm.sources = [];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain("Pick at least one source");
+      expect(wrapper.vm.actionDisabled).toBe(true);
+    });
+
+    test("checking a source adds it to the selection", async () => {
+      const { wrapper } = mountDialog();
+      wrapper.vm.sources = ["metron"];
+      await wrapper.vm.$nextTick();
+
+      await sourceInput(wrapper, "comicvine").setValue(true);
+
+      expect(wrapper.vm.sources).toEqual(["metron", "comicvine"]);
+      expect(wrapper.text()).not.toContain("Pick at least one source");
+    });
+
+    test("a pinned id checks its source's box", async () => {
+      const { wrapper } = mountDialog();
+      wrapper.vm.sources = ["comicvine"];
+      await wrapper.vm.$nextTick();
+      expect(sourceInput(wrapper, "metron").element.checked).toBe(false);
+
+      wrapper.vm.idInputs = ["metron:12345"];
+      await wrapper.vm.$nextTick();
+      await wrapper.vm.$nextTick();
+
+      expect(sourceInput(wrapper, "metron").element.checked).toBe(true);
     });
   });
 

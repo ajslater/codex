@@ -55,6 +55,26 @@
   }
 
   /*
+   * A checkbox group lines up with a lone checkbox. Vuetify's labs CSS
+   * indents the group's label 16px and its boxes 6px. Inline boxes get
+   * room between one label and the next box.
+   */
+  .v-checkbox-group > .v-input__control > .v-label {
+    margin-inline-start: 0;
+  }
+
+  .v-checkbox-group
+    > .v-input__control
+    > .v-label
+    + .v-selection-control-group {
+    padding-inline-start: 0;
+  }
+
+  .v-checkbox-group .v-selection-control-group--inline {
+    column-gap: 16px;
+  }
+
+  /*
    * Sub-header inside the settings drawers. Shared by six components
    * across the browser and reader drawers.
    */
