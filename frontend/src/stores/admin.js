@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/admin";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
+import { fieldErrorMap, getErrors, useCommonStore } from "@/stores/common";
 
 const { TABLES } = API;
 
@@ -192,6 +192,23 @@ export const useAdminStore = defineStore("admin", {
         this.folderPicker = response.data;
       } catch (error) {
         commonStore.setErrors(error);
+      }
+    },
+    /*
+     * One folder listing for the folder tree: ``{rootFolder, parentFolder,
+     * folders}``. Throws the server's reason, so each caller decides where
+     * it shows, and touches neither folderPicker nor the shared form errors.
+     */
+    async fetchFolders(path, showHidden) {
+      if (this._requireAdmin()) {
+        throw new Error("Not an administrator");
+      }
+      try {
+        const response = await API.getFolders(path, showHidden);
+        return response.data;
+      } catch (error) {
+        const reasons = fieldErrorMap(error).path ?? getErrors(error);
+        throw new Error(reasons.join(" "), { cause: error });
       }
     },
     async clearFolders(rootFolder) {
