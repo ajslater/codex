@@ -2,7 +2,9 @@
 Golden tests: bin/release_info.py against codex's real NEWS.md.
 
 The release job builds each GitHub Release from NEWS.md through
-bin/release_info.py, so these pin the titles and bodies already published.
+bin/release_info.py, so these pin the titles and bodies it produces. Releases
+published before NEWS.md moved to `### <gitmoji> <Section>` headings keep their
+old list-style bodies.
 bin/release_info.py itself is devenv's and is tested there.
 """
 
@@ -43,8 +45,9 @@ def test_golden_v2_4_1_body() -> None:
     info = release_info.build_info(_pyproject("2.4.1"), _REAL_NEWS)
     assert info.title == "v2.4.1"
     assert info.notes == (
-        "- Fixes\n"
-        "    - The browser pane was unable to scroll due to an upstream widget bug.\n"
+        "### 🐛 Fixed\n"
+        "\n"
+        "- The browser pane was unable to scroll due to an upstream widget bug.\n"
     )
 
 
