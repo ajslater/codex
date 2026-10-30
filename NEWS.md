@@ -2085,11 +2085,13 @@ border-radius: 128px;
 
 - Crash when moving comics.
 - Container memory limits weren't detected for Linux kernels before 4.5
-- Reader
-- Horizontal Reader was slow for comics with high page counts.
-- Vertical scroller was not tracking pages in fitTo Width or Orig modes.
 - Validation error detecting child and parent library paths incorrectly.
-- Dev
+- Reader
+    - Horizontal Reader was slow for comics with high page counts.
+    - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
+
+### 🧑‍💻 Developer
+
 - Django 4.2
 
 ## v1.3.6
@@ -2114,10 +2116,11 @@ border-radius: 128px;
 - Number out of range errors for issue when search indexing.
 - Total child pages of folders and groups sometimes overcounted, displaying half
   unread folders.
-- Reader: Vertical Scroll
-- Remove black bottom margin from images.
-- Was loading every page in a comic at once.
-- Page tracking did not work with images larger than viewport width.
+- Reader
+    - Vertical Scroll
+    - Remove black bottom margin from images.
+    - Was loading every page in a comic at once.
+    - Page tracking did not work with images larger than viewport width.
 
 ## v1.3.3
 
@@ -2165,13 +2168,13 @@ border-radius: 128px;
 - Reader vertical scroll lost its place in Fit To Width or Orig mode.
 - OPDS downloaded files all had the same name.
 - Search Index
-- More robust against bad data.
-- Some search fields were case sensitive.
+    - More robust against bad data.
+    - Some search fields were case sensitive.
 - Admin
-- Graceful shutdown when Docker container stops.
-- Codex was backing up on every startup.
-- Status for batched imports (large imports or low memory) now reflects total
-  instead of single batch.
+    - Graceful shutdown when Docker container stops.
+    - Codex was backing up on every startup.
+    - Status for batched imports (large imports or low memory) now reflects
+      total instead of single batch.
 
 ## v1.2.9
 
@@ -2195,18 +2198,18 @@ border-radius: 128px;
 - Search Index
 - Improved search indexing times.
 - Admin Flag to adjust nightly full optimization.
-- OPDS
-- "Newest Issues" Link replaced by "Recently Added" after user feedback.
+- OPDS "Newest Issues" Link replaced by "Recently Added" after user feedback.
 
 ### 🐛 Fixed
 
 - Volume tags were often not scanned. Recommend using Force Reimport on all
   libraries.
 - OPDS
-- Fix navigation links not inheriting view settings of current page.
-- Removed populating categories in OPDS to experiment with performance issues.
-- Fix OPDS pse lastRead tag.
-- Block library polling during database updates, fixes reindexing.
+    - Fix navigation links not inheriting view settings of current page.
+    - Removed populating categories in OPDS to experiment with performance
+      issues.
+    - Fix OPDS pse lastRead tag.
+    - Block library polling during database updates, fixes reindexing.
 
 ## v1.2.7
 
@@ -2240,24 +2243,24 @@ border-radius: 128px;
 
 - User configurable 24 hour time format.
 - Reader
-- Displays covers as one page even in two page mode.
-- Read in Reverse mode.
-- Keymaps for adjusting page by one page in two page mode.
-- Previous and Next book navigation buttons and keymaps.
+    - Displays covers as one page even in two page mode.
+    - Read in Reverse mode.
+    - Keymaps for adjusting page by one page in two page mode.
+    - Previous and Next book navigation buttons and keymaps.
 
 ### 🐛 Fixed
 
 - OPDS:
-- Fix acquisition feed timeouts on large libraries by removing most m2m fields
-  that populated OPDS categories
-- Fix pagination
-- Show series name in comic title.
-- Experiment: don't show top links or entry facets on pages > 1
+    - Fix acquisition feed timeouts on large libraries by removing most m2m
+      fields that populated OPDS categories
+    - Fix pagination
+    - Show series name in comic title.
+    - Experiment: don't show top links or entry facets on pages > 1
 - Reader:
-- Two pages mode would skip pages.
-- Next/prev book goes to correct page for Right To Left tagged books.
-- Fix occasional error setting reader settings.
-- Fixed noop poll event happening on comic cover creation.
+    - Two pages mode would skip pages.
+    - Next/prev book goes to correct page for Right To Left tagged books.
+    - Fix occasional error setting reader settings.
+    - Fixed noop poll event happening on comic cover creation.
 
 ## v1.2.3
 
