@@ -9,7 +9,7 @@ border-radius: 128px;
 ## v2.5.8
 
 - Features
-    - New Add Library server folders picker component.
+    - New `Add Library` server folder picker component.
 - Fixes
     - A new visitor's first page load no longer sometimes fails.
     - Unchecking every default metadata format no longer breaks online tagging.
