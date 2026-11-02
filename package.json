@@ -59,7 +59,7 @@
     "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@vitest/eslint-plugin": "^1.6.28",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "eslint_d": "^15.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-compat": "^7.0.2",
@@ -74,8 +74,8 @@
     "eslint-plugin-perfectionist": "^5.13.0",
     "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-promise": "^7.3.0",
-    "eslint-plugin-regexp": "^3.3.2",
-    "eslint-plugin-security": "^4.2.0",
+    "eslint-plugin-regexp": "^3.3.3",
+    "eslint-plugin-security": "^4.2.1",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-toml": "^1.5.0",
     "eslint-plugin-unicorn": ">=74.0.0",
@@ -85,7 +85,7 @@
     "postcss-scss": "^4.0.9",
     "prettier": "^3.9.10",
     "prettier-plugin-nginx": "^2.0.0",
-    "prettier-plugin-packagejson": "^3.0.3",
+    "prettier-plugin-packagejson": "^3.1.0",
     "prettier-plugin-toml": "^4.1.0",
     "svgo": "^4.1.0"
   }

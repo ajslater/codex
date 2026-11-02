@@ -40,7 +40,7 @@
     "@vue/typescript-plugin": "^3.3.14",
     "happy-dom": "^21.0.4",
     "rollup-plugin-visualizer": "^7.1.1",
-    "sass": "^1.107.0",
+    "sass": "^1.107.1",
     "sass-loader": "^17.1.0",
     "toml": "^5.0.1",
     "vite": "^8.3.5",
