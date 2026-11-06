@@ -8,7 +8,9 @@ width: 128px;
 border-radius: 128px;
 " />
 
-> **Note:** The Docker image has moved to
+> [!WARNING]
+>
+> The Docker image has moved to
 > [ghcr.io/ajslater/codex](https://github.com/ajslater/codex/pkgs/container/codex).
 > The `docker.io/ajslater/codex` image is deprecated. It is republished from
 > ghcr.io only so that Codex can warn you to switch. See
@@ -445,6 +447,8 @@ All available options with their defaults. Uncomment to override. Codex writes
 this file to the config directory on first startup if one is not already
 present.
 
+> [!WARNING]
+>
 > **Deprecated since v2.0.0:** the `[browser]`, `[throttle]`, and `[email]`
 > sections (and their matching `CODEX_*` environment variables) are now managed
 > in the Admin Panel — browser page size and rate limits on the **Settings**
@@ -609,6 +613,8 @@ Environment variables override values set in the TOML config file.
 
 ##### Browser
 
+> [!WARNING]
+>
 > **Deprecated:** set Browser Page Size on the Admin **Settings** tab instead;
 > this only seeds the initial default.
 
@@ -617,6 +623,8 @@ Environment variables override values set in the TOML config file.
 
 #### Throttling
 
+> [!WARNING]
+>
 > **Deprecated:** set rate limits on the Admin **Settings** tab instead; these
 > variables only seed the initial defaults.
 
