@@ -137,13 +137,7 @@ source-include = [
   "bin/**",
   "bun.lock",
   "compose.yaml",
-  "docs/DOCKER.md",
-  "docs/NEWS",
-  "docs/NEWS.md",
-  "docs/README.md",
-  "docs/WINDOWS.md",
-  "docs/codex/img/logo.svg",
-  "docs/strange.jpg",
+  "docs/**",
   "eslint.config.js",
   "frontend/**",
   "img/**",
@@ -152,7 +146,6 @@ source-include = [
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
-  "docs/**",
   "zensical.toml",
 ]
 source-exclude = [
