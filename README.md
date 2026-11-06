@@ -715,12 +715,16 @@ above is what keeps the static assets reachable.
 
 #### CSRF 403 behind a proxy
 
+> [!NOTE]
+>
+> In general, a correctly configured reverse proxy shouldn't need
+> `csrf_trusted_origins` or `CODEX_CSRF_TRUSTED_ORIGINS` at all.
+
 If logging in or saving changes fails with a 403 "CSRF Failed" error behind a
 reverse proxy, first make sure the proxy sends `X-Forwarded-Proto` and
 `X-Forwarded-Host` (the nginx example above does). Codex compares them with the
-browser's `Origin` header, so a correctly configured proxy ordinarily needs no
-CSRF setting at all. Only if the proxy can't send them, or the error persists,
-add the public origin the browser uses to `config/codex.toml`:
+browser's `Origin` header. Only if the proxy can't send them, or the error
+persists, add the public origin the browser uses to `config/codex.toml`:
 
 ```toml
 [server]
@@ -734,11 +738,6 @@ separated for more than one). An origin is `scheme://host[:port]` with no path;
 Do not remove Django's `CsrfViewMiddleware` to work around the error. The API
 enforces CSRF through Django REST Framework anyway, so removing it doesn't fix
 the API, and it strips CSRF protection from Codex's other pages.
-
-> [!NOTE]
->
-> In general, a correctly configured reverse proxy shouldn't need
-> `csrf_trusted_origins` or `CODEX_CSRF_TRUSTED_ORIGINS` at all.
 
 #### Preserving the Codex Server Header
 
