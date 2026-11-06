@@ -110,7 +110,7 @@ test = [
   "pytest-xdist~=3.8",
   "rnc2rng~=2.7",
 ]
-docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
+docs = ["zensical~=0.1"]
 ci = []
 
 [build-system]
@@ -137,28 +137,16 @@ source-include = [
   "bin/**",
   "bun.lock",
   "compose.yaml",
-  "docs/DOCKER.md",
-  "docs/NEWS",
-  "docs/NEWS.md",
-  "docs/README.md",
-  "docs/WINDOWS.md",
-  "docs/codex/img/logo.svg",
-  "docs/requirements.txt",
-  "docs/strange.jpg",
-  "docs/style.css",
-  "docs/style.material.css",
-  "docs/style.mkdocs.css",
-  "docs/style.readthedocs.css",
+  "docs/**",
   "eslint.config.js",
   "frontend/**",
   "img/**",
-  "mkdocs.yml",
   "mock_comics/**",
   "package.json",
   "tests/**",
   "uv.lock",
   "vulture_ignorelist.py",
-  "docs/**",
+  "zensical.toml",
 ]
 source-exclude = [
   # Symlinks to directories, which the sdist builder reads as files.
