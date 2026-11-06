@@ -172,6 +172,7 @@ const baseConfig = defineConfig([
       "**/uv.lock",
       ".claude",
       ".git/",
+      "site/",
       "tasks/",
       "typings/",
     ],

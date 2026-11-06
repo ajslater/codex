@@ -1,0 +1,18 @@
+[project]
+docs_dir = "docs"
+
+[project.theme]
+variant = "modern"
+features = ["content.code.copy", "navigation.footer", "search.highlight"]
+
+[project.theme.palette]
+scheme = "slate"
+
+[project.markdown_extensions]
+smarty = {}
+toc.permalink = true
+
+[project.plugins.minify]
+minify_html = true
+minify_inline_js = true
+minify_inline_css = true
