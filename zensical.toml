@@ -11,8 +11,14 @@ variant = "modern"
 logo = "codex/img/logo.svg"
 features = ["content.code.copy", "navigation.footer", "search.highlight"]
 
+[project.theme.font]
+text = "Inter"
+code = "JetBrains Mono"
+
 [project.theme.palette]
 scheme = "slate"
+primary = "deep purple"
+accent = "orange"
 
 [project.markdown_extensions]
 smarty = {}
