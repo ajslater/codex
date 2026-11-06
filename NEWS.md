@@ -275,11 +275,14 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- Docker Hub users: `docker.io/ajslater/codex` is published again, but it is
-  deprecated. Change your image to `ghcr.io/ajslater/codex`; nothing else
-  changes. Admins see a warning in the web UI, and the logs warn at startup and
-  once a day, until the image is changed. Coming from 1.9.x, back up your
-  `config` directory first and read the Upgrading notes for every version since.
+> [!WARNING]
+>
+> - Docker Hub users: `docker.io/ajslater/codex` is published again, but it is
+>   deprecated. Change your image to `ghcr.io/ajslater/codex`; nothing else
+>   changes. Admins see a warning in the web UI, and the logs warn at startup
+>   and once a day, until the image is changed. Coming from 1.9.x, back up your
+>   `config` directory first and read the 💥 Breaking Changes of every version
+>   since.
 
 ### ♻️ Changed
 
@@ -294,12 +297,15 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- Comicbox 5.0.0 reads some tags differently and adds others. Existing comics
-  keep the tags they were imported with until they are read again: select comics
-  and Force Update Tags, or let a scan pick up files you change. Until then the
-  new fields are empty, and age ratings and credit roles keep their old
-  spellings, so a filter can list both `Everyone 10+` and `Everyone`, or both
-  `CoverArtist` and `Cover`. Age-restricted access is unaffected either way.
+> [!WARNING]
+>
+> - Comicbox 5.0.0 reads some tags differently and adds others. Existing comics
+>   keep the tags they were imported with until they are read again: select
+>   comics and Force Update Tags, or let a scan pick up files you change. Until
+>   then the new fields are empty, and age ratings and credit roles keep their
+>   old spellings, so a filter can list both `Everyone 10+` and `Everyone`, or
+>   both `CoverArtist` and `Cover`. Age-restricted access is unaffected either
+>   way.
 
 ### ✨ Added
 
@@ -668,20 +674,22 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- This is a major upgrade. A one-time database migration runs on first startup;
-  back up your `config` directory before upgrading.
-- Editing tags writes to your comic files; the comics directory must be mounted
-  writable with write permission for tag editing to work.
-- Admin settings (SMTP, rate limits, browser page size, cover upload size) moved
-  from `codex.toml` into the Admin UI and are now editable without a restart.
-  Existing values are imported automatically on upgrade; those `codex.toml`
-  sections are deprecated.
-- Custom covers are now managed in the web UI. Legacy filesystem covers
-  (in-library `.codex-cover.*` files and the covers-only library) migrate
-  automatically on first startup.
-- The browser and reader page URLs changed; bookmarks to specific pages may need
-  re-navigating from the home screen. OPDS apps reconnect on their own.
-- The HTTP API moved from `/api/v3/` to `/api/v4/`.
+> [!WARNING]
+>
+> - This is a major upgrade. A one-time database migration runs on first
+>   startup; back up your `config` directory before upgrading.
+> - Editing tags writes to your comic files; the comics directory must be
+>   mounted writable with write permission for tag editing to work.
+> - Admin settings (SMTP, rate limits, browser page size, cover upload size)
+>   moved from `codex.toml` into the Admin UI and are now editable without a
+>   restart. Existing values are imported automatically on upgrade; those
+>   `codex.toml` sections are deprecated.
+> - Custom covers are now managed in the web UI. Legacy filesystem covers
+>   (in-library `.codex-cover.*` files and the covers-only library) migrate
+>   automatically on first startup.
+> - The browser and reader page URLs changed; bookmarks to specific pages may
+>   need re-navigating from the home screen. OPDS apps reconnect on their own.
+> - The HTTP API moved from `/api/v3/` to `/api/v4/`.
 
 ### ✨ Added
 
@@ -840,9 +848,11 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- This version of codex needs to re-sync the search index on first startup which
-  make take time on large collections. However, the new search sync is faster
-  than before.
+> [!WARNING]
+>
+> - This version of codex needs to re-sync the search index on first startup
+>   which make take time on large collections. However, the new search sync is
+>   faster than before.
 
 ### ✨ Added
 
@@ -943,6 +953,10 @@ border-radius: 128px;
 
 ## v1.10.4-7 - Broken releases
 
+> [!CAUTION]
+>
+> These releases were broken. Use v1.10.8.
+
 ## v1.10.3
 
 ### ✨ Added
@@ -965,19 +979,25 @@ border-radius: 128px;
 
 ## v1.10.1 - Mistaken release
 
+> [!CAUTION]
+>
+> Released by mistake. Use v1.10.2.
+
 ## v1.10.0 - Rust modules & Settings Features
 
 ### 💥 Breaking Changes
 
-- The docker repo has changed to ghcr.io/ajslater/codex
-- Django 6 requires python >=3.12.
-- Unified configuration
-    - Your hypercorn.toml config will be migrated automatically to codex.toml.
-      Options previously only configurable with environment variables may now be
-      also be specified in codex.toml.
-    - Some of the environment variable names have changed, but old values are
-      still respected for compatibility.
-- Replaced the thumbnail filename algorithm. Thumbnails will regenerate.
+> [!WARNING]
+>
+> - The docker repo has changed to ghcr.io/ajslater/codex
+> - Django 6 requires python >=3.12.
+> - Unified configuration
+>     - Your hypercorn.toml config will be migrated automatically to codex.toml.
+>       Options previously only configurable with environment variables may now
+>       be also be specified in codex.toml.
+>     - Some of the environment variable names have changed, but old values are
+>       still respected for compatibility.
+> - Replaced the thumbnail filename algorithm. Thumbnails will regenerate.
 
 ### ✨ Added
 
@@ -1060,6 +1080,10 @@ border-radius: 128px;
 - Fix search indexing the universes tag.
 
 ## v1.9.17 - Broken build
+
+> [!CAUTION]
+>
+> The build was broken. Use v1.9.18.
 
 ## v1.9.16
 
@@ -1144,6 +1168,10 @@ border-radius: 128px;
 - Fixed a status crash.
 
 ## v1.9.8 - Bad release, does not start
+
+> [!CAUTION]
+>
+> Codex did not start. Use v1.9.9.
 
 ## v1.9.7
 
@@ -1602,6 +1630,10 @@ border-radius: 128px;
 
 ## v1.6.18 - Yanked, broken reader
 
+> [!CAUTION]
+>
+> Yanked: the reader was broken. Use v1.6.19.
+
 ## v1.6.17
 
 ### ✨ Added
@@ -1658,6 +1690,10 @@ border-radius: 128px;
 - Detect iOS devices in Desktop Mode for proper iOS tap behavior.
 
 ## v1.6.9, v1.6.10, v1.6.11 - Yanked, bad network behavior and broken javascript
+
+> [!CAUTION]
+>
+> Yanked: bad network behavior and broken JavaScript. Use v1.6.12.
 
 ## v1.6.8
 
@@ -1907,8 +1943,10 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- The main database path has changed from `db.sqlite3` to `codex.sqlite3`
-- This version forces a rebuild of the search index (not the main database)
+> [!WARNING]
+>
+> - The main database path has changed from `db.sqlite3` to `codex.sqlite3`
+> - This version forces a rebuild of the search index (not the main database)
 
 ### ✨ Added
 
@@ -2250,13 +2288,13 @@ border-radius: 128px;
 
 ### 🐛 Fixed
 
-- OPDS:
+- OPDS
     - Fix acquisition feed timeouts on large libraries by removing most m2m
       fields that populated OPDS categories
     - Fix pagination
     - Show series name in comic title.
     - Experiment: don't show top links or entry facets on pages > 1
-- Reader:
+- Reader
     - Two pages mode would skip pages.
     - Next/prev book goes to correct page for Right To Left tagged books.
     - Fix occasional error setting reader settings.
@@ -2602,6 +2640,10 @@ border-radius: 128px;
 
 ## v0.10.6 - Broken docker container
 
+> [!CAUTION]
+>
+> The Docker container was broken. Use v0.10.7.
+
 ## v0.10.5
 
 ### ✨ Added
@@ -2732,6 +2774,10 @@ border-radius: 128px;
 
 ## v0.9.10 - Yanked, crash loading admin page
 
+> [!CAUTION]
+>
+> Yanked: the admin page crashed on load. Use v0.9.11.
+
 ## v0.9.9
 
 ### ✨ Added
@@ -2835,7 +2881,9 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- Codex now requires the Xapian library to run as a native application
+> [!WARNING]
+>
+> - Codex now requires the Xapian library to run as a native application
 
 ### ✨ Added
 
@@ -2906,8 +2954,10 @@ border-radius: 128px;
 
 ### 💥 Breaking Changes
 
-- v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on
-  previous versions of codex.
+> [!WARNING]
+>
+> - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run
+>   on previous versions of codex.
 
 ### ✨ Added
 
