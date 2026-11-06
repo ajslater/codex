@@ -1,8 +1,14 @@
 [project]
+site_name = "Codex"
+site_url = "https://codex-comic-reader.readthedocs.io/"
+site_author = "AJ"
+site_description = "Codex Comicbook Reader Admin Guide"
+nav = ["NEWS.md", "DOCKER.md"]
 docs_dir = "docs"
 
 [project.theme]
 variant = "modern"
+logo = "codex/img/logo.svg"
 features = ["content.code.copy", "navigation.footer", "search.highlight"]
 
 [project.theme.palette]
