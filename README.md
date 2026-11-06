@@ -735,6 +735,11 @@ Do not remove Django's `CsrfViewMiddleware` to work around the error. The API
 enforces CSRF through Django REST Framework anyway, so removing it doesn't fix
 the API, and it strips CSRF protection from Codex's other pages.
 
+> [!NOTE]
+>
+> In general, a correctly configured reverse proxy shouldn't need
+> `csrf_trusted_origins` or `CODEX_CSRF_TRUSTED_ORIGINS` at all.
+
 #### Preserving the Codex Server Header
 
 Codex identifies itself with a `Server: codex/<version>` response header, which
