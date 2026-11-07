@@ -12,8 +12,15 @@ border-radius: 128px;
 
 - New `Add Library` server folder picker component.
 
+### ♻️ Changed
+
+- Renamed files carry the full date, like `(1950-11-01)`, and the volume count
+  (comicbox 5.6.0).
+
 ### 🐛 Fixed
 
+- Filenames supply the month, day, volume count and publisher; `(Digital)` or
+  `(DC)` alone no longer read as the title (comicbox 5.6.0).
 - A new visitor's first page load no longer sometimes fails.
 - Unchecking every default metadata format no longer breaks online tagging.
 - Unreadable folders in Add Library say "Permission denied" instead of "Server
