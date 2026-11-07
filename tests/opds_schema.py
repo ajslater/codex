@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 import rnc2rng
 from jsonschema import Draft7Validator
 from lxml import (
-    etree,  # ty: ignore[unresolved-import] # pyright: ignore[reportAttributeAccessIssue]
+    etree,  # ty: ignore[import-not-found] # pyright: ignore[reportAttributeAccessIssue]
 )
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT7
