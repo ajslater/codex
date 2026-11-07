@@ -6,13 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.5.8
+## v2.6.0 - Tag Editor Suggestions
 
 ### ✨ Added
 
+- The tag editor suggests the library's existing publishers, imprints, series,
+  volumes, credits, story arcs, universes and tags as you type, so a correction
+  can pick the spelling already in use instead of creating a near-duplicate.
+  Imprint, series and volume suggestions narrow to the publisher, imprint and
+  series chosen above them. New names can still be typed in.
 - New `Add Library` server folder picker component.
-- The tag editor suggests existing publishers, imprints, series, volumes,
-  credits, story arcs, universes and tags as you type.
 
 ### ♻️ Changed
 
