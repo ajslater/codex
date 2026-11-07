@@ -793,7 +793,7 @@ requires-dist = [
     { name = "asgiref", specifier = "~=3.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=5.6.0" },
+    { name = "comicbox", extras = ["pdf"], specifier = "~=5.6.1" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -875,7 +875,7 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "5.6.0"
+version = "5.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bidict" },
@@ -908,9 +908,9 @@ dependencies = [
     { name = "xmltodict" },
     { name = "zipremove" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/05/3afb84dfa5f496ea2ae81ea7be7a7d65ac5a7475c4df996143e6aa0eda32/comicbox-5.6.0.tar.gz", hash = "sha256:e9cc46ca4fa2245919ee46b1c12d33bf6654308a70955b6ba2d9cdf04084f8b7", size = 1389160, upload-time = "2026-11-07T01:04:04.219Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/85/50a46d19caccf5fd2d46b92d3f03ef17581d42d465136834ba0f443dece0/comicbox-5.6.1.tar.gz", hash = "sha256:d18269e6ab6997aaafb8e5c0e77c408ab85c2d46dfae0a5f18a857b3d0a981b5", size = 1389243, upload-time = "2026-11-07T01:46:11.047Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/98/5ab4436180015498dcefa3fd2340f419fb5b9b0d107a41fb4ea26bd51c01/comicbox-5.6.0-py3-none-any.whl", hash = "sha256:a4b4bc3d7e98d9b3dd81d61884e2883e58fe7584a85f08598019be7a0d742350", size = 492328, upload-time = "2026-11-07T01:04:02.207Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/0a/760450121ff5abda26640b50cd6fdca9ce6be7ea16250d3ccc5805a9f6b9/comicbox-5.6.1-py3-none-any.whl", hash = "sha256:58df6a4ffa7ff2a94a68bfaa45ec1e5c4e3d520ed1e87befebd1d64d4358fb45", size = 492331, upload-time = "2026-11-07T01:46:09.346Z" },
 ]
 
 [package.optional-dependencies]
@@ -934,11 +934,11 @@ wheels = [
 
 [[package]]
 name = "comicfn2dict"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/34/98/99250233f3a9fc8147b84302acfe072940c4ce7df50ade4b9dcf0e0eb870/comicfn2dict-1.1.0.tar.gz", hash = "sha256:bf717ba336dbb39b7c352601136afb4db0596a31962e949dc9fe0d78e7b49dec", size = 250346, upload-time = "2026-11-07T00:17:21.186Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/43/ae305040f9796c7151a2e99cfa25dade3bd8e4a16904dc3de7ce45c60349/comicfn2dict-1.1.1.tar.gz", hash = "sha256:13d495d9578e48fdd8e9cd9d7d2873caa52a92cefe63d48428a78cb090733f53", size = 251402, upload-time = "2026-11-07T01:32:51.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/55/5b49ca980d5f77541d8e87cb2a620c2b5bd89e6365ad273d4467bf50f0c3/comicfn2dict-1.1.0-py3-none-any.whl", hash = "sha256:5a0524bf6d8e2b7a75d5cf89349c65f5a503390d53aa6ca0f928038f5de6f00d", size = 19554, upload-time = "2026-11-07T00:17:19.98Z" },
+    { url = "https://files.pythonhosted.org/packages/41/0a/89342a360afe8b869544cbcc453b4cdf64fec4f8566ed0d34eab23423ec3/comicfn2dict-1.1.1-py3-none-any.whl", hash = "sha256:51d759436ee0140bfdca46b10e10af83b00e5f06bb6f17593f68a59f12d893a0", size = 19654, upload-time = "2026-11-07T01:32:50.678Z" },
 ]
 
 [[package]]
