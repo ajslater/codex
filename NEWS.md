@@ -21,6 +21,7 @@ border-radius: 128px;
 
 - Renamed files carry the full date, like `(1950-11-01)`, and the volume count
   (comicbox 5.6.0).
+- Change docs to use Zensical instead of MkDocs.
 
 ### 🐛 Fixed
 
