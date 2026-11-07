@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { capitalCase } from "text-case";
 
+import { abortKey, isAbortError, useAbortable } from "@/api/v4/abortable";
+import { getTagNames } from "@/api/v4/admin";
 import * as API from "@/api/v4/browser";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -23,11 +25,69 @@ const TAG_NAMES = Object.freeze({
   storyArcNumbers: "Story Arcs",
 });
 
+/*
+ * Tag editor name suggestions.
+ *
+ * Cached per field, then per hierarchy scope (the form's parent names), then
+ * per normalized query. The server returns at most a capped page of names
+ * that *contain* the query, plus whether that page is every match. Every name
+ * containing "batm" contains "bat", so a complete result for a shorter prefix
+ * of the query already holds every answer and Vuetify's own filter narrows
+ * it: typing past a complete prefix costs no request.
+ */
+const tagNamesAbortKey = (field) => `metadata:tagNames:${field}`;
+
+const normalizeQuery = (q = "") => String(q).trim();
+const queryKey = (q) => normalizeQuery(q).toLowerCase();
+
+const BLANK_SCOPE_VALUES = Object.freeze(new Set(["", null, undefined]));
+
+// The non-blank scope entries, in a stable order.
+function scopeEntries(scope) {
+  return Object.entries(scope || {})
+    .filter(([, value]) => !BLANK_SCOPE_VALUES.has(value))
+    .map(([key, value]) => [key, String(value)])
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+const scopeKey = (scope) => JSON.stringify(scopeEntries(scope));
+
+/*
+ * The cached result for the query or, failing that, for its longest cached
+ * shorter prefix. With ``requiresComplete`` a shorter prefix only counts when
+ * it is complete, which is when it can stand in for the query's own result.
+ */
+function findCachedNames(byQuery, qKey, requiresComplete = false) {
+  if (!byQuery) return;
+  for (let len = qKey.length; len >= 0; len--) {
+    const entry = byQuery[qKey.slice(0, len)];
+    if (!entry) continue;
+    if (!requiresComplete || len === qKey.length || entry.complete) {
+      return entry;
+    }
+  }
+}
+
 export const useMetadataStore = defineStore("metadata", {
   state: () => ({
     md: undefined,
+    // tagNames[field][scopeKey][queryKey] = {names, complete}
+    tagNames: {},
+    // tagNamesLoading[field] = true while that field's request is in flight
+    tagNamesLoading: {},
   }),
   getters: {
+    /*
+     * Suggested names for a tag editor field. While a query's own request is
+     * in flight its longest cached prefix stands in, complete or not, so the
+     * menu isn't emptied on every keystroke. Vuetify filters and sorts.
+     */
+    tagNameChoices(state) {
+      return (field, scope, q) => {
+        const byQuery = state.tagNames[field]?.[scopeKey(scope)];
+        return findCachedNames(byQuery, queryKey(q))?.names ?? [];
+      };
+    },
     /*
      * v4 ships credits already pivoted to ``{role: [{pk, name, url}]}``
      * with roles in HEAD_ROLES precedence and persons last-name sorted
@@ -151,6 +211,43 @@ export const useMetadataStore = defineStore("metadata", {
     },
     clearMetadata() {
       this.md = undefined;
+      this.clearTagNames();
+    },
+    async loadTagNames({ field, scope = {}, q = "" }) {
+      const sKey = scopeKey(scope);
+      const qKey = queryKey(q);
+      if (findCachedNames(this.tagNames[field]?.[sKey], qKey, true)) return;
+      // One request per field: a newer query aborts the stale one.
+      const signal = useAbortable(tagNamesAbortKey(field));
+      this.tagNamesLoading[field] = true;
+      try {
+        const params = Object.fromEntries(scopeEntries(scope));
+        params.q = normalizeQuery(q);
+        const response = await getTagNames(field, params, { signal });
+        const { names, complete } = response.data;
+        this.tagNames[field] ??= {};
+        this.tagNames[field][sKey] ??= {};
+        this.tagNames[field][sKey][qKey] = Object.freeze({
+          names: Object.freeze([...names]),
+          complete: Boolean(complete),
+        });
+      } catch (error) {
+        if (!isAbortError(error)) console.error(error);
+      } finally {
+        // An aborted request's successor owns the loading flag.
+        if (!signal.aborted) this.tagNamesLoading[field] = false;
+      }
+    },
+    /*
+     * Names only change on a re-import, so the cache lives as long as the
+     * editor: stale until it is reopened.
+     */
+    clearTagNames() {
+      for (const field of Object.keys(this.tagNamesLoading)) {
+        abortKey(tagNamesAbortKey(field));
+      }
+      this.tagNames = {};
+      this.tagNamesLoading = {};
     },
     getTagName(key) {
       return TAG_NAMES[key] || capitalCase(key);

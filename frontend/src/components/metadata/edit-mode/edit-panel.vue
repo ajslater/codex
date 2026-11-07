@@ -142,9 +142,10 @@
           :title="isFieldDisabled('publisher') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.publisher"
-            :items="collectionOptions('publisher')"
+            field="publisher"
+            :extra-items="collectionOptions('publisher')"
             :placeholder="collectionPlaceholder('publisher')"
             label="Publisher"
             hide-details
@@ -162,15 +163,17 @@
                 @toggle="toggleClear('publisher')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('imprint') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.imprint"
-            :items="collectionOptions('imprint')"
+            field="imprint"
+            :scope="{ publisher: patch.publisher }"
+            :extra-items="collectionOptions('imprint')"
             :placeholder="collectionPlaceholder('imprint')"
             label="Imprint"
             hide-details
@@ -187,7 +190,7 @@
                 @toggle="toggleClear('imprint')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
       </div>
       <div class="inlineRow">
@@ -195,9 +198,11 @@
           :title="isFieldDisabled('series') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.series"
-            :items="collectionOptions('series')"
+            field="series"
+            :scope="{ publisher: patch.publisher, imprint: patch.imprint }"
+            :extra-items="collectionOptions('series')"
             :placeholder="collectionPlaceholder('series')"
             label="Series"
             hide-details
@@ -214,15 +219,21 @@
                 @toggle="toggleClear('series')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('volume') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.volume"
-            :items="collectionOptions('volume')"
+            field="volume"
+            :scope="{
+              publisher: patch.publisher,
+              imprint: patch.imprint,
+              series: patch.series,
+            }"
+            :extra-items="collectionOptions('volume')"
             :placeholder="collectionPlaceholder('volume')"
             label="Volume"
             hide-details
@@ -239,7 +250,7 @@
                 @toggle="toggleClear('volume')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
@@ -673,8 +684,9 @@
             {{ role }}
           </td>
           <td :title="isFieldDisabled('credits') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="creditsByRole[role]"
+              field="credits"
               multiple
               chips
               closable-chips
@@ -1029,9 +1041,10 @@
                   </div>
                 </template>
               </v-tooltip>
-              <v-combobox
+              <TagNameCombobox
                 v-else
                 v-model="patch[tagKey]"
+                :field="tagKey"
                 multiple
                 chips
                 closable-chips
@@ -1048,7 +1061,7 @@
                     @toggle="toggleClear(tagKey)"
                   />
                 </template>
-              </v-combobox>
+              </TagNameCombobox>
             </td>
           </tr>
           <tr
@@ -1110,8 +1123,9 @@
         <tr>
           <td class="key">Story Arcs</td>
           <td :title="isFieldDisabled('story_arcs') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="storyArcNames"
+              field="story_arcs"
               multiple
               chips
               closable-chips
@@ -1130,7 +1144,7 @@
                   @toggle="toggleClear('story_arcs')"
                 />
               </template>
-            </v-combobox>
+            </TagNameCombobox>
           </td>
         </tr>
       </tbody>
@@ -1141,8 +1155,9 @@
       <tbody>
         <tr v-for="(u, i) in universes" :key="i">
           <td :title="isFieldDisabled('universes') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="universes[i].name"
+              field="universes"
               label="Universe"
               hide-details
               density="compact"
@@ -1487,6 +1502,7 @@
 import { mapActions, mapState } from "pinia";
 
 import ClearFieldIcon from "@/components/metadata/edit-mode/clear-field-icon.vue";
+import TagNameCombobox from "@/components/metadata/edit-mode/tag-name-combobox.vue";
 import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
@@ -1636,6 +1652,7 @@ export default {
   name: "EditPanel",
   components: {
     ClearFieldIcon,
+    TagNameCombobox,
   },
   props: {
     book: {

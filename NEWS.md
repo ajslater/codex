@@ -11,6 +11,8 @@ border-radius: 128px;
 ### ✨ Added
 
 - New `Add Library` server folder picker component.
+- The tag editor suggests existing publishers, imprints, series, volumes,
+  credits, story arcs, universes and tags as you type.
 
 ### 🐛 Fixed
 

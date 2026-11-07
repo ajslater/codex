@@ -53,6 +53,7 @@ from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.tag_write_errors import AdminTagWriteErrorsView
 from codex.views.admin.tagging_defaults import AdminTaggingDefaultsView
 from codex.views.admin.tagging_validate import AdminTaggingValidateView
+from codex.views.admin.tagnames import AdminTagNamesView
 from codex.views.admin.tagwrite import (
     AdminParseIdentifierURLView,
     AdminTagWritePreflightView,
@@ -322,6 +323,11 @@ urlpatterns = [
         "tag-write",
         AdminTagWriteView.as_view(),
         name="tag_write",
+    ),
+    path(
+        "tag-names/<str:field>",
+        AdminTagNamesView.as_view(),
+        name="tag_names",
     ),
     path(
         "folders",
