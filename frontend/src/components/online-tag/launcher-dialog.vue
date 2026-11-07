@@ -15,16 +15,24 @@
           </router-link>
         </div>
         <template v-else>
-          <v-select
+          <v-checkbox-group
             v-model="sources"
-            :items="sourceItems"
             label="Sources"
-            multiple
-            chips
-            hide-details
+            :hint="unconfiguredSourcesHint"
+            :error-messages="sourcesError"
+            persistent-hint
             density="compact"
+            inline
             class="mt-4"
-          />
+          >
+            <v-checkbox
+              v-for="item in sourceItems"
+              :key="item.value"
+              :value="item.value"
+              :label="item.title"
+              :disabled="item.disabled"
+            />
+          </v-checkbox-group>
           <template v-if="idTaggable">
             <div v-if="existingOptions.length" class="existingIds mt-3">
               <span class="existingIdsLabel">This comic's IDs:</span>
@@ -327,16 +335,30 @@ export default {
     sourceItems() {
       return [
         {
-          title: "Metron Cloud",
+          title: sourceLabel("metron"),
           value: "metron",
-          props: this.hasMetron ? {} : { disabled: true },
+          disabled: !this.hasMetron,
         },
         {
-          title: "Comic Vine",
+          title: sourceLabel("comicvine"),
           value: "comicvine",
-          props: this.hasComicvine ? {} : { disabled: true },
+          disabled: !this.hasComicvine,
         },
       ];
+    },
+    unconfiguredSourcesHint() {
+      // Why a source's checkbox is disabled, and where to fix it.
+      const names = this.sourceItems
+        .filter((s) => s.disabled)
+        .map((s) => s.title)
+        .join(", ");
+      return names
+        ? `${names} has no API key. Add one in Admin → Tagging.`
+        : "";
+    },
+    sourcesError() {
+      // Why the action button is disabled.
+      return this.searchDisabled ? ["Pick at least one source"] : [];
     },
     allSourcesDisabled() {
       return !this.hasMetron && !this.hasComicvine;
@@ -344,7 +366,7 @@ export default {
     enabledSources() {
       // The sources that could run at all: credentials configured.
       return new Set(
-        this.sourceItems.filter((s) => !s.props?.disabled).map((s) => s.value),
+        this.sourceItems.filter((s) => !s.disabled).map((s) => s.value),
       );
     },
     idTaggable() {

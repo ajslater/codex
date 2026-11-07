@@ -14,35 +14,46 @@
             fail.
           </template>
           <div class="adminCard">
-            <v-select
+            <v-checkbox-group
               v-model="draft.defaultFormats"
-              :items="formatChoices"
               label="Metadata Formats"
-              :hint="metadataFormatsHint"
-              persistent-hint
-              hide-details="auto"
+              :messages="formatsMessages"
+              :error-messages="formatsError"
               density="compact"
-              multiple
-              chips
+              inline
             >
-              <!-- Render the hint via the message slot so the docs links live
+              <v-checkbox
+                v-for="format in formatChoices"
+                :key="format.value"
+                :value="format.value"
+                :label="format.title"
+                :disabled="isLastFormat(format.value)"
+              />
+              <!-- Render the docs hint via the message slot so its links live
                    inside the field's own hint, styled like every other. -->
-              <template #message>
-                These metadata formats are written into each comic every time
-                its tags are edited. Learn more about
-                <a
-                  href="https://anansi-project.github.io/docs/category/comicinfo"
-                  target="_blank"
-                  >ComicInfo<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-                >
-                and
-                <a
-                  href="https://metron-project.github.io/docs/category/metroninfo"
-                  target="_blank"
-                  >MetronInfo<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-                >.
+              <template #message="{ message }">
+                <template v-if="message === metadataFormatsHint">
+                  These metadata formats are written into each comic every time
+                  its tags are edited. Learn more about
+                  <a
+                    href="https://anansi-project.github.io/docs/category/comicinfo"
+                    target="_blank"
+                    >ComicInfo<v-icon size="small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
+                  >
+                  and
+                  <a
+                    href="https://metron-project.github.io/docs/category/metroninfo"
+                    target="_blank"
+                    >MetronInfo<v-icon size="small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
+                  >.
+                </template>
+                <template v-else>{{ message }}</template>
               </template>
-            </v-select>
+            </v-checkbox-group>
           </div>
           <div class="adminCard">
             <v-checkbox
@@ -398,11 +409,6 @@ import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue"
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const FORMAT_CHOICES = [
-  { title: "MetronInfo", value: "METRON_INFO" },
-  { title: "ComicInfo", value: "COMIC_INFO" },
-];
-
 const EDITABLE_FIELDS = Object.freeze([
   "defaultFormats",
   "deleteOriginal",
@@ -437,12 +443,13 @@ export default {
       mdiChevronDown,
       mdiChevronUp,
       mdiOpenInNew,
-      formatChoices: FORMAT_CHOICES,
+      formatChoices: TAGGING_CHOICES.formats,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
       effortChoices: TAGGING_CHOICES.effort,
       metadataFormatsHint:
         "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
+      lastFormatHint: "At least one format must be written",
       deleteOriginalHint:
         "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.",
       renameFilesHint:
@@ -507,6 +514,21 @@ export default {
         Boolean(this.comicvineKey) || Boolean(this.defaults?.comicvineKeySet)
       );
     },
+    formatsMessages() {
+      // The last checked box is disabled; say why under the docs hint.
+      const messages = [this.metadataFormatsHint];
+      if ((this.draft.defaultFormats || []).length === 1) {
+        messages.push(this.lastFormatHint);
+      }
+      return messages;
+    },
+    formatsError() {
+      // Only a row saved empty before formats were required gets here. Don't
+      // fill in a default, which would auto-save on open; checking a box does.
+      return (this.draft.defaultFormats || []).length
+        ? []
+        : ["Choose at least one format"];
+    },
     canMerge() {
       // Merging needs at least two enabled sources; with one there's nothing
       // to merge. metronEnabled / comicvineEnabled already gate on credentials.
@@ -547,6 +569,10 @@ export default {
       "updateTaggingDefaults",
       "validateTaggingCredentials",
     ]),
+    isLastFormat(value) {
+      const formats = this.draft.defaultFormats || [];
+      return formats.length === 1 && formats.includes(value);
+    },
     setSourceEnabled(source, enabled) {
       // defaultSources order is run priority; a newly enabled source
       // joins at the end (lowest priority).

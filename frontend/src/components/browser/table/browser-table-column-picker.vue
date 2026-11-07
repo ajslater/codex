@@ -47,19 +47,20 @@
         </section>
         <section class="categoriesSection">
           <div class="sectionHeader">Add Columns</div>
-          <div
+          <v-checkbox-group
             v-for="category in categoriesWithColumns"
             :key="category.label"
+            :model-value="draft"
+            :label="category.label"
+            density="compact"
+            hide-details
             class="pickerCategory"
+            @update:model-value="onCategoryUpdate"
           >
-            <div class="pickerCategoryHeader">{{ category.label }}</div>
             <v-checkbox
               v-for="col in category.columns"
               :key="col.key"
-              :model-value="selectedSet.has(col.key)"
-              density="compact"
-              hide-details
-              @update:model-value="toggleColumn(col.key, $event)"
+              :value="col.key"
             >
               <template #label>
                 <span class="pickerColumnLabel">
@@ -74,7 +75,7 @@
                 </span>
               </template>
             </v-checkbox>
-          </div>
+          </v-checkbox-group>
         </section>
       </v-card-text>
       <v-card-actions class="pickerActions">
@@ -325,9 +326,6 @@ export default {
     topCollectionLabel() {
       return TOP_COLLECTION[this.topCollection] ?? this.topCollection;
     },
-    selectedSet() {
-      return new Set(this.draft);
-    },
     categoriesWithColumns() {
       const seen = new Set();
       const categories = _CATEGORIES
@@ -412,6 +410,22 @@ export default {
         }
       } else {
         this.draft = this.draft.filter((k) => k !== key);
+      }
+    },
+    onCategoryUpdate(next) {
+      /*
+       * A checkbox group appends a checked key to the end of its model;
+       * route the one key a click changed through toggleColumn so it
+       * lands in canonical position instead.
+       */
+      const added = next.find((key) => !this.draft.includes(key));
+      if (added) {
+        this.toggleColumn(added, true);
+        return;
+      }
+      const removed = this.draft.find((key) => !next.includes(key));
+      if (removed) {
+        this.toggleColumn(removed, false);
       }
     },
     removeColumn(key) {
@@ -583,12 +597,24 @@ export default {
   margin-top: 12px;
 }
 
-.pickerCategoryHeader {
-  font-size: 0.85em;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: rgb(var(--v-theme-text-secondary));
-  margin-bottom: 4px;
+/*
+ * The category title is the checkbox group's label. Restyle it as the
+ * old section header, with no extra gap above the checkboxes under it.
+ */
+@layer codex-components {
+  .pickerCategory :deep(> .v-input__control > .v-label) {
+    margin-bottom: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: rgb(var(--v-theme-text-secondary));
+    opacity: 1;
+  }
+
+  .pickerCategory
+    :deep(> .v-input__control > .v-label + .v-selection-control-group) {
+    margin-block-start: 0;
+  }
 }
 
 /*

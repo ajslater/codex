@@ -42,18 +42,23 @@
           </div>
           <div class="adminCard">
             <div class="adminCardTitle">Show Collections</div>
-            <div class="defaultsCheckRow">
+            <v-checkbox-group
+              v-model="shownKeys"
+              aria-label="Show Collections"
+              :hint="lockedShowHint"
+              persistent-hint
+              hide-details="auto"
+              density="compact"
+              inline
+            >
               <v-checkbox
                 v-for="item in showChoices"
                 :key="item.key"
-                v-model="draft.browser[item.key]"
+                :value="item.key"
                 :label="item.title"
                 :disabled="item.key === lockedShowKey"
-                density="compact"
-                hide-details
               />
-            </div>
-            <p v-if="lockedShowHint" class="adminHint">{{ lockedShowHint }}</p>
+            </v-checkbox-group>
           </div>
           <div class="adminCard">
             <v-select
@@ -386,6 +391,23 @@ export default {
         ]),
       );
     },
+    // The show flags as the checkbox group's list of checked keys.
+    shownKeys: {
+      get() {
+        return this.showChoices
+          .filter(({ key }) => this.draft.browser[key])
+          .map(({ key }) => key);
+      },
+      set(keys) {
+        // Flip only the one flag a click changed.
+        const changed = this.showChoices.find(
+          ({ key }) => keys.includes(key) !== this.shownKeys.includes(key),
+        );
+        if (changed) {
+          this.draft.browser[changed.key] = keys.includes(changed.key);
+        }
+      },
+    },
     // The current top collection's box: unchecking it would hide it.
     lockedShowKey() {
       return SHOW_KEYS[this.draft.browser.topCollection];
@@ -561,12 +583,6 @@ export default {
 <style scoped lang="scss">
 @use "@/components/admin/tabs/admin-section.scss";
 @use "@/components/admin/tabs/design.scss" as d;
-
-.defaultsCheckRow {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: d.$space-4;
-}
 
 .tableColumnsRow {
   display: flex;

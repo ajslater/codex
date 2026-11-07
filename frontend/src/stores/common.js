@@ -27,7 +27,7 @@ const messagesOf = (value) =>
     .filter((message) => message !== null && message !== undefined)
     .map(String);
 
-const fieldErrorMap = (error) => {
+export const fieldErrorMap = (error) => {
   const body = error?.response?.data;
   const envelopeDetail = error?.envelopeError?.detail;
   let map;
@@ -74,7 +74,7 @@ const flattenErrors = (fieldErrors) => {
       );
 };
 
-const getErrors = (xiorError) => {
+export const getErrors = (xiorError) => {
   let errors = flattenErrors(fieldErrorMap(xiorError));
   if (errors.length === 0) {
     console.warn("Unable to parse error", xiorError);

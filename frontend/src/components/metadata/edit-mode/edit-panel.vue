@@ -1,17 +1,24 @@
 <template>
   <v-form id="editPanel" ref="form" @submit.prevent>
     <div id="editToolbar">
-      <v-select
+      <v-checkbox-group
         v-model="selectedFormats"
-        :items="formatChoices"
-        label="Formats"
+        aria-label="Metadata formats"
+        :hint="formatsHint"
+        :error-messages="formatsError"
+        persistent-hint
         density="compact"
-        hide-details
-        multiple
-        chips
-        class="formatSelect"
-        @update:model-value="enforceMinFormat"
-      />
+        inline
+        class="formatGroup"
+      >
+        <v-checkbox
+          v-for="format in formatChoices"
+          :key="format.value"
+          :value="format.value"
+          :label="format.title"
+          :disabled="isLastFormat(format.value)"
+        />
+      </v-checkbox-group>
       <v-checkbox
         v-model="renameFile"
         :label="renameCheckboxLabel"
@@ -135,9 +142,10 @@
           :title="isFieldDisabled('publisher') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.publisher"
-            :items="collectionOptions('publisher')"
+            field="publisher"
+            :extra-items="collectionOptions('publisher')"
             :placeholder="collectionPlaceholder('publisher')"
             label="Publisher"
             hide-details
@@ -155,15 +163,17 @@
                 @toggle="toggleClear('publisher')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('imprint') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.imprint"
-            :items="collectionOptions('imprint')"
+            field="imprint"
+            :scope="{ publisher: patch.publisher }"
+            :extra-items="collectionOptions('imprint')"
             :placeholder="collectionPlaceholder('imprint')"
             label="Imprint"
             hide-details
@@ -180,7 +190,7 @@
                 @toggle="toggleClear('imprint')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
       </div>
       <div class="inlineRow">
@@ -188,9 +198,11 @@
           :title="isFieldDisabled('series') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.series"
-            :items="collectionOptions('series')"
+            field="series"
+            :scope="{ publisher: patch.publisher, imprint: patch.imprint }"
+            :extra-items="collectionOptions('series')"
             :placeholder="collectionPlaceholder('series')"
             label="Series"
             hide-details
@@ -207,15 +219,21 @@
                 @toggle="toggleClear('series')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('volume') ? disabledTooltip : ''"
           class="flexItem"
         >
-          <v-combobox
+          <TagNameCombobox
             v-model="patch.volume"
-            :items="collectionOptions('volume')"
+            field="volume"
+            :scope="{
+              publisher: patch.publisher,
+              imprint: patch.imprint,
+              series: patch.series,
+            }"
+            :extra-items="collectionOptions('volume')"
             :placeholder="collectionPlaceholder('volume')"
             label="Volume"
             hide-details
@@ -232,7 +250,7 @@
                 @toggle="toggleClear('volume')"
               />
             </template>
-          </v-combobox>
+          </TagNameCombobox>
         </div>
         <div
           :title="isFieldDisabled('volume_count') ? disabledTooltip : ''"
@@ -666,8 +684,9 @@
             {{ role }}
           </td>
           <td :title="isFieldDisabled('credits') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="creditsByRole[role]"
+              field="credits"
               multiple
               chips
               closable-chips
@@ -1022,9 +1041,10 @@
                   </div>
                 </template>
               </v-tooltip>
-              <v-combobox
+              <TagNameCombobox
                 v-else
                 v-model="patch[tagKey]"
+                :field="tagKey"
                 multiple
                 chips
                 closable-chips
@@ -1041,7 +1061,7 @@
                     @toggle="toggleClear(tagKey)"
                   />
                 </template>
-              </v-combobox>
+              </TagNameCombobox>
             </td>
           </tr>
           <tr
@@ -1103,8 +1123,9 @@
         <tr>
           <td class="key">Story Arcs</td>
           <td :title="isFieldDisabled('story_arcs') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="storyArcNames"
+              field="story_arcs"
               multiple
               chips
               closable-chips
@@ -1123,7 +1144,7 @@
                   @toggle="toggleClear('story_arcs')"
                 />
               </template>
-            </v-combobox>
+            </TagNameCombobox>
           </td>
         </tr>
       </tbody>
@@ -1134,8 +1155,9 @@
       <tbody>
         <tr v-for="(u, i) in universes" :key="i">
           <td :title="isFieldDisabled('universes') ? disabledTooltip : ''">
-            <v-combobox
+            <TagNameCombobox
               v-model="universes[i].name"
+              field="universes"
               label="Universe"
               hide-details
               density="compact"
@@ -1480,6 +1502,7 @@
 import { mapActions, mapState } from "pinia";
 
 import ClearFieldIcon from "@/components/metadata/edit-mode/clear-field-icon.vue";
+import TagNameCombobox from "@/components/metadata/edit-mode/tag-name-combobox.vue";
 import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
@@ -1490,13 +1513,9 @@ import FORMAT_FIELD_VALUES from "@/choices/format-field-values.json";
 import IDENTIFIER_SOURCES from "@/choices/identifier-sources.json";
 import IDENTIFIER_TYPE_BY_CODEX_NAME from "@/choices/identifier-type-by-codex-name.json";
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
-
-const FORMAT_CHOICES = [
-  { title: "MetronInfo", value: "METRON_INFO" },
-  { title: "ComicInfo", value: "COMIC_INFO" },
-];
 import LANGUAGES from "@/choices/languages.json";
 import SERIES_STATUSES from "@/choices/series-statuses.json";
+import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -1633,6 +1652,7 @@ export default {
   name: "EditPanel",
   components: {
     ClearFieldIcon,
+    TagNameCombobox,
   },
   props: {
     book: {
@@ -1643,7 +1663,7 @@ export default {
   emits: ["cancel", "saved"],
   data() {
     return {
-      formatChoices: FORMAT_CHOICES,
+      formatChoices: TAGGING_CHOICES.formats,
       selectedFormats: ["COMIC_INFO"],
       languageChoices: LANGUAGES,
       countryChoices: COUNTRIES,
@@ -1775,6 +1795,15 @@ export default {
         }
         return item;
       });
+    },
+    formatsHint() {
+      // The last checked box is disabled; say why.
+      return this.selectedFormats.length === 1
+        ? "At least one format must be written"
+        : "";
+    },
+    formatsError() {
+      return this.selectedFormats.length ? [] : ["Choose at least one format"];
     },
     enabledFormats() {
       return this.selectedFormats.length > 0
@@ -2082,12 +2111,11 @@ export default {
       }
       return capitalCase(key);
     },
-    enforceMinFormat(val) {
-      if (!val || val.length === 0) {
-        this.selectedFormats = this.lastFormats || ["COMIC_INFO"];
-      } else {
-        this.lastFormats = [...val];
-      }
+    isLastFormat(value) {
+      return (
+        this.selectedFormats.length === 1 &&
+        this.selectedFormats.includes(value)
+      );
     },
     unionFormatValues(key) {
       const seen = new Set();
@@ -2796,8 +2824,35 @@ export default {
     background-color: rgb(var(--v-theme-surface));
   }
 
-  .formatSelect {
-    max-width: 280px;
+  /* The format boxes never squeeze; the filename preview gives way. */
+  .formatGroup {
+    flex: 0 0 auto;
+  }
+
+  /*
+   * Keep a wide toolbar one row: the formats' hint sits beside the boxes
+   * instead of under them, so the boxes line up with the rest of the row.
+   * A narrower toolbar has no room for that, so there the hint stays
+   * underneath and the toolbar wraps.
+   */
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    #editToolbar {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media #{map.get(vuetify.$display-breakpoints, 'md-and-up')} {
+    .formatGroup {
+      grid-template-areas: "prepend control messages append";
+      grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
+      grid-template-rows: auto;
+    }
+
+    .formatGroup :deep(> .v-input__details) {
+      align-self: center;
+      min-height: 0;
+      padding: 0 0 0 8px;
+    }
   }
 
   .sectionHeader {

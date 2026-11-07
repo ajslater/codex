@@ -8,11 +8,14 @@ from rest_framework.serializers import (
     ChoiceField,
     DictField,
     IntegerField,
+    JSONField,
     ListField,
     Serializer,
     ValidationError,
 )
 
+from codex.choices.limits import MAX_NAME_LEN
+from codex.choices.tagging import WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
@@ -51,6 +54,33 @@ class TagWriteRequestSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     rename = BooleanField(required=False, default=None)
+
+
+class AdminTagNamesInputSerializer(Serializer):
+    """Query params for the tag editor's name suggestions."""
+
+    # None is wider than the name column it matches.
+    q = CharField(required=False, allow_blank=True, default="", max_length=MAX_NAME_LEN)
+    # Hierarchy scope: the form's current parent names. Blank is unscoped.
+    publisher = CharField(
+        required=False, allow_blank=True, default="", max_length=MAX_NAME_LEN
+    )
+    imprint = CharField(
+        required=False, allow_blank=True, default="", max_length=MAX_NAME_LEN
+    )
+    series = CharField(
+        required=False, allow_blank=True, default="", max_length=MAX_NAME_LEN
+    )
+
+
+class AdminTagNamesSerializer(Serializer):
+    """Existing names for one tag field, at most a capped page of them."""
+
+    field = CharField(read_only=True)
+    # Volume names are integers; every other field's are strings.
+    names = ListField(child=JSONField(), read_only=True)
+    # True when ``names`` is every match, so the client can stop asking.
+    complete = BooleanField(read_only=True)
 
 
 class OnlineTagStartSerializer(Serializer):
@@ -178,6 +208,29 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def get_has_comicvine_credentials(obj) -> bool:
         """Whether a Comic Vine API key is set."""
         return bool(obj.comicvine_key)
+
+    @staticmethod
+    def validate_default_formats(value: object) -> list:
+        """
+        Require at least one known write format.
+
+        comicbox refuses a write with no formats, so an empty default would
+        fail every file in an online-tagging session.
+        """
+        if not isinstance(value, list):
+            reason = "Expected a list of metadata formats."
+            raise ValidationError(reason)
+        formats = list(dict.fromkeys(value))
+        if not formats:
+            reason = "At least one metadata format is required."
+            raise ValidationError(reason)
+        if unknown := [fmt for fmt in formats if fmt not in WRITE_FORMATS]:
+            reason = (
+                f"Unknown metadata format(s): {', '.join(map(str, unknown))}. "
+                f"Known: {', '.join(WRITE_FORMATS)}."
+            )
+            raise ValidationError(reason)
+        return formats
 
     @staticmethod
     def validate_default_sources(value: list) -> list:

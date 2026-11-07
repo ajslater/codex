@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/admin";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
+import { fieldErrorMap, getErrors, useCommonStore } from "@/stores/common";
 
 const { TABLES } = API;
 
@@ -82,10 +82,6 @@ export const useAdminStore = defineStore("admin", {
     pendingDeletes: [],
     tagWriteErrors: [],
     flags: [],
-    folderPicker: {
-      rootFolder: undefined,
-      folders: [],
-    },
     timestamps: {},
     stats: undefined,
     doctor: undefined,
@@ -184,19 +180,22 @@ export const useAdminStore = defineStore("admin", {
             tables.map((table) => this.loadTable(table, options)),
           );
     },
-    async loadFolders(path, showHidden) {
-      if (this._requireAdmin()) return false;
-      const commonStore = useCommonStore();
+    /*
+     * One folder listing for the folder tree: ``{rootFolder, parentFolder,
+     * folders}``. Throws the server's reason, so each caller decides where
+     * it shows, and leaves the shared form errors alone.
+     */
+    async fetchFolders(path, showHidden) {
+      if (this._requireAdmin()) {
+        throw new Error("Not an administrator");
+      }
       try {
         const response = await API.getFolders(path, showHidden);
-        this.folderPicker = response.data;
+        return response.data;
       } catch (error) {
-        commonStore.setErrors(error);
+        const reasons = fieldErrorMap(error).path ?? getErrors(error);
+        throw new Error(reasons.join(" "), { cause: error });
       }
-    },
-    async clearFolders(rootFolder) {
-      if (this._requireAdmin()) return false;
-      this.folderPicker = { rootFolder, folders: [""] };
     },
     /*
      * createRow and updateRow resolve true when the row saved and false when

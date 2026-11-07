@@ -94,6 +94,8 @@ class AdminFolderListSerializer(Serializer):
     """Get a list of dirs."""
 
     root_folder = CharField(read_only=True)
+    # Null at a filesystem root, which has no parent.
+    parent_folder = CharField(read_only=True, allow_null=True)
     folders = ListField(child=CharField(read_only=True))
 
 

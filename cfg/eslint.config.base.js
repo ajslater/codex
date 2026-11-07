@@ -121,7 +121,18 @@ export const MARKDOWN_CONFIGS = [
     rules: {
       // remark-preset-lint-markdown-style-guide enforced both of these.
       "markdown/no-bare-urls": "error",
-      "markdown/no-duplicate-headings": "error",
+      // Changelogs repeat section headings like `### ✨ Added` under every
+      // version, so only flag a repeat among headings with the same parent.
+      "markdown/no-duplicate-headings": ["error", { checkSiblingsOnly: true }],
+      // `> [!NOTE]` and its kin are GitHub alerts, not label references.
+      // GitHub renders them, and since devenv 0.3.2 so does Zensical:
+      // pymdownx.quotes.callouts turns them into admonitions.
+      "markdown/no-missing-label-refs": [
+        "error",
+        {
+          allowLabels: ["!NOTE", "!TIP", "!IMPORTANT", "!WARNING", "!CAUTION"],
+        },
+      ],
     },
   },
   {
@@ -170,6 +181,7 @@ const baseConfig = defineConfig([
       "**/uv.lock",
       ".claude",
       ".git/",
+      "site/",
       "tasks/",
       "typings/",
     ],

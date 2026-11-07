@@ -20,7 +20,7 @@ from typing import Final, NamedTuple
 from comicbox.config import get_config
 from comicbox.config.settings import ComicboxSettings
 from comicbox.formats.comicbox.schema.yaml import ComicboxYamlSubSchema
-from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[unresolved-import]
+from django.utils.csp import (  # pyright: ignore[reportMissingImports], # ty: ignore[import-not-found]
     CSP,
 )
 from loguru import logger

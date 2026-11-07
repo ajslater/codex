@@ -67,6 +67,10 @@ const vuetify = createVuetify({
     VCheckboxBtn: {
       color: "primary",
     },
+    // A group hands its own color to its checkboxes, unset or not.
+    VCheckboxGroup: {
+      color: "primary",
+    },
     VCombobox: {
       color: "primary",
     },

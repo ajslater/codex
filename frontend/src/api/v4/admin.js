@@ -173,6 +173,10 @@ export const sendUserVerificationEmail = (pk) =>
 export const getFolders = (path, showHidden) =>
   HTTP.get("/admin/folders", { params: { path, showHidden } });
 
+// Existing names for one tag editor field, at most a capped page of them.
+export const getTagNames = (field, params, options = {}) =>
+  HTTP.get(`/admin/tag-names/${field}`, { params, ...options });
+
 export const postLibrarianTask = (data) => HTTP.post("/admin/tasks/run", data);
 
 // History view: every librarian status row, not just active ones.

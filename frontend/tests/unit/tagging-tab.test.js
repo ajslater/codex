@@ -23,6 +23,9 @@
  *   - The Online Tagging Defaults section shows help for Match Mode and Prompts.
  *   - The Metadata Formats field's hint (not a section header) links out to the
  *     ComicInfo and MetronInfo docs.
+ *   - Metadata Formats is a checkbox group whose last checked box is disabled
+ *     and explained, so auto-save can never write an empty list. A row already
+ *     saved empty shows an error and is not auto-saved on open.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -449,6 +452,50 @@ describe("AdminTaggingTab — Metadata Formats hint", () => {
     expect(hrefs).toContain(
       "https://metron-project.github.io/docs/category/metroninfo",
     );
+  });
+});
+
+function formatInput(wrapper, value) {
+  return wrapper
+    .findComponent({ name: "VCheckboxGroup" })
+    .find(`input[value="${value}"]`);
+}
+
+describe("AdminTaggingTab — Metadata Formats checkboxes", () => {
+  test("the last checked format is disabled and explained", () => {
+    const wrapper = mountTab({ defaultFormats: ["COMIC_INFO"] });
+    expect(wrapper.findComponent({ name: "VCheckboxGroup" }).exists()).toBe(
+      true,
+    );
+    expect(formatInput(wrapper, "COMIC_INFO").element.disabled).toBe(true);
+    expect(formatInput(wrapper, "METRON_INFO").element.disabled).toBe(false);
+    expect(wrapper.text()).toContain("At least one format must be written");
+  });
+
+  test("checking a second format enables both and auto-saves", async () => {
+    const wrapper = mountTab({ defaultFormats: ["COMIC_INFO"] });
+    const store = useAdminStore();
+    await formatInput(wrapper, "METRON_INFO").setValue(true);
+    expect(wrapper.vm.draft.defaultFormats).toEqual([
+      "COMIC_INFO",
+      "METRON_INFO",
+    ]);
+    expect(formatInput(wrapper, "COMIC_INFO").element.disabled).toBe(false);
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultFormats: ["COMIC_INFO", "METRON_INFO"],
+      }),
+    );
+  });
+
+  test("an empty saved row shows an error and does not auto-save", async () => {
+    const wrapper = mountTab({ defaultFormats: [] });
+    const store = useAdminStore();
+    await wrapper.vm.$nextTick();
+    const errors = wrapper.findAll(".v-messages__message").map((m) => m.text());
+    expect(errors).toContain("Choose at least one format");
+    expect(formatInput(wrapper, "COMIC_INFO").element.disabled).toBe(false);
+    expect(store.updateTaggingDefaults).not.toHaveBeenCalled();
   });
 });
 

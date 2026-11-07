@@ -2,9 +2,13 @@ build:
   os: ubuntu-lts-latest
   tools:
     python: "3"
-mkdocs:
-  configuration: mkdocs.yml
-python:
-  install:
-    - requirements: docs/requirements.txt
+  jobs:
+    install:
+      - pip install uv
+    build:
+      html:
+        - uv run --only-group docs --no-dev zensical build --strict
+    post_build:
+      - mkdir -p "$READTHEDOCS_OUTPUT/html/"
+      - cp --recursive site/* "$READTHEDOCS_OUTPUT/html/"
 version: 2

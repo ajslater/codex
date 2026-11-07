@@ -1,6 +1,6 @@
 <template>
   <section>
-    <AdminServerFolderPicker
+    <AdminServerFolderTree
       v-if="!oldRow"
       :rules="rules.path"
       autofocus
@@ -52,8 +52,9 @@ import { mapState } from "pinia";
 import LIMITS from "@/choices/limits.json";
 import DurationInput from "@/components/admin/create-update-dialog/duration-input.vue";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
-import AdminServerFolderPicker from "@/components/admin/create-update-dialog/server-folder-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
+import { isPathParent } from "@/components/admin/create-update-dialog/path-parent";
+import AdminServerFolderTree from "@/components/admin/create-update-dialog/server-folder-tree.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = Object.freeze([
@@ -72,29 +73,12 @@ const EMPTY_ROW = Object.freeze({
   groups: [],
 });
 
-const isPathParent = (path, potentialChildPath) => {
-  // Normalize the paths to avoid issues with different directory separator characters
-  path = path.replaceAll("\\", "/");
-  potentialChildPath = potentialChildPath.replaceAll("\\", "/");
-
-  // Ensure that both paths end with a slash to avoid false positives
-  if (!path.endsWith("/")) {
-    path += "/";
-  }
-  if (!potentialChildPath.endsWith("/")) {
-    potentialChildPath += "/";
-  }
-
-  // Check if the potential child path starts with the parent path
-  return potentialChildPath.startsWith(path);
-};
-
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "AdminLibraryCreateUpdateInputs",
   components: {
     AdminRelationPicker,
-    AdminServerFolderPicker,
+    AdminServerFolderTree,
     DurationInput,
   },
   mixins: [createUpdateInputsMixin],

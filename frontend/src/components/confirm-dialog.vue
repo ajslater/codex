@@ -6,7 +6,7 @@
     width="auto"
     overlay-opacity="0.5"
   >
-    <template #activator="{ props }">
+    <template v-if="!controlled" #activator="{ props }">
       <v-btn
         v-if="button && icon"
         v-bind="props"
@@ -78,6 +78,13 @@ export default {
       default: "default",
     },
     icon: { type: String, default: "" },
+    /*
+     * Set it to open and close the dialog from outside, as for a dialog
+     * launched from a menu; it then renders no activator of its own. Left
+     * null, the dialog opens from its own button. Null, not false, is the
+     * default, because Vue casts an absent Boolean prop to false.
+     */
+    modelValue: { type: Boolean, default: null },
     prependIcon: { type: String, default: "" },
     size: {
       type: String,
@@ -93,11 +100,26 @@ export default {
     },
     variant: { type: String, default: "" },
   },
-  emits: ["cancel", "confirm"],
+  emits: ["cancel", "confirm", "update:modelValue"],
   data() {
     return {
-      showDialog: false,
+      open: false,
     };
+  },
+  computed: {
+    controlled() {
+      return this.modelValue !== null;
+    },
+    showDialog: {
+      get() {
+        return this.controlled ? this.modelValue : this.open;
+      },
+      set(value) {
+        // Every close reports here, a scrim click or Escape included.
+        this.open = value;
+        this.$emit("update:modelValue", value);
+      },
+    },
   },
   methods: {
     close(event) {

@@ -165,9 +165,6 @@ class AdminFolderListView(AdminGenericAPIView):
         ``Path.resolve().is_dir()`` (which chains a full readlink walk
         before stat-ing). Broken symlinks are skipped silently.
         """
-        dirs: list[str] = []
-        if root_path.parent != root_path:
-            dirs.append("..")
         subdirs: list[str] = []
         with os.scandir(root_path) as it:
             for entry in it:
@@ -180,8 +177,7 @@ class AdminFolderListView(AdminGenericAPIView):
                     continue
                 if is_dir:
                     subdirs.append(entry.name)
-        dirs.extend(sorted(subdirs))
-        return tuple(dirs)
+        return tuple(sorted(subdirs, key=str.casefold))
 
     @staticmethod
     def _default_root_path() -> Path:
@@ -234,10 +230,20 @@ class AdminFolderListView(AdminGenericAPIView):
 
             dirs = self._get_dirs(root_path, show_hidden)
 
-            data = {"root_folder": str(root_path), "folders": dirs}
+            parent = root_path.parent
+            data = {
+                "root_folder": str(root_path),
+                "parent_folder": str(parent) if parent != root_path else None,
+                "folders": dirs,
+            }
             serializer = self.get_serializer(data)
         except ValidationError:
             raise
+        except PermissionError as exc:
+            # A folder the server may see but not list. Keyed to the path,
+            # like "Not a directory", so the envelope carries the reason.
+            reason = {"path": ["Permission denied"]}
+            raise ValidationError(reason) from exc
         except Exception as exc:
             logger.exception("get admin folder list view")
             reason = "Server Error"

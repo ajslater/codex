@@ -34,6 +34,7 @@ from codex.choices.tagging import (
     IDENTIFIER_TYPES,
     LANGUAGES,
     SERIES_STATUSES,
+    WRITE_FORMATS,
 )
 
 _DEFAULTS = MappingProxyType(
@@ -59,7 +60,11 @@ _DUMPS = MappingProxyType(
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
         "browser-choices.json": BROWSER_CHOICES,
         "reader-choices.json": READER_CHOICES,
-        "tagging-choices.json": TAGGING_CHOICES,
+        # The write formats live with the rest of the tag-editor choices,
+        # which choices.admin can't import without a models import cycle.
+        "tagging-choices.json": MappingProxyType(
+            {**TAGGING_CHOICES, "formats": WRITE_FORMATS}
+        ),
     }
 )
 
