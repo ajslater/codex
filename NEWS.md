@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.6.1
+
+### ♻️ Changed
+
+- The docs site no longer publishes duplicate Docker and Windows pages.
+
 ## v2.6.0 - Tag Editor Suggestions
 
 ### ✨ Added
