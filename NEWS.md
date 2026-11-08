@@ -1305,9 +1305,14 @@ border-radius: 128px;
 
 ## v1.8.16
 
+### 💥 Breaking Changes
+
+> [!WARNING]
+>
+> - Don't support Python 3.14 until dependencies do.
+
 ### ♻️ Changed
 
-- Don't support Python 3.14 until dependencies do.
 - Docker image is now based on trixie debian
 
 ## v1.8.15
