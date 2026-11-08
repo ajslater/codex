@@ -101,7 +101,8 @@ Run the official
 [Docker Image](https://github.com/ajslater/codex/pkgs/container/codex) at
 ghcr.io/ajslater/codex.
 
-Read the [Docker instructions](docs/DOCKER.md)
+Read the
+[Docker instructions](https://codex-comic-reader.readthedocs.io/DOCKER/)
 
 You'll then want to read the [Administration](#administration) section of this
 document.
@@ -175,7 +176,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
+[Native Windows Dependencies Installation Document](https://codex-comic-reader.readthedocs.io/WINDOWS/).
 
 #### Run Codex Natively
 
