@@ -10,7 +10,7 @@ border-radius: 128px;
 
 ### ♻️ Changed
 
-- The docs site no longer publishes duplicate Docker and Windows pages.
+- Nothing yet
 
 ## v2.6.0 - Tag Editor Suggestions
 
