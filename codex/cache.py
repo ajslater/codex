@@ -57,11 +57,11 @@ class ResilientFileBasedCache(FileBasedCache):
         # what was dropped and why. It carries the key and the traceback:
         # an admin whose review queue just emptied can see the cause, and an
         # error caught here that should not have been shows where it came from.
-        fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        fname = self._key_to_file(key, version)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         logger.opt(exception=exc).warning(
             f"Discarded unreadable cache entry {key!r} ({fname}): {exc!r}"
         )
-        self._delete(fname)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        self._delete(fname)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
     @override
     def get(self, key, default=None, version=None):

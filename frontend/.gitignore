@@ -43,7 +43,6 @@ MANIFEST
 TODO.md
 __pycache__/
 __pypackages__/
-__snapshots__
 build
 celerybeat-schedule
 celerybeat.pid

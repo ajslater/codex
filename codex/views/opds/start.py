@@ -11,10 +11,10 @@ class OPDSStartViewMixin:
 
     def init_params(self) -> MutableMapping[str, Any]:
         """Hard reset settings to default just by landing on the page."""
-        return self.get_browser_factory_params()  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[unresolved-attribute]
+        return self.get_browser_factory_params()  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[missing-attribute]
 
     def _get_collection_queryset(self) -> tuple:
         """Force empty collection query on start page."""
-        qs = self.model.objects.none().order_by("pk")  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        qs = self.model.objects.none().order_by("pk")  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         count = 0
         return qs, count

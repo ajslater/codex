@@ -322,11 +322,11 @@ class CodexSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         if username := _map_username(claims, row):
             user = User.objects.filter(username__iexact=username).first()
-            if user and not user.socialaccount_set.exists():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            if user and not user.socialaccount_set.exists():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
                 return user
         if row and row.link_by_email and (email := claims.get("email")):
             user = User.objects.filter(email__iexact=str(email)).first()
-            if user and not user.socialaccount_set.exists():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            if user and not user.socialaccount_set.exists():  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
                 return user
         return None
 

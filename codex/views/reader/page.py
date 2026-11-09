@@ -179,7 +179,7 @@ class ReaderPageView(BookmarkAuthMixin, AuthFilterAPIView):
         page = self.kwargs.get("page")
         serve_hint = self._serve_hint()
 
-        is_pdf = file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        is_pdf = file_type == FileTypeChoices.PDF.value  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
 
         # Image-dominant fast path for PDFs (skipped when the caller
         # forces ``?serve=pdf``).

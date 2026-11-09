@@ -225,7 +225,7 @@ def _in_choices_or_factory(row: SettingsDefaults, key: str) -> Any:
     """
     field = row._meta.get_field(key)
     value = getattr(row, key)
-    if not field.choices or value in {choice for choice, _ in field.flatchoices}:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    if not field.choices or value in {choice for choice, _ in field.flatchoices}:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         return value
     return field.get_default()
 

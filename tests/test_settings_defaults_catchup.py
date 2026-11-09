@@ -157,8 +157,8 @@ class CatchupFieldTestCase(_CatchupCase):
         default = _browser()
         custom = _browser(bookmark="READ")
         data = self._put({"browser": {"bookmark": "UNREAD"}})
-        assert _reload(default).filters.bookmark == "UNREAD"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        assert _reload(custom).filters.bookmark == "READ"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert _reload(default).filters.bookmark == "UNREAD"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        assert _reload(custom).filters.bookmark == "READ"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         assert data["applied"]["bookmark"] == 1
 
     def test_reader_globals(self) -> None:
@@ -263,12 +263,12 @@ class CatchupShowAndTopTestCase(_CatchupCase):
         data = self._put({"browser": {"topCollection": "folders"}})
         for row in (_reload(empty), _reload(zero)):
             assert row.top_collection == "folders"
-            assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        assert _reload(paged).last_route.collection == "root"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        assert _reload(elsewhere).last_route.collection == "series"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        assert _reload(paged).last_route.collection == "root"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        assert _reload(elsewhere).last_route.collection == "series"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         stays_top = _reload(stays_top)
         assert stays_top.top_collection == "comics"
-        assert stays_top.last_route.collection == "root"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert stays_top.last_route.collection == "root"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         assert data["applied"]["lastRoute"] == 2  # noqa: PLR2004
 
     def test_resolved_old_value_is_matched(self) -> None:

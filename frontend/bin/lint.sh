@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# Lint checks
+# Lint the Makefiles and shell scripts
 set -euxo pipefail
 
 uvx mbake@latest validate Makefile cfg/*.mk
-
-# Javascript, JSON, Markdown, YAML #####
-# node_root merges a lint script; a project without node_root may have none.
-bun run --if-present lint
 
 bin/sh-tools.sh --lint
 

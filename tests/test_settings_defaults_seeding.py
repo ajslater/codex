@@ -53,11 +53,11 @@ _FACTORY_ROW = MappingProxyType(
 def _flatten(row: SettingsBrowser) -> dict:
     """Flatten a browser row and its related rows for one comparison."""
     show = row.show
-    route = row.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    route = row.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
     return {
         **{key: getattr(row, key) for key in _ROW_KEYS},
         "show": (show.publishers, show.imprints, show.series, show.volumes),
-        "bookmark": row.filters.bookmark,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        "bookmark": row.filters.bookmark,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         "route": (route.collection, route.pks, route.page),
     }
 
@@ -111,7 +111,7 @@ class NewSessionSeedingTestCase(SettingsDefaultsCase):
         set_defaults(top_collection="arcs")
         row = self._anonymous_row()
         assert row.top_collection == "arcs"
-        assert row.last_route.collection == "arcs"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert row.last_route.collection == "arcs"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
     def test_folders_default_lands_without_a_redirect(self) -> None:
         """The old Default View folders landed on publishers via a 303."""
@@ -121,7 +121,7 @@ class NewSessionSeedingTestCase(SettingsDefaultsCase):
         row = SettingsBrowser.objects.select_related("last_route").get(
             session_id=client.session.session_key
         )
-        assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        assert row.last_route.collection == "folders"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         response = client.get("/api/v4/browse/folders")
         assert response.status_code == HTTPStatus.OK, response.content
 

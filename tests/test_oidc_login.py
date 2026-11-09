@@ -389,7 +389,7 @@ class OIDCSchemaTests(TestCase):
         self.client.force_login(admin)
         response = self.client.get("/api/v4/schema")
         assert response.status_code == _HTTP_OK
-        paths = response.data["paths"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        paths = response.data["paths"]  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         sso_paths = [path for path in paths if "/sso/" in path]
         assert sso_paths == []
         # The DRF init endpoint is a documented part of the API.

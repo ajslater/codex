@@ -66,7 +66,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             pks = (0,)
         else:
             group = _LINK_SPEC_GROUP[type(link_spec)]
-            pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            pks = link_spec.ids  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         return {"collection": group, "pks": pks, "page": 1}
 
     @staticmethod

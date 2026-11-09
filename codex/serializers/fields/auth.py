@@ -22,7 +22,7 @@ class TimestampField(IntegerField):
         return int(float(value) * 1000)
 
     @override
-    def to_internal_value(self, data) -> datetime:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+    def to_internal_value(self, data) -> datetime:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
         """Convert from castable, likely string to datetime."""
         return datetime.fromtimestamp(float(data) / 1000, tz=UTC)
 

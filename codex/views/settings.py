@@ -345,13 +345,13 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
         result["show"] = {k: getattr(show_obj, k) for k in _SHOW_KEYS}
 
         # Filters — from the related SettingsBrowserFilters row.
-        filters_obj = instance.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        filters_obj = instance.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         result["filters"] = {
             k: getattr(filters_obj, k) for k in SettingsBrowserFilters.FILTER_KEYS
         }
 
         # Last route — from the related SettingsBrowserLastRoute row.
-        route_obj = instance.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        route_obj = instance.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         result["last_route"] = {
             "collection": route_obj.collection,
             "pks": tuple(route_obj.pks) if route_obj.pks else (0,),
@@ -574,9 +574,9 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             instance.save(update_fields=(*dirty_fields, "updated_at"))
 
         if filters_data := data.get("filters"):
-            cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            cls._save_browser_filters(instance.filters, filters_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if route_data := data.get("last_route"):
-            cls._save_browser_last_route(instance.last_route, route_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            cls._save_browser_last_route(instance.last_route, route_data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
     @staticmethod
     def _save_reader_settings_data(instance: SettingsReader, data: dict) -> None:

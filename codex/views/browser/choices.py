@@ -254,7 +254,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         return self._has_two_distinct_m2m_values(qs, rel)
 
     @override
-    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
         """Get choice availability for all dynamic filter fields in one query."""
         qs = super().get_object()
         data, aggregates, m2m_specs = self._build_field_probes(qs)
@@ -332,7 +332,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         return snakecase(field_name)
 
     @override
-    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+    def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()

@@ -124,12 +124,12 @@ class _SavedSettingsOwnerMixin:
     """Shared user/session resolution for saved-settings views."""
 
     def _get_user_and_session(self):
-        user = self.request.user  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        user = self.request.user  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if user and getattr(user, "pk", None):
             return user, None
-        if not self.request.session.session_key:  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self.request.session.save()  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        return None, self.request.session.session_key  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if not self.request.session.session_key:  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+            self.request.session.save()  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        return None, self.request.session.session_key  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
     def _owner_kwargs(self):
         user, session_key = self._get_user_and_session()
@@ -165,15 +165,15 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
         target.save()
 
         # Copy filters
-        src_filters = source.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        tgt_filters = target.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        src_filters = source.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        tgt_filters = target.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         for key in SettingsBrowserFilters.FILTER_KEYS:
             setattr(tgt_filters, key, getattr(src_filters, key))
         tgt_filters.save()
 
         # Copy last_route
-        src_route = source.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        tgt_route = target.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        src_route = source.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        tgt_route = target.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         tgt_route.collection = src_route.collection
         tgt_route.pks = src_route.pks
         tgt_route.page = src_route.page
@@ -226,7 +226,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
                 **direct_kwargs,
             )
             # Clone filters
-            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             new_filters = SettingsBrowserFilters(browser=new_sb)
             for key in SettingsBrowserFilters.FILTER_KEYS:
                 val = getattr(src_filters, key)
@@ -236,7 +236,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
             new_filters.save()
 
             # Clone last_route
-            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             SettingsBrowserLastRoute.objects.create(
                 browser=new_sb,
                 collection=src_route.collection,
@@ -286,7 +286,7 @@ class SavedBrowserSettingsLoadView(SettingsBaseView):
         data = self.browser_instance_to_dict(saved)
 
         # Validate filter PKs, persist cleaned data, and collect warnings.
-        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         filter_warnings = _validate_filter_pks(data.get("filters", {}), filters_obj)
 
         result = {

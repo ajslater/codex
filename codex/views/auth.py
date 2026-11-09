@@ -137,10 +137,10 @@ class AuthMixin:
         engine kwargs are already in place. Routes the request through
         DRF's standard ``initial`` chain after rewriting.
         """
-        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
         if "collection" in kwargs and "pks" not in kwargs:
             self._translate_browser_kwargs(request)
-        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
 
     def _translate_browser_kwargs(self, request) -> None:
         """
@@ -153,7 +153,7 @@ class AuthMixin:
         The optional ``parent_ids`` segment becomes the engine ``pks`` tuple.
         ``page`` is pulled out of the GET dict when :attr:`requires_page` is set.
         """
-        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
         collection = kwargs.pop("collection")
         parent_ids = kwargs.pop("parent_ids", None)
         if collection == Collection.PUBLISHER and parent_ids is None:

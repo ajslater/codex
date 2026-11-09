@@ -411,7 +411,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
             # into RAM at once.
             bad_session_keys: list[str] = []
             store = Session.get_session_store_class()()
-            salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            salt = store.key_salt  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             serializer = store.serializer
             session_qs = Session.objects.only("session_key", "session_data").iterator(
                 chunk_size=_SESSION_VALIDATE_CHUNK_SIZE

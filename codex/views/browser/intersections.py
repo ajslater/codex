@@ -465,8 +465,8 @@ def _build_simple_m2m_intersection_query(
     ``_compute_batched_scalars`` counted for the denominator.
     """
     field = Comic._meta.get_field(col)
-    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-    rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+    rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
     return (
         through.objects.filter(
             _LIVE_COMIC_REL,
@@ -680,9 +680,9 @@ def _build_simple_m2m_intersection_sort_sql(
     if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
-    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
     through_table = through._meta.db_table
-    m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+    m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
     related_model = field.related_model
     if related_model is None:
         return None
@@ -991,7 +991,7 @@ def _comic_correlation_sql(
     total_acl_sql, total_acl_params = acl.sql("c2")
     if collection_model is Folder:
         folders_field = Comic._meta.get_field("folders")
-        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
         through_table = through._meta.db_table
         collection_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"

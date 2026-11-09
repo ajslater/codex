@@ -109,12 +109,12 @@ class CoercingDecimalFieldFormulaTestCase(TestCase):
     def test_one_dp_two_digits(self) -> None:
         """decimal_places=1, max_digits=2 yields _decimal_max=9."""
         field = CoercingDecimalField(decimal_places=1, max_digits=2)
-        assert field._decimal_max == Decimal(9)  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        assert field._decimal_max == Decimal(9)  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
 
     def test_two_dp_five_digits(self) -> None:
         """decimal_places=2, max_digits=5 yields _decimal_max=999 (legacy)."""
         field = CoercingDecimalField(decimal_places=2, max_digits=5)
-        assert field._decimal_max == Decimal(999)  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        assert field._decimal_max == Decimal(999)  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
 
     def test_coerce_max_overrides(self) -> None:
         """coerce_max wins when tighter than the field ceiling."""
