@@ -8,9 +8,10 @@ border-radius: 128px;
 
 ## v2.6.1
 
-### ♻️ Changed
+### 🐛 Fixed
 
-- Nothing yet
+- Some background task log messages now reach the log file and honor the log
+  level.
 
 ## v2.6.0 - Tag Editor Suggestions
 
