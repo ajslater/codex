@@ -36,7 +36,7 @@ dependencies = [
   "granian~=2.8",
   "humanize~=4.12",
   "lark~=1.2",
-  "loguru~=0.7.3",
+  "loguru~=0.8.0",
   "nh3~=0.2",
   "packaging>=24.0",
   "Pillow~=13.0",
@@ -87,7 +87,7 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.2",
+  "complexipy~=9.0",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
