@@ -47,8 +47,8 @@ border-radius: 128px;
 
 - Favorites are now a shelf. Anyone who had favorites gets a shelf named
   "Favorites" holding them, and saved views that filtered on favorites filter on
-  that shelf. The star button is replaced by a shelf button that shows which
-  shelves an item is on.
+  that shelf. The cover star button is replaced by Shelves in the cover's menu;
+  elsewhere a shelf button shows which shelves an item is on.
 - The Favorite sort and table column are now Shelved: on any of your shelves.
 - User data backups store shelves, and API keys as hashes. Backups made by older
   versions still restore, with their favorites placed on a "Favorites" shelf.
