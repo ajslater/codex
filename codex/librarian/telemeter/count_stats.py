@@ -13,6 +13,7 @@ from typing import Any, Final
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 from django.db.models import Count
 
+from codex.models.api_key import UserApiKey
 from codex.models.bookmark import Bookmark
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierType
@@ -140,11 +141,12 @@ def get_manga_stats() -> dict[str, int]:
 
 def get_usage_stats() -> dict[str, Any]:
     """
-    Report reader engagement: bookmarks and shelves.
+    Report reader engagement: bookmarks, shelves and device keys.
 
     Counts only. A shelf's name is free text its user typed, so it must
     never be read here; the one data-keyed bucket, ``shelf_items``, is
-    keyed by the closed ``Collection`` vocabulary.
+    keyed by the closed ``Collection`` vocabulary. Device keys are counted
+    and nothing else: never a name, a prefix or a timestamp.
     """
     rows = ShelfItem.objects.values("collection").annotate(count=Count("pk")).order_by()
     shelf_items = {row["collection"]: row["count"] for row in rows}
@@ -154,6 +156,8 @@ def get_usage_stats() -> dict[str, Any]:
         "shelf_user_count": Shelf.objects.values("user").distinct().count(),
         "shelf_item_count": sum(shelf_items.values()),
         "shelf_items": shelf_items,
+        "device_key_count": UserApiKey.objects.count(),
+        "device_key_user_count": UserApiKey.objects.values("user").distinct().count(),
     }
 
 

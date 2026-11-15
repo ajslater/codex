@@ -147,6 +147,8 @@ class StatsUsageSerializer(Serializer):
     shelf_user_count = IntegerField(required=False, read_only=True)
     shelf_item_count = IntegerField(required=False, read_only=True)
     shelf_items = CountDictField(required=False, read_only=True)
+    device_key_count = IntegerField(required=False, read_only=True)
+    device_key_user_count = IntegerField(required=False, read_only=True)
 
 
 class StatsAdminFlagsSerializer(Serializer):

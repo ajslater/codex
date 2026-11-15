@@ -5,6 +5,7 @@ from typing import override
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db.models import Count
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
@@ -21,6 +22,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import users_changed_task
 from codex.models import AdminFlag
+from codex.models.api_key import UserApiKey
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.settings.db import email_enabled
@@ -36,6 +38,7 @@ class AdminUserViewSet(AdminModelViewSet):
         User.objects.prefetch_related("groups")
         .select_related("userauth__age_rating_metron")
         .defer("first_name", "last_name")
+        .annotate(device_key_count=Count("api_keys", distinct=True))
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
@@ -188,6 +191,23 @@ class AdminUserSendVerificationView(AdminAPIView):
             {"detail": f"Verification email sent to {user.email}."},
             status=HTTP_200_OK,
         )
+
+
+class AdminUserRevokeDeviceKeysView(AdminAPIView):
+    """
+    Revoke every device key a user has.
+
+    ``POST /api/v4/admin/users/<pk>/revoke-device-keys``. Returns
+    ``{"revoked": int}``. The user's bearer token is left alone.
+    """
+
+    def post(self, _request, pk: int) -> Response:
+        """Delete the user's device keys."""
+        if not User.objects.filter(pk=pk).exists():
+            return Response({"detail": "User not found."}, status=HTTP_404_NOT_FOUND)
+        revoked, _ = UserApiKey.objects.filter(user_id=pk).delete()
+        LIBRARIAN_QUEUE.put(users_changed_task())
+        return Response({"revoked": revoked}, status=HTTP_200_OK)
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

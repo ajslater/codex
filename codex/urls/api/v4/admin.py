@@ -64,6 +64,7 @@ from codex.views.admin.throttle import AdminThrottleSettingsView
 from codex.views.admin.user import (
     AdminUserBulkView,
     AdminUserChangePasswordView,
+    AdminUserRevokeDeviceKeysView,
     AdminUserSendVerificationView,
     AdminUserViewSet,
 )
@@ -96,6 +97,11 @@ urlpatterns = [
         "users/<int:pk>/send-verification",
         AdminUserSendVerificationView.as_view(),
         name="user_send_verification",
+    ),
+    path(
+        "users/<int:pk>/revoke-device-keys",
+        AdminUserRevokeDeviceKeysView.as_view(),
+        name="user_revoke_device_keys",
     ),
     path(
         "users/bulk",
