@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.6.1
+## v2.7.0
 
 ### 💥 Breaking Changes
 
