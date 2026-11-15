@@ -136,6 +136,21 @@ class ApiKeyMigrationTests(TransactionTestCase):
         assert not _table_exists(_TOKEN_TABLE)
         assert self._authtoken_migrations() == 0
 
+    def test_a_token_whose_user_is_gone_is_skipped(self) -> None:
+        """An orphan token row, its user deleted, must not fail the migration."""
+        _migrate(_BEFORE)
+        orphan_id = max(User.objects.values_list("pk", flat=True)) + 100
+        # SQLite enforces the foreign key at commit; only an orphan can be
+        # seeded with the checks off, as a database repaired by hand might be.
+        with connection.constraint_checks_disabled():
+            self._seed_tokens({self.reader.pk: _TOKEN_A, orphan_id: _TOKEN_B})
+
+        keys = self._keys(_migrate(_AFTER))
+
+        assert set(keys) == {(self.reader.pk, "Universal Token")}
+        assert keys[self.reader.pk, "Universal Token"]["digest"] == _sha256(_TOKEN_A)
+        assert not _table_exists(_TOKEN_TABLE)
+
     def test_no_token_table(self) -> None:
         """A database that never had DRF's token table migrates cleanly."""
         _migrate(_BEFORE)
