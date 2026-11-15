@@ -247,6 +247,19 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
       }
     },
+    async revokeUserDeviceKeys(pk) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      try {
+        await API.revokeUserDeviceKeys(pk);
+        commonStore.clearErrors();
+        await this.loadTable("User", { force: true });
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
+    },
     async deleteRow(table, pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();

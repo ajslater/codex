@@ -21,6 +21,9 @@ vi.mock("@/api/v4/auth", () => ({
   resetPassword: vi.fn(),
   getToken: vi.fn(),
   updateToken: vi.fn(),
+  getDeviceKeys: vi.fn(),
+  createDeviceKey: vi.fn(),
+  deleteDeviceKey: vi.fn(),
 }));
 
 import * as API from "@/api/v4/auth";
@@ -204,5 +207,47 @@ describe("reloadOnDefaultsChange", () => {
     const { browser } = stores();
     expect(await reloadOnDefaultsChange("browser")).toBe(false);
     expect(browser.loadSettings).not.toHaveBeenCalled();
+  });
+});
+
+describe("useAuthStore — device keys", () => {
+  const KOBO = Object.freeze({ pk: 1, name: "Kobo", prefix: "abcd" });
+
+  it("loads the key list", async () => {
+    API.getDeviceKeys.mockResolvedValue({ data: { keys: [KOBO] } });
+    const store = useAuthStore();
+    await store.loadDeviceKeys();
+    expect(store.deviceKeys).toEqual([KOBO]);
+  });
+
+  it("returns the new key once and keeps it out of the list", async () => {
+    API.createDeviceKey.mockResolvedValue({
+      data: { pk: 2, name: "Boox", prefix: "wxyz", key: "wxyzsecret" },
+    });
+    const store = useAuthStore();
+    store.deviceKeys = [{ ...KOBO }];
+    const key = await store.createDeviceKey("Boox");
+    expect(key).toBe("wxyzsecret");
+    expect(API.createDeviceKey).toHaveBeenCalledWith("Boox");
+    expect(store.deviceKeys.map((row) => row.name)).toEqual(["Boox", "Kobo"]);
+    expect(JSON.stringify(store.deviceKeys)).not.toContain("wxyzsecret");
+  });
+
+  it("surfaces a refused create and returns undefined", async () => {
+    API.createDeviceKey.mockRejectedValue({
+      response: { data: { detail: "duplicate" } },
+    });
+    const store = useAuthStore();
+    expect(await store.createDeviceKey("Kobo")).toBeUndefined();
+    expect(useCommonStore().form.errors.length).toBeGreaterThan(0);
+  });
+
+  it("drops a revoked key", async () => {
+    API.deleteDeviceKey.mockResolvedValue({});
+    const store = useAuthStore();
+    store.deviceKeys = [{ ...KOBO }];
+    expect(await store.deleteDeviceKey(1)).toBe(true);
+    expect(API.deleteDeviceKey).toHaveBeenCalledWith(1);
+    expect(store.deviceKeys).toEqual([]);
   });
 });

@@ -64,6 +64,23 @@
       <template #[`item.ageRatingMetron`]="{ item }">
         {{ ageRatingName(item.ageRatingMetron) }}
       </template>
+      <template #[`item.deviceKeyCount`]="{ item }">
+        {{ item.deviceKeyCount || 0 }}
+        <v-btn
+          v-if="item.deviceKeyCount"
+          :icon="mdiKeyRemove"
+          :color="confirmRevokePk === item.pk ? 'error' : undefined"
+          variant="text"
+          size="small"
+          density="compact"
+          :title="
+            confirmRevokePk === item.pk
+              ? `Click again to revoke all of ${item.username}'s device keys`
+              : `Revoke all of ${item.username}'s device keys`
+          "
+          @click="revokeDeviceKeys(item)"
+        />
+      </template>
       <template #[`item.lastActive`]="{ item }">
         <DateTimeColumn :dttm="item.lastActive" />
       </template>
@@ -146,7 +163,7 @@
 </template>
 
 <script>
-import { mdiEmailArrowRightOutline } from "@mdi/js";
+import { mdiEmailArrowRightOutline, mdiKeyRemove } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -181,6 +198,8 @@ export default {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
       AGE_RATING_FLAG_KEYS,
       mdiEmailArrowRightOutline,
+      mdiKeyRemove,
+      confirmRevokePk: undefined,
       headers: [
         { title: "Username", key: "username", align: "start" },
         { title: "Email", key: "email", align: "start" },
@@ -188,6 +207,7 @@ export default {
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },
         { title: "Age Rating", key: "ageRatingMetron", align: "start" },
+        { title: "Device Keys", key: "deviceKeyCount" },
         { title: "Last Active", key: "lastActive" },
         { title: "Last Login", key: "lastLogin" },
         { title: "Joined", key: "dateJoined" },
@@ -221,7 +241,20 @@ export default {
     this.loadAdminFlags();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTables", "sendUserVerificationEmail"]),
+    ...mapActions(useAdminStore, [
+      "loadTables",
+      "revokeUserDeviceKeys",
+      "sendUserVerificationEmail",
+    ]),
+    async revokeDeviceKeys(item) {
+      // Two clicks: the first arms the button, the second revokes.
+      if (this.confirmRevokePk !== item.pk) {
+        this.confirmRevokePk = item.pk;
+        return;
+      }
+      this.confirmRevokePk = undefined;
+      await this.revokeUserDeviceKeys(item.pk);
+    },
     ...mapActions(useAuthStore, ["loadAdminFlags"]),
     canSendVerification(item) {
       return Boolean(

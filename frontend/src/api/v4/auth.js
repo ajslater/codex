@@ -43,3 +43,11 @@ export const resetPassword = (payload) =>
 
 export const getToken = () => HTTP.get("/auth/token");
 export const updateToken = () => HTTP.put("/auth/token");
+
+/*
+ * Device keys: named per-device credentials for OPDS and KOReader.
+ * Only the create response carries the key itself.
+ */
+export const getDeviceKeys = () => HTTP.get("/auth/keys");
+export const createDeviceKey = (name) => HTTP.post("/auth/keys", { name });
+export const deleteDeviceKey = (pk) => HTTP.delete(`/auth/keys/${pk}`);

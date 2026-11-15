@@ -27,6 +27,7 @@ from codex.models.admin import (
     OIDCSettings,
     SettingsDefaults,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
@@ -252,6 +253,9 @@ class TelemeterPrivacyTestCase(TestCase):
         ShelfItem.objects.create(
             shelf=shelf, collection=Collection.SERIES.value, target_id=1
         )
+        # A device key's name is free text too, and its prefix is part of a
+        # credential. Seeded on the same user so the user count is one.
+        UserApiKey.create_for_user(user, f"{SENTINEL}-device-key")
 
     @staticmethod
     def _seed_comic(library: Library) -> None:
@@ -321,6 +325,17 @@ class TelemeterPrivacyTestCase(TestCase):
         assert usage["shelf_user_count"] == 1
         assert usage["shelf_item_count"] == 1
         assert usage["shelf_items"] == {Collection.SERIES.value: 1}
+
+    def test_device_keys_report_counts_only(self) -> None:
+        """
+        Report two integers.
+
+        The name is the sentinel; the closed-vocabulary walk covers the
+        prefix and timestamps.
+        """
+        usage = CodexStats().get()["usage"]
+        assert usage["device_key_count"] == 1
+        assert usage["device_key_user_count"] == 1
 
     def test_unknown_identifier_source_collapsed(self) -> None:
         """A source name from a comic file is replaced by "other"."""

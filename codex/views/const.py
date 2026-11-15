@@ -43,6 +43,7 @@ from codex.models import (
     Tagger,
     Team,
     Universe,
+    UserApiKey,
     Volume,
 )
 from codex.settings import CODEX_PATH
@@ -187,6 +188,7 @@ STATS_USAGE_MODELS = (
     Bookmark,
     Shelf,
     ShelfItem,
+    UserApiKey,
 )
 CONFIG_MODELS = (
     Library,

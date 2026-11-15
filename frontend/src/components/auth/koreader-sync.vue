@@ -21,7 +21,7 @@
             </tr>
             <tr>
               <td>Password</td>
-              <td class="helpValue">your Authorization Bearer Token</td>
+              <td class="helpValue">a Device Key made for this device</td>
             </tr>
             <tr>
               <td>Document matching</td>
@@ -32,7 +32,9 @@
           </tbody>
         </table>
         <p class="koreaderHelp">
-          Resetting the token logs out every KOReader device.
+          Revoking a device key logs out only that device. Your Authorization
+          Bearer Token also works as the password, but resetting it logs out
+          every device that uses it.
         </p>
       </v-expansion-panel-text>
     </v-expansion-panel>
