@@ -24,6 +24,12 @@
         :text="token"
       />
       <div id="bearerTokenHelp">
+        <p>
+          This token is your full API credential. For reader apps and KOReader
+          devices, make a Device Key instead: each device gets its own, and
+          revoking one leaves the others working. Resetting this token logs out
+          every client that uses it.
+        </p>
         <h3>Custom Headers</h3>
         <p>
           If your client doesn't have a dedicated Bearer token settings feature

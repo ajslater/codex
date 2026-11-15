@@ -89,6 +89,7 @@
         </v-expansion-panel>
       </v-expansion-panels>
       <KOReaderSync v-if="koreaderSync" :username="user.username" />
+      <DeviceKeysDialog />
       <AuthTokenDialog :user="user" />
       <SubmitFooter
         verb="Save"
@@ -111,6 +112,7 @@ import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import AuthTokenDialog from "@/components/auth/auth-token.vue";
+import DeviceKeysDialog from "@/components/auth/device-keys.vue";
 import KOReaderSync from "@/components/auth/koreader-sync.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -128,6 +130,7 @@ export default {
     AuthTokenDialog,
     CloseButton,
     CodexListItem,
+    DeviceKeysDialog,
     KOReaderSync,
     SubmitFooter,
   },

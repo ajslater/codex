@@ -21,7 +21,16 @@ border-radius: 128px;
   Progress sync plugin, so a comic's reading position follows you between a
   KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
   follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
-  your username and your Bearer Token.
+  your username and a device key.
+- Device keys: a named, revocable key for each reader app or device, made in
+  Profile → Device Keys. Use one as the password for OPDS (HTTP Basic, or as a
+  Bearer token) and KOReader sync. A key is shown once, can be revoked on its
+  own, and shows when it was last used. Keys work on OPDS and KOReader only, not
+  the web UI or API, so users who log in with Single Sign On can now use
+  Basic-only OPDS readers.
+- OPDS HTTP Basic also accepts your Authorization Bearer Token as the password.
+- The admin Users tab shows each user's device key count and can revoke all of a
+  user's keys.
 
 ### ♻️ Changed
 
@@ -30,8 +39,8 @@ border-radius: 128px;
   that shelf. The star button is replaced by a shelf button that shows which
   shelves an item is on.
 - The Favorite sort and table column are now Shelved: on any of your shelves.
-- User data backups store shelves. Backups made by older versions still
-  restore, with their favorites placed on a "Favorites" shelf.
+- User data backups store shelves. Backups made by older versions still restore,
+  with their favorites placed on a "Favorites" shelf.
 - Some background task log messages now reach the log file and honor the log
   level.
 

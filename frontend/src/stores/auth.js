@@ -41,6 +41,8 @@ export const useAuthStore = defineStore("auth", {
     defaults: undefined,
     defaultsRev: undefined,
     token: undefined,
+    // The user's device keys, without the keys themselves.
+    deviceKeys: [],
     showLoginDialog: false,
     showChangePasswordDialog: false,
     showProfileDialog: false,
@@ -269,6 +271,42 @@ export const useAuthStore = defineStore("auth", {
       } catch (error) {
         console.error(error);
       }
+    },
+    async loadDeviceKeys() {
+      try {
+        const response = await API.getDeviceKeys();
+        this.deviceKeys = response.data?.keys || [];
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    /*
+     * Create a device key. Resolves to the new key's plain value, which the
+     * server sends only this once, or undefined when it refuses.
+     */
+    async createDeviceKey(name) {
+      const commonStore = useCommonStore();
+      try {
+        const response = await API.createDeviceKey(name);
+        const { key, ...listed } = response.data;
+        this.deviceKeys = [...this.deviceKeys, listed].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
+        commonStore.clearErrors();
+        return key;
+      } catch (error) {
+        commonStore.setErrors(error);
+      }
+    },
+    async deleteDeviceKey(pk) {
+      try {
+        await API.deleteDeviceKey(pk);
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+      this.deviceKeys = this.deviceKeys.filter((row) => row.pk !== pk);
+      return true;
     },
   },
 });

@@ -170,6 +170,9 @@ export const changeUserPassword = (pk, data) =>
 export const sendUserVerificationEmail = (pk) =>
   HTTP.post(`/admin/users/${pk}/send-verification`);
 
+export const revokeUserDeviceKeys = (pk) =>
+  HTTP.post(`/admin/users/${pk}/revoke-device-keys`);
+
 export const getFolders = (path, showHidden) =>
   HTTP.get("/admin/folders", { params: { path, showHidden } });
 

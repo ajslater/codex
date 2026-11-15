@@ -282,9 +282,9 @@ SQLite file: the **user data sidecar**.
 #### What it contains
 
 Users (with hashed passwords), groups & permissions, group memberships,
-libraries and their access lists, bookmarks, shelves, per-user browser
-settings, admin flags, timestamps, online-tagging defaults, and the default
-settings for new sessions.
+libraries and their access lists, bookmarks, shelves, per-user browser settings,
+admin flags, timestamps, online-tagging defaults, and the default settings for
+new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -1056,6 +1056,21 @@ not supported.
 
 #### OPDS Authentication
 
+##### Device Keys
+
+Give each reader app its own **Device Key**, made in **Profile → Device Keys**.
+A device key is a password for one app or device: use it in place of your
+account password with HTTP Basic, or as a Bearer token. Each key has a name you
+choose, such as "Panels on iPad", shows when it was last used, and can be
+revoked on its own without logging out your other devices. The key is shown
+once, when you make it; Codex stores only a hash of it.
+
+Device keys work on OPDS and KOReader sync only. They do not log in to the web
+UI or the `/api/v4/` API, so a key stored in a reader app cannot change your
+account or, for admins, reach the admin API. Device keys are the way to use a
+Basic-only OPDS reader when you log in with Single Sign On and have no Codex
+password.
+
 ##### OPDS Login
 
 The few clients that implement the OPDS 1.0 Authentication spec present the user
@@ -1069,11 +1084,17 @@ to the URL. In that case the OPDS url will look like:
 
 `http(s)://username:password@codex-server.tld(:9810)(/path_prefix)/opds/v1.2/`
 
+The password may be a device key (recommended), your Authorization Bearer Token,
+or your account password.
+
 ##### HTTP Token
 
 Some clients allow adding a unique login token to the HTTP headers. Codex will
-read "Bearer" prefixed authorization tokens. The token is unique for each user
-and may be found in the Web UI sidebar.
+read "Bearer" prefixed authorization tokens: `Authorization: Bearer <token>`.
+The token may be a device key, or your Authorization Bearer Token from the
+Profile dialog. The Bearer Token is your full API credential, one per user, and
+resetting it logs out every client that uses it, so prefer a device key per
+reader app.
 
 #### Reading Positions
 
@@ -1150,10 +1171,11 @@ one reading position.
    URL, for example `https://codex.example.com/koreader`, including any
    reverse-proxy subpath.
 3. In KOReader, open a book, then **Progress sync → Custom sync server** and
-   enter that URL. Log in with your Codex username and, as the password, your
-   **Authorization Bearer Token** from the Profile dialog. Your Codex login
-   password does not work here. Resetting the token logs out every KOReader
-   device. KOReader cannot register new users on Codex.
+   enter that URL. Log in with your Codex username and, as the password, a
+   **Device Key** made for that device in **Profile → Device Keys**. Revoking
+   the key logs out only that device. Your Authorization Bearer Token also works
+   as the password, but resetting it logs out every device. Your Codex login
+   password does not work here. KOReader cannot register new users on Codex.
 4. Choose **Document matching**. **Binary** identifies a book by its contents
    and works for most libraries. If you write tags into your comics from Codex,
    the file changes and binary matching loses it. Choose **Filename** instead,

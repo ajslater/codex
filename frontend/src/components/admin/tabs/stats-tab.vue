@@ -84,6 +84,8 @@ const USAGE_LABELS = Object.freeze({
   shelfUserCount: "Users with Shelves",
   shelfItemCount: "Shelf Items",
   shelfItems: "Shelf Items by Collection",
+  deviceKeyCount: "Device Keys",
+  deviceKeyUserCount: "Users with Device Keys",
 });
 const ADMIN_FLAG_LABELS = Object.freeze({
   autoUpdate: "Auto Update",
