@@ -3,7 +3,7 @@ Fold every inbound API credential into scoped ``UserApiKey`` rows.
 
 * Each DRF ``authtoken_token`` row becomes a ``universal`` key named
   "Universal Token", so an existing token keeps logging in everywhere until
-  it is revoked. Then the table and its migration records are dropped:
+  it is revoked. A row whose user no longer exists is dropped. Then the table and its migration records are dropped:
   ``rest_framework.authtoken`` is no longer installed.
 * The plaintext Stats API key in the ``AK`` admin flag becomes a hashed
   ``stats`` key owned by the first admin, and the flag row goes. Startup
@@ -59,7 +59,7 @@ def _add_key(api_key_model, user_id: int, base_name: str, scope: str, secret: st
     )
 
 
-def _migrate_tokens(api_key_model, schema_editor) -> None:
+def _migrate_tokens(apps, api_key_model, schema_editor) -> None:
     """Copy each DRF token to a universal key, then drop the token table."""
     connection = schema_editor.connection
     if _TOKEN_TABLE not in connection.introspection.table_names():
@@ -67,8 +67,13 @@ def _migrate_tokens(api_key_model, schema_editor) -> None:
     with connection.cursor() as cursor:
         cursor.execute(f"SELECT key, user_id FROM {_TOKEN_TABLE} ORDER BY user_id")  # noqa: S608
         rows = cursor.fetchall()
+    # A token whose user is gone would break its key's foreign key and fail
+    # the whole migration at commit. Skip it: the table is dropped anyway.
+    user_ids = frozenset(
+        apps.get_model("auth", "User").objects.values_list("pk", flat=True)
+    )
     for secret, user_id in rows:
-        if secret:
+        if secret and user_id in user_ids:
             _add_key(api_key_model, user_id, _UNIVERSAL_KEY_NAME, _UNIVERSAL, secret)
     schema_editor.execute(f"DROP TABLE IF EXISTS {_TOKEN_TABLE}")
     schema_editor.execute("DELETE FROM django_migrations WHERE app = 'authtoken'")
@@ -98,7 +103,7 @@ def _migrate_stats_key(apps, api_key_model) -> None:
 
 def _forward(apps, schema_editor) -> None:
     api_key_model = apps.get_model("codex", "UserApiKey")
-    _migrate_tokens(api_key_model, schema_editor)
+    _migrate_tokens(apps, api_key_model, schema_editor)
     _migrate_stats_key(apps, api_key_model)
 
 
