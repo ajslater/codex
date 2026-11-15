@@ -65,6 +65,7 @@ _PAGE_COUNT: Final = 20
 _HTTP_OK: Final = 200
 _HTTP_UNAUTHORIZED: Final = 401
 _HTTP_PAYMENT_REQUIRED: Final = 402
+_HTTP_FORBIDDEN: Final = 403
 _HTTP_NOT_FOUND: Final = 404
 _UNKNOWN_HASH: Final = "0" * 32
 _PAGE_ONE_BASED: Final = 5
@@ -165,6 +166,14 @@ class KOSyncTestCase(TestCase):
             data=json.dumps(body),
             content_type="application/json",
             **(headers or self._headers()),
+        )
+
+    def _put_raw(self, body):
+        return self.client.put(
+            "/koreader/syncs/progress",
+            data=json.dumps(body),
+            content_type="application/json",
+            **self._headers(),
         )
 
     def _pull(self, document: str | None, **headers: Any):
@@ -320,6 +329,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
                     "document": self.comic.koreader_hash,
                     "progress": "3",
                     "percentage": 0.15,
+                    "device": "Kobo",
                 }
             ),
             content_type=_ACCEPT,
@@ -352,7 +362,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
 
     def test_out_of_range_page_is_clamped(self) -> None:
         """A page past the end is the last page, and read."""
-        self._push(self.comic.koreader_hash, progress="99", percentage=None)
+        self._push(self.comic.koreader_hash, progress="99", percentage=0.99)
         assert self._bookmarks() == [(self.comic.pk, _PAGE_COUNT - 1, True)]
 
     def test_percentage_fallback_when_page_counts_differ(self) -> None:
@@ -374,10 +384,52 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         assert self._bookmarks() == [(self.comic.pk, 9, False)]
 
     def test_unmappable_push_is_200_and_stores_nothing(self) -> None:
-        """No page and no percentage: nothing to store, nothing to retry."""
-        response = self._push(self.comic.koreader_hash, progress="x", percentage=None)
+        """An unreadable page and an out-of-range percentage store nothing."""
+        response = self._push(self.comic.koreader_hash, progress="x", percentage=5)
         assert response.status_code == _HTTP_OK
         assert not self._bookmarks()
+
+    def _malformed_bodies(self) -> tuple[tuple[Any, int], ...]:
+        good = {
+            "document": self.comic.koreader_hash,
+            "progress": "5",
+            "percentage": 0.25,
+            "device": "Kobo",
+        }
+
+        def without(key: str) -> dict:
+            return {k: v for k, v in good.items() if k != key}
+
+        return (
+            ({**good, "document": ""}, 2004),
+            ({**good, "document": "a:b"}, 2004),
+            (without("document"), 2004),
+            ({**good, "percentage": "half"}, 2003),
+            (without("percentage"), 2003),
+            (without("progress"), 2003),
+            (without("device"), 2003),
+            ([good], 2003),
+        )
+
+    def test_malformed_pushes_are_403_like_the_reference(self) -> None:
+        """
+        koreader-sync-server answers bad fields with 403 and a code.
+
+        2004 for a missing, empty or colon-containing document; 2003 for a
+        missing or non-numeric percentage, or a missing progress or device.
+        """
+        cases = self._malformed_bodies()
+        results = [(self._put_raw(body), code) for body, code in cases]
+        assert [(r.status_code, r.json()["code"]) for r, _ in results] == [
+            (_HTTP_FORBIDDEN, code) for _, code in results
+        ]
+        assert not self._bookmarks()
+
+    def test_percentage_zero_is_a_value(self) -> None:
+        """0 is a legal percentage, not a missing field."""
+        response = self._push(self.comic.koreader_hash, progress="1", percentage=0)
+        assert response.status_code == _HTTP_OK
+        assert self._bookmarks() == [(self.comic.pk, 0, False)]
 
     def test_unread_pull_is_empty(self) -> None:
         """No bookmark, or a page-0 unfinished one, is no progress."""
