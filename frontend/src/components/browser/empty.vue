@@ -20,11 +20,7 @@
 </template>
 
 <script>
-import {
-  mdiBankOutline,
-  mdiBookSearchOutline,
-  mdiOpenInNew,
-} from "@mdi/js";
+import { mdiBankOutline, mdiBookSearchOutline, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import EmptyState from "@/components/empty.vue";
