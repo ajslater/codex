@@ -18,7 +18,6 @@
 </template>
 
 <script>
-import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapState } from "pinia";
 
 import BrowserColumnsButton from "@/components/browser/toolbars/top/columns-button.vue";
@@ -47,8 +46,6 @@ export default {
   },
   data() {
     return {
-      mdiMagnify,
-      mdiFamilyTree,
       browseMode: "filter",
     };
   },

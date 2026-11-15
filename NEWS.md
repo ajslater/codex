@@ -43,6 +43,8 @@ border-radius: 128px;
   with their favorites placed on a "Favorites" shelf.
 - Some background task log messages now reach the log file and honor the log
   level.
+- Libraries have their own icon, and actions and statuses that shared an icon
+  now look distinct.
 
 ### 🔥 Removed
 

@@ -20,7 +20,7 @@
   </v-dialog>
 </template>
 <script>
-import { mdiLifebuoy, mdiOpenInNew } from "@mdi/js";
+import { mdiLifebuoy } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import SearchHelpText from "@/components/browser/toolbars/search/search-help-text.vue";
@@ -30,7 +30,6 @@ export default {
   components: { SearchHelpText },
   data() {
     return {
-      mdiOpenInNew,
       mdiLifebuoy,
     };
   },

@@ -37,7 +37,7 @@
                 size="small"
                 variant="text"
                 :color="confirmPk === row.pk ? 'error' : undefined"
-                :prepend-icon="mdiDeleteOutline"
+                :prepend-icon="mdiKeyRemove"
                 :text="confirmPk === row.pk ? 'Confirm' : 'Revoke'"
                 :title="`Revoke ${row.name}`"
                 @click.stop="revoke(row.pk)"
@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import { mdiCellphoneKey, mdiDeleteOutline, mdiKeyPlus } from "@mdi/js";
+import { mdiCellphoneKey, mdiKeyPlus, mdiKeyRemove } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ClipBoard from "@/components/clipboard.vue";
@@ -116,8 +116,8 @@ export default {
   data() {
     return {
       mdiCellphoneKey,
-      mdiDeleteOutline,
       mdiKeyPlus,
+      mdiKeyRemove,
       NAME_MAX_LENGTH,
       TOOLTIP,
       showDialog: false,

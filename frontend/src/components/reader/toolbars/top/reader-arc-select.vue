@@ -44,7 +44,6 @@ import {
   mdiChessRook,
   mdiContentDuplicate,
   mdiFeather,
-  mdiFilterOutline,
   mdiFolderOutline,
   mdiRedo,
 } from "@mdi/js";
@@ -77,11 +76,6 @@ export default {
   name: "ReaderArcSelect",
   components: {
     ToolbarSelect,
-  },
-  data() {
-    return {
-      mdiFilterOutline,
-    };
   },
   computed: {
     ...mapState(useReaderStore, {

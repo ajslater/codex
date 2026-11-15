@@ -20,7 +20,6 @@
 </template>
 
 <script>
-import { mdiReload } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { formattedVolumeName, formattedYearRange } from "@/comic-name";
@@ -33,11 +32,6 @@ export default {
   name: "BrowserHeader",
   components: {
     MetadataDialog,
-  },
-  data() {
-    return {
-      mdiReload,
-    };
   },
   head() {
     const titleSuffix = this.subtitle ? this.subtitle : this.title;
