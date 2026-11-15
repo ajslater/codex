@@ -84,7 +84,6 @@ class AdminFlagsSerializer(Serializer):
     """Admin flags + capability flags relevant to auth/registration."""
 
     banner_text = CharField(read_only=True, allow_blank=True)
-    koreader_sync = BooleanField(read_only=True)
     lazy_import_metadata = BooleanField(read_only=True)
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)
@@ -142,8 +141,8 @@ class SessionSerializer(Serializer):
     """
     Composite session payload: user + adminFlags + permissions + version.
 
-    ``opds-urls`` deliberately stays on its own lazy endpoint
-    (``GET /api/v4/opds-urls``) — those URLs are rarely opened, so
+    ``api-urls`` deliberately stays on its own lazy endpoint
+    (``GET /api/v4/api-urls``) — those URLs are rarely opened, so
     paying for the reverse-resolve on every session boot would be
     waste. ``version`` ships here because the SPA chrome reads
     ``installed`` immediately and the update-check fields ride along
