@@ -89,6 +89,7 @@ const ADMIN_FLAG_LABELS = Object.freeze({
   autoUpdate: "Auto Update",
   folderView: "Folder View",
   importMetadata: "Import Tags on Library Scan",
+  koreaderSync: "KOReader Sync",
   lazyImportMetadata: "Import Tags on Demand",
   nonUsers: "Non Users",
   registration: "Registration",

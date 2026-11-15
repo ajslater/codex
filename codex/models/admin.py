@@ -65,7 +65,9 @@ class AdminFlag(BaseModel):
     next boot.
     """
 
-    FALSE_DEFAULTS = frozenset({AdminFlagChoices.REGISTER_VERIFICATION})
+    FALSE_DEFAULTS = frozenset(
+        {AdminFlagChoices.KOREADER_SYNC, AdminFlagChoices.REGISTER_VERIFICATION}
+    )
     # Auto Update installs a new codex over the running one, which is what
     # a pip, pipx or uv install wants and is why it seeds on. A container
     # is an immutable deployment: an in-place upgrade lives until the next

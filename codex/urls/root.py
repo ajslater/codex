@@ -49,6 +49,7 @@ urlpatterns += [
     path("sso/", include("allauth.socialaccount.providers.openid_connect.urls")),
     path("opds/", include("codex.urls.opds.root")),
     path("opds", RedirectView.as_view(pattern_name="opds:v1:start")),
+    path("koreader/", include("codex.urls.koreader")),
     path("health", health_check_view, name="healthcheck"),
     path("", include("codex.urls.pwa")),
     # The app must be last because it includes a catch-all path

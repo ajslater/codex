@@ -464,7 +464,16 @@ BULK_UPDATE_COMIC_FIELDS_SET = frozenset(BULK_UPDATE_COMIC_FIELDS)
 # SQL scales with rows x fields, and a force-reimport of unchanged
 # comics otherwise rewrites ~40 columns per row to identical values.
 ALWAYS_UPDATE_COMIC_FIELDS = frozenset(
-    {"age_rating_metron_index", "date", "decade", "size", "stat", "updated_at"}
+    {
+        "age_rating_metron_index",
+        "date",
+        "decade",
+        "koreader_hash",
+        "koreader_name_hash",
+        "size",
+        "stat",
+        "updated_at",
+    }
 )
 BULK_CREATE_COMIC_FIELDS = (*BULK_UPDATE_COMIC_FIELDS, "library")
 BULK_UPDATE_FOLDER_FIELDS = (
@@ -503,7 +512,12 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
 # filesystem prefilter has that the archive needs re-reading. update_comics
 # writes a fresh stat once the new tags actually import
 # (ALWAYS_UPDATE_COMIC_FIELDS).
-MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder", "updated_at")
+MOVED_BULK_COMIC_UPDATE_FIELDS = (
+    "path",
+    "parent_folder",
+    "koreader_name_hash",
+    "updated_at",
+)
 CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")
 
 ###########

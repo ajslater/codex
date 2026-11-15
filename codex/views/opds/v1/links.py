@@ -20,6 +20,14 @@ from codex.views.opds.v1.facets import OPDS1FacetsView
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
+    def root_top_links(self) -> tuple[TopLink, ...]:
+        """Root top links for this user, with Favorites if they have any."""
+        # Minimal stand-in: the planned Shelves feature folds favorites
+        # into named shelves and will replace the body of this method.
+        if self.user_has_favorites():
+            return (*RootTopLinks.ALL, RootTopLinks.FAVORITES)
+        return RootTopLinks.ALL
+
     def is_top_link_displayed(self, top_link) -> bool:
         """Determine if this top link should be displayed."""
         for key, value in top_link.kwargs.items():
@@ -78,7 +86,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         links = []
         if not self.use_facets:
             return links
-        for top_link in TopLinks.ALL + RootTopLinks.ALL:
+        for top_link in (*TopLinks.ALL, *self.root_top_links()):
             if not self.is_top_link_displayed(top_link):
                 links += [self._top_link(top_link)]
         # Sort facets only. ``facets`` returns nothing on the start page

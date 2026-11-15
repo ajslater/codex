@@ -76,6 +76,12 @@ def get_admin_flag_int(key: str, default: int) -> int:
         return default
 
 
+def koreader_sync_enabled() -> bool:
+    """Whether the KOReader Sync admin flag is on. Off when the row is missing."""
+    flag = _get_admin_flag(AdminFlagChoices.KOREADER_SYNC.value)
+    return bool(flag and flag.on)
+
+
 def get_browser_max_obj_per_page() -> int:
     """Runtime browser page size — DB ``MP`` flag, falling back to settings."""
     return get_admin_flag_int(

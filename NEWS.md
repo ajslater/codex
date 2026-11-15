@@ -31,6 +31,26 @@ border-radius: 128px;
 ### 🔥 Removed
 
 - The `/api/v4/favorites/` endpoints, replaced by `/api/v4/shelves/`.
+- KOReader progress sync. Codex can be the sync server for KOReader's built in
+  Progress sync plugin, so a comic's reading position follows you between a
+  KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
+  follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
+  your username and your Bearer Token.
+- OPDS v1 lists a Favorites entry on the start page when you have favorites, as
+  OPDS v2 does.
+
+### ♻️ Changed
+
+- Some background task log messages now reach the log file and honor the log
+  level.
+
+### 🐛 Fixed
+
+- OPDS v1 "Latest Unread" now lists only unread issues. It had no read filter of
+  its own, so it showed read issues too, or reused the filter of whichever list
+  was opened before it.
+- OPDS v1 "Oldest Unread" always lists oldest first. It used to keep the
+  direction of the previous list, so it could come back newest first.
 
 ## v2.6.0 - Tag Editor Suggestions
 
