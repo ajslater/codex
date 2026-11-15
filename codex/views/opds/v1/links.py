@@ -12,6 +12,7 @@ from codex.views.opds.v1.const import (
     RootTopLinks,
     TopLink,
     TopLinks,
+    shelf_top_link,
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
@@ -21,12 +22,11 @@ class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
     def root_top_links(self) -> tuple[TopLink, ...]:
-        """Root top links for this user, with Favorites if they have any."""
-        # Minimal stand-in: the planned Shelves feature folds favorites
-        # into named shelves and will replace the body of this method.
-        if self.user_has_favorites():
-            return (*RootTopLinks.ALL, RootTopLinks.FAVORITES)
-        return RootTopLinks.ALL
+        """Root top links for this user, then one entry per non-empty shelf."""
+        return (
+            *RootTopLinks.ALL,
+            *(shelf_top_link(pk, name) for pk, name in self.user_shelves()),
+        )
 
     def is_top_link_displayed(self, top_link) -> bool:
         """Determine if this top link should be displayed."""

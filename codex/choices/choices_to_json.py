@@ -9,6 +9,7 @@ from types import MappingProxyType
 from caseconverter import camelcase
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES, TAGGING_CHOICES, TAGGING_DEFAULTS
+from codex.choices.api_key import API_KEY_SCOPE_TITLES
 from codex.choices.browser import (
     BROWSER_CHOICES,
     BROWSER_CHOICES_MAP_KEYS,
@@ -71,6 +72,7 @@ _DUMPS = MappingProxyType(
 _MAP_DUMPS = MappingProxyType(
     {
         "admin-jobs.json": ADMIN_JOBS,
+        "api-key-scopes.json": API_KEY_SCOPE_TITLES,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,

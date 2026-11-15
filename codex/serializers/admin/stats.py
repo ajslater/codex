@@ -71,8 +71,6 @@ class StatsConfigSerializer(Serializer):
     custom_cover_uploaded_count = IntegerField(required=False, read_only=True)
     custom_cover_dir_count = IntegerField(required=False, read_only=True)
     failed_import_count = IntegerField(required=False, read_only=True)
-    # Only for api
-    api_key = CharField(read_only=True, required=False)
 
 
 class StatsSessionsSerializer(Serializer):
@@ -143,9 +141,14 @@ class StatsUsageSerializer(Serializer):
     """Reader Engagement Counts."""
 
     bookmark_count = IntegerField(required=False, read_only=True)
-    favorite_count = IntegerField(required=False, read_only=True)
-    favorite_user_count = IntegerField(required=False, read_only=True)
-    favorites = CountDictField(required=False, read_only=True)
+    shelf_count = IntegerField(required=False, read_only=True)
+    shelf_user_count = IntegerField(required=False, read_only=True)
+    shelf_item_count = IntegerField(required=False, read_only=True)
+    shelf_items = CountDictField(required=False, read_only=True)
+    device_key_count = IntegerField(required=False, read_only=True)
+    device_key_user_count = IntegerField(required=False, read_only=True)
+    device_key_used_count = IntegerField(required=False, read_only=True)
+    universal_key_used_count = IntegerField(required=False, read_only=True)
 
 
 class StatsAdminFlagsSerializer(Serializer):
@@ -161,9 +164,11 @@ class StatsAdminFlagsSerializer(Serializer):
     koreader_sync = BooleanField(required=False, read_only=True)
     lazy_import_metadata = BooleanField(required=False, read_only=True)
     non_users = BooleanField(required=False, read_only=True)
+    opds = BooleanField(required=False, read_only=True)
     registration = BooleanField(required=False, read_only=True)
     register_verification = BooleanField(required=False, read_only=True)
     send_telemetry = BooleanField(required=False, read_only=True)
+    stats_api = BooleanField(required=False, read_only=True)
     api_key_set = BooleanField(required=False, read_only=True)
     banner_text_set = BooleanField(required=False, read_only=True)
     browser_default_collection = CharField(required=False, read_only=True)
@@ -337,9 +342,3 @@ class AdminStatsRequestSerializer(Serializer):
     # simply absent from the admin tab, with no error anywhere to say why --
     # the regression the identifiers section already shipped once.
     per_user = SerializerChoicesField(serializer=StatsPerUserSerializer, required=False)
-
-
-class APIKeySerializer(Serializer):
-    """API Key — wraps the ``AK`` :class:`AdminFlag` row's ``value`` column."""
-
-    api_key = CharField(source="value", read_only=True)

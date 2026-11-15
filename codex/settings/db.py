@@ -82,6 +82,22 @@ def koreader_sync_enabled() -> bool:
     return bool(flag and flag.on)
 
 
+def _flag_on_unless_off(key: str) -> bool:
+    """Whether a flag that seeds on is on. A missing row counts as on."""
+    flag = _get_admin_flag(key)
+    return True if flag is None else flag.on
+
+
+def opds_enabled() -> bool:
+    """Whether the OPDS admin flag is on. On when the row is missing."""
+    return _flag_on_unless_off(AdminFlagChoices.OPDS.value)
+
+
+def stats_api_enabled() -> bool:
+    """Whether Stats API keys may log in. On when the row is missing."""
+    return _flag_on_unless_off(AdminFlagChoices.STATS_API.value)
+
+
 def get_browser_max_obj_per_page() -> int:
     """Runtime browser page size — DB ``MP`` flag, falling back to settings."""
     return get_admin_flag_int(
@@ -197,8 +213,7 @@ def folder_view_on() -> bool:
 
     A missing row counts as on: startup seeds the flag on.
     """
-    flag = _get_admin_flag(AdminFlagChoices.FOLDER_VIEW.value)
-    return True if flag is None else flag.on
+    return _flag_on_unless_off(AdminFlagChoices.FOLDER_VIEW.value)
 
 
 def get_settings_defaults() -> SettingsDefaults | None:

@@ -64,6 +64,17 @@ def _parse_page(progress) -> int | None:
     return None
 
 
+def _is_number(value) -> bool:
+    """Whether Lua's ``tonumber`` would accept this percentage."""
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
+        return False
+    try:
+        float(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _parse_percentage(percentage) -> float | None:
     """Parse a 0..1 percentage."""
     if isinstance(percentage, bool) or not isinstance(percentage, int | float | str):
@@ -179,21 +190,44 @@ class KOSyncProgressPutView(KOSyncProgressMixin, KOSyncAPIView):
         )
         return int(updated_at.timestamp()) if updated_at else None
 
-    def put(self, *_args, **_kwargs) -> Response:
-        """Store the position; unknown and forbidden books store nothing."""
-        data = self.request.data
+    @staticmethod
+    def _invalid_push(data) -> Response | None:
+        """
+        Reject a malformed push the way koreader-sync-server does.
+
+        403 with code 2004 for a missing, empty or colon-containing
+        ``document``; 403 with code 2003 for a missing or non-numeric
+        ``percentage``, or a missing ``progress`` or ``device``. KOReader
+        always sends all four, so a stock device never sees these.
+        """
         # A JSON body can be a list or a scalar, whatever the stubs say.
-        if not isinstance(data, Mapping):  # pyright: ignore[reportUnnecessaryIsInstance]
+        if not isinstance(data, Mapping):
             return kosync_error(
-                HTTPStatus.BAD_REQUEST, ERROR_INVALID_FIELDS, "Invalid request"
+                HTTPStatus.FORBIDDEN, ERROR_INVALID_FIELDS, "Invalid request"
             )
-        raw_document = data.get("document")
-        if not raw_document or not isinstance(raw_document, str):
+        document = data.get("document")
+        if not document or not isinstance(document, str) or ":" in document:
             return kosync_error(
-                HTTPStatus.BAD_REQUEST,
+                HTTPStatus.FORBIDDEN,
                 ERROR_DOCUMENT_FIELD_MISSING,
                 "Field 'document' not provided.",
             )
+        if (
+            not _is_number(data.get("percentage"))
+            or data.get("progress") is None
+            or not data.get("device")
+        ):
+            return kosync_error(
+                HTTPStatus.FORBIDDEN, ERROR_INVALID_FIELDS, "Invalid request"
+            )
+        return None
+
+    def put(self, *_args, **_kwargs) -> Response:
+        """Store the position; unknown and forbidden books store nothing."""
+        data = self.request.data
+        if error := self._invalid_push(data):
+            return error
+        raw_document: str = data["document"]
         timestamp = None
         if document := normalize_document(raw_document):
             # Writes land on comics whose file is briefly missing, as the

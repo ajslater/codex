@@ -20,11 +20,7 @@
 </template>
 
 <script>
-import {
-  mdiBookSearchOutline,
-  mdiOpenInNew,
-  mdiShieldCrownOutline,
-} from "@mdi/js";
+import { mdiBankOutline, mdiBookSearchOutline, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import EmptyState from "@/components/empty.vue";
@@ -62,7 +58,7 @@ export default {
           res.title =
             "Use the top right ☰ menu to log in as an administrator to add libraries";
         }
-        res.icon = mdiShieldCrownOutline;
+        res.icon = mdiBankOutline;
       }
 
       return res;

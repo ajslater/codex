@@ -5,7 +5,7 @@ from typing import override
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework.authtoken.models import Token
+from django.db.models import Count
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.status import (
@@ -21,6 +21,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import users_changed_task
 from codex.models import AdminFlag
+from codex.models.api_key import UserApiKey
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.settings.db import email_enabled
@@ -36,6 +37,7 @@ class AdminUserViewSet(AdminModelViewSet):
         User.objects.prefetch_related("groups")
         .select_related("userauth__age_rating_metron")
         .defer("first_name", "last_name")
+        .annotate(api_key_count=Count("api_keys", distinct=True))
     )
     serializer_class = UserSerializer
     INPUT_METHODS = ("POST", "PUT")
@@ -118,7 +120,6 @@ class AdminUserViewSet(AdminModelViewSet):
         if groups:
             user.groups.set(groups)
             user.save()
-        Token.objects.create(user=user)
         if "age_rating_metron" in userauth_data:
             UserAuth.objects.filter(user=user).update(
                 age_rating_metron=userauth_data["age_rating_metron"],
@@ -188,6 +189,23 @@ class AdminUserSendVerificationView(AdminAPIView):
             {"detail": f"Verification email sent to {user.email}."},
             status=HTTP_200_OK,
         )
+
+
+class AdminUserRevokeKeysView(AdminAPIView):
+    """
+    Revoke every API key a user has, of every scope.
+
+    ``POST /api/v4/admin/users/<pk>/revoke-keys``. Returns
+    ``{"revoked": int}``. A revoked universal key cannot be made again.
+    """
+
+    def post(self, _request, pk: int) -> Response:
+        """Delete the user's API keys."""
+        if not User.objects.filter(pk=pk).exists():
+            return Response({"detail": "User not found."}, status=HTTP_404_NOT_FOUND)
+        revoked, _ = UserApiKey.objects.filter(user_id=pk).delete()
+        LIBRARIAN_QUEUE.put(users_changed_task())
+        return Response({"revoked": revoked}, status=HTTP_200_OK)
 
 
 class AdminUserChangePasswordView(AdminGenericAPIView):

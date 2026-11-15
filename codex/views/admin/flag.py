@@ -17,7 +17,6 @@ _REFRESH_LIBRARY_FLAGS = frozenset(
     for flag in (
         AdminFlagChoices.BANNER_TEXT,
         AdminFlagChoices.FOLDER_VIEW,
-        AdminFlagChoices.KOREADER_SYNC,
         AdminFlagChoices.NON_USERS,
     )
 )

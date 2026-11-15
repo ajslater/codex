@@ -188,15 +188,15 @@ describe("column picker — category checkboxes", () => {
     expect(groups.length).toBeGreaterThan(1);
     expect(groups[0].find(".v-label").text()).not.toBe("");
     expect(columnInput(wrapper, "name").element.checked).toBe(true);
-    expect(columnInput(wrapper, "favorite").element.checked).toBe(false);
+    expect(columnInput(wrapper, "shelved").element.checked).toBe(false);
   });
 
   test("checking a column lands at its canonical position", async () => {
     const wrapper = await openBody();
-    await columnInput(wrapper, "favorite").setValue(true);
+    await columnInput(wrapper, "shelved").setValue(true);
     expect(wrapper.vm.draft).toEqual([
       "cover",
-      "favorite",
+      "shelved",
       "name",
       "child_count",
     ]);

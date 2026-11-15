@@ -5,7 +5,8 @@ The endpoints speak koreader-sync-server's protocol under ``/koreader/``.
 What these tests pin:
 
 * Every route 404s while the KOReader Sync flag is off.
-* Credentials are the Codex username and the MD5 of the user's API token.
+* Credentials are the Codex username and the MD5 of one of the user's
+  device keys.
   Sessions and Non Users never authenticate these views.
 * A push for a comic that is unknown, or behind the library-group or
   age-rating ACL, is a 200 that stores nothing, and a pull for one is
@@ -30,7 +31,6 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.urls.base import set_script_prefix
 from loguru import logger
-from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -52,6 +52,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.auth import GroupAuth, UserAuth
 from codex.startup import init_admin_flags
 from codex.views.koreader.progress import CODEX_DEVICE_ID, map_push
@@ -65,6 +66,7 @@ _PAGE_COUNT: Final = 20
 _HTTP_OK: Final = 200
 _HTTP_UNAUTHORIZED: Final = 401
 _HTTP_PAYMENT_REQUIRED: Final = 402
+_HTTP_FORBIDDEN: Final = 403
 _HTTP_NOT_FOUND: Final = 404
 _UNKNOWN_HASH: Final = "0" * 32
 _PAGE_ONE_BASED: Final = 5
@@ -82,7 +84,7 @@ def _set_flag(*, on: bool) -> None:
 
 
 class KOSyncTestCase(TestCase):
-    """Fixture: an open comic, a private one and a user with a token."""
+    """Fixture: an open comic, a private one and a user with a device key."""
 
     @override
     def setUp(self) -> None:
@@ -114,7 +116,7 @@ class KOSyncTestCase(TestCase):
         )
 
         self.user = User.objects.create_user(username="reader", password="x")  # noqa: S106 # pyright: ignore[reportUninitializedInstanceVariable]
-        self.token = Token.objects.create(user=self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
+        _, self.key = UserApiKey.create_for_user(self.user, "KOReader")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.client = Client()
 
     @override
@@ -143,7 +145,7 @@ class KOSyncTestCase(TestCase):
         return {
             "HTTP_ACCEPT": _ACCEPT,
             "HTTP_X_AUTH_USER": user if user is not None else self.user.username,
-            "HTTP_X_AUTH_KEY": key if key is not None else _md5(self.token.key),
+            "HTTP_X_AUTH_KEY": key if key is not None else _md5(self.key),
         }
 
     def _push(
@@ -165,6 +167,14 @@ class KOSyncTestCase(TestCase):
             data=json.dumps(body),
             content_type="application/json",
             **(headers or self._headers()),
+        )
+
+    def _put_raw(self, body):
+        return self.client.put(
+            "/koreader/syncs/progress",
+            data=json.dumps(body),
+            content_type="application/json",
+            **self._headers(),
         )
 
     def _pull(self, document: str | None, **headers: Any):
@@ -237,19 +247,19 @@ class KOSyncFlagTestCase(KOSyncTestCase):
 
 
 class KOSyncAuthTestCase(KOSyncTestCase):
-    """Username plus the MD5 of the API token."""
+    """Username plus the MD5 of a device key."""
 
     def test_good_credentials(self) -> None:
-        """The token's MD5, as KOReader sends it, authorizes."""
+        """The key's MD5, as KOReader sends it, authorizes."""
         response = self.client.get("/koreader/users/auth", **self._headers())
         assert response.status_code == _HTTP_OK
         assert response.json() == {"authorized": "OK"}
 
     def test_bad_credentials(self) -> None:
-        """Wrong key, raw token, login password, unknown user, no headers."""
+        """Wrong key, raw key, login password, unknown user, no headers."""
         attempts: tuple[dict[str, Any], ...] = (
             self._headers(key=_md5("wrong")),
-            self._headers(key=self.token.key),
+            self._headers(key=self.key),
             self._headers(key=_md5("x")),
             self._headers(user="nobody"),
             {"HTTP_ACCEPT": _ACCEPT},
@@ -320,6 +330,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
                     "document": self.comic.koreader_hash,
                     "progress": "3",
                     "percentage": 0.15,
+                    "device": "Kobo",
                 }
             ),
             content_type=_ACCEPT,
@@ -352,7 +363,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
 
     def test_out_of_range_page_is_clamped(self) -> None:
         """A page past the end is the last page, and read."""
-        self._push(self.comic.koreader_hash, progress="99", percentage=None)
+        self._push(self.comic.koreader_hash, progress="99", percentage=0.99)
         assert self._bookmarks() == [(self.comic.pk, _PAGE_COUNT - 1, True)]
 
     def test_percentage_fallback_when_page_counts_differ(self) -> None:
@@ -374,10 +385,52 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         assert self._bookmarks() == [(self.comic.pk, 9, False)]
 
     def test_unmappable_push_is_200_and_stores_nothing(self) -> None:
-        """No page and no percentage: nothing to store, nothing to retry."""
-        response = self._push(self.comic.koreader_hash, progress="x", percentage=None)
+        """An unreadable page and an out-of-range percentage store nothing."""
+        response = self._push(self.comic.koreader_hash, progress="x", percentage=5)
         assert response.status_code == _HTTP_OK
         assert not self._bookmarks()
+
+    def _malformed_bodies(self) -> tuple[tuple[Any, int], ...]:
+        good = {
+            "document": self.comic.koreader_hash,
+            "progress": "5",
+            "percentage": 0.25,
+            "device": "Kobo",
+        }
+
+        def without(key: str) -> dict:
+            return {k: v for k, v in good.items() if k != key}
+
+        return (
+            ({**good, "document": ""}, 2004),
+            ({**good, "document": "a:b"}, 2004),
+            (without("document"), 2004),
+            ({**good, "percentage": "half"}, 2003),
+            (without("percentage"), 2003),
+            (without("progress"), 2003),
+            (without("device"), 2003),
+            ([good], 2003),
+        )
+
+    def test_malformed_pushes_are_403_like_the_reference(self) -> None:
+        """
+        koreader-sync-server answers bad fields with 403 and a code.
+
+        2004 for a missing, empty or colon-containing document; 2003 for a
+        missing or non-numeric percentage, or a missing progress or device.
+        """
+        cases = self._malformed_bodies()
+        results = [(self._put_raw(body), code) for body, code in cases]
+        assert [(r.status_code, r.json()["code"]) for r, _ in results] == [
+            (_HTTP_FORBIDDEN, code) for _, code in results
+        ]
+        assert not self._bookmarks()
+
+    def test_percentage_zero_is_a_value(self) -> None:
+        """0 is a legal percentage, not a missing field."""
+        response = self._push(self.comic.koreader_hash, progress="1", percentage=0)
+        assert response.status_code == _HTTP_OK
+        assert self._bookmarks() == [(self.comic.pk, 0, False)]
 
     def test_unread_pull_is_empty(self) -> None:
         """No bookmark, or a page-0 unfinished one, is no progress."""

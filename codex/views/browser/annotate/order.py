@@ -91,7 +91,7 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
     {
         "bookmark_updated_at",
         "child_count",
-        "favorite",
+        "shelved",
         "filename",
         "search_score",
         "sort_name",
@@ -498,9 +498,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     # Extra-sort keys whose value comes from a per-row annotation
     # already on the queryset — no aggregation needed, just F() the
-    # known column. ``favorite`` is added by
-    # ``_add_table_view_favorite_annotation``.
-    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "favorite"})
+    # known column. ``shelved`` is added by
+    # ``_add_table_view_shelved_annotation``.
+    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "shelved"})
 
     def _extra_collection_special(self, qs, key: str, *, reverse: bool):
         """Collection-row extra: hand-rolled cases (returns None when not special)."""

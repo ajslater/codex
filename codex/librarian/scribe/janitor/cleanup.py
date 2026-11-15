@@ -35,9 +35,9 @@ from codex.librarian.scribe.janitor.failed_imports import JanitorUpdateFailedImp
 from codex.librarian.scribe.janitor.status import (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupCoversStatus,
-    JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupShelfItemsStatus,
     JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
 )
@@ -72,9 +72,9 @@ from codex.models import (
 )
 from codex.models.bookmark import Bookmark
 from codex.models.comic import Comic
-from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
+from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 
 if TYPE_CHECKING:
     from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
@@ -155,13 +155,15 @@ _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
 )
 #: Orphan bookmark pks named in the log before they are deleted.
 _ORPHAN_PKS_LOGGED = 10
-# Backstop for `Favorite.post_delete` signals — the nightly sweep
-# drops favorites whose target row is gone (e.g. wiped by raw-SQL
+# Backstop for the shelf target ``post_delete`` signals — the nightly sweep
+# drops shelf items whose target row is gone (e.g. wiped by raw-SQL
 # migrations or other paths that bypass Django's ORM signal
 # machinery). Iteration order is the model→code map's insertion
 # order; the per-iteration query is independent so order doesn't
 # matter functionally.
-_FAVORITE_TARGETS = tuple(FAVORITE_MODEL_COLLECTIONS.items())
+_SHELF_TARGETS = tuple(
+    (model, code.value) for model, code in SHELF_MODEL_COLLECTIONS.items()
+)
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
@@ -501,15 +503,15 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         finally:
             self.status_controller.finish(status)
 
-    def cleanup_orphan_favorites(self) -> None:
-        """Delete favorites whose target row no longer exists."""
-        status = JanitorCleanupFavoritesStatus()
+    def cleanup_orphan_shelf_items(self) -> None:
+        """Delete shelf items whose target row no longer exists."""
+        status = JanitorCleanupShelfItemsStatus()
         try:
             self.status_controller.start(status)
             total = 0
             with self.db_write_lock:
-                for model, collection_code in _FAVORITE_TARGETS:
-                    orphans = Favorite.objects.filter(
+                for model, collection_code in _SHELF_TARGETS:
+                    orphans = ShelfItem.objects.filter(
                         collection=collection_code
                     ).exclude(
                         target_id__in=model.objects.values("pk"),
@@ -517,7 +519,7 @@ class JanitorCleanup(JanitorUpdateFailedImports):
                     count, _ = orphans.delete()
                     total += count
             level = "INFO" if total else "DEBUG"
-            self.log.log(level, f"Deleted {total} orphan favorites.")
+            self.log.log(level, f"Deleted {total} orphan shelf items.")
         finally:
             self.status_controller.finish(status)
 

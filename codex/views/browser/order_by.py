@@ -73,12 +73,12 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         # The cover subquery is a correlated Comic query that doesn't
         # carry the outer view's M2M / FK alias annotations, so an
         # M2M sort would reference a missing column. Same applies to
-        # ``favorite`` — its annotation is added by
-        # ``_add_table_view_favorite_annotation`` on the outer
+        # ``shelved`` — its annotation is added by
+        # ``_add_table_view_shelved_annotation`` on the outer
         # queryset, not on the per-cover subquery. Cover-context
         # falls back to sort_name; picking "the first comic" by
         # alphabetical title is what the cover subquery wants anyway.
-        if for_cover and (order_key in m2m_columns() or order_key == "favorite"):
+        if for_cover and (order_key in m2m_columns() or order_key == "shelved"):
             order_key = "sort_name"
         return order_key
 

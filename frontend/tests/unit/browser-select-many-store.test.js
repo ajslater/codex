@@ -203,3 +203,26 @@ describe("useBrowserSelectManyStore — anchor reset on selection clear", () => 
     expect(store.active).toBe(false);
   });
 });
+
+describe("useBrowserSelectManyStore — selectedPksByCollection", () => {
+  it("is empty with no selection", () => {
+    const store = useBrowserSelectManyStore();
+    expect(store.selectedPksByCollection).toEqual({});
+  });
+
+  it("covers every selected collection type, not just the first", () => {
+    const store = useBrowserSelectManyStore();
+    store.toggleItem(_row("series", 5));
+    store.toggleItem(_row("comics", 9));
+    store.toggleItem(_row("series", 2));
+    store.toggleItem({ collection: "folders", ids: [4, 3], name: "f" });
+
+    expect(store.selectedPksByCollection).toEqual({
+      series: [2, 5],
+      comics: [9],
+      folders: [3, 4],
+    });
+    // The metadata dialog's composite still only takes the first type.
+    expect(store.compositeItem.collection).toBe("series");
+  });
+});

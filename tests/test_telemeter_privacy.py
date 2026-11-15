@@ -14,9 +14,12 @@ import json
 from typing import Final, override
 from uuid import uuid4
 
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.api_key import ApiKeyScope
 from codex.collection import Collection
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import (
@@ -26,10 +29,12 @@ from codex.models.admin import (
     OIDCSettings,
     SettingsDefaults,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
+from codex.models.shelf import Shelf, ShelfItem
 from tests.tmp_dirs import tmp_dir
 
 # Anything containing this must never appear in the payload.
@@ -51,7 +56,7 @@ _BUCKET_PATHS: Final = frozenset(
     {
         "stats.file_types",
         "stats.identifiers",
-        "stats.usage.favorites",
+        "stats.usage.shelf_items",
         "stats.tagging.default_sources",
         "stats.sessions.top_collection",
         "stats.sessions.order_by",
@@ -222,9 +227,6 @@ class TelemeterPrivacyTestCase(TestCase):
         AdminFlag.objects.filter(key=AdminFlagChoices.BANNER_TEXT.value).update(
             value=f"{SENTINEL}-banner"
         )
-        AdminFlag.objects.filter(key=AdminFlagChoices.API_KEY.value).update(
-            value=f"{SENTINEL}-api-key"
-        )
         library = Library.objects.create(path=str(_LIBRARY_DIR), read_only=True)
         source = IdentifierSource.objects.create(name=f"{SENTINEL}-source")
         Identifier.objects.create(
@@ -234,6 +236,36 @@ class TelemeterPrivacyTestCase(TestCase):
             url=f"https://{SENTINEL}.example.com/1",
         )
         cls._seed_comic(library)
+        cls._seed_shelf()
+
+    @staticmethod
+    def _seed_shelf() -> None:
+        """
+        Put a sentinel in a shelf name and give the shelf an item.
+
+        A shelf's name is free text its user typed. The usage counts are
+        taken from the shelf tables, so without a row the sentinel walk
+        could not tell a count of shelves from a report of their names.
+        """
+        user = User.objects.create(username=f"{SENTINEL}-user")
+        shelf = Shelf.objects.create(user=user, name=f"{SENTINEL}-shelf")
+        ShelfItem.objects.create(
+            shelf=shelf, collection=Collection.SERIES.value, target_id=1
+        )
+        # An API key's name is free text too, and its prefix is part of a
+        # credential. One of each scope, seeded on the same user so the user
+        # count is one; the device and universal keys have been used, so
+        # their timestamps are set and must not be what is reported.
+        device, _ = UserApiKey.create_for_user(user, f"{SENTINEL}-device-key")
+        universal = UserApiKey.adopt(
+            user, f"{SENTINEL}-universal", ApiKeyScope.UNIVERSAL, f"{SENTINEL}-token"
+        )
+        UserApiKey.adopt(
+            user, f"{SENTINEL}-stats", ApiKeyScope.STATS, f"{SENTINEL}-stats-key"
+        )
+        UserApiKey.objects.filter(pk__in=(device.pk, universal.pk)).update(
+            last_used_at=timezone.now()
+        )
 
     @staticmethod
     def _seed_comic(library: Library) -> None:
@@ -295,6 +327,29 @@ class TelemeterPrivacyTestCase(TestCase):
             {"stats": CodexStats().get(), "uuid": str(uuid4())}, default=str
         )
         assert SENTINEL not in payload
+
+    def test_shelves_report_counts_only(self) -> None:
+        """Shelves are counted; the per-collection bucket is the only dict."""
+        usage = CodexStats().get()["usage"]
+        assert usage["shelf_count"] == 1
+        assert usage["shelf_user_count"] == 1
+        assert usage["shelf_item_count"] == 1
+        assert usage["shelf_items"] == {Collection.SERIES.value: 1}
+
+    def test_api_keys_report_counts_only(self) -> None:
+        """
+        Report integers and one boolean.
+
+        The names are the sentinel; the closed-vocabulary walk covers the
+        prefixes and timestamps. Device counts leave the other scopes out.
+        """
+        stats = CodexStats().get()
+        usage = stats["usage"]
+        assert usage["device_key_count"] == 1
+        assert usage["device_key_user_count"] == 1
+        assert usage["device_key_used_count"] == 1
+        assert usage["universal_key_used_count"] == 1
+        assert stats["admin_flags"]["api_key_set"] is True
 
     def test_unknown_identifier_source_collapsed(self) -> None:
         """A source name from a comic file is replaced by "other"."""

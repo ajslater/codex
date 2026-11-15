@@ -8,7 +8,7 @@ from django.db.models.query_utils import Q
 
 from codex.collection import Collection
 from codex.models import Comic, StoryArc
-from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
+from codex.models.shelf import SHELF_MODEL_COLLECTIONS, Shelf, ShelfItem
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
@@ -41,26 +41,26 @@ _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
     {"cover", "choices", "bookmark", "download", "force_update"}
 )
 
-# Collection codes whose transitive-favorite clauses introduce m2m JOINs on
-# Comic (``folders`` and ``story_arc_numbers__story_arc``). When neither
-# code has any favorites the filter Q has no m2m clauses and Comic
-# queries don't need ``.distinct()``.
-_FAVORITE_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
-    {Collection.FOLDER, Collection.ARC}
+# Collection codes whose transitive shelf clauses introduce m2m JOINs on
+# Comic (``folders`` and ``story_arc_numbers__story_arc``). When the
+# selected shelves hold nothing under either code the filter Q has no m2m
+# clauses and Comic queries don't need ``.distinct()``.
+_SHELF_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
+    {Collection.FOLDER.value, Collection.ARC.value}
 )
 
 # Collection code → comic-side ORM field used to "transitively" match a
 # row in that collection. ``folders`` and ``story_arc_numbers__story_arc``
 # are m2m relations on Comic that carry every ancestor folder / arc,
-# so a single favorited folder lights up every descendant comic.
-_FAVORITE_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
-    Collection.COMIC: "pk",
-    Collection.PUBLISHER: "publisher_id",
-    Collection.IMPRINT: "imprint_id",
-    Collection.SERIES: "series_id",
-    Collection.VOLUME: "volume_id",
-    Collection.FOLDER: "folders",
-    Collection.ARC: "story_arc_numbers__story_arc",
+# so a single shelved folder lights up every descendant comic.
+_SHELF_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
+    Collection.COMIC.value: "pk",
+    Collection.PUBLISHER.value: "publisher_id",
+    Collection.IMPRINT.value: "imprint_id",
+    Collection.SERIES.value: "series_id",
+    Collection.VOLUME.value: "volume_id",
+    Collection.FOLDER.value: "folders",
+    Collection.ARC.value: "story_arc_numbers__story_arc",
 }
 
 
@@ -92,23 +92,54 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         return qs.demote_joins(demote_tables)
 
     @cached_property
-    def _active_favorite_collection_codes(self) -> frozenset[str]:
-        """
-        Return the collections this user has at least one favorite under.
+    def _shelf_filter_requested(self) -> bool:
+        """Whether this request filters by shelf at all."""
+        return bool(self.params.get("filters", {}).get("shelves"))
 
-        One ``DISTINCT`` query per request, cached. Used by
-        ``get_favorite_filter`` to skip OR clauses for empty collections
-        (which would otherwise force m2m JOINs through ``folders`` and
-        ``story_arc_numbers`` on every favorite-filtered request) and
-        by ``comic_filter_uses_m2m`` to gate ``.distinct()``.
+    @cached_property
+    def _active_shelf_pks(self) -> tuple[int, ...]:
         """
-        if not self.params.get("filters", {}).get("favorite"):
-            return frozenset()
+        Return the requested shelves that belong to the requesting user.
+
+        Shelves are private: a pk the user does not own (another user's
+        shelf, a deleted shelf, a stale saved view) is dropped here, once
+        per request, so it can never widen what the filter matches.
+        Anonymous sessions own no shelves.
+        """
+        if not self._shelf_filter_requested:
+            return ()
         user = self.request.user
         if not user or not user.is_authenticated:
+            return ()
+        requested = [
+            int(pk)
+            for pk in self.params["filters"]["shelves"]
+            if isinstance(pk, int) or (isinstance(pk, str) and pk.isdigit())
+        ]
+        if not requested:
+            return ()
+        return tuple(
+            Shelf.objects.filter(user=user, pk__in=requested)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+
+    @cached_property
+    def _active_shelf_collection_codes(self) -> frozenset[str]:
+        """
+        Return the collections the selected shelves hold at least one item in.
+
+        One ``DISTINCT`` query per request, cached. Used by
+        ``get_shelf_filter`` to skip OR clauses for empty collections
+        (which would otherwise force m2m JOINs through ``folders`` and
+        ``story_arc_numbers`` on every shelf-filtered request) and
+        by ``comic_filter_uses_m2m`` to gate ``.distinct()``.
+        """
+        shelf_pks = self._active_shelf_pks
+        if not shelf_pks:
             return frozenset()
         return frozenset(
-            Favorite.objects.filter(user=user)
+            ShelfItem.objects.filter(shelf_id__in=shelf_pks)
             .values_list("collection", flat=True)
             .distinct()
         )
@@ -136,62 +167,64 @@ class BrowserFilterView(BrowserFilterBookmarkView):
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
         filters = self.params.get("filters") or {}
-        if (
-            filters.get("favorite")
-            and self._active_favorite_collection_codes & _FAVORITE_M2M_COLLECTION_CODES
-        ):
-            # The transitive favorites Q only introduces m2m clauses
-            # for collections the user has actually favorited under. With
-            # zero folder / arc favorites the Q stays on direct fields
+        if self._active_shelf_collection_codes & _SHELF_M2M_COLLECTION_CODES:
+            # The transitive shelf Q only introduces m2m clauses for
+            # collections the selected shelves actually hold items in.
+            # With no shelved folders / arcs the Q stays on direct fields
             # and Comic queries don't need ``.distinct()``.
             return True
         return any(filters.get(k) for k in _M2M_FILTER_KEYS)
 
     @cached_property
-    def _favorite_subqueries(self):
-        """Per-collection favorited-id subqueries, materialized once per request."""
-        user = self.request.user
+    def _shelf_subqueries(self):
+        """Per-collection shelved-id subqueries, built once per request."""
+        shelf_pks = self._active_shelf_pks
         return {
-            code: Favorite.objects.filter(user=user, collection=code).values(
-                "target_id"
-            )
-            for code in self._active_favorite_collection_codes
+            code: ShelfItem.objects.filter(
+                shelf_id__in=shelf_pks, collection=code
+            ).values("target_id")
+            for code in self._active_shelf_collection_codes
         }
 
-    def get_favorite_filter(self, model) -> Q:
+    def get_shelf_filter(self, model) -> Q:
         """
-        Return a transitive Q for the "favorites only" filter, or ``Q()``.
+        Return a transitive Q for the shelves filter, or ``Q()``.
+
+        Selecting several shelves matches items on any of them, the same
+        OR-within-a-filter rule the tag filters use.
 
         Hierarchical: a row passes if itself, an ancestor, or a
-        descendant in the comic chain is favorited. That keeps the
-        filter behaving like a "navigation tree of starred items" —
-        starring a Publisher narrows to its full subtree (so the user
-        can drill down to the comic), and starring a Comic keeps every
+        descendant in the comic chain is on a selected shelf. That keeps
+        the filter behaving like a "navigation tree of shelved items" —
+        shelving a Publisher narrows to its full subtree (so the user
+        can drill down to the comic), and shelving a Comic keeps every
         ancestor (Publisher → Series → Volume → Comic) reachable.
 
         Each OR clause traces ``rel_prefix + comic_field`` to a
-        per-collection favorited-id subquery, but only for collections the user
-        has actually favorited under (see
-        :attr:`_active_favorite_collection_codes`). That keeps the m2m
+        per-collection shelved-id subquery, but only for collections the
+        selected shelves actually hold items in (see
+        :attr:`_active_shelf_collection_codes`). That keeps the m2m
         ``folders`` / ``story_arc_numbers__story_arc`` JOINs out of
-        the SQL when no folder / arc favorites exist — typically the
+        the SQL when no folders / arcs are shelved — typically the
         common case. ``folders`` is the m2m of every ancestor folder
-        for a comic (not just the direct parent), so a favorited
+        for a comic (not just the direct parent), so a shelved
         folder lights up every descendant folder and comic;
         ``story_arc_numbers__story_arc`` is the analogous m2m-through
         to StoryArc.
 
-        Anonymous users and models outside
-        :data:`FAVORITE_MODEL_COLLECTIONS` (search results, intermediate
-        querysets) get the no-op.
+        Models outside :data:`SHELF_MODEL_COLLECTIONS` (search results,
+        intermediate querysets) get the no-op. Anonymous sessions and
+        shelves the user does not own match nothing.
         """
-        if not self.params.get("filters", {}).get("favorite"):
+        if not self._shelf_filter_requested:
             return Q()
-        if FAVORITE_MODEL_COLLECTIONS.get(model) is None:
+        self_collection = SHELF_MODEL_COLLECTIONS.get(model)
+        if self_collection is None:
             return Q()
-        active = self._active_favorite_collection_codes
+        active = self._active_shelf_collection_codes
         if not active:
-            # User has the filter on but zero favorites — nothing matches.
+            # The filter is on but the user's selected shelves are empty,
+            # gone, or not theirs — nothing matches.
             return Q(pk__in=())
 
         # ``rel`` must be relative to the queryset's model — not the
@@ -200,15 +233,15 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         # under collection browses; using the browse-model rel there would
         # produce ``comic__pk`` against Comic and FieldError out.
         rel = self.get_rel_prefix(model)
-        subqueries = self._favorite_subqueries
+        subqueries = self._shelf_subqueries
         q = Q()
-        for code in active:
-            comic_rel = _FAVORITE_COLLECTION_COMIC_REL[code]
+        for code in sorted(active):
+            comic_rel = _SHELF_COLLECTION_COMIC_REL[code]
             q |= Q(**{f"{rel}{comic_rel}__in": subqueries[code]})
-        # The row itself is starred. Covers the rare "favorited collection
+        # The row itself is shelved. Covers the rare "shelved collection
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.
-        self_code = FAVORITE_MODEL_COLLECTIONS[model]
+        self_code = self_collection.value
         if self_code in subqueries:
             q |= Q(pk__in=subqueries[self_code])
         return q
@@ -235,7 +268,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         big_include_filter &= self.get_comic_field_filter(model)
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
-        big_include_filter &= self.get_favorite_filter(model)
+        big_include_filter &= self.get_shelf_filter(model)
         include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
             model
         )

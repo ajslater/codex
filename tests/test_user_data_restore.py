@@ -2,26 +2,34 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import shutil
 import sqlite3
 from typing import TYPE_CHECKING, Final, override
+from unittest.mock import patch
 
 from django.contrib.auth.models import Group, User
-from django.test import TestCase
+from django.core.cache import cache
+from django.test import Client, TestCase
 
+from codex.choices.admin import AdminFlagChoices
+from codex.choices.api_key import ApiKeyScope
 from codex.models import (
     Bookmark,
     Comic,
-    Favorite,
     Folder,
     Imprint,
     Library,
     Publisher,
     Series,
+    Shelf,
+    ShelfItem,
     Volume,
 )
 from codex.models.admin import AdminFlag, Timestamp
+from codex.models.api_key import UserApiKey
+from codex.startup import init_admin_flags
 from codex.user_data.dump import dump_user_data
 from codex.user_data.restore import restore
 from codex.user_data.store import SidecarStore, reset_store_for_tests
@@ -33,7 +41,9 @@ if TYPE_CHECKING:
 _TMP_DIR: Final = tmp_dir("codex.tests.sidecar.restore")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _SEED_BOOKMARK_PAGE: Final = 7
-_SEED_FAVORITES_COUNT: Final = 2
+_SEED_SHELF_ITEMS_COUNT: Final = 2
+_SEED_SHELF_NAME: Final = "Want to Read"
+_HTTP_OK: Final = 200
 
 
 class _SidecarRestoreCase(TestCase):
@@ -114,21 +124,18 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         Bookmark.objects.create(
             user=user, comic=comic, page=_SEED_BOOKMARK_PAGE, finished=True
         )
-        Favorite.objects.create(
-            user=user, collection="publishers", target_id=publisher.pk
+        shelf = Shelf.objects.create(user=user, name=_SEED_SHELF_NAME)
+        ShelfItem.objects.create(
+            shelf=shelf, collection="publishers", target_id=publisher.pk
         )
-        Favorite.objects.create(user=user, collection="series", target_id=series.pk)
+        ShelfItem.objects.create(shelf=shelf, collection="series", target_id=series.pk)
+        # An empty shelf must survive the round trip too.
+        Shelf.objects.create(user=user, name="Empty")
         # update_or_create rather than create — other suites' setUpTestData
         # calls into codex_init() can leak seeded AdminFlag/Timestamp rows
         # past TestCase's per-test rollback.
         AdminFlag.objects.update_or_create(
             key="AU", defaults={"on": False, "value": "off"}
-        )
-        # The API key moved off Timestamp to AdminFlag (key ``AK``).
-        # Seed both the moved row and the codex-version Timestamp row
-        # to exercise both code paths in the restore.
-        AdminFlag.objects.update_or_create(
-            key="AK", defaults={"on": True, "value": "test-key-abc"}
         )
         Timestamp.objects.update_or_create(key="VR", defaults={"value": "1.2.3"})
         return {
@@ -167,19 +174,100 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert bm.page == _SEED_BOOKMARK_PAGE
         assert bm.finished is True
 
-    def test_round_trip_restores_favorites(self) -> None:
+    def test_round_trip_restores_shelves(self) -> None:
         seed = self._seed_main_db()
         snapshot = self._snapshot_sidecar()
-        Favorite.objects.all().delete()
+        Shelf.objects.all().delete()
+        assert not ShelfItem.objects.exists()
 
         report = restore(sidecar_path=snapshot)
-        assert report.written.get("favorites", 0) >= _SEED_FAVORITES_COUNT
-        Favorite.objects.get(
-            user=seed["user"], collection="publishers", target_id=seed["publisher"].pk
+        assert report.written.get("shelf_items", 0) >= _SEED_SHELF_ITEMS_COUNT
+        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        ShelfItem.objects.get(
+            shelf=shelf, collection="publishers", target_id=seed["publisher"].pk
         )
-        Favorite.objects.get(
-            user=seed["user"], collection="series", target_id=seed["series"].pk
+        ShelfItem.objects.get(
+            shelf=shelf, collection="series", target_id=seed["series"].pk
         )
+        assert not ShelfItem.objects.filter(
+            shelf__user=seed["user"], shelf__name="Empty"
+        ).exists()
+
+    def test_round_trip_restores_shelves_filter(self) -> None:
+        """A stored shelves filter comes back pointing at the restored shelf."""
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+
+        seed = self._seed_main_db()
+        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(user=seed["user"], show=show)
+        SettingsBrowserFilters.objects.create(browser=browser, shelves=[shelf.pk])
+        snapshot = self._snapshot_sidecar()
+        SettingsBrowser.objects.all().delete()
+        Shelf.objects.all().delete()
+
+        restore(sidecar_path=snapshot)
+
+        restored = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        filters = SettingsBrowserFilters.objects.get(browser__user=seed["user"])
+        assert filters.shelves == [restored.pk]
+
+    def test_pre_shelves_backup_restores_favorites_onto_a_shelf(self) -> None:
+        """A backup with a ``favorites`` table lands on a "Favorites" shelf."""
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+
+        seed = self._seed_main_db()
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(
+            user=seed["user"], show=show, order_by="shelved"
+        )
+        SettingsBrowserFilters.objects.create(browser=browser)
+        snapshot = self._snapshot_sidecar()
+        # Rewrite the snapshot into the shape a pre-shelves codex wrote:
+        # a favorites table, a favorite flag and the favorite sort key.
+        with sqlite3.connect(snapshot) as conn:
+            conn.executescript(
+                """
+                CREATE TABLE favorites (
+                    username TEXT NOT NULL,
+                    collection TEXT NOT NULL,
+                    identifier_json TEXT NOT NULL,
+                    updated_at TEXT,
+                    PRIMARY KEY (username, collection, identifier_json)
+                );
+                INSERT INTO favorites
+                    SELECT username, collection, identifier_json, updated_at
+                    FROM shelf_items;
+                DROP TABLE shelf_items;
+                DROP TABLE shelves;
+                ALTER TABLE settings_filters
+                    ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;
+                UPDATE settings_filters SET favorite = 1;
+                ALTER TABLE settings_filters DROP COLUMN shelves;
+                """
+            )
+            conn.execute("UPDATE settings_browser SET order_by = 'favorite'")
+        SettingsBrowser.objects.all().delete()
+        Shelf.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("favorites", 0) >= _SEED_SHELF_ITEMS_COUNT
+        shelf = Shelf.objects.get(user=seed["user"])
+        assert shelf.name == "Favorites"
+        assert ShelfItem.objects.filter(shelf=shelf).count() == _SEED_SHELF_ITEMS_COUNT
+        restored = SettingsBrowser.objects.get(user=seed["user"])
+        assert restored.order_by == "shelved"
+        filters = SettingsBrowserFilters.objects.get(browser=restored)
+        assert filters.shelves == [shelf.pk]
 
     def test_restore_logs_unmatched_comic(self) -> None:
         seed = self._seed_main_db()
@@ -210,7 +298,6 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         self._seed_main_db()
         snapshot = self._snapshot_sidecar()
         AdminFlag.objects.filter(key="AU").delete()
-        AdminFlag.objects.filter(key="AK").delete()
         Timestamp.objects.filter(key="VR").delete()
 
         report = restore(sidecar_path=snapshot)
@@ -219,8 +306,6 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         flag = AdminFlag.objects.get(key="AU")
         assert flag.on is False
         assert flag.value == "off"
-        api_key_flag = AdminFlag.objects.get(key="AK")
-        assert api_key_flag.value == "test-key-abc"
         ts = Timestamp.objects.get(key="VR")
         assert ts.value == "1.2.3"
 
@@ -294,6 +379,126 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         # Still one row per key.
         assert User.objects.filter(username="alice").count() == 1
         assert AdminFlag.objects.filter(key="AU").count() == 1
+
+
+class ApiKeyRestoreTests(_SidecarRestoreCase):
+    """Keys come back as hashes and still log in."""
+
+    def _seed(self) -> None:
+        init_admin_flags()
+        AdminFlag.objects.filter(key=AdminFlagChoices.NON_USERS.value).update(on=False)
+        self.reader = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="alice", password=_TEST_PASSWORD
+        )
+        self.admin = User.objects.create_superuser(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="boss", email="", password=_TEST_PASSWORD
+        )
+        self.device, self.device_key = UserApiKey.create_for_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            self.reader, "Kobo"
+        )
+        self.stats, self.stats_key = UserApiKey.create_for_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            self.admin, "Grafana", ApiKeyScope.STATS
+        )
+        cache.clear()
+
+    @staticmethod
+    def _logs_in(path: str, auth: str) -> bool:
+        # The stats are counted on another thread, which the test
+        # transaction locks out; only the credential is under test.
+        with patch("codex.views.admin.stats.CodexStats") as stats:
+            stats.return_value.get.return_value = {}
+            response = Client().get(path, HTTP_AUTHORIZATION=auth)
+        return response.status_code == _HTTP_OK
+
+    def _assert_keys_log_in(self) -> None:
+        basic = base64.b64encode(f"alice:{self.device_key}".encode()).decode()
+        assert self._logs_in("/opds/v2.0/", f"Basic {basic}")
+        assert self._logs_in("/api/v4/admin/stats", f"Bearer {self.stats_key}")
+
+    def test_keys_round_trip_and_still_log_in(self) -> None:
+        self._seed()
+        created = self.device.created_at
+        snapshot = self._snapshot_sidecar()
+        UserApiKey.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("api_keys") == 2  # noqa: PLR2004
+        device = UserApiKey.objects.get(user=self.reader)
+        assert (device.name, device.scope, device.digest) == (
+            "Kobo",
+            ApiKeyScope.DEVICE,
+            self.device.digest,
+        )
+        assert device.created_at == created
+        assert UserApiKey.objects.get(user=self.admin).scope == ApiKeyScope.STATS
+        self._assert_keys_log_in()
+
+    def test_a_second_restore_adds_nothing(self) -> None:
+        self._seed()
+        snapshot = self._snapshot_sidecar()
+        restore(sidecar_path=snapshot)
+        restore(sidecar_path=snapshot)
+        assert UserApiKey.objects.count() == 2  # noqa: PLR2004
+
+    def test_missing_user_is_skipped(self) -> None:
+        self._seed()
+        snapshot = self._snapshot_sidecar()
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute("DELETE FROM users WHERE username = 'alice'")
+        self.reader.delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.skipped.get("api_keys") == 1
+        assert not UserApiKey.objects.filter(name="Kobo").exists()
+
+    def test_an_existing_key_of_the_same_name_is_kept(self) -> None:
+        self._seed()
+        snapshot = self._snapshot_sidecar()
+        self.device.delete()
+        replacement, _ = UserApiKey.create_for_user(self.reader, "Kobo")
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.skipped.get("api_keys") == 1
+        assert list(UserApiKey.objects.filter(user=self.reader)) == [replacement]
+
+    def test_a_backup_without_keys_restores(self) -> None:
+        self._seed()
+        snapshot = self._snapshot_sidecar()
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute("DROP TABLE api_keys")
+        UserApiKey.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("users")
+        assert not UserApiKey.objects.exists()
+
+    def test_an_old_server_api_key_becomes_the_first_admins_stats_key(self) -> None:
+        self._seed()
+        old_key = "legacy-server-api-key"
+        snapshot = self._snapshot_sidecar()
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute("DROP TABLE api_keys")
+            conn.execute(
+                "INSERT INTO admin_flags (key, on_flag, value) VALUES ('AK', 1, ?)",
+                (old_key,),
+            )
+        UserApiKey.objects.all().delete()
+
+        restore(sidecar_path=snapshot)
+        restore(sidecar_path=snapshot)
+
+        api_key = UserApiKey.objects.get()
+        assert (api_key.user, api_key.scope, api_key.name) == (
+            self.admin,
+            ApiKeyScope.STATS,
+            "Stats Key",
+        )
+        assert not AdminFlag.objects.filter(key="AK").exists()
+        assert self._logs_in("/api/v4/admin/stats", f"Bearer {old_key}")
 
 
 class SettingsDefaultsRestoreTests(_SidecarRestoreCase):
@@ -431,20 +636,21 @@ class OverlappingLibraryRestoreTests(_SidecarRestoreCase):
             assert bookmark.page == _SEED_BOOKMARK_PAGE
             assert bookmark.finished is True
 
-    def test_folder_favorite_restores_into_every_overlapping_library(self) -> None:
+    def test_shelved_folder_restores_into_every_overlapping_library(self) -> None:
         seed = self._seed_overlapping_libraries()
-        Favorite.objects.create(
-            user=seed["user"], collection="folders", target_id=seed["folders"][0].pk
+        shelf = Shelf.objects.create(user=seed["user"], name="Folders")
+        ShelfItem.objects.create(
+            shelf=shelf, collection="folders", target_id=seed["folders"][0].pk
         )
         snapshot = self._snapshot_sidecar()
-        Favorite.objects.all().delete()
+        Shelf.objects.all().delete()
 
         report = restore(sidecar_path=snapshot)
 
-        assert report.written.get("favorites", 0) >= 1
+        assert report.written.get("shelf_items", 0) >= 1
         for folder in seed["folders"]:
-            assert Favorite.objects.filter(
-                user=seed["user"], collection="folders", target_id=folder.pk
+            assert ShelfItem.objects.filter(
+                shelf__user=seed["user"], collection="folders", target_id=folder.pk
             ).exists()
 
 

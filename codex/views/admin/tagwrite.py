@@ -36,7 +36,7 @@ class FilteredComicPksView(BrowserFilterView):
 
     Admin tag-write / online-tag select comics exactly like the browser:
     a collection plus the user's active filters (file_type, read/unread, ACL,
-    favorite, search). Resolving through ``get_filtered_queryset`` keeps
+    shelves, search). Resolving through ``get_filtered_queryset`` keeps
     writes confined to the comics the user actually selected — never the
     unfiltered remainder of the collection. Mirrors
     :class:`~codex.views.browser.force_update.ForceUpdateView`.

@@ -41,5 +41,15 @@ export const sendResetPasswordLink = (login) =>
 export const resetPassword = (payload) =>
   HTTP.post("/auth/password/reset/confirm", payload);
 
-export const getToken = () => HTTP.get("/auth/token");
-export const updateToken = () => HTTP.put("/auth/token");
+/*
+ * API keys: named, scoped credentials for apps and devices. Only the create
+ * response carries the key itself.
+ */
+export const getApiKeys = () => HTTP.get("/auth/keys");
+export const createApiKey = ({ name, scope }) =>
+  HTTP.post("/auth/keys", { name, scope });
+export const deleteApiKey = (pk) => HTTP.delete(`/auth/keys/${pk}`);
+
+// The URLs of the APIs this visitor may use. Never cached.
+export const getApiUrls = () =>
+  HTTP.get("/api-urls", { params: { ts: Date.now() } });

@@ -2,22 +2,28 @@
 
 from functools import cached_property
 
-from rest_framework.authentication import (
-    BasicAuthentication,
-    SessionAuthentication,
-)
+from rest_framework.authentication import SessionAuthentication
 
-from codex.authentication import BearerTokenAuthentication
+from codex.authentication import (
+    ReaderKeyBasicAuthentication,
+    ReaderKeyBearerAuthentication,
+)
 from codex.views.auth import AuthMixin
 from codex.views.opds.user_agent import get_user_agent_name
 
 
 class OPDSAuthMixin(AuthMixin):
-    """Add Basic Auth."""
+    """
+    Add Basic and Bearer auth with reader keys, then the session.
+
+    Reader keys (device keys and the universal keys migrated from old
+    bearer tokens) log in here and on KOReader sync. Basic also takes the
+    account password. ``request.auth`` is the key that matched.
+    """
 
     authentication_classes = (
-        BasicAuthentication,
-        BearerTokenAuthentication,
+        ReaderKeyBasicAuthentication,
+        ReaderKeyBearerAuthentication,
         SessionAuthentication,
     )
 

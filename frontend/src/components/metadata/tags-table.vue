@@ -12,8 +12,6 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
-
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 
 export default {
@@ -26,9 +24,6 @@ export default {
       type: Object,
       required: true,
     },
-  },
-  data() {
-    return { mdiOpenInNew };
   },
   computed: {
     show() {

@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { mdiDeleteOutline, mdiUndoVariant } from "@mdi/js";
+import { mdiTrashCan, mdiUndoVariant } from "@mdi/js";
 
 export default {
   name: "ClearFieldIcon",
@@ -22,7 +22,7 @@ export default {
   emits: ["toggle"],
   computed: {
     icon() {
-      return this.cleared ? mdiUndoVariant : mdiDeleteOutline;
+      return this.cleared ? mdiUndoVariant : mdiTrashCan;
     },
     tooltip() {
       return this.cleared

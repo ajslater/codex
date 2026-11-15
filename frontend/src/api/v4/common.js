@@ -86,8 +86,6 @@ export const getDownloadIOSPWAFix = (href, filename) => {
     .catch(console.warn);
 };
 
-export const getOPDSURLs = () => HTTP.get("/opds-urls");
-
 export const getVersions = (ts) => HTTP.get("/version", { params: { ts } });
 
 export const getMtime = (collections, settings, options = {}) => {

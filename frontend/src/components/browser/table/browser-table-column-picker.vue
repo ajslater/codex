@@ -122,7 +122,7 @@ const _COST_TOOLTIPS = Object.freeze({
 const _CATEGORIES = Object.freeze([
   {
     label: "At a Glance",
-    columns: ["cover", "favorite"],
+    columns: ["cover", "shelved"],
   },
   {
     label: "Publishing",
@@ -229,9 +229,9 @@ function _rank(key) {
  * Decide where to insert ``key`` into ``draft``. If the draft's
  * existing keys are already in strictly-increasing canonical-rank
  * order, splice the new key into the unique slot that keeps the
- * sequence sorted — e.g. toggling on ``favorite`` lands it right
+ * sequence sorted — e.g. toggling on ``shelved`` lands it right
  * after ``cover``, toggling on ``imprint_name`` lands it after
- * ``publisher_name`` (or after ``cover`` / ``favorite`` if neither
+ * ``publisher_name`` (or after ``cover`` / ``shelved`` if neither
  * publisher exists). If the draft is out of canonical order — the
  * user has manually rearranged columns — fall back to appending so
  * we don't surprise them by reshuffling around their layout.

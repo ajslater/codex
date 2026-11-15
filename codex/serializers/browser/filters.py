@@ -1,6 +1,6 @@
 """Browser Settings Filter Serializers."""
 
-from rest_framework.serializers import BooleanField, Serializer
+from rest_framework.serializers import Serializer
 
 from codex.serializers.fields import (
     VuetifyBooleanField,
@@ -20,7 +20,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False)
-    favorite = BooleanField(required=False)
+    shelves = VuetifyListField()
     # Dynamic filters
     age_rating_metron = VuetifyListField()
     age_rating_tagged = VuetifyListField()

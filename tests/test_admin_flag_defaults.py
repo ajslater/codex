@@ -72,6 +72,14 @@ class AdminFlagDefaultsTests(TestCase):
             AdminFlagChoices.REGISTER_VERIFICATION.value,
         }
 
+    def test_the_api_flags_seed_on(self) -> None:
+        """OPDS and Stats API keys keep working on upgrade; KOReader stays opt-in."""
+        self._seed(docker=False)
+
+        assert self._on(AdminFlagChoices.OPDS)
+        assert self._on(AdminFlagChoices.STATS_API)
+        assert not self._on(AdminFlagChoices.KOREADER_SYNC)
+
     def test_an_admin_who_turns_it_off_stays_off(self) -> None:
         """
         Seeding is get_or_create, so a boot never revives the flag.

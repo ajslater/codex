@@ -22,11 +22,20 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from codex.models import Bookmark, Comic, Imprint, Library, Publisher, Series, Volume
-from codex.models.favorite import Favorite
+from codex.models import (
+    Bookmark,
+    Comic,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Shelf,
+    ShelfItem,
+    Volume,
+)
 from codex.startup import init_admin_flags
-from codex.views.opds.v1.const import RootTopLinks
-from codex.views.opds.v2.const import FAVORITES_PREVIEW_GROUP, PREVIEW_GROUPS
+from codex.views.opds.v1.const import RootTopLinks, shelf_top_link
+from codex.views.opds.v2.const import PREVIEW_GROUPS, shelf_preview_link
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -43,7 +52,7 @@ _KEEP_READING: Final = "Keep Reading"
 _KEEP_READING_SUBTITLE: Final = "Issues you have started, most recently read first."
 _LATEST_UNREAD: Final = "Latest Unread"
 _OLDEST_UNREAD: Final = "Oldest Unread"
-_FAVORITES: Final = "Favorites"
+_SHELF: Final = "Want to Read"
 _ACQUISITION_REL: Final = "http://opds-spec.org/acquisition"
 _DOWNLOAD_PK_RE: Final = re.compile(r"/c/(\d+)/download/")
 
@@ -287,7 +296,7 @@ class OPDSKeepReadingTestCase(KeepReadingSeedTestCase):
 
 
 class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
-    """The v1 start page entries: filters, order and Favorites."""
+    """The v1 start page entries: filters, order and shelves."""
 
     def _v1(self, client: Client, url: str = _V1_START) -> bytes:
         # Feeds are cached per identity; seeding happens between GETs.
@@ -342,12 +351,11 @@ class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
 
     def test_v1_root_links_match_v2_preview_groups(self) -> None:
         v2_links = {
-            link.title: link
-            for group in (*PREVIEW_GROUPS, FAVORITES_PREVIEW_GROUP)
-            for link in group.links
+            link.title: link for group in PREVIEW_GROUPS for link in group.links
         }
+        v2_links[_SHELF] = shelf_preview_link(1, _SHELF)
         shared = 0
-        for top_link in (*RootTopLinks.ALL, RootTopLinks.FAVORITES):
+        for top_link in (*RootTopLinks.ALL, shelf_top_link(1, _SHELF)):
             v2_link = v2_links.get(top_link.title)
             if not v2_link:
                 continue
@@ -357,15 +365,19 @@ class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
             ), top_link.title
         assert shared == len(RootTopLinks.ALL) + 1
 
-    def test_favorites_entry_only_when_the_user_has_favorites(self) -> None:
+    def test_shelf_entry_only_for_the_owners_non_empty_shelves(self) -> None:
         self.client.force_login(self.user)
-        assert _v1_entry_href(self._v1(self.client), _FAVORITES) is None
-        assert _v1_entry_href(self._v1(Client()), _FAVORITES) is None
+        shelf = Shelf.objects.create(user=self.user, name=_SHELF)
+        # An empty shelf adds no entry, for its owner or anyone else.
+        assert _v1_entry_href(self._v1(self.client), _SHELF) is None
+        assert _v1_entry_href(self._v1(Client()), _SHELF) is None
 
-        favorite = self.comics[3]
-        Favorite.objects.create(
-            user=self.user, collection="comics", target_id=favorite.pk
-        )
-        href = self._v1_href(self.client, _FAVORITES)
-        assert _v1_entry_href(self._v1(Client()), _FAVORITES) is None
-        assert _v1_comic_pks(self._v1(self.client, href)) == [favorite.pk]
+        shelved = self.comics[3]
+        ShelfItem.objects.create(shelf=shelf, collection="comics", target_id=shelved.pk)
+        href = self._v1_href(self.client, _SHELF)
+        assert _v1_comic_pks(self._v1(self.client, href)) == [shelved.pk]
+        # Anonymous sessions and other users never see it.
+        assert _v1_entry_href(self._v1(Client()), _SHELF) is None
+        other_client = Client()
+        other_client.force_login(self.other)
+        assert _v1_entry_href(self._v1(other_client), _SHELF) is None

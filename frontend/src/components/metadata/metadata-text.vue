@@ -32,7 +32,6 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
@@ -71,7 +70,6 @@ export default {
   },
   data() {
     return {
-      mdiOpenInNew,
       expanded: false,
       isOverflow: false,
     };

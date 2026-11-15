@@ -80,9 +80,14 @@ const METADATA_LABELS = Object.freeze({
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
-  favoriteCount: "Favorites",
-  favoriteUserCount: "Users with Favorites",
-  favorites: "Favorites by Collection",
+  shelfCount: "Shelves",
+  shelfUserCount: "Users with Shelves",
+  shelfItemCount: "Shelf Items",
+  shelfItems: "Shelf Items by Collection",
+  deviceKeyCount: "Device Keys",
+  deviceKeyUserCount: "Users with Device Keys",
+  deviceKeyUsedCount: "Device Keys Used",
+  universalKeyUsedCount: "Universal Tokens Used",
 });
 const ADMIN_FLAG_LABELS = Object.freeze({
   autoUpdate: "Auto Update",
@@ -91,10 +96,12 @@ const ADMIN_FLAG_LABELS = Object.freeze({
   koreaderSync: "KOReader Sync",
   lazyImportMetadata: "Import Tags on Demand",
   nonUsers: "Non Users",
+  opds: "OPDS",
   registration: "Registration",
   registerVerification: "Verify New User Email",
   sendTelemetry: "Send Stats",
-  apiKeySet: "API Key",
+  statsApi: "Stats API Keys",
+  apiKeySet: "Stats API Key",
   bannerTextSet: "Banner Text",
   browserDefaultCollection: "Default Top Collection",
   browserDefaultBookmarkFilter: "Default Bookmark Filter",
@@ -173,9 +180,6 @@ const NONE = "None";
 // of keeping a second copy of the titles that goes stale when one is renamed.
 const SECTIONS = Object.freeze([
   ["Platform", "platformTable"],
-  // The API key is deliberately absent: the payload still carries
-  // ``stats.config.apiKey``, but configTable drops it from the rendered keys.
-  // The key itself and its regenerate button live on the Settings tab.
   ["Config", "configTable"],
   ["File Types", "fileTypesTable"],
   // Two denominators, named apart. Sessions counts settings rows, one per user
@@ -228,7 +232,7 @@ export default {
       return table;
     },
     configTable() {
-      return this.labeledTable(this.stats?.config, CONFIG_LABELS, ["apiKey"]);
+      return this.labeledTable(this.stats?.config, CONFIG_LABELS);
     },
     sessionSettingsTable() {
       return this.settingsTable(this.stats?.sessions);
@@ -362,12 +366,9 @@ export default {
       key = key.replace(/Count$/, "");
       return capitalCase(key);
     },
-    labeledTable(section, labels, skipKeys = []) {
+    labeledTable(section, labels) {
       const table = {};
       for (const [key, value] of Object.entries(section ?? {})) {
-        if (skipKeys.includes(key)) {
-          continue;
-        }
         const label = Reflect.get(labels, key) ?? this.keyToLabel(key);
         Reflect.set(table, label, this.displayValue(key, value));
       }

@@ -23,6 +23,16 @@ from typing import TYPE_CHECKING, Any, Final
 from loguru import logger
 
 from codex.collection import Collection
+from codex.user_data.restore_api_keys import (
+    LEGACY_STATS_KEY_FLAG,
+    restore_api_keys,
+    restore_legacy_stats_key,
+)
+from codex.user_data.restore_shelves import (
+    resolve_filter_shelves,
+    restore_shelf_items,
+    restore_shelves,
+)
 from codex.user_data.store import SidecarStore, get_store
 from codex.xz import read_text_maybe_xz
 
@@ -33,7 +43,8 @@ if TYPE_CHECKING:
 # by migration 0055, and the Folder View flag its folders value depends on.
 _BG_KEY: Final = "BG"
 _FV_KEY: Final = "FV"
-_RETIRED_ADMIN_FLAG_KEYS: Final = frozenset({_BG_KEY})
+# The retired Stats API key flag, hashed into a stats key on restore.
+_RETIRED_ADMIN_FLAG_KEYS: Final = frozenset({_BG_KEY, LEGACY_STATS_KEY_FLAG})
 _LEGACY_FALLBACK_TOP_COLLECTION: Final = "publishers"
 _LEGACY_REACHABLE_TOP_COLLECTIONS: Final = frozenset(
     {"publishers", "series", "comics", "arcs"}
@@ -80,6 +91,8 @@ def restore(
         _restore_groups(store, report, dry_run=dry_run)
         _restore_users(store, report, dry_run=dry_run)
         _restore_user_groups(store, report, dry_run=dry_run)
+        restore_api_keys(store, report, dry_run=dry_run)
+        restore_legacy_stats_key(store, report, dry_run=dry_run)
         _restore_libraries(store, report, dry_run=dry_run)
         _restore_library_groups(store, report, dry_run=dry_run)
         _restore_admin_flags(store, report, dry_run=dry_run)
@@ -87,7 +100,10 @@ def restore(
         _restore_tagging_defaults(store, report, dry_run=dry_run)
         _restore_settings_defaults(store, report, dry_run=dry_run)
         _restore_bookmarks(store, report, dry_run=dry_run)
-        _restore_favorites(store, report, dry_run=dry_run)
+        restore_shelves(store, report, dry_run=dry_run)
+        restore_shelf_items(
+            store, report, _resolve_browse_collection_pks, dry_run=dry_run
+        )
         _restore_settings_browser(store, report, dry_run=dry_run)
         total_written = sum(report.written.values())
         total_skipped = sum(report.skipped.values())
@@ -328,7 +344,8 @@ def _restore_admin_flags(
     for row in store.fetchall("admin_flags"):
         if row["key"] in _RETIRED_ADMIN_FLAG_KEYS:
             # Default View moved to SettingsDefaults.top_collection; the
-            # settings_defaults restore maps a legacy BG row onto it.
+            # settings_defaults restore maps a legacy BG row onto it. The
+            # Stats API key became a stats key, restored with the keys.
             continue
         if dry_run:
             report.note_written("admin_flags")
@@ -366,8 +383,8 @@ def _restore_timestamps(
         # Skip the legacy ``AP`` row — the API key moved to AdminFlag,
         # so importing it here would create an orphan Timestamp row
         # rejected by the post-0051 choices field. Backups carrying
-        # the row are silently dropped; the matching AdminFlag.AK
-        # restore picks up the value if the backup also exported it.
+        # the row are silently dropped; a backup's ``AK`` flag becomes
+        # a stats key instead, if the backup also exported it.
         if row["key"] == "AP":
             continue
         # Older sidecars used a ``version`` column; current ones use
@@ -525,7 +542,7 @@ def _watched_path_pks(model, path: str) -> tuple[int, ...]:
 
     ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
     nested or overlapping library roots hold the same file under two
-    libraries. The sidecar keys bookmarks and comic/folder favorites on
+    libraries. The sidecar keys bookmarks and comic/folder shelf items on
     the path alone -- one file on disk -- and cannot say which library a
     row came from, so taking the arbitrary first match dropped the user's
     data in whichever library they actually browse. Restore into all of
@@ -566,49 +583,6 @@ def _restore_bookmarks(
                 defaults={"page": row["page"], "finished": bool(row["finished"])},
             )
         report.note_written("bookmarks")
-
-
-def _restore_favorites(
-    store: SidecarStore, report: RestoreReport, *, dry_run: bool
-) -> None:
-    """Restore Favorite rows; resolve identifier_json → main-DB PK."""
-    from django.contrib.auth import get_user_model
-
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
-
-    user_model = get_user_model()
-    code_to_model = {code: model for model, code in FAVORITE_MODEL_COLLECTIONS.items()}
-    for row in store.fetchall("favorites"):
-        if dry_run:
-            report.note_written("favorites")
-            continue
-        user = user_model.objects.filter(username=row["username"]).first()
-        if user is None:
-            report.note_skipped("favorites", f"missing user {row['username']!r}")
-            continue
-        collection = row["collection"]
-        target_model = code_to_model.get(collection)
-        if target_model is None:
-            report.note_skipped(
-                "favorites", f"unknown favorite collection {collection!r}"
-            )
-            continue
-        decoded = json.loads(row["identifier_json"])
-        # decoded == [collection, ...parts]
-        parts = decoded[1:]
-        target_pks = _resolve_browse_collection_pks(collection, parts, target_model)
-        if not target_pks:
-            username = row["username"]
-            report.note_skipped(
-                "favorites",
-                f"unresolvable {collection!r} target {parts!r} for user {username!r}",
-            )
-            continue
-        for target_pk in target_pks:
-            Favorite.objects.update_or_create(
-                user=user, collection=collection, target_id=target_pk
-            )
-        report.note_written("favorites")
 
 
 def _resolve_browse_collection_pks(
@@ -694,6 +668,8 @@ _LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rati
 _SORT_KEY_RENAMES: Final[dict[str, str]] = {
     **_LEGACY_KEY_RENAMES,
     "alternate_number": "reprints",
+    # Favorites became shelves; the per-row flag is now "on any shelf".
+    "favorite": "shelved",
 }
 
 
@@ -758,11 +734,24 @@ def _rename_memory_keys(memory) -> dict:
 
 
 def _rename_table_columns(raw) -> dict:
-    """Rename retired keys in a table_columns JSON blob."""
+    """Rename retired column keys in a table_columns JSON blob."""
     table_columns = json.loads(raw or "{}")
-    for old, new in _LEGACY_KEY_RENAMES.items():
+    if not isinstance(table_columns, dict):
+        return {}
+    # Oldest shape: a flat ``{column: bool}`` map.
+    for old, new in _SORT_KEY_RENAMES.items():
         if old in table_columns:
             table_columns[new] = table_columns.pop(old)
+    # Current shape: ``{top_collection: [column, ...]}``.
+    for top_collection, columns in table_columns.items():
+        if not isinstance(columns, list):
+            continue
+        renamed: list = []
+        for column in columns:
+            key = _SORT_KEY_RENAMES.get(column, column)
+            if key not in renamed:
+                renamed.append(key)
+        table_columns[top_collection] = renamed
     return table_columns
 
 
@@ -867,13 +856,13 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     from codex.models.settings import SettingsBrowserFilters
     from codex.user_data.identifiers import FILTER_TAG_COLUMNS
 
+    row_keys = row.keys()
     defaults: dict[str, Any] = {
         "bookmark": row["bookmark"] or "",
-        "favorite": bool(row["favorite"]),
+        "shelves": resolve_filter_shelves(row, row_keys, browser),
     }
-    row_keys = row.keys()
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "favorite"}:
+        if column in {"bookmark", "shelves"}:
             continue
         read_column = _resolve_filter_column(row_keys, column)
         if read_column is None:
@@ -895,12 +884,9 @@ def _resolve_last_route_pks(
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
     if collection == Collection.ROOT or not decoded:
         return []
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
+    from codex.models.shelf import SHELF_COLLECTION_MODELS
 
-    target_model = next(
-        (m for m, c in FAVORITE_MODEL_COLLECTIONS.items() if c == collection),
-        None,
-    )
+    target_model = SHELF_COLLECTION_MODELS.get(collection)
     if target_model is None:
         return []
     pks: list[int] = []

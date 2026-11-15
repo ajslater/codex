@@ -88,8 +88,12 @@
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-      <KOReaderSync v-if="koreaderSync" :username="user.username" />
-      <AuthTokenDialog :user="user" />
+      <!-- Keys, OPDS and KOReader setup live in their own dialog. -->
+      <v-btn
+        :prepend-icon="mdiCellphoneKey"
+        text="API Access"
+        @click="showApiAccessDialog = true"
+      />
       <SubmitFooter
         verb="Save"
         table="Profile"
@@ -102,7 +106,7 @@
 </template>
 
 <script>
-import { mdiAccountCog } from "@mdi/js";
+import { mdiAccountCog, mdiCellphoneKey } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import LIMITS from "@/choices/limits.json";
@@ -110,8 +114,6 @@ import authFormMixin from "@/components/auth/auth-form-mixin";
 import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
-import AuthTokenDialog from "@/components/auth/auth-token.vue";
-import KOReaderSync from "@/components/auth/koreader-sync.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
@@ -125,10 +127,8 @@ const PROFILE_RULES = Object.freeze({
 export default {
   name: "ProfileDialog",
   components: {
-    AuthTokenDialog,
     CloseButton,
     CodexListItem,
-    KOReaderSync,
     SubmitFooter,
   },
   mixins: [authFormMixin],
@@ -144,6 +144,7 @@ export default {
       passwordPanel: null,
       emailPanel: null,
       mdiAccountCog,
+      mdiCellphoneKey,
       rules: PROFILE_RULES,
     };
   },
@@ -151,10 +152,12 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
       emailEnabled: (state) => state.adminFlags.emailEnabled,
-      koreaderSync: (state) => state.adminFlags.koreaderSync,
       remoteUserEnabled: (state) => state.adminFlags.remoteUserEnabled,
     }),
-    ...mapWritableState(useAuthStore, ["showProfileDialog"]),
+    ...mapWritableState(useAuthStore, [
+      "showApiAccessDialog",
+      "showProfileDialog",
+    ]),
     usernameLocked() {
       return Boolean(this.remoteUserEnabled);
     },

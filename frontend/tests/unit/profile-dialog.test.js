@@ -34,7 +34,6 @@ function mountDialog() {
       plugins: [vuetify, pinia],
       stubs: {
         CodexListItem: true,
-        AuthTokenDialog: true,
         SubmitFooter: true,
         CloseButton: true,
       },
