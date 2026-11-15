@@ -58,7 +58,7 @@
           <template #menu>
             <v-list density="compact">
               <v-list-item
-                :prepend-icon="mdiDatabaseSyncOutline"
+                :prepend-icon="mdiAutorenew"
                 title="Force update comics"
                 @click="forcePollPk = item.pk"
               />
@@ -106,12 +106,7 @@
 </template>
 
 <script>
-import {
-  mdiCircleOffOutline,
-  mdiDatabaseClockOutline,
-  mdiDatabaseSyncOutline,
-  mdiOpenInNew,
-} from "@mdi/js";
+import { mdiAutorenew, mdiDatabaseClockOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
 
@@ -143,10 +138,8 @@ export default {
         pk: 0,
         field: undefined,
       },
-      mdiCircleOffOutline,
+      mdiAutorenew,
       mdiDatabaseClockOutline,
-      mdiDatabaseSyncOutline,
-      mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
       // The library whose Poll / Force Update confirmation is open.
       pollPk: null,

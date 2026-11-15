@@ -52,8 +52,6 @@
 </template>
 
 <script>
-import { mdiTimerRefreshOutline } from "@mdi/js";
-
 const DEFAULT_DAYS = 0;
 const DEFAULT_HOURS = 1;
 const DEFAULT_MINUTES = 0;
@@ -92,7 +90,6 @@ export default {
   emits: ["update:modelValue"],
   data() {
     return {
-      mdiTimerRefreshOutline,
       days: DEFAULT_DAYS,
       hours: DEFAULT_HOURS,
       minutes: DEFAULT_MINUTES,

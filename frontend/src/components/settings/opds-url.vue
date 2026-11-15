@@ -8,8 +8,6 @@
   />
 </template>
 <script>
-import { mdiRss } from "@mdi/js";
-
 import ClipBoard from "@/components/clipboard.vue";
 
 const TOOLTIP = "Copy URL to clipboard";
@@ -33,7 +31,6 @@ export default {
   },
   data() {
     return {
-      mdiRss,
       TOOLTIP,
     };
   },

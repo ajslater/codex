@@ -56,7 +56,6 @@
 
 <script>
 import { toRaw } from "vue";
-import { mdiClose } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
@@ -81,7 +80,6 @@ export default {
   },
   data() {
     return {
-      mdiClose,
       routeChanged: false,
     };
   },

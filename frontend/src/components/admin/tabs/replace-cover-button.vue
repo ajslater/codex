@@ -2,7 +2,7 @@
   <span class="replaceCover">
     <v-btn
       :density="density"
-      :icon="mdiPencil"
+      :icon="mdiImageEdit"
       :size="size"
       title="Replace Cover"
       @click="pickFile"
@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { mdiPencil } from "@mdi/js";
+import { mdiImageEdit } from "@mdi/js";
 import { mapActions } from "pinia";
 
 import { uploadCustomCover } from "@/api/v4/admin";
@@ -34,7 +34,7 @@ export default {
     size: { type: String, default: "small" },
   },
   data() {
-    return { mdiPencil };
+    return { mdiImageEdit };
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable"]),

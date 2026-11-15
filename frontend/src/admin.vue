@@ -9,7 +9,6 @@
 </template>
 
 <script>
-import { mdiLogin } from "@mdi/js";
 import { mapState } from "pinia";
 
 import AdminHeader from "@/components/admin/admin-header.vue";
@@ -27,11 +26,6 @@ export default {
     AdminTabs,
     OnlineTagPromptPopup,
     Unauthorized,
-  },
-  data() {
-    return {
-      mdiLogin,
-    };
   },
   computed: {
     ...mapState(useAuthStore, ["isUserAdmin"]),

@@ -96,22 +96,8 @@
   </v-table>
 </template>
 <script>
-import {
-  mdiAppleKeyboardShift,
-  mdiKeyboardSpace,
-  mdiMenuLeft,
-  mdiMenuRight,
-} from "@mdi/js";
 export default {
   name: "KeyboardShortcutsTable",
-  data() {
-    return {
-      mdiMenuLeft,
-      mdiMenuRight,
-      mdiKeyboardSpace,
-      mdiAppleKeyboardShift,
-    };
-  },
 };
 </script>
 

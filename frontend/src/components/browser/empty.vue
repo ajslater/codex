@@ -21,9 +21,9 @@
 
 <script>
 import {
+  mdiBankOutline,
   mdiBookSearchOutline,
   mdiOpenInNew,
-  mdiShieldCrownOutline,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
@@ -62,7 +62,7 @@ export default {
           res.title =
             "Use the top right ☰ menu to log in as an administrator to add libraries";
         }
-        res.icon = mdiShieldCrownOutline;
+        res.icon = mdiBankOutline;
       }
 
       return res;

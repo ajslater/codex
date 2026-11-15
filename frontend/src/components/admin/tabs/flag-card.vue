@@ -40,7 +40,7 @@
       <v-btn
         variant="plain"
         class="flagSaveButton"
-        :icon="mdiContentSaveOutline"
+        :icon="mdiContentSave"
         title="Save Banner"
         @click="changeCol('value', banner)"
       />
@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import { mdiContentSaveOutline } from "@mdi/js";
+import { mdiContentSave } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ADMIN_FLAGS from "@/choices/admin-flag-choices.json";
@@ -120,7 +120,7 @@ export default {
     return {
       DESC,
       banner: "",
-      mdiContentSaveOutline,
+      mdiContentSave,
       lastUpdate: {
         field: undefined,
       },

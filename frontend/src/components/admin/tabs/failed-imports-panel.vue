@@ -12,7 +12,7 @@
             Clear Warning
           </v-btn>
           <span class="errorCount">
-            <v-icon :icon="mdiAlertCircle" size="small" class="errorIcon" />
+            <v-icon :icon="mdiBookAlert" size="small" class="errorIcon" />
             {{ failedImports.length }}
           </span>
         </div>
@@ -86,7 +86,7 @@
 </template>
 
 <script>
-import { mdiAlertCircle, mdiOpenInNew } from "@mdi/js";
+import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
@@ -101,7 +101,7 @@ export default {
   },
   data() {
     return {
-      mdiAlertCircle,
+      mdiBookAlert,
       mdiOpenInNew,
     };
   },
