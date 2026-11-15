@@ -37,8 +37,15 @@ const shelf = (pk, name, items = {}) => ({
   pk,
   name,
   items: Object.fromEntries(
-    ["publishers", "imprints", "series", "volumes", "folders", "arcs", "comics"]
-      .map((collection) => [collection, new Set(items[collection] || [])]),
+    [
+      "publishers",
+      "imprints",
+      "series",
+      "volumes",
+      "folders",
+      "arcs",
+      "comics",
+    ].map((collection) => [collection, new Set(items[collection] || [])]),
   ),
 });
 
@@ -81,9 +88,9 @@ describe("BrowserSettingsShelves", () => {
       "Favorites",
       "Want to Read",
     ]);
-    expect(
-      rows.map((row) => row.find(".v-list-item-subtitle").text()),
-    ).toEqual(["3 items", "1 item"]);
+    expect(rows.map((row) => row.find(".v-list-item-subtitle").text())).toEqual(
+      ["3 items", "1 item"],
+    );
   });
 
   test("renders nothing for anonymous sessions", () => {
