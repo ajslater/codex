@@ -79,6 +79,20 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
     hasSelection(state) {
       return state.selectedItems.size > 0;
     },
+    /*
+     * Every selected pk, keyed by collection: ``{series: [1, 2],
+     * comics: [9]}``. Unlike ``compositeItem`` this covers every
+     * collection type in the selection, which is what an action that
+     * takes all of them in one request (shelving) wants.
+     */
+    selectedPksByCollection(state) {
+      const grouped = _groupSelectedItems(state.selectedItems);
+      const pksByCollection = {};
+      for (const [collection, items] of Object.entries(grouped)) {
+        pksByCollection[collection] = _collectPks(items);
+      }
+      return pksByCollection;
+    },
     /**
     Build a composite item suitable for the metadata dialog.
     Combines all selected items into one object with merged ids.

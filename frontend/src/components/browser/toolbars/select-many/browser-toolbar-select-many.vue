@@ -26,6 +26,22 @@
             <v-icon :icon="mdiTagOutline" />
             <span class="actionLabel">Tags</span>
           </v-btn>
+          <ShelfMenu :targets="selectedPksByCollection">
+            <template #activator="{ props: shelfMenuProps }">
+              <v-btn
+                v-tooltip="{ text: 'Shelves', openDelay: 500 }"
+                v-bind="shelfMenuProps"
+                class="shelvesButton"
+                :disabled="!hasSelection"
+                density="compact"
+                size="small"
+                variant="text"
+              >
+                <v-icon :icon="mdiBookshelf" />
+                <span class="actionLabel">Shelves</span>
+              </v-btn>
+            </template>
+          </ShelfMenu>
           <v-btn
             v-tooltip="{ text: 'Mark Read', openDelay: 500 }"
             :disabled="!hasSelection"
@@ -104,6 +120,7 @@ import {
   mdiAutorenew,
   mdiBookmarkCheckOutline,
   mdiBookmarkMinusOutline,
+  mdiBookshelf,
   mdiClose,
   mdiDownload,
   mdiTagOutline,
@@ -112,6 +129,7 @@ import { mapActions, mapState } from "pinia";
 
 import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import ShelfMenu from "@/components/shelf-menu.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
 
@@ -122,12 +140,14 @@ export default {
   components: {
     ForceUpdateConfirmDialog,
     MetadataDialog,
+    ShelfMenu,
   },
   data() {
     return {
       mdiAutorenew,
       mdiBookmarkCheckOutline,
       mdiBookmarkMinusOutline,
+      mdiBookshelf,
       mdiClose,
       mdiDownload,
       mdiTagOutline,
@@ -143,6 +163,7 @@ export default {
       "selectedTotalChildCount",
       "hasSelection",
       "compositeItem",
+      "selectedPksByCollection",
     ]),
     forceUpdateSubject() {
       const itemNoun = this.selectedCount === 1 ? "item" : "items";

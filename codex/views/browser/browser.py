@@ -28,11 +28,11 @@ from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
     default_columns_filtered,
-    favorite_annotation_for,
     fk_name_annotations_for,
     m2m_annotations_for,
     m2m_columns,
     m2m_sort_annotations_for,
+    shelved_annotation_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.title import BrowserTitleView
@@ -141,19 +141,19 @@ class BrowserView(BrowserTitleView):
                 keys.append(key)
         return tuple(keys)
 
-    def _add_table_view_favorite_annotation(self, qs):
+    def _add_table_view_shelved_annotation(self, qs):
         """
-        Annotate ``qs`` with ``favorite`` (Exists subquery) for table view.
+        Annotate ``qs`` with ``shelved`` (membership subquery) for table view.
 
-        Runs unconditional on model — favorites apply to every
+        Runs unconditional on model — shelves apply to every
         browsable collection as well as Comic — and unconditional on
         column selection: the per-row Exists is cheap (one indexed
-        scan) and being always-on lets the user sort by ``favorite``
+        scan) and being always-on lets the user sort by ``shelved``
         from the order_by enum without separate gating.
         """
         if self.params.get("view_mode") != "table":
             return qs
-        annotations = favorite_annotation_for(qs.model, self.request.user)
+        annotations = shelved_annotation_for(qs.model, self.request.user)
         if annotations:
             qs = qs.annotate(**annotations)
         return qs
@@ -254,14 +254,14 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            # Favorite annotation lands first so the order pipeline
-            # can reference ``F("favorite")`` from inside
+            # Shelved annotation lands first so the order pipeline
+            # can reference ``F("shelved")`` from inside
             # ``annotate_order_aggregates`` — Django resolves F()
             # targets against the queryset's known annotations at
             # ``annotate()`` call time, not at SQL compile time, so
             # an out-of-order add raises ``Cannot resolve keyword
-            # 'favorite' into field`` for the collection queryset.
-            qs = self._add_table_view_favorite_annotation(qs)
+            # 'shelved' into field`` for the collection queryset.
+            qs = self._add_table_view_shelved_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)

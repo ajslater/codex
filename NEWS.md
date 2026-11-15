@@ -10,6 +10,27 @@ border-radius: 128px;
 
 ### ✨ Added
 
+- Shelves: signed-in users can make their own named shelves, such as "Want to
+  Read", and put publishers, imprints, series, volumes, folders, story arcs and
+  issues on them from the browser, the metadata dialog, the reader and the
+  multi-select toolbar.
+- A Shelves filter in the browser narrows any view to the shelves you pick. It
+  combines with the other filters, search and sort, and is kept in saved views.
+- OPDS v2 start page lists each of your shelves.
+
+### ♻️ Changed
+
+- Favorites are now a shelf. Anyone who had favorites gets a shelf named
+  "Favorites" holding them, and saved views that filtered on favorites filter on
+  that shelf. The star button is replaced by a shelf button that shows which
+  shelves an item is on.
+- The Favorite sort and table column are now Shelved: on any of your shelves.
+- User data backups store shelves. Backups made by older versions still
+  restore, with their favorites placed on a "Favorites" shelf.
+
+### 🔥 Removed
+
+- The `/api/v4/favorites/` endpoints, replaced by `/api/v4/shelves/`.
 - KOReader progress sync. Codex can be the sync server for KOReader's built in
   Progress sync plugin, so a comic's reading position follows you between a
   KOReader device and the web reader. Turn on the KOReader Sync admin flag, then

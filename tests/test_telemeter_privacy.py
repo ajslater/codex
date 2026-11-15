@@ -14,6 +14,7 @@ import json
 from typing import Final, override
 from uuid import uuid4
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 
 from codex.choices.admin import AdminFlagChoices
@@ -30,6 +31,7 @@ from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
+from codex.models.shelf import Shelf, ShelfItem
 from tests.tmp_dirs import tmp_dir
 
 # Anything containing this must never appear in the payload.
@@ -51,7 +53,7 @@ _BUCKET_PATHS: Final = frozenset(
     {
         "stats.file_types",
         "stats.identifiers",
-        "stats.usage.favorites",
+        "stats.usage.shelf_items",
         "stats.tagging.default_sources",
         "stats.sessions.top_collection",
         "stats.sessions.order_by",
@@ -234,6 +236,22 @@ class TelemeterPrivacyTestCase(TestCase):
             url=f"https://{SENTINEL}.example.com/1",
         )
         cls._seed_comic(library)
+        cls._seed_shelf()
+
+    @staticmethod
+    def _seed_shelf() -> None:
+        """
+        Put a sentinel in a shelf name and give the shelf an item.
+
+        A shelf's name is free text its user typed. The usage counts are
+        taken from the shelf tables, so without a row the sentinel walk
+        could not tell a count of shelves from a report of their names.
+        """
+        user = User.objects.create(username=f"{SENTINEL}-user")
+        shelf = Shelf.objects.create(user=user, name=f"{SENTINEL}-shelf")
+        ShelfItem.objects.create(
+            shelf=shelf, collection=Collection.SERIES.value, target_id=1
+        )
 
     @staticmethod
     def _seed_comic(library: Library) -> None:
@@ -295,6 +313,14 @@ class TelemeterPrivacyTestCase(TestCase):
             {"stats": CodexStats().get(), "uuid": str(uuid4())}, default=str
         )
         assert SENTINEL not in payload
+
+    def test_shelves_report_counts_only(self) -> None:
+        """Shelves are counted; the per-collection bucket is the only dict."""
+        usage = CodexStats().get()["usage"]
+        assert usage["shelf_count"] == 1
+        assert usage["shelf_user_count"] == 1
+        assert usage["shelf_item_count"] == 1
+        assert usage["shelf_items"] == {Collection.SERIES.value: 1}
 
     def test_unknown_identifier_source_collapsed(self) -> None:
         """A source name from a comic file is replaced by "other"."""

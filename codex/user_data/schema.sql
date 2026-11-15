@@ -66,14 +66,30 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     PRIMARY KEY (username, comic_path)
 );
 
--- target is the polymorphic (collection, identifier) pair.
--- identifier_json is a JSON-encoded name-chain tuple (see identifiers.py).
-CREATE TABLE IF NOT EXISTS favorites (
+-- A user's named shelves. Shelf names are unique per user, so
+-- (username, name) is the stable key the items and filters refer to.
+CREATE TABLE IF NOT EXISTS shelves (
     username TEXT NOT NULL,
+    name TEXT NOT NULL,
+    updated_at TEXT,
+    PRIMARY KEY (username, name)
+);
+
+-- One target on one shelf. The target is the polymorphic
+-- (collection, identifier) pair; identifier_json is a JSON-encoded
+-- name-chain tuple (see identifiers.py).
+--
+-- Backups written before shelves existed carry a ``favorites`` table
+-- (username, collection, identifier_json) instead. It is not declared
+-- here; the restore reads it when present and files those rows on a
+-- shelf named "Favorites".
+CREATE TABLE IF NOT EXISTS shelf_items (
+    username TEXT NOT NULL,
+    shelf_name TEXT NOT NULL,
     collection TEXT NOT NULL,
     identifier_json TEXT NOT NULL,
     updated_at TEXT,
-    PRIMARY KEY (username, collection, identifier_json)
+    PRIMARY KEY (username, shelf_name, collection, identifier_json)
 );
 
 -- Per-user, per-client browser settings rows.
@@ -103,13 +119,14 @@ CREATE TABLE IF NOT EXISTS settings_browser (
 
 -- 1:1 with settings_browser, keyed on the same (username, client, name).
 -- Lists of tag PKs in the main DB become JSON arrays of names here, per
--- tag table (see identifiers.py).
+-- tag table (see identifiers.py). ``shelves`` holds the names of the
+-- owner's shelves the same way.
 CREATE TABLE IF NOT EXISTS settings_filters (
     username TEXT NOT NULL,
     client TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     bookmark TEXT NOT NULL DEFAULT '',
-    favorite INTEGER NOT NULL DEFAULT 0,
+    shelves TEXT NOT NULL DEFAULT '[]',
     age_rating_metron TEXT NOT NULL DEFAULT '[]',
     age_rating_tagged TEXT NOT NULL DEFAULT '[]',
     characters TEXT NOT NULL DEFAULT '[]',

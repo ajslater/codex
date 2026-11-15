@@ -26,7 +26,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Mapping
     from contextlib import AbstractContextManager
 
-SCHEMA_VERSION: Final[int] = 1
+# 2: shelves and shelf_items replace favorites; settings_filters.shelves
+# replaces settings_filters.favorite.
+SCHEMA_VERSION: Final[int] = 2
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 
 # Matches main DB pragmas. ``foreign_keys=OFF`` is deliberate: the

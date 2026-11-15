@@ -39,7 +39,7 @@ make build-choices  # Generate choices JSON from Django enums
 Django app served by Granian (ASGI). Key subsystems:
 
 - **`models/`** — ORM models: Comic, Series, Publisher, Imprint, Library,
-  Bookmark, Identifier. SQLite with WAL mode.
+  Bookmark, Shelf, Identifier. SQLite with WAL mode.
 - **`views/`** — DRF ViewSets organized by feature: `browser/` (comic listings),
   `reader/` (page serving), `admin/` (CRUD), `opds/` (syndication).
 - **`urls/`** — API at `/api/v4/`. Sub-routers: `/auth/`, `/c/` (reader),

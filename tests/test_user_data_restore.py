@@ -13,12 +13,13 @@ from django.test import TestCase
 from codex.models import (
     Bookmark,
     Comic,
-    Favorite,
     Folder,
     Imprint,
     Library,
     Publisher,
     Series,
+    Shelf,
+    ShelfItem,
     Volume,
 )
 from codex.models.admin import AdminFlag, Timestamp
@@ -33,7 +34,8 @@ if TYPE_CHECKING:
 _TMP_DIR: Final = tmp_dir("codex.tests.sidecar.restore")
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _SEED_BOOKMARK_PAGE: Final = 7
-_SEED_FAVORITES_COUNT: Final = 2
+_SEED_SHELF_ITEMS_COUNT: Final = 2
+_SEED_SHELF_NAME: Final = "Want to Read"
 
 
 class _SidecarRestoreCase(TestCase):
@@ -114,10 +116,13 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         Bookmark.objects.create(
             user=user, comic=comic, page=_SEED_BOOKMARK_PAGE, finished=True
         )
-        Favorite.objects.create(
-            user=user, collection="publishers", target_id=publisher.pk
+        shelf = Shelf.objects.create(user=user, name=_SEED_SHELF_NAME)
+        ShelfItem.objects.create(
+            shelf=shelf, collection="publishers", target_id=publisher.pk
         )
-        Favorite.objects.create(user=user, collection="series", target_id=series.pk)
+        ShelfItem.objects.create(shelf=shelf, collection="series", target_id=series.pk)
+        # An empty shelf must survive the round trip too.
+        Shelf.objects.create(user=user, name="Empty")
         # update_or_create rather than create — other suites' setUpTestData
         # calls into codex_init() can leak seeded AdminFlag/Timestamp rows
         # past TestCase's per-test rollback.
@@ -167,19 +172,100 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert bm.page == _SEED_BOOKMARK_PAGE
         assert bm.finished is True
 
-    def test_round_trip_restores_favorites(self) -> None:
+    def test_round_trip_restores_shelves(self) -> None:
         seed = self._seed_main_db()
         snapshot = self._snapshot_sidecar()
-        Favorite.objects.all().delete()
+        Shelf.objects.all().delete()
+        assert not ShelfItem.objects.exists()
 
         report = restore(sidecar_path=snapshot)
-        assert report.written.get("favorites", 0) >= _SEED_FAVORITES_COUNT
-        Favorite.objects.get(
-            user=seed["user"], collection="publishers", target_id=seed["publisher"].pk
+        assert report.written.get("shelf_items", 0) >= _SEED_SHELF_ITEMS_COUNT
+        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        ShelfItem.objects.get(
+            shelf=shelf, collection="publishers", target_id=seed["publisher"].pk
         )
-        Favorite.objects.get(
-            user=seed["user"], collection="series", target_id=seed["series"].pk
+        ShelfItem.objects.get(
+            shelf=shelf, collection="series", target_id=seed["series"].pk
         )
+        assert not ShelfItem.objects.filter(
+            shelf__user=seed["user"], shelf__name="Empty"
+        ).exists()
+
+    def test_round_trip_restores_shelves_filter(self) -> None:
+        """A stored shelves filter comes back pointing at the restored shelf."""
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+
+        seed = self._seed_main_db()
+        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(user=seed["user"], show=show)
+        SettingsBrowserFilters.objects.create(browser=browser, shelves=[shelf.pk])
+        snapshot = self._snapshot_sidecar()
+        SettingsBrowser.objects.all().delete()
+        Shelf.objects.all().delete()
+
+        restore(sidecar_path=snapshot)
+
+        restored = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        filters = SettingsBrowserFilters.objects.get(browser__user=seed["user"])
+        assert filters.shelves == [restored.pk]
+
+    def test_pre_shelves_backup_restores_favorites_onto_a_shelf(self) -> None:
+        """A backup with a ``favorites`` table lands on a "Favorites" shelf."""
+        from codex.models.settings import (
+            SettingsBrowser,
+            SettingsBrowserFilters,
+            SettingsBrowserShow,
+        )
+
+        seed = self._seed_main_db()
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(
+            user=seed["user"], show=show, order_by="shelved"
+        )
+        SettingsBrowserFilters.objects.create(browser=browser)
+        snapshot = self._snapshot_sidecar()
+        # Rewrite the snapshot into the shape a pre-shelves codex wrote:
+        # a favorites table, a favorite flag and the favorite sort key.
+        with sqlite3.connect(snapshot) as conn:
+            conn.executescript(
+                """
+                CREATE TABLE favorites (
+                    username TEXT NOT NULL,
+                    collection TEXT NOT NULL,
+                    identifier_json TEXT NOT NULL,
+                    updated_at TEXT,
+                    PRIMARY KEY (username, collection, identifier_json)
+                );
+                INSERT INTO favorites
+                    SELECT username, collection, identifier_json, updated_at
+                    FROM shelf_items;
+                DROP TABLE shelf_items;
+                DROP TABLE shelves;
+                ALTER TABLE settings_filters
+                    ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;
+                UPDATE settings_filters SET favorite = 1;
+                ALTER TABLE settings_filters DROP COLUMN shelves;
+                """
+            )
+            conn.execute("UPDATE settings_browser SET order_by = 'favorite'")
+        SettingsBrowser.objects.all().delete()
+        Shelf.objects.all().delete()
+
+        report = restore(sidecar_path=snapshot)
+
+        assert report.written.get("favorites", 0) >= _SEED_SHELF_ITEMS_COUNT
+        shelf = Shelf.objects.get(user=seed["user"])
+        assert shelf.name == "Favorites"
+        assert ShelfItem.objects.filter(shelf=shelf).count() == _SEED_SHELF_ITEMS_COUNT
+        restored = SettingsBrowser.objects.get(user=seed["user"])
+        assert restored.order_by == "shelved"
+        filters = SettingsBrowserFilters.objects.get(browser=restored)
+        assert filters.shelves == [shelf.pk]
 
     def test_restore_logs_unmatched_comic(self) -> None:
         seed = self._seed_main_db()
@@ -431,20 +517,21 @@ class OverlappingLibraryRestoreTests(_SidecarRestoreCase):
             assert bookmark.page == _SEED_BOOKMARK_PAGE
             assert bookmark.finished is True
 
-    def test_folder_favorite_restores_into_every_overlapping_library(self) -> None:
+    def test_shelved_folder_restores_into_every_overlapping_library(self) -> None:
         seed = self._seed_overlapping_libraries()
-        Favorite.objects.create(
-            user=seed["user"], collection="folders", target_id=seed["folders"][0].pk
+        shelf = Shelf.objects.create(user=seed["user"], name="Folders")
+        ShelfItem.objects.create(
+            shelf=shelf, collection="folders", target_id=seed["folders"][0].pk
         )
         snapshot = self._snapshot_sidecar()
-        Favorite.objects.all().delete()
+        Shelf.objects.all().delete()
 
         report = restore(sidecar_path=snapshot)
 
-        assert report.written.get("favorites", 0) >= 1
+        assert report.written.get("shelf_items", 0) >= 1
         for folder in seed["folders"]:
-            assert Favorite.objects.filter(
-                user=seed["user"], collection="folders", target_id=folder.pk
+            assert ShelfItem.objects.filter(
+                shelf__user=seed["user"], collection="folders", target_id=folder.pk
             ).exists()
 
 

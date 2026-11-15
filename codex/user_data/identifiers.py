@@ -1,7 +1,7 @@
 """
 Stable identifiers for the sidecar.
 
-The main DB stores polymorphic favorites and tag-filter lists as integer
+The main DB stores polymorphic shelf items and tag-filter lists as integer
 PKs that won't survive a full rebuild. The sidecar replaces those PKs
 with name-chain tuples (or comic paths) — values that *do* survive,
 because the librarian's filesystem-driven import will re-create rows
@@ -110,7 +110,7 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 
 
 # Per-collection part extractors. Keys are the collection values from
-# :data:`codex.models.favorite.FAVORITE_MODEL_COLLECTIONS` (a ``Collection``
+# :data:`codex.models.shelf.SHELF_MODEL_COLLECTIONS` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
 # identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to

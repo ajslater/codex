@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/auth";
 import { useCommonStore } from "@/stores/common";
-import { useFavoritesStore } from "@/stores/favorites";
+import { useShelvesStore } from "@/stores/shelves";
 
 /*
  * Don't use router in here, perhaps called to early.
@@ -169,10 +169,10 @@ export const useAuthStore = defineStore("auth", {
       } finally {
         this.user = undefined;
         /*
-         * Wipe per-user favorite state so a different account
-         * signing in next doesn't see the previous user's stars.
+         * Wipe per-user shelf state so a different account
+         * signing in next doesn't see the previous user's shelves.
          */
-        useFavoritesStore().clear();
+        useShelvesStore().clear();
         if (oidcLogoutUrl) {
           // Full-page redirect to end the IdP session; the ensuing
           // reload refreshes the flags on its own.

@@ -33,8 +33,8 @@ border-radius: 128px;
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.
 - **Save and load** named views and searches.
-- **Favorites** at the Publisher, Series, Volume, Folder, Story Arc, or Issue
-  level — filterable per user.
+- **Shelves** you name yourself, such as "Want to Read", holding any Publisher,
+  Imprint, Series, Volume, Folder, Story Arc, or Issue — filterable per user.
 
 ### 🏷️ Edit & Tag
 
@@ -266,7 +266,7 @@ setting.
 
 Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
 data: comic metadata, which can always be rebuilt by re-scanning your library,
-and _user_ data — accounts, bookmarks, favorites, browser settings, library
+and _user_ data — accounts, bookmarks, shelves, browser settings, library
 definitions, admin flags — which cannot. To make the second kind survive a
 database loss or rebuild, Codex snapshots every user-bound row into a separate
 SQLite file: the **user data sidecar**.
@@ -282,7 +282,7 @@ SQLite file: the **user data sidecar**.
 #### What it contains
 
 Users (with hashed passwords), groups & permissions, group memberships,
-libraries and their access lists, bookmarks, favorites, per-user browser
+libraries and their access lists, bookmarks, shelves, per-user browser
 settings, admin flags, timestamps, online-tagging defaults, and the default
 settings for new sessions.
 
@@ -342,7 +342,7 @@ skipped — the operation never aborts.
 5. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, favorites by collection name-chain (e.g.
+Bookmarks reattach by comic path, shelf items by collection name-chain (e.g.
 publisher → imprint → series), and tag filters by tag name. As long as your
 library paths and tag names match, everything reattaches.
 

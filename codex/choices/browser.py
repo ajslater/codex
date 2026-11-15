@@ -25,7 +25,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "country": "Country",
         "credits": "Credits",
         "day": "Day",
-        "favorite": "Favorite",
         "filename": "Filename",
         "size": "File Size",
         "file_type": "File Type",
@@ -52,6 +51,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "search_score": "Search Score",
         "series_name": "Series",
         "series_groups": "Series Groups",
+        "shelved": "Shelved",
         "stories": "Stories",
         "story_arc_number": "Story Arc Number",
         "story_arcs": "Story Arcs",
@@ -269,7 +269,8 @@ _DEFAULT_SHOW = MappingProxyType(
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
-        "favorite": False,
+        # Pks of the user's shelves; a row on any selected shelf matches.
+        "shelves": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )
@@ -524,17 +525,16 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        # Per-user state. ``favorite`` is the only currently-editable
-        # cell — clicking the star toggles via ``PUT|DELETE
-        # /api/v4/favorites/<collection>/<pk>``. The annotation
-        # ``favorite=Exists(Favorite.objects.filter(user, collection,
-        # target_id))`` is added in
-        # ``BrowserView._add_table_view_favorite_annotation`` for both
+        # Per-user state. ``shelved`` is the only currently-editable
+        # cell — its button opens the shelf menu, which writes through
+        # ``PATCH /api/v4/shelves/<pk>/items``. The annotation (true when
+        # the row sits on any of the user's shelves) is added in
+        # ``BrowserView._add_table_view_shelved_annotation`` for both
         # collection and Comic querysets so the column is sortable and
         # renderable across all browsable models.
-        "favorite": {
-            "label": "Favorite",
-            "sort_key": "favorite",
+        "shelved": {
+            "label": "Shelved",
+            "sort_key": "shelved",
             "m2m": False,
             "editable": True,
             "edit_widget": "checkbox",

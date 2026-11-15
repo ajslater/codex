@@ -32,6 +32,7 @@ from codex.models.settings import (
     SettingsBrowserFilters,
     SettingsBrowserLastRoute,
 )
+from codex.models.shelf import Shelf
 from codex.serializers.browser.saved import (
     SavedBrowserSettingsListSerializer,
     SavedBrowserSettingsSaveSerializer,
@@ -61,6 +62,7 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
         "original_format": OriginalFormat,
         "reprints": Reprint,
         "series_groups": SeriesGroup,
+        "shelves": Shelf,
         "stories": Story,
         "story_arcs": StoryArc,
         "tagger": Tagger,
@@ -89,8 +91,9 @@ def _validate_filter_field(
         logger.info(
             f"Saved settings filter {field!r}: removing invalid PK(s): {sorted(bad_pks)}"
         )
-        # Keep None sentinels plus valid PKs
-        cleaned = frozenset(pk_list) - bad_pks
+        # Keep None sentinels plus valid PKs, in their stored order. A list,
+        # because the caller writes this back to a JSON column.
+        cleaned = [pk for pk in pk_list if pk not in bad_pks]
         filters_data[field] = cleaned
         warnings.append(field)
 

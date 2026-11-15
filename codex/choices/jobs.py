@@ -167,7 +167,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "desc": (
                             "Write a dated, compressed snapshot"
                             " (user_data.<date>.sql.xz) of every user, bookmark,"
-                            " favorite, and setting to the backups dir."
+                            " shelf, and setting to the backups dir."
                             " Runs nightly."
                         ),
                         "statuses": ("JDU",),
@@ -373,10 +373,10 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "statuses": ("JAS",),
                     },
                     {
-                        "value": "cleanup_favorites",
-                        "title": "Remove Orphan Favorites",
+                        "value": "cleanup_shelf_items",
+                        "title": "Remove Orphan Shelf Items",
                         "desc": (
-                            "Drop favorites whose target row is gone. Runs nightly."
+                            "Drop shelf items whose target row is gone. Runs nightly."
                         ),
                         "statuses": ("JRF",),
                     },

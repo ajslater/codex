@@ -23,9 +23,9 @@
         <OnlineTagReviewButton class="readerReviewButton" />
         <v-toolbar-items v-if="!empty">
           <ReaderArcSelect />
-          <FavoriteToggle
+          <ShelfMenu
             v-if="currentBookPk"
-            class="readerFavoriteToggle"
+            class="readerShelfMenu"
             collection="comics"
             :pk="currentBookPk"
           />
@@ -60,9 +60,9 @@ import { mdiClose } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AppBanner from "@/components/banner.vue";
-import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
+import ShelfMenu from "@/components/shelf-menu.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import { useReaderKeyUp } from "@/components/reader/use-reader-keyup";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -73,11 +73,11 @@ export default {
   name: "ReaderTitleToolbar",
   components: {
     AppBanner,
-    FavoriteToggle,
     MetadataDialog,
     OnlineTagReviewButton,
     ReaderArcSelect,
     SettingsDrawerButton,
+    ShelfMenu,
   },
   data() {
     return {
