@@ -218,8 +218,9 @@ class SettingsBrowserFilters(BaseModel):
         blank=True,
     )
 
-    # Favorite filter — boolean toggle (favorites only when True).
-    favorite = BooleanField(default=False)
+    # Shelves filter — pks of the owner's shelves. Kept apart from the
+    # dynamic tag filters because it is per-user state, not comic metadata.
+    shelves = JSONField(default=list)
 
     # Dynamic filters — each stores a list of ints.
     age_rating_metron = JSONField(default=list)
@@ -253,7 +254,7 @@ class SettingsBrowserFilters(BaseModel):
     FILTER_KEYS = frozenset(
         {
             "bookmark",
-            "favorite",
+            "shelves",
             "age_rating_metron",
             "age_rating_tagged",
             "characters",

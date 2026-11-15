@@ -20,7 +20,6 @@ from codex.models import (
     Credit,
     CreditPerson,
     CreditRole,
-    Favorite,
     Folder,
     Genre,
     Identifier,
@@ -35,6 +34,8 @@ from codex.models import (
     ScanInfo,
     Series,
     SeriesGroup,
+    Shelf,
+    ShelfItem,
     Story,
     StoryArc,
     StoryArcNumber,
@@ -184,7 +185,8 @@ METADATA_MODELS = (
 )
 STATS_USAGE_MODELS = (
     Bookmark,
-    Favorite,
+    Shelf,
+    ShelfItem,
 )
 CONFIG_MODELS = (
     Library,

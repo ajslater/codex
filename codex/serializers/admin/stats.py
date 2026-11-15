@@ -143,9 +143,10 @@ class StatsUsageSerializer(Serializer):
     """Reader Engagement Counts."""
 
     bookmark_count = IntegerField(required=False, read_only=True)
-    favorite_count = IntegerField(required=False, read_only=True)
-    favorite_user_count = IntegerField(required=False, read_only=True)
-    favorites = CountDictField(required=False, read_only=True)
+    shelf_count = IntegerField(required=False, read_only=True)
+    shelf_user_count = IntegerField(required=False, read_only=True)
+    shelf_item_count = IntegerField(required=False, read_only=True)
+    shelf_items = CountDictField(required=False, read_only=True)
 
 
 class StatsAdminFlagsSerializer(Serializer):

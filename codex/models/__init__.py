@@ -6,9 +6,9 @@ from codex.models.auth import *
 from codex.models.bookmark import *
 from codex.models.collections import *
 from codex.models.comic import *
-from codex.models.favorite import *
 from codex.models.identifier import *
 from codex.models.library import *
 from codex.models.named import *
 from codex.models.paths import *
 from codex.models.settings import *
+from codex.models.shelf import *

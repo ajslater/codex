@@ -14,13 +14,12 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
-from codex.models.favorite import Favorite
 from codex.models.named import StoryArc
+from codex.models.shelf import Shelf
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
     FACETS,
-    FAVORITES_PREVIEW_GROUP,
     PREVIEW_GROUPS,
     START_GROUPS,
     TOP_GROUPS,
@@ -28,6 +27,7 @@ from codex.views.opds.v2.const import (
     Link,
     LinkData,
     LinkGroup,
+    shelf_preview_link,
 )
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 
@@ -166,29 +166,36 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
-    def _user_has_favorites(self) -> bool:
-        """Return True when the requesting user has at least one favorite."""
+    def _shelf_preview_links(self) -> tuple[Link, ...]:
+        """
+        Return one preview link per non-empty shelf of the requesting user.
+
+        Empty for anonymous sessions and for users with no shelves, so the
+        start page gains nothing for them.
+        """
         user = self.request.user
         if not user or not user.is_authenticated:
-            return False
-        return Favorite.objects.filter(user=user).exists()
+            return ()
+        shelves = (
+            Shelf.objects.filter(user=user, items__isnull=False)
+            .distinct()
+            .order_by("name", "pk")
+            .values_list("pk", "name")
+        )
+        return tuple(shelf_preview_link(pk, name) for pk, name in shelves)
 
     def get_ordered_groups(self) -> list:
         """Ordered Publication Groups."""
         groups = []
-        # Favorites preview is appended only when the user has at least
-        # one — otherwise an empty "Favorites" section would clutter
-        # the start page for fresh / anonymous installs.
-        previews = (
-            (*PREVIEW_GROUPS, FAVORITES_PREVIEW_GROUP)
-            if self._user_has_favorites()
-            else PREVIEW_GROUPS
-        )
-        for group_spec in previews:
+        for group_spec in PREVIEW_GROUPS:
             # explode into individual groups
             for link_spec in group_spec.links:
                 pub_section = self.get_publications_preview(link_spec)
                 groups += pub_section
+        # One preview per shelf, after the static previews. A shelf whose
+        # comics are all hidden from this user yields no section.
+        for link_spec in self._shelf_preview_links():
+            groups += self.get_publications_preview(link_spec)
         return groups
 
     def get_start_groups(self):

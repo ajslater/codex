@@ -1,7 +1,7 @@
 """
 View-endpoint response envelope.
 
-Codex view endpoints (browser, reader, session, favorites, etc.)
+Codex view endpoints (browser, reader, session, shelves, etc.)
 wrap their JSON responses in ``{data, meta, errors}``. The renderer
 below makes that wrap automatic — bare data gets wrapped; payloads
 that already look like an envelope pass through so views can

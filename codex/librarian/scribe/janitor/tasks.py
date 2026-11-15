@@ -52,8 +52,8 @@ class JanitorCleanupSettingsTask(JanitorTask):
     """Clean orphan settings rows."""
 
 
-class JanitorCleanupFavoritesTask(JanitorTask):
-    """Clean favorites whose target row no longer exists."""
+class JanitorCleanupShelfItemsTask(JanitorTask):
+    """Clean shelf items whose target row no longer exists."""
 
 
 class JanitorCleanupTaggingStateTask(JanitorTask):

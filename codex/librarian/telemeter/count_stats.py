@@ -15,12 +15,12 @@ from django.db.models import Count
 
 from codex.models.bookmark import Bookmark
 from codex.models.comic import Comic
-from codex.models.favorite import Favorite
 from codex.models.identifier import Identifier, IdentifierType
 from codex.models.library import Library
 from codex.models.named import Credit, Reprint
 from codex.models.paths import CustomCover, FailedImport
 from codex.models.settings import SettingsBrowser
+from codex.models.shelf import Shelf, ShelfItem
 
 OTHER_IDENTIFIER_SOURCE: Final = "other"
 # comicbox's closed source vocabulary. A source name read from a comic file
@@ -139,14 +139,21 @@ def get_manga_stats() -> dict[str, int]:
 
 
 def get_usage_stats() -> dict[str, Any]:
-    """Report reader engagement: bookmarks and favorites."""
-    favorites = Favorite.objects
-    rows = favorites.values("collection").annotate(count=Count("pk")).order_by()
+    """
+    Report reader engagement: bookmarks and shelves.
+
+    Counts only. A shelf's name is free text its user typed, so it must
+    never be read here; the one data-keyed bucket, ``shelf_items``, is
+    keyed by the closed ``Collection`` vocabulary.
+    """
+    rows = ShelfItem.objects.values("collection").annotate(count=Count("pk")).order_by()
+    shelf_items = {row["collection"]: row["count"] for row in rows}
     return {
         "bookmark_count": Bookmark.objects.count(),
-        "favorite_count": favorites.count(),
-        "favorite_user_count": favorites.values("user").distinct().count(),
-        "favorites": {row["collection"]: row["count"] for row in rows},
+        "shelf_count": Shelf.objects.count(),
+        "shelf_user_count": Shelf.objects.values("user").distinct().count(),
+        "shelf_item_count": sum(shelf_items.values()),
+        "shelf_items": shelf_items,
     }
 
 

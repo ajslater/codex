@@ -111,7 +111,7 @@ def serialize_library(library) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     )
 
 
-# ── Bookmark / Favorite ──────────────────────────────────────────────
+# ── Bookmark / Shelf ─────────────────────────────────────────────────
 
 
 def serialize_bookmark(
@@ -140,38 +140,49 @@ def serialize_bookmark(
     )
 
 
-def serialize_favorite(
-    favorite,
+def serialize_shelf(shelf) -> tuple[str, tuple[str, ...], dict[str, Any]]:
+    """Shelf row keyed by ``(username, name)``."""
+    return (
+        "shelves",
+        ("username", "name"),
+        {
+            "username": shelf.user.username,
+            "name": shelf.name,
+            "updated_at": _datetime_str(getattr(shelf, "updated_at", None)),
+        },
+    )
+
+
+def serialize_shelf_item(
+    item,
 ) -> tuple[str, tuple[str, ...], dict[str, Any]] | None:
     """
-    Favorite row keyed by ``(username, collection, identifier_json)``.
+    Shelf item keyed by ``(username, shelf_name, collection, identifier_json)``.
 
     The polymorphic ``(collection, target_id)`` pair is resolved into a stable
     name-chain identifier via :func:`identifier_for_browse_collection`.
     Resolution may fail (target deleted between signal queue and write) —
     return ``None`` to skip rather than crash.
     """
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
+    from codex.models.shelf import SHELF_COLLECTION_MODELS
 
-    target_model = None
-    for model, code in FAVORITE_MODEL_COLLECTIONS.items():
-        if code == favorite.collection:
-            target_model = model
-            break
+    target_model = SHELF_COLLECTION_MODELS.get(item.collection)
     if target_model is None:
         return None
-    instance = target_model.objects.filter(pk=favorite.target_id).first()
+    instance = target_model.objects.filter(pk=item.target_id).first()
     if instance is None:
         return None
-    parts = identifier_for_browse_collection(favorite.collection, instance)
+    parts = identifier_for_browse_collection(item.collection, instance)
+    shelf = item.shelf
     return (
-        "favorites",
-        ("username", "collection", "identifier_json"),
+        "shelf_items",
+        ("username", "shelf_name", "collection", "identifier_json"),
         {
-            "username": favorite.user.username,
-            "collection": favorite.collection,
-            "identifier_json": encode_identifier(favorite.collection, parts),
-            "updated_at": _datetime_str(getattr(favorite, "updated_at", None)),
+            "username": shelf.user.username,
+            "shelf_name": shelf.name,
+            "collection": item.collection,
+            "identifier_json": encode_identifier(item.collection, parts),
+            "updated_at": _datetime_str(getattr(item, "updated_at", None)),
         },
     )
 
@@ -250,16 +261,28 @@ def serialize_settings_filters(
     if browser.user_id is None:
         return None
     from codex.models.settings import SettingsBrowserFilters
+    from codex.models.shelf import Shelf
 
     data: dict[str, Any] = {
         "username": browser.user.username,
         "client": browser.client,
         "name": browser.name,
         "bookmark": filters.bookmark,
-        "favorite": int(bool(filters.favorite)),
+        # Shelf pks become the owner's shelf names; pks that are not this
+        # user's shelves drop out.
+        "shelves": json.dumps(
+            list(
+                Shelf.objects.filter(user_id=browser.user_id, pk__in=filters.shelves)
+                .order_by("name")
+                .values_list("name", flat=True)
+            )
+            if filters.shelves
+            else [],
+            separators=(",", ":"),
+        ),
     }
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "favorite"}:
+        if column in {"bookmark", "shelves"}:
             continue
         raw = getattr(filters, column)
         rewritten = _rewrite_filter_value(column, raw)
@@ -302,13 +325,9 @@ def _resolve_last_route_pks(collection: str, pks: list[int]) -> list[list[Any]]:
     if collection == Collection.ROOT:
         # Root pseudo-collection — no PKs to resolve.
         return []
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
+    from codex.models.shelf import SHELF_COLLECTION_MODELS
 
-    target_model = None
-    for model, code in FAVORITE_MODEL_COLLECTIONS.items():
-        if code == collection:
-            target_model = model
-            break
+    target_model = SHELF_COLLECTION_MODELS.get(collection)
     if target_model is None:
         return []
     by_pk = {obj.pk: obj for obj in target_model.objects.filter(pk__in=pks)}

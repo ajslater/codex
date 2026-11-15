@@ -512,10 +512,10 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
             # the list-of-pks shape and gets coerced into a list.
             if key == "bookmark":
                 cleaned = value
-            elif key == "favorite":
-                cleaned = bool(value)
+            elif value:
+                cleaned = list(value)
             else:
-                cleaned = list(value) if value else []
+                cleaned = []
             if getattr(filters_obj, key) != cleaned:
                 setattr(filters_obj, key, cleaned)
                 dirty = True

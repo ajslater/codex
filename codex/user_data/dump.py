@@ -35,7 +35,8 @@ _TRACKED_TABLES: Final[tuple[str, ...]] = (
     "libraries",
     "library_groups",
     "bookmarks",
-    "favorites",
+    "shelves",
+    "shelf_items",
     "settings_browser",
     "settings_filters",
     "settings_last_route",
@@ -75,6 +76,10 @@ def _dump_queryset(
 def _clear_sidecar(store: SidecarStore) -> None:
     """Truncate every tracked table inside a single transaction."""
     with store.transaction() as conn:
+        # A sidecar file first written before shelves existed still holds
+        # the retired favorites table. Left in place its rows would never
+        # be refreshed again, and a later restore would resurrect them.
+        conn.execute("DROP TABLE IF EXISTS favorites")
         for table in _TRACKED_TABLES:
             # Table names come from a static module-level tuple, not user input.
             conn.execute(f"DELETE FROM {table}")  # noqa: S608
@@ -99,13 +104,13 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         Timestamp,
     )
     from codex.models.bookmark import Bookmark
-    from codex.models.favorite import Favorite
     from codex.models.library import Library
     from codex.models.settings import (
         SettingsBrowser,
         SettingsBrowserFilters,
         SettingsBrowserLastRoute,
     )
+    from codex.models.shelf import Shelf, ShelfItem
 
     if store is None:
         store = get_store()
@@ -152,10 +157,15 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         Bookmark.objects.filter(user__isnull=False).select_related("user", "comic"),
         serializers.serialize_bookmark,
     )
-    counts["favorites"] = _dump_queryset(
+    counts["shelves"] = _dump_queryset(
         store,
-        Favorite.objects.select_related("user"),
-        serializers.serialize_favorite,
+        Shelf.objects.select_related("user"),
+        serializers.serialize_shelf,
+    )
+    counts["shelf_items"] = _dump_queryset(
+        store,
+        ShelfItem.objects.select_related("shelf__user"),
+        serializers.serialize_shelf_item,
     )
     counts["settings_browser"] = _dump_queryset(
         store,

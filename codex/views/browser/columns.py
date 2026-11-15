@@ -29,9 +29,9 @@ from codex.choices.browser import (
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
 from codex.models.collections import Volume
-from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
 from codex.models.named import Reprint
+from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
 # ``related__name`` path; ``credits`` and ``identifiers`` need composite
@@ -446,43 +446,45 @@ def fk_name_columns() -> frozenset[str]:
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
 
 
-_FAVORITE_FALSE = Value(value=False, output_field=BooleanField())
-_FAVORITE_TRUE = Value(value=True, output_field=BooleanField())
+_SHELVED_FALSE = Value(value=False, output_field=BooleanField())
+_SHELVED_TRUE = Value(value=True, output_field=BooleanField())
 
 
-def favorite_annotation_for(model, user) -> dict:
+def shelved_annotation_for(model, user) -> dict:
     """
-    Build the ``favorite`` annotation for a browser queryset.
+    Build the ``shelved`` annotation for a browser queryset.
 
-    Returns a dict that's safe to splat into ``qs.annotate(**...)``:
+    ``shelved`` is true when the row itself sits on any of the user's
+    shelves. Returns a dict that's safe to splat into
+    ``qs.annotate(**...)``:
 
     * a ``Case-When-In`` boolean for authenticated users on a
-      favorite-able model — SQLite materializes the favorited-id
+      shelvable model — SQLite materializes the shelved-id
       subquery once and runs a hash-set membership check per row,
       slightly cheaper than the equivalent correlated ``Exists``;
     * a constant ``Value(False)`` for anonymous sessions, so the
       schema stays uniform whether the column is sortable or just
       rendered;
-    * an empty dict when ``model`` isn't in the favorite-able set —
+    * an empty dict when ``model`` isn't in the shelvable set —
       the table-view caller passes a known model so this branch is
       rare in practice.
     """
-    collection_code = FAVORITE_MODEL_COLLECTIONS.get(model)
+    collection_code = SHELF_MODEL_COLLECTIONS.get(model)
     if collection_code is None:
         return {}
     if not user or not user.is_authenticated:
-        return {"favorite": _FAVORITE_FALSE}
+        return {"shelved": _SHELVED_FALSE}
     # ``.value``: binding the Collection StrEnum member itself makes
     # cachalot's parameter-type check raise UncachableQuery for every
     # query this subquery lands in — silently uncaching all browse
     # queries. The bound SQL value is identical either way.
-    favorited_ids = Favorite.objects.filter(
-        user=user, collection=collection_code.value
+    shelved_ids = ShelfItem.objects.filter(
+        shelf__user=user, collection=collection_code.value
     ).values("target_id")
     return {
-        "favorite": Case(
-            When(pk__in=favorited_ids, then=_FAVORITE_TRUE),
-            default=_FAVORITE_FALSE,
+        "shelved": Case(
+            When(pk__in=shelved_ids, then=_SHELVED_TRUE),
+            default=_SHELVED_FALSE,
             output_field=BooleanField(),
         ),
     }
