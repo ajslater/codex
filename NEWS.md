@@ -8,9 +8,18 @@ border-radius: 128px;
 
 ## v2.6.1
 
-### ♻️ Changed
+### ✨ Added
 
-- Nothing yet
+- OPDS v1 lists a Favorites entry on the start page when you have favorites, as
+  OPDS v2 does.
+
+### 🐛 Fixed
+
+- OPDS v1 "Latest Unread" now lists only unread issues. It had no read filter of
+  its own, so it showed read issues too, or reused the filter of whichever list
+  was opened before it.
+- OPDS v1 "Oldest Unread" always lists oldest first. It used to keep the
+  direction of the previous list, so it could come back newest first.
 
 ## v2.6.0 - Tag Editor Suggestions
 
