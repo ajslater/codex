@@ -63,11 +63,14 @@ class AdminFlagDefaultsTests(TestCase):
                 assert not self._on(AdminFlagChoices.REGISTER_VERIFICATION)
 
     def test_every_other_flag_seeds_on(self) -> None:
-        """Only the two false defaults seed off."""
+        """Only the false defaults seed off."""
         self._seed(docker=False)
 
         off = set(AdminFlag.objects.filter(on=False).values_list("key", flat=True))
-        assert off == {AdminFlagChoices.REGISTER_VERIFICATION.value}
+        assert off == {
+            AdminFlagChoices.KOREADER_SYNC.value,
+            AdminFlagChoices.REGISTER_VERIFICATION.value,
+        }
 
     def test_an_admin_who_turns_it_off_stays_off(self) -> None:
         """
