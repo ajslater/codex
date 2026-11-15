@@ -531,7 +531,7 @@ def _get_secure_csp(features: FeatureFlags) -> dict[str, list[str]]:
 SECURE_CSP = _get_secure_csp(FEATURES)
 
 # Session
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_ENGINE = "codex.sessions"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
 # Proxy headers

@@ -59,6 +59,12 @@ def connect_signals() -> None:
     post_delete.connect(_on_library_changed, sender=Library)
     post_save.connect(_ensure_user_auth, sender=get_user_model())
 
+    from django.contrib.auth.signals import user_logged_in
+
+    from codex.signals.login import adopt_session_rows
+
+    user_logged_in.connect(adopt_session_rows)
+
     # Cascade favorites when their target row is deleted. The handler
     # rereads the mapping at fire time so this loop only needs the
     # senders.

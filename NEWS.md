@@ -25,6 +25,8 @@ border-radius: 128px;
 
 ### 🐛 Fixed
 
+- Logging in or registering keeps the bookmarks and the browser and reader
+  settings you had as a visitor.
 - OPDS v1 "Latest Unread" now lists only unread issues. It had no read filter of
   its own, so it showed read issues too, or reused the filter of whichever list
   was opened before it.
