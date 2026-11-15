@@ -39,8 +39,15 @@ const shelf = (pk, name, items = {}) => ({
   pk,
   name,
   items: Object.fromEntries(
-    ["publishers", "imprints", "series", "volumes", "folders", "arcs", "comics"]
-      .map((collection) => [collection, new Set(items[collection] || [])]),
+    [
+      "publishers",
+      "imprints",
+      "series",
+      "volumes",
+      "folders",
+      "arcs",
+      "comics",
+    ].map((collection) => [collection, new Set(items[collection] || [])]),
   ),
 });
 
@@ -122,9 +129,7 @@ describe("ShelfMenu — button", () => {
 
     const mixed = mountMenu({ collection: "series", pks: [1, 2, 3] });
     expect(mixed.wrapper.vm.on).toBe(false);
-    expect(mixed.wrapper.find("button").classes()).not.toContain(
-      "shelfMenuOn",
-    );
+    expect(mixed.wrapper.find("button").classes()).not.toContain("shelfMenuOn");
   });
 
   test("the call site's class and id land on the button", () => {

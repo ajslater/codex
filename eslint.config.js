@@ -39,6 +39,15 @@ export default defineConfig([
   })),
   eslintPluginConfigPrettier, // Again last after adding other plugins.
   {
+    // @stylistic 6.0 added list-style, a bracket line-break rule that
+    // eslint-config-prettier 10.1.8 predates, so neither prettier block above
+    // turns it off. It reports the line break Prettier puts between a wrapped
+    // last argument's trailing comma and the `)`, and its fix writes `x,);`,
+    // which Prettier then reverts. Prettier owns layout.
+    name: "codex/prettier-owns-list-style",
+    rules: { "@stylistic/list-style": "off" },
+  },
+  {
     files: ["frontend/**/*.{js,vue}"],
     languageOptions: {
       globals: {

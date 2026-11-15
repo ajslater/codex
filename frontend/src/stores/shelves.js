@@ -200,7 +200,9 @@ export const useShelvesStore = defineStore("shelves", {
       });
       if (Object.keys(changed).length === 0) return true;
       try {
-        await API.updateShelfItems(shelfPk, { [on ? "add" : "remove"]: changed });
+        await API.updateShelfItems(shelfPk, {
+          [on ? "add" : "remove"]: changed,
+        });
         return true;
       } catch (error) {
         for (const [collection, pks] of Object.entries(changed)) {

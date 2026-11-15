@@ -26,8 +26,8 @@
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
           Replace the sidecar with a fresh snapshot of every user, bookmark,
-          shelf, and setting in the main database. Fast: usually completes in
-          a few seconds.
+          shelf, and setting in the main database. Fast: usually completes in a
+          few seconds.
         </p>
         <div class="restoreActions">
           <v-btn

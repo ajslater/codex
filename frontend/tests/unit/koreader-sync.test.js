@@ -68,9 +68,7 @@ describe("KOReader Sync server URL", () => {
       props: { username: "alice" },
       global: { plugins: [vuetify] },
     });
-    expect(wrapper.vm.serverURL).toBe(
-      `${globalThis.location.origin}/codex/koreader`,
-    );
+    expect(wrapper.vm.serverURL).toBe(`${location.origin}/codex/koreader`);
   });
 
   test("at the server root", async () => {
@@ -81,6 +79,6 @@ describe("KOReader Sync server URL", () => {
       props: { username: "alice" },
       global: { plugins: [vuetify] },
     });
-    expect(wrapper.vm.serverURL).toBe(`${globalThis.location.origin}/koreader`);
+    expect(wrapper.vm.serverURL).toBe(`${location.origin}/koreader`);
   });
 });

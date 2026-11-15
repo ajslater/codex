@@ -85,7 +85,11 @@ import ShelfNameInput from "@/components/shelf-name-input.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useShelvesStore } from "@/stores/shelves";
 
-const ARIA_CHECKED = Object.freeze({ all: "true", some: "mixed", none: "false" });
+const ARIA_CHECKED = Object.freeze({
+  all: "true",
+  some: "mixed",
+  none: "false",
+});
 
 export default {
   name: "ShelfMenu",

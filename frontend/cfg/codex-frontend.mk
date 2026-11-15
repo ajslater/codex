@@ -12,6 +12,21 @@ clean::
 dev-server:
 	./bin/dev-server.sh
 
+# The root lint and fix skip frontend/ (devenv's frontend feature passes eslint
+# --ignore-pattern frontend/), and this Makefile has no node_root feature, so
+# these are the only eslint and prettier runs over the frontend.
+.PHONY: fix
+## Fix JS, Vue, JSON, CSS and Markdown with eslint and prettier
+## @category Fix
+fix::
+	bun run fix
+
+.PHONY: lint
+## Lint JS, Vue, JSON, CSS and Markdown with eslint and prettier
+## @category Lint
+lint::
+	bun run lint
+
 .PHONY: test
 ## Run All Tests
 ## @category Test

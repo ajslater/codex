@@ -33,8 +33,10 @@
     class="tableIssueCell"
     :title="issueTitle"
   >
-    <span class="tableIssueNumber">{{ issueValue.number }}</span
-    ><span class="tableIssueSuffix">{{ issueValue.suffix }}</span>
+    <span class="tableIssueNumber">{{ issueValue.number }}</span><span
+      class="tableIssueSuffix"
+      >{{ issueValue.suffix }}</span
+    >
   </span>
   <span v-else class="tableTextCell" :title="textValue">{{ textValue }}</span>
 </template>
