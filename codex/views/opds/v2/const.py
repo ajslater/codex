@@ -193,7 +193,7 @@ def shelf_preview_link(shelf_pk: int, name: str) -> Link:
         MappingProxyType(
             {
                 "topCollection": "comics",
-                "filters": MappingProxyType({"bookmark": "", "shelves": (shelf_pk,)}),
+                "filters": MappingProxyType({"bookmark": "", "shelves": [shelf_pk]}),
                 "orderBy": "sort_name",
                 "orderReverse": False,
                 "title": name,

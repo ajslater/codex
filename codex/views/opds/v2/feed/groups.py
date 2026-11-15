@@ -15,7 +15,6 @@ from codex.models.collections import (
 )
 from codex.models.comic import Comic
 from codex.models.named import StoryArc
-from codex.models.shelf import Shelf
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
@@ -173,16 +172,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         Empty for anonymous sessions and for users with no shelves, so the
         start page gains nothing for them.
         """
-        user = self.request.user
-        if not user or not user.is_authenticated:
-            return ()
-        shelves = (
-            Shelf.objects.filter(user=user, items__isnull=False)
-            .distinct()
-            .order_by("name", "pk")
-            .values_list("pk", "name")
-        )
-        return tuple(shelf_preview_link(pk, name) for pk, name in shelves)
+        return tuple(shelf_preview_link(pk, name) for pk, name in self.user_shelves())
 
     def get_ordered_groups(self) -> list:
         """Ordered Publication Groups."""

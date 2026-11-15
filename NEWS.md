@@ -16,7 +16,12 @@ border-radius: 128px;
   multi-select toolbar.
 - A Shelves filter in the browser narrows any view to the shelves you pick. It
   combines with the other filters, search and sort, and is kept in saved views.
-- OPDS v2 start page lists each of your shelves.
+- OPDS v1 and v2 start pages list each of your shelves.
+- KOReader progress sync. Codex can be the sync server for KOReader's built in
+  Progress sync plugin, so a comic's reading position follows you between a
+  KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
+  follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
+  your username and your Bearer Token.
 
 ### ♻️ Changed
 
@@ -27,22 +32,12 @@ border-radius: 128px;
 - The Favorite sort and table column are now Shelved: on any of your shelves.
 - User data backups store shelves. Backups made by older versions still
   restore, with their favorites placed on a "Favorites" shelf.
+- Some background task log messages now reach the log file and honor the log
+  level.
 
 ### 🔥 Removed
 
 - The `/api/v4/favorites/` endpoints, replaced by `/api/v4/shelves/`.
-- KOReader progress sync. Codex can be the sync server for KOReader's built in
-  Progress sync plugin, so a comic's reading position follows you between a
-  KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
-  follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
-  your username and your Bearer Token.
-- OPDS v1 lists a Favorites entry on the start page when you have favorites, as
-  OPDS v2 does.
-
-### ♻️ Changed
-
-- Some background task log messages now reach the log file and honor the log
-  level.
 
 ### 🐛 Fixed
 

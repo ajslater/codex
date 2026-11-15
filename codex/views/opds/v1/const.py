@@ -8,7 +8,6 @@ from types import MappingProxyType
 
 from codex.views.opds.const import (
     BookmarkFilters,
-    FavoriteFilters,
     MimeType,
     Rel,
     TopRoutes,
@@ -99,21 +98,31 @@ class RootTopLinks:
         "Unread issues, oldest first.",
     )
     ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
-    # Not in ALL: only shown when the user has favorites. See
-    # ``OPDS1LinksView.root_top_links``.
-    FAVORITES = TopLink(
+
+
+def shelf_top_link(shelf_pk: int, name: str) -> TopLink:
+    """
+    Build the start-page entry for one of the user's shelves.
+
+    Shelves are per-user rows, so unlike ``RootTopLinks.ALL`` these are
+    built per request in ``OPDS1LinksView.root_top_links``. Every browser
+    parameter is spelled out: OPDS settings persist between requests, so
+    a parameter left off the link would inherit whatever the client asked
+    for last.
+    """
+    return TopLink(
         TopRoutes.SERIES,
         Rel.FEATURED,
         MimeType.ACQUISITION,
         {
             "topCollection": "series",
-            "filters": json.dumps(dict(FavoriteFilters.ONLY)),
+            "filters": json.dumps({"bookmark": "", "shelves": [shelf_pk]}),
             "orderBy": "sort_name",
             "orderReverse": False,
         },
-        "★",
-        "Favorites",
-        "Issues you have favorited.",
+        "▤",
+        name,
+        "Issues on this shelf.",
     )
 
 
