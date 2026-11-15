@@ -40,13 +40,11 @@ export const useAuthStore = defineStore("auth", {
      */
     defaults: undefined,
     defaultsRev: undefined,
-    token: undefined,
     // The user's device keys, without the keys themselves.
     deviceKeys: [],
     showLoginDialog: false,
     showChangePasswordDialog: false,
     showProfileDialog: false,
-    showAuthTokenDialog: false,
     showResetPasswordRequestDialog: false,
   }),
   getters: {
@@ -254,22 +252,6 @@ export const useAuthStore = defineStore("auth", {
         } catch (error) {
           console.error(error);
         }
-      }
-    },
-    async getToken() {
-      try {
-        const response = await API.getToken();
-        this.token = response.data.token;
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async updateToken() {
-      try {
-        const response = await API.updateToken();
-        this.token = response.data.token;
-      } catch (error) {
-        console.error(error);
       }
     },
     async loadDeviceKeys() {

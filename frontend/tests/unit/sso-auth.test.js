@@ -22,8 +22,6 @@ vi.mock("@/api/v4/auth", () => ({
   sendResetPasswordLink: vi.fn(),
   resetPassword: vi.fn(),
   updateTimezone: vi.fn(),
-  getToken: vi.fn(),
-  updateToken: vi.fn(),
 }));
 
 import * as API from "@/api/v4/auth";

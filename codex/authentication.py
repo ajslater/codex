@@ -1,7 +1,7 @@
 """Custom Authentication classes."""
 
-import hashlib
 import hmac
+from collections.abc import Collection
 from typing import override
 
 from django.contrib.auth.middleware import RemoteUserMiddleware
@@ -14,64 +14,83 @@ from rest_framework.authentication import (
 )
 from rest_framework.exceptions import AuthenticationFailed
 
+from codex.choices.api_key import FULL_API_SCOPES, READER_SCOPES, STATS_SCOPES
+
 # Models are imported inside functions throughout this module:
 # HttpRemoteUserMiddleware here loads with the middleware stack, and models
 # must wait for app loading.
 
 
-def _md5_hex(value: str) -> str:
-    return hashlib.md5(value.encode(), usedforsecurity=False).hexdigest()
-
-
-def get_device_key(secret: str, username: str | None = None):
+def get_api_key(
+    secret: str,
+    scopes: Collection[str],
+    *,
+    username: str | None = None,
+    staff_only: bool = False,
+):
     """
-    Return the active user's device key for a presented secret, or None.
+    Return the API key a presented secret is, or None.
 
-    The one lookup every device-key auth class shares: hash the secret and
-    find it. With ``username`` the key must also belong to that user.
-    Records the use (at most hourly) on a hit.
+    The one lookup every key auth class shares: hash the secret and find
+    it among keys of ``scopes`` whose owner is active. With ``username`` the
+    key must also belong to that user; with ``staff_only`` its owner must
+    still be staff. Records the use (at most hourly) on a hit.
     """
-    from codex.models.api_key import UserApiKey, device_key_digest
+    from codex.models.api_key import UserApiKey, api_key_digest
 
     if not secret:
         return None
-    lookup = {"digest": device_key_digest(secret), "user__is_active": True}
+    lookup = {
+        "digest": api_key_digest(secret),
+        "scope__in": tuple(scopes),
+        "user__is_active": True,
+    }
     if username is not None:
         lookup["user__username"] = username
+    if staff_only:
+        lookup["user__is_staff"] = True
     api_key = UserApiKey.objects.select_related("user").filter(**lookup).first()
     if api_key:
         api_key.touch()
     return api_key
 
 
-def _get_legacy_token(secret: str, username: str):
-    """Return the active user's DRF token if it is ``secret``, or None."""
-    from rest_framework.authtoken.models import Token
+class ApiKeyBearerAuthentication(TokenAuthentication):
+    """
+    ``Authorization: Bearer <key>`` for keys of :attr:`scopes`.
 
-    if not secret:
-        return None
-    return (
-        Token.objects.select_related("user")
-        .filter(key=secret, user__username=username, user__is_active=True)
-        .first()
-    )
-
-
-class BearerTokenAuthentication(TokenAuthentication):
-    """Bearer Token Authentication."""
+    The default for ``/api/v4/``, where only universal keys log in: the
+    bearer tokens of older versions, migrated. A Bearer value that matches
+    no key of the scopes fails the request with 401.
+    """
 
     keyword = "Bearer"
+    scopes: Collection[str] = FULL_API_SCOPES
+
+    @override
+    def authenticate_credentials(self, key):
+        """Look the key up by digest instead of DRF's plaintext token table."""
+        api_key = get_api_key(key, self.scopes)
+        if not api_key:
+            reason = "Invalid token."
+            raise AuthenticationFailed(reason)
+        return (api_key.user, api_key)
 
 
-class DeviceKeyBasicAuthentication(BasicAuthentication):
+class ReaderKeyBearerAuthentication(ApiKeyBearerAuthentication):
+    """OPDS ``Authorization: Bearer``: a device key or a universal key."""
+
+    scopes = READER_SCOPES
+
+
+class ReaderKeyBasicAuthentication(BasicAuthentication):
     """
-    OPDS Basic auth that also takes a device key or the bearer token.
+    OPDS Basic auth that also takes a device key or a universal key.
 
-    The password may be one of the user's device keys, the user's API
-    bearer token, or the account password, checked in that order so key
-    logins skip the slow password hash. A key or token must belong to the
-    username given. ``request.auth`` is the key or token that matched, or
-    None for a password login.
+    The password may be one of the user's reader keys or the account
+    password, in that order so key logins skip the slow password hash. A key
+    must belong to the username given. ``request.auth`` is the key that
+    matched, or None for a password login.
     """
 
     @override
@@ -79,41 +98,43 @@ class DeviceKeyBasicAuthentication(BasicAuthentication):
         self, userid, password, request=None
     ):
         """
-        Try a device key, then the token, then the account password.
+        Try a reader key, then the account password.
 
         The stubs type ``request.auth`` from Basic as None; here it carries
-        the matched credential, which DRF passes through unchanged.
+        the matched key, which DRF passes through unchanged.
         """
-        credential = get_device_key(password, username=userid) or _get_legacy_token(
-            password, userid
-        )
-        if credential:
-            return (credential.user, credential)
+        if api_key := get_api_key(password, READER_SCOPES, username=userid):
+            return (api_key.user, api_key)
         return super().authenticate_credentials(userid, password, request)
 
 
-class DeviceKeyBearerAuthentication(BaseAuthentication):
+class StatsKeyAuthentication(BaseAuthentication):
     """
-    OPDS ``Authorization: Bearer <device key>``.
+    A Stats API key, as ``?apiKey=<key>`` or ``Authorization: Bearer <key>``.
 
-    A Bearer value that is not a device key returns None rather than
-    failing, so the legacy :class:`BearerTokenAuthentication` after this
-    class still gets to check it as the API token.
+    Only the admin Stats view uses it, ahead of the default classes. The
+    key's owner must still be active staff. A value that is not a stats key
+    returns None, so the default classes after this one still get to check
+    a session or a universal key.
     """
 
-    keyword = b"bearer"
+    _KEYWORD = b"bearer"
+
+    @classmethod
+    def _bearer(cls, request) -> str:
+        auth = get_authorization_header(request).split()
+        if len(auth) != 2 or auth[0].lower() != cls._KEYWORD:  # noqa: PLR2004
+            return ""
+        try:
+            return auth[1].decode()
+        except UnicodeError:
+            return ""
 
     @override
     def authenticate(self, request):
-        """Authenticate a Bearer device key, or pass."""
-        auth = get_authorization_header(request).split()
-        if len(auth) != 2 or auth[0].lower() != self.keyword:  # noqa: PLR2004
-            return None
-        try:
-            secret = auth[1].decode()
-        except UnicodeError:
-            return None
-        api_key = get_device_key(secret)
+        """Authenticate a stats key, or pass."""
+        secret = request.query_params.get("apiKey") or self._bearer(request)
+        api_key = get_api_key(secret, STATS_SCOPES, staff_only=True)
         if not api_key:
             return None
         return (api_key.user, api_key)
@@ -151,19 +172,27 @@ class KOSyncAuthentication(BaseAuthentication):
 
     KOReader sends ``x-auth-user`` and ``x-auth-key``, the lowercase hex
     MD5 of the password typed on the device. The password is one of the
-    user's device keys or the user's API bearer token, so the key is
-    compared with each key's stored ``kosync_digest`` and with the MD5 of
-    the user's DRF ``Token``. Only the KOReader views use this class, and
-    they use nothing else: no session, no anonymous access.
+    user's reader keys (a device key or a universal key), so the key is
+    compared with each one's stored ``kosync_digest``. Only the KOReader
+    views use this class, and they use nothing else: no session, no
+    anonymous access.
     """
 
-    @staticmethod
-    def _match_device_key(username: str, key: str):
-        """Return the user's device key whose MD5 is ``key``, or None."""
+    # Compared when the user has no reader keys, so a missing user or an
+    # unknown one takes the same path as a wrong key.
+    _DUMMY_DIGEST = "0" * 32
+
+    @classmethod
+    def _match_reader_key(cls, username: str, key: str):
+        """Return the user's reader key whose MD5 is ``key``, or None."""
         from codex.models.api_key import UserApiKey
 
-        candidates = UserApiKey.objects.select_related("user").filter(
-            user__username=username, user__is_active=True
+        candidates = tuple(
+            UserApiKey.objects.select_related("user").filter(
+                user__username=username,
+                user__is_active=True,
+                scope__in=tuple(READER_SCOPES),
+            )
         )
         match = None
         # Compare every candidate rather than look the digest up, so the
@@ -171,42 +200,25 @@ class KOSyncAuthentication(BaseAuthentication):
         for candidate in candidates:
             if hmac.compare_digest(candidate.kosync_digest.encode(), key.encode()):
                 match = candidate
+        if not candidates:
+            hmac.compare_digest(cls._DUMMY_DIGEST.encode(), key.encode())
         if match:
             match.touch()
         return match
 
-    @staticmethod
-    def _match_token(username: str, key: str):
-        """Return the user's DRF token whose MD5 is ``key``, or None."""
-        from rest_framework.authtoken.models import Token
-
-        token = (
-            Token.objects.select_related("user")
-            .filter(user__username=username, user__is_active=True)
-            .first()
-        )
-        # Hash a dummy when there is no token so a missing user takes the
-        # same path as a wrong key.
-        expected = _md5_hex(token.key if token else "")
-        if token is None or not hmac.compare_digest(expected.encode(), key.encode()):
-            return None
-        return token
-
     @override
     def authenticate(self, request):
-        """Authenticate the KOReader auth headers against keys and the token."""
+        """Authenticate the KOReader auth headers against the reader keys."""
         username = request.headers.get("x-auth-user")
         key = request.headers.get("x-auth-key")
         if not username or not key:
             return None
         key = key.strip().lower()
-        credential = self._match_device_key(username, key) or self._match_token(
-            username, key
-        )
-        if credential is None:
+        api_key = self._match_reader_key(username, key)
+        if api_key is None:
             reason = "Unauthorized"
             raise AuthenticationFailed(reason)
-        return (credential.user, credential)
+        return (api_key.user, api_key)
 
     @override
     def authenticate_header(self, request) -> str:

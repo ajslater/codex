@@ -19,8 +19,6 @@ vi.mock("@/api/v4/auth", () => ({
   updatePassword: vi.fn(),
   sendResetPasswordLink: vi.fn(),
   resetPassword: vi.fn(),
-  getToken: vi.fn(),
-  updateToken: vi.fn(),
   getDeviceKeys: vi.fn(),
   createDeviceKey: vi.fn(),
   deleteDeviceKey: vi.fn(),

@@ -74,8 +74,8 @@
       Users table.
     -->
     <div v-if="oldRow" class="userKeys">
-      <template v-if="oldRow.deviceKeyCount">
-        <span>Device Keys: {{ oldRow.deviceKeyCount }}</span>
+      <template v-if="oldRow.apiKeyCount">
+        <span>API Keys: {{ oldRow.apiKeyCount }}</span>
         <ConfirmDialog
           button-text="Revoke all keys"
           title-text="Revoke all keys"
@@ -84,10 +84,10 @@
           color="error"
           variant="tonal"
           size="small"
-          @confirm="revokeUserDeviceKeys(oldRow.pk)"
+          @confirm="revokeUserKeys(oldRow.pk)"
         />
       </template>
-      <span v-else>No device keys.</span>
+      <span v-else>No API keys.</span>
     </div>
   </div>
 </template>
@@ -169,8 +169,9 @@ export default {
     ...mapState(useAuthStore, {}),
     revokeText() {
       return (
-        `Revoke all of ${this.oldRow.username}'s device keys? Every app and` +
-        " device using one is logged out until it gets a new key."
+        `Revoke all of ${this.oldRow.username}'s API keys? Every app and` +
+        " device using one is logged out until it gets a new key. A" +
+        " Universal Token cannot be made again."
       );
     },
     usernames() {
@@ -186,7 +187,7 @@ export default {
   },
   methods: {
     // Reports its own errors; the table reload brings the new count.
-    ...mapActions(useAdminStore, ["revokeUserDeviceKeys"]),
+    ...mapActions(useAdminStore, ["revokeUserKeys"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,

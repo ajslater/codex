@@ -7,7 +7,6 @@ from django.urls import path
 from django.views.decorators.cache import never_cache
 
 from codex.views.admin.age_rating_metron import AdminAgeRatingMetronViewSet
-from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.custom_cover import (
     AdminCustomCoverDeleteView,
     AdminCustomCoverListView,
@@ -64,7 +63,7 @@ from codex.views.admin.throttle import AdminThrottleSettingsView
 from codex.views.admin.user import (
     AdminUserBulkView,
     AdminUserChangePasswordView,
-    AdminUserRevokeDeviceKeysView,
+    AdminUserRevokeKeysView,
     AdminUserSendVerificationView,
     AdminUserViewSet,
 )
@@ -99,9 +98,9 @@ urlpatterns = [
         name="user_send_verification",
     ),
     path(
-        "users/<int:pk>/revoke-device-keys",
-        AdminUserRevokeDeviceKeysView.as_view(),
-        name="user_revoke_device_keys",
+        "users/<int:pk>/revoke-keys",
+        AdminUserRevokeKeysView.as_view(),
+        name="user_revoke_keys",
     ),
     path(
         "users/bulk",
@@ -237,11 +236,6 @@ urlpatterns = [
         "doctor",
         AdminDoctorView.as_view(),
         name="doctor",
-    ),
-    path(
-        "api-key",
-        AdminAPIKey.as_view(),
-        name="api_key",
     ),
     # Librarian tasks. /tasks is active-only (sidebar progress feed);
     # /tasks/all is the full history (Jobs tab).

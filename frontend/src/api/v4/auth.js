@@ -41,8 +41,6 @@ export const sendResetPasswordLink = (login) =>
 export const resetPassword = (payload) =>
   HTTP.post("/auth/password/reset/confirm", payload);
 
-export const getToken = () => HTTP.get("/auth/token");
-export const updateToken = () => HTTP.put("/auth/token");
 
 /*
  * Device keys: named per-device credentials for OPDS and KOReader.

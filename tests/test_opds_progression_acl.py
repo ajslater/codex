@@ -24,7 +24,6 @@ from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.test import Client, TestCase
 from django.utils import timezone
-from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import (
@@ -37,6 +36,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.auth import GroupAuth
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
@@ -273,11 +273,11 @@ class OPDS2ProgressionCredentialsTestCase(ProgressionSeedTestCase):
         assert response.status_code == _HTTP_UNAUTHORIZED
 
     def test_bearer_auth_reads_a_position_end_to_end(self) -> None:
-        """The token keyword is ``Bearer``, not DRF's default ``Token``."""
-        token = Token.objects.create(user=self.user)
+        """The keyword is ``Bearer``, not DRF's default ``Token``."""
+        _, key = UserApiKey.create_for_user(self.user, "Panels")
         Bookmark.objects.create(user=self.user, comic=self.comic, page=_MID_PAGE)
         response = self.client.get(
-            self._url(self.comic), HTTP_AUTHORIZATION=f"Bearer {token.key}"
+            self._url(self.comic), HTTP_AUTHORIZATION=f"Bearer {key}"
         )
         assert response.status_code == _HTTP_OK
         assert response.json()["progression"] == _MID_PROGRESSION

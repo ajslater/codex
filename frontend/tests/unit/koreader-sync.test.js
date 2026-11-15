@@ -27,7 +27,6 @@ function mountDialog(koreaderSync) {
       plugins: [vuetify, pinia],
       stubs: {
         CodexListItem: true,
-        AuthTokenDialog: true,
         SubmitFooter: true,
         CloseButton: true,
         KOReaderSync: true,

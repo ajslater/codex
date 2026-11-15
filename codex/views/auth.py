@@ -47,9 +47,6 @@ from django.db.models.query_utils import Q
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from loguru import logger
-from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -662,39 +659,6 @@ class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
         """Iniit acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
-
-
-class AuthToken(AuthGenericAPIView):
-    """Auth Token creation and getting."""
-
-    serializer_class = AuthTokenSerializer
-
-    def get(self, *args, **kwargs) -> Response:
-        """Get auth token."""
-        user = self.request.user
-        if not user:
-            reason = "Not an authenticated user."
-            raise NotAuthenticated(detail=reason)
-
-        token, created = Token.objects.get_or_create(user=user)
-        if created:
-            logger.info(f"Auth Token created for user {user}")
-        data = {"token": token.key}
-
-        return Response(data)
-
-    def put(self, *args, **kwargs) -> Response:
-        """Reset auth token for user."""
-        user = self.request.user
-        if not user:
-            reason = "Not an authenticated user."
-            raise NotAuthenticated(detail=reason)
-
-        Token.objects.filter(user=user).delete()
-        token, _ = Token.objects.get_or_create(user=user)
-        logger.info(f"Auth Token updated for user {user}")
-        data = {"token": token.key}
-        return Response(data)
 
 
 @method_decorator(ensure_csrf_cookie, name="get")

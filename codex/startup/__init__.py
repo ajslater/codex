@@ -5,7 +5,6 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
 from loguru import logger
-from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.doctor import log_doctor_problems
@@ -36,7 +35,6 @@ from codex.settings import (
 from codex.startup.db import ensure_db_schema
 from codex.startup.registration import patch_registration_setting
 from codex.util import log_docker_hub_deprecation
-from codex.views.admin.api_key import _new_api_key
 
 
 def ensure_superuser() -> None:
@@ -118,12 +116,6 @@ def init_admin_flags() -> None:
         if key in value_defaults:
             defaults["value"] = value_defaults[key]
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
-        # The API key row holds the actual key in ``value``. Heal here
-        # so fresh installs and admin-deleted rows both come back with
-        # a usable token; the 0051 migration handles upgrades.
-        if key == AdminFlagChoices.API_KEY.value and not flag.value:
-            flag.value = _new_api_key()
-            flag.save()
         if created:
             logger.info(f"Created AdminFlag: {title} = {flag.on}")
 
@@ -216,16 +208,6 @@ def init_libraries() -> None:
         logger.debug(f"Reset {lib_count} Libraries' update_in_progress flag.")
 
 
-def create_missing_auth_tokens() -> None:
-    """Create missing auth tokens."""
-    num_created = 0
-    for user in User.objects.all():
-        _, created = Token.objects.get_or_create(user=user)
-        if created:
-            num_created += 1
-        logger.info(f"Created {num_created} missing auth tokens for users.")
-
-
 def ensure_db_rows() -> None:
     """Ensure database content is good."""
     ensure_superuser()
@@ -236,7 +218,6 @@ def ensure_db_rows() -> None:
     init_timestamps()
     init_librarian_statuses()
     init_libraries()
-    create_missing_auth_tokens()
 
 
 def codex_init() -> bool:

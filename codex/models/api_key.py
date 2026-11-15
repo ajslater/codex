@@ -1,4 +1,4 @@
-"""Device keys: named, revocable per-device credentials for reader apps."""
+"""API keys: named, revocable, hashed credentials for apps and devices."""
 
 import hashlib
 import secrets
@@ -16,7 +16,10 @@ from django.db.models import (
 )
 from django.utils import timezone
 
+from codex.choices.api_key import CREATABLE_SCOPES, ApiKeyScope
+from codex.choices.limits import API_KEY_NAME_MAX_LENGTH
 from codex.models.base import BaseModel
+from codex.models.choices import max_choices_len
 
 __all__ = ("UserApiKey",)
 
@@ -24,53 +27,55 @@ __all__ = ("UserApiKey",)
 # without 0/o and 1/l, which read alike on e-ink. The key is typed on e-reader
 # keyboards and KOReader hashes exactly what was typed, so the key has no
 # dashes and no mixed case.
-DEVICE_KEY_ALPHABET: Final = "abcdefghijkmnpqrstuvwxyz23456789"
-DEVICE_KEY_LENGTH: Final = 20  # 100 bits.
-DEVICE_KEY_PREFIX_LENGTH: Final = 4
-DEVICE_KEY_NAME_MAX_LENGTH: Final = 64
-DEVICE_KEYS_PER_USER_MAX: Final = 32
+API_KEY_ALPHABET: Final = "abcdefghijkmnpqrstuvwxyz23456789"
+API_KEY_LENGTH: Final = 20  # 100 bits.
+API_KEY_PREFIX_LENGTH: Final = 4
+API_KEYS_PER_SCOPE_MAX: Final = 32
 # ``last_used_at`` is written at most this often per key, so streaming OPDS
 # pages does not take the SQLite write lock on every request.
 LAST_USED_RESOLUTION: Final = timedelta(hours=1)
 
 
-def generate_device_key() -> str:
-    """Return a new random device key."""
-    return "".join(
-        secrets.choice(DEVICE_KEY_ALPHABET) for _ in range(DEVICE_KEY_LENGTH)
-    )
+def generate_api_key() -> str:
+    """Return a new random API key."""
+    return "".join(secrets.choice(API_KEY_ALPHABET) for _ in range(API_KEY_LENGTH))
 
 
-def device_key_digest(key: str) -> str:
+def api_key_digest(key: str) -> str:
     """
     Return the SHA-256 hex digest that Basic and Bearer lookups use.
 
-    The key is 100 random bits, so an unsalted fast hash is enough: there is
-    no dictionary to attack.
+    A generated key is 100 random bits and a migrated bearer token 160, so
+    an unsalted fast hash is enough: there is no dictionary to attack.
     """
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def device_key_kosync_digest(key: str) -> str:
+def api_key_kosync_digest(key: str) -> str:
     """Return the MD5 hex digest KOReader sends as ``x-auth-key``."""
     return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
 
 
 class UserApiKey(BaseModel):
     """
-    A device key: a named credential for one reader app or device.
+    An API key: a named credential for one app or device.
 
-    Valid on OPDS and KOReader sync only, never on ``/api/v4/``. The plain
-    key is shown once on creation and never stored; only its hashes are.
-    ``name`` is free text the user typed and ``prefix`` is part of a
+    Its :attr:`scope` says where it logs in (see :mod:`codex.choices.api_key`).
+    The plain key is shown once on creation and never stored; only its hashes
+    are. ``name`` is free text the user typed and ``prefix`` is part of a
     credential: neither may ever be reported by telemetry.
     """
 
     user = ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=CASCADE, related_name="api_keys"
     )
-    name = CharField(max_length=DEVICE_KEY_NAME_MAX_LENGTH)
-    prefix = CharField(max_length=DEVICE_KEY_PREFIX_LENGTH)
+    name = CharField(max_length=API_KEY_NAME_MAX_LENGTH)
+    scope = CharField(
+        max_length=max_choices_len(ApiKeyScope),
+        choices=ApiKeyScope.choices,
+        default=ApiKeyScope.DEVICE,
+    )
+    prefix = CharField(max_length=API_KEY_PREFIX_LENGTH)
     digest = CharField(max_length=64, unique=True)
     kosync_digest = CharField(max_length=32, db_index=True)
     last_used_at = DateTimeField(null=True, default=None)
@@ -78,7 +83,7 @@ class UserApiKey(BaseModel):
     class Meta(BaseModel.Meta):
         """A user cannot have two keys with the same name."""
 
-        verbose_name = "device key"
+        verbose_name = "API key"
         constraints = (
             UniqueConstraint(
                 fields=("user", "name"), name="unique_userapikey_user_name"
@@ -87,28 +92,54 @@ class UserApiKey(BaseModel):
 
     @override
     def __repr__(self) -> str:
-        return f"<UserApiKey pk={self.pk}>"
+        return f"<UserApiKey pk={self.pk} scope={self.scope}>"
 
     @classmethod
-    def create_for_user(cls, user, name: str) -> tuple["UserApiKey", str]:
+    def _create(cls, user, name: str, scope: str, key: str) -> "UserApiKey":
+        return cls.objects.create(
+            user=user,
+            name=name,
+            scope=scope,
+            prefix=key[:API_KEY_PREFIX_LENGTH],
+            digest=api_key_digest(key),
+            kosync_digest=api_key_kosync_digest(key),
+        )
+
+    @classmethod
+    def create_for_user(
+        cls, user, name: str, scope: str = ApiKeyScope.DEVICE.value
+    ) -> tuple["UserApiKey", str]:
         """
         Create a key and return it with the plain key, the only time it exists.
 
-        Raises ``ValidationError`` when the user already has
-        :data:`DEVICE_KEYS_PER_USER_MAX` keys.
+        Raises ``ValidationError`` for a scope nobody can make, or when the
+        user already has :data:`API_KEYS_PER_SCOPE_MAX` keys of the scope.
         """
-        if cls.objects.filter(user=user).count() >= DEVICE_KEYS_PER_USER_MAX:
-            reason = f"A user can have at most {DEVICE_KEYS_PER_USER_MAX} device keys."
+        if scope not in CREATABLE_SCOPES:
+            reason = f"{ApiKeyScope(scope).label} keys cannot be created."
             raise ValidationError(reason)
-        key = generate_device_key()
-        api_key = cls.objects.create(
-            user=user,
-            name=name,
-            prefix=key[:DEVICE_KEY_PREFIX_LENGTH],
-            digest=device_key_digest(key),
-            kosync_digest=device_key_kosync_digest(key),
-        )
-        return api_key, key
+        if cls.objects.filter(user=user, scope=scope).count() >= API_KEYS_PER_SCOPE_MAX:
+            label = ApiKeyScope(scope).label.lower()
+            reason = f"A user can have at most {API_KEYS_PER_SCOPE_MAX} {label} keys."
+            raise ValidationError(reason)
+        key = generate_api_key()
+        return cls._create(user, name, scope, key), key
+
+    @classmethod
+    def adopt(cls, user, name: str, scope: str, secret: str) -> "UserApiKey":
+        """
+        Store an existing plain secret as a key, hashed like any other.
+
+        For restoring an old backup's plaintext Stats API key only. The name
+        gets a numbered suffix if the user already has a key called that.
+        """
+        taken = set(cls.objects.filter(user=user).values_list("name", flat=True))
+        unique_name = name
+        suffix = 2
+        while unique_name in taken:
+            unique_name = f"{name} ({suffix})"
+            suffix += 1
+        return cls._create(user, unique_name, scope, secret)
 
     def touch(self) -> None:
         """

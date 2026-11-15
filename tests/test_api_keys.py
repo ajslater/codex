@@ -1,23 +1,28 @@
 """
-Device keys: named, revocable per-device credentials.
+API keys: named, revocable, hashed credentials with a scope.
 
 What these tests pin:
 
-* The model: names are unique per user, a user holds at most 32 keys, and
-  keys go with their user.
-* OPDS takes a key as the Basic password or as a Bearer value, Basic also
-  takes the API bearer token as the password, and the account password and
-  legacy Bearer token keep working. A key belongs to one username and stops
-  working when revoked or when its user is deactivated. ACLs still apply.
-* KOReader takes the MD5 of a key or of the API token.
-* A key is refused everywhere on ``/api/v4/``, key management included.
-* The management API returns the key once, only to its owner.
+* The model: names are unique per user, a user holds at most 32 keys of
+  each scope, keys go with their user, and nobody can make a universal key.
+* OPDS takes a device key or a universal key (an old bearer token, migrated)
+  as the Basic password or as a Bearer value, and the account password keeps
+  working. A key belongs to one username and stops working when revoked or
+  when its user is deactivated. ACLs still apply. A stats key is refused.
+* KOReader takes the MD5 of a device key or a universal key.
+* Only a universal key logs in to ``/api/v4/``: a device or stats key is
+  refused there, key management included.
+* The management API returns the key once, only to its owner; only staff
+  make stats keys; the reserved name and the universal key stay put.
+* The admin user list counts keys of every scope and revokes them all.
+* The removed token and server API key endpoints are gone.
 * ``last_used_at`` is written at most once an hour.
 """
 
 import base64
 import hashlib
 import json
+import secrets
 import shutil
 from datetime import timedelta
 from pathlib import Path
@@ -30,12 +35,12 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.urls.base import set_script_prefix
 from django.utils import timezone
-from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.api_key import UNIVERSAL_KEY_NAME, ApiKeyScope
 from codex.models import (
     AdminFlag,
     AgeRating,
@@ -49,17 +54,17 @@ from codex.models import (
     Volume,
 )
 from codex.models.api_key import (
-    DEVICE_KEY_ALPHABET,
-    DEVICE_KEY_LENGTH,
-    DEVICE_KEYS_PER_USER_MAX,
+    API_KEY_ALPHABET,
+    API_KEY_LENGTH,
+    API_KEYS_PER_SCOPE_MAX,
     UserApiKey,
 )
 from codex.models.auth import GroupAuth, UserAuth
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
 
-_PASSWORD: Final = "device-key-test-pw"  # noqa: S105
-_TMP_DIR: Final = tmp_dir("codex.tests.device_keys")
+_PASSWORD: Final = "api-key-test-pw"  # noqa: S105
+_TMP_DIR: Final = tmp_dir("codex.tests.api_keys")
 _OPEN_DIR: Final = _TMP_DIR / "open"
 _PRIVATE_DIR: Final = _TMP_DIR / "private"
 _KEYS_URL: Final = "/api/v4/auth/keys"
@@ -70,6 +75,7 @@ _KOSYNC_ACCEPT: Final = "application/vnd.koreader.v1+json"
 _HTTP_OK: Final = 200
 _HTTP_CREATED: Final = 201
 _HTTP_NO_CONTENT: Final = 204
+_HTTP_FOUND: Final = 302
 _HTTP_BAD_REQUEST: Final = 400
 _HTTP_UNAUTHORIZED: Final = 401
 _HTTP_FORBIDDEN: Final = 403
@@ -92,7 +98,16 @@ def _set_flag(key: AdminFlagChoices, *, on: bool) -> None:
     cache.clear()
 
 
-class DeviceKeyModelTestCase(TestCase):
+def make_universal_key(user) -> tuple[UserApiKey, str]:
+    """Return a universal key shaped like a migrated DRF token, and its secret."""
+    secret = secrets.token_hex(20)
+    return (
+        UserApiKey.adopt(user, UNIVERSAL_KEY_NAME, ApiKeyScope.UNIVERSAL, secret),
+        secret,
+    )
+
+
+class ApiKeyModelTestCase(TestCase):
     """The model on its own."""
 
     @override
@@ -101,10 +116,11 @@ class DeviceKeyModelTestCase(TestCase):
 
     def test_key_format(self) -> None:
         """20 characters from the 32-symbol alphabet; only hashes are stored."""
-        assert len(set(DEVICE_KEY_ALPHABET)) == 32  # noqa: PLR2004
+        assert len(set(API_KEY_ALPHABET)) == 32  # noqa: PLR2004
         api_key, key = UserApiKey.create_for_user(self.user, "Kobo")
-        assert len(key) == DEVICE_KEY_LENGTH
-        assert set(key) <= set(DEVICE_KEY_ALPHABET)
+        assert api_key.scope == ApiKeyScope.DEVICE
+        assert len(key) == API_KEY_LENGTH
+        assert set(key) <= set(API_KEY_ALPHABET)
         assert api_key.prefix == key[:4]
         assert api_key.kosync_digest == _md5(key)
         stored = UserApiKey.objects.filter(pk=api_key.pk).values().get()
@@ -119,14 +135,31 @@ class DeviceKeyModelTestCase(TestCase):
             UserApiKey.create_for_user(self.user, "Kobo")
 
     def test_key_limit(self) -> None:
-        """The 33rd key is refused."""
-        for index in range(DEVICE_KEYS_PER_USER_MAX):
+        """The 33rd key of a scope is refused; another scope has its own 32."""
+        for index in range(API_KEYS_PER_SCOPE_MAX):
             UserApiKey.create_for_user(self.user, f"key {index}")
         with pytest.raises(ValidationError):
             UserApiKey.create_for_user(self.user, "one too many")
         assert UserApiKey.objects.filter(user=self.user).count() == (
-            DEVICE_KEYS_PER_USER_MAX
+            API_KEYS_PER_SCOPE_MAX
         )
+        UserApiKey.create_for_user(self.user, "stats", ApiKeyScope.STATS)
+
+    def test_universal_keys_cannot_be_made(self) -> None:
+        """Universal keys come only from migrated bearer tokens."""
+        with pytest.raises(ValidationError):
+            UserApiKey.create_for_user(self.user, "all", ApiKeyScope.UNIVERSAL)
+        assert not UserApiKey.objects.exists()
+
+    def test_adopt_hashes_the_secret_and_suffixes_a_clash(self) -> None:
+        UserApiKey.create_for_user(self.user, "Stats Key")
+        secret = "an-old-stats-api-key"  # noqa: S105
+        api_key = UserApiKey.adopt(self.user, "Stats Key", ApiKeyScope.STATS, secret)
+        assert api_key.name == "Stats Key (2)"
+        assert api_key.scope == ApiKeyScope.STATS
+        assert api_key.kosync_digest == _md5(secret)
+        stored = UserApiKey.objects.filter(pk=api_key.pk).values().get()
+        assert secret not in {str(value) for value in stored.values()}
 
     def test_cascade_on_user_delete(self) -> None:
         """Keys go with their user."""
@@ -135,8 +168,8 @@ class DeviceKeyModelTestCase(TestCase):
         assert not UserApiKey.objects.exists()
 
 
-class DeviceKeyFixture(TestCase):
-    """A visible comic, one behind a group, and a user with a key and a token."""
+class ApiKeyFixture(TestCase):
+    """A visible comic, one behind a group, and a user with a device key and a universal key."""
 
     @override
     def setUp(self) -> None:
@@ -167,7 +200,7 @@ class DeviceKeyFixture(TestCase):
         self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="reader", password=_PASSWORD
         )
-        self.token = Token.objects.create(user=self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.universal, self.token = make_universal_key(self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.api_key, self.key = UserApiKey.create_for_user(self.user, "Kobo")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.other = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="other", password=_PASSWORD
@@ -200,7 +233,7 @@ class DeviceKeyFixture(TestCase):
         return Client().get(url, HTTP_AUTHORIZATION=auth, **headers)
 
 
-class DeviceKeyOPDSTestCase(DeviceKeyFixture):
+class ApiKeyOPDSTestCase(ApiKeyFixture):
     """OPDS Basic and Bearer."""
 
     @override
@@ -232,8 +265,8 @@ class DeviceKeyOPDSTestCase(DeviceKeyFixture):
         assert self._get(_OPDS_V1, auth).status_code == _HTTP_OK
         self._assert_reads_own_position(auth)
 
-    def test_basic_with_the_legacy_token(self) -> None:
-        auth = _basic(self.user.username, self.token.key)
+    def test_basic_with_a_universal_key(self) -> None:
+        auth = _basic(self.user.username, self.token)
         assert self._get(_OPDS_V2, auth).status_code == _HTTP_OK
         self._assert_reads_own_position(auth)
 
@@ -247,18 +280,24 @@ class DeviceKeyOPDSTestCase(DeviceKeyFixture):
         assert self._get(_OPDS_V2, auth).status_code == _HTTP_OK
         self._assert_reads_own_position(auth)
 
-    def test_legacy_bearer_token_still_works(self) -> None:
-        """A Bearer value that is not a key falls through to the token class."""
-        auth = f"Bearer {self.token.key}"
+    def test_bearer_with_a_universal_key(self) -> None:
+        """An old bearer token, migrated, still logs in to OPDS."""
+        auth = f"Bearer {self.token}"
         assert self._get(_OPDS_V2, auth).status_code == _HTTP_OK
         self._assert_reads_own_position(auth)
 
     def test_bad_bearer_is_refused(self) -> None:
         assert self._get(_OPDS_V2, "Bearer nope").status_code == _HTTP_UNAUTHORIZED
 
+    def test_stats_key_is_refused(self) -> None:
+        User.objects.filter(pk=self.user.pk).update(is_staff=True)
+        _, stats_key = UserApiKey.create_for_user(self.user, "s", ApiKeyScope.STATS)
+        for auth in (_basic(self.user.username, stats_key), f"Bearer {stats_key}"):
+            assert self._get(_OPDS_V2, auth).status_code == _HTTP_UNAUTHORIZED
+
     def test_key_under_the_wrong_username(self) -> None:
-        """A key or token only works with its own username."""
-        for secret in (self.key, self.token.key):
+        """A key only works with its own username."""
+        for secret in (self.key, self.token):
             auth = _basic(self.other.username, secret)
             assert self._get(_OPDS_V2, auth).status_code == _HTTP_UNAUTHORIZED
             auth = _basic("nobody", secret)
@@ -273,7 +312,7 @@ class DeviceKeyOPDSTestCase(DeviceKeyFixture):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         for auth in (
             _basic(self.user.username, self.key),
-            _basic(self.user.username, self.token.key),
+            _basic(self.user.username, self.token),
             f"Bearer {self.key}",
         ):
             assert self._get(_OPDS_V2, auth).status_code == _HTTP_UNAUTHORIZED
@@ -302,22 +341,22 @@ class DeviceKeyOPDSTestCase(DeviceKeyFixture):
         from rest_framework.test import APIRequestFactory
 
         from codex.authentication import (
-            DeviceKeyBasicAuthentication,
-            DeviceKeyBearerAuthentication,
+            ReaderKeyBasicAuthentication,
+            ReaderKeyBearerAuthentication,
         )
 
         factory = APIRequestFactory()
         request = factory.get(_OPDS_V2, HTTP_AUTHORIZATION=f"Bearer {self.key}")
-        result = DeviceKeyBearerAuthentication().authenticate(request)
+        result = ReaderKeyBearerAuthentication().authenticate(request)
         assert result == (self.user, self.api_key)
         request = factory.get(
-            _OPDS_V2, HTTP_AUTHORIZATION=_basic(self.user.username, self.key)
+            _OPDS_V2, HTTP_AUTHORIZATION=_basic(self.user.username, self.token)
         )
-        result = DeviceKeyBasicAuthentication().authenticate(request)
-        assert result == (self.user, self.api_key)
+        result = ReaderKeyBasicAuthentication().authenticate(request)
+        assert result == (self.user, self.universal)
 
 
-class DeviceKeyKOSyncTestCase(DeviceKeyFixture):
+class ApiKeyKOSyncTestCase(ApiKeyFixture):
     """KOReader sends the MD5 of the password typed on the device."""
 
     @override
@@ -337,8 +376,17 @@ class DeviceKeyKOSyncTestCase(DeviceKeyFixture):
         assert self._auth(_md5(self.key)).status_code == _HTTP_OK
         assert self._auth(_md5(self.key).upper()).status_code == _HTTP_OK
 
-    def test_md5_of_the_legacy_token_still_works(self) -> None:
-        assert self._auth(_md5(self.token.key)).status_code == _HTTP_OK
+    def test_md5_of_a_universal_key(self) -> None:
+        assert self._auth(_md5(self.token)).status_code == _HTTP_OK
+
+    def test_md5_of_a_stats_key_is_refused(self) -> None:
+        User.objects.filter(pk=self.user.pk).update(is_staff=True)
+        _, stats_key = UserApiKey.create_for_user(self.user, "s", ApiKeyScope.STATS)
+        assert self._auth(_md5(stats_key)).status_code == _HTTP_UNAUTHORIZED
+
+    def test_a_user_with_no_keys_is_refused(self) -> None:
+        response = self._auth(_md5("anything"), username=self.other.username)
+        assert response.status_code == _HTTP_UNAUTHORIZED
 
     def test_revoked_key(self) -> None:
         self.api_key.delete()
@@ -357,27 +405,36 @@ class DeviceKeyKOSyncTestCase(DeviceKeyFixture):
         assert self._auth(_md5(self.key)).status_code == _HTTP_UNAUTHORIZED
 
 
-class DeviceKeyScopeTestCase(DeviceKeyFixture):
-    """A device key is not an ``/api/v4/`` credential."""
+class ApiKeyScopeTestCase(ApiKeyFixture):
+    """Only a universal key is an ``/api/v4/`` credential."""
 
     @override
     def setUp(self) -> None:
         super().setUp()
         _set_flag(AdminFlagChoices.NON_USERS, on=False)
         User.objects.filter(pk=self.user.pk).update(is_staff=True, is_superuser=True)
+        self.user.refresh_from_db()
+        self.stats, self.stats_key = UserApiKey.create_for_user(  # pyright: ignore[reportUninitializedInstanceVariable]
+            self.user, "stats", ApiKeyScope.STATS
+        )
 
     def _auths(self) -> tuple[str, ...]:
-        return (f"Bearer {self.key}", _basic(self.user.username, self.key))
+        return (
+            f"Bearer {self.key}",
+            _basic(self.user.username, self.key),
+            f"Bearer {self.stats_key}",
+            _basic(self.user.username, self.stats_key),
+        )
 
     def test_browse_is_refused(self) -> None:
         url = "/api/v4/browse/publishers/1"
-        assert self._get(url, f"Bearer {self.token.key}").status_code == _HTTP_OK
+        assert self._get(url, f"Bearer {self.token}").status_code == _HTTP_OK
         for auth in self._auths():
             assert self._get(url, auth).status_code in _REFUSED, auth
 
     def test_admin_is_refused(self) -> None:
         url = "/api/v4/admin/users"
-        assert self._get(url, f"Bearer {self.token.key}").status_code == _HTTP_OK
+        assert self._get(url, f"Bearer {self.token}").status_code == _HTTP_OK
         for auth in self._auths():
             assert self._get(url, auth).status_code in _REFUSED, auth
 
@@ -398,10 +455,10 @@ class DeviceKeyScopeTestCase(DeviceKeyFixture):
                 f"{_KEYS_URL}/{self.api_key.pk}", HTTP_AUTHORIZATION=auth
             )
             assert response.status_code in _REFUSED
-        assert UserApiKey.objects.filter(user=self.user).count() == 1
+        assert UserApiKey.objects.filter(user=self.user).count() == 3  # noqa: PLR2004
 
 
-class DeviceKeyAPITestCase(DeviceKeyFixture):
+class ApiKeyAPITestCase(ApiKeyFixture):
     """Listing, creating, renaming and revoking keys."""
 
     @override
@@ -409,9 +466,12 @@ class DeviceKeyAPITestCase(DeviceKeyFixture):
         super().setUp()
         self.client.force_login(self.user)
 
-    def _post(self, client: Client, name: str):
+    def _post(self, client: Client, name: str, scope: str | None = None):
+        data: dict[str, str] = {"name": name}
+        if scope:
+            data["scope"] = scope
         return client.post(
-            _KEYS_URL, data=json.dumps({"name": name}), content_type="application/json"
+            _KEYS_URL, data=json.dumps(data), content_type="application/json"
         )
 
     def _list(self, client: Client) -> list[dict]:
@@ -425,13 +485,25 @@ class DeviceKeyAPITestCase(DeviceKeyFixture):
         created = response.json()["data"]
         key = created["key"]
         assert created["name"] == "Panels on iPad"
+        assert created["scope"] == ApiKeyScope.DEVICE
         assert created["prefix"] == key[:4]
         listed = self._list(self.client)
-        assert {row["name"] for row in listed} == {"Kobo", "Panels on iPad"}
-        assert key not in json.dumps(listed)
-        assert self.key not in json.dumps(listed)
+        assert {row["name"]: row["scope"] for row in listed} == {
+            "Kobo": ApiKeyScope.DEVICE,
+            "Panels on iPad": ApiKeyScope.DEVICE,
+            UNIVERSAL_KEY_NAME: ApiKeyScope.UNIVERSAL,
+        }
+        for secret in (key, self.key, self.token):
+            assert secret not in json.dumps(listed)
         for row in listed:
-            assert set(row) == {"pk", "name", "prefix", "createdAt", "lastUsedAt"}
+            assert set(row) == {
+                "pk",
+                "name",
+                "scope",
+                "prefix",
+                "createdAt",
+                "lastUsedAt",
+            }
         # And the new key works.
         auth = _basic(self.user.username, key)
         assert self._get(_OPDS_V2, auth).status_code == _HTTP_OK
@@ -440,8 +512,44 @@ class DeviceKeyAPITestCase(DeviceKeyFixture):
         response = self._post(self.client, "Kobo")
         assert response.status_code == _HTTP_BAD_REQUEST
 
+    def test_stats_keys_are_for_staff(self) -> None:
+        response = self._post(self.client, "stats", ApiKeyScope.STATS)
+        assert response.status_code == _HTTP_FORBIDDEN
+        User.objects.filter(pk=self.user.pk).update(is_staff=True)
+        response = self._post(self.client, "stats", ApiKeyScope.STATS)
+        assert response.status_code == _HTTP_CREATED
+        assert response.json()["data"]["scope"] == ApiKeyScope.STATS
+
+    def test_universal_keys_cannot_be_made(self) -> None:
+        User.objects.filter(pk=self.user.pk).update(is_staff=True, is_superuser=True)
+        response = self._post(self.client, "everything", ApiKeyScope.UNIVERSAL)
+        assert response.status_code == _HTTP_BAD_REQUEST
+        assert UserApiKey.objects.filter(scope=ApiKeyScope.UNIVERSAL).count() == 1
+
+    def test_the_reserved_name_is_refused(self) -> None:
+        self.universal.delete()
+        assert self._post(self.client, UNIVERSAL_KEY_NAME).status_code == (
+            _HTTP_BAD_REQUEST
+        )
+        url = f"{_KEYS_URL}/{self.api_key.pk}"
+        response = self.client.patch(
+            url,
+            data=json.dumps({"name": UNIVERSAL_KEY_NAME}),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_BAD_REQUEST
+
+    def test_a_universal_key_cannot_be_renamed_but_can_be_revoked(self) -> None:
+        url = f"{_KEYS_URL}/{self.universal.pk}"
+        response = self.client.patch(
+            url, data=json.dumps({"name": "mine"}), content_type="application/json"
+        )
+        assert response.status_code == _HTTP_BAD_REQUEST
+        assert self.client.delete(url).status_code == _HTTP_NO_CONTENT
+        assert not UserApiKey.objects.filter(pk=self.universal.pk).exists()
+
     def test_limit_is_a_400(self) -> None:
-        for index in range(DEVICE_KEYS_PER_USER_MAX - 1):
+        for index in range(API_KEYS_PER_SCOPE_MAX - 1):
             UserApiKey.create_for_user(self.user, f"key {index}")
         response = self._post(self.client, "one too many")
         assert response.status_code == _HTTP_BAD_REQUEST
@@ -486,15 +594,13 @@ class DeviceKeyAPITestCase(DeviceKeyFixture):
         assert anon.delete(f"{_KEYS_URL}/{self.api_key.pk}").status_code in _REFUSED
         assert UserApiKey.objects.filter(pk=self.api_key.pk).exists()
 
-    def test_bearer_token_can_manage_keys(self) -> None:
-        """The API credential, unlike a key, manages keys."""
-        response = Client().get(
-            _KEYS_URL, HTTP_AUTHORIZATION=f"Bearer {self.token.key}"
-        )
+    def test_a_universal_key_can_manage_keys(self) -> None:
+        """The full API credential, unlike a device key, manages keys."""
+        response = Client().get(_KEYS_URL, HTTP_AUTHORIZATION=f"Bearer {self.token}")
         assert response.status_code == _HTTP_OK
 
 
-class DeviceKeyLastUsedTestCase(DeviceKeyFixture):
+class ApiKeyLastUsedTestCase(ApiKeyFixture):
     """``last_used_at`` is coarse on purpose."""
 
     def _last_used(self):
@@ -528,7 +634,7 @@ class DeviceKeyLastUsedTestCase(DeviceKeyFixture):
         assert self._last_used() is not None
 
 
-class DeviceKeyURLPrefixTestCase(TestCase):
+class ApiKeyURLPrefixTestCase(TestCase):
     """``server.url_path_prefix`` carries onto the paths a device is given."""
 
     def test_reverse_under_a_prefix(self) -> None:
@@ -542,7 +648,7 @@ class DeviceKeyURLPrefixTestCase(TestCase):
             set_script_prefix("/")
 
 
-class DeviceKeyAdminTestCase(DeviceKeyFixture):
+class ApiKeyAdminTestCase(ApiKeyFixture):
     """The admin user list counts keys and can revoke them all."""
 
     @override
@@ -558,28 +664,63 @@ class DeviceKeyAdminTestCase(DeviceKeyFixture):
         response = self.client.get("/api/v4/admin/users")
         assert response.status_code == _HTTP_OK
         return {
-            row["attributes"]["username"]: row["attributes"]["deviceKeyCount"]
+            row["attributes"]["username"]: row["attributes"]["apiKeyCount"]
             for row in response.json()["data"]
         }
 
     def test_key_count(self) -> None:
+        """Every scope counts."""
         counts = self._counts()
-        assert counts["reader"] == 2  # noqa: PLR2004
+        assert counts["reader"] == 3  # noqa: PLR2004
         assert counts["other"] == 0
 
     def test_revoke_all(self) -> None:
-        url = f"/api/v4/admin/users/{self.user.pk}/revoke-device-keys"
+        """Every scope goes, the universal key included."""
+        url = f"/api/v4/admin/users/{self.user.pk}/revoke-keys"
         response = self.client.post(url)
         assert response.status_code == _HTTP_OK
-        assert response.json()["data"]["revoked"] == 2  # noqa: PLR2004
+        assert response.json()["data"]["revoked"] == 3  # noqa: PLR2004
         assert not UserApiKey.objects.filter(user=self.user).exists()
         assert self._counts()["reader"] == 0
-        # The bearer token is not a device key and survives.
-        assert Token.objects.filter(user=self.user).exists()
 
     def test_revoke_all_is_admin_only(self) -> None:
         client = Client()
         client.force_login(self.user)
-        url = f"/api/v4/admin/users/{self.user.pk}/revoke-device-keys"
+        url = f"/api/v4/admin/users/{self.user.pk}/revoke-keys"
         assert client.post(url).status_code in _REFUSED
-        assert UserApiKey.objects.filter(user=self.user).count() == 2  # noqa: PLR2004
+        assert UserApiKey.objects.filter(user=self.user).count() == 3  # noqa: PLR2004
+
+
+class RemovedRoutesTestCase(TestCase):
+    """Nothing mints a token or shows a server-wide key any more."""
+
+    @override
+    def setUp(self) -> None:
+        self.admin = User.objects.create_superuser(  # pyright: ignore[reportUninitializedInstanceVariable]
+            username="admin", email="", password=_PASSWORD
+        )
+        self.client.force_login(self.admin)
+
+    def test_gone(self) -> None:
+        """Each falls to the catch-all, which serves nothing but a redirect."""
+        for method, url in (
+            ("get", "/api/v4/auth/token"),
+            ("put", "/api/v4/auth/token"),
+            ("get", "/api/v4/admin/api-key"),
+            ("post", "/api/v4/admin/api-key"),
+            ("post", f"/api/v4/admin/users/{self.admin.pk}/revoke-device-keys"),
+        ):
+            assert resolve(url).url_name == "catchall", url
+            response = getattr(self.client, method)(url)
+            assert response.status_code == _HTTP_FOUND, (method, url)
+        assert not UserApiKey.objects.exists()
+
+    def test_login_returns_no_token(self) -> None:
+        client = Client()
+        response = client.post(
+            "/api/v4/auth/login",
+            data=json.dumps({"login": "admin", "password": _PASSWORD}),
+            content_type="application/json",
+        )
+        assert response.status_code == _HTTP_OK, response.content
+        assert "token" not in json.dumps(response.json())

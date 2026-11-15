@@ -37,7 +37,7 @@ const USER = Object.freeze({
   isActive: true,
   groups: [],
   ageRatingMetron: null,
-  deviceKeyCount: 3,
+  apiKeyCount: 3,
 });
 
 function mountInputs(oldRow) {
@@ -66,33 +66,33 @@ function revokeButton(wrapper) {
 describe("Edit User revokes every key behind a confirmation", () => {
   test("shows the count, and revokes only after Confirm", async () => {
     const { wrapper, store } = mountInputs({ ...USER });
-    expect(wrapper.text()).toContain("Device Keys: 3");
+    expect(wrapper.text()).toContain("API Keys: 3");
 
     await revokeButton(wrapper).trigger("click");
-    expect(store.revokeUserDeviceKeys).not.toHaveBeenCalled();
+    expect(store.revokeUserKeys).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("logged out");
 
     await wrapper.find(".confirmButton").trigger("click");
-    expect(store.revokeUserDeviceKeys).toHaveBeenCalledExactlyOnceWith(7);
+    expect(store.revokeUserKeys).toHaveBeenCalledExactlyOnceWith(7);
   });
 
   test("Cancel revokes nothing", async () => {
     const { wrapper, store } = mountInputs({ ...USER });
     await revokeButton(wrapper).trigger("click");
     await wrapper.find(".cancelButton").trigger("click");
-    expect(store.revokeUserDeviceKeys).not.toHaveBeenCalled();
+    expect(store.revokeUserKeys).not.toHaveBeenCalled();
   });
 
   test("a user with no keys says so and offers no button", () => {
-    const { wrapper } = mountInputs({ ...USER, deviceKeyCount: 0 });
-    expect(wrapper.text()).toContain("No device keys.");
+    const { wrapper } = mountInputs({ ...USER, apiKeyCount: 0 });
+    expect(wrapper.text()).toContain("No API keys.");
     expect(revokeButton(wrapper)).toBeUndefined();
   });
 
   test("Add User shows neither", () => {
     const { wrapper } = mountInputs(false);
-    expect(wrapper.text()).not.toContain("Device Keys");
-    expect(wrapper.text()).not.toContain("No device keys.");
+    expect(wrapper.text()).not.toContain("API Keys");
+    expect(wrapper.text()).not.toContain("No API keys.");
   });
 });
 
@@ -101,11 +101,11 @@ describe("a reloaded row keeps unsaved edits", () => {
     const { wrapper } = mountInputs({ ...USER });
     wrapper.vm.row.email = "edited@example.com";
 
-    await wrapper.setProps({ oldRow: { ...USER, deviceKeyCount: 0 } });
+    await wrapper.setProps({ oldRow: { ...USER, apiKeyCount: 0 } });
 
     expect(wrapper.vm.row.email).toBe("edited@example.com");
-    expect(wrapper.vm.row.deviceKeyCount).toBe(0);
-    expect(wrapper.text()).toContain("No device keys.");
+    expect(wrapper.vm.row.apiKeyCount).toBe(0);
+    expect(wrapper.text()).toContain("No API keys.");
   });
 
   test("a server change to an edited field resets the form", async () => {

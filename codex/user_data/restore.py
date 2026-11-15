@@ -23,6 +23,11 @@ from typing import TYPE_CHECKING, Any, Final
 from loguru import logger
 
 from codex.collection import Collection
+from codex.user_data.restore_api_keys import (
+    LEGACY_STATS_KEY_FLAG,
+    restore_api_keys,
+    restore_legacy_stats_key,
+)
 from codex.user_data.restore_shelves import (
     resolve_filter_shelves,
     restore_shelf_items,
@@ -38,7 +43,8 @@ if TYPE_CHECKING:
 # by migration 0055, and the Folder View flag its folders value depends on.
 _BG_KEY: Final = "BG"
 _FV_KEY: Final = "FV"
-_RETIRED_ADMIN_FLAG_KEYS: Final = frozenset({_BG_KEY})
+# The retired Stats API key flag, hashed into a stats key on restore.
+_RETIRED_ADMIN_FLAG_KEYS: Final = frozenset({_BG_KEY, LEGACY_STATS_KEY_FLAG})
 _LEGACY_FALLBACK_TOP_COLLECTION: Final = "publishers"
 _LEGACY_REACHABLE_TOP_COLLECTIONS: Final = frozenset(
     {"publishers", "series", "comics", "arcs"}
@@ -85,6 +91,8 @@ def restore(
         _restore_groups(store, report, dry_run=dry_run)
         _restore_users(store, report, dry_run=dry_run)
         _restore_user_groups(store, report, dry_run=dry_run)
+        restore_api_keys(store, report, dry_run=dry_run)
+        restore_legacy_stats_key(store, report, dry_run=dry_run)
         _restore_libraries(store, report, dry_run=dry_run)
         _restore_library_groups(store, report, dry_run=dry_run)
         _restore_admin_flags(store, report, dry_run=dry_run)
@@ -336,7 +344,8 @@ def _restore_admin_flags(
     for row in store.fetchall("admin_flags"):
         if row["key"] in _RETIRED_ADMIN_FLAG_KEYS:
             # Default View moved to SettingsDefaults.top_collection; the
-            # settings_defaults restore maps a legacy BG row onto it.
+            # settings_defaults restore maps a legacy BG row onto it. The
+            # Stats API key became a stats key, restored with the keys.
             continue
         if dry_run:
             report.note_written("admin_flags")
@@ -374,8 +383,8 @@ def _restore_timestamps(
         # Skip the legacy ``AP`` row — the API key moved to AdminFlag,
         # so importing it here would create an orphan Timestamp row
         # rejected by the post-0051 choices field. Backups carrying
-        # the row are silently dropped; the matching AdminFlag.AK
-        # restore picks up the value if the backup also exported it.
+        # the row are silently dropped; a backup's ``AK`` flag becomes
+        # a stats key instead, if the backup also exported it.
         if row["key"] == "AP":
             continue
         # Older sidecars used a ``version`` column; current ones use

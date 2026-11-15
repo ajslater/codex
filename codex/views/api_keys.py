@@ -1,23 +1,26 @@
 """
-Device key management views.
+API key management views.
 
-A device key is a named credential for one reader app or device, valid on
-OPDS and KOReader sync only. These views live under ``/api/v4/auth/``,
-which keeps the default DRF authentication classes: a device key does not
-authenticate here, so a key cannot list, create or revoke keys.
+``/api/v4/auth/keys`` lists, creates, renames and revokes the requesting
+user's API keys, of every scope. These views keep the default DRF
+authentication classes, where only a universal key logs in: a device or
+stats key cannot list, create or revoke keys.
 """
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from loguru import logger
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
+from codex.choices.api_key import ApiKeyScope
 from codex.models.api_key import UserApiKey
-from codex.serializers.device_keys import DeviceKeyNameSerializer
+from codex.serializers.api_keys import ApiKeyCreateSerializer, ApiKeyNameSerializer
 from codex.views.auth import AuthGenericAPIView
 
-_DUPLICATE_NAME = "You already have a device key with that name."
+_DUPLICATE_NAME = "You already have an API key with that name."
+_STAFF_ONLY = "Only admins can make Stats API keys."
+_UNIVERSAL_RENAME = "A Universal Token cannot be renamed."
 
 
 def _key_repr(api_key: UserApiKey) -> dict:
@@ -25,17 +28,18 @@ def _key_repr(api_key: UserApiKey) -> dict:
     return {
         "pk": api_key.pk,
         "name": api_key.name,
+        "scope": api_key.scope,
         "prefix": api_key.prefix,
         "created_at": api_key.created_at,
         "last_used_at": api_key.last_used_at,
     }
 
 
-class _DeviceKeyAuthView(AuthGenericAPIView):
+class _ApiKeyAuthView(AuthGenericAPIView):
     """Authenticated-only base scoped to the requesting user's keys."""
 
     permission_classes = (IsAuthenticated,)
-    serializer_class = DeviceKeyNameSerializer
+    serializer_class = ApiKeyNameSerializer
 
     def _get_key(self) -> UserApiKey | None:
         """
@@ -47,42 +51,50 @@ class _DeviceKeyAuthView(AuthGenericAPIView):
             user=self.request.user, pk=self.kwargs["pk"]
         ).first()
 
-    def _validated_name(self) -> str:
-        serializer = DeviceKeyNameSerializer(data=self.request.data)
+    def _validated(self, serializer_class) -> dict:
+        serializer = serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        return serializer.validated_data["name"]
+        return serializer.validated_data
 
     @staticmethod
-    def _error(detail: str) -> Response:
-        return Response({"detail": detail}, status=400)
+    def _error(detail: str, status: int = 400) -> Response:
+        return Response({"detail": detail}, status=status)
 
 
-class DeviceKeyListView(_DeviceKeyAuthView):
-    """GET: the user's device keys. POST: create one."""
+class ApiKeyListView(_ApiKeyAuthView):
+    """GET: the user's API keys. POST: create one."""
+
+    serializer_class = ApiKeyCreateSerializer
 
     def get(self, *_args, **_kwargs) -> Response:
-        """Return ``{keys: [{pk, name, prefix, created_at, last_used_at}]}``."""
+        """Return ``{keys: [{pk, name, scope, prefix, created_at, last_used_at}]}``."""
         keys = UserApiKey.objects.filter(user=self.request.user).order_by("name", "pk")
         return Response({"keys": [_key_repr(api_key) for api_key in keys]})
 
     def post(self, *_args, **_kwargs) -> Response:
         """Create a key. The response is the only time the key is returned."""
-        name = self._validated_name()
+        data = self._validated(ApiKeyCreateSerializer)
+        name = data["name"]
+        scope = data["scope"]
         user = self.request.user
+        is_staff = IsAdminUser().has_permission(self.request, self)
+        if scope == ApiKeyScope.STATS.value and not is_staff:
+            return self._error(_STAFF_ONLY, status=403)
         if UserApiKey.objects.filter(user=user, name=name).exists():
             return self._error(_DUPLICATE_NAME)
         try:
-            api_key, key = UserApiKey.create_for_user(user, name)
+            api_key, key = UserApiKey.create_for_user(user, name, scope)
         except ValidationError as exc:
             return self._error(" ".join(exc.messages))
         except IntegrityError:
             # Lost a race with an identical create.
             return self._error(_DUPLICATE_NAME)
-        logger.info(f"Device key created for user {user}")
+        label = ApiKeyScope(api_key.scope).label
+        logger.info(f"{label} API key created for user {user}")
         return Response({**_key_repr(api_key), "key": key}, status=201)
 
 
-class DeviceKeyDetailView(_DeviceKeyAuthView):
+class ApiKeyDetailView(_ApiKeyAuthView):
     """PATCH: rename a key. DELETE: revoke it."""
 
     def patch(self, *_args, **_kwargs) -> Response:
@@ -90,7 +102,9 @@ class DeviceKeyDetailView(_DeviceKeyAuthView):
         api_key = self._get_key()
         if api_key is None:
             return Response(status=404)
-        name = self._validated_name()
+        if api_key.scope == ApiKeyScope.UNIVERSAL.value:
+            return self._error(_UNIVERSAL_RENAME)
+        name = self._validated(ApiKeyNameSerializer)["name"]
         if name != api_key.name:
             clash = UserApiKey.objects.filter(
                 user=self.request.user, name=name
@@ -105,10 +119,10 @@ class DeviceKeyDetailView(_DeviceKeyAuthView):
         return Response(_key_repr(api_key))
 
     def delete(self, *_args, **_kwargs) -> Response:
-        """Revoke the key. Idempotent."""
+        """Revoke the key, of any scope. Idempotent."""
         deleted, _ = UserApiKey.objects.filter(
             user=self.request.user, pk=self.kwargs["pk"]
         ).delete()
         if deleted:
-            logger.info(f"Device key revoked for user {self.request.user}")
+            logger.info(f"API key revoked for user {self.request.user}")
         return Response(status=204)

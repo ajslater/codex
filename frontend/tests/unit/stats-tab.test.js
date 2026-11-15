@@ -42,7 +42,6 @@ const STATS = {
     customCoverUploadedCount: 2,
     customCoverDirCount: 1,
     failedImportCount: 0,
-    apiKey: "s3cr3t-api-key",
   },
   sessions: {
     topCollection: { publishers: 2 },
@@ -149,11 +148,9 @@ describe("AdminStatsTab", () => {
     expect(captions).toStrictEqual([...SECTION_TITLES]);
   });
 
-  test("never renders the api key", () => {
+  test("reports whether a Stats API key exists, never a key", () => {
     const text = mountTab().text();
-    expect(text).not.toContain("s3cr3t-api-key");
-    // Its presence is still reported, without the value.
-    expect(text).toContain("API Key");
+    expect(text).toContain("Stats API Key");
   });
 
   test("toggles read as Yes/No", () => {
