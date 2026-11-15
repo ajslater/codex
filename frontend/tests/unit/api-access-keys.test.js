@@ -10,6 +10,8 @@
  *     Device Key.
  *   - The new key's help names only the APIs that are on, and says so when
  *     the key would log in nowhere.
+ *   - The section explains that OPDS apps often take a username and
+ *     password, and that a Device Key per app is the better password.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -18,6 +20,7 @@ import { describe, expect, test } from "vitest";
 import ApiKeyCreate from "@/components/api-access/api-key-create.vue";
 import ApiKeyList from "@/components/api-access/api-key-list.vue";
 import ApiKeyReveal from "@/components/api-access/api-key-reveal.vue";
+import ApiKeys from "@/components/api-access/api-keys.vue";
 import vuetify from "@/plugins/vuetify";
 import { useAuthStore } from "@/stores/auth";
 
@@ -188,5 +191,14 @@ describe("ApiKeyReveal", () => {
     expect(wrapper.find(".apiKeyNote").text()).toContain(
       "Stats API Keys is turned off",
     );
+  });
+});
+
+describe("ApiKeys", () => {
+  test("prefers a Device Key per app over the account password for OPDS", () => {
+    const { wrapper } = mountWith(ApiKeys, { urls: {} });
+    const text = wrapper.text();
+    expect(text).toContain("username and password");
+    expect(text).toContain("use a Device Key as its password instead");
   });
 });

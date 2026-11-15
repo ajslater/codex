@@ -9,6 +9,13 @@
           tooltip="Copy URL to clipboard"
           :text="row.url"
         />
+        <!-- Outside the ClipBoard: a click anywhere on it copies the URL. -->
+        <p v-if="row.key === 'opdsV2'" class="apiUrlNote">
+          Supported in newer clients such as
+          <a href="https://www.stumpapp.dev/" target="_blank"
+            >Stump<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+          >.
+        </p>
         <KOReaderHelp v-if="row.key === 'koreader'" :username="username" />
       </template>
     </template>
@@ -17,17 +24,15 @@
 </template>
 
 <script>
+import { mdiOpenInNew } from "@mdi/js";
+
 import KOReaderHelp from "@/components/api-access/koreader-help.vue";
 import ClipBoard from "@/components/clipboard.vue";
 
 // The order the URLs show in, and how each is titled.
 const API_ROWS = Object.freeze([
   Object.freeze({ key: "opdsV1", title: "OPDS v1.2", subtitle: "" }),
-  Object.freeze({
-    key: "opdsV2",
-    title: "OPDS v2.0",
-    subtitle: "Supported in newer clients (like Stump)",
-  }),
+  Object.freeze({ key: "opdsV2", title: "OPDS v2.0", subtitle: "" }),
   Object.freeze({ key: "koreader", title: "KOReader Sync", subtitle: "" }),
   Object.freeze({ key: "stats", title: "Stats API", subtitle: "Admins only" }),
 ]);
@@ -42,6 +47,9 @@ export default {
     // Paths by API, from /api-urls. An API that is off is absent.
     urls: { type: Object, required: true },
     username: { type: String, default: "" },
+  },
+  data() {
+    return { mdiOpenInNew };
   },
   computed: {
     rows() {
@@ -64,6 +72,12 @@ export default {
 
 .apiUrl {
   padding: 5px;
+}
+
+.apiUrlNote {
+  padding: 0 5px;
+  font-size: small;
+  color: rgb(var(--v-theme-text-secondary));
 }
 
 .apiUrlsNone {

@@ -6,12 +6,14 @@
  *   - An anonymous Non Users visitor sees the URLs and no keys section.
  *   - Each URL is the origin plus its path; an API that is off is absent,
  *     and with none on the dialog says so.
- *   - KOReader's setup help, in KOReader's own menu words, follows its URL.
+ *   - KOReader's setup help, in KOReader's own menu words, follows its URL,
+ *     collapsed until opened: most people never need it.
+ *   - The OPDS v2.0 note links to Stump, off site, without parentheses.
  *   - A failed load offers Retry; a pending one shows a sized placeholder.
  *   - Profile's "API Access" button opens it.
  */
 import { createTestingPinia } from "@pinia/testing";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
 import ApiAccessDialog from "@/components/api-access/api-access-dialog.vue";
@@ -83,9 +85,18 @@ describe("API Access dialog", () => {
     expect(text).not.toContain("Stats API");
   });
 
+  test("KOReader help is collapsed until opened", async () => {
+    const { wrapper, store } = mountDialog();
+    await open(wrapper, store);
+    expect(wrapper.text()).toContain("KOReader setup");
+    expect(wrapper.text()).not.toContain("Progress sync");
+  });
+
   test("KOReader help uses KOReader's own menu words", async () => {
     const { wrapper, store } = mountDialog();
     await open(wrapper, store);
+    await wrapper.find(".v-expansion-panel-title").trigger("click");
+    await flushPromises();
     const text = wrapper.text();
     for (const words of [
       "Progress sync",
@@ -105,7 +116,20 @@ describe("API Access dialog", () => {
       apiUrls: { opdsV1: "/opds/v1.2/" },
     });
     await open(wrapper, store);
-    expect(wrapper.text()).not.toContain("Progress sync");
+    expect(wrapper.text()).not.toContain("KOReader setup");
+  });
+
+  test("the OPDS v2.0 note links to Stump off site", async () => {
+    const { wrapper, store } = mountDialog();
+    await open(wrapper, store);
+    const note = wrapper.find(".apiUrlNote");
+    expect(note.text()).toContain("Supported in newer clients such as Stump");
+    expect(note.text()).not.toContain("(");
+    expect(note.text()).not.toContain(")");
+    const link = note.find("a");
+    expect(link.attributes("href")).toBe("https://www.stumpapp.dev/");
+    expect(link.attributes("target")).toBe("_blank");
+    expect(link.findComponent({ name: "VIcon" }).exists()).toBe(true);
   });
 
   test("an anonymous visitor sees URLs and no keys", async () => {

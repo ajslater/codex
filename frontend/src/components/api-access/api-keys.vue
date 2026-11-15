@@ -5,6 +5,7 @@
       {{ DEVICE_HELP }}
       <template v-if="isUserAdmin">{{ STATS_HELP }}</template>
     </p>
+    <p class="apiKeysHelp">{{ OPDS_HELP }}</p>
     <ApiKeyList :api-keys="apiKeys" />
     <ApiKeyReveal
       v-if="created"
@@ -30,6 +31,10 @@ import { useCommonStore } from "@/stores/common";
 const DEVICE_HELP =
   "Give each reader app or device its own Device Key. It logs in to OPDS" +
   " and KOReader sync only, and can be revoked on its own.";
+const OPDS_HELP =
+  "OPDS apps often log in with your username and password. Where an app" +
+  " lets you, use a Device Key as its password instead: each app gets its" +
+  " own, and revoking one logs out only that app.";
 const STATS_HELP =
   "A Stats key reads the admin Stats API, as you, while you are an admin.";
 
@@ -48,6 +53,7 @@ export default {
   data() {
     return {
       DEVICE_HELP,
+      OPDS_HELP,
       STATS_HELP,
       // The key just made, ``{key, name, scope}``: shown once, never again.
       created: undefined,
