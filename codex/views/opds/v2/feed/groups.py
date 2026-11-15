@@ -14,7 +14,6 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
-from codex.models.favorite import Favorite
 from codex.models.named import StoryArc
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
@@ -166,13 +165,6 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
-    def _user_has_favorites(self) -> bool:
-        """Return True when the requesting user has at least one favorite."""
-        user = self.request.user
-        if not user or not user.is_authenticated:
-            return False
-        return Favorite.objects.filter(user=user).exists()
-
     def get_ordered_groups(self) -> list:
         """Ordered Publication Groups."""
         groups = []
@@ -181,7 +173,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         # the start page for fresh / anonymous installs.
         previews = (
             (*PREVIEW_GROUPS, FAVORITES_PREVIEW_GROUP)
-            if self._user_has_favorites()
+            if self.user_has_favorites()
             else PREVIEW_GROUPS
         )
         for group_spec in previews:

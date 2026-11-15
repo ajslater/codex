@@ -10,11 +10,12 @@ list never-opened issues; their position is the empty 200.
 """
 
 import json
+import re
 import shutil
 import xml.etree.ElementTree as ET
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Final, override
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -22,7 +23,10 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from codex.models import Bookmark, Comic, Imprint, Library, Publisher, Series, Volume
+from codex.models.favorite import Favorite
 from codex.startup import init_admin_flags
+from codex.views.opds.v1.const import RootTopLinks
+from codex.views.opds.v2.const import FAVORITES_PREVIEW_GROUP, PREVIEW_GROUPS
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -39,6 +43,9 @@ _KEEP_READING: Final = "Keep Reading"
 _KEEP_READING_SUBTITLE: Final = "Issues you have started, most recently read first."
 _LATEST_UNREAD: Final = "Latest Unread"
 _OLDEST_UNREAD: Final = "Oldest Unread"
+_FAVORITES: Final = "Favorites"
+_ACQUISITION_REL: Final = "http://opds-spec.org/acquisition"
+_DOWNLOAD_PK_RE: Final = re.compile(r"/c/(\d+)/download/")
 
 
 def _group(feed: dict, title: str) -> dict | None:
@@ -56,6 +63,40 @@ def _pks(group: dict) -> list[int]:
         for link in pub.get("links", [])
         if link.get("rel") == _PROGRESSION_REL
     ]
+
+
+def _v1_entry_href(feed: bytes, title: str) -> str | None:
+    """Return the href of the v1 entry whose title ends with ``title``."""
+    root = ET.fromstring(feed)  # noqa: S314
+    for entry in root.iter(f"{_ATOM_NS}entry"):
+        if (entry.findtext(f"{_ATOM_NS}title") or "").endswith(title):
+            link = entry.find(f"{_ATOM_NS}link")
+            assert link is not None
+            return link.get("href", "")
+    return None
+
+
+def _v1_comic_pks(feed: bytes) -> list[int]:
+    """Comic pks in v1 feed order, read off each entry's download link."""
+    root = ET.fromstring(feed)  # noqa: S314
+    return [
+        int(match.group(1))
+        for link in root.iter(f"{_ATOM_NS}link")
+        if link.get("rel") == _ACQUISITION_REL
+        and (match := _DOWNLOAD_PK_RE.search(link.get("href", "")))
+    ]
+
+
+def _sort_params(query_params) -> tuple:
+    """Decode filters, orderBy and orderReverse from link query params."""
+    filters = query_params.get("filters")
+    if isinstance(filters, str):
+        filters = json.loads(filters)
+    return (
+        dict(filters or {}),
+        query_params.get("orderBy"),
+        str(query_params.get("orderReverse")).lower(),
+    )
 
 
 class KeepReadingSeedTestCase(TestCase):
@@ -243,3 +284,88 @@ class OPDSKeepReadingTestCase(KeepReadingSeedTestCase):
         oldest = _group(feed, _OLDEST_UNREAD)
         assert oldest
         assert c1.pk in _pks(oldest)
+
+
+class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
+    """The v1 start page entries: filters, order and Favorites."""
+
+    def _v1(self, client: Client, url: str = _V1_START) -> bytes:
+        # Feeds are cached per identity; seeding happens between GETs.
+        cache.clear()
+        response = client.get(url)
+        assert response.status_code == _HTTP_OK, response.content[:300]
+        return response.content
+
+    def _v1_href(self, client: Client, title: str) -> str:
+        href = _v1_entry_href(self._v1(client), title)
+        assert href, title
+        return href
+
+    def test_latest_unread_href_carries_unread_filter_and_order(self) -> None:
+        self.client.force_login(self.user)
+        href = self._v1_href(self.client, _LATEST_UNREAD)
+        params = parse_qs(urlsplit(href).query)
+        assert json.loads(params["filters"][0]) == {"bookmark": "UNREAD"}, href
+        assert params["orderBy"] == ["created_at"], href
+        assert params["orderReverse"] == ["True"], href
+
+    def test_latest_unread_does_not_inherit_keep_reading_filter(self) -> None:
+        self._seed_reading()
+        self.client.force_login(self.user)
+        keep_reading = self._v1_href(self.client, _KEEP_READING)
+        latest_unread = self._v1_href(self.client, _LATEST_UNREAD)
+        self._v1(self.client, keep_reading)
+        pks = _v1_comic_pks(self._v1(self.client, latest_unread))
+        c = self.comics
+        assert c[1].pk not in pks, pks  # finished
+        bookmarked = set(
+            Bookmark.objects.filter(user=self.user).values_list("comic_id", flat=True)
+        )
+        never_opened = {comic.pk for comic in c if comic.pk not in bookmarked}
+        assert never_opened <= set(pks), pks
+
+    def test_oldest_unread_is_ascending_after_latest_unread(self) -> None:
+        # Dates run opposite to pk order so a pk tiebreak can't pass.
+        for i, comic in enumerate(self.comics):
+            Comic.objects.filter(pk=comic.pk).update(
+                date=date(2000 + len(self.comics) - i, 1, 1)
+            )
+        self.client.force_login(self.user)
+        latest_unread = self._v1_href(self.client, _LATEST_UNREAD)
+        oldest_unread = self._v1_href(self.client, _OLDEST_UNREAD)
+        self._v1(self.client, latest_unread)
+        pks = _v1_comic_pks(self._v1(self.client, oldest_unread))
+        dates = dict(Comic.objects.filter(pk__in=pks).values_list("pk", "date"))
+        ordered = [dates[pk] for pk in pks]
+        assert len(ordered) > 1, pks
+        assert ordered == sorted(ordered), ordered
+
+    def test_v1_root_links_match_v2_preview_groups(self) -> None:
+        v2_links = {
+            link.title: link
+            for group in (*PREVIEW_GROUPS, FAVORITES_PREVIEW_GROUP)
+            for link in group.links
+        }
+        shared = 0
+        for top_link in (*RootTopLinks.ALL, RootTopLinks.FAVORITES):
+            v2_link = v2_links.get(top_link.title)
+            if not v2_link:
+                continue
+            shared += 1
+            assert _sort_params(top_link.query_params) == _sort_params(
+                v2_link.query_params
+            ), top_link.title
+        assert shared == len(RootTopLinks.ALL) + 1
+
+    def test_favorites_entry_only_when_the_user_has_favorites(self) -> None:
+        self.client.force_login(self.user)
+        assert _v1_entry_href(self._v1(self.client), _FAVORITES) is None
+        assert _v1_entry_href(self._v1(Client()), _FAVORITES) is None
+
+        favorite = self.comics[3]
+        Favorite.objects.create(
+            user=self.user, collection="comics", target_id=favorite.pk
+        )
+        href = self._v1_href(self.client, _FAVORITES)
+        assert _v1_entry_href(self._v1(Client()), _FAVORITES) is None
+        assert _v1_comic_pks(self._v1(self.client, href)) == [favorite.pk]

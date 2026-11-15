@@ -25,7 +25,7 @@ from codex.views.opds.metadata import (
     get_m2m_objects_by_comic,
 )
 from codex.views.opds.start import OPDSStartViewMixin
-from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs, RootTopLinks
+from codex.views.opds.v1.const import OPDS1EntryData, OpdsNs
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import OPDS1LinksView
 
@@ -218,7 +218,7 @@ class OPDS1FeedView(OPDS1LinksView):
         """Create all the entries."""
         entries = []
         if self.IS_START_PAGE:
-            entries += self.add_top_links(RootTopLinks.ALL)
+            entries += self.add_top_links(self.root_top_links())
         else:
             entries += self.add_start_link()
 
