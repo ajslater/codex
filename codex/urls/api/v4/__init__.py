@@ -7,6 +7,7 @@ another include block here.
 """
 
 from django.urls import include, path
+from django.views.decorators.cache import never_cache
 from django.views.decorators.vary import vary_on_cookie
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -14,6 +15,7 @@ from drf_spectacular.views import (
 )
 
 from codex.settings import FEATURES
+from codex.views.api_urls import ApiUrlsView
 from codex.views.browser.cover import cover_dispatch_by_source
 from codex.views.browser.mtime import MtimeView
 from codex.views.opds.urls import OPDSURLsView
@@ -46,6 +48,7 @@ urlpatterns += [
     path("session", SessionView.as_view(), name="session"),
     path("version", VersionView.as_view(), name="version"),
     path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
+    path("api-urls", never_cache(ApiUrlsView.as_view()), name="api_urls"),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
     # The route the web client uses for every cover on a browse page. It
     # carries a ``?ts=<mtime>`` cache-buster, and the view emits its own

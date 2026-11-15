@@ -8,7 +8,8 @@ What these tests pin:
 * It stops working when its owner is demoted or deactivated.
 * A device key does not open the Stats API; neither does a universal key
   passed as ``?apiKey=``.
-* A session admin still gets the stats without any key.
+* A session admin still gets the stats without any key, and still does
+  with the Stats API Keys flag off, which refuses every key.
 * The payload no longer carries a key.
 """
 
@@ -19,7 +20,9 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 
+from codex.choices.admin import AdminFlagChoices
 from codex.choices.api_key import UNIVERSAL_KEY_NAME, ApiKeyScope
+from codex.models import AdminFlag
 from codex.models.api_key import UserApiKey
 from codex.startup import init_admin_flags
 
@@ -90,6 +93,16 @@ class StatsApiKeyTestCase(TestCase):
         client = Client()
         client.force_login(self.admin)
         assert client.get(_URL).status_code == _HTTP_OK
+
+    def test_the_flag_off_refuses_keys_but_not_the_session(self) -> None:
+        AdminFlag.objects.filter(key=AdminFlagChoices.STATS_API.value).update(on=False)
+        assert self._get(f"?apiKey={self.key}").status_code in _REFUSED
+        assert self._get(auth=f"Bearer {self.key}").status_code in _REFUSED
+        client = Client()
+        client.force_login(self.admin)
+        assert client.get(_URL).status_code == _HTTP_OK
+        AdminFlag.objects.filter(key=AdminFlagChoices.STATS_API.value).update(on=True)
+        assert self._get(f"?apiKey={self.key}").status_code == _HTTP_OK
 
     def test_the_payload_carries_no_key(self) -> None:
         response = self._get(f"?apiKey={self.key}")

@@ -113,9 +113,11 @@ class StatsKeyAuthentication(BaseAuthentication):
     A Stats API key, as ``?apiKey=<key>`` or ``Authorization: Bearer <key>``.
 
     Only the admin Stats view uses it, ahead of the default classes. The
-    key's owner must still be active staff. A value that is not a stats key
-    returns None, so the default classes after this one still get to check
-    a session or a universal key.
+    key's owner must still be active staff, and the Stats API Keys admin
+    flag must be on: it gates the keys, not the view, so the admin Stats tab
+    keeps working by session. A value that is not a stats key returns None,
+    so the default classes after this one still get to check a session or a
+    universal key.
     """
 
     _KEYWORD = b"bearer"
@@ -132,7 +134,11 @@ class StatsKeyAuthentication(BaseAuthentication):
 
     @override
     def authenticate(self, request):
-        """Authenticate a stats key, or pass."""
+        """Authenticate a stats key, or pass. No key logs in while the flag is off."""
+        from codex.settings.db import stats_api_enabled
+
+        if not stats_api_enabled():
+            return None
         secret = request.query_params.get("apiKey") or self._bearer(request)
         api_key = get_api_key(secret, STATS_SCOPES, staff_only=True)
         if not api_key:

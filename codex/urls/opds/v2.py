@@ -3,7 +3,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from codex.urls.opds import opds_cached
+from codex.urls.opds import opds_cached, opds_gate
 from codex.views.opds.v2.feed import OPDS2FeedView, OPDS2StartView
 from codex.views.opds.v2.manifest import OPDS2ManifestView
 from codex.views.opds.v2.progression import OPDS2ProgressionView
@@ -31,7 +31,7 @@ urlpatterns = [
         # Comic-only progression endpoint; ``group`` defaults to the
         # comics collection (it never hits the browse engine).
         "comics/<int:pk>/position",
-        OPDS2ProgressionView.as_view(),
+        opds_gate(OPDS2ProgressionView.as_view()),
         {"group": "comics"},
         name="position",
     ),
@@ -53,5 +53,5 @@ urlpatterns = [
         {"collection": "root", "pks": (), "page": 1},
         name="start",
     ),
-    path("catalog", RedirectView.as_view(pattern_name="opds:v2:start")),
+    path("catalog", opds_gate(RedirectView.as_view(pattern_name="opds:v2:start"))),
 ]
