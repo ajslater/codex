@@ -38,7 +38,8 @@ beforeAll(() => {
 
 const wrappers = [];
 
-function mountPopup(props = {}, attrs = {}) {
+// `attrs` are the call site's non-prop attributes; every other key is a prop.
+function mountPopup({ attrs = {}, ...props } = {}) {
   const wrapper = mount(CoverPopup, {
     attachTo: document.body,
     props: { thumbSrc: THUMB, fullSrc: FULL, ...props },
@@ -130,10 +131,11 @@ describe("CoverPopup", () => {
   test("a parent's style object merges with the size props", () => {
     // The two migrated popups carry their crop and radius this way: a
     // scoped parent class cannot reach a VMenu fragment.
-    const img = mountPopup(
-      { thumbWidth: "60px", thumbHeight: "90px" },
-      { style: { objectFit: "cover", borderRadius: "4px" } },
-    ).find("img");
+    const img = mountPopup({
+      thumbWidth: "60px",
+      thumbHeight: "90px",
+      attrs: { style: { objectFit: "cover", borderRadius: "4px" } },
+    }).find("img");
     const style = img.attributes("style");
 
     expect(style).toContain("object-fit: cover");
