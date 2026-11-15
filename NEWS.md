@@ -8,6 +8,14 @@ border-radius: 128px;
 
 ## v2.6.1
 
+### 💥 Breaking Changes
+
+> [!WARNING]
+>
+> - Authorization Bearer Tokens are now Universal Tokens: existing ones work
+>   until revoked but can no longer be shown, reset or made. Use device keys for
+>   OPDS and KOReader.
+
 ### ✨ Added
 
 - Shelves: signed-in users can make their own named shelves, such as "Want to
@@ -20,17 +28,20 @@ border-radius: 128px;
 - KOReader progress sync. Codex can be the sync server for KOReader's built in
   Progress sync plugin, so a comic's reading position follows you between a
   KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
-  follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
-  your username and a device key.
-- Device keys: a named, revocable key for each reader app or device, made in
-  Profile → Device Keys. Use one as the password for OPDS (HTTP Basic, or as a
-  Bearer token) and KOReader sync. A key is shown once, can be revoked on its
-  own, and shows when it was last used. Keys work on OPDS and KOReader only, not
-  the web UI or API, so users who log in with Single Sign On can now use
-  Basic-only OPDS readers.
-- OPDS HTTP Basic also accepts your Authorization Bearer Token as the password.
-- The admin Users tab shows each user's device key count and can revoke all of a
-  user's keys.
+  follow the setup in API Access. Log in from KOReader with your username and a
+  device key.
+- Device keys: a named, revocable key for each reader app or device, made in API
+  Access. Use one as the password for OPDS (HTTP Basic, or as a Bearer token)
+  and KOReader sync. A key is shown once, can be revoked on its own, and shows
+  when it was last used. Keys work on OPDS and KOReader only, not the web UI or
+  API, so users who log in with Single Sign On can now use Basic-only OPDS
+  readers.
+- API Access, from the drawer footer or Profile: your OPDS, KOReader and Stats
+  API URLs and your API keys in one place.
+- Stats API keys: each admin makes their own. The old server-wide API key
+  becomes the first admin's "Stats Key".
+- OPDS and Stats API Keys admin settings turn those APIs off.
+- The admin Users tab counts each user's API keys; Edit User revokes them all.
 
 ### ♻️ Changed
 
@@ -39,8 +50,10 @@ border-radius: 128px;
   that shelf. The star button is replaced by a shelf button that shows which
   shelves an item is on.
 - The Favorite sort and table column are now Shelved: on any of your shelves.
-- User data backups store shelves. Backups made by older versions still restore,
-  with their favorites placed on a "Favorites" shelf.
+- User data backups store shelves, and API keys as hashes. Backups made by older
+  versions still restore, with their favorites placed on a "Favorites" shelf.
+- Send Stats also reports whether OPDS and Stats API keys are on and how many
+  device keys and Universal Tokens have been used.
 - Some background task log messages now reach the log file and honor the log
   level.
 - Libraries have their own icon, and actions and statuses that shared an icon
@@ -49,6 +62,8 @@ border-radius: 128px;
 ### 🔥 Removed
 
 - The `/api/v4/favorites/` endpoints, replaced by `/api/v4/shelves/`.
+- The `/api/v4/auth/token`, `/api/v4/admin/api-key` and `/api/v4/opds-urls`
+  endpoints; URLs come from `/api/v4/api-urls`. Login no longer returns a token.
 
 ### 🐛 Fixed
 
