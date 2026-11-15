@@ -37,7 +37,7 @@
                 size="small"
                 variant="text"
               >
-                <v-icon :icon="mdiBookshelf" />
+                <v-icon :icon="mdiLibraryShelves" />
                 <span class="actionLabel">Shelves</span>
               </v-btn>
             </template>
@@ -120,9 +120,9 @@ import {
   mdiAutorenew,
   mdiBookmarkCheckOutline,
   mdiBookmarkMinusOutline,
-  mdiBookshelf,
   mdiClose,
   mdiDownload,
+  mdiLibraryShelves,
   mdiTagOutline,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
@@ -147,9 +147,9 @@ export default {
       mdiAutorenew,
       mdiBookmarkCheckOutline,
       mdiBookmarkMinusOutline,
-      mdiBookshelf,
       mdiClose,
       mdiDownload,
+      mdiLibraryShelves,
       mdiTagOutline,
       showMetadataDialog: false,
       showForceUpdateConfirm: false,

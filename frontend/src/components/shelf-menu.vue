@@ -3,7 +3,7 @@
     v-if="isLoggedIn"
     v-model="menu"
     :close-on-content-click="false"
-    location="bottom end"
+    :location="location"
   >
     <template #activator="{ props: activatorProps }">
       <slot
@@ -16,7 +16,7 @@
           v-bind="{ ...$attrs, ...activatorProps }"
           class="shelfMenuButton"
           :class="{ shelfMenuOn: on, shelfMenuOpen: menu }"
-          :icon="icon"
+          :icon="mdiLibraryShelves"
           :title="title"
           :aria-label="title"
           :disabled="disabled"
@@ -77,7 +77,7 @@
 </template>
 
 <script>
-import { mdiBookmarkBox, mdiBookmarkBoxOutline, mdiPlus } from "@mdi/js";
+import { mdiLibraryShelves, mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import MenuSection from "@/components/menu-section.vue";
@@ -124,11 +124,22 @@ export default {
       type: Object,
       default: null,
     },
+    /*
+     * Which way the menu hangs off its activator. The default suits a
+     * toolbar or table button; a browser card's action menu passes
+     * "end" so the shelves open beside it as a submenu.
+     */
+    location: {
+      type: String,
+      default: "bottom end",
+    },
   },
   data() {
     return {
       createError: "",
       creating: false,
+      // One glyph either way; the accent color says "on a shelf".
+      mdiLibraryShelves,
       mdiPlus,
       menu: false,
     };
@@ -172,9 +183,6 @@ export default {
     on() {
       // Accented only when every target is on at least one shelf.
       return this.isEveryShelved(this.targetMap);
-    },
-    icon() {
-      return this.on ? mdiBookmarkBox : mdiBookmarkBoxOutline;
     },
     title() {
       return this.targetCount > 1

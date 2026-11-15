@@ -32,13 +32,6 @@
           :model-value="checked"
           @click.stop.prevent="selectItemAt(item, { shift: $event.shiftKey })"
         />
-        <ShelfMenu
-          v-if="shelfPk"
-          class="cardShelfMenu"
-          :class="{ shelvedVisible: isShelvedCard }"
-          :collection="item.collection"
-          :pk="shelfPk"
-        />
       </div>
       <!--
         Read state. ``aria-hidden`` because the state is already folded into
@@ -66,12 +59,10 @@ import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import ReadStateBar from "@/components/read-state-bar.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
 import { getReadStateLabel } from "@/read-state";
 import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
-import { useShelvesStore } from "@/stores/shelves";
 
 const SCROLL_DELAY = 100;
 
@@ -83,7 +74,6 @@ export default {
     BrowserCardSubtitle,
     OrderByCaption,
     ReadStateBar,
-    ShelfMenu,
   },
   props: {
     item: {
@@ -100,25 +90,8 @@ export default {
       selectManyActive: (state) => state.active,
       isSelected: (state) => state.isSelected,
     }),
-    ...mapState(useShelvesStore, ["isShelved"]),
     checked() {
       return this.isSelected(this.item);
-    },
-    shelfPk() {
-      /*
-       * The toggle drives a single backend row. Cards that aggregate
-       * multiple ids (folder rollups, story-arc cross-publisher
-       * cards) can't be shelved atomically — hide the button
-       * rather than guess which pk to write.
-       */
-      const ids = this.item?.ids;
-      if (!Array.isArray(ids) || ids.length !== 1) return undefined;
-      return ids[0];
-    },
-    isShelvedCard() {
-      return Boolean(
-        this.shelfPk && this.isShelved(this.item.collection, this.shelfPk),
-      );
     },
     readStateLabel() {
       return getReadStateLabel(this.item);
@@ -286,39 +259,6 @@ export default {
 
   .selectManyCheckbox.checked:hover :deep(.v-icon) {
     color: rgb(var(--v-theme-link-hover));
-  }
-
-  /*
-   * Shelf button sits in the top-right of the cover, stacked just
-   * below the childCount badge (also top-right) so the count circle
-   * stays unobscured. Hidden by default so it doesn't compete with
-   * the cover art; surfaces on card hover for discovery, and stays
-   * lit (full opacity) when the row is on a shelf, so the user can
-   * scan a page for their shelved items, and while its menu is open.
-   *
-   * Sibling of ``.cardCoverOverlay`` — outside the router-link's
-   * opacity-fade subtree, so the lit state is unaffected by the
-   * controls' ``opacity: 0`` baseline.
-   *
-   * ``:deep`` because ShelfMenu's root is a VMenu, not the button, so
-   * this component's scope id never lands on the button itself.
-   */
-  .browserCardTop > :deep(.cardShelfMenu) {
-    position: absolute !important;
-    top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
-    right: 0px;
-    z-index: 2;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  .browserCardCoverWrapper:hover > .browserCardTop > :deep(.cardShelfMenu) {
-    opacity: 1;
-  }
-
-  .browserCardTop > :deep(.cardShelfMenu.shelvedVisible),
-  .browserCardTop > :deep(.cardShelfMenu.shelfMenuOpen) {
-    opacity: 1;
   }
 
   /*

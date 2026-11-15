@@ -81,6 +81,9 @@ async function openMenu(wrapper) {
   return document.querySelector(".shelfMenu");
 }
 
+const location = (wrapper) =>
+  wrapper.findComponent({ name: "VMenu" }).props("location");
+
 const rowTitles = (content) =>
   [...content.querySelectorAll(".shelfMenuRow")].map((row) =>
     row.textContent.trim(),
@@ -140,12 +143,25 @@ describe("ShelfMenu — button", () => {
     const mounted = mount(ShelfMenu, {
       global: { plugins: [wrapper.vm.$pinia, vuetify] },
       props: { collection: "comics", pk: 42 },
-      attrs: { class: "cardShelfMenu", id: "shelfButton" },
+      attrs: { class: "readerShelfMenu", id: "shelfButton" },
     });
     wrappers.push(mounted);
     const button = mounted.find("button");
-    expect(button.classes()).toContain("cardShelfMenu");
+    expect(button.classes()).toContain("readerShelfMenu");
     expect(button.attributes("id")).toBe("shelfButton");
+  });
+
+  test("the menu hangs toward the end unless the call site says otherwise", () => {
+    const { wrapper: byDefault } = mountMenu({ collection: "comics", pk: 42 });
+    expect(location(byDefault)).toBe("bottom end");
+
+    // A browser card's action menu opens it beside itself, as a submenu.
+    const { wrapper: submenu } = mountMenu({
+      collection: "comics",
+      pk: 42,
+      location: "end",
+    });
+    expect(location(submenu)).toBe("end");
   });
 
   test("anonymous sessions get no shelf button at all", () => {
