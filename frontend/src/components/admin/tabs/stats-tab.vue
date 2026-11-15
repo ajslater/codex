@@ -80,9 +80,10 @@ const METADATA_LABELS = Object.freeze({
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
-  favoriteCount: "Favorites",
-  favoriteUserCount: "Users with Favorites",
-  favorites: "Favorites by Collection",
+  shelfCount: "Shelves",
+  shelfUserCount: "Users with Shelves",
+  shelfItemCount: "Shelf Items",
+  shelfItems: "Shelf Items by Collection",
 });
 const ADMIN_FLAG_LABELS = Object.freeze({
   autoUpdate: "Auto Update",

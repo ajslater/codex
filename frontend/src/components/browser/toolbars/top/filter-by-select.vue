@@ -42,17 +42,9 @@
       />
     </template>
     <template #append-item>
-      <template v-if="isLoggedIn">
+      <template v-if="hasShelves">
         <v-divider />
-        <v-list-item
-          density="compact"
-          variant="plain"
-          class="favoritesOnly"
-          :class="{ active: favoriteFilter }"
-          title="Favorites Only"
-          :append-icon="favoriteFilter ? mdiStar : mdiStarOutline"
-          @click="onFavoriteToggle"
-        />
+        <BrowserFilterShelvesSubMenu />
       </template>
       <v-divider />
       <v-list-item
@@ -81,18 +73,15 @@
 </template>
 
 <script>
-import {
-  mdiCloseCircleOutline,
-  mdiFilterMultipleOutline,
-  mdiStar,
-  mdiStarOutline,
-} from "@mdi/js";
+import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
+import BrowserFilterShelvesSubMenu from "@/components/browser/toolbars/top/filter-shelves-sub-menu.vue";
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { useShelvesStore } from "@/stores/shelves";
 
 const ARROW_STEPS = Object.freeze({ ArrowDown: 1, ArrowUp: -1 });
 /*
@@ -105,6 +94,7 @@ const FOCUSABLE_ROW = '[tabindex]:not([tabindex="-1"]):not([disabled])';
 export default {
   name: "BrowserFilterBySelect",
   components: {
+    BrowserFilterShelvesSubMenu,
     BrowserFilterSubMenu,
     ToolbarSelect,
   },
@@ -113,8 +103,6 @@ export default {
     return {
       mdiCloseCircleOutline,
       mdiFilterMultipleOutline,
-      mdiStar,
-      mdiStarOutline,
       menu: false,
     };
   },
@@ -133,7 +121,6 @@ export default {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       bookmarkFilter: (state) =>
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
-      favoriteFilter: (state) => Boolean(state.settings.filters.favorite),
       filters: (state) => state.settings.filters,
       filterMenuClass: function (state) {
         /*
@@ -159,8 +146,13 @@ export default {
         // Add selected filters to choices if they aren't there already.
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
+            /*
+             * ``shelves`` has its own sub-menu, fed by the shelves
+             * store instead of the choices endpoints.
+             */
             if (
               filterKey !== "bookmark" &&
+              filterKey !== "shelves" &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {
@@ -188,7 +180,14 @@ export default {
         return names;
       },
     }),
+    ...mapState(useShelvesStore, {
+      shelfCount: (state) => state.shelves.length,
+    }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
+    hasShelves() {
+      // Anonymous sessions have no shelves; neither does a new account.
+      return this.isLoggedIn && this.shelfCount > 0;
+    },
     padRight() {
       return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
@@ -202,9 +201,6 @@ export default {
     onUpdateModelValue(bookmark) {
       const data = { filters: { bookmark } };
       this.onSubMenuSelected(data);
-    },
-    onFavoriteToggle() {
-      this.setSettings({ filters: { favorite: !this.favoriteFilter } });
     },
     onSubMenuSelected(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
@@ -231,13 +227,13 @@ export default {
         if (this.isFiltersClearable) {
           const emptyDynamic = Object.fromEntries(
             Object.keys(this.filters || {})
-              .filter((key) => key !== "bookmark" && key !== "favorite")
+              .filter((key) => key !== "bookmark")
               .map((key) => [key, []]),
           );
           const clearedFilters = {
             bookmark: this.siteBookmarkDefault,
-            favorite: false,
             ...emptyDynamic,
+            shelves: [],
             ageRatingMetron: [],
             ageRatingTagged: [],
           };
@@ -259,7 +255,7 @@ export default {
      * calls ``stopImmediatePropagation()``. That preempts VList's own focus
      * walk, which is what used to carry the user into the rows this menu
      * adds through the prepend/append slots ("Clear All Filters",
-     * "Favorites Only" and the filter sub-menus), leaving them mouse-only.
+     * "Shelves" and the filter sub-menus), leaving them mouse-only.
      * A capture listener on the overlay content runs before the list's, so
      * stepping off either end of the bookmark rows lands on the adjacent
      * slot row instead of wrapping. Everywhere else the event is left alone
@@ -309,19 +305,6 @@ export default {
   .clearFilter {
     color: rgb(var(--v-theme-on-primary));
     background-color: rgb(var(--v-theme-primary));
-  }
-
-  /*
-   * "Favorites Only" sits between the bookmark choices (above) and the
-   * dynamic filter sub-menus (below), bracketed by ``v-divider``s on
-   * each side. Title is left-justified by v-list-item default and the
-   * star is appended to the right via ``append-icon``. The lit state
-   * tints the icon primary so the user can see at a glance whether
-   * the filter is on without reading the title.
-   */
-  .favoritesOnly.active :deep(.v-list-item__append .v-icon) {
-    color: rgb(var(--v-theme-primary));
-    opacity: 1;
   }
 }
 </style>

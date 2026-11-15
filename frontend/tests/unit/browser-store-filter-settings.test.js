@@ -26,19 +26,19 @@ describe("browser store filter settings", () => {
 
   it("sends only the filters in use", () => {
     const store = storeWith({
-      filters: { bookmark: "", characters: [], favorite: false, genres: [5] },
+      filters: { bookmark: "", characters: [], genres: [5], shelves: [3] },
       q: "batman",
     });
 
     expect(store.filterOnlySettings).toStrictEqual({
-      filters: { favorite: false, genres: [5] },
+      filters: { genres: [5], shelves: [3] },
       q: "batman",
     });
   });
 
   it("drops the filters key when no filter is in use", () => {
     const store = storeWith({
-      filters: { bookmark: "", characters: [], genres: [] },
+      filters: { bookmark: "", characters: [], genres: [], shelves: [] },
       q: "",
     });
 
@@ -54,5 +54,15 @@ describe("browser store filter settings", () => {
     expect(store.metadataSettings).toStrictEqual({
       filters: { bookmark: "UNREAD" },
     });
+  });
+
+  it("counts selected shelves as a selected, clearable filter", () => {
+    const store = storeWith({ filters: { bookmark: "", shelves: [] } });
+    expect(store.isDynamicFiltersSelected).toBe(false);
+    expect(store.isFiltersClearable).toBe(false);
+
+    store.settings.filters.shelves = [3];
+    expect(store.isDynamicFiltersSelected).toBe(true);
+    expect(store.isFiltersClearable).toBe(true);
   });
 });

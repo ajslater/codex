@@ -373,20 +373,12 @@ export const useBrowserStore = defineStore("browser", {
     },
     isDynamicFiltersSelected(state) {
       /*
-       * "Dynamic" = anything beyond the default bookmark choice. The
-       * favorite filter is a boolean (not a list-of-pks), but counts as
-       * a non-default extra filter for the multi-filter chip indicator —
-       * otherwise toggling Favorites-only would silently drop the icon
-       * that signals "extra filters are active."
+       * "Dynamic" = anything beyond the bookmark choice. Every other
+       * filter is a list, ``shelves`` (the user's selected shelf pks)
+       * included, so a non-empty one lights the multi-filter indicator.
        */
-      if (state.settings.filters.favorite) return true;
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (
-          name !== "bookmark" &&
-          name !== "favorite" &&
-          array &&
-          array.length > 0
-        ) {
+        if (name !== "bookmark" && array && array.length > 0) {
           return true;
         }
       }
@@ -396,12 +388,7 @@ export const useBrowserStore = defineStore("browser", {
       const isDefaultBookmarkValueSelected = isDefaultBookmarkFilter(
         state.settings.filters.bookmark,
       );
-      const isFavoriteFilterOn = Boolean(state.settings.filters.favorite);
-      return (
-        !isDefaultBookmarkValueSelected ||
-        isFavoriteFilterOn ||
-        this.isDynamicFiltersSelected
-      );
+      return !isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected;
     },
     lowestShownCollection(state) {
       let lowestCollection = "root";

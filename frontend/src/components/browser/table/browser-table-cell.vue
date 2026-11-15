@@ -21,12 +21,8 @@
       @error="onImgError"
     />
   </span>
-  <span v-else-if="column === 'favorite'" class="tableFavoriteCell" @click.stop>
-    <FavoriteToggle
-      v-if="favoritePk"
-      :collection="favoriteCollection"
-      :pk="favoritePk"
-    />
+  <span v-else-if="column === 'shelved'" class="tableShelvedCell" @click.stop>
+    <ShelfMenu v-if="shelfPk" :collection="shelfCollection" :pk="shelfPk" />
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
@@ -50,7 +46,7 @@ import prettyBytes from "pretty-bytes";
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import CoverPopup from "@/components/cover-popup.vue";
-import FavoriteToggle from "@/components/favorite-toggle.vue";
+import ShelfMenu from "@/components/shelf-menu.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -126,7 +122,7 @@ export default {
   name: "BrowserTableCell",
   components: {
     CoverPopup,
-    FavoriteToggle,
+    ShelfMenu,
   },
   props: {
     column: {
@@ -177,7 +173,7 @@ export default {
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
     },
-    favoriteCollection() {
+    shelfCollection() {
       /*
        * Collection rows carry an explicit ``collection``; comic rows
        * omit it (the table view's lone comic-only top-collection) and
@@ -185,10 +181,10 @@ export default {
        */
       return this.row?.collection ?? "comics";
     },
-    favoritePk() {
+    shelfPk() {
       /*
        * Comic rows expose ``pk`` directly; collection rows use ``ids``
-       * and only the single-id case can be favorited atomically.
+       * and only the single-id case can be shelved atomically.
        */
       const ids = this.row?.ids;
       if (Array.isArray(ids) && ids.length === 1) return ids[0];
@@ -299,7 +295,7 @@ export default {
   justify-content: center;
 }
 
-.tableFavoriteCell {
+.tableShelvedCell {
   display: inline-flex;
   align-items: center;
   justify-content: center;

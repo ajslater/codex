@@ -32,12 +32,12 @@
           :model-value="checked"
           @click.stop.prevent="selectItemAt(item, { shift: $event.shiftKey })"
         />
-        <FavoriteToggle
-          v-if="favoritePk"
-          class="cardFavoriteToggle"
-          :class="{ favoriteVisible: isFavoriteCard }"
+        <ShelfMenu
+          v-if="shelfPk"
+          class="cardShelfMenu"
+          :class="{ shelvedVisible: isShelvedCard }"
           :collection="item.collection"
-          :pk="favoritePk"
+          :pk="shelfPk"
         />
       </div>
       <!--
@@ -65,13 +65,13 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
-import FavoriteToggle from "@/components/favorite-toggle.vue";
 import ReadStateBar from "@/components/read-state-bar.vue";
+import ShelfMenu from "@/components/shelf-menu.vue";
 import { getReadStateLabel } from "@/read-state";
 import { getReaderRoute, routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
-import { useFavoritesStore } from "@/stores/favorites";
+import { useShelvesStore } from "@/stores/shelves";
 
 const SCROLL_DELAY = 100;
 
@@ -81,9 +81,9 @@ export default {
     BookCover,
     BrowserCardControls,
     BrowserCardSubtitle,
-    FavoriteToggle,
     OrderByCaption,
     ReadStateBar,
+    ShelfMenu,
   },
   props: {
     item: {
@@ -100,25 +100,24 @@ export default {
       selectManyActive: (state) => state.active,
       isSelected: (state) => state.isSelected,
     }),
-    ...mapState(useFavoritesStore, ["isFavorite"]),
+    ...mapState(useShelvesStore, ["isShelved"]),
     checked() {
       return this.isSelected(this.item);
     },
-    favoritePk() {
+    shelfPk() {
       /*
        * The toggle drives a single backend row. Cards that aggregate
        * multiple ids (folder rollups, story-arc cross-publisher
-       * cards) can't be favorited atomically — hide the star
+       * cards) can't be shelved atomically — hide the button
        * rather than guess which pk to write.
        */
       const ids = this.item?.ids;
       if (!Array.isArray(ids) || ids.length !== 1) return undefined;
       return ids[0];
     },
-    isFavoriteCard() {
+    isShelvedCard() {
       return Boolean(
-        this.favoritePk &&
-        this.isFavorite(this.item.collection, this.favoritePk),
+        this.shelfPk && this.isShelved(this.item.collection, this.shelfPk),
       );
     },
     readStateLabel() {
@@ -290,18 +289,21 @@ export default {
   }
 
   /*
-   * Favorite star sits in the top-right of the cover, stacked just
+   * Shelf button sits in the top-right of the cover, stacked just
    * below the childCount badge (also top-right) so the count circle
    * stays unobscured. Hidden by default so it doesn't compete with
    * the cover art; surfaces on card hover for discovery, and stays
-   * lit (full opacity) when the row is favorited so the user can
-   * scan a page for their starred items.
+   * lit (full opacity) when the row is on a shelf, so the user can
+   * scan a page for their shelved items, and while its menu is open.
    *
    * Sibling of ``.cardCoverOverlay`` — outside the router-link's
    * opacity-fade subtree, so the lit state is unaffected by the
    * controls' ``opacity: 0`` baseline.
+   *
+   * ``:deep`` because ShelfMenu's root is a VMenu, not the button, so
+   * this component's scope id never lands on the button itself.
    */
-  .cardFavoriteToggle {
+  .browserCardTop > :deep(.cardShelfMenu) {
     position: absolute !important;
     top: 1.75rem; // clears the ~1.5rem-tall ``.childCount`` badge
     right: 0px;
@@ -310,11 +312,12 @@ export default {
     transition: opacity 0.15s;
   }
 
-  .browserCardCoverWrapper:hover > .browserCardTop > .cardFavoriteToggle {
+  .browserCardCoverWrapper:hover > .browserCardTop > :deep(.cardShelfMenu) {
     opacity: 1;
   }
 
-  .cardFavoriteToggle.favoriteVisible {
+  .browserCardTop > :deep(.cardShelfMenu.shelvedVisible),
+  .browserCardTop > :deep(.cardShelfMenu.shelfMenuOpen) {
     opacity: 1;
   }
 
