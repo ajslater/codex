@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 
-from codex.views.opds.const import MimeType, Rel, TopRoutes
+from codex.views.opds.const import (
+    BookmarkFilters,
+    FavoriteFilters,
+    MimeType,
+    Rel,
+    TopRoutes,
+)
 
 DEFAULT_FACETS = MappingProxyType(
     {
@@ -53,16 +59,16 @@ class RootTopLinks:
     KEEP_READING = TopLink(
         TopRoutes.SERIES,
         Rel.FEATURED,
-        MimeType.NAV,
+        MimeType.ACQUISITION,
         {
             "topCollection": "series",
-            "filters": json.dumps({"bookmark": "IN_PROGRESS"}),
+            "filters": json.dumps(dict(BookmarkFilters.IN_PROGRESS)),
             "orderBy": "bookmark_updated_at",
             "orderReverse": True,
         },
         "👀",
         "Keep Reading",
-        "Issues in progress, recently read first.",
+        "Issues you have started, most recently read first.",
     )
     NEW_UNREAD = TopLink(
         TopRoutes.SERIES,
@@ -70,27 +76,45 @@ class RootTopLinks:
         MimeType.ACQUISITION,
         {
             "topCollection": "series",
+            "filters": json.dumps(dict(BookmarkFilters.UNREAD)),
             "orderBy": "created_at",
             "orderReverse": True,
         },
         "📥",
         "Latest Unread",
-        "Unread issues, latest added first.",
+        "Unread issues, newest additions first.",
     )
     OLD_UNREAD = TopLink(
         TopRoutes.SERIES,
         Rel.POPULAR,
-        MimeType.NAV,
+        MimeType.ACQUISITION,
         {
             "topCollection": "series",
-            "filters": json.dumps({"bookmark": "UNREAD"}),
+            "filters": json.dumps(dict(BookmarkFilters.UNREAD)),
             "orderBy": "date",
+            "orderReverse": False,
         },
         "📚",
         "Oldest Unread",
-        "Unread issues, oldest published first",
+        "Unread issues, oldest first.",
     )
     ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
+    # Not in ALL: only shown when the user has favorites. See
+    # ``OPDS1LinksView.root_top_links``.
+    FAVORITES = TopLink(
+        TopRoutes.SERIES,
+        Rel.FEATURED,
+        MimeType.ACQUISITION,
+        {
+            "topCollection": "series",
+            "filters": json.dumps(dict(FavoriteFilters.ONLY)),
+            "orderBy": "sort_name",
+            "orderReverse": False,
+        },
+        "★",
+        "Favorites",
+        "Issues you have favorited.",
+    )
 
 
 @dataclass
