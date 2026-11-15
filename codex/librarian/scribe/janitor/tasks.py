@@ -56,6 +56,10 @@ class JanitorCleanupFavoritesTask(JanitorTask):
     """Clean favorites whose target row no longer exists."""
 
 
+class JanitorKoreaderHashTask(JanitorTask):
+    """Backfill KOReader sync hashes for comics that lack them."""
+
+
 class JanitorCleanupTaggingStateTask(JanitorTask):
     """Clear orphan online tagging session and prompt state."""
 

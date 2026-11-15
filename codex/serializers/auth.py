@@ -84,6 +84,7 @@ class AdminFlagsSerializer(Serializer):
     """Admin flags + capability flags relevant to auth/registration."""
 
     banner_text = CharField(read_only=True, allow_blank=True)
+    koreader_sync = BooleanField(read_only=True)
     lazy_import_metadata = BooleanField(read_only=True)
     non_users = BooleanField(read_only=True)
     registration = BooleanField(read_only=True)

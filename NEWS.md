@@ -10,6 +10,11 @@ border-radius: 128px;
 
 ### ✨ Added
 
+- KOReader progress sync. Codex can be the sync server for KOReader's built in
+  Progress sync plugin, so a comic's reading position follows you between a
+  KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
+  follow the Profile dialog's KOReader Sync panel. Log in from KOReader with
+  your username and your Bearer Token.
 - OPDS v1 lists a Favorites entry on the start page when you have favorites, as
   OPDS v2 does.
 

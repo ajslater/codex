@@ -43,6 +43,7 @@ _FLAG_BOOLS: Final = MappingProxyType(
         AdminFlagChoices.AUTO_UPDATE.value: "auto_update",
         AdminFlagChoices.FOLDER_VIEW.value: "folder_view",
         AdminFlagChoices.IMPORT_METADATA.value: "import_metadata",
+        AdminFlagChoices.KOREADER_SYNC.value: "koreader_sync",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "lazy_import_metadata",
         AdminFlagChoices.NON_USERS.value: "non_users",
         AdminFlagChoices.REGISTRATION.value: "registration",

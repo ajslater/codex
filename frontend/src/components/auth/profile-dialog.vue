@@ -88,6 +88,7 @@
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
+      <KOReaderSync v-if="koreaderSync" :username="user.username" />
       <AuthTokenDialog :user="user" />
       <SubmitFooter
         verb="Save"
@@ -110,6 +111,7 @@ import CloseButton from "@/components/close-button.vue";
 import CodexListItem from "@/components/codex-list-item.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
 import AuthTokenDialog from "@/components/auth/auth-token.vue";
+import KOReaderSync from "@/components/auth/koreader-sync.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
@@ -126,6 +128,7 @@ export default {
     AuthTokenDialog,
     CloseButton,
     CodexListItem,
+    KOReaderSync,
     SubmitFooter,
   },
   mixins: [authFormMixin],
@@ -148,6 +151,7 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
       emailEnabled: (state) => state.adminFlags.emailEnabled,
+      koreaderSync: (state) => state.adminFlags.koreaderSync,
       remoteUserEnabled: (state) => state.adminFlags.remoteUserEnabled,
     }),
     ...mapWritableState(useAuthStore, ["showProfileDialog"]),
