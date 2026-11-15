@@ -436,10 +436,9 @@ class Timestamp(BaseModel):
     Keyed singleton holding a last-known ``value`` and an auto-updated ``updated_at``.
 
     Used by codex-version tracking, janitor last-run marker, and the
-    telemeter install UUID + last-send marker. The API key used to
-    live here too; it moved to :class:`AdminFlag` (key ``AK``) since
-    it was the one row that was admin-managed configuration rather
-    than internal operational state.
+    telemeter install UUID + last-send marker. The Stats API key used to
+    live here too; it moved to :class:`AdminFlag` (key ``AK``), and from
+    there to a hashed stats :class:`codex.models.api_key.UserApiKey`.
     """
 
     class Choices(TextChoices):

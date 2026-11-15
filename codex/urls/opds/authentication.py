@@ -4,6 +4,7 @@ from django.urls import path
 from django.views.decorators.cache import cache_page
 
 from codex.urls.const import COMMON_TIMEOUT
+from codex.urls.opds import opds_gate
 from codex.views.opds.authentication.v1 import OPDSAuthentication1View
 
 app_name = "auth"
@@ -12,7 +13,7 @@ app_name = "auth"
 urlpatterns = [
     path(
         "v1",
-        cache_page(COMMON_TIMEOUT)(OPDSAuthentication1View.as_view()),
+        opds_gate(cache_page(COMMON_TIMEOUT)(OPDSAuthentication1View.as_view())),
         name="v1",
     ),
 ]

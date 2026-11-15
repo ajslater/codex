@@ -281,10 +281,10 @@ SQLite file: the **user data sidecar**.
 
 #### What it contains
 
-Users (with hashed passwords), groups & permissions, group memberships,
-libraries and their access lists, bookmarks, shelves, per-user browser settings,
-admin flags, timestamps, online-tagging defaults, and the default settings for
-new sessions.
+Users (with hashed passwords), API keys (hashed too, so a restored key still
+logs in), groups & permissions, group memberships, libraries and their access
+lists, bookmarks, shelves, per-user browser settings, admin flags, timestamps,
+online-tagging defaults, and the default settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -384,8 +384,31 @@ fashion, so you likely won't find it unless you've added it yourself.
 
 ### 🗝️ API with Key Access
 
-Codex has a limited number of API endpoints available with API Key Access. The
-API Key is available on the admin/stats tab.
+Every API credential is an **API key**, made in the **API Access** dialog: the
+**OPDS & APIs** button at the bottom of the side drawer, or **Profile → API
+Access**. The dialog also lists the URL of each API you may use. Codex shows a
+key once, when you make it, and stores only a hash of it. Each kind of key logs
+in to some APIs only:
+
+| Key             | Logs in to                                               |
+| --------------- | -------------------------------------------------------- |
+| Device Key      | OPDS and KOReader sync                                   |
+| Stats key       | The admin Stats API, `/api/v4/admin/stats` (admins only) |
+| Universal Token | Everything, `/api/v4/` included (legacy, see below)      |
+
+**Stats keys.** Each admin makes their own. Send one as `?apiKey=<key>` or as
+`Authorization: Bearer <key>`. A Stats key logs in as the admin who made it and
+stops working if that user stops being an admin. Upgrading from an older version
+turns the old server-wide API key into the first admin's "Stats Key".
+
+**Universal Tokens.** Before v2.6.1 every user had one Authorization Bearer
+Token that logged in everywhere. Upgrading keeps each existing token as a key
+named "Universal Token", which works until you revoke it. It can no longer be
+shown or made again: replace it with Device Keys.
+
+**Turning APIs off.** The **APIs** group in **Admin → Settings** turns OPDS,
+KOReader Sync and Stats API keys on and off. An API that is off disappears from
+the API Access dialog, and the Stats tab keeps working with Stats API keys off.
 
 ### 📧 Email & Password Reset
 
@@ -912,15 +935,16 @@ Checklist for a forward-auth deployment:
 - Remote-User and OIDC can be enabled at the same time; they are independent
   paths to a normal Codex session.
 
-##### HTTP Token Authentication
+##### HTTP Token Authentication (legacy)
 
-You can also configure your proxy to add token authentication to the headers.
-Codex will read “Bearer” prefixed authorization tokens. The token is unique for
-each user and may be found in the User Profile accessible from the sidebar. You
-must configure your proxy or single sign on software to send this token.
+Codex still reads `Authorization: Bearer <token>` headers that carry a
+**Universal Token**: the per-user Authorization Bearer Token of versions before
+v2.6.1, kept on upgrade. A proxy that already sends one keeps working until the
+token is revoked in the API Access dialog. Codex no longer makes these tokens,
+so new setups should use Remote-User or OIDC above.
 
 ```nginx
-set              user_token 'user-token-taken-from-web-ui';
+set              user_token 'existing-universal-token';
 proxy_set_header Authorization "Bearer $user_token";
 ```
 
@@ -1019,14 +1043,18 @@ your administrator to reset your password if you forget it.
 
 ### ᯤ OPDS
 
-Codex supports OPDS syndication and OPDS streaming. You may find the OPDS url in
-the side drawer. It should take the form:
+Codex supports OPDS syndication and OPDS streaming. The OPDS URLs are in the
+**API Access** dialog: the **OPDS & APIs** button at the bottom of the side
+drawer. They take the form:
 
 `http(s)://host.tld(:9810)(/path_prefix)/opds/v1.2/`
 
 or
 
 `http(s)://host.tld(:9810)(/path_prefix)/opds/v2.0/`
+
+An admin can turn OPDS off with **Admin → Settings → APIs → OPDS**. Every OPDS
+URL then returns 404.
 
 #### OPDS v1 Clients
 
@@ -1058,7 +1086,7 @@ not supported.
 
 ##### Device Keys
 
-Give each reader app its own **Device Key**, made in **Profile → Device Keys**.
+Give each reader app its own **Device Key**, made in the **API Access** dialog.
 A device key is a password for one app or device: use it in place of your
 account password with HTTP Basic, or as a Bearer token. Each key has a name you
 choose, such as "Panels on iPad", shows when it was last used, and can be
@@ -1084,17 +1112,15 @@ to the URL. In that case the OPDS url will look like:
 
 `http(s)://username:password@codex-server.tld(:9810)(/path_prefix)/opds/v1.2/`
 
-The password may be a device key (recommended), your Authorization Bearer Token,
-or your account password.
+The password may be a device key (recommended), a Universal Token, or your
+account password.
 
 ##### HTTP Token
 
 Some clients allow adding a unique login token to the HTTP headers. Codex will
 read "Bearer" prefixed authorization tokens: `Authorization: Bearer <token>`.
-The token may be a device key, or your Authorization Bearer Token from the
-Profile dialog. The Bearer Token is your full API credential, one per user, and
-resetting it logs out every client that uses it, so prefer a device key per
-reader app.
+The token may be a device key or a Universal Token. A Universal Token logs in
+everywhere, so prefer a device key per reader app.
 
 #### Reading Positions
 
@@ -1163,23 +1189,24 @@ Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
 server, so a comic read on a KOReader device and in the Codex web reader keeps
 one reading position.
 
-1. An admin turns on **Admin → Flags → KOReader Sync**. Codex then hashes the
-   comics it already has so KOReader can recognize them. This reads a little of
-   each file and shows as a job on the Jobs tab. Comics imported later are
-   hashed as they are imported.
-2. Each user opens **Profile → KOReader Sync** in Codex, which shows the server
-   URL, for example `https://codex.example.com/koreader`, including any
-   reverse-proxy subpath.
+1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. Codex then
+   hashes the comics it already has so KOReader can recognize them. This reads a
+   little of each file and shows as a job on the Jobs tab. Comics imported later
+   are hashed as they are imported.
+2. Each user opens the **API Access** dialog in Codex (the **OPDS & APIs**
+   button at the bottom of the side drawer), which shows the server URL, for
+   example `https://codex.example.com/koreader`, including any reverse-proxy
+   subpath.
 3. In KOReader, open a book, then **Progress sync → Custom sync server** and
-   enter that URL. Log in with your Codex username and, as the password, a
-   **Device Key** made for that device in **Profile → Device Keys**. Revoking
-   the key logs out only that device. Your Authorization Bearer Token also works
-   as the password, but resetting it logs out every device. Your Codex login
-   password does not work here. KOReader cannot register new users on Codex.
-4. Choose **Document matching**. **Binary** identifies a book by its contents
-   and works for most libraries. If you write tags into your comics from Codex,
-   the file changes and binary matching loses it. Choose **Filename** instead,
-   which matches by file name.
+   enter that URL. Use **Register / Login** to log in with your Codex username
+   and, as the password, a **Device Key** made for that device in API Access.
+   Revoking the key logs out only that device. A Universal Token also works as
+   the password. Your Codex login password does not work here. KOReader cannot
+   register new users on Codex.
+4. Choose **Document matching method**. **Binary** identifies a book by its
+   contents and works for most libraries. If you write tags into your comics
+   from Codex, the file changes and binary matching loses it. Choose
+   **Filename** instead, which matches by file name.
 
 Limits:
 

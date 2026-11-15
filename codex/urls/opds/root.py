@@ -3,7 +3,7 @@
 from django.urls import include, path, re_path
 from django.views.generic.base import RedirectView
 
-from codex.urls.opds import opds_cached
+from codex.urls.opds import opds_cached, opds_gate
 from codex.views.opds.v2.feed import OPDS2StartView
 
 app_name = "opds"
@@ -27,8 +27,12 @@ urlpatterns = (
         name="start",
     ),
     path("v2.0/", include("codex.urls.opds.v2")),
-    re_path(r"auth.*", RedirectView.as_view(pattern_name="opds:auth:v1")),
-    re_path(r"v?1[\.\d]*", RedirectView.as_view(pattern_name="opds:v1:start")),
-    re_path(r"v?2[\.\d]*", RedirectView.as_view(pattern_name="opds:v2:start")),
-    path("", RedirectView.as_view(pattern_name="opds:v1:start")),
+    re_path(r"auth.*", opds_gate(RedirectView.as_view(pattern_name="opds:auth:v1"))),
+    re_path(
+        r"v?1[\.\d]*", opds_gate(RedirectView.as_view(pattern_name="opds:v1:start"))
+    ),
+    re_path(
+        r"v?2[\.\d]*", opds_gate(RedirectView.as_view(pattern_name="opds:v2:start"))
+    ),
+    path("", opds_gate(RedirectView.as_view(pattern_name="opds:v1:start"))),
 )

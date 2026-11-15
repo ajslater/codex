@@ -40,13 +40,20 @@ export const useAuthStore = defineStore("auth", {
      */
     defaults: undefined,
     defaultsRev: undefined,
-    token: undefined,
-    // The user's device keys, without the keys themselves.
-    deviceKeys: [],
+    // The user's API keys, of every scope, without the keys themselves.
+    apiKeys: [],
+    /*
+     * The paths of the APIs this visitor may use, from ``/api-urls``,
+     * reloaded each time the API Access dialog opens. ``apiUrlsError`` is
+     * why they failed to load, so the dialog can offer a retry instead of
+     * spinning forever.
+     */
+    apiUrls: undefined,
+    apiUrlsError: "",
     showLoginDialog: false,
     showChangePasswordDialog: false,
     showProfileDialog: false,
-    showAuthTokenDialog: false,
+    showApiAccessDialog: false,
     showResetPasswordRequestDialog: false,
   }),
   getters: {
@@ -171,10 +178,12 @@ export const useAuthStore = defineStore("auth", {
       } finally {
         this.user = undefined;
         /*
-         * Wipe per-user shelf state so a different account
-         * signing in next doesn't see the previous user's shelves.
+         * Wipe per-user shelf and key state so a different account
+         * signing in next doesn't see the previous user's.
          */
         useShelvesStore().clear();
+        this.apiKeys = [];
+        this.apiUrls = undefined;
         if (oidcLogoutUrl) {
           // Full-page redirect to end the IdP session; the ensuing
           // reload refreshes the flags on its own.
@@ -256,40 +265,36 @@ export const useAuthStore = defineStore("auth", {
         }
       }
     },
-    async getToken() {
+    async loadApiUrls() {
+      // No cache: an admin may have turned an API on or off since.
+      this.apiUrls = undefined;
+      this.apiUrlsError = "";
       try {
-        const response = await API.getToken();
-        this.token = response.data.token;
+        const response = await API.getApiUrls();
+        this.apiUrls = Object.freeze({ ...response.data });
       } catch (error) {
+        this.apiUrlsError = "Could not load the API URLs.";
         console.error(error);
       }
     },
-    async updateToken() {
+    async loadApiKeys() {
       try {
-        const response = await API.updateToken();
-        this.token = response.data.token;
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async loadDeviceKeys() {
-      try {
-        const response = await API.getDeviceKeys();
-        this.deviceKeys = response.data?.keys || [];
+        const response = await API.getApiKeys();
+        this.apiKeys = response.data?.keys || [];
       } catch (error) {
         console.error(error);
       }
     },
     /*
-     * Create a device key. Resolves to the new key's plain value, which the
+     * Create an API key. Resolves to the new key's plain value, which the
      * server sends only this once, or undefined when it refuses.
      */
-    async createDeviceKey(name) {
+    async createApiKey({ name, scope }) {
       const commonStore = useCommonStore();
       try {
-        const response = await API.createDeviceKey(name);
+        const response = await API.createApiKey({ name, scope });
         const { key, ...listed } = response.data;
-        this.deviceKeys = [...this.deviceKeys, listed].sort((a, b) =>
+        this.apiKeys = [...this.apiKeys, listed].sort((a, b) =>
           a.name.localeCompare(b.name),
         );
         commonStore.clearErrors();
@@ -298,14 +303,14 @@ export const useAuthStore = defineStore("auth", {
         commonStore.setErrors(error);
       }
     },
-    async deleteDeviceKey(pk) {
+    async deleteApiKey(pk) {
       try {
-        await API.deleteDeviceKey(pk);
+        await API.deleteApiKey(pk);
       } catch (error) {
         console.error(error);
         return false;
       }
-      this.deviceKeys = this.deviceKeys.filter((row) => row.pk !== pk);
+      this.apiKeys = this.apiKeys.filter((row) => row.pk !== pk);
       return true;
     },
   },

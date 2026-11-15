@@ -18,7 +18,10 @@
         <v-divider />
       </div>
       <div id="scrollFooter" class="footer">
-        <OPDSDialog v-if="isAuthorized" />
+        <template v-if="isAuthorized">
+          <ApiAccessButton />
+          <ApiAccessDialog />
+        </template>
         <DocsFooter />
       </div>
     </div>
@@ -34,9 +37,10 @@
 import { mapActions, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
+import ApiAccessButton from "@/components/api-access/api-access-button.vue";
+import ApiAccessDialog from "@/components/api-access/api-access-dialog.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
 import DocsFooter from "@/components/settings/docs-footer.vue";
-import OPDSDialog from "@/components/settings/opds-dialog.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -49,9 +53,10 @@ const AdminMenu = markRaw(
 export default {
   name: "SettingsDrawer",
   components: {
+    ApiAccessButton,
+    ApiAccessDialog,
     AuthMenu,
     DocsFooter,
-    OPDSDialog,
     VersionFooter,
   },
   props: {

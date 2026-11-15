@@ -575,7 +575,6 @@ def _get_installed_apps(features: FeatureFlags) -> tuple[str, ...]:
         "servestatic.runserver_nostatic",
         "django.contrib.staticfiles",
         "rest_framework",
-        "rest_framework.authtoken",
         "rest_registration",
         # allauth apps are installed unconditionally (like rest_registration);
         # OIDC behavior is gated at runtime on the OIDCSettings singleton.
@@ -953,9 +952,11 @@ if DEBUG:
 # first so proxy-forwarded ``Remote-User`` API requests authenticate
 # without ``SessionAuthentication``'s CSRF enforcement (the proxy is
 # the auth authority; API clients there carry no CSRF token).
+# The Bearer class takes only the universal keys migrated from older
+# versions' bearer tokens: no other key logs in to ``/api/v4/``.
 _AUTHENTICATION_CLASSES = [
     "rest_framework.authentication.SessionAuthentication",
-    "codex.authentication.BearerTokenAuthentication",
+    "codex.authentication.ApiKeyBearerAuthentication",
 ]
 if AUTH_REMOTE_USER:
     _AUTHENTICATION_CLASSES.insert(
@@ -1028,6 +1029,9 @@ REST_REGISTRATION = {
     # an integrity hazard. Disable the structural check accordingly — this is
     # the package's sanctioned escape hatch for exactly this configuration.
     "USER_LOGIN_FIELDS_UNIQUE_CHECK_ENABLED": False,
+    # Logging in makes a session, never a token: nothing mints new
+    # credentials for the whole of ``/api/v4/``.
+    "LOGIN_RETRIEVE_TOKEN": False,
     # rest-registration treats email as read-only by default (it expects
     # changes to flow through its register-email -> verify-email
     # handshake). Codex doesn't run that flow; profile dialog edits the

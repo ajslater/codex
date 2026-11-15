@@ -5,7 +5,8 @@ The endpoints speak koreader-sync-server's protocol under ``/koreader/``.
 What these tests pin:
 
 * Every route 404s while the KOReader Sync flag is off.
-* Credentials are the Codex username and the MD5 of the user's API token.
+* Credentials are the Codex username and the MD5 of one of the user's
+  device keys.
   Sessions and Non Users never authenticate these views.
 * A push for a comic that is unknown, or behind the library-group or
   age-rating ACL, is a 200 that stores nothing, and a pull for one is
@@ -30,7 +31,6 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.urls.base import set_script_prefix
 from loguru import logger
-from rest_framework.authtoken.models import Token
 
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
@@ -52,6 +52,7 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.auth import GroupAuth, UserAuth
 from codex.startup import init_admin_flags
 from codex.views.koreader.progress import CODEX_DEVICE_ID, map_push
@@ -83,7 +84,7 @@ def _set_flag(*, on: bool) -> None:
 
 
 class KOSyncTestCase(TestCase):
-    """Fixture: an open comic, a private one and a user with a token."""
+    """Fixture: an open comic, a private one and a user with a device key."""
 
     @override
     def setUp(self) -> None:
@@ -115,7 +116,7 @@ class KOSyncTestCase(TestCase):
         )
 
         self.user = User.objects.create_user(username="reader", password="x")  # noqa: S106 # pyright: ignore[reportUninitializedInstanceVariable]
-        self.token = Token.objects.create(user=self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
+        _, self.key = UserApiKey.create_for_user(self.user, "KOReader")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.client = Client()
 
     @override
@@ -144,7 +145,7 @@ class KOSyncTestCase(TestCase):
         return {
             "HTTP_ACCEPT": _ACCEPT,
             "HTTP_X_AUTH_USER": user if user is not None else self.user.username,
-            "HTTP_X_AUTH_KEY": key if key is not None else _md5(self.token.key),
+            "HTTP_X_AUTH_KEY": key if key is not None else _md5(self.key),
         }
 
     def _push(
@@ -246,19 +247,19 @@ class KOSyncFlagTestCase(KOSyncTestCase):
 
 
 class KOSyncAuthTestCase(KOSyncTestCase):
-    """Username plus the MD5 of the API token."""
+    """Username plus the MD5 of a device key."""
 
     def test_good_credentials(self) -> None:
-        """The token's MD5, as KOReader sends it, authorizes."""
+        """The key's MD5, as KOReader sends it, authorizes."""
         response = self.client.get("/koreader/users/auth", **self._headers())
         assert response.status_code == _HTTP_OK
         assert response.json() == {"authorized": "OK"}
 
     def test_bad_credentials(self) -> None:
-        """Wrong key, raw token, login password, unknown user, no headers."""
+        """Wrong key, raw key, login password, unknown user, no headers."""
         attempts: tuple[dict[str, Any], ...] = (
             self._headers(key=_md5("wrong")),
-            self._headers(key=self.token.key),
+            self._headers(key=self.key),
             self._headers(key=_md5("x")),
             self._headers(user="nobody"),
             {"HTTP_ACCEPT": _ACCEPT},

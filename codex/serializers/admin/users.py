@@ -35,7 +35,7 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
         read_only=True, source="userauth.updated_at", allow_null=True
     )
     # Annotated by AdminUserViewSet's queryset; absent on a fresh create.
-    device_key_count = IntegerField(read_only=True, default=0)
+    api_key_count = IntegerField(read_only=True, default=0)
     age_rating_metron = PrimaryKeyRelatedField(
         queryset=AgeRatingMetron.objects.all(),
         source="userauth.age_rating_metron",
@@ -59,14 +59,14 @@ class UserSerializer(BaseModelSerializer, PasswordSerializerMixin):
             "last_login",
             "date_joined",
             "age_rating_metron",
-            "device_key_count",
+            "api_key_count",
         )
         read_only_fields = (
             "pk",
             "last_active",
             "last_login",
             "date_joined",
-            "device_key_count",
+            "api_key_count",
         )
         extra_kwargs = {  # noqa: RUF012
             "email": {"required": False, "allow_blank": True},

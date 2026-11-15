@@ -11,7 +11,6 @@ class AdminFlagChoices(TextChoices):
     """Choices for Admin Flags."""
 
     ANONYMOUS_USER_AGE_RATING = "AA"
-    API_KEY = "AK"
     AGE_RATING_DEFAULT = "AR"
     AUTO_UPDATE = "AU"
     BANNER_TEXT = "BT"
@@ -22,15 +21,16 @@ class AdminFlagChoices(TextChoices):
     LAZY_IMPORT_METADATA = "LI"
     BROWSER_MAX_OBJ_PER_PAGE = "MP"
     NON_USERS = "NU"
+    OPDS = "OP"
     REGISTRATION = "RG"
     REGISTER_VERIFICATION = "RV"
+    STATS_API = "SA"
     SEND_TELEMETRY = "ST"
 
 
 ADMIN_FLAG_CHOICES = MappingProxyType(
     {
         AdminFlagChoices.ANONYMOUS_USER_AGE_RATING.value: "Anonymous User Age Rating",
-        AdminFlagChoices.API_KEY.value: "API Key",
         AdminFlagChoices.AGE_RATING_DEFAULT.value: "Age Rating Default",
         AdminFlagChoices.AUTO_UPDATE.value: "Auto Update",
         AdminFlagChoices.BANNER_TEXT.value: "Banner Text",
@@ -43,8 +43,10 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         AdminFlagChoices.KOREADER_SYNC.value: "KOReader Sync",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Tags on Demand",
         AdminFlagChoices.NON_USERS.value: "Non Users",
+        AdminFlagChoices.OPDS.value: "OPDS",
         AdminFlagChoices.REGISTRATION.value: "Registration",
         AdminFlagChoices.REGISTER_VERIFICATION.value: "Verify New User Email",
+        AdminFlagChoices.STATS_API.value: "Stats API Keys",
         AdminFlagChoices.SEND_TELEMETRY.value: "Send Stats",
     }
 )

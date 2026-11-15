@@ -42,6 +42,9 @@ USERNAME_MAX_LENGTH: Final = 150
 GROUP_NAME_MAX_LENGTH: Final = 150
 EMAIL_MAX_LENGTH: Final = 254
 
+#: An API key's name, which its owner types.
+API_KEY_NAME_MAX_LENGTH: Final = 64
+
 #: ``(min, max)`` pairs. The SMTP pair replaces bounds Django derived
 #: from the SQLite integer range, which accepted port 0 and port 70000.
 SMTP_PORT: Final = (1, 65535)
@@ -66,6 +69,7 @@ LIMITS = MappingProxyType(
         "username_max_length": USERNAME_MAX_LENGTH,
         "group_name_max_length": GROUP_NAME_MAX_LENGTH,
         "email_max_length": EMAIL_MAX_LENGTH,
+        "api_key_name_max_length": API_KEY_NAME_MAX_LENGTH,
         "smtp_port": SMTP_PORT,
         "smtp_timeout_seconds": SMTP_TIMEOUT_SECONDS,
         "custom_cover_max_upload_mb": CUSTOM_COVER_MAX_UPLOAD_MB,

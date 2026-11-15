@@ -92,6 +92,21 @@ CREATE TABLE IF NOT EXISTS shelf_items (
     PRIMARY KEY (username, shelf_name, collection, identifier_json)
 );
 
+-- A user's API keys, as hashes only: the plain key is never stored, so a
+-- backup can restore a key that still logs in without ever holding it.
+-- Names are unique per user, so (username, name) is the stable key.
+CREATE TABLE IF NOT EXISTS api_keys (
+    username TEXT NOT NULL,
+    name TEXT NOT NULL,
+    scope TEXT NOT NULL DEFAULT 'device',
+    prefix TEXT NOT NULL DEFAULT '',
+    digest TEXT NOT NULL,
+    kosync_digest TEXT NOT NULL DEFAULT '',
+    created_at TEXT,
+    last_used_at TEXT,
+    PRIMARY KEY (username, name)
+);
+
 -- Per-user, per-client browser settings rows.
 -- Anonymous-session rows are skipped (username IS NULL is never inserted).
 CREATE TABLE IF NOT EXISTS settings_browser (

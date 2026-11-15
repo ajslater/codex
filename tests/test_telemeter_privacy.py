@@ -16,8 +16,10 @@ from uuid import uuid4
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.api_key import ApiKeyScope
 from codex.collection import Collection
 from codex.librarian.telemeter.stats import CodexStats
 from codex.models.admin import (
@@ -225,9 +227,6 @@ class TelemeterPrivacyTestCase(TestCase):
         AdminFlag.objects.filter(key=AdminFlagChoices.BANNER_TEXT.value).update(
             value=f"{SENTINEL}-banner"
         )
-        AdminFlag.objects.filter(key=AdminFlagChoices.API_KEY.value).update(
-            value=f"{SENTINEL}-api-key"
-        )
         library = Library.objects.create(path=str(_LIBRARY_DIR), read_only=True)
         source = IdentifierSource.objects.create(name=f"{SENTINEL}-source")
         Identifier.objects.create(
@@ -253,9 +252,20 @@ class TelemeterPrivacyTestCase(TestCase):
         ShelfItem.objects.create(
             shelf=shelf, collection=Collection.SERIES.value, target_id=1
         )
-        # A device key's name is free text too, and its prefix is part of a
-        # credential. Seeded on the same user so the user count is one.
-        UserApiKey.create_for_user(user, f"{SENTINEL}-device-key")
+        # An API key's name is free text too, and its prefix is part of a
+        # credential. One of each scope, seeded on the same user so the user
+        # count is one; the device and universal keys have been used, so
+        # their timestamps are set and must not be what is reported.
+        device, _ = UserApiKey.create_for_user(user, f"{SENTINEL}-device-key")
+        universal = UserApiKey.adopt(
+            user, f"{SENTINEL}-universal", ApiKeyScope.UNIVERSAL, f"{SENTINEL}-token"
+        )
+        UserApiKey.adopt(
+            user, f"{SENTINEL}-stats", ApiKeyScope.STATS, f"{SENTINEL}-stats-key"
+        )
+        UserApiKey.objects.filter(pk__in=(device.pk, universal.pk)).update(
+            last_used_at=timezone.now()
+        )
 
     @staticmethod
     def _seed_comic(library: Library) -> None:
@@ -326,16 +336,20 @@ class TelemeterPrivacyTestCase(TestCase):
         assert usage["shelf_item_count"] == 1
         assert usage["shelf_items"] == {Collection.SERIES.value: 1}
 
-    def test_device_keys_report_counts_only(self) -> None:
+    def test_api_keys_report_counts_only(self) -> None:
         """
-        Report two integers.
+        Report integers and one boolean.
 
-        The name is the sentinel; the closed-vocabulary walk covers the
-        prefix and timestamps.
+        The names are the sentinel; the closed-vocabulary walk covers the
+        prefixes and timestamps. Device counts leave the other scopes out.
         """
-        usage = CodexStats().get()["usage"]
+        stats = CodexStats().get()
+        usage = stats["usage"]
         assert usage["device_key_count"] == 1
         assert usage["device_key_user_count"] == 1
+        assert usage["device_key_used_count"] == 1
+        assert usage["universal_key_used_count"] == 1
+        assert stats["admin_flags"]["api_key_set"] is True
 
     def test_unknown_identifier_source_collapsed(self) -> None:
         """A source name from a comic file is replaced by "other"."""

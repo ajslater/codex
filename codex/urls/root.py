@@ -13,6 +13,7 @@ from codex.urls.converters import (
     CollectionConverter,
     IntListConverter,
 )
+from codex.urls.opds import opds_gate
 from codex.views.healthcheck import health_check_view
 
 register_converter(IntListConverter, "int_list")
@@ -48,7 +49,7 @@ urlpatterns += [
     # without a namespace. The views 404 when no OIDC app is configured.
     path("sso/", include("allauth.socialaccount.providers.openid_connect.urls")),
     path("opds/", include("codex.urls.opds.root")),
-    path("opds", RedirectView.as_view(pattern_name="opds:v1:start")),
+    path("opds", opds_gate(RedirectView.as_view(pattern_name="opds:v1:start"))),
     path("koreader/", include("codex.urls.koreader")),
     path("health", health_check_view, name="healthcheck"),
     path("", include("codex.urls.pwa")),

@@ -4,6 +4,7 @@ from django.urls import path
 from django.views.decorators.vary import vary_on_headers
 
 from codex.urls.const import PAGE_MAX_AGE
+from codex.urls.opds import opds_gate
 from codex.views.opds.binary import (
     OPDSCoverView,
     OPDSCustomCoverView,
@@ -20,7 +21,9 @@ urlpatterns = [
     # Reader
     path(
         "c/<int:pk>/<int:page>/page.jpg",
-        cache_control_2xx(max_age=PAGE_MAX_AGE, public=True)(OPDSPageView.as_view()),
+        opds_gate(
+            cache_control_2xx(max_age=PAGE_MAX_AGE, public=True)(OPDSPageView.as_view())
+        ),
         name="page",
     ),
     #
@@ -33,17 +36,19 @@ urlpatterns = [
     # responses across auth types or users.
     path(
         "c/<int:pk>/cover.webp",
-        vary_on_headers("Cookie", "Authorization")(OPDSCoverView.as_view()),
+        opds_gate(vary_on_headers("Cookie", "Authorization")(OPDSCoverView.as_view())),
         name="cover",
     ),
     path(
         "custom_cover/<int:pk>/cover.webp",
-        vary_on_headers("Cookie", "Authorization")(OPDSCustomCoverView.as_view()),
+        opds_gate(
+            vary_on_headers("Cookie", "Authorization")(OPDSCustomCoverView.as_view())
+        ),
         name="custom_cover",
     ),
     path(
         "c/<int:pk>/download/<str:filename>",
-        OPDSDownloadView.as_view(),
+        opds_gate(OPDSDownloadView.as_view()),
         name="download",
     ),
 ]

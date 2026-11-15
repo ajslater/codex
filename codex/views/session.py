@@ -5,8 +5,9 @@ Composite session bootstrap endpoint.
 version}`` (plus ``defaults`` and ``defaultsRev`` for callers who may
 browse) in a single request so the SPA boots without the two-call
 ``/auth/profile`` + ``/auth/flags`` handshake that v3 used.
-``opds-urls`` is intentionally *not* bundled — those URLs are rarely
-opened, so they stay on their own lazy ``/api/v4/opds-urls`` endpoint.
+``api-urls`` is intentionally *not* bundled — those URLs are rarely
+opened, so they stay on their own lazy ``/api/v4/api-urls`` endpoint,
+which the API Access dialog reloads every time it opens.
 """
 
 from typing import override
@@ -44,15 +45,11 @@ _PUBLIC_ADMIN_FLAG_KEYS = (
     AdminFlagChoices.REGISTER_VERIFICATION.value,
 )
 # Behaviour flags only the authenticated UI reads: lazy import lives on
-# book cards behind the browser, KOReader sync shows its setup in the
-# profile dialog, and ``remote_user_enabled`` (computed
+# book cards behind the browser, and ``remote_user_enabled`` (computed
 # in ``_admin_flags``) only drives the profile dialog. Withheld from
 # anonymous callers now that ``/session`` is public, so an unauthed boot
 # discloses nothing beyond what the logged-out screen actually needs.
-_PRIVATE_ADMIN_FLAG_KEYS = (
-    AdminFlagChoices.KOREADER_SYNC.value,
-    AdminFlagChoices.LAZY_IMPORT_METADATA.value,
-)
+_PRIVATE_ADMIN_FLAG_KEYS = (AdminFlagChoices.LAZY_IMPORT_METADATA.value,)
 
 
 class SessionView(AuthGenericAPIView):

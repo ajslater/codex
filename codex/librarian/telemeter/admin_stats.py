@@ -4,9 +4,9 @@ Anonymous stats for admin configuration.
 Everything here is a count, a boolean or a value from a closed vocabulary.
 Nothing an administrator typed may leave the process: no credentials (the
 encrypted fields), no urls or hostnames, no filesystem paths, no group,
-provider or account names, no banner text and no api key. Where the useful
-signal is "did they configure this at all", report a ``*_set`` boolean
-instead of the value.
+provider or account names, no banner text, and nothing of an API key but
+whether one exists. Where the useful signal is "did they configure this at
+all", report a ``*_set`` boolean instead of the value.
 """
 
 from types import MappingProxyType
@@ -16,6 +16,7 @@ from comicbox.formats.base.online import SOURCE_NAMES
 from django.conf import settings
 
 from codex.choices.admin import AdminFlagChoices
+from codex.choices.api_key import ApiKeyScope
 from codex.choices.browser import BROWSER_BOOKMARK_FILTER_CHOICES
 from codex.collection import Collection
 from codex.models.admin import (
@@ -26,6 +27,7 @@ from codex.models.admin import (
     SettingsDefaults,
     ThrottleSettings,
 )
+from codex.models.api_key import UserApiKey
 from codex.models.auth import GroupAuth, UserAuth
 from codex.settings.db import (
     get_email_settings,
@@ -46,15 +48,16 @@ _FLAG_BOOLS: Final = MappingProxyType(
         AdminFlagChoices.KOREADER_SYNC.value: "koreader_sync",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "lazy_import_metadata",
         AdminFlagChoices.NON_USERS.value: "non_users",
+        AdminFlagChoices.OPDS.value: "opds",
         AdminFlagChoices.REGISTRATION.value: "registration",
         AdminFlagChoices.REGISTER_VERIFICATION.value: "register_verification",
         AdminFlagChoices.SEND_TELEMETRY.value: "send_telemetry",
+        AdminFlagChoices.STATS_API.value: "stats_api",
     }
 )
-# Flags carrying a secret or admin-authored string. Only "is it set" ships.
+# Flags carrying an admin-authored string. Only "is it set" ships.
 _FLAG_SET_ONLY: Final = MappingProxyType(
     {
-        AdminFlagChoices.API_KEY.value: "api_key_set",
         AdminFlagChoices.BANNER_TEXT.value: "banner_text_set",
     }
 )
@@ -162,6 +165,10 @@ def get_admin_flag_stats() -> dict[str, Any]:
     stats: dict[str, Any] = {}
     for flag in AdminFlag.objects.select_related("age_rating_metron"):
         _add_flag(stats, flag)
+    # Was "the Stats API key flag holds a key"; the keys are rows now.
+    stats["api_key_set"] = UserApiKey.objects.filter(
+        scope=ApiKeyScope.STATS.value
+    ).exists()
     _add_settings_defaults(stats)
     return stats
 

@@ -37,6 +37,7 @@ _TRACKED_TABLES: Final[tuple[str, ...]] = (
     "bookmarks",
     "shelves",
     "shelf_items",
+    "api_keys",
     "settings_browser",
     "settings_filters",
     "settings_last_route",
@@ -103,6 +104,7 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         SettingsDefaults,
         Timestamp,
     )
+    from codex.models.api_key import UserApiKey
     from codex.models.bookmark import Bookmark
     from codex.models.library import Library
     from codex.models.settings import (
@@ -166,6 +168,11 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         store,
         ShelfItem.objects.select_related("shelf__user"),
         serializers.serialize_shelf_item,
+    )
+    counts["api_keys"] = _dump_queryset(
+        store,
+        UserApiKey.objects.select_related("user"),
+        serializers.serialize_api_key,
     )
     counts["settings_browser"] = _dump_queryset(
         store,

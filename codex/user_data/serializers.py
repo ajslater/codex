@@ -153,6 +153,24 @@ def serialize_shelf(shelf) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     )
 
 
+def serialize_api_key(api_key) -> tuple[str, tuple[str, ...], dict[str, Any]]:
+    """Serialize an API key row keyed by ``(username, name)``, as hashes only."""
+    return (
+        "api_keys",
+        ("username", "name"),
+        {
+            "username": api_key.user.username,
+            "name": api_key.name,
+            "scope": api_key.scope,
+            "prefix": api_key.prefix,
+            "digest": api_key.digest,
+            "kosync_digest": api_key.kosync_digest,
+            "created_at": _datetime_str(api_key.created_at),
+            "last_used_at": _datetime_str(api_key.last_used_at),
+        },
+    )
+
+
 def serialize_shelf_item(
     item,
 ) -> tuple[str, tuple[str, ...], dict[str, Any]] | None:

@@ -81,7 +81,6 @@ function wrapJsonApi(resourceType, data, { pk } = {}) {
  * v4 admin CRUD factory. Conventions:
  *   - Paths are plural (``users``, ``groups``, ``libraries``).
  *   - Updates use PATCH (partial_update).
- *   - api-key regeneration is POST.
  *   - custom-cover endpoints live under ``custom-covers`` + actions.
  *   - Librarian status lives under ``tasks``; task enqueue is ``tasks/run``.
  */
@@ -170,8 +169,9 @@ export const changeUserPassword = (pk, data) =>
 export const sendUserVerificationEmail = (pk) =>
   HTTP.post(`/admin/users/${pk}/send-verification`);
 
-export const revokeUserDeviceKeys = (pk) =>
-  HTTP.post(`/admin/users/${pk}/revoke-device-keys`);
+// Every API key the user has, of every scope.
+export const revokeUserKeys = (pk) =>
+  HTTP.post(`/admin/users/${pk}/revoke-keys`);
 
 export const getFolders = (path, showHidden) =>
   HTTP.get("/admin/folders", { params: { path, showHidden } });
@@ -192,11 +192,6 @@ export const getStats = () =>
 // comicbox's doctor report: one row per environment check.
 export const getDoctorReport = () =>
   HTTP.get("/admin/doctor", { params: { ts: Date.now() } });
-
-export const getAPIKey = () =>
-  HTTP.get("/admin/api-key", { params: { ts: Date.now() } });
-
-export const updateAPIKey = () => HTTP.post("/admin/api-key");
 
 export const getTaggingDefaults = () =>
   HTTP.get("/admin/tagging-defaults", { params: { ts: Date.now() } });

@@ -10,7 +10,9 @@ import pytest
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 
+from codex.choices.api_key import ApiKeyScope
 from codex.models.admin import AdminFlag, Timestamp
+from codex.models.api_key import UserApiKey
 from codex.models.settings import SettingsBrowser, SettingsBrowserShow
 from codex.user_data.dump import _clear_sidecar, dump_user_data
 from codex.user_data.store import SidecarStore, reset_store_for_tests
@@ -89,14 +91,29 @@ class DumpUserDataTests(TestCase):
         usernames = {r["username"] for r in self.store.fetchall("users")}
         assert "alice" not in usernames
 
+    def test_dump_api_keys_as_hashes_only(self) -> None:
+        """A key row carries its hashes, never the key."""
+        user = User.objects.create_user(username="alice", password=_TEST_PASSWORD)
+        api_key, key = UserApiKey.create_for_user(user, "Kobo")
+
+        counts = dump_user_data()
+
+        assert counts["api_keys"] == 1
+        (row,) = self.store.fetchall("api_keys")
+        assert row["username"] == "alice"
+        assert row["name"] == "Kobo"
+        assert row["scope"] == ApiKeyScope.DEVICE
+        assert row["digest"] == api_key.digest
+        assert row["kosync_digest"] == api_key.kosync_digest
+        assert key not in {str(value) for value in tuple(row)}
+
     def test_dump_round_trip_admin_flag(self) -> None:
         """AdminFlag rows round-trip into the sidecar with the right column shape."""
         AdminFlag.objects.update_or_create(
             key="AU", defaults={"on": False, "value": "off"}
         )
-        # The API key moved to AdminFlag.AK; codex-version stays on
-        # Timestamp.VR. The Timestamp ``version`` column was renamed
-        # to ``value`` in migration 0052.
+        # Codex-version stays on Timestamp.VR. The Timestamp ``version``
+        # column was renamed to ``value`` in migration 0052.
         Timestamp.objects.update_or_create(key="VR", defaults={"value": "1.2.3"})
 
         dump_user_data()

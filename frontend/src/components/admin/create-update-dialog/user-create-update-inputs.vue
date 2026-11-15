@@ -68,15 +68,37 @@
       hide-details="auto"
       :placeholder="UNRESTRICTED_LABEL"
     />
+    <!--
+      Revoking every key logs out every app and device at once, so it
+      lives here behind a confirmation, not as a one-click button in the
+      Users table.
+    -->
+    <div v-if="oldRow" class="userKeys">
+      <template v-if="oldRow.apiKeyCount">
+        <span>API Keys: {{ oldRow.apiKeyCount }}</span>
+        <ConfirmDialog
+          button-text="Revoke all keys"
+          title-text="Revoke all keys"
+          :text="revokeText"
+          confirm-text="Revoke"
+          color="error"
+          variant="tonal"
+          size="small"
+          @confirm="revokeUserKeys(oldRow.pk)"
+        />
+      </template>
+      <span v-else>No API keys.</span>
+    </div>
   </div>
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import LIMITS from "@/choices/limits.json";
 import AdminRelationPicker from "@/components/admin/create-update-dialog/relation-picker.vue";
 import createUpdateInputsMixin from "@/components/admin/create-update-dialog/create-update-inputs-mixin.js";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { UNRESTRICTED_LABEL, useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -104,6 +126,7 @@ export default {
   name: "AdminUserCreateUpdateInputs",
   components: {
     AdminRelationPicker,
+    ConfirmDialog,
   },
   mixins: [createUpdateInputsMixin],
   data() {
@@ -144,6 +167,13 @@ export default {
       ageRatingMetrons: (state) => state.ageRatingMetrons,
     }),
     ...mapState(useAuthStore, {}),
+    revokeText() {
+      return (
+        `Revoke all of ${this.oldRow.username}'s API keys? Every app and` +
+        " device using one is logged out until it gets a new key. A" +
+        " Universal Token cannot be made again."
+      );
+    },
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },
@@ -155,7 +185,21 @@ export default {
       return this.ageRatingMetrons || [];
     },
   },
+  methods: {
+    // Reports its own errors; the table reload brings the new count.
+    ...mapActions(useAdminStore, ["revokeUserKeys"]),
+  },
   UPDATE_KEYS,
   EMPTY_ROW,
 };
 </script>
+
+<style scoped lang="scss">
+.userKeys {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+</style>
