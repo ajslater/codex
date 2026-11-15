@@ -18,6 +18,7 @@ class AdminFlagChoices(TextChoices):
     CUSTOM_COVER_MAX_UPLOAD_MB = "CM"
     FOLDER_VIEW = "FV"
     IMPORT_METADATA = "IM"
+    KOREADER_SYNC = "KS"
     LAZY_IMPORT_METADATA = "LI"
     BROWSER_MAX_OBJ_PER_PAGE = "MP"
     NON_USERS = "NU"
@@ -39,6 +40,7 @@ ADMIN_FLAG_CHOICES = MappingProxyType(
         ),
         AdminFlagChoices.FOLDER_VIEW.value: "Folder View",
         AdminFlagChoices.IMPORT_METADATA.value: "Import Tags on Library Scan",
+        AdminFlagChoices.KOREADER_SYNC.value: "KOReader Sync",
         AdminFlagChoices.LAZY_IMPORT_METADATA.value: "Import Tags on Demand",
         AdminFlagChoices.NON_USERS.value: "Non Users",
         AdminFlagChoices.REGISTRATION.value: "Registration",

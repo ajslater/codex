@@ -158,6 +158,7 @@ class StatsAdminFlagsSerializer(Serializer):
     auto_update = BooleanField(required=False, read_only=True)
     folder_view = BooleanField(required=False, read_only=True)
     import_metadata = BooleanField(required=False, read_only=True)
+    koreader_sync = BooleanField(required=False, read_only=True)
     lazy_import_metadata = BooleanField(required=False, read_only=True)
     non_users = BooleanField(required=False, read_only=True)
     registration = BooleanField(required=False, read_only=True)

@@ -8,6 +8,10 @@
     "keys": ["IM", "LI"]
   },
   {
+    "title": "Sync",
+    "keys": ["KS"]
+  },
+  {
     "title": "System",
     "keys": ["AU", "ST"]
   }

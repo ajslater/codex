@@ -122,6 +122,15 @@ class JanitorCleanupFavoritesStatus(JanitorStatus):
     ITEM_NAME = "orphan favorites"
 
 
+class JanitorKoreaderHashStatus(JanitorStatus):
+    """Janitor KOReader Hash Backfill Status."""
+
+    CODE = "JKH"
+    VERB = "Hash"
+    _verbed = "Hashed"
+    ITEM_NAME = "comics for KOReader sync"
+
+
 class JanitorCleanupTaggingStateStatus(JanitorStatus):
     """Janitor Cleanup Online Tagging State Status."""
 
@@ -205,6 +214,7 @@ JANITOR_STATII = (
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
+    JanitorKoreaderHashStatus,
     JanitorCleanupTaggingStateStatus,
     JanitorDBFKIntegrityStatus,
     JanitorDBIntegrityStatus,

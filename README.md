@@ -62,6 +62,7 @@ border-radius: 128px;
 ### 🔌 Integrations
 
 - **OPDS 1 & 2** syndication with streaming, search, and authentication.
+- **KOReader progress sync** through KOReader's built in Progress sync plugin.
 - **OIDC single sign-on** with identity providers like Authentik and Authelia.
 - **Remote-User HTTP header SSO** for reverse-proxy single sign-on (tinyauth,
   Authelia, Authentik proxy mode).
@@ -1134,6 +1135,40 @@ outage is lost -- it becomes readable again when the file returns.
 ##### OpenSearch v1
 
 - [OpenSearch 1.1 (draft)](https://github.com/dewitt/opensearch)
+
+### 📲 KOReader Progress Sync
+
+Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
+server, so a comic read on a KOReader device and in the Codex web reader keeps
+one reading position.
+
+1. An admin turns on **Admin → Flags → KOReader Sync**. Codex then hashes the
+   comics it already has so KOReader can recognize them. This reads a little of
+   each file and shows as a job on the Jobs tab. Comics imported later are
+   hashed as they are imported.
+2. Each user opens **Profile → KOReader Sync** in Codex, which shows the server
+   URL, for example `https://codex.example.com/koreader`, including any
+   reverse-proxy subpath.
+3. In KOReader, open a book, then **Progress sync → Custom sync server** and
+   enter that URL. Log in with your Codex username and, as the password, your
+   **Authorization Bearer Token** from the Profile dialog. Your Codex login
+   password does not work here. Resetting the token logs out every KOReader
+   device. KOReader cannot register new users on Codex.
+4. Choose **Document matching**. **Binary** identifies a book by its contents
+   and works for most libraries. If you write tags into your comics from Codex,
+   the file changes and binary matching loses it. Choose **Filename** instead,
+   which matches by file name.
+
+Limits:
+
+- KOReader opens CBZ, CBR, CBT and PDF comics. It cannot open CB7.
+- KOReader does not push or pull progress automatically unless you enable
+  automatic sync in its Progress sync menu.
+- The newest write wins. A device that was offline sends its queued position
+  when it reconnects, and that can overwrite a newer one from the web reader.
+- KOReader may count an archive's pages differently from Codex, for example when
+  it skips image types it can't show. Codex then maps the position by
+  percentage, which can land a page or two off.
 
 ## 🩺 Troubleshooting
 

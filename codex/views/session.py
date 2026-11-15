@@ -44,11 +44,15 @@ _PUBLIC_ADMIN_FLAG_KEYS = (
     AdminFlagChoices.REGISTER_VERIFICATION.value,
 )
 # Behaviour flags only the authenticated UI reads: lazy import lives on
-# book cards behind the browser, and ``remote_user_enabled`` (computed
+# book cards behind the browser, KOReader sync shows its setup in the
+# profile dialog, and ``remote_user_enabled`` (computed
 # in ``_admin_flags``) only drives the profile dialog. Withheld from
 # anonymous callers now that ``/session`` is public, so an unauthed boot
 # discloses nothing beyond what the logged-out screen actually needs.
-_PRIVATE_ADMIN_FLAG_KEYS = (AdminFlagChoices.LAZY_IMPORT_METADATA.value,)
+_PRIVATE_ADMIN_FLAG_KEYS = (
+    AdminFlagChoices.KOREADER_SYNC.value,
+    AdminFlagChoices.LAZY_IMPORT_METADATA.value,
+)
 
 
 class SessionView(AuthGenericAPIView):

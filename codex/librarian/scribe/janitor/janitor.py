@@ -7,6 +7,7 @@ from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveFoldersStatus
+from codex.librarian.scribe.janitor.koreader import JanitorKoreaderHash
 from codex.librarian.scribe.janitor.status import (
     JanitorAdoptOrphanFoldersStatus,
     JanitorCleanupBookmarksStatus,
@@ -24,6 +25,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBOptimizeStatus,
     JanitorDumpUserDataStatus,
     JanitorFolderRelationsStatus,
+    JanitorKoreaderHashStatus,
     JanitorReapPendingDeletesStatus,
 )
 from codex.librarian.scribe.janitor.tasks import (
@@ -44,11 +46,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorFTSRebuildTask,
     JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
+    JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
     JanitorVacuumTask,
 )
-from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
     SearchIndexOptimizeStatus,
@@ -78,6 +80,7 @@ _JANITOR_STATII: Final = (
     JanitorCleanupSettingsStatus,
     JanitorCleanupFavoritesStatus,
     JanitorCleanupTaggingStateStatus,
+    JanitorKoreaderHashStatus,
     SearchIndexCleanStatus,
     SearchIndexSyncUpdateStatus,
     SearchIndexSyncCreateStatus,
@@ -112,6 +115,8 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     JanitorCleanupSettingsTask(),
     JanitorCleanupFavoritesTask(),
     JanitorCleanupTaggingStateTask(),
+    # Does nothing while the KOReader Sync flag is off.
+    JanitorKoreaderHashTask(),
     SearchIndexSyncTask(),
     SearchIndexOptimizeTask(),
     JanitorVacuumTask(),
@@ -130,6 +135,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanupFavoritesTask: "cleanup_orphan_favorites",
         JanitorCleanupSettingsTask: "cleanup_orphan_settings",
         JanitorCleanupTaggingStateTask: "cleanup_tagging_state",
+        JanitorKoreaderHashTask: "koreader_hash_backfill",
         JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
         JanitorForeignKeyCheckTask: "foreign_key_check",
         JanitorFolderRelationsCheckTask: "folder_relations_check",
@@ -141,7 +147,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
 )
 
 
-class Janitor(JanitorCodexUpdate):
+class Janitor(JanitorKoreaderHash):
     """Janitor inline task runner."""
 
     def __init__(

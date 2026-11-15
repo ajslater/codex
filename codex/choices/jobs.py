@@ -52,6 +52,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JAS",
     "JRF",
     "JTG",
+    "JKH",
     "SIR",
     "SSU",
     "SSC",
@@ -378,6 +379,16 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             "Drop favorites whose target row is gone. Runs nightly."
                         ),
                         "statuses": ("JRF",),
+                    },
+                    {
+                        "value": "koreader_hash",
+                        "title": "Hash Comics for KOReader Sync",
+                        "desc": (
+                            "Compute KOReader document hashes for comics"
+                            " that lack them. Runs nightly while KOReader"
+                            " Sync is on."
+                        ),
+                        "statuses": ("JKH",),
                     },
                     {
                         "value": "adopt_folders",
