@@ -84,6 +84,7 @@ import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import { routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+import { useShelvesStore } from "@/stores/shelves";
 
 /*
  * Sort keys that work as the primary sort but not as an extra
@@ -120,6 +121,7 @@ export default {
       isSelected: (state) => state.isSelected,
       selectedCount: (state) => state.selectedItems.size,
     }),
+    ...mapState(useShelvesStore, ["membershipVersion"]),
     rows() {
       /*
        * Backend emits ``rows`` for table mode, ``collections``/``books`` for
@@ -156,8 +158,22 @@ export default {
       return c > 0 && c < this.rows.length;
     },
   },
+  watch: {
+    membershipVersion() {
+      /*
+       * The Shelves column lists shelves the server works out through
+       * parents and across a collection's comics, so a membership change
+       * anywhere (a cell, a card, the selection toolbar, the metadata
+       * dialog) refetches the page rather than patching rows. In place,
+       * so an open shelf menu stays open.
+       */
+      if (this.visibleColumns.includes("shelved")) {
+        this.refreshBrowserPage();
+      }
+    },
+  },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["refreshBrowserPage", "setSettings"]),
     ...mapActions(useBrowserSelectManyStore, [
       "selectItemAt",
       "selectAll",

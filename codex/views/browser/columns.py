@@ -13,6 +13,7 @@ from django.db.models import (
     Aggregate,
     BooleanField,
     Case,
+    Exists,
     F,
     IntegerField,
     OuterRef,
@@ -447,7 +448,6 @@ def fk_name_columns() -> frozenset[str]:
 
 
 _SHELVED_FALSE = Value(value=False, output_field=BooleanField())
-_SHELVED_TRUE = Value(value=True, output_field=BooleanField())
 
 
 def shelved_annotation_for(model, user) -> dict:
@@ -458,10 +458,14 @@ def shelved_annotation_for(model, user) -> dict:
     shelves. Returns a dict that's safe to splat into
     ``qs.annotate(**...)``:
 
-    * a ``Case-When-In`` boolean for authenticated users on a
-      shelvable model — SQLite materializes the shelved-id
-      subquery once and runs a hash-set membership check per row,
-      slightly cheaper than the equivalent correlated ``Exists``;
+    * a correlated ``Exists`` for authenticated users on a shelvable
+      model. It must stay an ``Exists``: cachalot reads the tables of
+      ``Subquery``/``Exists`` annotations but not of a subquery nested
+      in ``When(pk__in=...)``, so the cheaper-looking ``Case-When-In``
+      spelling cached every browse query with no dependency on
+      ``codex_shelfitem`` and served a stale flag (and sort) after any
+      shelf change. Each row is one probe of the ``shelfitem_target``
+      index;
     * a constant ``Value(False)`` for anonymous sessions, so the
       schema stays uniform whether the column is sortable or just
       rendered;
@@ -478,13 +482,7 @@ def shelved_annotation_for(model, user) -> dict:
     # cachalot's parameter-type check raise UncachableQuery for every
     # query this subquery lands in — silently uncaching all browse
     # queries. The bound SQL value is identical either way.
-    shelved_ids = ShelfItem.objects.filter(
-        shelf__user=user, collection=collection_code.value
-    ).values("target_id")
-    return {
-        "shelved": Case(
-            When(pk__in=shelved_ids, then=_SHELVED_TRUE),
-            default=_SHELVED_FALSE,
-            output_field=BooleanField(),
-        ),
-    }
+    shelf_items = ShelfItem.objects.filter(
+        shelf__user=user, collection=collection_code.value, target_id=OuterRef("pk")
+    )
+    return {"shelved": Exists(shelf_items)}

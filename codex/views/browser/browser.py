@@ -35,6 +35,7 @@ from codex.views.browser.columns import (
     shelved_annotation_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
+from codex.views.browser.shelf_membership import page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -474,6 +475,7 @@ class BrowserView(BrowserTitleView):
             # the wire — see BrowserPageSerializer.to_representation).
             columns = self._resolve_table_columns()
             data["columns"] = columns
+            acl = self.get_comic_acl(self.request.user)
             # Collection rows in the table view show **intersections** of
             # column values across their child comics: M2M values
             # shared by every comic, scalars where every comic has
@@ -484,7 +486,13 @@ class BrowserView(BrowserTitleView):
             collection_qs = data.get("collections")
             if collection_qs is not None:
                 data["collection_intersections"] = compute_collection_intersections(
-                    collection_qs, columns, self.get_comic_acl(self.request.user)
+                    collection_qs, columns, acl
+                )
+            # The shelved cell lists the row's shelves by the same rule,
+            # only when the column is shown.
+            if "shelved" in columns:
+                data["row_shelves"] = page_row_shelves(
+                    self.request.user, acl, collection_qs, data.get("books")
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

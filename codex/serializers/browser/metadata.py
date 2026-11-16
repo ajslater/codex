@@ -208,6 +208,15 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Whether any selected comic lives in a writable (non-read-only) library."""
         return bool(getattr(obj, "editable", False))
 
+    # Set by MetadataView.get_object: pks of the requesting user's shelves that
+    # every selected comic is on, directly or through a parent. Names stay
+    # client-side in the shelves store.
+    shelves = SerializerMethodField(read_only=True)
+
+    def get_shelves(self, obj) -> list[int]:
+        """Return the user's shelves the whole selection shares."""
+        return list(getattr(obj, "shelves", None) or ())
+
     publisher_list = CollectionSerializer(many=True, required=False)
     imprint_list = CollectionSerializer(many=True, required=False)
     series_list = CollectionSerializer(many=True, required=False)

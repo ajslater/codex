@@ -21,8 +21,13 @@
       @error="onImgError"
     />
   </span>
-  <span v-else-if="column === 'shelved'" class="tableShelvedCell" @click.stop>
-    <ShelfMenu v-if="shelfPk" :collection="shelfCollection" :pk="shelfPk" />
+  <span v-else-if="column === 'shelved'" class="tableShelvedCell">
+    <span v-if="shelfPk" class="tableShelfMenu" @click.stop>
+      <ShelfMenu :collection="shelfCollection" :pk="shelfPk" />
+    </span>
+    <span v-if="shelfNames" class="tableListCell" :title="shelfNames">{{
+      shelfNames
+    }}</span>
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
     listValue
@@ -51,6 +56,7 @@ import CoverPopup from "@/components/cover-popup.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
+import { useShelvesStore } from "@/stores/shelves";
 
 // What .tableCoverThumb used to say, minus the height the size class
 // still owns. Inline because CoverPopup's menu branch is a fragment and
@@ -159,6 +165,7 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
+    ...mapState(useShelvesStore, ["shelvesByPks"]),
     placeholderSrc() {
       return getPlaceholderSrc(this.coverCollection);
     },
@@ -192,6 +199,16 @@ export default {
       if (Array.isArray(ids) && ids.length === 1) return ids[0];
       if (Array.isArray(ids)) return undefined;
       return this.row?.pk;
+    },
+    shelfNames() {
+      /*
+       * The server sends the pks of the shelves the row is on, itself or
+       * through a parent (every comic under it, for a collection row); the
+       * names come from the store so a rename shows at once.
+       */
+      return this.shelvesByPks(this.row?.shelves)
+        .map(({ name }) => name)
+        .join(", ");
     },
     rowAttrName() {
       /*
@@ -300,7 +317,13 @@ export default {
 .tableShelvedCell {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 2px;
+  vertical-align: middle;
+}
+
+.tableShelfMenu {
+  display: inline-flex;
+  flex: none;
 }
 
 .tableCoverSize-sm {

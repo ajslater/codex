@@ -1,6 +1,8 @@
 <template>
   <v-table v-if="show">
     <tbody>
+      <!-- Rows that aren't a plain tag list, ahead of the tag rows. -->
+      <slot name="before" />
       <tr v-for="[key, { filter, tags }] of Object.entries(tagMap)" :key="key">
         <td class="key">{{ key }}</td>
         <td class="tags">
@@ -27,7 +29,7 @@ export default {
   },
   computed: {
     show() {
-      return Object.keys(this.tagMap).length > 0;
+      return Object.keys(this.tagMap).length > 0 || Boolean(this.$slots.before);
     },
   },
 };

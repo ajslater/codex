@@ -53,7 +53,11 @@
       <MetadataText :value="md.language?.name" label="Language" />
     </section>
     <MetadataRatings class="mdSection" />
-    <MetadataTagsTable :tag-map="tags" class="mdSection" />
+    <MetadataTagsTable :tag-map="tags" class="mdSection">
+      <template #before>
+        <MetadataShelvesRow :book="book" />
+      </template>
+    </MetadataTagsTable>
     <section class="mdSection">
       <section class="inlineRow">
         <MetadataText :value="alternativeIssue" label="Alternative Issue" />
@@ -75,6 +79,7 @@ import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
+import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
@@ -85,6 +90,7 @@ export default {
   name: "MetadataBody",
   components: {
     MetadataRatings,
+    MetadataShelvesRow,
     MetadataTagsTable,
     MetadataText,
   },

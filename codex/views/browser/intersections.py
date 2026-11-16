@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 # than inside them: every builder and aggregate below takes a
 # ``ComicACL`` and applies it to the numerator and the ``total_count``
 # denominator together, for the same reason.
-_LIVE_COMIC = Q(missing_since__isnull=True)
+LIVE_COMIC = Q(missing_since__isnull=True)
 _LIVE_COMIC_REL = Q(comic__missing_since__isnull=True)
 _LIVE_COMIC_SQL = "c.missing_since IS NULL"
 
@@ -209,7 +209,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
-def _intersection_relation(
+def intersection_relation(
     collection_model: type[BrowserCollectionModel],
 ) -> str | None:
     """
@@ -265,7 +265,7 @@ def compute_collection_intersections(
     if not cols or collection_qs.model is Comic:
         return {}
 
-    comic_to_collection = _intersection_relation(collection_qs.model)
+    comic_to_collection = intersection_relation(collection_qs.model)
     if not comic_to_collection:
         return {}
 
@@ -274,7 +274,7 @@ def compute_collection_intersections(
     # sorted page query just to read pks, while iterating primes this
     # queryset's result cache — the serializer consumes the same object,
     # so the heaviest query in a table-mode request runs once, not twice.
-    row_pks = _row_pks(collection_qs)
+    row_pks = collection_row_pks(collection_qs)
     collection_pks = sorted({pk for pks in row_pks.values() for pk in pks})
     if not collection_pks:
         return {}
@@ -302,7 +302,7 @@ def compute_collection_intersections(
     return _fold_merged_rows(row_pks, result, counts, intersect_cols, sum_cols)
 
 
-def _row_pks(collection_qs) -> dict[int, tuple[int, ...]]:
+def collection_row_pks(collection_qs) -> dict[int, tuple[int, ...]]:
     """Map each row's pk to every pk the row stands for."""
     return {
         obj.pk: tuple(getattr(obj, "ids", None) or (obj.pk,)) for obj in collection_qs
@@ -471,7 +471,7 @@ def _compute_batched_scalars(
     # applied here narrows numerator and denominator in one move.
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .values(comic_to_collection)
         .annotate(**annotations)
@@ -665,7 +665,7 @@ def _compute_m2m_intersection(
         return
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(**{f"{rel}__isnull": False})
         .values(comic_to_collection, rel)
@@ -1232,7 +1232,7 @@ def _compute_credits_intersection(
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(credits__person__name__gt="")
         .values(
@@ -1274,7 +1274,7 @@ def _compute_identifiers_intersection(
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
@@ -1320,7 +1320,7 @@ def _compute_reprints_intersection(
     """Reprints have no ``name`` column; compose the label from their four."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(reprints__series_name__gt="")
         .values(comic_to_collection, *_REPRINT_VALUE_RELS)

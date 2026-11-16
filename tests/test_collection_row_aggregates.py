@@ -245,7 +245,7 @@ class CollectionRowAggregateTestCase(TestCase):
 
         ``self.me`` is staff. The visibility filter used to exempt
         staff while the intersection clauses
-        (``intersections._LIVE_COMIC``) never did, so an admin's
+        (``intersections.LIVE_COMIC``) never did, so an admin's
         ``childCount`` counted a pending-delete row that their table
         cells had already dropped. Both sides hide it now, and this
         asserts the browse row and its ``/metadata`` twin move together.
