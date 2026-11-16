@@ -531,9 +531,11 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         # the row sits on any of the user's shelves) is added in
         # ``BrowserView._add_table_view_shelved_annotation`` for both
         # collection and Comic querysets so the column is sortable and
-        # renderable across all browsable models.
+        # renderable across all browsable models. Beside the button the
+        # cell lists the shelves the row is on, from the ``shelves`` pks
+        # ``codex.views.browser.shelf_membership`` adds to each row.
         "shelved": {
-            "label": "Shelved",
+            "label": "Shelves",
             "sort_key": "shelved",
             "m2m": False,
             "editable": True,

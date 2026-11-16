@@ -995,6 +995,41 @@ export const useBrowserStore = defineStore("browser", {
         orderExtraKeys: order.orderExtraKeys,
       });
     },
+    _pageRequestSettings() {
+      /*
+       * Table mode requests need ``columns=`` so the backend knows
+       * which fields to project / annotate. The list comes from the
+       * user's persisted table_columns map (per top-collection) and falls
+       * back to the registry defaults; cover mode never sets it.
+       */
+      return this.settings.viewMode === "table"
+        ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
+        : this.settings;
+    },
+    async refreshBrowserPage() {
+      /*
+       * Refetch the shown page in place, without the loading placeholder
+       * ``loadBrowserPage`` swaps in: rows keep their keys, so an open menu
+       * and the scroll position survive. Skipped while a full load is in
+       * flight; a later full load aborts this one through the shared key.
+       */
+      if (!this.isAuthorized || !this.browserPageLoaded) {
+        return;
+      }
+      const signal = useAbortable("browser:loadBrowserPage");
+      try {
+        const response = await API.getBrowserPage(
+          liveBrowseParams(),
+          this._pageRequestSettings(),
+          getTimestamp(),
+          { signal },
+        );
+        const { breadcrumbs: _breadcrumbs, ...page } = response.data;
+        this.page = Object.freeze(page);
+      } catch (error) {
+        if (!isAbortError(error)) console.error(error);
+      }
+    },
     async loadBrowserPage(mtime, shouldUpdateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
@@ -1018,20 +1053,10 @@ export const useBrowserStore = defineStore("browser", {
        * state over the current route's data.
        */
       const signal = useAbortable("browser:loadBrowserPage");
-      /*
-       * Table mode requests need ``columns=`` so the backend knows
-       * which fields to project / annotate. The list comes from the
-       * user's persisted table_columns map (per top-collection) and falls
-       * back to the registry defaults; cover mode never sets it.
-       */
-      const requestSettings =
-        this.settings.viewMode === "table"
-          ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
-          : this.settings;
       try {
         const response = await API.getBrowserPage(
           liveBrowseParams(),
-          requestSettings,
+          this._pageRequestSettings(),
           mtime,
           { signal },
         );

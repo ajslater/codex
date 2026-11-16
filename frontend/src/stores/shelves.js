@@ -73,6 +73,13 @@ export const useShelvesStore = defineStore("shelves", {
     // ``[{pk, name, items: {collection: Set<pk>}}]`` ordered by name.
     shelves: [],
     hydrated: false,
+    /*
+     * Bumped after the server accepts a membership change. Views that show
+     * server-computed shelf lists (the table's Shelves column, the metadata
+     * dialog) watch it and refetch: effective membership runs through
+     * parents, so it can't be patched locally.
+     */
+    membershipVersion: 0,
   }),
   getters: {
     /*
@@ -112,6 +119,15 @@ export const useShelvesStore = defineStore("shelves", {
     },
     // How many items a shelf holds, across every collection.
     itemCount: () => shelfItemCount,
+    /*
+     * The store's shelves for server-sent shelf pks, in name order. Unknown
+     * pks (a shelf deleted since the response) drop out.
+     */
+    shelvesByPks: (state) => (pks) => {
+      if (!Array.isArray(pks) || pks.length === 0) return [];
+      const wanted = new Set(pks);
+      return state.shelves.filter((shelf) => wanted.has(shelf.pk));
+    },
     shelfNames: (state) => state.shelves.map((shelf) => shelf.name),
   },
   actions: {
@@ -203,6 +219,7 @@ export const useShelvesStore = defineStore("shelves", {
         await API.updateShelfItems(shelfPk, {
           [on ? "add" : "remove"]: changed,
         });
+        this.membershipVersion += 1;
         return true;
       } catch (error) {
         for (const [collection, pks] of Object.entries(changed)) {

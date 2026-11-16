@@ -440,7 +440,7 @@ class ComicACL:
     which libraries, which age ratings -- and they are what the raw-SQL
     spelling needs bound as parameters. The missing clause is neither:
     it is the same literal predicate for every user, so the intersection
-    queries carry their own ``_LIVE_COMIC`` copy of it alongside this
+    queries carry their own ``LIVE_COMIC`` copy of it alongside this
     ACL rather than through it.
     """
 

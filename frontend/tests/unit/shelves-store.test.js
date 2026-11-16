@@ -141,6 +141,33 @@ describe("useShelvesStore — getters", () => {
     expect(store.itemCount(store.shelves[0])).toBe(3);
     expect(store.itemCount(store.shelves[1])).toBe(1);
   });
+
+  it("shelvesByPks keeps name order and drops unknown pks", async () => {
+    const store = await hydrated();
+    const names = (pks) => store.shelvesByPks(pks).map(({ name }) => name);
+    expect(names([2, 99, 1])).toEqual(["Favorites", "Want to Read"]);
+    expect(names([])).toEqual([]);
+    expect(names()).toEqual([]);
+  });
+});
+
+describe("useShelvesStore — membershipVersion", () => {
+  it("bumps only when the server accepts a change", async () => {
+    const store = await hydrated();
+    expect(store.membershipVersion).toBe(0);
+
+    API.updateShelfItems.mockResolvedValue({ data: {} });
+    await store.setMembership(1, "series", [8], true);
+    expect(store.membershipVersion).toBe(1);
+
+    // Already in the wanted state: no request, nothing to refetch.
+    await store.setMembership(1, "series", [8], true);
+    expect(store.membershipVersion).toBe(1);
+
+    API.updateShelfItems.mockRejectedValue(new Error("server down"));
+    await store.setMembership(1, "series", [9], true);
+    expect(store.membershipVersion).toBe(1);
+  });
 });
 
 describe("useShelvesStore — setMembership", () => {

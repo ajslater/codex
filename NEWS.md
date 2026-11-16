@@ -16,6 +16,8 @@ border-radius: 128px;
   multi-select toolbar.
 - A Shelves filter in the browser narrows any view to the shelves you pick. It
   combines with the other filters, search and sort, and is kept in saved views.
+- The table view's Shelves column and the metadata dialog list the shelves an
+  item is on, including through its series, folder or other parent.
 - OPDS v1 and v2 start pages list each of your shelves.
 - KOReader progress sync. Codex can be the sync server for KOReader's built in
   Progress sync plugin, so a comic's reading position follows you between a
