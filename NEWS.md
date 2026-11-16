@@ -68,6 +68,8 @@ border-radius: 128px;
   was opened before it.
 - OPDS v1 "Oldest Unread" always lists oldest first. It used to keep the
   direction of the previous list, so it could come back newest first.
+- Table view cells for a row that combines same-named series, imprints or
+  volumes describe all of them, not just one.
 
 ## v2.6.0 - Tag Editor Suggestions
 
