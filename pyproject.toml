@@ -177,6 +177,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 pythonVersion = "3.12"
 failOnWarnings = false
@@ -257,7 +258,7 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
+exclude = "*~,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py,tasks/*"
 
 [tool.ruff]
 builtins = ["ic"]
@@ -270,6 +271,7 @@ extend-exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 show-fixes = true
 target-version = "py312"
@@ -392,6 +394,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 
 # ty >= 0.0.86 rejects the `class Meta(<Base>.Meta)` idiom of Django models and
@@ -419,6 +422,7 @@ exclude = [
   "codex/static/",
   "codex/static_build/",
   "comics/",
+  "*/tasks/*",
 ]
 min_confidence = 61
 sort_by_size = true
