@@ -26,12 +26,12 @@ from tests.api_key_fixtures import (
     HTTP_OK,
     KEYS_URL,
     OPDS_V2,
-    PASSWORD,
     REFUSED,
     ApiKeyFixture,
     basic,
     set_flag,
 )
+from tests.reader_fixtures import PASSWORD
 
 
 class ApiKeyAPITestCase(ApiKeyFixture):

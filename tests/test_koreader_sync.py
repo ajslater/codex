@@ -43,12 +43,12 @@ from codex.models.auth import UserAuth
 from codex.views.koreader.progress import CODEX_DEVICE_ID, map_push
 from tests.koreader_fixtures import (
     ACCEPT,
-    OPEN_DIR,
     PAGE_COUNT,
     KOSyncTestCase,
     md5,
     set_flag,
 )
+from tests.reader_fixtures import PASSWORD
 
 _HTTP_OK: Final = 200
 _HTTP_UNAUTHORIZED: Final = 401
@@ -73,10 +73,10 @@ class KOSyncHashTestCase(KOSyncTestCase):
     def test_unreadable_file_leaves_the_binary_hash_null(self) -> None:
         """A file that can't be read doesn't fail the save."""
         comic = Comic.objects.get(pk=self.comic.pk)
-        comic.path = str(OPEN_DIR)  # a directory: stat works, open fails
+        comic.path = self.library.path  # a directory: stat works, open fails
         comic.set_koreader_hashes()
         assert comic.koreader_hash is None
-        assert comic.koreader_name_hash == koreader_name_md5(OPEN_DIR)
+        assert comic.koreader_name_hash == koreader_name_md5(self.library.path)
 
 
 class KOSyncFlagTestCase(KOSyncTestCase):
@@ -132,7 +132,7 @@ class KOSyncAuthTestCase(KOSyncTestCase):
         attempts: tuple[dict[str, Any], ...] = (
             self._headers(key=md5("wrong")),
             self._headers(key=self.key),
-            self._headers(key=md5("x")),
+            self._headers(key=md5(PASSWORD)),
             self._headers(user="nobody"),
             {"HTTP_ACCEPT": ACCEPT},
         )
@@ -364,7 +364,7 @@ class KOSyncACLTestCase(KOSyncTestCase):
         rating = AgeRating(name=MetronAgeRatingEnum.ADULT.value)
         rating.presave()
         rating.save()
-        adult = self._make_comic(self.library, OPEN_DIR, "adult", age_rating=rating)
+        adult = self._make_comic(self.library, "adult", age_rating=rating)
         teen = AgeRatingMetron.objects.get(name=MetronAgeRatingEnum.TEEN.value)
         UserAuth.objects.filter(user=self.user).update(age_rating_metron=teen)
         cache.clear()
@@ -379,7 +379,7 @@ class KOSyncACLTestCase(KOSyncTestCase):
 
         A push updates both; a pull returns the newer bookmark.
         """
-        twin = self._make_comic(self.library, OPEN_DIR, "twin")
+        twin = self._make_comic(self.library, "twin")
         Comic.objects.filter(pk=twin.pk).update(koreader_hash=self.comic.koreader_hash)
         self._push(self.comic.koreader_hash)
         assert self._bookmarks() == [

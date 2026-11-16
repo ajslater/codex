@@ -34,14 +34,13 @@ from tests.api_key_fixtures import (
     KOSYNC_AUTH,
     OPDS_V1,
     OPDS_V2,
-    OPEN_DIR,
-    PASSWORD,
     REFUSED,
     ApiKeyFixture,
     basic,
     md5,
     set_flag,
 )
+from tests.reader_fixtures import PASSWORD
 
 _MID_PAGE: Final = 5
 
@@ -140,7 +139,7 @@ class ApiKeyOPDSTestCase(ApiKeyFixture):
         rating = AgeRating(name=MetronAgeRatingEnum.ADULT.value)
         rating.presave()
         rating.save()
-        adult = self._make_comic(self.library, OPEN_DIR, "adult", age_rating=rating)
+        adult = self._make_comic(self.library, "adult", age_rating=rating)
         auth = f"Bearer {self.key}"
         assert self._get(self._position_url(adult), auth).status_code == HTTP_OK
         teen = AgeRatingMetron.objects.get(name=MetronAgeRatingEnum.TEEN.value)
