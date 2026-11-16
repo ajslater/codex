@@ -86,7 +86,10 @@ export default {
   margin: 0;
 }
 
+// The section's flex gap spaces the paragraphs; their own margins doubled it.
 .apiKeysHelp {
+  margin: 0;
+  font-size: small;
   color: rgb(var(--v-theme-text-disabled));
 }
 </style>
