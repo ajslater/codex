@@ -4,7 +4,7 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Access</th>
+          <th v-if="showAccess">Access</th>
           <th>Key</th>
           <th>Last used</th>
           <th />
@@ -14,7 +14,7 @@
         <template v-for="row in apiKeys" :key="row.pk">
           <tr>
             <td>{{ row.name }}</td>
-            <td>{{ accessLabel(row) }}</td>
+            <td v-if="showAccess">{{ accessLabel(row) }}</td>
             <td class="keyPrefix">{{ row.prefix }}…</td>
             <td>{{ lastUsed(row) }}</td>
             <td>
@@ -31,7 +31,7 @@
             </td>
           </tr>
           <tr v-if="row.scope === 'universal'" class="universalHint">
-            <td colspan="5">{{ UNIVERSAL_HINT }}</td>
+            <td :colspan="showAccess ? 5 : 4">{{ UNIVERSAL_HINT }}</td>
           </tr>
         </template>
       </tbody>
@@ -67,6 +67,12 @@ export default {
   },
   props: {
     apiKeys: { type: Array, required: true },
+    /*
+     * Only admins can hold more than one kind of key worth telling apart:
+     * everyone else makes device keys, with at most a migrated Universal
+     * Token, whose row explains itself.
+     */
+    showAccess: { type: Boolean, default: false },
   },
   data() {
     return {

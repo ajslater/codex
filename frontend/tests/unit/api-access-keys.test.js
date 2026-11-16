@@ -2,7 +2,8 @@
  * The keys section of the API Access dialog.
  *
  * Behavior locked in here:
- *   - The list names what each scope logs in to, and the universal row
+ *   - The list shows admins what each scope logs in to; only admins can
+ *     hold more than one kind worth telling apart. The universal row
  *     explains that it is the old bearer token and cannot come back. An
  *     unused one reads "Not since upgrade": older versions recorded no use.
  *   - Every revoke goes through a confirmation.
@@ -62,8 +63,11 @@ function mountWith(component, props) {
 }
 
 describe("ApiKeyList", () => {
-  test("names what each scope logs in to", () => {
-    const { wrapper } = mountWith(ApiKeyList, { apiKeys: KEYS });
+  test("shows admins what each scope logs in to", () => {
+    const { wrapper } = mountWith(ApiKeyList, {
+      apiKeys: KEYS,
+      showAccess: true,
+    });
     const text = wrapper.text();
     expect(text).toContain("OPDS · KOReader");
     expect(text).toContain("Everything (legacy)");
@@ -72,11 +76,19 @@ describe("ApiKeyList", () => {
     expect(text).toContain("Never");
   });
 
+  test("everyone else gets no Access column", () => {
+    const { wrapper } = mountWith(ApiKeyList, { apiKeys: KEYS.slice(0, 2) });
+    const headers = wrapper.findAll("thead th").map((th) => th.text());
+    expect(headers).toEqual(["Name", "Key", "Last used", ""]);
+    expect(wrapper.text()).not.toContain("OPDS · KOReader");
+    expect(wrapper.find(".universalHint td").attributes("colspan")).toBe("4");
+  });
+
   test("an unused Universal Token reads not used since the upgrade", () => {
     const { wrapper } = mountWith(ApiKeyList, {
       apiKeys: [{ ...KEYS[1], lastUsedAt: undefined }, KEYS[0]],
     });
-    const cells = wrapper.findAll("tbody tr td:nth-child(4)");
+    const cells = wrapper.findAll("tbody tr td:nth-child(3)");
     expect(cells.map((cell) => cell.text())).toEqual([
       "Not since upgrade",
       "Never",
@@ -222,6 +234,16 @@ describe("ApiKeyReveal", () => {
 });
 
 describe("ApiKeys", () => {
+  test("only admins see the Access column", async () => {
+    const { wrapper, store } = mountWith(ApiKeys, { urls: {} });
+    store.apiKeys = [KEYS[0]];
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).not.toContain("Access");
+    store.user = { username: "alice", isStaff: true };
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find("thead").text()).toContain("Access");
+  });
+
   test("prefers a Device Key per app over the account password for OPDS", () => {
     const { wrapper } = mountWith(ApiKeys, { urls: {} });
     const text = wrapper.text();

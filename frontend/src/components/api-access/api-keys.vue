@@ -6,7 +6,7 @@
       <template v-if="isUserAdmin">{{ STATS_HELP }}</template>
     </p>
     <p class="apiKeysHelp">{{ OPDS_HELP }}</p>
-    <ApiKeyList :api-keys="apiKeys" />
+    <ApiKeyList :api-keys="apiKeys" :show-access="isUserAdmin" />
     <ApiKeyReveal
       v-if="created"
       :api-key="created.key"
