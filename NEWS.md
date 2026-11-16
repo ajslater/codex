@@ -6,72 +6,68 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.7.0
+## v2.7.0 - Shelves & KOReader Sync
 
 ### ✨ Added
 
-- Shelves: signed-in users can make their own named shelves, such as "Want to
-  Read", and put publishers, imprints, series, volumes, folders, story arcs and
-  issues on them from the browser, the metadata dialog, the reader and the
-  multi-select toolbar.
-- A Shelves filter in the browser narrows any view to the shelves you pick. It
-  combines with the other filters, search and sort, and is kept in saved views.
+- Shelves: signed-in users make their own named shelves, such as "Want to Read",
+  and shelve publishers, imprints, series, volumes, folders, story arcs and
+  issues from a cover's menu, the table view, the metadata dialog, the reader
+  and the multi-select toolbar.
+- Browse a shelf with the Shelves filter, kept in saved views, or from its entry
+  on the OPDS v1 and v2 start pages.
 - The table view's Shelves column and the metadata dialog list the shelves an
   item is on, including through its series, folder or other parent.
-- OPDS v1 and v2 start pages list each of your shelves.
-- KOReader progress sync. Codex can be the sync server for KOReader's built in
-  Progress sync plugin, so a comic's reading position follows you between a
-  KOReader device and the web reader. Turn on the KOReader Sync admin flag, then
-  follow the setup in API Access. Log in from KOReader with your username and a
-  device key.
-- Device keys: a named, revocable key for each reader app or device, made in API
-  Access. Use one as the password for OPDS (HTTP Basic, or as a Bearer token)
-  and KOReader sync. A key is shown once, can be revoked on its own, and shows
-  when it was last used. Keys work on OPDS and KOReader only, not the web UI or
-  API, so users who log in with Single Sign On can now use Basic-only OPDS
-  readers.
-- API Access, from the drawer footer or Profile: your OPDS, KOReader and Stats
-  API URLs and your API keys in one place.
-- Stats API keys: each admin makes their own.
-- OPDS and Stats API Keys admin settings turn those APIs off.
+- KOReader progress sync: Codex can be the sync server for KOReader's Progress
+  sync plugin, so a comic's reading position follows you between KOReader and
+  the web reader. Off by default; setup is in API Access.
+- API Access, from the drawer's OPDS & APIs button or Profile, lists your OPDS,
+  KOReader and Stats API URLs and makes and revokes your API keys.
+- Device Keys: a named, revocable password for each OPDS reader or KOReader
+  device. They don't log in to the web UI or API, and let Single Sign On users
+  use Basic-only OPDS readers.
+- Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
+  off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
 
 ### ♻️ Changed
 
-- Favorites are now a shelf. Anyone who had favorites gets a shelf named
-  "Favorites" holding them, and saved views that filtered on favorites filter on
-  that shelf. The cover star button is replaced by Shelves in the cover's menu;
-  elsewhere a shelf button shows which shelves an item is on.
-- The Favorite sort and table column are now Shelved: on any of your shelves.
-- User data backups store shelves, and API keys as hashes. Backups made by older
-  versions still restore, with their favorites placed on a "Favorites" shelf.
-- Authorization Bearer Tokens are now Universal Tokens: existing ones work until
-  revoked but can no longer be shown, reset or made. Use device keys for OPDS
-  and KOReader.
-- The server-wide Stats API key is revoked. Admins make their own Stats keys in
-  API Access.
-- Some background task log messages now reach the log file and honor the log
-  level.
+- Favorites are now a shelf named "Favorites", and saved views that filtered on
+  favorites filter on it. The favorite star is now a shelf button, or a Shelves
+  entry in a cover's menu; the Favorite sort is now Shelved and the Favorite
+  column Shelves.
+- Authorization Bearer Tokens are now Universal Tokens: they work until revoked
+  but can no longer be shown, reset or made. Use Device Keys for OPDS and
+  KOReader.
+- The server-wide Stats API key is revoked. Each admin makes their own Stats key
+  in API Access.
+- User data backups store shelves, and API keys as hashes. Older backups still
+  restore, with their favorites on a "Favorites" shelf.
 - Libraries have their own icon, and actions and statuses that shared an icon
   now look distinct.
 
 ### 🔥 Removed
 
-- The `/api/v4/favorites/` endpoints, replaced by `/api/v4/shelves/`.
-- The `/api/v4/auth/token`, `/api/v4/admin/api-key` and `/api/v4/opds-urls`
-  endpoints; URLs come from `/api/v4/api-urls`. Login no longer returns a token.
+- The `/api/v4/favorites/` and `/api/v4/opds-urls` endpoints, replaced by
+  `/api/v4/shelves/` and `/api/v4/api-urls`.
+- The `/api/v4/auth/token` and `/api/v4/admin/api-key` endpoints. Login no
+  longer returns a token.
 
 ### 🐛 Fixed
 
-- Logging in or registering keeps the bookmarks and the browser and reader
-  settings you had as a visitor.
-- OPDS v1 "Latest Unread" now lists only unread issues. It had no read filter of
-  its own, so it showed read issues too, or reused the filter of whichever list
-  was opened before it.
-- OPDS v1 "Oldest Unread" always lists oldest first. It used to keep the
-  direction of the previous list, so it could come back newest first.
+- Logging in or registering keeps a visitor's bookmarks and browser and reader
+  settings.
+- OPDS v1 "Latest Unread" lists only unread issues, and "Oldest Unread" always
+  lists oldest first.
 - Table view cells for a row that combines same-named series, imprints or
-  volumes describe all of them, not just one.
+  volumes describe all of them, and comics in folder view no longer show a
+  folder's cells.
+- Some background task log messages, such as comicbox's, reach the log file and
+  honor the log level.
+
+### 🧑‍💻 Developer
+
+- Require loguru 0.8.
 
 ## v2.6.0 - Tag Editor Suggestions
 
