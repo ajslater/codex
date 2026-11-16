@@ -8,7 +8,8 @@
  *     and with none on the dialog says so.
  *   - KOReader's setup help, in KOReader's own menu words, follows its URL,
  *     collapsed until opened: most people never need it.
- *   - The OPDS v2.0 note links to Stump, off site, without parentheses.
+ *   - The OPDS v2.0 note links to Stump and Readest, off site, without
+ *     parentheses.
  *   - URLs and keys are separate sections, and each URL shares one block
  *     with its note or setup help.
  *   - A failed load offers Retry; a pending one shows a sized placeholder.
@@ -149,17 +150,24 @@ describe("API Access dialog", () => {
     expect(blocks[2].find(".apiUrlNote").exists()).toBe(false);
   });
 
-  test("the OPDS v2.0 note links to Stump off site", async () => {
+  test("the OPDS v2.0 note links to Stump and Readest off site", async () => {
     const { wrapper, store } = mountDialog();
     await open(wrapper, store);
     const note = wrapper.find(".apiUrlNote");
-    expect(note.text()).toContain("Supported in newer clients such as Stump");
+    expect(note.text()).toContain(
+      "Supported in newer clients such as Stump and Readest.",
+    );
     expect(note.text()).not.toContain("(");
     expect(note.text()).not.toContain(")");
-    const link = note.find("a");
-    expect(link.attributes("href")).toBe("https://www.stumpapp.dev/");
-    expect(link.attributes("target")).toBe("_blank");
-    expect(link.findComponent({ name: "VIcon" }).exists()).toBe(true);
+    const links = note.findAll("a");
+    expect(links.map((link) => link.attributes("href"))).toStrictEqual([
+      "https://www.stumpapp.dev/",
+      "https://readest.com/",
+    ]);
+    for (const link of links) {
+      expect(link.attributes("target")).toBe("_blank");
+      expect(link.findComponent({ name: "VIcon" }).exists()).toBe(true);
+    }
   });
 
   test("an anonymous visitor sees URLs and no keys", async () => {
