@@ -10,15 +10,21 @@
           <v-icon class="apiAccessIcon">{{ mdiRss }}</v-icon>
           API Access
         </h2>
-        <ApiUrls v-if="apiUrls" :urls="apiUrls" :username="username" />
-        <div v-else-if="apiUrlsError" class="apiAccessError">
-          <p>{{ apiUrlsError }}</p>
-          <v-btn variant="text" text="Retry" @click="loadApiUrls" />
-        </div>
-        <div v-else class="apiAccessLoading">
-          <PlaceholderLoading :size="64" />
-        </div>
-        <ApiKeys v-if="user" :urls="apiUrls || EMPTY_URLS" />
+        <section class="apiUrlsSection">
+          <h3 class="apiAccessSectionTitle">API URLs</h3>
+          <ApiUrls v-if="apiUrls" :urls="apiUrls" :username="username" />
+          <div v-else-if="apiUrlsError" class="apiAccessError">
+            <p>{{ apiUrlsError }}</p>
+            <v-btn variant="text" text="Retry" @click="loadApiUrls" />
+          </div>
+          <div v-else class="apiAccessLoading">
+            <PlaceholderLoading :size="64" />
+          </div>
+        </section>
+        <template v-if="user">
+          <v-divider />
+          <ApiKeys :urls="apiUrls || EMPTY_URLS" />
+        </template>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -84,8 +90,15 @@ export default {
   gap: 1em;
 }
 
-.apiAccessTitle {
+.apiAccessTitle,
+.apiAccessSectionTitle {
   margin: 0;
+}
+
+.apiUrlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
 }
 
 .apiAccessIcon {

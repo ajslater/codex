@@ -9,6 +9,8 @@
  *   - KOReader's setup help, in KOReader's own menu words, follows its URL,
  *     collapsed until opened: most people never need it.
  *   - The OPDS v2.0 note links to Stump, off site, without parentheses.
+ *   - URLs and keys are separate sections, and each URL shares one block
+ *     with its note or setup help.
  *   - A failed load offers Retry; a pending one shows a sized placeholder.
  *   - Profile's "API Access" button opens it.
  */
@@ -117,6 +119,34 @@ describe("API Access dialog", () => {
     });
     await open(wrapper, store);
     expect(wrapper.text()).not.toContain("KOReader setup");
+  });
+
+  test("URLs and keys are separate sections", async () => {
+    const { wrapper, store } = mountDialog();
+    await open(wrapper, store);
+    expect(wrapper.find(".apiUrlsSection h3").text()).toBe("API URLs");
+    // Keys follow the URLs, past a divider.
+    const section = wrapper.find(".apiUrlsSection").element;
+    const keys = wrapper.findComponent({ name: "ApiKeys" }).element;
+    expect(section.nextElementSibling.classList).toContain("v-divider");
+    expect(section.nextElementSibling.nextElementSibling).toBe(keys);
+  });
+
+  test("each URL shares a block with what explains it", async () => {
+    const { wrapper, store } = mountDialog();
+    await open(wrapper, store);
+    const blocks = wrapper.findAll(".apiUrlBlock");
+    expect(blocks).toHaveLength(3);
+    for (const [index, title] of [
+      "OPDS v1.2",
+      "OPDS v2.0",
+      "KOReader Sync",
+    ].entries()) {
+      expect(blocks[index].find(".clipboardTitle").text()).toContain(title);
+    }
+    expect(blocks[1].find(".apiUrlNote").text()).toContain("Stump");
+    expect(blocks[2].text()).toContain("KOReader setup");
+    expect(blocks[2].find(".apiUrlNote").exists()).toBe(false);
   });
 
   test("the OPDS v2.0 note links to Stump off site", async () => {

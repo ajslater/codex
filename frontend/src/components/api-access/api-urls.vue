@@ -1,26 +1,28 @@
 <template>
-  <section class="apiUrls">
-    <template v-if="rows.length">
-      <template v-for="row in rows" :key="row.key">
-        <ClipBoard
-          class="apiUrl"
-          :title="row.title"
-          :subtitle="row.subtitle"
-          tooltip="Copy URL to clipboard"
-          :text="row.url"
-        />
-        <!-- Outside the ClipBoard: a click anywhere on it copies the URL. -->
-        <p v-if="row.key === 'opdsV2'" class="apiUrlNote">
-          Supported in newer clients such as
-          <a href="https://www.stumpapp.dev/" target="_blank"
-            >Stump<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-          >.
-        </p>
-        <KOReaderHelp v-if="row.key === 'koreader'" :username="username" />
-      </template>
-    </template>
-    <p v-else class="apiUrlsNone">No APIs are turned on for this server.</p>
-  </section>
+  <!-- One banded block per API: its URL and whatever explains it. -->
+  <div v-if="rows.length" class="apiUrls">
+    <div v-for="row in rows" :key="row.key" class="apiUrlBlock">
+      <ClipBoard
+        :title="row.title"
+        :subtitle="row.subtitle"
+        tooltip="Copy URL to clipboard"
+        :text="row.url"
+      />
+      <!-- Outside the ClipBoard: a click anywhere on it copies the URL. -->
+      <p v-if="row.key === 'opdsV2'" class="apiUrlNote">
+        Supported in newer clients such as
+        <a href="https://www.stumpapp.dev/" target="_blank"
+          >Stump<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+        >.
+      </p>
+      <KOReaderHelp
+        v-if="row.key === 'koreader'"
+        class="apiUrlHelp"
+        :username="username"
+      />
+    </div>
+  </div>
+  <p v-else class="apiUrlsNone">No APIs are turned on for this server.</p>
 </template>
 
 <script>
@@ -67,17 +69,26 @@ export default {
 .apiUrls {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
 }
 
-.apiUrl {
-  padding: 5px;
+.apiUrlBlock {
+  padding: 8px;
+  border-radius: 4px;
+}
+
+// Alternating bands, as the admin key/value tables wear them.
+.apiUrlBlock:nth-child(even) {
+  background-color: rgba(var(--v-theme-on-surface), 0.05);
 }
 
 .apiUrlNote {
-  padding: 0 5px;
+  margin-top: 2px;
   font-size: small;
   color: rgb(var(--v-theme-text-secondary));
+}
+
+.apiUrlHelp {
+  margin-top: 8px;
 }
 
 .apiUrlsNone {
