@@ -101,19 +101,20 @@ class OPDSGateStructureTestCase(SimpleTestCase):
     """No OPDS route escapes the gate."""
 
     def test_every_opds_route_is_gated(self) -> None:
-        root = get_resolver().url_patterns
         (opds,) = (
             pattern
-            for pattern in root
+            for pattern in get_resolver().url_patterns
             if isinstance(pattern, URLResolver) and pattern.namespace == "opds"
         )
         routes = tuple(_patterns(opds.url_patterns))
         assert routes
         for route in routes:
             assert is_opds_gated(route.callback), route
+
+    def test_the_bare_opds_redirect_is_gated(self) -> None:
         (bare,) = (
             pattern
-            for pattern in root
+            for pattern in get_resolver().url_patterns
             if isinstance(pattern, URLPattern) and str(pattern.pattern) == "opds"
         )
         assert is_opds_gated(bare.callback)
