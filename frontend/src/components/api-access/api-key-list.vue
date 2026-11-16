@@ -54,6 +54,7 @@ const ACCESS_LABELS = Object.freeze({
   universal: "Everything (legacy)",
   stats: "Stats",
 });
+const NOT_SINCE_UPGRADE = "Not since upgrade";
 const UNIVERSAL_HINT =
   "Your old Authorization Bearer Token. It still logs in everywhere, but it" +
   " can no longer be shown or made again. Replace it with Device Keys, then" +
@@ -79,7 +80,12 @@ export default {
       return Reflect.get(ACCESS_LABELS, row.scope) ?? row.scope;
     },
     lastUsed(row) {
-      return row.lastUsedAt ? getDateTime(row.lastUsedAt) : "Never";
+      if (row.lastUsedAt) {
+        return getDateTime(row.lastUsedAt);
+      }
+      // Codex recorded no use of the old bearer tokens before the upgrade
+      // that made them Universal Tokens, so "Never" would be wrong.
+      return row.scope === "universal" ? NOT_SINCE_UPGRADE : "Never";
     },
     revokeText(row) {
       const text = `Anything using ${row.name} is logged out.`;

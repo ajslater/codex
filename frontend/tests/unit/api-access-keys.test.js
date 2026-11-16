@@ -3,7 +3,8 @@
  *
  * Behavior locked in here:
  *   - The list names what each scope logs in to, and the universal row
- *     explains that it is the old bearer token and cannot come back.
+ *     explains that it is the old bearer token and cannot come back. An
+ *     unused one reads "Not since upgrade": older versions recorded no use.
  *   - Every revoke goes through a confirmation.
  *   - Create is never silently disabled: a blank name is refused on submit
  *     with a visible reason. Only admins pick a kind; everyone else makes a
@@ -68,6 +69,17 @@ describe("ApiKeyList", () => {
     expect(text).toContain("Stats");
     expect(text).toContain("abcd…");
     expect(text).toContain("Never");
+  });
+
+  test("an unused Universal Token reads not used since the upgrade", () => {
+    const { wrapper } = mountWith(ApiKeyList, {
+      apiKeys: [{ ...KEYS[1], lastUsedAt: undefined }, KEYS[0]],
+    });
+    const cells = wrapper.findAll("tbody tr td:nth-child(4)");
+    expect(cells.map((cell) => cell.text())).toEqual([
+      "Not since upgrade",
+      "Never",
+    ]);
   });
 
   test("the universal row says what it is", () => {
