@@ -3,35 +3,20 @@
 import base64
 import hashlib
 import secrets
-import shutil
-from pathlib import Path
 from typing import Final, override
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import Client, TestCase
+from django.test import Client
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.api_key import UNIVERSAL_KEY_NAME, ApiKeyScope
-from codex.models import (
-    AdminFlag,
-    Comic,
-    Imprint,
-    Library,
-    Publisher,
-    Series,
-    Volume,
-)
+from codex.models import AdminFlag
 from codex.models.api_key import UserApiKey
-from codex.models.auth import GroupAuth
-from codex.startup import init_admin_flags
 from tests.api_key_factory import make_api_key
+from tests.reader_fixtures import PASSWORD, ReaderFixture
 from tests.tmp_dirs import tmp_dir
 
-PASSWORD: Final = "api-key-test-pw"  # noqa: S105
-_TMP_DIR: Final = tmp_dir("codex.tests.api_keys")
-OPEN_DIR: Final = _TMP_DIR / "open"
-_PRIVATE_DIR: Final = _TMP_DIR / "private"
 KEYS_URL: Final = "/api/v4/auth/keys"
 OPDS_V2: Final = "/opds/v2.0/"
 OPDS_V1: Final = "/opds/v1.2/"
@@ -74,65 +59,19 @@ def make_universal_key(user) -> tuple[UserApiKey, str]:
     )
 
 
-class ApiKeyFixture(TestCase):
-    """A visible comic, one behind a group, and a user with a device key and a universal key."""
+class ApiKeyFixture(ReaderFixture):
+    """The reader also holds a device key and a universal key; another user holds none."""
+
+    TMP_DIR = tmp_dir("codex.tests.api_keys")
+    COMIC_PAGE_COUNT = 11
 
     @override
     def setUp(self) -> None:
-        cache.clear()
-        init_admin_flags()
-        for path in (OPEN_DIR, _PRIVATE_DIR):
-            path.mkdir(exist_ok=True, parents=True)
-        publisher = Publisher.objects.create(name="Pub")
-        imprint = Imprint.objects.create(name="Imp", publisher=publisher)
-        series = Series.objects.create(name="Ser", imprint=imprint, publisher=publisher)
-        self.groups = (  # pyright: ignore[reportUninitializedInstanceVariable]
-            publisher,
-            imprint,
-            series,
-            Volume.objects.create(
-                name="2024", series=series, imprint=imprint, publisher=publisher
-            ),
-        )
-        self.library = Library.objects.create(path=str(OPEN_DIR))  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.comic = self._make_comic(self.library, OPEN_DIR, "open")  # pyright: ignore[reportUninitializedInstanceVariable]
-        private_library = Library.objects.create(path=str(_PRIVATE_DIR))
-        readers = Group.objects.create(name="readers")
-        GroupAuth.objects.create(group=readers)
-        private_library.groups.add(readers)
-        self.private_comic = self._make_comic(  # pyright: ignore[reportUninitializedInstanceVariable]
-            private_library, _PRIVATE_DIR, "private"
-        )
-        self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
-            username="reader", password=PASSWORD
-        )
+        super().setUp()
         self.universal, self.token = make_universal_key(self.user)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.api_key, self.key = UserApiKey.create_for_user(self.user, "Kobo")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.other = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="other", password=PASSWORD
-        )
-        self.client = Client()
-
-    @override
-    def tearDown(self) -> None:
-        shutil.rmtree(_TMP_DIR, ignore_errors=True)
-
-    def _make_comic(self, library, dir_path: Path, name: str, **kwargs) -> Comic:
-        path = dir_path / f"{name}.cbz"
-        path.write_bytes(name.encode() * 300)
-        publisher, imprint, series, volume = self.groups
-        return Comic.objects.create(
-            library=library,
-            path=path,
-            issue_number=1,
-            name=name,
-            publisher=publisher,
-            imprint=imprint,
-            series=series,
-            volume=volume,
-            page_count=11,
-            size=42,
-            **kwargs,
         )
 
     def _get(self, url: str, auth: str, **headers):

@@ -39,11 +39,11 @@ from tests.api_key_fixtures import (
     KOSYNC_ACCEPT,
     KOSYNC_AUTH,
     OPDS_V2,
-    PASSWORD,
     ApiKeyFixture,
     md5,
     set_flag,
 )
+from tests.reader_fixtures import PASSWORD
 
 
 class ApiKeyModelTestCase(TestCase):
