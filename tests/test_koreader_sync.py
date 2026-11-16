@@ -15,19 +15,17 @@ What these tests pin:
   percentage fallback when the device counts pages differently.
 """
 
-import hashlib
 import json
-import shutil
 from multiprocessing import Event
 from pathlib import Path
 from threading import Lock
-from typing import Any, Final, override
+from typing import Any, Final
 from unittest.mock import patch
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.test import Client, TestCase
+from django.test import TestCase
 from django.urls import reverse
 from django.urls.base import set_script_prefix
 from loguru import logger
@@ -40,29 +38,18 @@ from codex.librarian.scribe.koreader_hash import (
     koreader_name_md5,
     koreader_partial_md5,
 )
-from codex.models import (
-    AdminFlag,
-    AgeRating,
-    AgeRatingMetron,
-    Bookmark,
-    Comic,
-    Imprint,
-    Library,
-    Publisher,
-    Series,
-    Volume,
-)
-from codex.models.api_key import UserApiKey
-from codex.models.auth import GroupAuth, UserAuth
-from codex.startup import init_admin_flags
+from codex.models import AdminFlag, AgeRating, AgeRatingMetron, Bookmark, Comic
+from codex.models.auth import UserAuth
 from codex.views.koreader.progress import CODEX_DEVICE_ID, map_push
-from tests.tmp_dirs import tmp_dir
+from tests.koreader_fixtures import (
+    ACCEPT,
+    OPEN_DIR,
+    PAGE_COUNT,
+    KOSyncTestCase,
+    md5,
+    set_flag,
+)
 
-_TMP_DIR: Final = tmp_dir("codex.tests.koreader_sync")
-_OPEN_DIR: Final = _TMP_DIR / "open"
-_PRIVATE_DIR: Final = _TMP_DIR / "private"
-_ACCEPT: Final = "application/vnd.koreader.v1+json"
-_PAGE_COUNT: Final = 20
 _HTTP_OK: Final = 200
 _HTTP_UNAUTHORIZED: Final = 401
 _HTTP_PAYMENT_REQUIRED: Final = 402
@@ -73,121 +60,6 @@ _PAGE_ONE_BASED: Final = 5
 _STORED_PAGE: Final = 4
 _WEB_PAGE: Final = 9
 _HALF: Final = 0.5
-
-
-def _md5(value: str) -> str:
-    return hashlib.md5(value.encode(), usedforsecurity=False).hexdigest()
-
-
-def _set_flag(*, on: bool) -> None:
-    AdminFlag.objects.filter(key=AdminFlagChoices.KOREADER_SYNC.value).update(on=on)
-
-
-class KOSyncTestCase(TestCase):
-    """Fixture: an open comic, a private one and a user with a device key."""
-
-    @override
-    def setUp(self) -> None:
-        cache.clear()
-        init_admin_flags()
-        _set_flag(on=True)
-        for path in (_OPEN_DIR, _PRIVATE_DIR):
-            path.mkdir(exist_ok=True, parents=True)
-        publisher = Publisher.objects.create(name="Pub")
-        imprint = Imprint.objects.create(name="Imp", publisher=publisher)
-        series = Series.objects.create(name="Ser", imprint=imprint, publisher=publisher)
-        self.groups = (  # pyright: ignore[reportUninitializedInstanceVariable]
-            publisher,
-            imprint,
-            series,
-            Volume.objects.create(
-                name="2024", series=series, imprint=imprint, publisher=publisher
-            ),
-        )
-        self.library = Library.objects.create(path=str(_OPEN_DIR))  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.comic = self._make_comic(self.library, _OPEN_DIR, "open")  # pyright: ignore[reportUninitializedInstanceVariable]
-
-        private_library = Library.objects.create(path=str(_PRIVATE_DIR))
-        readers = Group.objects.create(name="readers")
-        GroupAuth.objects.create(group=readers)
-        private_library.groups.add(readers)
-        self.private_comic = self._make_comic(  # pyright: ignore[reportUninitializedInstanceVariable]
-            private_library, _PRIVATE_DIR, "private"
-        )
-
-        self.user = User.objects.create_user(username="reader", password="x")  # noqa: S106 # pyright: ignore[reportUninitializedInstanceVariable]
-        _, self.key = UserApiKey.create_for_user(self.user, "KOReader")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.client = Client()
-
-    @override
-    def tearDown(self) -> None:
-        shutil.rmtree(_TMP_DIR, ignore_errors=True)
-
-    def _make_comic(self, library, dir_path: Path, name: str, **kwargs) -> Comic:
-        path = dir_path / f"{name}.cbz"
-        path.write_bytes(name.encode() * 300)
-        publisher, imprint, series, volume = self.groups
-        return Comic.objects.create(
-            library=library,
-            path=path,
-            issue_number=1,
-            name=name,
-            publisher=publisher,
-            imprint=imprint,
-            series=series,
-            volume=volume,
-            page_count=_PAGE_COUNT,
-            size=42,
-            **kwargs,
-        )
-
-    def _headers(self, user: str | None = None, key: str | None = None) -> dict:
-        return {
-            "HTTP_ACCEPT": _ACCEPT,
-            "HTTP_X_AUTH_USER": user if user is not None else self.user.username,
-            "HTTP_X_AUTH_KEY": key if key is not None else _md5(self.key),
-        }
-
-    def _push(
-        self,
-        document: str | None,
-        progress: str | None = "5",
-        percentage: float | None = 0.25,
-        **headers: Any,
-    ):
-        body = {
-            "document": document,
-            "progress": progress,
-            "percentage": percentage,
-            "device": "Kobo",
-            "device_id": "ABC",
-        }
-        return self.client.put(
-            "/koreader/syncs/progress",
-            data=json.dumps(body),
-            content_type="application/json",
-            **(headers or self._headers()),
-        )
-
-    def _put_raw(self, body):
-        return self.client.put(
-            "/koreader/syncs/progress",
-            data=json.dumps(body),
-            content_type="application/json",
-            **self._headers(),
-        )
-
-    def _pull(self, document: str | None, **headers: Any):
-        return self.client.get(
-            f"/koreader/syncs/progress/{document}", **(headers or self._headers())
-        )
-
-    def _bookmarks(self) -> list[tuple[int, int | None, bool]]:
-        return list(
-            Bookmark.objects.order_by("comic_id").values_list(
-                "comic_id", "page", "finished"
-            )
-        )
 
 
 class KOSyncHashTestCase(KOSyncTestCase):
@@ -201,10 +73,10 @@ class KOSyncHashTestCase(KOSyncTestCase):
     def test_unreadable_file_leaves_the_binary_hash_null(self) -> None:
         """A file that can't be read doesn't fail the save."""
         comic = Comic.objects.get(pk=self.comic.pk)
-        comic.path = str(_OPEN_DIR)  # a directory: stat works, open fails
+        comic.path = str(OPEN_DIR)  # a directory: stat works, open fails
         comic.set_koreader_hashes()
         assert comic.koreader_hash is None
-        assert comic.koreader_name_hash == koreader_name_md5(_OPEN_DIR)
+        assert comic.koreader_name_hash == koreader_name_md5(OPEN_DIR)
 
 
 class KOSyncFlagTestCase(KOSyncTestCase):
@@ -212,7 +84,7 @@ class KOSyncFlagTestCase(KOSyncTestCase):
 
     def test_flag_off_is_404_everywhere(self) -> None:
         """No route answers while the flag is off, authenticated or not."""
-        _set_flag(on=False)
+        set_flag(on=False)
         cache.clear()
         headers = self._headers()
         responses = (
@@ -236,8 +108,8 @@ class KOSyncFlagTestCase(KOSyncTestCase):
         """Users are made in Codex."""
         response = self.client.post(
             "/koreader/users/create",
-            data=json.dumps({"username": "x", "password": _md5("y")}),
-            content_type=_ACCEPT,
+            data=json.dumps({"username": "x", "password": md5("y")}),
+            content_type=ACCEPT,
         )
         assert response.status_code == _HTTP_PAYMENT_REQUIRED
         assert response.json() == {
@@ -258,11 +130,11 @@ class KOSyncAuthTestCase(KOSyncTestCase):
     def test_bad_credentials(self) -> None:
         """Wrong key, raw key, login password, unknown user, no headers."""
         attempts: tuple[dict[str, Any], ...] = (
-            self._headers(key=_md5("wrong")),
+            self._headers(key=md5("wrong")),
             self._headers(key=self.key),
-            self._headers(key=_md5("x")),
+            self._headers(key=md5("x")),
             self._headers(user="nobody"),
-            {"HTTP_ACCEPT": _ACCEPT},
+            {"HTTP_ACCEPT": ACCEPT},
         )
         for headers in attempts:
             response = self.client.get("/koreader/users/auth", **headers)
@@ -272,15 +144,15 @@ class KOSyncAuthTestCase(KOSyncTestCase):
     def test_session_does_not_authenticate(self) -> None:
         """A logged-in browser session is not a kosync login."""
         self.client.force_login(self.user)
-        response = self.client.get("/koreader/users/auth", HTTP_ACCEPT=_ACCEPT)
+        response = self.client.get("/koreader/users/auth", HTTP_ACCEPT=ACCEPT)
         assert response.status_code == _HTTP_UNAUTHORIZED
 
     def test_non_users_does_not_authenticate(self) -> None:
         """The Non Users flag opens the browser, not sync."""
         AdminFlag.objects.filter(key=AdminFlagChoices.NON_USERS.value).update(on=True)
-        assert self._pull(
-            self.comic.koreader_hash, HTTP_ACCEPT=_ACCEPT
-        ).status_code == (_HTTP_UNAUTHORIZED)
+        assert self._pull(self.comic.koreader_hash, HTTP_ACCEPT=ACCEPT).status_code == (
+            _HTTP_UNAUTHORIZED
+        )
 
     def test_inactive_user_is_refused(self) -> None:
         """A deactivated account can't sync."""
@@ -290,7 +162,7 @@ class KOSyncAuthTestCase(KOSyncTestCase):
 
     def test_unauthenticated_push_is_401(self) -> None:
         """A push without credentials stores nothing."""
-        response = self._push(self.comic.koreader_hash, HTTP_ACCEPT=_ACCEPT)
+        response = self._push(self.comic.koreader_hash, HTTP_ACCEPT=ACCEPT)
         assert response.status_code == _HTTP_UNAUTHORIZED
         assert not self._bookmarks()
 
@@ -314,7 +186,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         assert pull.status_code == _HTTP_OK
         assert pull.json() == {
             "document": self.comic.koreader_hash,
-            "percentage": _PAGE_ONE_BASED / _PAGE_COUNT,
+            "percentage": _PAGE_ONE_BASED / PAGE_COUNT,
             "progress": str(_PAGE_ONE_BASED),
             "device": "Codex",
             "device_id": CODEX_DEVICE_ID,
@@ -333,7 +205,7 @@ class KOSyncProgressTestCase(KOSyncTestCase):
                     "device": "Kobo",
                 }
             ),
-            content_type=_ACCEPT,
+            content_type=ACCEPT,
             **self._headers(),
         )
         assert response.status_code == _HTTP_OK
@@ -349,22 +221,22 @@ class KOSyncProgressTestCase(KOSyncTestCase):
     def test_last_page_finishes(self) -> None:
         """Page 20 of 20 marks the comic read."""
         self._push(self.comic.koreader_hash, progress="20", percentage=1.0)
-        assert self._bookmarks() == [(self.comic.pk, _PAGE_COUNT - 1, True)]
+        assert self._bookmarks() == [(self.comic.pk, PAGE_COUNT - 1, True)]
         doc = self._pull(self.comic.koreader_hash).json()
-        assert doc["progress"] == str(_PAGE_COUNT)
+        assert doc["progress"] == str(PAGE_COUNT)
         assert doc["percentage"] == 1.0
 
     def test_finished_without_a_page_pulls_the_last_page(self) -> None:
         """Marked read in the browser: the device jumps to the end."""
         Bookmark.objects.create(user=self.user, comic=self.comic, finished=True)
         assert self._pull(self.comic.koreader_hash).json()["progress"] == str(
-            _PAGE_COUNT
+            PAGE_COUNT
         )
 
     def test_out_of_range_page_is_clamped(self) -> None:
         """A page past the end is the last page, and read."""
         self._push(self.comic.koreader_hash, progress="99", percentage=0.99)
-        assert self._bookmarks() == [(self.comic.pk, _PAGE_COUNT - 1, True)]
+        assert self._bookmarks() == [(self.comic.pk, PAGE_COUNT - 1, True)]
 
     def test_percentage_fallback_when_page_counts_differ(self) -> None:
         """
@@ -492,7 +364,7 @@ class KOSyncACLTestCase(KOSyncTestCase):
         rating = AgeRating(name=MetronAgeRatingEnum.ADULT.value)
         rating.presave()
         rating.save()
-        adult = self._make_comic(self.library, _OPEN_DIR, "adult", age_rating=rating)
+        adult = self._make_comic(self.library, OPEN_DIR, "adult", age_rating=rating)
         teen = AgeRatingMetron.objects.get(name=MetronAgeRatingEnum.TEEN.value)
         UserAuth.objects.filter(user=self.user).update(age_rating_metron=teen)
         cache.clear()
@@ -507,7 +379,7 @@ class KOSyncACLTestCase(KOSyncTestCase):
 
         A push updates both; a pull returns the newer bookmark.
         """
-        twin = self._make_comic(self.library, _OPEN_DIR, "twin")
+        twin = self._make_comic(self.library, OPEN_DIR, "twin")
         Comic.objects.filter(pk=twin.pk).update(koreader_hash=self.comic.koreader_hash)
         self._push(self.comic.koreader_hash)
         assert self._bookmarks() == [
@@ -586,7 +458,7 @@ class KOSyncBackfillTestCase(KOSyncTestCase):
 
     def test_backfill_does_nothing_with_the_flag_off(self) -> None:
         """The nightly run is a no-op while sync is off."""
-        _set_flag(on=False)
+        set_flag(on=False)
         cache.clear()
         self._clear_hashes()
         self._janitor().koreader_hash_backfill()
@@ -594,7 +466,7 @@ class KOSyncBackfillTestCase(KOSyncTestCase):
 
     def test_turning_the_flag_on_queues_the_backfill(self) -> None:
         """The admin flag hook queues the job."""
-        _set_flag(on=False)
+        set_flag(on=False)
         admin = User.objects.create_superuser(
             username="admin",
             email="",
