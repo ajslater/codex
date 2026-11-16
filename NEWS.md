@@ -8,16 +8,6 @@ border-radius: 128px;
 
 ## v2.7.0
 
-### 💥 Breaking Changes
-
-> [!WARNING]
->
-> - Authorization Bearer Tokens are now Universal Tokens: existing ones work
->   until revoked but can no longer be shown, reset or made. Use device keys for
->   OPDS and KOReader.
-> - The server-wide Stats API key is revoked. Admins make their own Stats keys
->   in API Access.
-
 ### ✨ Added
 
 - Shelves: signed-in users can make their own named shelves, such as "Want to
@@ -53,8 +43,11 @@ border-radius: 128px;
 - The Favorite sort and table column are now Shelved: on any of your shelves.
 - User data backups store shelves, and API keys as hashes. Backups made by older
   versions still restore, with their favorites placed on a "Favorites" shelf.
-- Send Stats also reports whether OPDS and Stats API keys are on and how many
-  device keys and Universal Tokens have been used.
+- Authorization Bearer Tokens are now Universal Tokens: existing ones work until
+  revoked but can no longer be shown, reset or made. Use device keys for OPDS
+  and KOReader.
+- The server-wide Stats API key is revoked. Admins make their own Stats keys in
+  API Access.
 - Some background task log messages now reach the log file and honor the log
   level.
 - Libraries have their own icon, and actions and statuses that shared an icon
