@@ -13,6 +13,10 @@
         Supported in newer clients such as
         <a href="https://www.stumpapp.dev/" target="_blank"
           >Stump<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
+        >
+        and
+        <a href="https://readest.com/" target="_blank"
+          >Readest<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
         >.
       </p>
       <KOReaderHelp
