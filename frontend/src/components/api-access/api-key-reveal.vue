@@ -6,27 +6,19 @@
       subtitle="Copy it now: it is shown only this once."
       :text="apiKey"
     />
-    <table v-if="usage.length" class="usageTable">
-      <tbody>
-        <tr v-for="row in usage" :key="row.api">
-          <td class="usageApi">{{ row.api }}</td>
-          <td class="usageValue">
-            <template v-if="row.api === 'Stats'">
-              <code>{{ statsUrl }}?apiKey={{ apiKey }}</code
-              >, or the header
-              <code>Authorization: Bearer {{ apiKey }}</code>
-            </template>
-            <template v-else-if="row.api === 'OPDS'">
-              Username <b>{{ username }}</b> with this key as the password, or
-              the header <code>Authorization: Bearer {{ apiKey }}</code>
-            </template>
-            <template v-else>
-              Username <b>{{ username }}</b> with this key as the password
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <p v-if="isStats" class="usage">
+      Request <code>{{ statsUrl }}?apiKey={{ apiKey }}</code
+      >, or send the header <code>Authorization: Bearer {{ apiKey }}</code
+      >.
+    </p>
+    <!-- One line for OPDS and KOReader alike; only OPDS takes a header. -->
+    <p v-else-if="readerApiOn" class="usage">
+      Log in with username <b>{{ username }}</b> and this key as the
+      password<template v-if="urls.opdsV1"
+        >, or send the header
+        <code>Authorization: Bearer {{ apiKey }}</code></template
+      >.
+    </p>
     <p v-if="note" class="apiKeyNote">{{ note }}</p>
   </div>
 </template>
@@ -59,18 +51,8 @@ export default {
     isStats() {
       return this.scope === "stats";
     },
-    usage() {
-      if (this.isStats) {
-        return [{ api: "Stats" }];
-      }
-      const rows = [];
-      if (this.urls.opdsV1) {
-        rows.push({ api: "OPDS" });
-      }
-      if (this.urls.koreader) {
-        rows.push({ api: "KOReader" });
-      }
-      return rows;
+    readerApiOn() {
+      return Boolean(this.urls.opdsV1 || this.urls.koreader);
     },
     statsUrl() {
       const path = this.urls.stats || `${V4_BASE}admin/stats`;
@@ -80,7 +62,7 @@ export default {
       if (this.isStats) {
         return this.urls.stats ? "" : STATS_OFF;
       }
-      return this.usage.length ? "" : NO_READER_API;
+      return this.readerApiOn ? "" : NO_READER_API;
     },
   },
 };
@@ -93,20 +75,9 @@ export default {
   gap: 0.5em;
 }
 
-.usageTable {
-  width: 100%;
-}
-
-.usageTable td {
+.usage {
+  margin: 0;
   padding: 4px;
-  vertical-align: top;
-}
-
-.usageApi {
-  white-space: nowrap;
-}
-
-.usageValue {
   border-radius: 5px;
   background-color: rgb(var(--v-theme-surface));
   overflow-wrap: anywhere;

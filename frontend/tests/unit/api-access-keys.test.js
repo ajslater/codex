@@ -9,8 +9,9 @@
  *   - Create is never silently disabled: a blank name is refused on submit
  *     with a visible reason. Only admins pick a kind; everyone else makes a
  *     Device Key.
- *   - The new key's help names only the APIs that are on, and says so when
- *     the key would log in nowhere.
+ *   - The new key's help is one line for OPDS and KOReader alike, offers the
+ *     Bearer header only while OPDS is on, and says so when the key would
+ *     log in nowhere.
  *   - The section explains that OPDS apps often take a username and
  *     password, and that a Device Key per app is the better password.
  */
@@ -157,18 +158,32 @@ describe("ApiKeyReveal", () => {
     username: "alice",
   });
 
-  test("a device key shows how to use it on each reader API that is on", () => {
+  test("a device key gets one line for OPDS and KOReader alike", () => {
     const { wrapper } = mountWith(ApiKeyReveal, {
       ...BASE,
       scope: "device",
       urls: { opdsV1: "/opds/v1.2/", koreader: "/koreader" },
     });
-    const text = wrapper.text();
-    expect(text).toContain("shown only this once");
-    expect(text).toContain("OPDS");
+    expect(wrapper.text()).toContain("shown only this once");
+    const usage = wrapper.findAll(".usage");
+    expect(usage).toHaveLength(1);
+    const text = usage[0].text();
+    expect(text).toContain("username alice and this key as the password");
     expect(text).toContain("Authorization: Bearer abcdsecretkey");
-    expect(text).toContain("KOReader");
+    expect(text).not.toContain("OPDS");
+    expect(text).not.toContain("KOReader");
     expect(wrapper.find(".apiKeyNote").exists()).toBe(false);
+  });
+
+  test("with only KOReader on, no header is offered", () => {
+    const { wrapper } = mountWith(ApiKeyReveal, {
+      ...BASE,
+      scope: "device",
+      urls: { koreader: "/koreader" },
+    });
+    const text = wrapper.find(".usage").text();
+    expect(text).toContain("this key as the password");
+    expect(text).not.toContain("Authorization");
   });
 
   test("a device key with no reader API on says so", () => {
