@@ -476,7 +476,8 @@ class ApiKeyRestoreTests(_SidecarRestoreCase):
         assert report.written.get("users")
         assert not UserApiKey.objects.exists()
 
-    def test_an_old_server_api_key_becomes_the_first_admins_stats_key(self) -> None:
+    def test_an_old_server_api_key_is_not_restored(self) -> None:
+        """The server-wide Stats API key was revoked: a backup can't revive it."""
         self._seed()
         old_key = "legacy-server-api-key"
         snapshot = self._snapshot_sidecar()
@@ -489,16 +490,10 @@ class ApiKeyRestoreTests(_SidecarRestoreCase):
         UserApiKey.objects.all().delete()
 
         restore(sidecar_path=snapshot)
-        restore(sidecar_path=snapshot)
 
-        api_key = UserApiKey.objects.get()
-        assert (api_key.user, api_key.scope, api_key.name) == (
-            self.admin,
-            ApiKeyScope.STATS,
-            "Stats Key",
-        )
+        assert not UserApiKey.objects.exists()
         assert not AdminFlag.objects.filter(key="AK").exists()
-        assert self._logs_in("/api/v4/admin/stats", f"Bearer {old_key}")
+        assert not self._logs_in("/api/v4/admin/stats", f"Bearer {old_key}")
 
 
 class SettingsDefaultsRestoreTests(_SidecarRestoreCase):

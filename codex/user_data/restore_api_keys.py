@@ -3,9 +3,9 @@ Restore API keys from the user-data sidecar.
 
 Split out of :mod:`codex.user_data.restore`. The ``api_keys`` table holds
 hashes only, which is all a key needs to log in again. A backup written
-before keys were backed up has no rows here, and one written before Stats
-API keys were per admin carries the server's plaintext key in the ``AK``
-admin flag instead; that one is hashed into a stats key for the first admin.
+before keys were backed up has no rows here. The plaintext server-wide Stats
+API key an older backup carries in its ``AK`` admin flag is revoked, not
+restored: the admin flag restore skips it.
 """
 
 from __future__ import annotations
@@ -19,9 +19,6 @@ if TYPE_CHECKING:
     from codex.user_data.store import SidecarStore
 
 _TABLE: Final = "api_keys"
-# The retired admin flag that held the server-wide Stats API key.
-LEGACY_STATS_KEY_FLAG: Final = "AK"
-LEGACY_STATS_KEY_NAME: Final = "Stats Key"
 
 
 def _restore_one(row, report: RestoreReport) -> None:
@@ -75,43 +72,3 @@ def restore_api_keys(
             report.note_written(_TABLE)
             continue
         _restore_one(row, report)
-
-
-def _first_admin():
-    """Return the lowest-pk active superuser, else active staff, else None."""
-    from django.contrib.auth import get_user_model
-
-    users = get_user_model().objects.filter(is_active=True).order_by("pk")
-    return (
-        users.filter(is_superuser=True).first() or users.filter(is_staff=True).first()
-    )
-
-
-def restore_legacy_stats_key(
-    store: SidecarStore, report: RestoreReport, *, dry_run: bool
-) -> None:
-    """Hash an old backup's server-wide Stats API key into the first admin's."""
-    from codex.models.api_key import UserApiKey, api_key_digest
-
-    secret = next(
-        (
-            row["value"]
-            for row in store.fetchall("admin_flags")
-            if row["key"] == LEGACY_STATS_KEY_FLAG and row["value"]
-        ),
-        "",
-    )
-    if not secret:
-        return
-    if dry_run:
-        report.note_written(_TABLE)
-        return
-    if UserApiKey.objects.filter(digest=api_key_digest(secret)).exists():
-        report.note_written(_TABLE)
-        return
-    owner = _first_admin()
-    if owner is None:
-        report.note_skipped(_TABLE, "no admin to own the old Stats API key")
-        return
-    UserApiKey.adopt(owner, LEGACY_STATS_KEY_NAME, ApiKeyScope.STATS.value, secret)
-    report.note_written(_TABLE)

@@ -35,6 +35,7 @@ from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
 from codex.models.shelf import Shelf, ShelfItem
+from tests.api_key_factory import make_api_key
 from tests.tmp_dirs import tmp_dir
 
 # Anything containing this must never appear in the payload.
@@ -257,10 +258,10 @@ class TelemeterPrivacyTestCase(TestCase):
         # count is one; the device and universal keys have been used, so
         # their timestamps are set and must not be what is reported.
         device, _ = UserApiKey.create_for_user(user, f"{SENTINEL}-device-key")
-        universal = UserApiKey.adopt(
+        universal = make_api_key(
             user, f"{SENTINEL}-universal", ApiKeyScope.UNIVERSAL, f"{SENTINEL}-token"
         )
-        UserApiKey.adopt(
+        make_api_key(
             user, f"{SENTINEL}-stats", ApiKeyScope.STATS, f"{SENTINEL}-stats-key"
         )
         UserApiKey.objects.filter(pk__in=(device.pk, universal.pk)).update(
