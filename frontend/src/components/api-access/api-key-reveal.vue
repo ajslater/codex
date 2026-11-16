@@ -1,9 +1,14 @@
 <template>
   <div class="apiKeyReveal">
+    <!-- Highlighted: the key is never shown again. -->
+    <p class="revealWarning">
+      <v-icon :icon="mdiAlertOutline" size="small" />
+      Copy it now: it is shown only this once.
+    </p>
     <ClipBoard
+      class="revealKey"
       tooltip="Copy key to clipboard"
       :title="`Key for ${name}`"
-      subtitle="Copy it now: it is shown only this once."
       :text="apiKey"
     />
     <p v-if="isStats" class="usage">
@@ -24,6 +29,8 @@
 </template>
 
 <script>
+import { mdiAlertOutline } from "@mdi/js";
+
 import { V4_BASE } from "@/api/v4/base";
 import ClipBoard from "@/components/clipboard.vue";
 
@@ -46,6 +53,9 @@ export default {
     username: { type: String, default: "" },
     // Paths by API, from /api-urls. An API that is off is absent.
     urls: { type: Object, required: true },
+  },
+  data() {
+    return { mdiAlertOutline };
   },
   computed: {
     isStats() {
@@ -73,6 +83,23 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.5em;
+  padding: 12px;
+  border: 2px solid rgb(var(--v-theme-primary));
+  border-radius: 6px;
+  background-color: rgba(var(--v-theme-primary), 0.08);
+}
+
+.revealWarning {
+  margin: 0;
+  font-weight: bold;
+  color: rgb(var(--v-theme-primary));
+}
+
+.revealKey :deep(.bodyText) {
+  font-family: monospace;
+  font-size: 1.1em;
+  color: rgb(var(--v-theme-text-primary));
+  overflow-wrap: anywhere;
 }
 
 .usage {

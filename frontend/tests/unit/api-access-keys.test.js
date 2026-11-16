@@ -10,6 +10,8 @@
  *   - Create is never silently disabled: a blank name is refused on submit
  *     with a visible reason. Only admins pick a kind; everyone else makes a
  *     Device Key.
+ *   - The new key sits in a highlighted panel that warns, above the key,
+ *     that it is shown only once.
  *   - The new key's help is one line for OPDS and KOReader alike, offers the
  *     Bearer header only while OPDS is on, and says so when the key would
  *     log in nowhere.
@@ -185,6 +187,21 @@ describe("ApiKeyReveal", () => {
     expect(text).not.toContain("OPDS");
     expect(text).not.toContain("KOReader");
     expect(wrapper.find(".apiKeyNote").exists()).toBe(false);
+  });
+
+  test("warns, above the key, that it is shown only once", () => {
+    const { wrapper } = mountWith(ApiKeyReveal, {
+      ...BASE,
+      scope: "device",
+      urls: { opdsV1: "/opds/v1.2/" },
+    });
+    const warning = wrapper.find(".revealWarning");
+    expect(warning.text()).toBe("Copy it now: it is shown only this once.");
+    expect(warning.findComponent({ name: "VIcon" }).exists()).toBe(true);
+    const order = [...wrapper.element.children].map((child) => child.className);
+    expect(order[0]).toContain("revealWarning");
+    expect(order[1]).toContain("revealKey");
+    expect(wrapper.find(".revealKey .bodyText").text()).toBe("abcdsecretkey");
   });
 
   test("with only KOReader on, no header is offered", () => {
