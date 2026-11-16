@@ -18,7 +18,7 @@ groups results by the parent collection's pk.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, override
@@ -253,6 +253,13 @@ def compute_collection_intersections(
     such columns are visible. M2M columns each issue their own
     query because they each traverse a distinct through-table whose
     JOIN would multiply rows for sibling M2M aggregates if combined.
+
+    A row grouped by name (series, imprints, volumes, arcs) stands for
+    every pk in its ``ids``; ``obj.pk`` is only one of them. The helpers
+    work per pk over all of them and :func:`_fold_merged_rows` combines
+    each row's pks, so the cells describe the same comics the metadata
+    dialog and the card aggregates do. The result stays keyed by
+    ``obj.pk``, which is what the row serializer looks up.
     """
     cols = tuple(columns)
     if not cols or collection_qs.model is Comic:
@@ -267,7 +274,8 @@ def compute_collection_intersections(
     # sorted page query just to read pks, while iterating primes this
     # queryset's result cache — the serializer consumes the same object,
     # so the heaviest query in a table-mode request runs once, not twice.
-    collection_pks = [obj.pk for obj in collection_qs]
+    row_pks = _row_pks(collection_qs)
+    collection_pks = sorted({pk for pks in row_pks.values() for pk in pks})
     if not collection_pks:
         return {}
 
@@ -291,7 +299,73 @@ def compute_collection_intersections(
             col, collection_pks, comic_to_collection, counts, result, acl
         )
 
-    return result
+    return _fold_merged_rows(row_pks, result, counts, intersect_cols, sum_cols)
+
+
+def _row_pks(collection_qs) -> dict[int, tuple[int, ...]]:
+    """Map each row's pk to every pk the row stands for."""
+    return {
+        obj.pk: tuple(getattr(obj, "ids", None) or (obj.pk,)) for obj in collection_qs
+    }
+
+
+def _fold_scalars(
+    buckets: list[dict[str, Any]], intersect_cols: list[tuple[str, str]]
+) -> dict[str, Any]:
+    """Keep an intersected scalar only when every pk agrees on it."""
+    row = {}
+    for col, _path in intersect_cols:
+        values = {bucket[col] for bucket in buckets}
+        row[col] = values.pop() if len(values) == 1 else None
+    return row
+
+
+def _fold_sums(
+    buckets: list[dict[str, Any]], sum_cols: list[tuple[str, str]]
+) -> dict[str, Any]:
+    """Sum a cumulative scalar across the pks."""
+    row = {}
+    for col, _path in sum_cols:
+        sums = [bucket[col] for bucket in buckets if bucket[col] is not None]
+        row[col] = sum(sums) if sums else None
+    return row
+
+
+def _fold_lists(buckets: list[dict[str, Any]], done: Iterable[str]) -> dict[str, Any]:
+    """Keep the M2M values every pk's list holds."""
+    return {
+        col: sorted(
+            set(values).intersection(*(bucket.get(col, ()) for bucket in buckets[1:]))
+        )
+        for col, values in buckets[0].items()
+        if col not in done
+    }
+
+
+def _fold_merged_rows(
+    row_pks: Mapping[int, tuple[int, ...]],
+    per_pk: Mapping[int, dict[str, Any]],
+    counts: Mapping[int, int],
+    intersect_cols: list[tuple[str, str]],
+    sum_cols: list[tuple[str, str]],
+) -> dict[int, dict[str, Any]]:
+    """
+    Combine each row's per-pk intersections into the row's own.
+
+    The rules restate "shared by every comic" over the union of the
+    row's pks, skipping pks the user can see no comics under. The M2M
+    rule is exact for the FK relations, whose comic sets are disjoint,
+    and for story arcs, where a comic in two merged arcs is in both.
+    """
+    folded: dict[int, dict[str, Any]] = {}
+    for row_pk, pks in row_pks.items():
+        if len(pks) == 1:
+            folded[row_pk] = per_pk[pks[0]]
+            continue
+        buckets = [per_pk[pk] for pk in pks if counts.get(pk)] or [per_pk[pks[0]]]
+        row = _fold_scalars(buckets, intersect_cols) | _fold_sums(buckets, sum_cols)
+        folded[row_pk] = row | _fold_lists(buckets, row.keys())
+    return folded
 
 
 def _bucket_intersection_columns(
@@ -983,6 +1057,12 @@ def _comic_correlation_sql(
 
     Returns a :class:`_Correlation` or ``None`` when the collection
     model isn't supported.
+
+    A row grouped by name correlates on its representative pk only, so
+    sorting by an intersection column orders a merged row by that one
+    pk's comics while its cells cover all of them
+    (``_fold_merged_rows``). Widening the correlation to the whole group
+    would mean restating the browse filters inside every subquery.
     """
     # Two spellings of one predicate, for the numerator's ``c`` and the
     # denominator's ``c2``. Both come from the same value object, so
