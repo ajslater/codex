@@ -1,13 +1,14 @@
 """
-Fold every inbound API credential into scoped ``UserApiKey`` rows.
+Add ``UserApiKey.scope`` and fold the old bearer tokens into scoped keys.
 
 * Each DRF ``authtoken_token`` row becomes a ``universal`` key named
   "Universal Token", so an existing token keeps logging in everywhere until
-  it is revoked. A row whose user no longer exists is dropped. Then the table and its migration records are dropped:
-  ``rest_framework.authtoken`` is no longer installed.
-* The plaintext Stats API key in the ``AK`` admin flag becomes a hashed
-  ``stats`` key owned by the first admin, and the flag row goes. Startup
-  deletes rows whose key left the enum, so this has to copy it first.
+  it is revoked. A row whose user no longer exists is dropped. Then the
+  table and its migration records are dropped: ``rest_framework.authtoken``
+  is no longer installed.
+* The plaintext server-wide Stats API key in the ``AK`` admin flag is
+  revoked: its row is deleted and nothing replaces it. Admins make their own
+  stats keys now.
 
 The digest functions are inlined so later model changes cannot alter what
 this migration wrote. The reverse is lossy by design: it deletes every key
@@ -21,9 +22,7 @@ from django.db import migrations, models
 
 _TOKEN_TABLE: Final = "authtoken_token"  # noqa: S105
 _UNIVERSAL: Final = "universal"
-_STATS: Final = "stats"
 _UNIVERSAL_KEY_NAME: Final = "Universal Token"
-_STATS_KEY_NAME: Final = "Stats Key"
 _API_KEY_FLAG: Final = "AK"
 _PREFIX_LENGTH: Final = 4
 
@@ -79,32 +78,15 @@ def _migrate_tokens(apps, api_key_model, schema_editor) -> None:
     schema_editor.execute("DELETE FROM django_migrations WHERE app = 'authtoken'")
 
 
-def _first_admin(user_model):
-    """Return the lowest-pk active superuser, else active staff, else None."""
-    for role in ("is_superuser", "is_staff"):
-        user = (
-            user_model.objects.filter(is_active=True, **{role: True})
-            .order_by("pk")
-            .first()
-        )
-        if user:
-            return user
-    return None
-
-
-def _migrate_stats_key(apps, api_key_model) -> None:
-    """Copy the ``AK`` flag's key to the first admin's stats key."""
-    flags = apps.get_model("codex", "AdminFlag").objects.filter(key=_API_KEY_FLAG)
-    secret = next((flag.value for flag in flags if flag.value), "")
-    if secret and (owner := _first_admin(apps.get_model("auth", "User"))):
-        _add_key(api_key_model, owner.pk, _STATS_KEY_NAME, _STATS, secret)
-    flags.delete()
+def _revoke_stats_key(apps) -> None:
+    """Delete the ``AK`` flag, revoking the server-wide Stats API key."""
+    apps.get_model("codex", "AdminFlag").objects.filter(key=_API_KEY_FLAG).delete()
 
 
 def _forward(apps, schema_editor) -> None:
     api_key_model = apps.get_model("codex", "UserApiKey")
     _migrate_tokens(apps, api_key_model, schema_editor)
-    _migrate_stats_key(apps, api_key_model)
+    _revoke_stats_key(apps)
 
 
 def _reverse(apps, _schema_editor) -> None:
@@ -113,7 +95,7 @@ def _reverse(apps, _schema_editor) -> None:
 
 
 class Migration(migrations.Migration):
-    """Add UserApiKey.scope and migrate tokens and the Stats API key into it."""
+    """Add UserApiKey.scope, migrate tokens into it, revoke the Stats API key."""
 
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),

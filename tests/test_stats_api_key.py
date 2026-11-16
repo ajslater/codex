@@ -25,6 +25,7 @@ from codex.choices.api_key import UNIVERSAL_KEY_NAME, ApiKeyScope
 from codex.models import AdminFlag
 from codex.models.api_key import UserApiKey
 from codex.startup import init_admin_flags
+from tests.api_key_factory import make_api_key
 
 _URL: Final = "/api/v4/admin/stats"
 _PASSWORD: Final = "stats-key-test-pw"  # noqa: S105
@@ -82,7 +83,7 @@ class StatsApiKeyTestCase(TestCase):
     def test_other_scopes_are_refused(self) -> None:
         _, device_key = UserApiKey.create_for_user(self.admin, "Kobo")
         universal_secret = "a-migrated-bearer-token"  # noqa: S105
-        UserApiKey.adopt(
+        make_api_key(
             self.admin, UNIVERSAL_KEY_NAME, ApiKeyScope.UNIVERSAL, universal_secret
         )
         assert self._get(f"?apiKey={device_key}").status_code in _REFUSED

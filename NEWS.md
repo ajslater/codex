@@ -15,6 +15,8 @@ border-radius: 128px;
 > - Authorization Bearer Tokens are now Universal Tokens: existing ones work
 >   until revoked but can no longer be shown, reset or made. Use device keys for
 >   OPDS and KOReader.
+> - The server-wide Stats API key is revoked. Admins make their own Stats keys
+>   in API Access.
 
 ### ✨ Added
 
@@ -38,8 +40,7 @@ border-radius: 128px;
   readers.
 - API Access, from the drawer footer or Profile: your OPDS, KOReader and Stats
   API URLs and your API keys in one place.
-- Stats API keys: each admin makes their own. The old server-wide API key
-  becomes the first admin's "Stats Key".
+- Stats API keys: each admin makes their own.
 - OPDS and Stats API Keys admin settings turn those APIs off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
 

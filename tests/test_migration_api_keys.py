@@ -1,5 +1,5 @@
 """
-Tests for migration 0063, which folds tokens and the Stats API key into keys.
+Tests for migration 0063: tokens become keys; the Stats API key is revoked.
 
 ``rest_framework.authtoken`` is no longer installed, so the test database
 never gets its table: each test that needs one builds it the way DRF did,
@@ -59,18 +59,12 @@ def _table_exists(name: str) -> bool:
 
 
 class ApiKeyMigrationTests(TransactionTestCase):
-    """Tokens become universal keys; the server key becomes a stats key."""
+    """Tokens become universal keys; the server Stats key is revoked."""
 
     @override
     def setUp(self) -> None:
         self.addCleanup(_migrate, _AFTER)
         self.addCleanup(self._drop_token_table)
-        # Created in pk order: an inactive superuser, then staff, then the
-        # active superuser, so "lowest pk" alone would pick the wrong one.
-        self.gone = User.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
-            username="gone", is_staff=True, is_superuser=True, is_active=False
-        )
-        self.staff = User.objects.create(username="staff", is_staff=True)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.admin = User.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="admin", is_staff=True, is_superuser=True
         )
@@ -157,54 +151,22 @@ class ApiKeyMigrationTests(TransactionTestCase):
         assert not _table_exists(_TOKEN_TABLE)
         assert self._keys(_migrate(_AFTER)) == {}
 
-    def test_server_key_goes_to_the_first_active_superuser(self) -> None:
+    @staticmethod
+    def _assert_server_key_revoked(new_apps) -> None:
+        """No stats key took its place, and the ``AK`` flag row is gone."""
+        api_keys = new_apps.get_model("codex", "UserApiKey").objects
+        assert not api_keys.filter(scope="stats").exists()
+        flags = new_apps.get_model("codex", "AdminFlag").objects
+        assert not flags.filter(key="AK").exists()
+
+    def test_the_server_stats_key_is_revoked(self) -> None:
+        """An admin exists to own it, and still no key replaces it."""
         self._seed_stats_key(_migrate(_BEFORE))
+        self._assert_server_key_revoked(_migrate(_AFTER))
 
-        new_apps = _migrate(_AFTER)
-
-        (key,) = self._keys(new_apps).values()
-        assert key["user_id"] == self.admin.pk
-        assert key["name"] == "Stats Key"
-        assert key["scope"] == "stats"
-        assert key["digest"] == _sha256(_STATS_SECRET)
-        assert (
-            not new_apps.get_model("codex", "AdminFlag")
-            .objects.filter(key="AK")
-            .exists()
-        )
-
-    def test_server_key_falls_back_to_staff(self) -> None:
-        User.objects.filter(pk=self.admin.pk).update(is_superuser=False)
-        self._seed_stats_key(_migrate(_BEFORE))
-
-        (key,) = self._keys(_migrate(_AFTER)).values()
-
-        assert key["user_id"] == self.staff.pk
-
-    def test_server_key_with_no_admin_is_dropped(self) -> None:
-        User.objects.filter(is_staff=True).update(is_active=False)
-        self._seed_stats_key(_migrate(_BEFORE))
-
-        new_apps = _migrate(_AFTER)
-
-        assert self._keys(new_apps) == {}
-        assert (
-            not new_apps.get_model("codex", "AdminFlag")
-            .objects.filter(key="AK")
-            .exists()
-        )
-
-    def test_an_empty_server_key_is_dropped(self) -> None:
+    def test_an_empty_server_key_row_goes_too(self) -> None:
         self._seed_stats_key(_migrate(_BEFORE), value="")
-
-        new_apps = _migrate(_AFTER)
-
-        assert self._keys(new_apps) == {}
-        assert (
-            not new_apps.get_model("codex", "AdminFlag")
-            .objects.filter(key="AK")
-            .exists()
-        )
+        self._assert_server_key_revoked(_migrate(_AFTER))
 
     def test_reverse_keeps_only_device_keys(self) -> None:
         old_apps = _migrate(_BEFORE)
@@ -216,8 +178,7 @@ class ApiKeyMigrationTests(TransactionTestCase):
             kosync_digest=_md5("kobo"),
         )
         self._seed_tokens({self.reader.pk: _TOKEN_A})
-        self._seed_stats_key(old_apps)
-        assert len(self._keys(_migrate(_AFTER))) == 3  # noqa: PLR2004
+        assert len(self._keys(_migrate(_AFTER))) == 2  # noqa: PLR2004
 
         keys = self._keys(_migrate(_BEFORE))
 

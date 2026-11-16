@@ -61,6 +61,7 @@ from codex.models.api_key import (
 )
 from codex.models.auth import GroupAuth, UserAuth
 from codex.startup import init_admin_flags
+from tests.api_key_factory import make_api_key
 from tests.tmp_dirs import tmp_dir
 
 _PASSWORD: Final = "api-key-test-pw"  # noqa: S105
@@ -102,7 +103,7 @@ def make_universal_key(user) -> tuple[UserApiKey, str]:
     """Return a universal key shaped like a migrated DRF token, and its secret."""
     secret = secrets.token_hex(20)
     return (
-        UserApiKey.adopt(user, UNIVERSAL_KEY_NAME, ApiKeyScope.UNIVERSAL, secret),
+        make_api_key(user, UNIVERSAL_KEY_NAME, ApiKeyScope.UNIVERSAL, secret),
         secret,
     )
 
@@ -150,16 +151,6 @@ class ApiKeyModelTestCase(TestCase):
         with pytest.raises(ValidationError):
             UserApiKey.create_for_user(self.user, "all", ApiKeyScope.UNIVERSAL)
         assert not UserApiKey.objects.exists()
-
-    def test_adopt_hashes_the_secret_and_suffixes_a_clash(self) -> None:
-        UserApiKey.create_for_user(self.user, "Stats Key")
-        secret = "an-old-stats-api-key"  # noqa: S105
-        api_key = UserApiKey.adopt(self.user, "Stats Key", ApiKeyScope.STATS, secret)
-        assert api_key.name == "Stats Key (2)"
-        assert api_key.scope == ApiKeyScope.STATS
-        assert api_key.kosync_digest == _md5(secret)
-        stored = UserApiKey.objects.filter(pk=api_key.pk).values().get()
-        assert secret not in {str(value) for value in stored.values()}
 
     def test_cascade_on_user_delete(self) -> None:
         """Keys go with their user."""

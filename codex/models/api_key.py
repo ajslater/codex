@@ -125,22 +125,6 @@ class UserApiKey(BaseModel):
         key = generate_api_key()
         return cls._create(user, name, scope, key), key
 
-    @classmethod
-    def adopt(cls, user, name: str, scope: str, secret: str) -> "UserApiKey":
-        """
-        Store an existing plain secret as a key, hashed like any other.
-
-        For restoring an old backup's plaintext Stats API key only. The name
-        gets a numbered suffix if the user already has a key called that.
-        """
-        taken = set(cls.objects.filter(user=user).values_list("name", flat=True))
-        unique_name = name
-        suffix = 2
-        while unique_name in taken:
-            unique_name = f"{name} ({suffix})"
-            suffix += 1
-        return cls._create(user, unique_name, scope, secret)
-
     def touch(self) -> None:
         """
         Record use, at most once per :data:`LAST_USED_RESOLUTION`.

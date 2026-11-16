@@ -399,9 +399,9 @@ in to some APIs only:
 **Stats keys.** Each admin makes their own. Send one as `?apiKey=<key>` or as
 `Authorization: Bearer <key>`. A Stats key logs in as the admin who made it and
 stops working if that user stops being an admin. Upgrading from an older version
-turns the old server-wide API key into the first admin's "Stats Key".
+revokes the old server-wide API key: make a Stats key to replace it.
 
-**Universal Tokens.** Before v2.6.1 every user had one Authorization Bearer
+**Universal Tokens.** Before v2.7.0 every user had one Authorization Bearer
 Token that logged in everywhere. Upgrading keeps each existing token as a key
 named "Universal Token", which works until you revoke it. It can no longer be
 shown or made again: replace it with Device Keys.
@@ -939,7 +939,7 @@ Checklist for a forward-auth deployment:
 
 Codex still reads `Authorization: Bearer <token>` headers that carry a
 **Universal Token**: the per-user Authorization Bearer Token of versions before
-v2.6.1, kept on upgrade. A proxy that already sends one keeps working until the
+v2.7.0, kept on upgrade. A proxy that already sends one keeps working until the
 token is revoked in the API Access dialog. Codex no longer makes these tokens,
 so new setups should use Remote-User or OIDC above.
 
