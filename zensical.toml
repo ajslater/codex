@@ -33,7 +33,7 @@ minify_html = true
 minify_inline_js = true
 minify_inline_css = true
 
-# Pages published under /docs/ until v2.6.1.
+# Pages published under /docs/ through v2.6.0.
 [project.plugins.redirects.redirect_maps]
 "docs/DOCKER.md" = "DOCKER.md"
 "docs/WINDOWS.md" = "WINDOWS.md"

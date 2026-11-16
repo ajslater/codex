@@ -435,7 +435,7 @@ Provider-specific notes:
 - **Mailgun / SendGrid / generic SMTP relays**: usually accept `user` as the
   authenticated sender; `from_address` defaults to that when blank.
 
-If `register_verification` is enabled (Admin → Flags → "Verify New User Email"),
+If `register_verification` is enabled (Admin → Auth → "Verify New User Email"),
 new sign-ups receive an activation email and stay inactive until they click the
 link. Has no effect until email (SMTP) is configured.
 
@@ -864,8 +864,8 @@ admin password regardless. ⚠️
   not end their existing Codex session. Deactivate the user in Codex too, or
   lower `SESSION_COOKIE_AGE`-equivalent exposure by logging them out.
 - OIDC-created users have no local password, so OPDS readers can't use HTTP
-  Basic auth for them. Use the per-user API token (User Profile in the sidebar)
-  for OPDS, or set a local password.
+  Basic auth for them. Use a [Device Key](#device-keys) as the OPDS password, or
+  set a local password.
 - On first start after upgrading, Codex applies a few small new database tables
   for the OIDC account linkage and the settings singleton.
 - OIDC login failures are recorded in the [Failed-Login Log](#failed-login-log)
