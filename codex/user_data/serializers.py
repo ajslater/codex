@@ -17,7 +17,7 @@ re-raising.
 """
 
 import json
-from typing import Any
+from typing import Any, Final
 
 from codex.collection import Collection
 from codex.user_data.identifiers import (
@@ -250,6 +250,12 @@ def serialize_settings_browser(
     )
 
 
+# Filter columns written apart from the tag and scalar columns.
+_SPECIAL_FILTER_COLUMNS: Final = frozenset(
+    {"bookmark", "reading_list_kind", "reading_lists", "shelves"}
+)
+
+
 def _rewrite_filter_value(column: str, value: Any) -> Any:
     """
     Convert a SettingsBrowserFilters JSONField value for sidecar storage.
@@ -269,6 +275,27 @@ def _rewrite_filter_value(column: str, value: Any) -> Any:
     # Missing PKs drop silently rather than raise.
     name_field = tag_name_field_for_filter(column)
     return list(model.objects.filter(pk__in=value).values_list(name_field, flat=True))
+
+
+def _filter_reading_list_uuids(filters, user) -> list[str]:
+    """
+    Return the uuids of the filter's reading lists that the owner may see.
+
+    A list's name is not unique, and a pk does not survive a restore into
+    another database; the uuid does both.
+    """
+    from codex.models.readinglist import ReadingList
+    from codex.views.auth import GroupACLMixin
+
+    if not filters.reading_lists:
+        return []
+    visible = GroupACLMixin.reading_list_visibility_filter(user)
+    uuids = (
+        ReadingList.objects.filter(visible, pk__in=filters.reading_lists)
+        .order_by("pk")
+        .values_list("uuid", flat=True)
+    )
+    return [str(uuid) for uuid in uuids]
 
 
 def serialize_settings_filters(
@@ -300,8 +327,11 @@ def serialize_settings_filters(
             separators=(",", ":"),
         ),
     }
+    data["reading_lists"] = json.dumps(
+        _filter_reading_list_uuids(filters, browser.user), separators=(",", ":")
+    )
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "reading_list_kind", "shelves"}:
+        if column in _SPECIAL_FILTER_COLUMNS:
             continue
         raw = getattr(filters, column)
         rewritten = _rewrite_filter_value(column, raw)

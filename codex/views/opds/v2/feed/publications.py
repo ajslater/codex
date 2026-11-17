@@ -18,13 +18,19 @@ from codex.models.identifier import Identifier
 from codex.models.named import Credit
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.auth import GroupACLMixin
+from codex.views.const import STORY_ARC_COLLECTION
 from codex.views.opds.const import (
     AUTHOR_ROLES,
     OPDS_M2M_MODELS,
     MimeType,
     Rel,
 )
-from codex.views.opds.v2.const import HrefData, Link, LinkData
+from codex.views.opds.v2.const import (
+    READING_LIST_CONTINUE,
+    HrefData,
+    Link,
+    LinkData,
+)
 from codex.views.opds.v2.feed.feed_links import OPDS2FeedLinksView
 
 _PUBLICATION_PREVIEW_LIMIT: Final = 5
@@ -535,7 +541,12 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         groups.append(pub_group)
         return groups
 
-    def _get_publications_preview_feed_view(self, link_spec: Link):
+    def _get_publications_preview_feed_view(
+        self,
+        link_spec: Link,
+        pks: tuple[int, ...] = (0,),
+        limit: int = _PUBLICATION_PREVIEW_LIMIT,
+    ):
         feed_view = OPDS2FeedLinksView()
         feed_view.request = self.request
         # Share request-scoped caches with the parent so each preview
@@ -545,17 +556,45 @@ class OPDS2PublicationsView(OPDS2PublicationBaseView):
         # share across the 3 preview iterations (sub-plan 02 #2 / 04 #3).
         feed_view.admin_flags = self.admin_flags
         feed_view._cached_visible_library_pks = self._cached_visible_library_pks  # noqa: SLF001
-        feed_view.kwargs = {"collection": link_spec.group, "pks": [0], "page": 1}
+        feed_view.kwargs = {"collection": link_spec.group, "pks": list(pks), "page": 1}
         params = self.get_browser_factory_params()
         if link_spec.query_params:
             for key, value in link_spec.query_params.items():
                 snake_key = snakecase(key)
                 params[snake_key] = value
         params["show"].update(_PREVIEW_SHOW_PARAMS)
-        params["limit"] = _PUBLICATION_PREVIEW_LIMIT
+        params["limit"] = limit
 
         feed_view.set_params(params)
         return feed_view
+
+    def get_reading_list_continue(self) -> list:
+        """
+        Lead a reading list's first page with its next unfinished issue.
+
+        Only for one list at a time; nothing when every issue is finished.
+        """
+        pks = tuple(self.kwargs.get("pks") or ())
+        if (
+            self.kwargs.get("collection") != STORY_ARC_COLLECTION
+            or len(pks) != 1
+            or 0 in pks
+            or self.kwargs.get("page", 1) != 1
+        ):
+            return []
+        link_spec = READING_LIST_CONTINUE
+        feed_view = self._get_publications_preview_feed_view(link_spec, pks, limit=1)
+        book_qs, book_count, zero_pad = feed_view.get_book_qs()
+        if not book_count:
+            return []
+        return self.get_publications(
+            book_qs,
+            zero_pad,
+            link_spec.title,
+            subtitle=link_spec.subtitle,
+            items_per_page=1,
+            number_of_items=1,
+        )
 
     def get_publications_preview(self, link_spec: Link) -> list:
         """Get a limited preview of publications outside the main query."""

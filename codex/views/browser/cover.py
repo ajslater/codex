@@ -245,8 +245,8 @@ def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     query = acl_q & age_q & missing_q & Q(**{field: pk})
     if source == "arc":
         # Another user's personal list has no cover for this one.
-        query &= GroupACLMixin.reading_list_visibility_filter(
-            user, "reading_list_entries__reading_list__"
+        query &= GroupACLMixin.reading_list_entries_filter(
+            user, "reading_list_entries__"
         )
     return (
         Comic.objects.filter(query)

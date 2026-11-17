@@ -7,6 +7,10 @@ from django.db.models.query_utils import Q
 from codex.models import Comic
 from codex.views.browser.const import BROWSER_FILTER_KEYS
 from codex.views.browser.filters.collection import CollectionFilterView
+from codex.views.browser.filters.reading_lists import (
+    READING_LISTS_FILTER,
+    reading_lists_filter,
+)
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
@@ -101,8 +105,12 @@ class ComicFieldFilterView(CollectionFilterView):
         return filter_query
 
     @classmethod
-    def get_all_comic_field_filters(cls, rel_prefix, filters) -> Q:
-        """Get all comicfiled filters for rel_prefix."""
+    def get_all_comic_field_filters(cls, rel_prefix, filters, user) -> Q:
+        """
+        Get all comic field filters for rel_prefix.
+
+        ``user`` scopes the reading lists filter to the lists they may see.
+        """
         comic_field_filter = Q()
         # Only walk keys that are both valid AND set in this request's
         # filters - saves ~20 no-op `_filter_by_comic_field` calls per
@@ -111,13 +119,18 @@ class ComicFieldFilterView(CollectionFilterView):
             filter_list = filters.get(field)
             if not filter_list:
                 continue
-            comic_field_filter &= cls._filter_by_comic_field(
-                field, rel_prefix, filter_list
-            )
+            if field == READING_LISTS_FILTER:
+                comic_field_filter &= reading_lists_filter(
+                    rel_prefix, filter_list, user
+                )
+            else:
+                comic_field_filter &= cls._filter_by_comic_field(
+                    field, rel_prefix, filter_list
+                )
         return comic_field_filter
 
     def get_comic_field_filter(self, model) -> Q:
         """Filter the comics based on the form filters."""
         rel_prefix = self.get_rel_prefix(model)
         filters = self.params["filters"]
-        return self.get_all_comic_field_filters(rel_prefix, filters)
+        return self.get_all_comic_field_filters(rel_prefix, filters, self.request.user)

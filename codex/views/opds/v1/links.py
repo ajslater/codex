@@ -3,6 +3,7 @@
 from django.urls import reverse
 from loguru import logger
 
+from codex.views.const import STORY_ARC_COLLECTION
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.route import opds_feed_reverse
 from codex.views.opds.v1.const import (
@@ -12,6 +13,7 @@ from codex.views.opds.v1.const import (
     RootTopLinks,
     TopLink,
     TopLinks,
+    reading_list_continue_top_link,
     shelf_top_link,
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
@@ -27,6 +29,18 @@ class OPDS1LinksView(OPDS1FacetsView):
             *RootTopLinks.ALL,
             *(shelf_top_link(pk, name) for pk, name in self.user_shelves()),
         )
+
+    def reading_list_top_links(self) -> tuple[TopLink, ...]:
+        """Lead the first page of one reading list with "Continue Reading"."""
+        pks = tuple(self.kwargs.get("pks") or ())
+        if (
+            self.kwargs.get("collection") != STORY_ARC_COLLECTION
+            or len(pks) != 1
+            or 0 in pks
+            or self.kwargs.get("page", 1) != 1
+        ):
+            return ()
+        return (reading_list_continue_top_link(pks[0]),)
 
     def is_top_link_displayed(self, top_link) -> bool:
         """Determine if this top link should be displayed."""

@@ -8,18 +8,23 @@ response caches with online tagging. What comes back is handed to the
 scribe as a :class:`ReadingListImportTask`, which writes the rows.
 """
 
+from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Final
 
 from comicbox.events import Event, ReadingListFetchProgress
 from comicbox.exceptions import OnlineLookupAbortedError, ReadingListError
 from comicbox.online_session import OnlineCredentials
 from comicbox.readinglists import ReadingListSession
+from django.db.models import Q
+from django.utils.timezone import now
 
 from codex.librarian.onlinetag.session_state import CLIENT_NAME
 from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.scribe.readinglists.documents import to_json
 from codex.librarian.scribe.readinglists.errors import add_reading_list_error
+from codex.librarian.scribe.readinglists.service import REMOTE_KINDS
 from codex.librarian.scribe.readinglists.status import ReadingListFetchStatus
 from codex.librarian.scribe.readinglists.tasks import (
     ImportItem,
@@ -28,8 +33,17 @@ from codex.librarian.scribe.readinglists.tasks import (
 from codex.librarian.tasks import LibrarianTask
 from codex.librarian.worker import WorkerStatusBase
 from codex.models.admin import ComicboxTaggingDefaults
-from codex.models.readinglist import ReadingListSourceKind
+from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
 from codex.settings import COMICBOX_ONLINE_CONFIG
+
+#: How long a remote source goes before the nightly janitor fetches it again.
+REFRESH_AFTER: Final = timedelta(days=7)
+_METRON_KINDS: Final = frozenset(
+    {ReadingListSourceKind.METRON_LIST, ReadingListSourceKind.METRON_ARC}
+)
+# Comic Vine has no conditional request and a small hourly budget, so its
+# arcs are fetched again only when an admin asks.
+_SCHEDULED_KINDS: Final = REMOTE_KINDS - {ReadingListSourceKind.COMICVINE_ARC}
 
 
 @dataclass(frozen=True)
@@ -79,12 +93,56 @@ def reading_list_credentials() -> OnlineCredentials | None:
     )
 
 
+def refresh_request(source: ReadingListSource) -> FetchRequest:
+    """Ask for a source again, conditionally where the remote allows it."""
+    since = None
+    if source.kind in _METRON_KINDS:
+        with suppress(ValueError):
+            since = datetime.fromisoformat(source.revision)
+    is_catalog = source.kind == ReadingListSourceKind.CATALOG.value
+    return FetchRequest(
+        kind=source.kind,
+        ref=source.ref,
+        sha=source.revision if is_catalog else "",
+        if_modified_since=since,
+        source_pk=source.pk,
+    )
+
+
+def scheduled_refresh_requests() -> list[FetchRequest]:
+    """
+    Ask again for every remote source not fetched in ``REFRESH_AFTER``.
+
+    Metron sources wait while there is no Metron key, rather than fail
+    every night.
+    """
+    kinds = set(_SCHEDULED_KINDS)
+    credentials = reading_list_credentials()
+    if credentials is None or not credentials.metron_key:
+        kinds -= _METRON_KINDS
+    due = Q(fetched_at__isnull=True) | Q(fetched_at__lt=now() - REFRESH_AFTER)
+    sources = ReadingListSource.objects.filter(due, kind__in=kinds).order_by(
+        "kind", "pk"
+    )
+    return [refresh_request(source) for source in sources]
+
+
+def _catalog_unchanged(session: ReadingListSession, request: FetchRequest) -> bool:
+    """Whether a catalog source is still the blob it was, sparing a download."""
+    if request.source_pk is None or not request.sha:
+        return False
+    entry = session.catalog().find(request.ref, request.sha)
+    return entry is not None and (entry.path, entry.sha) == (request.ref, request.sha)
+
+
 def _fetch(session: ReadingListSession, request: FetchRequest):
     """Fetch one request; None when the remote list has not changed."""
     match request.kind:
         case ReadingListSourceKind.URL:
             return session.fetch_url(request.ref)
         case ReadingListSourceKind.CATALOG:
+            if _catalog_unchanged(session, request):
+                return None
             return session.fetch_catalog(request.ref, sha=request.sha or None)
         case ReadingListSourceKind.METRON_LIST:
             return session.fetch_metron_list(

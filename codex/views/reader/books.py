@@ -106,11 +106,14 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         """
         acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         nav_filter = {f"{rel}__in": self._selected_arc_ids}
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
+            # A hidden entry is not read in its list.
+            nav_filter["reading_list_entries__ignored"] = False
         query_filter = acl_filter & Q(**nav_filter)
         if browser_filters := self.get_from_settings("filters", browser=True):
             # no search at this time.
             query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
-                "", browser_filters
+                "", browser_filters, self.request.user
             )
         return query_filter
 

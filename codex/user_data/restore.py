@@ -869,6 +869,24 @@ def _resolve_filter_tags(column: str, raw: list, browser, report: RestoreReport)
     return pks
 
 
+def _resolve_filter_reading_lists(row_keys, row, browser) -> list[int]:
+    """Resolve reading list uuids to the pks of lists the owner may see."""
+    from codex.models.readinglist import ReadingList
+    from codex.views.auth import GroupACLMixin
+
+    if "reading_lists" not in row_keys:
+        return []
+    uuids = json.loads(row["reading_lists"] or "[]")
+    if not uuids:
+        return []
+    visible = GroupACLMixin.reading_list_visibility_filter(browser.user)
+    return list(
+        ReadingList.objects.filter(visible, uuid__in=uuids)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+
+
 def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     """Resolve tag-name lists in the sidecar back to PK lists."""
     from codex.models.settings import SettingsBrowserFilters
@@ -881,9 +899,10 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
             row["reading_list_kind"] or "" if "reading_list_kind" in row_keys else ""
         ),
         "shelves": resolve_filter_shelves(row, row_keys, browser),
+        "reading_lists": _resolve_filter_reading_lists(row_keys, row, browser),
     }
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "reading_list_kind", "shelves"}:
+        if column in defaults:
             continue
         read_column = _resolve_filter_column(row_keys, column)
         if read_column is None:

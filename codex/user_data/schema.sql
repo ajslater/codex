@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS settings_filters (
     monochrome TEXT NOT NULL DEFAULT '[]',
     original_format TEXT NOT NULL DEFAULT '[]',
     reading_direction TEXT NOT NULL DEFAULT '[]',
+    reading_lists TEXT NOT NULL DEFAULT '[]',
     reprints TEXT NOT NULL DEFAULT '[]',
     series_end_year TEXT NOT NULL DEFAULT '[]',
     series_groups TEXT NOT NULL DEFAULT '[]',

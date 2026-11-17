@@ -27,6 +27,11 @@ from codex.serializers.browser.choices import (
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.browser.filters.reading_lists import (
+    READING_LISTS_FILTER,
+    listed_comics,
+    visible_lists,
+)
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
@@ -152,6 +157,19 @@ class BrowserChoicesViewBase(BrowserFilterView):
 
         return rel, model
 
+    def reading_lists_of(self, comic_qs: QuerySet) -> QuerySet:
+        """Return the visible lists holding any of the comics, by name."""
+        return (
+            visible_lists(self.request.user)
+            .filter(entries__comic__in=comic_qs.values("pk"), entries__ignored=False)
+            .distinct()
+            .order_by("sort_name", "pk")
+        )
+
+    def unlisted(self, comic_qs: QuerySet) -> QuerySet:
+        """Return the comics in no list the user may see, the "None" choice."""
+        return comic_qs.exclude(pk__in=listed_comics(self.request.user))
+
     @override
     def get_object(self) -> QuerySet:
         """Get the comic subquery use for the choices."""
@@ -224,6 +242,9 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 # filtering by it, so it must be available.
                 early_data[field_name] = True
                 continue
+            if field_name == READING_LISTS_FILTER:
+                self._reading_lists_probes(qs, aggregates, m2m_specs)
+                continue
             rel, m2m_model = self.get_rel_and_model(field_name)
             if m2m_model is None and field_name not in _NULL_CHOICE_FIELDS:
                 # FK on Comic: legacy semantic is "any non-null value exists".
@@ -243,6 +264,19 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 )
         return early_data, aggregates, m2m_specs
 
+    def _reading_lists_probes(
+        self, qs: QuerySet, aggregates: dict[str, Exists], m2m_specs: dict[str, str]
+    ) -> None:
+        """Probe the reading lists like an m2m field, over visible lists only."""
+        listed = listed_comics(self.request.user)
+        m2m_specs[READING_LISTS_FILTER] = ""
+        aggregates[f"_has_{READING_LISTS_FILTER}"] = Exists(
+            qs.filter(pk__in=listed).values("pk")[:1]
+        )
+        aggregates[f"_null_{READING_LISTS_FILTER}"] = Exists(
+            qs.exclude(pk__in=listed).values("pk")[:1]
+        )
+
     def _resolve_m2m_field(
         self, qs: QuerySet, field_name: str, rel: str, row: dict[str, Any]
     ) -> bool:
@@ -252,6 +286,11 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             return False
         if bool(row.get(f"_null_{field_name}")):
             return True
+        if field_name == READING_LISTS_FILTER:
+            lists = self.reading_lists_of(qs).values("pk")
+            return (
+                lists[:_M2M_DISTINCT_PROBE_LIMIT].count() >= _M2M_DISTINCT_PROBE_LIMIT
+            )
         return self._has_two_distinct_m2m_values(qs, rel)
 
     @override
@@ -328,6 +367,12 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
         return chain.from_iterable(iterables)
 
+    def _reading_list_choices(self, qs: QuerySet):
+        """Return the visible lists over the comics, and "None" if any is unlisted."""
+        lists = self.reading_lists_of(qs).values("pk", "name")
+        null = _NULL_NAMED_ROW_ITERABLE if self.unlisted(qs).exists() else ()
+        return chain(null, lists)
+
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
@@ -337,6 +382,8 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         """Return choices with more than one choice."""
         qs = super().get_object()
         field_name = self._get_field_name()
+        if field_name == READING_LISTS_FILTER:
+            return {"field_name": field_name, "choices": self._reading_list_choices(qs)}
 
         rel, m2m_model = self.get_rel_and_model(field_name)
 

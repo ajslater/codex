@@ -44,6 +44,10 @@ class JanitorRematchReadingListsTask(JanitorTask):
     """Match every reading list's missing entries again."""
 
 
+class JanitorRefreshReadingListsTask(JanitorTask):
+    """Fetch again the remote reading list sources due a refresh."""
+
+
 class JanitorCleanCoversTask(JanitorTask):
     """Clean unused custom covers."""
 

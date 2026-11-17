@@ -643,7 +643,11 @@ class GroupACLMixin(
         if not include_missing:
             acl_filter &= self.get_missing_acl_filter(model)
         if model is ReadingList:
-            acl_filter &= self.reading_list_visibility_filter(user)
+            # A hidden entry is no part of its list: its comic gives the
+            # list no cover, count or membership.
+            acl_filter &= self.reading_list_visibility_filter(user) & Q(
+                entries__ignored=False
+            )
         return acl_filter
 
     @staticmethod
@@ -661,6 +665,21 @@ class GroupACLMixin(
         if user is not None and user.is_authenticated:
             visible |= Q(**{owner: user})
         return visible
+
+    @classmethod
+    def reading_list_entries_filter(cls, user, entries_prefix: str) -> Q:
+        """
+        Return the shown entries of the lists a user may see.
+
+        ``entries_prefix`` is the path from the queried model to the
+        entries, such as ``reading_list_entries__`` from Comic. A hidden
+        entry is no part of its list, so it never browses, covers, reads,
+        filters or downloads. One Q, so both tests ride the same join.
+        """
+        shown = Q(**{f"{entries_prefix}ignored": False})
+        return shown & cls.reading_list_visibility_filter(
+            user, f"{entries_prefix}reading_list__"
+        )
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

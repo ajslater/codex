@@ -138,6 +138,24 @@ describe("add lists dialog", () => {
   });
 });
 
+describe("add lists dialog — story arcs", () => {
+  test("arc ids and Comic Vine addresses become arc sources", () => {
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    wrapper.vm.metronArcs = "12\nnot an id\n";
+    wrapper.vm.comicvineArcs =
+      "https://comicvine.gamespot.com/civil-war/4045-55766/\n40";
+    expect(wrapper.vm.pickedCount).toBe(3);
+    expect(wrapper.vm.sources()).toEqual([
+      { kind: "metron_arc", ref: "12", name: "Metron arc 12" },
+      { kind: "comicvine_arc", ref: "55766", name: "Comic Vine arc 55766" },
+      { kind: "comicvine_arc", ref: "40", name: "Comic Vine arc 40" },
+    ]);
+  });
+});
+
 describe("review dialog", () => {
   test("a typed position moves the entry, 0-based", async () => {
     API.getEntries.mockResolvedValue({

@@ -39,6 +39,20 @@ class CollectionFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
+    def _reading_list_scope(self, rel: str) -> Q:
+        """
+        Scope a list's pks to the lists the user may see, shown entries only.
+
+        One Q with the pks, so the tests ride the same join. On the lists
+        themselves, the ACL filter skips hidden entries instead.
+        """
+        user = self.request.user
+        target = rel.removesuffix("__in")
+        if target == "pk":
+            return self.reading_list_visibility_filter(user)
+        entries_prefix = target.removesuffix("reading_list")
+        return self.reading_list_entries_filter(user, entries_prefix)
+
     def get_collection_filter(
         self, collection=None, pks=None, *, page_mtime=False
     ) -> Q:
@@ -52,12 +66,7 @@ class CollectionFilterView(BrowserParamsView):
             rel = self._get_rel_for_pks(collection, page_mtime=page_mtime)
             collection_filter = Q(**{rel: pks})
             if collection == STORY_ARC_COLLECTION:
-                # One Q, so the owner test rides the same join as the pks.
-                target = rel.removesuffix("__in")
-                prefix = "" if target == "pk" else f"{target}__"
-                collection_filter &= self.reading_list_visibility_filter(
-                    self.request.user, prefix
-                )
+                collection_filter &= self._reading_list_scope(rel)
             return collection_filter
         if collection == FOLDER_COLLECTION and self.TARGET != "choices":
             # Top folder search

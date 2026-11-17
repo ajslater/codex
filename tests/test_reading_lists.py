@@ -6,10 +6,15 @@ step. Every read of the ``arcs`` collection shows global lists and the
 viewer's own, never another user's.
 """
 
+import io
 import json
 import shutil
+import zipfile
 from datetime import date
+from pathlib import Path
 from typing import Final, override
+from urllib.parse import unquote
+from xml.etree import ElementTree as ET
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -39,6 +44,7 @@ from tests.tmp_dirs import tmp_dir
 
 TMP_DIR: Final = tmp_dir("codex.tests.reading_lists")
 _PW: Final = "test-pw-hush-S106"
+_ATOM_NS: Final = "{http://www.w3.org/2005/Atom}"
 _OK: Final = 200
 _NOT_FOUND: Final = 404
 _SHOW_ALL: Final = {
@@ -47,6 +53,11 @@ _SHOW_ALL: Final = {
     "series": True,
     "volumes": True,
 }
+
+
+def _streamed(response) -> bytes:
+    """Return a streaming response's body."""
+    return b"".join(response.streaming_content)
 
 
 class ReadingListFixture(TestCase):
@@ -330,3 +341,175 @@ class VisibilityTests(ReadingListFixture):
         )
         assert response.status_code == _OK, response.content
         assert len(response.json()["data"]["books"]) == 2  # noqa: PLR2004
+
+
+class HiddenEntryTests(ReadingListFixture):
+    """A hidden entry is no part of its list anywhere a viewer looks."""
+
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        self.reading_list = ReadingList.objects.create(name="Shared")  # pyright: ignore[reportUninitializedInstanceVariable]
+        for position, comic in enumerate(self.comics[:3]):
+            ReadingListEntry.objects.create(
+                reading_list=self.reading_list,
+                position=position,
+                comic=comic,
+                match_tier=ReadingListMatchTier.MANUAL,
+                ignored=comic is self.comics[1],
+            )
+        self.client = Client()
+        self.client.force_login(User.objects.create_user(username="u", password=_PW))
+
+    def _params(self) -> dict:
+        return {
+            "filters": json.dumps({}),
+            "search": "",
+            "show": json.dumps(_SHOW_ALL),
+            "view_mode": "cover",
+        }
+
+    def test_the_list_browses_without_it(self) -> None:
+        """The list's comics skip the hidden one."""
+        response = self.client.get(
+            f"/api/v4/browse/arcs/{self.reading_list.pk}", self._params()
+        )
+        assert response.status_code == _OK, response.content
+        pks = [book["pk"] for book in response.json()["data"]["books"]]
+        assert pks == [self.comics[0].pk, self.comics[2].pk]
+
+    def test_the_list_card_counts_without_it(self) -> None:
+        """The list's card counts the shown comics only."""
+        response = self.client.get("/api/v4/browse/arcs/0", self._params())
+        assert response.status_code == _OK, response.content
+        (card,) = response.json()["data"]["collections"]
+        assert card["childCount"] == 2  # noqa: PLR2004
+
+    def test_the_reader_skips_it(self) -> None:
+        """Reading the list goes from the first comic to the third."""
+        arc = {"collection": "arcs", "ids": [self.reading_list.pk]}
+        response = self.client.get(
+            f"/api/v4/reader/comics/{self.comics[0].pk}?arc={json.dumps(arc)}"
+        )
+        assert response.status_code == _OK, response.content
+        data = response.json()["data"]
+        assert data["arc"]["count"] == 2  # noqa: PLR2004
+        assert data["books"]["next"]["pk"] == self.comics[2].pk
+
+    def test_the_hidden_comic_reads_no_list(self) -> None:
+        """The hidden comic's reader offers no reading order from the list."""
+        response = self.client.get(f"/api/v4/reader/comics/{self.comics[1].pk}")
+        assert response.status_code == _OK, response.content
+        arcs = response.json()["data"]["arcs"].get("arcs", {})
+        assert not arcs
+
+    def test_no_cover_from_it(self) -> None:
+        """Only a shown comic covers the list."""
+        user = User.objects.get(username="u")
+        ReadingListEntry.objects.filter(reading_list=self.reading_list).update(
+            ignored=True
+        )
+        pk = _resolve_collection_comic_pk("arc", self.reading_list.pk, user)
+        assert pk is None
+
+
+class ReadingListDownloadTests(ReadingListFixture):
+    """A list downloads as a zip named in list order."""
+
+    def test_files_are_numbered_in_list_order(self) -> None:
+        """Positions prefix the names; hidden entries stay out; repeats stay in."""
+        c1, c2, c3, c4 = self.comics
+        for comic in self.comics:
+            Path(comic.path).write_bytes(b"PK")
+        reading_list = ReadingList.objects.create(name="Order")
+        for position, comic, ignored in (
+            (0, c3, False),
+            (1, c1, False),
+            (2, c4, True),
+            (3, c2, False),
+            (4, c3, False),
+        ):
+            ReadingListEntry.objects.create(
+                reading_list=reading_list,
+                position=position,
+                comic=comic,
+                match_tier=ReadingListMatchTier.MANUAL,
+                ignored=ignored,
+            )
+        client = Client()
+        client.force_login(User.objects.create_user(username="u", password=_PW))
+        response = client.get(
+            f"/api/v4/browse/arcs/{reading_list.pk}/download/Order.zip"
+        )
+        assert response.status_code == _OK
+        body = _streamed(response)
+        with zipfile.ZipFile(io.BytesIO(body)) as archive:
+            names = archive.namelist()
+        assert names == [
+            "001 - cw3.cbz",
+            "002 - cw1.cbz",
+            "003 - cw2.cbz",
+            "004 - cw3.cbz",
+        ]
+
+
+class ReadingListOPDSContinueTests(ReadingListFixture):
+    """A list's OPDS feed starts with the next issue to read."""
+
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = User.objects.create_user(username="u", password=_PW)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.reading_list = ReadingList.objects.create(name="Order")  # pyright: ignore[reportUninitializedInstanceVariable]
+        order = (self.comics[2], self.comics[0], self.comics[1])
+        for position, comic in enumerate(order):
+            ReadingListEntry.objects.create(
+                reading_list=self.reading_list,
+                position=position,
+                comic=comic,
+                match_tier=ReadingListMatchTier.MANUAL,
+            )
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def _finish(self, comic: Comic) -> None:
+        Bookmark.objects.create(user=self.user, comic=comic, page=9, finished=True)
+
+    def _continue(self) -> list[str]:
+        cache.clear()
+        response = self.client.get(
+            f"/opds/v2.0/arcs/{self.reading_list.pk}", follow=True
+        )
+        assert response.status_code == _OK, response.content[:300]
+        feed = json.loads(response.content)
+        for group in feed.get("groups", []):
+            if group.get("metadata", {}).get("title") == "Continue Reading":
+                return [pub["metadata"]["title"] for pub in group["publications"]]
+        return []
+
+    def test_v2_leads_with_the_first_unfinished_issue(self) -> None:
+        """The first issue in list order not finished, skipping finished ones."""
+        assert self._continue() == ["Civil War (2006) #3"]
+        self._finish(self.comics[2])
+        assert self._continue() == ["Civil War (2006) #1"]
+
+    def test_v2_has_no_continue_when_all_are_finished(self) -> None:
+        """A finished list leads with nothing."""
+        for comic in self.comics[:3]:
+            self._finish(comic)
+        assert self._continue() == []
+
+    def test_v1_links_to_the_unfinished_issues_in_list_order(self) -> None:
+        """The v1 feed leads with an entry into its unfinished issues."""
+        cache.clear()
+        response = self.client.get(
+            f"/opds/v1.2/arcs/{self.reading_list.pk}", follow=True
+        )
+        assert response.status_code == _OK
+        root = ET.fromstring(response.content)  # noqa: S314
+        titles = [
+            entry.findtext(f"{_ATOM_NS}title") or ""
+            for entry in root.iter(f"{_ATOM_NS}entry")
+        ]
+        assert any(title.endswith("Continue Reading") for title in titles), titles
+        assert "UNREAD" in unquote(response.content.decode())

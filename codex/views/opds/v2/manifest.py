@@ -166,6 +166,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
                     self.request.user, "reading_list__"
                 ),
                 comic_id=obj.pk,
+                ignored=False,
             )
             .values_list("reading_list_id", "reading_list__name")
             .annotate(first=Min("position"))

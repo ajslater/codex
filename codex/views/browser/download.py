@@ -9,11 +9,26 @@ from drf_spectacular.utils import extend_schema
 from loguru import logger
 from zipstream import ZipStream
 
+from codex.models import ReadingListEntry
 from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.const import STORY_ARC_COLLECTION
 
 #: How many comics were left out of the archive because their files
 #: could not be read. Absent when every comic made it in.
 SKIPPED_HEADER: Final[str] = "X-Codex-Skipped-Comics"
+_MIN_POSITION_WIDTH: Final = 3
+
+#: A comic's path and the name it takes in the archive; None keeps its own.
+Member = tuple[str, str | None]
+
+
+def _numbered(paths: list[str]) -> tuple[Member, ...]:
+    """Prefix each file with its place, so a sort by name is the order."""
+    width = max(_MIN_POSITION_WIDTH, len(str(len(paths))))
+    return tuple(
+        (path, f"{index:0{width}d} - {Path(path).name}")
+        for index, path in enumerate(paths, start=1)
+    )
 
 
 class CollectionDownloadView(BrowserFilterView):
@@ -23,9 +38,28 @@ class CollectionDownloadView(BrowserFilterView):
     AS_ATTACHMENT = True
     TARGET: str = "download"
 
+    def _list_members(self, paths: tuple[str, ...]) -> tuple[Member, ...] | None:
+        """
+        Order one reading list's comics as the list does, numbered.
+
+        Every shown entry is a file, so a comic the list holds twice is in
+        the archive twice. Several lists at once keep their own names.
+        """
+        pks = self.kwargs.get("pks") or ()
+        if self.kwargs.get("collection") != STORY_ARC_COLLECTION or len(pks) != 1:
+            return None
+        ordered = list(
+            ReadingListEntry.objects.filter(
+                reading_list_id=pks[0], ignored=False, comic__path__in=paths
+            )
+            .order_by("position", "pk")
+            .values_list("comic__path", flat=True)
+        )
+        return _numbered(ordered) if ordered else None
+
     @override
-    def get_object(self) -> tuple[str, ...]:
-        """Get comic paths for a browse collection."""
+    def get_object(self) -> tuple[Member, ...]:
+        """Get comic paths, and their names in the archive, for a collection."""
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
         if not self.model:
@@ -44,10 +78,13 @@ class CollectionDownloadView(BrowserFilterView):
             reason = f"Comics from {collection}:{pks} not not found."
             raise Http404(reason)
 
-        return tuple(sorted(set(paths)))
+        unique = tuple(sorted(set(paths)))
+        if members := self._list_members(unique):
+            return members
+        return tuple((path, None) for path in unique)
 
     @staticmethod
-    def _add_path(zs: ZipStream, path: str) -> bool:
+    def _add_path(zs: ZipStream, path: str, arcname: str | None) -> bool:
         """
         Queue one comic, or report that its file could not be read.
 
@@ -60,21 +97,21 @@ class CollectionDownloadView(BrowserFilterView):
         """
         try:
             with Path(path).open("rb"):
-                zs.add_path(path)
+                zs.add_path(path, arcname)
         except OSError as exc:
             logger.warning(f"Skipped an unreadable comic in a collection zip: {exc!r}")
             return False
         return True
 
     @classmethod
-    def _get_zip_stream(cls, paths: tuple[str, ...]) -> tuple[ZipStream, int]:
+    def _get_zip_stream(cls, members: tuple[Member, ...]) -> tuple[ZipStream, int]:
         """Build the stream from every readable path, counting the rest."""
         zs = ZipStream(sized=True)
         skipped = 0
-        for path in paths:
-            if not cls._add_path(zs, path):
+        for path, arcname in members:
+            if not cls._add_path(zs, path, arcname):
                 skipped += 1
-        if skipped >= len(paths):
+        if skipped >= len(members):
             reason = "No comics in this collection could be read."
             raise Http404(reason)
         return zs, skipped
@@ -82,9 +119,9 @@ class CollectionDownloadView(BrowserFilterView):
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs) -> FileResponse:
         """Stream a zip archive of many comics."""
-        paths = self.get_object()
+        members = self.get_object()
 
-        zs, skipped = self._get_zip_stream(paths)
+        zs, skipped = self._get_zip_stream(members)
         download_file = zs
 
         filename = kwargs.get("filename")

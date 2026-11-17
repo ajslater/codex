@@ -11,6 +11,7 @@
             <v-tab value="catalog">DieselTech Catalog</v-tab>
             <v-tab value="files">Files</v-tab>
             <v-tab value="url">URL</v-tab>
+            <v-tab value="arcs">Story Arcs</v-tab>
           </v-tabs>
           <v-window v-model="tab" class="tabWindow">
             <v-window-item value="metron">
@@ -136,6 +137,29 @@
                 density="compact"
               />
             </v-window-item>
+            <v-window-item value="arcs">
+              <p class="adminProse">
+                A database's own story arc, one per line. Its issues are fetched
+                after Import, and need that site's API key in the Tagging tab.
+                Comic Vine names an arc's issues by id alone, so its missing
+                issues read poorly; a curated list of the same arc, combined
+                with it, fills in their names.
+              </p>
+              <v-textarea
+                v-model="metronArcs"
+                label="Metron arc ids"
+                rows="2"
+                density="compact"
+              />
+              <v-textarea
+                v-model="comicvineArcs"
+                label="Comic Vine arc ids or addresses"
+                hint="An address like comicvine.gamespot.com/civil-war/4045-55766/"
+                persistent-hint
+                rows="2"
+                density="compact"
+              />
+            </v-window-item>
           </v-window>
         </template>
         <template v-else>
@@ -195,6 +219,20 @@ const METRON_HEADERS = Object.freeze([
   { title: "By", key: "username" },
   { title: "Rating", key: "rating" },
 ]);
+// A Comic Vine arc's id, alone or in its address (…/4045-55766/).
+const COMICVINE_ARC_RE = /(?:^|4045-)(\d+)\/?$/;
+const METRON_ARC_RE = /^(\d+)$/;
+
+/*
+ * The ids a textarea holds, one per line, by ``pattern``'s first group.
+ * Lines that are not an id are skipped.
+ */
+const arcIds = (text, pattern) =>
+  text
+    .split("\n")
+    .map((line) => pattern.exec(line.trim())?.[1])
+    .filter(Boolean);
+
 const CATALOG_HEADERS = Object.freeze([
   { title: "Name", key: "name" },
   { title: "Publisher", key: "publisher" },
@@ -226,6 +264,8 @@ export default {
       pickedCatalog: [],
       files: [],
       urls: "",
+      metronArcs: "",
+      comicvineArcs: "",
       searching: false,
       previewing: false,
       importing: false,
@@ -248,12 +288,20 @@ export default {
         .map((url) => url.trim())
         .filter(Boolean);
     },
+    metronArcIds() {
+      return arcIds(this.metronArcs, METRON_ARC_RE);
+    },
+    comicvineArcIds() {
+      return arcIds(this.comicvineArcs, COMICVINE_ARC_RE);
+    },
     pickedCount() {
       return (
         this.pickedMetron.length +
         this.pickedCatalog.length +
         (this.files?.length || 0) +
-        this.urlList.length
+        this.urlList.length +
+        this.metronArcIds.length +
+        this.comicvineArcIds.length
       );
     },
     catalogPublishers() {
@@ -284,6 +332,8 @@ export default {
       this.pickedCatalog = [];
       this.files = [];
       this.urls = "";
+      this.metronArcs = "";
+      this.comicvineArcs = "";
     },
     cardKey(card) {
       return card.token || `${card.kind}:${card.ref}`;
@@ -321,7 +371,19 @@ export default {
         .filter((row) => this.pickedCatalog.includes(row.ref))
         .map((row) => ({ kind: "catalog", ref: row.ref, sha: row.sha }));
       const urls = this.urlList.map((ref) => ({ kind: "url", ref }));
-      return [...metron, ...catalog, ...urls];
+      const arcs = [
+        ...this.metronArcIds.map((ref) => ({
+          kind: "metron_arc",
+          ref,
+          name: `Metron arc ${ref}`,
+        })),
+        ...this.comicvineArcIds.map((ref) => ({
+          kind: "comicvine_arc",
+          ref,
+          name: `Comic Vine arc ${ref}`,
+        })),
+      ];
+      return [...metron, ...catalog, ...urls, ...arcs];
     },
     async preview() {
       this.previewing = true;

@@ -49,6 +49,8 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JCT",
     "RLS",
     "RLM",
+    "RLF",
+    "RLI",
     "JRV",
     "JRS",
     "JRB",
@@ -260,6 +262,41 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             "Probably faster than Rebuild if the integrity check fails."
                         ),
                         "statuses": ("JSR",),
+                    },
+                ),
+            },
+            {
+                "title": "Reading Lists",
+                "jobs": (
+                    {
+                        "value": "reading_lists_sync",
+                        "title": "Sync Reading Lists from Tags",
+                        "desc": (
+                            "Make, update and remove the reading lists that"
+                            " come from story arc tags. Runs after every"
+                            " import and nightly."
+                        ),
+                        "statuses": ("RLS",),
+                    },
+                    {
+                        "value": "reading_lists_rematch",
+                        "title": "Match Reading Lists Again",
+                        "desc": (
+                            "Look in the library for every reading list's"
+                            " missing issues. Runs nightly."
+                        ),
+                        "statuses": ("RLM",),
+                    },
+                    {
+                        "value": "reading_lists_refresh",
+                        "title": "Refresh Reading List Sources",
+                        "desc": (
+                            "Fetch again the Metron, catalog and URL sources"
+                            " not fetched in a week. Runs nightly. Comic Vine"
+                            " arcs refresh only from the Reading Lists tab."
+                        ),
+                        "statuses": ("RLF", "RLI"),
+                        "abort": "reading_lists_abort",
                     },
                 ),
             },

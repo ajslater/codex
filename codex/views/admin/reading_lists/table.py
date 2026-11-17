@@ -1,7 +1,6 @@
 """The admin lists table, a list's detail, and actions on lists."""
 
 from collections import defaultdict
-from datetime import datetime
 from types import MappingProxyType
 from typing import Any, Final
 
@@ -14,6 +13,7 @@ from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
     ReadingListFetchAbortTask,
     ReadingListFetchTask,
+    refresh_request,
 )
 from codex.librarian.scribe.readinglists.errors import (
     clear_reading_list_errors,
@@ -191,34 +191,10 @@ class AdminReadingListDetailView(AdminAPIView):
 
 def refresh_requests(reading_list: ReadingList) -> list[FetchRequest]:
     """Fetch again every remote source of a list."""
-    requests = []
-    for source in ReadingListSource.objects.filter(
+    sources = ReadingListSource.objects.filter(
         reading_list=reading_list, kind__in=REMOTE_KINDS
-    ):
-        since = None
-        if source.kind in (
-            ReadingListSourceKind.METRON_LIST,
-            ReadingListSourceKind.METRON_ARC,
-        ):
-            try:
-                since = datetime.fromisoformat(source.revision)
-            except ValueError:
-                since = None
-        sha = (
-            source.revision
-            if source.kind == ReadingListSourceKind.CATALOG.value
-            else ""
-        )
-        requests.append(
-            FetchRequest(
-                kind=source.kind,
-                ref=source.ref,
-                sha=sha,
-                if_modified_since=since,
-                source_pk=source.pk,
-            )
-        )
-    return requests
+    )
+    return [refresh_request(source) for source in sources]
 
 
 def complete_request(reading_list: ReadingList) -> FetchRequest | None:

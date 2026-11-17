@@ -221,7 +221,9 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _alias_reading_list_position(self, qs, list_pks):
         """Order a list's comics by their first position in it."""
         rel = self.get_rel_prefix(qs.model) + "reading_list_entries"
-        condition = Q(**{f"{rel}__reading_list__in": list_pks})
+        condition = Q(
+            **{f"{rel}__reading_list__in": list_pks, f"{rel}__ignored": False}
+        )
         qs = qs.alias(
             selected_reading_list_entry=FilteredRelation(rel, condition=condition),
         )

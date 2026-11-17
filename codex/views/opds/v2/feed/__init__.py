@@ -132,6 +132,7 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
             first_regular_group = next(iter(regular_groups), {})
             navigation = first_regular_group.pop("navigation", [])
 
+            groups += self.get_reading_list_continue()
             groups += regular_groups
             groups += top_groups
             groups += self.get_facets()

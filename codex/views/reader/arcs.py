@@ -112,6 +112,7 @@ class ReaderArcsView(ReaderParamsView):
             ReadingList.objects.filter(
                 self.reading_list_visibility_filter(self.request.user),
                 entries__comic_id=comic.pk,
+                entries__ignored=False,
             )
             .distinct()
             .order_by("sort_name", "pk")

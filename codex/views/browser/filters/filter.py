@@ -1,7 +1,7 @@
 """Browser Filters."""
 
 from functools import cached_property
-from typing import Final
+from typing import Any, Final
 
 from django.db.models import Exists, OuterRef
 from django.db.models.query import QuerySet
@@ -235,7 +235,11 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         q = Q()
         for code in sorted(active):
             comic_rel = _SHELF_COLLECTION_COMIC_REL[code]
-            q |= Q(**{f"{rel}{comic_rel}__in": subqueries[code]})
+            clause: dict[str, Any] = {f"{rel}{comic_rel}__in": subqueries[code]}
+            if code == Collection.ARC.value:
+                # A hidden entry is no part of its list.
+                clause[f"{rel}reading_list_entries__ignored"] = False
+            q |= Q(**clause)
         # The row itself is shelved. Covers the rare "shelved collection
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.

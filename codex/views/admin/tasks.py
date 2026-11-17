@@ -31,6 +31,7 @@ from codex.librarian.notifier.tasks import (
     USERS_CHANGED_TASK,
     NotifierTask,
 )
+from codex.librarian.onlinetag.readinglists import ReadingListFetchAbortTask
 from codex.librarian.restarter.tasks import CodexRestartTask, CodexShutdownTask
 from codex.librarian.scribe.janitor.tasks import (
     JanitorAdoptOrphanFoldersTask,
@@ -53,6 +54,9 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorRefreshReadingListsTask,
+    JanitorRematchReadingListsTask,
+    JanitorSyncReadingListsTask,
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
@@ -128,6 +132,10 @@ _TASK_MAP = MappingProxyType(
         "janitor_nightly": JanitorNightlyTask(),
         "force_update_collections": UpdateCollectionsTask(start_time=EPOCH_START),
         "adopt_folders": JanitorAdoptOrphanFoldersTask(),
+        "reading_lists_sync": JanitorSyncReadingListsTask(),
+        "reading_lists_rematch": JanitorRematchReadingListsTask(),
+        "reading_lists_refresh": JanitorRefreshReadingListsTask(),
+        "reading_lists_abort": ReadingListFetchAbortTask(),
     }
 )
 

@@ -1,28 +1,40 @@
 """The online-thread fetcher hands fetched lists to the scribe."""
 
+from datetime import timedelta
 from threading import Lock
-from typing import Self
+from typing import Final, Self
 from unittest.mock import patch
 
 from comicbox.exceptions import OnlineLookupAbortedError, ReadingListFetchError
 from comicbox.readinglists import loads
+from comicbox.readinglists.sources.catalog import CatalogEntry
 from django.test import TestCase
+from django.utils.timezone import now
 from loguru import logger
 
 from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
     ReadingListFetcher,
     ReadingListFetchTask,
+    scheduled_refresh_requests,
 )
+from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.librarian.scribe.readinglists.errors import (
     clear_reading_list_errors,
     get_reading_list_errors,
 )
 from codex.librarian.scribe.readinglists.tasks import ReadingListImportTask
-from codex.models.readinglist import ReadingListSourceKind
+from codex.models.admin import ComicboxTaggingDefaults
+from codex.models.readinglist import (
+    ReadingList,
+    ReadingListSource,
+    ReadingListSourceKind,
+)
 from tests.test_reading_list_combine import _CBL
 
 _SESSION = "codex.librarian.onlinetag.readinglists.ReadingListSession"
+_PATH: Final = "Marvel/Events/Civil War.cbl"
+_SHA: Final = "a" * 40
 
 
 class _Queue(list):
@@ -62,6 +74,17 @@ class _FakeSession:
 
     def fetch_metron_list(self, _list_id: int, **_kwargs):
         return None
+
+    def catalog(self, **_kwargs):
+        return self
+
+    def find(self, path: str, _sha: str | None = None):
+        if path != _PATH:
+            return None
+        return CatalogEntry(path=_PATH, sha=_SHA, size=1)
+
+    def fetch_catalog(self, _path: str, **_kwargs):
+        return loads(_CBL)
 
 
 def _url(ref: str) -> FetchRequest:
@@ -113,3 +136,65 @@ class FetcherTests(TestCase):
         )
         (task,) = self._run(request)
         assert task.items[0].document is None
+
+    def test_an_unchanged_catalog_source_is_not_downloaded(self) -> None:
+        """A refresh whose blob sha still matches the catalog skips the fetch."""
+        request = FetchRequest(
+            kind=ReadingListSourceKind.CATALOG, ref=_PATH, sha=_SHA, source_pk=1
+        )
+        (task,) = self._run(request)
+        assert task.items[0].document is None
+
+    def test_a_changed_catalog_source_is_downloaded(self) -> None:
+        """A new sha, or a first import that names one, fetches the list."""
+        changed = FetchRequest(
+            kind=ReadingListSourceKind.CATALOG, ref=_PATH, sha="b" * 40, source_pk=1
+        )
+        first = FetchRequest(kind=ReadingListSourceKind.CATALOG, ref=_PATH, sha=_SHA)
+        (task,) = self._run(changed, first)
+        assert all(item.document for item in task.items)
+        assert len(task.items) == 2  # noqa: PLR2004
+
+
+class ScheduledRefreshTests(TestCase):
+    """The nightly janitor asks again for the remote sources due a refresh."""
+
+    def _source(self, kind: str, ref: str, *, days: int | None) -> ReadingListSource:
+        reading_list = ReadingList.objects.create(name=f"{kind} {ref}")
+        fetched_at = None if days is None else now() - timedelta(days=days)
+        return ReadingListSource.objects.create(
+            reading_list=reading_list, kind=kind, ref=ref, fetched_at=fetched_at
+        )
+
+    def test_only_stale_remote_sources_are_due(self) -> None:
+        """Week-old catalog and URL sources; never uploads, tags or Comic Vine."""
+        due = self._source(ReadingListSourceKind.CATALOG, _PATH, days=8)
+        never = self._source(ReadingListSourceKind.URL, "https://e.invalid", days=None)
+        self._source(ReadingListSourceKind.URL, "https://e.invalid/new", days=1)
+        self._source(ReadingListSourceKind.COMICVINE_ARC, "55", days=30)
+        self._source(ReadingListSourceKind.UPLOAD, "cw.cbl", days=30)
+        self._source(ReadingListSourceKind.TAGS, "civil war", days=30)
+        requests = scheduled_refresh_requests()
+        assert {request.source_pk for request in requests} == {due.pk, never.pk}
+
+    def test_metron_sources_wait_for_a_key(self) -> None:
+        """Without a Metron key its sources are skipped, not failed."""
+        metron = self._source(ReadingListSourceKind.METRON_LIST, "5", days=8)
+        assert scheduled_refresh_requests() == []
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "test-key-hush-S106"}
+        )
+        (request,) = scheduled_refresh_requests()
+        assert request.source_pk == metron.pk
+
+    def test_the_janitor_queues_one_fetch(self) -> None:
+        """The janitor job puts one fetch task on the queue, or none."""
+        queue = _Queue()
+        janitor = Janitor(logger, queue, Lock(), None)
+        janitor.refresh_reading_lists()
+        assert queue == []
+        self._source(ReadingListSourceKind.CATALOG, _PATH, days=8)
+        janitor.refresh_reading_lists()
+        (task,) = queue
+        assert isinstance(task, ReadingListFetchTask)
+        assert task.requests[0].kind == ReadingListSourceKind.CATALOG

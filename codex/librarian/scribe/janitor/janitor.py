@@ -49,6 +49,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorRefreshReadingListsTask,
     JanitorRematchReadingListsTask,
     JanitorSyncReadingListsTask,
     JanitorVacuumTask,
@@ -121,6 +122,9 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     # After the FK cleanup, so an arc whose last comic was reaped is gone.
     JanitorSyncReadingListsTask(),
     JanitorRematchReadingListsTask(),
+    # Only queues fetches on the online thread; the sources not fetched in
+    # a week come back as imports later.
+    JanitorRefreshReadingListsTask(),
     JanitorCleanCoversTask(),
     JanitorCleanupSessionsTask(),
     JanitorCleanupBookmarksTask(),
@@ -143,6 +147,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanFKsTask: "cleanup_fks",
         JanitorSyncReadingListsTask: "sync_reading_lists",
         JanitorRematchReadingListsTask: "rematch_reading_lists",
+        JanitorRefreshReadingListsTask: "refresh_reading_lists",
         JanitorCleanCoversTask: "cleanup_custom_covers",
         JanitorCleanupSessionsTask: "cleanup_sessions",
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
@@ -195,6 +200,17 @@ class Janitor(JanitorKoreaderHash):
 
         worker = ReadingListWorker(self.log, self.librarian_queue, self.db_write_lock)
         worker.rematch_lists(ReadingListRematchTask())
+
+    def refresh_reading_lists(self) -> None:
+        """Queue a fetch of the remote reading list sources due a refresh."""
+        from codex.librarian.onlinetag.readinglists import (
+            ReadingListFetchTask,
+            scheduled_refresh_requests,
+        )
+
+        if requests := scheduled_refresh_requests():
+            self.librarian_queue.put(ReadingListFetchTask(requests=tuple(requests)))
+            self.log.info(f"Refreshing {len(requests)} reading list sources.")
 
     def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""

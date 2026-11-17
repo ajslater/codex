@@ -200,3 +200,21 @@ def shelf_preview_link(shelf_pk: int, name: str) -> Link:
             }
         ),
     )
+
+
+# Leads a reading list's feed: the first issue of it, in list order, that
+# the user has not finished.
+READING_LIST_CONTINUE = Link(
+    Rel.FEATURED,
+    "Continue Reading",
+    "arcs",
+    MappingProxyType(
+        {
+            "topCollection": "arcs",
+            "filters": BookmarkFilters.UNREAD,
+            "orderBy": "story_arc_number",
+            "orderReverse": False,
+        }
+    ),
+    subtitle="The next issue in this reading list you have not finished.",
+)

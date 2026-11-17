@@ -49,6 +49,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     locations = BooleanField(read_only=True)
     original_format = BooleanField(read_only=True)
     reading_direction = BooleanField(read_only=True)
+    reading_lists = BooleanField(read_only=True)
     reprints = BooleanField(read_only=True)
     series_end_year = BooleanField(read_only=True)
     series_groups = BooleanField(read_only=True)
@@ -88,6 +89,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     reading_direction = VuetifyReadOnlyListField(
         child=VuetifyReadingDirectionChoiceField
     )
+    reading_lists = VuetifyReadOnlyListField()
     reprints = VuetifyReadOnlyListField()
     series_end_year = VuetifyReadOnlyListField()
     series_groups = VuetifyReadOnlyListField()

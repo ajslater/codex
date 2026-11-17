@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 # replaces settings_filters.favorite.
 # 3: api_keys, as hashes.
 # 4: an ``arcs`` identifier names a reading list, ``[name, uuid]``;
-# tagging_defaults.keep_formats.
+# tagging_defaults.keep_formats; settings_filters.reading_lists, as uuids.
 SCHEMA_VERSION: Final[int] = 4
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 

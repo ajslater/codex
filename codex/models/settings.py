@@ -247,6 +247,8 @@ class SettingsBrowserFilters(BaseModel):
     monochrome = JSONField(default=list)
     original_format = JSONField(default=list)
     reading_direction = JSONField(default=list)
+    # Reading list pks; the filter only ever matches lists the user may see.
+    reading_lists = JSONField(default=list)
     reprints = JSONField(default=list)
     series_end_year = JSONField(default=list)
     series_groups = JSONField(default=list)
@@ -280,6 +282,7 @@ class SettingsBrowserFilters(BaseModel):
             "monochrome",
             "original_format",
             "reading_direction",
+            "reading_lists",
             "reprints",
             "series_end_year",
             "series_groups",
