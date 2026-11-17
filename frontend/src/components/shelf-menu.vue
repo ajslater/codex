@@ -28,10 +28,7 @@
       </slot>
     </template>
     <v-sheet class="shelfMenu" @click.stop>
-      <!--
-        One titled section per kind of grouping. Another kind (reading
-        lists) is a second MenuSection after this one.
-      -->
+      <!-- One titled section per kind of grouping. -->
       <MenuSection title="Shelves">
         <v-list class="shelfMenuList" density="compact">
           <v-list-item
@@ -72,6 +69,11 @@
           @submit="onCreate"
         />
       </MenuSection>
+      <ReadingListMenuSection
+        v-if="menu"
+        :targets="targetMap"
+        @done="menu = false"
+      />
     </v-sheet>
   </v-menu>
 </template>
@@ -81,6 +83,7 @@ import { mdiLibraryShelves, mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import MenuSection from "@/components/menu-section.vue";
+import ReadingListMenuSection from "@/components/reading-list-menu-section.vue";
 import ShelfNameInput from "@/components/shelf-name-input.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useShelvesStore } from "@/stores/shelves";
@@ -93,7 +96,7 @@ const ARIA_CHECKED = Object.freeze({
 
 export default {
   name: "ShelfMenu",
-  components: { MenuSection, ShelfNameInput },
+  components: { MenuSection, ReadingListMenuSection, ShelfNameInput },
   // The class and id a call site passes belong on the button, not on the
   // menu overlay VMenu would forward them to.
   inheritAttrs: false,
@@ -186,8 +189,8 @@ export default {
     },
     title() {
       return this.targetCount > 1
-        ? `Shelves for ${this.targetCount} items`
-        : "Shelves";
+        ? `Shelves and reading lists for ${this.targetCount} items`
+        : "Shelves and reading lists";
     },
     disabled() {
       return this.targetCount === 0;

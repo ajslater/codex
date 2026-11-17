@@ -51,6 +51,8 @@ export const duplicateList = (pk, name) =>
   HTTP.post(`${LISTS}/${pk}/duplicate`, name ? { name } : {});
 export const getEntries = (pk, filter = "all") =>
   HTTP.get(`${LISTS}/${pk}/entries`, fresh({ filter }));
+export const addTargets = (pk, targets) =>
+  HTTP.post(`${LISTS}/${pk}/add`, { targets });
 export const addEntries = (pk, comics, position) =>
   HTTP.post(`${LISTS}/${pk}/entries`, { comics, position });
 export const updateEntry = (pk, entryPk, data) =>

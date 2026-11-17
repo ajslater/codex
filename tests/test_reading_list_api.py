@@ -212,6 +212,27 @@ class ReadingListApiTests(ReadingListFixture):
         menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
         assert {item["name"] for item in menu} == {"Mine", "Mine (copy)"}
 
+    def test_add_a_selection(self) -> None:
+        """A series adds its comics in reading order, after the list's last."""
+        pk = self._personal_list()
+        response = self.client.post(
+            f"{_LISTS}/{pk}/add",
+            data=json.dumps({"targets": {"series": [self.comics[0].series_id]}}),
+            content_type="application/json",
+        )
+        assert response.status_code == _OK, response.content
+        assert _data(response)["added"] == 4  # noqa: PLR2004
+        order = list(
+            ReadingListEntry.objects.filter(reading_list_id=pk)
+            .order_by("position")
+            .values_list("comic_id", flat=True)
+        )
+        assert order == [
+            self.comics[0].pk,
+            self.comics[1].pk,
+            *(comic.pk for comic in self.comics),
+        ]
+
     def test_personal_list_is_private(self) -> None:
         """Another user can neither see nor change it; its owner deletes it."""
         pk = self._personal_list()

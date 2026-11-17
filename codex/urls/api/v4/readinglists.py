@@ -16,6 +16,7 @@ from codex.views.readinglists.lists import (
     ReadingListExportView,
     ReadingListsView,
 )
+from codex.views.readinglists.selection import ReadingListAddView
 
 app_name = "reading_lists"
 urlpatterns = [
@@ -34,6 +35,7 @@ urlpatterns = [
         never_cache(ReadingListEntriesView.as_view()),
         name="entries",
     ),
+    path("<int:pk>/add", never_cache(ReadingListAddView.as_view()), name="add"),
     path(
         "<int:pk>/entries/reorder",
         never_cache(ReadingListReorderView.as_view()),

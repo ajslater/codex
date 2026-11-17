@@ -29,7 +29,7 @@
           <ShelfMenu :targets="selectedPksByCollection">
             <template #activator="{ props: shelfMenuProps }">
               <v-btn
-                v-tooltip="{ text: 'Shelves', openDelay: 500 }"
+                v-tooltip="{ text: 'Shelves & Reading Lists', openDelay: 500 }"
                 v-bind="shelfMenuProps"
                 class="shelvesButton"
                 :disabled="!hasSelection"
@@ -38,7 +38,7 @@
                 variant="text"
               >
                 <v-icon :icon="mdiLibraryShelves" />
-                <span class="actionLabel">Shelves</span>
+                <span class="actionLabel">Shelves &amp; Lists</span>
               </v-btn>
             </template>
           </ShelfMenu>

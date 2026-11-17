@@ -130,6 +130,19 @@ export const useReadingListsStore = defineStore("readingLists", {
         reportError(error);
       }
     },
+    async addTargets(pk, targets) {
+      try {
+        const response = await API.addTargets(pk, targets);
+        const { added = 0, name = "" } = response.data || {};
+        useCommonStore().setSuccess(
+          `Added ${added} comic${added === 1 ? "" : "s"} to ${name}.`,
+        );
+        await this.loadMyLists();
+        return added;
+      } catch (error) {
+        reportError(error);
+      }
+    },
     async createList(name, comics = []) {
       try {
         const response = await API.createList(name, comics);

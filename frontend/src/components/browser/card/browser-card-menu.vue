@@ -25,7 +25,7 @@
             class="listItem shelvesListItem"
             :prepend-icon="mdiLibraryShelves"
             :append-icon="mdiChevronRight"
-            title="Shelves"
+            title="Shelves & Lists"
           />
         </template>
       </ShelfMenu>

@@ -45,6 +45,7 @@
           :subtitle="countLabel(item)"
         >
           <template #append>
+            <slot name="actions" :item="item" />
             <v-btn
               class="nameListRenameBtn"
               density="compact"
