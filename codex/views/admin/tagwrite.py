@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
+from codex.choices.tagging import write_formats
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tagwrite_rename import (
     CONVERTING_FILE_TYPES,
@@ -231,12 +232,19 @@ class AdminTagWriteView(FilteredComicPksView):
         else:
             rename = bool(defaults and defaults.rename_files)
 
+        req_keep = data.get("keep_formats")
+        keep = (
+            req_keep
+            if req_keep is not None
+            else bool(defaults and defaults.keep_formats)
+        )
+
         task = BulkTagWriteTask(
             comic_pks=comic_pks,
             patch=json.loads(data.get("patch") or "null"),
             delete_keys=tuple(data.get("delete_keys") or ()),
             mode=data["mode"],
-            formats=tuple(data["formats"]),
+            formats=write_formats(data["formats"], keep=keep),
             delete_original=delete_original,
             rename=rename,
         )

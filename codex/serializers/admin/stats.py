@@ -199,6 +199,7 @@ class StatsTaggingSerializer(Serializer):
     rename_files = BooleanField(required=False, read_only=True)
     default_sources = CountDictField(required=False, read_only=True)
     default_format_count = IntegerField(required=False, read_only=True)
+    keep_formats = BooleanField(required=False, read_only=True)
     has_metron_credentials = BooleanField(required=False, read_only=True)
     has_comicvine_credentials = BooleanField(required=False, read_only=True)
     comicvine_url_set = BooleanField(required=False, read_only=True)

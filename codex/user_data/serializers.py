@@ -407,6 +407,7 @@ def serialize_tagging_defaults(
             "default_formats": json.dumps(
                 defaults.default_formats, separators=(",", ":")
             ),
+            "keep_formats": int(bool(defaults.keep_formats)),
             "delete_original": int(bool(defaults.delete_original)),
             "default_match_mode": defaults.default_match_mode,
             "default_prompts_mode": defaults.default_prompts_mode,

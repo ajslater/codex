@@ -187,11 +187,12 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 
 // Match mode decides how a verdict is applied once the calls are spent,
 // so it changes no request count. Effort is what buys calls, and only
-// against Comic Vine: Metron answers in a flat two-step whatever you ask.
+// against Comic Vine: Metron searches by cover, then by name, whatever
+// you ask.
 const MATCH_MODE_HINTS = {
-  ask: "Writes nothing on its own. Every match becomes a prompt to review, so Prompts must be set to Ask.",
+  ask: "Writes nothing on its own. Every match becomes a prompt to review, with a clear Metron cover match listed first, so Prompts must be set to Ask.",
   careful:
-    "Only accepts high-confidence, unambiguous matches. Defers anything uncertain for manual review.",
+    "Only accepts high-confidence, unambiguous matches, such as a clear Metron cover match. Defers anything uncertain for manual review.",
   auto: "Balances accuracy and speed. Accepts confident matches automatically and defers uncertain ones.",
   eager:
     "Accepts the best available match with minimal verification. Fastest, but least precise.",
@@ -517,8 +518,8 @@ export default {
     effortHint() {
       if (this.searchControlsDisabled) return this.pinnedControlsHint;
       const base = EFFORT_HINTS[this.effort] || "";
-      // The request count is Comic Vine's alone; Metron's flat two-step
-      // costs the same whatever effort asks for.
+      // The request count is Comic Vine's alone; Metron's cover and name
+      // searches cost the same whatever effort asks for.
       if (!this.activeSources.includes("comicvine")) {
         return base;
       }

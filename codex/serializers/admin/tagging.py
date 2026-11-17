@@ -51,6 +51,8 @@ class TagWriteRequestSerializer(Serializer):
     delete_keys = ListField(child=CharField(), required=False, default=list)
     mode = CharField(required=False, default="update")
     formats = ListField(child=CharField(), required=False, default=["COMIC_INFO"])
+    # None falls back to the admin ComicboxTaggingDefaults default.
+    keep_formats = BooleanField(required=False, default=None)
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     rename = BooleanField(required=False, default=None)
@@ -243,6 +245,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         model = ComicboxTaggingDefaults
         fields = (
             "default_formats",
+            "keep_formats",
             "delete_original",
             "rename_files",
             "default_match_mode",

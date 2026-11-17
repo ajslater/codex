@@ -29,6 +29,8 @@ border-radius: 128px;
 - Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
   off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
+- Tag writes can keep the other tag formats a comic has, set in Admin → Tagging
+  and per edit.
 
 ### ♻️ Changed
 
@@ -45,6 +47,7 @@ border-radius: 128px;
   restore, with their favorites on a "Favorites" shelf.
 - Libraries have their own icon, and actions and statuses that shared an icon
   now look distinct.
+- Online tagging finds Metron issues by cover first.
 
 ### 🔥 Removed
 
@@ -64,10 +67,13 @@ border-radius: 128px;
   folder's cells.
 - Some background task log messages, such as comicbox's, reach the log file and
   honor the log level.
+- Saving story arcs in the tag editor keeps their numbers and names.
+- Issue `-1` reads and searches as the number -1.
 
 ### 🧑‍💻 Developer
 
 - Require loguru 0.8.
+- Require comicbox 5.7.
 
 ## v2.6.0 - Tag Editor Suggestions
 

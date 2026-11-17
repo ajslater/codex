@@ -96,6 +96,30 @@ describe("EditPanel — cleared fields become deleteKeys", () => {
     expect(patch).not.toHaveProperty("arcs");
   });
 
+  test("editing story arcs keeps each arc's name and number", async () => {
+    // ``name`` is the display form ``Arc:3``. comicbox replaces the whole
+    // arcs map on an update, so the editor must send the arc's own name
+    // with the number it has, or a save renames it and drops its place
+    // in the reading list.
+    const wrapper = await mountPanel({
+      md: {
+        storyArcNumbers: [
+          { name: "Civil War:3", arcName: "Civil War", number: 3 },
+          { name: "Other", arcName: "Other", number: null },
+        ],
+      },
+    });
+    wrapper.vm.storyArcNames = [...wrapper.vm.storyArcNames, "New Arc"];
+    await flushPromises();
+    const { patch, deleteKeys } = wrapper.vm.buildPatch();
+    expect(patch.arcs).toEqual({
+      "Civil War": { number: 3 },
+      Other: {},
+      "New Arc": {},
+    });
+    expect(deleteKeys).not.toContain("arcs");
+  });
+
   test("clearing the community rating deletes instead of patching null", async () => {
     const wrapper = await mountPanel({ md: { communityRating: 4.5 } });
     wrapper.vm.clearField("community_rating");

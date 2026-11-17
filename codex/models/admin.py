@@ -139,6 +139,9 @@ class ComicboxTaggingDefaults(BaseModel):
         THOROUGH = "thorough", _("Thorough")
 
     default_formats = JSONField(default=list)
+    # Also write back every tag format a comic already carries (comicbox's
+    # ``keep``). Off, a write removes the formats it does not name.
+    keep_formats = BooleanField(default=False)
     delete_original = BooleanField(default=True)
     # Rename archives to the comicbox (comicfn2dict) filename scheme after a
     # tag write. Admin default that pre-seeds the per-operation toggle.

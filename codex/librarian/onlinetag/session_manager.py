@@ -49,6 +49,7 @@ from comicbox.online_session import (
 from django.utils.timezone import now, timedelta
 from humanize import naturaldelta
 
+from codex.choices.tagging import write_formats
 from codex.librarian.notifier.tasks import (
     ONLINE_TAG_PROMPT_TASK,
     ONLINE_TAG_SNAPSHOT_TASK,
@@ -827,7 +828,7 @@ class OnlineTagSessionManager:
             # per-source override both reach it.
             effort=resolve_effort(online_config.online, "comicvine").value,
             merge_all_sources=task.merge_all_sources,
-            formats=tuple(defaults.default_formats),
+            formats=write_formats(defaults.default_formats, keep=defaults.keep_formats),
             delete_original=task.delete_original,
             rename=task.rename,
             total_comics=0,

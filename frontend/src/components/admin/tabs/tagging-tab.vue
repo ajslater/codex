@@ -57,6 +57,15 @@
           </div>
           <div class="adminCard">
             <v-checkbox
+              v-model="draft.keepFormats"
+              label="Keep the other tag formats a comic has"
+              :hint="keepFormatsHint"
+              persistent-hint
+              density="compact"
+            />
+          </div>
+          <div class="adminCard">
+            <v-checkbox
               v-model="draft.deleteOriginal"
               label="Delete original after converting to CBZ"
               :hint="deleteOriginalHint"
@@ -411,6 +420,7 @@ import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
   "defaultFormats",
+  "keepFormats",
   "deleteOriginal",
   "renameFiles",
   "defaultMatchMode",
@@ -450,6 +460,8 @@ export default {
       metadataFormatsHint:
         "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
       lastFormatHint: "At least one format must be written",
+      keepFormatsHint:
+        "Also rewrite every tag format a comic already carries, so a write never removes one. Off, a write leaves only the formats checked above. Can be overridden when editing tags.",
       deleteOriginalHint:
         "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.",
       renameFilesHint:
@@ -457,7 +469,7 @@ export default {
       matchModeHint:
         "How aggressively to accept online matches. Ask writes nothing and prompts for every match, Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       effortHint:
-        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron answers in one call and ignores this.",
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron searches by cover and then by name whatever this is.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:

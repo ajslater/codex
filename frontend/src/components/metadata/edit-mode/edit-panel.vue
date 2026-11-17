@@ -20,6 +20,14 @@
         />
       </v-checkbox-group>
       <v-checkbox
+        v-model="keepFormats"
+        label="Keep other formats"
+        :title="keepFormatsHint"
+        hide-details
+        density="compact"
+        class="renameToggle"
+      />
+      <v-checkbox
         v-model="renameFile"
         :label="renameCheckboxLabel"
         :title="renameHint"
@@ -1665,6 +1673,9 @@ export default {
     return {
       formatChoices: TAGGING_CHOICES.formats,
       selectedFormats: ["COMIC_INFO"],
+      keepFormats: false,
+      keepFormatsHint:
+        "Also rewrite every tag format the comic already carries, so this save removes none.",
       languageChoices: LANGUAGES,
       countryChoices: COUNTRIES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
@@ -1706,6 +1717,8 @@ export default {
       selectedNewRole: null,
       creditsByRole: {},
       storyArcNames: [],
+      // An arc's number as the comic carries it, so a save keeps it.
+      storyArcNumberByName: {},
       universes: [],
       reprints: [],
       identifiers: [],
@@ -2071,6 +2084,7 @@ export default {
       this.selectedFormats = [...this.taggingDefaults.defaultFormats];
     }
     this.renameFile = Boolean(this.taggingDefaults?.renameFiles);
+    this.keepFormats = Boolean(this.taggingDefaults?.keepFormats);
     this.initFromMetadata();
   },
   beforeUnmount() {
@@ -2309,9 +2323,21 @@ export default {
         }
       }
 
-      // Story arcs
+      // Story arcs. ``name`` is the display form ``Arc:3``; edit the arc by
+      // its own name and keep its number, or a save would rename the arc
+      // and drop its number, which is its place in the reading list.
       if (this.md.storyArcNumbers?.length) {
-        this.storyArcNames = this.md.storyArcNumbers.map((a) => a.name);
+        const numbers = {};
+        const names = [];
+        for (const arc of this.md.storyArcNumbers) {
+          const name = arc.arcName ?? arc.name;
+          if (!names.includes(name)) names.push(name);
+          if (arc.number != null && !(name in numbers)) {
+            numbers[name] = arc.number;
+          }
+        }
+        this.storyArcNames = names;
+        this.storyArcNumberByName = numbers;
       }
 
       // Credits — group by role
@@ -2546,8 +2572,13 @@ export default {
         if (cleared.has("story_arcs") || this.storyArcNames.length === 0) {
           deleteKeys.push("arcs");
         } else {
+          // comicbox replaces the whole arcs map on an update, so every
+          // arc is sent with the number it already has.
           const arcs = {};
-          for (const name of this.storyArcNames) arcs[name] = {};
+          for (const name of this.storyArcNames) {
+            const number = this.storyArcNumberByName[name];
+            arcs[name] = number == null ? {} : { number };
+          }
           cbPatch.arcs = arcs;
         }
       }
@@ -2778,6 +2809,7 @@ export default {
           deleteKeys,
           mode: "update",
           formats,
+          keepFormats: this.keepFormats,
           rename: this.renameFile,
         };
         if (this.confirmInfo.needConversion > 0) {

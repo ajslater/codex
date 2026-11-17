@@ -16,7 +16,7 @@ transform specs don't surface at the top level (``_EXTRA_FORMAT_FIELDS``).
 
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
-from typing import cast
+from typing import Final, cast
 
 import pycountry  # a hard dependency of comicbox
 from comicbox.enums.comicbox import IdSources, MangaEnum
@@ -44,6 +44,15 @@ _TRANSFORMS = MappingProxyType(
 WRITE_FORMATS = MappingProxyType(
     {fmt: MetadataFormats[fmt].value.label for fmt in _TRANSFORMS}
 )
+# comicbox's write keyword (5.7): also write back every tag format the comic
+# already carries. Without it, naming one format deletes the others.
+KEEP_FORMATS: Final = "keep"
+
+
+def write_formats(formats: Iterable[str], *, keep: bool) -> tuple[str, ...]:
+    """Return the formats a write sends comicbox, with ``keep`` when asked."""
+    formats = tuple(formats)
+    return (*formats, KEEP_FORMATS) if keep and formats else formats
 
 
 def _vuetify_choices(pairs: Iterable[tuple[str, str]]) -> tuple[MappingProxyType, ...]:

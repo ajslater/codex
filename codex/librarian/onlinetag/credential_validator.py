@@ -134,6 +134,10 @@ _FALLBACK_ERRORS: Final[Mapping[RetryCategory | None, str]] = MappingProxyType(
     {
         RetryCategory.AUTH: "Authentication failed.",
         RetryCategory.RATE_LIMIT: "Rate limited.",
+        # comicbox 5.7 classes Metron's 404 and 400 here; before, they
+        # were transient and retried.
+        RetryCategory.NOT_FOUND: "Not found.",
+        RetryCategory.INVALID: "Request rejected.",
     }
 )
 
