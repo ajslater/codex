@@ -1,0 +1,188 @@
+"""
+Fetch reading lists from the network on the online-tagging thread.
+
+Fetching must not run on the scribe thread, which also runs imports and
+tag writes and would stall behind a three-minute Metron list. Fetching
+here also shares Metron's and Comic Vine's sessions, rate limits and
+response caches with online tagging. What comes back is handed to the
+scribe as a :class:`ReadingListImportTask`, which writes the rows.
+"""
+
+from dataclasses import dataclass
+from datetime import datetime
+
+from comicbox.events import Event, ReadingListFetchProgress
+from comicbox.exceptions import OnlineLookupAbortedError, ReadingListError
+from comicbox.online_session import OnlineCredentials
+from comicbox.readinglists import ReadingListSession
+
+from codex.librarian.onlinetag.session_state import CLIENT_NAME
+from codex.librarian.onlinetag.tasks import OnlineTagTask
+from codex.librarian.scribe.readinglists.documents import to_json
+from codex.librarian.scribe.readinglists.errors import add_reading_list_error
+from codex.librarian.scribe.readinglists.status import ReadingListFetchStatus
+from codex.librarian.scribe.readinglists.tasks import (
+    ImportItem,
+    ReadingListImportTask,
+)
+from codex.librarian.tasks import LibrarianTask
+from codex.librarian.worker import WorkerStatusBase
+from codex.models.admin import ComicboxTaggingDefaults
+from codex.models.readinglist import ReadingListSourceKind
+from codex.settings import COMICBOX_ONLINE_CONFIG
+
+
+@dataclass(frozen=True)
+class FetchRequest:
+    """
+    One list to fetch, and what to do with it.
+
+    ``ref`` is a URL, a catalog path or a Metron or Comic Vine id. The rest
+    is passed through to the import: see :class:`ImportItem`.
+    """
+
+    kind: str
+    ref: str
+    sha: str = ""
+    if_modified_since: datetime | None = None
+    into_pk: int | None = None
+    user_pk: int | None = None
+    name: str = ""
+    source_pk: int | None = None
+
+
+@dataclass
+class ReadingListFetchTask(OnlineTagTask):
+    """Fetch reading lists, then import them."""
+
+    requests: tuple[FetchRequest, ...] = ()
+
+
+class ReadingListFetchAbortTask(LibrarianTask):
+    """
+    Cancel the reading-list fetch under way.
+
+    Not an online-tag task: the online thread is busy with the fetch, so
+    the librarian cancels it from the routing thread instead of queueing.
+    """
+
+
+def reading_list_credentials() -> OnlineCredentials | None:
+    """Return the admin's Metron and Comic Vine keys for list fetches."""
+    defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
+    if defaults is None:
+        return None
+    return OnlineCredentials(
+        metron_key=defaults.metron_key or None,
+        comicvine_key=defaults.comicvine_key or None,
+        comicvine_url=defaults.comicvine_url or None,
+    )
+
+
+def _fetch(session: ReadingListSession, request: FetchRequest):
+    """Fetch one request; None when the remote list has not changed."""
+    match request.kind:
+        case ReadingListSourceKind.URL:
+            return session.fetch_url(request.ref)
+        case ReadingListSourceKind.CATALOG:
+            return session.fetch_catalog(request.ref, sha=request.sha or None)
+        case ReadingListSourceKind.METRON_LIST:
+            return session.fetch_metron_list(
+                int(request.ref), if_modified_since=request.if_modified_since
+            )
+        case ReadingListSourceKind.METRON_ARC:
+            return session.fetch_metron_arc(
+                int(request.ref), if_modified_since=request.if_modified_since
+            )
+        case ReadingListSourceKind.COMICVINE_ARC:
+            return session.fetch_comicvine_arc(int(request.ref))
+        case _:
+            reason = f"Reading lists cannot be fetched from {request.kind!r}."
+            raise ReadingListError(reason)
+
+
+class ReadingListFetcher(WorkerStatusBase):
+    """Fetch reading lists with one comicbox session per job."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Hold the running session so another thread can cancel it."""
+        super().__init__(*args, **kwargs)
+        self._session: ReadingListSession | None = None
+        self._status: ReadingListFetchStatus | None = None
+
+    def cancel(self) -> None:
+        """Cancel the fetch under way, if any. Safe from any thread."""
+        if self._session is not None:
+            self._session.cancel()
+
+    def _on_event(self, event: Event) -> None:
+        if not isinstance(event, ReadingListFetchProgress) or self._status is None:
+            return
+        total = f" of {event.total}" if event.total else ""
+        self._status.subtitle = f"{event.index}{total} issues"
+        self.status_controller.update(self._status)
+
+    def _item(self, request: FetchRequest, result) -> ImportItem | None:
+        document = to_json(result.reading_list) if result is not None else None
+        if document is None and request.source_pk is None:
+            return None
+        return ImportItem(
+            document=document,
+            kind=request.kind,
+            ref=request.ref,
+            into_pk=request.into_pk,
+            user_pk=request.user_pk,
+            name=request.name,
+            source_pk=request.source_pk,
+        )
+
+    def _fetch_all(self, session, requests) -> list[ImportItem]:
+        items: list[ImportItem] = []
+        for request in requests:
+            try:
+                result = _fetch(session, request)
+            except OnlineLookupAbortedError as exc:
+                self.log.warning(f"Reading list fetch stopped: {exc}")
+                add_reading_list_error(request.kind, request.ref, str(exc))
+                break
+            except (ReadingListError, ValueError) as exc:
+                self.log.warning(f"Reading list {request.kind}:{request.ref}: {exc}")
+                add_reading_list_error(request.kind, request.ref, str(exc))
+            else:
+                if item := self._item(request, result):
+                    items.append(item)
+            if self._status is not None:
+                self._status.increment_complete()
+                self.status_controller.update(self._status)
+        return items
+
+    def fetch(self, task: ReadingListFetchTask) -> None:
+        """Fetch every request, then queue the import of what arrived."""
+        self._status = ReadingListFetchStatus(0, len(task.requests))
+        self.status_controller.start(self._status)
+        items: list[ImportItem] = []
+        try:
+            with ReadingListSession(
+                credentials=reading_list_credentials(),
+                config=COMICBOX_ONLINE_CONFIG,
+                on_event=self._on_event,
+                client_name=CLIENT_NAME,
+            ) as session:
+                self._session = session
+                items = self._fetch_all(session, task.requests)
+        finally:
+            self._session = None
+            self.status_controller.finish(self._status)
+            self._status = None
+        if items:
+            self.librarian_queue.put(ReadingListImportTask(items=tuple(items)))
+
+
+def reading_list_session(**kwargs) -> ReadingListSession:
+    """Open a comicbox session on codex's cache and the admin's keys."""
+    return ReadingListSession(
+        credentials=reading_list_credentials(),
+        config=COMICBOX_ONLINE_CONFIG,
+        client_name=CLIENT_NAME,
+        **kwargs,
+    )

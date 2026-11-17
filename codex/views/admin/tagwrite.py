@@ -202,6 +202,14 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         )
 
 
+def _requested(data, key: str, defaults, default_attr: str) -> bool:
+    """Return the request's own value, else the admin default's."""
+    value = data.get(key)
+    if value is not None:
+        return bool(value)
+    return bool(defaults and getattr(defaults, default_attr))
+
+
 class AdminTagWriteView(FilteredComicPksView):
     """POST to write tags to comic archives."""
 
@@ -215,29 +223,12 @@ class AdminTagWriteView(FilteredComicPksView):
         if not comic_pks:
             return Response({"detail": "No comics matched."}, status=400)
 
-        try:
-            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-        except ComicboxTaggingDefaults.DoesNotExist:
-            defaults = None
-
-        req_delete = data.get("delete_original")
-        if req_delete is not None:
-            delete_original = req_delete
-        else:
-            delete_original = bool(defaults and defaults.delete_original)
-
-        req_rename = data.get("rename")
-        if req_rename is not None:
-            rename = req_rename
-        else:
-            rename = bool(defaults and defaults.rename_files)
-
-        req_keep = data.get("keep_formats")
-        keep = (
-            req_keep
-            if req_keep is not None
-            else bool(defaults and defaults.keep_formats)
+        defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
+        delete_original = _requested(
+            data, "delete_original", defaults, "delete_original"
         )
+        rename = _requested(data, "rename", defaults, "rename_files")
+        keep = _requested(data, "keep_formats", defaults, "keep_formats")
 
         task = BulkTagWriteTask(
             comic_pks=comic_pks,

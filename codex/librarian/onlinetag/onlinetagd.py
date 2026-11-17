@@ -2,6 +2,10 @@
 
 from typing import override
 
+from codex.librarian.onlinetag.readinglists import (
+    ReadingListFetcher,
+    ReadingListFetchTask,
+)
 from codex.librarian.onlinetag.session_cache import (
     prune_stale_prompts,
     set_active_scan_id,
@@ -25,6 +29,21 @@ class OnlineTagThread(QueuedThread):
         """Initialize session manager."""
         super().__init__(*args, **kwargs)
         self._session_manager: OnlineTagSessionManager | None = None
+        self._reading_list_fetcher: ReadingListFetcher | None = None
+
+    @property
+    def reading_list_fetcher(self) -> ReadingListFetcher:
+        """Lazy-init the reading list fetcher."""
+        if self._reading_list_fetcher is None:
+            self._reading_list_fetcher = ReadingListFetcher(
+                self.log, self.librarian_queue, self.db_write_lock
+            )
+        return self._reading_list_fetcher
+
+    def cancel_reading_list_fetch(self) -> None:
+        """Cancel the reading list fetch under way; called from another thread."""
+        if self._reading_list_fetcher is not None:
+            self._reading_list_fetcher.cancel()
 
     @property
     def session_manager(self) -> OnlineTagSessionManager:
@@ -87,5 +106,7 @@ class OnlineTagThread(QueuedThread):
                 self.session_manager.skip_all_prompts()
             case OnlineTagDismissTask():
                 self.session_manager.dismiss_session()
+            case ReadingListFetchTask():
+                self.reading_list_fetcher.fetch(item)
             case _:
                 self.log.warning(f"Bad task sent to online tag thread: {item}")

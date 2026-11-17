@@ -48,6 +48,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JRP",
     "JCT",
     "RLS",
+    "RLM",
     "JRV",
     "JRS",
     "JRB",

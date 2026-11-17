@@ -27,8 +27,14 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorRematchReadingListsTask,
     JanitorSyncReadingListsTask,
     JanitorVacuumTask,
+)
+from codex.librarian.scribe.readinglists.tasks import (
+    ReadingListImportTask,
+    ReadingListRecombineTask,
+    ReadingListRematchTask,
 )
 from codex.librarian.scribe.search.tasks import (
     SearchIndexCleanStaleTask,
@@ -65,7 +71,11 @@ _SCRIBE_TASK_PRIORITY = (
     ImportTask,
     LazyImportComicsTask,
     UpdateCollectionsTask,
-    # Index 17, the first slot in the contiguous cleanup band. Ahead of
+    # An admin waits on these: imports and edits of reading lists.
+    ReadingListImportTask,
+    ReadingListRecombineTask,
+    ReadingListRematchTask,
+    # The first slot in the contiguous cleanup band. Ahead of
     # the FK cleanup and the search sync, which both depend on the rows
     # really being gone; behind the tag-writing and import tasks, so a
     # bulk DELETE under the write lock never stalls a user-initiated
@@ -73,6 +83,7 @@ _SCRIBE_TASK_PRIORITY = (
     JanitorReapPendingDeletesTask,
     JanitorCleanFKsTask,
     JanitorSyncReadingListsTask,
+    JanitorRematchReadingListsTask,
     JanitorCleanCoversTask,
     JanitorCleanupSessionsTask,
     JanitorCleanupBookmarksTask,

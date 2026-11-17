@@ -10,10 +10,14 @@ strings, dates are their parts.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from contextlib import suppress
+from datetime import date
 from decimal import Decimal
 from itertools import batched
 from typing import Any, Final
+
+from comicbox.readinglists import parse_issue
 
 from codex.models import Comic
 from codex.models.identifier import IdentifierType
@@ -116,3 +120,58 @@ def comic_references(comic_pks: Iterable[int]) -> dict[int, dict[str, Any]]:
             pk = row[0]
             references[pk] = _reference(row, identifiers.get(pk, {}))
     return references
+
+
+def _typed_date(raw: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a reference's date as comicbox's model holds it."""
+    date_: dict[str, Any] = {
+        key: raw[key] for key in ("year", "month", "day") if raw.get(key)
+    }
+    cover = raw.get("cover_date")
+    if isinstance(cover, str):
+        with suppress(ValueError):
+            date_["cover_date"] = date.fromisoformat(cover)
+    elif isinstance(cover, date):
+        date_["cover_date"] = cover
+    elif all(key in date_ for key in ("year", "month", "day")):
+        with suppress(ValueError):
+            date_["cover_date"] = date(date_["year"], date_["month"], date_["day"])
+    return date_
+
+
+def typed_reference(reference: Mapping[str, Any]) -> dict[str, Any]:
+    """
+    Return a JSON-safe reference in comicbox's model types.
+
+    ``entry_keys`` and ``match_comics`` read the model as ``load_model``
+    leaves it, a ``date`` cover date and a ``Decimal`` issue number, and do
+    not convert a JSON one: a string date silently loses the cover-year key.
+    Converting by hand keeps one entry per reference, where ``load_model``
+    over a list drops the entries that load empty.
+    """
+    typed: dict[str, Any] = {}
+    for key in ("series", "volume", "identifiers", "entry_type", "notes"):
+        if value := reference.get(key):
+            typed[key] = value
+    if issue := reference.get("issue"):
+        parsed = parse_issue(issue.get("name") or issue.get("number"))
+        typed["issue"] = {
+            key: value
+            for key, value in (
+                ("name", parsed.name),
+                ("number", parsed.number),
+                ("suffix", parsed.suffix),
+            )
+            if value not in (None, "")
+        }
+    if (raw_date := reference.get("date")) and (date_ := _typed_date(raw_date)):
+        typed["date"] = date_
+    return typed
+
+
+def comic_candidates(comic_pks: Iterable[int]) -> dict[int, dict[str, Any]]:
+    """Return each comic as comicbox's matcher reads one, by pk."""
+    return {
+        pk: typed_reference(reference)
+        for pk, reference in comic_references(comic_pks).items()
+    }

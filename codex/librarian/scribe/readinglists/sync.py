@@ -18,22 +18,21 @@ Lists are never recreated, so shelf items, custom covers and reader
 settings that point at one survive.
 """
 
-from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
-from hashlib import sha1
-from json import dumps
 from typing import Final, override
 
 from django.db import transaction
 from django.db.models import Q
 from django.utils.timezone import now
 
-from codex.librarian.scribe.readinglists.references import (
-    comic_references,
-    issue_name,
+from codex.librarian.scribe.readinglists.arcs import (
+    ArcMember,
+    arc_members,
+    digest,
+    is_ordered,
+    ordered_members,
 )
-from codex.models import Comic, StoryArc
+from codex.librarian.scribe.readinglists.references import comic_references
 from codex.models.readinglist import (
     ReadingList,
     ReadingListEntry,
@@ -47,17 +46,6 @@ _BATCH: Final = 1000
 _HAND_EDITED: Final = (
     Q(manual=True) | Q(ignored=True) | Q(match_tier=ReadingListMatchTier.MANUAL)
 )
-
-
-@dataclass(slots=True)
-class ArcMember:
-    """A comic tagged with an arc: what orders it and what labels it."""
-
-    number: int | None
-    comic_date: date | None
-    series: str
-    issue: str
-    year: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,82 +65,6 @@ class SyncCounts:
     def __str__(self) -> str:
         """Say what changed, for a log line."""
         return f"{self.created} created, {self.updated} updated, {self.deleted} deleted"
-
-
-def _lower(number: int | None, known: int | None) -> bool:
-    """Whether ``number`` beats ``known``: MIN() ignores NULLs, as arc browse did."""
-    return number is not None and (known is None or number < known)
-
-
-def arc_members() -> tuple[dict[str, str], dict[str, dict[int, ArcMember]]]:
-    """
-    Read every arc link once.
-
-    Returns each sort name's first spelling, and its comics with each
-    comic's lowest number in that arc.
-    """
-    names: dict[str, str] = {}
-    for name, sort_name in StoryArc.objects.order_by("pk").values_list(
-        "name", "sort_name"
-    ):
-        names.setdefault(sort_name, name)
-    through = Comic.story_arc_numbers.through
-    rows = through.objects.values_list(
-        "storyarcnumber__story_arc__sort_name",
-        "comic_id",
-        "storyarcnumber__number",
-        "comic__date",
-        "comic__series__name",
-        "comic__issue_number",
-        "comic__issue_suffix",
-        "comic__year",
-    )
-    members: dict[str, dict[int, ArcMember]] = defaultdict(dict)
-    for sort_name, comic_pk, number, comic_date, series, issue, suffix, year in rows:
-        comics = members[sort_name]
-        known = comics.get(comic_pk)
-        if known is not None and not _lower(number, known.number):
-            continue
-        comics[comic_pk] = ArcMember(
-            number=number,
-            comic_date=comic_date,
-            series=series or "",
-            issue=issue_name(issue, suffix),
-            year=year,
-        )
-    return names, members
-
-
-def _sort_key(item: tuple[int, ArcMember]) -> tuple:
-    """Arc number, then date, then pk, NULLs first."""
-    pk, member = item
-    return (
-        member.number is not None,
-        member.number or 0,
-        member.comic_date is not None,
-        member.comic_date or date.min,
-        pk,
-    )
-
-
-def ordered_members(comics: dict[int, ArcMember]) -> list[tuple[int, ArcMember]]:
-    """Return the arc's comics in list order."""
-    return sorted(comics.items(), key=_sort_key)
-
-
-def is_ordered(comics: dict[int, ArcMember]) -> bool:
-    """Ordered when every comic has its own number, as comicbox decides."""
-    numbers = [member.number for member in comics.values()]
-    return None not in numbers and len(set(numbers)) == len(numbers)
-
-
-def digest(comics: dict[int, ArcMember]) -> str:
-    """Digest an arc's membership and numbering: the tags source's revision."""
-    pairs = sorted(
-        (pk, -1 if member.number is None else member.number)
-        for pk, member in comics.items()
-    )
-    return sha1(dumps(pairs).encode(), usedforsecurity=False).hexdigest()
 
 
 def is_tags_only(reading_list: ReadingList) -> bool:
@@ -282,5 +194,20 @@ class TagListSync:
 
 
 def sync_tag_lists(recombine=None) -> SyncCounts:
-    """Sync the lists from story-arc tags."""
+    """
+    Sync the lists from story-arc tags.
+
+    ``recombine`` defaults to the real one, sharing one matcher across the
+    run. It is imported here because it builds on this module.
+    """
+    if recombine is None:
+        from codex.librarian.scribe.readinglists.combine import recombine as _recombine
+        from codex.librarian.scribe.readinglists.matcher import ListMatcher
+
+        matcher = ListMatcher()
+
+        def _with_matcher(reading_list) -> None:
+            _recombine(reading_list, matcher)
+
+        recombine = _with_matcher
     return TagListSync(recombine).sync()

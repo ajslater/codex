@@ -24,6 +24,7 @@ from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
+from codex.librarian.onlinetag.readinglists import ReadingListFetchAbortTask
 from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
@@ -109,6 +110,8 @@ class LibrarianDaemon(Process):
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
                 self._restart_codex(task)
+            case ReadingListFetchAbortTask():
+                self._threads.online_tag_thread.cancel_reading_list_fetch()
             case LibrarianShutdownTask():
                 self.log.info(f"Shutting down {self.name}...")
                 self.run_loop = False

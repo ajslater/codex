@@ -49,10 +49,14 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorRematchReadingListsTask,
     JanitorSyncReadingListsTask,
     JanitorVacuumTask,
 )
-from codex.librarian.scribe.readinglists.status import ReadingListSyncStatus
+from codex.librarian.scribe.readinglists.status import (
+    ReadingListMatchStatus,
+    ReadingListSyncStatus,
+)
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
@@ -78,6 +82,7 @@ _JANITOR_STATII: Final = (
     JanitorReapPendingDeletesStatus,
     JanitorCleanupTagsStatus,
     ReadingListSyncStatus,
+    ReadingListMatchStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupBookmarksStatus,
@@ -115,6 +120,7 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     JanitorCleanFKsTask(),
     # After the FK cleanup, so an arc whose last comic was reaped is gone.
     JanitorSyncReadingListsTask(),
+    JanitorRematchReadingListsTask(),
     JanitorCleanCoversTask(),
     JanitorCleanupSessionsTask(),
     JanitorCleanupBookmarksTask(),
@@ -136,6 +142,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorReapPendingDeletesTask: "reap_pending_deletes",
         JanitorCleanFKsTask: "cleanup_fks",
         JanitorSyncReadingListsTask: "sync_reading_lists",
+        JanitorRematchReadingListsTask: "rematch_reading_lists",
         JanitorCleanCoversTask: "cleanup_custom_covers",
         JanitorCleanupSessionsTask: "cleanup_sessions",
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
@@ -179,6 +186,14 @@ class Janitor(JanitorKoreaderHash):
             self.log.log(level, f"Reading lists from tags: {counts}.")
         finally:
             self.status_controller.finish(status)
+
+    def rematch_reading_lists(self) -> None:
+        """Match every reading list's missing entries again."""
+        from codex.librarian.scribe.readinglists.tasks import ReadingListRematchTask
+        from codex.librarian.scribe.readinglists.worker import ReadingListWorker
+
+        worker = ReadingListWorker(self.log, self.librarian_queue, self.db_write_lock)
+        worker.rematch_lists(ReadingListRematchTask())
 
     def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""

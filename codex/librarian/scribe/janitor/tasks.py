@@ -40,6 +40,10 @@ class JanitorSyncReadingListsTask(JanitorTask):
     """Sync the reading lists from story-arc tags."""
 
 
+class JanitorRematchReadingListsTask(JanitorTask):
+    """Match every reading list's missing entries again."""
+
+
 class JanitorCleanCoversTask(JanitorTask):
     """Clean unused custom covers."""
 
