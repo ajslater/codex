@@ -1,10 +1,10 @@
 """
-Tests for migration 0063: tokens become keys; the Stats API key is revoked.
+Tests for migration 0060's API key step.
 
+DRF tokens become keys and the Stats API key is revoked.
 ``rest_framework.authtoken`` is no longer installed, so the test database
 never gets its table: each test that needs one builds it the way DRF did,
-at the 0062 state, then migrates forward to 0063 to check what it became.
-The backward leg doubles as the test of the reverse data step.
+at the 0059 state, then migrates forward to 0060 to check what it became.
 """
 
 import hashlib
@@ -15,8 +15,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
-_BEFORE: Final = [("codex", "0062_device_keys")]
-_AFTER: Final = [("codex", "0063_api_key_scopes")]
+_BEFORE: Final = [("codex", "0059_remove_metron_legacy_login")]
+_AFTER: Final = [("codex", "0060_post_v2_6_0_schema")]
 _TOKEN_TABLE: Final = "authtoken_token"  # noqa: S105
 _CREATE_TOKEN_TABLE: Final = f"""
 CREATE TABLE {_TOKEN_TABLE} (
@@ -105,21 +105,16 @@ class ApiKeyMigrationTests(TransactionTestCase):
         return row[0]
 
     def test_tokens_become_universal_keys(self) -> None:
-        old_apps = _migrate(_BEFORE)
-        # A device key already holds the name, so the token's gets a suffix.
-        old_apps.get_model("codex", "UserApiKey").objects.create(
-            user_id=self.reader.pk,
-            name="Universal Token",
-            prefix="dddd",
-            digest=_sha256("device"),
-            kosync_digest=_md5("device"),
-        )
+        _migrate(_BEFORE)
         self._seed_tokens({self.reader.pk: _TOKEN_A, self.admin.pk: _TOKEN_B})
 
         keys = self._keys(_migrate(_AFTER))
 
-        assert keys[self.reader.pk, "Universal Token"]["scope"] == "device"
-        reader = keys[self.reader.pk, "Universal Token (2)"]
+        assert set(keys) == {
+            (self.reader.pk, "Universal Token"),
+            (self.admin.pk, "Universal Token"),
+        }
+        reader = keys[self.reader.pk, "Universal Token"]
         assert reader["scope"] == "universal"
         assert reader["digest"] == _sha256(_TOKEN_A)
         assert reader["kosync_digest"] == _md5(_TOKEN_A)
@@ -167,19 +162,3 @@ class ApiKeyMigrationTests(TransactionTestCase):
     def test_an_empty_server_key_row_goes_too(self) -> None:
         self._seed_stats_key(_migrate(_BEFORE), value="")
         self._assert_server_key_revoked(_migrate(_AFTER))
-
-    def test_reverse_keeps_only_device_keys(self) -> None:
-        old_apps = _migrate(_BEFORE)
-        old_apps.get_model("codex", "UserApiKey").objects.create(
-            user_id=self.reader.pk,
-            name="Kobo",
-            prefix="kkkk",
-            digest=_sha256("kobo"),
-            kosync_digest=_md5("kobo"),
-        )
-        self._seed_tokens({self.reader.pk: _TOKEN_A})
-        assert len(self._keys(_migrate(_AFTER))) == 2  # noqa: PLR2004
-
-        keys = self._keys(_migrate(_BEFORE))
-
-        assert set(keys) == {(self.reader.pk, "Kobo")}

@@ -1,10 +1,10 @@
 """
-Tests for migration 0061, which folds favorites into shelves.
+Tests for migration 0060's shelves step, which folds favorites into shelves.
 
 The forward data step needs the ``Favorite`` table and the ``favorite``
 filter column, neither of which exists in the current schema, so these
-run the real migration both ways: back to 0060 to seed the old shape,
-then forward to 0061 to check what it became. The backward leg doubles
+run the real migration both ways: back to 0059 to seed the old shape,
+then forward to 0060 to check what it became. The backward leg doubles
 as the test of the reverse data step.
 """
 
@@ -15,8 +15,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
-_BEFORE: Final = [("codex", "0060_koreader_sync")]
-_AFTER: Final = [("codex", "0061_shelves")]
+_BEFORE: Final = [("codex", "0059_remove_metron_legacy_login")]
+_AFTER: Final = [("codex", "0060_post_v2_6_0_schema")]
 _SERIES_PK: Final = 11
 _COMIC_PK: Final = 22
 _FAVORITE_COUNT: Final = 2
