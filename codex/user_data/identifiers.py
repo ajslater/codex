@@ -15,7 +15,8 @@ Identifier shape per collection (the collection value names the collection):
 * ``imprints`` (Imprint): ``[publisher.name, imprint.name]``
 * ``series`` (Series): ``[publisher.name, imprint.name, series.name]``
 * ``volumes`` (Volume): ``[publisher.name, imprint.name, series.name, volume.name, volume.number_to]``
-* ``arcs`` (Story Arc): ``[story_arc.name]``
+* ``arcs`` (Reading List): ``[reading_list.name, reading_list.uuid]``; a
+  backup from before reading lists holds ``[story_arc.name]``
 
 Tag filter lists in :class:`SettingsBrowserFilters` JSONField columns
 get rewritten from ``[pk, ...]`` to ``[name, ...]`` per column. Some
@@ -123,7 +124,7 @@ _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]
             Collection.COMIC: lambda obj: [str(obj.path)],
             Collection.FOLDER: lambda obj: [str(obj.path)],
             Collection.PUBLISHER: lambda obj: [obj.name],
-            Collection.ARC: lambda obj: [obj.name],
+            Collection.ARC: lambda obj: [obj.name, str(obj.uuid)],
             Collection.IMPRINT: lambda obj: [obj.publisher.name, obj.name],
             Collection.SERIES: lambda obj: [
                 obj.publisher.name,

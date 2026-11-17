@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
 from codex.collection import Collection
-from codex.models import Comic, StoryArc
+from codex.models import Comic, ReadingList
 from codex.models.shelf import SHELF_MODEL_COLLECTIONS, Shelf, ShelfItem
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
@@ -42,7 +42,7 @@ _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
 )
 
 # Collection codes whose transitive shelf clauses introduce m2m JOINs on
-# Comic (``folders`` and ``story_arc_numbers__story_arc``). When the
+# Comic (``folders`` and ``reading_list_entries__reading_list``). When the
 # selected shelves hold nothing under either code the filter Q has no m2m
 # clauses and Comic queries don't need ``.distinct()``.
 _SHELF_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
@@ -50,9 +50,9 @@ _SHELF_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
 )
 
 # Collection code → comic-side ORM field used to "transitively" match a
-# row in that collection. ``folders`` and ``story_arc_numbers__story_arc``
-# are m2m relations on Comic that carry every ancestor folder / arc,
-# so a single shelved folder lights up every descendant comic.
+# row in that collection. ``folders`` is the m2m of every ancestor folder
+# and ``reading_list_entries__reading_list`` every list a comic is in, so a
+# single shelved folder or list lights up every comic in it.
 _SHELF_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
     Collection.COMIC.value: "pk",
     Collection.PUBLISHER.value: "publisher_id",
@@ -60,7 +60,7 @@ _SHELF_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
     Collection.SERIES.value: "series_id",
     Collection.VOLUME.value: "volume_id",
     Collection.FOLDER.value: "folders",
-    Collection.ARC.value: "story_arc_numbers__story_arc",
+    Collection.ARC.value: "reading_list_entries__reading_list",
 }
 
 
@@ -72,20 +72,16 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         demote_tables = {"codex_library"}
         if qs.model is not Comic:
             demote_tables.add("codex_comic")
-        if qs.model is StoryArc:
-            # StoryArc browse reaches Comic through two more LEFT-JOINed
-            # tables (StoryArcNumber and the M2M through table) — the
-            # collection relation itself, so NULL-extended rows are
-            # exactly the empty collections this method exists to drop.
-            # Demoting them lets SQLite start the plan from the FTS/comic
-            # side instead of a cartesian arc-side scan (an arc search
-            # browse measured 150s vs 36ms per query). Scoped to StoryArc:
-            # on other models these tables join as table-view *annotation*
-            # LEFT JOINs, where demotion would drop rows whose comics have
-            # no story arcs.
-            demote_tables.update(
-                ("codex_storyarcnumber", "codex_comic_story_arc_numbers")
-            )
+        if qs.model is ReadingList:
+            # List browse reaches Comic through one more LEFT-JOINed
+            # table, the entries: the collection relation itself, so
+            # NULL-extended rows are exactly the empty lists this method
+            # exists to drop. Demoting it lets SQLite start the plan from
+            # the FTS/comic side instead of a list-side scan, as it did
+            # for story arcs (an arc search browse measured 150s vs 36ms
+            # per query). Scoped to ReadingList: elsewhere the table could
+            # join as an annotation, where demotion would drop rows.
+            demote_tables.add("codex_readinglistentry")
         if self.fts_mode:
             # Forcing INNER JOINS required to make fts5 work
             demote_tables.add("codex_comicfts")
@@ -158,7 +154,8 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         pks = self.kwargs.get("pks")
         if pks and 0 not in pks:
             if collection == STORY_ARC_COLLECTION:
-                # ``story_arc_numbers__story_arc`` is m2m-through on Comic.
+                # ``reading_list_entries`` is one-to-many on Comic, and a
+                # comic may sit in a list more than once.
                 return True
             if (
                 collection == FOLDER_COLLECTION
@@ -203,14 +200,13 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         Each OR clause traces ``rel_prefix + comic_field`` to a
         per-collection shelved-id subquery, but only for collections the
         selected shelves actually hold items in (see
-        :attr:`_active_shelf_collection_codes`). That keeps the m2m
-        ``folders`` / ``story_arc_numbers__story_arc`` JOINs out of
-        the SQL when no folders / arcs are shelved — typically the
+        :attr:`_active_shelf_collection_codes`). That keeps the
+        ``folders`` / ``reading_list_entries__reading_list`` JOINs out of
+        the SQL when no folders / lists are shelved — typically the
         common case. ``folders`` is the m2m of every ancestor folder
         for a comic (not just the direct parent), so a shelved
         folder lights up every descendant folder and comic;
-        ``story_arc_numbers__story_arc`` is the analogous m2m-through
-        to StoryArc.
+        ``reading_list_entries__reading_list`` does the same for a list.
 
         Models outside :data:`SHELF_MODEL_COLLECTIONS` (search results,
         intermediate querysets) get the no-op. Anonymous sessions and

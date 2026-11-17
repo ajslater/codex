@@ -27,6 +27,7 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorSyncReadingListsTask,
     JanitorVacuumTask,
 )
 from codex.librarian.scribe.search.tasks import (
@@ -71,6 +72,7 @@ _SCRIBE_TASK_PRIORITY = (
     # import behind maintenance.
     JanitorReapPendingDeletesTask,
     JanitorCleanFKsTask,
+    JanitorSyncReadingListsTask,
     JanitorCleanCoversTask,
     JanitorCleanupSessionsTask,
     JanitorCleanupBookmarksTask,

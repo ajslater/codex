@@ -437,7 +437,7 @@ _READER_GLOBAL_SCOPE = Q(
     comic__isnull=True,
     series__isnull=True,
     folder__isnull=True,
-    story_arc__isnull=True,
+    reading_list__isnull=True,
 )
 
 
@@ -449,7 +449,7 @@ class SettingsReader(SettingsBase):
     - comic set      per-comic settings (replaces old Bookmark model)
     - series set     per-series settings
     - folder set     per-folder settings
-    - story_arc set  per-story-arc settings
+    - reading_list set  per-reading-list settings
     - none set       global reader defaults for the user/session
     """
 
@@ -463,8 +463,8 @@ class SettingsReader(SettingsBase):
     folder = ForeignKey(
         "codex.Folder", db_index=True, on_delete=SET_NULL, null=True, blank=True
     )
-    story_arc = ForeignKey(
-        "codex.StoryArc", db_index=True, on_delete=CASCADE, null=True, blank=True
+    reading_list = ForeignKey(
+        "codex.ReadingList", db_index=True, on_delete=CASCADE, null=True, blank=True
     )
 
     # Reader display settings
@@ -507,36 +507,36 @@ class SettingsReader(SettingsBase):
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=False,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=False,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=False,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=False,
+                        reading_list__isnull=False,
                     )
                 ),
                 name="settingsreader_scope_xor",
             ),
-            # ---- Global scope (no comic/series/folder/story_arc) ----
+            # ---- Global scope (no comic/series/folder/reading_list) ----
             UniqueConstraint(
                 fields=("user", "client"),
                 condition=Q(user__isnull=False) & _READER_GLOBAL_SCOPE,
@@ -580,15 +580,15 @@ class SettingsReader(SettingsBase):
                 condition=Q(session__isnull=False, folder__isnull=False),
                 name="unique_settingsreader_session_folder",
             ),
-            # ---- StoryArc scope ----
+            # ---- ReadingList scope ----
             UniqueConstraint(
-                fields=("user", "client", "story_arc"),
-                condition=Q(user__isnull=False, story_arc__isnull=False),
-                name="unique_settingsreader_user_story_arc",
+                fields=("user", "client", "reading_list"),
+                condition=Q(user__isnull=False, reading_list__isnull=False),
+                name="unique_settingsreader_user_reading_list",
             ),
             UniqueConstraint(
-                fields=("session", "client", "story_arc"),
-                condition=Q(session__isnull=False, story_arc__isnull=False),
-                name="unique_settingsreader_session_story_arc",
+                fields=("session", "client", "reading_list"),
+                condition=Q(session__isnull=False, reading_list__isnull=False),
+                name="unique_settingsreader_session_reading_list",
             ),
         )

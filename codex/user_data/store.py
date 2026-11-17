@@ -29,7 +29,9 @@ if TYPE_CHECKING:
 # 2: shelves and shelf_items replace favorites; settings_filters.shelves
 # replaces settings_filters.favorite.
 # 3: api_keys, as hashes.
-SCHEMA_VERSION: Final[int] = 3
+# 4: an ``arcs`` identifier names a reading list, ``[name, uuid]``;
+# tagging_defaults.keep_formats.
+SCHEMA_VERSION: Final[int] = 4
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 
 # Matches main DB pragmas. ``foreign_keys=OFF`` is deliberate: the

@@ -18,7 +18,7 @@ from codex.collection import COLLECTION_LABELS, Collection
 from codex.models.base import BaseModel
 from codex.models.collections import Folder, Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 
 __all__ = (
     "SHELF_COLLECTION_CHOICES",
@@ -43,7 +43,7 @@ SHELF_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], Collection]] = 
             Series: Collection.SERIES,
             Volume: Collection.VOLUME,
             Folder: Collection.FOLDER,
-            StoryArc: Collection.ARC,
+            ReadingList: Collection.ARC,
             Comic: Collection.COMIC,
         }
     )

@@ -19,6 +19,7 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
+from uuid import UUID
 
 from loguru import logger
 
@@ -583,6 +584,23 @@ def _restore_bookmarks(
         report.note_written("bookmarks")
 
 
+def _resolve_reading_list(model, parts: list[Any]):
+    """
+    Find a reading list by its UUID, else a global one by name.
+
+    A rebuilt database makes new lists from the tags, with new UUIDs, and a
+    backup from before reading lists named the story arc only.
+    """
+    if len(parts) > 1:
+        try:
+            uuid = UUID(str(parts[1]))
+        except ValueError:
+            uuid = None
+        if uuid and (obj := model.objects.filter(uuid=uuid).first()):
+            return obj
+    return model.objects.filter(name=parts[0], user__isnull=True).order_by("pk").first()
+
+
 def _resolve_browse_collection_pks(
     collection: str, parts: list[Any], model
 ) -> tuple[int, ...]:
@@ -591,7 +609,9 @@ def _resolve_browse_collection_pks(
         case Collection.COMIC | Collection.FOLDER:
             # Path is only unique within a library -- see _watched_path_pks.
             return _watched_path_pks(model, parts[0])
-        case Collection.PUBLISHER | Collection.ARC:
+        case Collection.ARC:
+            obj = _resolve_reading_list(model, parts)
+        case Collection.PUBLISHER:
             obj = model.objects.filter(name=parts[0]).first()
         case Collection.IMPRINT:
             obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()

@@ -217,12 +217,20 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Return the user's shelves the whole selection shares."""
         return list(getattr(obj, "shelves", None) or ())
 
+    # Set by MetadataView.get_object: the reading lists the viewer may see
+    # that hold any selected comic, ``{pk, name, position, count, editable}``.
+    reading_lists = SerializerMethodField(read_only=True)
+
+    def get_reading_lists(self, obj) -> list[dict]:
+        """Return the reading lists the selection is in."""
+        return list(getattr(obj, "reading_lists", None) or ())
+
     publisher_list = CollectionSerializer(many=True, required=False)
     imprint_list = CollectionSerializer(many=True, required=False)
     series_list = CollectionSerializer(many=True, required=False)
     volume_list = CollectionSerializer(many=True, required=False)
     folder_list = CollectionSerializer(many=True, required=False)
-    story_arc_list = CollectionSerializer(many=True, required=False)
+    reading_list_list = CollectionSerializer(many=True, required=False)
     publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]

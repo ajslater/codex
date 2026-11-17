@@ -55,7 +55,7 @@ from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
 from codex.collection import Collection  # not django.contrib.auth Group
-from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
+from codex.models import AdminFlag, Comic, Folder, Library, ReadingList, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
@@ -216,6 +216,8 @@ class RelPrefixMixin:
             return prefix
         if model is StoryArc:
             prefix += "storyarcnumber__"
+        elif model is ReadingList:
+            prefix += "entries__"
         prefix += "comic__"
         return prefix
 
@@ -226,7 +228,7 @@ class RelPrefixMixin:
 
         Folder has its own ``library`` FK (inherited from
         :class:`~codex.models.paths.WatchedPath`), so it skips the
-        ``comic__`` hop. Everything else — Comic, StoryArc, and the
+        ``comic__`` hop. Everything else — Comic, StoryArc, ReadingList and the
         browser collection models — reaches ``library_id`` through the Comic
         FK chain built by :meth:`get_rel_prefix`.
         """
@@ -640,7 +642,25 @@ class GroupACLMixin(
         )
         if not include_missing:
             acl_filter &= self.get_missing_acl_filter(model)
+        if model is ReadingList:
+            acl_filter &= self.reading_list_visibility_filter(user)
         return acl_filter
+
+    @staticmethod
+    def reading_list_visibility_filter(user, prefix: str = "") -> Q:
+        """
+        Return the lists a user may see: global ones and their own.
+
+        ``prefix`` is the path from the queried model to the list, such as
+        ``reading_list_entries__reading_list__`` from Comic. Every read of
+        the ``arcs`` collection goes through this, so another user's
+        personal list is invisible to every endpoint.
+        """
+        owner = f"{prefix}user"
+        visible = Q(**{f"{owner}__isnull": True})
+        if user is not None and user.is_authenticated:
+            visible |= Q(**{owner: user})
+        return visible
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

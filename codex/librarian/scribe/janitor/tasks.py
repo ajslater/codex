@@ -36,6 +36,10 @@ class JanitorCleanFKsTask(JanitorTask):
     """Clean unused foreign keys."""
 
 
+class JanitorSyncReadingListsTask(JanitorTask):
+    """Sync the reading lists from story-arc tags."""
+
+
 class JanitorCleanCoversTask(JanitorTask):
     """Clean unused custom covers."""
 

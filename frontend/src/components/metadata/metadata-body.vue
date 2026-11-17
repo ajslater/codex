@@ -56,6 +56,7 @@
     <MetadataTagsTable :tag-map="tags" class="mdSection">
       <template #before>
         <MetadataShelvesRow :book="book" />
+        <MetadataReadingListsRow />
       </template>
     </MetadataTagsTable>
     <section class="mdSection">
@@ -79,6 +80,7 @@ import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
+import MetadataReadingListsRow from "@/components/metadata/metadata-reading-lists-row.vue";
 import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
@@ -90,6 +92,7 @@ export default {
   name: "MetadataBody",
   components: {
     MetadataRatings,
+    MetadataReadingListsRow,
     MetadataShelvesRow,
     MetadataTagsTable,
     MetadataText,

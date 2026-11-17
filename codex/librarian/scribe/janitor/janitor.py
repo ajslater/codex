@@ -49,8 +49,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
+    JanitorSyncReadingListsTask,
     JanitorVacuumTask,
 )
+from codex.librarian.scribe.readinglists.status import ReadingListSyncStatus
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
     SearchIndexOptimizeStatus,
@@ -74,6 +77,7 @@ _JANITOR_STATII: Final = (
     JanitorDBFTSIntegrityStatus,
     JanitorReapPendingDeletesStatus,
     JanitorCleanupTagsStatus,
+    ReadingListSyncStatus,
     JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupBookmarksStatus,
@@ -109,6 +113,8 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     # sync drops FTS rows whose comic no longer exists.
     JanitorReapPendingDeletesTask(),
     JanitorCleanFKsTask(),
+    # After the FK cleanup, so an arc whose last comic was reaped is gone.
+    JanitorSyncReadingListsTask(),
     JanitorCleanCoversTask(),
     JanitorCleanupSessionsTask(),
     JanitorCleanupBookmarksTask(),
@@ -129,6 +135,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorVacuumTask: "vacuum_db",
         JanitorReapPendingDeletesTask: "reap_pending_deletes",
         JanitorCleanFKsTask: "cleanup_fks",
+        JanitorSyncReadingListsTask: "sync_reading_lists",
         JanitorCleanCoversTask: "cleanup_custom_covers",
         JanitorCleanupSessionsTask: "cleanup_sessions",
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
@@ -161,6 +168,17 @@ class Janitor(JanitorKoreaderHash):
         """Accept the OnlineTagThread back-reference for liveness checks."""
         super().__init__(logger_, librarian_queue, db_write_lock, event)
         self.online_tag_thread = online_tag_thread
+
+    def sync_reading_lists(self) -> None:
+        """Sync the reading lists from story-arc tags."""
+        status = ReadingListSyncStatus()
+        self.status_controller.start(status)
+        try:
+            counts = sync_tag_lists()
+            level = "INFO" if counts.changed else "DEBUG"
+            self.log.log(level, f"Reading lists from tags: {counts}.")
+        finally:
+            self.status_controller.finish(status)
 
     def queue_nightly_tasks(self) -> None:
         """Queue all the janitor tasks."""

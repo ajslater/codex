@@ -94,7 +94,7 @@ class StatsCollectionSerializer(Serializer):
     volume_count = IntegerField(required=False, read_only=True)
     issue_count = IntegerField(required=False, read_only=True)
     folder_count = IntegerField(required=False, read_only=True)
-    story_arc_count = IntegerField(required=False, read_only=True)
+    reading_list_count = IntegerField(required=False, read_only=True)
 
 
 class StatsComicMetadataSerializer(Serializer):

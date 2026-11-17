@@ -12,7 +12,7 @@ from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Model
 from loguru import logger
 
-_READER_SCOPE_FIELDS = ("comic_id", "series_id", "folder_id", "story_arc_id")
+_READER_SCOPE_FIELDS = ("comic_id", "series_id", "folder_id", "reading_list_id")
 
 
 def _adopt_row(row: Model, fields: dict, *, user_has_slot: bool) -> None:

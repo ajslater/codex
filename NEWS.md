@@ -45,6 +45,8 @@ border-radius: 128px;
   in API Access.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
+- Story Arcs are now Reading Lists: one list per story arc name, in arc order.
+  Links and OPDS bookmarks into a story arc change once.
 - Libraries have their own icon, and actions and statuses that shared an icon
   now look distinct.
 - Online tagging finds Metron issues by cover first.
@@ -68,6 +70,9 @@ border-radius: 128px;
 - Some background task log messages, such as comicbox's, reach the log file and
   honor the log level.
 - Saving story arcs in the tag editor keeps their numbers and names.
+- The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
+  row that opens each list.
+- A comic tagged twice in one story arc no longer counts its pages twice.
 - Issue `-1` reads and searches as the number -1.
 
 ### 🧑‍💻 Developer

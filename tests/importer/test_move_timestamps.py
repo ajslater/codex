@@ -22,11 +22,14 @@ from loguru import logger
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.importer.importer import ComicImporter
 from codex.librarian.scribe.importer.tasks import ImportTask
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.models import (
     Comic,
     Imprint,
     Library,
     Publisher,
+    ReadingList,
+    ReadingListEntry,
     Series,
     StoryArc,
     StoryArcNumber,
@@ -88,7 +91,7 @@ class TestImporterMoveRestampsSource(BaseTestImporter):
 
 
 class TestImporterStoryArcRestampsSource(BaseTestImporter):
-    """Removing a comic from a story arc (m2m) re-stamps the source arc."""
+    """Removing a comic from a story arc (m2m) updates its reading list."""
 
     @override
     def setUp(self) -> None:
@@ -117,8 +120,19 @@ class TestImporterStoryArcRestampsSource(BaseTestImporter):
         comic.story_arc_numbers.add(san)
         self.removed_arc = arc
 
-    def test_storyarc_removal_restamps_source(self) -> None:
-        old_mtime = StoryArc.objects.get(pk=self.removed_arc.pk).updated_at
+    def test_storyarc_removal_updates_its_reading_list(self) -> None:
+        """
+        The reading list from an arc follows the comic out of it.
+
+        The browser reads lists, not arcs, so it is the list that has to
+        change: the arc lost its only comic, so its list goes, and the
+        file's own arcs get lists holding the comic.
+        """
+        sync_tag_lists()
+        removed = ReadingList.objects.get(name="Removed Arc")
+        assert ReadingListEntry.objects.filter(
+            reading_list=removed, comic__path=PATH
+        ).exists()
 
         task = ImportTask(
             library_id=self.task.library_id,
@@ -129,12 +143,15 @@ class TestImporterStoryArcRestampsSource(BaseTestImporter):
         importer = ComicImporter(task, logger, LIBRARIAN_QUEUE, Lock(), Event())
         run_full_import(importer)
 
-        # The comic moved to the file's arcs; "Removed Arc" lost it...
         comic = Comic.objects.get(path=PATH)
         arc_names = set(
             comic.story_arc_numbers.values_list("story_arc__name", flat=True)
         )
         assert "Removed Arc" not in arc_names, arc_names
-        # ...and the source arc was re-stamped (m2m source re-stamp).
-        new_mtime = StoryArc.objects.get(pk=self.removed_arc.pk).updated_at
-        assert new_mtime > old_mtime, (new_mtime, old_mtime)
+        assert not ReadingList.objects.filter(pk=removed.pk).exists()
+        list_names = set(
+            ReadingList.objects.filter(entries__comic=comic).values_list(
+                "name", flat=True
+            )
+        )
+        assert list_names == arc_names, (list_names, arc_names)

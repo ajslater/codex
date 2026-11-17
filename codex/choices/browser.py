@@ -53,7 +53,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "series_groups": "Series Groups",
         "shelved": "Shelved",
         "stories": "Stories",
-        "story_arc_number": "Story Arc Number",
+        "story_arc_number": "Reading Order",
         "story_arcs": "Story Arcs",
         "tags": "Tags",
         "tagger": "Tagger",
@@ -120,7 +120,7 @@ BROWSER_TOP_COLLECTION_CHOICES = MappingProxyType(
         **_COLLECTION_NAMES,
         "comics": "Issues",
         "folders": "Folders",
-        "arcs": "Story Arcs",
+        "arcs": "Reading Lists",
     },
 )
 BROWSER_ROUTE_COLLECTION_CHOICES = MappingProxyType(
@@ -247,10 +247,10 @@ def coherent_top_collection(
 
 
 # Order-by choices an admin may pick as the site default. ``""`` is the
-# automatic per-collection sort (Name; Filename in Folders; Story Arc Number
-# in Story Arcs) the ``SettingsBrowser.order_by`` default already means. The
+# automatic per-collection sort (Name; Filename in Folders; Reading Order in
+# Reading Lists) the ``SettingsBrowser.order_by`` default already means. The
 # keys that cannot be a standing sort are left out: ``search_score`` only
-# means anything during a search and ``story_arc_number`` only inside an arc.
+# means anything during a search and ``story_arc_number`` only inside a list.
 SETTINGS_DEFAULTS_ORDER_BY_CHOICES = MappingProxyType(
     {
         "": "Automatic",

@@ -19,7 +19,7 @@ from codex.librarian.telemeter.per_user_stats import (
     READER_FIELDS,
     get_per_user_stats,
 )
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 from codex.models.settings import (
     ClientChoices,
     SettingsBrowser,
@@ -32,7 +32,7 @@ _API: Final = ClientChoices.API
 _TWO_READERS: Final = 2
 # A global reader row is one with every scope FK null.
 _GLOBAL_SCOPE: Final[MappingProxyType[str, None]] = MappingProxyType(
-    {"comic": None, "series": None, "folder": None, "story_arc": None}
+    {"comic": None, "series": None, "folder": None, "reading_list": None}
 )
 
 
@@ -137,9 +137,9 @@ class PerUserStatsTestCase(TestCase):
             user=globally, client=_API, fit_to="H", **_GLOBAL_SCOPE
         )
         scoped_only = _user("five")
-        arc = StoryArc.objects.create(name="Arc")
+        arc = ReadingList.objects.create(name="Arc")
         SettingsReader.objects.create(
-            user=scoped_only, client=_API, story_arc=arc, fit_to="S"
+            user=scoped_only, client=_API, reading_list=arc, fit_to="S"
         )
 
         stats = get_per_user_stats()
@@ -180,9 +180,9 @@ class PerUserStatsTestCase(TestCase):
             user=user, client=_API, reading_direction="ltr", **_GLOBAL_SCOPE
         )
         for index in range(3):
-            arc = StoryArc.objects.create(name=f"Arc {index}")
+            arc = ReadingList.objects.create(name=f"Arc {index}")
             SettingsReader.objects.create(
-                user=user, client=_API, story_arc=arc, reading_direction="rtl"
+                user=user, client=_API, reading_list=arc, reading_direction="rtl"
             )
 
         stats = get_per_user_stats()

@@ -146,9 +146,10 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         ordering = ()
 
         if self._selected_arc_collection == STORY_ARC_COLLECTION:
-            arc_index = F("story_arc_numbers__number")
-            prefetch_related = (*prefetch_related, rel)
-            ordering = ("arc_index", "date", "pk")
+            # The nav filter joins the list's entries, so this is the
+            # comic's position in the selected list, not in any other.
+            arc_index = F("reading_list_entries__position")
+            ordering = ("arc_index", "pk")
         elif self._selected_arc_collection == READER_REPRINT_COLLECTION:
             # ComicInfo AlternateNumber, split into its sortable parts by
             # ``Reprint.presave`` so "#2" reads before "#10". The nav
@@ -237,7 +238,9 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         # contributes to the ORDER BY but isn't selected, so the row
         # data transfer is just N ints rather than N fully-annotated
         # Comic instances.
-        pks = list(comics.values_list("pk", flat=True))
+        # A comic may sit in a reading list more than once; it reads at its
+        # first position, as it browses.
+        pks = list(dict.fromkeys(comics.values_list("pk", flat=True)))
         try:
             current_idx = pks.index(pk)
         except ValueError:

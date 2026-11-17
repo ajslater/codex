@@ -5,12 +5,13 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType, SimpleNamespace
 from typing import Any, override
 
-from django.db.models import CharField, F, Value
+from django.db.models import CharField, F, Min, Value
 
 from codex.models.base import NamedModel
 from codex.models.collections import Volume
 from codex.models.identifier import Identifier
-from codex.models.named import Credit, StoryArcNumber
+from codex.models.named import Credit
+from codex.models.readinglist import ReadingListEntry
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
@@ -152,34 +153,33 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
-    def _publication_belongs_to_story_arcs(self, obj) -> list:
-        story_arcs = []
-        rel = GroupACLMixin.get_rel_prefix(StoryArcNumber)
-        comic_filter = {rel + "in": [obj.pk]}
-        # ``select_related("story_arc")`` materializes the FK in the
-        # same query — the prior ``.only("story_arc", "number")`` form
-        # deferred the FK and triggered a per-row ``StoryArc.objects.get``
-        # (textbook N+1, sub-plan 05 #2).
-        story_arc_numbers = (
-            StoryArcNumber.objects.filter(**comic_filter)
-            .select_related("story_arc")
-            .only("number", "story_arc__name")
-            .order_by("story_arc__name")
+    def _publication_belongs_to_reading_lists(self, obj) -> list:
+        """
+        Link each reading list the comic is in, at its first position.
+
+        Only lists this user may see: another user's personal list is not
+        named here, any more than it browses.
+        """
+        entries = (
+            ReadingListEntry.objects.filter(
+                GroupACLMixin.reading_list_visibility_filter(
+                    self.request.user, "reading_list__"
+                ),
+                comic_id=obj.pk,
+            )
+            .values_list("reading_list_id", "reading_list__name")
+            .annotate(first=Min("position"))
+            .order_by("reading_list__sort_name", "reading_list_id")
         )
         ts = self._obj_ts(obj)
-        for story_arc_number in story_arc_numbers:
-            story_arc = story_arc_number.story_arc
-            name = story_arc.name or BLANK_TITLE
-            pks = [story_arc.pk]
-            number = story_arc_number.number
-            kwargs = {"collection": "arcs", "pks": pks, "page": 1}
+        links = []
+        for list_pk, list_name, position in entries:
+            kwargs = {"collection": "arcs", "pks": [list_pk], "page": 1}
             query_params = {"ts": ts, "topCollection": "arcs"}
-
-            story_arc = self._publication_belongs_to_link(
-                kwargs, query_params, name, number
+            links += self._publication_belongs_to_link(
+                kwargs, query_params, list_name or BLANK_TITLE, position + 1
             )
-            story_arcs += story_arc
-        return story_arcs
+        return links
 
     def _publication_belongs_to(self, obj) -> dict:
         belongs_to = {}
@@ -189,8 +189,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             belongs_to["volume"] = volume
         if folder := self._publication_belongs_to_folder(obj):
             belongs_to["collection"] = folder
-        if story_arcs := self._publication_belongs_to_story_arcs(obj):
-            belongs_to["story_arc"] = story_arcs
+        if reading_lists := self._publication_belongs_to_reading_lists(obj):
+            belongs_to["story_arc"] = reading_lists
 
         return belongs_to
 

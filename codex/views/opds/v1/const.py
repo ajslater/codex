@@ -199,7 +199,7 @@ class RootFacetGroups:
             Facet("publishers", "Publishers View"),
             Facet("series", "Series View"),
             Facet("folders", "Folder View"),
-            Facet("arcs", "Story Arc View"),
+            Facet("arcs", "Reading List View"),
         ),
         display_name="Views",
     )

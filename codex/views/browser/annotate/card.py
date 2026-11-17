@@ -21,7 +21,6 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
-from codex.models.named import StoryArc
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
 _COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
@@ -31,7 +30,8 @@ _COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] 
             Imprint: ("sort_name",),
             Series: ("sort_name",),
             Volume: ("name", "number_to"),
-            StoryArc: ("sort_name",),
+            # ReadingList is absent on purpose: two curated orders of one
+            # event share a name and must stay two cards.
         }
     )
 )

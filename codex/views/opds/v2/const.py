@@ -69,7 +69,7 @@ TOP_GROUPS = (
             Link(Rel.SUB, "Series", "root", {"topCollection": "series"}),
             Link(Rel.SUB, "Issues", "root", {"topCollection": "comics"}),
             Link(Rel.SUB, "Folders", "folders", {"topCollection": "folders"}),
-            Link(Rel.SUB, "Story Arcs", "arcs", {"topCollection": "arcs"}),
+            Link(Rel.SUB, "Reading Lists", "arcs", {"topCollection": "arcs"}),
         ),
     ),
 )

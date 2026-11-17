@@ -20,10 +20,12 @@ from codex.models.functions import JsonGroupArray
 
 # Model class names whose ``*_list`` attribute name on the metadata
 # response object doesn't match ``__name__.lower() + "_list"``.
-# ``StoryArc.__name__.lower() == "storyarc"`` but the serializer reads
-# ``story_arc_list``; without this map the populated attribute would
+# ``ReadingList.__name__.lower() == "readinglist"`` but the serializer reads
+# ``reading_list_list``; without this map the populated attribute would
 # silently fall on the floor.
-_COLLECTION_LIST_FIELD_OVERRIDES = MappingProxyType({"StoryArc": "story_arc_list"})
+_COLLECTION_LIST_FIELD_OVERRIDES = MappingProxyType(
+    {"ReadingList": "reading_list_list"}
+)
 
 
 def collection_list_field_name(model: type[BrowserCollectionModel]) -> str:

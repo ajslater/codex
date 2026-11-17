@@ -14,7 +14,7 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.opds.const import BLANK_TITLE, Rel
 from codex.views.opds.v2.const import (
@@ -41,7 +41,7 @@ _LINK_SPEC_GROUP: MappingProxyType[type, Collection] = MappingProxyType(
         Volume: Collection.VOLUME,
         Comic: Collection.COMIC,
         Folder: Collection.FOLDER,
-        StoryArc: Collection.ARC,
+        ReadingList: Collection.ARC,
     }
 )
 
@@ -73,7 +73,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         link_spec: Link | BrowserCollectionModel, kwargs: Mapping
     ) -> Mapping | None:
         """Create link query params."""
-        if not isinstance(link_spec, Link | StoryArc):
+        if not isinstance(link_spec, Link | ReadingList):
             return {}
         qps = link_spec.query_params if isinstance(link_spec, Link) else {}
 

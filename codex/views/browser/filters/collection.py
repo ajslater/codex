@@ -9,6 +9,7 @@ from codex.views.const import (
     COLLECTION_RELATION,
     FILTER_ONLY_COLLECTION_RELATION,
     FOLDER_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 
 _COLLECTION_REL_TARGETS: Final = frozenset(
@@ -49,10 +50,16 @@ class CollectionFilterView(BrowserParamsView):
 
         if pks and 0 not in pks:
             rel = self._get_rel_for_pks(collection, page_mtime=page_mtime)
-            collection_filter_dict = {rel: pks}
-        elif collection == FOLDER_COLLECTION and self.TARGET != "choices":
+            collection_filter = Q(**{rel: pks})
+            if collection == STORY_ARC_COLLECTION:
+                # One Q, so the owner test rides the same join as the pks.
+                target = rel.removesuffix("__in")
+                prefix = "" if target == "pk" else f"{target}__"
+                collection_filter &= self.reading_list_visibility_filter(
+                    self.request.user, prefix
+                )
+            return collection_filter
+        if collection == FOLDER_COLLECTION and self.TARGET != "choices":
             # Top folder search
-            collection_filter_dict = {"parent_folder": None}
-        else:
-            collection_filter_dict = {}
-        return Q(**collection_filter_dict)
+            return Q(parent_folder=None)
+        return Q()

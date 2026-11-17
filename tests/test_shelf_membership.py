@@ -8,7 +8,8 @@ from django.db.models import JSONField, Value
 from django.test import SimpleTestCase
 from django.utils import timezone
 
-from codex.models import Comic, Folder, Library, Series, StoryArc, Volume
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
+from codex.models import Comic, Folder, Library, ReadingList, Series, StoryArc, Volume
 from codex.models.named import StoryArcNumber
 from codex.models.shelf import SHELF_MODEL_COLLECTIONS
 from codex.serializers.browser.page import BrowserPageSerializer
@@ -125,14 +126,16 @@ class ShelfMembershipTestCase(ShelfTestCase):
             self.c2.pk: [],
         }
 
-    def test_comic_inherits_from_a_story_arc(self):
-        """A shelved arc reaches every comic in it."""
+    def test_comic_inherits_from_a_reading_list(self):
+        """A shelved reading list reaches every comic in it."""
         arc = StoryArc.objects.create(name="Arc")
         self.c1.story_arc_numbers.add(
             StoryArcNumber.objects.create(story_arc=arc, number=1)
         )
+        sync_tag_lists()
+        reading_list = ReadingList.objects.get(name="Arc")
         shelf = self._shelf()
-        self._put(shelf, "arcs", arc.pk)
+        self._put(shelf, "arcs", reading_list.pk)
 
         assert self._book_shelves(self.c1, self.c2) == {
             self.c1.pk: [shelf.pk],

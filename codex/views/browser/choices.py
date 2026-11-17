@@ -14,6 +14,7 @@ from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.models import (
     Comic,
     CreditPerson,
+    ReadingList,
     StoryArc,
 )
 from codex.models.age_rating import AgeRating, AgeRatingMetron
@@ -215,8 +216,8 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         )
         serializer = serializer_cls()
         for field_name in serializer.get_fields():
-            if field_name == "story_arcs" and qs.model is StoryArc:
-                # don't allow filtering on story arc in story arc view.
+            if field_name == "story_arcs" and qs.model is ReadingList:
+                # don't offer the story arc filter over the lists themselves.
                 continue
             if bool(filters.get(field_name)):
                 # Active filter on this dimension — the user is already

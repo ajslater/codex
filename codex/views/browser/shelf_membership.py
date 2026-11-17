@@ -3,7 +3,7 @@ Which of the requesting user's shelves a browser row or metadata selection is on
 
 Membership is *effective*: a comic is on a shelf when it sits there itself or
 through any parent -- its publisher, imprint, series or volume, any ancestor
-folder, or any story arc it is in. That is the rule the shelves browser filter
+folder, or any reading list it is in. That is the rule the shelves browser filter
 already applies (``BrowserFilterView.get_shelf_filter``), so a row that lists
 a shelf is a row the shelf filter returns. A collection row, or a metadata
 selection, is on a shelf when every live comic the user can see under it is:
@@ -24,7 +24,7 @@ from cachalot.api import cachalot_disabled
 from django.db.models import Count, Q, QuerySet
 
 from codex.collection import Collection
-from codex.models import Comic
+from codex.models import Comic, ReadingListEntry
 from codex.models.shelf import ShelfItem
 from codex.views.browser.intersections import (
     LIVE_COMIC,
@@ -57,10 +57,7 @@ _THROUGH_BY_COLLECTION: Final[MappingProxyType[str, tuple[Any, str]]] = (
     MappingProxyType(
         {
             Collection.FOLDER.value: (Comic.folders.through, "folder_id__in"),
-            Collection.ARC.value: (
-                Comic.story_arc_numbers.through,
-                "storyarcnumber__story_arc_id__in",
-            ),
+            Collection.ARC.value: (ReadingListEntry, "reading_list_id__in"),
         }
     )
 )

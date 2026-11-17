@@ -18,6 +18,7 @@ from codex.librarian.scribe.importer.statii.query import QUERY_STATII
 from codex.librarian.scribe.importer.statii.read import READ_STATII
 from codex.librarian.scribe.importer.statii.search import IMPORTER_SEARCH_INDEX_STATII
 from codex.librarian.scribe.janitor.status import JANITOR_STATII
+from codex.librarian.scribe.readinglists.status import READING_LIST_STATII
 from codex.librarian.scribe.search.status import SEARCH_INDEX_STATII
 from codex.librarian.scribe.status import SCRIBE_STATII
 
@@ -38,6 +39,7 @@ _STATII = (
     IMPORTER_SEARCH_INDEX_STATII,
     FAILED_IMPORTS_STATII,
     ONLINETAG_STATII,
+    READING_LIST_STATII,
 )
 
 

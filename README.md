@@ -23,18 +23,19 @@ border-radius: 128px;
 - Reads **CBZ, CBR, CB7, CBT and PDF** comics.
 - **Fastest bulk importer** of any comic server.
 - **Watches the filesystem** and auto-imports new or changed comics.
-- **Custom covers** for Folders, Publishers, Imprints, Series, and Story Arcs.
+- **Custom covers** for Folders, Publishers, Imprints, Series, and Reading
+  Lists.
 
 ### 🔎 Browse & Search
 
 - Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
-  hierarchy**, or by tagged **Story Arc**.
+  hierarchy**, or **Reading Lists** made from story arc tags.
 - **Full-text search** across comic metadata and bookmarks.
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.
 - **Save and load** named views and searches.
 - **Shelves** you name yourself, such as "Want to Read", holding any Publisher,
-  Imprint, Series, Volume, Folder, Story Arc, or Issue — filterable per user.
+  Imprint, Series, Volume, Folder, Reading List, or Issue — filterable per user.
 
 ### 🏷️ Edit & Tag
 

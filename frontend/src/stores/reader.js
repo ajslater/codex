@@ -771,8 +771,8 @@ export const useReaderStore = defineStore("reader", {
         this.intermediateInfo?.scopePk === scopePk
       );
     },
-    _getStoryArcPk() {
-      // When browsing by story arc, pass the first arc id for scoped settings.
+    _getReadingListPk() {
+      // When reading a reading list, pass its id for scoped settings.
       return this.arc?.collection === "arcs" && this.arc?.ids?.length
         ? this.arc.ids[0]
         : null;
@@ -782,12 +782,12 @@ export const useReaderStore = defineStore("reader", {
         return;
       }
       const arcCollection = this.arc?.collection || "series";
-      const storyArcPk = this._getStoryArcPk();
+      const readingListPk = this._getReadingListPk();
       try {
         const response = await READER_API.getSettings(
           pk,
           ["global", arcCollection, "comics"],
-          storyArcPk,
+          readingListPk,
         );
         // A later load for the book now open supersedes this one.
         if (!this._isCurrentBook(pk)) return;

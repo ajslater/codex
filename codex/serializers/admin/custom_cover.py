@@ -20,7 +20,7 @@ _COLLECTION_LABELS = {
     "imprints": "Imprint",
     "series": "Series",
     "volumes": "Volume",
-    "arcs": "Story Arc",
+    "arcs": "Reading List",
     "folders": "Folder",
 }
 

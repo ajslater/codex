@@ -19,7 +19,7 @@ from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import (
     Comic,
     Folder,
-    StoryArc,
+    ReadingList,
 )
 from codex.models.collections import Volume
 from codex.models.functions import ComicFTSRank, JsonGroupArray
@@ -168,7 +168,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""
         if self.order_key != "sort_name" and not (
-            qs.model is StoryArc and self.order_key == "story_arc_number"
+            qs.model is ReadingList and self.order_key == "story_arc_number"
         ):
             return qs
         collection = self.kwargs.get("collection")
@@ -218,23 +218,32 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             filename = self.order_agg_func(filename_func)
         return qs.alias(filename=filename)
 
+    def _alias_reading_list_position(self, qs, list_pks):
+        """Order a list's comics by their first position in it."""
+        rel = self.get_rel_prefix(qs.model) + "reading_list_entries"
+        condition = Q(**{f"{rel}__reading_list__in": list_pks})
+        qs = qs.alias(
+            selected_reading_list_entry=FilteredRelation(rel, condition=condition),
+        )
+        return qs, self.order_agg_func("selected_reading_list_entry__position")
+
     def _alias_story_arc_number(self, qs):
+        """
+        Alias the ``story_arc_number`` order: the reading order.
+
+        Inside a reading list it is the list's own order. Under the story
+        arc *filter* it is still the arc number from the tags.
+        """
         if self.order_key != "story_arc_number":
             return qs
 
-        # Get story_arc__pk
         collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if collection == STORY_ARC_COLLECTION and pks:
-            story_arc_pks = pks
-        else:
-            story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())
-
-        # If we have one annotate it.
-        if story_arc_pks:
+        if collection == STORY_ARC_COLLECTION and pks and qs.model is not ReadingList:
+            qs, story_arc_number = self._alias_reading_list_position(qs, pks)
+        elif story_arc_pks := self.params.get("filters", {}).get("story_arcs", ()):
             rel = self.get_rel_prefix(qs.model) + "story_arc_numbers"
-            condition_rel = "pk" if qs.model is StoryArc else rel + "__story_arc"
-            condition = Q(**{f"{condition_rel}__in": story_arc_pks})
+            condition = Q(**{f"{rel}__story_arc__in": story_arc_pks})
             qs = qs.alias(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
             )

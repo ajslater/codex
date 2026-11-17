@@ -11,5 +11,6 @@ from codex.models.identifier import *
 from codex.models.library import *
 from codex.models.named import *
 from codex.models.paths import *
+from codex.models.readinglist import *
 from codex.models.settings import *
 from codex.models.shelf import *
