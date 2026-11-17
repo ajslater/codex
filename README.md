@@ -30,6 +30,8 @@ border-radius: 128px;
 
 - Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
   hierarchy**, or **Reading Lists** made from story arc tags.
+- **Import reading lists** from ComicRack CBL files, URLs, the DieselTech
+  catalog, Metron and Comic Vine, combine lists of one event, and make your own.
 - **Full-text search** across comic metadata and bookmarks.
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.

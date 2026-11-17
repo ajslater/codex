@@ -31,6 +31,16 @@ border-radius: 128px;
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
 - Tag writes can keep the other tag formats a comic has, set in Admin → Tagging
   and per edit.
+- Reading lists: Admin → Reading Lists imports lists from CBL and Comicbox
+  files, URLs, the DieselTech catalog, Metron and Comic Vine, combines lists of
+  one event, and reviews how their issues match your comics.
+- Signed-in users make their own reading lists in the browser drawer and add
+  comics to them from any shelf menu.
+- Filter any view by reading list.
+- A reading list downloads as a zip numbered in list order.
+- A reading list's OPDS feed starts with the next issue to read.
+- Remote reading list sources refresh weekly.
+- Admins can write a reading list into its comics' files as a story arc.
 
 ### ♻️ Changed
 
@@ -74,6 +84,7 @@ border-radius: 128px;
   row that opens each list.
 - A comic tagged twice in one story arc no longer counts its pages twice.
 - Issue `-1` reads and searches as the number -1.
+- The Jobs tab's Abort buttons work.
 
 ### 🧑‍💻 Developer
 
