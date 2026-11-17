@@ -13,6 +13,7 @@ from rest_framework.serializers import ListField
 
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
+    BROWSER_READING_LIST_KIND_CHOICES,
     DUMMY_NULL_NAME,
 )
 from codex.serializers.fields.base import CodexChoiceField
@@ -26,6 +27,12 @@ class BookmarkFilterField(CodexChoiceField):
     """Bookmark Choice Field."""
 
     class_choices = tuple(BROWSER_BOOKMARK_FILTER_CHOICES.keys())
+
+
+class ReadingListKindFilterField(CodexChoiceField):
+    """Reading list kind choice field."""
+
+    class_choices = tuple(BROWSER_READING_LIST_KIND_CHOICES.keys())
 
 
 class PyCountryField(CharField, ABC):

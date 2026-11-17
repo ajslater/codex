@@ -51,6 +51,10 @@ _SEEDED_BROWSER_KEYS = (
 )
 
 
+# Filters that hold one value, not a list of pks.
+_SCALAR_FILTER_KEYS = frozenset({"bookmark", "reading_list_kind"})
+
+
 class SettingsBaseView(AuthFilterGenericAPIView, ABC):
     """
     Core settings model access with full read/write support.
@@ -510,7 +514,7 @@ class SettingsBaseView(AuthFilterGenericAPIView, ABC):
                 continue
             # Scalar-typed filters store the raw value; everything else is
             # the list-of-pks shape and gets coerced into a list.
-            if key == "bookmark":
+            if key in _SCALAR_FILTER_KEYS:
                 cleaned = value
             elif value:
                 cleaned = list(value)

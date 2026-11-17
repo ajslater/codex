@@ -18,7 +18,10 @@ from codex.serializers.fields import (
     VuetifyDecimalField,
     VuetifyIntegerField,
 )
-from codex.serializers.fields.browser import BookmarkFilterField
+from codex.serializers.fields.browser import (
+    BookmarkFilterField,
+    ReadingListKindFilterField,
+)
 from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyReadingDirectionChoiceField,
@@ -64,6 +67,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
+    reading_list_kind = ReadingListKindFilterField(required=False, read_only=True)
     # Dynamic filters
     age_rating_metron = VuetifyReadOnlyListField()
     age_rating_tagged = VuetifyReadOnlyListField()

@@ -23,6 +23,7 @@ from django.db.models import (
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
     BROWSER_ORDER_BY_CHOICES,
+    BROWSER_READING_LIST_KIND_CHOICES,
     BROWSER_ROUTE_COLLECTION_CHOICES,
     BROWSER_TABLE_COVER_SIZE_CHOICES,
     BROWSER_TOP_COLLECTION_CHOICES,
@@ -218,6 +219,14 @@ class SettingsBrowserFilters(BaseModel):
         blank=True,
     )
 
+    # The reading lists grid: every list, curated ones, or ones from tags.
+    reading_list_kind = CharField(
+        max_length=16,
+        choices=tuple(BROWSER_READING_LIST_KIND_CHOICES.items()),
+        default="",
+        blank=True,
+    )
+
     # Shelves filter — pks of the owner's shelves. Kept apart from the
     # dynamic tag filters because it is per-user state, not comic metadata.
     shelves = JSONField(default=list)
@@ -254,6 +263,7 @@ class SettingsBrowserFilters(BaseModel):
     FILTER_KEYS = frozenset(
         {
             "bookmark",
+            "reading_list_kind",
             "shelves",
             "age_rating_metron",
             "age_rating_tagged",

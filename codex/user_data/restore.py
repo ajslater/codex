@@ -877,10 +877,13 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     row_keys = row.keys()
     defaults: dict[str, Any] = {
         "bookmark": row["bookmark"] or "",
+        "reading_list_kind": (
+            row["reading_list_kind"] or "" if "reading_list_kind" in row_keys else ""
+        ),
         "shelves": resolve_filter_shelves(row, row_keys, browser),
     }
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "shelves"}:
+        if column in {"bookmark", "reading_list_kind", "shelves"}:
             continue
         read_column = _resolve_filter_column(row_keys, column)
         if read_column is None:

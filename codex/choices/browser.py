@@ -15,6 +15,14 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
         "UNREAD": "Unread",
     },
 )
+# The reading lists grid narrowed by where lists come from.
+BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
+    {
+        "": "All",
+        "curated": "Curated",
+        "tags": "From Tags",
+    },
+)
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
         "created_at": "Added Time",
@@ -269,6 +277,7 @@ _DEFAULT_SHOW = MappingProxyType(
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
+        "reading_list_kind": "",
         # Pks of the user's shelves; a row on any selected shelf matches.
         "shelves": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),

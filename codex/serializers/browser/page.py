@@ -125,6 +125,12 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     cover_pk = SerializerMethodField(read_only=True)
     cover_custom_pk = SerializerMethodField(read_only=True)
     cover_mtime = SerializerMethodField(read_only=True)
+    # A reading list's sources, ``Tags + Metron · CBRO``; blank otherwise.
+    list_sources = SerializerMethodField(read_only=True)
+
+    def get_list_sources(self, obj) -> str:
+        """Return the sources label a reading list card shows."""
+        return getattr(obj, "list_sources", "") or ""
 
     def get_cover_pk(self, obj) -> int:
         """Return pre-computed cover pk, falling back to the card's own pk."""

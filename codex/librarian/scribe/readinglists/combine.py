@@ -84,9 +84,14 @@ def overlay_keys(references: Sequence[Mapping[str, Any]]) -> list[OverlayKey | N
 
 @dataclass(slots=True)
 class Overlay:
-    """What people did to a list by hand, keyed by entry identity."""
+    """
+    What people did to a list by hand, keyed by entry identity.
 
-    picked: dict[OverlayKey, int] = field(default_factory=dict)
+    ``picked`` holds the comic a person chose, or None where they said the
+    library does not have it.
+    """
+
+    picked: dict[OverlayKey, int | None] = field(default_factory=dict)
     ignored: set[OverlayKey] = field(default_factory=set)
     # A hand-added entry and the key of the entry it followed.
     manual: list[tuple[OverlayKey | None, ReadingListEntry]] = field(
@@ -104,9 +109,8 @@ class Overlay:
                 overlay.manual.append((previous, entry))
                 continue
             if key is not None:
-                comic_pk = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
-                if entry.match_tier == ReadingListMatchTier.MANUAL.value and comic_pk:
-                    overlay.picked[key] = comic_pk
+                if entry.match_tier == ReadingListMatchTier.MANUAL.value:
+                    overlay.picked[key] = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
                 if entry.ignored:
                     overlay.ignored.add(key)
                 previous = key
@@ -183,22 +187,26 @@ def _row(
     return row
 
 
-def _flagged(result, positions: Sequence[int], *, locked: bool) -> set[int]:
+def _flagged(
+    result, positions: Sequence[int], *, locked: bool
+) -> tuple[set[int], set[int]]:
     """
     Return the combined positions a person should look at.
 
-    Joins made on a name alone, ids that disagree, and in a locked list
-    whatever the current order did not hold.
+    First the joins that may be wrong: on a name alone, or with ids that
+    disagree. Then, in a locked list, whatever the current order did not
+    hold, which the combine placed beside its neighbours.
     """
-    flagged = set(result.name_joins)
-    flagged |= {conflict.entry for conflict in result.id_conflicts}
+    doubtful = set(result.name_joins)
+    doubtful |= {conflict.entry for conflict in result.id_conflicts}
+    placed: set[int] = set()
     if locked:
-        flagged |= {
+        placed = {
             index
             for index, origins in enumerate(result.provenance)
             if all(positions[origin.input_index] != 0 for origin in origins)
         }
-    return flagged
+    return doubtful, placed
 
 
 def _combined_rows(
@@ -212,35 +220,48 @@ def _combined_rows(
     result = combine(documents)
     combined = result.reading_list
     references = to_json(combined).get(ENTRIES_KEY, []) if combined else []
-    flagged = _flagged(result, positions, locked=locked)
+    doubtful, placed = _flagged(result, positions, locked=locked)
     rows: list[_Row] = []
     for index, reference in enumerate(references):
         row = _row(reference, result.provenance[index], inputs, positions)
-        row.needs_review = index in flagged
+        # A comic's own arc tag settles which comic it is; a doubtful join
+        # only matters where the matcher has to guess.
+        guessed = row.tier != ReadingListMatchTier.TAGGED.value
+        row.needs_review = index in placed or (guessed and index in doubtful)
         rows.append(row)
     return rows, combined
 
 
+def _apply_pick(row: _Row, picked: int | None, live: set[int]) -> None:
+    """Give a row the comic a person chose, or keep it missing as they said."""
+    if row.tier == ReadingListMatchTier.TAGGED.value:
+        return
+    if picked is None:
+        row.tier = ReadingListMatchTier.MANUAL
+    elif picked in live:
+        row.comic_pk = picked
+        row.tier = ReadingListMatchTier.MANUAL
+
+
 def _apply_overlay(rows: Sequence[_Row], overlay: Overlay) -> None:
-    live = set(
-        Comic.objects.filter(pk__in=overlay.picked.values()).values_list(
-            "pk", flat=True
-        )
-    )
+    picked_pks = [pk for pk in overlay.picked.values() if pk is not None]
+    live = set(Comic.objects.filter(pk__in=picked_pks).values_list("pk", flat=True))
     keys = overlay_keys([row.reference for row in rows])
     for row, key in zip(rows, keys, strict=True):
         if key is None:
             continue
-        if key in overlay.ignored:
-            row.ignored = True
-        picked = overlay.picked.get(key)
-        if picked in live and row.tier != ReadingListMatchTier.TAGGED.value:
-            row.comic_pk = picked
-            row.tier = ReadingListMatchTier.MANUAL
+        row.ignored = key in overlay.ignored
+        if key in overlay.picked:
+            _apply_pick(row, overlay.picked[key], live)
 
 
 def _match_rows(rows: Sequence[_Row], matcher: ListMatcher) -> None:
-    open_rows = [row for row in rows if row.comic_pk is None]
+    # A row a person marked missing stays missing.
+    open_rows = [
+        row
+        for row in rows
+        if row.comic_pk is None and row.tier != ReadingListMatchTier.MANUAL.value
+    ]
     if not open_rows:
         return
     matches = matcher.match([row.reference for row in open_rows])
@@ -379,7 +400,9 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
     missing = list(
         ReadingListEntry.objects.filter(
             reading_list=reading_list, comic__isnull=True, ignored=False, manual=False
-        ).order_by("position", "pk")
+        )
+        .exclude(match_tier=ReadingListMatchTier.MANUAL.value)
+        .order_by("position", "pk")
     )
     if not missing:
         return 0

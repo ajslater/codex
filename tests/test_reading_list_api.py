@@ -267,3 +267,29 @@ class ReadingListApiTests(ReadingListFixture):
         )
         assert _data(response)["deleted"] >= 1
         assert not ReadingList.objects.filter(pk=reading_list.pk).exists()
+
+    def _grid(self, kind: str = "") -> dict[str, str]:
+        params = {
+            "filters": json.dumps({"readingListKind": kind}),
+            "search": "",
+            "show": json.dumps(
+                {"publishers": True, "imprints": True, "series": True, "volumes": True}
+            ),
+            "view_mode": "cover",
+        }
+        response = self.client.get("/api/v4/browse/arcs/0", params)
+        assert response.status_code == _OK, response.content
+        rows = _data(response)["collections"]
+        return {row["name"]: row["listSources"] for row in rows}
+
+    def test_grid_sources_label_and_kind_filter(self) -> None:
+        """The grid names each list's sources and narrows curated from tags."""
+        self._import_cbl()
+        self.tag(self.comics[0], "Civil War", 1)
+        sync_tag_lists()
+        assert self._grid() == {
+            "[Marvel] Civil War (CBRO)": "Upload",
+            "Civil War": "Tags",
+        }
+        assert set(self._grid("curated")) == {"[Marvel] Civil War (CBRO)"}
+        assert set(self._grid("tags")) == {"Civil War"}

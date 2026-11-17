@@ -42,6 +42,7 @@ def _comic_repr(comic: Comic | None) -> dict[str, Any] | None:
         return None
     return {
         "pk": comic.pk,
+        "seriesPk": comic.series_id,  # pyright: ignore[reportAttributeAccessIssue]
         "seriesName": comic.series.name if comic.series_id else "",  # pyright: ignore[reportAttributeAccessIssue]
         "volumeName": comic.volume.to_str(comic.volume.name, comic.volume.number_to)
         if comic.volume_id  # pyright: ignore[reportAttributeAccessIssue]
@@ -183,8 +184,11 @@ class ReadingListEntryView(ReadingListAccessView):
 
     def _pick(self, entry: ReadingListEntry, comic_pk) -> None:
         if comic_pk is None:
+            # A person said the library does not have it: no rematch or
+            # recombine may pick a comic for it again.
             entry.comic = None
-            entry.match_tier = ReadingListMatchTier.NONE
+            entry.match_tier = ReadingListMatchTier.MANUAL
+            entry.needs_review = False
             return
         acl = self.get_acl_filter(Comic, self.request.user)
         comic = Comic.objects.filter(acl, pk=comic_pk).first()

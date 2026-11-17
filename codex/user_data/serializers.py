@@ -286,6 +286,7 @@ def serialize_settings_filters(
         "client": browser.client,
         "name": browser.name,
         "bookmark": filters.bookmark,
+        "reading_list_kind": filters.reading_list_kind,
         # Shelf pks become the owner's shelf names; pks that are not this
         # user's shelves drop out.
         "shelves": json.dumps(
@@ -300,7 +301,7 @@ def serialize_settings_filters(
         ),
     }
     for column in SettingsBrowserFilters.FILTER_KEYS:
-        if column in {"bookmark", "shelves"}:
+        if column in {"bookmark", "reading_list_kind", "shelves"}:
             continue
         raw = getattr(filters, column)
         rewritten = _rewrite_filter_value(column, raw)

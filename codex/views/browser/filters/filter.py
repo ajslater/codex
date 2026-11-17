@@ -3,11 +3,13 @@
 from functools import cached_property
 from typing import Final
 
+from django.db.models import Exists, OuterRef
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
 from codex.collection import Collection
-from codex.models import Comic, ReadingList
+from codex.models import Comic, ReadingList, ReadingListSource
+from codex.models.readinglist import ReadingListSourceKind
 from codex.models.shelf import SHELF_MODEL_COLLECTIONS, Shelf, ShelfItem
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
@@ -242,6 +244,24 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             q |= Q(pk__in=subqueries[self_code])
         return q
 
+    def get_reading_list_kind_filter(self, model) -> Q:
+        """
+        Narrow the reading lists grid to curated lists or lists from tags.
+
+        Curated is any list with a source besides tags. ``Exists`` rather
+        than a join, so a list's cards and counts are not multiplied by its
+        sources, and so cachalot sees the sources table.
+        """
+        kind = (self.params.get("filters") or {}).get("reading_list_kind")
+        if model is not ReadingList or not kind:
+            return Q()
+        sources = ReadingListSource.objects.filter(reading_list=OuterRef("pk"))
+        curated = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
+        if kind == "curated":
+            return Q(curated)
+        tags = Exists(sources.filter(kind=ReadingListSourceKind.TAGS.value))
+        return Q(tags) & ~Q(curated)
+
     def _get_query_filters(
         self,
         model,
@@ -265,6 +285,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
         big_include_filter &= self.get_shelf_filter(model)
+        big_include_filter &= self.get_reading_list_kind_filter(model)
         include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
             model
         )

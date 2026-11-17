@@ -90,6 +90,9 @@ export function filterShowGatedDefaults(cols, show) {
  * A bookmark filter at the site default reads as "not filtered": Clear
  * All Filters has nothing to clear. ``undefined`` and ``null`` are unset.
  */
+// Filters that hold one value rather than a list.
+const SCALAR_FILTERS = Object.freeze(new Set(["bookmark", "readingListKind"]));
+
 export function isDefaultBookmarkFilter(bookmark) {
   const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
   return [null, siteDefault, undefined].includes(bookmark);
@@ -378,7 +381,7 @@ export const useBrowserStore = defineStore("browser", {
        * included, so a non-empty one lights the multi-filter indicator.
        */
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (name !== "bookmark" && array && array.length > 0) {
+        if (array?.length > 0 && !SCALAR_FILTERS.has(name)) {
           return true;
         }
       }

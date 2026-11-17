@@ -21,6 +21,8 @@ const AdminRestoreTab = () => import("@/components/admin/tabs/restore-tab.vue");
 const AdminStatsTab = () => import("@/components/admin/tabs/stats-tab.vue");
 const AdminDoctorTab = () => import("@/components/admin/tabs/doctor-tab.vue");
 const AdminTaggingTab = () => import("@/components/admin/tabs/tagging-tab.vue");
+const AdminReadingListsTab = () =>
+  import("@/components/admin/tabs/reading-lists/reading-lists-tab.vue");
 const AdminEmailTab = () => import("@/components/admin/tabs/email-tab.vue");
 const AdminAuthTab = () => import("@/components/admin/tabs/auth-tab.vue");
 const ResetPasswordConfirm = () =>
@@ -89,6 +91,11 @@ const routes = [
         component: AdminDefaultsTab,
       },
       { name: "admin-tagging", path: "tagging", component: AdminTaggingTab },
+      {
+        name: "admin-reading-lists",
+        path: "reading-lists",
+        component: AdminReadingListsTab,
+      },
       { name: "admin-auth", path: "auth", component: AdminAuthTab },
       { name: "admin-email", path: "email", component: AdminEmailTab },
       { name: "admin-jobs", path: "jobs", component: AdminJobsTab },

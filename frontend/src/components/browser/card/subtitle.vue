@@ -15,6 +15,9 @@
     <div v-if="item.collectionTitle">
       {{ item.collectionTitle }}
     </div>
+    <div v-if="item.listSources" class="listSources">
+      {{ item.listSources }}
+    </div>
     <div class="displayName">
       {{ displayName }}
     </div>

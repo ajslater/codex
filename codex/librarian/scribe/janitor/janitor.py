@@ -182,6 +182,7 @@ class Janitor(JanitorKoreaderHash):
         self.status_controller.start(status)
         try:
             counts = sync_tag_lists()
+            status.complete = counts.changed
             level = "INFO" if counts.changed else "DEBUG"
             self.log.log(level, f"Reading lists from tags: {counts}.")
         finally:

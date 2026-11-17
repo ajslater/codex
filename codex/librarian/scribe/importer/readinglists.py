@@ -30,6 +30,7 @@ class ReadingListsImporter(MovedImporter):
         self.status_controller.start(status)
         try:
             counts = sync_tag_lists()
+            status.complete = counts.changed
             if counts.changed:
                 self.log.info(f"Reading lists from tags: {counts}.")
         finally:

@@ -162,6 +162,12 @@ class CombineTests(ReadingListFixture):
         assert rows[3][3] == ReadingListMatchTier.EXACT_NAME
         sources = ReadingListSource.objects.filter(reading_list=reading_list)
         assert sources.count() == 2  # noqa: PLR2004
+        # The tags settle their comics: a name-only join there needs no review.
+        assert not ReadingListEntry.objects.filter(
+            reading_list=reading_list,
+            match_tier=ReadingListMatchTier.TAGGED,
+            needs_review=True,
+        ).exists()
 
     def test_removing_a_source_restores_the_list(self) -> None:
         """A combination is undone by removing the source it added."""
@@ -265,3 +271,19 @@ class TagChangeOnCombinedListTests(ReadingListFixture):
         assert [row[2] for row in rows] == [c1.pk, None, c2.pk, c3.pk]
         assert rows[3][3] == ReadingListMatchTier.TAGGED
         assert ReadingListSource.objects.filter(reading_list=tags_list).count() == 2  # noqa: PLR2004
+
+
+class MarkedMissingTests(ReadingListFixture):
+    """A row a person marked missing stays missing through a recombine."""
+
+    def test_marked_missing_survives(self) -> None:
+        """Clearing a wrong match by hand is not undone by the matcher."""
+        reading_list = import_document(_document(), _upload())
+        entry = ReadingListEntry.objects.get(reading_list=reading_list, position=0)
+        entry.comic = None
+        entry.match_tier = ReadingListMatchTier.MANUAL
+        entry.save()
+        recombine(reading_list)
+        assert rematch(reading_list) == 0
+        row = _rows(reading_list)[0]
+        assert row[2:] == (None, ReadingListMatchTier.MANUAL)

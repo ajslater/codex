@@ -152,6 +152,7 @@ export default {
              */
             if (
               filterKey !== "bookmark" &&
+              filterKey !== "readingListKind" &&
               filterKey !== "shelves" &&
               filterValue?.length &&
               !names.includes(filterKey)

@@ -235,6 +235,10 @@ function dispatchMessage(raw) {
       pendingDeletesNotified();
       break;
     }
+    case MESSAGE_TYPES.READING_LISTS_CHANGED: {
+      readingListsNotified();
+      break;
+    }
     case MESSAGE_TYPES.TAG_SESSION_PROMPT: {
       onlineTagPromptNotified();
       break;
@@ -376,6 +380,17 @@ async function pendingDeletesNotified() {
   if (!adminStore) return;
   // The panel and the per-library count move together, so reload both.
   adminStore.loadTables(["PendingDelete", "Library"], { force: true });
+}
+
+async function readingListsNotified() {
+  if (!useAuthStore().isUserAdmin) return;
+  try {
+    const m = await import("@/stores/reading-lists");
+    const store = m.useReadingListsStore();
+    if (store.listsLoaded) await store.loadLists();
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 function reloadBrowser() {

@@ -802,6 +802,16 @@ class Migration(migrations.Migration):
                 max_length=3,
             ),
         ),
+        migrations.AddField(
+            model_name="settingsbrowserfilters",
+            name="reading_list_kind",
+            field=models.CharField(
+                blank=True,
+                choices=[("", "All"), ("curated", "Curated"), ("tags", "From Tags")],
+                default="",
+                max_length=16,
+            ),
+        ),
         migrations.RunPython(_move_arcs_to_reading_lists, _move_reading_lists_to_arcs),
         migrations.RemoveField(
             model_name="settingsreader",

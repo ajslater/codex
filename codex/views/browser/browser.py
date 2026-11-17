@@ -19,6 +19,7 @@ from codex.models import (
     Comic,
     Folder,
     Library,
+    ReadingList,
 )
 from codex.serializers.browser.page import (
     BrowserHeadSerializer,
@@ -35,6 +36,7 @@ from codex.views.browser.columns import (
     shelved_annotation_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
+from codex.views.browser.reading_list_sources import attach_list_sources
 from codex.views.browser.shelf_membership import page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
@@ -370,6 +372,8 @@ class BrowserView(BrowserTitleView):
             collection_qs = self.annotate_cover(collection_qs)
             collection_qs = self.force_inner_joins(collection_qs)
             collection_qs = self.attach_cover_mtimes(collection_qs)
+            if collection_qs.model is ReadingList:
+                attach_list_sources(collection_qs)
         if page_book_count:
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,
