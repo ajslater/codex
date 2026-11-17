@@ -104,7 +104,6 @@ test = [
   "deepdiff~=9.0",
   "jsonschema~=4.26",
   "lxml~=6.1",
-  "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
   "pytest-xdist~=3.8",
