@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/api/v4/reading-lists", () => ({
   getAdminLists: vi.fn(),
+  bulkAction: vi.fn(),
   getSuggestions: vi.fn(),
   getErrors: vi.fn(),
   previewLists: vi.fn(),
@@ -95,6 +96,32 @@ describe("reading lists tab", () => {
     expect(wrapper.vm.sourceLabel(LISTS[1].sources[0])).toBe(
       "DieselTech Catalog · CBRO",
     );
+  });
+
+  test("only global lists with comics may be written to files", async () => {
+    const personal = { ...LISTS[1], pk: 3, owner: "aj" };
+    const empty = { ...LISTS[1], pk: 4, matched: 0 };
+    API.getAdminLists.mockResolvedValue({
+      data: { lists: [...LISTS, personal, empty] },
+    });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    API.bulkAction.mockResolvedValue({ data: { queued: 38 } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.vm.writeHint(personal)).toBe(
+      "A personal list stays in Codex.",
+    );
+    expect(wrapper.vm.writeHint(empty)).toBe(
+      "None of its issues are in your library.",
+    );
+    wrapper.vm.selected = [2, 3, 4];
+    expect(wrapper.vm.selectedWritable.map((list) => list.pk)).toEqual([2]);
+    wrapper.vm.confirmWrite(wrapper.vm.selectedWritable);
+    expect(wrapper.vm.writeText).toContain("Civil War (CBRO)");
+    await wrapper.vm.bulk("write", [2]);
+    expect(API.bulkAction).toHaveBeenCalledWith("write", [2]);
   });
 });
 

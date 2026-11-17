@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
+from codex.choices.tagging import write_formats
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
@@ -28,7 +29,10 @@ from codex.librarian.scribe.readinglists.tasks import (
     ReadingListRecombineTask,
     ReadingListRematchTask,
 )
-from codex.models import StoryArc
+from codex.librarian.scribe.readinglists.write import arc_write, mark_written
+from codex.librarian.scribe.tasks import BulkTagWriteTask
+from codex.models import Comic, StoryArc
+from codex.models.admin import ComicboxTaggingDefaults
 from codex.models.readinglist import (
     ReadingList,
     ReadingListSource,
@@ -39,6 +43,8 @@ from codex.views.admin.auth import AdminAPIView
 _SOURCE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
     {str(value): str(label) for value, label in ReadingListSourceKind.choices}
 )
+# What a list is written into when the admin has no default formats.
+_FALLBACK_FORMATS: Final = ("COMIC_INFO",)
 _ARC_POINTER_SOURCES: Final = MappingProxyType(
     {
         "metron": ReadingListSourceKind.METRON_ARC,
@@ -245,6 +251,47 @@ def _recombine(reading_lists: list[ReadingList]) -> dict[str, int]:
     return {"queued": len(pks)}
 
 
+def _arc_write_formats() -> tuple[str, ...]:
+    """Return the admin's default tag formats, keeping a comic's others."""
+    defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
+    formats = tuple(defaults.default_formats) if defaults else ()
+    return write_formats(formats or _FALLBACK_FORMATS, keep=True)
+
+
+def _write(reading_lists: list[ReadingList]) -> dict[str, int]:
+    """
+    Tag each global list's matched comics with its arc, in the files.
+
+    A personal list stays in Codex: its name never goes into shared files.
+    Comics in read-only libraries are left out.
+    """
+    formats = _arc_write_formats()
+    queued = skipped = 0
+    for reading_list in reading_lists:
+        if reading_list.user_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
+            continue
+        arc = arc_write(reading_list)
+        writable = frozenset(
+            Comic.objects.filter(
+                pk__in=arc.patches, library__read_only=False
+            ).values_list("pk", flat=True)
+        )
+        skipped += len(arc.patches) - len(writable)
+        if not writable:
+            continue
+        mark_written(reading_list, arc.name)
+        LIBRARIAN_QUEUE.put(
+            BulkTagWriteTask(
+                comic_pks=writable,
+                mode="additive",
+                formats=formats,
+                per_comic_patches={pk: arc.patches[pk] for pk in writable},
+            )
+        )
+        queued += len(writable)
+    return {"queued": queued, "skipped": skipped}
+
+
 def _delete(reading_lists: list[ReadingList]) -> dict[str, int]:
     pks = [reading_list.pk for reading_list in reading_lists]
     count, _ = ReadingList.objects.filter(pk__in=pks).delete()
@@ -257,6 +304,7 @@ _ACTIONS: Final = MappingProxyType(
         "complete": _complete,
         "rematch": _rematch,
         "recombine": _recombine,
+        "write": _write,
         "delete": _delete,
     }
 )

@@ -3,7 +3,7 @@
     <AdminSection
       class="adminReadingColumn"
       title="Reading Lists"
-      hint="Import reading lists from files, URLs, the DieselTech catalog, Metron and Comic Vine; combine lists of one event; and review how their issues match your comics. Lists from story arc tags appear here on their own. Everything is saved in Codex only: no comic file changes."
+      hint="Import reading lists from files, URLs, the DieselTech catalog, Metron and Comic Vine; combine lists of one event; and review how their issues match your comics. Lists from story arc tags appear here on their own. Everything is saved in Codex only, until you write a list into its comics' files."
     >
       <template #actions>
         <v-btn size="small" variant="tonal" @click="openAdd(null)">
@@ -112,6 +112,15 @@
       </v-btn>
       <v-btn size="small" variant="text" @click="bulk('complete')">
         Complete Story Arcs
+      </v-btn>
+      <v-btn
+        size="small"
+        variant="text"
+        :disabled="!selectedWritable.length"
+        :title="selectedWritable.length ? '' : WRITE_NONE_HINT"
+        @click="confirmWrite(selectedWritable)"
+      >
+        Write to Files
       </v-btn>
       <ConfirmDialog
         button-text="Delete"
@@ -234,6 +243,12 @@
                 :title="item.owner ? 'Make Global' : 'Make Private to Me'"
                 @click="setPrivate(item.pk, !item.owner)"
               />
+              <v-list-item
+                :disabled="!isWritable(item)"
+                title="Write to Files"
+                :subtitle="writeHint(item)"
+                @click="confirmWrite([item])"
+              />
               <v-list-subheader>Export</v-list-subheader>
               <v-list-item
                 v-for="fmt in EXPORT_FORMATS"
@@ -278,6 +293,18 @@
       :pks="combinePks"
       @combined="onCombined"
     />
+    <ConfirmDialog
+      v-model="showWrite"
+      confirm-text="Write"
+      title-text="Write to comic files"
+      :text="writeText"
+      @confirm="
+        bulk(
+          'write',
+          writeLists.map((list) => list.pk),
+        )
+      "
+    />
   </div>
 </template>
 
@@ -316,6 +343,8 @@ const HEADERS = Object.freeze([
   { title: "Updated", key: "updatedAt" },
   { title: "Actions", key: "actions", sortable: false },
 ]);
+const WRITE_NONE_HINT =
+  "Only global lists with issues in your library are written to files.";
 const KIND_ITEMS = Object.freeze(
   Object.entries(SOURCE_KINDS).map(([value, title]) => ({ value, title })),
 );
@@ -359,6 +388,9 @@ export default {
       sourcesList: null,
       showCombine: false,
       combinePks: [],
+      showWrite: false,
+      writeLists: [],
+      WRITE_NONE_HINT,
     };
   },
   computed: {
@@ -369,6 +401,23 @@ export default {
       "errors",
       "suggestions",
     ]),
+    selectedWritable() {
+      const selected = new Set(this.selected);
+      return this.lists.filter(
+        (list) => selected.has(list.pk) && this.isWritable(list),
+      );
+    },
+    writeText() {
+      const count = this.writeLists.length;
+      const which = count === 1 ? this.writeLists[0].name : `${count} lists`;
+      return (
+        `Tag the comics of ${which} with ${count === 1 ? "its" : "their"} ` +
+        "story arc, numbered in list order? This changes comic files, in " +
+        "your default tag formats. Each comic keeps its other arcs and tag " +
+        "formats. Comics in read-only libraries are skipped. Once imported " +
+        "again, the arc joins the same list as its tags source."
+      );
+    },
     filteredLists() {
       const search = (this.search || "").toLowerCase();
       return this.lists.filter(
@@ -408,6 +457,18 @@ export default {
       return source.attribution
         ? `${label} · ${source.attribution.toUpperCase()}`
         : label;
+    },
+    isWritable(item) {
+      return !item.owner && item.matched > 0;
+    },
+    writeHint(item) {
+      if (item.owner) return "A personal list stays in Codex.";
+      if (!item.matched) return "None of its issues are in your library.";
+      return "Tags its comics with its story arc.";
+    },
+    confirmWrite(lists) {
+      this.writeLists = lists;
+      this.showWrite = true;
     },
     completeTitle(item) {
       const kind = item.completeFrom?.kind;

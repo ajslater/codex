@@ -6,7 +6,8 @@ list, the grouping arc browse always used. A sync reads every arc link once,
 digests each arc's (comic, number) pairs, and touches only the lists whose
 digest changed:
 
-- A new arc name gets a new list holding that one source.
+- A new arc name gets a new list holding that one source, unless a list
+  was written into files as that arc: then the source joins that list.
 - A list whose only source is its tags and that nobody edited by hand is
   rebuilt from the tags: one entry per comic, by arc number, then date,
   then pk, NULLs first as SQLite sorts them.
@@ -22,7 +23,7 @@ from dataclasses import dataclass
 from typing import Final, override
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Max, Q
 from django.utils.timezone import now
 
 from codex.librarian.scribe.readinglists.arcs import (
@@ -33,6 +34,7 @@ from codex.librarian.scribe.readinglists.arcs import (
     ordered_members,
 )
 from codex.librarian.scribe.readinglists.references import comic_references
+from codex.librarian.scribe.readinglists.write import WRITTEN_ARC_KEY, written_lists
 from codex.models.readinglist import (
     ReadingList,
     ReadingListEntry,
@@ -137,6 +139,30 @@ class TagListSync:
         rebuild_from_tags(reading_list, source, comics)
         self._created += 1
 
+    def _attach(
+        self, reading_list: ReadingList, sort_name: str, comics: dict[int, ArcMember]
+    ) -> None:
+        """Give a list written into files its own arc as its tags source."""
+        top = ReadingListSource.objects.filter(reading_list=reading_list).aggregate(
+            top=Max("rank")
+        )["top"]
+        ReadingListSource.objects.create(
+            reading_list=reading_list,
+            kind=ReadingListSourceKind.TAGS,
+            ref=sort_name,
+            rank=0 if top is None else top + 1,
+            revision=digest(comics),
+            ordered=is_ordered(comics),
+            fetched_at=now(),
+        )
+        extra = dict(reading_list.extra)
+        extra.pop(WRITTEN_ARC_KEY, None)
+        reading_list.extra = extra  # pyright: ignore[reportAttributeAccessIssue]
+        if self._recombine:
+            self._recombine(reading_list)
+        reading_list.save()
+        self._updated += 1
+
     def _update(
         self, source: ReadingListSource, name: str, comics: dict[int, ArcMember]
     ) -> None:
@@ -180,11 +206,16 @@ class TagListSync:
                 kind=ReadingListSourceKind.TAGS
             ).select_related("reading_list")
         }
+        written = written_lists()
         with transaction.atomic():
             for sort_name, comics in members.items():
                 name = names.get(sort_name, sort_name)
                 source = sources.pop(sort_name, None)
-                if source is None:
+                if source is None and (
+                    reading_list := written.pop(sort_name.casefold(), None)
+                ):
+                    self._attach(reading_list, sort_name, comics)
+                elif source is None:
                     self._create(sort_name, name, comics)
                 elif source.revision != digest(comics):
                     self._update(source, name, comics)
