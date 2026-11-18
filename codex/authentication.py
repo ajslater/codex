@@ -15,6 +15,7 @@ from rest_framework.authentication import (
 from rest_framework.exceptions import AuthenticationFailed
 
 from codex.choices.api_key import FULL_API_SCOPES, READER_SCOPES, STATS_SCOPES
+from codex.failed_login_log import log_failed_login
 
 # Models are imported inside functions throughout this module:
 # HttpRemoteUserMiddleware here loads with the middleware stack, and models
@@ -67,6 +68,15 @@ class ApiKeyBearerAuthentication(TokenAuthentication):
 
     keyword = "Bearer"
     scopes: Collection[str] = FULL_API_SCOPES
+
+    @override
+    def authenticate(self, request):
+        """Log a refused Bearer value, as a refused password is."""
+        try:
+            return super().authenticate(request)
+        except AuthenticationFailed:
+            log_failed_login(request)
+            raise
 
     @override
     def authenticate_credentials(self, key):
@@ -140,9 +150,15 @@ class StatsKeyAuthentication(BaseAuthentication):
 
         if not stats_api_enabled():
             return None
-        secret = request.query_params.get("apiKey") or self._bearer(request)
+        query_key = request.query_params.get("apiKey")
+        secret = query_key or self._bearer(request)
         api_key = get_api_key(secret, STATS_SCOPES, staff_only=True)
         if not api_key:
+            if query_key:
+                # ``?apiKey=`` is a Stats key or nothing. A Bearer value
+                # may be a universal key for the classes after this one,
+                # which log it themselves if it isn't.
+                log_failed_login(request)
             return None
         return (api_key.user, api_key)
 
@@ -213,6 +229,18 @@ class KOSyncAuthentication(BaseAuthentication):
             match.touch()
         return match
 
+    @staticmethod
+    def _header_text(value: str) -> str:
+        """
+        Undo ASGI's latin-1 decoding of a header KOReader sent as UTF-8.
+
+        A value that isn't UTF-8 underneath is left as it came.
+        """
+        try:
+            return value.encode("latin-1").decode("utf-8")
+        except UnicodeError:
+            return value
+
     @override
     def authenticate(self, request):
         """Authenticate the KOReader auth headers against the reader keys."""
@@ -220,9 +248,11 @@ class KOSyncAuthentication(BaseAuthentication):
         key = request.headers.get("x-auth-key")
         if not username or not key:
             return None
+        username = self._header_text(username)
         key = key.strip().lower()
         api_key = self._match_reader_key(username, key)
         if api_key is None:
+            log_failed_login(request, username)
             reason = "Unauthorized"
             raise AuthenticationFailed(reason)
         return (api_key.user, api_key)
