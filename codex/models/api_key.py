@@ -13,7 +13,9 @@ from django.db.models import (
     CharField,
     DateTimeField,
     ForeignKey,
+    Model,
     Q,
+    QuerySet,
     UniqueConstraint,
 )
 from django.utils import timezone
@@ -24,7 +26,7 @@ from codex.choices.limits import API_KEY_NAME_MAX_LENGTH
 from codex.models.base import BaseModel
 from codex.models.choices import max_choices_len
 
-__all__ = ("UserApiKey",)
+__all__ = ("RevokedApiKey", "UserApiKey")
 
 # 32 symbols, so each character carries 5 bits. Lowercase letters and digits
 # without 0/o and 1/l, which read alike on e-ink. The key is typed on e-reader
@@ -176,3 +178,47 @@ class UserApiKey(BaseModel):
             logger.debug(f"API key last use not recorded: {exc}")
             return
         self.last_used_at = now
+
+
+class RevokedApiKey(Model):
+    """
+    A revoked key's tombstone, so a backup restore cannot bring it back.
+
+    Only the key's SHA-256 digest is kept: never the key, its name or its
+    prefix. Written by :func:`revoke_api_keys`, which every revoke goes
+    through. Deleting a user cascades to their keys without tombstones: a
+    restore brings the whole account back, password included, so its keys
+    come back with it.
+    """
+
+    digest = CharField(max_length=64, unique=True)
+    revoked_at = DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Admin name."""
+
+        verbose_name = "revoked API key"
+
+    @override
+    def __str__(self) -> str:
+        """Name the row, never its digest."""
+        return f"revoked API key {self.pk}"
+
+
+def revoke_api_keys(keys: QuerySet[UserApiKey]) -> int:
+    """
+    Delete ``keys``, leaving a tombstone for each. Return how many went.
+
+    Only the keys tombstoned are deleted, so a key made while this runs is
+    neither deleted nor tombstoned.
+    """
+    with transaction.atomic():
+        digests = tuple(keys.values_list("digest", flat=True))
+        if not digests:
+            return 0
+        RevokedApiKey.objects.bulk_create(
+            (RevokedApiKey(digest=digest) for digest in digests),
+            ignore_conflicts=True,
+        )
+        deleted, _ = UserApiKey.objects.filter(digest__in=digests).delete()
+    return deleted

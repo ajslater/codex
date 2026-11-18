@@ -283,9 +283,10 @@ SQLite file: the **user data sidecar**.
 #### What it contains
 
 Users (with hashed passwords), API keys (hashed too, so a restored key still
-logs in), groups & permissions, group memberships, libraries and their access
-lists, bookmarks, shelves, per-user browser settings, admin flags, timestamps,
-online-tagging defaults, and the default settings for new sessions.
+logs in, though a key revoked since the snapshot stays revoked), groups &
+permissions, group memberships, libraries and their access lists, bookmarks,
+shelves, per-user browser settings, admin flags, timestamps, online-tagging
+defaults, and the default settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,

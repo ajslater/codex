@@ -26,7 +26,8 @@ In order:
   longer installed. The plaintext server-wide Stats API key in the ``AK``
   admin flag is revoked: its row is deleted and nothing replaces it. Admins
   make their own stats keys now. The digest functions are inlined so later
-  model changes cannot alter what this migration wrote.
+  model changes cannot alter what this migration wrote. ``RevokedApiKey``
+  keeps a revoked key's digest, so a backup restore does not revive it.
 - **Choice lists** for the admin flags (KOReader Sync, OPDS and Stats API in;
   API Key out) and the librarian statuses (JKH in, JRF relabelled Cleanup
   Orphan Shelf Items).
@@ -564,6 +565,25 @@ class Migration(migrations.Migration):
         ),
         # The keys the tokens become go when the table does: nothing to undo.
         migrations.RunPython(tokens_to_api_keys, migrations.RunPython.noop),
+        migrations.CreateModel(
+            name="RevokedApiKey",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("digest", models.CharField(max_length=64, unique=True)),
+                ("revoked_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                "verbose_name": "revoked API key",
+            },
+        ),
         # Choice lists.
         migrations.AlterField(
             model_name="adminflag",

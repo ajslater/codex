@@ -5,7 +5,9 @@ Split out of :mod:`codex.user_data.restore`. The ``api_keys`` table holds
 hashes only, which is all a key needs to log in again. A backup written
 before keys were backed up has no rows here. The plaintext server-wide Stats
 API key an older backup carries in its ``AK`` admin flag is revoked, not
-restored: the admin flag restore skips it.
+restored: the admin flag restore skips it. A key revoked after the backup
+left a tombstone (:class:`codex.models.api_key.RevokedApiKey`) and is
+skipped. Tombstones are not backed up: they guard the database they are in.
 """
 
 from __future__ import annotations
@@ -19,15 +21,16 @@ if TYPE_CHECKING:
     from codex.user_data.store import SidecarStore
 
 _TABLE: Final = "api_keys"
-# A key the backup has and the database doesn't: revoked since the backup,
-# perhaps, so it is counted on its own line for an admin to check.
+# A key the backup has and the database doesn't, with no tombstone: lost
+# with the database, or deleted with its user, so it is counted on its own
+# line for an admin to check.
 _RECREATED: Final = "api_keys_recreated"
 
 
 def _restore_one(row, report: RestoreReport) -> None:
     from django.contrib.auth import get_user_model
 
-    from codex.models.api_key import UserApiKey
+    from codex.models.api_key import RevokedApiKey, UserApiKey
 
     username = row["username"]
     user = get_user_model().objects.filter(username=username).first()
@@ -40,6 +43,10 @@ def _restore_one(row, report: RestoreReport) -> None:
     if UserApiKey.objects.filter(digest=row["digest"]).exists():
         # Already here: a second restore, or a key that never left.
         report.note_written(_TABLE)
+        return
+    if RevokedApiKey.objects.filter(digest=row["digest"]).exists():
+        reason = f"key {row['name']!r} of user {username!r} was revoked"
+        report.note_skipped(_TABLE, f"{reason} after this backup; not re-created")
         return
     if UserApiKey.objects.filter(user=user, name=row["name"]).exists():
         report.note_skipped(
@@ -67,9 +74,10 @@ def restore_api_keys(
     """
     Restore API key rows. Never replaces a key that is already here.
 
-    Run after users. A row whose user is missing is skipped, as is one
-    whose name the user already gave a different key. A key created again
-    is counted as ``api_keys_recreated``, apart from the keys still here.
+    Run after users. A row whose user is missing is skipped, as is a
+    revoked key and one whose name the user already gave a different key.
+    A key created again is counted as ``api_keys_recreated``, apart from
+    the keys still here.
     """
     for row in store.fetchall(_TABLE):
         if dry_run:

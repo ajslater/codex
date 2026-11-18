@@ -27,7 +27,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.admin import AdminFlag, Timestamp
-from codex.models.api_key import UserApiKey
+from codex.models.api_key import RevokedApiKey, UserApiKey
 from codex.startup import init_admin_flags
 from codex.user_data.dump import dump_user_data
 from codex.user_data.restore import restore
@@ -445,6 +445,34 @@ class ApiKeyRestoreTests(_SidecarRestoreCase):
         # Keys still here are ordinary rows, not re-created ones.
         assert report.written.get("api_keys") == 2  # noqa: PLR2004
         assert "api_keys_recreated" not in report.written
+
+    def _restore_after_revoking_the_device_key(self):
+        self._seed()
+        snapshot = self._snapshot_sidecar()
+        client = Client()
+        client.force_login(self.reader)
+        response = client.delete(f"/api/v4/auth/keys/{self.device.pk}")
+        assert response.status_code == 204  # noqa: PLR2004
+        return restore(sidecar_path=snapshot)
+
+    def test_a_key_revoked_after_the_backup_stays_revoked(self) -> None:
+        report = self._restore_after_revoking_the_device_key()
+
+        assert not UserApiKey.objects.filter(digest=self.device.digest).exists()
+        assert RevokedApiKey.objects.filter(digest=self.device.digest).exists()
+        basic = base64.b64encode(f"alice:{self.device_key}".encode()).decode()
+        assert not self._logs_in("/opds/v2.0/", f"Basic {basic}")
+        # The key that was never revoked is still an ordinary row.
+        assert report.written.get("api_keys") == 1
+        assert "api_keys_recreated" not in report.written
+
+    def test_a_revoked_key_is_reported_skipped_with_its_reason(self) -> None:
+        report = self._restore_after_revoking_the_device_key()
+
+        assert report.skipped.get("api_keys") == 1
+        reasons = [line for line in report.unmatched_log if "api_keys" in line]
+        reason = "key 'Kobo' of user 'alice' was revoked after this backup"
+        assert reasons == [f"[api_keys] {reason}; not re-created"]
 
     def test_missing_user_is_skipped(self) -> None:
         self._seed()
