@@ -139,7 +139,8 @@ class MovedComicsImporter(ReviveImporter):
             # (caught by the broad except below).
             comic.parent_folder_id = folder_pk_by_path[str(new_path.parent)]
             comic.updated_at = Now()
-            comic.presave()
+            # A move writes only the name hash; the file is unchanged.
+            comic.presave(koreader_binary=False)
             # Missing ancestors silently absent from the set, matching
             # the prior ``filter(path__in=...)`` behavior.
             new_folder_pks = frozenset(

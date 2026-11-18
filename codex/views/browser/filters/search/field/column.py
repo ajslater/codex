@@ -21,9 +21,15 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
         **{f"series_{name}": f"series__{name}" for name in _SERIES_ATTR_FIELDS},
     }
 )
+# KOReader's document hashes are sync bookkeeping, not comic metadata.
+_UNSEARCHABLE_FIELDS = frozenset({"koreader_hash", "koreader_name_hash"})
 _FIELD_TYPE_MAP = MappingProxyType(
     {
-        **{field.name: field.__class__ for field in Comic._meta.concrete_fields},
+        **{
+            field.name: field.__class__
+            for field in Comic._meta.concrete_fields
+            if field.name not in _UNSEARCHABLE_FIELDS
+        },
         **{
             f"series_{name}": Series._meta.get_field(name).__class__
             for name in _SERIES_ATTR_FIELDS

@@ -36,8 +36,15 @@ if TYPE_CHECKING:
     from codex.models.collections import BrowserCollectionModel
 
 # What ``presave`` derives from the file and the row. An update that would
-# change none of them, the timestamp aside, writes nothing new.
-_NOOP_CHECK_FIELDS = tuple(sorted(ALWAYS_UPDATE_COMIC_FIELDS - {"updated_at"}))
+# change none of them, the timestamp aside, writes nothing new. The KOReader
+# hashes are left out: they are null after an upgrade and with the feature
+# off, which is no reason to rewrite a comic; the flag-on backfill fills them.
+_NOOP_CHECK_FIELDS = tuple(
+    sorted(
+        ALWAYS_UPDATE_COMIC_FIELDS
+        - {"updated_at", "koreader_hash", "koreader_name_hash"}
+    )
+)
 
 
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
@@ -99,7 +106,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         ):
             return False
         before = tuple(getattr(comic, field_name) for field_name in _NOOP_CHECK_FIELDS)
-        comic.presave()
+        comic.presave(koreader_binary=False)
         return before == tuple(
             getattr(comic, field_name) for field_name in _NOOP_CHECK_FIELDS
         )
@@ -137,7 +144,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                     set_value = default_value
             setattr(comic, field_name, set_value)
         self._record_moved_source_collections(comic, old_collection_pks)
-        comic.presave()
+        comic.presave(koreader_binary=self.koreader_binary_hash)
         comic.updated_at = Now()
         update_comics.append(comic)
         comic_pks.append(comic.pk)
@@ -227,7 +234,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
         if not md:
             return
         comic = Comic(**md, library=self.library)
-        comic.presave()
+        comic.presave(koreader_binary=self.koreader_binary_hash)
         create_comics.append(comic)
 
     def _create_comic_bulk_prepare(

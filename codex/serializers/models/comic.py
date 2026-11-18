@@ -82,5 +82,11 @@ class ComicSerializer(BaseModelSerializer):
         """Configure the model."""
 
         model = Comic
-        exclude = ("folders", "parent_folder", "stat")
+        exclude = (
+            "folders",
+            "parent_folder",
+            "stat",
+            "koreader_hash",
+            "koreader_name_hash",
+        )
         depth = 1

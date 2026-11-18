@@ -359,24 +359,34 @@ class Comic(WatchedPathBrowserCollection):
         self.age_rating_metron_index = get_metron_index(metron_id)
 
     @override
-    def presave(self) -> None:
-        """Set computed values."""
+    def presave(self, *, koreader_binary: bool = True) -> None:
+        """
+        Set computed values.
+
+        ``koreader_binary`` says whether to read the file for KOReader's
+        binary hash. The importer passes the KOReader Sync flag, read once
+        per import, so an import with the feature off opens no file for it.
+        """
         super().presave()
         self._set_date()
         self._set_decade()
         self.size = Path(self.path).stat().st_size
         self._set_age_rating_metron_index()
-        self.set_koreader_hashes()
+        self.set_koreader_hashes(binary=koreader_binary)
 
-    def set_koreader_hashes(self) -> None:
+    def set_koreader_hashes(self, *, binary: bool = True) -> None:
         """
         Set the KOReader sync document hashes.
 
-        The name hash needs no disk access. A file that can't be read
-        leaves the binary hash null for the janitor backfill to retry
-        rather than failing the import.
+        The name hash needs no disk access and is always set. Without
+        ``binary``, or for a file that can't be read, the binary hash is
+        null for the janitor backfill to fill once the flag is on (it hashes
+        only null rows, so a hash that may no longer match is not kept).
         """
         self.koreader_name_hash = koreader_name_md5(self.path)
+        if not binary:
+            self.koreader_hash = None
+            return
         try:
             self.koreader_hash = koreader_partial_md5(self.path)
         except OSError:
