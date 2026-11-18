@@ -102,7 +102,7 @@ export default {
         );
         this.candidates = response.data.candidates || [];
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.loaded = true;
       }
@@ -116,7 +116,7 @@ export default {
             }));
         this.$emit("picked");
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async clear() {
@@ -126,7 +126,7 @@ export default {
         });
         this.$emit("picked");
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
   },

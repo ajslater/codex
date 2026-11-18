@@ -138,10 +138,10 @@ export default {
     async call(promise, message) {
       try {
         await promise;
-        if (message) useCommonStore().setSuccess(message);
+        if (message) useCommonStore().setNotice(message);
         this.$emit("changed");
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async rank(index, step) {

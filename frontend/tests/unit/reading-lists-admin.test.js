@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 vi.mock("@/api/v4/reading-lists", () => ({
   getAdminLists: vi.fn(),
   bulkAction: vi.fn(),
+  duplicateList: vi.fn(),
+  getMyLists: vi.fn(),
   getSuggestions: vi.fn(),
   getErrors: vi.fn(),
   previewLists: vi.fn(),
@@ -26,6 +28,7 @@ import AddListsDialog from "@/components/admin/tabs/reading-lists/add-lists-dial
 import ReadingListsTab from "@/components/admin/tabs/reading-lists/reading-lists-tab.vue";
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import vuetify from "@/plugins/vuetify";
+import { useCommonStore } from "@/stores/common";
 import { useReadingListsStore } from "@/stores/reading-lists";
 
 const LISTS = Object.freeze([
@@ -73,6 +76,36 @@ describe("reading lists store", () => {
     expect(store.lists).toHaveLength(2);
     expect(store.errorCount).toBe(2);
     expect(store.listsByPk[2].name).toBe("Civil War (CBRO)");
+  });
+});
+
+describe("reading lists store notices", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("a copy confirms with a notice", async () => {
+    API.duplicateList.mockResolvedValue({ data: { pk: 9, name: "CW (copy)" } });
+    API.getMyLists.mockResolvedValue({ data: { lists: [] } });
+    const active = pinia();
+    await useReadingListsStore(active).duplicateList(1);
+    expect(useCommonStore(active).notice).toEqual({
+      text: 'Copied to your reading lists as "CW (copy)".',
+      error: false,
+    });
+  });
+
+  test("a failure shows an error notice", async () => {
+    API.duplicateList.mockRejectedValue({
+      response: { status: 404, data: { detail: "No such reading list." } },
+    });
+    const active = pinia();
+    const copy = await useReadingListsStore(active).duplicateList(1);
+    expect(copy).toBeUndefined();
+    expect(useCommonStore(active).notice).toEqual({
+      text: "No such reading list.",
+      error: true,
+    });
   });
 });
 

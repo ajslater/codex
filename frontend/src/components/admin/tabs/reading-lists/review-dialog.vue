@@ -224,7 +224,7 @@ export default {
         const response = await promise;
         return response.data;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async load() {

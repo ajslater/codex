@@ -352,7 +352,7 @@ export default {
         if (source === "metron") this.metronResults = results;
         else this.catalogResults = results;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.searching = false;
       }
@@ -404,7 +404,7 @@ export default {
         }
         this.choices = choices;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.previewing = false;
       }
@@ -425,11 +425,11 @@ export default {
         const { queued = 0, fetching = 0 } = response.data || {};
         let message = `Importing ${queued + fetching} reading lists.`;
         if (fetching) message += " Metron and Comic Vine lists fetch first.";
-        useCommonStore().setSuccess(message);
+        useCommonStore().setNotice(message);
         this.$emit("imported");
         this.show = false;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.importing = false;
       }

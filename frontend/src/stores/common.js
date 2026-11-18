@@ -109,6 +109,13 @@ export const useCommonStore = defineStore("common", {
      * silently-broken state and needs a user-visible nudge.
      */
     sessionError: "",
+    /*
+     * App-wide notice for an action taken outside a form, such as adding
+     * comics to a reading list from a menu, where ``form.success`` and
+     * ``form.errors`` have nothing to show them. ``notice-snackbar.vue``
+     * in the root component shows it.
+     */
+    notice: { text: "", error: false },
   }),
   actions: {
     async loadVersions() {
@@ -142,6 +149,15 @@ export const useCommonStore = defineStore("common", {
         state.form.fieldErrors = {};
         state.form.success = "";
       });
+    },
+    setNotice(text, { error = false } = {}) {
+      this.notice = { text, error };
+    },
+    setErrorNotice(xiorError) {
+      this.setNotice(getErrors(xiorError).join(" "), { error: true });
+    },
+    clearNotice() {
+      this.notice = { text: "", error: false };
     },
     setSessionError(message) {
       this.sessionError = message;

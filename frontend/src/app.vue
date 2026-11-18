@@ -2,6 +2,7 @@
   <v-app>
     <router-view />
     <SessionErrorSnackbar />
+    <NoticeSnackbar />
     <DockerHubDeprecatedSnackbar />
   </v-app>
 </template>
@@ -10,6 +11,7 @@
 import { mapActions, mapState } from "pinia";
 
 import DockerHubDeprecatedSnackbar from "@/components/docker-hub-deprecated-snackbar.vue";
+import NoticeSnackbar from "@/components/notice-snackbar.vue";
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { pendingTitle, useOnlineTagStore } from "@/stores/online-tag";
@@ -20,6 +22,7 @@ export default {
   name: "App",
   components: {
     DockerHubDeprecatedSnackbar,
+    NoticeSnackbar,
     SessionErrorSnackbar,
   },
   head() {

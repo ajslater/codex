@@ -105,18 +105,18 @@ export default {
         );
         this.result = response.data;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async combine() {
       this.working = true;
       try {
         await API.combineLists(this.primary, this.others, false);
-        useCommonStore().setSuccess("Combined.");
+        useCommonStore().setNotice("Combined.");
         this.$emit("combined");
         this.show = false;
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.working = false;
       }

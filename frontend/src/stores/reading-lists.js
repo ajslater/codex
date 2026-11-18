@@ -22,8 +22,9 @@ export const EXPORT_FORMATS = Object.freeze([
   { value: "json-cbl", title: "json-cbl" },
 ]);
 
+// Reading list actions happen outside forms: they report as notices.
 function reportError(error) {
-  useCommonStore().setErrors(error);
+  useCommonStore().setErrorNotice(error);
 }
 
 export const useReadingListsStore = defineStore("readingLists", {
@@ -85,7 +86,7 @@ export const useReadingListsStore = defineStore("readingLists", {
     async act(pk, action) {
       try {
         await API.listAction(pk, action);
-        useCommonStore().setSuccess(`Queued: ${action}.`);
+        useCommonStore().setNotice(`Queued: ${action}.`);
       } catch (error) {
         reportError(error);
       }
@@ -93,7 +94,7 @@ export const useReadingListsStore = defineStore("readingLists", {
     async bulk(action, pks) {
       try {
         await API.bulkAction(action, pks);
-        useCommonStore().setSuccess(`Queued: ${action} for ${pks.length}.`);
+        useCommonStore().setNotice(`Queued: ${action} for ${pks.length}.`);
         if (action === "delete") await this.loadLists();
       } catch (error) {
         reportError(error);
@@ -120,7 +121,7 @@ export const useReadingListsStore = defineStore("readingLists", {
       try {
         const response = await API.addEntries(pk, comics);
         const added = response.data.added || 0;
-        useCommonStore().setSuccess(
+        useCommonStore().setNotice(
           `Added ${added} comic${added === 1 ? "" : "s"} to the list.`,
         );
         await this.loadMyLists();
@@ -132,7 +133,7 @@ export const useReadingListsStore = defineStore("readingLists", {
       try {
         const response = await API.addTargets(pk, targets);
         const { added = 0, name = "" } = response.data || {};
-        useCommonStore().setSuccess(
+        useCommonStore().setNotice(
           `Added ${added} comic${added === 1 ? "" : "s"} to ${name}.`,
         );
         await this.loadMyLists();
@@ -170,7 +171,7 @@ export const useReadingListsStore = defineStore("readingLists", {
       try {
         const response = await API.duplicateList(pk);
         const copy = response.data;
-        useCommonStore().setSuccess(
+        useCommonStore().setNotice(
           `Copied to your reading lists as "${copy?.name}".`,
         );
         await this.loadMyLists();
