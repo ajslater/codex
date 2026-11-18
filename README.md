@@ -1191,10 +1191,11 @@ Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
 server, so a comic read on a KOReader device and in the Codex web reader keeps
 one reading position.
 
-1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. Codex then
-   hashes the comics it already has so KOReader can recognize them. This reads a
-   little of each file and shows as a job on the Jobs tab. Comics imported while
-   it is on are hashed as they are imported.
+1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. It is off by
+   default, because while it is on Codex does extra work for KOReader alone.
+   Codex then hashes the comics it already has so KOReader can recognize them.
+   This reads a little of each file and shows as a job on the Jobs tab. Comics
+   imported while it is on are hashed as they are imported.
 2. Each user opens the **API Access** dialog in Codex (the **OPDS & APIs**
    button at the bottom of the side drawer), which shows the server URL, for
    example `https://codex.example.com/koreader`, including any reverse-proxy
