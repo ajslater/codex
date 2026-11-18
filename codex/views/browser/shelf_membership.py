@@ -8,7 +8,9 @@ the shelves browser filter (``BrowserFilterView.get_shelf_filter``) uses it
 too, so a row that lists a shelf is a row the shelf filter returns. A collection row, or a metadata
 selection, is on a shelf when every live comic the user can see under it is:
 the intersection rule every other collection-row tag column uses
-(:mod:`codex.views.browser.intersections`).
+(:mod:`codex.views.browser.intersections`). The table view's sortable
+``shelved`` flag (:func:`annotate_shelved`) follows the same rule, so a row
+sorts as shelved exactly when its Shelves cell lists a shelf.
 
 Only shelf pks leave this module. Shelf names are free text the user owns;
 the frontend resolves them from its own shelves store, which also keeps a
@@ -18,14 +20,24 @@ renamed or deleted shelf current without a refetch.
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, override
 
 from cachalot.api import cachalot_disabled
-from django.db.models import Count, Q, QuerySet
+from django.db.models import (
+    BooleanField,
+    Count,
+    Exists,
+    ExpressionWrapper,
+    OuterRef,
+    Q,
+    QuerySet,
+    Value,
+)
 
 from codex.collection import Collection
 from codex.models import Comic
-from codex.models.shelf import ShelfItem
+from codex.models.query import GroupByQuerySet
+from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 from codex.views.browser.intersections import (
     LIVE_COMIC,
     collection_row_pks,
@@ -69,6 +81,8 @@ SHELF_COMIC_COLLECTIONS: Final = frozenset(
 )
 
 _TOTAL_ALIAS: Final = "_shelf_comic_total"
+_SOME_ALIAS: Final = "_shelved_some"
+_SHELVED_FALSE: Final = Value(value=False, output_field=BooleanField())
 
 
 def _shelf_alias(shelf_pk: int) -> str:
@@ -130,6 +144,139 @@ def effective_comic_q(
             comic_ids = through.objects.filter(**{lookup: targets}).values("comic_id")
             q |= Q(**{f"{rel}pk__in": comic_ids})
     return q
+
+
+class _RowFlag(ExpressionWrapper):
+    """
+    A per-row boolean of correlated subqueries, kept out of GROUP BY.
+
+    Django groups an aggregated queryset by every non-aggregate expression
+    it selects, so the whole flag landed in GROUP BY and SQLite evaluated
+    its subqueries once per *pre-aggregation joined row*: the folders
+    browse, fanned out to every descendant comic, took 22 s cold. The
+    flag's only outer reference is the row's pk, already in the GROUP BY,
+    so it adds no grouping (as ``intersections._IntersectionSortRawSQL``).
+    """
+
+    @override
+    def get_group_by_cols(self) -> list:
+        return []
+
+
+def _every_alias(shelf_pk: int) -> str:
+    return f"_shelved_every_{shelf_pk}"
+
+
+def _collection_pk_flags(
+    shelf_collections: Mapping[int, frozenset[str]], acl: "ComicACL", rel: str
+) -> dict[str, Exists]:
+    """
+    Flag each collection pk: has it a comic, and does each shelf hold them all.
+
+    ``_SOME_ALIAS`` is whether the pk has a live comic ``acl`` lets the user
+    see, ``_every_alias(shelf_pk)`` whether that shelf holds every one.
+    """
+    comics = Comic.objects.filter(LIVE_COMIC, acl.q(Comic), **{rel: OuterRef("pk")})
+    flags = {_SOME_ALIAS: Exists(comics)}
+    for shelf_pk, collections in shelf_collections.items():
+        off_shelf = comics.exclude(effective_comic_q((shelf_pk,), collections))
+        flags[_every_alias(shelf_pk)] = ~Exists(off_shelf)
+    return flags
+
+
+def _correlated_row_flag(qs: QuerySet, flags: Mapping[str, Exists]) -> QuerySet:
+    """Annotate a row that stands for one pk from its own flags."""
+    on_a_shelf = Q()
+    for alias in flags:
+        if alias != _SOME_ALIAS:
+            on_a_shelf |= Q(**{alias: True})
+    shelved = _RowFlag(Q(**{_SOME_ALIAS: True}) & on_a_shelf, BooleanField())
+    return qs.alias(**flags).annotate(shelved=shelved)
+
+
+def _merged_row_is_shelved(member_flags: Sequence[Sequence[bool]]) -> bool:
+    """
+    Whether a row's pks, by their flags, share a shelf.
+
+    Some pk has a comic, and one shelf holds every comic of every pk: the
+    sum rule ``_shared_shelf_pks`` applies to a merged row's counts.
+    """
+    if not any(flags[0] for flags in member_flags):
+        return False
+    num_flags = len(member_flags[0])
+    return any(
+        all(flags[index] for flags in member_flags) for index in range(1, num_flags)
+    )
+
+
+def _merged_row_flag(
+    qs: GroupByQuerySet, group_fields: Sequence[str], flags: Mapping[str, Exists]
+) -> QuerySet:
+    """
+    Annotate rows grouped by name, each of which may stand for several pks.
+
+    A grouped query selects one arbitrary pk per row, so a correlated flag
+    would judge a merged row by that pk alone. Instead the flags are read
+    per pk over the ungrouped browse filter, folded per row in Python, and
+    the rows found shelved are spelled as a pk list: whichever pk a row
+    selects is in it. A literal list has no subquery for cachalot to miss;
+    the per-pk query it comes from is an ordinary ``Exists`` annotation.
+    """
+    ungrouped = qs.group_by()
+    per_pk = (
+        qs.model.objects.filter(pk__in=ungrouped.values("pk"))
+        .annotate(**flags)
+        .values_list("pk", *group_fields, *flags)
+    )
+    width = len(group_fields)
+    rows: dict[tuple, list[tuple[int, Sequence[bool]]]] = defaultdict(list)
+    for pk, *values in per_pk:
+        rows[tuple(values[:width])].append((pk, values[width:]))
+    shelved_pks = [
+        pk
+        for members in rows.values()
+        if _merged_row_is_shelved([member_flags for _, member_flags in members])
+        for pk, _ in members
+    ]
+    if not shelved_pks:
+        return qs.annotate(shelved=_SHELVED_FALSE)
+    return qs.annotate(shelved=_RowFlag(Q(pk__in=shelved_pks), BooleanField()))
+
+
+def annotate_shelved(qs: QuerySet, user, acl: "ComicACL") -> QuerySet:
+    """
+    Annotate ``shelved``: whether the row's Shelves cell lists any shelf.
+
+    The table view's sortable flag, by the cell's rule
+    (:func:`page_row_shelves`): a comic is shelved when it is on one of
+    ``user``'s shelves itself or through a parent; a collection row when
+    some shelf holds every live comic ``acl`` lets the user see under it
+    (under every pk it stands for), and it has at least one.
+
+    Every subquery is an ``Exists`` annotation or alias, never a condition
+    nested in ``When``/``ExpressionWrapper``, whose tables cachalot can't
+    see: the flag must not be served stale after a shelf change.
+
+    A model that can't be shelved is returned as is. Anonymous sessions and
+    users with nothing shelved get a constant False.
+    """
+    model = qs.model
+    if model not in SHELF_MODEL_COLLECTIONS:
+        return qs
+    shelf_collections = _user_shelf_collections(user)
+    rel = "pk" if model is Comic else intersection_relation(model)
+    if not shelf_collections or not rel:
+        return qs.annotate(shelved=_SHELVED_FALSE)
+    if model is Comic:
+        collections = frozenset().union(*shelf_collections.values())
+        on_any = effective_comic_q(tuple(shelf_collections), collections)
+        shelved = Exists(Comic.objects.filter(on_any, pk=OuterRef("pk")))
+        return qs.annotate(shelved=shelved)
+    flags = _collection_pk_flags(shelf_collections, acl, rel)
+    group_fields = getattr(qs.query, "force_group_by_fields", ())
+    if group_fields and isinstance(qs, GroupByQuerySet):
+        return _merged_row_flag(qs, group_fields, flags)
+    return _correlated_row_flag(qs, flags)
 
 
 def _count_annotations(shelf_collections: Mapping[int, frozenset[str]]) -> dict:

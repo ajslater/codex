@@ -528,7 +528,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
         # Per-user state. ``shelved`` is the only currently-editable
         # cell — its button opens the shelf menu, which writes through
         # ``PATCH /api/v4/shelves/<pk>/items``. The annotation (true when
-        # the row sits on any of the user's shelves) is added in
+        # the cell lists at least one shelf) is added in
         # ``BrowserView._add_table_view_shelved_annotation`` for both
         # collection and Comic querysets so the column is sortable and
         # renderable across all browsable models. Beside the button the

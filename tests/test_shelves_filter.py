@@ -6,7 +6,8 @@ from django.contrib.auth.models import AnonymousUser, User
 
 from codex.models import Comic, Folder, Library, Series, Shelf
 from codex.models.settings import SettingsBrowser, SettingsBrowserFilters
-from codex.views.browser.columns import shelved_annotation_for
+from codex.views.auth import ComicACL
+from codex.views.browser.shelf_membership import annotate_shelved
 from tests.shelf_fixtures import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
@@ -305,7 +306,11 @@ class ShelfFilterTestCase(ShelfTestCase):
 
 
 class ShelvedAnnotationTestCase(ShelfTestCase):
-    """``shelved_annotation_for`` is true for rows on any of the user's shelves."""
+    """``annotate_shelved`` is true for rows on any of the user's shelves."""
+
+    @staticmethod
+    def _acl(user) -> ComicACL:
+        return ComicACL.for_user(user)
 
     def test_authenticated_user_gets_per_row_flag(self):
         """Rows on any of the user's shelves are True; the rest False."""
@@ -313,18 +318,20 @@ class ShelvedAnnotationTestCase(ShelfTestCase):
         other = User.objects.create_user(username="other", password=TEST_PASSWORD)
         self._put(self._shelf("Theirs", user=other), "series", self.s2.pk)
 
-        annotations = shelved_annotation_for(Series, self.user)
-        rows = dict(Series.objects.annotate(**annotations).values_list("pk", "shelved"))
+        qs = annotate_shelved(Series.objects.all(), self.user, self._acl(self.user))
+        rows = dict(qs.values_list("pk", "shelved"))
         assert rows[self.s1.pk] is True
         assert rows[self.s2.pk] is False
 
     def test_anonymous_user_gets_constant_false(self):
         """Anonymous sessions own no shelves."""
         self._put(self._shelf(), "series", self.s1.pk)
-        annotations = shelved_annotation_for(Series, AnonymousUser())
-        rows = dict(Series.objects.annotate(**annotations).values_list("pk", "shelved"))
+        anon = AnonymousUser()
+        qs = annotate_shelved(Series.objects.all(), anon, self._acl(anon))
+        rows = dict(qs.values_list("pk", "shelved"))
         assert all(value is False for value in rows.values())
 
     def test_unmapped_model_returns_empty_dict(self):
         """A model that cannot be shelved contributes no annotation."""
-        assert shelved_annotation_for(Library, self.user) == {}
+        qs = annotate_shelved(Library.objects.all(), self.user, self._acl(self.user))
+        assert "shelved" not in qs.query.annotations

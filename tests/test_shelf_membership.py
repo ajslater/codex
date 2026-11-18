@@ -237,12 +237,12 @@ class ShelfMembershipApiTestCase(ShelfTestCase):
         return v4(response)["rows"]
 
     def test_table_rows_carry_shelves_with_the_column(self):
-        """``columns=shelved`` adds the shelf pks beside the flag."""
+        """``columns=shelved`` adds the shelf pks beside the flag, which agrees."""
         shelf = self._shelf()
         self._put(shelf, "series", self.s1.pk)
         rows = self._rows(f"/api/v4/browse/comics/{self.v1.pk}?page=1&columns=shelved")
         assert [(row["pk"], row["shelved"], row["shelves"]) for row in rows] == [
-            (self.c1.pk, False, [shelf.pk])
+            (self.c1.pk, True, [shelf.pk])
         ]
         series_rows = self._rows(
             f"/api/v4/browse/series/{self.i1.pk}?page=1&columns=name,shelved"
