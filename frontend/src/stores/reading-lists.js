@@ -20,8 +20,6 @@ export const SOURCE_KINDS = Object.freeze({
 export const EXPORT_FORMATS = Object.freeze([
   { value: "cbl", title: "ComicRack CBL" },
   { value: "json-cbl", title: "json-cbl" },
-  { value: "yaml", title: "Comicbox YAML" },
-  { value: "json", title: "Comicbox JSON" },
 ]);
 
 function reportError(error) {

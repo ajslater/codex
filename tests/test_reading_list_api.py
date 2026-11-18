@@ -29,6 +29,7 @@ from tests.test_reading_lists import ReadingListFixture
 _PW: Final = "test-pw-hush-S106"
 _OK: Final = 200
 _CREATED: Final = 201
+_BAD_REQUEST: Final = 400
 _ACCEPTED: Final = 202
 _FORBIDDEN: Final = 403
 _NOT_FOUND: Final = 404
@@ -156,6 +157,15 @@ class ReadingListApiTests(ReadingListFixture):
         assert cbl.status_code == _OK
         parsed = loads(cbl.content).reading_list
         assert len(parsed["entries"]) == 4  # noqa: PLR2004
+
+    def test_export_offers_only_comicrack_formats(self) -> None:
+        """Comicbox's own YAML and JSON list formats are not exported."""
+        reading_list = self._import_cbl()
+        for fmt in ("yaml", "json"):
+            response = self.client.get(
+                f"{_LISTS}/{reading_list.pk}/export", {"fmt": fmt}
+            )
+            assert response.status_code == _BAD_REQUEST, fmt
 
     def test_non_admin_cannot_edit_a_global_list(self) -> None:
         """A user sees a global list's comics but cannot change its entries."""

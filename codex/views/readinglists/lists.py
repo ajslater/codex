@@ -48,13 +48,13 @@ _COMICBOX_KINDS: Final[MappingProxyType[str, str]] = MappingProxyType(
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
 )
-# Export format -> (comicbox format token, suffix, content type).
+# Export format -> (comicbox format token, suffix, content type). Lists
+# export in the ComicRack formats only; comicbox's own YAML and JSON reading
+# list formats are not offered.
 EXPORT_FORMATS: Final = MappingProxyType(
     {
         "cbl": ("cbl", ".cbl", "application/xml"),
         "json-cbl": ("json-cbl", ".json", "application/json"),
-        "yaml": ("yaml", ".yaml", "application/yaml"),
-        "json": ("json", ".json", "application/json"),
     }
 )
 _UNSAFE_FILENAME_RE: Final = re.compile(r"[^\w\- .()\[\]]+")
@@ -257,7 +257,7 @@ class ReadingListDuplicateView(ReadingListAccessView):
 
 class ReadingListExportView(ReadingListAccessView):
     """
-    GET a list as a file: ``?fmt=cbl|json-cbl|yaml|json``.
+    GET a list as a file: ``?fmt=cbl|json-cbl``.
 
     Not ``format``: DRF reads that query parameter to choose a renderer.
     """
