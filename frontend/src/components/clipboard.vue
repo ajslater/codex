@@ -1,5 +1,10 @@
 <template>
-  <div class="clipboard" :title="tooltipText" @click.stop="onClick">
+  <button
+    type="button"
+    class="clipboard"
+    :title="tooltipText"
+    @click.stop="onClick"
+  >
     <span class="clipboardTitle">
       {{ title }}
       <span v-if="isSupported" class="iconContainer">
@@ -10,8 +15,8 @@
       </span>
     </span>
     <span v-if="subtitle" class="subtitle">{{ subtitle }}</span>
-    <div class="bodyText">{{ text }}</div>
-  </div>
+    <span class="bodyText">{{ text }}</span>
+  </button>
 </template>
 <script>
 import { useClipboard } from "@vueuse/core";
@@ -55,6 +60,19 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+/* A real button for the keyboard, laid out as the block it replaced. */
+.clipboard {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
 .clipboard:hover {
   background-color: rgb(var(--v-theme-surface));
 }
@@ -82,6 +100,7 @@ export default {
 }
 
 .bodyText {
+  display: block;
   color: rgb(var(--v-theme-text-secondary));
 }
 

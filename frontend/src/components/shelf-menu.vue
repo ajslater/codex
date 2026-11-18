@@ -4,6 +4,7 @@
     v-model="menu"
     :close-on-content-click="false"
     :location="location"
+    :submenu="submenu"
   >
     <template #activator="{ props: activatorProps }">
       <slot
@@ -133,6 +134,12 @@ export default {
     location: {
       type: String,
       default: "bottom end",
+    },
+    // Inside another menu, so arrow keys move through the parent's items
+    // instead of popping this one open.
+    submenu: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {
