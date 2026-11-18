@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from codex.user_data.store import SidecarStore
 
 _TABLE: Final = "api_keys"
+# A key the backup has and the database doesn't: revoked since the backup,
+# perhaps, so it is counted on its own line for an admin to check.
+_RECREATED: Final = "api_keys_recreated"
 
 
 def _restore_one(row, report: RestoreReport) -> None:
@@ -55,7 +58,7 @@ def _restore_one(row, report: RestoreReport) -> None:
     if row["created_at"]:
         # ``auto_now_add`` ignores a value passed to ``create``.
         UserApiKey.objects.filter(pk=api_key.pk).update(created_at=row["created_at"])
-    report.note_written(_TABLE)
+    report.note_written(_RECREATED)
 
 
 def restore_api_keys(
@@ -65,7 +68,8 @@ def restore_api_keys(
     Restore API key rows. Never replaces a key that is already here.
 
     Run after users. A row whose user is missing is skipped, as is one
-    whose name the user already gave a different key.
+    whose name the user already gave a different key. A key created again
+    is counted as ``api_keys_recreated``, apart from the keys still here.
     """
     for row in store.fetchall(_TABLE):
         if dry_run:

@@ -422,7 +422,10 @@ class ApiKeyRestoreTests(_SidecarRestoreCase):
 
         report = restore(sidecar_path=snapshot)
 
-        assert report.written.get("api_keys") == 2  # noqa: PLR2004
+        # Keys the backup has and the database doesn't are re-created: maybe
+        # revoked since the backup, so they get their own line.
+        assert report.written.get("api_keys_recreated") == 2  # noqa: PLR2004
+        assert "api_keys" not in report.written
         device = UserApiKey.objects.get(user=self.reader)
         assert (device.name, device.scope, device.digest) == (
             "Kobo",
@@ -437,8 +440,11 @@ class ApiKeyRestoreTests(_SidecarRestoreCase):
         self._seed()
         snapshot = self._snapshot_sidecar()
         restore(sidecar_path=snapshot)
-        restore(sidecar_path=snapshot)
+        report = restore(sidecar_path=snapshot)
         assert UserApiKey.objects.count() == 2  # noqa: PLR2004
+        # Keys still here are ordinary rows, not re-created ones.
+        assert report.written.get("api_keys") == 2  # noqa: PLR2004
+        assert "api_keys_recreated" not in report.written
 
     def test_missing_user_is_skipped(self) -> None:
         self._seed()
