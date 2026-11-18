@@ -41,6 +41,8 @@ CODEX_DEVICE: Final = "Codex"
 CODEX_DEVICE_ID: Final = "00000000000000000000000000c0de00"
 _HASH_RE: Final = re.compile(r"^[0-9a-f]{32}$")
 _PERCENT_DIGITS: Final = 4
+# A page past any comic's: Codex stores page counts and pages as small ints.
+_MAX_PAGE: Final = 32767
 
 
 def normalize_document(document) -> str | None:
@@ -94,27 +96,30 @@ def map_push(progress, percentage, page_count: int) -> tuple[int, bool] | None:
     Map a pushed position to ``(0-based page, finished)``.
 
     The device's page is used when it agrees with Codex about how many pages
-    the book has. If ``progress`` isn't a page number, or the page count the
-    device implies (``progress / percentage``) differs from Codex's, the
-    position is taken from ``percentage`` instead. Returns None when neither
-    can be read.
+    the book has. If ``progress`` isn't a page number a comic could have, or
+    the page count the device implies (``progress / percentage``) differs
+    from Codex's, the position is taken from ``percentage`` instead, which
+    finishes the book only at the device's own end (1.0): rounding must not
+    mark a book read for good. Returns None when neither can be read, or
+    while Codex hasn't counted the book's pages and so can't place it.
     """
-    device_page = _parse_page(progress)
-    fraction = _parse_percentage(percentage)
     if page_count <= 0:
-        # Codex hasn't counted the pages yet: keep the device's page as is.
-        if device_page is None:
-            return None
-        return max(device_page - 1, 0), False
+        return None
+    device_page = _parse_page(progress)
+    if device_page is not None and not 0 <= device_page <= _MAX_PAGE:
+        device_page = None
+    fraction = _parse_percentage(percentage)
     if device_page is not None and fraction:
         implied_page_count = round(device_page / fraction)
         if implied_page_count != page_count:
             device_page = None
-    if device_page is None:
-        if fraction is None:
-            return None
+    if device_page is not None:
+        finished = device_page >= page_count
+    elif fraction is None:
+        return None
+    else:
         device_page = max(round(fraction * page_count), 1)
-    finished = device_page >= page_count
+        finished = fraction >= 1.0
     page = min(max(device_page - 1, 0), page_count - 1)
     return page, finished
 
@@ -280,6 +285,9 @@ class KOSyncProgressGetView(KOSyncProgressMixin, KOSyncAPIView):
             return Response({})
         comic_pk, page, finished, updated_at = bookmark
         page_count = comics[comic_pk] or 0
+        if page_count <= 0:
+            # Codex hasn't counted the pages: no position it can report.
+            return Response({})
         if finished and not page:
             # Marked read without opening: report the last page.
             page = max(page_count - 1, 0)

@@ -234,8 +234,16 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         )
 
     def test_out_of_range_page_is_clamped(self) -> None:
-        """A page past the end is the last page, and read."""
+        """
+        A page past Codex's end is the last page, read only at the device's end.
+
+        Page 99 at 0.99 is a device counting 100 pages, one short of its
+        end: rounding it onto Codex's last page must not finish the book,
+        which only "mark unread" undoes.
+        """
         self._push(self.comic.koreader_hash, progress="99", percentage=0.99)
+        assert self._bookmarks() == [(self.comic.pk, PAGE_COUNT - 1, False)]
+        self._push(self.comic.koreader_hash, progress="100", percentage=1.0)
         assert self._bookmarks() == [(self.comic.pk, PAGE_COUNT - 1, True)]
 
     def test_percentage_fallback_when_page_counts_differ(self) -> None:
@@ -347,6 +355,24 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         assert self._bookmarks() == [(self.comic.pk, _STORED_PAGE, False)]
         assert self._pull(self.comic.koreader_name_hash).json()["progress"] == "5"
 
+    def test_uncounted_pages_store_and_pull_nothing(self) -> None:
+        """
+        Until Codex counts the pages it can't place the device's position.
+
+        Storing the raw page collapsed it to page 1 on the next push.
+        """
+        Comic.objects.filter(pk=self.comic.pk).update(page_count=0)
+        assert self._push(self.comic.koreader_hash).status_code == _HTTP_OK
+        assert not self._bookmarks()
+        Bookmark.objects.create(user=self.user, comic=self.comic, page=3)
+        assert self._pull(self.comic.koreader_hash).json() == {}
+
+    def test_a_crafted_page_is_not_a_500(self) -> None:
+        response = self._push(
+            self.comic.koreader_hash, progress="9" * 400, percentage=0.5
+        )
+        assert response.status_code == _HTTP_OK
+
     def test_hash_case_is_ignored(self) -> None:
         """Upper-case hex matches; the response echoes what was sent."""
         upper = str(self.comic.koreader_hash).upper()
@@ -435,12 +461,20 @@ class KOSyncMappingTestCase(TestCase):
             ((7, 0.35, 20), (6, False)),
             (("0", 0.0, 20), (0, False)),
             (("10", 0.25, 20), (4, False)),  # device counts 40 pages
-            (("x", 0.999, 20), (19, True)),
+            # The fallback rounds; only the device's own end is finished.
+            (("x", 0.999, 20), (19, False)),
+            (("98", 0.98, 20), (19, False)),  # device counts 100 pages
+            (("x", 1.0, 20), (19, True)),
             (("x", None, 20), None),
-            (("3", None, 0), (2, False)),  # Codex hasn't counted pages yet
+            (("3", None, 0), None),  # Codex hasn't counted pages yet
+            (("3", 0.5, 0), None),
             ((None, 0.5, 0), None),
             (("3", "0.15", 20), (2, False)),
             (("3", 1.5, 20), (2, False)),  # out-of-range percentage ignored
+            # A page no comic has is not a page: fall back to the percentage.
+            (("9" * 400, 0.5, 20), (9, False)),
+            ((10**6, 0.5, 20), (9, False)),
+            (("-5", 0.5, 20), (9, False)),
         )
         for args, expected in cases:
             assert map_push(*args) == expected, args
