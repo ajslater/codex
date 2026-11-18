@@ -26,6 +26,7 @@ vi.mock("@/api/v4/auth", () => ({
 }));
 
 import * as API from "@/api/v4/auth";
+import { APIError } from "@/api/v4/base";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -247,14 +248,28 @@ describe("useAuthStore — API keys", () => {
   });
 
   it("surfaces a refused create and returns undefined", async () => {
-    API.createApiKey.mockRejectedValue({
-      response: { data: { detail: "duplicate" } },
-    });
+    /*
+     * What the interceptor really hands over: the view's
+     * ``{"detail": "<sentence>"}`` arrives as the envelope error's detail
+     * string.
+     */
+    API.createApiKey.mockRejectedValue(
+      new APIError(
+        {
+          status: "400",
+          title: "Bad Request",
+          detail: "You already have a key named Kobo.",
+        },
+        400,
+      ),
+    );
     const store = useAuthStore();
     expect(
       await store.createApiKey({ name: "Kobo", scope: "device" }),
     ).toBeUndefined();
-    expect(useCommonStore().form.errors.length).toBeGreaterThan(0);
+    expect(useCommonStore().form.errors).toStrictEqual([
+      "You already have a key named Kobo.",
+    ]);
   });
 
   it("drops a revoked key", async () => {
