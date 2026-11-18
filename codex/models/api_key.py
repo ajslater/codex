@@ -7,14 +7,17 @@ from typing import Final, override
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import DatabaseError, transaction
 from django.db.models import (
     CASCADE,
     CharField,
     DateTimeField,
     ForeignKey,
+    Q,
     UniqueConstraint,
 )
 from django.utils import timezone
+from loguru import logger
 
 from codex.choices.api_key import CREATABLE_SCOPES, ApiKeyScope
 from codex.choices.limits import API_KEY_NAME_MAX_LENGTH
@@ -154,9 +157,22 @@ class UserApiKey(BaseModel):
         A queryset ``update`` rather than ``save``: it leaves ``updated_at``
         alone and writes one column. Cachalot invalidates only the queries
         that read this table, which are the key lookups themselves.
+
+        Best-effort: this is a write on a read path, so a database that is
+        locked by a long librarian write skips it rather than failing the
+        request. Conditional: a value another request stored after this
+        row was loaded is not overwritten.
         """
         now = timezone.now()
         if self.last_used_at and now - self.last_used_at < LAST_USED_RESOLUTION:
             return
-        type(self).objects.filter(pk=self.pk).update(last_used_at=now)
+        stale = Q(last_used_at__isnull=True) | Q(
+            last_used_at__lt=now - LAST_USED_RESOLUTION
+        )
+        try:
+            with transaction.atomic():
+                type(self).objects.filter(stale, pk=self.pk).update(last_used_at=now)
+        except DatabaseError as exc:
+            logger.debug(f"API key last use not recorded: {exc}")
+            return
         self.last_used_at = now
