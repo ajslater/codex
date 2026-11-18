@@ -107,7 +107,8 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
             md.update(date)
 
         if issue := md.pop("issue", None):
-            if number := issue.pop(NUMBER_KEY, None):
+            # Issue 0 is a number: keep anything that isn't None.
+            if (number := issue.pop(NUMBER_KEY, None)) is not None:
                 md["issue_number"] = number
             if suffix := issue.pop(SUFFIX_KEY, None):
                 md["issue_suffix"] = suffix

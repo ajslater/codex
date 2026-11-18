@@ -67,6 +67,7 @@ border-radius: 128px;
   unchanged, and a RAR or 7z named `.cbz` is refused with its real type.
 - Issue −1 imports as a number, and partial dates such as `2006-07` no longer
   gain today's month or day.
+- Issue #0 imports as issue 0, not as an unnumbered issue.
 - Some background task log messages, such as comicbox's, reach the log file and
   honor the log level.
 
