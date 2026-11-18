@@ -3,6 +3,7 @@
 from typing import Final
 
 from codex.librarian.scribe.janitor.status import JanitorKoreaderHashStatus
+from codex.librarian.scribe.janitor.tasks import JanitorKoreaderHashTask
 from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
 from codex.models import Comic
 from codex.settings.db import koreader_sync_enabled
@@ -20,7 +21,8 @@ class JanitorKoreaderHash(JanitorCodexUpdate):
 
         Returns ``(batch_size, last_pk)``. Walks by pk rather than
         re-querying the null set so a file that can't be read is skipped
-        instead of retried forever; the next nightly run retries it.
+        instead of retried forever; the next nightly run retries it. Its
+        name hash, which needs no file, is saved all the same.
         """
         comics = tuple(
             Comic.objects.filter(pk__gt=last_pk, koreader_hash__isnull=True)
@@ -32,31 +34,51 @@ class JanitorKoreaderHash(JanitorCodexUpdate):
         # Read the files outside the write lock.
         for comic in comics:
             comic.set_koreader_hashes()
-        hashed = [comic for comic in comics if comic.koreader_hash]
-        if hashed:
-            with self.db_write_lock:
-                Comic.objects.bulk_update(hashed, _UPDATE_FIELDS)
+        with self.db_write_lock:
+            Comic.objects.bulk_update(comics, _UPDATE_FIELDS)
         return len(comics), comics[-1].pk
 
-    def koreader_hash_backfill(self) -> None:
-        """Hash every comic that has no KOReader hash, if the flag is on."""
+    def koreader_hash_backfill(
+        self, task: JanitorKoreaderHashTask | None = None
+    ) -> None:
+        """
+        Hash a batch of comics that have no KOReader hash, if the flag is on.
+
+        One batch per task, re-queued while rows remain: the scribe runs one
+        task at a time, and imports and tag writes queued meanwhile rank
+        ahead of the next batch instead of waiting out the whole library.
+        The abort event is shared with every scribe job, so it is cleared
+        on the way in and out.
+        """
+        task = task or JanitorKoreaderHashTask()
+        self.abort_event.clear()
         status = JanitorKoreaderHashStatus()
+        requeued = False
         try:
             # Finish the status even when off: the nightly run marks it
             # pending along with every other janitor job.
             if not koreader_sync_enabled():
                 self.log.debug("KOReader Sync is off, not hashing comics.")
                 return
-            status.total = Comic.objects.filter(koreader_hash__isnull=True).count()
+            remaining = Comic.objects.filter(
+                pk__gt=task.last_pk, koreader_hash__isnull=True
+            ).count()
+            status.total = task.done + remaining
+            status.complete = task.done
             self.status_controller.start(status)
-            last_pk = 0
-            while not self.abort_event.is_set():
-                count, last_pk = self._koreader_hash_batch(last_pk)
-                if not count:
-                    break
-                status.increment_complete(count)
+            count, last_pk = self._koreader_hash_batch(task.last_pk)
+            done = task.done + count
+            if count >= _BATCH_SIZE and not self.abort_event.is_set():
+                status.complete = done
                 self.status_controller.update(status)
-            level = "INFO" if status.total else "DEBUG"
-            self.log.log(level, f"Hashed {status.complete or 0} comics for KOReader.")
+                self.librarian_queue.put(
+                    JanitorKoreaderHashTask(last_pk=last_pk, done=done)
+                )
+                requeued = True
+                return
+            level = "INFO" if done else "DEBUG"
+            self.log.log(level, f"Hashed {done} comics for KOReader.")
         finally:
-            self.status_controller.finish(status)
+            if not requeued:
+                self.status_controller.finish(status)
+            self.abort_event.clear()

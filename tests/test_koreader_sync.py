@@ -20,7 +20,7 @@ from multiprocessing import Event
 from pathlib import Path
 from threading import Lock
 from typing import Any, Final
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
 from django.contrib.auth.models import User
@@ -520,6 +520,53 @@ class KOSyncBackfillTestCase(KOSyncTestCase):
         self._janitor().koreader_hash_backfill()
         assert Comic.objects.get(pk=self.comic.pk).koreader_hash is None
         assert Comic.objects.get(pk=self.private_comic.pk).koreader_hash
+
+    def test_an_earlier_abort_does_not_stop_the_next_run(self) -> None:
+        """
+        The abort event is shared with every scribe job.
+
+        Left set by an earlier abort, the next run exited at once with
+        "Hashed 0 comics".
+        """
+        self._clear_hashes()
+        event = Event()
+        event.set()
+        Janitor(logger, LIBRARIAN_QUEUE, Lock(), event).koreader_hash_backfill()
+        assert not Comic.objects.filter(koreader_hash__isnull=True).exists()
+        assert not event.is_set()
+
+    def test_one_batch_per_task_requeued_while_rows_remain(self) -> None:
+        """
+        A batch per task lets queued imports and tag writes go between.
+
+        The scribe runs one task at a time, so a backfill of a large
+        library held it until done.
+        """
+        self._clear_hashes()
+        queue = MagicMock()
+        janitor = Janitor(logger, queue, Lock(), Event())
+        first_pk = Comic.objects.order_by("pk").values_list("pk", flat=True)[0]
+        with patch("codex.librarian.scribe.janitor.koreader._BATCH_SIZE", 1):
+            janitor.handle_task(JanitorKoreaderHashTask())
+            assert Comic.objects.filter(koreader_hash__isnull=True).count() == 1
+            requeued = [
+                call.args[0]
+                for call in queue.put.call_args_list
+                if isinstance(call.args[0], JanitorKoreaderHashTask)
+            ]
+            assert len(requeued) == 1
+            assert requeued[0].last_pk == first_pk
+            janitor.handle_task(requeued[0])
+        assert not Comic.objects.filter(koreader_hash__isnull=True).exists()
+
+    def test_an_unreadable_file_still_gets_its_name_hash(self) -> None:
+        """The name hash needs no file; Filename matching can use it."""
+        self._clear_hashes()
+        Path(self.comic.path).unlink()
+        self._janitor().koreader_hash_backfill()
+        comic = Comic.objects.get(pk=self.comic.pk)
+        assert comic.koreader_hash is None
+        assert comic.koreader_name_hash == koreader_name_md5(comic.path)
 
     def test_backfill_does_nothing_with_the_flag_off(self) -> None:
         """The nightly run is a no-op while sync is off."""
