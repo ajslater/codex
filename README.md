@@ -62,7 +62,8 @@ border-radius: 128px;
 ### 🔌 Integrations
 
 - **OPDS 1 & 2** syndication with streaming, search, and authentication.
-- **KOReader progress sync** through KOReader's built in Progress sync plugin.
+- **KOReader progress sync** (experimental) through KOReader's built in Progress
+  sync plugin.
 - **OIDC single sign-on** with identity providers like Authentik and Authelia.
 - **Remote-User HTTP header SSO** for reverse-proxy single sign-on (tinyauth,
   Authelia, Authentik proxy mode).
@@ -1186,6 +1187,11 @@ outage is lost -- it becomes readable again when the file returns.
 - [OpenSearch 1.1 (draft)](https://github.com/dewitt/opensearch)
 
 ### 📲 KOReader Progress Sync
+
+> [!NOTE]
+>
+> KOReader Sync is experimental. Expect rough edges, and please report problems
+> on the issue tracker.
 
 Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
 server, so a comic read on a KOReader device and in the Codex web reader keeps

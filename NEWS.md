@@ -18,9 +18,9 @@ border-radius: 128px;
   on the OPDS v1 and v2 start pages.
 - The table view's Shelves column and the metadata dialog list the shelves an
   item is on, including through its series, folder or other parent.
-- KOReader progress sync: Codex can be the sync server for KOReader's Progress
-  sync plugin, so a comic's reading position follows you between KOReader and
-  the web reader. Off by default; setup is in API Access.
+- Experimental KOReader progress sync: Codex can be the sync server for
+  KOReader's Progress sync plugin, so a comic's reading position follows you
+  between KOReader and the web reader. Off by default; setup is in API Access.
 - API Access, from the drawer's OPDS & APIs button or Profile, lists your OPDS,
   KOReader and Stats API URLs and makes and revokes your API keys.
 - Device Keys: a named, revocable password for each OPDS reader or KOReader
