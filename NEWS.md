@@ -29,6 +29,7 @@ border-radius: 128px;
 - Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
   off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
+- A Hash Comics for KOReader Sync job on the Jobs tab.
 
 ### ♻️ Changed
 
@@ -36,11 +37,13 @@ border-radius: 128px;
   favorites filter on it. The favorite star is now a shelf button, or a Shelves
   entry in a cover's menu; the Favorite sort is now Shelved and the Favorite
   column Shelves.
-- Authorization Bearer Tokens are now Universal Tokens: they work until revoked
-  but can no longer be shown, reset or made. Use Device Keys for OPDS and
-  KOReader.
+- Every account's Authorization Bearer Token, which v2.6.0 made for each user,
+  is now a Universal Token: it works until revoked but can no longer be shown,
+  reset or made. Use Device Keys for OPDS and KOReader.
 - The server-wide Stats API key is revoked. Each admin makes their own Stats key
   in API Access.
+- Anonymous usage stats count shelves, API keys and the API flags instead of
+  favorites.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
 - Libraries have their own icon, and actions and statuses that shared an icon
@@ -56,14 +59,14 @@ border-radius: 128px;
 ### 🐛 Fixed
 
 - Logging in or registering keeps a visitor's bookmarks and browser and reader
-  settings.
+  settings, though not their saved views.
 - OPDS v1 "Latest Unread" lists only unread issues, and "Oldest Unread" always
   lists oldest first.
 - Table view cells for a row that combines same-named series, imprints or
   volumes describe all of them, and comics in folder view no longer show a
   folder's cells.
-- Some background task log messages, such as comicbox's, reach the log file and
-  honor the log level.
+- Some of comicbox's log messages reach the log file and honor the log level.
+- Admin edit dialogs keep unsaved edits when their table reloads.
 
 ### 🧑‍💻 Developer
 
