@@ -78,6 +78,7 @@ function mountPopup(candidates, promptFields = {}) {
 
 const fileCover = (pk, status = "ready") => ({ pk, mtime: MTIME, status });
 const titles = (wrapper) => wrapper.findAll(".v-expansion-panel-title");
+const note = (wrapper) => wrapper.find(".promptTagged");
 
 describe("OnlineTagPromptPopup", () => {
   describe("reprint series names", () => {
@@ -152,6 +153,69 @@ describe("OnlineTagPromptPopup", () => {
       expect(wrapper.vm.coveredNames(prompt)).toBe(
         "1.cbz, 2.cbz, 3.cbz and 2 more",
       );
+    });
+  });
+
+  /*
+   * With several sources, a later one can tag a comic an earlier one left a
+   * prompt for. It still needs review, so the prompt stays and says so.
+   */
+  describe("a comic another source already tagged", () => {
+    test("names the source in the prompt's title", async () => {
+      const { wrapper } = mountPopup([candidate()], {
+        source: "metron",
+        comics: [
+          { pk: 7, path: "/comics/kapitan.cbz", taggedBy: ["comicvine"] },
+        ],
+      });
+      await wrapper.vm.$nextTick();
+
+      expect(note(wrapper).text()).toBe("Comic Vine already tagged this comic");
+      expect(titles(wrapper)[0].text()).toContain("already tagged");
+    });
+
+    test("counts the tagged comics of a series prompt", async () => {
+      const { wrapper } = mountPopup([candidate()], {
+        source: "metron",
+        comics: [
+          { pk: 7, path: "/comics/kapitan 1.cbz", taggedBy: [] },
+          { pk: 8, path: "/comics/kapitan 2.cbz", taggedBy: ["comicvine"] },
+          { pk: 9, path: "/comics/kapitan 3.cbz", taggedBy: ["comicvine"] },
+        ],
+      });
+      await wrapper.vm.$nextTick();
+
+      expect(note(wrapper).text()).toBe(
+        "Comic Vine already tagged 2 of these 3 comics",
+      );
+      const both = ["metron", "comicvine"];
+      const allTagged = {
+        comics: [7, 8].map((pk) => ({
+          pk,
+          path: `/c/${pk}.cbz`,
+          taggedBy: both,
+        })),
+      };
+      expect(wrapper.vm.taggedNote(allTagged)).toBe(
+        "Metron Cloud and Comic Vine already tagged these 2 comics",
+      );
+    });
+
+    test("says nothing when no other source tagged it", async () => {
+      const { wrapper } = mountPopup([candidate()], {
+        comics: [{ pk: 7, path: "/comics/kapitan.cbz", taggedBy: [] }],
+      });
+      await wrapper.vm.$nextTick();
+
+      expect(note(wrapper).exists()).toBe(false);
+    });
+
+    test("says nothing for a prompt cached before the field existed", async () => {
+      const { wrapper } = mountPopup([candidate()]);
+      await wrapper.vm.$nextTick();
+
+      expect(note(wrapper).exists()).toBe(false);
+      expect(wrapper.text()).not.toContain("already tagged");
     });
   });
 

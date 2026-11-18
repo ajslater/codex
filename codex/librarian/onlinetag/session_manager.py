@@ -362,6 +362,7 @@ class OnlineTagSessionManager:
         if state is not None:
             state.stats.record(event)
             self._track_live_lookup(state, event)
+            self._persist_prompts_on(state, event)
         match event:
             case RateLimited():
                 self._pass_runner.rate_limited = True
@@ -381,7 +382,22 @@ class OnlineTagSessionManager:
                 | Skipped(source=source)
             ) if source:
                 self._pass_runner.source_retry_at.pop(source, None)
-            case PromptDeferred() if state is not None:
+            case _:
+                pass
+
+    def _persist_prompts_on(self, state: SessionState, event: Event) -> None:
+        """
+        Re-persist the scan's prompts when one is raised or its comic is written.
+
+        A source after the one that deferred still runs on the comic (first
+        wins only once a source writes), and its write is noted on the
+        prompt. Persisting then, not only at scan end, keeps the cached
+        prompt saying so even if the scan dies first.
+        """
+        match event:
+            case PromptDeferred():
+                self._persist_prompts(state)
+            case AutoWritten(path=path) if path in state.stats.deferred_paths:
                 self._persist_prompts(state)
             case _:
                 pass
@@ -606,6 +622,10 @@ class OnlineTagSessionManager:
         Serializing each deferral under its own fingerprint key — which is
         what this used to do — kept only the last comic of the series and
         silently lost the rest.
+
+        Each comic carries ``tagged_by``: the other sources that wrote it
+        this scan. It still needs review, as their data differ, and the
+        review dialog says it was tagged.
         """
         grouped: dict[str, dict[str, Any]] = {}
         for dp in state.session.deferred_prompts():
@@ -617,7 +637,15 @@ class OnlineTagSessionManager:
             # already-answered series is a question nobody has answered yet.
             if pk is None or pk in state.answered_pks:
                 continue
-            comic = {"pk": pk, "path": str(dp.path)}
+            comic = {
+                "pk": pk,
+                "path": str(dp.path),
+                "tagged_by": [
+                    source
+                    for source in state.stats.matched_source_by_path.get(dp.path, ())
+                    if source != dp.source
+                ],
+            }
             prompt = grouped.get(dp.fingerprint)
             if prompt is None:
                 grouped[dp.fingerprint] = serialize_prompt(

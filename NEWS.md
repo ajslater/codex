@@ -31,6 +31,8 @@ border-radius: 128px;
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
 - Tag writes and online tagging can keep a comic's other tag formats instead of
   removing them.
+- Online tagging's match review says when another source already tagged the
+  comic.
 
 ### ♻️ Changed
 
