@@ -25,6 +25,7 @@ from codex.models.readinglist import (
     MAX_REVISION_LEN,
     ReadingList,
     ReadingListEntry,
+    ReadingListMatchTier,
     ReadingListSource,
     ReadingListSourceKind,
 )
@@ -108,6 +109,46 @@ def unique_name(name: str, user) -> str:
         candidate = f"{name} ({number})"
         number += 1
     return candidate
+
+
+def copy_list(original: ReadingList, *, user, name: str) -> ReadingList:
+    """
+    Copy a list's shown entries into a new list, as entries added by hand.
+
+    ``user`` owns the copy; None makes it global. The copy's order is
+    locked, since it has no sources to follow.
+    """
+    with transaction.atomic():
+        copy = ReadingList.objects.create(
+            name=unique_name(name[:MAX_NAME_LEN], user),
+            user=user,
+            description=original.description,
+            list_type=original.list_type,
+            start_year=original.start_year,
+            end_year=original.end_year,
+            order_locked=True,
+        )
+        entries = ReadingListEntry.objects.filter(
+            reading_list=original, ignored=False
+        ).order_by("position", "pk")
+        ReadingListEntry.objects.bulk_create(
+            ReadingListEntry(
+                reading_list=copy,
+                position=position,
+                comic_id=entry.comic_id,  # pyright: ignore[reportAttributeAccessIssue]
+                reference=entry.reference,
+                series_name=entry.series_name,
+                issue=entry.issue,
+                year=entry.year,
+                entry_type=entry.entry_type,
+                match_tier=ReadingListMatchTier.MANUAL
+                if entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
+                else ReadingListMatchTier.NONE,
+                manual=True,
+            )
+            for position, entry in enumerate(entries)
+        )
+    return copy
 
 
 def import_document(

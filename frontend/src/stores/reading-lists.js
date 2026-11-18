@@ -17,9 +17,10 @@ export const SOURCE_KINDS = Object.freeze({
   comicvine_arc: "Comic Vine Story Arc",
 });
 
+// json-cbl, the newer JSON standard, first; then the classic XML.
 export const EXPORT_FORMATS = Object.freeze([
-  { value: "cbl", title: "ComicRack CBL" },
   { value: "json-cbl", title: "json-cbl" },
+  { value: "cbl", title: "ComicRack CBL" },
 ]);
 
 // Reading list actions happen outside forms: they report as notices.
@@ -96,6 +97,20 @@ export const useReadingListsStore = defineStore("readingLists", {
         await API.bulkAction(action, pks);
         useCommonStore().setNotice(`Queued: ${action} for ${pks.length}.`);
         if (action === "delete") await this.loadLists();
+      } catch (error) {
+        reportError(error);
+      }
+    },
+    async copyToGlobal(pk) {
+      try {
+        const response = await API.listAction(pk, "copy_global");
+        const copied = response.data?.copied || 0;
+        useCommonStore().setNotice(
+          copied
+            ? "Copied to a new global reading list."
+            : "Already a global list: nothing to copy.",
+        );
+        await this.loadLists();
       } catch (error) {
         reportError(error);
       }

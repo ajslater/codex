@@ -22,6 +22,7 @@ from codex.librarian.scribe.readinglists.errors import (
 )
 from codex.librarian.scribe.readinglists.service import (
     REMOTE_KINDS,
+    copy_list,
     rank_sources,
     remove_source,
 )
@@ -292,6 +293,21 @@ def _write(reading_lists: list[ReadingList]) -> dict[str, int]:
     return {"queued": queued, "skipped": skipped}
 
 
+def _copy_global(reading_lists: list[ReadingList]) -> dict[str, int]:
+    """
+    Copy users' personal lists into new global lists, under the same name.
+
+    The users keep their lists as they are. Global lists are skipped.
+    """
+    copied = 0
+    for reading_list in reading_lists:
+        if reading_list.user_id is None:  # pyright: ignore[reportAttributeAccessIssue]
+            continue
+        copy_list(reading_list, user=None, name=reading_list.name)
+        copied += 1
+    return {"copied": copied}
+
+
 def _delete(reading_lists: list[ReadingList]) -> dict[str, int]:
     pks = [reading_list.pk for reading_list in reading_lists]
     count, _ = ReadingList.objects.filter(pk__in=pks).delete()
@@ -305,6 +321,7 @@ _ACTIONS: Final = MappingProxyType(
         "rematch": _rematch,
         "recombine": _recombine,
         "write": _write,
+        "copy_global": _copy_global,
         "delete": _delete,
     }
 )

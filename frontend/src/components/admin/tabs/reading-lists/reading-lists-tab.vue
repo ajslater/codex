@@ -240,7 +240,18 @@
                 @click="act(item.pk, 'complete')"
               />
               <v-list-item
+                v-if="item.owner"
+                title="Copy to Global"
+                :subtitle="`Leaves ${item.owner}'s list as it is.`"
+                @click="copyToGlobal(item.pk)"
+              />
+              <v-list-item
                 :title="item.owner ? 'Make Global' : 'Make Private to Me'"
+                :subtitle="
+                  item.owner
+                    ? `Moves it: ${item.owner} can no longer edit it.`
+                    : ''
+                "
                 @click="setPrivate(item.pk, !item.owner)"
               />
               <v-list-item
@@ -249,14 +260,7 @@
                 :subtitle="writeHint(item)"
                 @click="confirmWrite([item])"
               />
-              <v-list-subheader>Export</v-list-subheader>
-              <v-list-item
-                v-for="fmt in EXPORT_FORMATS"
-                :key="fmt.value"
-                :title="fmt.title"
-                :href="exportURL(item.pk, fmt.value)"
-                download
-              />
+              <ReadingListExportMenu :pk="item.pk" />
             </v-list>
           </v-menu>
           <ConfirmDialog
@@ -318,7 +322,6 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { exportURL } from "@/api/v4/reading-lists";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
@@ -328,11 +331,8 @@ import CombineDialog from "@/components/admin/tabs/reading-lists/combine-dialog.
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import SourcesDialog from "@/components/admin/tabs/reading-lists/sources-dialog.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import {
-  EXPORT_FORMATS,
-  SOURCE_KINDS,
-  useReadingListsStore,
-} from "@/stores/reading-lists";
+import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
+import { SOURCE_KINDS, useReadingListsStore } from "@/stores/reading-lists";
 
 const HEADERS = Object.freeze([
   { title: "Name", key: "name" },
@@ -359,6 +359,7 @@ export default {
     CombineDialog,
     ConfirmDialog,
     DateTimeColumn,
+    ReadingListExportMenu,
     ReviewDialog,
     SourcesDialog,
   },
@@ -369,7 +370,6 @@ export default {
       mdiPlaylistPlus,
       mdiSourceBranch,
       mdiTrashCanOutline,
-      EXPORT_FORMATS,
       headers: HEADERS,
       kindItems: KIND_ITEMS,
       search: "",
@@ -445,9 +445,9 @@ export default {
       "loadErrors",
       "clearErrors",
       "act",
+      "copyToGlobal",
       "setPrivate",
     ]),
-    exportURL,
     loadAll() {
       this.loadLists();
       this.loadSuggestions();

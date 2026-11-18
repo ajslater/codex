@@ -10,6 +10,7 @@ vi.mock("@/api/v4/reading-lists", () => ({
   getAdminLists: vi.fn(),
   bulkAction: vi.fn(),
   duplicateList: vi.fn(),
+  listAction: vi.fn(),
   getMyLists: vi.fn(),
   getSuggestions: vi.fn(),
   getErrors: vi.fn(),
@@ -27,6 +28,7 @@ import * as API from "@/api/v4/reading-lists";
 import AddListsDialog from "@/components/admin/tabs/reading-lists/add-lists-dialog.vue";
 import ReadingListsTab from "@/components/admin/tabs/reading-lists/reading-lists-tab.vue";
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
+import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import vuetify from "@/plugins/vuetify";
 import { useCommonStore } from "@/stores/common";
 import { useReadingListsStore } from "@/stores/reading-lists";
@@ -93,6 +95,18 @@ describe("reading lists store notices", () => {
       text: 'Copied to your reading lists as "CW (copy)".',
       error: false,
     });
+  });
+
+  test("copy to global makes a global copy and says so", async () => {
+    API.listAction.mockResolvedValue({ data: { copied: 1 } });
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    const active = pinia();
+    await useReadingListsStore(active).copyToGlobal(3);
+    expect(API.listAction).toHaveBeenCalledWith(3, "copy_global");
+    expect(API.getAdminLists).toHaveBeenCalledOnce();
+    expect(useCommonStore(active).notice.text).toBe(
+      "Copied to a new global reading list.",
+    );
   });
 
   test("a failure shows an error notice", async () => {
@@ -234,5 +248,35 @@ describe("review dialog", () => {
     await flushPromises();
     await wrapper.vm.move(wrapper.vm.entries[1], 0);
     expect(API.reorderEntry).toHaveBeenCalledWith(3, 8, 0);
+  });
+});
+
+describe("export menu", () => {
+  test("offers json-cbl first, then ComicRack CBL", async () => {
+    globalThis.visualViewport ??= {
+      width: 1024,
+      height: 768,
+      offsetLeft: 0,
+      offsetTop: 0,
+      scale: 1,
+      addEventListener() {},
+      removeEventListener() {},
+    };
+    const wrapper = mount(ReadingListExportMenu, {
+      attachTo: document.body,
+      props: { pk: 4 },
+      global: { plugins: [pinia(), vuetify] },
+    });
+    expect(wrapper.find(".exportListItem").text()).toContain("Export");
+    await wrapper.find(".exportListItem").trigger("click");
+    await flushPromises();
+    const links = [...document.querySelectorAll(".v-overlay--active a")].map(
+      (a) => [a.textContent.trim(), a.getAttribute("href")],
+    );
+    expect(links).toEqual([
+      ["json-cbl", "/export/4/json-cbl"],
+      ["ComicRack CBL", "/export/4/cbl"],
+    ]);
+    wrapper.unmount();
   });
 });

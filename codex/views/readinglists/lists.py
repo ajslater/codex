@@ -22,11 +22,10 @@ from codex.choices.limits import MAX_NAME_LEN
 from codex.librarian.scribe.readinglists.combine import document_of
 from codex.librarian.scribe.readinglists.documents import from_json
 from codex.librarian.scribe.readinglists.references import comic_references
-from codex.librarian.scribe.readinglists.service import unique_name
+from codex.librarian.scribe.readinglists.service import copy_list
 from codex.models.readinglist import (
     ReadingList,
     ReadingListEntry,
-    ReadingListMatchTier,
     ReadingListSource,
     ReadingListSourceKind,
 )
@@ -219,39 +218,8 @@ class ReadingListDuplicateView(ReadingListAccessView):
     def post(self, *_args, **_kwargs) -> Response:
         """Copy every shown entry, as entries added by hand."""
         original = self.get_reading_list(edit=False)
-        name = str(self.request.data.get("name") or f"{original.name} (copy)")[
-            :MAX_NAME_LEN
-        ]
-        with transaction.atomic():
-            copy = ReadingList.objects.create(
-                name=unique_name(name, self.request.user),
-                user=self.request.user,
-                description=original.description,
-                list_type=original.list_type,
-                start_year=original.start_year,
-                end_year=original.end_year,
-                order_locked=True,
-            )
-            entries = ReadingListEntry.objects.filter(
-                reading_list=original, ignored=False
-            ).order_by("position", "pk")
-            ReadingListEntry.objects.bulk_create(
-                ReadingListEntry(
-                    reading_list=copy,
-                    position=position,
-                    comic_id=entry.comic_id,  # pyright: ignore[reportAttributeAccessIssue]
-                    reference=entry.reference,
-                    series_name=entry.series_name,
-                    issue=entry.issue,
-                    year=entry.year,
-                    entry_type=entry.entry_type,
-                    match_tier=ReadingListMatchTier.MANUAL
-                    if entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
-                    else ReadingListMatchTier.NONE,
-                    manual=True,
-                )
-                for position, entry in enumerate(entries)
-            )
+        name = str(self.request.data.get("name") or f"{original.name} (copy)")
+        copy = copy_list(original, user=self.request.user, name=name)
         return Response(list_repr(copy, self.request.user), status=201)
 
 

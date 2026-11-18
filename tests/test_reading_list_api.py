@@ -240,6 +240,34 @@ class ReadingListApiTests(ReadingListFixture):
         menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
         assert {item["name"] for item in menu} == {"Mine", "Mine (copy)"}
 
+    def test_admin_copies_a_users_list_to_global(self) -> None:
+        """A global copy in the same order; the user's list stays theirs."""
+        pk = self._personal_list()
+        self.client.force_login(self.admin)
+        response = self.client.post(f"{_ADMIN}/{pk}/copy_global")
+        assert response.status_code == _OK, response.content
+        assert _data(response) == {"copied": 1}
+        original = ReadingList.objects.get(pk=pk)
+        assert original.user == self.user
+        copy = ReadingList.objects.get(user__isnull=True, name="Mine")
+        assert copy.order_locked
+        order = list(
+            ReadingListEntry.objects.filter(reading_list=copy)
+            .order_by("position")
+            .values_list("comic_id", "manual")
+        )
+        assert order == [(self.comics[0].pk, True), (self.comics[1].pk, True)]
+        # Global lists are skipped, so a second pass over the copy adds none.
+        response = self.client.post(f"{_ADMIN}/{copy.pk}/copy_global")
+        assert _data(response) == {"copied": 0}
+
+    def test_only_admins_copy_to_global(self) -> None:
+        """A user cannot make their list global through the admin action."""
+        pk = self._personal_list()
+        response = self.client.post(f"{_ADMIN}/{pk}/copy_global")
+        assert response.status_code == _FORBIDDEN
+        assert not ReadingList.objects.filter(user__isnull=True).exists()
+
     def test_add_a_selection(self) -> None:
         """A series adds its comics in reading order, after the list's last."""
         pk = self._personal_list()

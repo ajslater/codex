@@ -41,14 +41,7 @@
           </template>
           <v-list density="compact">
             <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
-            <v-list-subheader>Export</v-list-subheader>
-            <v-list-item
-              v-for="fmt in EXPORT_FORMATS"
-              :key="fmt.value"
-              :title="fmt.title"
-              :href="exportURL(item.pk, fmt.value)"
-              download
-            />
+            <ReadingListExportMenu :pk="item.pk" />
           </v-list>
         </v-menu>
       </template>
@@ -110,13 +103,13 @@ import {
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import { exportURL } from "@/api/v4/reading-lists";
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import LIMITS from "@/choices/limits.json";
 import NameListEditor from "@/components/name-list-editor.vue";
+import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { EXPORT_FORMATS, useReadingListsStore } from "@/stores/reading-lists";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 const ARCS = "arcs";
 
@@ -127,10 +120,9 @@ const ARCS = "arcs";
  */
 export default {
   name: "BrowserSettingsReadingLists",
-  components: { NameListEditor, ReviewDialog },
+  components: { NameListEditor, ReadingListExportMenu, ReviewDialog },
   data() {
     return {
-      EXPORT_FORMATS,
       maxLength: LIMITS.maxNameLen,
       mdiCheck,
       mdiDotsVertical,
@@ -169,7 +161,6 @@ export default {
       "renameList",
     ]),
     ...mapActions(useBrowserStore, ["refreshBrowserPage", "routeWithSettings"]),
-    exportURL,
     /*
      * The user's lists are cards in the reading lists grid too, so every
      * change refetches the shown page in place.
