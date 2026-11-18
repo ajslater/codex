@@ -60,6 +60,8 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         if (order_key == "search_score" and not self.fts_mode) or (
             (order_key == "filename" and not self.admin_flags["folder_view"])
             or (order_key == "child_count" and self.TARGET == "cover")
+            # Only table view annotates ``shelved``.
+            or (order_key == "shelved" and self.params.get("view_mode") != "table")
         ):
             order_key = "sort_name"
         return order_key

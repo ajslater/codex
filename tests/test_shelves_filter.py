@@ -212,6 +212,34 @@ class ShelfFilterTestCase(ShelfTestCase):
             listing = self.client.get(url)
             assert listing.status_code == HTTP_OK, (url, listing.content)
 
+    def test_cover_view_sort_by_shelved_falls_back_to_name(self):
+        """
+        Outside table view ``shelved`` is not annotated: sort by name.
+
+        The order pipeline referenced the missing annotation.
+        """
+        self._put(self._shelf(), "series", self.s1.pk)
+        response = post_json(
+            self.client,
+            "patch",
+            SETTINGS_URL,
+            {"viewMode": "cover", "orderBy": "shelved", "orderReverse": False},
+        )
+        assert response.status_code == HTTP_OK, response.content
+        for url in (
+            "/api/v4/browse/publishers?page=1",
+            f"/api/v4/browse/comics/{self.v1.pk}?page=1",
+        ):
+            listing = self.client.get(url)
+            assert listing.status_code == HTTP_OK, (url, listing.content)
+        names = [
+            row["name"]
+            for row in v4(self.client.get("/api/v4/browse/publishers?page=1"))[
+                "collections"
+            ]
+        ]
+        assert names == sorted(names), names
+
     def test_retired_favorite_sort_key_is_rejected(self):
         """``favorite`` is no longer a sort key."""
         response = post_json(
