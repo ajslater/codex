@@ -247,29 +247,38 @@ describe("useAuthStore — API keys", () => {
     expect(JSON.stringify(store.apiKeys)).not.toContain("wxyzsecret");
   });
 
-  it("surfaces a refused create and returns undefined", async () => {
+  it("rejects a refused create and leaves the shared form errors alone", async () => {
     /*
      * What the interceptor really hands over: the view's
      * ``{"detail": "<sentence>"}`` arrives as the envelope error's detail
-     * string.
+     * string. The API Access dialog shows it itself: the shared form errors
+     * are what the Profile dialog underneath renders.
      */
-    API.createApiKey.mockRejectedValue(
-      new APIError(
-        {
-          status: "400",
-          title: "Bad Request",
-          detail: "You already have a key named Kobo.",
-        },
-        400,
-      ),
+    const refusal = new APIError(
+      {
+        status: "400",
+        title: "Bad Request",
+        detail: "You already have a key named Kobo.",
+      },
+      400,
     );
+    API.createApiKey.mockRejectedValue(refusal);
     const store = useAuthStore();
-    expect(
-      await store.createApiKey({ name: "Kobo", scope: "device" }),
-    ).toBeUndefined();
-    expect(useCommonStore().form.errors).toStrictEqual([
-      "You already have a key named Kobo.",
-    ]);
+    await expect(
+      store.createApiKey({ name: "Kobo", scope: "device" }),
+    ).rejects.toBe(refusal);
+    expect(useCommonStore().form.errors).toStrictEqual([]);
+  });
+
+  it("says so when the key list fails to load", async () => {
+    API.getApiKeys.mockRejectedValueOnce(new Error("down"));
+    const store = useAuthStore();
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("Could not load your API keys.");
+    API.getApiKeys.mockResolvedValueOnce({ data: { keys: [KOBO] } });
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("");
+    expect(store.apiKeys).toEqual([KOBO]);
   });
 
   it("drops a revoked key", async () => {

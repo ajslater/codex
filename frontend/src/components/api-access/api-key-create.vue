@@ -21,18 +21,23 @@
       density="compact"
       hide-details
     />
-    <v-btn type="submit" :prepend-icon="mdiKeyPlus" text="Create" />
+    <v-btn
+      type="submit"
+      :prepend-icon="mdiKeyPlus"
+      text="Create"
+      :loading="creating"
+    />
   </v-form>
 </template>
 
 <script>
 import { mdiKeyPlus } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions } from "pinia";
 
 import SCOPE_TITLES from "@/choices/api-key-scopes.json";
 import LIMITS from "@/choices/limits.json";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
+import { getErrors } from "@/stores/common";
 
 // The scopes a user can make: universal keys are only ever migrated.
 const SCOPE_ITEMS = Object.freeze(
@@ -40,6 +45,7 @@ const SCOPE_ITEMS = Object.freeze(
     Object.freeze({ value, title: Reflect.get(SCOPE_TITLES, value) }),
   ),
 );
+const DEFAULT_SCOPE = "device";
 const NAME_REQUIRED = "Name the key, for example after the device it is for.";
 
 export default {
@@ -54,31 +60,43 @@ export default {
       NAME_MAX_LENGTH: LIMITS.apiKeyNameMaxLength,
       SCOPE_ITEMS,
       name: "",
-      scope: "device",
+      scope: DEFAULT_SCOPE,
       nameError: "",
+      // The server's refusal, kept here: the shared form errors show in the
+      // Profile dialog underneath.
+      createErrors: [],
+      creating: false,
     };
   },
   computed: {
-    ...mapState(useCommonStore, {
-      formErrors: (state) => state.form.errors,
-    }),
     nameErrors() {
-      return this.nameError ? [this.nameError] : this.formErrors;
+      return this.nameError ? [this.nameError] : this.createErrors;
     },
   },
   methods: {
     ...mapActions(useAuthStore, ["createApiKey"]),
     async create() {
+      // A double-click must not make two keys.
+      if (this.creating) {
+        return;
+      }
       const name = this.name?.trim() || "";
       if (!name) {
         this.nameError = NAME_REQUIRED;
         return;
       }
-      const scope = this.isAdmin ? this.scope : "device";
-      const key = await this.createApiKey({ name, scope });
-      if (key) {
+      const scope = this.isAdmin ? this.scope : DEFAULT_SCOPE;
+      this.creating = true;
+      try {
+        const key = await this.createApiKey({ name, scope });
+        this.createErrors = [];
         this.$emit("created", { key, name, scope });
         this.name = "";
+        this.scope = DEFAULT_SCOPE;
+      } catch (error) {
+        this.createErrors = getErrors(error);
+      } finally {
+        this.creating = false;
       }
     },
   },

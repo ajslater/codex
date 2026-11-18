@@ -17,11 +17,16 @@
  *     log in nowhere.
  *   - The section explains that OPDS apps often take a username and
  *     password, and that a Device Key per app is the better password.
+ *   - Create sends one request at a time, shows a refusal in the dialog
+ *     itself, and puts the kind back to Device Key after a create.
+ *   - A list that failed to load, and a revoke that failed, say so.
+ *   - Revoking the key on show takes it off the screen.
  */
 import { createTestingPinia } from "@pinia/testing";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, test } from "vitest";
 
+import { APIError } from "@/api/v4/base";
 import ApiKeyCreate from "@/components/api-access/api-key-create.vue";
 import ApiKeyList from "@/components/api-access/api-key-list.vue";
 import ApiKeyReveal from "@/components/api-access/api-key-reveal.vue";
@@ -119,6 +124,15 @@ describe("ApiKeyList", () => {
     const { wrapper } = mountWith(ApiKeyList, { apiKeys: [] });
     expect(wrapper.text()).toContain("No API keys yet.");
   });
+
+  test("a failed revoke says so", async () => {
+    const { wrapper, store } = mountWith(ApiKeyList, { apiKeys: KEYS });
+    store.deleteApiKey.mockResolvedValue(false);
+    await wrapper.find('button[title="Revoke Kobo"]').trigger("click");
+    await wrapper.find(".confirmButton").trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Could not revoke Kobo.");
+  });
 });
 
 describe("ApiKeyCreate", () => {
@@ -162,6 +176,46 @@ describe("ApiKeyCreate", () => {
       name: "Grafana",
       scope: "stats",
     });
+  });
+
+  test("the kind goes back to Device Key after a create", async () => {
+    const { wrapper, store } = mountWith(ApiKeyCreate, { isAdmin: true });
+    store.createApiKey.mockResolvedValue("secret");
+    wrapper.vm.scope = "stats";
+    wrapper.vm.name = "Grafana";
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.emitted("created")).toHaveLength(1);
+    expect(wrapper.vm.scope).toBe("device");
+  });
+
+  test("a double-click sends one create", async () => {
+    const { wrapper, store } = mountWith(ApiKeyCreate, { isAdmin: false });
+    store.createApiKey.mockReturnValue(new Promise(() => {}));
+    await wrapper.find("input").setValue("Kobo");
+    await wrapper.find("form").trigger("submit");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    expect(store.createApiKey).toHaveBeenCalledOnce();
+  });
+
+  test("a refused create shows the server's reason in the dialog", async () => {
+    const { wrapper, store } = mountWith(ApiKeyCreate, { isAdmin: false });
+    store.createApiKey.mockRejectedValue(
+      new APIError(
+        {
+          status: "400",
+          title: "Bad Request",
+          detail: "You already have a key named Kobo.",
+        },
+        400,
+      ),
+    );
+    await wrapper.find("input").setValue("Kobo");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.text()).toContain("You already have a key named Kobo.");
+    expect(wrapper.emitted("created")).toBeUndefined();
   });
 });
 
@@ -266,5 +320,33 @@ describe("ApiKeys", () => {
     const text = wrapper.text();
     expect(text).toContain("username and password");
     expect(text).toContain("use a Device Key as its password instead");
+  });
+
+  test("a list that failed to load says so, not that there are none", async () => {
+    const { wrapper, store } = mountWith(ApiKeys, { urls: {} });
+    store.apiKeysError = "Could not load your API keys.";
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain("Could not load your API keys.");
+    expect(wrapper.text()).not.toContain("No API keys yet.");
+  });
+
+  test("revoking the key on show takes it off the screen", async () => {
+    const { wrapper, store } = mountWith(ApiKeys, {
+      urls: { opdsV1: "/opds/v1.2/" },
+    });
+    store.apiKeys = [KEYS[0], KEYS[2]];
+    store.deleteApiKey.mockResolvedValue(true);
+    wrapper.findComponent(ApiKeyCreate).vm.$emit("created", {
+      key: "abcdsecretkey",
+      name: "Kobo",
+      scope: "device",
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".apiKeyReveal").exists()).toBe(true);
+    await wrapper.find('button[title="Revoke Kobo"]').trigger("click");
+    await wrapper.find(".confirmButton").trigger("click");
+    await flushPromises();
+    expect(wrapper.find(".apiKeyReveal").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("abcdsecretkey");
   });
 });

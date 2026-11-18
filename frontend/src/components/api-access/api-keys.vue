@@ -6,7 +6,12 @@
       <template v-if="isUserAdmin">{{ STATS_HELP }}</template>
     </p>
     <p class="apiKeysHelp">{{ OPDS_HELP }}</p>
-    <ApiKeyList :api-keys="apiKeys" :show-access="isUserAdmin" />
+    <ApiKeyList
+      :api-keys="apiKeys"
+      :load-error="apiKeysError"
+      :show-access="isUserAdmin"
+      @revoked="onRevoked"
+    />
     <ApiKeyReveal
       v-if="created"
       :api-key="created.key"
@@ -20,13 +25,12 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import ApiKeyCreate from "@/components/api-access/api-key-create.vue";
 import ApiKeyList from "@/components/api-access/api-key-list.vue";
 import ApiKeyReveal from "@/components/api-access/api-key-reveal.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useCommonStore } from "@/stores/common";
 
 const DEVICE_HELP =
   "Give each reader app or device its own Device Key. It logs in to OPDS" +
@@ -46,9 +50,11 @@ export default {
     ApiKeyReveal,
   },
   props: {
-    // Paths by API, from /api-urls, so the new key's help names only APIs
-    // that are on.
-    urls: { type: Object, required: true },
+    /*
+     * Paths by API, from /api-urls, so the new key's help names only APIs
+     * that are on. Undefined until they load.
+     */
+    urls: { type: Object, default: undefined },
   },
   data() {
     return {
@@ -60,17 +66,32 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, ["apiKeys", "isUserAdmin", "user"]),
+    ...mapState(useAuthStore, [
+      "apiKeys",
+      "apiKeysError",
+      "isUserAdmin",
+      "showApiAccessDialog",
+      "user",
+    ]),
     username() {
       return this.user?.username || "";
     },
   },
-  mounted() {
-    // A fresh dialog: drop errors from an earlier attempt.
-    this.clearErrors();
+  watch: {
+    showApiAccessDialog(open) {
+      // Closing takes the key off the screen now, not when the fade ends.
+      if (!open) {
+        this.created = undefined;
+      }
+    },
   },
   methods: {
-    ...mapActions(useCommonStore, ["clearErrors"]),
+    onRevoked(row) {
+      // Names are unique per user.
+      if (this.created?.name === row.name) {
+        this.created = undefined;
+      }
+    },
   },
 };
 </script>
