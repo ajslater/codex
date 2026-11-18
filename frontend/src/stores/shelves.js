@@ -87,7 +87,6 @@ export const useShelvesStore = defineStore("shelves", {
   state: () => ({
     // ``[{pk, name, items: {collection: Set<pk>}}]`` ordered by name.
     shelves: [],
-    hydrated: false,
     // The user the shelves belong to.
     userId: undefined,
     /*
@@ -111,12 +110,6 @@ export const useShelvesStore = defineStore("shelves", {
      */
     isShelved: (state) => (collection, pk) =>
       state.shelves.some((shelf) => shelf.items[collection]?.has(pk)),
-    // The shelves holding at least one of ``pks``.
-    shelvesFor: (state) => (collection, pks) =>
-      state.shelves.filter((shelf) => {
-        const set = shelf.items[collection];
-        return Boolean(set) && pks.some((pk) => set.has(pk));
-      }),
     /*
      * "all" | "some" | "none" of the ``{collection: [pks]}`` targets are
      * on the shelf. Drives the menu's checked / indeterminate checkbox.
@@ -168,7 +161,7 @@ export const useShelvesStore = defineStore("shelves", {
           toShelf(shelf),
         );
         shelves.sort(byName);
-        this.$patch({ shelves, hydrated: true });
+        this.shelves = shelves;
       } catch (error) {
         console.error(error);
       }
@@ -218,9 +211,6 @@ export const useShelvesStore = defineStore("shelves", {
         });
       }
       return true;
-    },
-    setMembership(shelfPk, collection, pks, on) {
-      return this.setTargetsMembership(shelfPk, { [collection]: pks }, on);
     },
     setTargetsMembership(shelfPk, targets, on) {
       /*
@@ -287,7 +277,7 @@ export const useShelvesStore = defineStore("shelves", {
        * Logout / user switch — drop the cached shelves so a different
        * user doesn't see the previous account's.
        */
-      this.$patch({ shelves: [], hydrated: false, userId: undefined });
+      this.$patch({ shelves: [], userId: undefined });
     },
   },
 });

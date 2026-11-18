@@ -40,7 +40,7 @@ async function mountOpenMenu(item) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: { pk: 1 } },
-      shelves: { shelves: [], hydrated: true },
+      shelves: { shelves: [] },
     },
     stubActions: true,
   });

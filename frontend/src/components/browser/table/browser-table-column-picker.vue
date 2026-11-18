@@ -97,11 +97,15 @@ import { mapActions, mapState } from "pinia";
 import BROWSER_TABLE_COLUMN_COSTS from "@/choices/browser-table-column-costs.json";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import { TOP_COLLECTION } from "@/choices/browser-map.json";
+import { useAuthStore } from "@/stores/auth";
 import {
+  ANONYMOUS_HIDDEN_COLUMNS,
   resolveTableColumns,
   siteTableColumns,
   useBrowserStore,
 } from "@/stores/browser";
+
+const NO_HIDDEN_COLUMNS = Object.freeze([]);
 
 /*
  * Tooltip copy + CSS class for the per-column cost indicator. The
@@ -306,6 +310,18 @@ export default {
       storeTableColumns: (state) => state.settings.tableColumns,
       storeShow: (state) => state.settings.show,
     }),
+    ...mapState(useAuthStore, {
+      isLoggedIn: (state) => Boolean(state.user),
+    }),
+    /*
+     * Live mode offers an anonymous visitor nothing they can't use.
+     * Standalone edits the site defaults, which signed-in users get too.
+     */
+    hiddenColumns() {
+      return this.standalone || this.isLoggedIn
+        ? NO_HIDDEN_COLUMNS
+        : ANONYMOUS_HIDDEN_COLUMNS;
+    },
     topCollection() {
       return this.standalone
         ? this.standaloneTopCollection
@@ -335,6 +351,7 @@ export default {
             const entry = _registryEntry(key);
             if (!entry) continue;
             seen.add(key);
+            if (this.hiddenColumns.includes(key)) continue;
             columns.push(this._columnRow(key, entry));
           }
           return { label: cat.label, columns };
@@ -346,7 +363,7 @@ export default {
        */
       const orphans = [];
       for (const key of Object.keys(BROWSER_TABLE_COLUMNS)) {
-        if (seen.has(key)) continue;
+        if (seen.has(key) || this.hiddenColumns.includes(key)) continue;
         const entry = _registryEntry(key);
         if (!entry) continue;
         orphans.push(this._columnRow(key, entry));
@@ -367,6 +384,9 @@ export default {
     labelFor(key) {
       return _registryEntry(key)?.label ?? key;
     },
+    _offered(columns) {
+      return columns.filter((key) => !this.hiddenColumns.includes(key));
+    },
     /*
      * Build the per-column row consumed by the v-checkbox loop.
      * The cost tier (medium / high) drives both the visible
@@ -386,14 +406,14 @@ export default {
       };
     },
     _snapshot() {
-      this.draft = [
-        ...resolveTableColumns(
+      this.draft = this._offered(
+        resolveTableColumns(
           this.topCollection,
           this.tableColumns,
           this.show,
           this.siteColumns,
         ),
-      ];
+      );
     },
     toggleColumn(key, on) {
       if (on) {
@@ -432,17 +452,17 @@ export default {
       this.draft = this.draft.filter((k) => k !== key);
     },
     resetToDefaults() {
-      this.draft = [
-        ...resolveTableColumns(
+      this.draft = this._offered(
+        resolveTableColumns(
           this.topCollection,
           undefined,
           this.show,
           this.siteColumns,
         ),
-      ];
+      );
     },
     selectAll() {
-      this.draft = Object.keys(BROWSER_TABLE_COLUMNS);
+      this.draft = this._offered(Object.keys(BROWSER_TABLE_COLUMNS));
     },
     selectNone() {
       this.draft = [];

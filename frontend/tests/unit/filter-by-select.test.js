@@ -64,7 +64,7 @@ async function mountOpenMenu({
         settings: { filters: { bookmark: "UNREAD", ...filters } },
         choices: { dynamic: { characters: true } },
       },
-      shelves: { shelves, hydrated: true },
+      shelves: { shelves },
     },
   });
   const wrapper = mount(FilterBySelect, {

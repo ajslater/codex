@@ -3,12 +3,12 @@
  * Focuses on the contract the UI consumes:
  *
  * - hydrate() parses ``{shelves: [{pk, name, items}]}`` into per-shelf
- *   reactive Sets the ``isShelved`` / ``shelvesFor`` /
- *   ``membershipState`` getters can probe.
+ *   reactive Sets the ``isShelved`` / ``membershipState`` getters can
+ *   probe.
  * - hydrate(userId) clears a different user's shelves before it fetches,
  *   and drops a late response for a user who is gone.
- * - setMembership() / setTargetsMembership() optimistically flip the
- *   local Sets and send one bulk PATCH; roll back on error so the UI
+ * - setTargetsMembership() optimistically flips the
+ *   local Sets and sends one bulk PATCH; rolls back on error so the UI
  *   never lies. Changes to one shelf run one at a time, in order.
  * - createShelf() / renameShelf() / deleteShelf() keep the list ordered
  *   by name, and a deleted shelf leaves the browser's shelf filter.
@@ -59,24 +59,21 @@ beforeEach(() => {
 });
 
 describe("useShelvesStore — initial state", () => {
-  it("starts with no shelves and unhydrated", () => {
+  it("starts with no shelves", () => {
     const store = useShelvesStore();
     expect(store.shelves).toEqual([]);
-    expect(store.hydrated).toBe(false);
   });
 
   it("isShelved is false for anything before hydration", () => {
     const store = useShelvesStore();
     expect(store.isShelved("series", 1)).toBe(false);
     expect(store.isShelved("nope", 1)).toBe(false);
-    expect(store.shelvesFor("series", [1])).toEqual([]);
   });
 });
 
 describe("useShelvesStore — hydrate", () => {
   it("builds a Set per collection for every shelf", async () => {
     const store = await hydrated();
-    expect(store.hydrated).toBe(true);
     expect(store.shelves.map((shelf) => shelf.name)).toEqual([
       "Favorites",
       "Want to Read",
@@ -90,11 +87,10 @@ describe("useShelvesStore — hydrate", () => {
     expect(store.shelves[0].items.series.has(42)).toBe(true);
   });
 
-  it("swallows API errors without marking the store hydrated", async () => {
+  it("swallows API errors and keeps no shelves", async () => {
     API.getShelves.mockRejectedValue(new Error("boom"));
     const store = useShelvesStore();
     await store.hydrate();
-    expect(store.hydrated).toBe(false);
     expect(store.shelves).toEqual([]);
   });
 
@@ -106,7 +102,6 @@ describe("useShelvesStore — hydrate", () => {
     API.getShelves.mockReturnValueOnce(new Promise(() => {}));
     void store.hydrate(2);
     expect(store.shelves).toEqual([]);
-    expect(store.hydrated).toBe(false);
   });
 
   it("keeps the shelves while the same user rehydrates", async () => {
@@ -139,16 +134,6 @@ describe("useShelvesStore — getters", () => {
     expect(store.isShelved("comics", 101)).toBe(true);
     expect(store.isShelved("series", 999)).toBe(false);
     expect(store.isShelved("comics", 42)).toBe(false);
-  });
-
-  it("shelvesFor returns the shelves holding at least one pk", async () => {
-    const store = await hydrated();
-    const pks = (collection, ids) =>
-      store.shelvesFor(collection, ids).map((shelf) => shelf.pk);
-    expect(pks("series", [42])).toEqual([1]);
-    expect(pks("series", [42, 7])).toEqual([1, 2]);
-    expect(pks("series", [999])).toEqual([]);
-    expect(pks("nope", [1])).toEqual([]);
   });
 
   it("membershipState reports all / some / none across collections", async () => {
@@ -194,25 +179,25 @@ describe("useShelvesStore — membershipVersion", () => {
     expect(store.membershipVersion).toBe(0);
 
     API.updateShelfItems.mockResolvedValue({ data: {} });
-    await store.setMembership(1, "series", [8], true);
+    await store.setTargetsMembership(1, { series: [8] }, true);
     expect(store.membershipVersion).toBe(1);
 
     // Already in the wanted state: no request, nothing to refetch.
-    await store.setMembership(1, "series", [8], true);
+    await store.setTargetsMembership(1, { series: [8] }, true);
     expect(store.membershipVersion).toBe(1);
 
     API.updateShelfItems.mockRejectedValue(new Error("server down"));
-    await store.setMembership(1, "series", [9], true);
+    await store.setTargetsMembership(1, { series: [9] }, true);
     expect(store.membershipVersion).toBe(1);
   });
 });
 
-describe("useShelvesStore — setMembership", () => {
+describe("useShelvesStore — setTargetsMembership", () => {
   it("adds the pks not yet on the shelf with one PATCH", async () => {
     API.updateShelfItems.mockResolvedValue({ data: { added: 2, removed: 0 } });
     const store = await hydrated();
 
-    const promise = store.setMembership(1, "series", [42, 8, 9], true);
+    const promise = store.setTargetsMembership(1, { series: [42, 8, 9] }, true);
     // Optimistic: state is flipped before the API resolves.
     expect(store.isShelved("series", 8)).toBe(true);
     expect(await promise).toBe(true);
@@ -228,7 +213,7 @@ describe("useShelvesStore — setMembership", () => {
     API.updateShelfItems.mockResolvedValue({ data: { added: 0, removed: 1 } });
     const store = await hydrated();
 
-    await store.setMembership(1, "series", [42, 999], false);
+    await store.setTargetsMembership(1, { series: [42, 999] }, false);
 
     expect(store.shelves[0].items.series.has(42)).toBe(false);
     // Still on shelf 2, so still shelved somewhere.
@@ -262,7 +247,9 @@ describe("useShelvesStore — setMembership", () => {
 
   it("sends nothing when every target is already in the wanted state", async () => {
     const store = await hydrated();
-    expect(await store.setMembership(1, "series", [42, 7], true)).toBe(true);
+    expect(await store.setTargetsMembership(1, { series: [42, 7] }, true)).toBe(
+      true,
+    );
     expect(API.updateShelfItems).not.toHaveBeenCalled();
   });
 
@@ -270,12 +257,16 @@ describe("useShelvesStore — setMembership", () => {
     API.updateShelfItems.mockRejectedValue(new Error("server down"));
     const store = await hydrated();
 
-    expect(await store.setMembership(1, "series", [42, 8], true)).toBe(false);
+    expect(await store.setTargetsMembership(1, { series: [42, 8] }, true)).toBe(
+      false,
+    );
     expect(store.shelves[0].items.series.has(8)).toBe(false);
     // Was on the shelf before the call; the rollback must not remove it.
     expect(store.shelves[0].items.series.has(42)).toBe(true);
 
-    expect(await store.setMembership(1, "series", [42], false)).toBe(false);
+    expect(await store.setTargetsMembership(1, { series: [42] }, false)).toBe(
+      false,
+    );
     expect(store.shelves[0].items.series.has(42)).toBe(true);
   });
 
@@ -286,8 +277,8 @@ describe("useShelvesStore — setMembership", () => {
       .mockResolvedValue({ data: {} });
     const store = await hydrated();
 
-    const first = store.setMembership(1, "series", [8], true);
-    const second = store.setMembership(1, "series", [8], false);
+    const first = store.setTargetsMembership(1, { series: [8] }, true);
+    const second = store.setTargetsMembership(1, { series: [8] }, false);
     await flushPromises();
     // The second waits for the first, so the server sees them in order.
     expect(API.updateShelfItems).toHaveBeenCalledOnce();
@@ -307,15 +298,19 @@ describe("useShelvesStore — setMembership", () => {
       .mockResolvedValue({ data: {} });
     const store = await hydrated();
 
-    void store.setMembership(1, "series", [8], true);
-    expect(await store.setMembership(2, "series", [8], true)).toBe(true);
+    void store.setTargetsMembership(1, { series: [8] }, true);
+    expect(await store.setTargetsMembership(2, { series: [8] }, true)).toBe(
+      true,
+    );
     expect(API.updateShelfItems).toHaveBeenCalledTimes(2);
   });
 
   it("no-ops on an unknown shelf or collection", async () => {
     const store = await hydrated();
-    expect(await store.setMembership(99, "series", [1], true)).toBe(false);
-    expect(await store.setMembership(1, "nope", [1], true)).toBe(true);
+    expect(await store.setTargetsMembership(99, { series: [1] }, true)).toBe(
+      false,
+    );
+    expect(await store.setTargetsMembership(1, { nope: [1] }, true)).toBe(true);
     expect(API.updateShelfItems).not.toHaveBeenCalled();
   });
 });
@@ -411,10 +406,9 @@ describe("useShelvesStore — create / rename / delete", () => {
 });
 
 describe("useShelvesStore — clear", () => {
-  it("drops the shelves and resets the hydrated flag", async () => {
+  it("drops the shelves", async () => {
     const store = await hydrated();
     store.clear();
-    expect(store.hydrated).toBe(false);
     expect(store.shelves).toEqual([]);
     expect(store.isShelved("series", 42)).toBe(false);
   });

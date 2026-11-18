@@ -4,7 +4,8 @@
  * Standalone reads its collection, columns and show flags from props, emits
  * ``save`` with the list, and never touches the browser store. Live mode,
  * mounted in the same file, still reads the store and falls back to the
- * admin's site default before the registry.
+ * admin's site default before the registry. Live mode never offers an
+ * anonymous visitor the Shelves column: they own no shelves.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -22,10 +23,10 @@ const SHOW = Object.freeze({
   volumes: false,
 });
 
-function mountPicker(props, { settings = {}, defaults } = {}) {
+function mountPicker(props, { settings = {}, defaults, user } = {}) {
   const pinia = createTestingPinia({
     initialState: {
-      auth: { defaults },
+      auth: { defaults, user },
       browser: {
         settings: {
           topCollection: "comics",
@@ -163,6 +164,38 @@ describe("column picker — live", () => {
       tableColumns: { comics: ["size"] },
     });
     expect(wrapper.emitted("save")).toBeUndefined();
+  });
+});
+
+const offeredKeys = (vm) =>
+  vm.categoriesWithColumns.flatMap((category) =>
+    category.columns.map((column) => column.key),
+  );
+
+describe("column picker — anonymous visitors", () => {
+  test("never offers the Shelves column", async () => {
+    const { wrapper, vm } = mountPicker(
+      {},
+      { settings: { tableColumns: { comics: ["cover", "shelved", "name"] } } },
+    );
+    await open(wrapper);
+    expect(offeredKeys(vm)).not.toContain("shelved");
+    expect(vm.draft).toEqual(["cover", "name"]);
+    vm.selectAll();
+    expect(vm.draft).not.toContain("shelved");
+  });
+
+  test("a signed-in user is offered it", async () => {
+    const { wrapper, vm } = mountPicker(
+      {},
+      {
+        settings: { tableColumns: { comics: ["cover", "shelved", "name"] } },
+        user: { id: 1, username: "alice" },
+      },
+    );
+    await open(wrapper);
+    expect(offeredKeys(vm)).toContain("shelved");
+    expect(vm.draft).toEqual(["cover", "shelved", "name"]);
   });
 });
 

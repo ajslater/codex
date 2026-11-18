@@ -65,7 +65,7 @@ function mountBlock({ loggedIn = true, shelves = SHELVES() } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
-      shelves: { shelves, hydrated: true },
+      shelves: { shelves },
     },
     stubActions: true,
   });

@@ -41,6 +41,7 @@
 <script>
 import { mdiCheck, mdiClose } from "@mdi/js";
 
+import LIMITS from "@/choices/limits.json";
 import { isImeEnter } from "@/util";
 
 /*
@@ -53,7 +54,7 @@ export const SHELF_NAME_SUGGESTIONS = Object.freeze([
   "Reading Now",
 ]);
 // The server's limit on a shelf name.
-export const SHELF_NAME_MAX_LENGTH = 128;
+export const SHELF_NAME_MAX_LENGTH = LIMITS.maxNameLen;
 
 export default {
   name: "ShelfNameInput",
