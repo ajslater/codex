@@ -49,7 +49,6 @@ export const SHELF_NAME_SUGGESTIONS = Object.freeze([
   "Want to Read",
   "Favorites",
   "Reading Now",
-  "Finished",
 ]);
 // The server's limit on a shelf name.
 export const SHELF_NAME_MAX_LENGTH = 128;

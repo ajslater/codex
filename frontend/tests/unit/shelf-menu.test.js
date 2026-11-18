@@ -241,7 +241,7 @@ describe("ShelfMenu — new shelf", () => {
     const input = wrapper.findComponent(ShelfNameInput);
     expect(input.exists()).toBe(true);
     // "Favorites" and "Want to Read" already exist, so aren't suggested.
-    expect(input.vm.suggestions).toEqual(["Reading Now", "Finished"]);
+    expect(input.vm.suggestions).toEqual(["Reading Now"]);
   });
 
   test("creating a shelf adds the targets to it", async () => {
@@ -300,7 +300,6 @@ describe("ShelfNameInput", () => {
       "Want to Read",
       "Favorites",
       "Reading Now",
-      "Finished",
     ]);
   });
 

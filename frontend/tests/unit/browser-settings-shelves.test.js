@@ -173,7 +173,7 @@ describe("BrowserSettingsShelves", () => {
     await wrapper.find(".shelvesSettingsNewBtn").trigger("click");
 
     const input = wrapper.findComponent(ShelfNameInput);
-    expect(input.vm.suggestions).toEqual(["Reading Now", "Finished"]);
+    expect(input.vm.suggestions).toEqual(["Reading Now"]);
     input.vm.$emit("submit", "Finished");
     await flushPromises();
 
