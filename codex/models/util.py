@@ -1,16 +1,8 @@
 """Utilities for models."""
 
-import re
 from decimal import Decimal, InvalidOperation
 
 from comicbox.formats.base.fields.fields import IssueField
-
-# Splits a normalized issue string into its numeric head and the
-# remaining suffix ("10a" -> "10" + "a"). Shared by every compound
-# issue column (``Comic.issue_number``/``issue_suffix``,
-# ``Reprint.issue_number``/``issue_suffix``) and by the search
-# field parser so a typed query and a stored column agree.
-_PARSE_ISSUE_MATCHER = re.compile(r"(?P<issue_number>\d*\.?\d*)(?P<issue_suffix>.*)")
 
 # Multi-language leading-article set used by ``get_sort_name`` to
 # move a leading "the"/"el"/"der"/etc. to the end so titles sort by
@@ -43,20 +35,23 @@ _ARTICLES = frozenset(
 
 
 def parse_issue_parts(value) -> tuple[Decimal | None, str]:
-    """Split a compound issue string into its number and suffix parts."""
+    """
+    Split a compound issue string into its number and suffix parts.
+
+    Uses comicbox's own split ("10a" -> 10 + "a", "-1AU" -> -1 + "AU") so
+    ``Reprint`` columns and ``issue:`` searches agree with imported issues.
+    """
     value = IssueField.parse_issue(value)
     if not value:
         return None, ""
-    matches = _PARSE_ISSUE_MATCHER.match(value)
-    if not matches:
-        return None, ""
+    number_str, suffix = IssueField.split_issue(value)
     try:
-        number = Decimal(matches.group("issue_number"))
+        number = Decimal(number_str)
     except InvalidOperation:
-        # A suffix-only issue ("annual", "½") leaves the numeric group
-        # empty, which Decimal rejects. Keep the suffix; sort it as null.
+        # A suffix-only issue ("annual", "-AU") leaves the number empty,
+        # which Decimal rejects. Keep the suffix; sort it as null.
         number = None
-    return number, matches.group("issue_suffix")
+    return number, suffix
 
 
 def get_sort_name(name: str) -> str:
