@@ -136,13 +136,25 @@ describe("BrowserSettingsReadingLists", () => {
     expect(wrapper.text()).toContain("3 issues");
   });
 
-  test("rename and delete call the store", () => {
+  test("rename and delete call the store and refresh the grid", async () => {
     const { wrapper, store } = mountBlock();
     const editor = wrapper.findComponent(NameListEditor);
     editor.vm.$emit("rename", { pk: 2, name: "Spidey" });
     editor.vm.$emit("delete", 2);
+    await flushPromises();
     expect(store.renameList).toHaveBeenCalledWith(2, "Spidey");
     expect(store.deleteList).toHaveBeenCalledWith(2);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledTimes(2);
+  });
+
+  test("a duplicate refreshes the grid only when it worked", async () => {
+    const { wrapper, store } = mountBlock();
+    store.duplicateList.mockResolvedValueOnce({ pk: 7, name: "Copy" });
+    await wrapper.vm.onDuplicate(2);
+    store.duplicateList.mockResolvedValueOnce();
+    await wrapper.vm.onDuplicate(2);
+    expect(store.duplicateList).toHaveBeenCalledTimes(2);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
   });
 
   test("open routes to the list under the arcs collection", async () => {

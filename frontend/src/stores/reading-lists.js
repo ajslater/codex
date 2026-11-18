@@ -169,8 +169,12 @@ export const useReadingListsStore = defineStore("readingLists", {
     async duplicateList(pk) {
       try {
         const response = await API.duplicateList(pk);
+        const copy = response.data;
+        useCommonStore().setSuccess(
+          `Copied to your reading lists as "${copy?.name}".`,
+        );
         await this.loadMyLists();
-        return response.data;
+        return copy;
       } catch (error) {
         reportError(error);
       }

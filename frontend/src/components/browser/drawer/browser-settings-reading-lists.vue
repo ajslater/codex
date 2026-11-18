@@ -9,7 +9,7 @@
       delete-hint="No comic file changes."
       :max-length="maxLength"
       @rename="onRename"
-      @delete="deleteList"
+      @delete="onDelete"
     >
       <template #actions="{ item }">
         <v-btn
@@ -40,7 +40,7 @@
             />
           </template>
           <v-list density="compact">
-            <v-list-item title="Duplicate" @click="duplicateList(item.pk)" />
+            <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
             <v-list-subheader>Export</v-list-subheader>
             <v-list-item
               v-for="fmt in EXPORT_FORMATS"
@@ -168,10 +168,22 @@ export default {
       "loadMyLists",
       "renameList",
     ]),
-    ...mapActions(useBrowserStore, ["routeWithSettings"]),
+    ...mapActions(useBrowserStore, ["refreshBrowserPage", "routeWithSettings"]),
     exportURL,
-    onRename({ pk, name }) {
-      this.renameList(pk, name);
+    /*
+     * The user's lists are cards in the reading lists grid too, so every
+     * change refetches the shown page in place.
+     */
+    async onRename({ pk, name }) {
+      await this.renameList(pk, name);
+      await this.refreshBrowserPage();
+    },
+    async onDelete(pk) {
+      await this.deleteList(pk);
+      await this.refreshBrowserPage();
+    },
+    async onDuplicate(pk) {
+      if (await this.duplicateList(pk)) await this.refreshBrowserPage();
     },
     open(item) {
       const route = {
@@ -191,6 +203,7 @@ export default {
       if (list) {
         this.creating = false;
         this.name = "";
+        await this.refreshBrowserPage();
       }
     },
   },

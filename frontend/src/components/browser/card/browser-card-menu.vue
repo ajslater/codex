@@ -29,6 +29,13 @@
           />
         </template>
       </ShelfMenu>
+      <CodexListItem
+        v-if="copyListPk"
+        class="listItem copyListItem"
+        :prepend-icon="mdiContentCopy"
+        title="Copy to My Lists"
+        @click="copyList"
+      />
       <DownloadButton class="listItem" :button="false" :item="downloadItem" />
       <ForceUpdateButton class="listItem" :button="false" :item="item" />
       <UploadCoverButton :item="item" @uploaded="closeMenu" />
@@ -38,7 +45,13 @@
 </template>
 
 <script>
-import { mdiChevronRight, mdiDotsVertical, mdiLibraryShelves } from "@mdi/js";
+import {
+  mdiChevronRight,
+  mdiContentCopy,
+  mdiDotsVertical,
+  mdiLibraryShelves,
+} from "@mdi/js";
+import { mapActions, mapState } from "pinia";
 
 import { formattedIssue, formattedVolumeName } from "@/comic-name";
 import RemoveCoverButton from "@/components/browser/card/remove-cover-button.vue";
@@ -48,6 +61,11 @@ import DownloadButton from "@/components/download-button.vue";
 import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
+import { useReadingListsStore } from "@/stores/reading-lists";
+
+const READING_LISTS = "arcs";
 
 export default {
   name: "BrowserContainerMenu",
@@ -69,12 +87,24 @@ export default {
   data() {
     return {
       mdiChevronRight,
+      mdiContentCopy,
       mdiDotsVertical,
       mdiLibraryShelves,
       showMenu: false,
     };
   },
   computed: {
+    ...mapState(useAuthStore, {
+      isLoggedIn: (state) => Boolean(state.user),
+    }),
+    copyListPk() {
+      /*
+       * A signed-in user copies any reading list they can see into a list
+       * of their own, to reorder or trim. Anonymous sessions own no lists.
+       */
+      if (!this.isLoggedIn || this.item?.collection !== READING_LISTS) return;
+      return this.shelfPk;
+    },
     shelfPk() {
       /*
        * A shelf holds single rows. Cards that aggregate several ids
@@ -105,8 +135,17 @@ export default {
     },
   },
   methods: {
+    ...mapActions(useReadingListsStore, ["duplicateList"]),
+    ...mapActions(useBrowserStore, ["refreshBrowserPage"]),
     closeMenu() {
       this.showMenu = false;
+    },
+    async copyList() {
+      this.closeMenu();
+      if (await this.duplicateList(this.copyListPk)) {
+        // The copy is a card of its own in the reading lists grid.
+        await this.refreshBrowserPage();
+      }
     },
   },
 };
