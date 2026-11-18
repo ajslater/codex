@@ -46,8 +46,6 @@ border-radius: 128px;
   reset or made. Use Device Keys for OPDS and KOReader.
 - The server-wide Stats API key is revoked. Each admin makes their own Stats key
   in API Access.
-- Anonymous usage stats count shelves, API keys and the API flags instead of
-  favorites.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
 - Online tagging with Metron matches comics by their cover first.
