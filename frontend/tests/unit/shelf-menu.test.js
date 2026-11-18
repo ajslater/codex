@@ -5,7 +5,9 @@
  * several collection types). Covers the target normalization, the
  * "every target shelved" accent, the checked / indeterminate rows, that
  * a row click dispatches one bulk membership change, the "New shelf…"
- * flow with its suggestions, and that anonymous sessions get nothing.
+ * flow with its suggestions and the server's reason for a refusal, that
+ * Enter mid IME composition submits nothing, and that anonymous sessions
+ * get nothing.
  * Real Vuetify is mounted so the menu and its rows are the ones that
  * ship; store actions are stubbed by createTestingPinia so calls can be
  * asserted.
@@ -14,6 +16,7 @@ import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
+import { APIError } from "@/api/v4/base";
 import ShelfMenu from "@/components/shelf-menu.vue";
 import ShelfNameInput from "@/components/shelf-name-input.vue";
 import vuetify from "@/plugins/vuetify";
@@ -50,6 +53,10 @@ const shelf = (pk, name, items = {}) => ({
     ].map((collection) => [collection, new Set(items[collection] || [])]),
   ),
 });
+
+const DUPLICATE = "You already have a shelf with that name.";
+const refusal = () =>
+  new APIError({ status: "400", title: "Bad Request", detail: DUPLICATE }, 400);
 
 const SHELVES = () => [
   shelf(1, "Favorites", { series: [1, 2], comics: [42] }),
@@ -266,12 +273,12 @@ describe("ShelfMenu — new shelf", () => {
     expect(wrapper.vm.creating).toBe(false);
   });
 
-  test("a refused create keeps the input open with an error", async () => {
+  test("a refused create keeps the input open with the server's reason", async () => {
     const { wrapper, shelvesStore } = mountMenu({
       collection: "comics",
       pk: 42,
     });
-    shelvesStore.createShelf.mockResolvedValue();
+    shelvesStore.createShelf.mockRejectedValue(refusal());
     await openMenu(wrapper);
     wrapper.vm.creating = true;
     await flushPromises();
@@ -281,7 +288,23 @@ describe("ShelfMenu — new shelf", () => {
 
     expect(shelvesStore.setTargetsMembership).not.toHaveBeenCalled();
     expect(wrapper.vm.creating).toBe(true);
-    expect(wrapper.vm.createError).not.toBe("");
+    expect(wrapper.vm.createError).toBe(DUPLICATE);
+    expect(wrapper.findComponent(ShelfNameInput).vm.shownError).toBe(DUPLICATE);
+  });
+
+  test("New shelf again drops the last attempt's error", async () => {
+    const { wrapper } = mountMenu({ collection: "comics", pk: 42 });
+    const content = await openMenu(wrapper);
+    wrapper.vm.creating = true;
+    wrapper.vm.createError = DUPLICATE;
+    await flushPromises();
+
+    wrapper.findComponent(ShelfNameInput).vm.$emit("cancel");
+    await flushPromises();
+    content.querySelector(".shelfMenuNew").click();
+    await flushPromises();
+
+    expect(wrapper.findComponent(ShelfNameInput).vm.shownError).toBe("");
   });
 });
 
@@ -308,6 +331,21 @@ describe("ShelfNameInput", () => {
     wrapper.vm.name = "  Horror  ";
     await wrapper.vm.$nextTick();
     await wrapper.find(".shelfNameSubmit").trigger("click");
+    expect(wrapper.emitted("submit")).toEqual([["Horror"]]);
+  });
+
+  test("Enter while an IME composes submits nothing", async () => {
+    const wrapper = mountInput();
+    wrapper.vm.name = "Horror";
+    await wrapper.vm.$nextTick();
+    const input = wrapper.find("input");
+    await input.trigger("keydown", { key: "Enter", isComposing: true });
+    await input.trigger("keydown", { key: "Enter", keyCode: 229 });
+    await flushPromises();
+    expect(wrapper.emitted("submit")).toBeUndefined();
+
+    await input.trigger("keydown", { key: "Enter" });
+    await flushPromises();
     expect(wrapper.emitted("submit")).toEqual([["Horror"]]);
   });
 

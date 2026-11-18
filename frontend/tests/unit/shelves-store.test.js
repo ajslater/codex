@@ -5,17 +5,21 @@
  * - hydrate() parses ``{shelves: [{pk, name, items}]}`` into per-shelf
  *   reactive Sets the ``isShelved`` / ``shelvesFor`` /
  *   ``membershipState`` getters can probe.
+ * - hydrate(userId) clears a different user's shelves before it fetches,
+ *   and drops a late response for a user who is gone.
  * - setMembership() / setTargetsMembership() optimistically flip the
  *   local Sets and send one bulk PATCH; roll back on error so the UI
- *   never lies.
+ *   never lies. Changes to one shelf run one at a time, in order.
  * - createShelf() / renameShelf() / deleteShelf() keep the list ordered
  *   by name, and a deleted shelf leaves the browser's shelf filter.
+ *   A refused create rejects with the server's reason.
  * - clear() resets state on logout/user-switch.
  *
  * The HTTP client is mocked so the store can be exercised without a
  * backend. Each test re-installs a fresh Pinia so state doesn't leak
  * across cases.
  */
+import { flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,6 +31,7 @@ vi.mock("@/api/v4/shelves", () => ({
   updateShelfItems: vi.fn(),
 }));
 
+import { APIError } from "@/api/v4/base";
 import * as API from "@/api/v4/shelves";
 import { useBrowserStore } from "@/stores/browser";
 import { SHELF_COLLECTIONS, useShelvesStore } from "@/stores/shelves";
@@ -90,6 +95,38 @@ describe("useShelvesStore — hydrate", () => {
     const store = useShelvesStore();
     await store.hydrate();
     expect(store.hydrated).toBe(false);
+    expect(store.shelves).toEqual([]);
+  });
+
+  it("clears the last user's shelves before hydrating another's", async () => {
+    API.getShelves.mockResolvedValueOnce({ data: structuredClone(PAYLOAD) });
+    const store = useShelvesStore();
+    await store.hydrate(1);
+    expect(store.shelves).toHaveLength(2);
+    API.getShelves.mockReturnValueOnce(new Promise(() => {}));
+    void store.hydrate(2);
+    expect(store.shelves).toEqual([]);
+    expect(store.hydrated).toBe(false);
+  });
+
+  it("keeps the shelves while the same user rehydrates", async () => {
+    API.getShelves.mockResolvedValueOnce({ data: structuredClone(PAYLOAD) });
+    const store = useShelvesStore();
+    await store.hydrate(1);
+    API.getShelves.mockReturnValueOnce(new Promise(() => {}));
+    void store.hydrate(1);
+    expect(store.shelves).toHaveLength(2);
+  });
+
+  it("drops a late response for the last user", async () => {
+    const late = Promise.withResolvers();
+    API.getShelves.mockReturnValueOnce(late.promise);
+    const store = useShelvesStore();
+    const first = store.hydrate(1);
+    API.getShelves.mockResolvedValueOnce({ data: { shelves: [] } });
+    await store.hydrate(2);
+    late.resolve({ data: structuredClone(PAYLOAD) });
+    await first;
     expect(store.shelves).toEqual([]);
   });
 });
@@ -242,6 +279,39 @@ describe("useShelvesStore — setMembership", () => {
     expect(store.shelves[0].items.series.has(42)).toBe(true);
   });
 
+  it("runs overlapping changes to one shelf in order", async () => {
+    const firstPatch = Promise.withResolvers();
+    API.updateShelfItems
+      .mockReturnValueOnce(firstPatch.promise)
+      .mockResolvedValue({ data: {} });
+    const store = await hydrated();
+
+    const first = store.setMembership(1, "series", [8], true);
+    const second = store.setMembership(1, "series", [8], false);
+    await flushPromises();
+    // The second waits for the first, so the server sees them in order.
+    expect(API.updateShelfItems).toHaveBeenCalledOnce();
+
+    firstPatch.resolve({ data: {} });
+    expect(await first).toBe(true);
+    expect(await second).toBe(true);
+    expect(API.updateShelfItems).toHaveBeenNthCalledWith(2, 1, {
+      remove: { series: [8] },
+    });
+    expect(store.isShelved("series", 8)).toBe(false);
+  });
+
+  it("doesn't hold one shelf's change for another's", async () => {
+    API.updateShelfItems
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValue({ data: {} });
+    const store = await hydrated();
+
+    void store.setMembership(1, "series", [8], true);
+    expect(await store.setMembership(2, "series", [8], true)).toBe(true);
+    expect(API.updateShelfItems).toHaveBeenCalledTimes(2);
+  });
+
   it("no-ops on an unknown shelf or collection", async () => {
     const store = await hydrated();
     expect(await store.setMembership(99, "series", [1], true)).toBe(false);
@@ -269,10 +339,18 @@ describe("useShelvesStore — create / rename / delete", () => {
     ]);
   });
 
-  it("createShelf resolves undefined when the server refuses", async () => {
-    API.createShelf.mockRejectedValue(new Error("duplicate"));
+  it("createShelf rejects with the server's reason when it refuses", async () => {
+    const refusal = new APIError(
+      {
+        status: "400",
+        title: "Bad Request",
+        detail: "You already have a shelf with that name.",
+      },
+      400,
+    );
+    API.createShelf.mockRejectedValue(refusal);
     const store = await hydrated();
-    expect(await store.createShelf("Favorites")).toBeUndefined();
+    await expect(store.createShelf("Favorites")).rejects.toBe(refusal);
     expect(store.shelves).toHaveLength(2);
   });
 

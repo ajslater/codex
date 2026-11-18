@@ -59,9 +59,9 @@ export default {
           /*
            * Warm the shelves store so shelf buttons render the
            * user's persisted state on first paint instead of
-           * flashing empty. ``hydrate`` is idempotent.
+           * flashing empty. ``hydrate`` clears another user's first.
            */
-          useShelvesStore().hydrate();
+          useShelvesStore().hydrate(to.id);
         }
       },
     },
