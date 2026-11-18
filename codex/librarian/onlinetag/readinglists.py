@@ -22,7 +22,7 @@ from django.utils.timezone import now
 
 from codex.librarian.onlinetag.session_state import CLIENT_NAME
 from codex.librarian.onlinetag.tasks import OnlineTagTask
-from codex.librarian.scribe.readinglists.documents import to_json
+from codex.librarian.scribe.readinglists.documents import check_format, to_json
 from codex.librarian.scribe.readinglists.errors import add_reading_list_error
 from codex.librarian.scribe.readinglists.service import REMOTE_KINDS
 from codex.librarian.scribe.readinglists.status import ReadingListFetchStatus
@@ -199,6 +199,8 @@ class ReadingListFetcher(WorkerStatusBase):
         for request in requests:
             try:
                 result = _fetch(session, request)
+                if result is not None:
+                    check_format(result)
             except OnlineLookupAbortedError as exc:
                 self.log.warning(f"Reading list fetch stopped: {exc}")
                 add_reading_list_error(request.kind, request.ref, str(exc))

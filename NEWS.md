@@ -31,9 +31,9 @@ border-radius: 128px;
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
 - Tag writes can keep the other tag formats a comic has, set in Admin → Tagging
   and per edit.
-- Reading lists: Admin → Reading Lists imports lists from CBL and Comicbox
-  files, URLs, the DieselTech catalog, Metron and Comic Vine, combines lists of
-  one event, and reviews how their issues match your comics.
+- Reading lists: Admin → Reading Lists imports lists from ComicRack CBL and
+  json-cbl files, URLs, the DieselTech catalog, Metron and Comic Vine, combines
+  lists of one event, and reviews how their issues match your comics.
 - Signed-in users make their own reading lists in the browser drawer and add
   comics to them from any shelf menu.
 - Filter any view by reading list.

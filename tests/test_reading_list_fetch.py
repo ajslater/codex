@@ -6,7 +6,7 @@ from typing import Final, Self
 from unittest.mock import patch
 
 from comicbox.exceptions import OnlineLookupAbortedError, ReadingListFetchError
-from comicbox.readinglists import loads
+from comicbox.readinglists import dumps, loads
 from comicbox.readinglists.sources.catalog import CatalogEntry
 from django.test import TestCase
 from django.utils.timezone import now
@@ -70,6 +70,8 @@ class _FakeSession:
         if "quota" in url:
             reason = "Metron's daily quota is spent."
             raise OnlineLookupAbortedError(reason)
+        if url.endswith(".yaml"):
+            return loads(dumps(loads(_CBL).reading_list, "yaml"))
         return loads(_CBL)
 
     def fetch_metron_list(self, _list_id: int, **_kwargs):
@@ -120,6 +122,16 @@ class FetcherTests(TestCase):
         assert [error["ref"] for error in errors] == [
             "https://example.invalid/broken.cbl"
         ]
+
+    def test_a_comicbox_format_url_is_refused(self) -> None:
+        """A URL serving comicbox's own YAML list is an error, not an import."""
+        (task,) = self._run(
+            _url("https://example.invalid/cw.yaml"),
+            _url("https://example.invalid/cw.cbl"),
+        )
+        assert [item.ref for item in task.items] == ["https://example.invalid/cw.cbl"]
+        (error,) = get_reading_list_errors()
+        assert error["ref"] == "https://example.invalid/cw.yaml"
 
     def test_a_spent_quota_stops_the_job(self) -> None:
         """A spent quota or a cancel ends the fetch; nothing after it runs."""

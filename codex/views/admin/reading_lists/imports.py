@@ -30,7 +30,7 @@ from codex.librarian.onlinetag.readinglists import (
     ReadingListFetchTask,
     reading_list_session,
 )
-from codex.librarian.scribe.readinglists.documents import to_json
+from codex.librarian.scribe.readinglists.documents import check_format, to_json
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.service import suggest_for
 from codex.librarian.scribe.readinglists.tasks import (
@@ -222,6 +222,7 @@ class AdminReadingListPreviewView(AdminAPIView):
                 continue
             try:
                 result = loads(upload.read())
+                check_format(result)
             except ReadingListError as exc:
                 cards.append(_error_card("upload", name, str(exc)))
                 continue
@@ -247,6 +248,7 @@ class AdminReadingListPreviewView(AdminAPIView):
                         result = session.fetch_catalog(
                             ref, sha=source.get("sha") or None
                         )
+                    check_format(result)
                 except (ReadingListError, OnlineLookupAbortedError) as exc:
                     cards.append(_error_card(kind, ref, str(exc)))
                     continue

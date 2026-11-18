@@ -11,13 +11,14 @@ from threading import Lock
 from typing import Final, override
 from unittest.mock import patch
 
-from comicbox.readinglists import loads
+from comicbox.readinglists import dumps, loads
 from django.contrib.auth.models import User
 from django.core.cache import caches
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from loguru import logger
 
+from codex.librarian.scribe.readinglists.documents import UNSUPPORTED_FORMAT
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.readinglists.tasks import ReadingListImportTask
 from codex.librarian.scribe.readinglists.worker import ReadingListWorker
@@ -93,6 +94,23 @@ class ReadingListApiTests(ReadingListFixture):
         cards = _data(response)["cards"]
         assert "error" in cards[0]
         assert cards[1]["count"] == 4  # noqa: PLR2004
+
+    def test_comicbox_formats_are_not_read(self) -> None:
+        """Only ComicRack lists import: comicbox's YAML and JSON are refused."""
+        model = loads(_CBL).reading_list
+        uploads = [
+            SimpleUploadedFile(f"civil-war.{fmt}", dumps(model, fmt).encode())
+            for fmt in ("yaml", "json")
+        ]
+        json_cbl = SimpleUploadedFile(
+            "civil-war.json", dumps(model, "json-cbl").encode()
+        )
+        response = self.client.post(
+            f"{_ADMIN}/preview", {"files": [*uploads, json_cbl]}
+        )
+        cards = _data(response)["cards"]
+        assert [card.get("error") for card in cards[:2]] == [UNSUPPORTED_FORMAT] * 2
+        assert cards[2]["count"] == 4  # noqa: PLR2004
 
     def test_import_and_table(self) -> None:
         """The imported list shows in the table with its coverage."""

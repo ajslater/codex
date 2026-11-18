@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from comicbox.exceptions import ReadingListError
 from comicbox.readinglists import ReadingListFormats, dumps
 from comicbox.readinglists.serialize import load_model
 
@@ -25,6 +26,17 @@ READING_LIST_KEY: Final = "reading_list"
 ENTRIES_KEY: Final = "entries"
 SOURCES_KEY: Final = "sources"
 _ARC_POINTER_KINDS: Final = {"metron": "metron-arc", "comicvine": "comicvine-arc"}
+# The document formats codex reads: ComicRack's. comicbox's own YAML and JSON
+# reading list formats are not supported. Lists built from an online
+# database's records have no document format.
+_READ_FORMATS: Final = frozenset({ReadingListFormats.CBL, ReadingListFormats.JSON_CBL})
+UNSUPPORTED_FORMAT: Final = "Only ComicRack .cbl and json-cbl reading lists are read."
+
+
+def check_format(result) -> None:
+    """Refuse a list read from a document in a format codex does not read."""
+    if result.fmt is not None and result.fmt not in _READ_FORMATS:
+        raise ReadingListError(UNSUPPORTED_FORMAT)
 
 
 def to_json(reading_list: Mapping[str, Any]) -> dict[str, Any]:

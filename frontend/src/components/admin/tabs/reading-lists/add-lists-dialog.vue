@@ -114,13 +114,13 @@
             </v-window-item>
             <v-window-item value="files">
               <p class="adminProse">
-                ComicRack <code class="adminCode">.cbl</code>, json-cbl, or
-                Comicbox YAML or JSON reading lists. Several at once.
+                ComicRack <code class="adminCode">.cbl</code> or json-cbl
+                reading lists. Several at once.
               </p>
               <v-file-input
                 v-model="files"
                 label="Reading list files"
-                accept=".cbl,.json,.yaml,.yml,.xml"
+                accept=".cbl,.json,.xml"
                 multiple
                 chips
                 density="compact"
