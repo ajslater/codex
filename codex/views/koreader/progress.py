@@ -26,7 +26,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
-from codex.models import Bookmark, Comic
+from codex.models import Bookmark, Comic, ComicKoreaderHash
 from codex.views.auth import GroupACLMixin
 from codex.views.koreader.base import (
     ERROR_DOCUMENT_FIELD_MISSING,
@@ -157,22 +157,24 @@ class KOSyncProgressMixin(GroupACLMixin):
         Through the library-group and age-rating ACL, so a comic the user
         cannot browse never matches, nor counts against a unique name.
         """
-        user = self.request.user
-        acl_filter = self.get_acl_filter(Comic, user, include_missing=include_missing)
-        hash_filter = Q(koreader_hash=document) | Q(koreader_name_hash=document)
-        rows = tuple(
-            Comic.objects.filter(acl_filter, hash_filter).values_list(
-                "pk", "page_count", "koreader_hash"
+        hash_filter = Q(binary_hash=document) | Q(name_hash=document)
+        binary_hashes = dict(
+            ComicKoreaderHash.objects.filter(hash_filter).values_list(
+                "comic_id", "binary_hash"
             )
         )
-        if binary := tuple(
-            (pk, page_count) for pk, page_count, digest in rows if digest == document
-        ):
+        if not binary_hashes:
+            return ()
+        user = self.request.user
+        acl_filter = self.get_acl_filter(Comic, user, include_missing=include_missing)
+        rows = tuple(
+            Comic.objects.filter(acl_filter, pk__in=tuple(binary_hashes)).values_list(
+                "pk", "page_count"
+            )
+        )
+        if binary := tuple(row for row in rows if binary_hashes[row[0]] == document):
             return binary
-        if len(rows) == 1:
-            pk, page_count, _digest = rows[0]
-            return ((pk, page_count),)
-        return ()
+        return rows if len(rows) == 1 else ()
 
 
 class KOSyncProgressPutView(KOSyncProgressMixin, KOSyncAPIView):

@@ -5,7 +5,7 @@ import json
 from typing import Any, Final, override
 
 from codex.choices.admin import AdminFlagChoices
-from codex.models import AdminFlag, Bookmark
+from codex.models import AdminFlag, Bookmark, Comic, ComicKoreaderHash, Library
 from codex.models.api_key import UserApiKey
 from tests.reader_fixtures import ReaderFixture
 from tests.tmp_dirs import tmp_dir
@@ -24,8 +24,18 @@ def set_flag(*, on: bool) -> None:
     AdminFlag.objects.filter(key=AdminFlagChoices.KOREADER_SYNC.value).update(on=on)
 
 
+def binary_hash(comic: Comic) -> str | None:
+    """Return the comic's stored binary (partial MD5) hash."""
+    return ComicKoreaderHash.objects.get(comic_id=comic.pk).binary_hash
+
+
+def name_hash(comic: Comic) -> str | None:
+    """Return the comic's stored file name hash."""
+    return ComicKoreaderHash.objects.get(comic_id=comic.pk).name_hash
+
+
 class KOSyncTestCase(ReaderFixture):
-    """Fixture: sync is on and the reader holds a device key."""
+    """Fixture: sync is on, comics are hashed and the reader holds a device key."""
 
     TMP_DIR = tmp_dir("codex.tests.koreader_sync")
     COMIC_PAGE_COUNT = PAGE_COUNT
@@ -35,6 +45,13 @@ class KOSyncTestCase(ReaderFixture):
         super().setUp()
         set_flag(on=True)
         _, self.key = UserApiKey.create_for_user(self.user, "KOReader")  # pyright: ignore[reportUninitializedInstanceVariable]
+
+    @override
+    def _make_comic(self, library: Library, name: str, **kwargs) -> Comic:
+        """Make a comic hashed as an import with KOReader Sync on hashes it."""
+        comic = super()._make_comic(library, name, **kwargs)
+        ComicKoreaderHash.compute(comic.pk, comic.path, binary=True).save()
+        return comic
 
     def _headers(self, user: str | None = None, key: str | None = None) -> dict:
         return {

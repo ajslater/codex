@@ -2,14 +2,23 @@
 
 from typing import Final
 
+from django.db.models import Exists, OuterRef
+
 from codex.librarian.scribe.janitor.status import JanitorKoreaderHashStatus
 from codex.librarian.scribe.janitor.tasks import JanitorKoreaderHashTask
 from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
-from codex.models import Comic
+from codex.models import Comic, ComicKoreaderHash
 from codex.settings.db import koreader_sync_enabled
 
 _BATCH_SIZE: Final = 500
-_UPDATE_FIELDS: Final = ("koreader_hash", "koreader_name_hash")
+
+
+def _unhashed_comics(last_pk: int):
+    """Comics after ``last_pk`` with no binary hash, with a row or without."""
+    hashed = ComicKoreaderHash.objects.filter(
+        comic_id=OuterRef("pk"), binary_hash__isnull=False
+    )
+    return Comic.objects.filter(~Exists(hashed), pk__gt=last_pk)
 
 
 class JanitorKoreaderHash(JanitorCodexUpdate):
@@ -20,22 +29,22 @@ class JanitorKoreaderHash(JanitorCodexUpdate):
         Hash one batch of comics after ``last_pk``.
 
         Returns ``(batch_size, last_pk)``. Walks by pk rather than
-        re-querying the null set so a file that can't be read is skipped
+        re-querying the unhashed set so a file that can't be read is skipped
         instead of retried forever; the next nightly run retries it. Its
         name hash, which needs no file, is saved all the same.
         """
         comics = tuple(
-            Comic.objects.filter(pk__gt=last_pk, koreader_hash__isnull=True)
-            .order_by("pk")
-            .only("pk", "path", *_UPDATE_FIELDS)[:_BATCH_SIZE]
+            _unhashed_comics(last_pk).order_by("pk").only("pk", "path")[:_BATCH_SIZE]
         )
         if not comics:
             return 0, last_pk
         # Read the files outside the write lock.
-        for comic in comics:
-            comic.set_koreader_hashes()
+        rows = tuple(
+            ComicKoreaderHash.compute(comic.pk, comic.path, binary=True)
+            for comic in comics
+        )
         with self.db_write_lock:
-            Comic.objects.bulk_update(comics, _UPDATE_FIELDS)
+            ComicKoreaderHash.upsert(rows)
         return len(comics), comics[-1].pk
 
     def koreader_hash_backfill(
@@ -60,9 +69,7 @@ class JanitorKoreaderHash(JanitorCodexUpdate):
             if not koreader_sync_enabled():
                 self.log.debug("KOReader Sync is off, not hashing comics.")
                 return
-            remaining = Comic.objects.filter(
-                pk__gt=task.last_pk, koreader_hash__isnull=True
-            ).count()
+            remaining = _unhashed_comics(task.last_pk).count()
             status.total = task.done + remaining
             status.complete = task.done
             self.status_controller.start(status)

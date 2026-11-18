@@ -1,8 +1,9 @@
 """
 KOReader hashing at import follows the KOReader Sync flag.
 
-The hash columns also stay out of the metadata API, collection metadata
-and search.
+The hashes live beside Comic, in ``ComicKoreaderHash``, so they stay out of
+the metadata API, collection metadata and search, and migration 0060 leaves
+the Comic table alone.
 
 ``Comic.presave`` read every file for KOReader's partial MD5 on every
 create, update and move, with KOReader Sync off (the default). Both hash
@@ -14,6 +15,7 @@ loop's guard, defeated once per comic.
 
 import shutil
 import zipfile
+from importlib import import_module
 from pathlib import Path
 from threading import Event, Lock
 from typing import Final, override
@@ -36,6 +38,7 @@ from codex.librarian.scribe.koreader_hash import (
 from codex.models import (
     AdminFlag,
     Comic,
+    ComicKoreaderHash,
     Imprint,
     Library,
     Publisher,
@@ -50,13 +53,25 @@ from tests.tmp_dirs import tmp_dir
 TMP_DIR: Final = tmp_dir(Path(__file__).stem)
 _PAGE: Final = b"\xff\xd8\xff\xe0not-a-real-jpeg"
 _TAGS: Final = "comicbox:\n  series:\n    name: S\n"
-_HASH_FIELDS: Final = ("koreader_hash", "koreader_name_hash")
-_PARTIAL_MD5: Final = "codex.models.comic.koreader_partial_md5"
+_NEW_TAGS: Final = "comicbox:\n  series:\n    name: S\n  title: Changed\n"
+# The Comic columns the hashes had before they moved beside it.
+_OLD_HASH_FIELDS: Final = ("koreader_hash", "koreader_name_hash")
+_PARTIAL_MD5: Final = "codex.models.koreader.koreader_partial_md5"
 
 
 def _set_flag(*, on: bool) -> None:
     AdminFlag.objects.filter(key=AdminFlagChoices.KOREADER_SYNC.value).update(on=on)
     cache.clear()
+
+
+def _hashes(path: str) -> tuple[str | None, str | None] | None:
+    """Return a comic's ``(binary, name)`` hashes, None for no row."""
+    row = (
+        ComicKoreaderHash.objects.filter(comic__path=path)
+        .values_list("binary_hash", "name_hash")
+        .first()
+    )
+    return tuple(row) if row else None
 
 
 class TestKoreaderHashImport(TestCase):
@@ -89,16 +104,19 @@ class TestKoreaderHashImport(TestCase):
         cache.clear()
 
     @staticmethod
-    def _write(name: str) -> str:
+    def _write(name: str, tags: str = _TAGS) -> str:
         path = TMP_DIR / name
         with zipfile.ZipFile(path, "w") as zf:
-            zf.writestr("comicbox.yaml", _TAGS)
+            zf.writestr("comicbox.yaml", tags)
             zf.writestr("page0.jpg", _PAGE)
         return str(path)
 
+    def _importer(self, task: ImportTask, queue: MagicMock) -> ComicImporter:
+        return ComicImporter(task, logger, queue, Lock(), Event())
+
     def _import(self, task: ImportTask) -> MagicMock:
         queue = MagicMock()
-        importer = ComicImporter(task, logger, queue, Lock(), Event())
+        importer = self._importer(task, queue)
         assert importer._run_per_comic_phases_chunked()  # noqa: SLF001
         importer.fail_imports()
         importer.delete()
@@ -126,17 +144,13 @@ class TestKoreaderHashImport(TestCase):
         path = self._write("off.cbz")
         with patch(_PARTIAL_MD5, side_effect=AssertionError("read the file")):
             self._scan(path)
-        comic = Comic.objects.get(path=path)
-        assert comic.koreader_hash is None
-        assert comic.koreader_name_hash == koreader_name_md5(path)
+        assert _hashes(path) == (None, koreader_name_md5(path))
 
     def test_flag_on_hashes_the_file(self) -> None:
         _set_flag(on=True)
         path = self._write("on.cbz")
         self._scan(path)
-        comic = Comic.objects.get(path=path)
-        assert comic.koreader_hash == koreader_partial_md5(path)
-        assert comic.koreader_name_hash == koreader_name_md5(path)
+        assert _hashes(path) == (koreader_partial_md5(path), koreader_name_md5(path))
 
     def test_the_flag_is_read_once_per_import(self) -> None:
         _set_flag(on=True)
@@ -147,15 +161,25 @@ class TestKoreaderHashImport(TestCase):
         ) as flag:
             self._scan(*paths)
         assert flag.call_count == 1
+        assert ComicKoreaderHash.objects.filter(binary_hash__isnull=False).count() == 3  # noqa: PLR2004
 
-    def test_unchanged_comic_with_null_hashes_is_a_noop(self) -> None:
+    def test_an_update_with_the_flag_off_nulls_the_binary_hash(self) -> None:
+        """The backfill hashes only null rows, so a stale hash is not kept."""
+        _set_flag(on=True)
+        path = self._write("updated.cbz")
+        self._scan(path)
+        _set_flag(on=False)
+        self._write("updated.cbz", _NEW_TAGS)
+        self._force(path)
+        assert Comic.objects.get(path=path).name == "Changed"
+        assert _hashes(path) == (None, koreader_name_md5(path))
+
+    def test_unchanged_comic_with_no_hashes_is_a_noop(self) -> None:
         """The state every comic is in after the 0060 upgrade."""
         _set_flag(on=False)
         path = self._write("upgraded.cbz")
         self._scan(path)
-        Comic.objects.filter(path=path).update(
-            koreader_hash=None, koreader_name_hash=None
-        )
+        ComicKoreaderHash.objects.all().delete()
         updated_at = Comic.objects.get(path=path).updated_at
 
         queue = self._force(path)
@@ -163,6 +187,27 @@ class TestKoreaderHashImport(TestCase):
         queued = [call.args[0] for call in queue.put.call_args_list]
         assert LIBRARY_CHANGED_TASK not in queued, queued
         assert Comic.objects.get(path=path).updated_at == updated_at
+
+    def test_a_move_updates_only_the_name_hash(self) -> None:
+        """The file is unchanged, so its binary hash is kept and not re-read."""
+        _set_flag(on=True)
+        path = self._write("before.cbz")
+        self._scan(path)
+        binary = koreader_partial_md5(path)
+        new_path = str(TMP_DIR / "after.cbz")
+        shutil.move(path, new_path)
+        task = ImportTask(library_id=self.library.pk, files_moved={path: new_path})
+        with patch(_PARTIAL_MD5, side_effect=AssertionError("read the file")):
+            self._importer(task, MagicMock()).move_and_modify_dirs()
+        assert _hashes(new_path) == (binary, koreader_name_md5(new_path))
+
+    def test_deleting_a_comic_deletes_its_hashes(self) -> None:
+        _set_flag(on=True)
+        path = self._write("gone.cbz")
+        self._scan(path)
+        assert _hashes(path)
+        Comic.objects.filter(path=path).delete()
+        assert not ComicKoreaderHash.objects.exists()
 
 
 class TestKoreaderHashesStayInternal(TestCase):
@@ -193,6 +238,7 @@ class TestKoreaderHashesStayInternal(TestCase):
             series=series,
             volume=volume,
         )
+        ComicKoreaderHash.compute(self.comic.pk, path, binary=True).save()
         user = User.objects.create_user(username="md", password="x", is_staff=True)  # noqa: S106
         self.client = Client()
         self.client.force_login(user)
@@ -205,15 +251,35 @@ class TestKoreaderHashesStayInternal(TestCase):
         response = self.client.get(f"/api/v4/browse/comics/{self.comic.pk}/metadata")
         assert response.status_code == 200, response.content  # noqa: PLR2004
         body = response.content.decode()
-        assert "koreaderHash" not in body
-        assert "koreaderNameHash" not in body
+        for key in ("koreaderHash", "koreaderNameHash", "binaryHash", "nameHash"):
+            assert key not in body
+        for digest in ComicKoreaderHash.objects.values_list(
+            "binary_hash", "name_hash"
+        ).get():
+            assert digest not in body
 
     def test_collection_metadata_does_not_aggregate_them(self) -> None:
-        assert not set(_HASH_FIELDS) & COMIC_VALUE_FIELD_NAMES
+        assert not {*_OLD_HASH_FIELDS, "koreader"} & COMIC_VALUE_FIELD_NAMES
+
+    def test_comic_has_no_koreader_field(self) -> None:
+        names = {field.name for field in Comic._meta.get_fields()}
+        assert not {name for name in names if "koreader" in name}
 
 
-@pytest.mark.parametrize("field", _HASH_FIELDS)
+@pytest.mark.parametrize("field", [*_OLD_HASH_FIELDS, "koreader"])
 def test_hashes_are_not_search_fields(field: str) -> None:
     """Neither hash can be named in a field search."""
     with pytest.raises(ValueError, match="Unknown field"):
         parse_field(field)
+
+
+def test_0060_leaves_the_comic_table_alone() -> None:
+    """A v2.6.0 upgrade must not rewrite the widest table for KOReader."""
+    migration = import_module("codex.migrations.0060_post_v2_6_0_schema").Migration
+    touched = [
+        operation
+        for operation in migration.operations
+        if getattr(operation, "model_name", None) == "comic"
+        or getattr(operation, "name", None) == "Comic"
+    ]
+    assert not touched

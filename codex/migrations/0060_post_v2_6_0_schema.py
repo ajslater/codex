@@ -7,9 +7,11 @@ install applies one migration instead of a chain of four.
 
 In order:
 
-- **KOReader sync document hashes.** The hash columns start null. New imports
-  fill them in ``presave``; the JKH janitor job backfills existing comics once
-  the KOReader Sync flag is turned on.
+- **KOReader sync document hashes.** ``ComicKoreaderHash`` holds them, one
+  row per comic, beside the Comic table rather than on it, so an upgrade
+  leaves that table alone. It starts empty. Imports write it (the binary hash
+  only while KOReader Sync is on); the JKH janitor job backfills existing
+  comics once the flag is turned on.
 - **Shelves, with favorites folded in.** ``Shelf`` is a user's named shelf;
   ``ShelfItem`` places one browsable target on it, and is the old
   ``Favorite`` row re-parented from a user onto a shelf. Existing favorites
@@ -282,16 +284,32 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # KOReader sync.
-        migrations.AddField(
-            model_name="comic",
-            name="koreader_hash",
-            field=models.CharField(db_index=True, max_length=32, null=True),
-        ),
-        migrations.AddField(
-            model_name="comic",
-            name="koreader_name_hash",
-            field=models.CharField(db_index=True, max_length=32, null=True),
+        # KOReader sync, beside Comic so its table is left alone.
+        migrations.CreateModel(
+            name="ComicKoreaderHash",
+            fields=[
+                (
+                    "comic",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        primary_key=True,
+                        related_name="+",
+                        serialize=False,
+                        to="codex.comic",
+                    ),
+                ),
+                (
+                    "binary_hash",
+                    models.CharField(db_index=True, max_length=32, null=True),
+                ),
+                (
+                    "name_hash",
+                    models.CharField(db_index=True, max_length=32, null=True),
+                ),
+            ],
+            options={
+                "verbose_name": "comic KOReader hash",
+            },
         ),
         # Shelves.
         migrations.CreateModel(

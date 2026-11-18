@@ -8,6 +8,7 @@ from codex.models.bookmark import *
 from codex.models.collections import *
 from codex.models.comic import *
 from codex.models.identifier import *
+from codex.models.koreader import *
 from codex.models.library import *
 from codex.models.named import *
 from codex.models.paths import *
