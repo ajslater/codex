@@ -279,6 +279,30 @@ class ShelfFilterTestCase(ShelfTestCase):
         assert "shelves" in body["filterWarnings"]
         assert SettingsBrowserFilters.objects.get(browser=saved_row).shelves == []
 
+    def test_a_saved_view_keeps_only_its_owners_shelves(self):
+        """
+        A shelf pk is checked against the viewer's shelves, not all of them.
+
+        Checking it globally made loading a saved view an existence oracle
+        for other users' shelves.
+        """
+        mine = self._shelf()
+        other = User.objects.create_user(username="other", password=TEST_PASSWORD)
+        theirs = self._shelf(name="Theirs", user=other)
+        self._filter_by(mine)
+        saved = post_json(self.client, "post", SAVED_URL, {"name": "mixed"})
+        assert saved.status_code == HTTP_CREATED, saved.content
+        saved_row = SettingsBrowser.objects.get(user=self.user, name="mixed")
+        SettingsBrowserFilters.objects.filter(browser=saved_row).update(
+            shelves=[mine.pk, theirs.pk]
+        )
+
+        loaded = self.client.get(f"{SAVED_URL}/{saved_row.pk}")
+        assert loaded.status_code == HTTP_OK, loaded.content
+        body = v4(loaded)
+        assert body["settings"]["filters"]["shelves"] == [mine.pk]
+        assert "shelves" in body["filterWarnings"]
+
 
 class ShelvedAnnotationTestCase(ShelfTestCase):
     """``shelved_annotation_for`` is true for rows on any of the user's shelves."""
