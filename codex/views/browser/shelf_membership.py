@@ -3,9 +3,9 @@ Which of the requesting user's shelves a browser row or metadata selection is on
 
 Membership is *effective*: a comic is on a shelf when it sits there itself or
 through any parent -- its publisher, imprint, series or volume, any ancestor
-folder, or any story arc it is in. That is the rule the shelves browser filter
-already applies (``BrowserFilterView.get_shelf_filter``), so a row that lists
-a shelf is a row the shelf filter returns. A collection row, or a metadata
+folder, or any story arc it is in. :func:`effective_comic_q` builds that rule;
+the shelves browser filter (``BrowserFilterView.get_shelf_filter``) uses it
+too, so a row that lists a shelf is a row the shelf filter returns. A collection row, or a metadata
 selection, is on a shelf when every live comic the user can see under it is:
 the intersection rule every other collection-row tag column uses
 (:mod:`codex.views.browser.intersections`).
@@ -98,19 +98,37 @@ def _user_shelf_collections(user) -> dict[int, frozenset[str]]:
     return {shelf_pk: frozenset(codes) for shelf_pk, codes in collections.items()}
 
 
-def _effective_comic_q(shelf_pk: int, collections: Iterable[str]) -> Q:
-    """Comics on ``shelf_pk`` directly or through a parent, over its collections."""
+def shelf_targets(shelf_pks: Iterable[int], collection: str) -> QuerySet:
+    """Return the target pks the shelves hold in one collection, as a subquery."""
+    # ``values()`` returns a QuerySet at runtime; the stubs' ValuesQuerySet
+    # isn't assignable to it.
+    return ShelfItem.objects.filter(  # pyright: ignore[reportReturnType]
+        shelf_id__in=tuple(shelf_pks), collection=collection
+    ).values("target_id")
+
+
+def effective_comic_q(
+    shelf_pks: Iterable[int], collections: Iterable[str], rel: str = ""
+) -> Q:
+    """
+    Comics on any of ``shelf_pks`` directly or through a parent.
+
+    ``collections`` are the collections the shelves hold items in; a clause
+    is built for each. ``rel`` is the path from the filtered model to its
+    comics (``""`` for Comic, ``"comic__"`` for a collection). Folders and
+    story arcs go through ``pk__in`` subqueries of their through tables, so
+    the Q adds no join to the filtered query and cannot multiply its sums.
+    """
+    shelf_pks = tuple(shelf_pks)
     q = Q()
     for collection in sorted(collections):
-        targets = ShelfItem.objects.filter(
-            shelf_id=shelf_pk, collection=collection
-        ).values("target_id")
+        targets = shelf_targets(shelf_pks, collection)
         if field := _COMIC_FIELD_BY_COLLECTION.get(collection):
-            q |= Q(**{f"{field}__in": targets})
+            q |= Q(**{f"{rel}{field}__in": targets})
         elif through_lookup := _THROUGH_BY_COLLECTION.get(collection):
             through, lookup = through_lookup
             comic_ids = through.objects.filter(**{lookup: targets}).values("comic_id")
-            q |= Q(pk__in=comic_ids)
+            q |= Q(**{f"{rel}pk__in": comic_ids})
     return q
 
 
@@ -127,7 +145,7 @@ def _count_annotations(shelf_collections: Mapping[int, frozenset[str]]) -> dict:
     annotations: dict[str, Count] = {_TOTAL_ALIAS: Count("pk", distinct=True)}
     for shelf_pk, collections in shelf_collections.items():
         annotations[_shelf_alias(shelf_pk)] = Count(
-            "pk", distinct=True, filter=_effective_comic_q(shelf_pk, collections)
+            "pk", distinct=True, filter=effective_comic_q((shelf_pk,), collections)
         )
     return annotations
 

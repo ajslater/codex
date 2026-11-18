@@ -6,10 +6,10 @@ from typing import Final
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.collection import Collection
 from codex.models import Comic, StoryArc
 from codex.models.shelf import SHELF_MODEL_COLLECTIONS, Shelf, ShelfItem
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
+from codex.views.browser.shelf_membership import effective_comic_q, shelf_targets
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
@@ -40,28 +40,6 @@ _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
 _M2M_FOLDER_GROUP_TARGETS: Final[frozenset[str]] = frozenset(
     {"cover", "choices", "bookmark", "download", "force_update"}
 )
-
-# Collection codes whose transitive shelf clauses introduce m2m JOINs on
-# Comic (``folders`` and ``story_arc_numbers__story_arc``). When the
-# selected shelves hold nothing under either code the filter Q has no m2m
-# clauses and Comic queries don't need ``.distinct()``.
-_SHELF_M2M_COLLECTION_CODES: Final[frozenset[str]] = frozenset(
-    {Collection.FOLDER.value, Collection.ARC.value}
-)
-
-# Collection code → comic-side ORM field used to "transitively" match a
-# row in that collection. ``folders`` and ``story_arc_numbers__story_arc``
-# are m2m relations on Comic that carry every ancestor folder / arc,
-# so a single shelved folder lights up every descendant comic.
-_SHELF_COLLECTION_COMIC_REL: Final[dict[str, str]] = {
-    Collection.COMIC.value: "pk",
-    Collection.PUBLISHER.value: "publisher_id",
-    Collection.IMPRINT.value: "imprint_id",
-    Collection.SERIES.value: "series_id",
-    Collection.VOLUME.value: "volume_id",
-    Collection.FOLDER.value: "folders",
-    Collection.ARC.value: "story_arc_numbers__story_arc",
-}
 
 
 class BrowserFilterView(BrowserFilterBookmarkView):
@@ -130,10 +108,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         Return the collections the selected shelves hold at least one item in.
 
         One ``DISTINCT`` query per request, cached. Used by
-        ``get_shelf_filter`` to skip OR clauses for empty collections
-        (which would otherwise force m2m JOINs through ``folders`` and
-        ``story_arc_numbers`` on every shelf-filtered request) and
-        by ``comic_filter_uses_m2m`` to gate ``.distinct()``.
+        ``get_shelf_filter`` to skip OR clauses for empty collections.
         """
         shelf_pks = self._active_shelf_pks
         if not shelf_pks:
@@ -167,24 +142,8 @@ class BrowserFilterView(BrowserFilterBookmarkView):
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
         filters = self.params.get("filters") or {}
-        if self._active_shelf_collection_codes & _SHELF_M2M_COLLECTION_CODES:
-            # The transitive shelf Q only introduces m2m clauses for
-            # collections the selected shelves actually hold items in.
-            # With no shelved folders / arcs the Q stays on direct fields
-            # and Comic queries don't need ``.distinct()``.
-            return True
+        # The shelves filter is join-free (see ``get_shelf_filter``).
         return any(filters.get(k) for k in _M2M_FILTER_KEYS)
-
-    @cached_property
-    def _shelf_subqueries(self):
-        """Per-collection shelved-id subqueries, built once per request."""
-        shelf_pks = self._active_shelf_pks
-        return {
-            code: ShelfItem.objects.filter(
-                shelf_id__in=shelf_pks, collection=code
-            ).values("target_id")
-            for code in self._active_shelf_collection_codes
-        }
 
     def get_shelf_filter(self, model) -> Q:
         """
@@ -200,17 +159,15 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         can drill down to the comic), and shelving a Comic keeps every
         ancestor (Publisher → Series → Volume → Comic) reachable.
 
-        Each OR clause traces ``rel_prefix + comic_field`` to a
-        per-collection shelved-id subquery, but only for collections the
-        selected shelves actually hold items in (see
-        :attr:`_active_shelf_collection_codes`). That keeps the m2m
-        ``folders`` / ``story_arc_numbers__story_arc`` JOINs out of
-        the SQL when no folders / arcs are shelved — typically the
-        common case. ``folders`` is the m2m of every ancestor folder
-        for a comic (not just the direct parent), so a shelved
-        folder lights up every descendant folder and comic;
-        ``story_arc_numbers__story_arc`` is the analogous m2m-through
-        to StoryArc.
+        The comic side is :func:`effective_comic_q`, the same rule the
+        Shelves column uses, built only for collections the selected
+        shelves hold items in (see :attr:`_active_shelf_collection_codes`).
+        It reaches folders and story arcs through ``pk__in`` subqueries,
+        not joins, so a comic that matches through its series is not
+        repeated once per ancestor folder and no ``Sum`` over the filtered
+        rows is multiplied. A comic's ``folders`` holds every ancestor
+        folder, so a shelved folder lights up every descendant folder and
+        comic.
 
         Models outside :data:`SHELF_MODEL_COLLECTIONS` (search results,
         intermediate querysets) get the no-op. Anonymous sessions and
@@ -233,17 +190,14 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         # under collection browses; using the browse-model rel there would
         # produce ``comic__pk`` against Comic and FieldError out.
         rel = self.get_rel_prefix(model)
-        subqueries = self._shelf_subqueries
-        q = Q()
-        for code in sorted(active):
-            comic_rel = _SHELF_COLLECTION_COMIC_REL[code]
-            q |= Q(**{f"{rel}{comic_rel}__in": subqueries[code]})
+        shelf_pks = self._active_shelf_pks
+        q = effective_comic_q(shelf_pks, active, rel=rel)
         # The row itself is shelved. Covers the rare "shelved collection
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.
         self_code = self_collection.value
-        if self_code in subqueries:
-            q |= Q(pk__in=subqueries[self_code])
+        if self_code in active:
+            q |= Q(pk__in=shelf_targets(shelf_pks, self_code))
         return q
 
     def _get_query_filters(
