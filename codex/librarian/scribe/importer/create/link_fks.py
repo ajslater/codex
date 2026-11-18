@@ -12,6 +12,7 @@ from codex.librarian.scribe.importer.const import (
     PARENT_FOLDER_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
     SERIES_SUMMARY_FTS_FIELD_NAME,
+    UNSET_FK_LINK,
     VOLUME_FIELD_NAME,
 )
 from codex.librarian.scribe.importer.link import LinkComicsImporter
@@ -90,7 +91,7 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
                 if field_name == PROTAGONIST_KEY:
                     if values and values[0]:
                         prot_names.add(values[0])
-                elif values:
+                elif values and values != UNSET_FK_LINK:
                     per_field.setdefault(field_name, set()).add(values)
         self.fk_link_instance_maps = {
             field_name: self._build_fk_instance_map(field_name, key_tuples)
@@ -125,8 +126,8 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
         """Protagonist does not create. Only links."""
         if PROTAGONIST_KEY not in link_fks and not for_create:
             # Update path: an absent key means the query prune dropped an
-            # unchanged protagonist (or the file never tagged one) — leave
-            # the existing links alone instead of clearing them.
+            # unchanged protagonist — leave the existing links alone. One
+            # the tags no longer name arrives unset and clears both.
             return
         name_tuple = link_fks.pop(PROTAGONIST_KEY, None)
         name: str | None = name_tuple[0] if name_tuple else None
@@ -147,6 +148,11 @@ class CreateForeignKeyLinksImporter(LinkComicsImporter):
     ) -> None:
         for field_name in tuple(link_fks.keys()):
             values = link_fks.pop(field_name)
+            if values == UNSET_FK_LINK:
+                # The tags set none: unlink it and empty its search column.
+                md[field_name] = None
+                self.add_links_to_fts(subkey, field_name, ())
+                continue
             instance = self.fk_link_instance_maps.get(field_name, {}).get(values)
             if instance is None:
                 model = cast(

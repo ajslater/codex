@@ -15,7 +15,7 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.limits import MAX_NAME_LEN
-from codex.choices.tagging import WRITE_FORMATS
+from codex.choices.tagging import NAMED_WRITE_FORMATS, WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
@@ -40,6 +40,34 @@ def _validate_ordered_sources(value: list) -> list:
     return sources
 
 
+def _validate_write_formats(value: object) -> list:
+    """
+    Require at least one tag format the editors offer; dedupe, keep order.
+
+    ``keep`` may ride beside them. Alone it names no format, and comicbox
+    then skips an untagged comic without an error, so it is refused. Any
+    other value would reach comicbox as is: ``PDF`` rewrites a PDF's
+    document metadata.
+    """
+    if not isinstance(value, list):
+        reason = "Expected a list of metadata formats."
+        raise ValidationError(reason)
+    formats = list(dict.fromkeys(value))
+    if unknown := [fmt for fmt in formats if fmt not in WRITE_FORMATS]:
+        reason = (
+            f"Unknown metadata format(s): {', '.join(map(str, unknown))}. "
+            f"Known: {', '.join(WRITE_FORMATS)}."
+        )
+        raise ValidationError(reason)
+    if not any(fmt in NAMED_WRITE_FORMATS for fmt in formats):
+        reason = (
+            f"At least one metadata format ({', '.join(NAMED_WRITE_FORMATS)})"
+            " is required."
+        )
+        raise ValidationError(reason)
+    return formats
+
+
 class TagWriteRequestSerializer(Serializer):
     """Serializer for tag write requests."""
 
@@ -54,6 +82,11 @@ class TagWriteRequestSerializer(Serializer):
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
     rename = BooleanField(required=False, default=None)
+
+    @staticmethod
+    def validate_formats(value: list) -> list:
+        """Only the editors' write formats reach comicbox."""
+        return _validate_write_formats(value)
 
 
 class AdminTagNamesInputSerializer(Serializer):
@@ -217,20 +250,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         comicbox refuses a write with no formats, so an empty default would
         fail every file in an online-tagging session.
         """
-        if not isinstance(value, list):
-            reason = "Expected a list of metadata formats."
-            raise ValidationError(reason)
-        formats = list(dict.fromkeys(value))
-        if not formats:
-            reason = "At least one metadata format is required."
-            raise ValidationError(reason)
-        if unknown := [fmt for fmt in formats if fmt not in WRITE_FORMATS]:
-            reason = (
-                f"Unknown metadata format(s): {', '.join(map(str, unknown))}. "
-                f"Known: {', '.join(WRITE_FORMATS)}."
-            )
-            raise ValidationError(reason)
-        return formats
+        return _validate_write_formats(value)
 
     @staticmethod
     def validate_default_sources(value: list) -> list:

@@ -23,6 +23,7 @@ from comicbox.events import (
 )
 from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY
 from comicbox.identifiers import ID_KEY_KEY
+from comicbox.online_session import Prompts
 from loguru import logger
 
 from codex.librarian.onlinetag.session_cache import (
@@ -442,9 +443,30 @@ class OnlineTagScanTests(OnlineTagSessionTestCase):
 
         # The session was built to skip inline rather than defer prompts.
         assert FakeSession.last_kwargs["defer_prompts"] is False
+        # comicbox is told so, and skips without enriching candidates for a
+        # prompt nobody will see.
+        assert FakeSession.last_kwargs["prompts"] is Prompts.NEVER
         # No ambiguous match was queued for later resolution.
         assert get_pending_prompts() == {}
         assert get_active_scan_id() == ""
+
+    def test_run_session_ask_prompts_lets_comicbox_prompt(self) -> None:
+        comic = make_comic()
+        FakeSession.deferred = []
+        self._no_op_pass()
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-ask",
+            sources=("metron",),
+            mode="auto",
+            prompts_mode="ask",
+        )
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(task)
+
+        assert FakeSession.last_kwargs["defer_prompts"] is True
+        assert FakeSession.last_kwargs["prompts"] is Prompts.ASK
 
     def test_run_session_records_its_remainder_before_scanning(self) -> None:
         """A daemon killed mid-scan must still leave the batch resumable."""

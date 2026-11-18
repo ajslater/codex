@@ -23,9 +23,12 @@ from pathlib import Path
 from typing import Final, override
 from unittest.mock import patch
 
+from comicbox.exceptions import MetadataError, UnsupportedArchiveTypeError
 from comicbox.write import DestinationOccupiedError, WriteResult
 from django.test import TestCase
 
+from codex.librarian.notifier.tasks import TAG_WRITE_ERRORS_CHANGED_TASK
+from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.tag_writer import TagWriter
 from codex.librarian.scribe.tagwrite_errors import (
     clear_tag_write_errors,
@@ -366,3 +369,63 @@ class TagWriterInBatchCollisionTests(_PreflightTestBase):
         assert len(records) == 1, records
         assert "twin_pk" not in records[0]
         assert "Read-only" in records[0]["error"]
+
+
+class TagWriterResultShapeTests(_PreflightTestBase):
+    """
+    comicbox 5.6.2's new refusals and no-op results reach the panel right.
+
+    A patch that does not load is now a ``MetadataError`` (5.6.1 rewrote
+    the comic, stripping its other tag formats, and reported success); a
+    RAR or 7z named ``.cbz`` is an ``UnsupportedArchiveTypeError``. A
+    result that wrote nothing and failed nothing is neither.
+    """
+
+    _write_with_results = TagWriterInBatchCollisionTests._write_with_results  # noqa: SLF001
+
+    def test_a_metadata_error_is_recorded(self) -> None:
+        comic = _make_comic(events=False, name="Bad.cbz")
+        path = Path(comic.path)
+
+        self._write_with_results(
+            {comic: WriteResult(path=path, error=MetadataError("bad patch"))}
+        )
+
+        records = _records_for(path)
+        assert len(records) == 1, records
+        assert "bad patch" in records[0]["error"]
+        assert "twin_pk" not in records[0]
+        assert TAG_WRITE_ERRORS_CHANGED_TASK in self.queue.items
+        assert not [i for i in self.queue.items if isinstance(i, ImportTask)]
+
+    def test_an_unsupported_archive_type_is_recorded(self) -> None:
+        comic = _make_comic(events=False, name="Rar.cbz")
+        path = Path(comic.path)
+
+        self._write_with_results(
+            {
+                comic: WriteResult(
+                    path=path, error=UnsupportedArchiveTypeError("RAR named .cbz")
+                )
+            }
+        )
+
+        records = _records_for(path)
+        assert len(records) == 1, records
+        assert "RAR named .cbz" in records[0]["error"]
+
+    def test_a_result_that_wrote_nothing_is_neither_counted_nor_reread(
+        self,
+    ) -> None:
+        comic = _make_comic(events=False, name="Noop.cbz")
+        path = Path(comic.path)
+
+        with patch.object(self.writer.log, "info") as info:
+            self._write_with_results(
+                {comic: WriteResult(path=path, written=False, error=None)}
+            )
+
+        assert not _records_for(path)
+        assert TAG_WRITE_ERRORS_CHANGED_TASK not in self.queue.items
+        assert not [i for i in self.queue.items if isinstance(i, ImportTask)]
+        assert any("0 written" in str(call.args[0]) for call in info.call_args_list)

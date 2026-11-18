@@ -24,7 +24,10 @@ export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
      * parseFloat(null) was NaN but Number(null) is 0: keep a null number
      * with a suffix NaN so it still renders as the bare suffix, not "0a".
      */
-    const floatIssue = issueNumber == undefined ? NaN : Number(issueNumber);
+    const signedIssue = issueNumber == undefined ? NaN : Number(issueNumber);
+    // Pad the magnitude so issue -1 reads "-001", not "0-1".
+    const sign = signedIssue < 0 ? "-" : "";
+    const floatIssue = Math.abs(signedIssue);
     const intIssue = Math.floor(floatIssue);
     if (zeroPad === undefined) {
       zeroPad = 0;
@@ -35,7 +38,7 @@ export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
       issueStr = floatIssue.toString();
       zeroPad += issueStr.split(".", 2)[1].length + 1;
     }
-    issueStr = issueStr.padStart(zeroPad, "0");
+    issueStr = sign + issueStr.padStart(zeroPad, "0");
   } catch {
     issueStr = "";
   }

@@ -195,6 +195,24 @@ class AdminSingletonSettingsTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
 
+    def test_tagging_defaults_accepts_keep_beside_a_format(self) -> None:
+        """Online tagging writes with these, so it can keep formats too."""
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"defaultFormats": ["COMIC_INFO", "keep"]},
+        )
+        assert resp.status_code == HTTPStatus.OK, resp.content
+        assert resp.json()["data"]["defaultFormats"] == ["COMIC_INFO", "keep"]
+
+    def test_tagging_defaults_rejects_keep_alone(self) -> None:
+        resp = _put_envelope(
+            self.client,
+            "/api/v4/admin/tagging-defaults",
+            {"defaultFormats": ["keep"]},
+        )
+        assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+
     def test_tagging_defaults_rejects_non_list_formats(self) -> None:
         resp = _put_envelope(
             self.client,

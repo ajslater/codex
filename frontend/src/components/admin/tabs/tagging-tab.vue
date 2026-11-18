@@ -27,7 +27,7 @@
                 :key="format.value"
                 :value="format.value"
                 :label="format.title"
-                :disabled="isLastFormat(format.value)"
+                :disabled="isFormatDisabled(format.value)"
               />
               <!-- Render the docs hint via the message slot so its links live
                    inside the field's own hint, styled like every other. -->
@@ -407,6 +407,12 @@ import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue
 import TagWriteErrorsPanel from "@/components/admin/tabs/tag-write-errors-panel.vue";
 import ValidationChip from "@/components/admin/tabs/tagging-validation-chip.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import {
+  isWriteFormatDisabled,
+  KEEP_FORMAT_HINT,
+  namedFormats,
+  WRITE_FORMAT_CHOICES,
+} from "@/components/metadata/edit-mode/write-formats";
 import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
@@ -443,21 +449,22 @@ export default {
       mdiChevronDown,
       mdiChevronUp,
       mdiOpenInNew,
-      formatChoices: TAGGING_CHOICES.formats,
+      formatChoices: WRITE_FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
       effortChoices: TAGGING_CHOICES.effort,
       metadataFormatsHint:
         "These metadata formats are written into each comic every time its tags are edited. Learn more about ComicInfo and MetronInfo.",
       lastFormatHint: "At least one format must be written",
+      keepFormatHint: KEEP_FORMAT_HINT,
       deleteOriginalHint:
         "Writing tags to CBR, CB7, or CBT archives converts them to CBZ. Enable this to delete the original file after conversion.",
       renameFilesHint:
         "Rename each comic file to the comicbox scheme derived from its tags after writing. Can be overridden per operation when editing tags or tagging online.",
       matchModeHint:
-        "How aggressively to accept online matches. Ask writes nothing and prompts for every match, Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
+        "How aggressively to accept online matches. Ask writes nothing and prompts for every match, listing a clear Metron cover match first. Careful writes only near-certain matches and clear Metron cover matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       effortHint:
-        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron answers in one call and ignores this.",
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron ignores this.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
@@ -515,9 +522,9 @@ export default {
       );
     },
     formatsMessages() {
-      // The last checked box is disabled; say why under the docs hint.
-      const messages = [this.metadataFormatsHint];
-      if ((this.draft.defaultFormats || []).length === 1) {
+      // The last checked format's box is disabled; say why under the hints.
+      const messages = [this.metadataFormatsHint, this.keepFormatHint];
+      if (namedFormats(this.draft.defaultFormats).length === 1) {
         messages.push(this.lastFormatHint);
       }
       return messages;
@@ -525,7 +532,7 @@ export default {
     formatsError() {
       // Only a row saved empty before formats were required gets here. Don't
       // fill in a default, which would auto-save on open; checking a box does.
-      return (this.draft.defaultFormats || []).length
+      return namedFormats(this.draft.defaultFormats).length
         ? []
         : ["Choose at least one format"];
     },
@@ -569,9 +576,8 @@ export default {
       "updateTaggingDefaults",
       "validateTaggingCredentials",
     ]),
-    isLastFormat(value) {
-      const formats = this.draft.defaultFormats || [];
-      return formats.length === 1 && formats.includes(value);
+    isFormatDisabled(value) {
+      return isWriteFormatDisabled(this.draft.defaultFormats, value);
     },
     setSourceEnabled(source, enabled) {
       // defaultSources order is run priority; a newly enabled source

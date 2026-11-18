@@ -26,6 +26,9 @@
  *   - Metadata Formats is a checkbox group whose last checked box is disabled
  *     and explained, so auto-save can never write an empty list. A row already
  *     saved empty shows an error and is not auto-saved on open.
+ *   - comicbox's keep is offered there with a hint saying what it rewrites and
+ *     refuses. It never counts as the format a write must name, so it is
+ *     disabled while no format is checked.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -486,6 +489,41 @@ describe("AdminTaggingTab — Metadata Formats checkboxes", () => {
         defaultFormats: ["COMIC_INFO", "METRON_INFO"],
       }),
     );
+  });
+
+  test("offers keep with a hint saying what it rewrites", async () => {
+    const wrapper = mountTab({ defaultFormats: ["COMIC_INFO"] });
+    const store = useAdminStore();
+    expect(formatInput(wrapper, "keep").element.disabled).toBe(false);
+    const hint = wrapper
+      .findAll(".v-messages__message")
+      .map((m) => m.text())
+      .find((text) => text.startsWith("Keep other formats"));
+    expect(hint).toBeTruthy();
+    for (const fact of [
+      "comicbox.yaml",
+      "never added",
+      "PDF",
+      "can't be parsed",
+      "Tag Write Errors",
+    ]) {
+      expect(hint).toContain(fact);
+    }
+
+    await formatInput(wrapper, "keep").setValue(true);
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultFormats: ["COMIC_INFO", "keep"] }),
+    );
+    // Keep is not a format: the one named format still can't be unchecked.
+    expect(formatInput(wrapper, "COMIC_INFO").element.disabled).toBe(true);
+    expect(wrapper.text()).toContain("At least one format must be written");
+  });
+
+  test("keep is disabled while no format is checked", async () => {
+    const wrapper = mountTab({ defaultFormats: [] });
+    await wrapper.vm.$nextTick();
+    expect(formatInput(wrapper, "keep").element.disabled).toBe(true);
+    expect(wrapper.text()).toContain("Choose at least one format");
   });
 
   test("an empty saved row shows an error and does not auto-save", async () => {
