@@ -65,6 +65,8 @@ border-radius: 128px;
   folder's cells.
 - Tag writes keep a comic's archive comment, a failed write leaves the comic
   unchanged, and a RAR or 7z named `.cbz` is refused with its real type.
+- Re-importing a comic clears tags its file no longer has, such as a summary
+  cleared in the tag editor, from search too.
 - Issue −1 imports as a number, and partial dates such as `2006-07` no longer
   gain today's month or day.
 - Issue #0 imports as issue 0, not as an unnumbered issue.

@@ -28,7 +28,10 @@ from codex.librarian.scribe.importer.const import (
     LINK_M2MS,
     QUERY_MODELS,
 )
-from codex.librarian.scribe.importer.read.const import ALTERNATIVE_NAME_MARKER
+from codex.librarian.scribe.importer.read.const import (
+    ALTERNATIVE_NAME_MARKER,
+    TAG_COMIC_FIELDS,
+)
 from codex.librarian.scribe.importer.read.folders import AggregatePathMetadataImporter
 from codex.librarian.scribe.importer.statii.failed import (
     ImporterFailedImportsQueryStatus,
@@ -82,6 +85,20 @@ def _fold_alternative_names_into_reprints(md) -> None:
         reprints.append(reprint)
 
 
+def _set_absent_tag_columns(md) -> None:
+    """
+    Default every tag column the file doesn't set.
+
+    The tags are all of the comic's tag columns, so one they don't set
+    takes the value a fresh import of the file would give it. A re-import
+    then clears what the file no longer holds; a new comic gets the
+    default either way.
+    """
+    for field in TAG_COMIC_FIELDS:
+        if field.name not in md:
+            md[field.name] = field.get_default()
+
+
 def _flatten_community_rating(md) -> None:
     """Flatten community_rating parts onto flat columns; keep average 0."""
     if community_rating := md.pop(COMMUNITY_RATING_KEY, None):
@@ -121,7 +138,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
             md["name"] = title
 
     def _aggregate_path(self, path, status) -> None:
-        """Aggregate metadata for one path."""
+        """Aggregate metadata for one path whose tags were read."""
         # Prepare
         md = self.metadata[EXTRACTED].pop(path)
         self._transform_metadata(md)
@@ -132,6 +149,7 @@ class AggregateMetadataImporter(AggregatePathMetadataImporter):
         self.get_m2m_metadata(md, path)
         if md:
             self.get_path_metadata(md, path)
+        _set_absent_tag_columns(md)
         self.metadata[CREATE_COMICS][str(path)] = md
 
         # Status

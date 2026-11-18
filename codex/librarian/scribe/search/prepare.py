@@ -101,12 +101,13 @@ class SearchEntryPrepare:
 
     @classmethod
     def _create_comicfts_entry_m2ms(cls, entry, existing_values: dict | None) -> None:
-        if sources := cls._get_sources_fts_field(entry):
-            entry["sources"] = sources
+        # Kept values join the new ones before sources gains its long names.
         if existing_values:
             for field_name in tuple(existing_values.keys()):
                 if values := existing_values.get(field_name):
                     entry[field_name] = entry.get(field_name, ()) + values
+        if sources := cls._get_sources_fts_field(entry):
+            entry["sources"] = sources
 
     @classmethod
     def prepare_import_fts_entry(
