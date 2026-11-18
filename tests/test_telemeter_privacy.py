@@ -337,6 +337,21 @@ class TelemeterPrivacyTestCase(TestCase):
         assert usage["shelf_item_count"] == 1
         assert usage["shelf_items"] == {Collection.SERIES.value: 1}
 
+    def test_an_unknown_shelf_collection_folds_into_other(self) -> None:
+        """
+        The bucket's keys come from the shelf collection vocabulary.
+
+        Every writer validates the column today, but the module clamps
+        every other data-keyed bucket, and a stored value can be anything.
+        """
+        shelf = Shelf.objects.get()
+        ShelfItem.objects.create(
+            shelf=shelf, collection=f"{SENTINEL}-collection", target_id=1
+        )
+        usage = CodexStats().get()["usage"]
+        assert usage["shelf_items"] == {Collection.SERIES.value: 1, "other": 1}
+        assert SENTINEL not in json.dumps(usage)
+
     def test_api_keys_report_counts_only(self) -> None:
         """
         Report integers and one boolean.
