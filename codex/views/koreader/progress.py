@@ -2,7 +2,8 @@
 KOReader kosync progress endpoints.
 
 ``document`` is a KOReader hash: the partial MD5 of the file or, for devices
-set to Filename matching, the MD5 of its base name. Either matches.
+set to Filename matching, the MD5 of its base name. Either matches, a base
+name only when one visible comic has it.
 
 For comics and PDFs KOReader's ``progress`` is the 1-based page number as a
 string and ``percentage`` is ``page / page_count``. Codex bookmarks store a
@@ -141,19 +142,32 @@ class KOSyncProgressMixin(GroupACLMixin):
 
     def get_matching_comics(self, document: str, *, include_missing: bool):
         """
-        Return ``(pk, page_count)`` for every visible comic with this hash.
+        Return ``(pk, page_count)`` for the visible comics this hash names.
+
+        Every comic with the file's partial MD5: those are copies of one
+        file. A file-name hash names a comic only when exactly one visible
+        comic has it; ``Series A/Volume 01.cbz`` and ``Series B/Volume
+        01.cbz`` are different books, so a shared name matches nothing.
 
         Through the library-group and age-rating ACL, so a comic the user
-        cannot browse never matches.
+        cannot browse never matches, nor counts against a unique name.
         """
         user = self.request.user
         acl_filter = self.get_acl_filter(Comic, user, include_missing=include_missing)
         hash_filter = Q(koreader_hash=document) | Q(koreader_name_hash=document)
-        return tuple(
+        rows = tuple(
             Comic.objects.filter(acl_filter, hash_filter).values_list(
-                "pk", "page_count"
+                "pk", "page_count", "koreader_hash"
             )
         )
+        if binary := tuple(
+            (pk, page_count) for pk, page_count, digest in rows if digest == document
+        ):
+            return binary
+        if len(rows) == 1:
+            pk, page_count, _digest = rows[0]
+            return ((pk, page_count),)
+        return ()
 
 
 class KOSyncProgressPutView(KOSyncProgressMixin, KOSyncAPIView):

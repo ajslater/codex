@@ -316,6 +316,37 @@ class KOSyncProgressTestCase(KOSyncTestCase):
         assert self._bookmarks() == [(self.comic.pk, _STORED_PAGE, False)]
         assert self._pull(self.comic.koreader_name_hash).json()["progress"] == "5"
 
+    def test_a_shared_file_name_matches_nothing(self) -> None:
+        """
+        Filename matching fans out to nothing, not to every namesake.
+
+        ``Series A/Volume 01.cbz`` and ``Series B/Volume 01.cbz`` share a name
+        hash. A push stores nothing (finishing one book must not finish the
+        other) and a pull reports no progress.
+        """
+        namesake = self._make_comic(self.library, "namesake")
+        Comic.objects.filter(pk=namesake.pk).update(
+            koreader_name_hash=self.comic.koreader_name_hash
+        )
+        Bookmark.objects.create(user=self.user, comic=namesake, page=9)
+        response = self._push(
+            self.comic.koreader_name_hash,
+            progress=str(self.COMIC_PAGE_COUNT),
+            percentage=1.0,
+        )
+        assert response.status_code == _HTTP_OK
+        assert self._bookmarks() == [(namesake.pk, _WEB_PAGE, False)]
+        assert self._pull(self.comic.koreader_name_hash).json() == {}
+
+    def test_a_hidden_namesake_does_not_spoil_a_unique_name(self) -> None:
+        """Uniqueness counts only the comics the user can see."""
+        Comic.objects.filter(pk=self.private_comic.pk).update(
+            koreader_name_hash=self.comic.koreader_name_hash
+        )
+        self._push(self.comic.koreader_name_hash)
+        assert self._bookmarks() == [(self.comic.pk, _STORED_PAGE, False)]
+        assert self._pull(self.comic.koreader_name_hash).json()["progress"] == "5"
+
     def test_hash_case_is_ignored(self) -> None:
         """Upper-case hex matches; the response echoes what was sent."""
         upper = str(self.comic.koreader_hash).upper()
