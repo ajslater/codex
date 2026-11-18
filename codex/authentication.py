@@ -94,6 +94,10 @@ class ReaderKeyBearerAuthentication(ApiKeyBearerAuthentication):
     scopes = READER_SCOPES
 
 
+# One Basic realm for every OPDS route, the feeds' and the binary routes'.
+OPDS_BASIC_AUTH_REALM = "Codex OPDS"
+
+
 class ReaderKeyBasicAuthentication(BasicAuthentication):
     """
     OPDS Basic auth that also takes a device key or a universal key.
@@ -103,6 +107,8 @@ class ReaderKeyBasicAuthentication(BasicAuthentication):
     must belong to the username given. ``request.auth`` is the key that
     matched, or None for a password login.
     """
+
+    www_authenticate_realm = OPDS_BASIC_AUTH_REALM
 
     @override
     def authenticate_credentials(  # pyright: ignore[reportIncompatibleMethodOverride]
