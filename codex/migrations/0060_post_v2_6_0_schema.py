@@ -156,8 +156,15 @@ def favorites_to_shelves(apps, schema_editor):
     favorite = apps.get_model("codex", "Favorite")
     shelf = apps.get_model("codex", "Shelf")
     filters = apps.get_model("codex", "SettingsBrowserFilters")
+    user = apps.get_model("auth", "User")
 
-    user_ids = favorite.objects.values_list("user_id", flat=True).distinct()
+    # SQLite checks foreign keys only when asked, so a favorite can outlive
+    # its user. A shelf for one would fail the FK check ``migrate`` ends with.
+    user_ids = (
+        favorite.objects.filter(user_id__in=user.objects.values("pk"))
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
     shelf.objects.bulk_create(
         [shelf(user_id=user_id, name=FAVORITES_SHELF_NAME) for user_id in user_ids]
     )
