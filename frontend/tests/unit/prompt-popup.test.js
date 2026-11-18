@@ -319,6 +319,34 @@ describe("OnlineTagPromptPopup", () => {
       );
     });
 
+    test("keeps server order when the first candidate scores lower", async () => {
+      /*
+       * comicbox 5.6.2 puts a clear Metron cover match first under Ask,
+       * out of score order. The popup must not re-sort, and Pick on the
+       * first row must send index 0.
+       */
+      const { wrapper, store } = mountPopup(
+        [
+          candidate({ issueId: 1, score: 0.4, volumeId: 11 }),
+          candidate({ issueId: 2, score: 0.9, volumeId: 22 }),
+        ],
+        { source: "metron" },
+      );
+      await wrapper.vm.$nextTick();
+
+      const scores = wrapper
+        .findAll(".candidateActions .v-chip")
+        .map((chip) => chip.text());
+      expect(scores).toEqual(["40%", "90%"]);
+
+      const firstPick = wrapper
+        .findAll("button")
+        .find((button) => button.text() === "Pick");
+      await firstPick.trigger("click");
+
+      expect(store.resolvePrompt).toHaveBeenCalledWith("fp1", "choose", 0, 11);
+    });
+
     test("passes null when the source exposes no volume id", () => {
       const { wrapper, store } = mountPopup([candidate()]);
 
