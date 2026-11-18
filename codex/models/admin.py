@@ -124,7 +124,7 @@ class ComicboxTaggingDefaults(BaseModel):
         How much API budget to spend per comic (mirrors comicbox.Effort).
 
         Only bites on sources that fan out per candidate, which today
-        means Comic Vine. Metron answers in one call and ignores it.
+        means Comic Vine. Metron ignores it.
 
         Unset is not the same as Balanced. Naming any value pins it, and
         comicbox reads a pin as a decision to leave alone; left unset it

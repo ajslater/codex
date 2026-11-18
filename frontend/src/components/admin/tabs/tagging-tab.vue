@@ -455,9 +455,9 @@ export default {
       renameFilesHint:
         "Rename each comic file to the comicbox scheme derived from its tags after writing. Can be overridden per operation when editing tags or tagging online.",
       matchModeHint:
-        "How aggressively to accept online matches. Ask writes nothing and prompts for every match, Careful writes only near-certain matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
+        "How aggressively to accept online matches. Ask writes nothing and prompts for every match, listing a clear Metron cover match first. Careful writes only near-certain matches and clear Metron cover matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       effortHint:
-        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron answers in one call and ignores this.",
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron ignores this.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
