@@ -16,9 +16,10 @@ transform specs don't surface at the top level (``_EXTRA_FORMAT_FIELDS``).
 
 from collections.abc import Iterable, Mapping
 from types import MappingProxyType
-from typing import cast
+from typing import Final, cast
 
 import pycountry  # a hard dependency of comicbox
+from comicbox.config.formats import KEEP_KEYWORD
 from comicbox.enums.comicbox import IdSources, MangaEnum
 from comicbox.enums.generic import GenericFormatEnum
 from comicbox.enums.maps.age_rating import COMICINFO_AGE_RATING_MAP
@@ -40,9 +41,19 @@ _TRANSFORMS = MappingProxyType(
     }
 )
 
-# The write formats the editors offer, titled by comicbox (id -> title).
-WRITE_FORMATS = MappingProxyType(
+# The tag formats the editors offer, titled by comicbox (id -> title).
+NAMED_WRITE_FORMATS = MappingProxyType(
     {fmt: MetadataFormats[fmt].value.label for fmt in _TRANSFORMS}
+)
+
+# comicbox's write keyword that rewrites every tag format a comic already
+# carries, a comicbox.yaml or a PDF's own metadata among them, instead of
+# removing the ones not named. It names no format, so it rides beside one.
+KEEP_WRITE_FORMAT: Final = KEEP_KEYWORD
+
+# Everything the editors may send as write formats (id -> title).
+WRITE_FORMATS = MappingProxyType(
+    {**NAMED_WRITE_FORMATS, KEEP_WRITE_FORMAT: "Keep other formats"}
 )
 
 

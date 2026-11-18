@@ -2,9 +2,11 @@
 The tag-write endpoints accept only the write formats the editors offer.
 
 ``formats`` was a list of any strings passed straight to comicbox. comicbox
-5.6.2 newly accepts ``keep`` (rewrite a comicbox.yaml / comicbox.json the
-comic already carries, against the project rule) and makes ``PDF`` rewrite
-a PDF's document metadata. The UI sends neither; the API must refuse them.
+5.6.2 makes ``PDF`` rewrite a PDF's document metadata; the UI never sends
+it, so the API refuses it. comicbox's ``keep`` (also rewrite the tag formats
+a comic already carries instead of removing them) is offered, but only
+beside a named format: alone it names nothing, and comicbox skips an
+untagged comic without a word.
 """
 
 import json
@@ -81,9 +83,9 @@ class TagWriteFormatsTestCase(TestCase):
         return resp, queue
 
     def test_unknown_formats_are_refused(self) -> None:
-        """``keep``, ``PDF`` and ``COMICBOX_YAML`` never reach comicbox."""
+        """``PDF`` and ``COMICBOX_YAML`` never reach comicbox."""
         for url in _URLS:
-            for fmt in ("keep", "PDF", "COMICBOX_YAML"):
+            for fmt in ("PDF", "COMICBOX_YAML"):
                 with self.subTest(url=url, fmt=fmt):
                     resp, queue = self._post(url, ["COMIC_INFO", fmt])
                     assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
@@ -96,6 +98,23 @@ class TagWriteFormatsTestCase(TestCase):
                 resp, _ = self._post(url, [])
                 assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
 
+    def test_keep_alone_is_refused(self) -> None:
+        """``keep`` needs a named format to keep the others beside."""
+        for url in _URLS:
+            with self.subTest(url=url):
+                resp, queue = self._post(url, ["keep"])
+                assert resp.status_code == HTTPStatus.BAD_REQUEST, resp.content
+                assert not queue.put.called
+
+    def test_keep_with_a_named_format_is_queued(self) -> None:
+        """``keep`` beside a named format reaches comicbox, in order."""
+        resp, queue = self._post(_URLS[0], ["COMIC_INFO", "keep"])
+        assert resp.status_code == HTTPStatus.ACCEPTED, resp.content
+        assert queue.put.call_args.args[0].formats == ("COMIC_INFO", "keep")
+
+        resp, _ = self._post(_URLS[1], ["keep", "METRON_INFO"])
+        assert resp.status_code == HTTPStatus.OK, resp.content
+
     def test_known_formats_are_queued_once_each(self) -> None:
         """The editors' formats pass, deduplicated, in order."""
         resp, queue = self._post(_URLS[0], ["METRON_INFO", "COMIC_INFO", "METRON_INFO"])
@@ -103,11 +122,10 @@ class TagWriteFormatsTestCase(TestCase):
         assert queue.put.call_args.args[0].formats == ("METRON_INFO", "COMIC_INFO")
 
 
-@pytest.mark.parametrize("fmt", ["COMIC_INFO", "METRON_INFO"])
+@pytest.mark.parametrize("fmt", ["COMIC_INFO", "METRON_INFO", "keep"])
 def test_write_formats_are_the_editor_formats(fmt: str) -> None:
     """Guard the allow-list the endpoint validates against."""
     from codex.choices.tagging import WRITE_FORMATS
 
     assert fmt in WRITE_FORMATS
-    assert "keep" not in WRITE_FORMATS
     assert "PDF" not in WRITE_FORMATS

@@ -15,7 +15,7 @@ from rest_framework.serializers import (
 )
 
 from codex.choices.limits import MAX_NAME_LEN
-from codex.choices.tagging import WRITE_FORMATS
+from codex.choices.tagging import NAMED_WRITE_FORMATS, WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
@@ -42,22 +42,27 @@ def _validate_ordered_sources(value: list) -> list:
 
 def _validate_write_formats(value: object) -> list:
     """
-    Require at least one write format the editors offer; dedupe, keep order.
+    Require at least one tag format the editors offer; dedupe, keep order.
 
-    Anything else would reach comicbox as is: ``keep`` rewrites a comic's
-    comicbox.yaml / comicbox.json and ``PDF`` its document metadata.
+    ``keep`` may ride beside them. Alone it names no format, and comicbox
+    then skips an untagged comic without an error, so it is refused. Any
+    other value would reach comicbox as is: ``PDF`` rewrites a PDF's
+    document metadata.
     """
     if not isinstance(value, list):
         reason = "Expected a list of metadata formats."
         raise ValidationError(reason)
     formats = list(dict.fromkeys(value))
-    if not formats:
-        reason = "At least one metadata format is required."
-        raise ValidationError(reason)
     if unknown := [fmt for fmt in formats if fmt not in WRITE_FORMATS]:
         reason = (
             f"Unknown metadata format(s): {', '.join(map(str, unknown))}. "
             f"Known: {', '.join(WRITE_FORMATS)}."
+        )
+        raise ValidationError(reason)
+    if not any(fmt in NAMED_WRITE_FORMATS for fmt in formats):
+        reason = (
+            f"At least one metadata format ({', '.join(NAMED_WRITE_FORMATS)})"
+            " is required."
         )
         raise ValidationError(reason)
     return formats

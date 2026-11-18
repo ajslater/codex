@@ -29,6 +29,8 @@ border-radius: 128px;
 - Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
   off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
+- Tag writes and online tagging can keep a comic's other tag formats instead of
+  removing them.
 
 ### ♻️ Changed
 

@@ -6,6 +6,9 @@ What a real CBZ tag write leaves in the archive under comicbox 5.6.2.
   ``.<name>.comicbox.tmp`` beside it and swapped in. Afterwards the
   formats codex did not name are gone, as before, and no temp file is
   left in the library.
+- Under ``keep`` the formats codex did not name are rewritten with the new
+  tags instead, a comicbox.yaml among them (never added), and a comic
+  whose tag file does not parse is refused and listed as a tag-write error.
 """
 
 import shutil
@@ -19,6 +22,10 @@ from django.test import TestCase
 from loguru import logger
 
 from codex.librarian.scribe.tag_writer import TagWriter
+from codex.librarian.scribe.tagwrite_errors import (
+    clear_tag_write_errors,
+    get_tag_write_errors,
+)
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from tests.tmp_dirs import tmp_dir
@@ -27,6 +34,16 @@ _TMP_DIR: Final = tmp_dir("codex.tests.tagwritearchive")
 _EXAMPLE_CBZ: Final = Path(__file__).parent / "files" / "comicbox-2-example.cbz"
 _COMMENT: Final = b"Scanned by a person, not a tagger."
 _PAGE: Final = b"\xff\xd8\xff\xe0not-a-real-jpeg"
+_COMIC_INFO: Final = (
+    b'<?xml version="1.0" encoding="utf-8"?>\n'
+    b"<ComicInfo><Series>Kept</Series><Number>1</Number></ComicInfo>"
+)
+_METRON_INFO: Final = (
+    b'<?xml version="1.0" encoding="utf-8"?>\n'
+    b"<MetronInfo><Series><Name>Kept</Name></Series><Number>1</Number></MetronInfo>"
+)
+_UNPARSABLE_METRON_INFO: Final = b'<?xml version="1.0"?>\n<MetronInfo><Series>'
+_KEEP: Final = ("COMIC_INFO", "keep")
 
 
 def _double(stub: object) -> Any:
@@ -59,6 +76,8 @@ class TagWriteArchiveTestCase(TestCase):
         self.volume = Volume.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             name="1", publisher=publisher, imprint=imprint, series=series
         )
+        clear_tag_write_errors()
+        self.addCleanup(clear_tag_write_errors)
 
     def _comic(self, path: Path) -> Comic:
         volume = self.volume
@@ -75,13 +94,22 @@ class TagWriteArchiveTestCase(TestCase):
             file_type="CBZ",
         )
 
+    def _tagged_comic(self, name: str, metron_info: bytes) -> Comic:
+        """Make a CBZ comic carrying ComicInfo.xml and MetronInfo.xml."""
+        path = _TMP_DIR / name
+        with zipfile.ZipFile(path, "w") as zf:
+            zf.writestr("page1.jpg", _PAGE)
+            zf.writestr("ComicInfo.xml", _COMIC_INFO)
+            zf.writestr("MetronInfo.xml", metron_info)
+        return self._comic(path)
+
     @staticmethod
-    def _write(comic: Comic) -> None:
+    def _write(comic: Comic, formats: tuple[str, ...] = ("COMIC_INFO",)) -> None:
         task = BulkTagWriteTask(
             comic_pks=frozenset({comic.pk}),
             patch={"title": "Written"},
             mode="update",
-            formats=("COMIC_INFO",),
+            formats=formats,
             delete_original=False,
             rename=False,
         )
@@ -116,3 +144,54 @@ class TagWriteArchiveTestCase(TestCase):
         assert "comicbox.yaml" not in names
         leftovers = [p.name for p in _TMP_DIR.iterdir() if p.name.startswith(".")]
         assert not leftovers, leftovers
+
+    def test_without_keep_an_unnamed_format_is_removed(self) -> None:
+        comic = self._tagged_comic("dropped.cbz", _METRON_INFO)
+
+        self._write(comic)
+
+        with zipfile.ZipFile(comic.path) as zf:
+            names = zf.namelist()
+        assert "ComicInfo.xml" in names
+        assert "MetronInfo.xml" not in names
+
+    def test_keep_rewrites_an_unnamed_format(self) -> None:
+        comic = self._tagged_comic("kept.cbz", _METRON_INFO)
+
+        self._write(comic, _KEEP)
+
+        with zipfile.ZipFile(comic.path) as zf:
+            names = zf.namelist()
+            metron_info = zf.read("MetronInfo.xml").decode()
+        assert "ComicInfo.xml" in names
+        # Kept and rewritten with the new tags: the title is a MetronInfo story.
+        assert "<Name>Kept</Name>" in metron_info
+        assert "<Story>Written</Story>" in metron_info
+        assert not {"comicbox.yaml", "comicbox.json"} & set(names), names
+        assert not get_tag_write_errors()
+
+    def test_keep_rewrites_a_carried_comicbox_yaml(self) -> None:
+        path = _TMP_DIR / "example.cbz"
+        shutil.copy(_EXAMPLE_CBZ, path)
+        comic = self._comic(path)
+
+        self._write(comic, _KEEP)
+
+        with zipfile.ZipFile(path) as zf:
+            names = zf.namelist()
+            comicbox_yaml = zf.read("comicbox.yaml").decode()
+        assert "ComicInfo.xml" in names
+        assert "Written" in comicbox_yaml
+
+    def test_keep_refuses_a_comic_with_an_unparsable_tag_file(self) -> None:
+        comic = self._tagged_comic("broken.cbz", _UNPARSABLE_METRON_INFO)
+
+        self._write(comic, _KEEP)
+
+        errors = [e for e in get_tag_write_errors() if e["path"] == str(comic.path)]
+        assert len(errors) == 1, errors
+        assert "could not be parsed" in errors[0]["error"]
+        with zipfile.ZipFile(comic.path) as zf:
+            # Refused before anything was written: the comic is as it was.
+            assert zf.read("MetronInfo.xml") == _UNPARSABLE_METRON_INFO
+            assert zf.read("ComicInfo.xml") == _COMIC_INFO
