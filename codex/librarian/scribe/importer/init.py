@@ -55,6 +55,7 @@ from codex.librarian.worker import WorkerStatusBase
 from codex.models import Library
 from codex.models.paths import WatchedPath
 from codex.settings import LOGLEVEL
+from codex.settings.db import koreader_sync_enabled
 
 if TYPE_CHECKING:
     from codex.models.base import BaseModel
@@ -167,6 +168,9 @@ class InitImporter(WorkerStatusBase):
         # import pass processed (including the SKIPPED no-metadata comics that
         # never reach the per-comic write path).
         self.metadata_import_paths: frozenset[str] = frozenset()
+        # Whether created and updated comics get KOReader's binary hash,
+        # which reads the file. Read once per import, not per comic.
+        self.koreader_binary_hash = koreader_sync_enabled()
         self.library = Library.objects.only("path").get(pk=self.task.library_id)
         self.abort_event = event
         self.start_time = now()

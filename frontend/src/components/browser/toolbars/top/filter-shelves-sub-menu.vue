@@ -110,9 +110,15 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
-    setShelves(shelves) {
-      this.setSettings({ filters: { shelves } });
+    ...mapActions(useBrowserStore, [
+      "loadAvailableFilterChoices",
+      "setSettings",
+    ]),
+    async setShelves(shelves) {
+      await this.setSettings({ filters: { shelves } });
+      // The page reload clears the other filters' choices; fetch them
+      // again for the menu that is still open.
+      await this.loadAvailableFilterChoices();
     },
     onToggle(shelf) {
       const shelves = shelf.selected

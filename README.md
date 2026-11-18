@@ -62,7 +62,8 @@ border-radius: 128px;
 ### 🔌 Integrations
 
 - **OPDS 1 & 2** syndication with streaming, search, and authentication.
-- **KOReader progress sync** through KOReader's built in Progress sync plugin.
+- **KOReader progress sync** (experimental) through KOReader's built in Progress
+  sync plugin.
 - **OIDC single sign-on** with identity providers like Authentik and Authelia.
 - **Remote-User HTTP header SSO** for reverse-proxy single sign-on (tinyauth,
   Authelia, Authentik proxy mode).
@@ -282,9 +283,10 @@ SQLite file: the **user data sidecar**.
 #### What it contains
 
 Users (with hashed passwords), API keys (hashed too, so a restored key still
-logs in), groups & permissions, group memberships, libraries and their access
-lists, bookmarks, shelves, per-user browser settings, admin flags, timestamps,
-online-tagging defaults, and the default settings for new sessions.
+logs in, though a key revoked since the snapshot stays revoked), groups &
+permissions, group memberships, libraries and their access lists, bookmarks,
+shelves, per-user browser settings, admin flags, timestamps, online-tagging
+defaults, and the default settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -736,7 +738,8 @@ url_path_prefix = "/codex"
 If you put an authenticating reverse proxy (Organizr, Authelia, etc.) in front
 of the `/codex` location with `auth_request`, exempt the API the way Codex's own
 examples do (`location /codex/api { auth_request off; ... }`); the `^~` note
-above is what keeps the static assets reachable.
+above is what keeps the static assets reachable. Exempt `/codex/koreader/` the
+same way: KOReader cannot pass an auth proxy and logs in with a Device Key.
 
 #### CSRF 403 behind a proxy
 
@@ -928,7 +931,8 @@ Checklist for a forward-auth deployment:
 - The auth gate covers the **whole** Codex location — including `/opds/` and the
   WebSocket path `/api/v4/ws` — not just the HTML pages. If you exempt OPDS for
   reader apps, those requests fall back to Codex's own Basic/token auth, which
-  is fine.
+  is fine. Exempt `/koreader/` if you use KOReader sync: KOReader cannot pass
+  forward-auth, and Codex checks its Device Key itself.
 - A request with a client-forged `Remote-User` header and no proxy auth must be
   rejected or have the header overwritten (test it with
   `curl -H "Remote-User: admin"`).
@@ -1185,14 +1189,20 @@ outage is lost -- it becomes readable again when the file returns.
 
 ### 📲 KOReader Progress Sync
 
+> [!NOTE]
+>
+> KOReader Sync is experimental. Expect rough edges, and please report problems
+> on the issue tracker.
+
 Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
 server, so a comic read on a KOReader device and in the Codex web reader keeps
 one reading position.
 
-1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. Codex then
-   hashes the comics it already has so KOReader can recognize them. This reads a
-   little of each file and shows as a job on the Jobs tab. Comics imported later
-   are hashed as they are imported.
+1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. It is off by
+   default, because while it is on Codex does extra work for KOReader alone.
+   Codex then hashes the comics it already has so KOReader can recognize them.
+   This reads a little of each file and shows as a job on the Jobs tab. Comics
+   imported while it is on are hashed as they are imported.
 2. Each user opens the **API Access** dialog in Codex (the **OPDS & APIs**
    button at the bottom of the side drawer), which shows the server URL, for
    example `https://codex.example.com/koreader`, including any reverse-proxy
@@ -1206,7 +1216,10 @@ one reading position.
 4. Choose **Document matching method**. **Binary** identifies a book by its
    contents and works for most libraries. If you write tags into your comics
    from Codex, the file changes and binary matching loses it. Choose
-   **Filename** instead, which matches by file name.
+   **Filename** instead, which matches by file name. KOReader names an OPDS
+   download `<author> - <title>` unless **Use server filenames** is on in its
+   OPDS catalog settings, so turn that on for Filename matching. A file name
+   that two of your comics share matches neither.
 
 Limits:
 

@@ -33,6 +33,20 @@ def _get_url_name(request: HttpRequest, name_suffix: str) -> str:
     return f"opds:v{version}:{name_suffix}"
 
 
+# Routes answering a document request, not a feed: a redirect to the start
+# feed would hand the client the wrong document, so their errors stand.
+_NO_REDIRECT_VIEW_NAMES = frozenset({"opds:v2:manifest"})
+
+
+def _is_redirectable(request: HttpRequest) -> bool:
+    # The progression route is ``comics/<pk>/position``
+    # (codex/urls/opds/v2.py); its errors must not redirect.
+    if request.path.endswith("/position"):
+        return False
+    match = getattr(request, "resolver_match", None)
+    return getattr(match, "view_name", None) not in _NO_REDIRECT_VIEW_NAMES
+
+
 def _get_redirect_to_start_response(request: HttpRequest) -> HttpResponseRedirect:
     """Get a redirect to the start."""
     name = _get_url_name(request, "start")
@@ -59,12 +73,7 @@ def codex_opds_exception_handler(
             response = OPDSAuthentication1View.static_get(
                 request, status.HTTP_401_UNAUTHORIZED
             )
-        elif (
-            # The progression route is ``comics/<pk>/position``
-            # (codex/urls/opds/v2.py); its errors must not redirect.
-            not request.path.endswith("/position")
-            and status_code in _OPDS_REDIRECT_TO_TOP_CODES
-        ):
+        elif status_code in _OPDS_REDIRECT_TO_TOP_CODES and _is_redirectable(request):
             response = _get_redirect_to_start_response(request)
 
     if not response:

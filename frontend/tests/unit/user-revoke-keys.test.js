@@ -6,7 +6,7 @@
  *
  * Behavior locked in here:
  *   - Edit User shows the key count and a "Revoke all keys" button that
- *     revokes only after Confirm; with no keys it says so instead.
+ *     revokes only after Confirm, even at a (maybe stale) count of 0.
  *   - Add User shows neither.
  *   - The table reload that follows a revoke keeps the admin's unsaved
  *     edits, because the reloaded row changed no field the form edits.
@@ -83,10 +83,18 @@ describe("Edit User revokes every key behind a confirmation", () => {
     expect(store.revokeUserKeys).not.toHaveBeenCalled();
   });
 
-  test("a user with no keys says so and offers no button", () => {
-    const { wrapper } = mountInputs({ ...USER, apiKeyCount: 0 });
+  test("a count of 0 still offers the button", async () => {
+    /*
+     * The count is the Users table's, and a user making or revoking their
+     * own keys never reloads it: 0 may be stale. Revoking nothing is
+     * harmless; hiding the button left an admin unable to revoke.
+     */
+    const { wrapper, store } = mountInputs({ ...USER, apiKeyCount: 0 });
     expect(wrapper.text()).toContain("No API keys.");
-    expect(revokeButton(wrapper)).toBeUndefined();
+
+    await revokeButton(wrapper).trigger("click");
+    await wrapper.find(".confirmButton").trigger("click");
+    expect(store.revokeUserKeys).toHaveBeenCalledExactlyOnceWith(7);
   });
 
   test("Add User shows neither", () => {

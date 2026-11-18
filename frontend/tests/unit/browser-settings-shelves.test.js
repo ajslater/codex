@@ -3,6 +3,8 @@
  * and the generic ``name-list-editor.vue`` it renders its list with:
  * shelves listed with their item counts, inline rename, delete behind a
  * confirmation, "New shelf", and nothing at all for anonymous sessions.
+ * A refused create shows the server's reason, a failed rename or delete
+ * says so, and Enter mid IME composition renames nothing.
  * Real Vuetify is mounted; store actions are stubbed by
  * createTestingPinia so calls can be asserted.
  */
@@ -10,6 +12,7 @@ import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
+import { APIError } from "@/api/v4/base";
 import BrowserSettingsShelves from "@/components/browser/drawer/browser-settings-shelves.vue";
 import NameListEditor from "@/components/name-list-editor.vue";
 import ShelfNameInput from "@/components/shelf-name-input.vue";
@@ -49,6 +52,8 @@ const shelf = (pk, name, items = {}) => ({
   ),
 });
 
+const DUPLICATE = "You already have a shelf with that name.";
+
 const SHELVES = () => [
   shelf(1, "Favorites", { series: [1, 2], comics: [42] }),
   shelf(2, "Want to Read", { comics: [7] }),
@@ -60,7 +65,7 @@ function mountBlock({ loggedIn = true, shelves = SHELVES() } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
-      shelves: { shelves, hydrated: true },
+      shelves: { shelves },
     },
     stubActions: true,
   });
@@ -181,6 +186,76 @@ describe("BrowserSettingsShelves", () => {
       "Finished",
     );
     expect(wrapper.findComponent(ShelfNameInput).exists()).toBe(false);
+  });
+
+  test("a refused create shows the server's reason", async () => {
+    const { wrapper, shelvesStore } = mountBlock();
+    shelvesStore.createShelf.mockRejectedValue(
+      new APIError(
+        { status: "400", title: "Bad Request", detail: DUPLICATE },
+        400,
+      ),
+    );
+    await wrapper.find(".shelvesSettingsNewBtn").trigger("click");
+    wrapper.findComponent(ShelfNameInput).vm.$emit("submit", "Finished");
+    await flushPromises();
+
+    const input = wrapper.findComponent(ShelfNameInput);
+    expect(input.exists()).toBe(true);
+    expect(input.vm.shownError).toBe(DUPLICATE);
+  });
+
+  test("New shelf again drops the last attempt's error", async () => {
+    const { wrapper } = mountBlock();
+    await wrapper.find(".shelvesSettingsNewBtn").trigger("click");
+    wrapper.vm.createError = DUPLICATE;
+    await flushPromises();
+
+    wrapper.findComponent(ShelfNameInput).vm.$emit("cancel");
+    await flushPromises();
+    await wrapper.find(".shelvesSettingsNewBtn").trigger("click");
+
+    expect(wrapper.findComponent(ShelfNameInput).vm.shownError).toBe("");
+  });
+
+  test("a failed rename says so", async () => {
+    const { wrapper, shelvesStore } = mountBlock();
+    shelvesStore.renameShelf.mockResolvedValue(false);
+    await wrapper.findAll(".nameListRenameBtn")[0].trigger("click");
+    await wrapper.find(".nameListEditField input").setValue("Best Of");
+    await wrapper.find(".nameListSaveBtn").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Could not rename the shelf "Favorites".');
+  });
+
+  test("a failed delete says so", async () => {
+    const { wrapper, shelvesStore } = mountBlock();
+    shelvesStore.deleteShelf.mockResolvedValue(false);
+    await wrapper.findAll(".nameListDeleteBtn")[1].trigger("click");
+    await flushPromises();
+    document.querySelector(".confirmDialog .confirmButton").click();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'Could not delete the shelf "Want to Read".',
+    );
+  });
+
+  test("Enter while an IME composes renames nothing", async () => {
+    const { wrapper, shelvesStore } = mountBlock();
+    await wrapper.findAll(".nameListRenameBtn")[0].trigger("click");
+    const field = wrapper.find(".nameListEditField input");
+    await field.setValue("Best Of");
+    await field.trigger("keydown", { key: "Enter", isComposing: true });
+    await field.trigger("keydown", { key: "Enter", keyCode: 229 });
+    expect(shelvesStore.renameShelf).not.toHaveBeenCalled();
+
+    await field.trigger("keydown", { key: "Enter" });
+    expect(shelvesStore.renameShelf).toHaveBeenCalledExactlyOnceWith(
+      1,
+      "Best Of",
+    );
   });
 });
 

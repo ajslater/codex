@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { markRaw } from "vue";
 
 import * as API from "@/api/v4/shelves";
 import { useBrowserStore } from "@/stores/browser";
@@ -35,6 +36,12 @@ function toShelf({ pk, name, items }) {
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 
+// Run ``next`` once ``ahead`` is done. A membership change never rejects.
+async function after(ahead, next) {
+  await ahead;
+  return next();
+}
+
 function eachTarget(targets, visit) {
   // Walk a ``{collection: [pks]}`` map, skipping unknown collections.
   const entries = Object.entries(targets || {});
@@ -47,6 +54,14 @@ function eachTarget(targets, visit) {
     for (const pk of targetPks) {
       visit(collection, pk);
     }
+  }
+}
+
+// Drop a shelf's queue entry once its last change is done.
+async function forgetWhenDone(pending, shelfPk, change) {
+  await change;
+  if (pending.get(shelfPk) === change) {
+    pending.delete(shelfPk);
   }
 }
 
@@ -72,7 +87,8 @@ export const useShelvesStore = defineStore("shelves", {
   state: () => ({
     // ``[{pk, name, items: {collection: Set<pk>}}]`` ordered by name.
     shelves: [],
-    hydrated: false,
+    // The user the shelves belong to.
+    userId: undefined,
     /*
      * Bumped after the server accepts a membership change. Views that show
      * server-computed shelf lists (the table's Shelves column, the metadata
@@ -80,6 +96,12 @@ export const useShelvesStore = defineStore("shelves", {
      * parents, so it can't be patched locally.
      */
     membershipVersion: 0,
+    /*
+     * The last membership change queued for each shelf, by shelf pk, so
+     * overlapping changes to one shelf reach the server in the order they
+     * were made. Raw: promises that nothing renders.
+     */
+    pendingChanges: markRaw(new Map()),
   }),
   getters: {
     /*
@@ -88,12 +110,6 @@ export const useShelvesStore = defineStore("shelves", {
      */
     isShelved: (state) => (collection, pk) =>
       state.shelves.some((shelf) => shelf.items[collection]?.has(pk)),
-    // The shelves holding at least one of ``pks``.
-    shelvesFor: (state) => (collection, pks) =>
-      state.shelves.filter((shelf) => {
-        const set = shelf.items[collection];
-        return Boolean(set) && pks.some((pk) => set.has(pk));
-      }),
     /*
      * "all" | "some" | "none" of the ``{collection: [pks]}`` targets are
      * on the shelf. Drives the menu's checked / indeterminate checkbox.
@@ -131,29 +147,35 @@ export const useShelvesStore = defineStore("shelves", {
     shelfNames: (state) => state.shelves.map((shelf) => shelf.name),
   },
   actions: {
-    async hydrate() {
+    async hydrate(userId) {
+      // Another user's shelves go first, so they never show for this one.
+      if (userId !== this.userId) {
+        this.clear();
+        this.userId = userId;
+      }
       try {
         const response = await API.getShelves();
+        // A response for a user who has since gone is dropped.
+        if (userId !== this.userId) return;
         const shelves = (response.data?.shelves || []).map((shelf) =>
           toShelf(shelf),
         );
         shelves.sort(byName);
-        this.$patch({ shelves, hydrated: true });
+        this.shelves = shelves;
       } catch (error) {
         console.error(error);
       }
     },
     async createShelf(name) {
-      // Resolves to the new shelf, or undefined when the server refuses.
-      try {
-        const response = await API.createShelf(name);
-        const shelf = toShelf(response.data);
-        this.shelves = [...this.shelves, shelf].sort(byName);
-        // Hand back the reactive copy so callers can mutate membership.
-        return this.shelves.find((s) => s.pk === shelf.pk);
-      } catch (error) {
-        console.error(error);
-      }
+      /*
+       * Resolves to the new shelf, and rejects when the server refuses, so
+       * the caller can show why: the name is taken or too long.
+       */
+      const response = await API.createShelf(name);
+      const shelf = toShelf(response.data);
+      this.shelves = [...this.shelves, shelf].sort(byName);
+      // Hand back the reactive copy so callers can mutate membership.
+      return this.shelves.find((s) => s.pk === shelf.pk);
     },
     async renameShelf(pk, name) {
       try {
@@ -190,10 +212,22 @@ export const useShelvesStore = defineStore("shelves", {
       }
       return true;
     },
-    setMembership(shelfPk, collection, pks, on) {
-      return this.setTargetsMembership(shelfPk, { [collection]: pks }, on);
+    setTargetsMembership(shelfPk, targets, on) {
+      /*
+       * One change per shelf at a time: overlapping changes sent together
+       * could land in either order and leave the server opposite to the
+       * store. A change with none ahead of it starts at once, so its flip
+       * stays immediate.
+       */
+      const pending = this.pendingChanges;
+      const ahead = pending.get(shelfPk);
+      const run = () => this._changeMembership(shelfPk, targets, on);
+      const change = ahead ? after(ahead, run) : run();
+      pending.set(shelfPk, change);
+      void forgetWhenDone(pending, shelfPk, change);
+      return change;
     },
-    async setTargetsMembership(shelfPk, targets, on) {
+    async _changeMembership(shelfPk, targets, on) {
       /*
        * Drive every ``{collection: [pks]}`` target onto (or off) one
        * shelf with a single PATCH. Optimistic: flip locally first, then
@@ -243,7 +277,7 @@ export const useShelvesStore = defineStore("shelves", {
        * Logout / user switch — drop the cached shelves so a different
        * user doesn't see the previous account's.
        */
-      this.$patch({ shelves: [], hydrated: false });
+      this.$patch({ shelves: [], userId: undefined });
     },
   },
 });

@@ -42,6 +42,8 @@ export const useAuthStore = defineStore("auth", {
     defaultsRev: undefined,
     // The user's API keys, of every scope, without the keys themselves.
     apiKeys: [],
+    // Why the key list failed to load, so it doesn't read as empty.
+    apiKeysError: "",
     /*
      * The paths of the APIs this visitor may use, from ``/api-urls``,
      * reloaded each time the API Access dialog opens. ``apiUrlsError`` is
@@ -278,30 +280,28 @@ export const useAuthStore = defineStore("auth", {
       }
     },
     async loadApiKeys() {
+      this.apiKeysError = "";
       try {
         const response = await API.getApiKeys();
         this.apiKeys = response.data?.keys || [];
       } catch (error) {
+        this.apiKeysError = "Could not load your API keys.";
         console.error(error);
       }
     },
     /*
      * Create an API key. Resolves to the new key's plain value, which the
-     * server sends only this once, or undefined when it refuses.
+     * server sends only this once, and rejects when it refuses: the API
+     * Access dialog shows why itself, out of the shared form errors that
+     * the Profile dialog underneath renders.
      */
     async createApiKey({ name, scope }) {
-      const commonStore = useCommonStore();
-      try {
-        const response = await API.createApiKey({ name, scope });
-        const { key, ...listed } = response.data;
-        this.apiKeys = [...this.apiKeys, listed].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
-        commonStore.clearErrors();
-        return key;
-      } catch (error) {
-        commonStore.setErrors(error);
-      }
+      const response = await API.createApiKey({ name, scope });
+      const { key, ...listed } = response.data;
+      this.apiKeys = [...this.apiKeys, listed].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      return key;
     },
     async deleteApiKey(pk) {
       try {

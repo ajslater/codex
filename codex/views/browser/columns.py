@@ -11,9 +11,7 @@ from typing import cast
 
 from django.db.models import (
     Aggregate,
-    BooleanField,
     Case,
-    Exists,
     F,
     IntegerField,
     OuterRef,
@@ -32,7 +30,6 @@ from codex.choices.browser import (
 from codex.models.collections import Volume
 from codex.models.functions import JsonGroupArray
 from codex.models.named import Reprint
-from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
 # ``related__name`` path; ``credits`` and ``identifiers`` need composite
@@ -445,44 +442,3 @@ def fk_name_annotations_for(columns: tuple[str, ...]) -> dict[str, F]:
 def fk_name_columns() -> frozenset[str]:
     """Return the set of FK-name column keys whose annotation is wired."""
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
-
-
-_SHELVED_FALSE = Value(value=False, output_field=BooleanField())
-
-
-def shelved_annotation_for(model, user) -> dict:
-    """
-    Build the ``shelved`` annotation for a browser queryset.
-
-    ``shelved`` is true when the row itself sits on any of the user's
-    shelves. Returns a dict that's safe to splat into
-    ``qs.annotate(**...)``:
-
-    * a correlated ``Exists`` for authenticated users on a shelvable
-      model. It must stay an ``Exists``: cachalot reads the tables of
-      ``Subquery``/``Exists`` annotations but not of a subquery nested
-      in ``When(pk__in=...)``, so the cheaper-looking ``Case-When-In``
-      spelling cached every browse query with no dependency on
-      ``codex_shelfitem`` and served a stale flag (and sort) after any
-      shelf change. Each row is one probe of the ``shelfitem_target``
-      index;
-    * a constant ``Value(False)`` for anonymous sessions, so the
-      schema stays uniform whether the column is sortable or just
-      rendered;
-    * an empty dict when ``model`` isn't in the shelvable set —
-      the table-view caller passes a known model so this branch is
-      rare in practice.
-    """
-    collection_code = SHELF_MODEL_COLLECTIONS.get(model)
-    if collection_code is None:
-        return {}
-    if not user or not user.is_authenticated:
-        return {"shelved": _SHELVED_FALSE}
-    # ``.value``: binding the Collection StrEnum member itself makes
-    # cachalot's parameter-type check raise UncachableQuery for every
-    # query this subquery lands in — silently uncaching all browse
-    # queries. The bound SQL value is identical either way.
-    shelf_items = ShelfItem.objects.filter(
-        shelf__user=user, collection=collection_code.value, target_id=OuterRef("pk")
-    )
-    return {"shelved": Exists(shelf_items)}

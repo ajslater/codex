@@ -18,9 +18,9 @@ border-radius: 128px;
   on the OPDS v1 and v2 start pages.
 - The table view's Shelves column and the metadata dialog list the shelves an
   item is on, including through its series, folder or other parent.
-- KOReader progress sync: Codex can be the sync server for KOReader's Progress
-  sync plugin, so a comic's reading position follows you between KOReader and
-  the web reader. Off by default; setup is in API Access.
+- Experimental KOReader progress sync: Codex can be the sync server for
+  KOReader's Progress sync plugin, so a comic's reading position follows you
+  between KOReader and the web reader. Off by default; setup is in API Access.
 - API Access, from the drawer's OPDS & APIs button or Profile, lists your OPDS,
   KOReader and Stats API URLs and makes and revokes your API keys.
 - Device Keys: a named, revocable password for each OPDS reader or KOReader
@@ -29,6 +29,7 @@ border-radius: 128px;
 - Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
   off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
+- A Hash Comics for KOReader Sync job on the Jobs tab.
 - Tag writes and online tagging can keep a comic's other tag formats instead of
   removing them.
 - Online tagging's match review says when another source already tagged the
@@ -40,11 +41,13 @@ border-radius: 128px;
   favorites filter on it. The favorite star is now a shelf button, or a Shelves
   entry in a cover's menu; the Favorite sort is now Shelved and the Favorite
   column Shelves.
-- Authorization Bearer Tokens are now Universal Tokens: they work until revoked
-  but can no longer be shown, reset or made. Use Device Keys for OPDS and
-  KOReader.
+- Every account's Authorization Bearer Token, which v2.6.0 made for each user,
+  is now a Universal Token: it works until revoked but can no longer be shown,
+  reset or made. Use Device Keys for OPDS and KOReader.
 - The server-wide Stats API key is revoked. Each admin makes their own Stats key
   in API Access.
+- Anonymous usage stats count shelves, API keys and the API flags instead of
+  favorites.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
 - Online tagging with Metron matches comics by their cover first.
@@ -61,12 +64,14 @@ border-radius: 128px;
 ### 🐛 Fixed
 
 - Logging in or registering keeps a visitor's bookmarks and browser and reader
-  settings.
+  settings, though not their saved views.
 - OPDS v1 "Latest Unread" lists only unread issues, and "Oldest Unread" always
   lists oldest first.
 - Table view cells for a row that combines same-named series, imprints or
   volumes describe all of them, and comics in folder view no longer show a
   folder's cells.
+- Some of comicbox's log messages reach the log file and honor the log level.
+- Admin edit dialogs keep unsaved edits when their table reloads.
 - Tag writes keep a comic's archive comment, a failed write leaves the comic
   unchanged, and a RAR or 7z named `.cbz` is refused with its real type.
 - Re-importing a comic clears tags its file no longer has, such as a summary

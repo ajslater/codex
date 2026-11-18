@@ -21,7 +21,7 @@ from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import users_changed_task
 from codex.models import AdminFlag
-from codex.models.api_key import UserApiKey
+from codex.models.api_key import UserApiKey, revoke_api_keys
 from codex.models.auth import UserAuth
 from codex.serializers.admin.users import UserChangePasswordSerializer, UserSerializer
 from codex.settings.db import email_enabled
@@ -196,14 +196,15 @@ class AdminUserRevokeKeysView(AdminAPIView):
     Revoke every API key a user has, of every scope.
 
     ``POST /api/v4/admin/users/<pk>/revoke-keys``. Returns
-    ``{"revoked": int}``. A revoked universal key cannot be made again.
+    ``{"revoked": int}``. A revoked universal key cannot be made again,
+    and its tombstone stops a backup restore bringing it back.
     """
 
     def post(self, _request, pk: int) -> Response:
         """Delete the user's API keys."""
         if not User.objects.filter(pk=pk).exists():
             return Response({"detail": "User not found."}, status=HTTP_404_NOT_FOUND)
-        revoked, _ = UserApiKey.objects.filter(user_id=pk).delete()
+        revoked = revoke_api_keys(UserApiKey.objects.filter(user_id=pk))
         LIBRARIAN_QUEUE.put(users_changed_task())
         return Response({"revoked": revoked}, status=HTTP_200_OK)
 

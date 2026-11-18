@@ -6,6 +6,9 @@ What these tests pin:
 * The management API returns the key once, only to its owner; only staff
   make stats keys; the reserved name and the universal key stay put.
 * The admin user list counts keys of every scope and revokes them all.
+* Every revoke leaves a tombstone holding only the key's digest, so a
+  backup restore cannot bring the key back. Deleting a user does not: the
+  restore brings the whole account back, keys included.
 """
 
 import json
@@ -16,7 +19,7 @@ from django.test import Client
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.api_key import UNIVERSAL_KEY_NAME, ApiKeyScope
-from codex.models.api_key import API_KEYS_PER_SCOPE_MAX, UserApiKey
+from codex.models.api_key import API_KEYS_PER_SCOPE_MAX, RevokedApiKey, UserApiKey
 from tests.api_key_fixtures import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
@@ -154,6 +157,26 @@ class ApiKeyAPITestCase(ApiKeyFixture):
         assert not UserApiKey.objects.filter(pk=self.api_key.pk).exists()
         assert self.client.delete(url).status_code == HTTP_NO_CONTENT
 
+    def test_revoke_leaves_a_tombstone_of_the_digest_only(self) -> None:
+        url = f"{KEYS_URL}/{self.api_key.pk}"
+        assert self.client.delete(url).status_code == HTTP_NO_CONTENT
+        tombstones = list(RevokedApiKey.objects.values())
+        assert len(tombstones) == 1
+        tombstone = tombstones[0]
+        assert set(tombstone) == {"id", "digest", "revoked_at"}
+        assert tombstone["digest"] == self.api_key.digest
+        assert tombstone["revoked_at"] is not None
+        # A second, idempotent revoke adds nothing.
+        assert self.client.delete(url).status_code == HTTP_NO_CONTENT
+        assert RevokedApiKey.objects.count() == 1
+
+    def test_revoking_another_users_key_leaves_no_tombstone(self) -> None:
+        other_client = Client()
+        other_client.force_login(self.other)
+        url = f"{KEYS_URL}/{self.api_key.pk}"
+        assert other_client.delete(url).status_code == HTTP_NO_CONTENT
+        assert not RevokedApiKey.objects.exists()
+
     def test_users_cannot_see_or_touch_each_others_keys(self) -> None:
         other_client = Client()
         other_client.force_login(self.other)
@@ -214,6 +237,21 @@ class ApiKeyAdminTestCase(ApiKeyFixture):
         assert response.json()["data"]["revoked"] == 3  # noqa: PLR2004
         assert not UserApiKey.objects.filter(user=self.user).exists()
         assert self._counts()["reader"] == 0
+
+    def test_revoke_all_leaves_a_tombstone_for_each_key(self) -> None:
+        digests = set(
+            UserApiKey.objects.filter(user=self.user).values_list("digest", flat=True)
+        )
+        url = f"/api/v4/admin/users/{self.user.pk}/revoke-keys"
+        assert self.client.post(url).status_code == HTTP_OK
+        tombstoned = set(RevokedApiKey.objects.values_list("digest", flat=True))
+        assert tombstoned == digests
+
+    def test_deleting_a_user_leaves_no_tombstone(self) -> None:
+        """A restore brings a deleted user back whole, keys included."""
+        self.user.delete()
+        assert not UserApiKey.objects.filter(user_id=self.user.pk).exists()
+        assert not RevokedApiKey.objects.exists()
 
     def test_revoke_all_is_admin_only(self) -> None:
         client = Client()

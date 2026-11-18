@@ -84,6 +84,21 @@ describe("common store error normalization", () => {
     expect(store.form.errors).toStrictEqual(["Not found."]);
   });
 
+  test("an envelope error whose detail is a sentence shows it", () => {
+    // A view's ``Response({"detail": "..."})``: duplicate name, key cap,
+    // expired session.
+    const store = useCommonStore();
+
+    store.setErrors(envelopeError("A user can have at most 32 device keys."));
+
+    expect(store.form.errors).toStrictEqual([
+      "A user can have at most 32 device keys.",
+    ]);
+    expect(store.form.fieldErrors).toStrictEqual({
+      detail: ["A user can have at most 32 device keys."],
+    });
+  });
+
   test("the summary is never a stringified object", () => {
     const store = useCommonStore();
 

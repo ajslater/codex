@@ -13,11 +13,13 @@
  *   - URLs and keys are separate sections, and each URL shares one block
  *     with its note or setup help.
  *   - A failed load offers Retry; a pending one shows a sized placeholder.
+ *   - A new key's panel says where the key logs in only once the URLs have
+ *     loaded, and closing the dialog takes the key off the screen.
  *   - Profile's "API Access" button opens it.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 import ApiAccessDialog from "@/components/api-access/api-access-dialog.vue";
 import ProfileDialog from "@/components/auth/profile-dialog.vue";
@@ -39,7 +41,17 @@ const URLS = Object.freeze({
   koreader: "/koreader",
 });
 
+// The keys section is stubbed unless a test asks for the real one.
+const STUBS = Object.freeze({ VDialog: VDialogStub, ApiKeys: true });
+const KEYS_STUBS = Object.freeze({ VDialog: VDialogStub });
+// No stubs: the real VDialog, which keeps its content until the fade ends.
+const NO_STUBS = Object.freeze({});
+
 function mountDialog(auth = {}) {
+  return mountDialogWith(STUBS, auth);
+}
+
+function mountDialogWith(stubs, auth) {
   const pinia = createTestingPinia({
     initialState: {
       auth: {
@@ -53,13 +65,34 @@ function mountDialog(auth = {}) {
     },
   });
   const wrapper = mount(ApiAccessDialog, {
-    global: {
-      plugins: [vuetify, pinia],
-      stubs: { VDialog: VDialogStub, ApiKeys: true },
-    },
+    attachTo: document.body,
+    global: { plugins: [vuetify, pinia], stubs },
   });
   return { wrapper, store: useAuthStore() };
 }
+
+const NEW_KEY = Object.freeze({
+  key: "abcdsecretkey",
+  name: "Kobo",
+  scope: "device",
+});
+
+beforeAll(() => {
+  // A real VDialog's overlay reads the bare global; happy-dom has none.
+  globalThis.visualViewport ??= {
+    width: 1024,
+    height: 768,
+    offsetLeft: 0,
+    offsetTop: 0,
+    scale: 1,
+    addEventListener() {},
+    removeEventListener() {},
+  };
+});
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
 
 async function open(wrapper, store) {
   store.showApiAccessDialog = true;
@@ -203,6 +236,40 @@ describe("API Access dialog", () => {
     const { wrapper, store } = mountDialog({ apiUrls: undefined });
     await open(wrapper, store);
     expect(wrapper.find(".apiAccessLoading").exists()).toBe(true);
+  });
+
+  test("a new key says where it logs in only once the URLs load", async () => {
+    const { wrapper, store } = mountDialogWith(KEYS_STUBS, {
+      apiUrls: undefined,
+    });
+    await open(wrapper, store);
+    wrapper
+      .findComponent({ name: "ApiKeyCreate" })
+      .vm.$emit("created", NEW_KEY);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".apiKeyReveal").exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("logs in nowhere");
+    store.apiUrls = {};
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain("logs in nowhere");
+  });
+
+  test("closing the dialog takes the new key off the screen", async () => {
+    const { wrapper, store } = mountDialogWith(NO_STUBS, {});
+    await open(wrapper, store);
+    await flushPromises();
+    wrapper
+      .findComponent({ name: "ApiKeyCreate" })
+      .vm.$emit("created", NEW_KEY);
+    await flushPromises();
+    expect(document.body.textContent).toContain(NEW_KEY.key);
+    // Vuetify unmounts the content only once the fade ends; the key goes now.
+    store.showApiAccessDialog = false;
+    await flushPromises();
+    expect(document.body.textContent).not.toContain(NEW_KEY.key);
+    await open(wrapper, store);
+    await flushPromises();
+    expect(document.body.textContent).not.toContain(NEW_KEY.key);
   });
 });
 

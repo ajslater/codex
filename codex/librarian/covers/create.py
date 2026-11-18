@@ -53,6 +53,10 @@ def _init_cover_worker() -> None:
     atexit hook. Ignoring SIGINT here lets the librarian own pool
     teardown via the normal None-sentinel path in ``stop()``.
     """
+    # Known gap (v2.7.0 review B, R30), deliberately not fixed yet: a worker
+    # started by spawn or forkserver gets a fresh loguru with only its
+    # default stderr sink, so its log lines bypass Codex's log file, log
+    # level and secret scrubbing.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 

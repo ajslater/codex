@@ -7,6 +7,7 @@ them into the user, so nothing the visitor set is lost.
 """
 
 import shutil
+from datetime import timedelta
 from importlib import import_module
 from typing import Final, override
 
@@ -17,7 +18,10 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
 from django.core.cache import caches
+from django.db import connection
 from django.test import Client, RequestFactory, TestCase
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from codex.choices.admin import AdminFlagChoices
 from codex.models import (
@@ -231,6 +235,31 @@ class ReaderSettingsLoginTests(_LoginTestCase):
         assert response.status_code == _HTTP_OK, response.content
         assert _data(response)["scopes"]["comics"]["fitTo"] == _COMIC_FIT_TO
 
+    def test_a_scoped_row_conflicts_only_with_the_same_scope(self) -> None:
+        """
+        A slot is the client plus every scope column, nulls equal.
+
+        The user's comic row wins over the visitor's row for that comic,
+        and does not block the visitor's global row.
+        """
+        comic = _make_comic()
+        user = self._make_user()
+        user_row = SettingsReader.objects.create(user=user, comic=comic, fit_to="S")
+        self._patch_reader(_READER_SETTINGS_URL, {"scope": "global", "fitTo": _FIT_TO})
+        comic_url = f"/api/v4/comics/{comic.pk}/reader-settings"
+        self._patch_reader(
+            comic_url,
+            {"scope": "comics", "scopePk": comic.pk, "fitTo": _COMIC_FIT_TO},
+        )
+
+        self._login()
+
+        rows = SettingsReader.objects.filter(user=user)
+        assert rows.count() == 2  # noqa: PLR2004
+        user_row.refresh_from_db()
+        assert user_row.fit_to == "S"
+        assert rows.get(comic__isnull=True).fit_to == _FIT_TO
+
     def test_users_own_global_row_wins(self) -> None:
         user = self._make_user()
         user_row = SettingsReader.objects.create(user=user, fit_to="S")
@@ -283,6 +312,74 @@ class BookmarkLoginTests(_LoginTestCase):
         assert user_bookmark.page == 9  # noqa: PLR2004
         adopted.refresh_from_db()
         assert adopted.user_id == user.pk  # pyright: ignore[reportAttributeAccessIssue]
+
+    def test_adopted_bookmarks_keep_their_timestamps(self) -> None:
+        """
+        Adoption is not reading: "Last Read" order survives the login.
+
+        Stamping every adopted row with the login time collapsed Last Read
+        and OPDS Keep Reading into a tie and made weeks-old positions look
+        freshly written to OPDS progression and KOReader.
+        """
+        comics = [_make_comic(f"t{n}") for n in range(2)]
+        key = self._anonymous_session_key()
+        old = timezone.now() - timedelta(days=30)
+        for n, comic in enumerate(comics):
+            bookmark = Bookmark.objects.create(session_id=key, comic=comic, page=n)
+            Bookmark.objects.filter(pk=bookmark.pk).update(
+                updated_at=old + timedelta(hours=n)
+            )
+        before = dict(Bookmark.objects.values_list("comic_id", "updated_at"))
+        user = self._make_user()
+
+        self._login()
+
+        after = dict(
+            Bookmark.objects.filter(user=user).values_list("comic_id", "updated_at")
+        )
+        assert after == before
+
+    def test_adoption_is_set_based(self) -> None:
+        """A visitor with many bookmarks costs a constant number of writes."""
+        comics = [_make_comic(f"m{n}") for n in range(20)]
+        key = self._anonymous_session_key()
+        user = self._make_user()
+        Bookmark.objects.create(user=user, comic=comics[0], page=7)
+        Bookmark.objects.bulk_create(
+            Bookmark(session_id=key, comic=comic, page=1) for comic in comics
+        )
+
+        with CaptureQueriesContext(connection) as ctx:
+            self._login()
+
+        # cycle_key's one re-point of the session id aside, adoption is a
+        # delete of the rows the user's own fill and one update of the rest.
+        adoption_writes = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if q["sql"].startswith('DELETE FROM "codex_bookmark"')
+            or (
+                q["sql"].startswith('UPDATE "codex_bookmark"')
+                and '"user_id"' in q["sql"].split("WHERE")[0]
+            )
+        ]
+        assert len(adoption_writes) <= 2, adoption_writes  # noqa: PLR2004
+        assert Bookmark.objects.filter(user=user).count() == len(comics)
+        assert Bookmark.objects.get(user=user, comic=comics[0]).page == 7  # noqa: PLR2004
+
+    def test_users_own_bookmark_is_never_modified(self) -> None:
+        comic = _make_comic()
+        key = self._anonymous_session_key()
+        user = self._make_user()
+        mine = Bookmark.objects.create(user=user, comic=comic, page=9)
+        stamp = timezone.now() - timedelta(days=3)
+        Bookmark.objects.filter(pk=mine.pk).update(updated_at=stamp)
+        Bookmark.objects.create(session_id=key, comic=comic, page=1, finished=True)
+
+        self._login()
+
+        mine.refresh_from_db()
+        assert (mine.page, mine.finished, mine.updated_at) == (9, False, stamp)
 
 
 class OIDCLoginTests(_LoginTestCase):

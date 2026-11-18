@@ -23,7 +23,7 @@
         </section>
         <template v-if="user">
           <v-divider />
-          <ApiKeys :urls="apiUrls || EMPTY_URLS" />
+          <ApiKeys :urls="apiUrls" />
         </template>
       </v-card-text>
       <v-card-actions>
@@ -43,8 +43,6 @@ import ApiUrls from "@/components/api-access/api-urls.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 
-const EMPTY_URLS = Object.freeze({});
-
 export default {
   name: "ApiAccessDialog",
   components: {
@@ -53,7 +51,7 @@ export default {
     PlaceholderLoading,
   },
   data() {
-    return { EMPTY_URLS, mdiRss };
+    return { mdiRss };
   },
   computed: {
     ...mapState(useAuthStore, ["apiUrls", "apiUrlsError", "user"]),

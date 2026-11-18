@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from django.db import DatabaseError
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.browser import (
@@ -88,14 +89,33 @@ def _flag_on_unless_off(key: str) -> bool:
     return True if flag is None else flag.on
 
 
+def _login_flag_on_unless_off(key: str) -> bool:
+    """
+    Whether a login-gating flag that seeds on is on.
+
+    A missing row counts as on, the value the seed gives it. A failed read
+    counts as off: a flag that gates logins fails closed, as KOReader
+    Sync's does.
+    """
+    try:
+        from codex.models.admin import AdminFlag
+    except (ImportError, RuntimeError):
+        return True
+    try:
+        flag = AdminFlag.objects.filter(key=key).first()
+    except DatabaseError:
+        return False
+    return True if flag is None else flag.on
+
+
 def opds_enabled() -> bool:
     """Whether the OPDS admin flag is on. On when the row is missing."""
-    return _flag_on_unless_off(AdminFlagChoices.OPDS.value)
+    return _login_flag_on_unless_off(AdminFlagChoices.OPDS.value)
 
 
 def stats_api_enabled() -> bool:
     """Whether Stats API keys may log in. On when the row is missing."""
-    return _flag_on_unless_off(AdminFlagChoices.STATS_API.value)
+    return _login_flag_on_unless_off(AdminFlagChoices.STATS_API.value)
 
 
 def get_browser_max_obj_per_page() -> int:

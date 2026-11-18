@@ -475,8 +475,6 @@ ALWAYS_UPDATE_COMIC_FIELDS = frozenset(
         "age_rating_metron_index",
         "date",
         "decade",
-        "koreader_hash",
-        "koreader_name_hash",
         "size",
         "sort_name",
         "stat",
@@ -523,7 +521,6 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
 MOVED_BULK_COMIC_UPDATE_FIELDS = (
     "path",
     "parent_folder",
-    "koreader_name_hash",
     "updated_at",
 )
 CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")

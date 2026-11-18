@@ -41,6 +41,9 @@
 <script>
 import { mdiCheck, mdiClose } from "@mdi/js";
 
+import LIMITS from "@/choices/limits.json";
+import { isImeEnter } from "@/util";
+
 /*
  * Starter names offered for a new shelf. All shelves are equal: these
  * are only suggestions, none of them is special once created.
@@ -51,7 +54,7 @@ export const SHELF_NAME_SUGGESTIONS = Object.freeze([
   "Reading Now",
 ]);
 // The server's limit on a shelf name.
-export const SHELF_NAME_MAX_LENGTH = 128;
+export const SHELF_NAME_MAX_LENGTH = LIMITS.maxNameLen;
 
 export default {
   name: "ShelfNameInput",
@@ -114,7 +117,8 @@ export default {
     },
   },
   methods: {
-    onEnter() {
+    onEnter(event) {
+      if (isImeEnter(event)) return;
       /*
        * Enter on a highlighted suggestion also picks it; wait a tick so
        * the pick lands in ``name`` before it is submitted.

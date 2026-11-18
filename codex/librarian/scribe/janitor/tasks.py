@@ -56,8 +56,14 @@ class JanitorCleanupShelfItemsTask(JanitorTask):
     """Clean shelf items whose target row no longer exists."""
 
 
+@dataclass
 class JanitorKoreaderHashTask(JanitorTask):
-    """Backfill KOReader sync hashes for comics that lack them."""
+    """Backfill KOReader sync hashes for comics that lack them, a batch a task."""
+
+    # The batch starts after this pk; a re-queued task carries the last one.
+    last_pk: int = 0
+    # Comics the earlier batches of this run went through, for the status.
+    done: int = 0
 
 
 class JanitorCleanupTaggingStateTask(JanitorTask):
