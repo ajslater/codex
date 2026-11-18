@@ -823,7 +823,9 @@ export const useBrowserStore = defineStore("browser", {
       if (redirect) {
         redirectRoute(redirect);
       } else {
-        this.loadBrowserPage(undefined, true);
+        // Awaited, as clearOneFilter does: the page load clears
+        // ``choices.dynamic``, so a caller reloading them must wait for it.
+        await this.loadBrowserPage(undefined, true);
       }
     },
     async clearOneFilter(filterName) {
