@@ -45,6 +45,7 @@ from comicbox.online_session import (
     MatchMode,
     OnlineCredentials,
     OnlineSession,
+    Prompts,
 )
 from django.utils.timezone import now, timedelta
 from humanize import naturaldelta
@@ -792,6 +793,9 @@ class OnlineTagSessionManager:
         defer_prompts = (
             task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
         )
+        # Telling comicbox too makes it skip an undecided comic without first
+        # enriching candidates for a prompt nobody will see.
+        prompts = Prompts.ASK if defer_prompts else Prompts.NEVER
         online_config = _online_config(task.effort)
         session = OnlineSession(
             sources=task.sources,
@@ -799,6 +803,7 @@ class OnlineTagSessionManager:
             ids=dict(task.ids),
             credentials=credentials,
             match=MatchMode(task.mode),
+            prompts=prompts,
             defer_prompts=defer_prompts,
             # first_wins=False queries every source per comic and merges.
             first_wins=not task.merge_all_sources,
