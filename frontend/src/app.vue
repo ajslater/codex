@@ -12,8 +12,8 @@ import { mapActions, mapState } from "pinia";
 import DockerHubDeprecatedSnackbar from "@/components/docker-hub-deprecated-snackbar.vue";
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useFavoritesStore } from "@/stores/favorites";
 import { pendingTitle, useOnlineTagStore } from "@/stores/online-tag";
+import { useShelvesStore } from "@/stores/shelves";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -57,11 +57,11 @@ export default {
           /* If the user changes resubscribe to channels. */
           useSocketStore().reopen();
           /*
-           * Warm the favorites store so star toggles render the
+           * Warm the shelves store so shelf buttons render the
            * user's persisted state on first paint instead of
-           * flashing empty. ``hydrate`` is idempotent.
+           * flashing empty. ``hydrate`` clears another user's first.
            */
-          useFavoritesStore().hydrate();
+          useShelvesStore().hydrate(to.id);
         }
       },
     },

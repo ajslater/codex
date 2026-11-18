@@ -8,6 +8,7 @@
  * - Type-aware text formatting (size, date, datetime).
  * - Enum-code expansion (reading_direction).
  * - Defensive handling of null / stale payloads.
+ * - Shelved cell (the shelf menu, for a single-id row, then the names).
  *
  * Mounts the component with a stubbed Pinia store so the
  * ``twentyFourHourTime`` setting is available without a full
@@ -18,14 +19,17 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
+import ShelfMenu from "@/components/shelf-menu.vue";
 import vuetify from "@/plugins/vuetify";
 
-function mountCell({ column, row }) {
+function mountCell({ column, row, user = null, shelves = [] }) {
   const pinia = createTestingPinia({
     initialState: {
+      auth: { user },
       browser: {
         settings: { twentyFourHourTime: false },
       },
+      shelves: { shelves },
     },
   });
   return mount(BrowserTableCell, {
@@ -234,5 +238,88 @@ describe("BrowserTableCell — cover", () => {
     // Enlarging a placeholder svg tells the user nothing.
     expect(wrapper.find('[role="button"]').exists()).toBe(false);
     expect(wrapper.find("img").exists()).toBe(true);
+  });
+});
+
+describe("BrowserTableCell — shelved", () => {
+  const user = { pk: 1 };
+
+  it("renders the shelf menu for a comic row", () => {
+    const wrapper = mountCell({ column: "shelved", row: { pk: 42 }, user });
+    const menu = wrapper.findComponent(ShelfMenu);
+    expect(menu.props()).toMatchObject({ collection: "comics", pk: 42 });
+    expect(wrapper.find(".tableShelvedCell button").exists()).toBe(true);
+  });
+
+  it("uses the row's collection and single id for a collection row", () => {
+    const wrapper = mountCell({
+      column: "shelved",
+      row: { collection: "series", ids: [7], pk: 7 },
+      user,
+    });
+    expect(wrapper.findComponent(ShelfMenu).props()).toMatchObject({
+      collection: "series",
+      pk: 7,
+    });
+  });
+
+  it("renders no menu for a row that aggregates several ids", () => {
+    const wrapper = mountCell({
+      column: "shelved",
+      row: { collection: "folders", ids: [1, 2] },
+      user,
+    });
+    expect(wrapper.find(".tableShelvedCell").exists()).toBe(true);
+    expect(wrapper.findComponent(ShelfMenu).exists()).toBe(false);
+  });
+
+  it("renders no button for an anonymous session", () => {
+    const wrapper = mountCell({ column: "shelved", row: { pk: 42 } });
+    expect(wrapper.find(".tableShelvedCell button").exists()).toBe(false);
+  });
+
+  it("lists the row's shelves by name after the menu", () => {
+    const wrapper = mountCell({
+      column: "shelved",
+      row: { pk: 42, shelves: [2, 1, 99] },
+      user,
+      shelves: [
+        { pk: 1, name: "Favorites", items: {} },
+        { pk: 2, name: "Want to Read", items: {} },
+        { pk: 3, name: "Unused", items: {} },
+      ],
+    });
+    const names = wrapper.find(".tableShelvedCell .tableListCell");
+    expect(names.text()).toBe("Favorites, Want to Read");
+    expect(names.attributes("title")).toBe("Favorites, Want to Read");
+    // The names follow the menu button.
+    const cell = wrapper.find(".tableShelvedCell").element;
+    expect(cell.firstElementChild.classList).toContain("tableShelfMenu");
+  });
+
+  it("lists a merged row's shared shelves without a menu", () => {
+    const wrapper = mountCell({
+      column: "shelved",
+      row: { collection: "series", ids: [7, 8], shelves: [1] },
+      user,
+      shelves: [{ pk: 1, name: "Favorites", items: {} }],
+    });
+    expect(wrapper.findComponent(ShelfMenu).exists()).toBe(false);
+    expect(wrapper.find(".tableListCell").text()).toBe("Favorites");
+  });
+
+  it("renders no names when the row is on no shelf", () => {
+    const wrapper = mountCell({
+      column: "shelved",
+      row: { pk: 42, shelves: [] },
+      user,
+      shelves: [{ pk: 1, name: "Favorites", items: {} }],
+    });
+    expect(wrapper.find(".tableListCell").exists()).toBe(false);
+  });
+
+  it("the old favorite column key is plain text now", () => {
+    const wrapper = mountCell({ column: "favorite", row: { pk: 42 }, user });
+    expect(wrapper.findComponent(ShelfMenu).exists()).toBe(false);
   });
 });

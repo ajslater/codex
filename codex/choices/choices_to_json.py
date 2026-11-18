@@ -9,6 +9,7 @@ from types import MappingProxyType
 from caseconverter import camelcase
 
 from codex.choices.admin import ADMIN_FLAG_CHOICES, TAGGING_CHOICES, TAGGING_DEFAULTS
+from codex.choices.api_key import API_KEY_SCOPE_TITLES
 from codex.choices.browser import (
     BROWSER_CHOICES,
     BROWSER_CHOICES_MAP_KEYS,
@@ -32,6 +33,7 @@ from codex.choices.tagging import (
     IDENTIFIER_SOURCES,
     IDENTIFIER_TYPE_BY_CODEX_NAME,
     IDENTIFIER_TYPES,
+    KEEP_WRITE_FORMAT,
     LANGUAGES,
     SERIES_STATUSES,
     WRITE_FORMATS,
@@ -62,8 +64,13 @@ _DUMPS = MappingProxyType(
         "reader-choices.json": READER_CHOICES,
         # The write formats live with the rest of the tag-editor choices,
         # which choices.admin can't import without a models import cycle.
+        # keepFormat names the one that is not a tag format.
         "tagging-choices.json": MappingProxyType(
-            {**TAGGING_CHOICES, "formats": WRITE_FORMATS}
+            {
+                **TAGGING_CHOICES,
+                "formats": WRITE_FORMATS,
+                "keepFormat": KEEP_WRITE_FORMAT,
+            }
         ),
     }
 )
@@ -71,6 +78,7 @@ _DUMPS = MappingProxyType(
 _MAP_DUMPS = MappingProxyType(
     {
         "admin-jobs.json": ADMIN_JOBS,
+        "api-key-scopes.json": API_KEY_SCOPE_TITLES,
         "browser-defaults.json": BROWSER_DEFAULTS,
         "browser-map.json": BROWSER_CHOICES,
         "browser-table-column-costs.json": BROWSER_TABLE_COLUMN_COSTS,

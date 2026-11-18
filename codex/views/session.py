@@ -5,8 +5,9 @@ Composite session bootstrap endpoint.
 version}`` (plus ``defaults`` and ``defaultsRev`` for callers who may
 browse) in a single request so the SPA boots without the two-call
 ``/auth/profile`` + ``/auth/flags`` handshake that v3 used.
-``opds-urls`` is intentionally *not* bundled — those URLs are rarely
-opened, so they stay on their own lazy ``/api/v4/opds-urls`` endpoint.
+``api-urls`` is intentionally *not* bundled — those URLs are rarely
+opened, so they stay on their own lazy ``/api/v4/api-urls`` endpoint,
+which the API Access dialog reloads every time it opens.
 """
 
 from typing import override

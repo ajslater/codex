@@ -2,10 +2,9 @@
 
 import hashlib
 import json
-from copy import deepcopy
 from functools import cached_property
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Any, Final, override
 
 from adrf.mixins import get_data
 from channels.db import database_sync_to_async
@@ -13,15 +12,13 @@ from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.choices.admin import AdminFlagChoices
+from codex.authentication import StatsKeyAuthentication
 from codex.librarian.telemeter.stats import CodexStats
-from codex.models.admin import AdminFlag
 from codex.serializers.admin.stats import (
     AdminStatsRequestSerializer,
     StatsSerializer,
 )
 from codex.views.admin.auth import AsyncAdminGenericAPIView
-from codex.views.admin.permissions import HasAPIKeyOrIsAdminUser
 
 # Cache TTL for the assembled stats object. The data underneath only
 # changes as the librarian imports / users sign up — a brief staleness
@@ -34,14 +31,21 @@ _CACHE_KEY_PREFIX: Final = "admin-stats:"
 
 
 class AdminStatsView(AsyncAdminGenericAPIView):
-    """Admin Flag Viewset."""
+    """
+    Admin stats, for the Stats tab and for the Stats API.
 
-    # DRF's stubs declare this an instance variable and AdminAuthMixin a
-    # ClassVar; no annotation satisfies both checkers from a class that
-    # inherits the two, so the override says which rule it is waiving.
-    permission_classes = (HasAPIKeyOrIsAdminUser,)  # ty: ignore[invalid-attribute-override]
+    A Stats API key logs in as the admin who owns it, ahead of the session
+    and the universal Bearer key, so the staff check is the same for all
+    three.
+    """
+
     serializer_class = StatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
+
+    @override
+    def get_authenticators(self):
+        """Try a stats key first, then the default classes."""
+        return [StatsKeyAuthentication(), *super().get_authenticators()]
 
     @cached_property
     def params(self) -> MappingProxyType[str, Any]:
@@ -56,18 +60,6 @@ class AdminStatsView(AsyncAdminGenericAPIView):
         # dead code. Wrap directly.
         return MappingProxyType(dict(input_serializer.validated_data))
 
-    async def _aadd_api_key(self, obj) -> None:
-        """Add the api key to the config object if specified."""
-        request_counts = self.params.get("config", {})
-        if request_counts and ("apikey" not in request_counts):
-            return
-        api_key = (
-            await AdminFlag.objects.aget(key=AdminFlagChoices.API_KEY.value)
-        ).value
-        if "config" not in obj:
-            obj["config"] = {}
-        obj["config"]["api_key"] = api_key
-
     def _cache_key(self) -> str:
         """Deterministic cache key derived from the requested params."""
         # ``MappingProxyType`` isn't directly JSON-serializable, but the
@@ -78,10 +70,8 @@ class AdminStatsView(AsyncAdminGenericAPIView):
         return f"{_CACHE_KEY_PREFIX}{digest}"
 
     async def _aget_stats(self) -> dict:
-        """Get (or build) the cached stats object plus a fresh api key."""
+        """Get (or build) the cached stats object."""
         cache_key = self._cache_key()
-        # Cache the heavy stats payload only; the api key is sourced
-        # outside the cache so a key rotation is reflected immediately.
         cached = await cache.aget(cache_key)
         if cached is None:
             # ``CodexStats.get`` runs ~30 sync COUNT/GROUP BY queries.
@@ -94,9 +84,7 @@ class AdminStatsView(AsyncAdminGenericAPIView):
                 CodexStats(self.params).get, thread_sensitive=False
             )()
             await cache.aset(cache_key, cached, _CACHE_TTL_SECONDS)
-        obj = deepcopy(cached)
-        await self._aadd_api_key(obj)
-        return obj
+        return cached
 
     @extend_schema(parameters=[input_serializer_class])
     async def get(self, *_args, **_kwargs) -> Response:

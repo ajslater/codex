@@ -90,7 +90,6 @@ export const useAdminStore = defineStore("admin", {
     oidcSettings: undefined,
     throttleSettings: undefined,
     settingsDefaults: undefined,
-    apiKey: "",
     activeTab: "Libraries",
   }),
   getters: {
@@ -247,6 +246,19 @@ export const useAdminStore = defineStore("admin", {
         commonStore.setErrors(error);
       }
     },
+    async revokeUserKeys(pk) {
+      if (this._requireAdmin()) return false;
+      const commonStore = useCommonStore();
+      try {
+        await API.revokeUserKeys(pk);
+        commonStore.clearErrors();
+        await this.loadTable("User", { force: true });
+        return true;
+      } catch (error) {
+        commonStore.setErrors(error);
+        return false;
+      }
+    },
     async deleteRow(table, pk) {
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
@@ -350,24 +362,6 @@ export const useAdminStore = defineStore("admin", {
         if (!dequal(current[key], value)) {
           current[key] = value;
         }
-      }
-    },
-    async loadAPIKey() {
-      if (this._requireAdmin()) return false;
-      try {
-        const response = await API.getAPIKey();
-        this.apiKey = response.data?.apiKey ?? "";
-      } catch (error) {
-        console.warn(error);
-      }
-    },
-    async updateAPIKey() {
-      if (this._requireAdmin()) return false;
-      try {
-        const response = await API.updateAPIKey();
-        this.apiKey = response.data?.apiKey ?? this.apiKey;
-      } catch (error) {
-        console.warn(error);
       }
     },
     async loadTaggingDefaults({ force = false } = {}) {

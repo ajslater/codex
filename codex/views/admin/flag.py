@@ -5,6 +5,7 @@ from typing import override
 from codex.choices.admin import AdminFlagChoices
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import ADMIN_FLAGS_CHANGED_TASK
+from codex.librarian.scribe.janitor.tasks import JanitorKoreaderHashTask
 from codex.librarian.tasks import WakeCronTask
 from codex.models import AdminFlag
 from codex.serializers.admin.flags import AdminFlagSerializer
@@ -28,13 +29,17 @@ class AdminFlagViewSet(AdminModelViewSet):
     serializer_class = AdminFlagSerializer
     lookup_field = "key"
 
-    def _on_change(self) -> None:
+    def _on_change(self, flag: AdminFlag | None) -> None:
         """Signal UI that its out of date."""
         key = self.kwargs.get("key")
         if key == AdminFlagChoices.REGISTRATION.value:
             patch_registration_setting()
         elif key == AdminFlagChoices.SEND_TELEMETRY.value:
             LIBRARIAN_QUEUE.put(WakeCronTask())
+        elif key == AdminFlagChoices.KOREADER_SYNC.value and flag and flag.on:
+            # Hash the comics imported before the flag existed so devices
+            # can match them without waiting for the nightly run.
+            LIBRARIAN_QUEUE.put(JanitorKoreaderHashTask())
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the collection view and let the ui decide
         # Registration only needs to change the enable flag
@@ -45,4 +50,4 @@ class AdminFlagViewSet(AdminModelViewSet):
     def perform_update(self, serializer) -> None:
         """Perform update and hook for change."""
         super().perform_update(serializer)
-        self._on_change()
+        self._on_change(serializer.instance)

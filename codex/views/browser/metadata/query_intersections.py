@@ -13,6 +13,7 @@ from codex.views.browser.metadata.const import (
     FK_QUERY_OPTIMIZERS,
     M2M_QUERY_OPTIMIZERS,
 )
+from codex.views.browser.shelf_membership import selection_shelves
 from codex.views.const import METADATA_COLLECTION_RELATION, MODEL_REL_MAP
 
 
@@ -112,7 +113,7 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         field: ManyToManyField, comic_pks: QuerySet, num_comics: int
     ) -> QuerySet:
         """Build a through table queryst for a ManyToManyField."""
-        through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         rel_field_name = field.m2m_reverse_field_name()
         qs = through.objects.filter(comic_id__in=comic_pks)
         qs = qs.values(related_id=F(rel_field_name + "_id"))
@@ -162,13 +163,14 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
 
         return m2m_intersections
 
-    def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict]:
-        """Query complex intersections."""
+    def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict, list[int]]:
+        """Query complex intersections, the user's shared shelves among them."""
         collection_lists = self._query_collection_lists()
         comic_pks = self._get_comic_pks(filtered_qs)
-        # One cheap COUNT round-trip; both intersection paths need the
+        # One cheap COUNT round-trip; every intersection path needs the
         # total and must not re-evaluate the subquery in Python.
         num_comics = comic_pks.count()
         fk_intersections = self._query_fk_intersections(comic_pks, num_comics)
         m2m_intersections = self._query_m2m_intersections(comic_pks, num_comics)
-        return collection_lists, fk_intersections, m2m_intersections
+        shelves = selection_shelves(self.request.user, comic_pks, num_comics)
+        return collection_lists, fk_intersections, m2m_intersections, shelves

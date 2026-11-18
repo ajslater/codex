@@ -33,8 +33,8 @@ border-radius: 128px;
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.
 - **Save and load** named views and searches.
-- **Favorites** at the Publisher, Series, Volume, Folder, Story Arc, or Issue
-  level — filterable per user.
+- **Shelves** you name yourself, such as "Want to Read", holding any Publisher,
+  Imprint, Series, Volume, Folder, Story Arc, or Issue — filterable per user.
 
 ### 🏷️ Edit & Tag
 
@@ -62,6 +62,8 @@ border-radius: 128px;
 ### 🔌 Integrations
 
 - **OPDS 1 & 2** syndication with streaming, search, and authentication.
+- **KOReader progress sync** (experimental) through KOReader's built in Progress
+  sync plugin.
 - **OIDC single sign-on** with identity providers like Authentik and Authelia.
 - **Remote-User HTTP header SSO** for reverse-proxy single sign-on (tinyauth,
   Authelia, Authentik proxy mode).
@@ -101,7 +103,8 @@ Run the official
 [Docker Image](https://github.com/ajslater/codex/pkgs/container/codex) at
 ghcr.io/ajslater/codex.
 
-Read the [Docker instructions](docs/DOCKER.md)
+Read the
+[Docker instructions](https://codex-comic-reader.readthedocs.io/DOCKER/)
 
 You'll then want to read the [Administration](#administration) section of this
 document.
@@ -175,7 +178,7 @@ Windows users are encouraged to use Docker to run Codex, but it will also run
 natively on the Windows Subsystem for Linux.
 
 Installation instructions are in the
-[Native Windows Dependencies Installation Document](docs/WINDOWS.md).
+[Native Windows Dependencies Installation Document](https://codex-comic-reader.readthedocs.io/WINDOWS/).
 
 #### Run Codex Natively
 
@@ -264,7 +267,7 @@ setting.
 
 Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
 data: comic metadata, which can always be rebuilt by re-scanning your library,
-and _user_ data — accounts, bookmarks, favorites, browser settings, library
+and _user_ data — accounts, bookmarks, shelves, browser settings, library
 definitions, admin flags — which cannot. To make the second kind survive a
 database loss or rebuild, Codex snapshots every user-bound row into a separate
 SQLite file: the **user data sidecar**.
@@ -279,10 +282,11 @@ SQLite file: the **user data sidecar**.
 
 #### What it contains
 
-Users (with hashed passwords), groups & permissions, group memberships,
-libraries and their access lists, bookmarks, favorites, per-user browser
-settings, admin flags, timestamps, online-tagging defaults, and the default
-settings for new sessions.
+Users (with hashed passwords), API keys (hashed too, so a restored key still
+logs in, though a key revoked since the snapshot stays revoked), groups &
+permissions, group memberships, libraries and their access lists, bookmarks,
+shelves, per-user browser settings, admin flags, timestamps, online-tagging
+defaults, and the default settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -340,7 +344,7 @@ skipped — the operation never aborts.
 5. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, favorites by collection name-chain (e.g.
+Bookmarks reattach by comic path, shelf items by collection name-chain (e.g.
 publisher → imprint → series), and tag filters by tag name. As long as your
 library paths and tag names match, everything reattaches.
 
@@ -382,8 +386,31 @@ fashion, so you likely won't find it unless you've added it yourself.
 
 ### 🗝️ API with Key Access
 
-Codex has a limited number of API endpoints available with API Key Access. The
-API Key is available on the admin/stats tab.
+Every API credential is an **API key**, made in the **API Access** dialog: the
+**OPDS & APIs** button at the bottom of the side drawer, or **Profile → API
+Access**. The dialog also lists the URL of each API you may use. Codex shows a
+key once, when you make it, and stores only a hash of it. Each kind of key logs
+in to some APIs only:
+
+| Key             | Logs in to                                               |
+| --------------- | -------------------------------------------------------- |
+| Device Key      | OPDS and KOReader sync                                   |
+| Stats key       | The admin Stats API, `/api/v4/admin/stats` (admins only) |
+| Universal Token | Everything, `/api/v4/` included (legacy, see below)      |
+
+**Stats keys.** Each admin makes their own. Send one as `?apiKey=<key>` or as
+`Authorization: Bearer <key>`. A Stats key logs in as the admin who made it and
+stops working if that user stops being an admin. Upgrading from an older version
+revokes the old server-wide API key: make a Stats key to replace it.
+
+**Universal Tokens.** Before v2.7.0 every user had one Authorization Bearer
+Token that logged in everywhere. Upgrading keeps each existing token as a key
+named "Universal Token", which works until you revoke it. It can no longer be
+shown or made again: replace it with Device Keys.
+
+**Turning APIs off.** The **APIs** group in **Admin → Settings** turns OPDS,
+KOReader Sync and Stats API keys on and off. An API that is off disappears from
+the API Access dialog, and the Stats tab keeps working with Stats API keys off.
 
 ### 📧 Email & Password Reset
 
@@ -410,7 +437,7 @@ Provider-specific notes:
 - **Mailgun / SendGrid / generic SMTP relays**: usually accept `user` as the
   authenticated sender; `from_address` defaults to that when blank.
 
-If `register_verification` is enabled (Admin → Flags → "Verify New User Email"),
+If `register_verification` is enabled (Admin → Auth → "Verify New User Email"),
 new sign-ups receive an activation email and stay inactive until they click the
 link. Has no effect until email (SMTP) is configured.
 
@@ -711,7 +738,8 @@ url_path_prefix = "/codex"
 If you put an authenticating reverse proxy (Organizr, Authelia, etc.) in front
 of the `/codex` location with `auth_request`, exempt the API the way Codex's own
 examples do (`location /codex/api { auth_request off; ... }`); the `^~` note
-above is what keeps the static assets reachable.
+above is what keeps the static assets reachable. Exempt `/codex/koreader/` the
+same way: KOReader cannot pass an auth proxy and logs in with a Device Key.
 
 #### CSRF 403 behind a proxy
 
@@ -839,8 +867,8 @@ admin password regardless. ⚠️
   not end their existing Codex session. Deactivate the user in Codex too, or
   lower `SESSION_COOKIE_AGE`-equivalent exposure by logging them out.
 - OIDC-created users have no local password, so OPDS readers can't use HTTP
-  Basic auth for them. Use the per-user API token (User Profile in the sidebar)
-  for OPDS, or set a local password.
+  Basic auth for them. Use a [Device Key](#device-keys) as the OPDS password, or
+  set a local password.
 - On first start after upgrading, Codex applies a few small new database tables
   for the OIDC account linkage and the settings singleton.
 - OIDC login failures are recorded in the [Failed-Login Log](#failed-login-log)
@@ -903,22 +931,24 @@ Checklist for a forward-auth deployment:
 - The auth gate covers the **whole** Codex location — including `/opds/` and the
   WebSocket path `/api/v4/ws` — not just the HTML pages. If you exempt OPDS for
   reader apps, those requests fall back to Codex's own Basic/token auth, which
-  is fine.
+  is fine. Exempt `/koreader/` if you use KOReader sync: KOReader cannot pass
+  forward-auth, and Codex checks its Device Key itself.
 - A request with a client-forged `Remote-User` header and no proxy auth must be
   rejected or have the header overwritten (test it with
   `curl -H "Remote-User: admin"`).
 - Remote-User and OIDC can be enabled at the same time; they are independent
   paths to a normal Codex session.
 
-##### HTTP Token Authentication
+##### HTTP Token Authentication (legacy)
 
-You can also configure your proxy to add token authentication to the headers.
-Codex will read “Bearer” prefixed authorization tokens. The token is unique for
-each user and may be found in the User Profile accessible from the sidebar. You
-must configure your proxy or single sign on software to send this token.
+Codex still reads `Authorization: Bearer <token>` headers that carry a
+**Universal Token**: the per-user Authorization Bearer Token of versions before
+v2.7.0, kept on upgrade. A proxy that already sends one keeps working until the
+token is revoked in the API Access dialog. Codex no longer makes these tokens,
+so new setups should use Remote-User or OIDC above.
 
 ```nginx
-set              user_token 'user-token-taken-from-web-ui';
+set              user_token 'existing-universal-token';
 proxy_set_header Authorization "Bearer $user_token";
 ```
 
@@ -1017,14 +1047,18 @@ your administrator to reset your password if you forget it.
 
 ### ᯤ OPDS
 
-Codex supports OPDS syndication and OPDS streaming. You may find the OPDS url in
-the side drawer. It should take the form:
+Codex supports OPDS syndication and OPDS streaming. The OPDS URLs are in the
+**API Access** dialog: the **OPDS & APIs** button at the bottom of the side
+drawer. They take the form:
 
 `http(s)://host.tld(:9810)(/path_prefix)/opds/v1.2/`
 
 or
 
 `http(s)://host.tld(:9810)(/path_prefix)/opds/v2.0/`
+
+An admin can turn OPDS off with **Admin → Settings → APIs → OPDS**. Every OPDS
+URL then returns 404.
 
 #### OPDS v1 Clients
 
@@ -1054,6 +1088,21 @@ not supported.
 
 #### OPDS Authentication
 
+##### Device Keys
+
+Give each reader app its own **Device Key**, made in the **API Access** dialog.
+A device key is a password for one app or device: use it in place of your
+account password with HTTP Basic, or as a Bearer token. Each key has a name you
+choose, such as "Panels on iPad", shows when it was last used, and can be
+revoked on its own without logging out your other devices. The key is shown
+once, when you make it; Codex stores only a hash of it.
+
+Device keys work on OPDS and KOReader sync only. They do not log in to the web
+UI or the `/api/v4/` API, so a key stored in a reader app cannot change your
+account or, for admins, reach the admin API. Device keys are the way to use a
+Basic-only OPDS reader when you log in with Single Sign On and have no Codex
+password.
+
 ##### OPDS Login
 
 The few clients that implement the OPDS 1.0 Authentication spec present the user
@@ -1067,11 +1116,15 @@ to the URL. In that case the OPDS url will look like:
 
 `http(s)://username:password@codex-server.tld(:9810)(/path_prefix)/opds/v1.2/`
 
+The password may be a device key (recommended), a Universal Token, or your
+account password.
+
 ##### HTTP Token
 
 Some clients allow adding a unique login token to the HTTP headers. Codex will
-read "Bearer" prefixed authorization tokens. The token is unique for each user
-and may be found in the Web UI sidebar.
+read "Bearer" prefixed authorization tokens: `Authorization: Bearer <token>`.
+The token may be a device key or a Universal Token. A Universal Token logs in
+everywhere, so prefer a device key per reader app.
 
 #### Reading Positions
 
@@ -1133,6 +1186,51 @@ outage is lost -- it becomes readable again when the file returns.
 ##### OpenSearch v1
 
 - [OpenSearch 1.1 (draft)](https://github.com/dewitt/opensearch)
+
+### 📲 KOReader Progress Sync
+
+> [!NOTE]
+>
+> KOReader Sync is experimental. Expect rough edges, and please report problems
+> on the issue tracker.
+
+Codex can act as a [KOReader](https://koreader.rocks) progress sync (kosync)
+server, so a comic read on a KOReader device and in the Codex web reader keeps
+one reading position.
+
+1. An admin turns on **Admin → Settings → APIs → KOReader Sync**. It is off by
+   default, because while it is on Codex does extra work for KOReader alone.
+   Codex then hashes the comics it already has so KOReader can recognize them.
+   This reads a little of each file and shows as a job on the Jobs tab. Comics
+   imported while it is on are hashed as they are imported.
+2. Each user opens the **API Access** dialog in Codex (the **OPDS & APIs**
+   button at the bottom of the side drawer), which shows the server URL, for
+   example `https://codex.example.com/koreader`, including any reverse-proxy
+   subpath.
+3. In KOReader, open a book, then **Progress sync → Custom sync server** and
+   enter that URL. Use **Register / Login** to log in with your Codex username
+   and, as the password, a **Device Key** made for that device in API Access.
+   Revoking the key logs out only that device. A Universal Token also works as
+   the password. Your Codex login password does not work here. KOReader cannot
+   register new users on Codex.
+4. Choose **Document matching method**. **Binary** identifies a book by its
+   contents and works for most libraries. If you write tags into your comics
+   from Codex, the file changes and binary matching loses it. Choose
+   **Filename** instead, which matches by file name. KOReader names an OPDS
+   download `<author> - <title>` unless **Use server filenames** is on in its
+   OPDS catalog settings, so turn that on for Filename matching. A file name
+   that two of your comics share matches neither.
+
+Limits:
+
+- KOReader opens CBZ, CBR, CBT and PDF comics. It cannot open CB7.
+- KOReader does not push or pull progress automatically unless you enable
+  automatic sync in its Progress sync menu.
+- The newest write wins. A device that was offline sends its queued position
+  when it reconnects, and that can overwrite a newer one from the web reader.
+- KOReader may count an archive's pages differently from Codex, for example when
+  it skips image types it can't show. Codex then maps the position by
+  percentage, which can land a page or two off.
 
 ## 🩺 Troubleshooting
 

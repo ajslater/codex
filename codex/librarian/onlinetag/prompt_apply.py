@@ -386,13 +386,16 @@ class PromptApplier:
         pk = prompt.get("pk")
         if pk is None:
             return False
+        # The comic's own entry, so what the scan noted on it (``tagged_by``)
+        # survives the re-ask.
+        comic = next((c for c in prompt_comics(prompt) if c["pk"] == pk), {"pk": pk})
         formats = tuple(prompt.get("formats") or ("COMIC_INFO",))
         delete_original = bool(prompt.get("delete_original"))
         rename = bool(prompt.get("rename"))
         new = {
             dp.fingerprint: serialize_prompt(
                 dp,
-                [{"pk": pk, "path": str(dp.path) if dp.path else ""}],
+                [{**comic, "path": str(dp.path) if dp.path else ""}],
                 formats,
                 delete_original=delete_original,
                 rename=rename,

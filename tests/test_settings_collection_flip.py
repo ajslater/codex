@@ -113,7 +113,7 @@ class SettingsCollectionFlipTestCase(TestCase):
         # Touch settings so the row + its related rows are created.
         assert self.client.get(_SETTINGS_URL).status_code == _HTTP_OK
         row = self._browser_row()
-        last_route = row.last_route  # ty: ignore[unresolved-attribute]  # pyright: ignore[reportAttributeAccessIssue]
+        last_route = row.last_route  # ty: ignore[missing-attribute]  # pyright: ignore[reportAttributeAccessIssue]
         # Model defaults are now collection values.
         assert row.top_collection == "publishers"
         assert last_route.collection == "root"

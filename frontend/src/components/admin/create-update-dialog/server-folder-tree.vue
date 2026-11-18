@@ -48,7 +48,7 @@
 
 <script>
 import {
-  mdiBookshelf,
+  mdiBankOutline,
   mdiFolderArrowUpOutline,
   mdiFolderOpenOutline,
   mdiFolderOutline,
@@ -308,7 +308,7 @@ export default {
     },
     folderIcon(item, isOpen) {
       if (item.library) {
-        return mdiBookshelf;
+        return mdiBankOutline;
       }
       // A leaf can be "open" from a click, but there is nothing in it.
       return isOpen && item.children ? mdiFolderOpenOutline : mdiFolderOutline;

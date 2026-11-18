@@ -23,6 +23,7 @@ from codex.choices.choices_to_json import (
     _make_json_serializable,
 )
 from codex.choices.limits import (
+    API_KEY_NAME_MAX_LENGTH,
     EMAIL_MAX_LENGTH,
     GROUP_NAME_MAX_LENGTH,
     LIMITS,
@@ -34,6 +35,7 @@ from codex.choices.limits import (
     USERNAME_MAX_LENGTH,
 )
 from codex.models.admin import OIDCSettings
+from codex.models.api_key import UserApiKey
 from codex.models.base import (
     MAX_FIELD_LEN as BASE_MAX_FIELD_LEN,
 )
@@ -112,6 +114,10 @@ class LimitsMatchTheServerTestCase(SimpleTestCase):
         assert BASE_MAX_PATH_LEN is MAX_PATH_LEN
         assert BASE_MAX_NAME_LEN is MAX_NAME_LEN
         assert BASE_MAX_FIELD_LEN is MAX_FIELD_LEN
+
+    def test_the_api_key_name_width_matches_its_column(self) -> None:
+        field = UserApiKey._meta.get_field("name")
+        assert field.max_length == API_KEY_NAME_MAX_LENGTH
 
     def test_the_oidc_url_width_matches_its_column(self) -> None:
         """Replacing the literal must not have changed the schema."""

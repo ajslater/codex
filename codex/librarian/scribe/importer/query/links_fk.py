@@ -8,6 +8,7 @@ from codex.librarian.scribe.importer.const import (
     LINK_FKS,
     PATH_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
+    UNSET_FK_LINK,
 )
 from codex.librarian.scribe.importer.query.update_comics import QueryUpdateComics
 from codex.models.comic import Comic
@@ -71,9 +72,12 @@ class QueryPruneLinksFKs(QueryUpdateComics):
         """Compare proposed key values against the existing link's."""
         if field_name == PROTAGONIST_KEY:
             # The protagonist matches if either the main character or
-            # the main team already carries the name.
-            prot = key_values[0]
-            return prot is not None and prot in row[start:end]
+            # the main team already carries the name, and an unset one
+            # if neither links anything.
+            linked = row[start:end]
+            if key_values == UNSET_FK_LINK:
+                return all(name is None for name in linked)
+            return key_values[0] in linked
         return row[start:end] == key_values
 
     def _query_prune_comic_fk_links_row(

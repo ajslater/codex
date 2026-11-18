@@ -18,12 +18,13 @@ from codex.models import (
     Comic,
     CustomCover,
     FailedImport,
-    Favorite,
     Folder,
     Imprint,
     Library,
     Publisher,
     Series,
+    Shelf,
+    ShelfItem,
     Volume,
 )
 from tests.tmp_dirs import tmp_dir
@@ -84,82 +85,99 @@ class ComicTestCase(TestCase):
         assert comic.date == self.DATE
 
 
-class FavoriteTestCase(TestCase):
-    """Test Favorite model."""
+class ShelfTestCase(TestCase):
+    """Test Shelf and ShelfItem models."""
 
-    TWO_FAVORITES = 2
+    TWO_ITEMS = 2
 
     @override
     def setUp(self):
-        """Provision a user and one of each favorite-able row."""
+        """Provision two users with a shelf each and a shelvable row."""
         user_model = get_user_model()
-        self.user = user_model.objects.create(username="favtester")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.other_user = user_model.objects.create(username="favtester2")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.publisher = Publisher.objects.create(name="FavPub")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.imprint = Imprint.objects.create(name="FavImp", publisher=self.publisher)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.user = user_model.objects.create(username="shelftester")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.other_user = user_model.objects.create(username="shelftester2")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.shelf = Shelf.objects.create(user=self.user, name="Want to Read")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.other_shelf = Shelf.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
+            user=self.other_user, name="Want to Read"
+        )
+        self.publisher = Publisher.objects.create(name="ShelfPub")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.imprint = Imprint.objects.create(name="ShelfImp", publisher=self.publisher)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
-            name="FavSeries",
+            name="ShelfSeries",
             publisher=self.publisher,
             imprint=self.imprint,
         )
 
-    def test_create_and_unique(self):
-        """Same (user, collection, target_id) triple must not insert twice."""
-        Favorite.objects.create(
-            user=self.user, collection="series", target_id=self.series.pk
+    def test_shelf_name_unique_per_user(self):
+        """One user cannot have two shelves with the same name; two users can."""
+        with transaction.atomic(), pytest.raises(IntegrityError):
+            Shelf.objects.create(user=self.user, name="Want to Read")
+
+    def test_item_unique_per_shelf(self):
+        """Same (shelf, collection, target_id) triple must not insert twice."""
+        ShelfItem.objects.create(
+            shelf=self.shelf, collection="series", target_id=self.series.pk
         )
         with transaction.atomic(), pytest.raises(IntegrityError):
-            Favorite.objects.create(
-                user=self.user, collection="series", target_id=self.series.pk
+            ShelfItem.objects.create(
+                shelf=self.shelf, collection="series", target_id=self.series.pk
             )
 
-    def test_distinct_users_share_target(self):
-        """Two users may both favorite the same target."""
-        Favorite.objects.create(
-            user=self.user, collection="series", target_id=self.series.pk
-        )
-        Favorite.objects.create(
-            user=self.other_user, collection="series", target_id=self.series.pk
-        )
-        count = Favorite.objects.filter(target_id=self.series.pk).count()
-        assert count == self.TWO_FAVORITES
+    def test_distinct_shelves_share_target(self):
+        """The same target may sit on several shelves."""
+        second = Shelf.objects.create(user=self.user, name="Second")
+        for shelf in (self.shelf, second, self.other_shelf):
+            ShelfItem.objects.create(
+                shelf=shelf, collection="series", target_id=self.series.pk
+            )
+        count = ShelfItem.objects.filter(shelf__user=self.user).count()
+        assert count == self.TWO_ITEMS
 
-    def test_distinct_groups_share_target_id(self):
-        """target_id may collide across groups (publisher#1 and series#1)."""
-        Favorite.objects.create(user=self.user, collection="publishers", target_id=1)
-        Favorite.objects.create(user=self.user, collection="series", target_id=1)
-        count = Favorite.objects.filter(user=self.user).count()
-        assert count == self.TWO_FAVORITES
+    def test_distinct_collections_share_target_id(self):
+        """target_id may collide across collections (publisher#1 and series#1)."""
+        ShelfItem.objects.create(shelf=self.shelf, collection="publishers", target_id=1)
+        ShelfItem.objects.create(shelf=self.shelf, collection="series", target_id=1)
+        assert ShelfItem.objects.filter(shelf=self.shelf).count() == self.TWO_ITEMS
 
     def test_user_delete_cascades(self):
-        """Deleting a user wipes their favorites."""
-        Favorite.objects.create(
-            user=self.user, collection="series", target_id=self.series.pk
+        """Deleting a user wipes their shelves and items."""
+        ShelfItem.objects.create(
+            shelf=self.shelf, collection="series", target_id=self.series.pk
         )
         self.user.delete()
-        assert not Favorite.objects.filter(collection="series").exists()
+        assert not Shelf.objects.filter(pk=self.shelf.pk).exists()
+        assert not ShelfItem.objects.filter(collection="series").exists()
+
+    def test_shelf_delete_cascades(self):
+        """Deleting a shelf wipes its items only."""
+        for shelf in (self.shelf, self.other_shelf):
+            ShelfItem.objects.create(
+                shelf=shelf, collection="series", target_id=self.series.pk
+            )
+        self.shelf.delete()
+        assert list(ShelfItem.objects.values_list("shelf_id", flat=True)) == [
+            self.other_shelf.pk
+        ]
 
     def test_target_delete_cascades_via_signal(self):
-        """Deleting a Series wipes pointing-at-Series favorites for all users."""
+        """Deleting a Series wipes pointing-at-Series items on every shelf."""
         series_pk = self.series.pk
-        Favorite.objects.create(
-            user=self.user, collection="series", target_id=series_pk
-        )
-        Favorite.objects.create(
-            user=self.other_user, collection="series", target_id=series_pk
-        )
-        # Distractor: another user's favorite at a different group/target_id
-        # (target_id=series_pk under collection="publishers") must NOT be touched.
-        Favorite.objects.create(
-            user=self.user, collection="publishers", target_id=series_pk
+        for shelf in (self.shelf, self.other_shelf):
+            ShelfItem.objects.create(
+                shelf=shelf, collection="series", target_id=series_pk
+            )
+        # Distractor: the same target_id under another collection must
+        # NOT be touched.
+        ShelfItem.objects.create(
+            shelf=self.shelf, collection="publishers", target_id=series_pk
         )
 
         self.series.delete()
 
-        assert not Favorite.objects.filter(
+        assert not ShelfItem.objects.filter(
             collection="series", target_id=series_pk
         ).exists()
-        assert Favorite.objects.filter(
+        assert ShelfItem.objects.filter(
             collection="publishers", target_id=series_pk
         ).exists()
 

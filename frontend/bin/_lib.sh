@@ -17,10 +17,15 @@ is_darwin() {
 }
 
 # Succeed when the tool is on PATH. Otherwise say so and how to install it, and
-# fail, so a caller can skip that tool visibly instead of silently.
+# fail, so a caller can skip that tool visibly instead of silently. In CI (CI
+# set, as GitHub sets it) a missing tool is an error instead, so a green CI
+# run means every tool ran.
 need() {
   if command -v "$1" >/dev/null 2>&1; then
     return 0
+  fi
+  if [[ -n ${CI:-} ]]; then
+    die "$1 not installed. CI must install it: brew install $1, or add it to the Dockerfile's CI stage"
   fi
   echo "skipped: $1 not installed (brew install $1)" >&2
   return 1

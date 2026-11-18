@@ -190,14 +190,14 @@ class LibraryPollerThread(NamedThread, WorkerStatusMixin):
             # so an unscoped path filter lets two libraries holding the
             # same absolute path cross-write each other's stats.
             rows = tuple(
-                model.objects.filter(  # ty: ignore[unresolved-attribute]
+                model.objects.filter(  # ty: ignore[missing-attribute]
                     library=library, path__in=paths
                 ).only("pk", "path", "stat")
             )
             for row in rows:
                 row.stat = stat_by_path[row.path]
             if rows:
-                model.objects.bulk_update(rows, fields=["stat"])  # ty: ignore[unresolved-attribute]
+                model.objects.bulk_update(rows, fields=["stat"])  # ty: ignore[missing-attribute]
                 total += len(rows)
         if total:
             msg = (

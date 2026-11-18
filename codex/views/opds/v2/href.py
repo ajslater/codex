@@ -31,7 +31,7 @@ class OPDS2HrefMixin:
         # Merge query_params and camelCase keys
         qps_maps = []
         if data.inherit_query_params:
-            qps_maps.append(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            qps_maps.append(self.request.GET)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if data.query_params:
             qps_maps.append(data.query_params)
         query = {}
@@ -47,14 +47,14 @@ class OPDS2HrefMixin:
     def href(self, data) -> str | None:
         """Create an href."""
         url_name = data.url_name or "opds:v2:feed"
-        kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        kwargs = data.kwargs if data.kwargs is not None else self.kwargs  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if "page" in kwargs and not self._href_page_validate(kwargs, data):
             return None
 
         query = self._href_update_query_params(data)
         href = opds_feed_reverse(url_name, kwargs, query)
-        if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if DEBUG or self.user_agent_name in UserAgentNames.REQUIRE_ABSOLUTE_URL:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+            href = self.request.build_absolute_uri(href)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if template := data.template:
             parts = href.split("?")
             if len(parts) > 1:

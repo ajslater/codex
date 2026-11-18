@@ -11,7 +11,6 @@ from typing import cast
 
 from django.db.models import (
     Aggregate,
-    BooleanField,
     Case,
     F,
     IntegerField,
@@ -29,7 +28,6 @@ from codex.choices.browser import (
     BROWSER_TABLE_DEFAULT_COLUMNS,
 )
 from codex.models.collections import Volume
-from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
 from codex.models.functions import JsonGroupArray
 from codex.models.named import Reprint
 
@@ -444,45 +442,3 @@ def fk_name_annotations_for(columns: tuple[str, ...]) -> dict[str, F]:
 def fk_name_columns() -> frozenset[str]:
     """Return the set of FK-name column keys whose annotation is wired."""
     return frozenset(_FK_NAME_COLUMN_PATHS.keys())
-
-
-_FAVORITE_FALSE = Value(value=False, output_field=BooleanField())
-_FAVORITE_TRUE = Value(value=True, output_field=BooleanField())
-
-
-def favorite_annotation_for(model, user) -> dict:
-    """
-    Build the ``favorite`` annotation for a browser queryset.
-
-    Returns a dict that's safe to splat into ``qs.annotate(**...)``:
-
-    * a ``Case-When-In`` boolean for authenticated users on a
-      favorite-able model — SQLite materializes the favorited-id
-      subquery once and runs a hash-set membership check per row,
-      slightly cheaper than the equivalent correlated ``Exists``;
-    * a constant ``Value(False)`` for anonymous sessions, so the
-      schema stays uniform whether the column is sortable or just
-      rendered;
-    * an empty dict when ``model`` isn't in the favorite-able set —
-      the table-view caller passes a known model so this branch is
-      rare in practice.
-    """
-    collection_code = FAVORITE_MODEL_COLLECTIONS.get(model)
-    if collection_code is None:
-        return {}
-    if not user or not user.is_authenticated:
-        return {"favorite": _FAVORITE_FALSE}
-    # ``.value``: binding the Collection StrEnum member itself makes
-    # cachalot's parameter-type check raise UncachableQuery for every
-    # query this subquery lands in — silently uncaching all browse
-    # queries. The bound SQL value is identical either way.
-    favorited_ids = Favorite.objects.filter(
-        user=user, collection=collection_code.value
-    ).values("target_id")
-    return {
-        "favorite": Case(
-            When(pk__in=favorited_ids, then=_FAVORITE_TRUE),
-            default=_FAVORITE_FALSE,
-            output_field=BooleanField(),
-        ),
-    }

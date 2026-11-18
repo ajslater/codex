@@ -1,0 +1,118 @@
+<template>
+  <v-dialog v-model="showApiAccessDialog" max-width="640" scrollable>
+    <!-- The card gives the overlay an intrinsic size. Without it the
+       body is a shrink-to-fit box, and a percentage-sized placeholder
+       inside one resolves to nothing: the dialog opens as an invisible
+       sliver behind the scrim, which reads as "no window appeared". -->
+    <v-card id="apiAccess">
+      <v-card-text class="apiAccessBody">
+        <h2 class="apiAccessTitle">
+          <v-icon class="apiAccessIcon">{{ mdiRss }}</v-icon>
+          API Access
+        </h2>
+        <section class="apiUrlsSection">
+          <h3 class="apiAccessSectionTitle">API URLs</h3>
+          <ApiUrls v-if="apiUrls" :urls="apiUrls" :username="username" />
+          <div v-else-if="apiUrlsError" class="apiAccessError">
+            <p>{{ apiUrlsError }}</p>
+            <v-btn variant="text" text="Retry" @click="loadApiUrls" />
+          </div>
+          <div v-else class="apiAccessLoading">
+            <PlaceholderLoading :size="64" />
+          </div>
+        </section>
+        <template v-if="user">
+          <v-divider />
+          <ApiKeys :urls="apiUrls" />
+        </template>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn text="Close" @click="showApiAccessDialog = false" />
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+</template>
+
+<script>
+import { mdiRss } from "@mdi/js";
+import { mapActions, mapState, mapWritableState } from "pinia";
+
+import ApiKeys from "@/components/api-access/api-keys.vue";
+import ApiUrls from "@/components/api-access/api-urls.vue";
+import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import { useAuthStore } from "@/stores/auth";
+
+export default {
+  name: "ApiAccessDialog",
+  components: {
+    ApiKeys,
+    ApiUrls,
+    PlaceholderLoading,
+  },
+  data() {
+    return { mdiRss };
+  },
+  computed: {
+    ...mapState(useAuthStore, ["apiUrls", "apiUrlsError", "user"]),
+    ...mapWritableState(useAuthStore, ["showApiAccessDialog"]),
+    username() {
+      return this.user?.username || "";
+    },
+  },
+  watch: {
+    showApiAccessDialog: {
+      handler(open) {
+        if (!open) {
+          return;
+        }
+        // Every open: an admin may have turned an API on or off since.
+        this.loadApiUrls();
+        if (this.user) {
+          this.loadApiKeys();
+        }
+      },
+      immediate: true,
+    },
+  },
+  methods: {
+    ...mapActions(useAuthStore, ["loadApiKeys", "loadApiUrls"]),
+  },
+};
+</script>
+
+<style scoped lang="scss">
+.apiAccessBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.apiAccessTitle,
+.apiAccessSectionTitle {
+  margin: 0;
+}
+
+.apiUrlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.apiAccessIcon {
+  display: inline-flex;
+  vertical-align: -4px;
+  font-size: 25px;
+}
+
+.apiAccessError {
+  text-align: center;
+}
+
+.apiAccessLoading {
+  display: flex;
+  justify-content: center;
+  min-height: 144px;
+  padding: 40px;
+}
+</style>

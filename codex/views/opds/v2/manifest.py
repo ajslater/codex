@@ -6,9 +6,11 @@ from types import MappingProxyType, SimpleNamespace
 from typing import Any, override
 
 from django.db.models import CharField, F, Value
+from rest_framework.exceptions import NotFound
 
 from codex.models.base import NamedModel
 from codex.models.collections import Volume
+from codex.models.comic import Comic
 from codex.models.identifier import Identifier
 from codex.models.named import Credit, StoryArcNumber
 from codex.serializers.opds.v2.publication import (
@@ -77,7 +79,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             .order_by("source_name", "key")
         )
         return ",".join(
-            f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            f"{identifier.source_name}:{identifier.id_type}:{identifier.key}"  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             for identifier in identifiers
         )
 
@@ -404,8 +406,23 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         return pub
 
     @override
+    def get_filtered_queryset(self, model, *args, **kwargs):
+        """
+        Find the manifest's comic by the ACL and its pk alone.
+
+        The saved OPDS browser filters (read state, shelves, search) are
+        the last feed's; they say nothing about which book a manifest is
+        for, and a book they hide would get a manifest with no reading
+        order.
+        """
+        if model is not Comic:
+            return super().get_filtered_queryset(model, *args, **kwargs)
+        acl_filter = self.get_acl_filter(Comic, self.request.user)
+        return Comic.objects.filter(acl_filter, pk__in=self.kwargs["pks"])
+
+    @override
     def get_object(self) -> MappingProxyType:
-        """Get one publication object."""
+        """Get one publication object, or 404 if the user can't see it."""
         book_qs, _, zero_pad = self.get_book_qs()
         # ``_publication_belongs_to_folder`` reads ``obj.parent_folder.path``
         # when folder_view is enabled. Without this join, every manifest
@@ -414,4 +431,6 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         # scoped to the manifest path — feeds don't need it.
         book_qs = book_qs.select_related("parent_folder")
         obj = book_qs.first()
+        if obj is None:
+            raise NotFound
         return MappingProxyType(self._publication(obj, zero_pad))

@@ -264,7 +264,7 @@ class BroadcastTestCase(SettingsDefaultsCase):
 
     def test_put_enqueues_after_commit(self) -> None:
         with patch(QUEUE) as queue:
-            with self.captureOnCommitCallbacks(execute=False) as callbacks:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
                 response = put(self.client, {"browser": {"viewMode": "table"}})
             assert response.status_code == HTTPStatus.OK, response.content
             queue.put.assert_not_called()
@@ -275,7 +275,7 @@ class BroadcastTestCase(SettingsDefaultsCase):
     def test_rejected_put_does_not_enqueue(self) -> None:
         with (
             patch(QUEUE) as queue,
-            self.captureOnCommitCallbacks(execute=True),  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            self.captureOnCommitCallbacks(execute=True),  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         ):
             response = put(self.client, {"browser": {"bookmark": "SOMETIMES"}})
         assert response.status_code == HTTPStatus.BAD_REQUEST

@@ -110,8 +110,8 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
 
     @property
     def summary(self):
-        """Return a child count or comic summary."""
-        if self.obj.nav_collection == "comics":
+        """Return a child count or comic summary, or a start link's description."""
+        if self.fake or self.obj.nav_collection == "comics":
             desc = self.obj.summary
         else:
             children = self.obj.child_count

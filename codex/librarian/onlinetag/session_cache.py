@@ -7,7 +7,8 @@ Two things live in the dedicated ``tagging`` cache, namespaced under
 - **pending prompts** — a dict keyed by deferred-prompt ``fingerprint``.
   Each entry is fully self-contained so a later, independent task can apply
   the admin's choice *without* the original tagging run's in-memory session:
-  it carries the ``comics`` the question speaks for, the ``source``, the
+  it carries the ``comics`` the question speaks for (each with the other
+  sources that tagged it anyway, ``tagged_by``), the ``source``, the
   serialized ``candidates``, the match ``mode``, and the write params
   (``formats``, ``delete_original``). Prompts persist with no TTL and
   deliberately survive daemon restarts — they linger until answered,

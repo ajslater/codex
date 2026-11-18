@@ -23,11 +23,7 @@ _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
 )
 _FIELD_TYPE_MAP = MappingProxyType(
     {
-        **{
-            field.name: field.__class__
-            for field in Comic._meta.get_fields()
-            if field.concrete  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        },
+        **{field.name: field.__class__ for field in Comic._meta.concrete_fields},
         **{
             f"series_{name}": Series._meta.get_field(name).__class__
             for name in _SERIES_ATTR_FIELDS

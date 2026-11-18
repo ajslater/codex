@@ -263,6 +263,19 @@ const baseConfig = defineConfig([
     },
   },
   eslintConfigPrettier, // Best if last
+  {
+    // eslint-config-prettier turns off the stylistic rules Prettier owns, but
+    // only those it knows. configs.all turns on every rule a new
+    // @stylistic/eslint-plugin release adds; tests/test_eslint_stylistic.py
+    // fails until each one is either kept or turned off here.
+    name: "devenv/prettier-owns-stylistic",
+    rules: {
+      // Added in @stylistic 6.0.0 and unknown to eslint-config-prettier
+      // 10.1.8. It reports the line break Prettier puts between a wrapped last
+      // argument's trailing comma and the `)`, and Prettier undoes its fix.
+      "@stylistic/list-style": "off",
+    },
+  },
 ]);
 
 export default baseConfig;

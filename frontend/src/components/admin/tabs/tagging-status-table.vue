@@ -24,7 +24,7 @@
         size="small"
         variant="tonal"
         color="warning"
-        :prepend-icon="mdiHelpCircleOutline"
+        :prepend-icon="mdiTagMultiple"
         @click="openReview"
       >
         Review {{ nf(reviewCount) }}
@@ -224,9 +224,11 @@ import {
   mdiClose,
   mdiHelpCircleOutline,
   mdiMagnify,
+  mdiMagnifyClose,
   mdiPause,
   mdiPlay,
   mdiSkipNext,
+  mdiTagMultiple,
   mdiTimerSand,
 } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
@@ -273,7 +275,7 @@ const STATUS_META = Object.freeze({
   no_match: {
     label: "No match",
     color: "text-secondary",
-    icon: mdiClockOutline,
+    icon: mdiMagnifyClose,
     hint: "This source found no confident match.",
   },
   error: {
@@ -353,9 +355,9 @@ export default {
   data() {
     return {
       mdiClose,
-      mdiHelpCircleOutline,
       mdiPause,
       mdiPlay,
+      mdiTagMultiple,
       mdiTimerSand,
       // True from clicking Pause until the daemon reports the scan stopped.
       // The cancel only takes effect between comics, so during a rate-limit

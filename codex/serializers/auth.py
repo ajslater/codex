@@ -141,8 +141,8 @@ class SessionSerializer(Serializer):
     """
     Composite session payload: user + adminFlags + permissions + version.
 
-    ``opds-urls`` deliberately stays on its own lazy endpoint
-    (``GET /api/v4/opds-urls``) — those URLs are rarely opened, so
+    ``api-urls`` deliberately stays on its own lazy endpoint
+    (``GET /api/v4/api-urls``) — those URLs are rarely opened, so
     paying for the reverse-resolve on every session boot would be
     waste. ``version`` ships here because the SPA chrome reads
     ``installed`` immediately and the update-check fields ride along

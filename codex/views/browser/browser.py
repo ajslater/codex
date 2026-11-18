@@ -28,13 +28,13 @@ from codex.serializers.browser.settings import BrowserPageInputSerializer
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
     default_columns_filtered,
-    favorite_annotation_for,
     fk_name_annotations_for,
     m2m_annotations_for,
     m2m_columns,
     m2m_sort_annotations_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
+from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -141,22 +141,20 @@ class BrowserView(BrowserTitleView):
                 keys.append(key)
         return tuple(keys)
 
-    def _add_table_view_favorite_annotation(self, qs):
+    def _add_table_view_shelved_annotation(self, qs):
         """
-        Annotate ``qs`` with ``favorite`` (Exists subquery) for table view.
+        Annotate ``qs`` with ``shelved`` (effective membership) for table view.
 
-        Runs unconditional on model — favorites apply to every
+        Runs unconditional on model — shelves apply to every
         browsable collection as well as Comic — and unconditional on
-        column selection: the per-row Exists is cheap (one indexed
-        scan) and being always-on lets the user sort by ``favorite``
-        from the order_by enum without separate gating.
+        column selection, so the user can sort by ``shelved`` from the
+        order_by enum without separate gating. True exactly when the
+        row's Shelves cell lists a shelf (``annotate_shelved``).
         """
         if self.params.get("view_mode") != "table":
             return qs
-        annotations = favorite_annotation_for(qs.model, self.request.user)
-        if annotations:
-            qs = qs.annotate(**annotations)
-        return qs
+        user = self.request.user
+        return annotate_shelved(qs, user, self.get_comic_acl(user))
 
     def _sort_annotation_keys(self) -> tuple[str, ...]:
         """
@@ -254,14 +252,14 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            # Favorite annotation lands first so the order pipeline
-            # can reference ``F("favorite")`` from inside
+            # Shelved annotation lands first so the order pipeline
+            # can reference ``F("shelved")`` from inside
             # ``annotate_order_aggregates`` — Django resolves F()
             # targets against the queryset's known annotations at
             # ``annotate()`` call time, not at SQL compile time, so
             # an out-of-order add raises ``Cannot resolve keyword
-            # 'favorite' into field`` for the collection queryset.
-            qs = self._add_table_view_favorite_annotation(qs)
+            # 'shelved' into field`` for the collection queryset.
+            qs = self._add_table_view_shelved_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
@@ -474,6 +472,7 @@ class BrowserView(BrowserTitleView):
             # the wire — see BrowserPageSerializer.to_representation).
             columns = self._resolve_table_columns()
             data["columns"] = columns
+            acl = self.get_comic_acl(self.request.user)
             # Collection rows in the table view show **intersections** of
             # column values across their child comics: M2M values
             # shared by every comic, scalars where every comic has
@@ -484,7 +483,13 @@ class BrowserView(BrowserTitleView):
             collection_qs = data.get("collections")
             if collection_qs is not None:
                 data["collection_intersections"] = compute_collection_intersections(
-                    collection_qs, columns, self.get_comic_acl(self.request.user)
+                    collection_qs, columns, acl
+                )
+            # The shelved cell lists the row's shelves by the same rule,
+            # only when the column is shown.
+            if "shelved" in columns:
+                data["row_shelves"] = page_row_shelves(
+                    self.request.user, acl, collection_qs, data.get("books")
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

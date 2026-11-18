@@ -35,6 +35,10 @@ export const fieldErrorMap = (error) => {
     map = body.errors;
   } else if (isPlainObject(envelopeDetail)) {
     map = envelopeDetail;
+  } else if (typeof envelopeDetail === "string" && envelopeDetail) {
+    // A view's ``Response({"detail": "..."})``: the envelope's detail is
+    // the sentence itself.
+    map = { detail: [envelopeDetail] };
   } else if (isPlainObject(body) && !("errors" in body)) {
     // A bare DRF body, which is what a non-admin endpoint returns.
     map = body;
@@ -101,13 +105,6 @@ export const useCommonStore = defineStore("common", {
     },
     timestamp: Date.now(),
     isSettingsDrawerOpen: false,
-    opdsURLs: undefined,
-    /*
-     * Why the OPDS urls failed to load, or "" when they haven't. The
-     * dialog has nothing of its own to show while they're missing, so
-     * without this a failed request leaves it spinning forever.
-     */
-    opdsURLsError: "",
     /*
      * Global app-level error string surfaced via a v-snackbar in
      * the root component. Reserved for problems that aren't tied
@@ -161,19 +158,6 @@ export const useCommonStore = defineStore("common", {
     },
     setSettingsDrawerOpen(value) {
       this.isSettingsDrawerOpen = value;
-    },
-    async loadOPDSURLs() {
-      if (this.opdsURLs) {
-        return;
-      }
-      this.opdsURLsError = "";
-      try {
-        const response = await API.getOPDSURLs();
-        this.opdsURLs = Object.freeze({ ...response.data });
-      } catch (error) {
-        this.opdsURLsError = "Could not load the OPDS urls.";
-        console.error(error);
-      }
     },
   },
 });

@@ -7,6 +7,7 @@ another include block here.
 """
 
 from django.urls import include, path
+from django.views.decorators.cache import never_cache
 from django.views.decorators.vary import vary_on_cookie
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -14,9 +15,9 @@ from drf_spectacular.views import (
 )
 
 from codex.settings import FEATURES
+from codex.views.api_urls import ApiUrlsView
 from codex.views.browser.cover import cover_dispatch_by_source
 from codex.views.browser.mtime import MtimeView
-from codex.views.opds.urls import OPDSURLsView
 from codex.views.session import SessionView
 from codex.views.version import VersionView
 
@@ -40,12 +41,12 @@ urlpatterns += [
     path("auth/", include("codex.urls.api.v4.auth")),
     path("browse/", include("codex.urls.api.v4.browse")),
     path("comics/", include("codex.urls.api.v4.comics")),
-    path("favorites/", include("codex.urls.api.v4.favorites")),
     path("reader/", include("codex.urls.api.v4.reader")),
+    path("shelves/", include("codex.urls.api.v4.shelves")),
     path("mtime", MtimeView.as_view(), name="mtime"),
     path("session", SessionView.as_view(), name="session"),
     path("version", VersionView.as_view(), name="version"),
-    path("opds-urls", OPDSURLsView.as_view(), name="opds_urls"),
+    path("api-urls", never_cache(ApiUrlsView.as_view()), name="api_urls"),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
     # The route the web client uses for every cover on a browse page. It
     # carries a ``?ts=<mtime>`` cache-buster, and the view emits its own

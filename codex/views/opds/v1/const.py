@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
 
-from codex.views.opds.const import MimeType, Rel, TopRoutes
+from codex.views.opds.const import (
+    BookmarkFilters,
+    MimeType,
+    Rel,
+    TopRoutes,
+)
 
 DEFAULT_FACETS = MappingProxyType(
     {
@@ -53,16 +58,16 @@ class RootTopLinks:
     KEEP_READING = TopLink(
         TopRoutes.SERIES,
         Rel.FEATURED,
-        MimeType.NAV,
+        MimeType.ACQUISITION,
         {
             "topCollection": "series",
-            "filters": json.dumps({"bookmark": "IN_PROGRESS"}),
+            "filters": json.dumps(dict(BookmarkFilters.IN_PROGRESS)),
             "orderBy": "bookmark_updated_at",
-            "orderReverse": True,
+            "orderReverse": "true",
         },
         "👀",
         "Keep Reading",
-        "Issues in progress, recently read first.",
+        "Issues you have started, most recently read first.",
     )
     NEW_UNREAD = TopLink(
         TopRoutes.SERIES,
@@ -70,27 +75,55 @@ class RootTopLinks:
         MimeType.ACQUISITION,
         {
             "topCollection": "series",
+            "filters": json.dumps(dict(BookmarkFilters.UNREAD)),
             "orderBy": "created_at",
-            "orderReverse": True,
+            "orderReverse": "true",
         },
         "📥",
         "Latest Unread",
-        "Unread issues, latest added first.",
+        "Unread issues, newest additions first.",
     )
     OLD_UNREAD = TopLink(
         TopRoutes.SERIES,
         Rel.POPULAR,
-        MimeType.NAV,
+        MimeType.ACQUISITION,
         {
             "topCollection": "series",
-            "filters": json.dumps({"bookmark": "UNREAD"}),
+            "filters": json.dumps(dict(BookmarkFilters.UNREAD)),
             "orderBy": "date",
+            "orderReverse": "false",
         },
         "📚",
         "Oldest Unread",
-        "Unread issues, oldest published first",
+        "Unread issues, oldest first.",
     )
     ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
+
+
+def shelf_top_link(shelf_pk: int, name: str) -> TopLink:
+    """
+    Build the start-page entry for one of the user's shelves.
+
+    Shelves are per-user rows, so unlike ``RootTopLinks.ALL`` these are
+    built per request in ``OPDS1LinksView.root_top_links``. Every browser
+    parameter is spelled out: OPDS settings persist between requests, so
+    a parameter left off the link would inherit whatever the client asked
+    for last.
+    """
+    return TopLink(
+        TopRoutes.SERIES,
+        Rel.FEATURED,
+        MimeType.ACQUISITION,
+        {
+            "topCollection": "series",
+            "filters": json.dumps({"bookmark": "", "shelves": [shelf_pk]}),
+            "orderBy": "sort_name",
+            "orderReverse": "false",
+        },
+        "▤",
+        name,
+        "Issues on this shelf.",
+    )
 
 
 @dataclass

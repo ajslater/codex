@@ -50,6 +50,7 @@ import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useMetadataStore } from "@/stores/metadata";
+import { useShelvesStore } from "@/stores/shelves";
 
 /*
  * Progress circle
@@ -103,6 +104,7 @@ export default {
       md: (state) => state.md,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useShelvesStore, ["membershipVersion"]),
     editPanelComponent() {
       if (!this.editing) return null;
       return defineAsyncComponent(
@@ -118,6 +120,12 @@ export default {
     isMultiSelect() {
       return this.noActivator && (this.book.ids?.length ?? 0) > 1;
     },
+    metadataTarget() {
+      return {
+        collection: this.book.collection,
+        pks: this.book.ids || [this.book.pk],
+      };
+    },
   },
   watch: {
     dialog(to) {
@@ -128,6 +136,16 @@ export default {
         if (this.noActivator) {
           this.$emit("close");
         }
+      }
+    },
+    membershipVersion() {
+      /*
+       * The Shelves row lists what the server works out through parents,
+       * so refetch after a membership change. The current tags stay up
+       * until the reply replaces them.
+       */
+      if (this.dialog && this.md) {
+        this.loadMetadata(this.metadataTarget);
       }
     },
   },
@@ -149,12 +167,7 @@ export default {
       this.close();
     },
     dialogOpened() {
-      const pks = this.book.ids || [this.book.pk];
-      const data = {
-        collection: this.book.collection,
-        pks,
-      };
-      this.loadMetadata(data);
+      this.loadMetadata(this.metadataTarget);
       this.startProgress();
     },
     startProgress() {

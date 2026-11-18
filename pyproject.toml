@@ -20,7 +20,7 @@ dependencies = [
   "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=5.6.1",
+  "comicbox[pdf]~=5.6.2",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -36,7 +36,7 @@ dependencies = [
   "granian~=2.8",
   "humanize~=4.12",
   "lark~=1.2",
-  "loguru~=0.7.3",
+  "loguru~=0.8.0",
   "nh3~=0.2",
   "packaging>=24.0",
   "Pillow~=13.0",
@@ -55,7 +55,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.6.0"
+version = "2.7.0"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -87,7 +87,7 @@ build = ["resvg-py~=0.5.0"]
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.2",
+  "complexipy~=9.0",
   "django-schema-graph~=3.1",
   "django-types~=0.22",
   "djangorestframework-types~=0.9",
@@ -104,7 +104,6 @@ test = [
   "deepdiff~=9.0",
   "jsonschema~=4.26",
   "lxml~=6.1",
-  "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pytest-django~=4.1",
   "pytest-xdist~=3.8",
@@ -116,11 +115,6 @@ ci = []
 [build-system]
 requires = ["uv_build~=0.13"]
 build-backend = "uv_build"
-
-[tool.uv]
-# TODO: Remove once deepdiff releases with cachebox>=6 (its <6 pin has no
-# cp315 wheels).
-override-dependencies = ["cachebox~=6.0"]
 
 [tool.uv.build-backend]
 module-root = ""
@@ -150,7 +144,6 @@ source-include = [
 ]
 source-exclude = [
   # Symlinks to directories, which the sdist builder reads as files.
-  "docs/NEWS/codex",
   "docs/img",
   "**/*\\~",
   "**/.DS_Store",
@@ -178,6 +171,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 pythonVersion = "3.12"
 failOnWarnings = false
@@ -258,7 +252,7 @@ pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "codex.settings"
 
 [tool.radon]
-exclude = "*~,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
+exclude = "*~,codex/static/*,codex/static_build/*,comics/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py,tasks/*"
 
 [tool.ruff]
 builtins = ["ic"]
@@ -271,6 +265,7 @@ extend-exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 show-fixes = true
 target-version = "py312"
@@ -393,6 +388,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "tasks",
 ]
 
 # ty >= 0.0.86 rejects the `class Meta(<Base>.Meta)` idiom of Django models and
@@ -401,12 +397,12 @@ exclude = [
 # models and serializers so the check still guards every other module; drop this
 # once that issue is fixed, and then mark the two deliberate overrides it also
 # hides, Volume.name and CustomCover.library, with
-# `# ty: ignore[invalid-attribute-override]`.
+# `# ty: ignore[incompatible-attribute-override]`.
 [[tool.ty.overrides]]
 include = ["codex/models/**", "codex/serializers/**"]
 
 [tool.ty.overrides.rules]
-invalid-attribute-override = "ignore"
+incompatible-attribute-override = "ignore"
 
 [tool.vulture]
 exclude = [
@@ -420,12 +416,13 @@ exclude = [
   "codex/static/",
   "codex/static_build/",
   "comics/",
+  "*/tasks/*",
 ]
 min_confidence = 61
 sort_by_size = true
 
 [tool.djlint]
 extend_exclude = "site,typings"
-ignore = "H030,H031"
+ignore = "H030"
 profile = "django"
 use_gitignore = true

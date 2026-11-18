@@ -8,7 +8,6 @@ from comicbox.formats.comicbox.schema import (
     IDENTIFIERS_KEY,
     NAME_KEY,
     NUMBER_KEY,
-    PAGE_COUNT_KEY,
     PROTAGONIST_KEY,
     VOLUME_NUMBER_TO_KEY,
 )
@@ -18,8 +17,6 @@ from django.db.models import Field
 from django.db.models.base import Model
 
 from codex.librarian.scribe.importer.const import (
-    COLLECTION_FIELD_NAMES,
-    COLLECTION_FIELD_NAMES_SET,
     COLLECTION_MODEL_ATTR_FIELDS,
     END_YEAR_FIELD_NAME,
     LINK_FKS,
@@ -27,11 +24,12 @@ from codex.librarian.scribe.importer.const import (
     START_YEAR_FIELD_NAME,
     STATUS_FIELD_NAME,
     SUMMARY_FIELD_NAME,
+    UNSET_FK_LINK,
 )
 from codex.librarian.scribe.importer.query import QueryForeignKeysImporter
 from codex.librarian.scribe.importer.read.const import (
-    COMIC_FK_FIELD_NAMES,
     COMIC_FK_FIELD_NAMES_FIELD_MAP,
+    TAG_FK_FIELD_NAMES,
 )
 from codex.models.base import BaseModel
 from codex.models.collections import BrowserCollectionModel, Volume
@@ -44,9 +42,6 @@ from codex.models.identifier import (
 )
 from codex.util import first_none, max_none, min_none
 
-_MINIMAL_KEYS = frozenset(
-    {"file_type", PAGE_COUNT_KEY, "path"} | COLLECTION_FIELD_NAMES_SET
-)
 # How comics of one collection in an import batch combine an attribute.
 # Counts and the end year take the largest, the start year the earliest
 # and text the first comic's.
@@ -140,11 +135,12 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
 
         return identifier_tuple_keys
 
-    def _set_simple_fk(self, related_field: Field, value) -> tuple:
-        value = related_field.get_prep_value(value)
+    @staticmethod
+    def _set_simple_fk(related_field: Field, value) -> tuple:
+        """Key a lookup by its name; one with none is unset."""
         if value is None:
-            return ()
-        return (value,), None
+            return UNSET_FK_LINK, None
+        return (related_field.get_prep_value(value),), None
 
     def _merge_collection_attrs(
         self,
@@ -211,13 +207,15 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         return key_values, frozenset((tuple(extra_vals),))
 
     def get_fk_metadata(self, md, path) -> None:
-        """Aggregate Simple Foreign Keys."""
+        """
+        Aggregate Simple Foreign Keys.
+
+        Only a comic whose tags were read gets here, and its tags are all
+        of its lookups: one they don't set is unset, so a re-import
+        clears a lookup the file no longer holds.
+        """
         collection_list = []
-        # prevents skipped metadata from destroying browser collection links
-        field_names = tuple(COLLECTION_FIELD_NAMES) + tuple(
-            sorted((set(md.keys()) - _MINIMAL_KEYS) & COMIC_FK_FIELD_NAMES)
-        )
-        for field_name in field_names:
+        for field_name in TAG_FK_FIELD_NAMES:
             related_field = COMIC_FK_FIELD_NAMES_FIELD_MAP[field_name]
             # No identifiers on many2one fks yet
             # md_key = FIELD_NAME_TO_MD_KEY_MAP.get(field_name, field_name) if they ever diverge
@@ -229,12 +227,8 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
                 key_values, extra_values = self._set_collection_tree_node(
                     model, related_field, value, collection_list
                 )
-            elif value is None:
-                continue
             else:
                 key_values, extra_values = self._set_simple_fk(related_field, value)
-            if not key_values and not extra_values:
-                continue
-            if md_key != PROTAGONIST_KEY:  # pyright: ignore[reportUnnecessaryComparison]
+            if md_key != PROTAGONIST_KEY and key_values != UNSET_FK_LINK:
                 self.add_query_model(model, key_values, extra_values)
             self.metadata[LINK_FKS][path][field_name] = key_values

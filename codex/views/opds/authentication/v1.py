@@ -8,12 +8,12 @@ from django.urls import reverse_lazy
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 
+from codex.authentication import OPDS_BASIC_AUTH_REALM
 from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
 from codex.views.opds.const import MimeType
 
 _LOGO_SIZE = 180
-_BASIC_AUTH_REALM = "Codex OPDS"
-_WWW_AUTHENTICATE_BASIC = f'Basic realm="{_BASIC_AUTH_REALM}"'
+_WWW_AUTHENTICATE_BASIC = f'Basic realm="{OPDS_BASIC_AUTH_REALM}"'
 _DOC = MappingProxyType(
     {
         "id": reverse_lazy("opds:auth:v1"),
@@ -77,7 +77,7 @@ class OPDSAuthentication1View(GenericAPIView):
     def static_get(cls, request, status_code=status.HTTP_200_OK) -> JsonResponse:
         """Serialize the authentication dict with absolute URLs."""
         doc = cls._absolute_doc(request)
-        serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall], # ty: ignore[call-non-callable]
+        serializer = cls.serializer_class(doc)  # pyright: ignore[reportOptionalCall], # ty: ignore[not-callable]
         response = JsonResponse(
             serializer.data,
             status=status_code,

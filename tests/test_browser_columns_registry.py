@@ -51,14 +51,13 @@ class BrowserTableColumnsRegistryTestCase(TestCase):
                 )
 
     def test_editable_columns(self):
-        # ``favorite`` opted in to ``editable=True`` in Phase 5 of the
-        # favorites feature — its star widget toggles via the
-        # ``/api/v4/favorites/<collection>/<pk>`` endpoint.
+        # ``shelved`` is ``editable=True``: its cell opens the shelf menu,
+        # which writes through ``/api/v4/shelves/<pk>/items``.
         # ``community_rating`` (which replaced editable critical_rating in
         # 0048) is an aggregate of external votes — not sensibly editable
         # inline; the dialog editor owns its writes. Every other column
         # stays read-only until its own edit pipeline ships.
-        editable_keys = frozenset({"favorite"})
+        editable_keys = frozenset({"shelved"})
         for key, entry in BROWSER_TABLE_COLUMNS.items():
             expected = key in editable_keys
             assert entry["editable"] is expected, (

@@ -49,7 +49,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
         # with Max, that order annotation is the same value; otherwise
         # ``annotate_bookmarks`` provides the Max under its own alias.
         mtime: datetime | None = getattr(obj, "updated_at_max", None) or EPOCH_START
-        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+        bmua_is_max = bool(getattr(self.context.get("view"), "bmua_is_max", False))  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
         bookmark_updated_at = (
             obj.bookmark_updated_at
             if bmua_is_max

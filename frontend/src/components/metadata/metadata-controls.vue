@@ -12,12 +12,6 @@
       :item="markReadItem"
       :size="size"
     />
-    <FavoriteToggle
-      v-if="favoritePks.length"
-      id="favoriteButton"
-      :collection="controlBook.collection"
-      :pks="favoritePks"
-    />
     <v-btn
       v-if="isReadButtonShown"
       id="readButton"
@@ -54,7 +48,6 @@ import { defineAsyncComponent } from "vue";
 
 import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
-import FavoriteToggle from "@/components/favorite-toggle.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
@@ -77,7 +70,6 @@ export default {
   name: "MetadataControls",
   components: {
     DownloadButton,
-    FavoriteToggle,
     MarkReadButton,
     // Async so the admin store it imports stays out of the browser and
     // reader bundles; only admins, who can edit, ever render it.
@@ -157,16 +149,6 @@ export default {
         (this.md?.ids?.length ?? 0) === 1
       );
     },
-    favoritePks() {
-      /*
-       * Favorite the selection target itself (``controlBook`` = the
-       * card item or the multi-select composite), keyed by its own
-       * collection + ids — never ``md.ids`` (the tag aggregate). The
-       * star handles one or many; bulk-favorites the whole selection.
-       */
-      const ids = this.controlBook?.ids;
-      return Array.isArray(ids) ? ids.map(Number) : [];
-    },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);
     },
@@ -230,12 +212,16 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @use "sass:map";
 
-.controlRow > * {
+/*
+ * ``:deep`` so the rule also reaches a child whose root is a menu or
+ * dialog activator, which never carries this component's scope id.
+ */
+.controlRow > :deep(*) {
   margin-right: 10px;
 }
 
 @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .controlRow > * {
+  .controlRow > :deep(*) {
     margin-right: 1px;
   }
 }

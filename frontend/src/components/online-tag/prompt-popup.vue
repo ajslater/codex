@@ -66,6 +66,11 @@
                       + {{ coveredCount(prompt) - 1 }} more of this series
                     </v-chip>
                   </div>
+                  <!-- A later source wrote the comic anyway. It still needs
+                     review: the sources' data don't overlap. -->
+                  <div v-if="taggedNote(prompt)" class="promptTagged">
+                    {{ taggedNote(prompt) }}
+                  </div>
                 </div>
               </div>
             </v-expansion-panel-title>
@@ -104,6 +109,7 @@ import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
 // How many filenames a prompt lists before it stops naming them.
 const NAMED_COMICS = 3;
+const SOURCE_LIST = new Intl.ListFormat("en", { type: "conjunction" });
 
 export default {
   name: "OnlineTagPromptPopup",
@@ -163,6 +169,22 @@ export default {
       const shown = names.slice(0, NAMED_COMICS).join(", ");
       const rest = names.length - NAMED_COMICS;
       return rest > 0 ? `${shown} and ${rest} more` : shown;
+    },
+    taggedNote(prompt) {
+      // Which other sources wrote this prompt's comics during the scan.
+      // Absent from a prompt cached before the field existed: no note.
+      const comics = promptComics(prompt);
+      const tagged = comics.filter((comic) => comic.taggedBy?.length);
+      if (!tagged.length) return "";
+      const sources = [...new Set(tagged.flatMap((comic) => comic.taggedBy))];
+      const names = SOURCE_LIST.format(sources.map(sourceLabel));
+      let which = `${tagged.length} of these ${comics.length} comics`;
+      if (comics.length === 1) {
+        which = "this comic";
+      } else if (tagged.length === comics.length) {
+        which = `these ${comics.length} comics`;
+      }
+      return `${names} already tagged ${which}`;
     },
     pick(prompt, candidateIndex) {
       // The candidate's parent container id narrows the re-search replay to
@@ -235,6 +257,11 @@ export default {
 .promptMeta {
   display: flex;
   align-items: center;
+}
+
+.promptTagged {
+  color: rgb(var(--v-theme-text-secondary));
+  font-size: 0.75rem;
 }
 
 .promptCovers {

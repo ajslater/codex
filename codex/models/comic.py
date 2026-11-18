@@ -351,7 +351,13 @@ class Comic(WatchedPathBrowserCollection):
 
     @override
     def presave(self) -> None:
-        """Set computed values."""
+        """
+        Set computed values.
+
+        KOReader's document hashes live in
+        :class:`codex.models.koreader.ComicKoreaderHash`, written by the
+        importer and the backfill job, not here.
+        """
         super().presave()
         self._set_date()
         self._set_decade()

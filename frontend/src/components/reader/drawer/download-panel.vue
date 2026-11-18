@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { mdiDownload, mdiFileImage } from "@mdi/js";
+import { mdiFileImage } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { getDownloadIOSPWAFix } from "@/api/v4/common";
@@ -28,7 +28,6 @@ export default {
   },
   data() {
     return {
-      mdiDownload,
       mdiFileImage,
     };
   },

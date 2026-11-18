@@ -2,12 +2,12 @@
 
 from types import MappingProxyType
 
+from django.db.models import QuerySet
 from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.models.age_rating import AgeRating, AgeRatingMetron
-from codex.models.base import BaseModel
 from codex.models.identifier import IdentifierSource
 from codex.models.named import (
     Character,
@@ -32,6 +32,7 @@ from codex.models.settings import (
     SettingsBrowserFilters,
     SettingsBrowserLastRoute,
 )
+from codex.models.shelf import Shelf
 from codex.serializers.browser.saved import (
     SavedBrowserSettingsListSerializer,
     SavedBrowserSettingsSaveSerializer,
@@ -61,6 +62,7 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
         "original_format": OriginalFormat,
         "reprints": Reprint,
         "series_groups": SeriesGroup,
+        "shelves": Shelf,
         "stories": Story,
         "story_arcs": StoryArc,
         "tagger": Tagger,
@@ -72,9 +74,9 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
 
 
 def _validate_filter_field(
-    filters_data: dict, field: str, model: type[BaseModel], warnings: list[str]
+    filters_data: dict, field: str, model_qs: QuerySet, warnings: list[str]
 ):
-    """Validate one filter field by existing models."""
+    """Validate one filter field against the rows it may name."""
     pk_list = filters_data.get(field)
     if not pk_list or not isinstance(pk_list, list):
         return
@@ -83,14 +85,15 @@ def _validate_filter_field(
     if not real_pks:
         return
     existing_pks = frozenset(
-        model.objects.filter(pk__in=real_pks).values_list("pk", flat=True)
+        model_qs.filter(pk__in=real_pks).values_list("pk", flat=True)
     )
     if bad_pks := frozenset(real_pks - existing_pks):
         logger.info(
             f"Saved settings filter {field!r}: removing invalid PK(s): {sorted(bad_pks)}"
         )
-        # Keep None sentinels plus valid PKs
-        cleaned = frozenset(pk_list) - bad_pks
+        # Keep None sentinels plus valid PKs, in their stored order. A list,
+        # because the caller writes this back to a JSON column.
+        cleaned = [pk for pk in pk_list if pk not in bad_pks]
         filters_data[field] = cleaned
         warnings.append(field)
 
@@ -98,19 +101,28 @@ def _validate_filter_field(
 def _validate_filter_pks(
     filters_data: dict,
     filters_obj: SettingsBrowserFilters | None = None,
+    user=None,
 ) -> list[str]:
     """
     Validate FK-based filter PKs and strip invalid ones.
 
     Modifies *filters_data* in place.  When *filters_obj* is provided the
     cleaned values are persisted back to the database so subsequent loads
-    skip the validation.
+    skip the validation. Shelves are private, so a shelf pk is valid only
+    when *user* owns it; anyone else's is stripped like a missing one.
 
     Returns a list of filter field names that had invalid PKs removed.
     """
     warnings: list[str] = []
     for field, model in _FILTER_FK_MODEL_MAP.items():
-        _validate_filter_field(filters_data, field, model, warnings)
+        model_qs = model.objects.all()
+        if model is Shelf:
+            model_qs = (
+                model_qs.filter(user=user)
+                if user and getattr(user, "pk", None)
+                else model_qs.none()
+            )
+        _validate_filter_field(filters_data, field, model_qs, warnings)
     # Persist the cleaned filters back to the row.
     if warnings and filters_obj is not None:
         for field in warnings:
@@ -124,12 +136,12 @@ class _SavedSettingsOwnerMixin:
     """Shared user/session resolution for saved-settings views."""
 
     def _get_user_and_session(self):
-        user = self.request.user  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        user = self.request.user  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         if user and getattr(user, "pk", None):
             return user, None
-        if not self.request.session.session_key:  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-            self.request.session.save()  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        return None, self.request.session.session_key  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        if not self.request.session.session_key:  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+            self.request.session.save()  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        return None, self.request.session.session_key  # pyright: ignore [reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
     def _owner_kwargs(self):
         user, session_key = self._get_user_and_session()
@@ -165,15 +177,15 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
         target.save()
 
         # Copy filters
-        src_filters = source.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        tgt_filters = target.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        src_filters = source.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        tgt_filters = target.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         for key in SettingsBrowserFilters.FILTER_KEYS:
             setattr(tgt_filters, key, getattr(src_filters, key))
         tgt_filters.save()
 
         # Copy last_route
-        src_route = source.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        tgt_route = target.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        src_route = source.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        tgt_route = target.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         tgt_route.collection = src_route.collection
         tgt_route.pks = src_route.pks
         tgt_route.page = src_route.page
@@ -226,7 +238,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
                 **direct_kwargs,
             )
             # Clone filters
-            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            src_filters = current.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             new_filters = SettingsBrowserFilters(browser=new_sb)
             for key in SettingsBrowserFilters.FILTER_KEYS:
                 val = getattr(src_filters, key)
@@ -236,7 +248,7 @@ class SavedBrowserSettingsListView(_SavedSettingsOwnerMixin, AuthFilterGenericAP
             new_filters.save()
 
             # Clone last_route
-            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            src_route = current.last_route  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             SettingsBrowserLastRoute.objects.create(
                 browser=new_sb,
                 collection=src_route.collection,
@@ -286,8 +298,10 @@ class SavedBrowserSettingsLoadView(SettingsBaseView):
         data = self.browser_instance_to_dict(saved)
 
         # Validate filter PKs, persist cleaned data, and collect warnings.
-        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-        filter_warnings = _validate_filter_pks(data.get("filters", {}), filters_obj)
+        filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+        filter_warnings = _validate_filter_pks(
+            data.get("filters", {}), filters_obj, owner.get("user")
+        )
 
         result = {
             "settings": data,

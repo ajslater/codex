@@ -18,7 +18,7 @@ groups results by the parent collection's pk.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, override
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
 # than inside them: every builder and aggregate below takes a
 # ``ComicACL`` and applies it to the numerator and the ``total_count``
 # denominator together, for the same reason.
-_LIVE_COMIC = Q(missing_since__isnull=True)
+LIVE_COMIC = Q(missing_since__isnull=True)
 _LIVE_COMIC_REL = Q(comic__missing_since__isnull=True)
 _LIVE_COMIC_SQL = "c.missing_since IS NULL"
 
@@ -209,7 +209,7 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
 )
 
 
-def _intersection_relation(
+def intersection_relation(
     collection_model: type[BrowserCollectionModel],
 ) -> str | None:
     """
@@ -253,12 +253,19 @@ def compute_collection_intersections(
     such columns are visible. M2M columns each issue their own
     query because they each traverse a distinct through-table whose
     JOIN would multiply rows for sibling M2M aggregates if combined.
+
+    A row grouped by name (series, imprints, volumes, arcs) stands for
+    every pk in its ``ids``; ``obj.pk`` is only one of them. The helpers
+    work per pk over all of them and :func:`_fold_merged_rows` combines
+    each row's pks, so the cells describe the same comics the metadata
+    dialog and the card aggregates do. The result stays keyed by
+    ``obj.pk``, which is what the row serializer looks up.
     """
     cols = tuple(columns)
     if not cols or collection_qs.model is Comic:
         return {}
 
-    comic_to_collection = _intersection_relation(collection_qs.model)
+    comic_to_collection = intersection_relation(collection_qs.model)
     if not comic_to_collection:
         return {}
 
@@ -267,7 +274,8 @@ def compute_collection_intersections(
     # sorted page query just to read pks, while iterating primes this
     # queryset's result cache — the serializer consumes the same object,
     # so the heaviest query in a table-mode request runs once, not twice.
-    collection_pks = [obj.pk for obj in collection_qs]
+    row_pks = collection_row_pks(collection_qs)
+    collection_pks = sorted({pk for pks in row_pks.values() for pk in pks})
     if not collection_pks:
         return {}
 
@@ -291,7 +299,73 @@ def compute_collection_intersections(
             col, collection_pks, comic_to_collection, counts, result, acl
         )
 
-    return result
+    return _fold_merged_rows(row_pks, result, counts, intersect_cols, sum_cols)
+
+
+def collection_row_pks(collection_qs) -> dict[int, tuple[int, ...]]:
+    """Map each row's pk to every pk the row stands for."""
+    return {
+        obj.pk: tuple(getattr(obj, "ids", None) or (obj.pk,)) for obj in collection_qs
+    }
+
+
+def _fold_scalars(
+    buckets: list[dict[str, Any]], intersect_cols: list[tuple[str, str]]
+) -> dict[str, Any]:
+    """Keep an intersected scalar only when every pk agrees on it."""
+    row = {}
+    for col, _path in intersect_cols:
+        values = {bucket[col] for bucket in buckets}
+        row[col] = values.pop() if len(values) == 1 else None
+    return row
+
+
+def _fold_sums(
+    buckets: list[dict[str, Any]], sum_cols: list[tuple[str, str]]
+) -> dict[str, Any]:
+    """Sum a cumulative scalar across the pks."""
+    row = {}
+    for col, _path in sum_cols:
+        sums = [bucket[col] for bucket in buckets if bucket[col] is not None]
+        row[col] = sum(sums) if sums else None
+    return row
+
+
+def _fold_lists(buckets: list[dict[str, Any]], done: Iterable[str]) -> dict[str, Any]:
+    """Keep the M2M values every pk's list holds."""
+    return {
+        col: sorted(
+            set(values).intersection(*(bucket.get(col, ()) for bucket in buckets[1:]))
+        )
+        for col, values in buckets[0].items()
+        if col not in done
+    }
+
+
+def _fold_merged_rows(
+    row_pks: Mapping[int, tuple[int, ...]],
+    per_pk: Mapping[int, dict[str, Any]],
+    counts: Mapping[int, int],
+    intersect_cols: list[tuple[str, str]],
+    sum_cols: list[tuple[str, str]],
+) -> dict[int, dict[str, Any]]:
+    """
+    Combine each row's per-pk intersections into the row's own.
+
+    The rules restate "shared by every comic" over the union of the
+    row's pks, skipping pks the user can see no comics under. The M2M
+    rule is exact for the FK relations, whose comic sets are disjoint,
+    and for story arcs, where a comic in two merged arcs is in both.
+    """
+    folded: dict[int, dict[str, Any]] = {}
+    for row_pk, pks in row_pks.items():
+        if len(pks) == 1:
+            folded[row_pk] = per_pk[pks[0]]
+            continue
+        buckets = [per_pk[pk] for pk in pks if counts.get(pk)] or [per_pk[pks[0]]]
+        row = _fold_scalars(buckets, intersect_cols) | _fold_sums(buckets, sum_cols)
+        folded[row_pk] = row | _fold_lists(buckets, row.keys())
+    return folded
 
 
 def _bucket_intersection_columns(
@@ -397,7 +471,7 @@ def _compute_batched_scalars(
     # applied here narrows numerator and denominator in one move.
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .values(comic_to_collection)
         .annotate(**annotations)
@@ -465,8 +539,8 @@ def _build_simple_m2m_intersection_query(
     ``_compute_batched_scalars`` counted for the denominator.
     """
     field = Comic._meta.get_field(col)
-    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
-    rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
+    rel_name = field.m2m_reverse_field_name()  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
     return (
         through.objects.filter(
             _LIVE_COMIC_REL,
@@ -591,7 +665,7 @@ def _compute_m2m_intersection(
         return
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(**{f"{rel}__isnull": False})
         .values(comic_to_collection, rel)
@@ -680,9 +754,9 @@ def _build_simple_m2m_intersection_sort_sql(
     if field_name is None or correlation is None:
         return None
     field = Comic._meta.get_field(field_name)
-    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+    through = field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
     through_table = through._meta.db_table
-    m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+    m2m_id_col = f"{field.m2m_reverse_field_name()}_id"  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
     related_model = field.related_model
     if related_model is None:
         return None
@@ -983,6 +1057,12 @@ def _comic_correlation_sql(
 
     Returns a :class:`_Correlation` or ``None`` when the collection
     model isn't supported.
+
+    A row grouped by name correlates on its representative pk only, so
+    sorting by an intersection column orders a merged row by that one
+    pk's comics while its cells cover all of them
+    (``_fold_merged_rows``). Widening the correlation to the whole group
+    would mean restating the browse filters inside every subquery.
     """
     # Two spellings of one predicate, for the numerator's ``c`` and the
     # denominator's ``c2``. Both come from the same value object, so
@@ -991,7 +1071,7 @@ def _comic_correlation_sql(
     total_acl_sql, total_acl_params = acl.sql("c2")
     if collection_model is Folder:
         folders_field = Comic._meta.get_field("folders")
-        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[unresolved-attribute]
+        through = folders_field.remote_field.through  # pyright: ignore[reportAttributeAccessIssue] # ty: ignore[missing-attribute]
         through_table = through._meta.db_table
         collection_table = Folder._meta.db_table
         extra_join = f"INNER JOIN {through_table} cf ON cf.comic_id = c.id"
@@ -1152,7 +1232,7 @@ def _compute_credits_intersection(
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(credits__person__name__gt="")
         .values(
@@ -1194,7 +1274,7 @@ def _compute_identifiers_intersection(
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
@@ -1240,7 +1320,7 @@ def _compute_reprints_intersection(
     """Reprints have no ``name`` column; compose the label from their four."""
     rows = (
         Comic.objects.filter(
-            _LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
         .filter(reprints__series_name__gt="")
         .values(comic_to_collection, *_REPRINT_VALUE_RELS)

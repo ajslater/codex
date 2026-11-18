@@ -53,7 +53,15 @@
       <MetadataText :value="md.language?.name" label="Language" />
     </section>
     <MetadataRatings class="mdSection" />
-    <MetadataTagsTable :tag-map="tags" class="mdSection" />
+    <MetadataTagsTable :tag-map="tags" class="mdSection">
+      <!--
+        Only for a signed-in user: an anonymous visitor owns no shelves, and
+        the slot alone would keep an untagged comic's empty table up.
+      -->
+      <template v-if="isLoggedIn" #before>
+        <MetadataShelvesRow :book="book" />
+      </template>
+    </MetadataTagsTable>
     <section class="mdSection">
       <section class="inlineRow">
         <MetadataText :value="alternativeIssue" label="Alternative Issue" />
@@ -75,9 +83,11 @@ import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
+import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useMetadataStore } from "@/stores/metadata";
 
@@ -85,6 +95,7 @@ export default {
   name: "MetadataBody",
   components: {
     MetadataRatings,
+    MetadataShelvesRow,
     MetadataTagsTable,
     MetadataText,
   },
@@ -96,6 +107,9 @@ export default {
   },
   computed: {
     ...mapState(useMetadataStore, ["credits", "md", "ratings", "tags"]),
+    ...mapState(useAuthStore, {
+      isLoggedIn: (state) => Boolean(state.user),
+    }),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,

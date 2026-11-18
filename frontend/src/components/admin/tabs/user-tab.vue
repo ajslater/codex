@@ -64,6 +64,10 @@
       <template #[`item.ageRatingMetron`]="{ item }">
         {{ ageRatingName(item.ageRatingMetron) }}
       </template>
+      <!-- Revoke them from Edit User, behind a confirmation. -->
+      <template #[`item.apiKeyCount`]="{ item }">
+        {{ item.apiKeyCount || 0 }}
+      </template>
       <template #[`item.lastActive`]="{ item }">
         <DateTimeColumn :dttm="item.lastActive" />
       </template>
@@ -188,6 +192,7 @@ export default {
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },
         { title: "Age Rating", key: "ageRatingMetron", align: "start" },
+        { title: "API Keys", key: "apiKeyCount" },
         { title: "Last Active", key: "lastActive" },
         { title: "Last Login", key: "lastLogin" },
         { title: "Joined", key: "dateJoined" },

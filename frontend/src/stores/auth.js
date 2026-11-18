@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/auth";
 import { useCommonStore } from "@/stores/common";
-import { useFavoritesStore } from "@/stores/favorites";
+import { useShelvesStore } from "@/stores/shelves";
 
 /*
  * Don't use router in here, perhaps called to early.
@@ -40,11 +40,22 @@ export const useAuthStore = defineStore("auth", {
      */
     defaults: undefined,
     defaultsRev: undefined,
-    token: undefined,
+    // The user's API keys, of every scope, without the keys themselves.
+    apiKeys: [],
+    // Why the key list failed to load, so it doesn't read as empty.
+    apiKeysError: "",
+    /*
+     * The paths of the APIs this visitor may use, from ``/api-urls``,
+     * reloaded each time the API Access dialog opens. ``apiUrlsError`` is
+     * why they failed to load, so the dialog can offer a retry instead of
+     * spinning forever.
+     */
+    apiUrls: undefined,
+    apiUrlsError: "",
     showLoginDialog: false,
     showChangePasswordDialog: false,
     showProfileDialog: false,
-    showAuthTokenDialog: false,
+    showApiAccessDialog: false,
     showResetPasswordRequestDialog: false,
   }),
   getters: {
@@ -169,10 +180,12 @@ export const useAuthStore = defineStore("auth", {
       } finally {
         this.user = undefined;
         /*
-         * Wipe per-user favorite state so a different account
-         * signing in next doesn't see the previous user's stars.
+         * Wipe per-user shelf and key state so a different account
+         * signing in next doesn't see the previous user's.
          */
-        useFavoritesStore().clear();
+        useShelvesStore().clear();
+        this.apiKeys = [];
+        this.apiUrls = undefined;
         if (oidcLogoutUrl) {
           // Full-page redirect to end the IdP session; the ensuing
           // reload refreshes the flags on its own.
@@ -254,21 +267,51 @@ export const useAuthStore = defineStore("auth", {
         }
       }
     },
-    async getToken() {
+    async loadApiUrls() {
+      // No cache: an admin may have turned an API on or off since.
+      this.apiUrls = undefined;
+      this.apiUrlsError = "";
       try {
-        const response = await API.getToken();
-        this.token = response.data.token;
+        const response = await API.getApiUrls();
+        this.apiUrls = Object.freeze({ ...response.data });
       } catch (error) {
+        this.apiUrlsError = "Could not load the API URLs.";
         console.error(error);
       }
     },
-    async updateToken() {
+    async loadApiKeys() {
+      this.apiKeysError = "";
       try {
-        const response = await API.updateToken();
-        this.token = response.data.token;
+        const response = await API.getApiKeys();
+        this.apiKeys = response.data?.keys || [];
       } catch (error) {
+        this.apiKeysError = "Could not load your API keys.";
         console.error(error);
       }
+    },
+    /*
+     * Create an API key. Resolves to the new key's plain value, which the
+     * server sends only this once, and rejects when it refuses: the API
+     * Access dialog shows why itself, out of the shared form errors that
+     * the Profile dialog underneath renders.
+     */
+    async createApiKey({ name, scope }) {
+      const response = await API.createApiKey({ name, scope });
+      const { key, ...listed } = response.data;
+      this.apiKeys = [...this.apiKeys, listed].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      return key;
+    },
+    async deleteApiKey(pk) {
+      try {
+        await API.deleteApiKey(pk);
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+      this.apiKeys = this.apiKeys.filter((row) => row.pk !== pk);
+      return true;
     },
   },
 });

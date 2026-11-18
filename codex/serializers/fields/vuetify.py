@@ -30,28 +30,28 @@ class VuetifyNullCodeFieldMixin:
 
     def to_internal_value(self, data):
         """Convert numeric null code to None."""
-        data = super().to_internal_value(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        data = super().to_internal_value(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         return None if data == self.NULL_CODE else data
 
-    def to_representation(self, data):
+    def to_representation(self, value):
         """Convert None to numeric null code."""
-        data = self.NULL_CODE if data is None else data
-        return super().to_representation(data)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+        value = self.NULL_CODE if value is None else value
+        return super().to_representation(value)  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
 
 
-class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyFileTypeChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """File Type Choice Field."""
 
     class_choices = FileTypeChoices.values
 
 
-class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyReadingDirectionChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Reading Direction Choice Field."""
 
     class_choices = ReadingDirectionChoices.values
 
 
-class VuetifySeriesStatusChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifySeriesStatusChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField):
     """
     Series Status Choice Field.
 
@@ -63,28 +63,28 @@ class VuetifySeriesStatusChoiceField(VuetifyNullCodeFieldMixin, CodexChoiceField
     class_choices = SeriesStatusChoices.values
 
     @override
-    def to_internal_value(self, data) -> str | None:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+    def to_internal_value(self, data) -> str | None:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
         """Convert the null code to None, otherwise validate the choice."""
         if data in (VUETIFY_NULL_CODE, str(VUETIFY_NULL_CODE)):
             return None
         return super().to_internal_value(data)
 
 
-class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyDecimalField(VuetifyNullCodeFieldMixin, DecimalField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Float Field with null code conversion."""
 
 
-class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyIntegerField(VuetifyNullCodeFieldMixin, IntegerField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Integer Field with null code conversion."""
 
 
-class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyCharField(VuetifyNullCodeFieldMixin, CharField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Char Field with null code conversion."""
 
     NULL_CODE = str(VUETIFY_NULL_CODE)
 
 
-class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[invalid-method-override]
+class VuetifyBooleanField(VuetifyNullCodeFieldMixin, BooleanField):  # pyright: ignore[reportIncompatibleMethodOverride]
     """Boolean Field with null code conversion."""
 
 

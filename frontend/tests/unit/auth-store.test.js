@@ -19,11 +19,14 @@ vi.mock("@/api/v4/auth", () => ({
   updatePassword: vi.fn(),
   sendResetPasswordLink: vi.fn(),
   resetPassword: vi.fn(),
-  getToken: vi.fn(),
-  updateToken: vi.fn(),
+  getApiKeys: vi.fn(),
+  createApiKey: vi.fn(),
+  deleteApiKey: vi.fn(),
+  getApiUrls: vi.fn(),
 }));
 
 import * as API from "@/api/v4/auth";
+import { APIError } from "@/api/v4/base";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -204,5 +207,119 @@ describe("reloadOnDefaultsChange", () => {
     const { browser } = stores();
     expect(await reloadOnDefaultsChange("browser")).toBe(false);
     expect(browser.loadSettings).not.toHaveBeenCalled();
+  });
+});
+
+describe("useAuthStore — API keys", () => {
+  const KOBO = Object.freeze({
+    pk: 1,
+    name: "Kobo",
+    scope: "device",
+    prefix: "abcd",
+  });
+
+  it("loads the key list", async () => {
+    API.getApiKeys.mockResolvedValue({ data: { keys: [KOBO] } });
+    const store = useAuthStore();
+    await store.loadApiKeys();
+    expect(store.apiKeys).toEqual([KOBO]);
+  });
+
+  it("returns the new key once and keeps it out of the list", async () => {
+    API.createApiKey.mockResolvedValue({
+      data: {
+        pk: 2,
+        name: "Grafana",
+        scope: "stats",
+        prefix: "wxyz",
+        key: "wxyzsecret",
+      },
+    });
+    const store = useAuthStore();
+    store.apiKeys = [{ ...KOBO }];
+    const key = await store.createApiKey({ name: "Grafana", scope: "stats" });
+    expect(key).toBe("wxyzsecret");
+    expect(API.createApiKey).toHaveBeenCalledWith({
+      name: "Grafana",
+      scope: "stats",
+    });
+    expect(store.apiKeys.map((row) => row.name)).toEqual(["Grafana", "Kobo"]);
+    expect(JSON.stringify(store.apiKeys)).not.toContain("wxyzsecret");
+  });
+
+  it("rejects a refused create and leaves the shared form errors alone", async () => {
+    /*
+     * What the interceptor really hands over: the view's
+     * ``{"detail": "<sentence>"}`` arrives as the envelope error's detail
+     * string. The API Access dialog shows it itself: the shared form errors
+     * are what the Profile dialog underneath renders.
+     */
+    const refusal = new APIError(
+      {
+        status: "400",
+        title: "Bad Request",
+        detail: "You already have a key named Kobo.",
+      },
+      400,
+    );
+    API.createApiKey.mockRejectedValue(refusal);
+    const store = useAuthStore();
+    await expect(
+      store.createApiKey({ name: "Kobo", scope: "device" }),
+    ).rejects.toBe(refusal);
+    expect(useCommonStore().form.errors).toStrictEqual([]);
+  });
+
+  it("says so when the key list fails to load", async () => {
+    API.getApiKeys.mockRejectedValueOnce(new Error("down"));
+    const store = useAuthStore();
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("Could not load your API keys.");
+    API.getApiKeys.mockResolvedValueOnce({ data: { keys: [KOBO] } });
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("");
+    expect(store.apiKeys).toEqual([KOBO]);
+  });
+
+  it("drops a revoked key", async () => {
+    API.deleteApiKey.mockResolvedValue({});
+    const store = useAuthStore();
+    store.apiKeys = [{ ...KOBO }];
+    expect(await store.deleteApiKey(1)).toBe(true);
+    expect(API.deleteApiKey).toHaveBeenCalledWith(1);
+    expect(store.apiKeys).toEqual([]);
+  });
+
+  it("clears keys and URLs on logout", async () => {
+    API.logout.mockResolvedValue({});
+    API.getSession.mockResolvedValue(sessionResponse());
+    const store = useAuthStore();
+    store.user = { username: "alice" };
+    store.apiKeys = [{ ...KOBO }];
+    store.apiUrls = Object.freeze({ opdsV1: "/opds/v1.2/" });
+    await store.logout();
+    expect(store.apiKeys).toEqual([]);
+    expect(store.apiUrls).toBeUndefined();
+  });
+});
+
+describe("useAuthStore — API URLs", () => {
+  it("reloads on every call, never from a cache", async () => {
+    API.getApiUrls.mockResolvedValueOnce({ data: { opdsV1: "/opds/v1.2/" } });
+    API.getApiUrls.mockResolvedValueOnce({ data: {} });
+    const store = useAuthStore();
+    await store.loadApiUrls();
+    expect(store.apiUrls).toEqual({ opdsV1: "/opds/v1.2/" });
+    await store.loadApiUrls();
+    expect(API.getApiUrls).toHaveBeenCalledTimes(2);
+    expect(store.apiUrls).toEqual({});
+  });
+
+  it("reports a failure instead of spinning", async () => {
+    API.getApiUrls.mockRejectedValue(new Error("down"));
+    const store = useAuthStore();
+    await store.loadApiUrls();
+    expect(store.apiUrls).toBeUndefined();
+    expect(store.apiUrlsError).toBe("Could not load the API URLs.");
   });
 });

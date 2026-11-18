@@ -12,6 +12,7 @@ from codex.views.opds.v1.const import (
     RootTopLinks,
     TopLink,
     TopLinks,
+    shelf_top_link,
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
@@ -19,6 +20,13 @@ from codex.views.opds.v1.facets import OPDS1FacetsView
 
 class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
+
+    def root_top_links(self) -> tuple[TopLink, ...]:
+        """Root top links for this user, then one entry per non-empty shelf."""
+        return (
+            *RootTopLinks.ALL,
+            *(shelf_top_link(pk, name) for pk, name in self.user_shelves()),
+        )
 
     def is_top_link_displayed(self, top_link) -> bool:
         """Determine if this top link should be displayed."""
@@ -33,18 +41,22 @@ class OPDS1LinksView(OPDS1FacetsView):
         return True
 
     def _link(
-        self, kwargs, rel, query_params=None, mime_type=MimeType.NAV
+        self, kwargs, rel, query_params=None, mime_type=MimeType.NAV, title=""
     ) -> OPDS1Link:
         """Create a link."""
         if query_params is None:
             query_params = self.request.GET
         href = opds_feed_reverse("opds:v1:feed", kwargs, query_params)
-        return OPDS1Link(rel, href, mime_type)
+        return OPDS1Link(rel, href, mime_type, title=title)
 
     def _top_link(self, top_link):
-        """Create a link from a top link."""
+        """Create a link from a top link, titled as its entry is."""
         return self._link(
-            top_link.kwargs, top_link.rel, top_link.query_params, top_link.mime_type
+            top_link.kwargs,
+            top_link.rel,
+            top_link.query_params,
+            top_link.mime_type,
+            title=" ".join(filter(None, (top_link.glyph, top_link.title))),
         )
 
     def _root_links(self) -> list:
@@ -78,7 +90,7 @@ class OPDS1LinksView(OPDS1FacetsView):
         links = []
         if not self.use_facets:
             return links
-        for top_link in TopLinks.ALL + RootTopLinks.ALL:
+        for top_link in (*TopLinks.ALL, *self.root_top_links()):
             if not self.is_top_link_displayed(top_link):
                 links += [self._top_link(top_link)]
         # Sort facets only. ``facets`` returns nothing on the start page

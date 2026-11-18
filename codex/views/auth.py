@@ -47,9 +47,6 @@ from django.db.models.query_utils import Q
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from loguru import logger
-from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -137,10 +134,10 @@ class AuthMixin:
         engine kwargs are already in place. Routes the request through
         DRF's standard ``initial`` chain after rewriting.
         """
-        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
         if "collection" in kwargs and "pks" not in kwargs:
             self._translate_browser_kwargs(request)
-        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        super().initial(request, *args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
 
     def _translate_browser_kwargs(self, request) -> None:
         """
@@ -153,7 +150,7 @@ class AuthMixin:
         The optional ``parent_ids`` segment becomes the engine ``pks`` tuple.
         ``page`` is pulled out of the GET dict when :attr:`requires_page` is set.
         """
-        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[unresolved-attribute]
+        kwargs = self.kwargs  # pyright: ignore[reportAttributeAccessIssue]  # ty: ignore[missing-attribute]
         collection = kwargs.pop("collection")
         parent_ids = kwargs.pop("parent_ids", None)
         if collection == Collection.PUBLISHER and parent_ids is None:
@@ -443,7 +440,7 @@ class ComicACL:
     which libraries, which age ratings -- and they are what the raw-SQL
     spelling needs bound as parameters. The missing clause is neither:
     it is the same literal predicate for every user, so the intersection
-    queries carry their own ``_LIVE_COMIC`` copy of it alongside this
+    queries carry their own ``LIVE_COMIC`` copy of it alongside this
     ACL rather than through it.
     """
 
@@ -662,39 +659,6 @@ class AuthFilterAPIView(AuthAPIView, GroupACLMixin):
         """Iniit acl properties."""
         super().__init__(*args, **kwargs)
         self.init_group_acl()
-
-
-class AuthToken(AuthGenericAPIView):
-    """Auth Token creation and getting."""
-
-    serializer_class = AuthTokenSerializer
-
-    def get(self, *args, **kwargs) -> Response:
-        """Get auth token."""
-        user = self.request.user
-        if not user:
-            reason = "Not an authenticated user."
-            raise NotAuthenticated(detail=reason)
-
-        token, created = Token.objects.get_or_create(user=user)
-        if created:
-            logger.info(f"Auth Token created for user {user}")
-        data = {"token": token.key}
-
-        return Response(data)
-
-    def put(self, *args, **kwargs) -> Response:
-        """Reset auth token for user."""
-        user = self.request.user
-        if not user:
-            reason = "Not an authenticated user."
-            raise NotAuthenticated(detail=reason)
-
-        Token.objects.filter(user=user).delete()
-        token, _ = Token.objects.get_or_create(user=user)
-        logger.info(f"Auth Token updated for user {user}")
-        data = {"token": token.key}
-        return Response(data)
 
 
 @method_decorator(ensure_csrf_cookie, name="get")

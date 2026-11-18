@@ -125,6 +125,12 @@ export function resolveTableColumns(
   return registryTableColumns(topCollection, show);
 }
 
+/*
+ * Columns an anonymous visitor never gets: they own no shelves, so their
+ * Shelves column is always empty.
+ */
+export const ANONYMOUS_HIDDEN_COLUMNS = Object.freeze(["shelved"]);
+
 // The site default table columns ``/session`` delivered, if any.
 export function siteTableColumns() {
   return useAuthStore().defaults?.browser?.tableColumns;
@@ -373,20 +379,12 @@ export const useBrowserStore = defineStore("browser", {
     },
     isDynamicFiltersSelected(state) {
       /*
-       * "Dynamic" = anything beyond the default bookmark choice. The
-       * favorite filter is a boolean (not a list-of-pks), but counts as
-       * a non-default extra filter for the multi-filter chip indicator —
-       * otherwise toggling Favorites-only would silently drop the icon
-       * that signals "extra filters are active."
+       * "Dynamic" = anything beyond the bookmark choice. Every other
+       * filter is a list, ``shelves`` (the user's selected shelf pks)
+       * included, so a non-empty one lights the multi-filter indicator.
        */
-      if (state.settings.filters.favorite) return true;
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (
-          name !== "bookmark" &&
-          name !== "favorite" &&
-          array &&
-          array.length > 0
-        ) {
+        if (name !== "bookmark" && array && array.length > 0) {
           return true;
         }
       }
@@ -396,12 +394,7 @@ export const useBrowserStore = defineStore("browser", {
       const isDefaultBookmarkValueSelected = isDefaultBookmarkFilter(
         state.settings.filters.bookmark,
       );
-      const isFavoriteFilterOn = Boolean(state.settings.filters.favorite);
-      return (
-        !isDefaultBookmarkValueSelected ||
-        isFavoriteFilterOn ||
-        this.isDynamicFiltersSelected
-      );
+      return !isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected;
     },
     lowestShownCollection(state) {
       let lowestCollection = "root";
@@ -747,12 +740,17 @@ export const useBrowserStore = defineStore("browser", {
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      return resolveTableColumns(
+      const columns = resolveTableColumns(
         this.settings.topCollection ?? "publishers",
         this.settings.tableColumns,
         this.settings.show,
         siteTableColumns(),
       );
+      return useAuthStore().user
+        ? columns
+        : columns.filter(
+            (column) => !ANONYMOUS_HIDDEN_COLUMNS.includes(column),
+          );
     },
     /*
      * MUTATIONS
@@ -836,7 +834,9 @@ export const useBrowserStore = defineStore("browser", {
       if (redirect) {
         redirectRoute(redirect);
       } else {
-        this.loadBrowserPage(undefined, true);
+        // Awaited, as clearOneFilter does: the page load clears
+        // ``choices.dynamic``, so a caller reloading them must wait for it.
+        await this.loadBrowserPage(undefined, true);
       }
     },
     async clearOneFilter(filterName) {
@@ -1008,6 +1008,41 @@ export const useBrowserStore = defineStore("browser", {
         orderExtraKeys: order.orderExtraKeys,
       });
     },
+    _pageRequestSettings() {
+      /*
+       * Table mode requests need ``columns=`` so the backend knows
+       * which fields to project / annotate. The list comes from the
+       * user's persisted table_columns map (per top-collection) and falls
+       * back to the registry defaults; cover mode never sets it.
+       */
+      return this.settings.viewMode === "table"
+        ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
+        : this.settings;
+    },
+    async refreshBrowserPage() {
+      /*
+       * Refetch the shown page in place, without the loading placeholder
+       * ``loadBrowserPage`` swaps in: rows keep their keys, so an open menu
+       * and the scroll position survive. Skipped while a full load is in
+       * flight; a later full load aborts this one through the shared key.
+       */
+      if (!this.isAuthorized || !this.browserPageLoaded) {
+        return;
+      }
+      const signal = useAbortable("browser:loadBrowserPage");
+      try {
+        const response = await API.getBrowserPage(
+          liveBrowseParams(),
+          this._pageRequestSettings(),
+          getTimestamp(),
+          { signal },
+        );
+        const { breadcrumbs: _breadcrumbs, ...page } = response.data;
+        this.page = Object.freeze(page);
+      } catch (error) {
+        if (!isAbortError(error)) console.error(error);
+      }
+    },
     async loadBrowserPage(mtime, shouldUpdateSettings = false) {
       // Get objects for the current route and settings.
       if (!this.isAuthorized) {
@@ -1031,20 +1066,10 @@ export const useBrowserStore = defineStore("browser", {
        * state over the current route's data.
        */
       const signal = useAbortable("browser:loadBrowserPage");
-      /*
-       * Table mode requests need ``columns=`` so the backend knows
-       * which fields to project / annotate. The list comes from the
-       * user's persisted table_columns map (per top-collection) and falls
-       * back to the registry defaults; cover mode never sets it.
-       */
-      const requestSettings =
-        this.settings.viewMode === "table"
-          ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
-          : this.settings;
       try {
         const response = await API.getBrowserPage(
           liveBrowseParams(),
-          requestSettings,
+          this._pageRequestSettings(),
           mtime,
           { signal },
         );

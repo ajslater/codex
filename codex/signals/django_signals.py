@@ -11,14 +11,14 @@ def _on_library_changed(*_args, **_kwargs) -> None:
     invalidate_libraries_exist_cache()
 
 
-def _on_favorite_target_deleted(sender, instance, **_kwargs) -> None:
-    """Drop favorites that pointed at a deleted browsable target."""
+def _on_shelf_target_deleted(sender, instance, **_kwargs) -> None:
+    """Drop shelf items that pointed at a deleted browsable target."""
     # Lazy imports so the module is safe to load before ``django.setup()``.
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS, Favorite
+    from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 
-    if collection_code := FAVORITE_MODEL_COLLECTIONS.get(sender):
-        Favorite.objects.filter(
-            collection=collection_code, target_id=instance.pk
+    if collection_code := SHELF_MODEL_COLLECTIONS.get(sender):
+        ShelfItem.objects.filter(
+            collection=collection_code.value, target_id=instance.pk
         ).delete()
 
 
@@ -52,18 +52,24 @@ def connect_signals() -> None:
     from django.contrib.auth import get_user_model
 
     from codex.models import Library
-    from codex.models.favorite import FAVORITE_MODEL_COLLECTIONS
+    from codex.models.shelf import SHELF_MODEL_COLLECTIONS
     from codex.settings import AUTH_FAILED_LOGIN_LOG
 
     post_save.connect(_on_library_changed, sender=Library)
     post_delete.connect(_on_library_changed, sender=Library)
     post_save.connect(_ensure_user_auth, sender=get_user_model())
 
-    # Cascade favorites when their target row is deleted. The handler
+    from django.contrib.auth.signals import user_logged_in
+
+    from codex.signals.login import adopt_session_rows
+
+    user_logged_in.connect(adopt_session_rows)
+
+    # Cascade shelf items when their target row is deleted. The handler
     # rereads the mapping at fire time so this loop only needs the
     # senders.
-    for model in FAVORITE_MODEL_COLLECTIONS:
-        post_delete.connect(_on_favorite_target_deleted, sender=model)
+    for model in SHELF_MODEL_COLLECTIONS:
+        post_delete.connect(_on_shelf_target_deleted, sender=model)
 
     if AUTH_FAILED_LOGIN_LOG:
         from django.contrib.auth.signals import user_login_failed

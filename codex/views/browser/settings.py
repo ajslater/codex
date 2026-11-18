@@ -111,13 +111,13 @@ class BrowserSettingsBaseView(SettingsBaseView):
 
         # Reset filters in-place
         self._save_browser_filters(
-            instance.filters,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            instance.filters,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             defaults["filters"],
         )
 
         # Reset last_route in-place
         self._save_browser_last_route(
-            instance.last_route,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[unresolved-attribute]
+            instance.last_route,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
             defaults["last_route"],
         )
 

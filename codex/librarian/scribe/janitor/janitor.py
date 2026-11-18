@@ -7,13 +7,14 @@ from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveFoldersStatus
+from codex.librarian.scribe.janitor.koreader import JanitorKoreaderHash
 from codex.librarian.scribe.janitor.status import (
     JanitorAdoptOrphanFoldersStatus,
     JanitorCleanupBookmarksStatus,
     JanitorCleanupCoversStatus,
-    JanitorCleanupFavoritesStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
+    JanitorCleanupShelfItemsStatus,
     JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
     JanitorCodexLatestVersionStatus,
@@ -24,6 +25,7 @@ from codex.librarian.scribe.janitor.status import (
     JanitorDBOptimizeStatus,
     JanitorDumpUserDataStatus,
     JanitorFolderRelationsStatus,
+    JanitorKoreaderHashStatus,
     JanitorReapPendingDeletesStatus,
 )
 from codex.librarian.scribe.janitor.tasks import (
@@ -32,9 +34,9 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorCleanCoversTask,
     JanitorCleanFKsTask,
     JanitorCleanupBookmarksTask,
-    JanitorCleanupFavoritesTask,
     JanitorCleanupSessionsTask,
     JanitorCleanupSettingsTask,
+    JanitorCleanupShelfItemsTask,
     JanitorCleanupTaggingStateTask,
     JanitorCodexUpdateTask,
     JanitorDumpUserDataTask,
@@ -44,11 +46,11 @@ from codex.librarian.scribe.janitor.tasks import (
     JanitorFTSRebuildTask,
     JanitorImportForceAllFailedTask,
     JanitorIntegrityCheckTask,
+    JanitorKoreaderHashTask,
     JanitorNightlyTask,
     JanitorReapPendingDeletesTask,
     JanitorVacuumTask,
 )
-from codex.librarian.scribe.janitor.update import JanitorCodexUpdate
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
     SearchIndexOptimizeStatus,
@@ -76,8 +78,9 @@ _JANITOR_STATII: Final = (
     JanitorCleanupSessionsStatus,
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
-    JanitorCleanupFavoritesStatus,
+    JanitorCleanupShelfItemsStatus,
     JanitorCleanupTaggingStateStatus,
+    JanitorKoreaderHashStatus,
     SearchIndexCleanStatus,
     SearchIndexSyncUpdateStatus,
     SearchIndexSyncCreateStatus,
@@ -110,8 +113,10 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     JanitorCleanupSessionsTask(),
     JanitorCleanupBookmarksTask(),
     JanitorCleanupSettingsTask(),
-    JanitorCleanupFavoritesTask(),
+    JanitorCleanupShelfItemsTask(),
     JanitorCleanupTaggingStateTask(),
+    # Does nothing while the KOReader Sync flag is off.
+    JanitorKoreaderHashTask(),
     SearchIndexSyncTask(),
     SearchIndexOptimizeTask(),
     JanitorVacuumTask(),
@@ -127,7 +132,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanCoversTask: "cleanup_custom_covers",
         JanitorCleanupSessionsTask: "cleanup_sessions",
         JanitorCleanupBookmarksTask: "cleanup_orphan_bookmarks",
-        JanitorCleanupFavoritesTask: "cleanup_orphan_favorites",
+        JanitorCleanupShelfItemsTask: "cleanup_orphan_shelf_items",
         JanitorCleanupSettingsTask: "cleanup_orphan_settings",
         JanitorCleanupTaggingStateTask: "cleanup_tagging_state",
         JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
@@ -141,7 +146,7 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
 )
 
 
-class Janitor(JanitorCodexUpdate):
+class Janitor(JanitorKoreaderHash):
     """Janitor inline task runner."""
 
     def __init__(
@@ -183,6 +188,8 @@ class Janitor(JanitorCodexUpdate):
                     self.integrity_check(long=task.long)
                 case JanitorCodexUpdateTask():
                     self.update_codex(force=task.force)
+                case JanitorKoreaderHashTask():
+                    self.koreader_hash_backfill(task)
                 case _:
                     self.log.warning(f"Janitor received unknown task {task}")
         except Exception:

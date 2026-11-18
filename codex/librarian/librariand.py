@@ -191,6 +191,13 @@ class LibrarianDaemon(Process):
         This process also runs the crond thread and the watcher Observer
         threads.
         """
+        # Under the spawn/forkserver start methods this process imports a
+        # fresh, unconfigured ``loguru.logger`` that writes to stderr in
+        # loguru's default format, bypassing codex's sinks, level and
+        # filters. Point it at the pickled codex logger's core so modules
+        # that log through the global logger (comicbox, the stdlib logging
+        # bridge, a few librarian modules) reach the codex sinks too.
+        self.log.reinstall()
         # This process's worker threads outlive their tasks, so unlike
         # the web process they reuse a connection rather than orphaning
         # it. Must precede ``_startup``, which spawns those threads.

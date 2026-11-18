@@ -65,7 +65,9 @@ class AdminFlag(BaseModel):
     next boot.
     """
 
-    FALSE_DEFAULTS = frozenset({AdminFlagChoices.REGISTER_VERIFICATION})
+    FALSE_DEFAULTS = frozenset(
+        {AdminFlagChoices.KOREADER_SYNC, AdminFlagChoices.REGISTER_VERIFICATION}
+    )
     # Auto Update installs a new codex over the running one, which is what
     # a pip, pipx or uv install wants and is why it seeds on. A container
     # is an immutable deployment: an in-place upgrade lives until the next
@@ -122,7 +124,7 @@ class ComicboxTaggingDefaults(BaseModel):
         How much API budget to spend per comic (mirrors comicbox.Effort).
 
         Only bites on sources that fan out per candidate, which today
-        means Comic Vine. Metron answers in one call and ignores it.
+        means Comic Vine. Metron ignores it.
 
         Unset is not the same as Balanced. Naming any value pins it, and
         comicbox reads a pin as a decision to leave alone; left unset it
@@ -434,10 +436,9 @@ class Timestamp(BaseModel):
     Keyed singleton holding a last-known ``value`` and an auto-updated ``updated_at``.
 
     Used by codex-version tracking, janitor last-run marker, and the
-    telemeter install UUID + last-send marker. The API key used to
-    live here too; it moved to :class:`AdminFlag` (key ``AK``) since
-    it was the one row that was admin-managed configuration rather
-    than internal operational state.
+    telemeter install UUID + last-send marker. The Stats API key used to
+    live here too; it moved to :class:`AdminFlag` (key ``AK``), and from
+    there to a hashed stats :class:`codex.models.api_key.UserApiKey`.
     """
 
     class Choices(TextChoices):

@@ -47,6 +47,6 @@ class OPDSPageView(OPDSAuthMixin, ReaderPageView):
 
     # djangorestframework-stubs types this `str | None`, but DRF resolves
     # the DEFAULT_CONTENT_NEGOTIATION_CLASS import string to a class.
-    content_negotiation_class: type[BaseContentNegotiation] = (  # pyright: ignore[reportIncompatibleVariableOverride], # ty: ignore[invalid-attribute-override]
+    content_negotiation_class: type[BaseContentNegotiation] = (  # pyright: ignore[reportIncompatibleVariableOverride], # ty: ignore[incompatible-attribute-override]
         IgnoreClientContentNegotiation
     )

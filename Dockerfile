@@ -97,12 +97,12 @@ RUN uv export --frozen --no-default-groups --no-emit-project -o requirements.txt
 # English: LANGUAGE_CODE is en-us and nothing activates another language.
 # hadolint ignore=SC2016
 RUN set -eux \
-  && find /opt/codex -type f \( -name '*.so' -o -name '*.so.*' \) \
-  -exec strip --strip-unneeded {} + \
-  && find /opt/codex -name '*.pyi' -delete \
-  && rm -rf /opt/codex/lib/python3.15/site-packages/pycountry/locales \
-  && find /opt/codex/lib/python3.15/site-packages -type d -name locale -prune \
-  -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
+    && find /opt/codex -type f \( -name '*.so' -o -name '*.so.*' \) \
+        -exec strip --strip-unneeded {} + \
+    && find /opt/codex -name '*.pyi' -delete \
+    && rm -rf /opt/codex/lib/python3.15/site-packages/pycountry/locales \
+    && find /opt/codex/lib/python3.15/site-packages -type d -name locale -prune \
+        -exec sh -c 'for d in "$1"/*/; do case "$(basename "$d")" in en|__pycache__) ;; *) rm -rf "$d";; esac; done' _ {} \;
 
 # ---- Stage 4: final (production image) ------------------------------------
 FROM ghcr.io/ajslater/python-debian:3.15.2-slim-trixie_0 AS final

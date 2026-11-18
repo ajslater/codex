@@ -1,5 +1,6 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, cast
 
 from django.db.models import NOT_PROVIDED
@@ -29,19 +30,37 @@ from codex.librarian.scribe.importer.statii.create import (
     ImporterUpdateComicsStatus,
 )
 from codex.librarian.status import Status
-from codex.models import Comic
+from codex.models import Comic, ComicKoreaderHash
 from codex.settings import IMPORTER_UPDATE_COMIC_BATCH_SIZE
 
 if TYPE_CHECKING:
     from codex.models.collections import BrowserCollectionModel
 
 # What ``presave`` derives from the file and the row. An update that would
-# change none of them, the timestamp aside, writes nothing new.
+# change none of them, the timestamp aside, writes nothing new. KOReader's
+# hashes live beside Comic and never enter the check: they are missing after
+# an upgrade and null with the feature off, which is no reason to rewrite a
+# comic; the flag-on backfill fills them.
 _NOOP_CHECK_FIELDS = tuple(sorted(ALWAYS_UPDATE_COMIC_FIELDS - {"updated_at"}))
 
 
 class CreateComicsImporter(CreateForeignKeyLinksImporter):
     """Create comics methods."""
+
+    def _write_koreader_hashes(self, comics: Iterable[Comic]) -> None:
+        """
+        Store KOReader's hashes of created or updated comics.
+
+        The binary hash reads the file, so only with KOReader Sync on; with
+        it off an updated comic's binary hash is nulled rather than kept,
+        since the backfill fills only nulls and the file may have changed.
+        """
+        ComicKoreaderHash.upsert(
+            ComicKoreaderHash.compute(
+                comic.pk, comic.path, binary=self.koreader_binary_hash
+            )
+            for comic in comics
+        )
 
     def _populate_fts_attribute_values(self, key: str, sub_key: str | int, md) -> None:
         if sub_key not in self.metadata[key]:
@@ -203,6 +222,7 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
                     update_fields,
                     batch_size=IMPORTER_UPDATE_COMIC_BATCH_SIZE,
                 )
+                self._write_koreader_hashes(update_comics)
                 if comic_pks:
                     self.log.debug(
                         f"Purging covers for {len(comic_pks)} updated comics."
@@ -267,6 +287,8 @@ class CreateComicsImporter(CreateForeignKeyLinksImporter):
             unique_fields=Comic._meta.unique_together[0],
         )
         count = len(created_comics)
+        # Comics have pks only now.
+        self._write_koreader_hashes(created_comics)
 
         # Replace FTS_CREATE path keyed entries with pk keys
         created_pks = []
