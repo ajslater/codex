@@ -36,9 +36,31 @@ API_KEYS_PER_SCOPE_MAX: Final = 32
 LAST_USED_RESOLUTION: Final = timedelta(hours=1)
 
 
+_API_KEY_CHARS: Final = frozenset(API_KEY_ALPHABET)
+# A DRF token, migrated to a universal key: 20 random bytes as lowercase hex.
+_TOKEN_LENGTH: Final = 40
+_TOKEN_CHARS: Final = frozenset("0123456789abcdef")
+
+
 def generate_api_key() -> str:
     """Return a new random API key."""
     return "".join(secrets.choice(API_KEY_ALPHABET) for _ in range(API_KEY_LENGTH))
+
+
+def is_api_key_shaped(secret: str) -> bool:
+    """
+    Whether ``secret`` could be a key: a generated one or a migrated token.
+
+    Anything else is a password, which must never reach the fast-hash key
+    lookup or a cache key derived from it.
+    """
+    match len(secret):
+        case length if length == API_KEY_LENGTH:
+            return set(secret) <= _API_KEY_CHARS
+        case length if length == _TOKEN_LENGTH:
+            return set(secret) <= _TOKEN_CHARS
+        case _:
+            return False
 
 
 def api_key_digest(key: str) -> str:

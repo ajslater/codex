@@ -36,9 +36,10 @@ def get_api_key(
     key must also belong to that user; with ``staff_only`` its owner must
     still be staff. Records the use (at most hourly) on a hit.
     """
-    from codex.models.api_key import UserApiKey, api_key_digest
+    from codex.models.api_key import UserApiKey, api_key_digest, is_api_key_shaped
 
-    if not secret:
+    if not secret or not is_api_key_shaped(secret):
+        # Never hash a password into a key lookup.
         return None
     lookup = {
         "digest": api_key_digest(secret),

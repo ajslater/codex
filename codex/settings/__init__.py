@@ -1115,7 +1115,11 @@ if FEATURES.vite_hmr:
 # Cachalot #
 ############
 
-CACHALOT_UNCACHABLE_TABLES = frozenset({"django_migrations", "django_session"})
+# Key lookups are keyed by a secret's digest; a cached one would leave a
+# cache file named after it.
+CACHALOT_UNCACHABLE_TABLES = frozenset(
+    {"django_migrations", "django_session", "codex_userapikey"}
+)
 
 # cachalot.W001 fires as a false positive here. Its compatibility check
 # (cachalot/apps.py) does a string-membership test of CACHES['default']
