@@ -6,7 +6,6 @@ from django.db.models import ManyToManyField, Q
 
 from codex.librarian.scribe.importer.const import (
     DELETE_M2MS,
-    FTS_EXISTING_M2MS,
     FTS_UPDATE,
     get_through_model,
 )
@@ -38,13 +37,18 @@ class LinkImporterDelete(LinkComicsImporterPrepare):
         return count
 
     def _delete_m2m_fts_entries(self, field_name: str, comic_ids: set[int]) -> None:
+        """
+        Rewrite the search column of every comic that lost a link.
+
+        The column starts empty: the link phase sets any new values and
+        the search phase adds the kept ones back, so it ends up holding
+        just the comic's remaining links. Left out, a comic that only
+        lost links would keep the removed ones in its search entry.
+        """
         fts_field_name, _ = self.minify_complex_link_to_fts_tuple(field_name, ())
         for comic_id in comic_ids:
-            if not self.metadata.get(FTS_UPDATE, {}).get(comic_id, {}).get(
-                fts_field_name
-            ) and not self.metadata.get(FTS_EXISTING_M2MS, {}).get(comic_id, {}).get(
-                fts_field_name
-            ):
+            entry = self.metadata.get(FTS_UPDATE, {}).get(comic_id, {})
+            if not entry.get(fts_field_name):
                 self.add_links_to_fts(comic_id, fts_field_name, ())
 
     def delete_m2m_field(self, field_name: str, delete_m2ms: dict, status) -> int:

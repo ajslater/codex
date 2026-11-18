@@ -29,6 +29,10 @@ border-radius: 128px;
 - Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
   off.
 - The admin Users tab counts each user's API keys; Edit User revokes them all.
+- Tag writes and online tagging can keep a comic's other tag formats instead of
+  removing them.
+- Online tagging's match review says when another source already tagged the
+  comic.
 
 ### ♻️ Changed
 
@@ -43,6 +47,7 @@ border-radius: 128px;
   in API Access.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
+- Online tagging with Metron matches comics by their cover first.
 - Libraries have their own icon, and actions and statuses that shared an icon
   now look distinct.
 
@@ -62,12 +67,19 @@ border-radius: 128px;
 - Table view cells for a row that combines same-named series, imprints or
   volumes describe all of them, and comics in folder view no longer show a
   folder's cells.
+- Tag writes keep a comic's archive comment, a failed write leaves the comic
+  unchanged, and a RAR or 7z named `.cbz` is refused with its real type.
+- Re-importing a comic clears tags its file no longer has, such as a summary
+  cleared in the tag editor, from search too.
+- Issue −1 imports as a number, and partial dates such as `2006-07` no longer
+  gain today's month or day.
+- Issue #0 imports as issue 0, not as an unnumbered issue.
 - Some background task log messages, such as comicbox's, reach the log file and
   honor the log level.
 
 ### 🧑‍💻 Developer
 
-- Require loguru 0.8.
+- Require comicbox 5.6.2 and loguru 0.8.
 
 ## v2.6.0 - Tag Editor Suggestions
 

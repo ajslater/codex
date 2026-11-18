@@ -166,12 +166,18 @@ describe("CandidateRow score detail", () => {
     );
   });
 
-  test("says the cover was not compared, without repeating the headline", () => {
+  test("says the score excludes the cover, without repeating the headline", () => {
+    /*
+     * A candidate Metron's cover search returned can still carry no cover
+     * score, so the row says what the score is, not that no cover was
+     * compared.
+     */
     const wrapper = mountRow({ coverScore: null, coverHashAttempted: false });
 
     const detail = wrapper.find(".candidateScoreDetail");
-    expect(detail.text()).toBe("Cover not compared");
+    expect(detail.text()).toBe("Score excludes cover");
     expect(detail.attributes("title")).toContain("metadata only");
+    expect(detail.attributes("title")).not.toContain("wasn't compared");
   });
 
   test("shows no detail line for a prompt cached before the fields existed", () => {

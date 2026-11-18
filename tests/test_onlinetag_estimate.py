@@ -20,7 +20,7 @@ _COMICVINE_RATE: Final = 3
 
 
 def test_estimate_seconds_delegates_to_comicbox() -> None:
-    """Metron's flat two-step: 10 comics x 2 requests / 20 per-minute = 60s."""
+    """Metron: 10 comics x 2 requests / 20 per-minute = 60s."""
     assert estimate_seconds(10, ("metron",)) == _METRON_SECONDS
 
 
@@ -53,7 +53,7 @@ def test_effort_is_the_axis_that_moves_the_estimate() -> None:
 
 
 def test_metron_ignores_effort() -> None:
-    """Metron answers in one call and has no fan-out to bound."""
+    """Metron has no per-candidate fan-out for effort to bound."""
     for effort in ("minimal", "balanced", "thorough"):
         assert estimate_seconds(10, ("metron",), effort=effort) == _METRON_SECONDS
 

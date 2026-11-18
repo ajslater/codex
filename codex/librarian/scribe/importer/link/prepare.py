@@ -9,10 +9,8 @@ from django.db.models.query_utils import Q
 from codex.librarian.scribe.importer.const import (
     FIELD_NAME_KEYS_REL_MAP,
     FOLDERS_FIELD_NAME,
-    IDENTIFIERS_FIELD_NAME,
     LINK_M2MS,
     MODEL_SELECTOR_REL_MAP,
-    NON_FTS_FIELDS,
 )
 from codex.librarian.scribe.importer.link.const import COMPLEX_MODEL_FIELD_NAMES
 from codex.librarian.scribe.importer.link.covers import (
@@ -52,15 +50,7 @@ class LinkComicsImporterPrepare(LinkCoversImporter):
     def _add_complex_link_to_fts(
         self, comic_pk: int, field_name: str, values: frozenset
     ) -> None:
-        if field_name == IDENTIFIERS_FIELD_NAME:
-            # sources extracton must come before identifiers is minified
-            # but now identifiers is not indexed at all, yet sources are.
-            sources = tuple(sorted({subvalues[0] for subvalues in values}))
-            self.add_links_to_fts(comic_pk, "sources", sources)
-
-        if field_name in NON_FTS_FIELDS:
-            return
-
+        # Identifiers index only their sources, folders nothing.
         field_name, fts_values = self.minify_complex_link_to_fts_tuple(
             field_name, values
         )

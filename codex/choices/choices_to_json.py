@@ -33,6 +33,7 @@ from codex.choices.tagging import (
     IDENTIFIER_SOURCES,
     IDENTIFIER_TYPE_BY_CODEX_NAME,
     IDENTIFIER_TYPES,
+    KEEP_WRITE_FORMAT,
     LANGUAGES,
     SERIES_STATUSES,
     WRITE_FORMATS,
@@ -63,8 +64,13 @@ _DUMPS = MappingProxyType(
         "reader-choices.json": READER_CHOICES,
         # The write formats live with the rest of the tag-editor choices,
         # which choices.admin can't import without a models import cycle.
+        # keepFormat names the one that is not a tag format.
         "tagging-choices.json": MappingProxyType(
-            {**TAGGING_CHOICES, "formats": WRITE_FORMATS}
+            {
+                **TAGGING_CHOICES,
+                "formats": WRITE_FORMATS,
+                "keepFormat": KEEP_WRITE_FORMAT,
+            }
         ),
     }
 )

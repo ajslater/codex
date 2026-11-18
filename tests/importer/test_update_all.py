@@ -700,6 +700,9 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
         FTS_UPDATE: {
             1: {
                 "alternate_series": ("Capitaine Science",),
+                # Lost some links and gained none: rewritten from the
+                # kept ones.
+                "characters": (),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "credits": ("Wally Wood",),
@@ -716,6 +719,7 @@ LINKED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "tags": (),
                 "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
@@ -740,6 +744,9 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
         FTS_UPDATE: {
             1: {
                 "alternate_series": ("Capitaine Science",),
+                # Lost some links and gained none: rewritten from the
+                # kept ones.
+                "characters": (),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "credits": ("Wally Wood",),
@@ -756,6 +763,7 @@ FAILED_IMPORTS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "tags": (),
                 "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
@@ -780,6 +788,9 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
         FTS_UPDATE: {
             1: {
                 "alternate_series": ("Capitaine Science",),
+                # Lost some links and gained none: rewritten from the
+                # kept ones.
+                "characters": (),
                 "collection_title": ("The Big Omnibus Part 2",),
                 "country": ("GB",),
                 "credits": ("Wally Wood",),
@@ -796,6 +807,7 @@ DELETED_COMICS_UPDATE_ALL = MappingProxyType(
                 "stories": ("The End",),
                 "story_arcs": ("g",),
                 "summary": ("Captain Science's many adult adventures",),
+                "tags": (),
                 "teams": ("Team Cornish Game Hen",),
                 "age_rating_tagged": ("Adult",),
             }
