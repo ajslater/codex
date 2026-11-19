@@ -271,4 +271,3 @@ class TagChangeOnCombinedListTests(ReadingListFixture):
         assert [row[2] for row in rows] == [c1.pk, None, c2.pk, c3.pk]
         assert rows[3][3] == ReadingListMatchTier.TAGGED
         assert ReadingListSource.objects.filter(reading_list=tags_list).count() == 2  # noqa: PLR2004
-

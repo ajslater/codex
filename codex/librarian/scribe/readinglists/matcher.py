@@ -23,13 +23,13 @@ ambiguous. Matching ignores per-user visibility; reading a list applies it.
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from itertools import batched
 from types import MappingProxyType
 from typing import Any, Final
 
 from comicbox.readinglists import name_variants, normalize_series, parse_issue
 from comicbox.readinglists.match import FoundBy, match_comics
-from django.db.models import Q
 
 from codex.librarian.scribe.readinglists.references import (
     comic_candidates,
@@ -79,17 +79,45 @@ def series_key(reference: Mapping[str, Any]) -> tuple[str, int] | None:
     return normalize_series(name), int(year)
 
 
-def _issue_q(reference: Mapping[str, Any]) -> Q | None:
-    """Return the comic filter for a reference's issue number and suffix."""
+IssueKey = tuple[Decimal | None, str]
+
+
+def _issue_key(reference: Mapping[str, Any]) -> IssueKey | None:
+    """Return a reference's issue number and suffix, as comics store them."""
     issue = reference.get("issue") or {}
     parsed = parse_issue(issue.get("name") or issue.get("number"))
     if parsed.number is None and not parsed.suffix:
         return None
-    return Q(issue_number=parsed.number, issue_suffix__iexact=parsed.suffix)
+    return parsed.number, parsed.suffix.casefold()
 
 
-def _best(pks: Iterable[int]) -> int | None:
-    return min(pks, default=None)
+def _comics_by_issue(series_pks: Iterable[int]) -> dict[tuple[int, IssueKey], int]:
+    """
+    Map each comic of the series to ``(series, issue) -> lowest comic pk``.
+
+    One query per batch of series, so matching a whole list by series and
+    issue costs no query per entry.
+    """
+    found: dict[tuple[int, IssueKey], int] = {}
+    for batch in batched(sorted(set(series_pks)), _BATCH):
+        rows = Comic.objects.filter(series_id__in=batch).values_list(
+            "pk", "series_id", "issue_number", "issue_suffix"
+        )
+        for pk, series_pk, number, suffix in rows:
+            key = (series_pk, (number, (suffix or "").casefold()))
+            if key not in found or pk < found[key]:
+                found[key] = pk
+    return found
+
+
+def _best_of(
+    found: Mapping[tuple[int, IssueKey], int],
+    series_pks: Iterable[int],
+    issue: IssueKey,
+) -> int | None:
+    """Return the lowest pk among the series' comics of that issue."""
+    pks = (found.get((series_pk, issue)) for series_pk in series_pks)
+    return min((pk for pk in pks if pk is not None), default=None)
 
 
 class SeriesNameIndex:
@@ -153,17 +181,19 @@ class ListMatcher:
     ) -> None:
         if not self.mappings:
             return
+        wanted: list[tuple[int, int, IssueKey]] = []
         for position, reference in enumerate(references):
             if results[position] is not None:
                 continue
             series_pk = self._mapped_series(reference)
-            issue_q = _issue_q(reference)
-            if series_pk is None or issue_q is None:
-                continue
-            pks = Comic.objects.filter(issue_q, series_id=series_pk).values_list(
-                "pk", flat=True
-            )
-            if (comic_pk := _best(pks)) is not None:
+            issue = _issue_key(reference)
+            if series_pk is not None and issue is not None:
+                wanted.append((position, series_pk, issue))
+        if not wanted:
+            return
+        found = _comics_by_issue(series_pk for _, series_pk, _ in wanted)
+        for position, series_pk, issue in wanted:
+            if (comic_pk := _best_of(found, (series_pk,), issue)) is not None:
                 results[position] = EntryMatch(comic_pk, ReadingListMatchTier.MAPPING)
 
     # 2. comicbox's matcher.
@@ -236,36 +266,51 @@ class ListMatcher:
     # 3. Series id and issue.
 
     @staticmethod
-    def _series_id_q(reference: Mapping[str, Any]) -> Q:
-        """Return the comic filter for a reference's series ids."""
+    def _series_ids(reference: Mapping[str, Any]) -> set[tuple[str, str]]:
+        """Return a reference's series ids as ``(source, key)``."""
         series_ids = (reference.get("series") or {}).get("identifiers") or {}
-        series_q = Q()
-        for source, identifier in series_ids.items():
-            if key := (identifier or {}).get("key"):
-                series_q |= Q(
-                    series__identifier__source__name=source,
-                    series__identifier__key=str(key),
-                )
-        return series_q
+        return {
+            (source, str(key))
+            for source, identifier in series_ids.items()
+            if (key := (identifier or {}).get("key"))
+        }
 
-    @classmethod
-    def _series_id_match(cls, reference: Mapping[str, Any]) -> EntryMatch | None:
-        series_q = cls._series_id_q(reference)
-        issue_q = _issue_q(reference)
-        if not series_q or issue_q is None:
-            return None
-        pks = Comic.objects.filter(series_q, issue_q).values_list("pk", flat=True)
-        if (comic_pk := _best(pks)) is None:
-            return None
-        return EntryMatch(comic_pk, ReadingListMatchTier.SERIES_ID)
+    @staticmethod
+    def _library_series(ids: set[tuple[str, str]]) -> dict[tuple[str, str], set[int]]:
+        """Map each series id to the library series that carry it."""
+        keys: defaultdict[str, set[str]] = defaultdict(set)
+        for source, key in ids:
+            keys[source].add(key)
+        series: defaultdict[tuple[str, str], set[int]] = defaultdict(set)
+        for source, source_keys in keys.items():
+            for batch in batched(sorted(source_keys), _BATCH):
+                rows = Series.objects.filter(
+                    identifier__source__name=source, identifier__key__in=batch
+                ).values_list("pk", "identifier__key")
+                for series_pk, key in rows:
+                    series[(source, key)].add(series_pk)
+        return series
 
     @classmethod
     def _match_series_ids(
         cls, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
     ) -> None:
+        wanted: list[tuple[int, set[tuple[str, str]], IssueKey]] = []
         for position, reference in enumerate(references):
-            if results[position] is None:
-                results[position] = cls._series_id_match(reference)
+            if results[position] is not None:
+                continue
+            ids = cls._series_ids(reference)
+            issue = _issue_key(reference)
+            if ids and issue is not None:
+                wanted.append((position, ids, issue))
+        if not wanted:
+            return
+        library = cls._library_series(set().union(*(ids for _, ids, _ in wanted)))
+        found = _comics_by_issue(pk for pks in library.values() for pk in pks)
+        for position, ids, issue in wanted:
+            series_pks = set().union(*(library.get(id_, set()) for id_ in ids))
+            if (comic_pk := _best_of(found, series_pks, issue)) is not None:
+                results[position] = EntryMatch(comic_pk, ReadingListMatchTier.SERIES_ID)
 
     def match(self, references: Sequence[Mapping[str, Any]]) -> list[EntryMatch]:
         """Match a list's references, in list order, to comics."""

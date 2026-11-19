@@ -137,10 +137,12 @@ class AdminReadingListSearchView(AdminAPIView):
         return Response({"results": rows})
 
 
-def _card(document: dict, kind: str, ref: str, warnings=()) -> dict[str, Any]:
+def _card(
+    document: dict, kind: str, ref: str, matcher: ListMatcher, warnings=()
+) -> dict[str, Any]:
     """Describe a parsed list: what it is, how much of it the library has."""
     entries = document.get("entries") or []
-    matches = ListMatcher().match(entries)
+    matches = matcher.match(entries)
     matched = sum(1 for match in matches if match.comic_pk is not None)
     sources = document.get("sources") or [{}]
     token = uuid4().hex
@@ -214,7 +216,7 @@ class AdminReadingListPreviewView(AdminAPIView):
             raise ValidationError(reason)
         return [source for source in sources if isinstance(source, dict)]
 
-    def _file_cards(self) -> list[dict]:
+    def _file_cards(self, matcher: ListMatcher) -> list[dict]:
         cards = []
         for upload in self.request.FILES.getlist("files"):
             name = upload.name or "upload"
@@ -229,12 +231,18 @@ class AdminReadingListPreviewView(AdminAPIView):
                 continue
             document = to_json(result.reading_list)
             cards.append(
-                _card(document, ReadingListSourceKind.UPLOAD, name, result.warnings)
+                _card(
+                    document,
+                    ReadingListSourceKind.UPLOAD,
+                    name,
+                    matcher,
+                    result.warnings,
+                )
             )
         return cards
 
     @staticmethod
-    def _fetched_cards(sources: list[dict]) -> list[dict]:
+    def _fetched_cards(sources: list[dict], matcher: ListMatcher) -> list[dict]:
         cards = []
         fetch_now = [s for s in sources if s.get("kind") in _FETCHED_NOW]
         if not fetch_now:
@@ -254,14 +262,16 @@ class AdminReadingListPreviewView(AdminAPIView):
                     cards.append(_error_card(kind, ref, str(exc)))
                     continue
                 document = to_json(result.reading_list)
-                cards.append(_card(document, kind, ref, result.warnings))
+                cards.append(_card(document, kind, ref, matcher, result.warnings))
         return cards
 
     def post(self, *_args, **_kwargs) -> Response:
         """Return a card per list; nothing is saved."""
         sources = self._sources()
-        cards = self._file_cards()
-        cards += self._fetched_cards(sources)
+        # One matcher, so the library's series index is built once.
+        matcher = ListMatcher()
+        cards = self._file_cards(matcher)
+        cards += self._fetched_cards(sources, matcher)
         cards += [
             _deferred_card(source)
             for source in sources
