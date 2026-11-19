@@ -3,7 +3,7 @@
 import json
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, override
+from typing import Any, Final, override
 
 from django.db.models import CharField, F, Min, Value
 from rest_framework.exceptions import NotFound
@@ -12,7 +12,16 @@ from codex.models.base import NamedModel
 from codex.models.collections import Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier
-from codex.models.named import Credit, StoryArc
+from codex.models.named import (
+    Character,
+    Credit,
+    Genre,
+    Location,
+    SeriesGroup,
+    StoryArc,
+    Tag,
+    Team,
+)
 from codex.models.readinglist import (
     ReadingListEntry,
     ReadingListSource,
@@ -54,6 +63,21 @@ _PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
         "description": "summary",
     }
 )
+# The browser filter each subject kind's facet link filters on. Not the model
+# name plus "s": that spells ``storyarcs`` and ``seriesgroups``. A story arc
+# is a reading list, so its link filters by the list its tags made.
+SUBJECT_FILTER_KEYS: MappingProxyType[type[NamedModel], str] = MappingProxyType(
+    {
+        Character: "characters",
+        Genre: "genres",
+        Location: "locations",
+        SeriesGroup: "series_groups",
+        StoryArc: "reading_lists",
+        Tag: "tags",
+        Team: "teams",
+    }
+)
+_ARC_FILTER_KEY: Final = SUBJECT_FILTER_KEYS[StoryArc]
 # Readium Contributor browse-group routing for publisher/imprint —
 # matches the helper in ``codex/views/opds/v2/feed/publications.py``.
 _CONTRIBUTOR_KINDS: tuple[str, ...] = ("publisher", "imprint")
@@ -69,21 +93,6 @@ _PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
 # page counts works; 999999999 is well clear of any plausible
 # ``page_count`` (sub-plan 05 #4).
 _READING_ORDER_PAGE_SENTINEL: int = 999999999
-
-
-_STORY_ARC_KIND = StoryArc.__name__.lower()
-# Each subject kind's browser filter key.
-_SUBJECT_FILTER_KEYS = MappingProxyType(
-    {
-        "character": "characters",
-        "genre": "genres",
-        "location": "locations",
-        "seriesgroup": "series_groups",
-        _STORY_ARC_KIND: "reading_lists",
-        "tag": "tags",
-        "team": "teams",
-    }
-)
 
 
 def _arc_list_pks(arc_pks) -> dict[int, int]:
@@ -265,7 +274,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         Replaces the prior 7-query loop in ``get_m2m_objects`` (one query
         per ``OPDS_M2M_MODELS`` entry) with a single ``UNION ALL`` over
-        ``(pk, name, _kind)`` tuples (sub-plan 05 #3). The reconstructed
+        ``(pk, name, _filter_key)`` tuples (sub-plan 05 #3). The reconstructed
         ``SimpleNamespace`` rows expose only ``pk`` / ``name`` / ``links``
         — the surface ``_add_tag_link`` and ``OPDS2SubjectSerializer``
         actually read.
@@ -273,32 +282,32 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         queries = []
         for model in OPDS_M2M_MODELS:
             rel = GroupACLMixin.get_rel_prefix(model)
-            kind = model.__name__.lower()
+            filter_key = SUBJECT_FILTER_KEYS[model]
             q = (
                 model.objects.filter(**{rel + "in": obj.ids})
-                .annotate(_kind=Value(kind, output_field=CharField()))
-                .values("pk", "name", "_kind")
+                .annotate(_filter_key=Value(filter_key, output_field=CharField()))
+                .values("pk", "name", "_filter_key")
             )
             queries.append(q)
-        rows = queries[0].union(*queries[1:], all=True).order_by("_kind", "name")
+        rows = queries[0].union(*queries[1:], all=True).order_by("_filter_key", "name")
 
         # ``flat_subjs`` carries ``SimpleNamespace`` rows that quack
         # like ``NamedModel`` (``pk`` / ``name`` / ``links``); the
         # serializer downstream reads only those three attributes.
         rows = list(rows)
         arc_lists = _arc_list_pks(
-            row["pk"] for row in rows if row["_kind"] == _STORY_ARC_KIND
+            row["pk"] for row in rows if row["_filter_key"] == _ARC_FILTER_KEY
         )
         flat_subjs: list[Any] = []
         for row in rows:
-            kind = row["_kind"]
+            filter_key = row["_filter_key"]
             pk = row["pk"]
-            if kind == _STORY_ARC_KIND:
+            if filter_key == _ARC_FILTER_KEY:
                 # An arc is a reading list: its link filters by the list.
                 pk = arc_lists.get(pk)
             subj = SimpleNamespace(pk=pk, name=row["name"], links=())
             if pk is not None:
-                self._add_tag_link(subj, _SUBJECT_FILTER_KEYS[kind])
+                self._add_tag_link(subj, filter_key)
             flat_subjs.append(subj)
         return tuple(flat_subjs)
 

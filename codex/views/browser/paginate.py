@@ -1,14 +1,13 @@
 """Browser pagination."""
 
-from math import ceil
-
-from django.core.paginator import EmptyPage, Paginator
+from django.core.paginator import Paginator
 from django.db.models.query import QuerySet
-from loguru import logger
 
 from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.page_in_bounds import BrowserPageInBoundsView
 from codex.views.const import FOLDER_COLLECTION
+
+_ORPHANS = 5
 
 
 class BrowserPaginateView(BrowserPageInBoundsView):
@@ -19,85 +18,41 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         orphans = (
             0
             if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
-            else 5
+            else _ORPHANS
         )
         # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
         # A small admin-configured page size would otherwise trip this.
         return min(orphans, per_page - 1)
 
-    def _paginate_section(
-        self, qs: QuerySet, page: int, total_count: int
-    ) -> tuple[QuerySet, int]:
+    def get_browser_paginator(self, count: int) -> Paginator:
         """
-        Paginate a collection or Comic section.
+        Paginate the collections and then the books as one list of rows.
 
-        ``total_count`` is the pre-computed section total (already run by
-        the caller via one grouped COUNT). It's stuffed into
-        ``Paginator._count`` so Paginator skips its own COUNT query, and
-        used to derive the page row count arithmetically instead of
-        issuing another COUNT on the sliced queryset.
+        A ``range`` stands in for the rows, so the page count and each page's
+        slice come from the same arithmetic, orphans included, without a query.
+        An empty listing has no pages.
         """
-        if not total_count:
-            return qs.model.objects.none(), 0
         per_page = get_browser_max_obj_per_page()
-        paginator = Paginator(qs, per_page, orphans=self.page_orphans(per_page))
-        # Shadow the @cached_property with the pre-computed total so
-        # Paginator.num_pages doesn't issue its own COUNT query.
-        paginator.count = total_count  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[invalid-assignment]
-        try:
-            paginator_page = paginator.page(page)
-            qs = paginator_page.object_list
-            count = paginator_page.end_index() - paginator_page.start_index() + 1
-        except EmptyPage:
-            if self.model_collection != FOLDER_COLLECTION:
-                model_name = qs.model.__name__ if qs.model else "UnknownGroup"
-                logger.warning(f"No {model_name}s on page {page}")
-            qs = qs.model.objects.none()
-            count = 0
-
-        return qs, count
-
-    def _paginate_collections(
-        self, collection_qs: QuerySet, collection_count: int
-    ) -> tuple[QuerySet, int]:
-        """Paginate the collection object list before books."""
-        page = self.kwargs.get("page", 1)
-        return self._paginate_section(collection_qs, page, collection_count)
-
-    def _paginate_books(
-        self,
-        book_qs: QuerySet,
-        book_count: int,
-        total_collection_count: int,
-        page_collection_count: int,
-    ) -> tuple[QuerySet, int]:
-        """Paginate the book object list based on how many collections/folders are showing."""
-        page_size = get_browser_max_obj_per_page()
-        collection_remainder = total_collection_count % page_size
-        num_books_on_mixed_page = page_size - collection_remainder
-        if page_collection_count:
-            # There are books after the collections on the same page
-            # Add remainder books without the paginator
-            page_book_qs = book_qs[:num_books_on_mixed_page]
-            page_book_count = min(num_books_on_mixed_page, book_count)
-            return page_book_qs, page_book_count
-
-        # There are books after the collections on a new page
-        book_offset = 0 if not collection_remainder else num_books_on_mixed_page
-        page_book_qs = book_qs[book_offset:]
-
-        # Which book page are we on after collections?
-        page = self.kwargs.get("page", 1)
-        num_collection_and_mixed_pages = ceil(total_collection_count / page_size)
-        book_only_page = page - num_collection_and_mixed_pages
-
-        remaining_book_count = max(0, book_count - book_offset)
-        return self._paginate_section(
-            page_book_qs, book_only_page, remaining_book_count
+        return Paginator(
+            range(count),
+            per_page,
+            orphans=self.page_orphans(per_page),
+            allow_empty_first_page=False,
         )
+
+    @staticmethod
+    def _slice_section(
+        qs: QuerySet, start: int, stop: int, count: int
+    ) -> tuple[QuerySet, int]:
+        """Slice a section's share of the page's rows."""
+        start, stop = max(start, 0), min(stop, count)
+        if start >= stop:
+            return qs.model.objects.none(), 0
+        return qs[start:stop], stop - start
 
     def paginate(
         self,
+        paginator: Paginator,
         collection_qs: QuerySet,
         book_qs: QuerySet,
         collection_count: int,
@@ -108,11 +63,18 @@ class BrowserPaginateView(BrowserPageInBoundsView):
             self._opds_number_of_books = book_count
             self._opds_number_of_collections = collection_count
 
-        page_collection_qs, page_collection_count = self._paginate_collections(
-            collection_qs, collection_count
+        if paginator.num_pages:
+            page = paginator.page(self.kwargs.get("page", 1))
+            start, stop = page.start_index() - 1, page.end_index()
+        else:
+            start = stop = 0
+
+        page_collection_qs, page_collection_count = self._slice_section(
+            collection_qs, start, stop, collection_count
         )
-        page_book_qs, page_book_count = self._paginate_books(
-            book_qs, book_count, collection_count, page_collection_count
+        # Books follow the collections in the rows.
+        page_book_qs, page_book_count = self._slice_section(
+            book_qs, start - collection_count, stop - collection_count, book_count
         )
 
         return page_collection_qs, page_book_qs, page_collection_count, page_book_count
