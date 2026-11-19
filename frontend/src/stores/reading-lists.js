@@ -6,6 +6,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/reading-lists";
 import READING_LIST_CHOICES from "@/choices/reading-list-choices.json";
+import router from "@/plugins/router";
 import { useCommonStore } from "@/stores/common";
 
 // Source kind -> label, from the backend's ReadingListSourceKind.
@@ -54,6 +55,24 @@ export const useReadingListsStore = defineStore("readingLists", {
     },
   },
   actions: {
+    async continueReading(pk) {
+      // Open the first issue of the list not yet finished, in list order.
+      try {
+        const response = await API.getContinue(pk);
+        const next = response.data?.continue;
+        if (!next) {
+          useCommonStore().setNotice("You have read every issue of this list.");
+          return;
+        }
+        await router.push({
+          name: "reader",
+          params: { pk: next.pk },
+          query: { page: next.page || 0, list: pk },
+        });
+      } catch (error) {
+        reportError(error);
+      }
+    },
     async loadLists() {
       try {
         const response = await API.getAdminLists();

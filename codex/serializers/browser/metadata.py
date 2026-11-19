@@ -220,6 +220,12 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     # Set by MetadataView.get_object: the reading lists the viewer may see
     # that hold any selected comic, ``{pk, name, position, count, editable}``.
     reading_lists = SerializerMethodField(read_only=True)
+    # One reading list's own details, when the selection is that list.
+    reading_list_details = SerializerMethodField(read_only=True)
+
+    def get_reading_list_details(self, obj) -> dict | None:
+        """Return the list's details, or None for any other selection."""
+        return getattr(obj, "reading_list_details", None)
 
     def get_reading_lists(self, obj) -> list[dict]:
         """Return the reading lists the selection is in."""

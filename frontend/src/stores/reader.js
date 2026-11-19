@@ -573,6 +573,11 @@ export const useReaderStore = defineStore("reader", {
       if (!params) {
         params = route.params;
       }
+      if (!arc && route.query?.list) {
+        // Continue Reading opens a comic with its list as the reading
+        // order; the server keeps it for the books after.
+        arc = { collection: "arcs", ids: [Number(route.query.list)] };
+      }
       const pk = params.pk;
       const settings = { arc };
       if (!mtime) {

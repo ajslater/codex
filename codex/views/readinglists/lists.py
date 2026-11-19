@@ -45,6 +45,7 @@ from codex.views.readinglists.access import (
     can_edit,
     editable_lists_q,
 )
+from codex.views.readinglists.details import continue_comic
 from codex.views.readinglists.entries import add_comics
 
 _KEYLESS_KINDS: Final = frozenset(
@@ -60,6 +61,7 @@ EXPORT_FORMATS: Final = MappingProxyType(
     }
 )
 _UNSAFE_FILENAME_RE: Final = re.compile(r"[^\w\- .()\[\]]+")
+_TRUE_VALUES: Final = frozenset({"1", "true"})
 
 
 def _merge_ids(target: dict, source: dict) -> None:
@@ -240,6 +242,17 @@ class ReadingListDuplicateView(ReadingListAccessView):
         return Response(list_repr(copy, self.request.user), status=201)
 
 
+class ReadingListContinueView(ReadingListAccessView):
+    """GET where a viewer continues a list: its first unfinished comic."""
+
+    def get(self, *_args, **_kwargs) -> Response:
+        """Return ``{continue: {pk, page} | null}``."""
+        reading_list = self.get_reading_list(edit=False)
+        return Response(
+            {"continue": continue_comic(self, self.request, reading_list)}
+        )
+
+
 class ReadingListExportView(ReadingListAccessView):
     """
     GET a list as a file: ``?fmt=cbl|json-cbl``.
@@ -254,16 +267,23 @@ class ReadingListExportView(ReadingListAccessView):
         Anyone who sees a list may export it, as much of it as they see.
         """
         reading_list = self.get_reading_list(edit=False)
+        shown_q = self.shown_entries_q()
+        missing = self.request.GET.get("missing") in _TRUE_VALUES
+        if missing:
+            # Export Missing: only the issues the library lacks, to hunt for.
+            shown_q &= Q(comic__isnull=True)
         fmt = self.request.GET.get("fmt", "cbl")
         if fmt not in EXPORT_FORMATS:
             reason = f"Unknown format {fmt!r}. Known: {', '.join(EXPORT_FORMATS)}."
             raise ValidationError(reason)
         token, suffix, content_type = EXPORT_FORMATS[fmt]
         try:
-            text = dumps(export_document(reading_list, self.shown_entries_q()), token)
+            text = dumps(export_document(reading_list, shown_q), token)
         except ReadingListError as exc:
             raise ValidationError(str(exc)) from exc
         response = HttpResponse(text, content_type=f"{content_type}; charset=utf-8")
-        filename = export_filename(reading_list, suffix)
+        filename = export_filename(
+            reading_list, f" (missing){suffix}" if missing else suffix
+        )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response

@@ -11,6 +11,7 @@ from codex.views.readinglists.entries import (
     ReadingListReorderView,
 )
 from codex.views.readinglists.lists import (
+    ReadingListContinueView,
     ReadingListDetailView,
     ReadingListDuplicateView,
     ReadingListExportView,
@@ -26,6 +27,11 @@ urlpatterns = [
         "<int:pk>/duplicate",
         never_cache(ReadingListDuplicateView.as_view()),
         name="duplicate",
+    ),
+    path(
+        "<int:pk>/continue",
+        never_cache(ReadingListContinueView.as_view()),
+        name="continue",
     ),
     path(
         "<int:pk>/export", never_cache(ReadingListExportView.as_view()), name="export"

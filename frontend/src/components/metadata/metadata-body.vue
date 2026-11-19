@@ -1,5 +1,6 @@
 <template>
   <div id="metadataBody">
+    <MetadataReadingListDetails />
     <section class="mdSection">
       <MetadataText :value="md.summary" :max-height="100" />
       <MetadataText
@@ -84,6 +85,7 @@ import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
+import MetadataReadingListDetails from "@/components/metadata/metadata-reading-list-details.vue";
 import MetadataReadingListsRow from "@/components/metadata/metadata-reading-lists-row.vue";
 import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
@@ -97,6 +99,7 @@ export default {
   name: "MetadataBody",
   components: {
     MetadataRatings,
+    MetadataReadingListDetails,
     MetadataReadingListsRow,
     MetadataShelvesRow,
     MetadataTagsTable,

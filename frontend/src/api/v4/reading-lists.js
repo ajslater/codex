@@ -64,5 +64,7 @@ export const reorderEntry = (pk, entry, position) =>
 export const acceptEntries = (pk) => HTTP.post(`${LISTS}/${pk}/entries/accept`);
 export const getCandidates = (pk, entryPk, q = "") =>
   HTTP.get(`${LISTS}/${pk}/entries/${entryPk}/candidates`, fresh({ q }));
-export const exportURL = (pk, fmt) =>
-  `${V4_BASE}reading-lists/${pk}/export?fmt=${encodeURIComponent(fmt)}`;
+// ``missing``: only the issues the library lacks, to hunt for.
+export const exportURL = (pk, fmt, isMissing = false) =>
+  `${V4_BASE}reading-lists/${pk}/export?fmt=${encodeURIComponent(fmt)}${isMissing ? "&missing=1" : ""}`;
+export const getContinue = (pk) => HTTP.get(`${LISTS}/${pk}/continue`, fresh());
