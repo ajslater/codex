@@ -13,6 +13,7 @@ What these tests pin:
 """
 
 import json
+import logging
 from typing import Final, override
 
 from comicbox.enums.metroninfo import MetronAgeRatingEnum
@@ -100,6 +101,17 @@ class ApiKeyOPDSTestCase(ApiKeyFixture):
 
     def test_bad_bearer_is_refused(self) -> None:
         assert self._get(OPDS_V2, "Bearer nope").status_code == HTTP_UNAUTHORIZED
+
+    def test_challenge_logs_at_debug(self) -> None:
+        """A challenge to a bare request is DEBUG; a refused key still warns."""
+        with self.assertLogs("django.request", level=logging.DEBUG) as logs:
+            Client().get(OPDS_V2)
+            self._get(OPDS_V2, "Bearer nope")
+        lines = [(record.levelno, record.getMessage()) for record in logs.records]
+        assert lines == [
+            (logging.DEBUG, f"Unauthorized: {OPDS_V2}"),
+            (logging.WARNING, f"Unauthorized: {OPDS_V2}"),
+        ], lines
 
     def test_stats_key_is_refused(self) -> None:
         User.objects.filter(pk=self.user.pk).update(is_staff=True)
