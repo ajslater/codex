@@ -1,34 +1,58 @@
 """Parse the field side of a field lookup."""
 
 from types import MappingProxyType
+from typing import cast
 
-from django.db.models import CharField
+from django.db.models import CharField, Model
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 
-from codex.models.collections import Series
 from codex.models.comic import Comic
 
 # Series attributes searched on every comic of the series.
 _SERIES_ATTR_FIELDS = ("end_year", "start_year", "status", "summary")
+# Search columns that don't search the name of the Comic field they're named for.
 _FIELD_TO_REL_SPAN_MAP = MappingProxyType(
     {
+        "age_rating_metron": "age_rating__metron__name",
+        "age_rating_tagged": "age_rating__name",
         "alternate_series": "reprints__series_name",
         "role": "credits__role__name",
         "credits": "credits__person__name",
         "identifiers": "identifiers__key",
         "sources": "identifiers__source__name",
-        "story_arcs": "story_arc_number__story_arc__name",
+        "story_arcs": "story_arc_numbers__story_arc__name",
+        "volume_to": "volume__number_to",
         **{f"series_{name}": f"series__{name}" for name in _SERIES_ATTR_FIELDS},
     }
 )
+
+
+def _span_field_class(span: str) -> type:
+    """Return the class of the span's last field, or ManyToManyField if it crosses one."""
+    model = Comic
+    field_class = type(None)
+    for name in span.split(LOOKUP_SEP):
+        field = model._meta.get_field(name)
+        if field.many_to_many:
+            return ManyToManyField
+        field_class = type(field)
+        # ``related_model`` is typed ``type[Model] | Literal['self'] | None``;
+        # only the last field of a span is not a relation.
+        model = cast("type[Model]", field.related_model)
+    return field_class
+
+
 _FIELD_TYPE_MAP = MappingProxyType(
     {
-        **{field.name: field.__class__ for field in Comic._meta.concrete_fields},
         **{
-            f"series_{name}": Series._meta.get_field(name).__class__
-            for name in _SERIES_ATTR_FIELDS
+            field.name: field.__class__
+            for field in (*Comic._meta.concrete_fields, *Comic._meta.many_to_many)
         },
-        "role": ManyToManyField,
+        **{
+            field_name: _span_field_class(span)
+            for field_name, span in _FIELD_TO_REL_SPAN_MAP.items()
+        },
         "issue": CharField,
     }
 )
