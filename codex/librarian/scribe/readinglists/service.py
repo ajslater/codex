@@ -13,7 +13,7 @@ from typing import Any, Final
 
 from comicbox.readinglists import Verdict, compare, normalize_series
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils.timezone import now
 
 from codex.choices.limits import MAX_NAME_LEN
@@ -112,12 +112,15 @@ def unique_name(name: str, user) -> str:
     return candidate
 
 
-def copy_list(original: ReadingList, *, user, name: str) -> ReadingList:
+def copy_list(
+    original: ReadingList, *, user, name: str, entries_q: Q | None = None
+) -> ReadingList:
     """
     Copy a list's shown entries into a new list, as entries added by hand.
 
-    ``user`` owns the copy; None makes it global. The copy's order is
-    locked, since it has no sources to follow.
+    ``user`` owns the copy; None makes it global. ``entries_q`` narrows the
+    entries to what the copier sees. The copy's order is locked, since it
+    has no sources to follow.
     """
     with transaction.atomic():
         copy = ReadingList.objects.create(
@@ -129,9 +132,11 @@ def copy_list(original: ReadingList, *, user, name: str) -> ReadingList:
             end_year=original.end_year,
             order_locked=True,
         )
-        entries = ReadingListEntry.objects.filter(
-            reading_list=original, ignored=False
-        ).order_by("position", "pk")
+        entries = (
+            ReadingListEntry.objects.filter(reading_list=original, ignored=False)
+            .filter(entries_q or Q())
+            .order_by("position", "pk")
+        )
         ReadingListEntry.objects.bulk_create(
             ReadingListEntry(
                 reading_list=copy,

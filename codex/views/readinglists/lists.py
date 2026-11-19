@@ -14,7 +14,7 @@ from comicbox.readinglists import ReadingListError, dumps
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -80,10 +80,10 @@ def _with_comic(reference: dict, comic: dict | None) -> dict:
     return entry
 
 
-def _export_entries(reading_list: ReadingList) -> list[dict[str, Any]]:
+def _export_entries(reading_list: ReadingList, shown_q: Q) -> list[dict[str, Any]]:
     """Each shown entry's reference, with the ids of the comic it matched."""
     entries = list(
-        ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
+        ReadingListEntry.objects.filter(shown_q, reading_list=reading_list)
         .order_by("position", "pk")
         .values_list("reference", "comic_id")
     )
@@ -120,10 +120,14 @@ def _export_sources(reading_list: ReadingList) -> list[dict[str, str]]:
     return sources
 
 
-def export_document(reading_list: ReadingList) -> dict[str, Any]:
-    """Return the list as a comicbox model, ready to write in any format."""
+def export_document(reading_list: ReadingList, shown_q: Q) -> dict[str, Any]:
+    """
+    Return the list as a comicbox model, ready to write in any format.
+
+    ``shown_q`` picks the entries the exporter sees.
+    """
     document = document_of(reading_list)
-    document["entries"] = _export_entries(reading_list)
+    document["entries"] = _export_entries(reading_list, shown_q)
     document["sources"] = _export_sources(reading_list)
     return from_json(document)
 
@@ -171,8 +175,9 @@ class ReadingListsView(ReadingListAccessView):
         return Response({"lists": [list_repr(rl, user) for rl in lists]})
 
     def post(self, *_args, **_kwargs) -> Response:
-        """Make a personal list, empty or holding ``comics``."""
+        """Make a personal list, empty or holding the ``comics`` the user sees."""
         name = _validated_name(self.request.data)
+        pks = self.visible_comic_pks(self.request.data.get("comics"))
         try:
             with transaction.atomic():
                 reading_list = ReadingList.objects.create(
@@ -181,8 +186,7 @@ class ReadingListsView(ReadingListAccessView):
         except IntegrityError as exc:
             reason = "You already have a reading list with that name."
             raise ValidationError(reason) from exc
-        if comics := self.request.data.get("comics"):
-            add_comics(reading_list, [int(pk) for pk in comics])
+        add_comics(reading_list, pks)
         return Response(list_repr(reading_list, self.request.user), status=201)
 
 
@@ -216,10 +220,15 @@ class ReadingListDuplicateView(ReadingListAccessView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, *_args, **_kwargs) -> Response:
-        """Copy every shown entry, as entries added by hand."""
+        """Copy every entry the user sees, as entries added by hand."""
         original = self.get_reading_list(edit=False)
         name = str(self.request.data.get("name") or f"{original.name} (copy)")
-        copy = copy_list(original, user=self.request.user, name=name)
+        copy = copy_list(
+            original,
+            user=self.request.user,
+            name=name,
+            entries_q=self.shown_entries_q(),
+        )
         return Response(list_repr(copy, self.request.user), status=201)
 
 
@@ -231,19 +240,19 @@ class ReadingListExportView(ReadingListAccessView):
     """
 
     def get(self, *_args, **_kwargs):
-        """Write the list; matched entries carry their comic's ids."""
+        """
+        Write the list; matched entries carry their comic's ids.
+
+        Anyone who sees a list may export it, as much of it as they see.
+        """
         reading_list = self.get_reading_list(edit=False)
-        user = self.request.user
-        if not (getattr(user, "is_staff", False) or reading_list.user_id == user.pk):  # pyright: ignore[reportAttributeAccessIssue]
-            reason = "Only the list's owner or an admin may export it."
-            raise PermissionDenied(reason)
         fmt = self.request.GET.get("fmt", "cbl")
         if fmt not in EXPORT_FORMATS:
             reason = f"Unknown format {fmt!r}. Known: {', '.join(EXPORT_FORMATS)}."
             raise ValidationError(reason)
         token, suffix, content_type = EXPORT_FORMATS[fmt]
         try:
-            text = dumps(export_document(reading_list), token)
+            text = dumps(export_document(reading_list, self.shown_entries_q()), token)
         except ReadingListError as exc:
             raise ValidationError(str(exc)) from exc
         response = HttpResponse(text, content_type=f"{content_type}; charset=utf-8")

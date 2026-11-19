@@ -20,6 +20,7 @@ from codex.models.readinglist import (
 )
 from codex.views.admin.auth import AdminAPIView
 from codex.views.admin.reading_lists.table import get_list
+from codex.views.readinglists.access import to_pk, to_pks
 
 
 def _dry_run(lists: list[ReadingList]) -> dict[str, Any]:
@@ -53,12 +54,8 @@ class AdminReadingListCombineView(AdminAPIView):
     def post(self, *_args, **_kwargs) -> Response:
         """Combine, or preview combining."""
         data = self.request.data
-        try:
-            primary_pk = int(str(data.get("primary")))
-            other_pks = [int(pk) for pk in data.get("others") or ()]
-        except (TypeError, ValueError) as exc:
-            reason = "primary and others must be reading list pks."
-            raise ValidationError(reason) from exc
+        primary_pk = to_pk(data.get("primary"), "primary")
+        other_pks = to_pks(data.get("others"), "others")
         primary = get_list(primary_pk)
         others = list(
             ReadingList.objects.filter(pk__in=other_pks).exclude(pk=primary_pk)
@@ -130,11 +127,11 @@ class AdminReadingListSeriesMappingsView(AdminAPIView):
     def post(self, *_args, **_kwargs) -> Response:
         """Save a mapping from a review row and rematch its series."""
         data = self.request.data
-        reading_list = get_list(data.get("list"))
+        reading_list = get_list(to_pk(data.get("list"), "list"))
         entry = ReadingListEntry.objects.filter(
-            reading_list=reading_list, pk=data.get("entry")
+            reading_list=reading_list, pk=to_pk(data.get("entry"), "entry")
         ).first()
-        series = Series.objects.filter(pk=data.get("series")).first()
+        series = Series.objects.filter(pk=to_pk(data.get("series"), "series")).first()
         if entry is None or series is None:
             reason = "No such entry or series."
             raise NotFound(reason)
@@ -170,5 +167,5 @@ class AdminReadingListSeriesMappingsView(AdminAPIView):
     def delete(self, *_args, **_kwargs) -> Response:
         """Forget a mapping. Rows it matched keep their comics."""
         pk = self.request.query_params.get("pk") or self.request.data.get("pk")
-        count, _ = ReadingListSeriesMapping.objects.filter(pk=pk).delete()
+        count, _ = ReadingListSeriesMapping.objects.filter(pk=to_pk(pk, "pk")).delete()
         return Response({"deleted": count})

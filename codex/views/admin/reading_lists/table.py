@@ -4,6 +4,7 @@ from collections import defaultdict
 from types import MappingProxyType
 from typing import Any, Final
 
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
@@ -40,6 +41,7 @@ from codex.models.readinglist import (
     ReadingListSourceKind,
 )
 from codex.views.admin.auth import AdminAPIView
+from codex.views.readinglists.access import to_pks
 
 _SOURCE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
     {str(value): str(label) for value, label in ReadingListSourceKind.choices}
@@ -187,7 +189,12 @@ class AdminReadingListDetailView(AdminAPIView):
         if "private" in data:
             reading_list.user = self.request.user if data["private"] else None
         reading_list.edited_fields = sorted(edited)
-        reading_list.save()
+        try:
+            with transaction.atomic():
+                reading_list.save()
+        except IntegrityError as exc:
+            reason = "Its owner already has a reading list with that name."
+            raise ValidationError(reason) from exc
         return Response({"pk": reading_list.pk})
 
     def delete(self, *_args, pk: int, **_kwargs) -> Response:
@@ -354,11 +361,7 @@ class AdminReadingListBulkView(AdminAPIView):
     def post(self, *_args, **_kwargs) -> Response:
         """Queue the action for every list named."""
         action = str(self.request.data.get("action") or "")
-        try:
-            pks = [int(pk) for pk in self.request.data.get("pks") or ()]
-        except (TypeError, ValueError) as exc:
-            reason = "pks must be reading list pks."
-            raise ValidationError(reason) from exc
+        pks = to_pks(self.request.data.get("pks"), "pks")
         lists = list(ReadingList.objects.filter(pk__in=pks))
         return Response(_act(action, lists))
 
@@ -386,11 +389,7 @@ class AdminReadingListSourcesView(AdminAPIView):
     def put(self, *_args, pk: int, **_kwargs) -> Response:
         """Rank the sources and recombine."""
         reading_list = get_list(pk)
-        try:
-            order = [int(spk) for spk in self.request.data.get("order") or ()]
-        except (TypeError, ValueError) as exc:
-            reason = "order must be source pks."
-            raise ValidationError(reason) from exc
+        order = to_pks(self.request.data.get("order"), "order")
         rank_sources(reading_list, order)
         return Response({"pk": reading_list.pk})
 

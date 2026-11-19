@@ -26,7 +26,12 @@ from codex.models.readinglist import (
     ReadingListEntry,
     ReadingListMatchTier,
 )
-from codex.views.readinglists.access import ReadingListAccessView, can_edit
+from codex.views.readinglists.access import (
+    ReadingListAccessView,
+    can_edit,
+    entries_acl_q,
+    to_pk,
+)
 
 _CANDIDATE_LIMIT: Final = 50
 _FILTERS: Final = {
@@ -93,11 +98,18 @@ class ReadingListEntriesView(ReadingListAccessView):
     """GET a list's entries; POST comics onto it by hand."""
 
     def get(self, *_args, **_kwargs) -> Response:
-        """Return the entries, narrowed by ``?filter=review|missing|hidden|all``."""
+        """
+        Return the entries, narrowed by ``?filter=review|missing|hidden|all``.
+
+        An entry whose comic the editor may not see is left out, as it is
+        everywhere else the list is read.
+        """
         reading_list = self.get_reading_list()
         filter_q = _FILTERS.get(self.request.GET.get("filter", "all"), Q())
+        acl_q = entries_acl_q(self, self.request.user)
         entries = [
-            entry_repr(entry) for entry in _entries(reading_list).filter(filter_q)
+            entry_repr(entry)
+            for entry in _entries(reading_list).filter(acl_q & filter_q)
         ]
         return Response({"entries": entries, "editable": True})
 
@@ -109,22 +121,17 @@ class ReadingListEntriesView(ReadingListAccessView):
         reference is built from the comic so it can be found again.
         """
         reading_list = self.get_reading_list()
-        raw_pks = self.data_value("comics") or []
-        try:
-            pks = [int(pk) for pk in raw_pks]
-        except (TypeError, ValueError) as exc:
-            reason = "comics must be comic pks."
-            raise ValidationError(reason) from exc
-        acl = self.get_acl_filter(Comic, self.request.user)
-        visible = set(
-            Comic.objects.filter(acl, pk__in=pks).values_list("pk", flat=True)
-        )
-        pks = [pk for pk in pks if pk in visible]
-        added = add_comics(reading_list, pks, self.data_value("position"))
+        pks = self.visible_comic_pks(self.data_value("comics"))
+        position = self.data_value("position")
+        if position is not None:
+            position = to_pk(position, "position")
+        added = add_comics(reading_list, pks, position)
         return Response({"added": added})
 
 
-def add_comics(reading_list: ReadingList, pks: list[int], position=None) -> int:
+def add_comics(
+    reading_list: ReadingList, pks: list[int], position: int | None = None
+) -> int:
     """Put comics into a list by hand, in order, at ``position`` or the end."""
     if not pks:
         return 0
@@ -139,10 +146,7 @@ def add_comics(reading_list: ReadingList, pks: list[int], position=None) -> int:
                 "position", "pk"
             )
         )
-        if position is None:
-            at = len(ordered)
-        else:
-            at = max(0, min(int(position), len(ordered)))
+        at = len(ordered) if position is None else max(0, min(position, len(ordered)))
         new_entries = []
         for pk in pks:
             comic = comics.get(pk)
@@ -172,7 +176,9 @@ class ReadingListEntryView(ReadingListAccessView):
     def _entry(self, reading_list: ReadingList) -> ReadingListEntry:
         entry = (
             ReadingListEntry.objects.filter(
-                reading_list=reading_list, pk=self.kwargs["entry_pk"]
+                entries_acl_q(self, self.request.user),
+                reading_list=reading_list,
+                pk=self.kwargs["entry_pk"],
             )
             .select_related("comic", "comic__series", "comic__volume")
             .first()
@@ -191,7 +197,7 @@ class ReadingListEntryView(ReadingListAccessView):
             entry.needs_review = False
             return
         acl = self.get_acl_filter(Comic, self.request.user)
-        comic = Comic.objects.filter(acl, pk=comic_pk).first()
+        comic = Comic.objects.filter(acl, pk=to_pk(comic_pk, "comic")).first()
         if comic is None:
             reason = "No such comic."
             raise ValidationError(reason)
@@ -235,12 +241,8 @@ class ReadingListReorderView(ReadingListAccessView):
     def post(self, *_args, **_kwargs) -> Response:
         """Move ``entry`` to ``position``, 0-based, and lock the order."""
         reading_list = self.get_reading_list()
-        try:
-            entry_pk = int(self.data_value("entry"))
-            position = int(self.data_value("position"))
-        except (TypeError, ValueError) as exc:
-            reason = "entry and position are required numbers."
-            raise ValidationError(reason) from exc
+        entry_pk = to_pk(self.data_value("entry"), "entry")
+        position = to_pk(self.data_value("position"), "position")
         with transaction.atomic():
             ordered = list(_entries(reading_list))
             moving = next((entry for entry in ordered if entry.pk == entry_pk), None)
@@ -279,7 +281,9 @@ class ReadingListCandidatesView(ReadingListAccessView):
         """Search by ``?q=`` series name, else by the entry's own series names."""
         reading_list = self.get_reading_list()
         entry = ReadingListEntry.objects.filter(
-            reading_list=reading_list, pk=self.kwargs["entry_pk"]
+            entries_acl_q(self, self.request.user),
+            reading_list=reading_list,
+            pk=self.kwargs["entry_pk"],
         ).first()
         if entry is None:
             reason = "No such entry."

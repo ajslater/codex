@@ -44,6 +44,7 @@ from codex.models.readinglist import (
 )
 from codex.settings import COMICBOX_ONLINE_CONFIG
 from codex.views.admin.auth import AdminAPIView
+from codex.views.readinglists.access import to_pk
 
 _PREVIEW_KEY: Final = "readinglists:preview:{}"
 _PREVIEW_TTL: Final = 60 * 60
@@ -269,9 +270,20 @@ class AdminReadingListPreviewView(AdminAPIView):
         return Response({"cards": cards})
 
 
+def _into(spec: dict) -> int | None:
+    """Return the list an import adds to, which must exist, or None for a new one."""
+    if not spec.get("into"):
+        return None
+    into = to_pk(spec["into"], "into")
+    if not ReadingList.objects.filter(pk=into).exists():
+        reason = "No such reading list to add to."
+        raise ValidationError(reason)
+    return into
+
+
 def _item(spec: dict, user) -> tuple[ImportItem | None, FetchRequest | None]:
     """Turn one import choice into a write now or a fetch first."""
-    into = int(spec["into"]) if spec.get("into") else None
+    into = _into(spec)
     owner = user.pk if spec.get("private") else None
     name = str(spec.get("name") or "")
     if token := spec.get("token"):
