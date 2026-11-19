@@ -11,39 +11,11 @@
       @rename="onRename"
       @delete="onDelete"
     >
-      <template #actions="{ item }">
-        <v-btn
-          density="compact"
-          :icon="mdiOpenInApp"
-          size="small"
-          title="Open"
-          variant="text"
-          @click="open(item)"
-        />
-        <v-btn
-          density="compact"
-          :icon="mdiFormatListChecks"
-          size="small"
-          title="Edit Issues"
-          variant="text"
-          @click="edit(item)"
-        />
-        <v-menu>
-          <template #activator="{ props }">
-            <v-btn
-              v-bind="props"
-              density="compact"
-              :icon="mdiDotsVertical"
-              size="small"
-              title="More"
-              variant="text"
-            />
-          </template>
-          <v-list density="compact">
-            <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
-            <ReadingListExportMenu :pk="item.pk" />
-          </v-list>
-        </v-menu>
+      <template #menu="{ item }">
+        <v-list-item title="Open" @click="open(item)" />
+        <v-list-item title="Edit Issues" @click="edit(item)" />
+        <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
+        <ReadingListExportMenu :pk="item.pk" />
       </template>
     </NameListEditor>
     <div v-if="creating" class="newList">
@@ -94,13 +66,7 @@
 </template>
 
 <script>
-import {
-  mdiCheck,
-  mdiDotsVertical,
-  mdiFormatListChecks,
-  mdiOpenInApp,
-  mdiPlus,
-} from "@mdi/js";
+import { mdiCheck, mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
@@ -125,9 +91,6 @@ export default {
     return {
       maxLength: LIMITS.maxNameLen,
       mdiCheck,
-      mdiDotsVertical,
-      mdiFormatListChecks,
-      mdiOpenInApp,
       mdiPlus,
       creating: false,
       name: "",

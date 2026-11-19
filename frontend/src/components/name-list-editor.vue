@@ -45,25 +45,46 @@
           :subtitle="countLabel(item)"
         >
           <template #append>
-            <slot name="actions" :item="item" />
-            <v-btn
-              class="nameListRenameBtn"
-              density="compact"
-              :icon="mdiPencil"
-              size="small"
-              :title="renameTitle"
-              variant="text"
-              @click="startRename(item)"
-            />
-            <v-btn
-              class="nameListDeleteBtn"
-              density="compact"
-              :icon="mdiTrashCan"
-              size="small"
-              :title="deleteTitle"
-              variant="text"
-              @click="deleteTarget = item"
-            />
+            <v-menu v-if="$slots.menu" location="bottom end">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  :aria-label="`Actions for ${item.name}`"
+                  class="nameListMenuBtn"
+                  density="compact"
+                  :icon="mdiDotsVertical"
+                  size="small"
+                  title="Actions"
+                  variant="text"
+                />
+              </template>
+              <v-list class="nameListMenu" density="compact">
+                <slot name="menu" :item="item" />
+                <v-divider />
+                <v-list-item title="Rename" @click="startRename(item)" />
+                <v-list-item title="Delete" @click="deleteTarget = item" />
+              </v-list>
+            </v-menu>
+            <template v-else>
+              <v-btn
+                class="nameListRenameBtn"
+                density="compact"
+                :icon="mdiPencil"
+                size="small"
+                :title="renameTitle"
+                variant="text"
+                @click="startRename(item)"
+              />
+              <v-btn
+                class="nameListDeleteBtn"
+                density="compact"
+                :icon="mdiTrashCan"
+                size="small"
+                :title="deleteTitle"
+                variant="text"
+                @click="deleteTarget = item"
+              />
+            </template>
           </template>
         </v-list-item>
       </template>
@@ -80,7 +101,13 @@
 </template>
 
 <script>
-import { mdiCheck, mdiClose, mdiPencil, mdiTrashCan } from "@mdi/js";
+import {
+  mdiCheck,
+  mdiClose,
+  mdiDotsVertical,
+  mdiPencil,
+  mdiTrashCan,
+} from "@mdi/js";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { isImeEnter } from "@/util";
@@ -88,8 +115,10 @@ import { isImeEnter } from "@/util";
 /*
  * A list of named things the user can rename and delete in place.
  * It owns no data: the parent passes ``items`` and acts on the
- * ``rename`` / ``delete`` events, so shelves and any later named list
- * (reading lists) share it. ``noun`` words the labels.
+ * ``rename`` / ``delete`` events, so shelves and reading lists share it.
+ * ``noun`` words the labels. A parent that fills the ``menu`` slot gets
+ * one menu per row, its items above Rename and Delete, so a narrow row
+ * keeps room for the name; otherwise a row has rename and delete buttons.
  */
 export default {
   name: "NameListEditor",
@@ -132,6 +161,7 @@ export default {
       editName: "",
       mdiCheck,
       mdiClose,
+      mdiDotsVertical,
       mdiPencil,
       mdiTrashCan,
     };

@@ -66,6 +66,22 @@ const mountSection = () =>
 const mountBlock = (options = {}) =>
   mountWith(BrowserSettingsReadingLists, options);
 
+const itemTitle = (item) =>
+  item.querySelector(".v-list-item-title").textContent.trim();
+
+async function clickMenuItem(wrapper, title) {
+  const items = await openRowMenu(wrapper);
+  items.find((item) => itemTitle(item) === title).click();
+  await flushPromises();
+}
+
+// Open the first row's menu; its items render in an overlay on the body.
+async function openRowMenu(wrapper) {
+  await wrapper.find(".nameListMenuBtn").trigger("click");
+  await flushPromises();
+  return [...document.querySelectorAll(".nameListMenu > .v-list-item")];
+}
+
 afterEach(() => {
   for (const wrapper of wrappers) {
     wrapper.unmount();
@@ -193,9 +209,43 @@ describe("BrowserSettingsReadingLists", () => {
     expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
   });
 
+  test("a list's row has one control, its menu", () => {
+    const { wrapper } = mountBlock();
+    const buttons = wrapper.find(".nameListRow").findAll("button");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].classes()).toContain("nameListMenuBtn");
+  });
+
+  test("the menu opens, edits, copies, exports, renames and deletes", async () => {
+    const { wrapper } = mountBlock();
+    const items = await openRowMenu(wrapper);
+    expect(items.map((item) => itemTitle(item))).toEqual([
+      "Open",
+      "Edit Issues",
+      "Duplicate",
+      "Export",
+      "Rename",
+      "Delete",
+    ]);
+  });
+
+  test("rename and delete start from the menu", async () => {
+    const { wrapper } = mountBlock();
+    await clickMenuItem(wrapper, "Rename");
+    expect(wrapper.find(".nameListEditField").exists()).toBe(true);
+    wrapper.findComponent(NameListEditor).vm.cancelRename();
+    await flushPromises();
+    await clickMenuItem(wrapper, "Delete");
+    expect(wrapper.findComponent(NameListEditor).vm.deleteTarget).toMatchObject(
+      {
+        pk: 2,
+      },
+    );
+  });
+
   test("open routes to the list under the arcs collection", async () => {
     const { wrapper } = mountBlock();
-    await wrapper.find('button[title="Open"]').trigger("click");
+    await clickMenuItem(wrapper, "Open");
     expect(useBrowserStore().routeWithSettings).toHaveBeenCalledWith(
       { topCollection: "arcs" },
       {
@@ -207,7 +257,7 @@ describe("BrowserSettingsReadingLists", () => {
 
   test("edit opens the entry editor without admin powers", async () => {
     const { wrapper } = mountBlock();
-    await wrapper.find('button[title="Edit Issues"]').trigger("click");
+    await clickMenuItem(wrapper, "Edit Issues");
     const dialog = wrapper.findComponent({ name: "ReviewDialog" });
     expect(dialog.exists()).toBe(true);
     expect(dialog.attributes("admin")).toBe("false");
