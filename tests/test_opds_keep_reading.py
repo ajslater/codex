@@ -316,7 +316,7 @@ class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
         params = parse_qs(urlsplit(href).query)
         assert json.loads(params["filters"][0]) == {"bookmark": "UNREAD"}, href
         assert params["orderBy"] == ["created_at"], href
-        assert params["orderReverse"] == ["True"], href
+        assert params["orderReverse"] == ["true"], href
 
     def test_latest_unread_does_not_inherit_keep_reading_filter(self) -> None:
         self._seed_reading()

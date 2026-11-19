@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import override
 
+from django.db import IntegrityError
 from loguru import logger
 
 from codex.librarian.bookmark.last_route import LastRouteUpdateMixin
@@ -188,6 +189,12 @@ class BookmarkThread(
                     self.update_user_active(key.user_pk, logger)
                 elif key.comic_pks:
                     self.update_bookmarks(key.auth_filter, key.comic_pks, value)
+                cleanup.add(key)
+            except IntegrityError as exc:
+                # A constraint the row can never meet, most often the
+                # visitor session a page turn was queued for, deleted by
+                # login. Retrying would fail every flush forever.
+                self.log.warning(f"Dropping a bookmark update that cannot land: {exc}")
                 cleanup.add(key)
             except Exception:
                 self.log.exception("Updating bookmarks")

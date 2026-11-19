@@ -1,9 +1,14 @@
 """HTTP-level tests for the shelves API."""
 
-from django.contrib.auth.models import Group, User
-from django.test import Client
+from unittest.mock import patch
 
-from codex.models import Library, Shelf
+import pytest
+from django.contrib.auth.models import Group, User
+from django.db import DatabaseError
+from django.test import Client
+from django.utils import timezone
+
+from codex.models import Comic, Library, Shelf, ShelfItem
 from codex.models.auth import GroupAuth
 from tests.shelf_fixtures import (
     COLLECTIONS,
@@ -118,6 +123,43 @@ class ShelvesAPITestCase(ShelfTestCase):
         assert response.status_code == HTTP_OK, response.content
         assert v4(response)["added"] == 1
         assert list(self._target_ids(shelf)) == [self.c1.pk]
+
+    def test_add_keeps_a_target_whose_file_is_missing(self):
+        """
+        Writes land on pending-delete rows, as bookmarks' do.
+
+        The add dropped them yet answered 200, so the menu kept them
+        ticked until the next reload.
+        """
+        Comic.objects.filter(pk=self.c1.pk).update(missing_since=timezone.now())
+        shelf = self._shelf()
+        response = post_json(
+            self.client, "patch", items_url(shelf.pk), {"add": {"comics": [self.c1.pk]}}
+        )
+        assert response.status_code == HTTP_OK, response.content
+        assert v4(response)["added"] == 1
+        assert list(self._target_ids(shelf)) == [self.c1.pk]
+
+    def test_remove_then_add_is_atomic(self):
+        """A failed add leaves the removed items where they were."""
+        shelf = self._shelf()
+        self._put(shelf, "series", self.s1.pk)
+        with (
+            patch.object(
+                ShelfItem.objects, "bulk_create", side_effect=DatabaseError("full")
+            ),
+            pytest.raises(DatabaseError),
+        ):
+            post_json(
+                self.client,
+                "patch",
+                items_url(shelf.pk),
+                {
+                    "remove": {"series": [self.s1.pk]},
+                    "add": {"comics": [self.c1.pk]},
+                },
+            )
+        assert list(self._target_ids(shelf)) == [self.s1.pk]
 
     def test_unknown_collection_is_rejected(self):
         """Only the seven browse collections can be shelved."""

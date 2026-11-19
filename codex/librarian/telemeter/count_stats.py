@@ -22,7 +22,7 @@ from codex.models.library import Library
 from codex.models.named import Credit, Reprint
 from codex.models.paths import CustomCover, FailedImport
 from codex.models.settings import SettingsBrowser
-from codex.models.shelf import Shelf, ShelfItem
+from codex.models.shelf import SHELF_COLLECTION_MODELS, Shelf, ShelfItem
 
 OTHER_IDENTIFIER_SOURCE: Final = "other"
 # comicbox's closed source vocabulary. A source name read from a comic file
@@ -59,6 +59,8 @@ _MANGA_COUNT_KEYS: Final = MappingProxyType(
     }
 )
 _MANGA_UNKNOWN_COUNT: Final = "comic_manga_unknown_count"
+# The shelf_items bucket for a stored collection outside the vocabulary.
+_OTHER_SHELF_COLLECTION: Final = "other"
 
 
 def get_library_stats() -> dict[str, int]:
@@ -153,7 +155,14 @@ def get_usage_stats() -> dict[str, Any]:
     device_keys = UserApiKey.objects.filter(scope=ApiKeyScope.DEVICE.value)
     universal_keys = UserApiKey.objects.filter(scope=ApiKeyScope.UNIVERSAL.value)
     rows = ShelfItem.objects.values("collection").annotate(count=Count("pk")).order_by()
-    shelf_items = {row["collection"]: row["count"] for row in rows}
+    # Keyed only by the shelf collection vocabulary: a stored value outside
+    # it, whatever it holds, is counted under "other".
+    shelf_items: dict[str, int] = {}
+    for row in rows:
+        key = row["collection"]
+        if key not in SHELF_COLLECTION_MODELS:
+            key = _OTHER_SHELF_COLLECTION
+        shelf_items[key] = shelf_items.get(key, 0) + row["count"]
     return {
         "bookmark_count": Bookmark.objects.count(),
         "shelf_count": Shelf.objects.count(),

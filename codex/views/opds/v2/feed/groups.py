@@ -88,6 +88,28 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             qps["orderBy"] = "story_arc_number"
         return qps
 
+    def _facet_query_params(self, facet_qps: Mapping | None) -> dict:
+        """
+        Narrow the current feed by a facet.
+
+        A facet's ``filters`` merge into the current ones instead of
+        replacing them, so a read filter on a shelf feed keeps the shelf.
+        The feed's ``title`` is not inherited: it named the feed before the
+        facet changed it.
+        """
+        facet_qps = facet_qps or {}
+        query: dict[str, Any] = {
+            key: val for key, val in self.request.GET.items() if key != "title"
+        }
+        query.update({key: val for key, val in facet_qps.items() if key != "filters"})
+        if (facet_filters := facet_qps.get("filters")) is not None:
+            current = self.params.get("filters") or {}
+            query["filters"] = {
+                **{key: val for key, val in current.items() if val},
+                **facet_filters,
+            }
+        return query
+
     def _create_links_from_link_spec(
         self,
         link_spec: Link | BrowserCollectionModel,
@@ -111,6 +133,9 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         else:
             inherit_query_params = True
             rel = Rel.SUB
+        if rel == Rel.FACET:
+            qps = self._facet_query_params(qps)
+            inherit_query_params = False
 
         url_name = "opds:v2:start" if not kwargs else None
         href_data = HrefData(

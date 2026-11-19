@@ -123,7 +123,7 @@ export default {
       coverFailed: false,
       blendedTitle: "Blended: 80% metadata and 20% cover comparison.",
       uncomparedTitle:
-        "This candidate's cover wasn't compared, so its score is metadata only and isn't directly comparable to a blended one.",
+        "This candidate's score is metadata only, without a cover comparison, so it isn't directly comparable to a blended one.",
     };
   },
   computed: {
@@ -166,7 +166,7 @@ export default {
         // For an uncompared candidate the metadata score *is* the
         // headline number, so printing it again says nothing. The
         // caveat is the information.
-        return "Cover not compared";
+        return "Score excludes cover";
       }
       const md = Math.round(metadataScore * PERCENT);
       const cover = Math.round(coverScore * PERCENT);

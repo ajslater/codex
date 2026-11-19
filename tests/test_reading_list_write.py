@@ -12,7 +12,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import Client
 
-from codex.choices.tagging import KEEP_FORMATS
+from codex.choices.tagging import KEEP_WRITE_FORMAT
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.readinglists.write import WRITTEN_ARC_KEY, arc_write
 from codex.librarian.scribe.tasks import BulkTagWriteTask
@@ -93,7 +93,7 @@ class ReadingListWriteTests(ReadingListFixture):
         (task,) = self._write(self.reading_list)
         assert isinstance(task, BulkTagWriteTask)
         assert task.mode == "additive"
-        assert KEEP_FORMATS in task.formats
+        assert KEEP_WRITE_FORMAT in task.formats
         assert task.comic_pks == {self.comics[0].pk, self.comics[2].pk}
         self.reading_list.refresh_from_db()
         assert self.reading_list.extra[WRITTEN_ARC_KEY] == "civil war (cbro)"

@@ -5,7 +5,7 @@ Paths match koreader-sync-server's, without trailing slashes, because the
 kosync plugin appends them to the server URL the user types.
 """
 
-from django.urls import path
+from django.urls import path, re_path
 
 from codex.views.koreader.progress import (
     KOSyncProgressGetView,
@@ -13,6 +13,7 @@ from codex.views.koreader.progress import (
 )
 from codex.views.koreader.users import (
     KOSyncHealthcheckView,
+    KOSyncNotFoundView,
     KOSyncUsersAuthView,
     KOSyncUsersCreateView,
 )
@@ -29,4 +30,6 @@ urlpatterns = [
         name="progress_get",
     ),
     path("healthcheck", KOSyncHealthcheckView.as_view(), name="healthcheck"),
+    # Last: anything else under koreader/ is a kosync 404, never the web UI.
+    re_path(r"", KOSyncNotFoundView.as_view(), name="not_found"),
 ]

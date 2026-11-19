@@ -200,7 +200,6 @@ def get_tagging_stats() -> dict[str, Any]:
         "rename_files": defaults.rename_files,
         "default_sources": _default_sources(defaults),
         "default_format_count": len(formats) if isinstance(formats, list) else 0,
-        "keep_formats": defaults.keep_formats,
         "has_metron_credentials": bool(defaults.metron_key),
         "has_comicvine_credentials": bool(defaults.comicvine_key),
         "comicvine_url_set": bool(defaults.comicvine_url),

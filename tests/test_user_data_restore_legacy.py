@@ -46,6 +46,23 @@ class LegacyKeyRenameTests(TestCase):
         assert defaults["order_by"] == "community_rating"
         assert defaults["table_columns"] == {"community_rating": True, "issue": True}
 
+    def test_site_defaults_rename_the_favorite_sort_and_column(self) -> None:
+        """
+        A pre-shelves backup's site defaults sort and show ``shelved``.
+
+        The per-user rows were renamed; the site defaults kept a
+        ``favorite`` sort nothing understands and dropped the column.
+        """
+        from codex.user_data.restore import _build_settings_defaults
+
+        row = {
+            "order_by": "favorite",
+            "table_columns": '{"comics": ["issue", "favorite"]}',
+        }
+        defaults = _build_settings_defaults(row)
+        assert defaults["order_by"] == "shelved"
+        assert defaults["table_columns"]["comics"] == ["issue", "shelved"]
+
     def test_browser_defaults_pass_current_keys_through(self) -> None:
         """Current-name rows restore unchanged."""
         from codex.user_data.restore import _build_browser_defaults

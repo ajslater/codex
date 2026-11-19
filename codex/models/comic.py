@@ -27,10 +27,6 @@ from django.db.models import (
     TextField,
 )
 
-from codex.librarian.scribe.koreader_hash import (
-    koreader_name_md5,
-    koreader_partial_md5,
-)
 from codex.models.age_rating import AgeRating, get_metron_index
 from codex.models.base import (
     MAX_ISSUE_SUFFIX_LEN,
@@ -259,11 +255,6 @@ class Comic(WatchedPathBrowserCollection):
     decade = CoercingPositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
     size = PositiveIntegerField(db_index=True)
-    # KOReader kosync document ids: util.partialMD5 of the file, and the MD5
-    # of its base name for devices set to Filename matching. Null, not "",
-    # means "not hashed yet": the janitor backfill selects on it.
-    koreader_hash = CharField(db_index=True, max_length=32, null=True)  # noqa: DJ001
-    koreader_name_hash = CharField(db_index=True, max_length=32, null=True)  # noqa: DJ001
     file_type = CleaningCharField(
         db_index=True,
         choices=FileTypeChoices.choices,
@@ -360,27 +351,18 @@ class Comic(WatchedPathBrowserCollection):
 
     @override
     def presave(self) -> None:
-        """Set computed values."""
+        """
+        Set computed values.
+
+        KOReader's document hashes live in
+        :class:`codex.models.koreader.ComicKoreaderHash`, written by the
+        importer and the backfill job, not here.
+        """
         super().presave()
         self._set_date()
         self._set_decade()
         self.size = Path(self.path).stat().st_size
         self._set_age_rating_metron_index()
-        self.set_koreader_hashes()
-
-    def set_koreader_hashes(self) -> None:
-        """
-        Set the KOReader sync document hashes.
-
-        The name hash needs no disk access. A file that can't be read
-        leaves the binary hash null for the janitor backfill to retry
-        rather than failing the import.
-        """
-        self.koreader_name_hash = koreader_name_md5(self.path)
-        try:
-            self.koreader_hash = koreader_partial_md5(self.path)
-        except OSError:
-            self.koreader_hash = None
 
     @property
     def max_page(self):

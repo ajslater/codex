@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from codex.choices.api_key import ApiKeyScope
-from codex.models.api_key import UserApiKey
+from codex.models.api_key import UserApiKey, revoke_api_keys
 from codex.serializers.api_keys import ApiKeyCreateSerializer, ApiKeyNameSerializer
 from codex.views.auth import AuthGenericAPIView
 
@@ -120,9 +120,9 @@ class ApiKeyDetailView(_ApiKeyAuthView):
 
     def delete(self, *_args, **_kwargs) -> Response:
         """Revoke the key, of any scope. Idempotent."""
-        deleted, _ = UserApiKey.objects.filter(
-            user=self.request.user, pk=self.kwargs["pk"]
-        ).delete()
+        deleted = revoke_api_keys(
+            UserApiKey.objects.filter(user=self.request.user, pk=self.kwargs["pk"])
+        )
         if deleted:
             logger.info(f"API key revoked for user {self.request.user}")
         return Response(status=204)

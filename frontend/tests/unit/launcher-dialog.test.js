@@ -606,6 +606,22 @@ describe("OnlineTagLauncherDialog", () => {
       expect(wrapper.vm.matchModeHint).toContain("high-confidence");
       expect(wrapper.vm.matchModeHint).not.toContain("requests/comic");
     });
+
+    test("careful and ask describe the Metron cover match", async () => {
+      // comicbox 5.6.2 writes a clear Metron cover match under careful
+      // and lists it first under ask.
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.matchMode = "careful";
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.matchModeHint).toContain("clear Metron cover match");
+
+      wrapper.vm.sources = ["metron"];
+      wrapper.vm.promptsMode = "ask";
+      wrapper.vm.matchMode = "ask";
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.matchModeHint).toContain("cover match first");
+    });
   });
 });
 

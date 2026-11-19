@@ -16,7 +16,7 @@ from codex.librarian.scribe.importer.revive import ReviveImporter
 from codex.librarian.scribe.importer.statii.create import ImporterCreateTagsStatus
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveComicsStatus
 from codex.librarian.scribe.importer.statii.query import ImporterQueryMissingTagsStatus
-from codex.models import Comic, CustomCover, Folder
+from codex.models import Comic, ComicKoreaderHash, CustomCover, Folder
 
 
 class MovedComicsImporter(ReviveImporter):
@@ -216,6 +216,15 @@ class MovedComicsImporter(ReviveImporter):
             # Update comics
             # Potentially could just add these to the right structures and do it later during create and link.
             Comic.objects.bulk_update(updated_comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+            # A move renames the file but leaves its bytes, and so its
+            # binary hash, alone: only the name hash is written.
+            ComicKoreaderHash.upsert(
+                (
+                    ComicKoreaderHash.compute(comic.pk, comic.path, binary=False)
+                    for comic in updated_comics
+                ),
+                fields=("name_hash",),
+            )
             if del_rows_map:
                 self.delete_m2m_field(FOLDERS_FIELD_NAME, del_rows_map, status)
             if folder_m2m_links:

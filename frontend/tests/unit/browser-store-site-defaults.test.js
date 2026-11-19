@@ -2,7 +2,8 @@
  * The browser store's runtime site defaults.
  *
  *   - Table columns resolve per collection: the visitor's own list, else the
- *     admin's site default, else the show-gated registry default.
+ *     admin's site default, else the show-gated registry default. An
+ *     anonymous visitor, who owns no shelves, never gets the Shelves column.
  *   - "Clear All Filters" treats the site default bookmark filter as clear.
  *   - ``tableColumns`` is replaced whole, so a reset can remove a key.
  *   - The first-paint seed applies only until the stored settings load.
@@ -65,6 +66,18 @@ describe("resolveTableColumns", () => {
     store.settings.topCollection = "folders";
     store.settings.tableColumns = {};
     expect(store._resolveTableColumns()).toEqual(["name"]);
+  });
+
+  it("drops the always-empty Shelves column for anonymous visitors", () => {
+    useAuthStore().defaults = {
+      browser: { tableColumns: { comics: ["cover", "shelved", "name"] } },
+    };
+    const store = useBrowserStore();
+    store.settings.topCollection = "comics";
+    store.settings.tableColumns = {};
+    expect(store._resolveTableColumns()).toEqual(["cover", "name"]);
+    useAuthStore().user = { id: 1, username: "alice" };
+    expect(store._resolveTableColumns()).toEqual(["cover", "shelved", "name"]);
   });
 });
 

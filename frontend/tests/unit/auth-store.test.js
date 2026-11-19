@@ -26,6 +26,7 @@ vi.mock("@/api/v4/auth", () => ({
 }));
 
 import * as API from "@/api/v4/auth";
+import { APIError } from "@/api/v4/base";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -246,15 +247,38 @@ describe("useAuthStore — API keys", () => {
     expect(JSON.stringify(store.apiKeys)).not.toContain("wxyzsecret");
   });
 
-  it("surfaces a refused create and returns undefined", async () => {
-    API.createApiKey.mockRejectedValue({
-      response: { data: { detail: "duplicate" } },
-    });
+  it("rejects a refused create and leaves the shared form errors alone", async () => {
+    /*
+     * What the interceptor really hands over: the view's
+     * ``{"detail": "<sentence>"}`` arrives as the envelope error's detail
+     * string. The API Access dialog shows it itself: the shared form errors
+     * are what the Profile dialog underneath renders.
+     */
+    const refusal = new APIError(
+      {
+        status: "400",
+        title: "Bad Request",
+        detail: "You already have a key named Kobo.",
+      },
+      400,
+    );
+    API.createApiKey.mockRejectedValue(refusal);
     const store = useAuthStore();
-    expect(
-      await store.createApiKey({ name: "Kobo", scope: "device" }),
-    ).toBeUndefined();
-    expect(useCommonStore().form.errors.length).toBeGreaterThan(0);
+    await expect(
+      store.createApiKey({ name: "Kobo", scope: "device" }),
+    ).rejects.toBe(refusal);
+    expect(useCommonStore().form.errors).toStrictEqual([]);
+  });
+
+  it("says so when the key list fails to load", async () => {
+    API.getApiKeys.mockRejectedValueOnce(new Error("down"));
+    const store = useAuthStore();
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("Could not load your API keys.");
+    API.getApiKeys.mockResolvedValueOnce({ data: { keys: [KOBO] } });
+    await store.loadApiKeys();
+    expect(store.apiKeysError).toBe("");
+    expect(store.apiKeys).toEqual([KOBO]);
   });
 
   it("drops a revoked key", async () => {

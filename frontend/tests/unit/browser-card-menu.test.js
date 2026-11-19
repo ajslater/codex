@@ -43,7 +43,7 @@ async function mountOpenMenu(item, { loggedIn = true } = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
-      shelves: { shelves: [], hydrated: true },
+      shelves: { shelves: [] },
     },
     stubActions: true,
   });
@@ -76,6 +76,15 @@ describe("BrowserCardMenu — Shelves", () => {
     });
     const entry = document.querySelector(".shelvesListItem");
     expect(entry.textContent).toContain("Shelves");
+  });
+
+  test("the Shelves menu is a submenu, so arrow keys don't pop it open", async () => {
+    const wrapper = await mountOpenMenu({ collection: "series", ids: [7] });
+    const shelfMenu = wrapper.findComponent(ShelfMenu);
+    expect(shelfMenu.props("submenu")).toBe(true);
+    expect(shelfMenu.findComponent({ name: "VMenu" }).props("submenu")).toBe(
+      true,
+    );
   });
 
   test("a card aggregating several ids gets no Shelves entry", async () => {

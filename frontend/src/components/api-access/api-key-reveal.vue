@@ -19,7 +19,7 @@
     <!-- One line for OPDS and KOReader alike; only OPDS takes a header. -->
     <p v-else-if="readerApiOn" class="usage">
       Log in with username <b>{{ username }}</b> and this key as the
-      password<template v-if="urls.opdsV1"
+      password<template v-if="urls?.opdsV1"
         >, or send the header
         <code>Authorization: Bearer {{ apiKey }}</code></template
       >.
@@ -51,8 +51,11 @@ export default {
     name: { type: String, required: true },
     scope: { type: String, required: true },
     username: { type: String, default: "" },
-    // Paths by API, from /api-urls. An API that is off is absent.
-    urls: { type: Object, required: true },
+    /*
+     * Paths by API, from /api-urls. An API that is off is absent.
+     * Undefined until they load.
+     */
+    urls: { type: Object, default: undefined },
   },
   data() {
     return { mdiAlertOutline };
@@ -62,13 +65,17 @@ export default {
       return this.scope === "stats";
     },
     readerApiOn() {
-      return Boolean(this.urls.opdsV1 || this.urls.koreader);
+      return Boolean(this.urls?.opdsV1 || this.urls?.koreader);
     },
     statsUrl() {
-      const path = this.urls.stats || `${V4_BASE}admin/stats`;
+      const path = this.urls?.stats || `${V4_BASE}admin/stats`;
       return globalThis.location.origin + path;
     },
     note() {
+      // Which APIs are on is unknown until the URLs load.
+      if (!this.urls) {
+        return "";
+      }
       if (this.isStats) {
         return this.urls.stats ? "" : STATS_OFF;
       }

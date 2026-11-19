@@ -2,7 +2,8 @@
 KOReader kosync progress endpoints.
 
 ``document`` is a KOReader hash: the partial MD5 of the file or, for devices
-set to Filename matching, the MD5 of its base name. Either matches.
+set to Filename matching, the MD5 of its base name. Either matches, a base
+name only when one visible comic has it.
 
 For comics and PDFs KOReader's ``progress`` is the 1-based page number as a
 string and ``percentage`` is ``page / page_count``. Codex bookmarks store a
@@ -25,7 +26,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from codex.librarian.bookmark.update import BookmarkUpdateMixin
-from codex.models import Bookmark, Comic
+from codex.models import Bookmark, Comic, ComicKoreaderHash
 from codex.views.auth import GroupACLMixin
 from codex.views.koreader.base import (
     ERROR_DOCUMENT_FIELD_MISSING,
@@ -40,6 +41,8 @@ CODEX_DEVICE: Final = "Codex"
 CODEX_DEVICE_ID: Final = "00000000000000000000000000c0de00"
 _HASH_RE: Final = re.compile(r"^[0-9a-f]{32}$")
 _PERCENT_DIGITS: Final = 4
+# A page past any comic's: Codex stores page counts and pages as small ints.
+_MAX_PAGE: Final = 32767
 
 
 def normalize_document(document) -> str | None:
@@ -93,27 +96,30 @@ def map_push(progress, percentage, page_count: int) -> tuple[int, bool] | None:
     Map a pushed position to ``(0-based page, finished)``.
 
     The device's page is used when it agrees with Codex about how many pages
-    the book has. If ``progress`` isn't a page number, or the page count the
-    device implies (``progress / percentage``) differs from Codex's, the
-    position is taken from ``percentage`` instead. Returns None when neither
-    can be read.
+    the book has. If ``progress`` isn't a page number a comic could have, or
+    the page count the device implies (``progress / percentage``) differs
+    from Codex's, the position is taken from ``percentage`` instead, which
+    finishes the book only at the device's own end (1.0): rounding must not
+    mark a book read for good. Returns None when neither can be read, or
+    while Codex hasn't counted the book's pages and so can't place it.
     """
-    device_page = _parse_page(progress)
-    fraction = _parse_percentage(percentage)
     if page_count <= 0:
-        # Codex hasn't counted the pages yet: keep the device's page as is.
-        if device_page is None:
-            return None
-        return max(device_page - 1, 0), False
+        return None
+    device_page = _parse_page(progress)
+    if device_page is not None and not 0 <= device_page <= _MAX_PAGE:
+        device_page = None
+    fraction = _parse_percentage(percentage)
     if device_page is not None and fraction:
         implied_page_count = round(device_page / fraction)
         if implied_page_count != page_count:
             device_page = None
-    if device_page is None:
-        if fraction is None:
-            return None
+    if device_page is not None:
+        finished = device_page >= page_count
+    elif fraction is None:
+        return None
+    else:
         device_page = max(round(fraction * page_count), 1)
-    finished = device_page >= page_count
+        finished = fraction >= 1.0
     page = min(max(device_page - 1, 0), page_count - 1)
     return page, finished
 
@@ -141,19 +147,34 @@ class KOSyncProgressMixin(GroupACLMixin):
 
     def get_matching_comics(self, document: str, *, include_missing: bool):
         """
-        Return ``(pk, page_count)`` for every visible comic with this hash.
+        Return ``(pk, page_count)`` for the visible comics this hash names.
+
+        Every comic with the file's partial MD5: those are copies of one
+        file. A file-name hash names a comic only when exactly one visible
+        comic has it; ``Series A/Volume 01.cbz`` and ``Series B/Volume
+        01.cbz`` are different books, so a shared name matches nothing.
 
         Through the library-group and age-rating ACL, so a comic the user
-        cannot browse never matches.
+        cannot browse never matches, nor counts against a unique name.
         """
+        hash_filter = Q(binary_hash=document) | Q(name_hash=document)
+        binary_hashes = dict(
+            ComicKoreaderHash.objects.filter(hash_filter).values_list(
+                "comic_id", "binary_hash"
+            )
+        )
+        if not binary_hashes:
+            return ()
         user = self.request.user
         acl_filter = self.get_acl_filter(Comic, user, include_missing=include_missing)
-        hash_filter = Q(koreader_hash=document) | Q(koreader_name_hash=document)
-        return tuple(
-            Comic.objects.filter(acl_filter, hash_filter).values_list(
+        rows = tuple(
+            Comic.objects.filter(acl_filter, pk__in=tuple(binary_hashes)).values_list(
                 "pk", "page_count"
             )
         )
+        if binary := tuple(row for row in rows if binary_hashes[row[0]] == document):
+            return binary
+        return rows if len(rows) == 1 else ()
 
 
 class KOSyncProgressPutView(KOSyncProgressMixin, KOSyncAPIView):
@@ -266,6 +287,9 @@ class KOSyncProgressGetView(KOSyncProgressMixin, KOSyncAPIView):
             return Response({})
         comic_pk, page, finished, updated_at = bookmark
         page_count = comics[comic_pk] or 0
+        if page_count <= 0:
+            # Codex hasn't counted the pages: no position it can report.
+            return Response({})
         if finished and not page:
             # Marked read without opening: report the last page.
             page = max(page_count - 1, 0)

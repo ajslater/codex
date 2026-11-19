@@ -4,9 +4,8 @@
       <v-checkbox-group
         v-model="selectedFormats"
         aria-label="Metadata formats"
-        :hint="formatsHint"
+        :messages="formatsMessages"
         :error-messages="formatsError"
-        persistent-hint
         density="compact"
         inline
         class="formatGroup"
@@ -16,17 +15,10 @@
           :key="format.value"
           :value="format.value"
           :label="format.title"
-          :disabled="isLastFormat(format.value)"
+          :title="format.value === keepFormat ? keepFormatHint : undefined"
+          :disabled="isFormatDisabled(format.value)"
         />
       </v-checkbox-group>
-      <v-checkbox
-        v-model="keepFormats"
-        label="Keep other formats"
-        :title="keepFormatsHint"
-        hide-details
-        density="compact"
-        class="renameToggle"
-      />
       <v-checkbox
         v-model="renameFile"
         :label="renameCheckboxLabel"
@@ -1511,6 +1503,13 @@ import { mapActions, mapState } from "pinia";
 
 import ClearFieldIcon from "@/components/metadata/edit-mode/clear-field-icon.vue";
 import TagNameCombobox from "@/components/metadata/edit-mode/tag-name-combobox.vue";
+import {
+  isWriteFormatDisabled,
+  KEEP_FORMAT,
+  KEEP_FORMAT_HINT,
+  namedFormats,
+  WRITE_FORMAT_CHOICES,
+} from "@/components/metadata/edit-mode/write-formats";
 import { capitalCase } from "text-case";
 import prettyBytes from "pretty-bytes";
 
@@ -1523,7 +1522,6 @@ import IDENTIFIER_TYPE_BY_CODEX_NAME from "@/choices/identifier-type-by-codex-na
 import IDENTIFIER_TYPES from "@/choices/identifier-types.json";
 import LANGUAGES from "@/choices/languages.json";
 import SERIES_STATUSES from "@/choices/series-statuses.json";
-import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -1671,11 +1669,12 @@ export default {
   emits: ["cancel", "saved"],
   data() {
     return {
-      formatChoices: TAGGING_CHOICES.formats,
+      formatChoices: WRITE_FORMAT_CHOICES,
       selectedFormats: ["COMIC_INFO"],
-      keepFormats: false,
-      keepFormatsHint:
-        "Also rewrite every tag format the comic already carries, so this save removes none.",
+      keepFormat: KEEP_FORMAT,
+      keepFormatHint: KEEP_FORMAT_HINT,
+      lastFormatHint: "At least one format must be written",
+      keepCheckedHint: "Other tag formats are rewritten, not removed",
       languageChoices: LANGUAGES,
       countryChoices: COUNTRIES,
       identifierSourceChoices: IDENTIFIER_SOURCES,
@@ -1809,14 +1808,22 @@ export default {
         return item;
       });
     },
-    formatsHint() {
-      // The last checked box is disabled; say why.
-      return this.selectedFormats.length === 1
-        ? "At least one format must be written"
-        : "";
+    formatsMessages() {
+      // The last checked format's box is disabled; say why. Keep's full
+      // hint is its box's title: the toolbar has room for one line only.
+      const messages = [];
+      if (namedFormats(this.selectedFormats).length === 1) {
+        messages.push(this.lastFormatHint);
+      }
+      if (this.selectedFormats.includes(KEEP_FORMAT)) {
+        messages.push(this.keepCheckedHint);
+      }
+      return messages;
     },
     formatsError() {
-      return this.selectedFormats.length ? [] : ["Choose at least one format"];
+      return namedFormats(this.selectedFormats).length
+        ? []
+        : ["Choose at least one format"];
     },
     enabledFormats() {
       return this.selectedFormats.length > 0
@@ -2084,7 +2091,6 @@ export default {
       this.selectedFormats = [...this.taggingDefaults.defaultFormats];
     }
     this.renameFile = Boolean(this.taggingDefaults?.renameFiles);
-    this.keepFormats = Boolean(this.taggingDefaults?.keepFormats);
     this.initFromMetadata();
   },
   beforeUnmount() {
@@ -2125,11 +2131,8 @@ export default {
       }
       return capitalCase(key);
     },
-    isLastFormat(value) {
-      return (
-        this.selectedFormats.length === 1 &&
-        this.selectedFormats.includes(value)
-      );
+    isFormatDisabled(value) {
+      return isWriteFormatDisabled(this.selectedFormats, value);
     },
     unionFormatValues(key) {
       const seen = new Set();
@@ -2809,7 +2812,6 @@ export default {
           deleteKeys,
           mode: "update",
           formats,
-          keepFormats: this.keepFormats,
           rename: this.renameFile,
         };
         if (this.confirmInfo.needConversion > 0) {

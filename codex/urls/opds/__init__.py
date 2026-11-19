@@ -4,6 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Final
 
+from django.conf import settings
 from django.http import Http404
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
@@ -62,8 +63,9 @@ def opds_cached(view):
     User-Agent, so the binary routes keep the narrower Cookie/Authorization
     vary.
     """
-    return opds_gate(
-        cache_page(OPDS_TIMEOUT)(
-            vary_on_headers("Cookie", "Authorization", "User-Agent")(view)
-        )
-    )
+    headers = ["Cookie", "Authorization", "User-Agent"]
+    if settings.AUTH_REMOTE_USER:
+        # The proxy names the user in this header; without it in the key
+        # one proxied user's feed is served to another.
+        headers.append("Remote-User")
+    return opds_gate(cache_page(OPDS_TIMEOUT)(vary_on_headers(*headers)(view)))

@@ -124,7 +124,7 @@ class ComicboxTaggingDefaults(BaseModel):
         How much API budget to spend per comic (mirrors comicbox.Effort).
 
         Only bites on sources that fan out per candidate, which today
-        means Comic Vine. Metron answers in one call and ignores it.
+        means Comic Vine. Metron ignores it.
 
         Unset is not the same as Balanced. Naming any value pins it, and
         comicbox reads a pin as a decision to leave alone; left unset it
@@ -139,9 +139,6 @@ class ComicboxTaggingDefaults(BaseModel):
         THOROUGH = "thorough", _("Thorough")
 
     default_formats = JSONField(default=list)
-    # Also write back every tag format a comic already carries (comicbox's
-    # ``keep``). Off, a write removes the formats it does not name.
-    keep_formats = BooleanField(default=False)
     delete_original = BooleanField(default=True)
     # Rename archives to the comicbox (comicfn2dict) filename scheme after a
     # tag write. Admin default that pre-seeds the per-operation toggle.

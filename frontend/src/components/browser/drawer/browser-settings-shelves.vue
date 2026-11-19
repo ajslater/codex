@@ -8,8 +8,9 @@
       delete-hint="Nothing on it is deleted."
       :max-length="maxLength"
       @rename="onRename"
-      @delete="deleteShelf"
+      @delete="onDelete"
     />
+    <p v-if="shelfError" class="shelvesSettingsError">{{ shelfError }}</p>
     <ShelfNameInput
       v-if="creating"
       class="shelvesSettingsNameInput"
@@ -42,6 +43,7 @@ import ShelfNameInput, {
   SHELF_NAME_MAX_LENGTH,
 } from "@/components/shelf-name-input.vue";
 import { useAuthStore } from "@/stores/auth";
+import { getErrors } from "@/stores/common";
 import { useShelvesStore } from "@/stores/shelves";
 
 export default {
@@ -53,6 +55,8 @@ export default {
       creating: false,
       maxLength: SHELF_NAME_MAX_LENGTH,
       mdiPlus,
+      // Why the last rename or delete failed.
+      shelfError: "",
     };
   },
   computed: {
@@ -68,23 +72,44 @@ export default {
       }));
     },
   },
+  watch: {
+    creating() {
+      // Opening or closing the name input drops the last attempt's error.
+      this.createError = "";
+    },
+  },
   methods: {
     ...mapActions(useShelvesStore, [
       "createShelf",
       "deleteShelf",
       "renameShelf",
     ]),
-    onRename({ pk, name }) {
-      this.renameShelf(pk, name);
+    shelfName(pk) {
+      return this.shelves.find((shelf) => shelf.pk === pk)?.name ?? "";
+    },
+    async onRename({ pk, name }) {
+      const oldName = this.shelfName(pk);
+      this.shelfError = "";
+      if (!(await this.renameShelf(pk, name))) {
+        this.shelfError = `Could not rename the shelf "${oldName}".`;
+      }
+    },
+    async onDelete(pk) {
+      const name = this.shelfName(pk);
+      this.shelfError = "";
+      if (!(await this.deleteShelf(pk))) {
+        this.shelfError = `Could not delete the shelf "${name}".`;
+      }
     },
     async onCreate(name) {
       this.createError = "";
-      const shelf = await this.createShelf(name);
-      if (shelf) {
-        this.creating = false;
-      } else {
-        this.createError = "Could not create shelf";
+      try {
+        await this.createShelf(name);
+      } catch (error) {
+        this.createError = getErrors(error).join(" ");
+        return;
       }
+      this.creating = false;
     },
   },
 };
@@ -102,5 +127,10 @@ export default {
 
 .shelvesSettingsNewBtn {
   margin-left: 10px;
+}
+
+.shelvesSettingsError {
+  padding: 0 15px 5px;
+  color: rgb(var(--v-theme-error));
 }
 </style>

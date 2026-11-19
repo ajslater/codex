@@ -22,14 +22,22 @@ from django.db.models.fields import Field
 
 from codex.librarian.scribe.importer.const import (
     ALL_COMIC_FK_FIELDS,
+    ALWAYS_UPDATE_COMIC_FIELDS,
+    BULK_UPDATE_COMIC_FIELDS_SET,
+    COLLECTION_FIELD_NAMES,
+    COLLECTION_FIELD_NAMES_SET,
+    COMIC_M2M_FIELD_NAMES,
     CREDITS_FIELD_NAME,
+    FOLDERS_FIELD_NAME,
     IDENTIFIERS_FIELD_NAME,
     NAME_FIELD_NAME,
+    PATH_FIELD_NAME,
     PROTAGONIST_FIELD_MODEL_MAP,
     STORY_ARC_NUMBERS_FIELD_NAME,
     UNIVERSES_FIELD_NAME,
 )
 from codex.models import (
+    Comic,
     StoryArc,
     StoryArcNumber,
     Universe,
@@ -67,10 +75,44 @@ COMIC_FK_FIELD_NAMES_FIELD_MAP: MappingProxyType[str, Field] = MappingProxyType(
     }
 )
 COMIC_FK_FIELD_NAMES: frozenset[str] = frozenset(COMIC_FK_FIELD_NAMES_FIELD_MAP.keys())
+# Every lookup a comic's tags set, collections first, in the order each
+# names its parent. A tag read sets them all: a collection the tags don't
+# name is the default one, any other lookup they don't set is unset.
+TAG_FK_FIELD_NAMES: tuple[str, ...] = (
+    *COLLECTION_FIELD_NAMES,
+    *sorted(COMIC_FK_FIELD_NAMES - COLLECTION_FIELD_NAMES_SET),
+)
+
+##########
+# Scalar #
+##########
+# What codex reads off the archive or its path rather than its tags.
+_ENVELOPE_COMIC_FIELD_NAMES = frozenset(
+    {"file_type", "metadata_mtime", "page_count", PATH_FIELD_NAME}
+)
+# The Comic columns a comic's tags set: not what presave derives, nor the
+# envelope. A tag read gives a file's comic the default of each it lacks,
+# as a fresh import of the file would.
+TAG_COMIC_FIELDS: tuple[Field, ...] = tuple(
+    field
+    for field in Comic._meta.concrete_fields
+    if not field.is_relation
+    and field.name in BULK_UPDATE_COMIC_FIELDS_SET
+    and field.name not in ALWAYS_UPDATE_COMIC_FIELDS
+    and field.name not in _ENVELOPE_COMIC_FIELD_NAMES
+)
 
 #######
 # M2M #
 #######
+# Every m2m a comic's tags set: all but its folders, which its path sets.
+# A tag read sets them all, so a field the tags hold nothing for links
+# nothing.
+TAG_M2M_FIELD_NAMES: tuple[str, ...] = tuple(
+    field_name
+    for field_name in COMIC_M2M_FIELD_NAMES
+    if field_name != FOLDERS_FIELD_NAME
+)
 FIELD_NAME_TO_MD_KEY_MAP = MappingProxyType(
     {
         STORY_ARC_NUMBERS_FIELD_NAME: ARCS_KEY,

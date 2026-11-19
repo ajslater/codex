@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -33,6 +34,23 @@ class KOSyncUsersCreateView(KOSyncAPIView):
             ERROR_REGISTRATION_DISABLED,
             "User registration is disabled.",
         )
+
+
+class KOSyncNotFoundView(KOSyncAPIView):
+    """
+    Any other path under ``koreader/``: a kosync 404, not the web UI.
+
+    The web UI's catch-all answered a mistyped server URL with a redirect
+    to an HTML page, which a device reads as a successful login.
+    """
+
+    authentication_classes = ()
+    permission_classes = (AllowAny,)
+
+    def _not_found(self, *_args, **_kwargs) -> Response:
+        raise NotFound
+
+    get = post = put = patch = delete = _not_found
 
 
 class KOSyncHealthcheckView(KOSyncAPIView):

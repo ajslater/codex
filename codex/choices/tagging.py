@@ -19,6 +19,7 @@ from types import MappingProxyType
 from typing import Final, cast
 
 import pycountry  # a hard dependency of comicbox
+from comicbox.config.formats import KEEP_KEYWORD
 from comicbox.enums.comicbox import IdSources, MangaEnum
 from comicbox.enums.generic import GenericFormatEnum
 from comicbox.enums.maps.age_rating import COMICINFO_AGE_RATING_MAP
@@ -40,19 +41,20 @@ _TRANSFORMS = MappingProxyType(
     }
 )
 
-# The write formats the editors offer, titled by comicbox (id -> title).
-WRITE_FORMATS = MappingProxyType(
+# The tag formats the editors offer, titled by comicbox (id -> title).
+NAMED_WRITE_FORMATS = MappingProxyType(
     {fmt: MetadataFormats[fmt].value.label for fmt in _TRANSFORMS}
 )
-# comicbox's write keyword (5.7): also write back every tag format the comic
-# already carries. Without it, naming one format deletes the others.
-KEEP_FORMATS: Final = "keep"
 
+# comicbox's write keyword that rewrites every tag format a comic already
+# carries, a comicbox.yaml or a PDF's own metadata among them, instead of
+# removing the ones not named. It names no format, so it rides beside one.
+KEEP_WRITE_FORMAT: Final = KEEP_KEYWORD
 
-def write_formats(formats: Iterable[str], *, keep: bool) -> tuple[str, ...]:
-    """Return the formats a write sends comicbox, with ``keep`` when asked."""
-    formats = tuple(formats)
-    return (*formats, KEEP_FORMATS) if keep and formats else formats
+# Everything the editors may send as write formats (id -> title).
+WRITE_FORMATS = MappingProxyType(
+    {**NAMED_WRITE_FORMATS, KEEP_WRITE_FORMAT: "Keep other formats"}
+)
 
 
 def _vuetify_choices(pairs: Iterable[tuple[str, str]]) -> tuple[MappingProxyType, ...]:

@@ -154,7 +154,6 @@ _JANITOR_METHOD_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         JanitorCleanupShelfItemsTask: "cleanup_orphan_shelf_items",
         JanitorCleanupSettingsTask: "cleanup_orphan_settings",
         JanitorCleanupTaggingStateTask: "cleanup_tagging_state",
-        JanitorKoreaderHashTask: "koreader_hash_backfill",
         JanitorImportForceAllFailedTask: "force_update_all_failed_imports",
         JanitorForeignKeyCheckTask: "foreign_key_check",
         JanitorFolderRelationsCheckTask: "folder_relations_check",
@@ -239,6 +238,8 @@ class Janitor(JanitorKoreaderHash):
                     self.integrity_check(long=task.long)
                 case JanitorCodexUpdateTask():
                     self.update_codex(force=task.force)
+                case JanitorKoreaderHashTask():
+                    self.koreader_hash_backfill(task)
                 case _:
                     self.log.warning(f"Janitor received unknown task {task}")
         except Exception:

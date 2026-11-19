@@ -65,6 +65,8 @@ def loguru_init() -> None:
     kwargs: dict[str, Any] = {
         "backtrace": True,
         "catch": True,
+        # Frame variables in a traceback can hold a password or a key.
+        "diagnose": DEBUG,
         "enqueue": True,
         "format": CODEX_LOG_FORMAT,
         "level": LOGLEVEL,
@@ -95,6 +97,7 @@ def loguru_init() -> None:
             rotation=LOG_ROTATION,
             retention=LOG_RETENTION,
             compression="xz",
+            diagnose=DEBUG,
             enqueue=True,
             filter=_failed_login_sink_filter,
         )

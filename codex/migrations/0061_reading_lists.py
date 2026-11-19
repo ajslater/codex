@@ -15,6 +15,7 @@ story-arc tag tables, which stay the importer's. In order:
    instead: shelf items, saved routes and reader settings. Rows that
    collapse onto one list keep the newest.
 5. ``SettingsReader.story_arc`` becomes ``reading_list``.
+6. The reading lists browser filter, ``SettingsBrowserFilters.reading_lists``.
 
 Self-contained on purpose: it reads historical models only, so later
 changes to the tag sync cannot change what it did.
@@ -281,7 +282,7 @@ class Migration(migrations.Migration):
     """Move the arcs collection onto reading lists."""
 
     dependencies = [
-        ("codex", "0061_tagging_keep_formats"),
+        ("codex", "0060_post_v2_6_0_schema"),
         ("sessions", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -811,6 +812,11 @@ class Migration(migrations.Migration):
                 default="",
                 max_length=16,
             ),
+        ),
+        migrations.AddField(
+            model_name="settingsbrowserfilters",
+            name="reading_lists",
+            field=models.JSONField(default=list),
         ),
         migrations.RunPython(_move_arcs_to_reading_lists, _move_reading_lists_to_arcs),
         migrations.RemoveField(

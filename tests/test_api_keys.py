@@ -15,12 +15,15 @@ and the admin user list are in ``test_api_keys_api.py``.
 import json
 from datetime import timedelta
 from typing import override
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
+from django.db.models import QuerySet
 from django.test import Client, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.urls.base import set_script_prefix
 from django.utils import timezone
@@ -119,6 +122,37 @@ class ApiKeyLastUsedTestCase(ApiKeyFixture):
         UserApiKey.objects.filter(pk=self.api_key.pk).update(last_used_at=stale)
         assert self._get(OPDS_V2, f"Bearer {self.key}").status_code == HTTP_OK
         assert self._last_used() > stale
+
+    def test_a_locked_database_does_not_fail_the_request(self) -> None:
+        """
+        ``touch`` is a write on a read path; it is best-effort.
+
+        During a long librarian write the SQLite lock times out. The
+        request must still be served.
+        """
+        with patch.object(
+            QuerySet, "update", side_effect=OperationalError("database is locked")
+        ):
+            response = self._get(OPDS_V2, f"Bearer {self.key}")
+        assert response.status_code == HTTP_OK
+        assert self._last_used() is None
+
+    def test_a_fresher_write_is_not_overwritten(self) -> None:
+        """
+        The write is conditional on the stored value being stale.
+
+        Another request touched the key after this instance was loaded.
+        """
+        api_key = UserApiKey.objects.get(pk=self.api_key.pk)
+        fresh = timezone.now() - timedelta(minutes=1)
+        UserApiKey.objects.filter(pk=self.api_key.pk).update(last_used_at=fresh)
+
+        with CaptureQueriesContext(connection) as ctx:
+            api_key.touch()
+
+        assert self._last_used() == fresh
+        writes = [q for q in ctx.captured_queries if q["sql"].startswith("UPDATE")]
+        assert len(writes) <= 1, writes
 
     def test_kosync_sets_it(self) -> None:
         set_flag(AdminFlagChoices.KOREADER_SYNC, on=True)

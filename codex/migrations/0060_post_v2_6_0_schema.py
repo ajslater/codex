@@ -7,9 +7,11 @@ install applies one migration instead of a chain of four.
 
 In order:
 
-- **KOReader sync document hashes.** The hash columns start null. New imports
-  fill them in ``presave``; the JKH janitor job backfills existing comics once
-  the KOReader Sync flag is turned on.
+- **KOReader sync document hashes.** ``ComicKoreaderHash`` holds them, one
+  row per comic, beside the Comic table rather than on it, so an upgrade
+  leaves that table alone. It starts empty. Imports write it (the binary hash
+  only while KOReader Sync is on); the JKH janitor job backfills existing
+  comics once the flag is turned on.
 - **Shelves, with favorites folded in.** ``Shelf`` is a user's named shelf;
   ``ShelfItem`` places one browsable target on it, and is the old
   ``Favorite`` row re-parented from a user onto a shelf. Existing favorites
@@ -26,7 +28,8 @@ In order:
   longer installed. The plaintext server-wide Stats API key in the ``AK``
   admin flag is revoked: its row is deleted and nothing replaces it. Admins
   make their own stats keys now. The digest functions are inlined so later
-  model changes cannot alter what this migration wrote.
+  model changes cannot alter what this migration wrote. ``RevokedApiKey``
+  keeps a revoked key's digest, so a backup restore does not revive it.
 - **Choice lists** for the admin flags (KOReader Sync, OPDS and Stats API in;
   API Key out) and the librarian statuses (JKH in, JRF relabelled Cleanup
   Orphan Shelf Items).
@@ -156,8 +159,15 @@ def favorites_to_shelves(apps, schema_editor):
     favorite = apps.get_model("codex", "Favorite")
     shelf = apps.get_model("codex", "Shelf")
     filters = apps.get_model("codex", "SettingsBrowserFilters")
+    user = apps.get_model("auth", "User")
 
-    user_ids = favorite.objects.values_list("user_id", flat=True).distinct()
+    # SQLite checks foreign keys only when asked, so a favorite can outlive
+    # its user. A shelf for one would fail the FK check ``migrate`` ends with.
+    user_ids = (
+        favorite.objects.filter(user_id__in=user.objects.values("pk"))
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
     shelf.objects.bulk_create(
         [shelf(user_id=user_id, name=FAVORITES_SHELF_NAME) for user_id in user_ids]
     )
@@ -274,16 +284,32 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # KOReader sync.
-        migrations.AddField(
-            model_name="comic",
-            name="koreader_hash",
-            field=models.CharField(db_index=True, max_length=32, null=True),
-        ),
-        migrations.AddField(
-            model_name="comic",
-            name="koreader_name_hash",
-            field=models.CharField(db_index=True, max_length=32, null=True),
+        # KOReader sync, beside Comic so its table is left alone.
+        migrations.CreateModel(
+            name="ComicKoreaderHash",
+            fields=[
+                (
+                    "comic",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        primary_key=True,
+                        related_name="+",
+                        serialize=False,
+                        to="codex.comic",
+                    ),
+                ),
+                (
+                    "binary_hash",
+                    models.CharField(db_index=True, max_length=32, null=True),
+                ),
+                (
+                    "name_hash",
+                    models.CharField(db_index=True, max_length=32, null=True),
+                ),
+            ],
+            options={
+                "verbose_name": "comic KOReader hash",
+            },
         ),
         # Shelves.
         migrations.CreateModel(
@@ -557,6 +583,25 @@ class Migration(migrations.Migration):
         ),
         # The keys the tokens become go when the table does: nothing to undo.
         migrations.RunPython(tokens_to_api_keys, migrations.RunPython.noop),
+        migrations.CreateModel(
+            name="RevokedApiKey",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("digest", models.CharField(max_length=64, unique=True)),
+                ("revoked_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                "verbose_name": "revoked API key",
+            },
+        ),
         # Choice lists.
         migrations.AlterField(
             model_name="adminflag",

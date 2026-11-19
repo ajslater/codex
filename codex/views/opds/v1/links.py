@@ -55,18 +55,22 @@ class OPDS1LinksView(OPDS1FacetsView):
         return True
 
     def _link(
-        self, kwargs, rel, query_params=None, mime_type=MimeType.NAV
+        self, kwargs, rel, query_params=None, mime_type=MimeType.NAV, title=""
     ) -> OPDS1Link:
         """Create a link."""
         if query_params is None:
             query_params = self.request.GET
         href = opds_feed_reverse("opds:v1:feed", kwargs, query_params)
-        return OPDS1Link(rel, href, mime_type)
+        return OPDS1Link(rel, href, mime_type, title=title)
 
     def _top_link(self, top_link):
-        """Create a link from a top link."""
+        """Create a link from a top link, titled as its entry is."""
         return self._link(
-            top_link.kwargs, top_link.rel, top_link.query_params, top_link.mime_type
+            top_link.kwargs,
+            top_link.rel,
+            top_link.query_params,
+            top_link.mime_type,
+            title=" ".join(filter(None, (top_link.glyph, top_link.title))),
         )
 
     def _root_links(self) -> list:

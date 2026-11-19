@@ -6,31 +6,10 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v2.7.0 - Shelves & KOReader Sync
+## v2.8.0 - Reading Lists
 
 ### ✨ Added
 
-- Shelves: signed-in users make their own named shelves, such as "Want to Read",
-  and shelve publishers, imprints, series, volumes, folders, story arcs and
-  issues from a cover's menu, the table view, the metadata dialog, the reader
-  and the multi-select toolbar.
-- Browse a shelf with the Shelves filter, kept in saved views, or from its entry
-  on the OPDS v1 and v2 start pages.
-- The table view's Shelves column and the metadata dialog list the shelves an
-  item is on, including through its series, folder or other parent.
-- KOReader progress sync: Codex can be the sync server for KOReader's Progress
-  sync plugin, so a comic's reading position follows you between KOReader and
-  the web reader. Off by default; setup is in API Access.
-- API Access, from the drawer's OPDS & APIs button or Profile, lists your OPDS,
-  KOReader and Stats API URLs and makes and revokes your API keys.
-- Device Keys: a named, revocable password for each OPDS reader or KOReader
-  device. They don't log in to the web UI or API, and let Single Sign On users
-  use Basic-only OPDS readers.
-- Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
-  off.
-- The admin Users tab counts each user's API keys; Edit User revokes them all.
-- Tag writes can keep the other tag formats a comic has, set in Admin → Tagging
-  and per edit.
 - Reading lists: Admin → Reading Lists imports lists from ComicRack CBL and
   json-cbl files, URLs, the DieselTech catalog, Metron and Comic Vine, combines
   lists of one event, and reviews how their issues match your comics.
@@ -44,22 +23,66 @@ border-radius: 128px;
 
 ### ♻️ Changed
 
+- Story Arcs are now Reading Lists: one list per story arc name, in arc order.
+  Links and OPDS bookmarks into a story arc change once.
+
+### 🐛 Fixed
+
+- Saving story arcs in the tag editor keeps their numbers and names.
+- The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
+  row that opens each list.
+- A comic tagged twice in one story arc no longer counts its pages twice.
+- The Jobs tab's Abort buttons work.
+
+### 🧑‍💻 Developer
+
+- Require comicbox 5.7.
+
+## v2.7.0 - Shelves & KOReader Sync
+
+### ✨ Added
+
+- Shelves: signed-in users make their own named shelves, such as "Want to Read",
+  and shelve publishers, imprints, series, volumes, folders, story arcs and
+  issues from a cover's menu, the table view, the metadata dialog, the reader
+  and the multi-select toolbar.
+- Browse a shelf with the Shelves filter, kept in saved views, or from its entry
+  on the OPDS v1 and v2 start pages.
+- The table view's Shelves column and the metadata dialog list the shelves an
+  item is on, including through its series, folder or other parent.
+- Experimental KOReader progress sync: Codex can be the sync server for
+  KOReader's Progress sync plugin, so a comic's reading position follows you
+  between KOReader and the web reader. Off by default; setup is in API Access.
+- API Access, from the drawer's OPDS & APIs button or Profile, lists your OPDS,
+  KOReader and Stats API URLs and makes and revokes your API keys.
+- Device Keys: a named, revocable password for each OPDS reader or KOReader
+  device. They don't log in to the web UI or API, and let Single Sign On users
+  use Basic-only OPDS readers.
+- Admin → Settings → APIs turns OPDS, KOReader Sync and Stats API keys on and
+  off.
+- The admin Users tab counts each user's API keys; Edit User revokes them all.
+- A Hash Comics for KOReader Sync job on the Jobs tab.
+- Tag writes and online tagging can keep a comic's other tag formats instead of
+  removing them.
+- Online tagging's match review says when another source already tagged the
+  comic.
+
+### ♻️ Changed
+
 - Favorites are now a shelf named "Favorites", and saved views that filtered on
   favorites filter on it. The favorite star is now a shelf button, or a Shelves
   entry in a cover's menu; the Favorite sort is now Shelved and the Favorite
   column Shelves.
-- Authorization Bearer Tokens are now Universal Tokens: they work until revoked
-  but can no longer be shown, reset or made. Use Device Keys for OPDS and
-  KOReader.
+- Every account's Authorization Bearer Token, which v2.6.0 made for each user,
+  is now a Universal Token: it works until revoked but can no longer be shown,
+  reset or made. Use Device Keys for OPDS and KOReader.
 - The server-wide Stats API key is revoked. Each admin makes their own Stats key
   in API Access.
 - User data backups store shelves, and API keys as hashes. Older backups still
   restore, with their favorites on a "Favorites" shelf.
-- Story Arcs are now Reading Lists: one list per story arc name, in arc order.
-  Links and OPDS bookmarks into a story arc change once.
+- Online tagging with Metron matches comics by their cover first.
 - Libraries have their own icon, and actions and statuses that shared an icon
   now look distinct.
-- Online tagging finds Metron issues by cover first.
 
 ### 🔥 Removed
 
@@ -71,25 +94,27 @@ border-radius: 128px;
 ### 🐛 Fixed
 
 - Logging in or registering keeps a visitor's bookmarks and browser and reader
-  settings.
+  settings, though not their saved views.
 - OPDS v1 "Latest Unread" lists only unread issues, and "Oldest Unread" always
   lists oldest first.
 - Table view cells for a row that combines same-named series, imprints or
   volumes describe all of them, and comics in folder view no longer show a
   folder's cells.
+- Some of comicbox's log messages reach the log file and honor the log level.
+- Admin edit dialogs keep unsaved edits when their table reloads.
+- Tag writes keep a comic's archive comment, a failed write leaves the comic
+  unchanged, and a RAR or 7z named `.cbz` is refused with its real type.
+- Re-importing a comic clears tags its file no longer has, such as a summary
+  cleared in the tag editor, from search too.
+- Issue −1 imports as a number, and partial dates such as `2006-07` no longer
+  gain today's month or day.
+- Issue #0 imports as issue 0, not as an unnumbered issue.
 - Some background task log messages, such as comicbox's, reach the log file and
   honor the log level.
-- Saving story arcs in the tag editor keeps their numbers and names.
-- The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
-  row that opens each list.
-- A comic tagged twice in one story arc no longer counts its pages twice.
-- Issue `-1` reads and searches as the number -1.
-- The Jobs tab's Abort buttons work.
 
 ### 🧑‍💻 Developer
 
-- Require loguru 0.8.
-- Require comicbox 5.7.
+- Require comicbox 5.6.2 and loguru 0.8.
 
 ## v2.6.0 - Tag Editor Suggestions
 

@@ -204,7 +204,6 @@ CREATE TABLE IF NOT EXISTS admin_flags (
 CREATE TABLE IF NOT EXISTS tagging_defaults (
     pk INTEGER NOT NULL PRIMARY KEY DEFAULT 1,
     default_formats TEXT NOT NULL DEFAULT '[]',
-    keep_formats INTEGER NOT NULL DEFAULT 0,
     delete_original INTEGER NOT NULL DEFAULT 0,
     default_match_mode TEXT NOT NULL DEFAULT 'auto',
     default_prompts_mode TEXT NOT NULL DEFAULT 'ask',

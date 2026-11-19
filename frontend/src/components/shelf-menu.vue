@@ -4,6 +4,7 @@
     v-model="menu"
     :close-on-content-click="false"
     :location="location"
+    :submenu="submenu"
   >
     <template #activator="{ props: activatorProps }">
       <slot
@@ -86,6 +87,7 @@ import MenuSection from "@/components/menu-section.vue";
 import ReadingListMenuSection from "@/components/reading-list-menu-section.vue";
 import ShelfNameInput from "@/components/shelf-name-input.vue";
 import { useAuthStore } from "@/stores/auth";
+import { getErrors } from "@/stores/common";
 import { useShelvesStore } from "@/stores/shelves";
 
 const ARIA_CHECKED = Object.freeze({
@@ -135,6 +137,12 @@ export default {
     location: {
       type: String,
       default: "bottom end",
+    },
+    // Inside another menu, so arrow keys move through the parent's items
+    // instead of popping this one open.
+    submenu: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {
@@ -203,6 +211,10 @@ export default {
     },
   },
   watch: {
+    creating() {
+      // Opening or closing the name input drops the last attempt's error.
+      this.createError = "";
+    },
     menu(to) {
       if (!to) {
         this.creating = false;
@@ -219,9 +231,11 @@ export default {
     },
     async onCreate(name) {
       this.createError = "";
-      const shelf = await this.createShelf(name);
-      if (!shelf) {
-        this.createError = "Could not create shelf";
+      let shelf;
+      try {
+        shelf = await this.createShelf(name);
+      } catch (error) {
+        this.createError = getErrors(error).join(" ");
         return;
       }
       this.creating = false;

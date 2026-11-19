@@ -8,7 +8,7 @@ from django.db.models import Count, Q
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
-from codex.choices.tagging import write_formats
+from codex.choices.tagging import KEEP_WRITE_FORMAT, NAMED_WRITE_FORMATS
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
@@ -255,8 +255,14 @@ def _recombine(reading_lists: list[ReadingList]) -> dict[str, int]:
 def _arc_write_formats() -> tuple[str, ...]:
     """Return the admin's default tag formats, keeping a comic's others."""
     defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
-    formats = tuple(defaults.default_formats) if defaults else ()
-    return write_formats(formats or _FALLBACK_FORMATS, keep=True)
+    named = tuple(
+        fmt
+        for fmt in (defaults.default_formats if defaults else ())
+        if fmt in NAMED_WRITE_FORMATS
+    )
+    # ``keep`` rewrites the tag formats a comic already carries instead of
+    # removing the ones not named, so writing an arc never costs a tag file.
+    return (*(named or _FALLBACK_FORMATS), KEEP_WRITE_FORMAT)
 
 
 def _write(reading_lists: list[ReadingList]) -> dict[str, int]:

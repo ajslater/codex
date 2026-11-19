@@ -1,7 +1,7 @@
 """BULK_CREATE_COMIC_FIELDSConsts and maps for import."""
 
 from types import MappingProxyType, SimpleNamespace
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Final, cast
 
 from bidict import frozenbidict
 from django.db.models.fields import Field
@@ -211,6 +211,8 @@ REPRINT_ISSUE_FIELD_NAME = "issue"
 REPRINT_LANGUAGE_FIELD_NAME = "language"
 # Reprints index only their series names, under their own ComicFTS column.
 ALTERNATE_SERIES_FTS_FIELD_NAME = "alternate_series"
+# Identifiers index only their sources, under their own ComicFTS column.
+SOURCES_FTS_FIELD_NAME = "sources"
 # The linked series' summary, indexed on each of its comics.
 SERIES_SUMMARY_FTS_FIELD_NAME = "series_summary"
 UNIVERSES_FIELD_NAME = "universes"
@@ -243,6 +245,10 @@ COMIC_FK_FIELD_NAMES: tuple[str, ...] = tuple(
 PROTAGONIST_FIELD_MODEL_MAP = MappingProxyType(
     {"main_character": Character, "main_team": Team}
 )
+# The LINK_FKS key tuple of a lookup the comic's tags leave unset: it
+# links nothing. It equals the key of a stored NULL link, so the query
+# phase prunes it as already correct and keeps it only to clear a link.
+UNSET_FK_LINK: Final = (None,)
 _DEFAULT_KEY_INDEX = 1
 _IDENTIFIER_RELS = (
     "identifier__source__name",
@@ -458,20 +464,20 @@ BULK_UPDATE_COMIC_FIELDS = tuple(
 )
 BULK_UPDATE_COMIC_FIELDS_SET = frozenset(BULK_UPDATE_COMIC_FIELDS)
 # Fields update_comics always rewrites: presave-derived values
-# (stat/size from disk, date/decade from year-month-day,
-# age_rating_metron_index from the age_rating FK) plus the updated_at
-# stamp. The other BULK_UPDATE_COMIC_FIELDS are only written when some
-# comic in the batch actually changed them — bulk_update's CASE-WHEN
-# SQL scales with rows x fields, and a force-reimport of unchanged
-# comics otherwise rewrites ~40 columns per row to identical values.
+# (stat/size from disk, date/decade from year-month-day, sort_name from
+# name, age_rating_metron_index from the age_rating FK) plus the
+# updated_at stamp. The other BULK_UPDATE_COMIC_FIELDS are only written
+# when some comic in the batch actually changed them — bulk_update's
+# CASE-WHEN SQL scales with rows x fields, and a force-reimport of
+# unchanged comics otherwise rewrites ~40 columns per row to identical
+# values.
 ALWAYS_UPDATE_COMIC_FIELDS = frozenset(
     {
         "age_rating_metron_index",
         "date",
         "decade",
-        "koreader_hash",
-        "koreader_name_hash",
         "size",
+        "sort_name",
         "stat",
         "updated_at",
     }
@@ -516,7 +522,6 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
 MOVED_BULK_COMIC_UPDATE_FIELDS = (
     "path",
     "parent_folder",
-    "koreader_name_hash",
     "updated_at",
 )
 CUSTOM_COVER_UPDATE_FIELDS = ("path", "stat", "updated_at", "sort_name", "collection")

@@ -37,6 +37,7 @@ from codex.librarian.scribe.importer.read.const import (
     ALTERNATIVE_NAME_MARKER,
     COMPLEX_FIELD_AGG_MAP,
     FIELD_NAME_TO_MD_KEY_MAP,
+    TAG_M2M_FIELD_NAMES,
 )
 from codex.librarian.scribe.importer.read.foreign_keys import (
     AggregateForeignKeyMetadataImporter,
@@ -391,8 +392,16 @@ class AggregateManyToManyMetadataImporter(AggregateForeignKeyMetadataImporter):
             m2m_md[field.name] |= clean_key_values
 
     def get_m2m_metadata(self, md, path) -> None:
-        """Many_to_many fields get moved into a separate dict."""
-        m2m_md = {}
+        """
+        Many_to_many fields get moved into a separate dict.
+
+        Only a comic whose tags were read gets here, and its tags are all
+        of its links: a field they hold nothing for links nothing, so the
+        query phase unlinks whatever the comic linked before.
+        """
+        m2m_md: dict[str, set[tuple]] = {
+            field_name: set() for field_name in TAG_M2M_FIELD_NAMES
+        }
         for field in COMIC_M2M_FIELDS:
             self._get_m2m_metadata_for_field(field, md, m2m_md)
         self.metadata[LINK_M2MS][str(path)] = m2m_md

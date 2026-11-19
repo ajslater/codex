@@ -6,7 +6,7 @@ view here is authenticated-only and scoped to the requesting user: shelves
 are persistent intent, not session state, and are never shared.
 """
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -157,7 +157,8 @@ class ShelfItemsView(_ShelfAuthView):
         never reveals whether a row the user cannot see exists.
         """
         model = SHELF_COLLECTION_MODELS[collection]
-        acl_filter = self.get_acl_filter(model, self.request.user)
+        # Writes land on rows whose file is briefly missing, as bookmarks do.
+        acl_filter = self.get_acl_filter(model, self.request.user, include_missing=True)
         return list(
             model.objects.filter(acl_filter, pk__in=set(target_ids))
             .values_list("pk", flat=True)
@@ -205,6 +206,8 @@ class ShelfItemsView(_ShelfAuthView):
         serializer = ShelfItemsSerializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        removed = self._remove(shelf, data.get("remove", {}))
-        added = self._add(shelf, data.get("add", {}))
+        # One change: a failed add must not leave the removes applied.
+        with transaction.atomic():
+            removed = self._remove(shelf, data.get("remove", {}))
+            added = self._add(shelf, data.get("add", {}))
         return Response({"added": added, "removed": removed})

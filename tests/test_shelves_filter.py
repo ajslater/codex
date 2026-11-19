@@ -6,7 +6,8 @@ from django.contrib.auth.models import AnonymousUser, User
 
 from codex.models import Comic, Folder, Library, Series, Shelf
 from codex.models.settings import SettingsBrowser, SettingsBrowserFilters
-from codex.views.browser.columns import shelved_annotation_for
+from codex.views.auth import ComicACL
+from codex.views.browser.shelf_membership import annotate_shelved
 from tests.shelf_fixtures import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
@@ -212,6 +213,34 @@ class ShelfFilterTestCase(ShelfTestCase):
             listing = self.client.get(url)
             assert listing.status_code == HTTP_OK, (url, listing.content)
 
+    def test_cover_view_sort_by_shelved_falls_back_to_name(self):
+        """
+        Outside table view ``shelved`` is not annotated: sort by name.
+
+        The order pipeline referenced the missing annotation.
+        """
+        self._put(self._shelf(), "series", self.s1.pk)
+        response = post_json(
+            self.client,
+            "patch",
+            SETTINGS_URL,
+            {"viewMode": "cover", "orderBy": "shelved", "orderReverse": False},
+        )
+        assert response.status_code == HTTP_OK, response.content
+        for url in (
+            "/api/v4/browse/publishers?page=1",
+            f"/api/v4/browse/comics/{self.v1.pk}?page=1",
+        ):
+            listing = self.client.get(url)
+            assert listing.status_code == HTTP_OK, (url, listing.content)
+        names = [
+            row["name"]
+            for row in v4(self.client.get("/api/v4/browse/publishers?page=1"))[
+                "collections"
+            ]
+        ]
+        assert names == sorted(names), names
+
     def test_retired_favorite_sort_key_is_rejected(self):
         """``favorite`` is no longer a sort key."""
         response = post_json(
@@ -251,9 +280,37 @@ class ShelfFilterTestCase(ShelfTestCase):
         assert "shelves" in body["filterWarnings"]
         assert SettingsBrowserFilters.objects.get(browser=saved_row).shelves == []
 
+    def test_a_saved_view_keeps_only_its_owners_shelves(self):
+        """
+        A shelf pk is checked against the viewer's shelves, not all of them.
+
+        Checking it globally made loading a saved view an existence oracle
+        for other users' shelves.
+        """
+        mine = self._shelf()
+        other = User.objects.create_user(username="other", password=TEST_PASSWORD)
+        theirs = self._shelf(name="Theirs", user=other)
+        self._filter_by(mine)
+        saved = post_json(self.client, "post", SAVED_URL, {"name": "mixed"})
+        assert saved.status_code == HTTP_CREATED, saved.content
+        saved_row = SettingsBrowser.objects.get(user=self.user, name="mixed")
+        SettingsBrowserFilters.objects.filter(browser=saved_row).update(
+            shelves=[mine.pk, theirs.pk]
+        )
+
+        loaded = self.client.get(f"{SAVED_URL}/{saved_row.pk}")
+        assert loaded.status_code == HTTP_OK, loaded.content
+        body = v4(loaded)
+        assert body["settings"]["filters"]["shelves"] == [mine.pk]
+        assert "shelves" in body["filterWarnings"]
+
 
 class ShelvedAnnotationTestCase(ShelfTestCase):
-    """``shelved_annotation_for`` is true for rows on any of the user's shelves."""
+    """``annotate_shelved`` is true for rows on any of the user's shelves."""
+
+    @staticmethod
+    def _acl(user) -> ComicACL:
+        return ComicACL.for_user(user)
 
     def test_authenticated_user_gets_per_row_flag(self):
         """Rows on any of the user's shelves are True; the rest False."""
@@ -261,18 +318,20 @@ class ShelvedAnnotationTestCase(ShelfTestCase):
         other = User.objects.create_user(username="other", password=TEST_PASSWORD)
         self._put(self._shelf("Theirs", user=other), "series", self.s2.pk)
 
-        annotations = shelved_annotation_for(Series, self.user)
-        rows = dict(Series.objects.annotate(**annotations).values_list("pk", "shelved"))
+        qs = annotate_shelved(Series.objects.all(), self.user, self._acl(self.user))
+        rows = dict(qs.values_list("pk", "shelved"))
         assert rows[self.s1.pk] is True
         assert rows[self.s2.pk] is False
 
     def test_anonymous_user_gets_constant_false(self):
         """Anonymous sessions own no shelves."""
         self._put(self._shelf(), "series", self.s1.pk)
-        annotations = shelved_annotation_for(Series, AnonymousUser())
-        rows = dict(Series.objects.annotate(**annotations).values_list("pk", "shelved"))
+        anon = AnonymousUser()
+        qs = annotate_shelved(Series.objects.all(), anon, self._acl(anon))
+        rows = dict(qs.values_list("pk", "shelved"))
         assert all(value is False for value in rows.values())
 
     def test_unmapped_model_returns_empty_dict(self):
         """A model that cannot be shelved contributes no annotation."""
-        assert shelved_annotation_for(Library, self.user) == {}
+        qs = annotate_shelved(Library.objects.all(), self.user, self._acl(self.user))
+        assert "shelved" not in qs.query.annotations

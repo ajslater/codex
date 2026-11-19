@@ -33,11 +33,10 @@ from codex.views.browser.columns import (
     m2m_annotations_for,
     m2m_columns,
     m2m_sort_annotations_for,
-    shelved_annotation_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.reading_list_sources import attach_list_sources
-from codex.views.browser.shelf_membership import page_row_shelves
+from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -146,20 +145,18 @@ class BrowserView(BrowserTitleView):
 
     def _add_table_view_shelved_annotation(self, qs):
         """
-        Annotate ``qs`` with ``shelved`` (membership subquery) for table view.
+        Annotate ``qs`` with ``shelved`` (effective membership) for table view.
 
         Runs unconditional on model — shelves apply to every
         browsable collection as well as Comic — and unconditional on
-        column selection: the per-row Exists is cheap (one indexed
-        scan) and being always-on lets the user sort by ``shelved``
-        from the order_by enum without separate gating.
+        column selection, so the user can sort by ``shelved`` from the
+        order_by enum without separate gating. True exactly when the
+        row's Shelves cell lists a shelf (``annotate_shelved``).
         """
         if self.params.get("view_mode") != "table":
             return qs
-        annotations = shelved_annotation_for(qs.model, self.request.user)
-        if annotations:
-            qs = qs.annotate(**annotations)
-        return qs
+        user = self.request.user
+        return annotate_shelved(qs, user, self.get_comic_acl(user))
 
     def _sort_annotation_keys(self) -> tuple[str, ...]:
         """

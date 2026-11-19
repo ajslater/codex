@@ -95,7 +95,7 @@ def mark_written(reading_list: ReadingList, name: str) -> None:
         reading_list=reading_list, kind=ReadingListSourceKind.TAGS, ref=sort_name
     ).exists():
         return
-    reading_list.extra = {  # pyright: ignore[reportAttributeAccessIssue]
+    reading_list.extra = {
         **reading_list.extra,
         WRITTEN_ARC_KEY: sort_name,
     }

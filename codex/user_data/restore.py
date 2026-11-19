@@ -420,8 +420,6 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
     defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
     defaults["delete_original"] = bool(row["delete_original"])
-    if "keep_formats" in cols:
-        defaults["keep_formats"] = bool(row["keep_formats"])
     # ``active_session_id`` / ``active_prompts`` used to be on this row before
     # they moved to the Django cache as transient state, ``metron_url``
     # before that no-op override was removed for good, and ``metron_user`` /
@@ -469,8 +467,11 @@ def _build_settings_defaults(row) -> dict[str, Any]:
     defaults.update(
         {key: bool(row[key]) for key in SETTINGS_DEFAULTS_BOOLS if key in cols}
     )
+    # Retired sort keys and columns are renamed, as the per-user rows are.
+    if "order_by" in defaults:
+        defaults["order_by"] = _rename_sort_key(defaults["order_by"])
     if "table_columns" in cols:
-        table_columns = json.loads(row["table_columns"] or "{}")
+        table_columns = _rename_table_columns(row["table_columns"])
         defaults["table_columns"], _ = clean_table_columns(table_columns)
     return defaults
 

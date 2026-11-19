@@ -12,12 +12,6 @@
       :item="markReadItem"
       :size="size"
     />
-    <ShelfMenu
-      v-if="shelfPks.length"
-      id="shelfButton"
-      :collection="controlBook.collection"
-      :pks="shelfPks"
-    />
     <v-btn
       v-if="isReadButtonShown"
       id="readButton"
@@ -55,7 +49,6 @@ import { defineAsyncComponent } from "vue";
 import { formattedIssue } from "@/comic-name";
 import DownloadButton from "@/components/download-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -156,16 +149,6 @@ export default {
         (this.md?.ids?.length ?? 0) === 1
       );
     },
-    shelfPks() {
-      /*
-       * Shelve the selection target itself (``controlBook`` = the
-       * card item or the multi-select composite), keyed by its own
-       * collection + ids — never ``md.ids`` (the tag aggregate). The
-       * menu handles one or many; it shelves the whole selection.
-       */
-      const ids = this.controlBook?.ids;
-      return Array.isArray(ids) ? ids.map(Number) : [];
-    },
     isReadButtonEnabled() {
       return Boolean(this.readerRoute);
     },
@@ -230,8 +213,8 @@ export default {
 @use "sass:map";
 
 /*
- * ``:deep`` so the rule reaches the shelf button too: ShelfMenu's root
- * is a VMenu, so its button never carries this component's scope id.
+ * ``:deep`` so the rule also reaches a child whose root is a menu or
+ * dialog activator, which never carries this component's scope id.
  */
 .controlRow > :deep(*) {
   margin-right: 10px;

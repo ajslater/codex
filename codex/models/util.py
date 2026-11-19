@@ -38,10 +38,8 @@ def parse_issue_parts(value) -> tuple[Decimal | None, str]:
     """
     Split a compound issue string into its number and suffix parts.
 
-    Shared by every compound issue column (``Reprint.issue_number`` /
-    ``issue_suffix``) and by the search field parser. It splits as
-    comicbox does when it reads a comic (``"10a"`` is 10 and ``a``,
-    ``"-1"`` is the number -1), so a typed query and a stored column agree.
+    Uses comicbox's own split ("10a" -> 10 + "a", "-1AU" -> -1 + "AU") so
+    ``Reprint`` columns and ``issue:`` searches agree with imported issues.
     """
     value = IssueField.parse_issue(value)
     if not value:
@@ -50,7 +48,7 @@ def parse_issue_parts(value) -> tuple[Decimal | None, str]:
     try:
         number = Decimal(number_str)
     except InvalidOperation:
-        # A suffix-only issue ("annual") leaves the numeric part empty,
+        # A suffix-only issue ("annual", "-AU") leaves the number empty,
         # which Decimal rejects. Keep the suffix; sort it as null.
         number = None
     return number, suffix

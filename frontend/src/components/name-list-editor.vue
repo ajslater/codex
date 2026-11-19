@@ -14,7 +14,7 @@
             :label="renameTitle"
             :maxlength="maxLength"
             variant="outlined"
-            @keydown.enter="submitRename"
+            @keydown.enter="onEnter"
             @keydown.esc.stop="cancelRename"
           />
           <v-btn
@@ -83,6 +83,7 @@
 import { mdiCheck, mdiClose, mdiPencil, mdiTrashCan } from "@mdi/js";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import { isImeEnter } from "@/util";
 
 /*
  * A list of named things the user can rename and delete in place.
@@ -177,6 +178,9 @@ export default {
     startRename(item) {
       this.editingPk = item.pk;
       this.editName = item.name;
+    },
+    onEnter(event) {
+      if (!isImeEnter(event)) this.submitRename();
     },
     cancelRename() {
       this.editingPk = null;

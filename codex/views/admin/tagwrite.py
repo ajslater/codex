@@ -10,7 +10,6 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED
 
-from codex.choices.tagging import write_formats
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.scribe.tagwrite_rename import (
     CONVERTING_FILE_TYPES,
@@ -202,14 +201,6 @@ class AdminTagWritePreflightView(FilteredComicPksView):
         )
 
 
-def _requested(data, key: str, defaults, default_attr: str) -> bool:
-    """Return the request's own value, else the admin default's."""
-    value = data.get(key)
-    if value is not None:
-        return bool(value)
-    return bool(defaults and getattr(defaults, default_attr))
-
-
 class AdminTagWriteView(FilteredComicPksView):
     """POST to write tags to comic archives."""
 
@@ -223,19 +214,29 @@ class AdminTagWriteView(FilteredComicPksView):
         if not comic_pks:
             return Response({"detail": "No comics matched."}, status=400)
 
-        defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
-        delete_original = _requested(
-            data, "delete_original", defaults, "delete_original"
-        )
-        rename = _requested(data, "rename", defaults, "rename_files")
-        keep = _requested(data, "keep_formats", defaults, "keep_formats")
+        try:
+            defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        except ComicboxTaggingDefaults.DoesNotExist:
+            defaults = None
+
+        req_delete = data.get("delete_original")
+        if req_delete is not None:
+            delete_original = req_delete
+        else:
+            delete_original = bool(defaults and defaults.delete_original)
+
+        req_rename = data.get("rename")
+        if req_rename is not None:
+            rename = req_rename
+        else:
+            rename = bool(defaults and defaults.rename_files)
 
         task = BulkTagWriteTask(
             comic_pks=comic_pks,
             patch=json.loads(data.get("patch") or "null"),
             delete_keys=tuple(data.get("delete_keys") or ()),
             mode=data["mode"],
-            formats=write_formats(data["formats"], keep=keep),
+            formats=tuple(data["formats"]),
             delete_original=delete_original,
             rename=rename,
         )

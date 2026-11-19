@@ -9,3 +9,10 @@ export const range = (start, end = 0) => {
   }
   return result;
 };
+
+/*
+ * An Enter that ends an IME composition picks the composed text; it is
+ * not a submit. Safari reports it as keyCode 229 with isComposing false.
+ */
+export const isImeEnter = (event) =>
+  Boolean(event?.isComposing) || event?.keyCode === 229;

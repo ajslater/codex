@@ -152,3 +152,36 @@ class ShelvesMigrationTests(TransactionTestCase):
         )
 
         self._assert_reverse(_migrate(_BEFORE))
+
+    def test_a_favorite_whose_user_is_gone_is_dropped(self):
+        """
+        No shelf for a user who no longer exists.
+
+        SQLite only checks foreign keys when asked, so a favorite can
+        outlive its user. A shelf made for it broke the FK check a
+        hand-run ``migrate`` ends with (startup's ``fix_foreign_keys`` hid
+        it).
+        """
+        old_apps = _migrate(_BEFORE)
+        ghost = User.objects.create(username="ghost")
+        ghost_pk = ghost.pk
+        old_apps.get_model("codex", "Favorite").objects.create(
+            user_id=ghost_pk, collection="series", target_id=_SERIES_PK
+        )
+        connection.disable_constraint_checking()
+        try:
+            with connection.cursor() as cursor:
+                # Only the favorite is left behind: User's own signal-made
+                # row goes with it.
+                cursor.execute(
+                    "DELETE FROM codex_userauth WHERE user_id = %s", [ghost_pk]
+                )
+                cursor.execute("DELETE FROM auth_user WHERE id = %s", [ghost_pk])
+        finally:
+            connection.enable_constraint_checking()
+
+        new_apps = _migrate(_AFTER)
+
+        shelf_model = new_apps.get_model("codex", "Shelf")
+        assert not shelf_model.objects.filter(user_id=ghost_pk).exists()
+        connection.check_constraints()

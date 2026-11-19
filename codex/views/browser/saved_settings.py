@@ -2,12 +2,12 @@
 
 from types import MappingProxyType
 
+from django.db.models import QuerySet
 from loguru import logger
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from codex.models.age_rating import AgeRating, AgeRatingMetron
-from codex.models.base import BaseModel
 from codex.models.identifier import IdentifierSource
 from codex.models.named import (
     Character,
@@ -74,9 +74,9 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
 
 
 def _validate_filter_field(
-    filters_data: dict, field: str, model: type[BaseModel], warnings: list[str]
+    filters_data: dict, field: str, model_qs: QuerySet, warnings: list[str]
 ):
-    """Validate one filter field by existing models."""
+    """Validate one filter field against the rows it may name."""
     pk_list = filters_data.get(field)
     if not pk_list or not isinstance(pk_list, list):
         return
@@ -85,7 +85,7 @@ def _validate_filter_field(
     if not real_pks:
         return
     existing_pks = frozenset(
-        model.objects.filter(pk__in=real_pks).values_list("pk", flat=True)
+        model_qs.filter(pk__in=real_pks).values_list("pk", flat=True)
     )
     if bad_pks := frozenset(real_pks - existing_pks):
         logger.info(
@@ -101,19 +101,28 @@ def _validate_filter_field(
 def _validate_filter_pks(
     filters_data: dict,
     filters_obj: SettingsBrowserFilters | None = None,
+    user=None,
 ) -> list[str]:
     """
     Validate FK-based filter PKs and strip invalid ones.
 
     Modifies *filters_data* in place.  When *filters_obj* is provided the
     cleaned values are persisted back to the database so subsequent loads
-    skip the validation.
+    skip the validation. Shelves are private, so a shelf pk is valid only
+    when *user* owns it; anyone else's is stripped like a missing one.
 
     Returns a list of filter field names that had invalid PKs removed.
     """
     warnings: list[str] = []
     for field, model in _FILTER_FK_MODEL_MAP.items():
-        _validate_filter_field(filters_data, field, model, warnings)
+        model_qs = model.objects.all()
+        if model is Shelf:
+            model_qs = (
+                model_qs.filter(user=user)
+                if user and getattr(user, "pk", None)
+                else model_qs.none()
+            )
+        _validate_filter_field(filters_data, field, model_qs, warnings)
     # Persist the cleaned filters back to the row.
     if warnings and filters_obj is not None:
         for field in warnings:
@@ -290,7 +299,9 @@ class SavedBrowserSettingsLoadView(SettingsBaseView):
 
         # Validate filter PKs, persist cleaned data, and collect warnings.
         filters_obj = saved.filters  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
-        filter_warnings = _validate_filter_pks(data.get("filters", {}), filters_obj)
+        filter_warnings = _validate_filter_pks(
+            data.get("filters", {}), filters_obj, owner.get("user")
+        )
 
         result = {
             "settings": data,

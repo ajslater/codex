@@ -35,6 +35,10 @@ export const fieldErrorMap = (error) => {
     map = body.errors;
   } else if (isPlainObject(envelopeDetail)) {
     map = envelopeDetail;
+  } else if (typeof envelopeDetail === "string" && envelopeDetail) {
+    // A view's ``Response({"detail": "..."})``: the envelope's detail is
+    // the sentence itself.
+    map = { detail: [envelopeDetail] };
   } else if (isPlainObject(body) && !("errors" in body)) {
     // A bare DRF body, which is what a non-admin endpoint returns.
     map = body;

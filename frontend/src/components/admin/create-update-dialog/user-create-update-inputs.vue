@@ -71,23 +71,22 @@
     <!--
       Revoking every key logs out every app and device at once, so it
       lives here behind a confirmation, not as a one-click button in the
-      Users table.
+      Users table. The button shows whatever the count says: the count is
+      the Users table's, which a user's own key changes never reload.
     -->
     <div v-if="oldRow" class="userKeys">
-      <template v-if="oldRow.apiKeyCount">
-        <span>API Keys: {{ oldRow.apiKeyCount }}</span>
-        <ConfirmDialog
-          button-text="Revoke all keys"
-          title-text="Revoke all keys"
-          :text="revokeText"
-          confirm-text="Revoke"
-          color="error"
-          variant="tonal"
-          size="small"
-          @confirm="revokeUserKeys(oldRow.pk)"
-        />
-      </template>
+      <span v-if="oldRow.apiKeyCount">API Keys: {{ oldRow.apiKeyCount }}</span>
       <span v-else>No API keys.</span>
+      <ConfirmDialog
+        button-text="Revoke all keys"
+        title-text="Revoke all keys"
+        :text="revokeText"
+        confirm-text="Revoke"
+        color="error"
+        variant="tonal"
+        size="small"
+        @confirm="revokeUserKeys(oldRow.pk)"
+      />
     </div>
   </div>
 </template>

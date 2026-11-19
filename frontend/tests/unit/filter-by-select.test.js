@@ -64,7 +64,7 @@ async function mountOpenMenu({
         settings: { filters: { bookmark: "UNREAD", ...filters } },
         choices: { dynamic: { characters: true } },
       },
-      shelves: { shelves, hydrated: true },
+      shelves: { shelves },
     },
   });
   const wrapper = mount(FilterBySelect, {
@@ -246,6 +246,36 @@ describe("BrowserFilterBySelect — shelves sub-menu", () => {
     expect(browserStore.setSettings).toHaveBeenCalledExactlyOnceWith({
       filters: { shelves: [] },
     });
+  });
+
+  test("ticking a shelf reloads the filter choices", async () => {
+    /*
+     * The page reload that a tick triggers clears ``choices.dynamic``;
+     * without a reload every other filter row showed a progress bar until
+     * the menu was reopened.
+     */
+    const { content, browserStore } = await openShelves({
+      filters: { shelves: [9] },
+    });
+
+    shelfRows(content)[0].click();
+    await flushPromises();
+
+    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
+    expect(browserStore.setSettings.mock.invocationCallOrder[0]).toBeLessThan(
+      browserStore.loadAvailableFilterChoices.mock.invocationCallOrder[0],
+    );
+  });
+
+  test("Clear Filter reloads the filter choices", async () => {
+    const { content, browserStore } = await openShelves({
+      filters: { shelves: [4] },
+    });
+
+    content.querySelector(".clearShelvesFilter").click();
+    await flushPromises();
+
+    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
   });
 
   test("Clear All Filters also empties filters.shelves", async () => {

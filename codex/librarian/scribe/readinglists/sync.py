@@ -157,7 +157,7 @@ class TagListSync:
         )
         extra = dict(reading_list.extra)
         extra.pop(WRITTEN_ARC_KEY, None)
-        reading_list.extra = extra  # pyright: ignore[reportAttributeAccessIssue]
+        reading_list.extra = extra
         if self._recombine:
             self._recombine(reading_list)
         reading_list.save()

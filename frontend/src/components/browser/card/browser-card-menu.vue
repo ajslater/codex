@@ -18,6 +18,7 @@
         :collection="item.collection"
         :pk="shelfPk"
         location="end"
+        submenu
       >
         <template #activator="{ props: shelfMenuProps }">
           <CodexListItem
