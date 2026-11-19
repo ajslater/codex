@@ -2,6 +2,7 @@
 
 import logging
 import re
+from http import HTTPStatus
 from logging import Filter, Handler
 from typing import Final, override
 
@@ -13,6 +14,13 @@ from loguru import logger
 # BaseHandler.get_response logs every 4xx at WARNING; we downgrade the
 # ones we expect so the main log stays useful.
 _NOISY_FORBIDDEN_PATHS: Final[frozenset[str]] = frozenset({"/api/v4/auth/profile"})
+
+# OPDS clients such as OkHttp's ``Authenticator`` send each request with
+# no credentials, read the 401 ``WWW-Authenticate`` challenge, then
+# retry with them. The challenge is routine, so it is DEBUG; a 401 that
+# answers credentials the client did send stays at WARNING. Matched on
+# ``path_info`` so ``server.url_path_prefix`` does not hide it.
+_OPDS_PATH_PREFIX: Final = "/opds/"
 
 
 # Query-string credentials we never want in logs. httpx logs the full
@@ -42,6 +50,12 @@ def scrub_secrets_filter(record) -> bool:
     return True
 
 
+def _downgrade_to_debug(record: logging.LogRecord) -> None:
+    """Lower a record to DEBUG; LoguruHandler reads ``levelname``."""
+    record.levelno = logging.DEBUG
+    record.levelname = "DEBUG"
+
+
 class DowngradeNoisyForbiddenFilter(Filter):
     """Downgrade routine anon 403s on known-noisy paths to DEBUG."""
 
@@ -52,10 +66,37 @@ class DowngradeNoisyForbiddenFilter(Filter):
         msg = record.getMessage()
         if not msg.startswith("Forbidden: "):
             return True
-        path = msg.split(": ", 1)[1]
+        # The message carries ``request.path``, which keeps
+        # ``server.url_path_prefix``; ``path_info`` drops it.
+        request = getattr(record, "request", None)
+        path = getattr(request, "path_info", None) or msg.split(": ", 1)[1]
         if path in _NOISY_FORBIDDEN_PATHS:
-            record.levelno = logging.DEBUG
-            record.levelname = "DEBUG"
+            _downgrade_to_debug(record)
+        return True
+
+
+class DowngradeOPDSAuthChallengeFilter(Filter):
+    """Downgrade OPDS 401 challenges to requests that sent no credentials."""
+
+    @staticmethod
+    def _is_challenge(record: logging.LogRecord) -> bool:
+        if (
+            record.levelno != logging.WARNING
+            or getattr(record, "status_code", None) != HTTPStatus.UNAUTHORIZED
+        ):
+            return False
+        # Django's ``log_response`` passes the request through ``extra``.
+        request = getattr(record, "request", None)
+        path_info = getattr(request, "path_info", "")
+        meta = getattr(request, "META", {})
+        return path_info.startswith(_OPDS_PATH_PREFIX) and not meta.get(
+            "HTTP_AUTHORIZATION"
+        )
+
+    @override
+    def filter(self, record) -> bool:
+        if self._is_challenge(record):
+            _downgrade_to_debug(record)
         return True
 
 
@@ -130,7 +171,7 @@ def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int |
     # propagation, but the filter only runs when the logger is declared
     # here.
     loggers["django.request"] = {
-        "filters": ["downgrade_noisy_forbidden"],
+        "filters": ["downgrade_noisy_forbidden", "downgrade_opds_auth_challenge"],
     }
     return {
         "version": 1,
@@ -138,6 +179,9 @@ def get_logging_settings(loglevel: str | int, *, debug: bool) -> dict[str, int |
         "filters": {
             "downgrade_noisy_forbidden": {
                 "()": "codex.settings.logging.DowngradeNoisyForbiddenFilter",
+            },
+            "downgrade_opds_auth_challenge": {
+                "()": "codex.settings.logging.DowngradeOPDSAuthChallengeFilter",
             },
         },
         "handlers": {

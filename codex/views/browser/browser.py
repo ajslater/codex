@@ -1,7 +1,7 @@
 """Views for browsing comic library."""
 
 from functools import cached_property
-from math import ceil, floor, log10
+from math import floor, log10
 from types import MappingProxyType
 from typing import override
 
@@ -25,7 +25,6 @@ from codex.serializers.browser.page import (
     BrowserPageSerializer,
 )
 from codex.serializers.browser.settings import BrowserPageInputSerializer
-from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
     default_columns_filtered,
     fk_name_annotations_for,
@@ -355,10 +354,11 @@ class BrowserView(BrowserTitleView):
         full_count = collection_count + book_count
 
         # Paginate
-        num_pages = ceil(full_count / get_browser_max_obj_per_page())
+        paginator = self.get_browser_paginator(full_count)
+        num_pages = paginator.num_pages
         self.check_page_in_bounds(num_pages)
         collection_qs, book_qs, page_collection_count, page_book_count = self.paginate(
-            collection_qs, book_qs, collection_count, book_count
+            paginator, collection_qs, book_qs, collection_count, book_count
         )
 
         # Annotate

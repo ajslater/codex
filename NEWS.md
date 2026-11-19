@@ -6,6 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.7.1
+
+### 🐛 Fixed
+
+- Search operators on characters, story arcs and other tags, such as
+  `characters:*man` or `story_arcs:A..T`, filter results instead of matching
+  every comic.
+- The browser's page count matches its pages, and folder pages no longer
+  overflow or repeat books.
+- OPDS v2 story arc and series group links filter their feeds.
+- The Jobs tab's Abort buttons work.
+- Routine OPDS login challenges, and the profile check behind a URL path prefix,
+  no longer log warnings.
+
 ## v2.7.0 - Shelves & KOReader Sync
 
 ### ✨ Added
