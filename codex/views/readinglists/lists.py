@@ -248,9 +248,7 @@ class ReadingListContinueView(ReadingListAccessView):
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{continue: {pk, page} | null}``."""
         reading_list = self.get_reading_list(edit=False)
-        return Response(
-            {"continue": continue_comic(self, self.request, reading_list)}
-        )
+        return Response({"continue": continue_comic(self, self.request, reading_list)})
 
 
 class ReadingListExportView(ReadingListAccessView):

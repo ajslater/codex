@@ -18,6 +18,9 @@
     <div v-if="item.listSources" class="listSources">
       {{ item.listSources }}
     </div>
+    <div v-if="listCoverage" class="listCoverage" :title="listCoverageTitle">
+      {{ listCoverage }}
+    </div>
     <div class="displayName">
       {{ displayName }}
     </div>
@@ -43,6 +46,16 @@ export default {
     },
   },
   computed: {
+    listCoverage() {
+      // A reading list with gaps: how much of it the library has.
+      const { listInLibrary, listTotal } = this.item;
+      if (!listTotal || listInLibrary >= listTotal) return "";
+      return `${listInLibrary} of ${listTotal}`;
+    },
+    listCoverageTitle() {
+      const { listInLibrary, listTotal } = this.item;
+      return `${listInLibrary} of the list's ${listTotal} issues are in the library`;
+    },
     ...mapState(useBrowserStore, {
       orderByFilename: (state) => state.settings.orderBy === "filename",
       orderByName: (state) => state.settings.orderBy === "sort_name",

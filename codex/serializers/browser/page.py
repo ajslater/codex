@@ -129,6 +129,10 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     cover_mtime = SerializerMethodField(read_only=True)
     # A reading list's sources, ``Tags + Metron · CBRO``; blank otherwise.
     list_sources = SerializerMethodField(read_only=True)
+    # A reading list's "31 of 98": its comics the viewer has, of its shown
+    # entries. Absent on every other card.
+    list_in_library = IntegerField(read_only=True, required=False)
+    list_total = IntegerField(read_only=True, required=False)
 
     def get_list_sources(self, obj) -> str:
         """Return the sources label a reading list card shows."""

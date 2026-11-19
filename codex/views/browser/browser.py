@@ -41,7 +41,10 @@ from codex.views.browser.missing_entries import (
     page_bounds,
     page_missing_entries,
 )
-from codex.views.browser.reading_list_sources import attach_list_sources
+from codex.views.browser.reading_list_sources import (
+    attach_list_coverage,
+    attach_list_sources,
+)
 from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
@@ -378,6 +381,7 @@ class BrowserView(BrowserTitleView):
             collection_qs = self.attach_cover_mtimes(collection_qs)
             if collection_qs.model is ReadingList:
                 attach_list_sources(collection_qs)
+                attach_list_coverage(self, self.request.user, collection_qs)
         if page_book_count:
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,

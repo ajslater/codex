@@ -156,3 +156,30 @@ class ReadingOrderRowTests(PlaceholderFixture):
         data = self._page(1, view_mode="table", columns="cover,name")
         assert [row["position"] for row in data["rows"]] == [1, 3]
         assert self._missing(data) == [(0, "Prelude"), (2, "Tie-In A")]
+
+
+class ListCardCoverageTests(PlaceholderFixture):
+    """A list with gaps says how much of it is here, on its card."""
+
+    def _cards(self) -> dict[str, dict]:
+        response = self.client.get(
+            "/api/v4/browse/arcs/0",
+            {"filters": json.dumps({}), "search": "", "page": 1},
+        )
+        assert response.status_code == _OK, response.content
+        return {row["name"]: row for row in response.json()["data"]["collections"]}
+
+    def test_a_list_with_gaps_shows_its_coverage(self) -> None:
+        """Four comics of eight shown entries; the hidden one does not count."""
+        card = self._cards()["Event"]
+        assert (card["listInLibrary"], card["listTotal"]) == (4, 8)
+
+    def test_a_complete_list_shows_none(self) -> None:
+        """No gaps, nothing to say."""
+        whole = ReadingList.objects.create(name="Whole")
+        for position, comic in enumerate(self.comics):
+            ReadingListEntry.objects.create(
+                reading_list=whole, position=position, comic=comic
+            )
+        card = self._cards()["Whole"]
+        assert (card["listInLibrary"], card["listTotal"]) == (4, 4)
