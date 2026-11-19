@@ -38,16 +38,24 @@ border-radius: 128px;
 - The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
   row that opens each list.
 - A comic tagged twice in one story arc no longer counts its pages twice.
-- Search expressions such as `characters:*man` and `arc:A..M` filter characters,
-  reading lists, credits and other tag fields.
-- The browser's page count matches the pages it shows, and folder pages no
-  longer repeat their comics.
-- OPDS subject links for story arcs and series groups open them.
-- The Jobs tab's Abort buttons work.
 
 ### 🧑‍💻 Developer
 
 - Require comicbox 5.7.
+
+## v2.7.1
+
+### 🐛 Fixed
+
+- Search operators on characters, story arcs and other tags, such as
+  `characters:*man` or `story_arcs:A..T`, filter results instead of matching
+  every comic.
+- The browser's page count matches its pages, and folder pages no longer
+  overflow or repeat books.
+- OPDS v2 story arc and series group links filter their feeds.
+- The Jobs tab's Abort buttons work.
+- Routine OPDS login challenges, and the profile check behind a URL path prefix,
+  no longer log warnings.
 
 ## v2.7.0 - Shelves & KOReader Sync
 
