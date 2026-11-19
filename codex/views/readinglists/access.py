@@ -3,11 +3,16 @@
 from collections.abc import Iterable
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from codex.models import Comic
-from codex.models.readinglist import ReadingList, ReadingListEntry
+from codex.models.readinglist import (
+    ReadingList,
+    ReadingListEntry,
+    ReadingListSource,
+    ReadingListSourceKind,
+)
 from codex.views.auth import AuthFilterGenericAPIView, GroupACLMixin
 
 
@@ -23,7 +28,6 @@ def can_edit(user, reading_list: ReadingList) -> bool:
     Whether ``user`` may change a list.
 
     A global list is an admin's to edit; a personal one is its owner's.
-    :func:`editable_lists_q` is the same rule as a query.
     """
     if user is None or not user.is_authenticated:
         return False
@@ -32,13 +36,31 @@ def can_edit(user, reading_list: ReadingList) -> bool:
     return reading_list.user_id == user.pk  # pyright: ignore[reportAttributeAccessIssue]
 
 
-def editable_lists_q(user) -> Q:
-    """Return the lists ``user`` may change, as :func:`can_edit` decides."""
+def tags_only_q() -> Q:
+    """
+    Return the lists made from story-arc tags alone.
+
+    A tags source and no other. ``Exists`` rather than a join, so a list
+    is not repeated per source and cachalot sees the sources table.
+    """
+    sources = ReadingListSource.objects.filter(reading_list=OuterRef("pk"))
+    tags = Exists(sources.filter(kind=ReadingListSourceKind.TAGS.value))
+    other = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
+    return Q(tags) & ~Q(other)
+
+
+def menu_lists_q(user) -> Q:
+    """
+    Return the lists a user's add-to-list menus offer.
+
+    Their own lists and, for an admin, the global lists not made from tags
+    alone: a list from tags follows its tags, and there is one per arc.
+    """
     if user is None or not user.is_authenticated:
         return Q(pk__in=())
     q = Q(user=user)
     if user.is_staff:
-        q |= Q(user__isnull=True)
+        q |= Q(user__isnull=True) & ~tags_only_q()
     return q
 
 

@@ -3,16 +3,15 @@
 from functools import cached_property
 from typing import Final
 
-from django.db.models import Exists, OuterRef
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.models import Comic, ReadingList, ReadingListSource
-from codex.models.readinglist import ReadingListSourceKind
+from codex.models import Comic, ReadingList
 from codex.models.shelf import SHELF_MODEL_COLLECTIONS, Shelf, ShelfItem
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.browser.shelf_membership import effective_comic_q, shelf_targets
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
+from codex.views.readinglists.access import tags_only_q
 
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
 # on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
@@ -220,10 +219,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             if user is None or not user.is_authenticated:
                 return Q(pk__in=())
             return Q(user=user)
-        sources = ReadingListSource.objects.filter(reading_list=OuterRef("pk"))
-        other = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
-        tags = Exists(sources.filter(kind=ReadingListSourceKind.TAGS.value))
-        tags_only = Q(tags) & ~Q(other)
+        tags_only = tags_only_q()
         return ~tags_only if kind == "curated" else tags_only
 
     def _get_query_filters(

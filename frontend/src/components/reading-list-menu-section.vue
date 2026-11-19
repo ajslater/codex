@@ -1,8 +1,19 @@
 <template>
   <MenuSection title="Reading Lists">
+    <v-text-field
+      v-if="myLists.length > FILTER_AFTER"
+      v-model="query"
+      class="listFilter"
+      density="compact"
+      hide-details
+      clearable
+      label="Find a list"
+      variant="outlined"
+      @click.stop
+    />
     <v-list class="readingListMenuList" density="compact">
       <v-list-item
-        v-for="list of myLists"
+        v-for="list of shownLists"
         :key="list.pk"
         density="compact"
         :prepend-icon="mdiPlaylistPlus"
@@ -53,6 +64,9 @@ import { mapActions, mapState } from "pinia";
 import MenuSection from "@/components/menu-section.vue";
 import { useReadingListsStore } from "@/stores/reading-lists";
 
+// Past this many lists the menu grows a field to find one by name.
+const FILTER_AFTER = 8;
+
 /*
  * The reading lists half of the shelf menu: add a selection's comics to a
  * list the user may edit, or make a new list of them.
@@ -66,10 +80,25 @@ export default {
   },
   emits: ["done"],
   data() {
-    return { mdiCheck, mdiPlaylistPlus, mdiPlus, creating: false, name: "" };
+    return {
+      FILTER_AFTER,
+      mdiCheck,
+      mdiPlaylistPlus,
+      mdiPlus,
+      creating: false,
+      name: "",
+      query: "",
+    };
   },
   computed: {
     ...mapState(useReadingListsStore, ["myLists", "myListsLoaded"]),
+    shownLists() {
+      const query = (this.query || "").trim().toLowerCase();
+      if (!query) return this.myLists;
+      return this.myLists.filter((list) =>
+        list.name.toLowerCase().includes(query),
+      );
+    },
   },
   mounted() {
     if (!this.myListsLoaded) this.loadMyLists();
@@ -104,6 +133,10 @@ export default {
     max-height: 30vh;
     overflow-y: auto;
     padding-top: 0;
+  }
+
+  .listFilter {
+    margin: 4px 12px;
   }
 
   .newList {

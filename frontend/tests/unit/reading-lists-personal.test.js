@@ -83,6 +83,32 @@ describe("ReadingListMenuSection", () => {
     expect(rows[1].text()).not.toContain("Global");
   });
 
+  test("no find field for a short menu", () => {
+    const { wrapper } = mountSection();
+    expect(wrapper.find(".listFilter").exists()).toBe(false);
+  });
+
+  test("past eight lists, a field finds one by name", async () => {
+    const lists = Array.from({ length: 10 }, (_, i) => ({
+      pk: i + 1,
+      name: i === 6 ? "Secret Wars" : `List ${i + 1}`,
+      personal: true,
+      count: 1,
+      editable: true,
+    }));
+    const { wrapper } = mountWith(ReadingListMenuSection, {
+      lists,
+      props: { targets: TARGETS },
+    });
+    expect(wrapper.find(".listFilter").exists()).toBe(true);
+    wrapper.vm.query = "secret";
+    await wrapper.vm.$nextTick();
+    const titles = wrapper
+      .findAll(".readingListMenuList .v-list-item-title")
+      .map((title) => title.text());
+    expect(titles).toEqual(["Secret Wars", "New reading list…"]);
+  });
+
   test("a row click adds the targets and closes the menu", async () => {
     const { wrapper, store } = mountSection();
     await wrapper.findAll(".v-list-item")[1].trigger("click");

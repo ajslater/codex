@@ -43,7 +43,7 @@ from codex.models.readinglist import (
 from codex.views.readinglists.access import (
     ReadingListAccessView,
     can_edit,
-    editable_lists_q,
+    menu_lists_q,
 )
 from codex.views.readinglists.details import continue_comic
 from codex.views.readinglists.entries import add_comics
@@ -175,10 +175,10 @@ class ReadingListsView(ReadingListAccessView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, *_args, **_kwargs) -> Response:
-        """Return the user's own lists, and the global ones for an admin."""
+        """Return the user's own lists, and for an admin the curated global ones."""
         user = self.request.user
         lists = (
-            ReadingList.objects.filter(editable_lists_q(user))
+            ReadingList.objects.filter(menu_lists_q(user))
             .annotate(count=Count("entries", filter=Q(entries__ignored=False)))
             .order_by("user_id", "sort_name", "pk")
         )

@@ -88,3 +88,21 @@ class KindToggleTests(ManageFixture):
         """A session owns no lists."""
         self.client.logout()
         assert self._root("mine") == set()
+
+
+class AddToListMenuTests(ManageFixture):
+    """The lists a user may add comics to, without one per story arc."""
+
+    def _menu(self) -> set[str]:
+        response = self.client.get("/api/v4/reading-lists/")
+        assert response.status_code == _OK, response.content
+        return {row["name"] for row in response.json()["data"]["lists"]}
+
+    def test_a_user_gets_their_own_lists(self) -> None:
+        """Only their own."""
+        assert self._menu() == {"Mine"}
+
+    def test_an_admin_gets_global_lists_not_from_tags_alone(self) -> None:
+        """Imported and hand-made global lists, not the lists from tags."""
+        self.client.force_login(self.admin)
+        assert self._menu() == {"Imported", "Hand Made"}
