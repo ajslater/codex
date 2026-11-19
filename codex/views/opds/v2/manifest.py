@@ -12,7 +12,17 @@ from codex.models.base import NamedModel
 from codex.models.collections import Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier
-from codex.models.named import Credit, StoryArcNumber
+from codex.models.named import (
+    Character,
+    Credit,
+    Genre,
+    Location,
+    SeriesGroup,
+    StoryArc,
+    StoryArcNumber,
+    Tag,
+    Team,
+)
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
@@ -47,6 +57,19 @@ _MD_CREDIT_MAP = MappingProxyType(
 _PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
     {
         "description": "summary",
+    }
+)
+# The browser filter each subject kind's facet link filters on. Not the model
+# name plus "s": that spells ``storyarcs`` and ``seriesgroups``.
+SUBJECT_FILTER_KEYS: MappingProxyType[type[NamedModel], str] = MappingProxyType(
+    {
+        Character: "characters",
+        Genre: "genres",
+        Location: "locations",
+        SeriesGroup: "series_groups",
+        StoryArc: "story_arcs",
+        Tag: "tags",
+        Team: "teams",
     }
 )
 # Readium Contributor browse-group routing for publisher/imprint —
@@ -226,7 +249,7 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         Replaces the prior 7-query loop in ``get_m2m_objects`` (one query
         per ``OPDS_M2M_MODELS`` entry) with a single ``UNION ALL`` over
-        ``(pk, name, _kind)`` tuples (sub-plan 05 #3). The reconstructed
+        ``(pk, name, _filter_key)`` tuples (sub-plan 05 #3). The reconstructed
         ``SimpleNamespace`` rows expose only ``pk`` / ``name`` / ``links``
         — the surface ``_add_tag_link`` and ``OPDS2SubjectSerializer``
         actually read.
@@ -234,23 +257,22 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         queries = []
         for model in OPDS_M2M_MODELS:
             rel = GroupACLMixin.get_rel_prefix(model)
-            kind = model.__name__.lower()
+            filter_key = SUBJECT_FILTER_KEYS[model]
             q = (
                 model.objects.filter(**{rel + "in": obj.ids})
-                .annotate(_kind=Value(kind, output_field=CharField()))
-                .values("pk", "name", "_kind")
+                .annotate(_filter_key=Value(filter_key, output_field=CharField()))
+                .values("pk", "name", "_filter_key")
             )
             queries.append(q)
-        rows = queries[0].union(*queries[1:], all=True).order_by("_kind", "name")
+        rows = queries[0].union(*queries[1:], all=True).order_by("_filter_key", "name")
 
         # ``flat_subjs`` carries ``SimpleNamespace`` rows that quack
         # like ``NamedModel`` (``pk`` / ``name`` / ``links``); the
         # serializer downstream reads only those three attributes.
         flat_subjs: list[Any] = []
         for row in rows:
-            kind = row["_kind"]
             subj = SimpleNamespace(pk=row["pk"], name=row["name"], links=())
-            self._add_tag_link(subj, kind + "s")
+            self._add_tag_link(subj, row["_filter_key"])
             flat_subjs.append(subj)
         return tuple(flat_subjs)
 
