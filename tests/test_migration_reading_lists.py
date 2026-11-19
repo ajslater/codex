@@ -116,6 +116,16 @@ class ReadingListsMigrationTests(TransactionTestCase):
         apps.get_model("codex", "SettingsBrowserLastRoute").objects.create(
             browser=browser, collection="arcs", pks=[lower.pk, upper.pk, 9999]
         )
+        # A saved view filtering on a story arc, sorting by Story Arcs, with
+        # the Story Arcs column showing.
+        apps.get_model("codex", "SettingsBrowserFilters").objects.create(
+            browser=browser, story_arcs=[upper.pk, None]
+        )
+        browser.order_by = "story_arcs"
+        browser.order_extra_keys = [{"key": "story_arcs", "reverse": False}]
+        browser.collection_order_memory = {"s": {"order_by": "story_arcs"}}
+        browser.table_columns = {"series": ["name", "story_arcs"]}
+        browser.save()
         return {"comics": (c1, c2, c3), "upper": upper, "browser": browser}
 
     def test_arcs_become_reading_lists(self) -> None:
@@ -156,6 +166,41 @@ class ReadingListsMigrationTests(TransactionTestCase):
             browser_id=seeded["browser"].pk
         )
         assert route.pks == [civil_war.pk]
+
+    def test_story_arc_settings_become_reading_lists(self) -> None:
+        """A story-arc filter, sort and column come out as reading-list ones."""
+        seeded = self._seed(_migrate(_BEFORE))
+        apps = _migrate(_AFTER)
+        civil_war: Any = apps.get_model("codex", "ReadingList").objects.get(
+            sort_name="civil war"
+        )
+        filters: Any = apps.get_model("codex", "SettingsBrowserFilters").objects.get(
+            browser_id=seeded["browser"].pk
+        )
+        assert filters.reading_lists == [civil_war.pk, None]
+        assert not hasattr(filters, "story_arcs")
+        browser: Any = apps.get_model("codex", "SettingsBrowser").objects.get(
+            pk=seeded["browser"].pk
+        )
+        assert browser.order_by == "reading_lists"
+        assert browser.order_extra_keys == [{"key": "reading_lists", "reverse": False}]
+        assert browser.collection_order_memory == {"s": {"order_by": "reading_lists"}}
+        assert browser.table_columns == {"series": ["name", "reading_lists"]}
+
+    def test_reverse_gives_story_arc_settings_back(self) -> None:
+        """Backward: the filter, sort and column name story arcs again."""
+        seeded = self._seed(_migrate(_BEFORE))
+        _migrate(_AFTER)
+        apps = _migrate(_BEFORE)
+        filters: Any = apps.get_model("codex", "SettingsBrowserFilters").objects.get(
+            browser_id=seeded["browser"].pk
+        )
+        assert filters.story_arcs == [seeded["upper"].pk, None]
+        browser: Any = apps.get_model("codex", "SettingsBrowser").objects.get(
+            pk=seeded["browser"].pk
+        )
+        assert browser.order_by == "story_arcs"
+        assert browser.table_columns == {"series": ["name", "story_arcs"]}
 
     def test_reverse_points_back_at_arcs(self) -> None:
         """Backward: lists from tags give their pointers back to an arc."""

@@ -418,6 +418,13 @@ class AgeRatingACLMixin(RelPrefixMixin):
         )
 
 
+def viewer_pk_of(user) -> int | None:
+    """Return a signed-in user's pk, or None for an anonymous session."""
+    if user is None or not getattr(user, "is_authenticated", False):
+        return None
+    return user.pk
+
+
 @dataclass(frozen=True, slots=True)
 class ComicACL:
     """
@@ -449,6 +456,9 @@ class ComicACL:
     library_pks: tuple[int, ...]
     max_idx: int
     default_fits: bool
+    # Whose personal reading lists are visible beside the global ones. Not
+    # a comic predicate: only the reading lists column reads it.
+    viewer_pk: int | None = None
 
     @classmethod
     def for_user(cls, user) -> Self:
@@ -466,6 +476,7 @@ class ComicACL:
             ),
             max_idx=max_idx,
             default_fits=AgeRatingACLMixin.compute_default_fits(max_idx),
+            viewer_pk=viewer_pk_of(user),
         )
 
     @staticmethod
@@ -475,6 +486,24 @@ class ComicACL:
         # parameters, and a stable statement string is what lets SQLite
         # reuse its prepared-statement cache across requests.
         return tuple(sorted(visible_pks))
+
+    def lists_q(self, prefix: str) -> Q:
+        """
+        Return the reading lists the viewer may see, ORM spelling.
+
+        ``prefix`` is the path to the list, such as
+        ``reading_list_entries__reading_list__`` from Comic.
+        """
+        visible = Q(**{f"{prefix}user__isnull": True})
+        if self.viewer_pk is not None:
+            visible |= Q(**{f"{prefix}user_id": self.viewer_pk})
+        return visible
+
+    def lists_sql(self, alias: str) -> tuple[str, tuple[int, ...]]:
+        """Return the reading lists the viewer may see, raw SQL and parameters."""
+        if self.viewer_pk is None:
+            return f"{alias}.user_id IS NULL", ()
+        return f"({alias}.user_id IS NULL OR {alias}.user_id = %s)", (self.viewer_pk,)
 
     def q(self, model) -> Q:
         """Return the ORM spelling, relative to ``model``'s Comic relation."""
@@ -618,6 +647,7 @@ class GroupACLMixin(
             library_pks=ComicACL.order_pks(self.get_visible_library_pks(user)),
             max_idx=self.get_max_idx(user),
             default_fits=self.get_default_fits(user),
+            viewer_pk=viewer_pk_of(user),
         )
 
     def get_acl_filter(self, model, user, *, include_missing: bool = False) -> Q:

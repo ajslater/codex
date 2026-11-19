@@ -60,7 +60,6 @@ _FILTER_TAG_MODEL_REFS: Final[MappingProxyType[str, str]] = MappingProxyType(
         "reprints": "codex.Reprint",
         "series_groups": "codex.SeriesGroup",
         "stories": "codex.Story",
-        "story_arcs": "codex.StoryArc",
         "tagger": "codex.Tagger",
         "tags": "codex.Tag",
         "teams": "codex.Team",

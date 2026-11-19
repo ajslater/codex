@@ -79,7 +79,7 @@ _M2M_SORT_COLUMNS: Final = (
     "credits",
     "identifiers",
     "reprints",
-    "story_arcs",
+    "reading_lists",
     "universes",
 )
 # A direct Comic column and an FK-to-name column -- the two scalar
@@ -349,7 +349,10 @@ class IntersectionACLBuildersTestCase(IntersectionACLFixture):
             for column, builder in columns:
                 expr = builder(model, column, acl)
                 assert expr is not None, (model, column)
-                assert tuple(expr.params) == expected, (model, column)
+                # The reading lists builder binds the viewer first: which
+                # lists they may see.
+                viewer = acl.lists_sql("rl")[1] if column == "reading_lists" else ()
+                assert tuple(expr.params) == (*viewer, *expected), (model, column)
 
     def test_orm_aggregations_filter_both_sides(self) -> None:
         """

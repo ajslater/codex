@@ -12,8 +12,12 @@ from codex.models.base import NamedModel
 from codex.models.collections import Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier
-from codex.models.named import Credit
-from codex.models.readinglist import ReadingListEntry
+from codex.models.named import Credit, StoryArc
+from codex.models.readinglist import (
+    ReadingListEntry,
+    ReadingListSource,
+    ReadingListSourceKind,
+)
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
 )
@@ -65,6 +69,40 @@ _PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
 # page counts works; 999999999 is well clear of any plausible
 # ``page_count`` (sub-plan 05 #4).
 _READING_ORDER_PAGE_SENTINEL: int = 999999999
+
+
+_STORY_ARC_KIND = StoryArc.__name__.lower()
+# Each subject kind's browser filter key.
+_SUBJECT_FILTER_KEYS = MappingProxyType(
+    {
+        "character": "characters",
+        "genre": "genres",
+        "location": "locations",
+        "seriesgroup": "series_groups",
+        _STORY_ARC_KIND: "reading_lists",
+        "tag": "tags",
+        "team": "teams",
+    }
+)
+
+
+def _arc_list_pks(arc_pks) -> dict[int, int]:
+    """Map story arcs to the reading lists their tags made."""
+    sort_names = dict(
+        StoryArc.objects.filter(pk__in=list(arc_pks)).values_list("pk", "sort_name")
+    )
+    if not sort_names:
+        return {}
+    lists = dict(
+        ReadingListSource.objects.filter(
+            kind=ReadingListSourceKind.TAGS, ref__in=set(sort_names.values())
+        ).values_list("ref", "reading_list_id")
+    )
+    return {
+        arc_pk: lists[sort_name]
+        for arc_pk, sort_name in sort_names.items()
+        if sort_name in lists
+    }
 
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
@@ -247,11 +285,20 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # ``flat_subjs`` carries ``SimpleNamespace`` rows that quack
         # like ``NamedModel`` (``pk`` / ``name`` / ``links``); the
         # serializer downstream reads only those three attributes.
+        rows = list(rows)
+        arc_lists = _arc_list_pks(
+            row["pk"] for row in rows if row["_kind"] == _STORY_ARC_KIND
+        )
         flat_subjs: list[Any] = []
         for row in rows:
             kind = row["_kind"]
-            subj = SimpleNamespace(pk=row["pk"], name=row["name"], links=())
-            self._add_tag_link(subj, kind + "s")
+            pk = row["pk"]
+            if kind == _STORY_ARC_KIND:
+                # An arc is a reading list: its link filters by the list.
+                pk = arc_lists.get(pk)
+            subj = SimpleNamespace(pk=pk, name=row["name"], links=())
+            if pk is not None:
+                self._add_tag_link(subj, _SUBJECT_FILTER_KEYS[kind])
             flat_subjs.append(subj)
         return tuple(flat_subjs)
 

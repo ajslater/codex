@@ -21,7 +21,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, Final, override
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CharField, Count, F, Min, Q, Sum, Value
@@ -38,6 +38,7 @@ from codex.models.collections import (
 )
 from codex.models.named import Reprint
 from codex.views.browser.columns import (
+    READING_LIST_NAME_PATH,
     fk_name_columns,
     m2m_columns,
 )
@@ -45,6 +46,8 @@ from codex.views.const import MODEL_REL_MAP
 
 if TYPE_CHECKING:
     from codex.views.auth import ComicACL
+
+_READING_LISTS: Final = "reading_lists"
 
 # Intersection cells describe what is live. A scanner-stamped comic --
 # one whose path a scan could not find and which is being kept for its
@@ -288,7 +291,7 @@ def compute_collection_intersections(
 
     # Simple-M2M columns share one UNION-ALL query (metadata-view
     # pattern). Composite shapes (credits / identifiers / reprints /
-    # universes / story_arcs) keep their per-column helpers.
+    # universes / reading_lists) keep their per-column helpers.
     _compute_simple_m2m_intersections_batched(
         m2m_cols, collection_pks, comic_to_collection, counts, result, acl
     )
@@ -506,7 +509,7 @@ def _compute_batched_scalars(
 # ``universes`` (composite ``name:designation``), ``credits``
 # (``Person (Role)``), ``identifiers`` (``[source:]type:key``),
 # ``reprints`` (no ``name`` column at all — the label composes from
-# four), and ``story_arcs`` (StoryArcNumber → StoryArc indirection)
+# four), and ``reading_lists`` (entries of the lists the viewer may see)
 # need bespoke SQL and stay on per-column helpers.
 _SIMPLE_M2M_BATCH_FIELDS: frozenset[str] = frozenset(
     {
@@ -642,7 +645,7 @@ def _compute_m2m_intersection(
     Simple M2M columns route through
     ``_compute_simple_m2m_intersections_batched`` instead — this
     helper covers the bespoke shapes (credits / identifiers /
-    reprints / universes / story_arcs).
+    reprints / universes / reading_lists).
     """
     if col == "credits":
         _compute_credits_intersection(
@@ -667,7 +670,7 @@ def _compute_m2m_intersection(
         Comic.objects.filter(
             LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
         )
-        .filter(**{f"{rel}__isnull": False})
+        .filter(_name_relation_filter(col, rel, acl))
         .values(comic_to_collection, rel)
         .annotate(cnt=Count("pk", distinct=True))
     )
@@ -687,10 +690,24 @@ def _compute_m2m_intersection(
 
 _M2M_NAME_RELATIONS: MappingProxyType[str, str] = MappingProxyType(
     {
-        "story_arcs": "story_arc_numbers__story_arc__name",
+        _READING_LISTS: READING_LIST_NAME_PATH,
         "universes": "universes__name",
     }
 )
+_READING_LIST_PREFIX: Final = "reading_list_entries__reading_list__"
+
+
+def _name_relation_filter(col: str, rel: str, acl: "ComicACL") -> Q:
+    """Return the rows a name-relation column reads: present, and visible."""
+    present = Q(**{f"{rel}__isnull": False})
+    if col == _READING_LISTS:
+        # Shown entries of the lists the viewer may see.
+        return (
+            present
+            & Q(reading_list_entries__ignored=False)
+            & acl.lists_q(_READING_LIST_PREFIX)
+        )
+    return present
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1009,28 +1026,32 @@ def _build_reprints_intersection_sort_sql(
     return _IntersectionSortRawSQL(sql, correlation.sort_params())
 
 
-def _build_story_arcs_intersection_sort_sql(
+def _build_reading_lists_intersection_sort_sql(
     collection_model: type[BrowserCollectionModel], acl: "ComicACL"
 ) -> RawSQL | None:
-    """Story arcs go through ``StoryArcNumber``; group by the parent ``StoryArc``."""
+    """
+    Sort collection rows by the reading lists all their comics show in.
+
+    A list is shared when every comic shows in it. Only shown entries of
+    lists the viewer may see count, so the viewer is bound first.
+    """
     correlation = _comic_correlation_sql(collection_model, acl)
     if correlation is None:
         return None
-    # Comic.story_arc_numbers → StoryArcNumber → story_arc → StoryArc.
-    # We want intersection by StoryArc (not StoryArcNumber): a story
-    # arc is "shared" if every comic has at least one StoryArcNumber
-    # pointing to it, regardless of issue number.
-    inner = """
+    visible, visible_params = acl.lists_sql("rl")
+    inner = f"""
             SELECT
-                sa.id AS target_id,
-                sa.name AS display_name
-            FROM codex_storyarc sa
-            INNER JOIN codex_storyarcnumber san ON san.story_arc_id = sa.id
-            INNER JOIN codex_comic_story_arc_numbers th ON th.storyarcnumber_id = san.id
-            INNER JOIN codex_comic c ON c.id = th.comic_id
-    """
+                rl.id AS target_id,
+                rl.name AS display_name
+            FROM codex_readinglist rl
+            INNER JOIN codex_readinglistentry rle
+                ON rle.reading_list_id = rl.id AND rle.ignored = 0 AND {visible}
+            INNER JOIN codex_comic c ON c.id = rle.comic_id
+    """  # noqa: S608
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(sql, correlation.sort_params())
+    return _IntersectionSortRawSQL(
+        sql, (*visible_params, *correlation.sort_params())
+    )
 
 
 def _comic_correlation_sql(
@@ -1201,7 +1222,7 @@ _COMPOSITE_M2M_SORT_BUILDERS = MappingProxyType(
         "credits": _build_credits_intersection_sort_sql,
         "identifiers": _build_identifiers_intersection_sort_sql,
         "reprints": _build_reprints_intersection_sort_sql,
-        "story_arcs": _build_story_arcs_intersection_sort_sql,
+        _READING_LISTS: _build_reading_lists_intersection_sort_sql,
         "universes": _build_universes_intersection_sort_sql,
     }
 )

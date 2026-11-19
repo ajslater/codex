@@ -228,7 +228,6 @@ CREATE TABLE IF NOT EXISTS settings_filters (
     series_start_year TEXT NOT NULL DEFAULT '[]',
     series_status TEXT NOT NULL DEFAULT '[]',
     stories TEXT NOT NULL DEFAULT '[]',
-    story_arcs TEXT NOT NULL DEFAULT '[]',
     tagger TEXT NOT NULL DEFAULT '[]',
     tags TEXT NOT NULL DEFAULT '[]',
     teams TEXT NOT NULL DEFAULT '[]',

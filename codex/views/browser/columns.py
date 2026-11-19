@@ -7,7 +7,7 @@ helpers used by the views, serializers, and validators.
 """
 
 from types import MappingProxyType
-from typing import cast
+from typing import Final, cast
 
 from django.db.models import (
     Aggregate,
@@ -30,6 +30,7 @@ from codex.choices.browser import (
 from codex.models.collections import Volume
 from codex.models.functions import JsonGroupArray
 from codex.models.named import Reprint
+from codex.views.auth import GroupACLMixin
 
 # ORM paths or expressions for M2M columns. Simple ones map a single
 # ``related__name`` path; ``credits`` and ``identifiers`` need composite
@@ -210,6 +211,19 @@ def reprints_sort_annotations(reprint_pks: tuple | list = ()) -> dict:
     return dict(zip(_REPRINTS_SORT_ALIASES, expressions, strict=True))
 
 
+# The lists a comic is shown in, of those the viewer may see.
+READING_LIST_NAME_PATH: Final = "reading_list_entries__reading_list__name"
+_READING_LIST_PREFIX: Final = "reading_list_entries__reading_list__"
+_READING_LISTS_COLUMN: Final = "reading_lists"
+
+
+def reading_lists_filter(user) -> Q:
+    """Return the shown entries of the lists ``user`` may see, from Comic."""
+    return Q(reading_list_entries__ignored=False) & (
+        GroupACLMixin.reading_list_visibility_filter(user, _READING_LIST_PREFIX)
+    )
+
+
 _M2M_COLUMN_PATHS = MappingProxyType(
     {
         "characters": "characters__name",
@@ -219,8 +233,8 @@ _M2M_COLUMN_PATHS = MappingProxyType(
         "locations": "locations__name",
         "reprints": _M2M_REPRINT_EXPR,
         "series_groups": "series_groups__name",
+        "reading_lists": READING_LIST_NAME_PATH,
         "stories": "stories__name",
-        "story_arcs": "story_arc_numbers__story_arc__name",
         "tags": "tags__name",
         "teams": "teams__name",
         "universes": "universes__name",
@@ -343,7 +357,7 @@ def m2m_alias_for(column_key: str) -> str:
     return _M2M_ANNOTATION_PREFIX + column_key
 
 
-def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
+def m2m_annotations_for(columns: tuple[str, ...], user=None) -> dict[str, Aggregate]:
     """
     Build a dict of ``alias -> JsonGroupArray`` for requested M2M columns.
 
@@ -364,6 +378,9 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
     so two rows with the same M2M set produce the same JSON literal
     — load-bearing for the M2M-sort feature where ``ORDER BY alias``
     relies on identical sets having identical aggregate strings.
+
+    ``user`` names whose reading lists the Reading Lists column shows:
+    global ones and theirs.
     """
     annotations: dict[str, Aggregate] = {}
     for col in columns:
@@ -372,6 +389,8 @@ def m2m_annotations_for(columns: tuple[str, ...]) -> dict[str, Aggregate]:
             continue
         kwargs: dict = {"distinct": True, "order_by": path}
         agg_filter = _M2M_AGGREGATE_FILTERS.get(col)
+        if col == _READING_LISTS_COLUMN:
+            agg_filter = reading_lists_filter(user)
         if agg_filter is None and isinstance(path, str):
             agg_filter = Q(**{f"{path}__isnull": False})
         if agg_filter is not None:

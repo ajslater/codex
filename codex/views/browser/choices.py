@@ -14,8 +14,6 @@ from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
 from codex.models import (
     Comic,
     CreditPerson,
-    ReadingList,
-    StoryArc,
 )
 from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.identifier import IdentifierSource
@@ -35,7 +33,6 @@ from codex.views.readinglists.access import visible_lists
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
-    STORY_ARC_UI_FIELD,
 )
 
 _AGE_RATING_TAGGED_FIELD = "age_rating_tagged"
@@ -59,10 +56,6 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
             "identifiers__source",
             IdentifierSource,
         ),
-        STORY_ARC_UI_FIELD: (
-            "story_arc_numbers__story_arc",
-            StoryArc,
-        ),
     }
 )
 # Reverse-query prefixes from the choice model back to Comic. Used to build
@@ -75,7 +68,6 @@ _BACK_REL_MAP = MappingProxyType(
         # AgeRatingMetron -> agerating -> comic
         AgeRatingMetron: "agerating__",
         CreditPerson: "credit__",
-        StoryArc: "storyarcnumber__",
         IdentifierSource: "identifier__",
     }
 )
@@ -234,9 +226,6 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         )
         serializer = serializer_cls()
         for field_name in serializer.get_fields():
-            if field_name == "story_arcs" and qs.model is ReadingList:
-                # don't offer the story arc filter over the lists themselves.
-                continue
             if bool(filters.get(field_name)):
                 # Active filter on this dimension — the user is already
                 # filtering by it, so it must be available.

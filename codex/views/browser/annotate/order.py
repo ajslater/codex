@@ -39,6 +39,7 @@ from codex.views.const import (
     STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
+from codex.views.readinglists.access import visible_lists
 
 # The ``FilteredRelation`` alias for the requesting user's own bookmark row.
 # See ``BrowserAnnotateOrderView.alias_my_bookmark``.
@@ -229,27 +230,39 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         )
         return qs, self.order_agg_func("selected_reading_list_entry__position")
 
+    def _filtered_list_pks(self) -> list[int]:
+        """Return the Reading Lists filter's lists that the viewer may see."""
+        pks = [
+            pk
+            for pk in self.params.get("filters", {}).get("reading_lists", ())
+            if pk is not None
+        ]
+        if not pks:
+            return []
+        return list(
+            visible_lists(self.request.user)
+            .filter(pk__in=pks)
+            .values_list("pk", flat=True)
+        )
+
     def _alias_story_arc_number(self, qs):
         """
         Alias the ``story_arc_number`` order: the reading order.
 
-        Inside a reading list it is the list's own order. Under the story
-        arc *filter* it is still the arc number from the tags.
+        Inside a reading list it is the list's own order, and under the
+        Reading Lists filter it is the order of the lists chosen.
         """
         if self.order_key != "story_arc_number":
             return qs
 
         collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if collection == STORY_ARC_COLLECTION and pks and qs.model is not ReadingList:
+        if qs.model is ReadingList:
+            story_arc_number = NONE_INTEGERFIELD
+        elif collection == STORY_ARC_COLLECTION and pks:
             qs, story_arc_number = self._alias_reading_list_position(qs, pks)
-        elif story_arc_pks := self.params.get("filters", {}).get("story_arcs", ()):
-            rel = self.get_rel_prefix(qs.model) + "story_arc_numbers"
-            condition = Q(**{f"{rel}__story_arc__in": story_arc_pks})
-            qs = qs.alias(
-                selected_story_arc_number=FilteredRelation(rel, condition=condition),
-            )
-            story_arc_number = self.order_agg_func("selected_story_arc_number__number")
+        elif list_pks := self._filtered_list_pks():
+            qs, story_arc_number = self._alias_reading_list_position(qs, list_pks)
         else:
             story_arc_number = NONE_INTEGERFIELD
 

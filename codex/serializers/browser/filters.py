@@ -50,7 +50,6 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     series_start_year = VuetifyListField()
     series_status = VuetifyListField(child=VuetifySeriesStatusChoiceField)
     stories = VuetifyListField()
-    story_arcs = VuetifyListField()
     tagger = VuetifyListField()
     tags = VuetifyListField()
     teams = VuetifyListField()

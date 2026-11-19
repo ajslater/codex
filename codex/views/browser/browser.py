@@ -189,7 +189,7 @@ class BrowserView(BrowserTitleView):
         if not sort_keys:
             return qs
         fk_anns = fk_name_annotations_for(sort_keys)
-        m2m_anns = m2m_annotations_for(sort_keys)
+        m2m_anns = m2m_annotations_for(sort_keys, self.request.user)
         # Every key that sorts through elected-value aliases needs them
         # annotated, extras included — ``_comic_extra_fields`` resolves an
         # extra to the same aliases the primary uses. An active reprints
@@ -227,7 +227,7 @@ class BrowserView(BrowserTitleView):
             return qs
         requested_t = tuple(requested)
         fk_anns = fk_name_annotations_for(requested_t)
-        m2m_anns = m2m_annotations_for(requested_t)
+        m2m_anns = m2m_annotations_for(requested_t, self.request.user)
         if fk_anns:
             qs = qs.annotate(**fk_anns)
         if m2m_anns:

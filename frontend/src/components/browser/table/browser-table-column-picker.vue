@@ -188,7 +188,7 @@ const _CATEGORIES = Object.freeze([
       "locations",
       "series_groups",
       "stories",
-      "story_arcs",
+      "reading_lists",
       "tags",
       "teams",
       "main_team",

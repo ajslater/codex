@@ -30,7 +30,6 @@ _M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
         "reprints",
         "series_groups",
         "stories",
-        "story_arcs",
         "tags",
         "teams",
         "universes",

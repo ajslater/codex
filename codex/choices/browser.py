@@ -62,7 +62,7 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "shelved": "Shelved",
         "stories": "Stories",
         "story_arc_number": "Reading Order",
-        "story_arcs": "Story Arcs",
+        "reading_lists": "Reading Lists",
         "tags": "Tags",
         "tagger": "Tagger",
         "teams": "Teams",
@@ -615,9 +615,9 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        "story_arcs": {
-            "label": "Story Arcs",
-            "sort_key": "story_arcs",
+        "reading_lists": {
+            "label": "Reading Lists",
+            "sort_key": "reading_lists",
             "m2m": True,
             "editable": False,
             "edit_widget": None,
@@ -675,7 +675,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 #   shape). Display is one query for the whole page; sort scales
 #   with the filtered collection count when the user clicks the header.
 # - ``high``: composite-M2M columns (``credits`` / ``identifiers``
-#   / ``reprints`` / ``universes`` / ``story_arcs``). Display issues its own
+#   / ``reprints`` / ``universes`` / ``reading_lists``). Display issues its own
 #   per-column query (composite display strings can't share the
 #   simple-M2M union shape); sort runs a per-outer-row correlated
 #   subquery that JOINs the bespoke composite expression. Both
@@ -698,7 +698,7 @@ BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
         "credits": "high",
         "identifiers": "high",
         "reprints": "high",
-        "story_arcs": "high",
+        "reading_lists": "high",
         "universes": "high",
     }
 )

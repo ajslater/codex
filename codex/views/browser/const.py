@@ -23,7 +23,6 @@ BROWSER_FILTER_KEYS = (
     "series_start_year",
     "series_status",
     "stories",
-    "story_arcs",
     "tagger",
     "tags",
     "teams",

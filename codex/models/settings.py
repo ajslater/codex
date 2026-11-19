@@ -255,7 +255,6 @@ class SettingsBrowserFilters(BaseModel):
     series_start_year = JSONField(default=list)
     series_status = JSONField(default=list)
     stories = JSONField(default=list)
-    story_arcs = JSONField(default=list)
     tagger = JSONField(default=list)
     tags = JSONField(default=list)
     teams = JSONField(default=list)
@@ -289,7 +288,6 @@ class SettingsBrowserFilters(BaseModel):
             "series_start_year",
             "series_status",
             "stories",
-            "story_arcs",
             "tagger",
             "tags",
             "teams",

@@ -78,7 +78,7 @@ const M2M_COLUMNS = new Set([
   "reprints",
   "series_groups",
   "stories",
-  "story_arcs",
+  "reading_lists",
   "tags",
   "teams",
   "universes",

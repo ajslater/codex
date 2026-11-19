@@ -20,12 +20,12 @@ from codex.models.named import (
     Reprint,
     SeriesGroup,
     Story,
-    StoryArc,
     Tag,
     Tagger,
     Team,
     Universe,
 )
+from codex.models.readinglist import ReadingList
 from codex.models.settings import (
     ClientChoices,
     SettingsBrowser,
@@ -39,6 +39,7 @@ from codex.serializers.browser.saved import (
     SavedSettingsLoadSerializer,
 )
 from codex.views.auth import AuthFilterGenericAPIView
+from codex.views.readinglists.access import visible_lists
 from codex.views.settings import (
     BROWSER_CREATE_ARGS,
     BROWSER_FILTER_ARGS,
@@ -63,8 +64,8 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
         "reprints": Reprint,
         "series_groups": SeriesGroup,
         "shelves": Shelf,
+        "reading_lists": ReadingList,
         "stories": Story,
-        "story_arcs": StoryArc,
         "tagger": Tagger,
         "tags": Tag,
         "teams": Team,
@@ -122,6 +123,9 @@ def _validate_filter_pks(
                 if user and getattr(user, "pk", None)
                 else model_qs.none()
             )
+        elif model is ReadingList:
+            # Another user's personal list is no list at all.
+            model_qs = visible_lists(user)
         _validate_filter_field(filters_data, field, model_qs, warnings)
     # Persist the cleaned filters back to the row.
     if warnings and filters_obj is not None:

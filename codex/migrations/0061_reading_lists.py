@@ -16,13 +16,20 @@ story-arc tag tables, which stay the importer's. In order:
    collapse onto one list keep the newest.
 5. ``SettingsReader.story_arc`` becomes ``reading_list``.
 6. The reading lists browser filter, ``SettingsBrowserFilters.reading_lists``.
+   Story arcs and reading lists are one concept, so a saved story-arc
+   filter becomes a filter on the arc's list, its None choice ("no arc")
+   becoming "in no list", and ``story_arcs`` is dropped. The ``story_arcs``
+   sort key and table column become ``reading_lists`` wherever browser
+   settings store one.
 
 Self-contained on purpose: it reads historical models only, so later
-changes to the tag sync cannot change what it did.
+changes to the tag sync cannot change what it did. The sort-key rename
+reuses migration 0060's helpers, which are frozen too.
 """
 
 import uuid
 from collections import defaultdict
+from importlib import import_module
 
 import django.db.models.deletion
 from django.conf import settings
@@ -34,6 +41,11 @@ _ARCS = "arcs"
 _TAGS = "tags"
 _STORY = "story"
 _BATCH = 1000
+_STORY_ARCS_KEY = "story_arcs"
+_READING_LISTS_KEY = "reading_lists"
+# A migration module's name starts with a digit, so it is imported by name.
+_POST_V2_6_0 = import_module("codex.migrations.0060_post_v2_6_0_schema")
+_rename_sort_key = _POST_V2_6_0._rename_sort_key  # noqa: SLF001
 
 
 def _arc_groups(story_arc_model) -> dict:
@@ -227,12 +239,44 @@ def _remap_reader_settings(apps, arc_to_list: dict) -> None:
     )
 
 
+def _remap_filter_pks(pks, mapping: dict) -> list:
+    """Map filter pks, keeping the None choice and dropping repeats."""
+    mapped = [None if pk is None else mapping.get(pk) for pk in pks or ()]
+    kept = [pk for pk in mapped if pk is not None]
+    if None in (pks or ()):
+        kept.append(None)
+    return list(dict.fromkeys(kept))
+
+
+def _remap_browser_filters(apps, arc_to_list: dict) -> None:
+    """Fold each saved story-arc filter into the reading lists filter."""
+    filters_model = apps.get_model("codex", "SettingsBrowserFilters")
+    update = []
+    for row in filters_model.objects.exclude(story_arcs=[]):
+        lists = _remap_filter_pks(row.story_arcs, arc_to_list)
+        row.reading_lists = list(dict.fromkeys([*(row.reading_lists or ()), *lists]))
+        update.append(row)
+    filters_model.objects.bulk_update(update, ("reading_lists",), batch_size=_BATCH)
+
+
+def _unfold_browser_filters(apps, list_to_arc: dict) -> None:
+    """Give a reading lists filter on lists from tags back to story arcs."""
+    filters_model = apps.get_model("codex", "SettingsBrowserFilters")
+    update = []
+    for row in filters_model.objects.exclude(reading_lists=[]):
+        row.story_arcs = _remap_filter_pks(row.reading_lists, list_to_arc)
+        update.append(row)
+    filters_model.objects.bulk_update(update, ("story_arcs",), batch_size=_BATCH)
+
+
 def _move_arcs_to_reading_lists(apps, _schema_editor) -> None:
     """Build the lists and repoint everything that named an arc pk."""
     arc_to_list = _build_lists(apps)
     _remap_shelf_items(apps, arc_to_list)
     _remap_last_routes(apps, arc_to_list)
     _remap_reader_settings(apps, arc_to_list)
+    _remap_browser_filters(apps, arc_to_list)
+    _rename_sort_key(apps, _STORY_ARCS_KEY, _READING_LISTS_KEY)
 
 
 def _list_to_arc(apps) -> dict:
@@ -264,6 +308,8 @@ def _move_reading_lists_to_arcs(apps, _schema_editor) -> None:
     list_to_arc = _list_to_arc(apps)
     _remap_shelf_items(apps, list_to_arc)
     _remap_last_routes(apps, list_to_arc)
+    _unfold_browser_filters(apps, list_to_arc)
+    _rename_sort_key(apps, _READING_LISTS_KEY, _STORY_ARCS_KEY)
     settings_reader_model = apps.get_model("codex", "SettingsReader")
     rows = settings_reader_model.objects.filter(reading_list__isnull=False)
     update, delete = [], []
@@ -616,7 +662,62 @@ class Migration(migrations.Migration):
                     ("shelved", "Shelved"),
                     ("stories", "Stories"),
                     ("story_arc_number", "Reading Order"),
-                    ("story_arcs", "Story Arcs"),
+                    ("reading_lists", "Reading Lists"),
+                    ("tags", "Tags"),
+                    ("tagger", "Tagger"),
+                    ("teams", "Teams"),
+                    ("universes", "Universes"),
+                    ("updated_at", "Updated Time"),
+                    ("volume_name", "Volume"),
+                    ("year", "Year"),
+                ],
+                default="",
+                max_length=32,
+            ),
+        ),
+        migrations.AlterField(
+            model_name="settingsdefaults",
+            name="order_by",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("", "Automatic"),
+                    ("created_at", "Added Time"),
+                    ("age_rating", "Age Rating"),
+                    ("characters", "Characters"),
+                    ("child_count", "Child Count"),
+                    ("community_rating", "Community Rating"),
+                    ("country", "Country"),
+                    ("credits", "Credits"),
+                    ("day", "Day"),
+                    ("filename", "Filename"),
+                    ("size", "File Size"),
+                    ("file_type", "File Type"),
+                    ("original_format", "Format"),
+                    ("genres", "Genres"),
+                    ("identifiers", "Identifiers"),
+                    ("imprint_name", "Imprint"),
+                    ("issue", "Issue"),
+                    ("language", "Language"),
+                    ("bookmark_updated_at", "Last Read"),
+                    ("locations", "Locations"),
+                    ("main_character", "Main Character"),
+                    ("main_team", "Main Team"),
+                    ("metadata_mtime", "Tags Updated"),
+                    ("month", "Month"),
+                    ("monochrome", "Monochrome"),
+                    ("sort_name", "Name"),
+                    ("page_count", "Page Count"),
+                    ("publisher_name", "Publisher"),
+                    ("date", "Publish Date"),
+                    ("reading_direction", "Reading Direction"),
+                    ("reprints", "Reprints"),
+                    ("scan_info", "Scan Info"),
+                    ("series_name", "Series"),
+                    ("series_groups", "Series Groups"),
+                    ("shelved", "Shelved"),
+                    ("stories", "Stories"),
+                    ("reading_lists", "Reading Lists"),
                     ("tags", "Tags"),
                     ("tagger", "Tagger"),
                     ("teams", "Teams"),
@@ -820,6 +921,10 @@ class Migration(migrations.Migration):
             field=models.JSONField(default=list),
         ),
         migrations.RunPython(_move_arcs_to_reading_lists, _move_reading_lists_to_arcs),
+        migrations.RemoveField(
+            model_name="settingsbrowserfilters",
+            name="story_arcs",
+        ),
         migrations.RemoveField(
             model_name="settingsreader",
             name="story_arc",

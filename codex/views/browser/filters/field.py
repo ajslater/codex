@@ -11,16 +11,11 @@ from codex.views.browser.filters.reading_lists import (
     READING_LISTS_FILTER,
     reading_lists_filter,
 )
-from codex.views.settings import (
-    CREDIT_PERSON_UI_FIELD,
-    IDENTIFIER_TYPE_UI_FIELD,
-    STORY_ARC_UI_FIELD,
-)
+from codex.views.settings import CREDIT_PERSON_UI_FIELD, IDENTIFIER_TYPE_UI_FIELD
 
 _FILTER_REL_MAP = MappingProxyType(
     {
         CREDIT_PERSON_UI_FIELD: "credits__person",
-        STORY_ARC_UI_FIELD: "story_arc_numbers__story_arc",
         IDENTIFIER_TYPE_UI_FIELD: "identifiers__source",
         # Both age-rating filters route through the ``Comic.age_rating`` FK.
         # The tagged filter uses :class:`AgeRating` PKs (matching the tagged
