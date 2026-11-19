@@ -108,6 +108,32 @@ export const useReadingListsStore = defineStore("readingLists", {
       this.errors = [];
       this.errorCount = 0;
     },
+    async loadTable() {
+      // The admin table and the suggestions drawn from it, together.
+      await Promise.all([this.loadLists(), this.loadSuggestions()]);
+    },
+    async updateDetails(pk, details) {
+      try {
+        await API.updateAdminList(pk, details);
+        useCommonStore().setNotice("Saved the list's details.");
+        await this.loadTable();
+        return true;
+      } catch (error) {
+        reportError(error);
+        return false;
+      }
+    },
+    async deleteMapping(pk) {
+      try {
+        await API.deleteMapping(pk);
+        useCommonStore().setNotice(
+          "Forgot the series mapping. Issues it matched keep their comics.",
+        );
+        await this.loadMappings();
+      } catch (error) {
+        reportError(error);
+      }
+    },
     async loadMappings() {
       try {
         const response = await API.getMappings();

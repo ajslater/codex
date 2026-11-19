@@ -117,6 +117,7 @@ def list_row(reading_list, sources, pointers) -> dict[str, Any]:
     return {
         "pk": reading_list.pk,
         "name": reading_list.name,
+        "description": reading_list.description,
         "list_type": reading_list.list_type,
         "sources": [source_repr(source) for source in sources],
         "total": reading_list.total,

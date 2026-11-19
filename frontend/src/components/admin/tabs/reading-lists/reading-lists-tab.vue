@@ -55,6 +55,47 @@
           <v-btn size="small" variant="text" @click="clearErrors">Clear</v-btn>
         </div>
       </div>
+      <div v-if="listStatuses.length" class="adminCard progressCard">
+        <StatusListItem
+          v-for="status of listStatuses"
+          :key="status.id"
+          :status="status"
+          :now="now"
+        />
+      </div>
+      <div class="adminCard mappingsCard">
+        <AdminExpandToggle v-model="showMappings" :label="mappingsLabel" />
+        <div v-if="showMappings">
+          <p class="adminProse">
+            A mapping says a list's series is a library series. Review saves
+            one; every list then matches that series' issues in it.
+          </p>
+          <div v-if="!mappings.length" class="adminNoData">
+            No saved series mappings.
+          </div>
+          <div v-for="mapping in mappings" :key="mapping.pk" class="mappingRow">
+            <span>
+              <code class="adminCode">{{ mapping.seriesKey }}</code>
+              <span v-if="mapping.year"> ({{ mapping.year }})</span>
+              → {{ mapping.series.name }}
+              <span v-if="mapping.series.startYear">
+                ({{ mapping.series.startYear }})</span
+              >
+              <span v-if="mapping.series.publisher" class="mappingPublisher">
+                {{ mapping.series.publisher }}
+              </span>
+            </span>
+            <v-btn
+              :icon="mdiTrashCanOutline"
+              size="small"
+              density="compact"
+              variant="text"
+              title="Forget this mapping. Issues it matched keep their comics."
+              @click="deleteMapping(mapping.pk)"
+            />
+          </div>
+        </div>
+      </div>
     </AdminSection>
 
     <div class="filters">
@@ -86,6 +127,13 @@
         label="Needs review"
         density="compact"
         hide-details
+      />
+      <v-checkbox
+        v-model="showTagsOnly"
+        :label="`Show lists from tags (${tagsOnlyCount})`"
+        density="compact"
+        hide-details
+        title="Lists made from story arc tags alone follow their tags; they are hidden here unless you ask for them."
       />
     </div>
 
@@ -229,6 +277,7 @@
               />
             </template>
             <v-list density="compact">
+              <v-list-item title="Edit Details" @click="openDetails(item)" />
               <v-list-item title="Refresh" @click="act(item.pk, 'refresh')" />
               <v-list-item title="Rematch" @click="act(item.pk, 'rematch')" />
               <v-list-item
@@ -285,14 +334,19 @@
       v-model="showReview"
       :reading-list="reviewList"
       :initial-filter="reviewFilter"
-      @changed="loadLists"
+      @changed="loadTable"
     />
     <SourcesDialog
       v-if="sourcesList"
       v-model="showSources"
       :reading-list="sourcesList"
       @add-source="openAdd"
-      @changed="loadLists"
+      @changed="loadTable"
+    />
+    <DetailsDialog
+      v-if="detailsList"
+      v-model="showDetails"
+      :reading-list="detailsList"
     />
     <CombineDialog
       v-model="showCombine"
@@ -327,13 +381,17 @@ import { mapActions, mapState } from "pinia";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import AdminTable from "@/components/admin/tabs/admin-table.vue";
 import DateTimeColumn from "@/components/admin/tabs/datetime-column.vue";
+import StatusListItem from "@/components/admin/drawer/status-list-item.vue";
 import AdminExpandToggle from "@/components/admin/tabs/expand-toggle.vue";
 import AddListsDialog from "@/components/admin/tabs/reading-lists/add-lists-dialog.vue";
 import CombineDialog from "@/components/admin/tabs/reading-lists/combine-dialog.vue";
+import DetailsDialog from "@/components/admin/tabs/reading-lists/details-dialog.vue";
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import SourcesDialog from "@/components/admin/tabs/reading-lists/sources-dialog.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import { useNowTimer } from "@/components/admin/use-now-timer";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
+import { useAdminStore } from "@/stores/admin";
 import {
   listTypeLabel,
   SOURCE_KINDS,
@@ -351,6 +409,11 @@ const HEADERS = Object.freeze([
 ]);
 const WRITE_NONE_HINT =
   "Only global lists with issues in your library are written to files.";
+// The librarian jobs of reading lists: sync, fetch, import, match.
+const LIST_STATUS_TYPES = new Set(["RLS", "RLF", "RLI", "RLM"]);
+const isTagsOnly = (list) =>
+  list.sources.length > 0 &&
+  list.sources.every((source) => source.kind === "tags");
 const KIND_ITEMS = Object.freeze(
   Object.entries(SOURCE_KINDS).map(([value, title]) => ({ value, title })),
 );
@@ -365,9 +428,15 @@ export default {
     CombineDialog,
     ConfirmDialog,
     DateTimeColumn,
+    DetailsDialog,
     ReadingListExportMenu,
     ReviewDialog,
     SourcesDialog,
+    StatusListItem,
+  },
+  setup() {
+    const { now } = useNowTimer();
+    return { now };
   },
   data() {
     return {
@@ -382,6 +451,10 @@ export default {
       kindFilter: null,
       missingOnly: false,
       reviewOnly: false,
+      showTagsOnly: false,
+      showMappings: false,
+      showDetails: false,
+      detailsList: null,
       selected: [],
       showSuggestions: false,
       showErrors: false,
@@ -406,7 +479,23 @@ export default {
       "errorCount",
       "errors",
       "suggestions",
+      "mappings",
     ]),
+    ...mapState(useAdminStore, {
+      listStatuses: (state) =>
+        state.activeLibrarianStatuses.filter((status) =>
+          LIST_STATUS_TYPES.has(status.statusType),
+        ),
+    }),
+    tagsOnlyCount() {
+      return this.lists.filter(isTagsOnly).length;
+    },
+    mappingsLabel() {
+      const count = this.mappings.length;
+      return count === 1
+        ? "1 saved series mapping"
+        : `${count} saved series mappings`;
+    },
     selectedWritable() {
       const selected = new Set(this.selected);
       return this.lists.filter(
@@ -432,13 +521,17 @@ export default {
           (!this.kindFilter ||
             list.sources.some((source) => source.kind === this.kindFilter)) &&
           (!this.missingOnly || list.matched < list.total) &&
-          (!this.reviewOnly || list.needsReview > 0),
+          (!this.reviewOnly || list.needsReview > 0) &&
+          (this.showTagsOnly || !isTagsOnly(list)),
       );
     },
   },
   watch: {
     showErrors(value) {
       if (value) this.loadErrors();
+    },
+    showMappings(value) {
+      if (value) this.loadMappings();
     },
   },
   mounted() {
@@ -454,10 +547,18 @@ export default {
       "act",
       "copyToGlobal",
       "setPrivate",
+      "loadTable",
+      "loadMappings",
+      "deleteMapping",
     ]),
     loadAll() {
-      this.loadLists();
-      this.loadSuggestions();
+      this.loadTable();
+      this.loadMappings();
+      useAdminStore().loadTable("ActiveLibrarianStatus");
+    },
+    openDetails(item) {
+      this.detailsList = item;
+      this.showDetails = true;
     },
     sourceLabel(source) {
       const label = SOURCE_KINDS[source.kind] || source.kind;
@@ -558,7 +659,8 @@ export default {
   }
 
   .suggestionRow,
-  .errorRow {
+  .errorRow,
+  .mappingRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -567,8 +669,15 @@ export default {
     margin-bottom: $space-1;
   }
 
+  .mappingPublisher {
+    color: rgb(var(--v-theme-text-secondary));
+    margin-left: $space-1;
+  }
+
   .errorCard,
-  .suggestionCard {
+  .suggestionCard,
+  .progressCard,
+  .mappingsCard {
     margin-bottom: $space-4;
   }
 }

@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 vi.mock("@/api/v4/reading-lists", () => ({
   getAdminLists: vi.fn(),
   getMyLists: vi.fn(),
+  getSuggestions: vi.fn(() => Promise.resolve({ data: { suggestions: [] } })),
 }));
 
 import * as API from "@/api/v4/reading-lists";
@@ -45,10 +46,11 @@ describe("reading lists notifications", () => {
     expect(store.myLists).toEqual([{ pk: 3 }]);
   });
 
-  test("an admin's table reloads too", async () => {
+  test("an admin's table and its suggestions reload too", async () => {
     setup({ admin: true, listsLoaded: true, myListsLoaded: true });
     await readingListsNotified();
     expect(API.getAdminLists).toHaveBeenCalledTimes(1);
+    expect(API.getSuggestions).toHaveBeenCalledTimes(1);
     expect(API.getMyLists).toHaveBeenCalledTimes(1);
   });
 

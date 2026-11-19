@@ -168,7 +168,7 @@ export async function readingListsNotified() {
     const store = m.useReadingListsStore();
     const loads = [];
     if (useAuthStore().isUserAdmin && store.listsLoaded) {
-      loads.push(store.loadLists());
+      loads.push(store.loadTable());
     }
     if (store.myListsLoaded) loads.push(store.loadMyLists());
     await Promise.all(loads);

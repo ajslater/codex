@@ -24,6 +24,9 @@ vi.mock("@/api/v4/reading-lists", () => ({
   acceptEntries: vi.fn(),
   exportURL: (pk, fmt) => `/export/${pk}/${fmt}`,
   removeComics: vi.fn(),
+  getMappings: vi.fn(() => Promise.resolve({ data: { mappings: [] } })),
+  deleteMapping: vi.fn(),
+  updateAdminList: vi.fn(),
 }));
 
 import * as API from "@/api/v4/reading-lists";
@@ -32,6 +35,7 @@ import ReadingListsTab from "@/components/admin/tabs/reading-lists/reading-lists
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import vuetify from "@/plugins/vuetify";
+import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { listTypeLabel, useReadingListsStore } from "@/stores/reading-lists";
 
@@ -133,6 +137,10 @@ describe("reading lists tab", () => {
       global: { plugins: [pinia(), vuetify] },
     });
     await flushPromises();
+    // The list from tags alone is hidden unless asked for.
+    expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([2]);
+    expect(wrapper.vm.tagsOnlyCount).toBe(1);
+    wrapper.vm.showTagsOnly = true;
     expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([1, 2]);
     wrapper.vm.kindFilter = "catalog";
     expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([2]);
@@ -171,6 +179,62 @@ describe("reading lists tab", () => {
     expect(wrapper.vm.writeText).toContain("Civil War (CBRO)");
     await wrapper.vm.bulk("write", [2]);
     expect(API.bulkAction).toHaveBeenCalledWith("write", [2]);
+  });
+});
+
+describe("reading lists tab — management", () => {
+  test("Edit Details saves the name and description", async () => {
+    setActivePinia(pinia());
+    API.updateAdminList.mockResolvedValue({ data: { pk: 2 } });
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const saved = await useReadingListsStore().updateDetails(2, {
+      name: "Civil War",
+      description: "Heroes take sides.",
+    });
+    expect(saved).toBe(true);
+    expect(API.updateAdminList).toHaveBeenCalledWith(2, {
+      name: "Civil War",
+      description: "Heroes take sides.",
+    });
+    expect(API.getSuggestions).toHaveBeenCalled();
+  });
+
+  test("saved series mappings show, and can be forgotten", async () => {
+    const mapping = {
+      pk: 7,
+      seriesKey: "the amazing spider man",
+      year: 1963,
+      series: { pk: 3, name: "Amazing Spider-Man", startYear: 1963 },
+    };
+    API.getMappings.mockResolvedValue({ data: { mappings: [mapping] } });
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.vm.mappingsLabel).toBe("1 saved series mapping");
+    wrapper.vm.showMappings = true;
+    await flushPromises();
+    expect(wrapper.find(".mappingRow").text()).toContain("Amazing Spider-Man");
+    await useReadingListsStore().deleteMapping(7);
+    expect(API.deleteMapping).toHaveBeenCalledWith(7);
+  });
+
+  test("a reading list job shows its progress on the tab", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    useAdminStore().activeLibrarianStatuses = [
+      { id: 1, statusType: "RLF", active: true, complete: 2, total: 9 },
+      { id: 2, statusType: "IRT", active: true, complete: 0, total: 1 },
+    ];
+    await flushPromises();
+    expect(wrapper.vm.listStatuses.map((status) => status.id)).toEqual([1]);
   });
 });
 
