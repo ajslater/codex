@@ -308,16 +308,6 @@ class ReadingListCandidatesView(ReadingListAccessView):
         return Response({"candidates": [_comic_repr(comic) for comic in comics]})
 
 
-def editable_lists_q(user):
-    """Q for the lists a user may add comics to: their own, and global for admins."""
-    if user is None or not user.is_authenticated:
-        return Q(pk__in=())
-    q = Q(user=user)
-    if user.is_staff:
-        q |= Q(user__isnull=True)
-    return q
-
-
 def next_position(reading_list: ReadingList) -> int:
     """Return the position after the list's last entry."""
     top = ReadingListEntry.objects.filter(reading_list=reading_list).aggregate(
@@ -334,7 +324,6 @@ __all__ = (
     "ReadingListReorderView",
     "add_comics",
     "can_edit",
-    "editable_lists_q",
     "entry_repr",
     "next_position",
 )

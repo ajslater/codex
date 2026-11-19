@@ -1,28 +1,15 @@
 """Name a page of reading list cards' sources, which tells same-named lists apart."""
 
 from collections import defaultdict
-from types import MappingProxyType
-from typing import Final
 
 from django.db.models import QuerySet
 
+from codex.choices.readinglists import SOURCE_SHORT_LABELS
 from codex.models.readinglist import ReadingListSource
-
-_SHORT_LABELS: Final = MappingProxyType(
-    {
-        "tags": "Tags",
-        "upload": "Upload",
-        "url": "URL",
-        "catalog": "DieselTech",
-        "metron_list": "Metron",
-        "metron_arc": "Metron Arc",
-        "comicvine_arc": "Comic Vine Arc",
-    }
-)
 
 
 def _label(kind: str, attribution: str) -> str:
-    label = _SHORT_LABELS.get(kind, kind)
+    label = SOURCE_SHORT_LABELS.get(kind, kind)
     return f"{label} · {attribution.upper()}" if attribution else label
 
 

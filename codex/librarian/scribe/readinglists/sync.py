@@ -33,6 +33,7 @@ from codex.librarian.scribe.readinglists.arcs import (
     is_ordered,
     ordered_members,
 )
+from codex.librarian.scribe.readinglists.documents import STORY_LIST_TYPE
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.write import WRITTEN_ARC_KEY, written_lists
 from codex.models.readinglist import (
@@ -43,7 +44,6 @@ from codex.models.readinglist import (
     ReadingListSourceKind,
 )
 
-STORY_LIST_TYPE: Final = "story"
 _BATCH: Final = 1000
 HAND_EDITED: Final = (
     Q(manual=True)

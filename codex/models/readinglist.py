@@ -37,6 +37,7 @@ from django.db.models import (
 )
 
 from codex.choices.limits import MAX_NAME_LEN
+from codex.choices.readinglists import ReadingListSourceKind
 from codex.models.base import BaseModel
 from codex.models.choices import max_choices_len
 from codex.models.collections import BrowserCollectionModel, Series
@@ -46,8 +47,10 @@ from codex.models.fields import CleaningCharField, CleaningTextField
 __all__ = (
     "ReadingList",
     "ReadingListEntry",
+    "ReadingListMatchTier",
     "ReadingListSeriesMapping",
     "ReadingListSource",
+    "ReadingListSourceKind",
 )
 
 # Long enough for a URL or a catalog path; a remote id or arc name is far
@@ -55,22 +58,6 @@ __all__ = (
 MAX_REF_LEN: Final[int] = 1024
 MAX_REVISION_LEN: Final[int] = 128
 MAX_ISSUE_LEN: Final[int] = 32
-
-
-class ReadingListSourceKind(TextChoices):
-    """
-    Where a source's entries came from.
-
-    A closed vocabulary defined here, so telemetry may bucket counts by it.
-    """
-
-    TAGS = "tags", "File Tags"
-    UPLOAD = "upload", "Upload"
-    URL = "url", "URL"
-    CATALOG = "catalog", "DieselTech Catalog"
-    METRON_LIST = "metron_list", "Metron Reading List"
-    METRON_ARC = "metron_arc", "Metron Story Arc"
-    COMICVINE_ARC = "comicvine_arc", "Comic Vine Story Arc"
 
 
 class ReadingListMatchTier(TextChoices):

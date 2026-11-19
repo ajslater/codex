@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
+from codex.choices.readinglists import SOURCE_LABELS
 from codex.choices.tagging import KEEP_WRITE_FORMAT, NAMED_WRITE_FORMATS
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.readinglists import (
@@ -43,9 +44,6 @@ from codex.models.readinglist import (
 from codex.views.admin.auth import AdminAPIView
 from codex.views.readinglists.access import to_pks
 
-_SOURCE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
-    {str(value): str(label) for value, label in ReadingListSourceKind.choices}
-)
 # What a list is written into when the admin has no default formats.
 _FALLBACK_FORMATS: Final = ("COMIC_INFO",)
 _ARC_POINTER_SOURCES: Final = MappingProxyType(
@@ -61,7 +59,7 @@ def source_repr(source: ReadingListSource) -> dict[str, Any]:
     return {
         "pk": source.pk,
         "kind": source.kind,
-        "label": _SOURCE_LABELS.get(source.kind, source.kind),
+        "label": SOURCE_LABELS.get(source.kind, source.kind),
         "ref": source.ref,
         "attribution": source.attribution_source,
         "attribution_url": source.attribution_url,
@@ -137,7 +135,10 @@ class AdminReadingListsView(AdminAPIView):
     def get(self, *_args, **_kwargs) -> Response:
         """Return the table rows, with sources, coverage and review counts."""
         sources: defaultdict[int, list[ReadingListSource]] = defaultdict(list)
-        for source in ReadingListSource.objects.order_by("rank", "pk"):
+        # The table never shows a source's document, which can be large.
+        for source in ReadingListSource.objects.defer("document").order_by(
+            "rank", "pk"
+        ):
             sources[source.reading_list_id].append(source)  # pyright: ignore[reportAttributeAccessIssue]
         pointers = _arc_pointers()
         rows = [
@@ -167,9 +168,9 @@ class AdminReadingListDetailView(AdminAPIView):
             reason = "No such reading list."
             raise NotFound(reason)
         sources = list(
-            ReadingListSource.objects.filter(reading_list=reading_list).order_by(
-                "rank", "pk"
-            )
+            ReadingListSource.objects.filter(reading_list=reading_list)
+            .defer("document")
+            .order_by("rank", "pk")
         )
         row = list_row(reading_list, sources, _arc_pointers())
         row["description"] = reading_list.description
@@ -213,7 +214,9 @@ def refresh_requests(reading_list: ReadingList) -> list[FetchRequest]:
 
 def complete_request(reading_list: ReadingList) -> FetchRequest | None:
     """Fetch the whole arc behind a list from tags, as a new source."""
-    sources = list(ReadingListSource.objects.filter(reading_list=reading_list))
+    sources = list(
+        ReadingListSource.objects.filter(reading_list=reading_list).defer("document")
+    )
     if arc := completable_arc(sources, _arc_pointers()):
         return FetchRequest(kind=arc["kind"], ref=arc["ref"], into_pk=reading_list.pk)
     return None

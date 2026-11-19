@@ -10,7 +10,18 @@ from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, Final
 
-from comicbox.readinglists import ReadingListError, dumps
+from comicbox.readinglists import (
+    ENTRIES_KEY,
+    SOURCE_CURATOR_KEY,
+    SOURCE_CURATOR_URL_KEY,
+    SOURCE_KEY_KEY,
+    SOURCE_KIND_KEY,
+    SOURCE_REVISION_KEY,
+    SOURCES_KEY,
+    ReadingListError,
+    SourceKind,
+    dumps,
+)
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
@@ -20,7 +31,7 @@ from rest_framework.response import Response
 
 from codex.choices.limits import MAX_NAME_LEN
 from codex.librarian.scribe.readinglists.combine import document_of
-from codex.librarian.scribe.readinglists.documents import from_json
+from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS, from_json
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.service import copy_list
 from codex.models.readinglist import (
@@ -29,21 +40,13 @@ from codex.models.readinglist import (
     ReadingListSource,
     ReadingListSourceKind,
 )
-from codex.views.readinglists.access import ReadingListAccessView, can_edit
-from codex.views.readinglists.entries import add_comics, editable_lists_q
-
-# Codex's source kind -> comicbox's, for export.
-_COMICBOX_KINDS: Final[MappingProxyType[str, str]] = MappingProxyType(
-    {
-        ReadingListSourceKind.TAGS: "tags",
-        ReadingListSourceKind.UPLOAD: "file",
-        ReadingListSourceKind.URL: "url",
-        ReadingListSourceKind.CATALOG: "catalog",
-        ReadingListSourceKind.METRON_LIST: "metron-list",
-        ReadingListSourceKind.METRON_ARC: "metron-arc",
-        ReadingListSourceKind.COMICVINE_ARC: "comicvine-arc",
-    }
+from codex.views.readinglists.access import (
+    ReadingListAccessView,
+    can_edit,
+    editable_lists_q,
 )
+from codex.views.readinglists.entries import add_comics
+
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
 )
@@ -100,23 +103,28 @@ def _export_sources(reading_list: ReadingList) -> list[dict[str, str]]:
     for source in ReadingListSource.objects.filter(reading_list=reading_list).order_by(
         "rank", "pk"
     ):
-        exported = {"kind": _COMICBOX_KINDS.get(source.kind, source.kind)}
+        exported = {SOURCE_KIND_KEY: COMICBOX_KINDS.get(source.kind, source.kind)}
         if source.kind not in _KEYLESS_KINDS:
-            exported["key"] = source.ref
+            exported[SOURCE_KEY_KEY] = source.ref
         exported.update(
             {
                 key: value
                 for key, value in (
-                    ("revision", source.revision),
-                    ("curator", source.attribution_source),
-                    ("curator_url", source.attribution_url),
+                    (SOURCE_REVISION_KEY, source.revision),
+                    (SOURCE_CURATOR_KEY, source.attribution_source),
+                    (SOURCE_CURATOR_URL_KEY, source.attribution_url),
                 )
                 if value
             }
         )
         sources.append(exported)
     # Keep the list's own UUID, or every json-cbl export mints a new one.
-    sources.append({"kind": "json-cbl", "key": str(reading_list.uuid)})
+    sources.append(
+        {
+            SOURCE_KIND_KEY: SourceKind.JSON_CBL.value,
+            SOURCE_KEY_KEY: str(reading_list.uuid),
+        }
+    )
     return sources
 
 
@@ -127,8 +135,8 @@ def export_document(reading_list: ReadingList, shown_q: Q) -> dict[str, Any]:
     ``shown_q`` picks the entries the exporter sees.
     """
     document = document_of(reading_list)
-    document["entries"] = _export_entries(reading_list, shown_q)
-    document["sources"] = _export_sources(reading_list)
+    document[ENTRIES_KEY] = _export_entries(reading_list, shown_q)
+    document[SOURCES_KEY] = _export_sources(reading_list)
     return from_json(document)
 
 

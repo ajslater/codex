@@ -5,17 +5,15 @@
 import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/reading-lists";
+import READING_LIST_CHOICES from "@/choices/reading-list-choices.json";
 import { useCommonStore } from "@/stores/common";
 
-export const SOURCE_KINDS = Object.freeze({
-  tags: "File Tags",
-  upload: "Upload",
-  url: "URL",
-  catalog: "DieselTech Catalog",
-  metron_list: "Metron Reading List",
-  metron_arc: "Metron Story Arc",
-  comicvine_arc: "Comic Vine Story Arc",
-});
+// Source kind -> label, from the backend's ReadingListSourceKind.
+export const SOURCE_KINDS = Object.freeze(
+  Object.fromEntries(
+    READING_LIST_CHOICES.sourceKinds.map(({ value, title }) => [value, title]),
+  ),
+);
 
 // json-cbl, the newer JSON standard, first; then the classic XML.
 export const EXPORT_FORMATS = Object.freeze([

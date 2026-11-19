@@ -10,19 +10,12 @@ from typing import Final
 
 from django.db.models import Q, QuerySet
 
-from codex.models import Comic, ReadingList
-from codex.views.auth import GroupACLMixin
+from codex.models import Comic
+from codex.views.readinglists.access import visible_lists
 
 READING_LISTS_FILTER: Final = "reading_lists"
 _IN_LISTS: Final = "reading_list_entries__reading_list__in"
 _SHOWN: Final = "reading_list_entries__ignored"
-
-
-def visible_lists(user) -> QuerySet:
-    """Return the lists the user may see: global ones and their own."""
-    return ReadingList.objects.filter(
-        GroupACLMixin.reading_list_visibility_filter(user)
-    )
 
 
 def listed_comics(user, pks=None) -> QuerySet[Comic]:

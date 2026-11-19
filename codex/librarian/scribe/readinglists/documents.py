@@ -11,21 +11,63 @@ import json
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Final
 
 from comicbox.exceptions import ReadingListError
-from comicbox.readinglists import ReadingListFormats, dumps
+from comicbox.readinglists import (
+    ENTRIES_KEY,
+    LIST_TYPE_KEY,
+    NAME_KEY,
+    NOTES_KEY,
+    ORDERED_KEY,
+    READING_LIST_KEY,
+    SOURCE_KEY_KEY,
+    SOURCE_KIND_KEY,
+    SOURCES_KEY,
+    ReadingListFormats,
+    SourceKind,
+    dumps,
+)
 from comicbox.readinglists.serialize import load_model
 
 from codex.librarian.scribe.readinglists.arcs import one_arc_members, ordered_members
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.models import Comic, StoryArc
-from codex.models.readinglist import ReadingListSource
+from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
 
-READING_LIST_KEY: Final = "reading_list"
-ENTRIES_KEY: Final = "entries"
-SOURCES_KEY: Final = "sources"
-_ARC_POINTER_KINDS: Final = {"metron": "metron-arc", "comicvine": "comicvine-arc"}
+__all__ = (
+    "COMICBOX_KINDS",
+    "ENTRIES_KEY",
+    "SOURCES_KEY",
+    "STORY_LIST_TYPE",
+    "TagsDocument",
+    "arc_pointer",
+    "check_format",
+    "from_json",
+    "tags_document",
+    "to_json",
+)
+
+# Codex's source kind -> comicbox's: what a fetched or exported document
+# calls where a list came from.
+COMICBOX_KINDS: Final[MappingProxyType[str, str]] = MappingProxyType(
+    {
+        ReadingListSourceKind.TAGS.value: SourceKind.TAGS.value,
+        ReadingListSourceKind.UPLOAD.value: SourceKind.FILE.value,
+        ReadingListSourceKind.URL.value: SourceKind.URL.value,
+        ReadingListSourceKind.CATALOG.value: SourceKind.CATALOG.value,
+        ReadingListSourceKind.METRON_LIST.value: SourceKind.METRON_LIST.value,
+        ReadingListSourceKind.METRON_ARC.value: SourceKind.METRON_ARC.value,
+        ReadingListSourceKind.COMICVINE_ARC.value: SourceKind.COMICVINE_ARC.value,
+    }
+)
+# Lists from story-arc tags are comicbox's list type "story".
+STORY_LIST_TYPE: Final = "story"
+# An identifier source -> the comicbox kind of that database's own arc.
+_ARC_POINTER_KINDS: Final = MappingProxyType(
+    {"metron": SourceKind.METRON_ARC.value, "comicvine": SourceKind.COMICVINE_ARC.value}
+)
 # The document formats codex reads: ComicRack's. comicbox's own YAML and JSON
 # reading list formats are not supported. Lists built from an online
 # database's records have no document format.
@@ -41,7 +83,7 @@ def check_format(result) -> None:
 
 def to_json(reading_list: Mapping[str, Any]) -> dict[str, Any]:
     """Return a comicbox list as JSON-safe data, the inner mapping."""
-    if not reading_list.get(ENTRIES_KEY) and not reading_list.get("name"):
+    if not reading_list.get(ENTRIES_KEY) and not reading_list.get(NAME_KEY):
         return {}
     text = dumps(reading_list, ReadingListFormats.JSON)
     return json.loads(text)[READING_LIST_KEY]
@@ -73,7 +115,7 @@ def _arc_pointers(sort_name: str) -> list[dict[str, str]]:
             counts[(kind, key)] += 1
     pointers: dict[str, dict[str, str]] = {}
     for (kind, key), _count in sorted(counts.items(), key=lambda item: -item[1]):
-        pointers.setdefault(kind, {"kind": kind, "key": key})
+        pointers.setdefault(kind, {SOURCE_KIND_KEY: kind, SOURCE_KEY_KEY: key})
     return list(pointers.values())
 
 
@@ -91,22 +133,25 @@ def tags_document(source: ReadingListSource) -> TagsDocument:
     names = dict(Comic.objects.filter(pk__in=pks).values_list("pk", "name"))
     entries = []
     for pk in pks:
-        reference = references.get(pk) or {"notes": names.get(pk) or str(pk)}
+        reference = references.get(pk) or {NOTES_KEY: names.get(pk) or str(pk)}
         entries.append(reference)
     document: dict[str, Any] = {
-        "name": source.reading_list.name,
-        "list_type": "story",
-        SOURCES_KEY: [{"kind": "tags"}, *_arc_pointers(source.ref)],
+        NAME_KEY: source.reading_list.name,
+        LIST_TYPE_KEY: STORY_LIST_TYPE,
+        SOURCES_KEY: [
+            {SOURCE_KIND_KEY: SourceKind.TAGS.value},
+            *_arc_pointers(source.ref),
+        ],
         ENTRIES_KEY: entries,
     }
     if not source.ordered:
-        document["ordered"] = False
+        document[ORDERED_KEY] = False
     return TagsDocument(document=document, comics=pks)
 
 
 def arc_pointer(source: ReadingListSource, kind: str) -> str | None:
     """Return the key of a database's copy of a tags source's arc."""
     for pointer in _arc_pointers(source.ref):
-        if pointer["kind"] == kind:
-            return pointer["key"]
+        if pointer[SOURCE_KIND_KEY] == kind:
+            return pointer[SOURCE_KEY_KEY]
     return None

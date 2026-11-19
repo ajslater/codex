@@ -30,8 +30,8 @@ from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.browser.filters.reading_lists import (
     READING_LISTS_FILTER,
     listed_comics,
-    visible_lists,
 )
+from codex.views.readinglists.access import visible_lists
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,

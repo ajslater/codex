@@ -11,17 +11,51 @@ from codex.models.readinglist import ReadingList, ReadingListEntry
 from codex.views.auth import AuthFilterGenericAPIView, GroupACLMixin
 
 
+def visible_lists(user) -> QuerySet:
+    """Return the lists a user may see: global ones and their own."""
+    return ReadingList.objects.filter(
+        GroupACLMixin.reading_list_visibility_filter(user)
+    )
+
+
 def can_edit(user, reading_list: ReadingList) -> bool:
     """
     Whether ``user`` may change a list.
 
     A global list is an admin's to edit; a personal one is its owner's.
+    :func:`editable_lists_q` is the same rule as a query.
     """
     if user is None or not user.is_authenticated:
         return False
     if reading_list.user_id is None:  # pyright: ignore[reportAttributeAccessIssue]
         return bool(user.is_staff)
     return reading_list.user_id == user.pk  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def editable_lists_q(user) -> Q:
+    """Return the lists ``user`` may change, as :func:`can_edit` decides."""
+    if user is None or not user.is_authenticated:
+        return Q(pk__in=())
+    q = Q(user=user)
+    if user.is_staff:
+        q |= Q(user__isnull=True)
+    return q
+
+
+def get_visible_list(user, pk: Any, *, edit: bool) -> ReadingList:
+    """
+    Return the list ``pk`` for a user who may see it, or may change it.
+
+    A list the user may not see is indistinguishable from a missing one.
+    """
+    reading_list = visible_lists(user).filter(pk=pk).first()
+    if reading_list is None:
+        reason = "No such reading list."
+        raise NotFound(reason)
+    if edit and not can_edit(user, reading_list):
+        reason = "You may not change this reading list."
+        raise PermissionDenied(reason)
+    return reading_list
 
 
 def entries_acl_q(acl: GroupACLMixin, user) -> Q:
@@ -69,27 +103,9 @@ def to_pks(values: Any, what: str) -> list[int]:
 class ReadingListAccessView(AuthFilterGenericAPIView):
     """Resolve the url's list for a viewer who may see it, or may change it."""
 
-    def visible_lists(self) -> QuerySet:
-        """Return the lists this user may see: global ones and their own."""
-        return ReadingList.objects.filter(
-            self.reading_list_visibility_filter(self.request.user)
-        )
-
     def get_reading_list(self, *, edit: bool = True) -> ReadingList:
-        """
-        Return the list named by the url.
-
-        A list the user may not see is indistinguishable from a missing
-        one. Changing it also needs :func:`can_edit`.
-        """
-        reading_list = self.visible_lists().filter(pk=self.kwargs["pk"]).first()
-        if reading_list is None:
-            reason = "No such reading list."
-            raise NotFound(reason)
-        if edit and not can_edit(self.request.user, reading_list):
-            reason = "You may not change this reading list."
-            raise PermissionDenied(reason)
-        return reading_list
+        """Return the list named by the url; changing it needs :func:`can_edit`."""
+        return get_visible_list(self.request.user, self.kwargs["pk"], edit=edit)
 
     def shown_entries_q(self) -> Q:
         """Return the entries of a list this user sees."""

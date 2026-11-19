@@ -11,14 +11,31 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final
 
-from comicbox.readinglists import Verdict, compare, normalize_series
+from comicbox.readinglists import (
+    LIST_TYPE_KEY,
+    NAME_KEY,
+    ORDERED_KEY,
+    SOURCE_CURATOR_KEY,
+    SOURCE_CURATOR_URL_KEY,
+    SOURCE_KEY_KEY,
+    SOURCE_KIND_KEY,
+    SOURCE_REVISION_KEY,
+    SOURCES_KEY,
+    Verdict,
+    compare,
+    normalize_series,
+)
 from django.db import transaction
 from django.db.models import Max, Q
 from django.utils.timezone import now
 
 from codex.choices.limits import MAX_NAME_LEN
 from codex.librarian.scribe.readinglists.combine import document_of, recombine
-from codex.librarian.scribe.readinglists.documents import ENTRIES_KEY, from_json
+from codex.librarian.scribe.readinglists.documents import (
+    COMICBOX_KINDS,
+    ENTRIES_KEY,
+    from_json,
+)
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.overlay import Overlay
 from codex.models.readinglist import (
@@ -43,14 +60,6 @@ REMOTE_KINDS: Final = frozenset(
         ReadingListSourceKind.COMICVINE_ARC,
     }
 )
-# What a comicbox source kind is when codex fetched it itself.
-_COMICBOX_KINDS: Final[dict[str, str]] = {
-    ReadingListSourceKind.URL: "url",
-    ReadingListSourceKind.CATALOG: "catalog",
-    ReadingListSourceKind.METRON_LIST: "metron-list",
-    ReadingListSourceKind.METRON_ARC: "metron-arc",
-    ReadingListSourceKind.COMICVINE_ARC: "comicvine-arc",
-}
 
 
 def name_key(name: str) -> str:
@@ -60,10 +69,10 @@ def name_key(name: str) -> str:
 
 def _fetched_source(document: Mapping[str, Any], kind: str) -> dict[str, Any]:
     """Return the document's own record of where it came from, if any."""
-    wanted = _COMICBOX_KINDS.get(kind)
-    sources = [source for source in document.get("sources") or () if source]
+    wanted = COMICBOX_KINDS.get(kind)
+    sources = [source for source in document.get(SOURCES_KEY) or () if source]
     for source in sources:
-        if wanted and source.get("kind") == wanted:
+        if wanted and source.get(SOURCE_KIND_KEY) == wanted:
             return source
     return sources[0] if sources else {}
 
@@ -83,14 +92,20 @@ class SourceSpec:
         """Read the revision and curator off a fetched document."""
         fetched = _fetched_source(document, kind)
         key = (
-            fetched.get("key") if kind == ReadingListSourceKind.CATALOG.value else None
+            fetched.get(SOURCE_KEY_KEY)
+            if kind == ReadingListSourceKind.CATALOG.value
+            else None
         )
         return cls(
             kind=kind,
             ref=str(key or ref)[:MAX_REF_LEN],
-            revision=str(fetched.get("revision") or "")[:MAX_REVISION_LEN],
-            attribution_source=str(fetched.get("curator") or "")[:MAX_NAME_LEN],
-            attribution_url=str(fetched.get("curator_url") or "")[:MAX_REF_LEN],
+            revision=str(fetched.get(SOURCE_REVISION_KEY) or "")[:MAX_REVISION_LEN],
+            attribution_source=str(fetched.get(SOURCE_CURATOR_KEY) or "")[
+                :MAX_NAME_LEN
+            ],
+            attribution_url=str(fetched.get(SOURCE_CURATOR_URL_KEY) or "")[
+                :MAX_REF_LEN
+            ],
         )
 
 
@@ -175,11 +190,11 @@ def import_document(
     """
     with transaction.atomic():
         if into is None:
-            list_name = (name or document.get("name") or spec.ref)[:MAX_NAME_LEN]
+            list_name = (name or document.get(NAME_KEY) or spec.ref)[:MAX_NAME_LEN]
             into = ReadingList.objects.create(
                 name=unique_name(list_name, user),
                 user=user,
-                list_type=str(document.get("list_type") or "")[:64],
+                list_type=str(document.get(LIST_TYPE_KEY) or "")[:64],
             )
         source = ReadingListSource.objects.filter(
             reading_list=into, kind=spec.kind, ref=spec.ref
@@ -192,7 +207,7 @@ def import_document(
         source.revision = spec.revision
         source.attribution_source = spec.attribution_source
         source.attribution_url = spec.attribution_url
-        source.ordered = document.get("ordered") is not False
+        source.ordered = document.get(ORDERED_KEY) is not False
         source.fetched_at = now()
         source.save()
         recombine(into, matcher)
@@ -225,7 +240,7 @@ def refresh_source(
     source.ref = spec.ref
     source.attribution_source = spec.attribution_source or source.attribution_source
     source.attribution_url = spec.attribution_url or source.attribution_url
-    source.ordered = document.get("ordered") is not False
+    source.ordered = document.get(ORDERED_KEY) is not False
     source.save()
     recombine(source.reading_list, matcher)
     return True
@@ -332,7 +347,7 @@ def _is_tags_only(reading_list: ReadingList) -> bool:
 
 def suggest_for(document: Mapping[str, Any], *, exclude=()) -> list[Suggestion]:
     """Suggest what to do with a new document against global lists of its name."""
-    key = name_key(str(document.get("name") or ""))
+    key = name_key(str(document.get(NAME_KEY) or ""))
     if not key:
         return []
     suggestions = []

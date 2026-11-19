@@ -5,15 +5,14 @@ from types import MappingProxyType
 from typing import override
 
 from django.db.models import Q
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.collection import Collection
 from codex.models import Comic
-from codex.models.readinglist import ReadingList
 from codex.views.browser.filters.filter import BrowserFilterView
-from codex.views.readinglists.access import can_edit
+from codex.views.readinglists.access import get_visible_list
 from codex.views.readinglists.entries import add_comics
 
 # The order comics of a selection join a list in.
@@ -52,19 +51,6 @@ class ReadingListAddView(BrowserFilterView):
         """Load the browser settings; the selection ignores their filters."""
         return MappingProxyType(self.load_params_from_settings())
 
-    def _reading_list(self) -> ReadingList:
-        reading_list = ReadingList.objects.filter(
-            self.reading_list_visibility_filter(self.request.user),
-            pk=self.kwargs["pk"],
-        ).first()
-        if reading_list is None:
-            reason = "No such reading list."
-            raise NotFound(reason)
-        if not can_edit(self.request.user, reading_list):
-            reason = "You may not change this reading list."
-            raise PermissionDenied(reason)
-        return reading_list
-
     def _comic_pks(self, targets: dict) -> list[int]:
         query = Q(pk__in=())
         for collection, pks in targets.items():
@@ -84,7 +70,7 @@ class ReadingListAddView(BrowserFilterView):
 
     def post(self, *_args, **_kwargs) -> Response:
         """Add the selection's comics, in reading order, at the end."""
-        reading_list = self._reading_list()
+        reading_list = get_visible_list(self.request.user, self.kwargs["pk"], edit=True)
         targets = self.request.data.get("targets") or {}
         if not isinstance(targets, dict):
             reason = "targets must map collections to pks."

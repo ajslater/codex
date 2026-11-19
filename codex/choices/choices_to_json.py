@@ -24,6 +24,7 @@ from codex.choices.limits import LIMITS
 from codex.choices.notifications import WebsocketMessages
 from codex.choices.onlinetag import TAGGING_ESTIMATE
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
+from codex.choices.readinglists import READING_LIST_CHOICES
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
 from codex.choices.tagging import (
@@ -62,6 +63,7 @@ _DUMPS = MappingProxyType(
         "admin-status-titles.json": ADMIN_STATUS_TITLES,
         "browser-choices.json": BROWSER_CHOICES,
         "reader-choices.json": READER_CHOICES,
+        "reading-list-choices.json": READING_LIST_CHOICES,
         # The write formats live with the rest of the tag-editor choices,
         # which choices.admin can't import without a models import cycle.
         # keepFormat names the one that is not a tag format.
