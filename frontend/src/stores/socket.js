@@ -160,11 +160,28 @@ export const useSocketStore = defineStore("socket", () => {
   return { reopen };
 });
 
-export function useSocketStoreWithOut() {
-  return useSocketStore(store);
+export async function readingListsNotified() {
+  // Everyone hears it: a user's drawer and add-to-list menus reload, and an
+  // admin's table too. Only what was already loaded reloads.
+  try {
+    const m = await import("@/stores/reading-lists");
+    const store = m.useReadingListsStore();
+    const loads = [];
+    if (useAuthStore().isUserAdmin && store.listsLoaded) {
+      loads.push(store.loadLists());
+    }
+    if (store.myListsLoaded) loads.push(store.loadMyLists());
+    await Promise.all(loads);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 // Notification handlers
+
+export function useSocketStoreWithOut() {
+  return useSocketStore(store);
+}
 
 async function adminFlagsNotified() {
   const route = currentRouteName();
@@ -380,17 +397,6 @@ async function pendingDeletesNotified() {
   if (!adminStore) return;
   // The panel and the per-library count move together, so reload both.
   adminStore.loadTables(["PendingDelete", "Library"], { force: true });
-}
-
-async function readingListsNotified() {
-  if (!useAuthStore().isUserAdmin) return;
-  try {
-    const m = await import("@/stores/reading-lists");
-    const store = m.useReadingListsStore();
-    if (store.listsLoaded) await store.loadLists();
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 function reloadBrowser() {

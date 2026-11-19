@@ -6,6 +6,7 @@ comics, every list with missing issues is matched again on the scribe
 after this import.
 """
 
+from codex.librarian.notifier.tasks import READING_LISTS_CHANGED_TASK
 from codex.librarian.scribe.importer.moved import MovedImporter
 from codex.librarian.scribe.readinglists.status import ReadingListSyncStatus
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
@@ -46,5 +47,6 @@ class ReadingListsImporter(MovedImporter):
             status.complete = counts.changed
             if counts.changed:
                 self.log.info(f"Reading lists from tags: {counts}.")
+                self.librarian_queue.put(READING_LISTS_CHANGED_TASK)
         finally:
             self.status_controller.finish(status)

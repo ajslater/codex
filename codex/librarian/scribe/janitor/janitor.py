@@ -6,6 +6,7 @@ from typing import Final
 from codex.librarian.bookmark.tasks import CodexLatestVersionTask
 from codex.librarian.covers.status import FindOrphanCoversStatus, RemoveCoversStatus
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.notifier.tasks import READING_LISTS_CHANGED_TASK
 from codex.librarian.scribe.importer.statii.moved import ImporterMoveFoldersStatus
 from codex.librarian.scribe.janitor.koreader import JanitorKoreaderHash
 from codex.librarian.scribe.janitor.status import (
@@ -189,6 +190,8 @@ class Janitor(JanitorKoreaderHash):
             status.complete = counts.changed
             level = "INFO" if counts.changed else "DEBUG"
             self.log.log(level, f"Reading lists from tags: {counts}.")
+            if counts.changed:
+                self.librarian_queue.put(READING_LISTS_CHANGED_TASK)
         finally:
             self.status_controller.finish(status)
 
