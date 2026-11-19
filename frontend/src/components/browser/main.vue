@@ -55,6 +55,7 @@ import MissingCard from "@/components/browser/missing/missing-card.vue";
 import MissingRunCard from "@/components/browser/missing/missing-run-card.vue";
 import BrowserTable from "@/components/browser/table/browser-table.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
@@ -153,9 +154,7 @@ export default {
       });
     },
     readingListPk() {
-      const { collection, pks } = this.$route.params;
-      if (collection !== "arcs") return 0;
-      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+      return routeReadingListPk(this.$route.params);
     },
     browsePaneClasses() {
       // Three orthogonal modifiers, each contributing one custom

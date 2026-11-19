@@ -80,6 +80,7 @@ import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
+import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useReadingListsStore } from "@/stores/reading-lists";
@@ -124,9 +125,7 @@ export default {
     }),
     openListPk() {
       // The reading list the page shows, if it shows one.
-      const { collection, pks } = this.$route?.params || {};
-      if (collection !== READING_LISTS) return 0;
-      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+      return routeReadingListPk(this.$route?.params);
     },
     removablePk() {
       // A comic inside a list this user may change.

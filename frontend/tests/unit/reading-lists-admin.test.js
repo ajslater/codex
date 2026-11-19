@@ -192,6 +192,21 @@ describe("reading lists tab", () => {
     );
   });
 
+  test("an empty table says why", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: [LISTS[0]] } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    expect(wrapper.vm.filteredLists).toEqual([]);
+    expect(wrapper.text()).toContain("The only list comes from story arc tags");
+    wrapper.vm.showTagsOnly = true;
+    wrapper.vm.search = "nothing like it";
+    await flushPromises();
+    expect(wrapper.text()).toContain("No lists match these filters.");
+  });
+
   test("only global lists with comics may be written to files", async () => {
     const personal = { ...LISTS[1], pk: 3, owner: "aj" };
     const empty = { ...LISTS[1], pk: 4, matched: 0 };

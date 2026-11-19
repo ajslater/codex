@@ -144,6 +144,7 @@ import { mapActions, mapState } from "pinia";
 import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
+import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
@@ -188,9 +189,7 @@ export default {
     removeListPk() {
       // Inside a reading list this user may change: remove in place.
       if (!this.listEditable) return 0;
-      const { collection, pks } = this.$route?.params || {};
-      if (collection !== "arcs") return 0;
-      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+      return routeReadingListPk(this.$route?.params);
     },
     selectedComicPks() {
       return this.selectedPksByCollection?.comics || [];

@@ -93,6 +93,17 @@ class ListDetailsTests(ListDetailsFixture):
         assert source["attribution"] == "cbro"
         assert source["attributionUrl"] == "https://cbro.invalid/civil-war"
 
+    def test_uploads_are_named_by_their_file(self) -> None:
+        """Two uploads would both read "Upload": each names its file."""
+        ReadingListSource.objects.create(
+            reading_list=self.reading_list,
+            kind=ReadingListSourceKind.UPLOAD,
+            ref="Civil War (2006).cbl",
+            rank=1,
+        )
+        labels = [source["label"] for source in self._details()["sources"]]
+        assert labels == ["DieselTech Catalog", "Upload Civil War (2006).cbl"]
+
     def test_how_much_is_here_and_read(self) -> None:
         """Four of six in the library, one read."""
         details = self._details()

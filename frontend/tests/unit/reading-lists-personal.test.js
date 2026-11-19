@@ -83,6 +83,16 @@ describe("ReadingListMenuSection", () => {
     expect(rows[1].text()).not.toContain("Global");
   });
 
+  test("a list is not offered as a place to add itself", () => {
+    const { wrapper } = mountWith(ReadingListMenuSection, {
+      props: { targets: { arcs: [1] } },
+    });
+    const titles = wrapper
+      .findAll(".readingListMenuList .v-list-item-title")
+      .map((title) => title.text());
+    expect(titles).toEqual(["My Spidey", "New reading list…"]);
+  });
+
   test("no find field for a short menu", () => {
     const { wrapper } = mountSection();
     expect(wrapper.find(".listFilter").exists()).toBe(false);

@@ -190,9 +190,7 @@
       show-select
     >
       <template #no-data>
-        <td class="adminNoData" colspan="100%">
-          No reading lists yet. Add lists, or tag comics with story arcs.
-        </td>
+        <td class="adminNoData" colspan="100%">{{ noDataText }}</td>
       </template>
       <template #[`item.name`]="{ item }">
         <div class="nameCell">
@@ -489,6 +487,18 @@ export default {
     }),
     tagsOnlyCount() {
       return this.lists.filter(isTagsOnly).length;
+    },
+    noDataText() {
+      // Say why the table is empty: no lists, or the filters hide them.
+      const count = this.lists.length;
+      if (!count) {
+        return "No reading lists yet. Add lists, or tag comics with story arcs.";
+      }
+      if (!this.showTagsOnly && this.tagsOnlyCount === count) {
+        const which = count === 1 ? "The only list comes" : "Every list comes";
+        return `${which} from story arc tags. Check Show lists from tags to see it here.`;
+      }
+      return "No lists match these filters.";
     },
     mappingsLabel() {
       const count = this.mappings.length;

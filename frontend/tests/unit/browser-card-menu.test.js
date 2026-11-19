@@ -157,7 +157,7 @@ describe("BrowserCardMenu — reading a list", () => {
 });
 
 describe("BrowserCardMenu — Remove from List", () => {
-  const ROUTE = Object.freeze({ collection: "arcs", pks: "5" });
+  const ROUTE = Object.freeze({ collection: "arcs", parentIds: "5" });
 
   test("a comic inside a list its viewer edits can be removed", async () => {
     const wrapper = await mountOpenMenu(
@@ -185,7 +185,7 @@ describe("BrowserCardMenu — Remove from List", () => {
   test("no Remove outside a list", async () => {
     await mountOpenMenu(
       { collection: "comics", ids: [42] },
-      { listEditable: true, route: { collection: "series", pks: "3" } },
+      { listEditable: true, route: { collection: "series", parentIds: "3" } },
     );
     expect(document.querySelector(".removeFromListItem")).toBeNull();
   });

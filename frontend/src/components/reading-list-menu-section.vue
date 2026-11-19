@@ -1,7 +1,7 @@
 <template>
   <MenuSection title="Reading Lists">
     <v-text-field
-      v-if="myLists.length > FILTER_AFTER"
+      v-if="addableLists.length > FILTER_AFTER"
       v-model="query"
       class="listFilter"
       density="compact"
@@ -66,6 +66,7 @@ import { useReadingListsStore } from "@/stores/reading-lists";
 
 // Past this many lists the menu grows a field to find one by name.
 const FILTER_AFTER = 8;
+const READING_LISTS = "arcs";
 
 /*
  * The reading lists half of the shelf menu: add a selection's comics to a
@@ -92,10 +93,15 @@ export default {
   },
   computed: {
     ...mapState(useReadingListsStore, ["myLists", "myListsLoaded"]),
+    addableLists() {
+      // A list is not offered as a place to add itself.
+      const adding = new Set(this.targets[READING_LISTS] || []);
+      return this.myLists.filter((list) => !adding.has(list.pk));
+    },
     shownLists() {
       const query = (this.query || "").trim().toLowerCase();
-      if (!query) return this.myLists;
-      return this.myLists.filter((list) =>
+      if (!query) return this.addableLists;
+      return this.addableLists.filter((list) =>
         list.name.toLowerCase().includes(query),
       );
     },

@@ -20,7 +20,7 @@ from comicbox.readinglists import (
 )
 from django.db.models import Q
 
-from codex.choices.readinglists import SOURCE_LABELS
+from codex.choices.readinglists import SOURCE_LABELS, ReadingListSourceKind
 from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS
 from codex.models import Bookmark
 from codex.models.readinglist import ReadingList, ReadingListEntry, ReadingListSource
@@ -103,6 +103,14 @@ def _neighbour(user, ref: Any) -> dict[str, Any] | None:
     return {"pk": found.pk, "name": name or found.name}
 
 
+def _source_label(source: ReadingListSource) -> str:
+    """Name the source; an upload by its file, as two would read alike."""
+    label = SOURCE_LABELS.get(source.kind, source.kind)
+    if source.kind == ReadingListSourceKind.UPLOAD.value and source.ref:
+        return f"{label} {source.ref}"
+    return label
+
+
 def _sources(reading_list: ReadingList) -> list[dict[str, str]]:
     sources = ReadingListSource.objects.filter(reading_list=reading_list).order_by(
         "rank", "pk"
@@ -110,12 +118,12 @@ def _sources(reading_list: ReadingList) -> list[dict[str, str]]:
     return [
         {
             "kind": source.kind,
-            "label": SOURCE_LABELS.get(source.kind, source.kind),
+            "label": _source_label(source),
             "attribution": source.attribution_source,
             "attribution_url": source.attribution_url,
         }
         for source in sources.only(
-            "kind", "attribution_source", "attribution_url", "rank"
+            "kind", "ref", "attribution_source", "attribution_url", "rank"
         )
     ]
 

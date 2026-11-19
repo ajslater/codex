@@ -6,6 +6,7 @@ import {
   getReaderRoute,
   normalizeParentIds,
   routeForCollection,
+  routeReadingListPk,
 } from "@/route";
 
 describe("route helpers", () => {
@@ -71,6 +72,18 @@ describe("route helpers", () => {
         browserRouteParams({ collection: "series", parentIds: "5,7" }),
       ).toEqual({ collection: "series", parentIds: "5,7" });
     });
+  });
+});
+
+describe("routeReadingListPk", () => {
+  it.each([
+    [{ collection: "arcs", parentIds: "5" }, 5],
+    [{ collection: "arcs", parentIds: "5,7" }, 5],
+    [{ collection: "arcs" }, 0],
+    [{ collection: "series", parentIds: "5" }, 0],
+    [undefined, 0],
+  ])("reads the list from the route the router builds: %j", (params, pk) => {
+    expect(routeReadingListPk(params)).toBe(pk);
   });
 });
 
