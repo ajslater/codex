@@ -111,7 +111,7 @@
         Rematch
       </v-btn>
       <v-btn size="small" variant="text" @click="bulk('complete')">
-        Complete Story Arcs
+        Complete from Metron or Comic Vine
       </v-btn>
       <v-btn
         size="small"
@@ -149,7 +149,9 @@
       <template #[`item.name`]="{ item }">
         <div class="nameCell">
           <span>{{ item.name }}</span>
-          <span v-if="item.listType" class="listType">{{ item.listType }}</span>
+          <span v-if="item.listType" class="listType">{{
+            listTypeLabel(item.listType)
+          }}</span>
         </div>
       </template>
       <template #[`item.sources`]="{ item }">
@@ -332,7 +334,11 @@ import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vu
 import SourcesDialog from "@/components/admin/tabs/reading-lists/sources-dialog.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
-import { SOURCE_KINDS, useReadingListsStore } from "@/stores/reading-lists";
+import {
+  listTypeLabel,
+  SOURCE_KINDS,
+  useReadingListsStore,
+} from "@/stores/reading-lists";
 
 const HEADERS = Object.freeze([
   { title: "Name", key: "name" },
@@ -439,6 +445,7 @@ export default {
     this.loadAll();
   },
   methods: {
+    listTypeLabel,
     ...mapActions(useReadingListsStore, [
       "loadLists",
       "loadSuggestions",

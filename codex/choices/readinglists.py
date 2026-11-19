@@ -42,4 +42,23 @@ SOURCE_SHORT_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
         ReadingListSourceKind.COMICVINE_ARC.value: "Comic Vine Arc",
     }
 )
-READING_LIST_CHOICES: Final = MappingProxyType({"source_kinds": SOURCE_LABELS})
+# comicbox's list types, as people read them. A list from story-arc tags is
+# a story arc; types outside the vocabulary show as given.
+LIST_TYPE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
+    {
+        "story": "Story Arc",
+        "event": "Event",
+        "characters": "Characters",
+        "teams": "Teams",
+        "master": "Master List",
+        "creator": "Creator",
+    }
+)
+READING_LIST_CHOICES: Final = MappingProxyType(
+    {"source_kinds": SOURCE_LABELS, "list_types": LIST_TYPE_LABELS}
+)
+
+
+def list_type_label(list_type: str) -> str:
+    """Return a list type as people read it."""
+    return LIST_TYPE_LABELS.get(list_type, list_type.replace("-", " ").title())

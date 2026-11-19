@@ -131,14 +131,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         of link inside one feed.
 
         ``arcs`` is here knowingly, and is the one imperfect case. The
-        arcs *root* lists story arcs and nothing else, so that feed is
+        arcs *root* lists reading lists and nothing else, so that feed is
         pure navigation, but this one flag also labels every individual
-        arc entry, whose feed lists comics and for which acquisition is
+        list entry, whose feed lists comics and for which acquisition is
         right. Splitting them means threading an override through
         ``_facet_group`` / ``_facet_or_facet_entry`` / ``_facet_entry``
         for the four root View entries alone. Do not do that on spec
         reasoning: change it only when a real client is observed
-        misreading Story Arc View (#855 follow-up F7).
+        misreading the Reading Lists view (#855 follow-up F7).
         """
         collections: set[str] = {
             STORY_ARC_COLLECTION,

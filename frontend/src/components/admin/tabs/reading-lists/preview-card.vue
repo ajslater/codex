@@ -5,7 +5,9 @@
         <div class="adminCardTitle">{{ card.name }}</div>
         <div class="adminCardDesc">
           <span v-if="card.curator">{{ card.curator.toUpperCase() }} · </span>
-          <span v-if="card.listType">{{ card.listType }} · </span>
+          <span v-if="card.listType"
+            >{{ listTypeLabel(card.listType) }} ·
+          </span>
           <span v-if="card.count != null">{{ card.count }} issues</span>
         </div>
       </div>
@@ -68,6 +70,8 @@
 </template>
 
 <script>
+import { listTypeLabel } from "@/stores/reading-lists";
+
 const VISIBILITY = Object.freeze([
   { value: false, title: "Global" },
   { value: true, title: "Private to me" },
@@ -95,6 +99,7 @@ export default {
     },
   },
   methods: {
+    listTypeLabel,
     update(changes) {
       this.$emit("update:modelValue", { ...this.choice, ...changes });
     },

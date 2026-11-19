@@ -29,7 +29,8 @@ border-radius: 128px;
 ### 🔎 Browse & Search
 
 - Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
-  hierarchy**, or **Reading Lists** made from story arc tags.
+  hierarchy**, or **Reading Lists**: the story arcs in your comics' tags, and
+  lists you import or make.
 - **Import reading lists** from ComicRack CBL files, URLs, the DieselTech
   catalog, Metron and Comic Vine, combine lists of one event, and make your own.
 - **Full-text search** across comic metadata and bookmarks.
@@ -79,8 +80,8 @@ border-radius: 128px;
 
 ### Examples
 
-- _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event
-  reading list.
+- _Filter by_ a Reading List and Unread, _Order by_ Reading Order to read an
+  event in order.
 - _Filter by_ Unread and _Order by_ Added Time to see your latest unread comics.
 - _Search by_ your favorite character to find their appearances across different
   comics.

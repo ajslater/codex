@@ -15,6 +15,17 @@ export const SOURCE_KINDS = Object.freeze(
   ),
 );
 
+// List type -> label: "story" is a Story Arc. Others show as given.
+const LIST_TYPES = Object.freeze(
+  Object.fromEntries(
+    READING_LIST_CHOICES.listTypes.map(({ value, title }) => [value, title]),
+  ),
+);
+
+export function listTypeLabel(listType) {
+  return listType ? LIST_TYPES[listType] || listType.replaceAll("-", " ") : "";
+}
+
 // json-cbl, the newer JSON standard, first; then the classic XML.
 export const EXPORT_FORMATS = Object.freeze([
   { value: "json-cbl", title: "json-cbl" },

@@ -1129,7 +1129,8 @@
               multiple
               chips
               closable-chips
-              hide-details
+              hint="Each one makes or joins the reading list of that name."
+              persistent-hint
               density="compact"
               :disabled="isFieldDisabled('story_arcs')"
               :class="{

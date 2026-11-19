@@ -31,7 +31,7 @@ import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vu
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import vuetify from "@/plugins/vuetify";
 import { useCommonStore } from "@/stores/common";
-import { useReadingListsStore } from "@/stores/reading-lists";
+import { listTypeLabel, useReadingListsStore } from "@/stores/reading-lists";
 
 const LISTS = Object.freeze([
   {
@@ -250,6 +250,15 @@ describe("add lists dialog — private Metron lists", () => {
       ],
     );
     expect(wrapper.vm.choices["metron_list:7"].private).toBe(true);
+  });
+});
+
+describe("list types", () => {
+  test("a list from tags reads as a story arc", () => {
+    expect(listTypeLabel("story")).toBe("Story Arc");
+    expect(listTypeLabel("event")).toBe("Event");
+    expect(listTypeLabel("tie-in-order")).toBe("tie in order");
+    expect(listTypeLabel("")).toBe("");
   });
 });
 

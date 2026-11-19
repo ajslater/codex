@@ -103,8 +103,9 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
 # / tertiary chain reachable via shift-click on a table header).
 # They sort fine as the primary, but the per-extra annotation
 # pipeline can't safely produce a value for them on every model
-# / context: ``story_arc_number`` requires StoryArc-context ``pks``
-# to resolve which arc's number to pick, and ``search_score``'s
+# / context: ``story_arc_number`` (Reading Order) needs a reading list,
+# the one browsed or the Reading Lists filter's, to say whose order, and
+# ``search_score``'s
 # ``ComicFTSRank`` only resolves when an FTS subquery is joined.
 # Mirrored on the frontend so the table headers can grey out the
 # affected columns and refuse the shift-click.

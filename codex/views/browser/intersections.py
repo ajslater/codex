@@ -1049,9 +1049,7 @@ def _build_reading_lists_intersection_sort_sql(
             INNER JOIN codex_comic c ON c.id = rle.comic_id
     """  # noqa: S608
     sql = _wrap_intersection_sort(inner, correlation)
-    return _IntersectionSortRawSQL(
-        sql, (*visible_params, *correlation.sort_params())
-    )
+    return _IntersectionSortRawSQL(sql, (*visible_params, *correlation.sort_params()))
 
 
 def _comic_correlation_sql(

@@ -9,6 +9,7 @@ Order under the filter sorts by place in the chosen list.
 import json
 from typing import Final
 
+from codex.choices.readinglists import list_type_label
 from codex.models import ReadingListEntry, Series
 from codex.models.settings import (
     SettingsBrowser,
@@ -169,3 +170,13 @@ class SearchFieldTests(_ListsFixture):
         """A trailing wildcard is an index prefix query on the arc names."""
         _, fts_text, _ = _preparse_search_query_cached("reading_lists:Civ*", False)
         assert fts_text == "story_arcs:Civ*"
+
+
+class ListTypeLabelTests(_ListsFixture):
+    """A list shows its type as people read it."""
+
+    def test_lists_from_tags_are_story_arcs(self) -> None:
+        """comicbox's ``story`` is a Story Arc; unknown types show as given."""
+        assert list_type_label("story") == "Story Arc"
+        assert list_type_label("event") == "Event"
+        assert list_type_label("tie-in-order") == "Tie In Order"
