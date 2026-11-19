@@ -15,10 +15,11 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
         "UNREAD": "Unread",
     },
 )
-# The reading lists grid narrowed by where lists come from.
+# The reading lists grid narrowed by whose lists, or where they come from.
 BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
     {
         "": "All",
+        "mine": "Mine",
         "curated": "Curated",
         "tags": "From Tags",
     },

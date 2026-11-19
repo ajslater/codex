@@ -9,7 +9,7 @@
     @update:model-value="setKind"
   >
     <v-btn
-      v-for="choice in CHOICES"
+      v-for="choice in choices"
       :key="choice.value"
       :value="choice.value"
       size="small"
@@ -23,17 +23,31 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
-const CHOICES = Object.freeze([
-  { value: "", title: "All", hint: "Every reading list" },
-  {
-    value: "curated",
-    title: "Curated",
-    hint: "Lists from a file, a URL, the catalog, Metron or Comic Vine",
-  },
-  { value: "tags", title: "From Tags", hint: "Lists from story arc tags only" },
-]);
+const ALL = Object.freeze({
+  value: "",
+  title: "All",
+  hint: "Every reading list",
+});
+const MINE = Object.freeze({
+  value: "mine",
+  title: "Mine",
+  hint: "The reading lists you made",
+});
+const CURATED = Object.freeze({
+  value: "curated",
+  title: "Curated",
+  hint: "Every list not made from story arc tags alone: imported, combined or made by hand",
+});
+const FROM_TAGS = Object.freeze({
+  value: "tags",
+  title: "From Tags",
+  hint: "Lists made from story arc tags alone",
+});
+const SIGNED_IN_CHOICES = Object.freeze([ALL, MINE, CURATED, FROM_TAGS]);
+const ANONYMOUS_CHOICES = Object.freeze([ALL, CURATED, FROM_TAGS]);
 
 /*
  * On the Reading Lists grid, narrow the lists by where they come from.
@@ -41,10 +55,14 @@ const CHOICES = Object.freeze([
  */
 export default {
   name: "ReadingListKindToggle",
-  data() {
-    return { CHOICES };
-  },
   computed: {
+    ...mapState(useAuthStore, {
+      isLoggedIn: (state) => Boolean(state.user),
+    }),
+    choices() {
+      // Mine only for a signed-in user: a session owns no lists.
+      return this.isLoggedIn ? SIGNED_IN_CHOICES : ANONYMOUS_CHOICES;
+    },
     ...mapState(useBrowserStore, {
       kind: (state) => state.settings.filters.readingListKind || "",
     }),

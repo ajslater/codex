@@ -917,7 +917,12 @@ class Migration(migrations.Migration):
             name="reading_list_kind",
             field=models.CharField(
                 blank=True,
-                choices=[("", "All"), ("curated", "Curated"), ("tags", "From Tags")],
+                choices=[
+                    ("", "All"),
+                    ("mine", "Mine"),
+                    ("curated", "Curated"),
+                    ("tags", "From Tags"),
+                ],
                 default="",
                 max_length=16,
             ),

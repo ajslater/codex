@@ -205,21 +205,26 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     def get_reading_list_kind_filter(self, model) -> Q:
         """
-        Narrow the reading lists grid to curated lists or lists from tags.
+        Narrow the reading lists grid: the viewer's own, curated, from tags.
 
-        Curated is any list with a source besides tags. ``Exists`` rather
-        than a join, so a list's cards and counts are not multiplied by its
-        sources, and so cachalot sees the sources table.
+        From Tags is a list whose only sources are its story-arc tags, and
+        Curated is every other list, a hand-made one with no source too.
+        ``Exists`` rather than a join, so a list's cards and counts are not
+        multiplied by its sources, and so cachalot sees the sources table.
         """
         kind = (self.params.get("filters") or {}).get("reading_list_kind")
         if model is not ReadingList or not kind:
             return Q()
+        if kind == "mine":
+            user = self.request.user
+            if user is None or not user.is_authenticated:
+                return Q(pk__in=())
+            return Q(user=user)
         sources = ReadingListSource.objects.filter(reading_list=OuterRef("pk"))
-        curated = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
-        if kind == "curated":
-            return Q(curated)
+        other = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
         tags = Exists(sources.filter(kind=ReadingListSourceKind.TAGS.value))
-        return Q(tags) & ~Q(curated)
+        tags_only = Q(tags) & ~Q(other)
+        return ~tags_only if kind == "curated" else tags_only
 
     def _get_query_filters(
         self,
