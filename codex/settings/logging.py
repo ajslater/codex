@@ -66,7 +66,10 @@ class DowngradeNoisyForbiddenFilter(Filter):
         msg = record.getMessage()
         if not msg.startswith("Forbidden: "):
             return True
-        path = msg.split(": ", 1)[1]
+        # The message carries ``request.path``, which keeps
+        # ``server.url_path_prefix``; ``path_info`` drops it.
+        request = getattr(record, "request", None)
+        path = getattr(request, "path_info", None) or msg.split(": ", 1)[1]
         if path in _NOISY_FORBIDDEN_PATHS:
             _downgrade_to_debug(record)
         return True

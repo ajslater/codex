@@ -58,6 +58,17 @@ class DowngradeNoisyForbiddenFilterTests(TestCase):
         assert record.levelno == logging.DEBUG
         assert record.levelname == "DEBUG"
 
+    def test_downgrades_noisy_path_under_path_prefix(self) -> None:
+        """``server.url_path_prefix`` stays in ``path``, not ``path_info``."""
+        record = _build_response_record(
+            HTTPStatus.FORBIDDEN, "/api/v4/auth/profile", script_name="/codex"
+        )
+        assert record.getMessage() == "Forbidden: /codex/api/v4/auth/profile"
+        kept = self.flt.filter(record)
+        assert kept is True
+        assert record.levelno == logging.DEBUG
+        assert record.levelname == "DEBUG"
+
     def test_keeps_unrelated_forbidden_at_warning(self) -> None:
         """A Forbidden on a non-noisy path stays at WARNING."""
         record = _build_record(
