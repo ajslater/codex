@@ -216,7 +216,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             return Q()
         if kind == "mine":
             user = self.request.user
-            if user is None or not user.is_authenticated:
+            if not user.is_authenticated:
                 return Q(pk__in=())
             return Q(user=user)
         tags_only = tags_only_q()
