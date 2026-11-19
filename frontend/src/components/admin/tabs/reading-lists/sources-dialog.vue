@@ -57,7 +57,7 @@
                   ? 'Fetch again'
                   : 'Uploads and tags have nothing to fetch.'
               "
-              @click="refresh"
+              @click="refresh(source)"
             />
             <ConfirmDialog
               :icon="mdiTrashCanOutline"
@@ -91,10 +91,12 @@ import {
   mdiTrashCanOutline,
 } from "@mdi/js";
 
+import { mapState } from "pinia";
+
 import * as API from "@/api/v4/reading-lists";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useCommonStore } from "@/stores/common";
-import { SOURCE_KINDS } from "@/stores/reading-lists";
+import { SOURCE_KINDS, useReadingListsStore } from "@/stores/reading-lists";
 
 export default {
   name: "SourcesDialog",
@@ -110,10 +112,15 @@ export default {
       mdiArrowUp,
       mdiRefresh,
       mdiTrashCanOutline,
-      sources: [...(this.readingList.sources || [])],
     };
   },
   computed: {
+    ...mapState(useReadingListsStore, ["listsByPk"]),
+    sources() {
+      // The table's live row, so a source added or removed shows at once.
+      const row = this.listsByPk[this.readingList.pk] || this.readingList;
+      return row.sources || [];
+    },
     show: {
       get() {
         return this.modelValue;
@@ -121,11 +128,6 @@ export default {
       set(value) {
         this.$emit("update:modelValue", value);
       },
-    },
-  },
-  watch: {
-    readingList(value) {
-      this.sources = [...(value.sources || [])];
     },
   },
   methods: {
@@ -148,7 +150,6 @@ export default {
       const order = [...this.sources];
       const [moved] = order.splice(index, 1);
       order.splice(index + step, 0, moved);
-      this.sources = order;
       await this.call(
         API.rankSources(
           this.readingList.pk,
@@ -156,19 +157,24 @@ export default {
         ),
       );
     },
-    async refresh() {
+    async refresh(source) {
       await this.call(
-        API.listAction(this.readingList.pk, "refresh"),
-        "Queued: refresh.",
+        API.refreshSource(this.readingList.pk, source.pk),
+        `Fetching ${this.label(source)} again. The list changes if it did.`,
       );
     },
     async remove(source) {
-      this.sources = this.sources.filter((row) => row.pk !== source.pk);
-      await this.call(API.removeSource(this.readingList.pk, source.pk));
-      if (!this.sources.length) this.show = false;
+      const last = this.sources.length <= 1;
+      await this.call(
+        API.removeSource(this.readingList.pk, source.pk),
+        last
+          ? "Removed its last source: the list is deleted."
+          : `Removed ${this.label(source)}; the list is recomputed without it.`,
+      );
+      if (last) this.show = false;
     },
     addSource() {
-      this.show = false;
+      // Stays open: the new source shows here once it is imported.
       this.$emit("add-source", this.readingList);
     },
   },

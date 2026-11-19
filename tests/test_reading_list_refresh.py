@@ -5,6 +5,8 @@ from typing import Any, Final, override
 from unittest.mock import patch
 
 from comicbox.readinglists import loads
+from django.contrib.auth.models import User
+from django.test import Client
 from loguru import logger
 
 from codex.librarian.onlinetag.readinglists import (
@@ -36,6 +38,7 @@ from tests.test_reading_list_fetch import _SESSION, _FakeSession, _Queue
 from tests.test_reading_lists import ReadingListFixture
 
 _URL: Final = "https://example.invalid/cw.cbl"
+_PW: Final = "test-pw-hush-S106"
 _TABLE_QUEUE: Final = "codex.views.admin.reading_lists.table.LIBRARIAN_QUEUE"
 _EMPTY_CBL: Final = (
     '<?xml version="1.0"?><ReadingList><Name>Civil War</Name><Books /></ReadingList>'
@@ -119,3 +122,38 @@ class EmptyFetchTests(ReadingListFixture):
         assert not [task for task in queue if isinstance(task, ReadingListImportTask)]
         (error,) = get_reading_list_errors()
         assert error["ref"] == _URL
+
+
+class FetchOneSourceTests(ReadingListFixture):
+    """Fetch again refreshes the one source asked for."""
+
+    @staticmethod
+    def _client() -> Client:
+        admin = User.objects.create_user(username="admin", password=_PW, is_staff=True)
+        client = Client()
+        client.force_login(admin)
+        return client
+
+    def test_fetch_again_queues_that_source(self) -> None:
+        """Only the chosen source is fetched."""
+        reading_list, source = _url_list()
+        client = self._client()
+        url = f"/api/v4/admin/reading-lists/{reading_list.pk}/sources/{source.pk}"
+        with patch(_TABLE_QUEUE) as queue:
+            response = client.post(url)
+        assert response.status_code == 200, response.content  # noqa: PLR2004
+        (task,) = [call.args[0] for call in queue.put.call_args_list]
+        assert isinstance(task, ReadingListFetchTask)
+        assert [request.source_pk for request in task.requests] == [source.pk]
+
+    def test_an_upload_has_nothing_to_fetch(self) -> None:
+        """A source with no remote is a 400 that says why."""
+        reading_list = import_document(
+            _document(), SourceSpec(kind=ReadingListSourceKind.UPLOAD, ref="a.cbl")
+        )
+        source = ReadingListSource.objects.get(reading_list=reading_list)
+        client = self._client()
+        url = f"/api/v4/admin/reading-lists/{reading_list.pk}/sources/{source.pk}"
+        with patch(_TABLE_QUEUE):
+            response = client.post(url)
+        assert response.status_code == 400  # noqa: PLR2004

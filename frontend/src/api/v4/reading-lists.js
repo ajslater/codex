@@ -27,6 +27,8 @@ export const bulkAction = (action, pks) =>
   HTTP.post(`${ADMIN}/bulk`, { action, pks });
 export const rankSources = (pk, order) =>
   HTTP.put(`${ADMIN}/${pk}/sources`, { order });
+export const refreshSource = (pk, sourcePk) =>
+  HTTP.post(`${ADMIN}/${pk}/sources/${sourcePk}`);
 export const removeSource = (pk, sourcePk) =>
   HTTP.delete(`${ADMIN}/${pk}/sources/${sourcePk}`);
 export const combineLists = (primary, others, dryRun) =>

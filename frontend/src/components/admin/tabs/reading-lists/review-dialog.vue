@@ -31,6 +31,7 @@
           Dragging a row, or typing its position, locks the list's order: a
           refresh then only adds new entries beside their neighbours.
         </p>
+        <v-progress-linear v-if="loading" indeterminate />
         <v-table density="compact" class="entriesTable">
           <thead>
             <tr>
@@ -120,7 +121,9 @@
               </td>
             </tr>
             <tr v-if="!entries.length">
-              <td colspan="7" class="adminNoData">Nothing here.</td>
+              <td colspan="7" class="adminNoData">
+                {{ loading ? "Loading…" : "Nothing here." }}
+              </td>
             </tr>
           </tbody>
         </v-table>
@@ -166,6 +169,14 @@ const TIERS = Object.freeze({
   normalized_name: "A variant of the series name",
 });
 
+// The review filters, as the server's entries filters read them.
+const ENTRY_FILTERS = Object.freeze({
+  review: (entry) => entry.needsReview && !entry.ignored,
+  missing: (entry) => !entry.comic && !entry.ignored,
+  hidden: (entry) => entry.ignored,
+  all: () => true,
+});
+
 export default {
   name: "ReviewDialog",
   components: { CandidatePicker },
@@ -186,8 +197,9 @@ export default {
       mdiSourceMerge,
       mdiTrashCanOutline,
       filter: this.initialFilter,
-      entries: [],
-      reviewCount: 0,
+      allEntries: [],
+      loading: false,
+      loadSeq: 0,
       dragPk: null,
       dragOverPk: null,
       pickEntry: null,
@@ -196,6 +208,15 @@ export default {
     };
   },
   computed: {
+    entries() {
+      // One fetch of every entry; the filters narrow it here.
+      const test = ENTRY_FILTERS[this.filter] || ENTRY_FILTERS.all;
+      return this.allEntries.filter((entry) => test(entry));
+    },
+    reviewCount() {
+      return this.allEntries.filter((entry) => ENTRY_FILTERS.review(entry))
+        .length;
+    },
     show: {
       get() {
         return this.modelValue;
@@ -206,14 +227,17 @@ export default {
     },
   },
   watch: {
-    filter() {
-      this.load();
-    },
     modelValue(value) {
       if (value) {
         this.filter = this.initialFilter;
         this.load();
       }
+    },
+    readingList(value, previous) {
+      if (value?.pk === previous?.pk) return;
+      // Another list: never show the last one's rows while this one loads.
+      this.allEntries = [];
+      if (this.modelValue) this.load();
     },
   },
   mounted() {
@@ -229,14 +253,17 @@ export default {
       }
     },
     async load() {
-      const data = await this.call(
-        API.getEntries(this.readingList.pk, this.filter),
-      );
-      this.entries = data?.entries || [];
-      const review = await this.call(
-        API.getEntries(this.readingList.pk, "review"),
-      );
-      this.reviewCount = review?.entries?.length || 0;
+      const seq = ++this.loadSeq;
+      this.loading = true;
+      try {
+        const data = await this.call(
+          API.getEntries(this.readingList.pk, "all"),
+        );
+        // A later load, for another list or after an edit, wins.
+        if (seq === this.loadSeq) this.allEntries = data?.entries || [];
+      } finally {
+        if (seq === this.loadSeq) this.loading = false;
+      }
     },
     async changed() {
       await this.load();

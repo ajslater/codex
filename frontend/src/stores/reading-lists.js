@@ -37,6 +37,53 @@ function countComics(count) {
   return `${count} comic${count === 1 ? "" : "s"}`;
 }
 
+function countLists(count) {
+  return `${count} reading list${count === 1 ? "" : "s"}`;
+}
+
+function countSources(count) {
+  return `${count} source${count === 1 ? "" : "s"}`;
+}
+
+/*
+ * Say what a list action did, from what the server answered, instead of
+ * naming the action. When nothing qualified, say why.
+ */
+const ACTION_NOTICES = Object.freeze({
+  refresh: ({ queued = 0 }) =>
+    queued
+      ? `Fetching ${countSources(queued)} again. A list changes if its source did.`
+      : "Nothing to fetch again: uploads and lists from tags have no remote source.",
+  complete: ({ queued = 0 }) =>
+    queued
+      ? `Fetching the whole story arc of ${countLists(queued)} from Metron or Comic Vine.`
+      : "Nothing to complete: a list needs story arc tags that carry a Metron or Comic Vine arc id.",
+  rematch: ({ queued = 0 }) =>
+    `Matching the missing issues of ${countLists(queued)} again.`,
+  recombine: ({ queued = 0 }) =>
+    `Recomputing ${countLists(queued)} from their sources.`,
+  write: ({ queued = 0, skipped = 0 }) => {
+    if (!queued) {
+      return "Nothing to write: only global lists with comics in writable libraries are written.";
+    }
+    const verb = skipped === 1 ? "is" : "are";
+    const skip = skipped
+      ? ` ${countComics(skipped)} in read-only libraries ${verb} skipped.`
+      : "";
+    return `Writing the story arc into ${countComics(queued)}.${skip}`;
+  },
+  copy_global: ({ copied = 0 }) =>
+    copied
+      ? `Copied ${countLists(copied)} to global lists.`
+      : "Already global lists: nothing to copy.",
+  delete: ({ deleted = 0 }) => `Deleted ${countLists(deleted)}.`,
+});
+
+export function actionNotice(action, data) {
+  const notice = ACTION_NOTICES[action];
+  return notice ? notice(data || {}) : "Done.";
+}
+
 // Reading list actions happen outside forms: they report as notices.
 function reportError(error) {
   useCommonStore().setErrorNotice(error);
@@ -144,17 +191,20 @@ export const useReadingListsStore = defineStore("readingLists", {
     },
     async act(pk, action) {
       try {
-        await API.listAction(pk, action);
-        useCommonStore().setNotice(`Queued: ${action}.`);
+        const response = await API.listAction(pk, action);
+        useCommonStore().setNotice(actionNotice(action, response?.data));
+        if (action === "delete") await this.loadTable();
       } catch (error) {
         reportError(error);
       }
     },
     async bulk(action, pks) {
       try {
-        await API.bulkAction(action, pks);
-        useCommonStore().setNotice(`Queued: ${action} for ${pks.length}.`);
-        if (action === "delete") await this.loadLists();
+        const response = await API.bulkAction(action, pks);
+        useCommonStore().setNotice(actionNotice(action, response?.data));
+        if (action === "delete" || action === "copy_global") {
+          await this.loadTable();
+        }
       } catch (error) {
         reportError(error);
       }

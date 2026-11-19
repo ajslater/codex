@@ -27,17 +27,27 @@ vi.mock("@/api/v4/reading-lists", () => ({
   getMappings: vi.fn(() => Promise.resolve({ data: { mappings: [] } })),
   deleteMapping: vi.fn(),
   updateAdminList: vi.fn(),
+  refreshSource: vi.fn(),
+  combineLists: vi.fn(),
+  rankSources: vi.fn(),
+  removeSource: vi.fn(),
 }));
 
 import * as API from "@/api/v4/reading-lists";
 import AddListsDialog from "@/components/admin/tabs/reading-lists/add-lists-dialog.vue";
+import CombineDialog from "@/components/admin/tabs/reading-lists/combine-dialog.vue";
 import ReadingListsTab from "@/components/admin/tabs/reading-lists/reading-lists-tab.vue";
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
+import SourcesDialog from "@/components/admin/tabs/reading-lists/sources-dialog.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import vuetify from "@/plugins/vuetify";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
-import { listTypeLabel, useReadingListsStore } from "@/stores/reading-lists";
+import {
+  actionNotice,
+  listTypeLabel,
+  useReadingListsStore,
+} from "@/stores/reading-lists";
 
 const LISTS = Object.freeze([
   {
@@ -112,6 +122,33 @@ describe("reading lists store notices", () => {
     expect(API.getAdminLists).toHaveBeenCalledOnce();
     expect(useCommonStore(active).notice.text).toBe(
       "Copied to a new global reading list.",
+    );
+  });
+
+  test("an action says what it did, not its id", () => {
+    expect(actionNotice("refresh", { queued: 2 })).toBe(
+      "Fetching 2 sources again. A list changes if its source did.",
+    );
+    expect(actionNotice("copy_global", { copied: 1 })).toBe(
+      "Copied 1 reading list to global lists.",
+    );
+    expect(actionNotice("write", { queued: 3, skipped: 1 })).toBe(
+      "Writing the story arc into 3 comics. 1 comic in read-only libraries is skipped.",
+    );
+  });
+
+  test("a bulk Refresh or Complete says why nothing qualified", async () => {
+    expect(actionNotice("refresh", { queued: 0 })).toContain(
+      "Nothing to fetch again",
+    );
+    expect(actionNotice("complete", { queued: 0 })).toContain(
+      "Metron or Comic Vine arc id",
+    );
+    API.bulkAction.mockResolvedValue({ data: { queued: 0 } });
+    const active = pinia();
+    await useReadingListsStore(active).bulk("refresh", [1, 2]);
+    expect(useCommonStore(active).notice.text).toContain(
+      "Nothing to fetch again",
     );
   });
 
@@ -406,6 +443,106 @@ describe("add lists dialog — story arcs", () => {
       { kind: "comicvine_arc", ref: "55766", name: "Comic Vine arc 55766" },
       { kind: "comicvine_arc", ref: "40", name: "Comic Vine arc 40" },
     ]);
+  });
+});
+
+describe("review dialog — loading", () => {
+  const ENTRIES = Object.freeze([
+    { pk: 1, needsReview: true, ignored: false, comic: { pk: 9 } },
+    { pk: 2, needsReview: false, ignored: false, comic: null },
+    { pk: 3, needsReview: false, ignored: true, comic: { pk: 8 } },
+  ]);
+
+  test("loads once and narrows in the browser", async () => {
+    API.getEntries.mockClear();
+    API.getEntries.mockResolvedValue({ data: { entries: ENTRIES } });
+    const wrapper = mount(ReviewDialog, {
+      props: {
+        modelValue: true,
+        readingList: { pk: 3, name: "CW" },
+        initialFilter: "review",
+      },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(API.getEntries).toHaveBeenCalledTimes(1);
+    expect(API.getEntries).toHaveBeenCalledWith(3, "all");
+    expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([1]);
+    expect(wrapper.vm.reviewCount).toBe(1);
+    wrapper.vm.filter = "missing";
+    await flushPromises();
+    expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([2]);
+    wrapper.vm.filter = "hidden";
+    expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([3]);
+    expect(API.getEntries).toHaveBeenCalledTimes(1);
+  });
+
+  test("another list clears the rows before its own arrive", async () => {
+    API.getEntries.mockResolvedValue({ data: { entries: ENTRIES } });
+    const wrapper = mount(ReviewDialog, {
+      props: { modelValue: true, readingList: { pk: 3, name: "CW" } },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    const { promise, resolve } = Promise.withResolvers();
+    API.getEntries.mockReturnValue(promise);
+    await wrapper.setProps({ readingList: { pk: 4, name: "Other" } });
+    expect(wrapper.vm.allEntries).toEqual([]);
+    expect(wrapper.vm.loading).toBe(true);
+    resolve({ data: { entries: [ENTRIES[1]] } });
+    await flushPromises();
+    expect(wrapper.vm.allEntries.map((entry) => entry.pk)).toEqual([2]);
+  });
+});
+
+describe("combine dialog", () => {
+  test("says why Combine is off, and previews on every open", async () => {
+    const testingPinia = pinia();
+    setActivePinia(testingPinia);
+    useReadingListsStore().lists = LISTS;
+    API.combineLists.mockClear();
+    API.combineLists.mockResolvedValue({ data: { total: 9 } });
+    const wrapper = mount(CombineDialog, {
+      props: { modelValue: false, pks: [1] },
+      global: { plugins: [testingPinia, vuetify], stubs: STUBS },
+    });
+    expect(wrapper.vm.disabledReason).toBe(
+      "Choose at least two lists to combine.",
+    );
+    await wrapper.setProps({ pks: [1, 2], modelValue: true });
+    await flushPromises();
+    expect(wrapper.vm.disabledReason).toBe("");
+    expect(API.combineLists).toHaveBeenCalledWith(1, [2], true);
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+    expect(API.combineLists).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("sources dialog", () => {
+  test("reads the live row, fetches one source, stays open for Add", async () => {
+    const testingPinia = pinia();
+    setActivePinia(testingPinia);
+    const store = useReadingListsStore();
+    store.lists = LISTS;
+    API.refreshSource.mockResolvedValue({ data: { queued: 1 } });
+    const wrapper = mount(SourcesDialog, {
+      props: { modelValue: true, readingList: LISTS[1] },
+      global: { plugins: [testingPinia, vuetify], stubs: STUBS },
+    });
+    expect(wrapper.vm.sources.map((source) => source.pk)).toEqual([11]);
+    store.lists = [
+      LISTS[0],
+      { ...LISTS[1], sources: [...LISTS[1].sources, { pk: 12, kind: "url" }] },
+    ];
+    await flushPromises();
+    expect(wrapper.vm.sources.map((source) => source.pk)).toEqual([11, 12]);
+    await wrapper.vm.refresh({ pk: 12, kind: "url" });
+    expect(API.refreshSource).toHaveBeenCalledWith(2, 12);
+    wrapper.vm.addSource();
+    expect(wrapper.emitted("add-source")).toHaveLength(1);
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
   });
 });
 

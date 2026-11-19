@@ -375,19 +375,33 @@ class AdminReadingListBulkView(AdminAPIView):
 
 
 class AdminReadingListSourceView(AdminAPIView):
-    """DELETE a source, recombining its list without it."""
+    """POST: fetch one source again. DELETE: remove it, recombining its list."""
 
-    def delete(self, *_args, pk: int, source_pk: int, **_kwargs) -> Response:
-        """Remove the source; a list left with nothing is deleted."""
+    @staticmethod
+    def _source(pk: int, source_pk: int) -> ReadingListSource:
         source = (
             ReadingListSource.objects.filter(pk=source_pk, reading_list_id=pk)
             .select_related("reading_list")
+            .defer("document")
             .first()
         )
         if source is None:
             reason = "No such source."
             raise NotFound(reason)
-        survived = remove_source(source)
+        return source
+
+    def post(self, *_args, pk: int, source_pk: int, **_kwargs) -> Response:
+        """Fetch the source again; the import after recombines on a change."""
+        source = self._source(pk, source_pk)
+        if source.kind not in REMOTE_KINDS:
+            reason = "Uploads and tags have nothing to fetch again."
+            raise ValidationError(reason)
+        _queue_fetch([refresh_request(source)])
+        return Response({"queued": 1})
+
+    def delete(self, *_args, pk: int, source_pk: int, **_kwargs) -> Response:
+        """Remove the source; a list left with nothing is deleted."""
+        survived = remove_source(self._source(pk, source_pk))
         return Response({"listDeleted": not survived})
 
 

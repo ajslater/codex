@@ -22,7 +22,8 @@
         <v-btn variant="text" @click="show = false">Cancel</v-btn>
         <v-btn
           variant="tonal"
-          :disabled="!primary || chosen.length < 2"
+          :disabled="Boolean(disabledReason)"
+          :title="disabledReason"
           :loading="working"
           @click="combine"
         >
@@ -68,6 +69,12 @@ export default {
     others() {
       return this.pks.filter((pk) => pk !== this.primary);
     },
+    disabledReason() {
+      if (this.chosen.length < 2)
+        return "Choose at least two lists to combine.";
+      if (!this.primary) return "Choose the list whose order wins.";
+      return "";
+    },
     resultRows() {
       if (!this.result) return {};
       const rows = {
@@ -84,14 +91,22 @@ export default {
     },
   },
   watch: {
-    modelValue(value) {
-      if (value) {
-        this.primary = this.pks[0] || null;
+    modelValue: {
+      immediate: true,
+      handler(value) {
+        if (!value) return;
         this.result = null;
-      }
+        const primary = this.pks[0] || null;
+        if (this.primary === primary) {
+          // The same primary as last time: its watcher won't fire.
+          this.dryRun();
+        } else {
+          this.primary = primary;
+        }
+      },
     },
     primary() {
-      this.dryRun();
+      if (this.show) this.dryRun();
     },
   },
   methods: {
@@ -112,7 +127,10 @@ export default {
       this.working = true;
       try {
         await API.combineLists(this.primary, this.others, false);
-        useCommonStore().setNotice("Combined.");
+        const name = this.listsByPk[this.primary]?.name || "the list";
+        useCommonStore().setNotice(
+          `Combined ${this.others.length + 1} lists into ${name}.`,
+        );
         this.$emit("combined");
         this.show = false;
       } catch (error) {

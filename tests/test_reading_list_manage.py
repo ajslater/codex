@@ -132,9 +132,7 @@ class RemoveFromListTests(ManageFixture):
         """An entry a source supplies would come back: it is hidden instead."""
         self.client.force_login(self.admin)
         c1 = self.comics[0]
-        ReadingListEntry.objects.filter(reading_list=self.imported).update(
-            manual=False
-        )
+        ReadingListEntry.objects.filter(reading_list=self.imported).update(manual=False)
         response = self._remove(self.imported, [c1.pk])
         assert response.json()["data"] == {"removed": 0, "hidden": 1}
         assert ReadingListEntry.objects.get(
