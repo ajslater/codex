@@ -77,6 +77,8 @@ class ReadingListMatchTier(TextChoices):
     """How an entry's comic was found, strongest first."""
 
     NONE = "", "Missing"
+    # A person said the library does not have it: nothing rematches it.
+    MARKED_MISSING = "marked_missing", "Marked missing"
     MANUAL = "manual", "By hand"
     TAGGED = "tagged", "Tagged"
     MAPPING = "mapping", "Series mapping"
@@ -187,7 +189,7 @@ class ReadingListEntry(BaseModel):
     Missing is derived, never stored: an entry is missing when ``comic``
     is NULL and it is not ignored. Every entry keeps a ``reference``, the
     comicbox entry it stands for, so a comic removed and re-added is
-    found again.
+    found again, unless a person marked it missing.
     """
 
     reading_list = ForeignKey(ReadingList, on_delete=CASCADE, related_name="entries")

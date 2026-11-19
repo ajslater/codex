@@ -46,7 +46,14 @@ from codex.models.readinglist import (
 STORY_LIST_TYPE: Final = "story"
 _BATCH: Final = 1000
 _HAND_EDITED: Final = (
-    Q(manual=True) | Q(ignored=True) | Q(match_tier=ReadingListMatchTier.MANUAL)
+    Q(manual=True)
+    | Q(ignored=True)
+    | Q(
+        match_tier__in=(
+            ReadingListMatchTier.MANUAL,
+            ReadingListMatchTier.MARKED_MISSING,
+        )
+    )
 )
 
 

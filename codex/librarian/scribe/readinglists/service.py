@@ -20,6 +20,7 @@ from codex.choices.limits import MAX_NAME_LEN
 from codex.librarian.scribe.readinglists.combine import document_of, recombine
 from codex.librarian.scribe.readinglists.documents import from_json
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
+from codex.librarian.scribe.readinglists.overlay import Overlay
 from codex.models.readinglist import (
     MAX_REF_LEN,
     MAX_REVISION_LEN,
@@ -249,19 +250,31 @@ def rank_sources(reading_list: ReadingList, source_pks: Iterable[int]) -> None:
     recombine(reading_list)
 
 
+def _overlay_of(reading_list: ReadingList) -> Overlay:
+    return Overlay.of(
+        ReadingListEntry.objects.filter(reading_list=reading_list).order_by(
+            "position", "pk"
+        )
+    )
+
+
 def combine_lists(primary: ReadingList, others: Iterable[ReadingList]) -> ReadingList:
     """
     Combine lists into ``primary``, whose order wins.
 
-    The others' sources join the primary's after its own, their hand-added
-    entries come along, and the others are deleted. Removing a source later
-    undoes the combination.
+    The others' sources join the primary's after its own, and the others
+    are deleted. Every list's hand edits come along: picks, hidden entries,
+    entries marked missing and hand-added entries, the primary's winning
+    where two lists edited one issue. Removing a source later undoes the
+    combination.
     """
     with transaction.atomic():
         rank = _next_rank(primary)
+        overlay = _overlay_of(primary)
         for other in others:
             if other.pk == primary.pk:
                 continue
+            overlay.absorb(_overlay_of(other))
             for source in ReadingListSource.objects.filter(reading_list=other).order_by(
                 "rank", "pk"
             ):
@@ -274,11 +287,8 @@ def combine_lists(primary: ReadingList, others: Iterable[ReadingList]) -> Readin
                 source.rank = rank
                 source.save(update_fields=("reading_list", "rank", "updated_at"))
                 rank += 1
-            ReadingListEntry.objects.filter(reading_list=other, manual=True).update(
-                reading_list=primary, position=10**9
-            )
             other.delete()
-        recombine(primary)
+        recombine(primary, overlay=overlay)
     return primary
 
 

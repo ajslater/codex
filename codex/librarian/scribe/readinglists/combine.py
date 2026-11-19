@@ -8,10 +8,12 @@ each entry. Codex then maps the combined entries back to comics and keeps
 what people did by hand:
 
 - A row from the tags source is its comic: matched by definition.
-- Hand edits are an overlay keyed by the entry's identity,
-  ``(entry_keys(entry)[0], occurrence)``: a hand-picked comic and a hidden
-  entry survive any recompute. They are saved in Codex only.
-- Entries added by hand go back after the entry they followed.
+- Hand edits are an overlay found again by the entry's identity (see
+  :mod:`.overlay`): a hand-picked comic, an entry marked missing, a hidden
+  entry and an accepted guess survive any recompute. They are saved in
+  Codex only.
+- Entries added by hand go back after the entry they followed. One whose
+  comic is gone is matched again by its reference.
 - A hand reorder locks the order: the current entries go first, so nothing
   moves, and entries new to the list are flagged for review.
 - Every other entry goes through the matcher.
@@ -20,12 +22,11 @@ Removing a source recomputes the list without it, so a combination can be
 undone.
 """
 
-from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Final
 
-from comicbox.readinglists import combine, entry_keys
+from comicbox.readinglists import combine
 from django.db import transaction
 
 from codex.choices.limits import MAX_NAME_LEN
@@ -35,10 +36,12 @@ from codex.librarian.scribe.readinglists.documents import (
     to_json,
 )
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
-from codex.librarian.scribe.readinglists.references import (
-    issue_name,
-    typed_reference,
+from codex.librarian.scribe.readinglists.overlay import (
+    Edit,
+    Overlay,
+    reference_keys,
 )
+from codex.librarian.scribe.readinglists.references import issue_name
 from codex.models import Comic
 from codex.models.readinglist import (
     MAX_ISSUE_LEN,
@@ -59,62 +62,6 @@ _HEADER_FIELDS: Final = (
     ("list_notes", "notes"),
 )
 _EXTRA_KEYS: Final = ("previous", "next", "tags")
-
-OverlayKey = tuple[Any, int]
-
-
-def overlay_keys(references: Sequence[Mapping[str, Any]]) -> list[OverlayKey | None]:
-    """
-    Return each entry's overlay key, ``(first identity key, occurrence)``.
-
-    An issue a list reads twice is two entries; the occurrence tells them
-    apart. An entry with no key cannot be found again and gets None.
-    """
-    seen: Counter = Counter()
-    keys: list[OverlayKey | None] = []
-    for reference in references:
-        entry_key = next(iter(entry_keys(typed_reference(reference))), None)
-        if entry_key is None:
-            keys.append(None)
-            continue
-        keys.append((entry_key, seen[entry_key]))
-        seen[entry_key] += 1
-    return keys
-
-
-@dataclass(slots=True)
-class Overlay:
-    """
-    What people did to a list by hand, keyed by entry identity.
-
-    ``picked`` holds the comic a person chose, or None where they said the
-    library does not have it.
-    """
-
-    picked: dict[OverlayKey, int | None] = field(default_factory=dict)
-    ignored: set[OverlayKey] = field(default_factory=set)
-    # A hand-added entry and the key of the entry it followed.
-    manual: list[tuple[OverlayKey | None, ReadingListEntry]] = field(
-        default_factory=list
-    )
-
-    @classmethod
-    def of(cls, entries: Sequence[ReadingListEntry]) -> "Overlay":
-        """Read the hand edits off a list's current entries."""
-        overlay = cls()
-        keys = overlay_keys([entry.reference for entry in entries])
-        previous: OverlayKey | None = None
-        for entry, key in zip(entries, keys, strict=True):
-            if entry.manual:
-                overlay.manual.append((previous, entry))
-                continue
-            if key is not None:
-                if entry.match_tier == ReadingListMatchTier.MANUAL.value:
-                    overlay.picked[key] = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
-                if entry.ignored:
-                    overlay.ignored.add(key)
-                previous = key
-        return overlay
 
 
 @dataclass(slots=True)
@@ -232,36 +179,48 @@ def _combined_rows(
     return rows, combined
 
 
-def _apply_pick(row: _Row, picked: int | None, live: set[int]) -> None:
+def _apply_pick(row: _Row, edit: Edit, live: set[int]) -> None:
     """Give a row the comic a person chose, or keep it missing as they said."""
     if row.tier == ReadingListMatchTier.TAGGED.value:
         return
-    if picked is None:
-        row.tier = ReadingListMatchTier.MANUAL
-    elif picked in live:
-        row.comic_pk = picked
+    if edit.marked_missing:
+        row.tier = ReadingListMatchTier.MARKED_MISSING
+    elif edit.picked_pk is not None and edit.picked_pk in live:
+        row.comic_pk = edit.picked_pk
         row.tier = ReadingListMatchTier.MANUAL
 
 
-def _apply_overlay(rows: Sequence[_Row], overlay: Overlay) -> None:
-    picked_pks = [pk for pk in overlay.picked.values() if pk is not None]
+def _apply_overlay(rows: Sequence[_Row], overlay: Overlay) -> list[int | None]:
+    """Put the hand edits on the rows; return each row's edit index."""
+    picked_pks = overlay.picked_pks()
     live = set(Comic.objects.filter(pk__in=picked_pks).values_list("pk", flat=True))
-    keys = overlay_keys([row.reference for row in rows])
-    for row, key in zip(rows, keys, strict=True):
-        if key is None:
+    assigned = overlay.assign([reference_keys(row.reference) for row in rows])
+    for row, index in zip(rows, assigned, strict=True):
+        if index is not None:
+            edit = overlay.edits[index]
+            row.ignored = edit.ignored
+            _apply_pick(row, edit, live)
+    return assigned
+
+
+def _keep_accepted(
+    rows: Sequence[_Row], overlay: Overlay, assigned: Sequence[int | None]
+) -> None:
+    """Keep a guess a person let stand unflagged while it finds that comic."""
+    for row, index in zip(rows, assigned, strict=True):
+        if index is None or row.comic_pk is None:
             continue
-        row.ignored = key in overlay.ignored
-        if key in overlay.picked:
-            _apply_pick(row, overlay.picked[key], live)
+        if overlay.edits[index].accepted_pk == row.comic_pk:
+            row.needs_review = False
+
+
+def _is_open(comic_pk: int | None, tier: str) -> bool:
+    """Whether an entry wants a comic: none yet, and not marked missing."""
+    return comic_pk is None and tier != ReadingListMatchTier.MARKED_MISSING.value
 
 
 def _match_rows(rows: Sequence[_Row], matcher: ListMatcher) -> None:
-    # A row a person marked missing stays missing.
-    open_rows = [
-        row
-        for row in rows
-        if row.comic_pk is None and row.tier != ReadingListMatchTier.MANUAL.value
-    ]
+    open_rows = [row for row in rows if _is_open(row.comic_pk, row.tier)]
     if not open_rows:
         return
     matches = matcher.match([row.reference for row in open_rows])
@@ -274,20 +233,20 @@ def _match_rows(rows: Sequence[_Row], matcher: ListMatcher) -> None:
 
 
 def _with_manual(
-    rows: Sequence[_Row], overlay: Overlay
+    rows: Sequence[_Row], overlay: Overlay, assigned: Sequence[int | None]
 ) -> list[_Row | ReadingListEntry]:
     """Put each hand-added entry back after the entry it followed."""
     if not overlay.manual:
         return list(rows)
-    keys = overlay_keys([row.reference for row in rows])
-    after: dict[OverlayKey | None, list[ReadingListEntry]] = {}
+    row_of = {index: row for row, index in enumerate(assigned) if index is not None}
+    after: dict[int | None, list[ReadingListEntry]] = {}
     for previous, entry in overlay.manual:
-        target = previous if previous in keys else None
+        target = None if previous is None else row_of.get(previous)
         after.setdefault(target, []).append(entry)
     ordered: list[_Row | ReadingListEntry] = list(after.pop(None, []))
-    for row, key in zip(rows, keys, strict=True):
+    for position, row in enumerate(rows):
         ordered.append(row)
-        ordered.extend(after.pop(key, []) if key is not None else [])
+        ordered.extend(after.pop(position, []))
     return ordered
 
 
@@ -316,10 +275,12 @@ def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEn
     )
 
 
-def _copy_manual(entry: ReadingListEntry, position: int) -> ReadingListEntry:
+def _copy_manual(
+    reading_list: ReadingList, entry: ReadingListEntry, position: int
+) -> ReadingListEntry:
     """Return a hand-added entry again, at its new position."""
     return ReadingListEntry(
-        reading_list_id=entry.reading_list_id,  # pyright: ignore[reportAttributeAccessIssue]
+        reading_list=reading_list,
         position=position,
         comic_id=entry.comic_id,  # pyright: ignore[reportAttributeAccessIssue]
         reference=entry.reference,
@@ -355,8 +316,35 @@ def _update_header(reading_list: ReadingList, combined: Mapping[str, Any]) -> No
     reading_list.extra = extra
 
 
-def recombine(reading_list: ReadingList, matcher: ListMatcher | None = None) -> int:
-    """Recompute a list from its sources, keeping hand edits; return its size."""
+def _heal_manual(entries: Sequence[ReadingListEntry], matcher: ListMatcher) -> None:
+    """Find a hand-added entry's comic again by its reference once it is gone."""
+    lost = [
+        entry
+        for entry in entries
+        if entry.manual and _is_open(entry.comic_id, entry.match_tier)  # pyright: ignore[reportAttributeAccessIssue]
+    ]
+    if not lost:
+        return
+    for entry, found in zip(
+        lost, matcher.match([entry.reference for entry in lost]), strict=True
+    ):
+        if found.comic_pk is not None:
+            entry.comic_id = found.comic_pk  # pyright: ignore[reportAttributeAccessIssue]
+            entry.match_tier = found.tier
+            entry.needs_review = found.needs_review
+
+
+def recombine(
+    reading_list: ReadingList,
+    matcher: ListMatcher | None = None,
+    overlay: Overlay | None = None,
+) -> int:
+    """
+    Recompute a list from its sources, keeping hand edits; return its size.
+
+    ``overlay`` defaults to the list's own edits; combining lists passes
+    the edits of every list combined.
+    """
     matcher = matcher or ListMatcher()
     sources = list(
         ReadingListSource.objects.filter(reading_list=reading_list).order_by(
@@ -368,18 +356,21 @@ def recombine(reading_list: ReadingList, matcher: ListMatcher | None = None) -> 
             "position", "pk"
         )
     )
-    overlay = Overlay.of(entries)
+    if overlay is None:
+        overlay = Overlay.of(entries)
     inputs = _inputs(reading_list, sources, entries)
     rows, combined = _combined_rows(inputs, locked=reading_list.order_locked)
-    _apply_overlay(rows, overlay)
+    assigned = _apply_overlay(rows, overlay)
     _match_rows(rows, matcher)
-    ordered = _with_manual(rows, overlay)
+    _keep_accepted(rows, overlay, assigned)
+    ordered = _with_manual(rows, overlay, assigned)
     new_entries = []
     for position, row in enumerate(ordered):
         if isinstance(row, ReadingListEntry):
-            new_entries.append(_copy_manual(row, position))
+            new_entries.append(_copy_manual(reading_list, row, position))
         else:
             new_entries.append(_entry(reading_list, position, row))
+    _heal_manual(new_entries, matcher)
     with transaction.atomic():
         ReadingListEntry.objects.filter(reading_list=reading_list).delete()
         ReadingListEntry.objects.bulk_create(new_entries, batch_size=_BATCH)
@@ -393,15 +384,16 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
     Match a list's missing entries again, without recombining.
 
     Run after an import adds comics, nightly, and on demand. An entry a
-    person picked or hid is left alone. Returns how many entries found a
-    comic.
+    person hid or marked missing is left alone; any other entry without a
+    comic, a hand-added one or a hand pick whose file went included, is
+    matched by its reference. Returns how many entries found a comic.
     """
     matcher = matcher or ListMatcher()
     missing = list(
         ReadingListEntry.objects.filter(
-            reading_list=reading_list, comic__isnull=True, ignored=False, manual=False
+            reading_list=reading_list, comic__isnull=True, ignored=False
         )
-        .exclude(match_tier=ReadingListMatchTier.MANUAL.value)
+        .exclude(match_tier=ReadingListMatchTier.MARKED_MISSING.value)
         .order_by("position", "pk")
     )
     if not missing:

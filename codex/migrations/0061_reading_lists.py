@@ -376,6 +376,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         choices=[
                             ("", "Missing"),
+                            ("marked_missing", "Marked missing"),
                             ("manual", "By hand"),
                             ("tagged", "Tagged"),
                             ("mapping", "Series mapping"),

@@ -80,7 +80,7 @@
                     {{ mdiHelpCircleOutline }}
                   </v-icon>
                 </span>
-                <span v-else class="missing">Missing</span>
+                <span v-else class="missing">{{ missingLabel(entry) }}</span>
               </td>
               <td class="adminActionCell entryActions">
                 <v-btn
@@ -156,6 +156,7 @@ import CandidatePicker from "@/components/admin/tabs/reading-lists/candidate-pic
 import { useCommonStore } from "@/stores/common";
 
 const TIERS = Object.freeze({
+  marked_missing: "Marked missing by hand",
   manual: "Picked by hand",
   tagged: "Its own story arc tag",
   mapping: "A saved series mapping",
@@ -249,6 +250,9 @@ export default {
           ? ` (${comic.year})`
           : "";
       return `${comic.seriesName}${volume} #${comic.issue}${year}`;
+    },
+    missingLabel(entry) {
+      return entry.matchTier === "marked_missing" ? "Marked missing" : "Missing";
     },
     tierTitle(entry) {
       const tier = TIERS[entry.matchTier] || "Matched";

@@ -154,6 +154,7 @@ class AdminReadingListSeriesMappingsView(AdminAPIView):
             ).exclude(
                 match_tier__in=(
                     ReadingListMatchTier.MANUAL,
+                    ReadingListMatchTier.MARKED_MISSING,
                     ReadingListMatchTier.TAGGED,
                 )
             )

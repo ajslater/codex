@@ -187,7 +187,7 @@ class ReadingListEntryView(ReadingListAccessView):
             # A person said the library does not have it: no rematch or
             # recombine may pick a comic for it again.
             entry.comic = None
-            entry.match_tier = ReadingListMatchTier.MANUAL
+            entry.match_tier = ReadingListMatchTier.MARKED_MISSING
             entry.needs_review = False
             return
         acl = self.get_acl_filter(Comic, self.request.user)
