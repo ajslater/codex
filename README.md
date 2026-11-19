@@ -33,6 +33,7 @@ border-radius: 128px;
   lists you import or make.
 - **Import reading lists** from ComicRack CBL files, URLs, the DieselTech
   catalog, Metron and Comic Vine, combine lists of one event, and make your own.
+  A list shows its missing issues in place and continues where you left off.
 - **Full-text search** across comic metadata and bookmarks.
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.
@@ -289,8 +290,9 @@ SQLite file: the **user data sidecar**.
 Users (with hashed passwords), API keys (hashed too, so a restored key still
 logs in, though a key revoked since the snapshot stays revoked), groups &
 permissions, group memberships, libraries and their access lists, bookmarks,
-shelves, per-user browser settings, admin flags, timestamps, online-tagging
-defaults, and the default settings for new sessions.
+shelves, reading lists you imported or made, per-user browser settings, admin
+flags, timestamps, online-tagging defaults, and the default settings for new
+sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,

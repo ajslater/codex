@@ -13,17 +13,23 @@ border-radius: 128px;
 - Reading lists: Admin → Reading Lists imports lists from ComicRack CBL and
   json-cbl files, URLs, the DieselTech catalog, Metron and Comic Vine, combines
   lists of one event, and reviews how their issues match your comics.
-- Signed-in users make their own reading lists in the browser drawer and add
-  comics to them from any shelf menu.
+- A reading list shows its missing issues as placeholders in reading order.
+- A reading list's details show how much of it you have and have read, its
+  sources, Continue Reading, and Export of the list or just its missing issues.
+- Signed-in users make their own reading lists, add comics from any shelf menu,
+  remove them in place, and copy any list to their own.
+- Shelves hold reading lists.
 - Filter any view by reading list.
 - A reading list downloads as a zip numbered in list order.
 - A reading list's OPDS feed starts with the next issue to read.
 - Remote reading list sources refresh weekly.
 - Admins can write a reading list into its comics' files as a story arc.
+- User data backups keep imported and hand-made reading lists.
 
 ### ♻️ Changed
 
-- Story Arcs are now Reading Lists: one list per story arc name, in arc order.
+- Story Arcs are now Reading Lists: one list per story arc name, in arc order,
+  and the Story Arcs filter, column, sort and search field are Reading Lists.
   Links and OPDS bookmarks into a story arc change once.
 
 ### 🐛 Fixed
@@ -32,6 +38,7 @@ border-radius: 128px;
 - The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
   row that opens each list.
 - A comic tagged twice in one story arc no longer counts its pages twice.
+- OPDS subject links for story arcs and series groups open them.
 - The Jobs tab's Abort buttons work.
 
 ### 🧑‍💻 Developer
