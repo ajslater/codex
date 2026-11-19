@@ -252,7 +252,9 @@ export default {
       return `${comic.seriesName}${volume} #${comic.issue}${year}`;
     },
     missingLabel(entry) {
-      return entry.matchTier === "marked_missing" ? "Marked missing" : "Missing";
+      return entry.matchTier === "marked_missing"
+        ? "Marked missing"
+        : "Missing";
     },
     tierTitle(entry) {
       const tier = TIERS[entry.matchTier] || "Matched";

@@ -212,6 +212,47 @@ describe("add lists dialog", () => {
   });
 });
 
+describe("add lists dialog — private Metron lists", () => {
+  test("a list Metron keeps private is sent and previews as private", async () => {
+    API.previewLists.mockResolvedValue({
+      data: {
+        cards: [
+          {
+            kind: "metron_list",
+            ref: "7",
+            name: "Mine",
+            deferred: true,
+            private: true,
+          },
+        ],
+      },
+    });
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    wrapper.vm.metronResults = [
+      { ref: "7", name: "Mine", curator: "", listType: "", private: true },
+    ];
+    wrapper.vm.pickedMetron = ["7"];
+    await wrapper.vm.preview();
+    expect(API.previewLists).toHaveBeenCalledWith(
+      [],
+      [
+        {
+          kind: "metron_list",
+          ref: "7",
+          name: "Mine",
+          curator: "",
+          listType: "",
+          private: true,
+        },
+      ],
+    );
+    expect(wrapper.vm.choices["metron_list:7"].private).toBe(true);
+  });
+});
+
 describe("add lists dialog — story arcs", () => {
   test("arc ids and Comic Vine addresses become arc sources", () => {
     const wrapper = mount(AddListsDialog, {

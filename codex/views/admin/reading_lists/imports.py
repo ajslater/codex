@@ -14,6 +14,7 @@ which is why only admins may preview a URL.
 
 import json
 from typing import Any, Final
+from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 from comicbox.exceptions import OnlineLookupAbortedError, ReadingListError
@@ -59,6 +60,21 @@ _FETCHED_LATER: Final = frozenset(
     }
 )
 _MAX_UPLOAD_BYTES: Final = COMICBOX_ONLINE_CONFIG.readinglists.max_download_bytes
+CREDENTIALED_URL: Final = (
+    "A URL with a user name or password is not accepted:"
+    " Codex keeps a source's URL, so it would store them."
+)
+
+
+def _without_login(url: str) -> str | None:
+    """Return the URL less its user name and password, or None if it has none."""
+    parts = urlsplit(url)
+    if not (parts.username or parts.password):
+        return None
+    host = parts.hostname or ""
+    if parts.port:
+        host += f":{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
 
 
 def _imported(kind: str, refs) -> set[str]:
@@ -188,6 +204,8 @@ def _deferred_card(spec: dict) -> dict[str, Any]:
         "curator": spec.get("curator", ""),
         "list_type": spec.get("list_type", ""),
         "count": spec.get("count"),
+        # Metron's own flag: a list its curator keeps private stays private.
+        "private": bool(spec.get("private")),
         "deferred": True,
         "suggestions": [],
     }
@@ -250,6 +268,9 @@ class AdminReadingListPreviewView(AdminAPIView):
         with reading_list_session() as session:
             for source in fetch_now:
                 kind, ref = source["kind"], str(source.get("ref") or "")
+                if kind == ReadingListSourceKind.URL and (shown := _without_login(ref)):
+                    cards.append(_error_card(kind, shown, CREDENTIALED_URL))
+                    continue
                 try:
                     if kind == ReadingListSourceKind.URL:
                         result = session.fetch_url(ref)

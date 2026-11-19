@@ -366,6 +366,7 @@ export default {
           name: row.name,
           curator: row.curator,
           listType: row.listType,
+          private: Boolean(row.private),
         }));
       const catalog = this.catalogResults
         .filter((row) => this.pickedCatalog.includes(row.ref))
@@ -398,7 +399,8 @@ export default {
           const suggestion = (card.suggestions || []).find((s) => s.combine);
           choices[this.cardKey(card)] = {
             into: this.into?.pk || suggestion?.pk || null,
-            private: false,
+            // A list its Metron curator keeps private stays private.
+            private: Boolean(card.private),
             name: "",
           };
         }
