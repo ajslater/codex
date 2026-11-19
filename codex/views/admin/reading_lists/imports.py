@@ -211,6 +211,23 @@ def _deferred_card(spec: dict) -> dict[str, Any]:
     }
 
 
+def _fetched_card(session, source: dict, matcher: ListMatcher) -> dict[str, Any]:
+    """Fetch one URL or catalog list now and describe it, or say why not."""
+    kind, ref = source["kind"], str(source.get("ref") or "")
+    if kind == ReadingListSourceKind.URL and (shown := _without_login(ref)):
+        return _error_card(kind, shown, CREDENTIALED_URL)
+    try:
+        if kind == ReadingListSourceKind.URL:
+            result = session.fetch_url(ref)
+        else:
+            result = session.fetch_catalog(ref, sha=source.get("sha") or None)
+        check_format(result)
+    except (ReadingListError, OnlineLookupAbortedError) as exc:
+        return _error_card(kind, ref, str(exc))
+    document = to_json(result.reading_list)
+    return _card(document, kind, ref, matcher, result.warnings)
+
+
 class AdminReadingListPreviewView(AdminAPIView):
     """
     POST lists to preview: uploaded ``files`` and ``sources`` to fetch.
@@ -261,30 +278,11 @@ class AdminReadingListPreviewView(AdminAPIView):
 
     @staticmethod
     def _fetched_cards(sources: list[dict], matcher: ListMatcher) -> list[dict]:
-        cards = []
         fetch_now = [s for s in sources if s.get("kind") in _FETCHED_NOW]
         if not fetch_now:
-            return cards
+            return []
         with reading_list_session() as session:
-            for source in fetch_now:
-                kind, ref = source["kind"], str(source.get("ref") or "")
-                if kind == ReadingListSourceKind.URL and (shown := _without_login(ref)):
-                    cards.append(_error_card(kind, shown, CREDENTIALED_URL))
-                    continue
-                try:
-                    if kind == ReadingListSourceKind.URL:
-                        result = session.fetch_url(ref)
-                    else:
-                        result = session.fetch_catalog(
-                            ref, sha=source.get("sha") or None
-                        )
-                    check_format(result)
-                except (ReadingListError, OnlineLookupAbortedError) as exc:
-                    cards.append(_error_card(kind, ref, str(exc)))
-                    continue
-                document = to_json(result.reading_list)
-                cards.append(_card(document, kind, ref, matcher, result.warnings))
-        return cards
+            return [_fetched_card(session, source, matcher) for source in fetch_now]
 
     def post(self, *_args, **_kwargs) -> Response:
         """Return a card per list; nothing is saved."""

@@ -192,9 +192,9 @@ class MarkedMissingTierTests(ReadingListFixture):
         entry.match_tier = ReadingListMatchTier.MANUAL
         entry.save()
         c1.delete()
-        readded = _new_comic(self, "cw1-again", 1)
+        back = _new_comic(self, "cw1-again", 1)
         assert rematch(reading_list) == 1
-        assert _entries(reading_list)[0].comic_id == readded.pk  # pyright: ignore[reportAttributeAccessIssue]
+        assert _entries(reading_list)[0].comic_id == back.pk  # pyright: ignore[reportAttributeAccessIssue]
 
     def test_a_vanished_hand_added_comic_heals_on_rematch(self) -> None:
         """A comic added by hand, removed and re-added, is found again."""
@@ -202,9 +202,9 @@ class MarkedMissingTierTests(ReadingListFixture):
         c4 = self.comics[3]
         add_comics(reading_list, [c4.pk])
         c4.delete()
-        readded = _new_comic(self, "cw4-again", 4)
+        back = _new_comic(self, "cw4-again", 4)
         assert rematch(reading_list) == 1
-        assert _entries(reading_list)[0].comic_id == readded.pk  # pyright: ignore[reportAttributeAccessIssue]
+        assert _entries(reading_list)[0].comic_id == back.pk  # pyright: ignore[reportAttributeAccessIssue]
 
     def test_a_vanished_hand_added_comic_heals_on_recombine(self) -> None:
         """A recombine finds a hand-added comic again, too."""
@@ -212,11 +212,11 @@ class MarkedMissingTierTests(ReadingListFixture):
         c4 = self.comics[3]
         add_comics(reading_list, [c4.pk])
         c4.delete()
-        readded = _new_comic(self, "cw4-again", 4)
+        back = _new_comic(self, "cw4-again", 4)
         recombine(reading_list)
         last = _entries(reading_list)[-1]
         assert last.manual
-        assert last.comic_id == readded.pk  # pyright: ignore[reportAttributeAccessIssue]
+        assert last.comic_id == back.pk  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class CombineListsOverlayTests(ReadingListFixture):
