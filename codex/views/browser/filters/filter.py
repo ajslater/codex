@@ -189,11 +189,16 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         # produce ``comic__pk`` against Comic and FieldError out.
         rel = self.get_rel_prefix(model)
         shelf_pks = self._active_shelf_pks
-        q = effective_comic_q(shelf_pks, active, rel=rel)
+        self_code = self_collection.value
+        comic_codes = active
+        if model is ReadingList:
+            # A shelved list is that list, not every list that shares an
+            # issue with it: the arcs clause matches the list's own pk.
+            comic_codes = active - {self_code}
+        q = effective_comic_q(shelf_pks, comic_codes, rel=rel)
         # The row itself is shelved. Covers the rare "shelved collection
         # with no comics yet" case and short-circuits the comic join
         # when the row is its own match.
-        self_code = self_collection.value
         if self_code in active:
             q |= Q(pk__in=shelf_targets(shelf_pks, self_code))
         return q
