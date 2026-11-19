@@ -278,6 +278,56 @@ describe("add lists dialog", () => {
   });
 });
 
+function mountDialog(taggingDefaults) {
+  const testingPinia = pinia();
+  setActivePinia(testingPinia);
+  useAdminStore().taggingDefaults = taggingDefaults;
+  useAdminStore().loadTaggingDefaults = vi.fn();
+  return mount(AddListsDialog, {
+    props: { modelValue: true },
+    global: { plugins: [testingPinia, vuetify], stubs: STUBS },
+  });
+}
+
+describe("add lists dialog — opening", () => {
+  test("opens on the catalog, first of the tabs, and lists it", async () => {
+    API.searchLists.mockResolvedValue({ data: { results: [] } });
+    const wrapper = mountDialog({});
+    await flushPromises();
+    expect(wrapper.vm.tab).toBe("catalog");
+    const tabs = wrapper.findAll(".v-tab").map((tab) => tab.text());
+    expect(tabs).toEqual([
+      "DieselTech Catalog",
+      "Files",
+      "URL",
+      "Metron",
+      "Story Arcs",
+    ]);
+    expect(API.searchLists).toHaveBeenCalledWith("catalog", "", "");
+  });
+
+  test("Metron and Comic Vine say why they are off and where to turn them on", () => {
+    const wrapper = mountDialog({
+      hasMetronCredentials: false,
+      hasComicvineCredentials: true,
+    });
+    expect(wrapper.vm.hasMetron).toBe(false);
+    expect(wrapper.vm.hasComicvine).toBe(true);
+    expect(wrapper.vm.KEY_NEEDED.metron).toContain("Admin › Tagging");
+  });
+
+  test("a summary counts what is picked on every tab", () => {
+    API.searchLists.mockResolvedValue({ data: { results: [] } });
+    const wrapper = mountDialog({});
+    wrapper.vm.pickedCatalog = ["a", "b"];
+    wrapper.vm.urls = "https://example.invalid/x.cbl";
+    wrapper.vm.metronArcs = "12";
+    expect(wrapper.vm.pickSummary).toBe(
+      "Picked: 2 catalog lists, 1 URL, 1 story arc",
+    );
+  });
+});
+
 describe("add lists dialog — private Metron lists", () => {
   test("a list Metron keeps private is sent and previews as private", async () => {
     API.previewLists.mockResolvedValue({

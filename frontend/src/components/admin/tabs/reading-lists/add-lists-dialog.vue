@@ -7,10 +7,10 @@
       <v-card-text>
         <template v-if="!cards.length">
           <v-tabs v-model="tab" density="compact">
-            <v-tab value="metron">Metron</v-tab>
             <v-tab value="catalog">DieselTech Catalog</v-tab>
             <v-tab value="files">Files</v-tab>
             <v-tab value="url">URL</v-tab>
+            <v-tab value="metron">Metron</v-tab>
             <v-tab value="arcs">Story Arcs</v-tab>
           </v-tabs>
           <v-window v-model="tab" class="tabWindow">
@@ -18,7 +18,10 @@
               <p class="adminProse">
                 Search Metron's reading lists by name. A list's issues arrive 50
                 a page at Metron's rate limit, so they are fetched after Import,
-                in the background. Needs a Metron API key in the Tagging tab.
+                in the background.
+              </p>
+              <p v-if="!hasMetron" class="adminProse keyNeeded">
+                {{ KEY_NEEDED.metron }}
               </p>
               <div class="searchRow">
                 <v-text-field
@@ -26,6 +29,7 @@
                   label="Name"
                   density="compact"
                   hide-details
+                  :disabled="!hasMetron"
                   @keyup.enter="search('metron')"
                 />
                 <v-text-field
@@ -34,12 +38,15 @@
                   density="compact"
                   hide-details
                   class="curatorField"
+                  :disabled="!hasMetron"
                   @keyup.enter="search('metron')"
                 />
                 <v-btn
                   variant="tonal"
                   size="small"
                   :loading="searching"
+                  :disabled="!hasMetron"
+                  :title="hasMetron ? '' : KEY_NEEDED.metron"
                   @click="search('metron')"
                 >
                   Search
@@ -140,21 +147,28 @@
             <v-window-item value="arcs">
               <p class="adminProse">
                 A database's own story arc, one per line. Its issues are fetched
-                after Import, and need that site's API key in the Tagging tab.
-                Comic Vine names an arc's issues by id alone, so its missing
-                issues read poorly; a curated list of the same arc, combined
-                with it, fills in their names.
+                after Import. Comic Vine names an arc's issues by id alone, so
+                its missing issues read poorly; a curated list of the same arc,
+                combined with it, fills in their names.
               </p>
               <v-textarea
                 v-model="metronArcs"
                 label="Metron arc ids"
                 rows="2"
                 density="compact"
+                :disabled="!hasMetron"
+                :hint="hasMetron ? '' : KEY_NEEDED.metron"
+                persistent-hint
               />
               <v-textarea
                 v-model="comicvineArcs"
                 label="Comic Vine arc ids or addresses"
-                hint="An address like comicvine.gamespot.com/civil-war/4045-55766/"
+                :disabled="!hasComicvine"
+                :hint="
+                  hasComicvine
+                    ? 'An address like comicvine.gamespot.com/civil-war/4045-55766/'
+                    : KEY_NEEDED.comicvine
+                "
                 persistent-hint
                 rows="2"
                 density="compact"
@@ -180,6 +194,9 @@
         <v-btn v-if="cards.length" variant="text" @click="cards = []">
           Back
         </v-btn>
+        <span v-if="!cards.length && pickedCount" class="pickSummary">
+          {{ pickSummary }}
+        </span>
         <v-spacer />
         <v-btn variant="text" @click="show = false">Cancel</v-btn>
         <v-btn
@@ -208,8 +225,11 @@
 </template>
 
 <script>
+import { mapState } from "pinia";
+
 import * as API from "@/api/v4/reading-lists";
 import PreviewCard from "@/components/admin/tabs/reading-lists/preview-card.vue";
+import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 const METRON_HEADERS = Object.freeze([
@@ -233,6 +253,16 @@ const arcIds = (text, pattern) =>
     .map((line) => pattern.exec(line.trim())?.[1])
     .filter(Boolean);
 
+// Why a database's inputs are off, and where to turn them on.
+const KEY_NEEDED = Object.freeze({
+  metron:
+    "Needs a Metron API key: add one in Admin › Tagging, under Online Sources.",
+  comicvine:
+    "Needs a Comic Vine API key: add one in Admin › Tagging, under Online Sources.",
+});
+
+const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+
 const CATALOG_HEADERS = Object.freeze([
   { title: "Name", key: "name" },
   { title: "Publisher", key: "publisher" },
@@ -251,6 +281,7 @@ export default {
   emits: ["update:modelValue", "imported"],
   data() {
     return {
+      KEY_NEEDED,
       tab: "catalog",
       metronHeaders: METRON_HEADERS,
       catalogHeaders: CATALOG_HEADERS,
@@ -274,6 +305,29 @@ export default {
     };
   },
   computed: {
+    ...mapState(useAdminStore, {
+      hasMetron: (state) =>
+        Boolean(state.taggingDefaults?.hasMetronCredentials),
+      hasComicvine: (state) =>
+        Boolean(state.taggingDefaults?.hasComicvineCredentials),
+    }),
+    pickSummary() {
+      // What is picked on every tab, not only the one showing.
+      const parts = [
+        [this.pickedCatalog.length, "catalog list", "catalog lists"],
+        [this.files?.length || 0, "file", "files"],
+        [this.urlList.length, "URL", "URLs"],
+        [this.pickedMetron.length, "Metron list", "Metron lists"],
+        [
+          this.metronArcIds.length + this.comicvineArcIds.length,
+          "story arc",
+          "story arcs",
+        ],
+      ]
+        .filter(([count]) => count)
+        .map(([count, one, many]) => plural(count, one, many));
+      return `Picked: ${parts.join(", ")}`;
+    },
     show: {
       get() {
         return this.modelValue;
@@ -320,11 +374,21 @@ export default {
     },
   },
   watch: {
-    modelValue(value) {
-      if (value) this.reset();
+    modelValue: {
+      immediate: true,
+      handler(value) {
+        if (value) this.open();
+      },
     },
   },
   methods: {
+    open() {
+      this.reset();
+      this.tab = "catalog";
+      useAdminStore().loadTaggingDefaults();
+      // The catalog lists itself: browse first, search to narrow.
+      if (!this.catalogResults.length) this.search("catalog");
+    },
     reset() {
       this.cards = [];
       this.choices = {};
@@ -454,6 +518,16 @@ export default {
     align-items: center;
     gap: $space-2;
     margin-bottom: $space-2;
+  }
+
+  .keyNeeded {
+    color: rgb(var(--v-theme-warning));
+  }
+
+  .pickSummary {
+    color: rgb(var(--v-theme-text-secondary));
+    font-size: 0.85em;
+    padding-left: 8px;
   }
 
   .curatorField {
