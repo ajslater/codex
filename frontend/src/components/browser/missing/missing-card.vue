@@ -98,7 +98,7 @@ export default {
           ignored: true,
         });
         useCommonStore().setNotice(
-          "Hidden from the list. Show it again in Edit Entries.",
+          "Hidden from the list. Show it again in Edit Issues.",
         );
         await this.refreshBrowserPage();
       } catch (error) {

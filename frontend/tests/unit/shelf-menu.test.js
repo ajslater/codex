@@ -113,7 +113,7 @@ describe("ShelfMenu — targets", () => {
   test("pks win over pk and normalize to numbers", () => {
     const { wrapper } = mountMenu({ collection: "series", pks: ["1", "2"] });
     expect(wrapper.vm.targetMap).toEqual({ series: [1, 2] });
-    expect(wrapper.vm.title).toBe("Shelves and reading lists for 2 items");
+    expect(wrapper.vm.title).toBe("Shelves & Lists for 2 items");
   });
 
   test("targets cover several collection types", () => {

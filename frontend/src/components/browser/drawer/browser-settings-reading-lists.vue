@@ -24,7 +24,7 @@
           density="compact"
           :icon="mdiFormatListChecks"
           size="small"
-          title="Edit entries"
+          title="Edit Issues"
           variant="text"
           @click="edit(item)"
         />

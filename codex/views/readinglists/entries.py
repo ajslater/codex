@@ -185,7 +185,7 @@ class ReadingListEntryView(ReadingListAccessView):
             .first()
         )
         if entry is None:
-            reason = "No such entry."
+            reason = "No such issue in this list."
             raise ValidationError(reason)
         return entry
 
@@ -273,7 +273,7 @@ class ReadingListReorderView(ReadingListAccessView):
             ordered = list(_entries(reading_list))
             moving = next((entry for entry in ordered if entry.pk == entry_pk), None)
             if moving is None:
-                reason = "No such entry."
+                reason = "No such issue in this list."
                 raise ValidationError(reason)
             ordered.remove(moving)
             ordered.insert(max(0, min(position, len(ordered))), moving)
@@ -312,7 +312,7 @@ class ReadingListCandidatesView(ReadingListAccessView):
             pk=self.kwargs["entry_pk"],
         ).first()
         if entry is None:
-            reason = "No such entry."
+            reason = "No such issue in this list."
             raise ValidationError(reason)
         query = (self.request.GET.get("q") or "").strip()
         qs = Comic.objects.filter(self.get_acl_filter(Comic, self.request.user))

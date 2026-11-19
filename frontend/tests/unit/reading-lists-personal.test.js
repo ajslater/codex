@@ -197,7 +197,7 @@ describe("BrowserSettingsReadingLists", () => {
 
   test("edit opens the entry editor without admin powers", async () => {
     const { wrapper } = mountBlock();
-    await wrapper.find('button[title="Edit entries"]').trigger("click");
+    await wrapper.find('button[title="Edit Issues"]').trigger("click");
     const dialog = wrapper.findComponent({ name: "ReviewDialog" });
     expect(dialog.exists()).toBe(true);
     expect(dialog.attributes("admin")).toBe("false");

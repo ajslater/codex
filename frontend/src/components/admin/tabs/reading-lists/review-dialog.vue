@@ -20,7 +20,7 @@
             size="small"
             variant="tonal"
             :disabled="!reviewCount"
-            :title="reviewCount ? '' : 'No entry needs review.'"
+            :title="reviewCount ? '' : 'No issue needs review.'"
             @click="acceptAll"
           >
             Accept All Best Guesses
@@ -29,7 +29,7 @@
         <p class="adminProse">
           Edits here are saved in Codex only and never change a comic file.
           Dragging a row, or typing its position, locks the list's order: a
-          refresh then only adds new entries beside their neighbours.
+          refresh then only adds new issues beside their neighbours.
         </p>
         <v-progress-linear v-if="loading" indeterminate />
         <v-table density="compact" class="entriesTable">
@@ -106,7 +106,7 @@
                   size="small"
                   density="compact"
                   variant="text"
-                  :title="entry.ignored ? 'Show' : 'Hide from the list'"
+                  :title="entry.ignored ? 'Show in List' : 'Hide from List'"
                   @click="setHidden(entry, !entry.ignored)"
                 />
                 <v-btn
@@ -115,7 +115,7 @@
                   size="small"
                   density="compact"
                   variant="text"
-                  title="Remove this hand-added entry"
+                  title="Remove this issue added by hand"
                   @click="remove(entry)"
                 />
               </td>

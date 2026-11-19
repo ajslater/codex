@@ -197,8 +197,8 @@ export default {
     },
     title() {
       return this.targetCount > 1
-        ? `Shelves and reading lists for ${this.targetCount} items`
-        : "Shelves and reading lists";
+        ? `Shelves & Lists for ${this.targetCount} items`
+        : "Shelves & Lists";
     },
     disabled() {
       return this.targetCount === 0;
