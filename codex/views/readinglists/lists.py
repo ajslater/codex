@@ -158,13 +158,23 @@ def _validated_name(data) -> str:
     return name
 
 
+def _entry_count(reading_list: ReadingList) -> int:
+    """Count the entries a list shows: the menu's annotation, else a query."""
+    count = getattr(reading_list, "count", None)
+    if count is None:
+        count = ReadingListEntry.objects.filter(
+            reading_list=reading_list, ignored=False
+        ).count()
+    return count
+
+
 def list_repr(reading_list: ReadingList, user) -> dict[str, Any]:
     """Return a list for menus and the My Lists dialog."""
     return {
         "pk": reading_list.pk,
         "name": reading_list.name,
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
-        "count": getattr(reading_list, "count", None),
+        "count": _entry_count(reading_list),
         "editable": can_edit(user, reading_list),
     }
 

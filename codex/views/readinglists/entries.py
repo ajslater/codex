@@ -15,7 +15,7 @@ from django.db.models import Max, Q
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from codex.librarian.scribe.readinglists.matcher import SeriesNameIndex
+from codex.librarian.scribe.readinglists.matcher import library_series_index
 from codex.librarian.scribe.readinglists.references import (
     comic_references,
     issue_name,
@@ -301,7 +301,7 @@ class ReadingListCandidatesView(ReadingListAccessView):
     def _series_pks(self, entry: ReadingListEntry, query: str) -> set[int] | None:
         if query:
             return None
-        return SeriesNameIndex().series_for(entry.reference or {})
+        return library_series_index().series_for(entry.reference or {})
 
     def get(self, *_args, **_kwargs) -> Response:
         """Search by ``?q=`` series name, else by the entry's own series names."""

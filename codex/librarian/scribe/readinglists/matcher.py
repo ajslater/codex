@@ -24,12 +24,14 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import lru_cache
 from itertools import batched
 from types import MappingProxyType
 from typing import Any, Final
 
 from comicbox.readinglists import name_variants, normalize_series, parse_issue
 from comicbox.readinglists.match import FoundBy, match_comics
+from django.db.models import Count, Max
 
 from codex.librarian.scribe.readinglists.references import (
     comic_candidates,
@@ -121,16 +123,19 @@ def _best_of(
 
 
 class SeriesNameIndex:
-    """Library series by every name variant, built once per run."""
+    """Library series by every name variant; read-only, so it can be shared."""
 
     def __init__(self) -> None:
         """Index every series name's variants."""
-        self.by_variant: defaultdict[str, set[int]] = defaultdict(set)
+        by_variant: defaultdict[str, set[int]] = defaultdict(set)
         for pk, name in Series.objects.values_list("pk", "name"):
             if not name:
                 continue
             for variant in name_variants({"series": {"name": name}}):
-                self.by_variant[variant].add(pk)
+                by_variant[variant].add(pk)
+        self.by_variant: Mapping[str, frozenset[int]] = MappingProxyType(
+            {variant: frozenset(pks) for variant, pks in by_variant.items()}
+        )
 
     def series_for(self, reference: Mapping[str, Any]) -> set[int]:
         """Return the series whose names could be the reference's series."""
@@ -138,8 +143,28 @@ class SeriesNameIndex:
             return set()
         pks: set[int] = set()
         for variant in name_variants(reference):
-            pks |= self.by_variant.get(variant, set())
+            pks |= self.by_variant.get(variant, frozenset())
         return pks
+
+
+@lru_cache(maxsize=1)
+def _series_index(_series_state: tuple[Any, ...]) -> SeriesNameIndex:
+    """Build the index for one state of the series table."""
+    return SeriesNameIndex()
+
+
+def library_series_index() -> SeriesNameIndex:
+    """
+    Return the series index, built again only when the series change.
+
+    Series are added and deleted, never renamed in place, so their count,
+    highest pk and latest update tell whether the table changed: one
+    aggregate query instead of normalizing every series name again.
+    """
+    state = Series.objects.aggregate(
+        count=Count("pk"), last_pk=Max("pk"), updated=Max("updated_at")
+    )
+    return _series_index(tuple(state.values()))
 
 
 class ListMatcher:
@@ -154,7 +179,7 @@ class ListMatcher:
     def series_index(self) -> SeriesNameIndex:
         """The library's series by name variant."""
         if self._series_index is None:
-            self._series_index = SeriesNameIndex()
+            self._series_index = library_series_index()
         return self._series_index
 
     @property

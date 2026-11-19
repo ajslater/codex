@@ -48,6 +48,9 @@ def _reference(series: str, number: int, **series_extra) -> dict[str, Any]:
 
 
 def _query_count(references: list[dict[str, Any]]) -> tuple[int, list]:
+    # The series index is shared until the series change: build it first, so
+    # each count is the entries' own cost.
+    matcher_module.library_series_index()
     # cachalot would answer a repeated query from its cache and hide it.
     with cachalot_disabled(), CaptureQueriesContext(connection) as context:
         matches = ListMatcher().match(references)

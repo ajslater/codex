@@ -18,11 +18,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from loguru import logger
 
+from codex.librarian.scribe.readinglists import matcher as matcher_module
 from codex.librarian.scribe.readinglists.documents import UNSUPPORTED_FORMAT
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.readinglists.tasks import ReadingListImportTask
 from codex.librarian.scribe.readinglists.worker import ReadingListWorker
-from codex.models import ReadingList, ReadingListEntry, ReadingListSource
+from codex.models import ReadingList, ReadingListEntry, ReadingListSource, Series
 from codex.models.readinglist import ReadingListMatchTier
 from tests.test_reading_list_combine import _CBL
 from tests.test_reading_lists import ReadingListFixture
@@ -194,6 +195,39 @@ class ReadingListApiTests(ReadingListFixture):
         response = self.client.get(_ADMIN)
         assert response.status_code == _FORBIDDEN
 
+    def test_picker_reuses_the_series_index(self) -> None:
+        """The picker builds the series index again only when series change."""
+        reading_list = self._import_cbl()
+        url = f"{_LISTS}/{reading_list.pk}/entries"
+        missing = _data(self.client.get(url, {"filter": "missing"}))["entries"][0]
+        candidates_url = f"{url}/{missing['pk']}/candidates"
+        built = []
+        real = matcher_module.SeriesNameIndex
+
+        class _Counting(real):
+            def __init__(self) -> None:
+                built.append(1)
+                super().__init__()
+
+        imprint = self.comics[0].imprint
+        publisher = self.comics[0].publisher
+        with patch.object(matcher_module, "SeriesNameIndex", _Counting):
+            Series.objects.create(
+                name="Spider-Man", imprint=imprint, publisher=publisher
+            )
+            for _ in range(2):
+                response = self.client.get(candidates_url)
+                assert response.status_code == _OK, response.content
+            assert len(built) == 1
+            amazing = Series.objects.create(
+                name="Amazing Spider-Man", imprint=imprint, publisher=publisher
+            )
+            self.client.get(candidates_url)
+            assert len(built) == 2  # noqa: PLR2004
+        index = matcher_module.library_series_index()
+        reference = {"series": {"name": "The Amazing Spider-Man"}}
+        assert amazing.pk in index.series_for(reference)
+
     def _personal_list(self) -> int:
         """Make a personal list holding #2, then put #1 before it."""
         self.client.force_login(self.user)
@@ -203,6 +237,7 @@ class ReadingListApiTests(ReadingListFixture):
             content_type="application/json",
         )
         assert response.status_code == _CREATED, response.content
+        assert _data(response)["count"] == 1
         pk = _data(response)["pk"]
         response = self.client.post(
             f"{_LISTS}/{pk}/entries",
@@ -227,6 +262,7 @@ class ReadingListApiTests(ReadingListFixture):
             content_type="application/json",
         )
         assert _data(response)["name"] == "Renamed"
+        assert _data(response)["count"] == 2  # noqa: PLR2004
 
     def test_personal_list_duplicate(self) -> None:
         """A duplicate copies every entry into another list of one's own."""
@@ -237,6 +273,7 @@ class ReadingListApiTests(ReadingListFixture):
         assert response.status_code == _CREATED
         copy_pk = _data(response)["pk"]
         assert ReadingListEntry.objects.filter(reading_list_id=copy_pk).count() == 2  # noqa: PLR2004
+        assert _data(response)["count"] == 2  # noqa: PLR2004
         menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
         assert {item["name"] for item in menu} == {"Mine", "Mine (copy)"}
 
