@@ -12,6 +12,13 @@
       />
     </template>
     <v-list class="background-soft-highlight">
+      <CodexListItem
+        v-if="listPk"
+        class="listItem continueListItem"
+        :prepend-icon="mdiPlay"
+        title="Continue Reading"
+        @click="continueList"
+      />
       <MarkReadButton class="listItem" :button="false" :item="item" />
       <ShelfMenu
         v-if="shelfPk"
@@ -37,6 +44,7 @@
         title="Copy to My Lists"
         @click="copyList"
       />
+      <ReadingListExportMenu v-if="listPk" :pk="listPk" />
       <DownloadButton class="listItem" :button="false" :item="downloadItem" />
       <ForceUpdateButton class="listItem" :button="false" :item="item" />
       <UploadCoverButton :item="item" @uploaded="closeMenu" />
@@ -51,6 +59,7 @@ import {
   mdiContentCopy,
   mdiDotsVertical,
   mdiLibraryShelves,
+  mdiPlay,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
@@ -61,6 +70,7 @@ import CodexListItem from "@/components/codex-list-item.vue";
 import DownloadButton from "@/components/download-button.vue";
 import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
+import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -75,6 +85,7 @@ export default {
     DownloadButton,
     ForceUpdateButton,
     MarkReadButton,
+    ReadingListExportMenu,
     RemoveCoverButton,
     ShelfMenu,
     UploadCoverButton,
@@ -91,6 +102,7 @@ export default {
       mdiContentCopy,
       mdiDotsVertical,
       mdiLibraryShelves,
+      mdiPlay,
       showMenu: false,
     };
   },
@@ -98,6 +110,11 @@ export default {
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
     }),
+    listPk() {
+      // A reading list's card: everyone who sees it may read or export it.
+      if (this.item?.collection !== READING_LISTS) return;
+      return this.shelfPk;
+    },
     copyListPk() {
       /*
        * A signed-in user copies any reading list they can see into a list
@@ -136,10 +153,14 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReadingListsStore, ["duplicateList"]),
+    ...mapActions(useReadingListsStore, ["continueReading", "duplicateList"]),
     ...mapActions(useBrowserStore, ["refreshBrowserPage"]),
     closeMenu() {
       this.showMenu = false;
+    },
+    async continueList() {
+      this.closeMenu();
+      await this.continueReading(this.listPk);
     },
     async copyList() {
       this.closeMenu();

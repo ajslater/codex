@@ -123,3 +123,27 @@ describe("BrowserCardMenu — Copy to My Lists", () => {
     expect(document.querySelector(".copyListItem")).toBeNull();
   });
 });
+
+describe("BrowserCardMenu — reading a list", () => {
+  test("a reading list card offers Continue Reading and Export to anyone", async () => {
+    const wrapper = await mountOpenMenu(
+      { collection: "arcs", ids: [5] },
+      { loggedIn: false },
+    );
+    expect(document.querySelector(".continueListItem").textContent).toContain(
+      "Continue Reading",
+    );
+    expect(document.querySelector(".exportListItem").textContent).toContain(
+      "Export",
+    );
+    await wrapper.vm.continueList();
+    expect(useReadingListsStore().continueReading).toHaveBeenCalledWith(5);
+    expect(wrapper.vm.showMenu).toBe(false);
+  });
+
+  test("other cards get neither", async () => {
+    await mountOpenMenu({ collection: "series", ids: [7] });
+    expect(document.querySelector(".continueListItem")).toBeNull();
+    expect(document.querySelector(".exportListItem")).toBeNull();
+  });
+});
