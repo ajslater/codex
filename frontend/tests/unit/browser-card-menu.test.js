@@ -39,17 +39,25 @@ const STUBS = Object.freeze({
 
 const wrappers = [];
 
-async function mountOpenMenu(item, { loggedIn = true } = {}) {
+async function mountOpenMenu(
+  item,
+  { loggedIn = true, listEditable = false, route = {} } = {},
+) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
+      browser: { page: { listEditable } },
       shelves: { shelves: [] },
     },
     stubActions: true,
   });
   const wrapper = mount(BrowserCardMenu, {
     attachTo: document.body,
-    global: { plugins: [pinia, vuetify], stubs: STUBS },
+    global: {
+      plugins: [pinia, vuetify],
+      stubs: STUBS,
+      mocks: { $route: { params: route } },
+    },
     props: { item },
   });
   wrappers.push(wrapper);
@@ -145,5 +153,40 @@ describe("BrowserCardMenu — reading a list", () => {
     await mountOpenMenu({ collection: "series", ids: [7] });
     expect(document.querySelector(".continueListItem")).toBeNull();
     expect(document.querySelector(".exportListItem")).toBeNull();
+  });
+});
+
+describe("BrowserCardMenu — Remove from List", () => {
+  const ROUTE = Object.freeze({ collection: "arcs", pks: "5" });
+
+  test("a comic inside a list its viewer edits can be removed", async () => {
+    const wrapper = await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: true, route: ROUTE },
+    );
+    const lists = useReadingListsStore();
+    lists.removeFromList.mockResolvedValue(true);
+    expect(document.querySelector(".removeFromListItem").textContent).toContain(
+      "Remove from List",
+    );
+    await wrapper.vm.removeFromThisList();
+    expect(lists.removeFromList).toHaveBeenCalledWith(5, [42]);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
+  });
+
+  test("no Remove where the viewer may not edit the list", async () => {
+    await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: false, route: ROUTE },
+    );
+    expect(document.querySelector(".removeFromListItem")).toBeNull();
+  });
+
+  test("no Remove outside a list", async () => {
+    await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: true, route: { collection: "series", pks: "3" } },
+    );
+    expect(document.querySelector(".removeFromListItem")).toBeNull();
   });
 });

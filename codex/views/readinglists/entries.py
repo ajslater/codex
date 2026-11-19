@@ -31,6 +31,7 @@ from codex.views.readinglists.access import (
     can_edit,
     entries_acl_q,
     to_pk,
+    to_pks,
 )
 
 _CANDIDATE_LIMIT: Final = 50
@@ -235,6 +236,31 @@ class ReadingListEntryView(ReadingListAccessView):
         return Response({"deleted": entry.manual})
 
 
+class ReadingListRemoveView(ReadingListAccessView):
+    """
+    POST ``{comics}``: take comics out of a list, in place.
+
+    The entry DELETE's rule for each of their entries: one added by hand
+    goes, any other is hidden, since its source would bring it back.
+    """
+
+    def post(self, *_args, **_kwargs) -> Response:
+        """Remove or hide each entry of the comics; say how many of each."""
+        reading_list = self.get_reading_list()
+        pks = to_pks(self.data_value("comics"), "comics")
+        entries = ReadingListEntry.objects.filter(
+            reading_list=reading_list, comic_id__in=pks
+        )
+        with transaction.atomic():
+            removed, _ = entries.filter(manual=True).delete()
+            hidden = entries.filter(manual=False, ignored=False).update(ignored=True)
+            if removed:
+                _renumber(reading_list, _entries(reading_list))
+            else:
+                reading_list.save()
+        return Response({"removed": removed, "hidden": hidden})
+
+
 class ReadingListReorderView(ReadingListAccessView):
     """POST an entry's new position. A hand reorder locks the list's order."""
 
@@ -321,6 +347,7 @@ __all__ = (
     "ReadingListCandidatesView",
     "ReadingListEntriesView",
     "ReadingListEntryView",
+    "ReadingListRemoveView",
     "ReadingListReorderView",
     "add_comics",
     "can_edit",

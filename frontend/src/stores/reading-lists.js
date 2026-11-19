@@ -33,6 +33,10 @@ export const EXPORT_FORMATS = Object.freeze([
   { value: "cbl", title: "ComicRack CBL" },
 ]);
 
+function countComics(count) {
+  return `${count} comic${count === 1 ? "" : "s"}`;
+}
+
 // Reading list actions happen outside forms: they report as notices.
 function reportError(error) {
   useCommonStore().setErrorNotice(error);
@@ -170,6 +174,28 @@ export const useReadingListsStore = defineStore("readingLists", {
         await this.loadMyLists();
       } catch (error) {
         reportError(error);
+      }
+    },
+    async removeFromList(pk, comics) {
+      // Hand-added comics go; any other is hidden, as its source would
+      // bring it back. Returns whether anything changed.
+      try {
+        const response = await API.removeComics(pk, comics);
+        const { removed = 0, hidden = 0 } = response.data || {};
+        const parts = [];
+        if (removed) parts.push(`Removed ${countComics(removed)}`);
+        if (hidden) parts.push(`hid ${countComics(hidden)} its sources hold`);
+        const text =
+          parts.length > 0
+            ? `${parts.join(", ")} from the list.`
+            : "Those comics were not in the list.";
+        useCommonStore().setNotice(
+          text.charAt(0).toUpperCase() + text.slice(1),
+        );
+        return Boolean(removed || hidden);
+      } catch (error) {
+        reportError(error);
+        return false;
       }
     },
     async addTargets(pk, targets) {

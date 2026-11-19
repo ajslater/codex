@@ -1,10 +1,7 @@
-"""
-Managing reading lists in the browser: the kind toggle, the add-to-list
-menu, and removing comics in place.
-"""
+"""Managing lists in the browser: kind toggle, add-to-list menu, removing."""
 
 import json
-from typing import Final, override
+from typing import Any, Final, override
 
 from django.contrib.auth.models import User
 from django.test import Client
@@ -106,3 +103,58 @@ class AddToListMenuTests(ManageFixture):
         """Imported and hand-made global lists, not the lists from tags."""
         self.client.force_login(self.admin)
         assert self._menu() == {"Imported", "Hand Made"}
+
+
+class RemoveFromListTests(ManageFixture):
+    """Remove comics from a list in place, as the entry DELETE does."""
+
+    def _remove(self, reading_list: ReadingList, comics) -> Any:
+        return self.client.post(
+            f"/api/v4/reading-lists/{reading_list.pk}/remove",
+            data=json.dumps({"comics": comics}),
+            content_type="application/json",
+        )
+
+    def test_a_hand_added_comic_goes(self) -> None:
+        """An entry added by hand is deleted; the rest close up."""
+        c3, c4 = self.comics[2:]
+        response = self._remove(self.mine, [c3.pk])
+        assert response.status_code == _OK, response.content
+        assert response.json()["data"] == {"removed": 1, "hidden": 0}
+        rows = list(
+            ReadingListEntry.objects.filter(reading_list=self.mine).values_list(
+                "comic_id", "position"
+            )
+        )
+        assert rows == [(c4.pk, 0)]
+
+    def test_a_sourced_entry_is_hidden(self) -> None:
+        """An entry a source supplies would come back: it is hidden instead."""
+        self.client.force_login(self.admin)
+        c1 = self.comics[0]
+        ReadingListEntry.objects.filter(reading_list=self.imported).update(
+            manual=False
+        )
+        response = self._remove(self.imported, [c1.pk])
+        assert response.json()["data"] == {"removed": 0, "hidden": 1}
+        assert ReadingListEntry.objects.get(
+            reading_list=self.imported, comic=c1
+        ).ignored
+
+    def test_only_editors_remove(self) -> None:
+        """A reader may not change a global list."""
+        response = self._remove(self.imported, [self.comics[0].pk])
+        assert response.status_code == 403  # noqa: PLR2004
+
+    def test_bad_pks_are_a_400(self) -> None:
+        """Comics must be pks."""
+        response = self._remove(self.mine, ["x"])
+        assert response.status_code == _BAD_REQUEST
+
+    def test_the_page_says_whether_the_list_is_editable(self) -> None:
+        """Inside a list, the page tells the menus whether to offer Remove."""
+        params = {"filters": json.dumps({}), "search": "", "order_by": "sort_name"}
+        response = self.client.get(f"/api/v4/browse/arcs/{self.mine.pk}", params)
+        assert response.json()["data"]["listEditable"] is True
+        response = self.client.get(f"/api/v4/browse/arcs/{self.imported.pk}", params)
+        assert response.json()["data"]["listEditable"] is False

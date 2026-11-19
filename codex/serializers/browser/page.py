@@ -304,7 +304,8 @@ class BrowserPageSerializer(Serializer):
     # that fall on this page, and how many the list is missing.
     missing_entries = ListField(child=DictField(), read_only=True, required=False)
     missing_count = IntegerField(read_only=True, required=False)
-    missing_editable = BooleanField(read_only=True, required=False)
+    # Inside one reading list: whether the viewer may change it.
+    list_editable = BooleanField(read_only=True, required=False)
 
     @staticmethod
     def _book_row(item, columns, book_shelves, *, reading_order: bool) -> dict:

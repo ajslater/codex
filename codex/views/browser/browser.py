@@ -418,15 +418,21 @@ class BrowserView(BrowserTitleView):
             full_count,
         )
 
-    def _is_reading_order_in_a_list(self) -> bool:
-        """Whether the page is one reading list's comics, in Reading Order."""
+    def _is_one_list(self) -> bool:
+        """Whether the page is one reading list's comics."""
         pks = self.kwargs.get("pks") or ()
         return (
             self.kwargs.get("collection") == STORY_ARC_COLLECTION
             and len(pks) == 1
             and bool(pks[0])
-            and self.order_key == READING_ORDER
         )
+
+    def _list_editable(self) -> bool:
+        """Whether the viewer may change the list the page shows."""
+        if not self._is_one_list():
+            return False
+        reading_list = ReadingList.objects.filter(pk=self.kwargs["pks"][0]).first()
+        return bool(reading_list and can_edit(self.request.user, reading_list))
 
     def _wants_missing_entries(self, *, reading_order: bool) -> bool:
         """
@@ -460,13 +466,7 @@ class BrowserView(BrowserTitleView):
         entries, count = page_missing_entries(
             self, user, list_pk, bounds, reverse=reverse
         )
-        reading_list = ReadingList.objects.filter(pk=list_pk).first()
-        return {
-            "missing_entries": entries,
-            "missing_count": count,
-            # Its editors may find a missing issue's comic or hide it.
-            "missing_editable": bool(reading_list and can_edit(user, reading_list)),
-        }
+        return {"missing_entries": entries, "missing_count": count}
 
     @override
     def get_object(self) -> MappingProxyType:
@@ -474,7 +474,7 @@ class BrowserView(BrowserTitleView):
         collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count = (
             self._get_collection_and_books()
         )
-        reading_order = self._is_reading_order_in_a_list()
+        reading_order = self._is_one_list() and self.order_key == READING_ORDER
 
         # get additional context
         breadcrumbs = self.get_breadcrumbs()
@@ -500,6 +500,9 @@ class BrowserView(BrowserTitleView):
                 "search_error": self.search_error,
                 "fts": self.fts_mode,
                 "reading_order": reading_order,
+                # Its editors may remove comics in place, and find a missing
+                # issue's comic or hide it.
+                "list_editable": self._list_editable(),
                 **self._missing_entries(reading_order=reading_order),
             }
         )

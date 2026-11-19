@@ -132,7 +132,7 @@ export default {
         return [...collections, ...books];
       },
       missingEntries: (state) => state.page.missingEntries,
-      missingEditable: (state) => Boolean(state.page.missingEditable),
+      missingEditable: (state) => Boolean(state.page.listEditable),
       orderReverse: (state) => Boolean(state.settings.orderReverse),
       tableModeRequested: (state) => state.settings.viewMode === "table",
       tableRowCount: (state) =>

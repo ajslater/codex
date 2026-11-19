@@ -38,6 +38,13 @@
         </template>
       </ShelfMenu>
       <CodexListItem
+        v-if="removablePk"
+        class="listItem removeFromListItem"
+        :prepend-icon="mdiPlaylistRemove"
+        title="Remove from List"
+        @click="removeFromThisList"
+      />
+      <CodexListItem
         v-if="copyListPk"
         class="listItem copyListItem"
         :prepend-icon="mdiContentCopy"
@@ -60,6 +67,7 @@ import {
   mdiDotsVertical,
   mdiLibraryShelves,
   mdiPlay,
+  mdiPlaylistRemove,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
@@ -103,6 +111,7 @@ export default {
       mdiDotsVertical,
       mdiLibraryShelves,
       mdiPlay,
+      mdiPlaylistRemove,
       showMenu: false,
     };
   },
@@ -110,6 +119,21 @@ export default {
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
     }),
+    ...mapState(useBrowserStore, {
+      listEditable: (state) => Boolean(state.page.listEditable),
+    }),
+    openListPk() {
+      // The reading list the page shows, if it shows one.
+      const { collection, pks } = this.$route?.params || {};
+      if (collection !== READING_LISTS) return 0;
+      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+    },
+    removablePk() {
+      // A comic inside a list this user may change.
+      if (!this.listEditable || !this.openListPk) return;
+      if (this.item?.collection !== "comics") return;
+      return this.shelfPk;
+    },
     listPk() {
       // A reading list's card: everyone who sees it may read or export it.
       if (this.item?.collection !== READING_LISTS) return;
@@ -153,10 +177,20 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReadingListsStore, ["continueReading", "duplicateList"]),
+    ...mapActions(useReadingListsStore, [
+      "continueReading",
+      "duplicateList",
+      "removeFromList",
+    ]),
     ...mapActions(useBrowserStore, ["refreshBrowserPage"]),
     closeMenu() {
       this.showMenu = false;
+    },
+    async removeFromThisList() {
+      this.closeMenu();
+      if (await this.removeFromList(this.openListPk, [this.removablePk])) {
+        await this.refreshBrowserPage();
+      }
     },
     async continueList() {
       this.closeMenu();

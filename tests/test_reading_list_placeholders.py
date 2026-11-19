@@ -111,10 +111,10 @@ class PlaceholderTests(PlaceholderFixture):
 
     def test_only_editors_get_the_menu(self) -> None:
         """A global list is an admin's to edit, not a reader's."""
-        assert self._page(1)["missingEditable"] is False
+        assert self._page(1)["listEditable"] is False
         admin = User.objects.create_user(username="admin", password=_PW, is_staff=True)
         self.client.force_login(admin)
-        assert self._page(1)["missingEditable"] is True
+        assert self._page(1)["listEditable"] is True
 
     def test_an_entry_carries_what_the_card_shows(self) -> None:
         """Series, issue, year and type, and the entry pk for its menu."""

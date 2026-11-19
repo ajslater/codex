@@ -43,6 +43,19 @@
             </template>
           </ShelfMenu>
           <v-btn
+            v-if="removeListPk"
+            v-tooltip="{ text: 'Remove from List', openDelay: 500 }"
+            class="removeFromListButton"
+            :disabled="!selectedComicPks.length"
+            density="compact"
+            size="small"
+            variant="text"
+            @click="removeSelected"
+          >
+            <v-icon :icon="mdiPlaylistRemove" />
+            <span class="actionLabel">Remove</span>
+          </v-btn>
+          <v-btn
             v-tooltip="{ text: 'Mark Read', openDelay: 500 }"
             :disabled="!hasSelection"
             density="compact"
@@ -123,6 +136,7 @@ import {
   mdiClose,
   mdiDownload,
   mdiLibraryShelves,
+  mdiPlaylistRemove,
   mdiTagOutline,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
@@ -131,7 +145,9 @@ import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.v
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import ShelfMenu from "@/components/shelf-menu.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 const CHILD_WARNING_LIMIT = 99;
 
@@ -150,6 +166,7 @@ export default {
       mdiClose,
       mdiDownload,
       mdiLibraryShelves,
+      mdiPlaylistRemove,
       mdiTagOutline,
       showMetadataDialog: false,
       showForceUpdateConfirm: false,
@@ -165,6 +182,19 @@ export default {
       "compositeItem",
       "selectedPksByCollection",
     ]),
+    ...mapState(useBrowserStore, {
+      listEditable: (state) => Boolean(state.page.listEditable),
+    }),
+    removeListPk() {
+      // Inside a reading list this user may change: remove in place.
+      if (!this.listEditable) return 0;
+      const { collection, pks } = this.$route?.params || {};
+      if (collection !== "arcs") return 0;
+      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+    },
+    selectedComicPks() {
+      return this.selectedPksByCollection?.comics || [];
+    },
     forceUpdateSubject() {
       const itemNoun = this.selectedCount === 1 ? "item" : "items";
       return `across ${this.selectedCount} selected ${itemNoun}`;
@@ -177,6 +207,16 @@ export default {
       "download",
       "forceUpdate",
     ]),
+    ...mapActions(useBrowserStore, ["refreshBrowserPage"]),
+    ...mapActions(useReadingListsStore, ["removeFromList"]),
+    async removeSelected() {
+      const comics = this.selectedComicPks;
+      if (!comics.length) return;
+      if (await this.removeFromList(this.removeListPk, comics)) {
+        this.clearSelection();
+        await this.refreshBrowserPage();
+      }
+    },
     openTags() {
       if (this.compositeItem) {
         this.showMetadataDialog = true;

@@ -4,6 +4,7 @@
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
+import { setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/api/v4/reading-lists", () => ({
@@ -22,6 +23,7 @@ vi.mock("@/api/v4/reading-lists", () => ({
   updateEntry: vi.fn(),
   acceptEntries: vi.fn(),
   exportURL: (pk, fmt) => `/export/${pk}/${fmt}`,
+  removeComics: vi.fn(),
 }));
 
 import * as API from "@/api/v4/reading-lists";
@@ -250,6 +252,19 @@ describe("add lists dialog — private Metron lists", () => {
       ],
     );
     expect(wrapper.vm.choices["metron_list:7"].private).toBe(true);
+  });
+});
+
+describe("removeFromList", () => {
+  test("says what it removed and what it hid", async () => {
+    setActivePinia(pinia());
+    API.removeComics.mockResolvedValue({ data: { removed: 1, hidden: 2 } });
+    const changed = await useReadingListsStore().removeFromList(5, [1, 2, 3]);
+    expect(changed).toBe(true);
+    expect(API.removeComics).toHaveBeenCalledWith(5, [1, 2, 3]);
+    expect(useCommonStore().setNotice).toHaveBeenCalledWith(
+      "Removed 1 comic, hid 2 comics its sources hold from the list.",
+    );
   });
 });
 
