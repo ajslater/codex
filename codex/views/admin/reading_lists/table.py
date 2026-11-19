@@ -225,15 +225,19 @@ def _queue_fetch(requests: list[FetchRequest]) -> None:
 
 
 def _refresh(reading_lists: list[ReadingList]) -> dict[str, int]:
+    """
+    Fetch every remote source again.
+
+    A source that changed is recombined by the import that follows, so
+    nothing else is queued here. Lists from tags or uploads have nothing
+    to fetch.
+    """
     requests = [
         request
         for reading_list in reading_lists
         for request in refresh_requests(reading_list)
     ]
     _queue_fetch(requests)
-    # Lists from tags or uploads have nothing to fetch: recombine them.
-    pks = tuple(reading_list.pk for reading_list in reading_lists)
-    LIBRARIAN_QUEUE.put(ReadingListRecombineTask(list_pks=pks))
     return {"queued": len(requests)}
 
 

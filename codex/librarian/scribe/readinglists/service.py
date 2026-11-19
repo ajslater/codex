@@ -18,7 +18,7 @@ from django.utils.timezone import now
 
 from codex.choices.limits import MAX_NAME_LEN
 from codex.librarian.scribe.readinglists.combine import document_of, recombine
-from codex.librarian.scribe.readinglists.documents import from_json
+from codex.librarian.scribe.readinglists.documents import ENTRIES_KEY, from_json
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.overlay import Overlay
 from codex.models.readinglist import (
@@ -207,11 +207,13 @@ def refresh_source(
     """
     Replace a source's document with a fresh fetch and recompute its list.
 
-    ``None`` means the remote said it is unchanged. Returns whether the
+    ``None`` means the remote said it is unchanged. A document with no
+    issues never replaces a stored one: a remote that answers with an
+    empty list has more likely failed than emptied it. Returns whether the
     list changed.
     """
     source.fetched_at = now()
-    if document is None:
+    if not document or not document.get(ENTRIES_KEY):
         source.save(update_fields=("fetched_at", "updated_at"))
         return False
     spec = SourceSpec.of(document, source.kind, source.ref)
@@ -222,6 +224,7 @@ def refresh_source(
     source.revision = spec.revision
     source.ref = spec.ref
     source.attribution_source = spec.attribution_source or source.attribution_source
+    source.attribution_url = spec.attribution_url or source.attribution_url
     source.ordered = document.get("ordered") is not False
     source.save()
     recombine(source.reading_list, matcher)

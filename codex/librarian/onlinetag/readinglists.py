@@ -22,7 +22,11 @@ from django.utils.timezone import now
 
 from codex.librarian.onlinetag.session_state import CLIENT_NAME
 from codex.librarian.onlinetag.tasks import OnlineTagTask
-from codex.librarian.scribe.readinglists.documents import check_format, to_json
+from codex.librarian.scribe.readinglists.documents import (
+    ENTRIES_KEY,
+    check_format,
+    to_json,
+)
 from codex.librarian.scribe.readinglists.errors import add_reading_list_error
 from codex.librarian.scribe.readinglists.service import REMOTE_KINDS
 from codex.librarian.scribe.readinglists.status import ReadingListFetchStatus
@@ -44,6 +48,7 @@ _METRON_KINDS: Final = frozenset(
 # Comic Vine has no conditional request and a small hourly budget, so its
 # arcs are fetched again only when an admin asks.
 _SCHEDULED_KINDS: Final = REMOTE_KINDS - {ReadingListSourceKind.COMICVINE_ARC}
+EMPTY_REFRESH: Final = "The list came back with no issues; the stored list is kept."
 
 
 @dataclass(frozen=True)
@@ -135,6 +140,12 @@ def _catalog_unchanged(session: ReadingListSession, request: FetchRequest) -> bo
     return entry is not None and (entry.path, entry.sha) == (request.ref, request.sha)
 
 
+def _check_not_emptied(request: FetchRequest, result) -> None:
+    """Refuse a refresh that would replace a stored list with nothing."""
+    if request.source_pk is not None and not result.reading_list.get(ENTRIES_KEY):
+        raise ReadingListError(EMPTY_REFRESH)
+
+
 def _fetch(session: ReadingListSession, request: FetchRequest):
     """Fetch one request; None when the remote list has not changed."""
     match request.kind:
@@ -201,6 +212,7 @@ class ReadingListFetcher(WorkerStatusBase):
                 result = _fetch(session, request)
                 if result is not None:
                     check_format(result)
+                    _check_not_emptied(request, result)
             except OnlineLookupAbortedError as exc:
                 self.log.warning(f"Reading list fetch stopped: {exc}")
                 add_reading_list_error(request.kind, request.ref, str(exc))
