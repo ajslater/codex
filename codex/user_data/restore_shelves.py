@@ -34,7 +34,7 @@ class RestoreReport(Protocol):
 LEGACY_FAVORITES_SHELF_NAME: Final = "Favorites"
 
 
-def _has_table(store: SidecarStore, table: str) -> bool:
+def has_table(store: SidecarStore, table: str) -> bool:
     """Whether the sidecar carries ``table`` (older backups differ)."""
     row = (
         store.connection()
@@ -134,7 +134,7 @@ def restore_shelf_items(
         resolve_pks,
         dry_run=dry_run,
     )
-    if _has_table(store, "favorites"):
+    if has_table(store, "favorites"):
         _restore_shelf_item_rows(
             store.fetchall("favorites"),
             "favorites",

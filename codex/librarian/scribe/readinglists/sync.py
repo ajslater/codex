@@ -45,7 +45,7 @@ from codex.models.readinglist import (
 
 STORY_LIST_TYPE: Final = "story"
 _BATCH: Final = 1000
-_HAND_EDITED: Final = (
+HAND_EDITED: Final = (
     Q(manual=True)
     | Q(ignored=True)
     | Q(
@@ -84,7 +84,7 @@ def is_tags_only(reading_list: ReadingList) -> bool:
     if sources.exclude(kind=ReadingListSourceKind.TAGS).exists():
         return False
     entries = ReadingListEntry.objects.filter(reading_list=reading_list)
-    return not entries.filter(_HAND_EDITED).exists()
+    return not entries.filter(HAND_EDITED).exists()
 
 
 def rebuild_from_tags(

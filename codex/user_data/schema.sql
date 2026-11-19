@@ -92,6 +92,69 @@ CREATE TABLE IF NOT EXISTS shelf_items (
     PRIMARY KEY (username, shelf_name, collection, identifier_json)
 );
 
+-- Reading lists a person made, imported or edited, keyed by the list's
+-- UUID, which survives a restore. ``username`` is empty for a global list.
+-- A list that only mirrors its story-arc tags is not stored: the tag sync
+-- rebuilds it.
+CREATE TABLE IF NOT EXISTS reading_lists (
+    uuid TEXT NOT NULL PRIMARY KEY,
+    username TEXT NOT NULL DEFAULT '',
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    list_notes TEXT NOT NULL DEFAULT '',
+    list_type TEXT NOT NULL DEFAULT '',
+    start_year INTEGER,
+    end_year INTEGER,
+    edited_fields TEXT NOT NULL DEFAULT '[]',
+    order_locked INTEGER NOT NULL DEFAULT 0,
+    extra TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT
+);
+
+-- A list's sources. ``document`` is the comicbox list as fetched or
+-- uploaded, as JSON; a tags source has none, its arc ``ref`` is enough.
+CREATE TABLE IF NOT EXISTS reading_list_sources (
+    list_uuid TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    ref TEXT NOT NULL,
+    revision TEXT NOT NULL DEFAULT '',
+    attribution_source TEXT NOT NULL DEFAULT '',
+    attribution_url TEXT NOT NULL DEFAULT '',
+    rank INTEGER NOT NULL DEFAULT 0,
+    ordered INTEGER NOT NULL DEFAULT 1,
+    document TEXT,
+    fetched_at TEXT,
+    PRIMARY KEY (list_uuid, kind, ref)
+);
+
+-- A list's entries in order, with every hand edit. The comic is its path;
+-- ``sources`` names the entry's sources as [kind, ref] pairs.
+CREATE TABLE IF NOT EXISTS reading_list_entries (
+    list_uuid TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    comic_path TEXT,
+    reference TEXT NOT NULL DEFAULT '{}',
+    series_name TEXT NOT NULL DEFAULT '',
+    issue TEXT NOT NULL DEFAULT '',
+    year INTEGER,
+    match_tier TEXT NOT NULL DEFAULT '',
+    needs_review INTEGER NOT NULL DEFAULT 0,
+    ignored INTEGER NOT NULL DEFAULT 0,
+    manual INTEGER NOT NULL DEFAULT 0,
+    entry_type TEXT NOT NULL DEFAULT '',
+    sources TEXT NOT NULL DEFAULT '[]',
+    PRIMARY KEY (list_uuid, position)
+);
+
+-- A saved answer "this list series is that library series", the series by
+-- its name chain (see identifiers.py).
+CREATE TABLE IF NOT EXISTS reading_list_series_mappings (
+    series_key TEXT NOT NULL,
+    year INTEGER NOT NULL DEFAULT 0,
+    series_json TEXT NOT NULL,
+    PRIMARY KEY (series_key, year)
+);
+
 -- A user's API keys, as hashes only: the plain key is never stored, so a
 -- backup can restore a key that still logs in without ever holding it.
 -- Names are unique per user, so (username, name) is the stable key.

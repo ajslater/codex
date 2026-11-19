@@ -25,6 +25,7 @@ from loguru import logger
 
 from codex.collection import Collection
 from codex.user_data.restore_api_keys import restore_api_keys
+from codex.user_data.restore_reading_lists import restore_reading_lists
 from codex.user_data.restore_shelves import (
     resolve_filter_shelves,
     restore_shelf_items,
@@ -98,6 +99,10 @@ def restore(
         _restore_tagging_defaults(store, report, dry_run=dry_run)
         _restore_settings_defaults(store, report, dry_run=dry_run)
         _restore_bookmarks(store, report, dry_run=dry_run)
+        # Before the shelf items and saved filters, which find lists by UUID.
+        restore_reading_lists(
+            store, report, _resolve_browse_collection_pks, dry_run=dry_run
+        )
         restore_shelves(store, report, dry_run=dry_run)
         restore_shelf_items(
             store, report, _resolve_browse_collection_pks, dry_run=dry_run

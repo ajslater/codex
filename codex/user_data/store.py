@@ -31,7 +31,9 @@ if TYPE_CHECKING:
 # 3: api_keys, as hashes.
 # 4: an ``arcs`` identifier names a reading list, ``[name, uuid]``;
 # settings_filters.reading_lists, as uuids.
-SCHEMA_VERSION: Final[int] = 4
+# 5: reading_lists, reading_list_sources, reading_list_entries and
+# reading_list_series_mappings.
+SCHEMA_VERSION: Final[int] = 5
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 
 # Matches main DB pragmas. ``foreign_keys=OFF`` is deliberate: the

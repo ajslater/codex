@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Final
 from loguru import logger
 
 from codex.user_data import serializers
+from codex.user_data.dump_reading_lists import READING_LIST_TABLES, dump_reading_lists
 from codex.user_data.store import SidecarStore, get_store
 
 if TYPE_CHECKING:
@@ -45,6 +46,7 @@ _TRACKED_TABLES: Final[tuple[str, ...]] = (
     "timestamps",
     "tagging_defaults",
     "settings_defaults",
+    *READING_LIST_TABLES,
 )
 
 
@@ -191,6 +193,7 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         SettingsBrowserLastRoute.objects.select_related("browser__user"),
         serializers.serialize_settings_last_route,
     )
+    counts.update(dump_reading_lists(store))
 
     return counts
 

@@ -292,9 +292,10 @@ class ListMatcher:
         return series
 
     @classmethod
-    def _match_series_ids(
+    def _wanted_by_series_id(
         cls, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
-    ) -> None:
+    ) -> list[tuple[int, set[tuple[str, str]], IssueKey]]:
+        """Return the open entries that carry series ids and an issue."""
         wanted: list[tuple[int, set[tuple[str, str]], IssueKey]] = []
         for position, reference in enumerate(references):
             if results[position] is not None:
@@ -303,7 +304,13 @@ class ListMatcher:
             issue = _issue_key(reference)
             if ids and issue is not None:
                 wanted.append((position, ids, issue))
-        if not wanted:
+        return wanted
+
+    @classmethod
+    def _match_series_ids(
+        cls, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
+    ) -> None:
+        if not (wanted := cls._wanted_by_series_id(references, results)):
             return
         library = cls._library_series(set().union(*(ids for _, ids, _ in wanted)))
         found = _comics_by_issue(pk for pks in library.values() for pk in pks)
